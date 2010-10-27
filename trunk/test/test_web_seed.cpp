@@ -48,7 +48,7 @@ using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
-	, int proxy, int port, char const* protocol, bool url_seed)
+	, int proxy, int port, char const* protocol, bool url_seed, bool chunked_encoding)
 {
 	using namespace libtorrent;
 
@@ -63,8 +63,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== %s ==== %s ===\n\n\n"
-		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed");
+	fprintf(stderr, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s ==== seed: %s === transfer-encoding: %s\n\n\n"
+		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed", chunked_encoding ? "chunked": "none");
 	
 	if (proxy)
 	{
@@ -187,7 +187,7 @@ sha1_hash file_hash(std::string const& name)
 }
 
 // test_url_seed determines whether to use url-seed or http-seed
-int run_suite(char const* protocol, bool test_url_seed)
+int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 {
 	using namespace libtorrent;
 
@@ -221,7 +221,7 @@ int run_suite(char const* protocol, bool test_url_seed)
 		fs.add_file("seed", sizeof(random_data));
 	}
 
-	int port = start_web_server(strcmp(protocol, "https") == 0);
+	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
 
 	libtorrent::create_torrent t(fs, 16, 0, libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
@@ -262,12 +262,12 @@ int run_suite(char const* protocol, bool test_url_seed)
 	}
 
 	for (int i = 0; i < 6; ++i)
-		test_transfer(torrent_file, i, port, protocol, test_url_seed);
+		test_transfer(torrent_file, i, port, protocol, test_url_seed, chunked_encoding);
 	
 	if (test_url_seed)
 	{
 		torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
-		test_transfer(torrent_file, 0, port, protocol, test_url_seed);
+		test_transfer(torrent_file, 0, port, protocol, test_url_seed, chunked_encoding);
 	}
 
 	stop_web_server();
@@ -280,10 +280,16 @@ int test_main()
 	int ret = 0;
 	for (int i = 0; i < 2; ++i)
 	{
+		// we only support chunked encoding for
+		// URL seeds (not HTTP seeds).
+		// that's why the variable limit on this loop
+		for (int j = 0; j < (i==0?2:1); ++j)
+		{
 #ifdef TORRENT_USE_OPENSSL
-		run_suite("https", i);
+			run_suite("https", i, j);
 #endif
-		run_suite("http", i);
+			run_suite("http", i, j);
+		}
 	}
 	return ret;
 }

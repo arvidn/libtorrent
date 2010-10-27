@@ -621,7 +621,7 @@ namespace libtorrent
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
 		char* release_disk_receive_buffer();
 		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
-		void cut_receive_buffer(int size, int packet_size);
+		void cut_receive_buffer(int size, int packet_size, int offset = 0);
 		void reset_recv_buffer(int packet_size);
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 

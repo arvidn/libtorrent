@@ -6848,8 +6848,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
 		m_ses.add_failed_bytes(b);
-		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-			<= m_stat.total_payload_download());
+//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+//			<= m_stat.total_payload_download());
 	}
 
 	int torrent::num_seeds() const
