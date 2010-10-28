@@ -88,7 +88,7 @@ void bind_create_torrent()
         .def("priv", &create_torrent::priv)
         ;
 
-    def("add_files", add_files0);
+    def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));
     def("set_piece_hashes", set_piece_hashes0);
     def("set_piece_hashes", set_piece_hashes_callback);
 
