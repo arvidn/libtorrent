@@ -374,8 +374,11 @@ namespace libtorrent
 		lazy_entry const* info(char const* key) const
 		{
 			if (m_info_dict.type() == lazy_entry::none_t)
+			{
+				error_code ec;
 				lazy_bdecode(m_info_section.get(), m_info_section.get()
-					+ m_info_section_size, m_info_dict);
+					+ m_info_section_size, m_info_dict, ec);
+			}
 			return m_info_dict.dict_find(key);
 		}
 
