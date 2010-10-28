@@ -233,6 +233,23 @@ namespace libtorrent
 			"udp tracker response packet has invalid size",
 			"invalid transaction id in udp tracker response",
 			"invalid action field in udp tracker response",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+
+
+// bdecode errors
+			"expected string in bdecoded string",
+			"expected colon in bdecoded string",
+			"unexpected end of file in bdecoded string",
+			"expected value (list, dict, int or string) in bencoded string",
+			"bencoded nesting depth exceeded",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

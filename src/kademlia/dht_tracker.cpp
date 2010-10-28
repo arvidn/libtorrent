@@ -509,11 +509,14 @@ namespace libtorrent { namespace dht
 		TORRENT_ASSERT(bytes_transferred > 0);
 
 		lazy_entry e;
-		int ret = lazy_bdecode(buf, buf + bytes_transferred, e);
+		int pos;
+		error_code ec;
+		int ret = lazy_bdecode(buf, buf + bytes_transferred, e, ec, &pos);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: Invalid bencoding";
+			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: "
+				<< ec.message() << " pos: " << pos;
 #endif
 			return;
 		}
@@ -615,16 +618,16 @@ namespace libtorrent { namespace dht
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
+		error_code ec;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		std::stringstream log_line;
 		lazy_entry print;
-		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print);
+		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, 0, ec);
 		TORRENT_ASSERT(ret == 0);
 		log_line << print_entry(print, true);
 #endif
 
-		error_code ec;
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
 			if (ec) return false;

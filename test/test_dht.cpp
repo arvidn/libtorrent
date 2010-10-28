@@ -66,7 +66,7 @@ void send_dht_msg(datagram_socket& sock, char const* msg, lazy_entry* reply, cha
 	TEST_CHECK(!ec);
 	if (ec) std::cout << ec.message() << std::endl;
 
-	int ret = lazy_bdecode(inbuf, inbuf + size, *reply);
+	int ret = lazy_bdecode(inbuf, inbuf + size, *reply, ec);
 	TEST_CHECK(ret == 0);
 }
 

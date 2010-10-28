@@ -462,7 +462,7 @@ int test_main()
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
 	lazy_entry session_state2;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
 	TEST_CHECK(ret == 0);
 
 	fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());

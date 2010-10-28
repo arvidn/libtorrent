@@ -243,7 +243,8 @@ namespace libtorrent { namespace
 			if (body.left() < length) return true;
 
 			lazy_entry pex_msg;
-			int ret = lazy_bdecode(body.begin, body.end, pex_msg);
+			error_code ec;
+			int ret = lazy_bdecode(body.begin, body.end, pex_msg, ec);
 			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_pex_message, 2);

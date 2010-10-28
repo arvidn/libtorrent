@@ -407,7 +407,8 @@ namespace libtorrent
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		error_code ec;
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 

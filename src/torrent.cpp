@@ -445,18 +445,20 @@ namespace libtorrent
 
 			if (!m_resume_data.empty())
 			{
+				int pos;
+				error_code ec;
 				if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
-					+ m_resume_data.size(), m_resume_entry) != 0)
+					+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
 				{
 					std::vector<char>().swap(m_resume_data);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+					(*m_ses.m_logger) << time_now_string() << " fastresume data for "
+						<< torrent_file().name() << " rejected: " << ec.message()
+						<< " pos: " << pos << "\n";
+#endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						error_code ec(errors::parse_failed);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						(*m_ses.m_logger) << time_now_string() << " fastresume data for "
-							<< torrent_file().name() << " rejected: " << ec.message() << "\n";
-#endif
 					}
 				}
 			}
@@ -4474,8 +4476,8 @@ namespace libtorrent
 		}
 
 		lazy_entry metadata;
-		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata);
 		error_code ec;
+		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			// this means the metadata is correct, since we
@@ -4483,6 +4485,7 @@ namespace libtorrent
 			// failed to parse it. Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
+				// TODO: pass in ec along with the alert
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
 			set_error(errors::invalid_swarm_metadata, "");

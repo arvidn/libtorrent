@@ -1248,7 +1248,9 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " <== HASHPIECE " << p.piece << " list: " << list_size << " ";
 #endif
 			lazy_entry hash_list;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size, hash_list) != 0)
+			error_code ec;
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size
+				, hash_list, ec) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, 2);
 				return;
@@ -1518,11 +1520,14 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		lazy_entry root;
-		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root);
+		error_code ec;
+		int pos;
+		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
 		if (root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " invalid extended handshake\n";
+			(*m_logger) << time_now_string() << " invalid extended handshake: " << ec.message()
+				<< "pos: " << pos << "\n";
 #endif
 			return;
 		}
