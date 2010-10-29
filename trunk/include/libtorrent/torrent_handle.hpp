@@ -478,7 +478,7 @@ namespace libtorrent
 		void force_recheck() const;
 
 		enum save_resume_flags_t { flush_disk_cache = 1 };
-		void save_resume_data(int flags) const;
+		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 
 		bool is_auto_managed() const;
