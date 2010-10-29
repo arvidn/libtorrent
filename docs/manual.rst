@@ -2677,7 +2677,14 @@ fast resume data, and then close it down. Make sure to not `remove_torrent()`_ b
 the `save_resume_data_alert`_ though. There's no need to pause when saving intermittent resume data.
 
 .. warning:: If you pause every torrent individually instead of pausing the session, every torrent
-	will have its paused state saved in the resume data!
+	will have its paused state saved in the resume data! The paused state can however be overridden
+	when loading the resume data.
+
+.. warning:: The resume data contains the modification timestamps for all files. If one file has
+	been modified when the torrent is added again, the will be rechecked. When shutting down, make
+	sure to flush the disk cache before saving the resume data. This will make sure that the file
+	timestamps are up to date and won't be modified after saving the resume data. The recommended way
+	to do this is to pause the torrent, which will flush the cache and disconnect all peers.
 
 .. note:: It is typically a good idea to save resume data whenever a torrent is completed or paused. In those
 	cases you don't need to pause the torrent or the session, since the torrent will do no more writing
