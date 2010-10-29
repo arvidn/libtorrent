@@ -312,7 +312,7 @@ namespace libtorrent
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
 		, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG)
 	{
-		m_impl.reset(new session_impl(listen_range, id, listen_interface) TORRENT_LOGPATH);
+		m_impl.reset(new session_impl(listen_range, id, listen_interface TORRENT_LOGPATH));
 
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
@@ -407,7 +407,8 @@ namespace libtorrent
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		error_code ec;
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 

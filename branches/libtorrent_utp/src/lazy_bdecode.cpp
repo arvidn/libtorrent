@@ -47,12 +47,14 @@ namespace
 
 namespace libtorrent
 {
-	int fail_bdecode(lazy_entry& ret, int return_value = -1)
-	{
-		ret.clear();
-		return return_value;
-	}
 
+#define TORRENT_FAIL_BDECODE(code) \
+	{ \
+		ec = code; \
+		if (error_pos) *error_pos = start - orig_start; \
+		ret.clear(); \
+		return -1; \
+	}
 	// fills in 'val' with what the string between start and the
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
@@ -76,8 +78,10 @@ namespace libtorrent
 	}
 
 	// return 0 = success
-	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit)
+	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
+		, error_code& ec, int* error_pos, int depth_limit)
 	{
+		char const* const orig_start = start;
 		ret.clear();
 		if (start == end) return 0;
 
@@ -90,11 +94,11 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (int(stack.size()) > depth_limit) return fail_bdecode(ret);
-			if (start >= end) return fail_bdecode(ret);
+			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(errors::depth_exceeded);
+			if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 			char t = *start;
 			++start;
-			if (start >= end && t != 'e') return fail_bdecode(ret);
+			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 
 			switch (top->type())
 			{
@@ -106,16 +110,17 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!is_digit(t)) return fail_bdecode(ret);
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_string);
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
+					if (start == 0 || start + len + 3 > end || *start != ':')
+						TORRENT_FAIL_BDECODE(errors::expected_colon);
 					++start;
-					if (start == end) return fail_bdecode(ret);
+					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) return fail_bdecode(ret, -2);
+					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
 					start += len;
-					if (start >= end) return fail_bdecode(ret);
+					if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -130,7 +135,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) return fail_bdecode(ret, -2);
+					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
 					stack.push_back(ent);
 					break;
 				}
@@ -151,7 +156,7 @@ namespace libtorrent
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
 					top->construct_int(int_start, start - int_start);
-					if (start == end) return fail_bdecode(ret);
+					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
@@ -159,11 +164,12 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!is_digit(t)) return fail_bdecode(ret);
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_value);
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 1 > end || *start != ':') return fail_bdecode(ret);
+					if (start == 0 || start + len + 1 > end || *start != ':')
+						TORRENT_FAIL_BDECODE(errors::expected_colon);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();

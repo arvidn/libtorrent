@@ -448,18 +448,20 @@ namespace libtorrent
 
 			if (!m_resume_data.empty())
 			{
+				int pos;
+				error_code ec;
 				if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
-					+ m_resume_data.size(), m_resume_entry) != 0)
+					+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
 				{
 					std::vector<char>().swap(m_resume_data);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+					(*m_ses.m_logger) << time_now_string() << " fastresume data for "
+						<< torrent_file().name() << " rejected: " << ec.message()
+						<< " pos: " << pos << "\n";
+#endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						error_code ec(errors::parse_failed);
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						(*m_ses.m_logger) << time_now_string() << " fastresume data for "
-							<< torrent_file().name() << " rejected: " << ec.message() << "\n";
-#endif
 					}
 				}
 			}
@@ -1479,24 +1481,16 @@ namespace libtorrent
 		tracker_request req;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
+		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
 		req.uploaded = m_stat.total_payload_upload();
 		req.corrupt = m_total_failed_bytes;
-		req.redundant = m_total_redundant_bytes;
-
-		if (settings().report_true_downloaded)
-		{
-			req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
-			req.left = bytes_left();
-		}
-		else
-		{
-			req.downloaded = quantized_bytes_done();
-			TORRENT_ASSERT(!valid_metadata() || req.downloaded <= m_torrent_file->total_size());
-			req.left = valid_metadata() ? m_torrent_file->total_size() - req.downloaded : -1;
-		}
+		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
 
-		TORRENT_ASSERT(req.downloaded >= 0);
+		// exclude redundant bytes if we should
+		if (!settings().report_true_downloaded)
+			req.downloaded -= m_total_redundant_bytes;
+		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
 		error_code ec;
@@ -4526,8 +4520,8 @@ namespace libtorrent
 		}
 
 		lazy_entry metadata;
-		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata);
 		error_code ec;
+		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
 		{
 			// this means the metadata is correct, since we
@@ -4535,6 +4529,7 @@ namespace libtorrent
 			// failed to parse it. Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
+				// TODO: pass in ec along with the alert
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
 			set_error(errors::invalid_swarm_metadata, "");
@@ -5528,7 +5523,7 @@ namespace libtorrent
 	}
 
 	// this is an async operation triggered by the client	
-	void torrent::save_resume_data()
+	void torrent::save_resume_data(int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
@@ -5554,6 +5549,10 @@ namespace libtorrent
 				, get_handle()));
 			return;
 		}
+
+		if (flags & torrent_handle::flush_disk_cache)
+			m_storage->async_release_files();
+
 		m_storage->async_save_resume_data(
 			boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
 	}
@@ -6900,8 +6899,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
 		m_ses.add_failed_bytes(b);
-		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-			<= m_stat.total_payload_download());
+//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+//			<= m_stat.total_payload_download());
 	}
 
 	int torrent::num_seeds() const

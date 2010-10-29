@@ -107,7 +107,8 @@ int test_main()
 	{
 		char b[] = "i12453e";
 		lazy_entry e;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TORRENT_ASSERT(ret == 0);
 #if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
@@ -122,7 +123,8 @@ int test_main()
 	{
 		char b[] = "26:abcdefghijklmnopqrstuvwxyz";
 		lazy_entry e;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TORRENT_ASSERT(ret == 0);
 #if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
@@ -138,7 +140,8 @@ int test_main()
 	{
 		char b[] = "li12453e3:aaae";
 		lazy_entry e;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TORRENT_ASSERT(ret == 0);
 #if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
@@ -161,7 +164,8 @@ int test_main()
 	{
 		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbb1:X10:0123456789e";
 		lazy_entry e;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e);
+		error_code ec;
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TORRENT_ASSERT(ret == 0);
 #if TORRENT_USE_IOSTREAM
 		std::cout << e << std::endl;
@@ -201,7 +205,8 @@ int test_main()
 
 		printf("%s\n", buf);
 		lazy_entry e;
-		int ret = lazy_bdecode(buf, buf + sizeof(buf), e);
+		error_code ec;
+		int ret = lazy_bdecode(buf, buf + sizeof(buf), e, ec);
 		TEST_CHECK(ret == -1);	
 	}
 	return 0;

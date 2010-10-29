@@ -847,7 +847,8 @@ int main(int argc, char* argv[])
 	if (load_file(".ses_state", in) == 0)
 	{
 		lazy_entry e;
-		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)
+		error_code ec;
+		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}
 

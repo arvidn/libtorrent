@@ -301,7 +301,8 @@ namespace libtorrent
 
 		// handle tracker response
 		lazy_entry e;
-		int res = lazy_bdecode(data, data + size, e);
+		error_code ecode;
+		int res = lazy_bdecode(data, data + size, e, ecode);
 
 		if (res == 0 && e.type() == lazy_entry::dict_t)
 		{
@@ -309,7 +310,7 @@ namespace libtorrent
 		}
 		else
 		{
-			fail(error_code(errors::invalid_bencoding), parser.status_code());
+			fail(ecode, parser.status_code());
 		}
 		close();
 	}

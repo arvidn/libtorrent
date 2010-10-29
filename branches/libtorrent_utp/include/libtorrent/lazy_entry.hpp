@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/error_code.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -52,7 +53,9 @@ namespace libtorrent
 	TORRENT_EXPORT char const* parse_int(char const* start, char const* end
 		, char delimiter, boost::int64_t& val);
 	// return 0 = success
-	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit = 1000);
+	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
+		, lazy_entry& ret, error_code& ec, int* error_pos = 0
+		, int depth_limit = 1000);
 
 	struct pascal_string
 	{

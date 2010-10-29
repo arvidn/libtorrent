@@ -245,6 +245,23 @@ namespace libtorrent
 			invalid_tracker_response_length,
 			invalid_tracker_transaction_id,
 			invalid_tracker_action,
+			reserved180,
+			reserved181,
+			reserved182,
+			reserved183,
+			reserved184,
+			reserved185,
+			reserved186,
+			reserved187,
+			reserved188,
+			reserved189,
+
+// bdecode errors
+			expected_string, // 190
+			expected_colon,
+			unexpected_eof,
+			expected_value,
+			depth_exceeded,
 
 			error_code_max
 		};
