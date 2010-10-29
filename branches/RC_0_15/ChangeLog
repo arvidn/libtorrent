@@ -1,3 +1,4 @@
+	* changed default choker behavior to use 8 unchoke slots (instead of being rate based)
 	* fixed error reporting issue in disk I/O thread
 	* fixed file allocation issues on linux
 	* fixed filename encoding and decoding issue on platforms using iconv
