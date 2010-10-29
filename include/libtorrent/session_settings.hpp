@@ -137,7 +137,7 @@ namespace libtorrent
 			, auto_upload_slots(true)
 			, auto_upload_slots_rate_based(true)
 #endif
-			, choking_algorithm(fixed_slot_choker)
+			, choking_algorithm(fixed_slots_choker)
 			, seed_choking_algorithm(round_robin)
 			, use_parole_mode(true)
 			, cache_size(1024)

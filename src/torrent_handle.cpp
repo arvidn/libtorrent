@@ -395,10 +395,10 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(flush_cache);
 	}
 
-	void torrent_handle::save_resume_data() const
+	void torrent_handle::save_resume_data(int f) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL(save_resume_data);
+		TORRENT_ASYNC_CALL1(save_resume_data, f);
 	}
 
 	bool torrent_handle::need_save_resume_data() const
