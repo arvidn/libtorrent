@@ -179,7 +179,7 @@ namespace libtorrent
 			, announce_to_all_tiers(false)
 			, prefer_udp_trackers(true)
 			, strict_super_seeding(false)
-			, seeding_piece_quota(3)
+			, seeding_piece_quota(20)
 #ifdef TORRENT_WINDOWS
 			, max_sparse_regions(30000)
 #else
