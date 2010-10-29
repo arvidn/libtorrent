@@ -233,6 +233,7 @@ namespace libtorrent
 			, unchoke_slots_limit(8)
 			, half_open_limit(0)
 			, connections_limit(200)
+			, listen_queue_size(5)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -892,6 +893,11 @@ namespace libtorrent
 
 		// the max number of connections in the session
 		int connections_limit;
+
+		// this is the number passed in to listen(). i.e.
+		// the number of connections to accept while we're
+		// not waiting in an accept() call.
+		int listen_queue_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

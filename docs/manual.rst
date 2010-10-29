@@ -3879,6 +3879,8 @@ session_settings
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
+
+		int listen_queue_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4596,6 +4598,13 @@ opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
+``listen_queue_size`` is the value passed in to listen() for the listen socket.
+It is the number of outstanding incoming connections to queue up while we're not
+actively waiting for a connection to be accepted. The default is 5 which should
+be sufficient for any normal client. If this is a high performance server which
+expects to receive a lot of connections, or used in a simulator or test, it
+might make sense to raise this number. It will not take affect until listen_on()
+is called again (or for the first time).
 
 pe_settings
 ===========
