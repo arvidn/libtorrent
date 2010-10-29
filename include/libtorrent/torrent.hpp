@@ -238,7 +238,8 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers; }
 		void force_recheck();
 		void save_resume_data();
-		bool need_save_resume_data() const
+
+		bool need_save_resume_data(int flags = 0) const
 		{
 			// save resume data every 15 minutes regardless, just to
 			// keep stats up to date

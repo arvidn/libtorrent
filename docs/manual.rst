@@ -1905,7 +1905,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
-		void save_resume_data() const;
+		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 		void force_reannounce() const;
 		void force_dht_announce() const;
@@ -2715,10 +2715,14 @@ save_resume_data()
 
 	::
 
-		void save_resume_data() const;
+		void save_resume_data(int flags = 0) const;
 
 ``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
+
+The ``flags`` argument may be set to ``torrent_handle::flush_cache``. Doing so will flush the disk
+cache before creating the resume data. This avoids a problem with file timestamps in the resume
+data in case the cache hasn't been flushed yet.
 
 This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
 is delivered when it's done through an `save_resume_data_alert`_.
@@ -2738,6 +2742,12 @@ the `save_resume_data_alert`_ though. There's no need to pause when saving inter
 
 .. warning:: If you pause every torrent individually instead of pausing the session, every torrent
 	will have its paused state saved in the resume data!
+
+.. warning:: The resume data contains the modification timestamps for all files. If one file has
+	been modified when the torrent is added again, the will be rechecked. When shutting down, make
+	sure to flush the disk cache before saving the resume data. This will make sure that the file
+	timestamps are up to date and won't be modified after saving the resume data. The recommended way
+	to do this is to pause the torrent, which will flush the cache and disconnect all peers.
 
 .. note:: It is typically a good idea to save resume data whenever a torrent is completed or paused. In those
 	cases you don't need to pause the torrent or the session, since the torrent will do no more writing

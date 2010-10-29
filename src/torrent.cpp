@@ -5479,7 +5479,7 @@ namespace libtorrent
 	}
 
 	// this is an async operation triggered by the client	
-	void torrent::save_resume_data()
+	void torrent::save_resume_data(int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
@@ -5505,6 +5505,10 @@ namespace libtorrent
 				, get_handle()));
 			return;
 		}
+
+		if (flags & torrent_handle::flush_disk_cache)
+			m_storage->async_release_files();
+
 		m_storage->async_save_resume_data(
 			boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1, _2));
 	}
