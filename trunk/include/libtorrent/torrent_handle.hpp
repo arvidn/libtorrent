@@ -469,7 +469,8 @@ namespace libtorrent
 		bool is_seed() const;
 		bool is_finished() const;
 		bool is_paused() const;
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags = 0) const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
 		void set_share_mode(bool b) const;

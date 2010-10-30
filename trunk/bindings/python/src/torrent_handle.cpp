@@ -299,7 +299,7 @@ void bind_torrent_handle()
         .def("is_seed", _(&torrent_handle::is_seed))
         .def("is_finished", _(&torrent_handle::is_finished))
         .def("is_paused", _(&torrent_handle::is_paused))
-        .def("pause", _(&torrent_handle::pause))
+        .def("pause", _(&torrent_handle::pause), arg("flags") = 0)
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
         .def("set_priority", _(&torrent_handle::set_priority))
@@ -365,6 +365,10 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file1))
 #endif
         ;
+
+    enum_<torrent_handle::save_resume_flags_t>("pause_flags_t")
+        .value("graceful_pause", torrent_handle::graceful_pause)
+    ;
 
     enum_<torrent_handle::save_resume_flags_t>("save_resume_flags_t")
         .value("flush_disk_cache", torrent_handle::flush_disk_cache)

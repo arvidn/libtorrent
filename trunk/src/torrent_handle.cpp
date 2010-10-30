@@ -371,10 +371,10 @@ namespace libtorrent
 		return r;
 	}
 
-	void torrent_handle::pause() const
+	void torrent_handle::pause(int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL(pause);
+		TORRENT_ASYNC_CALL1(pause, bool(flags & graceful_pause));
 	}
 
 	void torrent_handle::set_share_mode(bool b) const

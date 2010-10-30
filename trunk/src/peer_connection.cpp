@@ -1235,9 +1235,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1251,6 +1248,14 @@ namespace libtorrent
 		(*m_logger) << time_now_string() << " <== CHOKE\n";
 #endif
 		m_peer_choked = true;
+
+		clear_request_queue();
+	}
+
+	void peer_connection::clear_request_queue()
+	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
 
 		// clear the requests that haven't been sent yet
 		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
@@ -1269,7 +1274,6 @@ namespace libtorrent
 			m_request_queue.clear();
 			m_queued_time_critical = 0;
 		}
-
 	}
 
 	bool match_request(peer_request const& r, piece_block const& b, int block_size)
@@ -3107,6 +3111,15 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		if (m_disconnecting) return;
+
+		if (t->graceful_pause() && m_outstanding_bytes == 0)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** GRACEFUL PAUSE [ NO MORE DOWNLOAD ]\n";
+#endif
+			disconnect(errors::torrent_paused);
+			return;
+		}
 
 		if ((int)m_download_queue.size() >= m_desired_queue_size
 			|| t->upload_mode()) return;
