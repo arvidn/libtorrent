@@ -99,7 +99,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
 		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.is_seed())
+			|| (!handles.empty() && h.status().is_seeding)
 			|| pea->error.message() == "connecting to peer"
 			|| pea->error.message() == "closing connection to ourself"
 			|| pea->error.message() == "duplicate connection"

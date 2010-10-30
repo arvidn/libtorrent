@@ -120,10 +120,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 		print_alerts(ses, "  >>  ses");
 
-		if (th.is_seed()/* && ss.download_rate == 0.f*/)
+		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
-			torrent_status st = th.status();
-			TEST_EQUAL(st.total_payload_download - st.total_redundant_bytes, total_size);
+			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
 			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
@@ -148,7 +147,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 //	TEST_CHECK(fabs(rate_sum - total_size) < total_size * .1f);
 //	TEST_CHECK(fabs(ses_rate_sum - total_size) < total_size * .1f);
 
-	TEST_CHECK(th.is_seed());
+	TEST_CHECK(th.status().is_seeding);
 
 	if (proxy) stop_proxy(8002);
 
