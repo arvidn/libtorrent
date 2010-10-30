@@ -333,6 +333,14 @@ namespace libtorrent
 					disconnect(errors::no_content_length, 2);
 					return;
 				}
+				if (m_response_left != front_request.length)
+				{
+					m_statistics.received_bytes(0, bytes_transferred);
+					// we should not try this server again.
+					t->remove_web_seed(this);
+					disconnect(errors::invalid_range, 2);
+					return;
+				}
 				if (payload > m_response_left) payload = m_response_left;
 				m_body_start = m_parser.body_start();
 				m_response_left -= payload;

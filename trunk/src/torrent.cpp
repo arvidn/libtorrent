@@ -3418,7 +3418,6 @@ namespace libtorrent
 			return;
 		}
 
-		web->resolving = true;
 		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
@@ -3436,6 +3435,7 @@ namespace libtorrent
 		}
 		else
 		{
+			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
@@ -3501,6 +3501,7 @@ namespace libtorrent
 			return;
 		}
 
+		web->resolving = true;
 		tcp::resolver::query q(hostname, to_string(port).elems);
 		m_ses.m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));

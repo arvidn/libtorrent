@@ -2860,7 +2860,9 @@ ret:
 	{
 		TORRENT_ASSERT(num_slots > 0);
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
+#endif
 
 		TORRENT_ASSERT(!m_unallocated_slots.empty());
 		TORRENT_ASSERT(m_storage_mode == storage_mode_compact);
@@ -2869,8 +2871,6 @@ ret:
 
 		for (int i = 0; i < num_slots && !m_unallocated_slots.empty(); ++i)
 		{
-//			INVARIANT_CHECK;
-
 			int pos = m_unallocated_slots.front();
 			TORRENT_ASSERT(m_slot_to_piece[pos] == unallocated);
 			TORRENT_ASSERT(m_piece_to_slot[pos] != pos);
