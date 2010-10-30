@@ -164,8 +164,9 @@ namespace libtorrent
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
 			, seed_time_limit(24 * 60 * 60) // 24 hours
-			, peer_turnover(1 / 100.f)
-			, peer_turnover_cutoff(1.1f) // disable until the crash is resolved
+			, peer_turnover_interval(300)
+			, peer_turnover(2 / 50.f)
+			, peer_turnover_cutoff(.9f)
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
@@ -580,9 +581,14 @@ namespace libtorrent
 		float seed_time_ratio_limit;
 		int seed_time_limit;
 
+		// the interval (in seconds) between optimistic disconnects
+		// if the disconnects happen and how many peers are disconnected
+		// is controlled by peer_turnover and peer_turnover_cutoff
+		int peer_turnover_interval;
+
 		// the percentage of peers to disconnect every
-		// 90 seconds (if we're at the peer limit)
-		// defaults to 1/50:th
+		// turnoever interval (if we're at the peer limit)
+		// defaults to 2/50:th
 		float peer_turnover;
 
 		// when we are connected to more than
