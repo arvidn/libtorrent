@@ -3805,6 +3805,9 @@ session_settings
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
 		int seed_time_limit;
+		int peer_turnover_interval;
+		float peer_turnover;
+		float peer_turnover_cutoff;
 		bool close_redundant_connections;
 
 		int auto_scrape_interval;
@@ -4268,6 +4271,19 @@ for considering a seeding torrent to have met the seed limit criteria. See queui
 ``seed_time_limit`` is the limit on the time a torrent has been an active seed
 (specified in seconds) before it is considered having met the seed limit criteria.
 See queuing_.
+
+``peer_turnover_interval`` controls a feature where libtorrent periodically can disconnect
+the least useful peers in the hope of connecting to better ones. This settings controls
+the interval of this optimistic disconnect. It defaults to every 5 minutes, and
+is specified in seconds.
+
+``peer_turnover`` Is the fraction of the peers that are disconnected. This is
+a float where 1.f represents all peers an 0 represents no peers. It defaults to
+4% (i.e. 0.04f)
+
+``peer_turnover_cutoff`` is the cut off trigger for optimistic unchokes. If a torrent
+has more than this fraction of its connection limit, the optimistic unchoke is
+triggered. This defaults to 90% (i.e. 0.9f).
 
 ``close_redundant_connections`` specifies whether libtorrent should close
 connections where both ends have no utility in keeping the connection open.

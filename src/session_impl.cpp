@@ -2501,7 +2501,7 @@ namespace aux {
 		--m_disconnect_time_scaler;
 		if (m_disconnect_time_scaler <= 0)
 		{
-			m_disconnect_time_scaler = 90;
+			m_disconnect_time_scaler = m_settings.peer_turnover_interval;
 
 			if (num_connections() >= m_settings.connections_limit * m_settings.peer_turnover_cutoff
 				&& !m_torrents.empty())
