@@ -359,6 +359,9 @@ namespace libtorrent
 			// or with something incorrect, so that we removed the web seed
 			// immediately, before we disconnected
 			if (i == m_web_seeds.end()) return;
+
+			TORRENT_ASSERT(i->resolving == false);
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
 #endif
