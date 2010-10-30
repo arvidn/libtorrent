@@ -6754,7 +6754,12 @@ namespace libtorrent
 
 		st.num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st.num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
-		st.paused = !m_allow_peers || m_graceful_pause_mode;
+		st.paused = is_torrent_paused();
+		st.auto_managed = m_auto_managed;
+		st.sequential_download = m_sequential_download;
+		st.is_seeding = is_seed();
+		st.is_finished = is_finished();
+		st.has_metadata = valid_metadata();
 		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);

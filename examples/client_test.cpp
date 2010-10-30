@@ -1176,7 +1176,7 @@ int main(int argc, char* argv[])
 			if (c == 's')
 			{
 				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.set_sequential_download(!h.is_sequential_download());
+				if (h.is_valid()) h.set_sequential_download(!h.status().sequential_download);
 			}
 
 			if (c == 'R')
@@ -1215,7 +1215,8 @@ int main(int argc, char* argv[])
 				torrent_handle h = get_active_torrent(handles);
 				if (h.is_valid())
 				{
-					if (!h.is_auto_managed() && h.is_paused())
+					torrent_status s = h.status();
+					if (!s.auto_managed && s.paused)
 					{
 						h.auto_managed(true);
 					}
@@ -1346,9 +1347,6 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
 
-			bool auto_managed = h.is_auto_managed();
-			bool sequential_download = h.is_sequential_download();
-
 			if (!s.error.empty())
 			{
 				out += esc("31");
@@ -1372,7 +1370,7 @@ int main(int argc, char* argv[])
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (s.paused && !auto_managed)?"paused":(s.paused && auto_managed)?"queued":state_str[s.state]
+					, (s.paused && !s.auto_managed)?"paused":(s.paused && s.auto_managed)?"queued":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
 					, esc("31"), add_suffix(s.total_upload).c_str(), term
@@ -1399,7 +1397,7 @@ int main(int argc, char* argv[])
 				}
 
 				snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
-					, sequential_download?"sequential":"progress"
+					, s.sequential_download?"sequential":"progress"
 					, esc("32"), s.total_done, esc("0")
 					, s.progress_ppm / 10000.f
 					, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
@@ -1635,7 +1633,7 @@ int main(int argc, char* argv[])
 
 			if (print_file_progress
 				&& s.state != torrent_status::seeding
-				&& h.has_metadata())
+				&& s.has_metadata)
 			{
 				std::vector<size_type> file_progress;
 				h.file_progress(file_progress);
@@ -1697,8 +1695,9 @@ int main(int argc, char* argv[])
 	{
 		torrent_handle& h = i->second;
 		if (!h.is_valid()) continue;
-		if (h.is_paused()) continue;
-		if (!h.has_metadata()) continue;
+		torrent_status s = h.status();
+		if (s.paused) continue;
+		if (!s.has_metadata) continue;
 
 		printf("saving resume data for %s\n", h.name().c_str());
 		// save_resume_data will generate an alert when it's done
