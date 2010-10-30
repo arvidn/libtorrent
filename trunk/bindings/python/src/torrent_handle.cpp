@@ -334,7 +334,7 @@ void bind_torrent_handle()
         .def("prioritize_files", &prioritize_files)
         .def("file_priorities", &file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
-        .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags" = 0))
+        .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", &force_reannounce)
@@ -366,7 +366,7 @@ void bind_torrent_handle()
 #endif
         ;
 
-    enum_<torrent_handle::save_resume_flags_t>("pause_flags_t")
+    enum_<torrent_handle::pause_flags_t>("pause_flags_t")
         .value("graceful_pause", torrent_handle::graceful_pause)
     ;
 
