@@ -1222,7 +1222,7 @@ int main(int argc, char* argv[])
 					else
 					{
 						h.auto_managed(false);
-						h.pause();
+						h.pause(torrent_handle::graceful_pause);
 					}
 					// the alert handler for save_resume_data_alert
 					// will save it to disk
@@ -1336,7 +1336,9 @@ int main(int argc, char* argv[])
 				out += str;
 			}
 
-			if (h.is_paused()) out += esc("34");
+			torrent_status s = h.status();
+
+			if (s.paused) out += esc("34");
 			else out += esc("37");
 
 			std::string name = h.name();
@@ -1344,9 +1346,6 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
 
-			torrent_status s = h.status();
-
-			bool paused = h.is_paused();
 			bool auto_managed = h.is_auto_managed();
 			bool sequential_download = h.is_sequential_download();
 
@@ -1373,7 +1372,7 @@ int main(int argc, char* argv[])
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (paused && !auto_managed)?"paused":(paused && auto_managed)?"queued":state_str[s.state]
+					, (s.paused && !auto_managed)?"paused":(s.paused && auto_managed)?"queued":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
 					, esc("31"), add_suffix(s.total_upload).c_str(), term

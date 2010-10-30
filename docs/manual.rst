@@ -1955,7 +1955,8 @@ Its declaration looks like this::
 
 		void use_interface(char const* net_interface) const;
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags = 0) const;
 		void resume() const;
 		bool is_paused() const;
 		bool is_seed() const;
@@ -2393,7 +2394,8 @@ pause() resume() is_paused()
 
 	::
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags) const;
 		void resume() const;
 		bool is_paused() const;
 
@@ -2402,6 +2404,12 @@ When a torrent is paused, it will however remember all share ratios to all peers
 all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
 is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
 or something similar. See file_error_alert_.
+
+The ``flags`` argument to pause can be set to ``torrent_handle::graceful_pause`` which will
+delay the disconnect of peers that we're still downloading outstanding requests from. The torrent
+will not accept any more requests and will disconnect all idle peers. As soon as a peer is
+done transferring the blocks that were requested from it, it is disconnected. This is a graceful
+shut down of the torrent in the sense that no downloaded bytes are wasted.
 
 torrents that are auto-managed may be automatically resumed again. It does not make sense to
 pause an auto-managed torrent without making it not automanaged first. Torrents are auto-managed

@@ -2647,7 +2647,8 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 				t->log_to_all_peers(("AUTO MANAGER PAUSING TORRENT: " + t->torrent_file().name()).c_str());
 #endif
-				t->set_allow_peers(false);
+				// use graceful pause for auto-managed torrents
+				t->set_allow_peers(false, true);
 			}
 		}
 	}
@@ -2754,6 +2755,7 @@ namespace aux {
 			if (!pi) continue;
 			torrent* t = p->associated_torrent().lock().get();
 			if (!t) continue;
+			if (t->is_paused()) continue;
 
 			if (pi->optimistically_unchoked)
 			{
@@ -2849,7 +2851,7 @@ namespace aux {
 			torrent* t = p->associated_torrent().lock().get();
 			policy::peer* pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0) continue;
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || t->is_paused()) continue;
 
 			if (m_settings.choking_algorithm == session_settings::bittyrant_choker)
 			{

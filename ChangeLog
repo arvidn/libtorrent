@@ -1,3 +1,4 @@
+	* graceful peer disconnect mode which finishes transactions before disconnecting peers
 	* support chunked encoding for web seeds (only for BEP 19, web seeds)
 	* optimized session startup time
 	* support SSL for web seeds, through all proxies
