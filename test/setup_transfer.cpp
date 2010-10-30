@@ -614,12 +614,12 @@ void web_server_thread(int* port, bool ssl)
 				else
 				{
 					range_start = 0;
-					// assume piece size of 16
-					range_end = 16-1;
+					// assume piece size of 64kiB
+					range_end = 64*1024-1;
 				}
 
 				int size = range_end - range_start + 1;
-				boost::uint64_t off = idx * 16 + range_start;
+				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
 				int res = load_file("./tmp1_web_seed/seed", file_buf);
 

@@ -190,6 +190,7 @@ int run_suite(char const* protocol, bool test_url_seed)
 	} catch (std::exception&) {}
 
 	file_storage fs;
+	int piece_size = 16;
 	if (test_url_seed)
 	{
 		int file_sizes[] =
@@ -210,7 +211,8 @@ int run_suite(char const* protocol, bool test_url_seed)
 	}
 	else
 	{
-		char random_data[10000];
+		piece_size = 64 * 1024;
+		char random_data[64 * 1024 * 50];
 		std::srand(10);
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
 		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
@@ -219,7 +221,7 @@ int run_suite(char const* protocol, bool test_url_seed)
 
 	int port = start_web_server();
 
-	libtorrent::create_torrent t(fs, 16);
+	libtorrent::create_torrent t(fs, piece_size);
 	char tmp[512];
 	if (test_url_seed)
 	{
