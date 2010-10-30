@@ -195,6 +195,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	file_storage fs;
 	std::srand(10);
+	int piece_size = 16;
 	if (test_url_seed)
 	{
 		int file_sizes[] =
@@ -214,7 +215,8 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	}
 	else
 	{
-		char random_data[10000];
+		piece_size = 64 * 1024;
+		char random_data[64 * 1024 * 50];
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
 		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
 		fs.add_file("seed", sizeof(random_data));
@@ -222,7 +224,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
 
-	libtorrent::create_torrent t(fs, 16, 0, libtorrent::create_torrent::calculate_file_hashes);
+	libtorrent::create_torrent t(fs, piece_size, 0, libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
 	if (test_url_seed)
 	{
