@@ -281,10 +281,7 @@ int test_main()
 	int ret = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		// we only support chunked encoding for
-		// URL seeds (not HTTP seeds).
-		// that's why the variable limit on this loop
-		for (int j = 0; j < (i==0?2:1); ++j)
+		for (int j = 0; j < 2; ++j)
 		{
 #ifdef TORRENT_USE_OPENSSL
 			run_suite("https", i, j);
