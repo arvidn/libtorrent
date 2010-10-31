@@ -817,7 +817,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (path == "/infinite_redirect")
 			{
-				extra_header[0] = "Location: /infinite_redirext\r\n";
+				extra_header[0] = "Location: /infinite_redirect\r\n";
 				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
