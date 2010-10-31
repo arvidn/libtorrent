@@ -417,6 +417,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		void peer_log(char const* fmt, ...);
 		boost::shared_ptr<logger> m_logger;
 #endif
 

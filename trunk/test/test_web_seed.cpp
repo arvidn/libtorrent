@@ -216,7 +216,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	else
 	{
 		piece_size = 64 * 1024;
-		char random_data[64 * 1024 * 50];
+		char random_data[64 * 1024 * 25];
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
 		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
 		fs.add_file("seed", sizeof(random_data));
