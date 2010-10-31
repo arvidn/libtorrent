@@ -3237,8 +3237,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(m_connecting);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		peer_log("CONNECTION TIMED OUT: %s", print_endpoint(m_remote).c_str());
+#endif
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << print_endpoint(m_remote) << "\n";
 #endif
 		disconnect(errors::timed_out, 1);
 	}
