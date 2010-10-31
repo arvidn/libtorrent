@@ -91,7 +91,7 @@ namespace libtorrent
 		request_large_blocks(true);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " *** web_peer_connection " << url << "\n";
+		peer_log("*** web_peer_connection %s", url.c_str());
 #endif
 	}
 
@@ -239,7 +239,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " " << request << "\n";
+		peer_log("==> %s", request.c_str());
 #endif
 
 		send_buffer(request.c_str(), request.size(), message_type_request);
@@ -274,8 +274,7 @@ namespace libtorrent
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** web_peer_connection error: "
-				<< error.message() << "\n";
+			peer_log("*** web_peer_connection error: %s", error.message().c_str());
 #endif
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -313,7 +312,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
+					peer_log("*** %s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
 					disconnect(errors::http_parse_error, 2);
 #ifdef TORRENT_DEBUG
@@ -361,12 +360,11 @@ namespace libtorrent
 			if (!header_finished)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " *** STATUS: " << m_parser.status_code()
-					<< " " << m_parser.message() << "\n";
+				peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
 				std::map<std::string, std::string> const& headers = m_parser.headers();
 				for (std::map<std::string, std::string>::const_iterator i = headers.begin()
 					, end(headers.end()); i != end; ++i)
-					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
+					peer_log("   %s: %s", i->first.c_str(), i->second.c_str());
 #endif
 				// if the status code is not one of the accepted ones, abort
 				if (!is_ok_status(m_parser.status_code()))
@@ -558,8 +556,7 @@ namespace libtorrent
 				else
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string() << " *** parsed chunk: " << chunk_size
-						<< " header_size: " << header_size << "\n";
+					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(bytes_transferred >= header_size - m_partial_chunk_header);
 					bytes_transferred -= header_size - m_partial_chunk_header;
@@ -593,9 +590,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_block_pos >= 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** payload_transferred: " << payload_transferred
-				<< " [" << front_request.piece << ":" << front_request.start
-				<< " = " << front_request.length <<  "]\n";
+			peer_log("*** payload_transferred: %d [ %d:%d = %d ]"
+				, payload_transferred, front_request.piece
+				, front_request.start, front_request.length);
 #endif
 			m_statistics.received_bytes(payload_transferred, 0);
 			TORRENT_ASSERT(bytes_transferred >= payload_transferred);

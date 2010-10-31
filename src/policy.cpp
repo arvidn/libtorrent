@@ -145,7 +145,7 @@ namespace libtorrent
 			- (int)c.request_queue().size();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ req: " << num_requests << " ]\n";
+		c.peer_log("*** PIECE_PICKER [ req: %d ]", num_requests);
 #endif
 		TORRENT_ASSERT(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
@@ -224,8 +224,8 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
-			<< " picked: " << interesting_pieces.size() << " ]\n";
+		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
+			, prefer_whole_pieces, int(interesting_pieces.size()));
 #endif
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
