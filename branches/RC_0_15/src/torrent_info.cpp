@@ -464,7 +464,7 @@ namespace libtorrent
 		bencode(out, torrent_file);
 
 		lazy_entry e;
-		if (lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e) != 0)
+		if (tmp.size() == 0 || lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw invalid_torrent_file(errors::invalid_bencoding);
@@ -524,7 +524,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		lazy_entry e;
-		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 			throw invalid_torrent_file(errors::invalid_bencoding);
 		error_code ec;
 		if (!parse_torrent_file(e, ec))
@@ -547,7 +547,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		lazy_entry e;
-		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 			throw invalid_torrent_file(errors::invalid_bencoding);
 
 		error_code ec;
@@ -596,7 +596,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		lazy_entry e;
-		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 		{
 			ec = errors::invalid_bencoding;
 			return;
@@ -619,7 +619,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		lazy_entry e;
-		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
+		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 		{
 			ec = errors::invalid_bencoding;
 			return;
