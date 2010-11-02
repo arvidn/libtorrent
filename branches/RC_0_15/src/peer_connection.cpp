@@ -3513,7 +3513,12 @@ namespace libtorrent
 		// time, it is considered to have timed out
 		time_duration d;
 		d = now - m_last_receive;
-		if (d > seconds(m_timeout) && !m_connecting)
+		// if we can't read, it means we're blocked on the rate-limiter
+		// or the disk, not the peer itself. In this case, don't blame
+		// the peer and disconnect it
+		bool may_timeout = can_read()
+;
+		if (may_timeout && d > seconds(m_timeout) && !m_connecting)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << time_now_string() << " *** LAST ACTIVITY [ "
@@ -3524,7 +3529,8 @@ namespace libtorrent
 		}
 
 		// do not stall waiting for a handshake
-		if (!m_connecting
+		if (may_timeout
+			&& !m_connecting
 			&& in_handshake()
 			&& d > seconds(m_ses.settings().handshake_timeout))
 		{
@@ -3540,7 +3546,8 @@ namespace libtorrent
 		// they didn't send a request within 20 seconds.
 		// but only if we're a seed
 		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
-		if (!m_connecting
+		if (may_timeout
+			&& !m_connecting
 			&& m_requests.empty()
 			&& m_reading_bytes == 0
 			&& !m_choked
@@ -3569,7 +3576,8 @@ namespace libtorrent
 		// don't bother disconnect peers we haven't been interested
 		// in (and that hasn't been interested in us) for a while
 		// unless we have used up all our connection slots
-		if (!m_interesting
+		if (may_timeout
+			&& !m_interesting
 			&& !m_peer_interested
 			&& d1 > time_limit
 			&& d2 > time_limit
@@ -3585,7 +3593,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (!m_download_queue.empty()
+		if (may_timeout
+			&& !m_download_queue.empty()
 			&& m_quota[download_channel] > 0
 			&& now > m_requested + seconds(m_ses.settings().request_timeout
 			+ m_timeout_extend))
