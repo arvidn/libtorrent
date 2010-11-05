@@ -55,7 +55,8 @@ TORRENT_DECLARE_LOG(rpc);
 
 struct null_observer : public observer
 {
-	null_observer(boost::intrusive_ptr<traversal_algorithm>& a): observer(a) {}
+	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
+		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
 	virtual void reply(msg const&) { m_done = true; }
 };
 

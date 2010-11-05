@@ -267,7 +267,7 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(0), *i, traversal_algorithm::result::initial);
+		r->add_entry(node_id(0), *i, observer::flag_initial);
 	}
 	
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -369,7 +369,7 @@ namespace
 			void* ptr = node.m_rpc.allocator().malloc();
 			if (ptr == 0) return;
 			node.m_rpc.allocator().set_next_size(10);
-			observer_ptr o(new (ptr) announce_observer(algo));
+			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
 #ifdef TORRENT_DEBUG
 			o->m_in_constructor = false;
 #endif
@@ -402,9 +402,11 @@ void node_impl::add_node(udp::endpoint node)
 	m_rpc.allocator().set_next_size(10);
 
 	// create a dummy traversal_algorithm		
+	// this is unfortunately necessary for the observer
+	// to free itself from the pool when it's being released
 	boost::intrusive_ptr<traversal_algorithm> algo(
 		new traversal_algorithm(*this, (node_id::min)()));
-	observer_ptr o(new (ptr) null_observer(algo));
+	observer_ptr o(new (ptr) null_observer(algo, node, node_id(0)));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
