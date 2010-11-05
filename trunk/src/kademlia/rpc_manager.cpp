@@ -125,14 +125,14 @@ void observer::abort()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->failed(target_ep(), traversal_algorithm::prevent_request);
+	m_algorithm->failed(observer_ptr(this), traversal_algorithm::prevent_request);
 }
 
 void observer::done()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->finished(target_ep());
+	m_algorithm->finished(observer_ptr(this));
 }
 
 void observer::short_timeout()
@@ -140,7 +140,7 @@ void observer::short_timeout()
 	if (m_short_timeout) return;
 	TORRENT_ASSERT(m_short_timeout == false);
 	m_short_timeout = true;
-	m_algorithm->failed(target_ep(), traversal_algorithm::short_timeout);
+	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
 // this is called when no reply has been received within
@@ -149,7 +149,7 @@ void observer::timeout()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->failed(target_ep());
+	m_algorithm->failed(observer_ptr(this));
 }
 
 node_id generate_id();
@@ -182,9 +182,11 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
+	PRINT_OFFSETOF(observer, flags);
 	PRINT_OFFSETOF(observer, m_sent);
 	PRINT_OFFSETOF(observer, m_refs);
 	PRINT_OFFSETOF(observer, m_algorithm);
+	PRINT_OFFSETOF(observer, m_id);
 	PRINT_OFFSETOF(observer, m_addr);
 	PRINT_OFFSETOF(observer, m_port);
 	PRINT_OFFSETOF(observer, m_transaction_id);
@@ -192,12 +194,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
 	TORRENT_LOG(rpc) << " find_data_observer: " << sizeof(find_data_observer);
-
-	TORRENT_LOG(rpc) << " traversal_algorithm::result: " << sizeof(traversal_algorithm::result);
-	PRINT_OFFSETOF(traversal_algorithm::result, id);
-	PRINT_OFFSETOF(traversal_algorithm::result, addr);
-	PRINT_OFFSETOF(traversal_algorithm::result, port);
-	PRINT_OFFSETOF(traversal_algorithm::result, flags);
 
 #undef PRINT_OFFSETOF
 #endif

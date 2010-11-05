@@ -154,8 +154,9 @@ struct null_type {};
 class announce_observer : public observer
 {
 public:
-	announce_observer(boost::intrusive_ptr<traversal_algorithm> const& algo)
-		: observer(algo)
+	announce_observer(boost::intrusive_ptr<traversal_algorithm> const& algo
+		, udp::endpoint const& ep, node_id const& id)
+		: observer(algo, ep, id)
 	{}
 
 	void reply(msg const&) { m_done = true; }
