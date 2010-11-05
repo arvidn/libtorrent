@@ -34,11 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/mpl/max_element.hpp>
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/sizeof.hpp>
-#include <boost/mpl/transform_view.hpp>
-#include <boost/mpl/deref.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -53,7 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <time.h> // time()
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
+#endif
 
 using boost::shared_ptr;
 
@@ -61,7 +58,6 @@ namespace libtorrent { namespace dht
 {
 
 namespace io = libtorrent::detail;
-namespace mpl = boost::mpl;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(rpc)
@@ -158,20 +154,17 @@ void observer::timeout()
 
 node_id generate_id();
 
-typedef mpl::vector<
-	find_data_observer
-	, announce_observer
-	, null_observer
-	> observer_types;
-
-typedef mpl::max_element<
-	mpl::transform_view<observer_types, mpl::sizeof_<mpl::_1> >
-    >::type max_observer_type_iter;
+enum { observer_size = max3<
+	sizeof(find_data_observer)
+	, sizeof(announce_observer)
+	, sizeof(null_observer)
+	>::value
+};
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
 	, void* userdata)
-	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type), 10)
+	: m_pool_allocator(observer_size, 10)
 	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
 	, m_userdata(userdata)
@@ -229,8 +222,7 @@ rpc_manager::~rpc_manager()
 #ifdef TORRENT_DEBUG
 size_t rpc_manager::allocation_size() const
 {
-	size_t s = sizeof(mpl::deref<max_observer_type_iter::base>::type);
-	return s;
+	return observer_size;
 }
 
 void rpc_manager::check_invariant() const
