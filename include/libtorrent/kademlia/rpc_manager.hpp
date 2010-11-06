@@ -89,8 +89,10 @@ public:
 	void check_invariant() const;
 #endif
 
-	boost::pool<>& allocator() const
-	{ return m_pool_allocator; }
+	void* allocate_observer();
+	void free_observer(void* ptr);
+
+	int num_allocated_observers() const { return m_allocated_observers; }
 
 private:
 
@@ -112,6 +114,7 @@ private:
 	routing_table& m_table;
 	ptime m_timer;
 	node_id m_random_number;
+	int m_allocated_observers;
 	bool m_destructing;
 };
 

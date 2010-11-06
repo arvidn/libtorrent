@@ -655,8 +655,9 @@ struct has the following members::
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
-		int dht_global_nodes;
+		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		int dht_total_allocations;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -720,6 +721,9 @@ network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
 
+``dht_total_allocations`` is the number of nodes allocated dynamically for a
+particular DHT lookup. This represents roughly the amount of memory used
+by the DHT.
 
 get_cache_status()
 ------------------

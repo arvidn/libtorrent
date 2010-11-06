@@ -66,8 +66,10 @@ struct traversal_algorithm : boost::noncopyable
 	enum flags_t { prevent_request = 1, short_timeout = 2 };
 	void failed(observer_ptr o, int flags = 0);
 	virtual ~traversal_algorithm();
-	boost::pool<>& allocator() const;
 	void status(dht_lookup& l);
+
+	void* allocate_observer();
+	void free_observer(void* ptr);
 
 	virtual char const* name() const { return "traversal_algorithm"; }
 	virtual void start();

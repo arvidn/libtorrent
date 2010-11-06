@@ -1483,8 +1483,9 @@ int main(int argc, char* argv[])
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
-			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %"PRId64"\n"
-				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes);
+			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %"PRId64" total observers: %d\n"
+				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
+				, sess_stat.dht_total_allocations);
 			out += str;
 
 			for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()

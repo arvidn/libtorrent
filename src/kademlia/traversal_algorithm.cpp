@@ -59,8 +59,7 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	m_node.m_rpc.allocator().set_next_size(10);
-	void* ptr = m_node.m_rpc.allocator().malloc();
+	void* ptr = m_node.m_rpc.allocate_observer();
 	if (ptr == 0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -113,9 +112,14 @@ void traversal_algorithm::start()
 	add_requests();
 }
 
-boost::pool<>& traversal_algorithm::allocator() const
+void* traversal_algorithm::allocate_observer()
 {
-	return m_node.m_rpc.allocator();
+	return m_node.m_rpc.allocate_observer();
+}
+
+void traversal_algorithm::free_observer(void* ptr)
+{
+	m_node.m_rpc.free_observer(ptr);
 }
 
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
