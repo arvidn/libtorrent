@@ -137,6 +137,7 @@ namespace libtorrent
 			, last_seen_complete(0)
 			, time_since_upload(0)
 			, time_since_download(0)
+			, queue_position(0)
 		{}
 
 		enum state_t
@@ -334,6 +335,14 @@ namespace libtorrent
 		// number of seconds since last upload or download activity
 		int time_since_upload;
 		int time_since_download;
+
+		// the position in the download queue where this torrent is
+		// this is -1 for seeds and finished torrents
+		int queue_position;
+
+		// true if this torrent has had changes since the last
+		// time resume data was saved
+		bool need_save_resume;
 	};
 
 	struct TORRENT_EXPORT block_info

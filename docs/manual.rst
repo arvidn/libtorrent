@@ -2628,6 +2628,8 @@ have their positions decreased to fill in the space in the sequence.
 with the smallest numbers are the ones that are being downloaded. The smaller number,
 the closer the torrent is to the front of the line to be started.
 
+The queue position is also available in the ``torrent_status``.
+
 The ``queue_position_*()`` functions adjust the torrents position in the queue. Up means
 closer to the front and down means closer to the back of the queue. Top and bottom refers
 to the front and the back of the queue respectively.
@@ -3075,6 +3077,9 @@ It contains the following fields::
 
 		int time_since_upload;
 		int time_since_download;
+
+		int queue_position;
+		bool need_save_resume;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3335,6 +3340,13 @@ saw a complete copy of this torrent.
 ``time_since_upload`` and ``time_since_download`` are the number of
 seconds since any peer last uploaded from this torrent and the last
 time a downloaded piece passed the hash check, respectively.
+
+``queue_position`` is the position this torrent has in the download
+queue. If the torrent is a seed or finished, this is -1.
+
+``need_save_resume`` is true if this torrent has unsaved changes
+to its download state and statistics since the last resume data
+was saved.
 
 peer_info
 =========
