@@ -193,9 +193,19 @@ enum {
 
 int torrent_filter = torrents_not_paused;
 
-bool show_torrent(libtorrent::torrent_status const& st)
+struct torrent_entry
+{
+	torrent_entry(libtorrent::torrent_handle h) : handle(h) {}
+	libtorrent::torrent_handle handle;
+	libtorrent::torrent_status status;
+};
+
+typedef std::multimap<std::string, torrent_entry> handles_t;
+
+bool show_torrent(torrent_entry const& te)
 {
 	using libtorrent::torrent_status;
+	torrent_status const& st = te.status;
 
 	switch (torrent_filter)
 	{
@@ -547,8 +557,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 	}
 }
 
-typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
-
 int listen_port = 6881;
 float preferred_ratio = 0.f;
 int allocation_mode = libtorrent::storage_mode_sparse;
@@ -615,7 +623,7 @@ void add_torrent(libtorrent::session& ses
 		return;
 	}
 
-	handles.insert(std::pair<const std::string, torrent_handle>(
+	handles.insert(std::pair<const std::string, torrent_entry>(
 		monitored_dir?std::string(torrent):std::string(), h));
 
 	h.set_max_connections(max_connections_per_torrent);
@@ -672,7 +680,7 @@ void scan_dir(std::string const& dir_path
 			continue;
 		}
 
-		torrent_handle& h = i->second;
+		torrent_handle& h = i->second.handle;
 		if (!h.is_valid())
 		{
 			handles.erase(i++);
@@ -689,13 +697,13 @@ void scan_dir(std::string const& dir_path
 	}
 }
 
-libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
+torrent_entry& get_active_torrent(handles_t const& handles)
 {
 	if (active_torrent >= handles.size()
-		|| active_torrent < 0) return libtorrent::torrent_handle();
+		|| active_torrent < 0) active_torrent = 0;
 	handles_t::const_iterator i = handles.begin();
 	std::advance(i, active_torrent);
-	return i->second;
+	return const_cast<torrent_entry&>(i->second);
 }
 
 void print_alert(libtorrent::alert const* a, std::string& str)
@@ -764,7 +772,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			bencode(std::back_inserter(out), *p->resume_data);
 			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
-				, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
+				, boost::bind(&torrent_entry::handle, boost::bind(&handles_t::value_type::second, _1)) == h) == handles.end())
 				ses.remove_torrent(h);
 		}
 	}
@@ -772,7 +780,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		torrent_handle h = p->handle;
 		if (std::find_if(handles.begin(), handles.end()
-			, boost::bind(&handles_t::value_type::second, _1) == h) == handles.end())
+			, boost::bind(&torrent_entry::handle, boost::bind(&handles_t::value_type::second, _1)) == h) == handles.end())
 			ses.remove_torrent(h);
 	}
 }
@@ -1160,7 +1168,7 @@ int main(int argc, char* argv[])
 					// arrow up
 					int prev = active_torrent;
 					--active_torrent;
-					while (active_torrent > 0 && !show_torrent(get_active_torrent(handles).status()))
+					while (active_torrent > 0 && !show_torrent(get_active_torrent(handles)))
 						--active_torrent;
 					if (active_torrent < 0) active_torrent = prev;
 				}
@@ -1169,7 +1177,7 @@ int main(int argc, char* argv[])
 					// arrow down
 					int prev = active_torrent;
 					++active_torrent;
-					while (active_torrent < handles.size() && !show_torrent(get_active_torrent(handles).status()))
+					while (active_torrent < handles.size() && !show_torrent(get_active_torrent(handles)))
 						++active_torrent;
 					if (active_torrent >= handles.size()) active_torrent = prev;
 				}
@@ -1189,8 +1197,8 @@ int main(int argc, char* argv[])
 				for (handles_t::iterator i = handles.begin();
 					i != handles.end(); ++i)
 				{
-					i->second.get_full_peer_list(peers);
-					FILE* f = fopen(("peers_" + i->second.name()).c_str(), "w+");
+					i->second.handle.get_full_peer_list(peers);
+					FILE* f = fopen(("peers_" + i->second.handle.name()).c_str(), "w+");
 					if (!f) break;
 					for (std::vector<peer_list_entry>::iterator k = peers.begin()
 						, end(peers.end()); k != end; ++k)
@@ -1208,22 +1216,20 @@ int main(int argc, char* argv[])
 
 			if (c == 'q') break;
 
-			if (c == 'j')
+			if (c == 'j' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.force_recheck();
+				get_active_torrent(handles).handle.force_recheck();
 			}
 
-			if (c == 'r')
+			if (c == 'r' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.force_reannounce();
+				get_active_torrent(handles).handle.force_reannounce();
 			}
 
-			if (c == 's')
+			if (c == 's' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.set_sequential_download(!h.status().sequential_download);
+				torrent_entry& te = get_active_torrent(handles);
+				te.handle.set_sequential_download(!te.status.sequential_download);
 			}
 
 			if (c == 'R')
@@ -1232,56 +1238,49 @@ int main(int argc, char* argv[])
 				for (handles_t::iterator i = handles.begin()
 					, end(handles.end()); i != end; ++i)
 				{
-					if (i->second.need_save_resume_data())
-						i->second.save_resume_data();
+					if (i->second.status.need_save_resume)
+						i->second.handle.save_resume_data();
 				}
 			}
 
-			if (c == 'o')
+			if (c == 'o' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid())
+				torrent_entry& te = get_active_torrent(handles);
+				int num_pieces = te.handle.get_torrent_info().num_pieces();
+				if (num_pieces > 300) num_pieces = 300;
+				for (int i = 0; i < num_pieces; ++i)
 				{
-					int num_pieces = h.get_torrent_info().num_pieces();
-					if (num_pieces > 300) num_pieces = 300;
-					for (int i = 0; i < num_pieces; ++i)
-					{
-						h.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
-					}
+					te.handle.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
 				}
 			}
 
-			if (c == 'v')
+			if (c == 'v' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.scrape_tracker();
+				torrent_entry& te = get_active_torrent(handles);
+				te.handle.scrape_tracker();
 			}
 
-			if (c == 'p')
+			if (c == 'p' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid())
+				torrent_entry& te = get_active_torrent(handles);
+				if (!te.status.auto_managed && te.status.paused)
 				{
-					torrent_status s = h.status();
-					if (!s.auto_managed && s.paused)
-					{
-						h.auto_managed(true);
-					}
-					else
-					{
-						h.auto_managed(false);
-						h.pause(torrent_handle::graceful_pause);
-					}
-					// the alert handler for save_resume_data_alert
-					// will save it to disk
-					if (h.need_save_resume_data()) h.save_resume_data();
+					te.handle.auto_managed(true);
 				}
+				else
+				{
+					te.handle.auto_managed(false);
+					te.handle.pause(torrent_handle::graceful_pause);
+				}
+				// the alert handler for save_resume_data_alert
+				// will save it to disk
+				if (te.status.need_save_resume) te.handle.save_resume_data();
 			}
 
-			if (c == 'c')
+			if (c == 'c' && !handles.empty())
 			{
-				torrent_handle h = get_active_torrent(handles);
-				if (h.is_valid()) h.clear_error();
+				torrent_entry& te = get_active_torrent(handles);
+				te.handle.clear_error();
 			}
 
 			// toggle displays
@@ -1360,8 +1359,8 @@ int main(int argc, char* argv[])
 		for (handles_t::iterator i = handles.begin();
 			i != handles.end(); ++torrent_index)
 		{
-			torrent_handle& h = i->second;
-			if (!h.is_valid())
+			torrent_entry& te = i->second;
+			if (!te.handle.is_valid())
 			{
 				handles.erase(i++);
 				continue;
@@ -1371,9 +1370,10 @@ int main(int argc, char* argv[])
 				++i;
 			}
 
-			torrent_status s = h.status();
+			te.status = te.handle.status();
+			torrent_status const& s = te.status;
 
-			if (!show_torrent(s))
+			if (!show_torrent(te))
 				continue;
 
 #ifdef ANSI_TERMINAL_COLORS
@@ -1392,7 +1392,7 @@ int main(int argc, char* argv[])
 				out += " ";
 			}
 
-			int queue_pos = h.queue_position();
+			int queue_pos = te.status.queue_position;
 			if (queue_pos == -1) out += "-  ";
 			else
 			{
@@ -1403,7 +1403,7 @@ int main(int argc, char* argv[])
 			if (s.paused) out += esc("34");
 			else out += esc("37");
 
-			std::string name = h.name();
+			std::string name = te.handle.name();
 			if (name.size() > 40) name.resize(40);
 			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
@@ -1439,7 +1439,7 @@ int main(int argc, char* argv[])
 					, s.up_bandwidth_queue, s.down_bandwidth_queue
 					, esc("32"), add_suffix(s.all_time_download).c_str(), term
 					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, h.need_save_resume_data()?'S':' ', esc("0"));
+					, s.seed_rank, te.status.need_save_resume?'S':' ', esc("0"));
 				out += str;
 
 				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
@@ -1498,7 +1498,7 @@ int main(int argc, char* argv[])
 			}
 
 			if (torrent_index != active_torrent) continue;
-			active_handle = h;
+			active_handle = te.handle;
 		}
 
 		cache_status cs = ses.get_cache_status();
@@ -1755,15 +1755,15 @@ int main(int argc, char* argv[])
 	for (handles_t::iterator i = handles.begin();
 		i != handles.end(); ++i)
 	{
-		torrent_handle& h = i->second;
-		if (!h.is_valid()) continue;
-		torrent_status s = h.status();
-		if (s.paused) continue;
-		if (!s.has_metadata) continue;
+		torrent_entry& te = i->second;
+		if (!te.handle.is_valid()) continue;
+		te.status = te.handle.status();
+		if (te.status.paused) continue;
+		if (!te.status.has_metadata) continue;
 
-		printf("saving resume data for %s\n", h.name().c_str());
+		printf("saving resume data for %s\n", te.handle.name().c_str());
 		// save_resume_data will generate an alert when it's done
-		h.save_resume_data();
+		te.handle.save_resume_data();
 		++num_resume_data;
 	}
 	printf("waiting for resume data\n");
