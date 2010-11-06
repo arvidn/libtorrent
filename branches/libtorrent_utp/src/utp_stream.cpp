@@ -96,11 +96,6 @@ enum
 
 	// the number of packets that'll fit in the reorder buffer
 	max_packets_reorder = 512,
-	
-	// this is the target buffering delay we're aiming for, in microseconds.
-	// i.e. 50 ms
-//	target_delay = 50000
-
 };
 
 // compare if lhs is less than rhs, taking wrapping
@@ -200,43 +195,45 @@ struct utp_socket_impl
 	utp_socket_impl(boost::uint16_t recv_id, boost::uint16_t send_id
 		, void* userdata, utp_socket_manager* sm)
 		: m_sm(sm)
-		, m_remote_address()
-		, m_port(0)
-		, m_last_history_step(time_now_hires())
-		, m_delay_sample_idx(0)
-		, m_send_id(send_id)
-		, m_recv_id(recv_id)
-		, m_ack_nr(0)
-		, m_seq_nr(0)
-		, m_acked_seq_nr(0)
-		, m_eof_seq_nr(0)
-		, m_eof(false)
-		, m_fast_resend_seq_nr(0)
-		, m_state(UTP_STATE_NONE)
 		, m_userdata(userdata)
+		, m_remote_address()
+		, m_read_handler(0)
+		, m_write_handler(0)
+		, m_connect_handler(0)
+		, m_read_timeout()
+		, m_write_timeout()
+		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
+		, m_last_cwnd_hit(min_time())
+		, m_ack_timer(time_now() + minutes(10))
+		, m_last_history_step(time_now_hires())
+		, m_cwnd(1500 << 16)
+		, m_buffered_incoming_bytes(0)
+		, m_reply_micro(0)
+		, m_adv_wnd(1500)
+		, m_bytes_in_flight(0)
 		, m_read(0)
 		, m_write_buffer_size(0)
 		, m_written(0)
 		, m_receive_buffer_size(0)
 		, m_read_buffer_size(0)
-		, m_read_handler(0)
-		, m_write_handler(0)
-		, m_connect_handler(0)
-		, m_reply_micro(0)
-		, m_cwnd(1500 << 16)
-		, m_adv_wnd(1500)
-		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
-		, m_last_cwnd_hit(min_time())
-		, m_bytes_in_flight(0)
-		, m_mtu(1500 - 20 - 8 - 8 - 24 - 36)
-		, m_buffered_incoming_bytes(0)
-		, m_duplicate_acks(0)
 		, m_in_buf_size(100 * 1024 * 1024)
 		, m_in_packets(0)
 		, m_out_packets(0)
-		, m_attached(true)
+		, m_port(0)
+		, m_send_id(send_id)
+		, m_recv_id(recv_id)
+		, m_ack_nr(0)
+		, m_seq_nr(0)
+		, m_acked_seq_nr(0)
+		, m_fast_resend_seq_nr(0)
+		, m_mtu(1500 - 20 - 8 - 8 - 24 - 36)
+		, m_duplicate_acks(0)
 		, m_num_timeouts(0)
-		, m_ack_timer(time_now() + minutes(10))
+		, m_eof_seq_nr(0)
+		, m_delay_sample_idx(0)
+		, m_state(UTP_STATE_NONE)
+		, m_eof(false)
+		, m_attached(true)
 	{
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
@@ -269,7 +266,7 @@ struct utp_socket_impl
 	}
 	std::size_t available() const;
 	void destroy();
-    void detach();
+	void detach();
 	void send_syn();
 	void send_fin();
 
@@ -296,35 +293,165 @@ struct utp_socket_impl
 
 	utp_socket_manager* m_sm;
 
-	sliding_average<16> m_rtt;
+	// userdata pointer passed along
+	// with any callback. This is initialized to 0
+	// then set to point to the utp_stream when
+	// hooked up, and then reset to 0 once the utp_stream
+	// detaches. This is used to know whether or not
+	// the socket impl is still attached to a utp_stream
+	// object. When it isn't, we'll never be able to
+	// signal anything back to the client, and in case
+	// of errors, we just have to delete ourselves
+	// i.e. transition to the UTP_STATE_DELETED state
+	void* m_userdata;
 
-	address m_remote_address;
-	boost::uint16_t m_port;
+	// This is a platform-independent replacement
+	// for the regular iovec type in posix. Since
+	// it's not used in any system call, we might as
+	// well define our own type instead of wrapping
+	// the system's type.
+	struct iovec_t
+	{
+		iovec_t(void* b, size_t l): buf(b), len(l) {}
+		void* buf;
+		size_t len;
+	};
 
-	// the send and receive buffers
-	// maps packet sequence numbers
-	packet_buffer m_inbuf;
-	packet_buffer m_outbuf;
+	// if there's currently an async read or write
+	// operation in progress, these buffers are initialized
+	// and used, otherwise any bytes received are stuck in
+	// m_receive_buffer until another read is made
+	// as we flush from the write buffer, individual iovecs
+	// are updated to only refer to unflushed portions of the
+	// buffers. Buffers that empty are erased from the vector.
+	std::vector<iovec_t> m_write_buffer;
 
-	ptime m_last_history_step;
-	timestamp_history m_delay_hist;
-	timestamp_history m_their_delay_hist;
-
-	// this holds the 3 last delay measurements,
-	// these are the actual corrected delay measurements.
-	// the lowest of the 3 last ones is used in the congestion
-	// controller. This is to not completely close the cwnd
-	// by a single outlier.
-	boost::uint32_t m_delay_sample_hist[3];
-	enum { num_delay_hist = 3 };
-	// this is the cursor into m_delay_sample_hist
-	int m_delay_sample_idx;
+	// the user provided read buffer. If this has a size greater
+	// than 0, we'll always prefer using it over putting received
+	// data in the m_receive_buffer. As data is stored in the
+	// read buffer, the iovec_t elements are adjusted to only
+	// refer to the unwritten portions of the buffers, and the
+	// ones that fill up are erased from the vector
+	std::vector<iovec_t> m_read_buffer;
+	
+	// packets we've received without a read operation
+	// active. Store them here until the client triggers
+	// an async_read_some
+	std::vector<packet*> m_receive_buffer;
 
 	// this is the error on this socket. If m_state is
 	// set to UTP_STATE_ERROR_WAIT, this error should be
 	// forwarded to the client as soon as we have a new
 	// async operation initiated
 	error_code m_error;
+
+	// these are the callbacks made into the utp_stream object
+	// on read/write/connect events
+	utp_stream::handler_t m_read_handler;
+	utp_stream::handler_t m_write_handler;
+	utp_stream::connect_handler_t m_connect_handler;
+
+	// the address of the remote endpoint
+	address m_remote_address;
+
+	// the send and receive buffers
+	// maps packet sequence numbers
+	packet_buffer m_inbuf;
+	packet_buffer m_outbuf;
+
+	// timers when we should trigger the read and
+	// write callbacks (unless the buffers fill up
+	// before)
+	ptime m_read_timeout;
+	ptime m_write_timeout;
+
+	// the time when the last packet we sent times out. Including re-sends.
+	// if we ever end up not having sent anything in one second (
+	// or one mean rtt + 2 average deviations, whichever is greater)
+	// we set our cwnd to 1 MSS. This condition can happen either because
+	// a packet has timed out and needs to be resent or because our
+	// cwnd is set to less than one MSS during congestion control.
+	// it can also happen if the other end sends an advertized window
+	// size less than one MSS.
+	ptime m_timeout;
+	
+	// the last time we wanted to send more data, but couldn't because
+	// it would bring the number of outstanding bytes above the cwnd.
+	// this is used to restrict increasing the cwnd size when we're
+	// not sending fast enough to need it bigger
+	ptime m_last_cwnd_hit;
+
+	// the next time we need to send an ACK the latest
+	// updated every time we send an ACK and every time we
+	// put off sending an ACK for a received packet
+	ptime m_ack_timer;
+
+	// the last time we stepped the timestamp history
+	ptime m_last_history_step;
+
+	// the max number of bytes in-flight. This is a fixed point
+	// value, to get the true number of bytes, shift right 16 bits
+	// the value is always >= 0, but the calculations performed on
+	// it in do_ledbat() is signed.
+	boost::int64_t m_cwnd;
+
+	timestamp_history m_delay_hist;
+	timestamp_history m_their_delay_hist;
+
+	// the number of bytes we have buffered in m_inbuf
+	boost::int32_t m_buffered_incoming_bytes;
+
+	// the timestamp diff in the last packet received
+	// this is what we'll send back
+	boost::uint32_t m_reply_micro;
+
+	// this is the advertized receive window the other end sent
+	// we'll never have more un-acked bytes in flight
+	// if this ever gets set to zero, we'll try one packet every
+	// second until the window opens up again
+	boost::uint32_t m_adv_wnd;
+
+	// the number of un-acked bytes we have sent
+	boost::int32_t m_bytes_in_flight;
+
+	// the number of bytes read into the user provided
+	// buffer. If this grows too big, we'll trigger the
+	// read handler.
+	boost::int32_t m_read;
+
+	// the sum of the lengths of all iovec in m_write_buffer
+	boost::int32_t m_write_buffer_size;
+
+	// the number of bytes already written to packets
+	// from m_write_buffer
+	boost::int32_t m_written;
+
+	// the sum of all packets stored in m_receive_buffer
+	boost::int32_t m_receive_buffer_size;
+	
+	// the sum of all buffers in m_read_buffer
+	boost::int32_t m_read_buffer_size;
+
+	// max number of bytes to allocate for receive buffer
+	boost::int32_t m_in_buf_size;
+
+	// this holds the 3 last delay measurements,
+	// these are the actual corrected delay measurements.
+	// the lowest of the 3 last ones is used in the congestion
+	// controller. This is to not completely close the cwnd
+	// by a single outlier.
+	enum { num_delay_hist = 3 };
+	boost::uint32_t m_delay_sample_hist[num_delay_hist];
+
+	// counters
+	boost::uint32_t m_in_packets;
+	boost::uint32_t m_out_packets;
+
+	// average RTT
+	sliding_average<16> m_rtt;
+
+	// port of destination endpoint
+	boost::uint16_t m_port;
 
 	boost::uint16_t m_send_id;
 	boost::uint16_t m_recv_id;
@@ -343,6 +470,12 @@ struct utp_socket_impl
 	// end.
 	boost::uint16_t m_acked_seq_nr;
 
+	// each packet gets one chance of "fast resend". i.e.
+	// if we have multiple duplicate acks, we may send a
+	// packet immediately, if m_fast_resend_seq_nr is set
+	// to that packet's sequence number
+	boost::uint16_t m_fast_resend_seq_nr;
+
 	// this is the sequence number of the FIN packet
 	// we've received. This sequence number is only
 	// valid if m_eof is true. We should not accept
@@ -350,14 +483,21 @@ struct utp_socket_impl
 	// other end
 	boost::uint16_t m_eof_seq_nr;
 
-	// this is set to true when we receive a fin
-	bool m_eof;
+	// the max number of bytes we can send in a packet
+	// including the header
+	boost::uint16_t m_mtu;
 
-	// each packet gets one chance of "fast resend". i.e.
-	// if we have multiple duplicate acks, we may send a
-	// packet immediately, if m_fast_resend_seq_nr is set
-	// to that packet's sequence number
-	boost::uint16_t m_fast_resend_seq_nr;
+	// this is a counter of how many times the current m_acked_seq_nr
+	// has been ACKed. If it's ACKed more than 3 times, we assume the
+	// packet with the next sequence number has been lost, and we trigger
+	// a re-send. Ovbiously an ACK only counts as a duplicate as long as
+	// we have outstanding packets following it.
+	boost::uint8_t m_duplicate_acks;
+	// #error implement nagle
+
+	// the number of packet timeouts we've seen in a row
+	// this affects the packet timeout time
+	boost::uint8_t m_num_timeouts;
 
 	enum state_t {
 		// not yet connected
@@ -393,152 +533,18 @@ struct utp_socket_impl
 		UTP_STATE_DELETE
 	};
 
+	// this is the cursor into m_delay_sample_hist
+	boost::uint8_t m_delay_sample_idx:2;
+
 	// the state the socket is in
-	unsigned char m_state;
+	boost::uint8_t m_state:3;
 
-	// userdata pointer passed along
-	// with any callback. This is initialized to 0
-	// then set to point to the utp_stream when
-	// hooked up, and then reset to 0 once the utp_stream
-	// detaches. This is used to know whether or not
-	// the socket impl is still attached to a utp_stream
-	// object. When it isn't, we'll never be able to
-	// signal anything back to the client, and in case
-	// of errors, we just have to delete ourselves
-	// i.e. transition to the UTP_STATE_DELETED state
-	void* m_userdata;
-
-	// This is a platform-independent replacement
-	// for the regular iovec type in posix. Since
-	// it's not used in any system call, we might as
-	// well define our own type instead of wrapping
-	// the system's type.
-	struct iovec_t
-	{
-		iovec_t(void* b, size_t l): buf(b), len(l) {}
-		void* buf;
-		size_t len;
-	};
-
-	// if there's currently an async read or write
-	// operation in progress, these buffers are initialized
-	// and used, otherwise any bytes received are stuck in
-	// m_receive_buffer until another read is made
-	// as we flush from the write buffer, individual iovecs
-	// are updated to only refer to unflushed portions of the
-	// buffers. Buffers that empty are erased from the vector.
-	std::vector<iovec_t> m_write_buffer;
-
-	// the number of bytes read into the user provided
-	// buffer. If this grows too big, we'll trigger the
-	// read handler.
-	int m_read;
-
-	// the sum of the lengths of all iovec in m_write_buffer
-	int m_write_buffer_size;
-
-	// the number of bytes already written to packets
-	// from m_write_buffer
-	int m_written;
-
-	// the user provided read buffer. If this has a size greater
-	// than 0, we'll always prefer using it over putting received
-	// data in the m_receive_buffer. As data is stored in the
-	// read buffer, the iovec_t elements are adjusted to only
-	// refer to the unwritten portions of the buffers, and the
-	// ones that fill up are erased from the vector
-	std::vector<iovec_t> m_read_buffer;
-	
-	// packets we've received without a read operation
-	// active. Store them here until the client triggers
-	// an async_read_some
-	std::vector<packet*> m_receive_buffer;
-
-	// the sum of all packets stored in m_receive_buffer
-	int m_receive_buffer_size;
-	
-	// the sum of all buffers in m_read_buffer
-	int m_read_buffer_size;
-
-	// these are the callbacks made into the utp_stream object
-	// on read/write/connect events
-	utp_stream::handler_t m_read_handler;
-	utp_stream::handler_t m_write_handler;
-	utp_stream::connect_handler_t m_connect_handler;
-
-	// timers when we should trigger the read and
-	// write callbacks (unless the buffers fill up
-	// before)
-	ptime m_read_timeout;
-	ptime m_write_timeout;
-
-	// the timestamp diff in the last packet received
-	// this is what we'll send back
-	boost::uint32_t m_reply_micro;
-
-	// the max number of bytes in-flight. This is a fixed point
-	// value, to get the true number of bytes, shift right 16 bits
-	// the value is always >= 0, but the calculations performed on
-	// it in do_ledbat() is signed.
-	boost::int64_t m_cwnd;
-
-	// this is the advertized receive window the other end sent
-	// we'll never have more un-acked bytes in flight
-	// if this ever gets set to zero, we'll try one packet every
-	// second until the window opens up again
-	boost::uint32_t m_adv_wnd;
-
-	// the time when the last packet we sent times out. Including re-sends.
-	// if we ever end up not having sent anything in one second (
-	// or one mean rtt + 2 average deviations, whichever is greater)
-	// we set our cwnd to 1 MSS. This condition can happen either because
-	// a packet has timed out and needs to be resent or because our
-	// cwnd is set to less than one MSS during congestion control.
-	// it can also happen if the other end sends an advertized window
-	// size less than one MSS.
-	ptime m_timeout;
-	
-	// the last time we wanted to send more data, but couldn't because
-	// it would bring the number of outstanding bytes above the cwnd.
-	// this is used to restrict increasing the cwnd size when we're
-	// not sending fast enough to need it bigger
-	ptime m_last_cwnd_hit;
-
-	// the number of un-acked bytes we have sent
-	int m_bytes_in_flight;
-
-	// the max number of bytes we can send in a packet
-	// including the header
-	boost::uint32_t m_mtu;
-
-	// the number of bytes we have buffered in m_inbuf
-	int m_buffered_incoming_bytes;
-
-	// this is a counter of how many times the current m_acked_seq_nr
-	// has been ACKed. If it's ACKed more than 3 times, we assume the
-	// packet with the next sequence number has been lost, and we trigger
-	// a re-send. Ovbiously an ACK only counts as a duplicate as long as
-	// we have outstanding packets following it.
-	boost::uint8_t m_duplicate_acks;
-	// #error implement nagle
-
-	int m_in_buf_size;
-
-	// counters
-	int m_in_packets;
-	int m_out_packets;
+	// this is set to true when we receive a fin
+	bool m_eof:1;
 
 	// is this socket state attached to a user space socket?
-	bool m_attached;
+	bool m_attached:1;
 
-	// the number of packet timeouts we've seen in a row
-	// this affects the packet timeout time
-	int m_num_timeouts;
-
-	// the next time we need to send an ACK the latest
-	// updated every time we send an ACK and every time we
-	// put off sending an ACK for a received packet
-	ptime m_ack_timer;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2466,7 +2472,7 @@ int utp_socket_impl::packet_timeout() const
 	// have an RTT estimate yet, make a conservative guess
 	if (m_state == UTP_STATE_NONE) return 3000;
 	int timeout = (std::max)(1000, m_rtt.mean() + m_rtt.avg_deviation() * 2);
-	if (m_num_timeouts > 0) timeout += (1 << (m_num_timeouts - 1)) * 1000;
+	if (m_num_timeouts > 0) timeout += (1 << (int(m_num_timeouts) - 1)) * 1000;
 	return timeout;
 }
 

@@ -94,7 +94,6 @@ namespace libtorrent
 			mutex::scoped_lock l(file_mutex);
 			open();
 			log_file << v;
-			log_file.flush();
 #endif
 			return *this;
 		}
