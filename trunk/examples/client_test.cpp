@@ -183,6 +183,37 @@ bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
 
+enum {
+	torrents_all = 0,
+	torrents_downloading = 1,
+	torrents_not_paused = 2,
+	torrents_seeding = 3,
+	torrents_paused = 4
+};
+
+int torrent_filter = torrents_not_paused;
+
+bool show_torrent(libtorrent::torrent_status const& st)
+{
+	using libtorrent::torrent_status;
+
+	switch (torrent_filter)
+	{
+		case torrents_all: return true;
+		case torrents_downloading:
+			return !st.paused
+			&& st.state != torrent_status::seeding
+			&& st.state != torrent_status::finished;
+		case torrents_not_paused: return !st.paused;
+		case torrents_seeding:
+			return !st.paused
+			&& (st.state == torrent_status::seeding
+			|| st.state == torrent_status::finished);
+		case torrents_paused: return st.paused;
+	}
+	return true;
+}
+
 FILE* g_log_file = 0;
 
 int active_torrent = 0;
@@ -1114,17 +1145,33 @@ int main(int argc, char* argv[])
 #else
 				c = getc(stdin);
 #endif
-				if (c == 65)
+				if (c == 68)
+				{
+					// arrow left
+					if (torrent_filter > 0) --torrent_filter;
+				}
+				else if (c == 67)
+				{
+					// arrow right
+					if (torrent_filter < torrents_paused) ++torrent_filter;
+				}
+				else if (c == 65)
 				{
 					// arrow up
+					int prev = active_torrent;
 					--active_torrent;
-					if (active_torrent < 0) active_torrent = 0;
+					while (active_torrent > 0 && !show_torrent(get_active_torrent(handles).status()))
+						--active_torrent;
+					if (active_torrent < 0) active_torrent = prev;
 				}
 				else if (c == 66)
 				{
 					// arrow down
+					int prev = active_torrent;
 					++active_torrent;
-					if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+					while (active_torrent < handles.size() && !show_torrent(get_active_torrent(handles).status()))
+						++active_torrent;
+					if (active_torrent >= handles.size()) active_torrent = prev;
 				}
 			}
 
@@ -1296,6 +1343,17 @@ int main(int argc, char* argv[])
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
+		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "paused"};
+		for (int i = 0; i < sizeof(filter_names)/sizeof(filter_names[0]); ++i)
+		{
+			out += '[';
+			if (torrent_filter == i) out += esc("7");
+			out += filter_names[i];
+			if (torrent_filter == i) out += esc("0");
+			out += ']';
+		}
+		out += '\n';
+
 		char str[500];
 		int torrent_index = 0;
 		torrent_handle active_handle;
@@ -1312,6 +1370,11 @@ int main(int argc, char* argv[])
 			{
 				++i;
 			}
+
+			torrent_status s = h.status();
+
+			if (!show_torrent(s))
+				continue;
 
 #ifdef ANSI_TERMINAL_COLORS
 			char const* term = "\x1b[0m";
@@ -1336,8 +1399,6 @@ int main(int argc, char* argv[])
 				snprintf(str, sizeof(str), "%-3d", queue_pos);
 				out += str;
 			}
-
-			torrent_status s = h.status();
 
 			if (s.paused) out += esc("34");
 			else out += esc("37");
