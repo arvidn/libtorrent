@@ -635,6 +635,7 @@ namespace aux {
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
+		(*m_logger) << "sizeof(utp_socket_impl): " << socket_impl_size() << "\n";
 
 //		PRINT_SIZEOF(stat_channel)
 //		PRINT_OFFSETOF(stat_channel, m_counter)

@@ -541,6 +541,10 @@ struct utp_socket_impl
 	ptime m_ack_timer;
 };
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+int socket_impl_size() { return sizeof(utp_socket_impl); }
+#endif
+
 utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 	, boost::uint16_t send_id, void* userdata
 	, utp_socket_manager* sm)
