@@ -76,9 +76,9 @@ void intrusive_ptr_release(observer const* o)
 	TORRENT_ASSERT(o != 0);
 	if (--o->m_refs == 0)
 	{
-		boost::pool<>& p = o->m_algorithm->allocator();
+		boost::intrusive_ptr<traversal_algorithm> ta = o->m_algorithm;
 		(const_cast<observer*>(o))->~observer();
-		p.free(const_cast<observer*>(o));
+		ta->free_observer(const_cast<observer*>(o));
 	}
 }
 
@@ -172,6 +172,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_table(table)
 	, m_timer(time_now())
 	, m_random_number(generate_id())
+	, m_allocated_observers(0)
 	, m_destructing(false)
 {
 	std::srand(time(0));
@@ -213,6 +214,21 @@ rpc_manager::~rpc_manager()
 	{
 		(*i)->abort();
 	}
+}
+
+void* rpc_manager::allocate_observer()
+{
+	m_pool_allocator.set_next_size(10);
+	void* ret = m_pool_allocator.malloc();
+	if (ret) ++m_allocated_observers;
+	return ret;
+}
+
+void rpc_manager::free_observer(void* ptr)
+{
+	if (!ptr) return;
+	--m_allocated_observers;
+	m_pool_allocator.free(ptr);
 }
 
 #ifdef TORRENT_DEBUG
