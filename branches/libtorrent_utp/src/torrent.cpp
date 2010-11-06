@@ -6863,6 +6863,9 @@ namespace libtorrent
 		st.connections_limit = m_max_connections;
 		// if we don't have any metadata, stop here
 
+		st.queue_position = queue_position();
+		st.need_save_resume = need_save_resume_data();
+
 		st.state = (torrent_status::state_t)m_state;
 
 		if (!valid_metadata())
