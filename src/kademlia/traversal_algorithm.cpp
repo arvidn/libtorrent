@@ -138,7 +138,7 @@ void traversal_algorithm::finished(observer_ptr o)
 	std::vector<observer_ptr>::iterator i = std::find(
 		m_results.begin(), m_results.end(), o);
 
-	TORRENT_ASSERT(i != m_results.end());
+	TORRENT_ASSERT(i != m_results.end() || m_results.size() == 100);
 #endif
 
 	// if this flag is set, it means we increased the
