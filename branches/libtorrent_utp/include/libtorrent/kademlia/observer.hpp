@@ -67,10 +67,13 @@ struct observer : boost::noncopyable
 	friend TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
 	friend TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 
-	observer(boost::intrusive_ptr<traversal_algorithm> const& a)
-		: m_sent()
+	observer(boost::intrusive_ptr<traversal_algorithm> const& a
+		, udp::endpoint const& ep, node_id const& id)
+		: flags(0)
+		, m_sent()
 		, m_refs(0)
 		, m_algorithm(a)
+		, m_id(id)
 		, m_is_v6(false)
 		, m_short_timeout(false)
 		, m_done(false)
@@ -80,6 +83,7 @@ struct observer : boost::noncopyable
 		m_in_constructor = true;
 		m_was_sent = false;
 #endif
+		set_target(ep);
 	}
 
 	virtual ~observer();
@@ -109,11 +113,25 @@ struct observer : boost::noncopyable
 	address target_addr() const;
 	udp::endpoint target_ep() const;
 
+	void set_id(node_id const& id) { m_id = id; }
+	node_id const& id() const { return m_id; }
+
 	void set_transaction_id(boost::uint16_t tid)
 	{ m_transaction_id = tid; }
 
 	boost::uint16_t transaction_id() const
 	{ return m_transaction_id; }
+
+	enum {
+		flag_queried = 1,
+		flag_initial = 2,
+		flag_no_id = 4,
+		flag_short_timeout = 8,
+		flag_failed = 16,
+		flag_ipv6_address = 32,
+		flag_alive = 64
+	};
+	unsigned char flags;
 
 #ifndef TORRENT_DHT_VERBOSE_LOGGING
 protected:
@@ -127,6 +145,8 @@ protected:
 	mutable boost::detail::atomic_count m_refs;
 
 	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+
+	node_id m_id;
 
 	TORRENT_UNION addr_t
 	{

@@ -623,7 +623,7 @@ namespace libtorrent { namespace dht
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		std::stringstream log_line;
 		lazy_entry print;
-		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, 0, ec);
+		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
 		TORRENT_ASSERT(ret == 0);
 		log_line << print_entry(print, true);
 #endif

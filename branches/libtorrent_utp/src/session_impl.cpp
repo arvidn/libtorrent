@@ -1459,7 +1459,7 @@ namespace aux {
 			return listen_socket_t();
 		}
 		s.external_port = s.sock->local_endpoint(ec).port();
-		s.sock->listen(5, ec);
+		s.sock->listen(m_settings.listen_queue_size, ec);
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -2573,7 +2573,7 @@ namespace aux {
 		--m_disconnect_time_scaler;
 		if (m_disconnect_time_scaler <= 0)
 		{
-			m_disconnect_time_scaler = 90;
+			m_disconnect_time_scaler = m_settings.peer_turnover_interval;
 
 			if (num_connections() >= m_settings.connections_limit * m_settings.peer_turnover_cutoff
 				&& !m_torrents.empty())
@@ -2719,7 +2719,8 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 				t->log_to_all_peers(("AUTO MANAGER PAUSING TORRENT: " + t->torrent_file().name()).c_str());
 #endif
-				t->set_allow_peers(false);
+				// use graceful pause for auto-managed torrents
+				t->set_allow_peers(false, true);
 			}
 		}
 	}
@@ -2826,6 +2827,7 @@ namespace aux {
 			if (!pi) continue;
 			torrent* t = p->associated_torrent().lock().get();
 			if (!t) continue;
+			if (t->is_paused()) continue;
 
 			if (pi->optimistically_unchoked)
 			{
@@ -2921,7 +2923,7 @@ namespace aux {
 			torrent* t = p->associated_torrent().lock().get();
 			policy::peer* pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0) continue;
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || t->is_paused()) continue;
 
 			if (m_settings.choking_algorithm == session_settings::bittyrant_choker)
 			{
@@ -3636,6 +3638,7 @@ namespace aux {
 			s.dht_node_cache = 0;
 			s.dht_torrents = 0;
 			s.dht_global_nodes = 0;
+			s.dht_total_allocations = 0;
 		}
 #endif
 

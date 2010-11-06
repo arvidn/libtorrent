@@ -172,7 +172,7 @@ void find_data_observer::reply(msg const& m)
 void add_entry_fun(void* userdata, node_entry const& e)
 {
 	traversal_algorithm* f = (traversal_algorithm*)userdata;
-	f->add_entry(e.id, e.ep(), traversal_algorithm::result::initial);
+	f->add_entry(e.id, e.ep(), observer::flag_initial);
 }
 
 find_data::find_data(
@@ -190,7 +190,17 @@ find_data::find_data(
 	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
 }
 
-bool find_data::invoke(udp::endpoint addr)
+observer_ptr find_data::new_observer(void* ptr
+	, udp::endpoint const& ep, node_id const& id)
+{
+	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
+#ifdef TORRENT_DEBUG
+	o->m_in_constructor = false;
+#endif
+	return o;
+}
+
+bool find_data::invoke(observer_ptr o)
 {
 	if (m_done)
 	{
@@ -198,28 +208,12 @@ bool find_data::invoke(udp::endpoint addr)
 		return false;
 	}
 
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	void* ptr = m_node.m_rpc.allocator().malloc();
-	if (ptr == 0)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
-#endif
-		done();
-		return false;
-	}
-	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this));
-#ifdef TORRENT_DEBUG
-	o->m_in_constructor = false;
-#endif
 	entry e;
 	e["y"] = "q";
 	e["q"] = "get_peers";
 	entry& a = e["a"];
 	a["info_hash"] = m_target.to_string();
-	return m_node.m_rpc.invoke(e, addr, o);
+	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
 void find_data::got_peers(std::vector<tcp::endpoint> const& peers)
@@ -234,19 +228,26 @@ void find_data::done()
 
 	m_done = true;
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] get_peers DONE";
+#endif
+
 	std::vector<std::pair<node_entry, std::string> > results;
 	int num_results = m_node.m_table.bucket_size();
-	for (std::vector<result>::iterator i = m_results.begin()
+	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
-		if (i->flags & result::no_id) continue;
-		if ((i->flags & result::queried) == 0) continue;
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(i->id);
+		observer_ptr const& o = *i;
+		if (o->flags & observer::flag_no_id) continue;
+		if ((o->flags & observer::flag_queried) == 0) continue;
+		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
 		if (j == m_write_tokens.end()) continue;
-		results.push_back(std::make_pair(node_entry(i->id, i->endpoint()), j->second));
+		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 		--num_results;
 	}
 	m_nodes_callback(results, m_got_peers);
+
+	traversal_algorithm::done();
 }
 
 } } // namespace libtorrent::dht

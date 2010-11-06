@@ -91,7 +91,7 @@ namespace libtorrent
 		request_large_blocks(true);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " *** web_peer_connection " << url << "\n";
+		peer_log("*** web_peer_connection %s", url.c_str());
 #endif
 	}
 
@@ -239,7 +239,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " " << request << "\n";
+		peer_log("==> %s", request.c_str());
 #endif
 
 		send_buffer(request.c_str(), request.size(), message_type_request);
@@ -274,8 +274,7 @@ namespace libtorrent
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** web_peer_connection error: "
-				<< error.message() << "\n";
+			peer_log("*** web_peer_connection error: %s", error.message().c_str());
 #endif
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(m_statistics.last_payload_downloaded()
@@ -313,7 +312,7 @@ namespace libtorrent
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << "*** " << std::string(recv_buffer.begin, recv_buffer.end) << "\n";
+					peer_log("*** %s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
 					disconnect(errors::http_parse_error, 2);
 #ifdef TORRENT_DEBUG
@@ -361,12 +360,11 @@ namespace libtorrent
 			if (!header_finished)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string() << " *** STATUS: " << m_parser.status_code()
-					<< " " << m_parser.message() << "\n";
+				peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
 				std::map<std::string, std::string> const& headers = m_parser.headers();
 				for (std::map<std::string, std::string>::const_iterator i = headers.begin()
 					, end(headers.end()); i != end; ++i)
-					(*m_logger) << "   " << i->first << ": " << i->second << "\n";
+					peer_log("   %s: %s", i->first.c_str(), i->second.c_str());
 #endif
 				// if the status code is not one of the accepted ones, abort
 				if (!is_ok_status(m_parser.status_code()))
@@ -552,17 +550,13 @@ namespace libtorrent
 					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
 					m_statistics.received_bytes(0, chunk_start.left() - m_partial_chunk_header);
 					m_partial_chunk_header = chunk_start.left();
-					if (bytes_transferred == 0)
-					{
-						return;
-					}
+					if (bytes_transferred == 0) return;
 					break;
 				}
 				else
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string() << " *** parsed chunk: " << chunk_size
-						<< " header_size: " << header_size << "\n";
+					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(bytes_transferred >= header_size - m_partial_chunk_header);
 					bytes_transferred -= header_size - m_partial_chunk_header;
@@ -570,7 +564,7 @@ namespace libtorrent
 					m_partial_chunk_header = 0;
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
-					cut_receive_buffer(header_size, t->block_size() + 1024, m_chunk_pos);
+					cut_receive_buffer(header_size, t->block_size() + 1024, m_body_start + m_chunk_pos);
 					recv_buffer = receive_buffer();
 					recv_buffer.begin += m_body_start;
 					m_chunk_pos += chunk_size;
@@ -596,9 +590,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_block_pos >= 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** payload_transferred: " << payload_transferred
-				<< " [" << front_request.piece << ":" << front_request.start
-				<< " = " << front_request.length <<  "]\n";
+			peer_log("*** payload_transferred: %d [ %d:%d = %d ]"
+				, payload_transferred, front_request.piece
+				, front_request.start, front_request.length);
 #endif
 			m_statistics.received_bytes(payload_transferred, 0);
 			TORRENT_ASSERT(bytes_transferred >= payload_transferred);
@@ -661,16 +655,24 @@ namespace libtorrent
 				int piece_size = int(m_piece.size());
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
-				m_piece.resize(piece_size + copy_size);
-				TORRENT_ASSERT(copy_size > 0);
-				std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
-				recv_buffer.begin += copy_size;
-				m_received_body += copy_size;
-				m_body_start += copy_size;
-				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
-				incoming_piece_fragment(copy_size);
+				if (copy_size > 0)
+				{
+					m_piece.resize(piece_size + copy_size);
+					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
+					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					recv_buffer.begin += copy_size;
+					m_received_body += copy_size;
+					m_body_start += copy_size;
+					if (m_chunk_pos > 0)
+					{
+						TORRENT_ASSERT(m_chunk_pos >= copy_size);
+						m_chunk_pos -= copy_size;
+					}
+					TORRENT_ASSERT(m_received_body <= range_end - range_start);
+					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					incoming_piece_fragment(copy_size);
+				}
+
 				if (int(m_piece.size()) == front_request.length)
 				{
 					// each call to incoming_piece() may result in us becoming
@@ -707,7 +709,7 @@ namespace libtorrent
 				m_received_body += r.length;
 				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
 				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				cut_receive_buffer(r.length + m_body_start, t->block_size() + 1024);
+				cut_receive_buffer(m_body_start + r.length, t->block_size() + 1024);
 				if (m_chunk_pos > 0)
 				{
 					TORRENT_ASSERT(m_chunk_pos >= r.length);
@@ -742,9 +744,18 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(m_received_body <= range_end - range_start);
-			if (m_received_body == range_end - range_start)
+			// if we're in chunked encoding mode, we have to wait for the complete
+			// tail header before we can consider have received the block, otherwise
+			// we'll get out of sync with the next http response. m_chunk_pos is set
+			// to -1 when the tail header has been received
+			if (m_received_body == range_end - range_start
+				&& (!m_parser.chunked_encoding() || m_chunk_pos == -1))
 			{
 				int size_to_cut = recv_buffer.begin - receive_buffer().begin;
+
+				TORRENT_ASSERT(receive_buffer().left() < size_to_cut + 1
+					|| receive_buffer()[size_to_cut] == 'H');
+
 				cut_receive_buffer(size_to_cut, t->block_size() + 1024);
 				if (m_chunk_pos > 0)
 				{

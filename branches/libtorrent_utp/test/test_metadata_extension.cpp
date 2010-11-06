@@ -73,13 +73,13 @@ void test_transfer(bool clear_files, bool disconnect
 		print_alerts(ses2, "ses2", false, true);
 
 		if (disconnect && tor2.is_valid()) ses2.remove_torrent(tor2);
-		if (!disconnect && tor2.has_metadata()) break;
+		if (!disconnect && tor2.status().has_metadata) break;
 		test_sleep(100);
 	}
 
 	if (disconnect) return;
 
-	TEST_CHECK(tor2.has_metadata());
+	TEST_CHECK(tor2.status().has_metadata);
 	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < 30; ++i)
@@ -95,12 +95,12 @@ void test_transfer(bool clear_files, bool disconnect
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< st2.num_peers
 			<< std::endl;
-		if (tor2.is_seed()) break;
+		if (st2.is_seeding) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.is_seed());
-	if (tor2.is_seed()) std::cerr << "done\n";
+	TEST_CHECK(tor2.status().is_seeding);
+	if (tor2.status().is_seeding) std::cerr << "done\n";
 
 	error_code ec;
 	remove_all("./tmp1_meta", ec);

@@ -114,6 +114,7 @@ namespace libtorrent
 		int dht_torrents;
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		int dht_total_allocations;
 #endif
 
 		utp_status utp_stats;

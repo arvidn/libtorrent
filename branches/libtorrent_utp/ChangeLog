@@ -1,3 +1,5 @@
+	* graceful peer disconnect mode which finishes transactions before disconnecting peers
+	* support chunked encoding for web seeds
 	* uTP protocol support
 	* resistance towards certain flood attacks
 	* support chunked encoding for web seeds (only for BEP 19, web seeds)
@@ -56,6 +58,7 @@
 	* added more detailed instrumentation of the disk I/O thread
 
 
+	* support 100 Continue HTTP responses
 	* changed default choker behavior to use 8 unchoke slots (instead of being rate based)
 	* fixed error reporting issue in disk I/O thread
 	* fixed file allocation issues on linux

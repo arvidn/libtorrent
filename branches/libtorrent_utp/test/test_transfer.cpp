@@ -99,11 +99,11 @@ void test_rate()
 				<< std::endl;
 		}
 
-		if (tor2.is_seed()) break;
+		if (st2.is_seeding) break;
 		test_sleep(100);
 	}
 
-	TEST_CHECK(tor2.is_seed());
+	TEST_CHECK(tor2.status().is_seeding);
 
 	time_duration dt = time_now() - start;
 
@@ -377,7 +377,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			continue;
 		}
 
-		if (!test_disk_full && tor2.is_finished()) break;
+		if (!test_disk_full && st2.is_finished) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
@@ -390,9 +390,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	// 1 announce per tracker to start
 	TEST_CHECK(tracker_responses >= 2);
 
-	TEST_CHECK(!tor2.is_seed());
-	TEST_CHECK(tor2.is_finished());
-	if (tor2.is_finished())
+	TEST_CHECK(!tor2.status().is_seeding);
+	TEST_CHECK(tor2.status().is_finished);
+	if (tor2.status().is_finished)
 		std::cerr << "torrent is finished (50% complete)" << std::endl;
 
 	std::cerr << "force recheck" << std::endl;
@@ -500,7 +500,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		test_sleep(100);
 	}
 
-	TEST_CHECK(!tor2.is_seed());
+	TEST_CHECK(!tor2.status().is_seeding);
 
 	std::fill(priorities.begin(), priorities.end(), 1);
 	tor2.prioritize_pieces(priorities);
@@ -530,7 +530,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 				<< std::endl;
 		}
 
-		if (tor2.is_finished()) break;
+		if (tor2.status().is_finished) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding);
 		TEST_CHECK(st2.state == torrent_status::downloading);
@@ -538,7 +538,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		test_sleep(100);
 	}
 
-	TEST_CHECK(tor2.is_seed());
+	TEST_CHECK(tor2.status().is_seeding);
 
 	stop_tracker();
 	stop_web_server();

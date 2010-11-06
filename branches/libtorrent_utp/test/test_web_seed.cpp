@@ -120,10 +120,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 		print_alerts(ses, "  >>  ses");
 
-		if (th.is_seed()/* && ss.download_rate == 0.f*/)
+		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
-			torrent_status st = th.status();
-			TEST_EQUAL(st.total_payload_download - st.total_redundant_bytes, total_size);
+			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
 			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
@@ -148,7 +147,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 //	TEST_CHECK(fabs(rate_sum - total_size) < total_size * .1f);
 //	TEST_CHECK(fabs(ses_rate_sum - total_size) < total_size * .1f);
 
-	TEST_CHECK(th.is_seed());
+	TEST_CHECK(th.status().is_seeding);
 
 	if (proxy) stop_proxy(8002);
 
@@ -196,6 +195,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	file_storage fs;
 	std::srand(10);
+	int piece_size = 16;
 	if (test_url_seed)
 	{
 		int file_sizes[] =
@@ -215,7 +215,8 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	}
 	else
 	{
-		char random_data[10000];
+		piece_size = 64 * 1024;
+		char random_data[64 * 1024 * 25];
 		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
 		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
 		fs.add_file("seed", sizeof(random_data));
@@ -223,7 +224,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
 
-	libtorrent::create_torrent t(fs, 16, 0, libtorrent::create_torrent::calculate_file_hashes);
+	libtorrent::create_torrent t(fs, piece_size, 0, libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
 	if (test_url_seed)
 	{
@@ -280,10 +281,7 @@ int test_main()
 	int ret = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		// we only support chunked encoding for
-		// URL seeds (not HTTP seeds).
-		// that's why the variable limit on this loop
-		for (int j = 0; j < (i==0?2:1); ++j)
+		for (int j = 0; j < 2; ++j)
 		{
 #ifdef TORRENT_USE_OPENSSL
 			run_suite("https", i, j);

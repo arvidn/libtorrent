@@ -112,16 +112,16 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 
 	for (int i = 0; i < 50; ++i)
 	{
-		tor2.status();
+		torrent_status s = tor2.status();
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 
-		if (tor2.is_seed()) break;
+		if (s.is_seeding) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.is_seed());
- 	if (tor2.is_seed()) std::cerr << "done\n";
+	TEST_CHECK(tor2.status().is_seeding);
+ 	if (tor2.status().is_seeding) std::cerr << "done\n";
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 

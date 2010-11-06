@@ -37,11 +37,14 @@ for line in f:
 		print line.split(' ')
 
 out = open('dht_announce_distribution.dat', 'w+')
+print 'announce distribution items: %d' % len(announce_histogram)
 for k,v in announce_histogram.items():
 	print >>out, '%d %d' % (k, v)
+	print '%d %d' % (k, v)
 out.close()
 
 out = open('dht_node_uptime_distribution.dat', 'w+')
+print 'node uptimes: %d' % len(node_uptime_histogram)
 for k,v in node_uptime_histogram.items():
 	print >>out, '%d %d' % (k + up_time_quanta/2, v)
 out.close()

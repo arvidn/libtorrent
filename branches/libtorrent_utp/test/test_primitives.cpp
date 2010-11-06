@@ -1026,6 +1026,24 @@ int test_main()
 	TEST_CHECK(parser.content_range() == (std::pair<size_type, size_type>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
 
+	parser.reset();
+
+	// make sure we support content-range responses
+	// and that we're case insensitive
+	char const* one_hundred_response =
+		"HTTP/1.1 100 Continue\n"
+		"\r\n"
+		"HTTP/1.1 200 OK\n"
+		"Content-Length: 4\r\n"
+		"Content-Type: test/plain\r\n"
+		"\r\n"
+		"test";
+
+	received = feed_bytes(parser, one_hundred_response);
+
+	TEST_CHECK(received == make_tuple(4, int(strlen(one_hundred_response) - 4), false));
+	TEST_EQUAL(parser.content_length(), 4);
+
 	{
 		// test chunked encoding parser
 		char const chunk_header1[] = "f;this is a comment\r\n";

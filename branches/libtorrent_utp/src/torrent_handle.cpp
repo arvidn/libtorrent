@@ -336,13 +336,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(add_extension, ext, userdata);
 	}
 
-	bool torrent_handle::has_metadata() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, valid_metadata);
-		return r;
-	}
-
 	bool torrent_handle::set_metadata(char const* metadata, int size) const
 	{
 		INVARIANT_CHECK;
@@ -350,31 +343,10 @@ namespace libtorrent
 		return r;
 	}
 
-	bool torrent_handle::is_seed() const
+	void torrent_handle::pause(int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, is_seed);
-		return r;
-	}
-
-	bool torrent_handle::is_finished() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, is_finished);
-		return r;
-	}
-
-	bool torrent_handle::is_paused() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, is_torrent_paused);
-		return r;
-	}
-
-	void torrent_handle::pause() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL(pause);
+		TORRENT_ASYNC_CALL1(pause, bool(flags & graceful_pause));
 	}
 
 	void torrent_handle::set_share_mode(bool b) const
@@ -418,13 +390,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL(resume);
-	}
-
-	bool torrent_handle::is_auto_managed() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, is_auto_managed);
-		return r;
 	}
 
 	void torrent_handle::auto_managed(bool m) const
@@ -512,13 +477,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_sequential_download, sd);
 	}
 
-	bool torrent_handle::is_sequential_download() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, is_sequential_download);
-		return r;
-	}
-
 	std::string torrent_handle::name() const
 	{
 		INVARIANT_CHECK;
@@ -588,6 +546,48 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
+
+	bool torrent_handle::is_seed() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, is_seed);
+		return r;
+	}
+
+	bool torrent_handle::is_finished() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, is_finished);
+		return r;
+	}
+
+	bool torrent_handle::is_paused() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, is_torrent_paused);
+		return r;
+	}
+
+	bool torrent_handle::is_sequential_download() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, is_sequential_download);
+		return r;
+	}
+
+	bool torrent_handle::is_auto_managed() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, is_auto_managed);
+		return r;
+	}
+
+	bool torrent_handle::has_metadata() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, valid_metadata);
+		return r;
+	}
 
 	void torrent_handle::filter_piece(int index, bool filter) const
 	{

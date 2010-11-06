@@ -58,30 +58,24 @@ char const* refresh::name() const
 	return "refresh";
 }
 
-bool refresh::invoke(udp::endpoint addr)
+observer_ptr refresh::new_observer(void* ptr
+	, udp::endpoint const& ep, node_id const& id)
 {
-	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	void* ptr = m_node.m_rpc.allocator().malloc();
-	if (ptr == 0)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
-#endif
-		done();
-		return false;
-	}
-	m_node.m_rpc.allocator().set_next_size(10);
-	observer_ptr o(new (ptr) find_data_observer(this));
+	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
+	return o;
+}
+
+bool refresh::invoke(observer_ptr o)
+{
 	entry e;
 	e["y"] = "q";
 	e["q"] = "find_node";
 	entry& a = e["a"];
 	a["target"] = target().to_string();
-	m_node.m_rpc.invoke(e, addr, o);
+	m_node.m_rpc.invoke(e, o->target_ep(), o);
 	return true;
 }
 

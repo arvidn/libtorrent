@@ -164,8 +164,9 @@ namespace libtorrent
 			, share_ratio_limit(2.f)
 			, seed_time_ratio_limit(7.f)
 			, seed_time_limit(24 * 60 * 60) // 24 hours
-			, peer_turnover(1 / 100.f)
-			, peer_turnover_cutoff(1.1f) // disable until the crash is resolved
+			, peer_turnover_interval(300)
+			, peer_turnover(2 / 50.f)
+			, peer_turnover_cutoff(.9f)
 			, close_redundant_connections(true)
 			, auto_scrape_interval(1800)
 			, auto_scrape_min_interval(300)
@@ -179,7 +180,7 @@ namespace libtorrent
 			, announce_to_all_tiers(false)
 			, prefer_udp_trackers(true)
 			, strict_super_seeding(false)
-			, seeding_piece_quota(3)
+			, seeding_piece_quota(20)
 #ifdef TORRENT_WINDOWS
 			, max_sparse_regions(30000)
 #else
@@ -246,6 +247,7 @@ namespace libtorrent
 			, utp_delayed_ack(100) // milliseconds
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
+			, listen_queue_size(5)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -592,9 +594,14 @@ namespace libtorrent
 		float seed_time_ratio_limit;
 		int seed_time_limit;
 
+		// the interval (in seconds) between optimistic disconnects
+		// if the disconnects happen and how many peers are disconnected
+		// is controlled by peer_turnover and peer_turnover_cutoff
+		int peer_turnover_interval;
+
 		// the percentage of peers to disconnect every
-		// 90 seconds (if we're at the peer limit)
-		// defaults to 1/50:th
+		// turnoever interval (if we're at the peer limit)
+		// defaults to 2/50:th
 		float peer_turnover;
 
 		// when we are connected to more than
@@ -963,6 +970,11 @@ namespace libtorrent
 		// set to true if uTP connections should be rate limited
 		// defaults to false
 		bool rate_limit_utp;
+
+		// this is the number passed in to listen(). i.e.
+		// the number of connections to accept while we're
+		// not waiting in an accept() call.
+		int listen_queue_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

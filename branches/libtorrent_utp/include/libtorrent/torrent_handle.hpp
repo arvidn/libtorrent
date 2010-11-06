@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/assert.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -81,6 +83,11 @@ namespace libtorrent
 		torrent_status()
 			: state(checking_resume_data)
 			, paused(false)
+			, auto_managed(false)
+			, sequential_download(false)
+			, is_seeding(false)
+			, is_finished(false)
+			, has_metadata(false)
 			, progress(0.f)
 			, progress_ppm(0)
 			, total_download(0)
@@ -146,6 +153,12 @@ namespace libtorrent
 		
 		state_t state;
 		bool paused;
+		bool auto_managed;
+		bool sequential_download;
+		bool is_seeding;
+		bool is_finished;
+		bool has_metadata;
+
 		float progress;
 		// progress parts per million (progress * 1000000)
 		// when disabling floating point operations, this is
@@ -461,15 +474,12 @@ namespace libtorrent
 			, void* userdata = 0);
 #endif
 
-		bool has_metadata() const;
 		bool set_metadata(char const* metadata, int size) const;
 		const torrent_info& get_torrent_info() const;
 		bool is_valid() const;
 
-		bool is_seed() const;
-		bool is_finished() const;
-		bool is_paused() const;
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags = 0) const;
 		void resume() const;
 		void set_upload_mode(bool b) const;
 		void set_share_mode(bool b) const;
@@ -481,7 +491,6 @@ namespace libtorrent
 		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 
-		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
 		int queue_position() const;
@@ -503,6 +512,20 @@ namespace libtorrent
 		// ================ start deprecation ============
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16. use status() instead
+		TORRENT_DEPRECATED_PREFIX
+		bool is_seed() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool is_finished() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool is_paused() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool is_auto_managed() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool is_sequential_download() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool has_metadata() const TORRENT_DEPRECATED;
+
 		// deprecated in 0.13
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
@@ -582,7 +605,6 @@ namespace libtorrent
 		int download_limit() const;
 
 		void set_sequential_download(bool sd) const;
-		bool is_sequential_download() const;
 
 		int get_peer_upload_limit(tcp::endpoint ip) const;
 		int get_peer_download_limit(tcp::endpoint ip) const;

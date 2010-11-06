@@ -99,7 +99,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
 		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.is_seed())
+			|| (!handles.empty() && h.status().is_seeding)
 			|| pea->error.message() == "connecting to peer"
 			|| pea->error.message() == "closing connection to ourself"
 			|| pea->error.message() == "duplicate connection"
@@ -819,7 +819,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (path == "/infinite_redirect")
 			{
-				extra_header[0] = "Location: /infinite_redirext\r\n";
+				extra_header[0] = "Location: /infinite_redirect\r\n";
 				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
@@ -871,12 +871,12 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				else
 				{
 					range_start = 0;
-					// assume piece size of 16
-					range_end = 16-1;
+					// assume piece size of 64kiB
+					range_end = 64*1024-1;
 				}
 
 				int size = range_end - range_start + 1;
-				boost::uint64_t off = idx * 16 + range_start;
+				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
 				int res = load_file("./tmp1_web_seed/seed", file_buf);
 

@@ -392,6 +392,7 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
+		, m_graceful_pause_mode(false)
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
@@ -3263,6 +3264,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(!m_graceful_pause_mode);
 		TORRENT_ASSERT(c.is_choked());
 		TORRENT_ASSERT(!c.ignore_unchoke_slots());
 		// when we're unchoking the optimistic slots, we might
@@ -3428,12 +3430,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (web->endpoint.port() != 0)
-		{
-			connect_web_seed(web, web->endpoint);
-			return;
-		}
-
 		if (m_ses.m_port_filter.access(port) & port_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
@@ -3446,7 +3442,12 @@ namespace libtorrent
 			return;
 		}
 
-		web->resolving = true;
+		if (web->endpoint.port() != 0)
+		{
+			connect_web_seed(web, web->endpoint);
+			return;
+		}
+
 		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
@@ -3464,6 +3465,7 @@ namespace libtorrent
 		}
 		else
 		{
+			web->resolving = true;
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web
@@ -3529,6 +3531,7 @@ namespace libtorrent
 			return;
 		}
 
+		web->resolving = true;
 		tcp::resolver::query q(hostname, to_string(port).elems);
 		m_ses.m_host_resolver.async_resolve(q,
 			boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2, web, a));
@@ -3541,6 +3544,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(web->resolving == true);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << web->url << "\n";
 #endif
@@ -3575,6 +3579,9 @@ namespace libtorrent
 			return;
 		}
 		
+		TORRENT_ASSERT(web->resolving == false);
+		TORRENT_ASSERT(web->connection == 0);
+
 		web->endpoint = a;
 
 		if (is_paused()) return;
@@ -3665,11 +3672,12 @@ namespace libtorrent
 			TORRENT_ASSERT(!web->connection);
 			web->connection = c.get();
 
-			c->start();
-
 #if defined TORRENT_VERBOSE_LOGGING 
 			(*m_ses.m_logger) << time_now_string() << " web seed connection started " << web->url << "\n";
 #endif
+
+			c->start();
+
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
@@ -5047,7 +5055,7 @@ namespace libtorrent
 	void torrent::check_invariant() const
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		if (is_paused()) TORRENT_ASSERT(num_peers() == 0);
+		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
 		if (!should_check_files())
 			TORRENT_ASSERT(m_state != torrent_status::checking_files);
@@ -5565,7 +5573,8 @@ namespace libtorrent
 			|| m_state == torrent_status::queued_for_checking)
 			&& (m_allow_peers || m_auto_managed)
 			&& !has_error()
-			&& !m_abort;
+			&& !m_abort
+			&& !m_graceful_pause_mode;
 	}
 
 	void torrent::flush_cache()
@@ -5585,20 +5594,24 @@ namespace libtorrent
 	bool torrent::is_paused() const
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		return !m_allow_peers || m_ses.is_paused();
+		return !m_allow_peers || m_ses.is_paused() || m_graceful_pause_mode;
 	}
 
-	void torrent::pause()
+	void torrent::pause(bool graceful)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
 		bool checking_files = should_check_files();
-		m_allow_peers = false;
+		if (!graceful) m_allow_peers = false;
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
+
+		// mark torrent as upload only to make peers stop request more pieces
+		m_graceful_pause_mode = graceful;
+
 		if (!m_ses.is_paused())
 			do_pause();
 		if (checking_files && !should_check_files())
@@ -5648,7 +5661,44 @@ namespace libtorrent
 				alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
 
-		disconnect_all(errors::torrent_paused);
+		if (!m_graceful_pause_mode)
+		{
+			disconnect_all(errors::torrent_paused);
+		}
+		else
+		{
+			// disconnect all peers with no outstanding data to receive
+			// and choke all remaining peers to prevent responding to new
+			// requests
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end;)
+			{
+				std::set<peer_connection*>::iterator j = i++;
+				peer_connection* p = *j;
+				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+
+				if (p->is_disconnecting())
+					m_connections.erase(j);
+
+				if (p->outstanding_bytes() > 0)
+				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+					(*p->m_logger) << "*** CHOKING PEER: torrent graceful paused\n";
+#endif
+					// remove any un-sent requests from the queue
+					p->clear_request_queue();
+					// don't accept new requests from the peer
+					if (!p->is_choked()) m_ses.choke_peer(*p);
+					continue;
+				}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*p->m_logger) << "*** CLOSING CONNECTION: torrent_paused\n";
+#endif
+				p->disconnect(errors::torrent_paused);
+			}
+		}
+
 		stop_announcing();
 	}
 
@@ -5667,14 +5717,17 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::set_allow_peers(bool b)
+	void torrent::set_allow_peers(bool b, bool graceful)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		if (m_allow_peers == b) return;
+
+		if (m_allow_peers == b
+			&& m_graceful_pause_mode == graceful) return;
 
 		bool checking_files = should_check_files();
 
 		m_allow_peers = b;
+		m_graceful_pause_mode = graceful;
 
 		if (!b)
 		{
@@ -5706,6 +5759,7 @@ namespace libtorrent
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
+		m_graceful_pause_mode = false;
 		do_resume();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
@@ -6745,7 +6799,12 @@ namespace libtorrent
 
 		st.num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st.num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
-		st.paused = !m_allow_peers;
+		st.paused = is_torrent_paused();
+		st.auto_managed = m_auto_managed;
+		st.sequential_download = m_sequential_download;
+		st.is_seeding = is_seed();
+		st.is_finished = is_finished();
+		st.has_metadata = valid_metadata();
 		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);

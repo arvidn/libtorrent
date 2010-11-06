@@ -306,6 +306,8 @@ namespace libtorrent
 		std::vector<pending_block> const& request_queue() const;
 		std::vector<peer_request> const& upload_queue() const;
 
+		void clear_request_queue();
+
 		// estimate of how long it will take until we have
 		// received all piece requests that we have sent
 		// if extra_bytes is specified, it will include those
@@ -429,6 +431,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		void peer_log(char const* fmt, ...);
 		boost::shared_ptr<logger> m_logger;
 #endif
 
@@ -552,6 +555,8 @@ namespace libtorrent
 		}
 		bool has_country() const { return m_country[0] != 0; }
 #endif
+
+		int outstanding_bytes() const { return m_outstanding_bytes; }
 
 		int send_buffer_size() const
 		{ return m_send_buffer.size(); }

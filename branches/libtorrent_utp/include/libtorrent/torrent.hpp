@@ -161,8 +161,10 @@ namespace libtorrent
 		void set_share_mode(bool s);
 		bool share_mode() const { return m_share_mode; }
 
+		bool graceful_pause() const { return m_graceful_pause_mode; }
+
 		void set_upload_mode(bool b);
-		bool upload_mode() const { return m_upload_mode; }
+		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }
 		bool is_upload_only() const
 		{ return (is_finished() || upload_mode()) && !super_seeding(); }
 
@@ -232,9 +234,9 @@ namespace libtorrent
 		bool has_error() const { return m_error; }
 
 		void flush_cache();
-		void pause();
+		void pause(bool graceful = false);
 		void resume();
-		void set_allow_peers(bool b);
+		void set_allow_peers(bool b, bool graceful_pause = false);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
@@ -245,7 +247,7 @@ namespace libtorrent
 
 		bool is_paused() const;
 		bool allows_peers() const { return m_allow_peers; }
-		bool is_torrent_paused() const { return !m_allow_peers; }
+		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
 		void force_recheck();
 		void save_resume_data(int flags);
 
@@ -369,6 +371,9 @@ namespace libtorrent
 			// or with something incorrect, so that we removed the web seed
 			// immediately, before we disconnected
 			if (i == m_web_seeds.end()) return;
+
+			TORRENT_ASSERT(i->resolving == false);
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
 #endif
@@ -1231,6 +1236,11 @@ namespace libtorrent
 
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
+
+		// set to true when this torrent has been paused but
+		// is waiting to finish all current download requests
+		// before actually closing all connections
+		bool m_graceful_pause_mode:1;
 	};
 }
 

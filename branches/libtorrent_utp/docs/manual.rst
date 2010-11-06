@@ -139,7 +139,6 @@ The ``session`` class has the following synopsis::
 
 		void pause();
 		void resume();
-		bool is_paused() const;
 
 		session_proxy abort();
 
@@ -665,8 +664,9 @@ struct has the following members::
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
-		int dht_global_nodes;
+		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		int dht_total_allocations;
 
 		utp_status utp_stats;
 	};
@@ -731,6 +731,10 @@ becomes unresponsive.
 network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
+
+``dht_total_allocations`` is the number of nodes allocated dynamically for a
+particular DHT lookup. This represents roughly the amount of memory used
+by the DHT.
 
 ``utp_stats`` contains statistics on the uTP sockets.
 
@@ -1893,6 +1897,16 @@ torrent_handle
 
 You will usually have to store your torrent handles somewhere, since it's the
 object through which you retrieve information about the torrent and aborts the torrent.
+
+.. warning::
+	Any member function that returns a value or fills in a value has to
+	be made synchronously. This means it has to wait for the main thread
+	to complete the query before it can return. This might potentially be
+	expensive if done from within a GUI thread that needs to stay responsive.
+	Try to avoid quering for information you don't need, and try to do it
+	in as few calls as possible. You can get most of the interesting information
+	about a torrent from the ``torrent_handle::status()`` call.
+
 Its declaration looks like this::
 
 	struct torrent_handle
@@ -1965,9 +1979,9 @@ Its declaration looks like this::
 
 		void use_interface(char const* net_interface) const;
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags = 0) const;
 		void resume() const;
-		bool is_paused() const;
 		bool is_seed() const;
 		void force_recheck() const;
 		void clear_error() const;
@@ -1993,10 +2007,8 @@ Its declaration looks like this::
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
-		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
-		bool has_metadata() const;
 		bool set_metadata(char const* buf, int size) const;
 
 		boost::filesystem::path save_path() const;
@@ -2366,23 +2378,18 @@ limit.
 download, respectively.
 
 
-set_sequential_download() is_sequential_download()
---------------------------------------------------
+set_sequential_download()
+-------------------------
 
 	::
 
 		void set_sequential_download(bool sd);
-		bool is_sequential_download() const;
 
 ``set_sequential_download()`` enables or disables *sequential download*. When enabled, the piece
 picker will pick pieces in sequence instead of rarest first.
 
 Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.
-
-``is_sequential_download()`` returns true if this torrent is downloading in sequence, and false
-otherwise.
-
 
 get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()
 ---------------------------------------------------------------------------------------------------
@@ -2398,29 +2405,32 @@ Works like ``get_upload_limit``, ``get_download_limit``, ``set_upload_limit`` an
 ``set_download_limit`` respectively, but controls individual peer instead of the
 whole torrent.
 
-pause() resume() is_paused()
-----------------------------
+pause() resume()
+----------------
 
 	::
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags) const;
 		void resume() const;
-		bool is_paused() const;
 
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
-all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
-is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
-or something similar. See file_error_alert_.
+all potential (not connected) peers. Torrents may be paused automatically if there is a file
+error (e.g. disk full) or something similar. See file_error_alert_.
+
+To know if a torrent is paused or not, call ``torrent_handle::status()`` and inspect
+``torrent_status::paused``.
+
+The ``flags`` argument to pause can be set to ``torrent_handle::graceful_pause`` which will
+delay the disconnect of peers that we're still downloading outstanding requests from. The torrent
+will not accept any more requests and will disconnect all idle peers. As soon as a peer is
+done transferring the blocks that were requested from it, it is disconnected. This is a graceful
+shut down of the torrent in the sense that no downloaded bytes are wasted.
 
 torrents that are auto-managed may be automatically resumed again. It does not make sense to
 pause an auto-managed torrent without making it not automanaged first. Torrents are auto-managed
 by default when added to the session. For more information, see queuing_.
-
-``is_paused()`` only returns true if the torrent itself is paused. If the torrent
-is not running because the session is paused, this still returns false. To know if a
-torrent is active or not, you need to inspect both ``torrent_handle::is_paused()``
-and ``session::is_paused()``.
 
 flush_cache()
 -------------
@@ -2511,31 +2521,22 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
-is_auto_managed() auto_managed()
---------------------------------
+auto_managed()
+--------------
 
 	::
 
-		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
-``is_auto_managed()`` returns true if this torrent is currently *auto managed*.
 ``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
 see queuing_.
 
-has_metadata() set_metadata()
------------------------------
+set_metadata()
+--------------
 
 	::
 
-		bool has_metadata() const;
 		bool set_metadata(char const* buf, int size) const;
-
-``has_metadata`` returns true if this torrent has metadata (either it was started from a
-.torrent file or the metadata has been downloaded). The only scenario where this can return
-false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip). Note that if the torrent doesn't have metadata, the member `get_torrent_info()`_ will
-throw.
 
 ``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
 hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
@@ -2786,8 +2787,9 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		i != handles.end(); ++i)
 	{
 		torrent_handle& h = *i;
-		if (!h.has_metadata()) continue;
 		if (!h.is_valid()) continue;
+		torrent_status s = h.status();
+		if (!s.has_metadata) continue;
 
 		h.save_resume_data();
 		++num_resume_data;
@@ -2993,6 +2995,10 @@ It contains the following fields::
 	
 		state_t state;
 		bool paused;
+		bool auto_managed;
+		bool sequential_download;
+		bool seeding;
+		bool finished;
 		float progress;
 		int progress_ppm;
 		std::string error;
@@ -3128,7 +3134,29 @@ The torrent's current task is in the ``state`` member, it will be one of the fol
 When downloading, the progress is ``total_wanted_done`` / ``total_wanted``. This takes
 into account files whose priority have been set to 0. They are not considered.
 
-``paused`` is set to true if the torrent is paused and false otherwise.
+``paused`` is set to true if the torrent is paused and false otherwise. It's only true
+if the torrent itself is paused. If the torrent is not running because the session is
+paused, this is still false. To know if a torrent is active or not, you need to inspect
+both ``torrent_status::paused`` and ``session::is_paused()``.
+
+``auto_managed`` is set to true if the torrent is auto managed, i.e. libtorrent is
+responsible for determining whether it should be started or queued. For more info
+see queuing_
+
+``sequential_download`` is true when the torrent is in sequential download mode. In
+this mode pieces are downloaded in order rather than rarest first.
+
+``is_seeding`` is true if all pieces have been downloaded.
+
+``is_finished`` is true if all pieces that have a priority > 0 are downloaded. There is
+only a distinction between finished and seeding if some pieces or files have been
+set to priority 0, i.e. are not downloaded.
+
+``has_metadata`` is true if this torrent has metadata (either it was started from a
+.torrent file or the metadata has been downloaded). The only scenario where this can be
+false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
+ip, a magnet link for instance). Note that if the torrent doesn't have metadata, the member
+`get_torrent_info()`_ will throw.
 
 ``error`` may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
@@ -3824,6 +3852,9 @@ session_settings
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
 		int seed_time_limit;
+		int peer_turnover_interval;
+		float peer_turnover;
+		float peer_turnover_cutoff;
 		bool close_redundant_connections;
 
 		int auto_scrape_interval;
@@ -3913,6 +3944,7 @@ session_settings
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
+<<<<<<< .working
 
 		int utp_target_delay;
 		int utp_gain_factor;
@@ -3929,6 +3961,10 @@ session_settings
 		};
 		int mixed_mode_algorithm;
 		bool rate_limit_utp;
+=======
+
+		int listen_queue_size;
+>>>>>>> .merge-right.r4962
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4309,6 +4345,19 @@ for considering a seeding torrent to have met the seed limit criteria. See queui
 (specified in seconds) before it is considered having met the seed limit criteria.
 See queuing_.
 
+``peer_turnover_interval`` controls a feature where libtorrent periodically can disconnect
+the least useful peers in the hope of connecting to better ones. This settings controls
+the interval of this optimistic disconnect. It defaults to every 5 minutes, and
+is specified in seconds.
+
+``peer_turnover`` Is the fraction of the peers that are disconnected. This is
+a float where 1.f represents all peers an 0 represents no peers. It defaults to
+4% (i.e. 0.04f)
+
+``peer_turnover_cutoff`` is the cut off trigger for optimistic unchokes. If a torrent
+has more than this fraction of its connection limit, the optimistic unchoke is
+triggered. This defaults to 90% (i.e. 0.9f).
+
 ``close_redundant_connections`` specifies whether libtorrent should close
 connections where both ends have no utility in keeping the connection open.
 For instance if both ends have completed their downloads, there's no point
@@ -4570,7 +4619,7 @@ the default upload and download rate limits for peers, respectively. These
 default to 0, which means unlimited. These settings affect the rate limits
 set on new peer connections (not existing ones). The peer rate limits can
 be changed individually later using
-`set_peer_upload_limit() set_peer_download_limit()`_.
+`get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()`_.
 
 if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
@@ -4651,10 +4700,20 @@ opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
+<<<<<<< .working
 ``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
 value will make uTP connections more aggressive and cause longer queues in the upload
 bottleneck. It cannot be too low, since the noise in the measurements would cause
 it to send too slow. The default is 50 milliseconds.
+=======
+``listen_queue_size`` is the value passed in to listen() for the listen socket.
+It is the number of outstanding incoming connections to queue up while we're not
+actively waiting for a connection to be accepted. The default is 5 which should
+be sufficient for any normal client. If this is a high performance server which
+expects to receive a lot of connections, or used in a simulator or test, it
+might make sense to raise this number. It will not take affect until listen_on()
+is called again (or for the first time).
+>>>>>>> .merge-right.r4962
 
 ``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
 at the most in one RTT. This defaults to 300 bytes. If this is set too high,
