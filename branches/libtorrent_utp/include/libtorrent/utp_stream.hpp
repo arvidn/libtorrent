@@ -295,7 +295,7 @@ public:
 			ec = asio::error::would_block;
 			return 0;
 		}
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 		int buf_size = 0;
 #endif
 
@@ -305,7 +305,7 @@ public:
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 			buf_size += buffer_size(*i);
 #endif
 		}
