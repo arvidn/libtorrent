@@ -1214,15 +1214,18 @@ namespace libtorrent
 		int piece_size = j.storage->info()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
-		hasher ctx;
-
-		for (int i = 0; i < blocks_in_piece; ++i)
+		if (!m_settings.disable_hash_checks)
 		{
-			TORRENT_ASSERT(p->blocks[i].buf);
-			ctx.update((char const*)p->blocks[i].buf, (std::min)(piece_size, m_block_size));
-			piece_size -= m_block_size;
+			hasher ctx;
+
+			for (int i = 0; i < blocks_in_piece; ++i)
+			{
+				TORRENT_ASSERT(p->blocks[i].buf);
+				ctx.update((char const*)p->blocks[i].buf, (std::min)(piece_size, m_block_size));
+				piece_size -= m_block_size;
+			}
+			h = ctx.final();
 		}
-		h = ctx.final();
 
 		ret = copy_from_piece(const_cast<cached_piece_entry&>(*p), hit, j, l);
 		TORRENT_ASSERT(ret > 0);
