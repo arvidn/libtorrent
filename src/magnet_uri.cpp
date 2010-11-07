@@ -165,7 +165,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 		std::string::size_type node_pos = std::string::npos;
-		std::string node = url_has_argument(uri, "dht", &node_pos);
+		boost::optional<std::string> node_opt = url_has_argument(uri, "dht", &node_pos);
+		std::string node;
+		if (node_opt) node = *node_opt;
 		while (!node.empty())
 		{
 			std::string::size_type divider = node.find_last_of(':');
