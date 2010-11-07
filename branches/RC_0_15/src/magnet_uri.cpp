@@ -163,6 +163,26 @@ namespace libtorrent
 			return torrent_handle();
 		}
 
+#ifndef TORRENT_DISABLE_DHT
+		std::string::size_type node_pos = std::string::npos;
+		std::string node = url_has_argument(uri, "dht", &node_pos);
+		while (!node.empty())
+		{
+			std::string::size_type divider = node.find_last_of(':');
+			if (divider != std::string::npos)
+			{
+				int port = atoi(node.c_str()+divider+1);
+				if (port != 0)
+					ses.add_dht_node(std::make_pair(node.substr(0, divider), port));
+			}
+			
+			node_pos = uri.find("&dht=", node_pos);
+			if (node_pos == std::string::npos) break;
+			node_pos += 5;
+			node = uri.substr(node_pos, uri.find('&', node_pos) - node_pos);
+		}
+#endif
+
 		sha1_hash info_hash;
 		if (btih->size() == 40 + 9) from_hex(&(*btih)[9], 40, (char*)&info_hash[0]);
 		else info_hash.assign(base32decode(btih->substr(9)));

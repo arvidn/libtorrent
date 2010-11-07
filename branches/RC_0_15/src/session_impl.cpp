@@ -3219,8 +3219,7 @@ namespace aux {
 
 	void session_impl::add_dht_node(std::pair<std::string, int> const& node)
 	{
-		TORRENT_ASSERT(m_dht);
-		m_dht->add_node(node);
+		if (m_dht) m_dht->add_node(node);
 	}
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
