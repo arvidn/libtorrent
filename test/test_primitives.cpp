@@ -431,7 +431,7 @@ int test_main()
 	p.save_path = ".";
 	error_code ec;
 	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&tr=http://1&tr=http://2&tr=http://3&dn=foo";
+		"&tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43";
 	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
