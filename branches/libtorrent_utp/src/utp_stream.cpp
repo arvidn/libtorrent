@@ -138,6 +138,10 @@ struct packet
 	// resent on timeouts
 	bool need_resend:1;
 
+	// this is set to true for packets that were
+	// sent with the DF bit set (Don't Fragment)
+	bool mtu_probe:1;
+
 	// the actual packet buffer
 	char buf[];
 };
@@ -190,6 +194,14 @@ struct packet
 // simple to reuse the data structured and it provides all the
 // functionality needed for this buffer.
 
+enum
+{
+	TORRENT_IP_HEADER = 20,
+	TORRENT_UDP_HEADER = 8,
+	TORRENT_ETHERNET_MTU = 1500,
+	TORRENT_INET_MIN_MTU = 576
+};
+
 struct utp_socket_impl
 {
 	utp_socket_impl(boost::uint16_t recv_id, boost::uint16_t send_id
@@ -206,10 +218,10 @@ struct utp_socket_impl
 		, m_last_cwnd_hit(min_time())
 		, m_ack_timer(time_now() + minutes(10))
 		, m_last_history_step(time_now_hires())
-		, m_cwnd(1500 << 16)
+		, m_cwnd(TORRENT_ETHERNET_MTU << 16)
 		, m_buffered_incoming_bytes(0)
 		, m_reply_micro(0)
-		, m_adv_wnd(1500)
+		, m_adv_wnd(TORRENT_ETHERNET_MTU)
 		, m_bytes_in_flight(0)
 		, m_read(0)
 		, m_write_buffer_size(0)
@@ -226,7 +238,10 @@ struct utp_socket_impl
 		, m_seq_nr(0)
 		, m_acked_seq_nr(0)
 		, m_fast_resend_seq_nr(0)
-		, m_mtu(1500 - 20 - 8 - 8 - 24 - 36)
+		, m_mtu(TORRENT_ETHERNET_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36)
+		, m_mtu_floor(TORRENT_INET_MIN_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER)
+		, m_mtu_ceiling(TORRENT_ETHERNET_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER)
+		, m_mtu_seq(0)
 		, m_duplicate_acks(0)
 		, m_num_timeouts(0)
 		, m_eof_seq_nr(0)
@@ -288,6 +303,7 @@ struct utp_socket_impl
 	bool cancel_handlers(error_code const& ec, bool kill);
 	bool consume_incoming_data(
 		utp_header const* ph, char const* ptr, int payload_size, ptime now);
+	void update_mtu_limits();
 
 	void check_receive_buffers() const;
 
@@ -487,6 +503,21 @@ struct utp_socket_impl
 	// including the header
 	boost::uint16_t m_mtu;
 
+	// the floor is the largest packet that we have
+	// been able to get through without fragmentation
+	boost::uint16_t m_mtu_floor;
+
+	// the ceiling is the largest packet that we might
+	// be able to get through without fragmentation.
+	// i.e. ceiling +1 is very likely to not get through
+	// or we have in fact experienced a drop or ICMP
+	// message indicating that it is
+	boost::uint16_t m_mtu_ceiling;
+
+	// the sequence number of the probe in-flight
+	// this is 0 if there is no probe in flight
+	boost::uint16_t m_mtu_seq;
+
 	// this is a counter of how many times the current m_acked_seq_nr
 	// has been ACKed. If it's ACKed more than 3 times, we assume the
 	// packet with the next sequence number has been lost, and we trigger
@@ -599,6 +630,27 @@ udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 boost::uint16_t utp_receive_id(utp_socket_impl* s)
 {
 	return s->m_recv_id;
+}
+
+void utp_socket_impl::update_mtu_limits()
+{
+	TORRENT_ASSERT(m_mtu_floor <= m_mtu_ceiling);
+	m_mtu = (m_mtu_floor + m_mtu_ceiling) / 2;
+
+	// clear the mtu probe sequence number since
+	// it was either dropped or acked
+	m_mtu_seq = 0;
+
+	if (m_mtu_ceiling - m_mtu_floor < 10)
+	{
+		// we have narrowed down the mtu within 10
+		// bytes. That's good enough, start using
+		// floor as the packet size from now on.
+		// set the ceiling to the floor as well to
+		// disable more probes to be sent
+		// we'll never re-probe this connection
+		m_mtu = m_mtu_ceiling = m_mtu_floor;
+	}
 }
 
 int utp_socket_state(utp_socket_impl const* s)
@@ -1387,6 +1439,15 @@ bool utp_socket_impl::send_pkt(bool ack)
 
 	int packet_size = header_size + payload_size;
 
+	// MTU DISCOVERY
+	bool use_as_probe = false;
+	if (m_mtu_seq == 0
+		&& packet_size > m_mtu_floor)
+	{
+		use_as_probe = true;
+		m_mtu_seq = m_seq_nr;
+	}
+
 	packet* p;
 	// we only need a heap allocation if we have payload and
 	// need to keep the packet around (in the outbuf)
@@ -1397,6 +1458,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	p->header_size = packet_size - payload_size;
 	p->num_transmissions = 1;
 	p->need_resend = false;
+	p->mtu_probe = use_as_probe;
 	char* ptr = p->buf;
 	utp_header* h = (utp_header*)ptr;
 	ptr += sizeof(utp_header);
@@ -1440,7 +1502,8 @@ bool utp_socket_impl::send_pkt(bool ack)
 #endif
 
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)h, packet_size, m_error);
+		, (char const*)h, packet_size, m_error
+		, use_as_probe ? utp_socket_manager::dont_fragment : 0);
 
 	++m_out_packets;
 
@@ -1557,6 +1620,13 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	{
 		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 		m_bytes_in_flight -= p->size - p->header_size;
+	}
+
+	if (seq_nr == m_mtu_seq)
+	{
+		// our mtu probe was acked!
+		m_mtu_floor = m_mtu;
+		update_mtu_limits();
 	}
 
 	// increment the acked sequence number counter
@@ -2009,6 +2079,16 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		}
 		ptr += len;
 		extension = next_extension;
+	}
+
+	if (m_duplicate_acks > 3
+		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
+		&& m_mtu_seq != 0)
+	{
+		// we got multiple acks for the packet before our probe, assume
+		// it was dropped because it was too big
+		m_mtu_ceiling = m_mtu - 1;
+		update_mtu_limits();
 	}
 
 	if (m_duplicate_acks > 3
@@ -2509,7 +2589,20 @@ void utp_socket_impl::tick(ptime const& now)
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"
 			, this, int(m_cwnd >> 16));
 
-		// we need to go one passed m_seq_nr to cover the case
+		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
+			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq)
+		{
+			// we timed out, and the only outstanding packet
+			// we had was the probe. Assume it was dropped
+			// because it was too big
+			m_mtu_ceiling = m_mtu - 1;
+			update_mtu_limits();
+		}
+
+		// we dropped all packets, that includes the mtu probe
+		m_mtu_seq = 0;
+
+		// we need to go one past m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for
 		// the uTorrent sequence number reuse
 		for (int i = m_acked_seq_nr & ACK_MASK;

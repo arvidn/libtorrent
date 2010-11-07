@@ -88,6 +88,15 @@ namespace libtorrent
 			return tcp::endpoint(ep.address(), ep.port());
 		}
 
+		template <class SocketOption>
+		void set_option(SocketOption const& opt, error_code& ec)
+		{
+			m_ipv4_sock.set_option(opt, ec);
+#if TORRENT_USE_IPV6
+			m_ipv6_sock.set_option(opt, ec);
+#endif
+		}
+
 	protected:
 
 		struct queued_packet

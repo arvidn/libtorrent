@@ -36,22 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 
-#define TORRENT_UTP_LOG 1
-
-#if TORRENT_UTP_LOG
-namespace libtorrent {
-extern void utp_log(char const* fmt, ...);
-}
-
-#define UTP_LOG utp_log
-#define UTP_LOGV utp_log
-
-#else
-
-#define UTP_LOG if (false) printf
-#define UTP_LOGV if (false) printf
-
-#endif
+// #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent
 {
@@ -116,14 +101,27 @@ namespace libtorrent
 	}
 
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
-		, int len, error_code& ec)
+		, int len, error_code& ec, int flags)
 	{
 		if (!m_sock.is_open())
 		{
 			ec = asio::error::operation_aborted;
 			return;
 		}
+
+#ifdef TORRENT_DEBUG_MTU
+		// drop packets that exceed the debug MTU
+		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
+#endif
+
+#ifdef TORRENT_HAS_DONT_FRAGMENT
+		error_code tmp;
+		if (flags & dont_fragment) m_sock.set_option(dont_fragment(true), tmp);
+#endif
 		m_sock.send(ep, p, len, ec);
+#ifdef TORRENT_HAS_DONT_FRAGMENT
+		if (flags & dont_fragment) m_sock.set_option(dont_fragment(false), tmp);
+#endif
 	}
 
 	tcp::endpoint utp_socket_manager::local_endpoint(error_code& ec) const

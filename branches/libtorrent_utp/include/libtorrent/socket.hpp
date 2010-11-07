@@ -146,6 +146,40 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		char m_value;
 	};
+
+#if defined IP_DONTFRAG || defined IP_MTU_DISCOVER || defined IP_DONTFRAGMENT
+#define TORRENT_HAS_DONT_FRAGMENT
+#endif
+
+#ifdef TORRENT_HAS_DONT_FRAGMENT
+	struct dont_fragment
+	{
+		dont_fragment(bool val)
+#ifdef IP_PMTUDISCOVER_DO
+			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
+#else
+			: m_value(val) {}
+#endif
+		template<class Protocol>
+		int level(Protocol const&) const { return IPPROTO_IP; }
+		template<class Protocol>
+		int name(Protocol const&) const
+#if defined IP_DONTFRAG
+		{ return IP_DONTFRAG; }
+#elif defined IP_MTU_DISCOVER
+		{ return IP_MTU_DISCOVER; }
+#elif defined IP_DONTFRAGMENT
+		{ return IP_DONTFRAGMENT; }
+#else
+		{}
+#endif
+		template<class Protocol>
+		char const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif // TORRENT_HAS_DONT_FRAGMENT
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED
