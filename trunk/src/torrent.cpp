@@ -5565,10 +5565,10 @@ namespace libtorrent
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
 
-		// mark torrent as upload only to make peers stop request more pieces
+		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
 
-		if (!m_ses.is_paused())
+		if (!m_ses.is_paused() || (prev_graceful && !m_graceful_pause_mode))
 			do_pause();
 		if (checking_files && !should_check_files())
 		{
@@ -5683,7 +5683,8 @@ namespace libtorrent
 		bool checking_files = should_check_files();
 
 		m_allow_peers = b;
-		m_graceful_pause_mode = graceful;
+		if (!m_ses.is_paused())
+			m_graceful_pause_mode = graceful;
 
 		if (!b)
 		{
@@ -5715,7 +5716,7 @@ namespace libtorrent
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
-		m_graceful_pause_mode = false;
+		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 		do_resume();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
