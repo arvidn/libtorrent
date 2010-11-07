@@ -137,9 +137,9 @@ namespace libtorrent
 
 		utp_header const* ph = (utp_header*)p;
 
-//		UTP_LOGV("incoming packet version:%d\n", int(ph->ver));
+//		UTP_LOGV("incoming packet version:%d\n", int(ph->get_version()));
 
-		if (ph->ver != 1) return false;
+		if (ph->get_version() != 1) return false;
 
 		const ptime receive_time = time_now_hires();
 		
@@ -175,7 +175,7 @@ namespace libtorrent
 
 		// if not found, see if it's a SYN packet, if it is,
 		// create a new utp_stream
-		if (ph->type == ST_SYN)
+		if (ph->get_type() == ST_SYN)
 		{
 			// create the new socket with this ID
 			m_new_connection = id;

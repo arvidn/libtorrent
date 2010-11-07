@@ -1093,8 +1093,7 @@ void utp_socket_impl::send_syn()
 	p->num_transmissions = 1;
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
-	h->ver = 1;
-	h->type = ST_SYN;
+	h->type_ver = (ST_SYN << 4) | 1;
 	h->extension = 0;
 	// using recv_id here is intentional! This is an odd
 	// thing in uTP. The syn packet is sent with the connection
@@ -1152,8 +1151,7 @@ void utp_socket_impl::send_fin()
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 
-	h->ver = 1;
-	h->type = ST_FIN;
+	h->type_ver = (ST_FIN << 4) | 1;
 	h->extension = 0;
 	h->connection_id = m_send_id;
 	h->timestamp_difference_microseconds = m_reply_micro;
@@ -1171,7 +1169,7 @@ void utp_socket_impl::send_fin()
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: sending FIN seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
-		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, int(sizeof(utp_header)), m_error.message().c_str(), m_write_buffer_size);
 #endif
@@ -1207,8 +1205,7 @@ void utp_socket_impl::send_fin()
 void utp_socket_impl::send_reset(utp_header* ph)
 {
 	utp_header h;
-	h.ver = 1;
-	h.type = ST_RESET;
+	h.type_ver = (ST_RESET << 4) | 1;
 	h.extension = 0;
 	h.connection_id = m_send_id;
 	h.timestamp_difference_microseconds = m_reply_micro;
@@ -1463,8 +1460,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	utp_header* h = (utp_header*)ptr;
 	ptr += sizeof(utp_header);
 
-	h->ver = 1;
-	h->type = payload_size ? ST_DATA : ST_STATE;
+	h->type_ver = ((payload_size ? ST_DATA : ST_STATE) << 4) | 1;
 	h->extension = sack ? 1 : 0;
 	h->connection_id = m_send_id;
 	h->timestamp_difference_microseconds = m_reply_micro;
@@ -1494,7 +1490,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	UTP_LOGV("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 		"ret:%d adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
-		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
@@ -1592,7 +1588,7 @@ bool utp_socket_impl::resend_packet(packet* p)
 	UTP_LOGV("%8p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
-		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
@@ -1732,7 +1728,7 @@ bool utp_socket_impl::consume_incoming_data(
 	utp_header const* ph, char const* ptr, int payload_size
 	, ptime now)
 {
-	if (ph->type != ST_DATA) return false;
+	if (ph->get_type() != ST_DATA) return false;
 
 	if (m_eof && m_ack_nr == m_eof_seq_nr)
 	{
@@ -1842,35 +1838,35 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 {
 	utp_header* ph = (utp_header*)buf;
 
-	if (ph->ver != 1)
+	if (ph->get_version() != 1)
 	{
-		UTP_LOGV("%8p: incoming packet ver:%d (ignored)\n"
-			, this, int(ph->ver));
+		UTP_LOGV("%8p: incoming packet version:%d (ignored)\n"
+			, this, int(ph->get_version()));
 		return false;
 	}
 
 	// SYN packets have special (reverse) connection ids
-	if (ph->type != ST_SYN && ph->connection_id != m_recv_id)
+	if (ph->get_type() != ST_SYN && ph->connection_id != m_recv_id)
 	{
 		UTP_LOGV("%8p: incoming packet id:%d expected:%d (ignored)\n"
 			, this, int(ph->connection_id), int(m_recv_id));
 		return false;
 	}
 
-	if (ph->type >= NUM_TYPES)
+	if (ph->get_type() >= NUM_TYPES)
 	{
 		UTP_LOGV("%8p: incoming packet type:%d (ignored)\n"
-			, this, int(ph->type));
+			, this, int(ph->get_type()));
 		return false;
 	}
 
-	if (m_state == UTP_STATE_NONE && ph->type == ST_SYN)
+	if (m_state == UTP_STATE_NONE && ph->get_type() == ST_SYN)
 	{
 		m_remote_address = ep.address();
 		m_port = ep.port();
 	}
 
-	if (m_state != UTP_STATE_NONE && ph->type == ST_SYN)
+	if (m_state != UTP_STATE_NONE && ph->get_type() == ST_SYN)
 	{
 		UTP_LOGV("%8p: incoming packet type:ST_SYN (ignored)\n", this);
 		return true;
@@ -1908,7 +1904,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			, this, m_reply_micro, prev_base ? base_change : 0);
 	}
 
-	if (ph->type == ST_RESET)
+	if (ph->get_type() == ST_RESET)
 	{
 		UTP_LOGV("%8p: incoming packet type:RESET\n", this);
 		m_error = asio::error::connection_reset;
@@ -1929,7 +1925,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// and the ack_nr should be ignored
 	boost::uint16_t cmp_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 #if TORRENT_UT_SEQ
-	if (m_state == UTP_STATE_SYN_SENT && ph->type == ST_STATE)
+	if (m_state == UTP_STATE_SYN_SENT && ph->get_type() == ST_STATE)
 		cmp_seq_nr = m_seq_nr;
 #endif
 	if (m_state != UTP_STATE_NONE
@@ -1952,7 +1948,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	// send another ack to it, since it may be a resend caused by
 	// our ack getting dropped
 	if (m_state != UTP_STATE_SYN_SENT
-		&& ph->type == ST_DATA
+		&& ph->get_type() == ST_DATA
 		&& !compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
 	{
 		// we've already received this packet
@@ -2119,7 +2115,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			UTP_LOGV("%8p: fast re-sending packet seq_nr:%d ack_nr:%d type:%s "
 				"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 				"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
-				, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->type]
+				, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 				, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 				, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
@@ -2152,12 +2148,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d timestampdiff:%u timestamp:%u "
 			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d our state:%s\n"
-		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->type]
+		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->get_type()]
 		, int(ph->connection_id), payload_size, boost::uint32_t(ph->timestamp_difference_microseconds)
 		, boost::uint32_t(ph->timestamp_microseconds), m_ack_nr, m_seq_nr, m_acked_seq_nr, socket_state_names[m_state]);
 #endif
 
-	if (ph->type == ST_FIN)
+	if (ph->get_type() == ST_FIN)
 	{
 		// We ignore duplicate FIN packets, but we still need to ACK them.
 		if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK)
@@ -2200,7 +2196,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 	{
 		case UTP_STATE_NONE:
 		{
-			if (ph->type == ST_SYN)
+			if (ph->get_type() == ST_SYN)
 			{
 				// if we're in state_none, the only thing
 				// we accept are SYN packets.
@@ -2228,7 +2224,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: type:%s state:%s (ignored)\n"
-					, this, packet_type_names[ph->type], socket_state_names[m_state]);
+					, this, packet_type_names[ph->get_type()], socket_state_names[m_state]);
 #endif
 				return true;
 			}
@@ -2254,7 +2250,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// only progress our ack_nr on ST_DATA messages
 			// since our m_ack_nr is uninitialized at this point
 			// we still need to set it to something regardless
-			if (ph->type == ST_DATA)
+			if (ph->get_type() == ST_DATA)
 				m_ack_nr = ph->seq_nr;
 			else
 				m_ack_nr = (ph->seq_nr - 1) & ACK_MASK;
@@ -2291,7 +2287,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// space left in our send window or not. If we just got an ACK
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
-			bool has_ack = ph->type == ST_DATA || ph->type == ST_FIN || ph->type == ST_SYN;
+			bool has_ack = ph->get_type() == ST_DATA || ph->get_type() == ST_FIN || ph->get_type() == ST_SYN;
 			int delayed_ack = m_sm->delayed_ack();
 			if (has_ack && delayed_ack && m_ack_timer > receive_time)
 			{

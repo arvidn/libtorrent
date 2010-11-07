@@ -87,7 +87,7 @@ namespace libtorrent
 
 	0       4       8               16              24              32
 	+-------+-------+---------------+---------------+---------------+
-	| ver   | type  | extension     | connection_id                 |
+	| type  | ver   | extension     | connection_id                 |
 	+-------+-------+---------------+---------------+---------------+
 	| timestamp_microseconds                                        |
 	+---------------+---------------+---------------+---------------+
@@ -104,8 +104,7 @@ namespace libtorrent
 
 	struct utp_header
 	{
-		unsigned char ver:4;
-		unsigned char type:4;
+		unsigned char type_ver;
 		unsigned char extension;
 		be_uint16 connection_id;
 		be_uint32 timestamp_microseconds;
@@ -113,6 +112,9 @@ namespace libtorrent
 		be_uint32 wnd_size;
 		be_uint16 seq_nr;
 		be_uint16 ack_nr;
+
+		int get_type() const { return type_ver >> 4; }
+		int get_version() const { return type_ver & 0xf; }
 	};
 
 struct utp_socket_impl;
