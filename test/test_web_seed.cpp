@@ -197,26 +197,28 @@ int run_suite(char const* protocol, bool test_url_seed)
 		{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 			,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
 
-		char random_data[300000];
+		char* random_data = (char*)malloc(300000);
 		std::srand(10);
 		for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
 		{
-			std::generate(random_data, random_data + sizeof(random_data), &std::rand);
+			std::generate(random_data, random_data + 300000, &std::rand);
 			char filename[200];
 			snprintf(filename, sizeof(filename), "./tmp1_web_seed/test_torrent_dir/test%d", i);
 			save_file(filename, random_data, file_sizes[i]);
 		}
 
 		add_files(fs, "./tmp1_web_seed/test_torrent_dir");
+		free(random_data);
 	}
 	else
 	{
 		piece_size = 64 * 1024;
-		char random_data[64 * 1024 * 50];
+		char* random_data = (char*)malloc(64 * 1024 * 50);
 		std::srand(10);
-		std::generate(random_data, random_data + sizeof(random_data), &std::rand);
-		save_file("./tmp1_web_seed/seed", random_data, sizeof(random_data));
-		fs.add_file("seed", sizeof(random_data));
+		std::generate(random_data, random_data + 64 * 1024 * 50, &std::rand);
+		save_file("./tmp1_web_seed/seed", random_data, 64 * 1024 * 50);
+		fs.add_file("seed", 64 * 1024 * 50);
+		free(random_data);
 	}
 
 	int port = start_web_server();
