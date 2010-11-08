@@ -44,6 +44,7 @@ namespace libtorrent {
 		, m_capacity(0)
 		, m_size(0)
 		, m_first(0)
+		, m_last(0)
 	{}
 
 	packet_buffer::~packet_buffer()
@@ -91,10 +92,13 @@ namespace libtorrent {
 					reserve(m_capacity + (idx - ((m_first + m_capacity) & 0xffff)));
 				}
 			}
+			if (compare_less_wrap(m_last, (idx + 1) & 0xffff, 0xffff))
+				m_last = (idx + 1) & 0xffff;
 		}
 		else
 		{
 			m_first = idx;
+			m_last = (idx + 1) & 0xffff;
 		}
 
 		if (m_capacity == 0) reserve(16);
@@ -147,6 +151,7 @@ namespace libtorrent {
 
 	void* packet_buffer::remove(index_type idx)
 	{
+		// TODO: use compare_less_wrap for this comparison as well
 		if (idx >= m_first + m_capacity)
 			return 0;
 
@@ -159,12 +164,20 @@ namespace libtorrent {
 		if (old_value)
 		{
 			--m_size;
+			if (m_size == 0) m_last = m_first;
 		}
 
 		if (idx == m_first && m_size != 0)
 		{
 			while (!m_storage[++m_first & (m_capacity - 1)]);
 			m_first &= 0xffff;
+		}
+
+		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
+		{
+			while (!m_storage[--m_last & (m_capacity - 1)]);
+			++m_last;
+			m_last &= 0xffff;
 		}
 
 		return old_value;

@@ -407,6 +407,7 @@ int test_main()
 
 		TEST_EQUAL(pb.capacity(), 0);
 		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
 
 		pb.insert(123, (void*)123);
 		TEST_EQUAL(pb.at(123 + 16), 0);
@@ -414,27 +415,33 @@ int test_main()
 		TEST_CHECK(pb.at(123) == (void*)123);
 		TEST_CHECK(pb.capacity() > 0);
 		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
 		TEST_EQUAL(pb.cursor(), 123);
 
 		pb.insert(125, (void*)125);
 
 		TEST_CHECK(pb.at(125) == (void*)125);
 		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 3);
 		TEST_EQUAL(pb.cursor(), 123);
 
 		pb.insert(500, (void*)500);
 		TEST_EQUAL(pb.size(), 3);
+		TEST_EQUAL(pb.span(), 501 - 123);
 		TEST_EQUAL(pb.capacity(), 512);
 
 		TEST_CHECK(pb.remove(123) == (void*)123);
 		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 501 - 125);
 		TEST_EQUAL(pb.cursor(), 125);
 		TEST_CHECK(pb.remove(125) == (void*)125);
 		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
 		TEST_EQUAL(pb.cursor(), 500);
 
 		TEST_CHECK(pb.remove(500) == (void*)500);
 		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
 
 		for (int i = 0; i < 0xff; ++i)
 		{

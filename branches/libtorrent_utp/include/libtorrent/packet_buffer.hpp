@@ -89,6 +89,9 @@ namespace libtorrent
 		index_type cursor() const
 		{ return m_first; }
 
+		index_type span() const
+		{ return (m_last - m_first) & 0xffff; }
+
 	private:
 		void** m_storage;
 		std::size_t m_capacity;
@@ -97,6 +100,7 @@ namespace libtorrent
 		// This defines the first index that is part of the m_storage.
 		// The last index is (m_first + (m_capacity - 1)) & 0xffff.
 		index_type m_first;
+		index_type m_last;
 	};
 }
 
