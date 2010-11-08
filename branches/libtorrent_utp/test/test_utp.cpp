@@ -68,6 +68,10 @@ void test_transfer()
 	// make sure we announce to both http and udp trackers
 	sett.prefer_udp_trackers = false;
 
+	// for performance testing
+//	sett.disable_hash_checks = true;
+//	sett.utp_delayed_ack = 0;
+
 	ses1.set_settings(sett);
 	ses2.set_settings(sett);
 
@@ -87,9 +91,13 @@ void test_transfer()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 1000, false);
 	file.close();
 
+	// for performance testing
+	add_torrent_params atp;
+//	atp.storage = &disabled_storage_constructor;
+
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_utp", 8 * 1024, &t, false);
+		, true, false, true, "_utp", 8 * 1024, &t, false, &atp);
 
 	for (int i = 0; i < 300; ++i)
 	{
@@ -112,7 +120,7 @@ void test_transfer()
 			<< " cc: " << st2.connect_candidates
 			<< std::endl;
 
-		if (tor2.is_finished()) break;
+		if (st2.is_finished) break;
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
@@ -121,8 +129,8 @@ void test_transfer()
 		test_sleep(500);
 	}
 
-	TEST_CHECK(tor1.is_finished());
-	TEST_CHECK(tor2.is_finished());
+	TEST_CHECK(tor1.status().is_finished);
+	TEST_CHECK(tor2.status().is_finished);
 }
 
 int test_main()

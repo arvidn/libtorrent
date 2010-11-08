@@ -56,6 +56,7 @@ char const* socket_state_names[] = { "NONE", "SYN_SENT", "CONNECTED", "FIN_SENT"
 static struct utp_logger
 {
 	FILE* utp_log_file;
+	mutex utp_log_mutex;
 
 	utp_logger() : utp_log_file(0)
 	{
@@ -69,7 +70,9 @@ static struct utp_logger
 
 void utp_log(char const* fmt, ...)
 {
-	fprintf(log_file_holder.utp_log_file, "[%012"PRId64"] ", total_microseconds(time_now_hires() - min_time()));
+	mutex::scoped_lock lock(log_file_holder.utp_log_mutex);
+	static ptime start = time_now_hires();
+	fprintf(log_file_holder.utp_log_file, "[%012"PRId64"] ", total_microseconds(time_now_hires() - start));
 	va_list l;
 	va_start(l, fmt);
 	vfprintf(log_file_holder.utp_log_file, fmt, l);
@@ -249,6 +252,7 @@ struct utp_socket_impl
 		, m_state(UTP_STATE_NONE)
 		, m_eof(false)
 		, m_attached(true)
+		, m_nagle(true)
 	{
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
@@ -576,6 +580,9 @@ struct utp_socket_impl
 	// is this socket state attached to a user space socket?
 	bool m_attached:1;
 
+	// this is true if nagle is enabled (which it is by default)
+	// TODO: support the option to turn if off
+	bool m_nagle:1;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -795,7 +802,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	int write_buffer_size = 0;
 	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
@@ -808,7 +815,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t((void*)buf, len));
 	m_impl->m_write_buffer_size += len;
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	write_buffer_size = 0;
 	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
@@ -941,6 +948,7 @@ void utp_stream::set_write_handler(handler_t h)
 	// no more payload to send or if the congestion window
 	// is full and we can't send more packets right now
 	while (m_impl->send_pkt(false));
+	m_impl->maybe_trigger_send_callback(time_now_hires());
 }
 
 void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
@@ -1009,7 +1017,7 @@ void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
 	// nothing has been read or there's no outstanding read operation
 	if (m_read == 0 || m_read_handler == 0) return;
 
-	if (m_read > 10000 || m_read_buffer_size == 0 || now >= m_read_timeout)
+	if (m_read > 1000 || m_read_buffer_size == 0 || now >= m_read_timeout)
 	{
 		UTP_LOGV("%8p: calling read handler read:%d\n", this, m_read);
 		m_read_handler(m_userdata, m_read, m_error, false);
@@ -1025,7 +1033,7 @@ void utp_socket_impl::maybe_trigger_send_callback(ptime now)
 	// nothing has been written or there's no outstanding write operation
 	if (m_written == 0 || m_write_handler == 0) return;
 
-	if (m_written > 10000 || m_write_buffer_size == 0 || now >= m_write_timeout)
+	if (m_written > 1000 || m_write_buffer_size == 0 || now >= m_write_timeout)
 	{
 		UTP_LOGV("%8p: calling write handler written:%d\n", this, m_written);
 
@@ -1290,7 +1298,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 // pointed to by ptr
 void utp_socket_impl::write_payload(char* ptr, int size)
 {
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	int write_buffer_size = 0;
 	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
 		, end(m_write_buffer.end()); i != end; ++i)
@@ -1319,6 +1327,8 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 			m_write_timeout = now + milliseconds(100);
 			UTP_LOGV("%8p: setting write timeout to 100 ms from now\n", this);
 		}
+		TORRENT_ASSERT(to_copy >= 0);
+		TORRENT_ASSERT(to_copy < INT_MAX / 2 && m_written < INT_MAX / 2);
 		m_written += to_copy;
 		ptr += to_copy;
 		i->len -= to_copy;
@@ -1333,7 +1343,7 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 		m_write_buffer.erase(m_write_buffer.begin()
 			, m_write_buffer.begin() + buffers_to_clear);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 	write_buffer_size = 0;
 	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
 		, end(m_write_buffer.end()); i != end; ++i)
@@ -1342,7 +1352,6 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
-	maybe_trigger_send_callback(now);
 }
 
 // sends a packet, pulls data from the write buffer (if there's any)
@@ -1393,6 +1402,23 @@ bool utp_socket_impl::send_pkt(bool ack)
 	{
 		payload_size = m_mtu - header_size;
 		ret = true; // there's more data to send
+	}
+
+	if (((m_seq_nr - m_acked_seq_nr) & ACK_MASK) > 1
+		&& payload_size < m_mtu - header_size
+		&& !ack
+		&& m_nagle)
+	{
+		// this is nagle. If we don't have a full packet
+		// worth of payload to send AND we have at least
+		// one outstanding packet, hold off. Once the
+		// outstanding packet is acked, we'll send this
+		// payload
+		UTP_LOGV("%8p: NAGLE not enough payload send_buffer_size:%d cwnd:%d "
+			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
+			, this, m_write_buffer_size, int(m_cwnd >> 16)
+			, ret, m_adv_wnd, m_bytes_in_flight, m_mtu);
+		return false;
 	}
 
 	// if we have one MSS worth of data, make sure it fits in our
@@ -2305,6 +2331,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				// try to send more data as long as we can
 				while (send_pkt(false));
 			}
+			maybe_trigger_send_callback(receive_time);
 
 			// Everything up to the FIN has been receieved, respond with a FIN
 			// from our side.
@@ -2336,7 +2363,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"our_delay:%f "
 					"their_delay:%f "
 					"off_target:%f "
-					"max_window:%d "
+					"max_window:%u "
 					"upload_rate:%d "
 					"delay_base:%s "
 					"delay_sum:%f "
@@ -2351,7 +2378,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"rto:%d "
 					"timeout:%d "
 					"get_microseconds:%u "
-					"cur_window_packets:%d "
+					"cur_window_packets:%u "
 					"packet_size:%d "
 					"their_delay_base:%s "
 					"their_actual_delay:%u "
@@ -2367,7 +2394,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, float(delay / 1000.f)
 					, float(their_delay / 1000.f)
 					, float(int(m_sm->target_delay() - delay)) / 1000.f
-					, int(m_cwnd >> 16)
+					, boost::uint32_t(m_cwnd >> 16)
 					, 0
 					, our_delay_base
 					, float(delay + their_delay) / 1000.f
@@ -2382,7 +2409,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, packet_timeout()
 					, int(total_milliseconds(m_timeout - receive_time))
 					, int(total_microseconds(receive_time - min_time()))
-					, m_seq_nr - m_acked_seq_nr
+					, (m_seq_nr - m_acked_seq_nr) & ACK_MASK
 					, m_mtu
 					, their_delay_base
 					, boost::uint32_t(m_reply_micro)
@@ -2511,7 +2538,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	boost::int64_t scaled_gain = (window_factor * delay_factor) >> 16;
 	scaled_gain *= boost::int64_t(m_sm->gain_factor());
 
-	if (scaled_gain > 0 && m_last_cwnd_hit + seconds(1) < now)
+	if (scaled_gain > 0 && m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 10)) < now)
 	{
 		// we haven't bumped into the cwnd limit size in the last second
 		// this probably means we have a send rate limit, so we shouldn't make
