@@ -82,6 +82,7 @@ namespace libtorrent
 		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
 		, m_work(ses.m_io_service)
 		, m_last_piece(time_now())
+		, m_last_block(min_time())
 		, m_last_request(time_now())
 		, m_last_incoming_request(min_time())
 		, m_last_unchoke(time_now())
@@ -93,6 +94,7 @@ namespace libtorrent
 		, m_connect(time_now())
 		, m_became_uninterested(time_now())
 		, m_became_uninteresting(time_now())
+		, m_last_fill_buffer(time_now())
 		, m_free_upload(0)
 		, m_downloaded_at_last_unchoke(0)
 		, m_uploaded_at_last_unchoke(0)
@@ -105,6 +107,7 @@ namespace libtorrent
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
+		, m_last_fill_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
@@ -225,6 +228,7 @@ namespace libtorrent
 		, m_max_out_request_queue(m_ses.settings().max_out_request_queue)
 		, m_work(ses.m_io_service)
 		, m_last_piece(time_now())
+		, m_last_block(min_time())
 		, m_last_request(time_now())
 		, m_last_incoming_request(min_time())
 		, m_last_unchoke(time_now())
@@ -236,6 +240,7 @@ namespace libtorrent
 		, m_connect(time_now())
 		, m_became_uninterested(time_now())
 		, m_became_uninteresting(time_now())
+		, m_last_fill_buffer(time_now())
 		, m_free_upload(0)
 		, m_downloaded_at_last_unchoke(0)
 		, m_uploaded_at_last_unchoke(0)
@@ -247,6 +252,7 @@ namespace libtorrent
 		, m_timeout_extend(0)
 		, m_outstanding_bytes(0)
 		, m_extension_outstanding_bytes(0)
+		, m_last_fill_bytes(0)
 		, m_queued_time_critical(0)
 		, m_num_pieces(0)
 		, m_timeout(m_ses.settings().peer_timeout)
@@ -2235,6 +2241,19 @@ namespace libtorrent
 		if (!m_bitfield_received) incoming_have_none();
 		if (is_disconnecting()) return;
 
+		ptime now = time_now_hires();
+
+		int instantaneous_rate = boost::int64_t(p.length) * 1000000
+			/ total_microseconds(now - m_last_block);
+		// divide the instantaneous rate by 2 since it's more noisy
+		update_desired_queue_size(instantaneous_rate / 2);
+
+//		fprintf(stderr, "incoming_piece desired: %d queued:%d inst-rate:%d bytes:%d time:%d us\n"
+//			, m_desired_queue_size, int(m_download_queue.size()), instantaneous_rate
+//			, p.length, int(total_microseconds(now - m_last_block)));
+
+		m_last_block = now;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -2288,8 +2307,6 @@ namespace libtorrent
 			t->add_redundant_bytes(p.length);
 			return;
 		}
-
-		ptime now = time_now();
 
 		piece_picker& picker = t->picker();
 		piece_manager& fs = t->filesystem();
@@ -3126,6 +3143,8 @@ namespace libtorrent
 
 		bool empty_download_queue = m_download_queue.empty();
 
+		ptime now = time_now_hires();
+
 		while (!m_request_queue.empty()
 			&& ((int)m_download_queue.size() < m_desired_queue_size
 				|| m_queued_time_critical > 0))
@@ -3219,6 +3238,8 @@ namespace libtorrent
 			// the verification will fail for coalesced blocks
 			TORRENT_ASSERT(verify_piece(r) || m_request_large_blocks);
 			
+			if (m_last_block == min_time()) m_last_block = now;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			bool handled = false;
 			for (extension_list_t::iterator i = m_extensions.begin()
@@ -3231,7 +3252,7 @@ namespace libtorrent
 #endif
 			{
 				write_request(r);
-				m_last_request = time_now();
+				m_last_request = now;
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -3242,7 +3263,7 @@ namespace libtorrent
 				, m_request_large_blocks?"large":"single");
 #endif
 		}
-		m_last_piece = time_now();
+		m_last_piece = now;
 
 		if (!m_download_queue.empty()
 			&& empty_download_queue)
@@ -3749,6 +3770,37 @@ namespace libtorrent
 		m_superseed_piece = index;
 	}
 
+	void peer_connection::update_desired_queue_size(int dl_rate)
+	{
+		if (m_snubbed)
+		{
+			m_desired_queue_size = 1;
+			return;
+		}
+	
+		int download_rate = (std::max)(statistics().download_rate(), dl_rate);
+
+		// calculate the desired download queue size
+		const int queue_time = m_ses.settings().request_queue_time;
+		// (if the latency is more than this, the download will stall)
+		// so, the queue size is queue_time * down_rate / 16 kiB
+		// (16 kB is the size of each request)
+		// the minimum number of requests is 2 and the maximum is 48
+		// the block size doesn't have to be 16. So we first query the
+		// torrent for it
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		const int block_size = t->block_size();
+
+		TORRENT_ASSERT(block_size > 0);
+		
+		m_desired_queue_size = queue_time * download_rate / block_size;
+
+		if (m_desired_queue_size > m_max_out_request_queue)
+			m_desired_queue_size = m_max_out_request_queue;
+		if (m_desired_queue_size < min_request_queue)
+			m_desired_queue_size = min_request_queue;
+	}
+
 	void peer_connection::second_tick(int tick_interval_ms)
 	{
 		ptime now = time_now();
@@ -3949,36 +4001,13 @@ namespace libtorrent
 
 		if (!t->ready_for_connections()) return;
 
-		// calculate the desired download queue size
-		const int queue_time = m_ses.settings().request_queue_time;
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is queue_time * down_rate / 16 kiB
-		// (16 kB is the size of each request)
-		// the minimum number of requests is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the
-		// torrent for it
-		const int block_size = t->block_size();
-		TORRENT_ASSERT(block_size > 0);
-		
-		if (m_snubbed)
-		{
-			m_desired_queue_size = 1;
-		}
-		else
-		{
-			m_desired_queue_size = queue_time
-				* statistics().download_rate() / block_size;
-			if (m_desired_queue_size > m_max_out_request_queue)
-				m_desired_queue_size = m_max_out_request_queue;
-			if (m_desired_queue_size < min_request_queue)
-				m_desired_queue_size = min_request_queue;
+		update_desired_queue_size(0);
 
-			if (m_desired_queue_size == m_max_out_request_queue 
+		if (m_desired_queue_size == m_max_out_request_queue 
 				&& t->alerts().should_post<performance_alert>())
-			{
-				t->alerts().post_alert(performance_alert(t->get_handle()
-					, performance_alert::outstanding_request_limit_reached));
-			}
+		{
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, performance_alert::outstanding_request_limit_reached));
 		}
 
 		int piece_timeout = m_ses.settings().piece_timeout;
@@ -3995,6 +4024,7 @@ namespace libtorrent
 		// allowed to download. If it is impossible to beat the piece
 		// timeout at this rate, adjust it to be realistic
 
+		const int block_size = t->block_size();
 		int rate_limit_timeout = rate_limit / block_size;
 		if (piece_timeout < rate_limit_timeout) piece_timeout = rate_limit_timeout;
 
@@ -4200,13 +4230,33 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int buffer_size_watermark = int(m_statistics.upload_rate())
+		ptime now = time_now_hires();
+
+		// also use the instantaneous rate in order to allow ramping
+		// up the send buffer watermark in less than one second
+		int instantaneous_rate =
+			boost::int64_t(m_last_fill_bytes - m_reading_bytes) * 1000000
+			/ total_microseconds(now - m_last_fill_buffer);
+
+		// since the instantaneous rate is a bit unreliable, divide it by 2
+		// to avoid spikes
+		int upload_rate = (std::max)(int(m_statistics.upload_rate())
+			, instantaneous_rate / 2);
+
+		int buffer_size_watermark = upload_rate
 			* m_ses.settings().send_buffer_watermark_factor;
+
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
 		{
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
 		}
+
+//		fprintf(stderr, "buffer watermark: %d num requests:%d reading:%d "
+//			"inst-rate:%d bytes:%d time:%d us last_bytes:%d\n"
+//			, buffer_size_watermark, int(m_requests.size()), m_reading_bytes, instantaneous_rate
+//			, m_last_fill_bytes - m_reading_bytes, int(total_microseconds(now - m_last_fill_buffer))
+//			, m_last_fill_bytes);
 
 		while (!m_requests.empty()
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
@@ -4240,6 +4290,12 @@ namespace libtorrent
 
 			m_requests.erase(m_requests.begin());
 			sent_a_piece = true;
+		}
+
+		if (sent_a_piece)
+		{
+			m_last_fill_buffer = now;
+			m_last_fill_bytes = m_reading_bytes;
 		}
 
 		if (t->share_mode() && sent_a_piece)

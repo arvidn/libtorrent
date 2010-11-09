@@ -2619,7 +2619,9 @@ int utp_socket_impl::packet_timeout() const
 	// SYN packets have a bit longer timeout, since we don't
 	// have an RTT estimate yet, make a conservative guess
 	if (m_state == UTP_STATE_NONE) return 3000;
-	int timeout = (std::max)(1000, m_rtt.mean() + m_rtt.avg_deviation() * 2);
+
+	// TODO: make the min timeout configurable
+	int timeout = (std::max)(500, m_rtt.mean() + m_rtt.avg_deviation() * 2);
 	if (m_num_timeouts > 0) timeout += (1 << (int(m_num_timeouts) - 1)) * 1000;
 	return timeout;
 }

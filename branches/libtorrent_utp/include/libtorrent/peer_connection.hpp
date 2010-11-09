@@ -648,6 +648,8 @@ namespace libtorrent
 
 		bool verify_piece(peer_request const& p) const;
 
+		void update_desired_queue_size(int dl_rate);
+
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
 		bandwidth_channel m_bandwidth_channel[num_channels];
@@ -725,6 +727,10 @@ namespace libtorrent
 		// the time when we last got a part of a
 		// piece packet from this peer
 		ptime m_last_piece;
+
+		// the time we last finished receiving a
+		// full block
+		ptime m_last_block;
 		// the time we sent a request to
 		// this peer the last time
 		ptime m_last_request;
@@ -763,6 +769,11 @@ namespace libtorrent
 		// the time when we sent a not_interested message to
 		// this peer the last time.
 		ptime m_became_uninteresting;
+
+		// the last time we made a call to fill_send_buffer
+		// and we actually ended up making requests from the
+		// disk
+		ptime m_last_fill_buffer;
 
 		// the amount of data this peer has been given
 		// as free upload. This is distributed from
@@ -863,6 +874,10 @@ namespace libtorrent
 		// the number of outstanding bytes expected
 		// to be received by extensions
 		int m_extension_outstanding_bytes;
+
+		// the number of bytes we were waiting for from
+		// the disk last time fill_send_buffer returned
+		int m_last_fill_bytes;
 
 		// the number of time critical requests
 		// queued up in the m_request_queue that
