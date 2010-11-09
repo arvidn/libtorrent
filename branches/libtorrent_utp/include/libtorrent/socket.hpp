@@ -174,7 +174,7 @@ namespace libtorrent
 		{}
 #endif
 		template<class Protocol>
-		char const* data(Protocol const&) const { return &m_value; }
+		int const* data(Protocol const&) const { return &m_value; }
 		template<class Protocol>
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
