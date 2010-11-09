@@ -240,6 +240,7 @@ namespace libtorrent
 			, connections_limit(200)
 			, utp_target_delay(75) // milliseconds
 			, utp_gain_factor(1500) // bytes per rtt
+			, utp_min_timeout(500) // milliseconds
 			, utp_syn_resends(2)
 			, utp_fin_resends(2)
 			, utp_num_resends(6)
@@ -937,6 +938,11 @@ namespace libtorrent
 		// max number of bytes to increase cwnd per rtt in uTP
 		// congestion controller
 		int utp_gain_factor;
+
+		// the shortest allowed uTP connection timeout in milliseconds
+		// defaults to 500 milliseconds. The shorter timeout, the
+		// faster the connection recovers from a loss of an entire window
+		int utp_min_timeout;
 
 		// the number of SYN packets that are sent before giving up
 		int utp_syn_resends;

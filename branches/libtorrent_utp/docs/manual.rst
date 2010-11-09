@@ -3956,10 +3956,10 @@ session_settings
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
-<<<<<<< .working
 
 		int utp_target_delay;
 		int utp_gain_factor;
+		int utp_min_timeout;
 		int utp_syn_resends;
 		int utp_num_resends;
 		int utp_connect_timeout;
@@ -3973,10 +3973,8 @@ session_settings
 		};
 		int mixed_mode_algorithm;
 		bool rate_limit_utp;
-=======
 
 		int listen_queue_size;
->>>>>>> .merge-right.r4962
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4712,25 +4710,23 @@ opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
-<<<<<<< .working
 ``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
 value will make uTP connections more aggressive and cause longer queues in the upload
 bottleneck. It cannot be too low, since the noise in the measurements would cause
 it to send too slow. The default is 50 milliseconds.
-=======
-``listen_queue_size`` is the value passed in to listen() for the listen socket.
-It is the number of outstanding incoming connections to queue up while we're not
-actively waiting for a connection to be accepted. The default is 5 which should
-be sufficient for any normal client. If this is a high performance server which
-expects to receive a lot of connections, or used in a simulator or test, it
-might make sense to raise this number. It will not take affect until listen_on()
-is called again (or for the first time).
->>>>>>> .merge-right.r4962
 
 ``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
 at the most in one RTT. This defaults to 300 bytes. If this is set too high,
 the congestion controller reacts too hard to noise and will not be stable, if it's
 set too low, it will react slow to congestion and not back off as fast.
+
+``utp_min_timeout`` is the shortest allowed uTP socket timeout, specified in milliseconds.
+This defaults to 500 milliseconds. The timeout depends on the RTT of the connection, but
+is never smaller than this value. A connection times out when every packet in a window
+is lost, or when a packet is lost twice in a row (i.e. the resent packet is lost as well).
+
+The shorter the timeout is, the faster the connection will recover from this situation,
+assuming the RTT is low enough.
 
 ``utp_syn_resends`` is the number of SYN packets that are sent (and timed out) before
 giving up and closing the socket.
@@ -4759,6 +4755,13 @@ the global rate limiter (which they aren't by default).
 ``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
 limiter or not. By default they are not, since uTP manages its own rate.
 
+``listen_queue_size`` is the value passed in to listen() for the listen socket.
+It is the number of outstanding incoming connections to queue up while we're not
+actively waiting for a connection to be accepted. The default is 5 which should
+be sufficient for any normal client. If this is a high performance server which
+expects to receive a lot of connections, or used in a simulator or test, it
+might make sense to raise this number. It will not take affect until listen_on()
+is called again (or for the first time).
 
 pe_settings
 ===========

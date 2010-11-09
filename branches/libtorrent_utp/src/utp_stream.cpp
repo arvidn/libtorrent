@@ -2620,8 +2620,7 @@ int utp_socket_impl::packet_timeout() const
 	// have an RTT estimate yet, make a conservative guess
 	if (m_state == UTP_STATE_NONE) return 3000;
 
-	// TODO: make the min timeout configurable
-	int timeout = (std::max)(500, m_rtt.mean() + m_rtt.avg_deviation() * 2);
+	int timeout = (std::max)(m_sm->min_timeout(), m_rtt.mean() + m_rtt.avg_deviation() * 2);
 	if (m_num_timeouts > 0) timeout += (1 << (int(m_num_timeouts) - 1)) * 1000;
 	return timeout;
 }
@@ -2690,6 +2689,7 @@ void utp_socket_impl::tick(ptime const& now)
 			p->need_resend = true;
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
+			UTP_LOGV("%8p: Packet %d lost.\n", this, i);
 		}
 
 		TORRENT_ASSERT(m_bytes_in_flight == 0);
