@@ -392,7 +392,7 @@ namespace libtorrent
 		if (!f.open(filename, file::read_only, ec)) return -1;
 		size_type s = f.get_size(ec);
 		if (ec) return -1;
-		if (s > 5000000) return -2;
+		if (s > 8000000) return -2;
 		v.resize(s);
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], s};
