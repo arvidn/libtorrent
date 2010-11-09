@@ -116,11 +116,13 @@ namespace libtorrent
 
 #ifdef TORRENT_HAS_DONT_FRAGMENT
 		error_code tmp;
-		if (flags & dont_fragment) m_sock.set_option(dont_fragment(true), tmp);
+		if (flags & utp_socket_manager::dont_fragment)
+			m_sock.set_option(libtorrent::dont_fragment(true), tmp);
 #endif
 		m_sock.send(ep, p, len, ec);
 #ifdef TORRENT_HAS_DONT_FRAGMENT
-		if (flags & dont_fragment) m_sock.set_option(dont_fragment(false), tmp);
+		if (flags & utp_socket_manager::dont_fragment)
+			m_sock.set_option(libtorrent::dont_fragment(false), tmp);
 #endif
 	}
 
