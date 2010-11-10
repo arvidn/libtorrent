@@ -3753,8 +3753,7 @@ namespace aux {
 
 	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
 	{
-		TORRENT_ASSERT(m_dht);
-		m_dht->add_node(node);
+		if (m_dht) m_dht->add_node(node);
 	}
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
@@ -3769,11 +3768,16 @@ namespace aux {
 	void session_impl::on_dht_router_name_lookup(error_code const& e
 		, tcp::resolver::iterator host)
 	{
-		if (e || host == tcp::resolver::iterator()) return;
-		// router nodes should be added before the DHT is started (and bootstrapped)
-		udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
-		if (m_dht) m_dht->add_router_node(ep);
-		m_dht_router_nodes.push_back(ep);
+		// TODO: report errors as alerts
+		if (e) return;
+		while (host != tcp::resolver::iterator())
+		{
+			// router nodes should be added before the DHT is started (and bootstrapped)
+			udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
+			if (m_dht) m_dht->add_router_node(ep);
+			m_dht_router_nodes.push_back(ep);
+			++host;
+		}
 	}
 #endif
 
