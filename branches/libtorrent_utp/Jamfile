@@ -82,7 +82,7 @@ rule linking ( properties * )
 		result += <library>ws2_32
 			<library>wsock32
 			<define>WIN32_LEAN_AND_MEAN
-			<define>_WIN32_WINNT=0x0500
+			<define>_WIN32_WINNT=0x0600
 			<define>__USE_W32_SOCKETS
 			<define>WIN32
 			<define>_WIN32

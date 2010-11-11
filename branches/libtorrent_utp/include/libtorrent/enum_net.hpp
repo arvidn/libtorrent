@@ -42,11 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// the interface should not have a netmask
 	struct ip_interface
 	{
 		address interface_address;
 		address netmask;
 		char name[64];
+		int mtu;
 	};
 
 	struct ip_route

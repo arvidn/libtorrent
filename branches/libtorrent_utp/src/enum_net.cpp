@@ -84,31 +84,44 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace
 {
 
-	address inaddr_to_address(in_addr const* ina)
+	address inaddr_to_address(in_addr const* ina, int len = 4)
 	{
 		typedef asio::ip::address_v4::bytes_type bytes_t;
 		bytes_t b;
-		std::memcpy(&b[0], ina, b.size());
+		std::memset(&b[0], 0, b.size());
+		if (len > 0) std::memcpy(&b[0], ina, (std::min)(len, int(b.size())));
 		return address_v4(b);
 	}
 
 #if TORRENT_USE_IPV6
-	address inaddr6_to_address(in6_addr const* ina6)
+	address inaddr6_to_address(in6_addr const* ina6, int len = 16)
 	{
 		typedef asio::ip::address_v6::bytes_type bytes_t;
 		bytes_t b;
-		std::memcpy(&b[0], ina6, b.size());
+		std::memset(&b[0], 0, b.size());
+		if (len > 0) std::memcpy(&b[0], ina6, (std::min)(len, int(b.size())));
 		return address_v6(b);
 	}
 #endif
 
-	address sockaddr_to_address(sockaddr const* sin)
+	int sockaddr_len(sockaddr const* sin)
 	{
-		if (sin->sa_family == AF_INET)
-			return inaddr_to_address(&((sockaddr_in const*)sin)->sin_addr);
+#if defined TORRENT_WINDOWS || TORRENT_MINGW
+		return sin->sa_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+#else
+		return sin->sa_len;
+#endif
+	}
+
+	address sockaddr_to_address(sockaddr const* sin, int assume_family = -1)
+	{
+		if (sin->sa_family == AF_INET || assume_family == AF_INET)
+			return inaddr_to_address(&((sockaddr_in const*)sin)->sin_addr
+				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
 #if TORRENT_USE_IPV6
-		else if (sin->sa_family == AF_INET6)
-			return inaddr6_to_address(&((sockaddr_in6 const*)sin)->sin6_addr);
+		else if (sin->sa_family == AF_INET6 || assume_family == AF_INET6)
+			return inaddr6_to_address(&((sockaddr_in6 const*)sin)->sin6_addr
+				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
 #endif
 		return address();
 	}
@@ -205,8 +218,9 @@ namespace libtorrent { namespace
 			return false;
 
 		rt_info->gateway = sockaddr_to_address(rti_info[RTAX_GATEWAY]);
-		rt_info->netmask = sockaddr_to_address(rti_info[RTAX_NETMASK]);
 		rt_info->destination = sockaddr_to_address(rti_info[RTAX_DST]);
+		rt_info->netmask = sockaddr_to_address(rti_info[RTAX_NETMASK]
+			, rt_info->destination.is_v4() ? AF_INET : AF_INET6);
 		if_indextoname(rtm->rtm_index, rt_info->name);
 		return true;
 	}
@@ -294,9 +308,21 @@ namespace libtorrent
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
 				strcpy(iface.name, item.ifr_name);
+				ifreq req;
 
-				ifreq netmask = item;
-				if (ioctl(s, SIOCGIFNETMASK, &netmask) < 0)
+				memset(&req, 0, sizeof(req));
+				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE);
+				if (ioctl(s, SIOCGIFMTU, &req) < 0)
+				{
+					ec = error_code(errno, asio::error::system_category);
+					close(s);
+					return ret;
+				}
+				iface.mtu = req.ifr_mtu;
+
+				memset(&req, 0, sizeof(req));
+				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE);
+				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
 #if TORRENT_USE_IPV6
 					if (iface.interface_address.is_v6())
@@ -314,7 +340,7 @@ namespace libtorrent
 				}
 				else
 				{
-					iface.netmask = sockaddr_to_address(&netmask.ifr_addr);
+					iface.netmask = sockaddr_to_address(&req.ifr_addr, item.ifr_addr.sa_family);
 				}
 				ret.push_back(iface);
 			}
@@ -330,6 +356,65 @@ namespace libtorrent
 		close(s);
 
 #elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
+
+		// Load Iphlpapi library
+		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
+		if (iphlp)
+		{
+			// Get GetAdaptersAddresses() pointer
+			typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
+			GetAdaptersAddresses_t GetAdaptersAddresses = (GetAdaptersAddresses_t)GetProcAddress(
+				iphlp, "GetAdaptersAddresses");
+
+			if (GetAdaptersAddresses)
+			{
+				PIP_ADAPTER_ADDRESSES adapter_addresses = 0;
+				ULONG out_buf_size = 0;
+				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
+				{
+					FreeLibrary(iphlp);
+					ec = asio::error::operation_not_supported;
+					return std::vector<ip_interface>();
+				}
+
+				adapter_addresses = (IP_ADAPTER_ADDRESSES*)malloc(out_buf_size);
+				if (!adapter_addresses)
+				{
+					FreeLibrary(iphlp);
+					ec = asio::error::no_memory;
+					return std::vector<ip_interface>();
+				}
+
+				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) == NO_ERROR)
+				{
+					for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
+						adapter != 0; adapter = adapter->Next)
+					{
+						ip_interface r;
+						strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+						r.name[sizeof(r.name)-1] = 0;
+						r.mtu = adapter->Mtu;
+						IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+						while (unicast)
+						{
+							r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+
+							ret.push_back(r);
+
+							unicast = unicast->Next;
+						}
+					}
+				}
+
+				// Free memory
+				free(adapter_addresses);
+				FreeLibrary(iphlp);
+				return ret;
+			}
+			FreeLibrary(iphlp);
+		}
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
@@ -356,9 +441,11 @@ namespace libtorrent
 		for (int i = 0; i < n; ++i)
 		{
 			iface.interface_address = sockaddr_to_address(&buffer[i].iiAddress.Address);
-			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address);
-			iface.name[0] = 0;
 			if (iface.interface_address == address_v4::any()) continue;
+			iface.netmask = sockaddr_to_address(&buffer[i].iiNetmask.Address
+				, iface.interface_address.is_v4() ? AF_INET : AF_INET6);
+			iface.name[0] = 0;
+			iface.mtu = 1500; // how to get the MTU?
 			ret.push_back(iface);
 		}
 
@@ -372,6 +459,7 @@ namespace libtorrent
 		for (;i != udp::resolver_iterator(); ++i)
 		{
 			iface.interface_address = i->endpoint().address();
+			iface.mtu = 1500;
 			if (iface.interface_address.is_v4())
 				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
 			ret.push_back(iface);
@@ -596,7 +684,7 @@ namespace libtorrent
 				ret.push_back(r);
 			}
 		}
-   
+
 		// Free memory
 		free(adapter_info);
 		FreeLibrary(iphlp);

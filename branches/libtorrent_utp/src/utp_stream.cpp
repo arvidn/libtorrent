@@ -1455,7 +1455,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertized receive window from
 	// the other end.
-	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd) - m_bytes_in_flight))
+	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd - m_bytes_in_flight)))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
