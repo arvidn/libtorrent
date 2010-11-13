@@ -347,10 +347,10 @@ namespace libtorrent
 		storage(file_storage const& fs, file_storage const* mapped, std::string const& path
 			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
 			: m_files(fs)
+			, m_file_priority(file_prio)
 			, m_pool(fp)
 			, m_page_size(page_size())
 			, m_allocate_files(false)
-			, m_file_priority(file_prio)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 

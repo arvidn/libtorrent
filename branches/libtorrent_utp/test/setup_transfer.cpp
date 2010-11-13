@@ -755,7 +755,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			while (!p.finished())
 			{
-				TORRENT_ASSERT(len < sizeof(buf));
+				TORRENT_ASSERT(len < int(sizeof(buf)));
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
 //				fprintf(stderr, "read: %d\n", int(received));
