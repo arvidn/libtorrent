@@ -863,6 +863,8 @@ void utp_stream::set_read_handler(handler_t h)
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
 		, m_impl, m_impl->m_receive_buffer_size);
 
+	TORRENT_ASSERT(m_impl->m_receive_buffer_size);
+
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
@@ -962,6 +964,8 @@ void utp_stream::set_write_handler(handler_t h)
 {
 	UTP_LOGV("%8p: new write handler. %d bytes to write\n"
 		, m_impl, m_impl->m_write_buffer_size);
+
+	TORRENT_ASSERT(m_impl->m_write_buffer_size);
 
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
@@ -1678,7 +1682,9 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		return false;
 	}
 
-	TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends());
+	// plus one since we have fast-resend as well, which doesn't
+	// necessarily trigger by a timeout
+	TORRENT_ASSERT(p->num_transmissions < m_sm->num_resends() + 1);
 
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;

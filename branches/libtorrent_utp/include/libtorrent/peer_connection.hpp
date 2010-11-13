@@ -541,6 +541,11 @@ namespace libtorrent
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			log_buffer_usage(buffer, size, "queued send buffer");
 #endif
+			// bittorrent connections should never use this function, since
+			// they might be encrypted and this would circumvent the actual
+			// encryption. bt_peer_connection overrides this function with
+			// its own version.
+			TORRENT_ASSERT(type() != bittorrent_connection);
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 		}
 
