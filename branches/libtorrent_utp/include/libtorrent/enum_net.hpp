@@ -57,6 +57,7 @@ namespace libtorrent
 		address netmask;
 		address gateway;
 		char name[64];
+		int mtu;
 	};
 
 	// returns a list of the configured IP interfaces

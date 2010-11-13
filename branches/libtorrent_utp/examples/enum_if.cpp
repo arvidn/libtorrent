@@ -61,15 +61,16 @@ int main()
 		return 1;
 	}
 
-	printf("%-18s%-18s%-35sinterface name\n", "destination", "network", "gateway");
+	printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
 
 	for (std::vector<ip_route>::const_iterator i = routes.begin()
 		, end(routes.end()); i != end; ++i)
 	{
-		printf("%-18s%-18s%-35s%s\n"
+		printf("%-18s%-18s%-35s%-7d%s\n"
 			, i->destination.to_string(ec).c_str()
 			, i->netmask.to_string(ec).c_str()
 			, i->gateway.to_string(ec).c_str()
+			, i->mtu
 			, i->name);
 	}
 

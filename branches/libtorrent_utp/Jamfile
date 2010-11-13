@@ -81,6 +81,7 @@ rule linking ( properties * )
 	{
 		result += <library>ws2_32
 			<library>wsock32
+			<library>iphlpapi
 			<define>WIN32_LEAN_AND_MEAN
 			<define>_WIN32_WINNT=0x0600
 			<define>__USE_W32_SOCKETS
@@ -350,6 +351,7 @@ lib GeoIP : : <name>GeoIP <link>shared ;
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
 lib ws2_32 : : <name>ws2_32 <link>shared ;
+lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
