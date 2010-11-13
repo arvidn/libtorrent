@@ -537,7 +537,8 @@ namespace libtorrent
 #endif
 
 		template <class Destructor>
-		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
+		void append_send_buffer(char* buffer, int size, Destructor const& destructor
+			, bool encrypted = false)
 		{
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			log_buffer_usage(buffer, size, "queued send buffer");
@@ -546,7 +547,7 @@ namespace libtorrent
 			// they might be encrypted and this would circumvent the actual
 			// encryption. bt_peer_connection overrides this function with
 			// its own version.
-			TORRENT_ASSERT(type() != bittorrent_connection);
+			TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 		}
 

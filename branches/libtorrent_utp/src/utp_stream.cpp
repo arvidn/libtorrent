@@ -811,6 +811,8 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
 	TORRENT_ASSERT(len < INT_MAX);
+	TORRENT_ASSERT(len > 0);
+	TORRENT_ASSERT(buf);
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
 	m_impl->m_read_buffer_size += len;
 
@@ -823,6 +825,9 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 void utp_stream::add_write_buffer(void const* buf, size_t len)
 {
 	TORRENT_ASSERT(m_impl);
+	TORRENT_ASSERT(len < INT_MAX);
+	TORRENT_ASSERT(len > 0);
+	TORRENT_ASSERT(buf);
 
 #ifdef TORRENT_DEBUG
 	int write_buffer_size = 0;
@@ -863,7 +868,7 @@ void utp_stream::set_read_handler(handler_t h)
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
 		, m_impl, m_impl->m_receive_buffer_size);
 
-	TORRENT_ASSERT(m_impl->m_receive_buffer_size);
+	TORRENT_ASSERT(m_impl->m_read_buffer_size > 0);
 
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
@@ -965,7 +970,7 @@ void utp_stream::set_write_handler(handler_t h)
 	UTP_LOGV("%8p: new write handler. %d bytes to write\n"
 		, m_impl, m_impl->m_write_buffer_size);
 
-	TORRENT_ASSERT(m_impl->m_write_buffer_size);
+	TORRENT_ASSERT(m_impl->m_write_buffer_size > 0);
 
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;

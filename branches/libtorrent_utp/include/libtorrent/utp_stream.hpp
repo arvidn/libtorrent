@@ -264,6 +264,7 @@ public:
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(buffer_size(*i) > 0);
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
@@ -344,6 +345,7 @@ public:
 		for (typename Const_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(buffer_size(*i) > 0);
 			using asio::buffer_cast;
 			using asio::buffer_size;
 			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));

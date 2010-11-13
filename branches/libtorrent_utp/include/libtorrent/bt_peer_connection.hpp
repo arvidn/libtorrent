@@ -306,7 +306,7 @@ public:
 #endif
 			}
 #endif
-			peer_connection::append_send_buffer(buffer, size, destructor);
+			peer_connection::append_send_buffer(buffer, size, destructor, true);
 		}
 		void setup_send();
 
