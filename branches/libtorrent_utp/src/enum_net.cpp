@@ -107,7 +107,7 @@ namespace libtorrent { namespace
 
 	int sockaddr_len(sockaddr const* sin)
 	{
-#if defined TORRENT_WINDOWS || TORRENT_MINGW
+#if defined TORRENT_WINDOWS || TORRENT_MINGW || defined TORRENT_LINUX
 		return sin->sa_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
 #else
 		return sin->sa_len;
@@ -160,9 +160,11 @@ namespace libtorrent { namespace
 	{
 		rtmsg* rt_msg = (rtmsg*)NLMSG_DATA(nl_hdr);
 
-		if((rt_msg->rtm_family != AF_INET) || (rt_msg->rtm_table != RT_TABLE_MAIN))
+		if((rt_msg->rtm_family != AF_INET && rt_msg->rtm_family != AF_INET6) || (rt_msg->rtm_table != RT_TABLE_MAIN
+			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
 			return false;
 
+		int if_index = 0;
 		int rt_len = RTM_PAYLOAD(nl_hdr);
 		for (rtattr* rt_attr = (rtattr*)RTM_RTA(rt_msg);
 			RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
@@ -170,26 +172,45 @@ namespace libtorrent { namespace
 			switch(rt_attr->rta_type)
 			{
 				case RTA_OIF:
-					if_indextoname(*(int*)RTA_DATA(rt_attr), rt_info->name);
+					if_index = *(int*)RTA_DATA(rt_attr);
 					break;
 				case RTA_GATEWAY:
-					rt_info->gateway = address_v4(ntohl(*(u_int*)RTA_DATA(rt_attr)));
+#if TORRENT_USE_IPV6
+					if (rt_msg->rtm_family == AF_INET6)
+					{
+						rt_info->gateway = inaddr6_to_address((in6_addr*)RTA_DATA(rt_attr));
+					}
+					else
+#endif
+					{
+						rt_info->gateway = inaddr_to_address((in_addr*)RTA_DATA(rt_attr));
+					}
 					break;
 				case RTA_DST:
-					rt_info->destination = address_v4(ntohl(*(u_int*)RTA_DATA(rt_attr)));
-					break;
-				case RTA_HOST:
-					rt_info->netmask = address_v4(ntohl(*(u_int*)RTA_DATA(rt_attr)));
+#if TORRENT_USE_IPV6
+					if (rt_msg->rtm_family == AF_INET6)
+					{
+						rt_info->destination = inaddr6_to_address((in6_addr*)RTA_DATA(rt_attr));
+					}
+					else
+#endif
+					{
+						rt_info->destination = inaddr_to_address((in_addr*)RTA_DATA(rt_attr));
+					}
 					break;
 			}
 		}
 
+		if_indextoname(if_index, rt_info->name);
 		ifreq req;
 		memset(&req, 0, sizeof(req));
-		if_indextoname(rtm->rtm_index, req.ifr_name);
-		if (ioctl(s, SIOCGIFMTU, &req) < 0) return false;
+		if_indextoname(if_index, req.ifr_name);
+		ioctl(s, SIOCGIFMTU, &req);
 		rt_info->mtu = req.ifr_mtu;
-
+//		obviously this doesn't work correctly. How do you get the netmask for a route?
+//		if (ioctl(s, SIOCGIFNETMASK, &req) == 0) {
+//			rt_info->netmask = sockaddr_to_address(&req.ifr_addr, req.ifr_addr.sa_family);
+//		}
 		return true;
 	}
 #endif
@@ -372,8 +393,8 @@ namespace libtorrent
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
 				strcpy(iface.name, item.ifr_name);
-				ifreq req;
 
+				ifreq req;
 				memset(&req, 0, sizeof(req));
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE);
 				if (ioctl(s, SIOCGIFMTU, &req) < 0)
@@ -897,11 +918,18 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
+		int s = socket(AF_INET, SOCK_DGRAM, 0);
+		if (s < 0)
+		{
+			ec = error_code(errno, asio::error::system_category);
+			return std::vector<ip_route>();
+		}
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
 			ip_route r;
 			if (parse_route(s, nl_msg, &r)) ret.push_back(r);
 		}
+		close(s);
 		close(sock);
 
 #endif
