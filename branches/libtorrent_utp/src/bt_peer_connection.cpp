@@ -662,6 +662,7 @@ namespace libtorrent
 
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
+		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 		// if we're encrypting this buffer, we need to make a copy
 		// since we'll mutate it
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -2443,6 +2444,8 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " received DH key\n";
 #endif
 						
+			TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
+
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
 			// the sync hash (if incoming), or 8 bytes more for the
 			// encrypted verification constant (if outgoing). Instead

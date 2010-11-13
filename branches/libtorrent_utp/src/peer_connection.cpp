@@ -4995,6 +4995,7 @@ namespace libtorrent
 
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);
+			TORRENT_ASSERT(bytes_transferred > 0 || ec);
 			if (ec && ec != asio::error::would_block)
 			{
 				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());

@@ -755,6 +755,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 		, int(bytes_transferred), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_read_handler);
+	TORRENT_ASSERT(bytes_transferred > 0 || ec);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
 	if (kill && s->m_impl)
@@ -772,6 +773,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 		, int(bytes_transferred), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_write_handler);
+	TORRENT_ASSERT(bytes_transferred > 0 || ec);
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
 	if (kill && s->m_impl)
@@ -1824,6 +1826,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 
 bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 {
+	TORRENT_ASSERT(ec);
 	bool ret = m_read_handler || m_write_handler || m_connect_handler;
 	if (m_read_handler) m_read_handler(m_userdata, 0, ec, kill);
 	m_read_handler = 0;
