@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/error.hpp"
 #include <boost/cstdint.hpp>
 
 #define TORRENT_UTP_LOG 0
@@ -210,7 +211,8 @@ enum
 	TORRENT_IP_HEADER = 20,
 	TORRENT_UDP_HEADER = 8,
 	TORRENT_ETHERNET_MTU = 1500,
-	TORRENT_INET_MIN_MTU = 576
+	TORRENT_INET_MIN_MTU = 576,
+	TORRENT_INET_MAX_MTU = 0xffff
 };
 
 struct utp_socket_impl
@@ -280,6 +282,7 @@ struct utp_socket_impl
 	}
 
 	void tick(ptime const& now);
+	void init_mtu(int mtu);
 	bool incoming_packet(char const* buf, int size
 		, udp::endpoint const& ep, ptime receive_time);
 	bool should_delete() const;
@@ -541,7 +544,6 @@ struct utp_socket_impl
 	// a re-send. Ovbiously an ACK only counts as a duplicate as long as
 	// we have outstanding packets following it.
 	boost::uint8_t m_duplicate_acks;
-	// #error implement nagle
 
 	// the number of packet timeouts we've seen in a row
 	// this affects the packet timeout time
@@ -627,6 +629,11 @@ bool should_delete(utp_socket_impl* s)
 void tick_utp_impl(utp_socket_impl* s, ptime const& now)
 {
 	s->tick(now);
+}
+
+void utp_init_mtu(utp_socket_impl* s, int mtu)
+{
+	s->init_mtu(mtu);
 }
 
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
@@ -968,6 +975,7 @@ void utp_stream::set_write_handler(handler_t h)
 
 void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
 {
+	m_impl->init_mtu(m_impl->m_sm->mtu_for_dest(ep.address()));
 	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
@@ -1581,6 +1589,16 @@ bool utp_socket_impl::send_pkt(bool ack)
 
 	++m_out_packets;
 
+	if (m_error == error::message_size && use_as_probe)
+	{
+		m_error.clear();
+		m_mtu_ceiling = m_mtu - 1;
+		update_mtu_limits();
+		// TODO: we might want to do something else here
+		// as well, to resend the packet immediately without
+		// it being an MTU probe
+	}
+
 	if (m_error)
 	{
 		m_state = UTP_STATE_ERROR_WAIT;
@@ -1901,7 +1919,12 @@ bool utp_socket_impl::consume_incoming_data(
 		}
 
 		// do we already have this packet? If so, just ignore it
-		if (m_inbuf.at(ph->seq_nr)) return true;
+		if (m_inbuf.at(ph->seq_nr))
+		{
+			UTP_LOGV("%8p: already received seq_nr: %d\n"
+				, this, int(ph->seq_nr));
+			return true;
+		}
 
 		// we don't need to save the packet header, just the payload
 		packet* p = (packet*)malloc(sizeof(packet) + payload_size);
@@ -1943,6 +1966,44 @@ bool utp_socket_impl::test_socket_state()
 		}
 	}
 	return false;
+}
+
+void utp_socket_impl::init_mtu(int mtu)
+{
+	// clamp the MTU within reasonable bounds
+	if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
+	else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
+
+	// if we're in a RAM constrained environment, don't increase
+	// the buffer size for interfaces with large MTUs. Just stick
+	// to ethernet frame sizes
+	if (!m_sm->allow_dynamic_sock_buf() && mtu > 1500)
+		mtu = 1500;
+	
+	// if we're using a large MTU, we need to make sure the
+	// socket can send and receive packets of that size as well
+	if (mtu > 1500)
+	{
+		// in this case we're probably using jumbo frames
+		// or we're on loopback. Make sure that we have
+		// enough socket buffer space.
+		// add 10% for smaller ACKs and other overhead
+		m_sm->set_sock_buf(mtu * 11 / 10);
+	}
+
+	// our internal MTU represents the max UDP payload size,
+	// so subtract the IP and UDP header from the mtu
+	mtu -= TORRENT_IP_HEADER + TORRENT_UDP_HEADER;
+	m_mtu = mtu;
+	m_mtu_ceiling = mtu;
+	if (m_mtu_floor > mtu) m_mtu_floor = mtu;
+
+	// if the window size is smaller than one packet size
+	// set it to one
+	if ((m_cwnd >> 16) < m_mtu) m_cwnd = m_mtu << 16;
+
+	UTP_LOGV("%8p: intializing MTU to: %d [%d, %d]\n"
+		, this, m_mtu, m_mtu_floor, m_mtu_ceiling);
 }
 
 // return false if this is an invalid packet

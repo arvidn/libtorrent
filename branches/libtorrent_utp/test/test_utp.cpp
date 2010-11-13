@@ -72,6 +72,9 @@ void test_transfer()
 //	sett.disable_hash_checks = true;
 //	sett.utp_delayed_ack = 0;
 
+	// disable this to use regular size packets over loopback
+//	sett.utp_dynamic_sock_buf = false;
+
 	ses1.set_settings(sett);
 	ses2.set_settings(sett);
 

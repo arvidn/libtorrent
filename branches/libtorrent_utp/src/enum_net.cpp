@@ -284,17 +284,29 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 	
-	bool in_subnet(address const& addr, ip_interface const& iface)
+	// return (a1 & mask) == (a2 & mask)
+	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
 	{
-		if (addr.is_v4() != iface.interface_address.is_v4()) return false;
-		// since netmasks seems unreliable for IPv6 interfaces
-		// (MacOS X returns AF_INET addresses as bitmasks) assume
-		// that any IPv6 address belongs to the subnet of any
-		// interface with an IPv6 address
-		if (addr.is_v6()) return true;
+		// all 3 addresses needs to belong to the same family
+		if (a1.is_v4() != a2.is_v4()) return false;
+		if (a1.is_v4() != mask.is_v4()) return false;
 
-		return (addr.to_v4().to_ulong() & iface.netmask.to_v4().to_ulong())
-			== (iface.interface_address.to_v4().to_ulong() & iface.netmask.to_v4().to_ulong());
+#if TORRENT_USE_IPV6
+		if (a1.is_v6())
+		{
+			address_v6::bytes_type b1;
+			address_v6::bytes_type b2;
+			address_v6::bytes_type m;
+			b1 = a1.to_v6().to_bytes();
+			b2 = a2.to_v6().to_bytes();
+			m = mask.to_v6().to_bytes();
+			for (int i = 0; i < b1.size(); ++i)
+				b1[i] &= m[i];
+			return memcmp(&b1[0], &b2[0], b1.size());
+		}
+#endif
+		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
+			== (a2.to_v4().to_ulong() & mask.to_v4().to_ulong());
 	}
 
 	bool in_local_network(io_service& ios, address const& addr, error_code& ec)
@@ -304,7 +316,7 @@ namespace libtorrent
 		for (std::vector<ip_interface>::iterator i = net.begin()
 			, end(net.end()); i != end; ++i)
 		{
-			if (in_subnet(addr, *i)) return true;
+			if (match_addr_mask(addr, i->interface_address, i->netmask)) return true;
 		}
 		return false;
 	}

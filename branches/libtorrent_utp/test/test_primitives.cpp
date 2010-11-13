@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/enum_net.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -1156,6 +1157,16 @@ int test_main()
 #endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
+	
+	TEST_CHECK(match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.0.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
+
+	TEST_CHECK(!match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.1.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
 
 	// test torrent parsing
 

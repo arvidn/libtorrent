@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
+#include "libtorrent/enum_net.hpp"
 
 namespace libtorrent
 {
@@ -77,6 +78,10 @@ namespace libtorrent
 		int connect_timeout() const { return m_sett.utp_connect_timeout; }
 		int delayed_ack() const { return m_sett.utp_delayed_ack; }
 		int min_timeout() const { return m_sett.utp_min_timeout; }
+		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
+
+		int mtu_for_dest(address const& addr);
+		void set_sock_buf(int size);
 
 	private:
 		udp_socket& m_sock;
@@ -92,6 +97,18 @@ namespace libtorrent
 		int m_new_connection;
 
 		session_settings const& m_sett;
+
+		// this is a copy of the routing table, used
+		// to initialize MTU sizes of uTP sockets
+		std::vector<ip_route> m_routes;
+
+		// the timestamp for the last time we updated
+		// the routing table
+		ptime m_last_route_update;
+
+		// the buffer size of the socket. This is used
+		// to now lower the buffer size
+		int m_sock_buf_size;
 	};
 }
 

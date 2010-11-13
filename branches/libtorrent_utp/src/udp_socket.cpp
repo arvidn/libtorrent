@@ -55,8 +55,12 @@ udp_socket::udp_socket(asio::io_service& ios
 	: m_callback(c)
 	, m_callback2(c2)
 	, m_ipv4_sock(ios)
+	, m_v4_buf_size(0)
+	, m_v4_buf(0)
 #if TORRENT_USE_IPV6
 	, m_ipv6_sock(ios)
+	, m_v6_buf_size(0)
+	, m_v6_buf(0)
 #endif
 	, m_bind_port(0)
 	, m_outstanding(0)
@@ -67,6 +71,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_abort(false)
+	, m_reallocate_buffers(false)
 {
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
@@ -76,10 +81,21 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_thread = 0;
 #endif
 #endif
+
+	m_v4_buf_size = 1600;
+	m_v4_buf = (char*)malloc(m_v4_buf_size);
+#if TORRENT_USE_IPV6
+	m_v6_buf_size = 1600;
+	m_v6_buf = (char*)malloc(m_v6_buf_size);
+#endif
 }
 
 udp_socket::~udp_socket()
 {
+	free(m_v4_buf);
+#if TORRENT_USE_IPV6
+	free(m_v6_buf);
+#endif
 #ifdef TORRENT_DEBUG
 	TORRENT_ASSERT(m_magic == 0x1337);
 	TORRENT_ASSERT(!m_callback || !m_started);
@@ -164,6 +180,18 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 #endif
 }
 
+void udp_socket::maybe_realloc_buffers()
+{
+	if (m_reallocate_buffers)
+	{
+		m_v4_buf = (char*)realloc(m_v4_buf, m_v4_buf_size);
+#if TORRENT_USE_IPV6
+		m_v6_buf = (char*)realloc(m_v6_buf, m_v6_buf_size);
+#endif
+		m_reallocate_buffers = false;
+	}
+}
+
 void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_transferred)
 {
 	TORRENT_ASSERT(m_magic == 0x1337);
@@ -204,6 +232,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
 #endif
+
 		// don't stop listening on recoverable errors
 		if (e != asio::error::host_unreachable
 			&& e != asio::error::fault
@@ -223,14 +252,16 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
+		maybe_realloc_buffers();
+
 #if TORRENT_USE_IPV6
 		if (s == &m_ipv4_sock)
 #endif
-			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+			s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 #if TORRENT_USE_IPV6
 		else
-			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 #endif
 
@@ -267,7 +298,9 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+		maybe_realloc_buffers();
+
+		s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
 #if TORRENT_USE_IPV6
@@ -294,7 +327,9 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+		maybe_realloc_buffers();
+
+		s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
 #endif
@@ -443,6 +478,18 @@ void udp_socket::close()
 	}
 }
 
+void udp_socket::set_buf_size(int s)
+{
+	if (s > m_v4_buf_size)
+	{
+		m_v4_buf_size = s;
+#if TORRENT_USE_IPV6
+		m_v6_buf_size = s;
+#endif
+		m_reallocate_buffers = true;
+	}
+}
+
 void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 {
 	CHECK_MAGIC;
@@ -456,13 +503,15 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 #endif
 
+	maybe_realloc_buffers();
+
 	if (ep.address().is_v4())
 	{
 		m_ipv4_sock.open(udp::v4(), ec);
 		if (ec) return;
 		m_ipv4_sock.bind(ep, ec);
 		if (ec) return;
-		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
 		++m_outstanding;
 	}
@@ -473,7 +522,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		m_ipv6_sock.bind(ep, ec);
 		if (ec) return;
-		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
 		++m_outstanding;
 	}
@@ -499,11 +548,13 @@ void udp_socket::bind(int port)
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 #endif
 
+	maybe_realloc_buffers();
+
 	m_ipv4_sock.open(udp::v4(), ec);
 	if (!ec)
 	{
 		m_ipv4_sock.bind(udp::endpoint(address_v4::any(), port), ec);
-		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+		m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
 		++m_outstanding;
 #ifdef TORRENT_DEBUG
@@ -516,7 +567,7 @@ void udp_socket::bind(int port)
 	{
 		m_ipv6_sock.set_option(v6only(true), ec);
 		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
-		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+		m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 			, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
 		++m_outstanding;
 #ifdef TORRENT_DEBUG

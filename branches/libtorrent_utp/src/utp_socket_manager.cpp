@@ -48,6 +48,7 @@ namespace libtorrent
 		, m_last_socket(0)
 		, m_new_connection(-1)
 		, m_sett(sett)
+		, m_sock_buf_size(0)
 	{}
 
 	utp_socket_manager::~utp_socket_manager()
@@ -98,6 +99,34 @@ namespace libtorrent
 			tick_utp_impl(i->second, now);
 			++i;
 		}
+	}
+
+	int utp_socket_manager::mtu_for_dest(address const& addr)
+	{
+		if (time_now() - m_last_route_update > seconds(60))
+		{
+			m_last_route_update = time_now();
+			error_code ec;
+			m_routes = enum_routes(m_sock.get_io_service(), ec);
+		}
+
+		if (m_routes.empty()) return 1500;
+	
+		int mtu = 0;
+		for (std::vector<ip_route>::iterator i = m_routes.begin()
+			, end(m_routes.end()); i != end; ++i)
+		{
+			if (!match_addr_mask(addr, i->destination, i->netmask)) continue;
+
+			// assume that we'll actually use the route with the largest
+			// MTU (seems like a reasonable assumption).
+			// this could however be improved by using the route metrics
+			// and the prefix length of the netmask to order the matches
+			if (mtu < i->mtu) mtu = i->mtu;
+		}
+
+		if (mtu == 0) mtu = 1500;
+		return mtu;
 	}
 
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
@@ -189,6 +218,7 @@ namespace libtorrent
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
+			utp_init_mtu(str->get_impl(), mtu_for_dest(ep.address()));
 			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);
@@ -209,6 +239,16 @@ namespace libtorrent
 		delete_utp_impl(i->second);
 		if (m_last_socket == i->second) m_last_socket = 0;
 		m_utp_sockets.erase(i);
+	}
+	
+	void utp_socket_manager::set_sock_buf(int size)
+	{
+		if (size < m_sock_buf_size) return;
+		m_sock.set_buf_size(size);
+		error_code ec;
+		m_sock.set_option(datagram_socket::receive_buffer_size(size), ec);
+		m_sock.set_option(datagram_socket::send_buffer_size(size), ec);
+		m_sock_buf_size = size;
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

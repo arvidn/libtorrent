@@ -3964,6 +3964,7 @@ session_settings
 		int utp_num_resends;
 		int utp_connect_timeout;
 		int utp_delayed_ack;
+		bool utp_dynamic_sock_buf;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -4742,6 +4743,12 @@ significantly helps reducing the amount of protocol overhead in the reverse dire
 from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
 and every incoming payload packet is ACKed. The granularity of this timer is capped by
 the tick interval (as specified by ``tick_interval``).
+
+``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
+the socket buffer if a network interface with a large MTU is used (such as loopback
+or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
+For RAM constrained systems, disabling this typically saves around 30kB in user space
+and probably around 30kB in kernel socket buffers.
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem

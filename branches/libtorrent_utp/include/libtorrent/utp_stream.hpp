@@ -126,6 +126,7 @@ void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
 void tick_utp_impl(utp_socket_impl* s, ptime const& now);
+void utp_init_mtu(utp_socket_impl* s, int mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
 	, int size, udp::endpoint const& ep, ptime receive_time);
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);

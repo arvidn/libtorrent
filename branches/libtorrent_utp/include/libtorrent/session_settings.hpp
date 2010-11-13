@@ -246,6 +246,7 @@ namespace libtorrent
 			, utp_num_resends(6)
 			, utp_connect_timeout(3000) // milliseconds
 			, utp_delayed_ack(0) // milliseconds
+			, utp_dynamic_sock_buf(true)
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 			, listen_queue_size(5)
@@ -958,6 +959,12 @@ namespace libtorrent
 
 		// number of milliseconds of delaying ACKing packets the most
 		int utp_delayed_ack;
+
+		// set to true if the uTP socket buffer size is allowed to increase
+		// dynamically based on the NIC MTU setting. This is true by default
+		// and improves uTP performance for networks with larger frame sizes
+		// including loopback
+		bool utp_dynamic_sock_buf;
 
 		enum bandwidth_mixed_algo_t
 		{
