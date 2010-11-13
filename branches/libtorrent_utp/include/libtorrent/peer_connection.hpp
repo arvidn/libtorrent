@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/sliding_average.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -653,7 +654,7 @@ namespace libtorrent
 
 		bool verify_piece(peer_request const& p) const;
 
-		void update_desired_queue_size(int dl_rate);
+		void update_desired_queue_size();
 
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
@@ -685,6 +686,10 @@ namespace libtorrent
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.
 		int m_max_out_request_queue;
+
+		// the average rate of receiving complete piece messages
+		sliding_average<20> m_piece_rate;
+		sliding_average<20> m_send_rate;
 
 		void set_timeout(int s) { m_timeout = s; }
 

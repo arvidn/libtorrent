@@ -163,6 +163,11 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		// initialize the rate to 0 to force it to ramp up
+		// and smoothen the instantaneous rate samples
+		m_piece_rate.add_sample(0);
+		m_send_rate.add_sample(0);
+
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -308,6 +313,11 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		// initialize the rate to 0 to force it to ramp up
+		// and smoothen the instantaneous rate samples
+		m_piece_rate.add_sample(0);
+		m_send_rate.add_sample(0);
+
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -2245,11 +2255,12 @@ namespace libtorrent
 
 		int instantaneous_rate = boost::int64_t(p.length) * 1000000
 			/ total_microseconds(now - m_last_block);
-		// divide the instantaneous rate by 2 since it's more noisy
-		update_desired_queue_size(instantaneous_rate / 2);
+
+		m_piece_rate.add_sample(instantaneous_rate);
+		update_desired_queue_size();
 
 //		fprintf(stderr, "incoming_piece desired: %d queued:%d inst-rate:%d bytes:%d time:%d us\n"
-//			, m_desired_queue_size, int(m_download_queue.size()), instantaneous_rate
+//			, m_desired_queue_size, int(m_download_queue.size()), m_piece_rate.mean() 
 //			, p.length, int(total_microseconds(now - m_last_block)));
 
 		m_last_block = now;
@@ -3770,7 +3781,7 @@ namespace libtorrent
 		m_superseed_piece = index;
 	}
 
-	void peer_connection::update_desired_queue_size(int dl_rate)
+	void peer_connection::update_desired_queue_size()
 	{
 		if (m_snubbed)
 		{
@@ -3778,7 +3789,7 @@ namespace libtorrent
 			return;
 		}
 	
-		int download_rate = (std::max)(statistics().download_rate(), dl_rate);
+		int download_rate = (std::max)(statistics().download_rate(), m_piece_rate.mean());
 
 		// calculate the desired download queue size
 		const int queue_time = m_ses.settings().request_queue_time;
@@ -4001,7 +4012,7 @@ namespace libtorrent
 
 		if (!t->ready_for_connections()) return;
 
-		update_desired_queue_size(0);
+		update_desired_queue_size();
 
 		if (m_desired_queue_size == m_max_out_request_queue 
 				&& t->alerts().should_post<performance_alert>())
@@ -4238,10 +4249,10 @@ namespace libtorrent
 			boost::int64_t(m_last_fill_bytes - m_reading_bytes) * 1000000
 			/ total_microseconds(now - m_last_fill_buffer);
 
-		// since the instantaneous rate is a bit unreliable, divide it by 2
-		// to avoid spikes
+		m_send_rate.add_sample(instantaneous_rate);
+
 		int upload_rate = (std::max)(int(m_statistics.upload_rate())
-			, instantaneous_rate / 2);
+			, m_send_rate.mean());
 
 		int buffer_size_watermark = upload_rate
 			* m_ses.settings().send_buffer_watermark_factor;
@@ -4254,7 +4265,7 @@ namespace libtorrent
 
 //		fprintf(stderr, "buffer watermark: %d num requests:%d reading:%d "
 //			"inst-rate:%d bytes:%d time:%d us last_bytes:%d\n"
-//			, buffer_size_watermark, int(m_requests.size()), m_reading_bytes, instantaneous_rate
+//			, buffer_size_watermark, int(m_requests.size()), m_reading_bytes, m_piece_rate.mean()
 //			, m_last_fill_bytes - m_reading_bytes, int(total_microseconds(now - m_last_fill_buffer))
 //			, m_last_fill_bytes);
 
