@@ -199,6 +199,83 @@ a transfer between a cable modem connection and a DSL connection.
 The details of the delay measurements are slightly more complicated since the
 values needs to be able to wrap (cross the 2^32 boundry and start over at 0).
 
+Path MTU discovery
+------------------
+
+MTU is short for *Maximum Transfer Unit* and describes the largest packet size that
+can be sent over a link. Any datagrams which size exceeds this limit will either
+be *fragmented* or dropped. A fragmented datagram means that the payload is split up
+in multiple packets, each with its own individual packet header.
+
+There are several reasons to avoid sending datagrams that get fragmented:
+
+1. A fragmented datagram is more likely to be lost. If any fragment is lost,
+   the whole datagram is dropped.
+
+2. Bandwidth is likely to be wasted. If the datagram size is not divisible
+   by the MTU the last packet will not contain as much payload as it could, and the
+   payload over protocol header ratio decreases.
+
+3. It's expensive to fragment datagrams. Few routers are optimized to handle large
+   numbers of fragmented packets. Datagrams that have to fragment are likely to
+   be delayed significantly, and contribute to more CPU being used on routers.
+   Typically fragmentation (and other advanced IP features) are implemented in
+   software (slow) and not hardware (fast).
+
+The path MTU is the lowest MTU of any link along a path from two endpoints on the
+internet. The MTU bottleneck isn't necessarily at one of the endpoints, but can
+be anywhere in between.
+
+The most common MTU is 1500 bytes, which is the largest packet size for ethernet
+networks. Many home DSL connections, however, tunnel IP through PPPoE (Point to
+Point Protocol over Ethernet. Yes, that is the old dial-up modem protocol). This
+protocol uses up 8 bytes per packet for its own header.
+
+If the user happens to be on an internet connection over a VPN, it will add another
+layer, with its own packet headers.
+
+In short; if you would pick the largest possible packet size on an ethernet network,
+1472, and stick with it, you would be quite likely to generate fragments for a lot
+of connections. The fragments that will be created will be very small and especially
+inflate the overhead waste.
+
+The other approach of picking a very conservative packet size, that would be very
+unlikely to get fragmented has the following drawbacks:
+
+1. People on good, normal, networks will be penalized with a small packet size.
+   Both in terms of router load but also bandwidth waste.
+
+2. Software routers are typically not limited by the number of bytes they can route,
+   but the number of packets. Small packets means more of them, and more load on
+   software routers.
+
+The solution to the problem of finding the optimal packet size, is to dynamically
+adjust the packet size and search for the largest size that can make it through
+without being fragmented along the path.
+
+To help do this, you can set the DF bit (Don't Fragment) in your Datagrams. This
+asks routers that otherwise would fragment packets to instead drop them, and send
+back an ICMP message reporting the MTU of the link the packet couldn't fit. With
+this message, it's very simple to discover the path MTU. You simply mark your packets
+not to be fragmented, and change your packet size whenever you receive the ICMP
+packet-too-big message.
+
+Unfortunately it's not quite that simple. There are a significant number of firewalls
+in the wild blocking all ICMP messages. This means we can't rely on them, we also have
+to guess that a packet was dropped because of its size. This is done by only marking
+certain packets with DF, and if all other packets go through, except for the MTU probes,
+we know that we need to lower our packet sizes.
+
+If we set up bounds for the path MTU (say the minimum internet MTU, 576 and ethernet's 1500),
+we can do a binary search for the MTU. This would let us find it in just a few round-trips.
+
+On top of this, libtorrent has an optimization where it figures out which interface a
+uTP connection will be sent over, and initialize the MTU ceiling to that interface's MTU.
+This means that a VPN tunnel would advertize its MTU as lower, and the uTP connection would
+immediately know to send smaller packets, no search required. It also has the side-effect
+of being able to use much larger packet sizes for non-ethernet interfaces or ethernet links
+with jumbo frames.
+
 clock drift
 -----------
 
@@ -247,4 +324,24 @@ presentation at IPTPS10_.
 
 .. _IPTPS10: http://www.usenix.org/event/iptps10/tech/slides/cohen.pdf
 .. _LEDBAT: https://datatracker.ietf.org/doc/draft-ietf-ledbat-congestion/
+
+features
+--------
+
+libtorrent's uTP implementation includes the following features:
+
+* Path MTU discovery, including jumbo frames and detecting restricted
+  MTU tunnels. Binary search packet sizes to find the largest non-fragmented.
+* Selective ACK. The ability to acknowledge individual packets in the
+  event of packet loss
+* Fast resend. The first time a packet is lost, it's resent immediately.
+  Triggered by duplicate ACKs.
+* Nagle's algorithm. Minimize protocol overhead by attempting to lump
+  full packets of payload together before sending a packet.
+* Delayed ACKs to minimize protocol overhead.
+* Microsecond resolution timestamps.
+* Advertised receive window, to support download rate limiting.
+* Correct handling of wrapping sequence numbers.
+* Easy configuration of target-delay, gain-factor, timeouts, delayed-ack
+  and socket buffers.
 

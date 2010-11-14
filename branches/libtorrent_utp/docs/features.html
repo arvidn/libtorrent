@@ -80,8 +80,6 @@ current state supports and includes the following features:</p>
 <div class="section" id="extensions">
 <h2>extensions</h2>
 <ul class="simple">
-<li>uTorrent transport protocol (uTP). A transport protocol with delay based
-congestion control. See separate <a class="reference external" href="utp.html">article</a>.</li>
 <li>plugin interface for implementing custom bittorrent extensions
 without having to modify libtorrent</li>
 <li>supports trackerless torrents (using the Mainline kademlia DHT protocol) with
@@ -130,8 +128,8 @@ piece's hash is verified the first time it is requested.</li>
 <div class="section" id="network">
 <h2>network</h2>
 <ul class="simple">
-<li>uTP supports (<a href="#id17"><span class="problematic" id="id18">BEP29_</span></a>). One-way delay based congestion controlled transport
-protocol on top of UDP.</li>
+<li>a high quality uTP implementation (<a href="#id17"><span class="problematic" id="id18">BEP29_</span></a>). A transport protocol with
+delay based congestion control. See separate <a class="reference external" href="utp.html">article</a>.</li>
 <li>adjusts the length of the request queue depending on download rate.</li>
 <li>serves multiple torrents on a single port and in a single thread</li>
 <li>piece picking on block-level (as opposed to piece-level).
@@ -384,7 +382,7 @@ epoll on linux and kqueue on MacOS X and BSD.</p>
 <div class="system-messages section">
 <h1>Docutils System Messages</h1>
 <div class="system-message" id="id17">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">features.rst</tt>, line 84); <em><a href="#id18">backlink</a></em></p>
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">features.rst</tt>, line 82); <em><a href="#id18">backlink</a></em></p>
 Unknown target name: &quot;bep29&quot;.</div>
 </div>
     </div>

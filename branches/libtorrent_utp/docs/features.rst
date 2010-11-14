@@ -27,8 +27,6 @@ current state supports and includes the following features:
 extensions
 ----------
 
-* uTorrent transport protocol (uTP). A transport protocol with delay based
-  congestion control. See separate article_.
 * plugin interface for implementing custom bittorrent extensions
   without having to modify libtorrent
 * supports trackerless torrents (using the Mainline kademlia DHT protocol) with
@@ -81,8 +79,8 @@ disk management
 network
 -------
 
-* uTP supports (BEP29_). One-way delay based congestion controlled transport
-  protocol on top of UDP.
+* a high quality uTP implementation (BEP29_). A transport protocol with
+  delay based congestion control. See separate article_.
 * adjusts the length of the request queue depending on download rate.
 * serves multiple torrents on a single port and in a single thread
 * piece picking on block-level (as opposed to piece-level).
