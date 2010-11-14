@@ -2722,7 +2722,8 @@ void utp_socket_impl::tick(ptime const& now)
 			, this, int(m_cwnd >> 16));
 
 		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
-			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq)
+			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq
+			&& m_mtu_seq != 0)
 		{
 			// we timed out, and the only outstanding packet
 			// we had was the probe. Assume it was dropped
