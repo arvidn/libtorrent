@@ -410,6 +410,53 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_IOSTREAM
 
+	int line_longer_than(lazy_entry const& e, int limit)
+	{
+		int line_len = 0;
+		switch (e.type())
+		{
+		case lazy_entry::list_t:
+			line_len += 4;
+			if (line_len > limit) return -1;
+			for (int i = 0; i < e.list_size(); ++i)
+			{
+				int ret = line_longer_than(*e.list_at(i), limit - line_len);
+				if (ret == -1) return -1;
+				line_len += ret + 2;
+			}
+			break;
+		case lazy_entry::dict_t:
+			line_len += 4;
+			if (line_len > limit) return -1;
+			for (int i = 0; i < e.dict_size(); ++i)
+			{
+				line_len += 4 + e.dict_at(i).first.size();
+				if (line_len > limit) return -1;
+				int ret = line_longer_than(*e.dict_at(i).second, limit - line_len);
+				if (ret == -1) return -1;
+				line_len += ret + 1;
+			}
+			break;
+		case lazy_entry::string_t:
+			line_len += 3 + e.string_length();
+			break;
+		case lazy_entry::int_t:
+		{
+			size_type val = e.int_value();
+			while (val > 0)
+			{
+				++line_len;
+				val /= 10;
+			}
+			line_len += 2;
+		}
+		break;
+		}
+	
+		if (line_len > limit) return -1;
+		return line_len;
+	}
+
 	std::string print_entry(lazy_entry const& e, bool single_line, int indent)
 	{
 		char indent_str[200];
@@ -458,14 +505,7 @@ namespace libtorrent
 			case lazy_entry::list_t:
 			{
 				ret += '[';
-				bool one_liner = (e.list_size() == 0
-					|| (e.list_at(0)->type() == lazy_entry::int_t
-						&& e.list_size() < 20)
-					|| (e.list_at(0)->type() == lazy_entry::string_t
-						&& (e.list_at(0)->string_length() < 10
-							|| e.list_size() < 2)
-						&& e.list_size() < 5))
-					|| single_line;
+				bool one_liner = line_longer_than(e, 130) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str + 1;
 				for (int i = 0; i < e.list_size(); ++i)
@@ -481,13 +521,7 @@ namespace libtorrent
 			case lazy_entry::dict_t:
 			{
 				ret += "{";
-				bool one_liner = ((e.dict_size() == 0
-					|| e.dict_at(0).second->type() == lazy_entry::int_t
-					|| (e.dict_at(0).second->type() == lazy_entry::string_t
-						&& e.dict_at(0).second->string_length() < 30)
-					|| e.dict_at(0).first.size() < 10)
-					&& e.dict_size() < 5)
-					|| single_line;
+				bool one_liner = line_longer_than(e, 130) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str+1;
 				for (int i = 0; i < e.dict_size(); ++i)
