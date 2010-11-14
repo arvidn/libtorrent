@@ -206,15 +206,6 @@ struct packet
 // simple to reuse the data structured and it provides all the
 // functionality needed for this buffer.
 
-enum
-{
-	TORRENT_IP_HEADER = 20,
-	TORRENT_UDP_HEADER = 8,
-	TORRENT_ETHERNET_MTU = 1500,
-	TORRENT_INET_MIN_MTU = 576,
-	TORRENT_INET_MAX_MTU = 0xffff
-};
-
 struct utp_socket_impl
 {
 	utp_socket_impl(boost::uint16_t recv_id, boost::uint16_t send_id
@@ -252,9 +243,9 @@ struct utp_socket_impl
 		, m_acked_seq_nr(0)
 		, m_fast_resend_seq_nr(0)
 		, m_eof_seq_nr(0)
-		, m_mtu(TORRENT_ETHERNET_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36)
-		, m_mtu_floor(TORRENT_INET_MIN_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER)
-		, m_mtu_ceiling(TORRENT_ETHERNET_MTU - TORRENT_IP_HEADER - TORRENT_UDP_HEADER)
+		, m_mtu(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36)
+		, m_mtu_floor(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
+		, m_mtu_ceiling(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
 		, m_mtu_seq(0)
 		, m_duplicate_acks(0)
 		, m_num_timeouts(0)
@@ -282,7 +273,7 @@ struct utp_socket_impl
 	}
 
 	void tick(ptime const& now);
-	void init_mtu(int mtu);
+	void init_mtu(int link_mtu, int utp_mtu);
 	bool incoming_packet(char const* buf, int size
 		, udp::endpoint const& ep, ptime receive_time);
 	bool should_delete() const;
@@ -596,7 +587,7 @@ struct utp_socket_impl
 	bool m_attached:1;
 
 	// this is true if nagle is enabled (which it is by default)
-	// TODO: support the option to turn if off
+	// TODO: support the option to turn it off
 	bool m_nagle:1;
 };
 
@@ -631,9 +622,9 @@ void tick_utp_impl(utp_socket_impl* s, ptime const& now)
 	s->tick(now);
 }
 
-void utp_init_mtu(utp_socket_impl* s, int mtu)
+void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 {
-	s->init_mtu(mtu);
+	s->init_mtu(link_mtu, utp_mtu);
 }
 
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
@@ -984,7 +975,9 @@ void utp_stream::set_write_handler(handler_t h)
 
 void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
 {
-	m_impl->init_mtu(m_impl->m_sm->mtu_for_dest(ep.address()));
+	int link_mtu, utp_mtu;
+	m_impl->m_sm->mtu_for_dest(ep.address(), link_mtu, utp_mtu);
+	m_impl->init_mtu(link_mtu, utp_mtu);
 	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
@@ -1979,12 +1972,8 @@ bool utp_socket_impl::test_socket_state()
 	return false;
 }
 
-void utp_socket_impl::init_mtu(int mtu)
+void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 {
-	// clamp the MTU within reasonable bounds
-	if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
-	else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
-
 	// if we're in a RAM constrained environment, don't increase
 	// the buffer size for interfaces with large MTUs. Just stick
 	// to ethernet frame sizes
@@ -1993,21 +1982,20 @@ void utp_socket_impl::init_mtu(int mtu)
 		// Make sure that we have enough socket buffer space
 		// for sending and receiving packets of this size
 		// add 10% for smaller ACKs and other overhead
-		m_sm->set_sock_buf(mtu * 11 / 10);
+		m_sm->set_sock_buf(link_mtu * 11 / 10);
 	}
-	else if (mtu > 1500)
+	else if (link_mtu > TORRENT_ETHERNET_MTU)
 	{
 		// we can't use larger packets than this since we're
 		// not allocating any more memory for socket buffers
-		mtu = 1500;
+		int decrease = link_mtu - TORRENT_ETHERNET_MTU;
+		utp_mtu -= decrease;
+		link_mtu -= decrease;
 	}
 
-	// our internal MTU represents the max UDP payload size,
-	// so subtract the IP and UDP header from the mtu
-	mtu -= TORRENT_IP_HEADER + TORRENT_UDP_HEADER;
-	m_mtu = mtu;
-	m_mtu_ceiling = mtu;
-	if (m_mtu_floor > mtu) m_mtu_floor = mtu;
+	m_mtu = utp_mtu;
+	m_mtu_ceiling = utp_mtu;
+	if (m_mtu_floor > utp_mtu) m_mtu_floor = utp_mtu;
 
 	// if the window size is smaller than one packet size
 	// set it to one

@@ -50,6 +50,20 @@ namespace libtorrent
 {
 	struct utp_socket_manager;
 
+	// some MTU and protocol header sizes constants
+	enum
+	{
+		TORRENT_IPV4_HEADER = 20,
+		TORRENT_IPV6_HEADER = 40,
+		TORRENT_UDP_HEADER = 8,
+		TORRENT_SOCKS5_HEADER = 6, // plus the size of the destination address
+
+		TORRENT_ETHERNET_MTU = 1500,
+		TORRENT_TEREDO_MTU = 1280,
+		TORRENT_INET_MIN_MTU = 576,
+		TORRENT_INET_MAX_MTU = 0xffff
+	};
+
 	// the point of the bif_endian_int is two-fold
 	// one purpuse is to not have any alignment requirements
 	// so that any byffer received from the network can be cast
@@ -126,7 +140,7 @@ void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
 void tick_utp_impl(utp_socket_impl* s, ptime const& now);
-void utp_init_mtu(utp_socket_impl* s, int mtu);
+void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
 	, int size, udp::endpoint const& ep, ptime receive_time);
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);

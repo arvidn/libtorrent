@@ -105,6 +105,8 @@ namespace libtorrent
 			m_ipv4_sock.get_option(opt, ec);
 		}
 
+		udp::endpoint proxy_addr() const { return m_proxy_addr; }
+
 	protected:
 
 		struct queued_packet

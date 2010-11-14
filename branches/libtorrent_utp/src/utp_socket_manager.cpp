@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_teredo
 
 // #define TORRENT_DEBUG_MTU 1135
 
@@ -101,7 +102,7 @@ namespace libtorrent
 		}
 	}
 
-	int utp_socket_manager::mtu_for_dest(address const& addr)
+	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
 		if (time_now() - m_last_route_update > seconds(60))
 		{
@@ -110,23 +111,59 @@ namespace libtorrent
 			m_routes = enum_routes(m_sock.get_io_service(), ec);
 		}
 
-		if (m_routes.empty()) return 1500;
-	
 		int mtu = 0;
-		for (std::vector<ip_route>::iterator i = m_routes.begin()
-			, end(m_routes.end()); i != end; ++i)
+		if (!m_routes.empty())
 		{
-			if (!match_addr_mask(addr, i->destination, i->netmask)) continue;
+			for (std::vector<ip_route>::iterator i = m_routes.begin()
+				, end(m_routes.end()); i != end; ++i)
+			{
+				if (!match_addr_mask(addr, i->destination, i->netmask)) continue;
 
-			// assume that we'll actually use the route with the largest
-			// MTU (seems like a reasonable assumption).
-			// this could however be improved by using the route metrics
-			// and the prefix length of the netmask to order the matches
-			if (mtu < i->mtu) mtu = i->mtu;
+				// assume that we'll actually use the route with the largest
+				// MTU (seems like a reasonable assumption).
+				// this could however be improved by using the route metrics
+				// and the prefix length of the netmask to order the matches
+				if (mtu < i->mtu) mtu = i->mtu;
+			}
 		}
 
-		if (mtu == 0) mtu = 1500;
-		return mtu;
+		if (mtu == 0)
+		{
+			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+			else mtu = TORRENT_ETHERNET_MTU;
+		}
+
+		// clamp the MTU within reasonable bounds
+		if (mtu < TORRENT_INET_MIN_MTU) mtu = TORRENT_INET_MIN_MTU;
+		else if (mtu > TORRENT_INET_MAX_MTU) mtu = TORRENT_INET_MAX_MTU;
+
+		link_mtu = mtu;
+
+		mtu -= TORRENT_UDP_HEADER;
+
+		if (m_sock.get_proxy_settings().type == proxy_settings::socks5
+			|| m_sock.get_proxy_settings().type == proxy_settings::socks5_pw)
+		{
+			// this is for the IP layer
+			address proxy_addr = m_sock.proxy_addr().address();
+			if (proxy_addr.is_v4()) mtu -= TORRENT_IPV4_HEADER;
+			else mtu -= TORRENT_IPV6_HEADER;
+
+			// this is for the SOCKS layer
+			mtu -= TORRENT_SOCKS5_HEADER;
+
+			// the address field in the SOCKS header
+			if (addr.is_v4()) mtu -= 4;
+			else mtu -= 16;
+
+		}
+		else
+		{
+			if (addr.is_v4()) mtu -= TORRENT_IPV4_HEADER;
+			else mtu -= TORRENT_IPV6_HEADER;
+		}
+
+		utp_mtu = mtu;
 	}
 
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
@@ -218,7 +255,9 @@ namespace libtorrent
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
-			utp_init_mtu(str->get_impl(), mtu_for_dest(ep.address()));
+			int link_mtu, utp_mtu;
+			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
+			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
 			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);

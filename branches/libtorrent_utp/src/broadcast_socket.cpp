@@ -104,6 +104,18 @@ namespace libtorrent
 #endif
 	}
 
+	TORRENT_EXPORT bool is_teredo(address const& addr)
+	{
+#if TORRENT_USE_IPV6
+		if (!addr.is_v6()) return false;
+		boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
+		address_v6::bytes_type b = addr.to_v6().to_bytes();
+		return memcmp(&b[0], teredo_prefix, 4) == 0;
+#else
+		return false;
+#endif
+	}
+
 	bool supports_ipv6()
 	{
 #if TORRENT_USE_IPV6

@@ -80,7 +80,7 @@ namespace libtorrent
 		int min_timeout() const { return m_sett.utp_min_timeout; }
 		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
 
-		int mtu_for_dest(address const& addr);
+		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
 
 	private:
