@@ -531,10 +531,7 @@ namespace libtorrent
 		write_pe_vc_cryptofield(send_buf, crypto_provide, pad_size);
 		m_RC4_handler->encrypt(send_buf.end - encrypt_size, encrypt_size);
 #ifdef TORRENT_DEBUG
-		const int packet_size = 20 + 20 + 8 + 4 + 2 + pad_size + 2;
-		TORRENT_ASSERT(send_buffer_size() - packet_size == m_encrypted_bytes);
-		m_encrypted_bytes += packet_size;
-		TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size());
+		m_encrypted_bytes = send_buffer_size();
 #endif
 
 		TORRENT_ASSERT(send_buf.begin == send_buf.end);
