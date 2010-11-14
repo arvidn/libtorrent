@@ -246,8 +246,19 @@ namespace libtorrent
 		if (size < m_sock_buf_size) return;
 		m_sock.set_buf_size(size);
 		error_code ec;
-		m_sock.set_option(datagram_socket::receive_buffer_size(size), ec);
-		m_sock.set_option(datagram_socket::send_buffer_size(size), ec);
+		// add more socket buffer storage on the lower level socket
+		// to avoid dropping packets because of a full receive buffer
+		// while processing a packet
+
+		// only update the buffer size if it's bigger than
+		// what we already have
+		datagram_socket::receive_buffer_size recv_buf_size_opt;
+		m_sock.get_option(recv_buf_size_opt, ec);
+		if (recv_buf_size_opt.value() < size * 10)
+		{
+			m_sock.set_option(datagram_socket::receive_buffer_size(size * 10), ec);
+			m_sock.set_option(datagram_socket::send_buffer_size(size * 3), ec);
+		}
 		m_sock_buf_size = size;
 	}
 

@@ -99,6 +99,12 @@ namespace libtorrent
 #endif
 		}
 
+		template <class SocketOption>
+		void get_option(SocketOption& opt, error_code& ec)
+		{
+			m_ipv4_sock.get_option(opt, ec);
+		}
+
 	protected:
 
 		struct queued_packet

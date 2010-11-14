@@ -4748,7 +4748,8 @@ the tick interval (as specified by ``tick_interval``).
 the socket buffer if a network interface with a large MTU is used (such as loopback
 or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
 For RAM constrained systems, disabling this typically saves around 30kB in user space
-and probably around 30kB in kernel socket buffers.
+and probably around 400kB in kernel socket buffers (it adjusts the send and receive
+buffer size on the kernel socket, both for IPv4 and IPv6).
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem

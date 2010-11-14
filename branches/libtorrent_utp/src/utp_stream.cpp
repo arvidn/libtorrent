@@ -1988,18 +1988,18 @@ void utp_socket_impl::init_mtu(int mtu)
 	// if we're in a RAM constrained environment, don't increase
 	// the buffer size for interfaces with large MTUs. Just stick
 	// to ethernet frame sizes
-	if (!m_sm->allow_dynamic_sock_buf() && mtu > 1500)
-		mtu = 1500;
-	
-	// if we're using a large MTU, we need to make sure the
-	// socket can send and receive packets of that size as well
-	if (mtu > 1500)
+	if (m_sm->allow_dynamic_sock_buf())
 	{
-		// in this case we're probably using jumbo frames
-		// or we're on loopback. Make sure that we have
-		// enough socket buffer space.
+		// Make sure that we have enough socket buffer space
+		// for sending and receiving packets of this size
 		// add 10% for smaller ACKs and other overhead
 		m_sm->set_sock_buf(mtu * 11 / 10);
+	}
+	else if (mtu > 1500)
+	{
+		// we can't use larger packets than this since we're
+		// not allocating any more memory for socket buffers
+		mtu = 1500;
 	}
 
 	// our internal MTU represents the max UDP payload size,
