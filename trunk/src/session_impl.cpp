@@ -595,13 +595,19 @@ namespace aux {
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 
-		(*m_logger) << "libtorrent configuration: " << TORRENT_CFG_STRING << "\n"
-			<< "libtorrent version: " << LIBTORRENT_VERSION << "\n"
-			<< "libtorrent revision: " << LIBTORRENT_REVISION << "\n\n";
+		char tmp[300];
+		snprintf(tmp, sizeof(tmp), "libtorrent configuration: %s\n"
+			"libtorrent version: %d\n"
+			"libtorrent revision: %d\n\n"
+		  	, TORRENT_CFG_STRING
+			, LIBTORRENT_VERSION
+			, LIBTORRENT_REVISION);
+		(*m_logger) << tmp;
 
 
-#define PRINT_SIZEOF(x) (*m_logger) << "sizeof(" #x "): " << sizeof(x) << "\n";
-#define PRINT_OFFSETOF(x, y) (*m_logger) << "  offsetof(" #x "," #y "): " << offsetof(x, y) << "\n";
+#define PRINT_SIZEOF(x) snprintf(tmp, sizeof(tmp), "sizeof(" #x ") = %d\n", int(sizeof(x))); (*m_logger) << tmp;
+#define PRINT_OFFSETOF(x, y) snprintf(tmp, sizeof(tmp), "  offsetof(" #x "," #y "): %d\n", int(offsetof(x, y))); \
+		(*m_logger) << tmp;
 
 		PRINT_SIZEOF(announce_entry)
 		PRINT_OFFSETOF(announce_entry, url)
@@ -631,6 +637,8 @@ namespace aux {
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
+
+		PRINT_SIZEOF(file_entry)
 
 //		PRINT_SIZEOF(stat_channel)
 //		PRINT_OFFSETOF(stat_channel, m_counter)

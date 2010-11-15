@@ -69,19 +69,20 @@ namespace libtorrent
 			error_code ec;
 			if (!exists(dir)) create_directories(dir, ec);
 			m_filename = combine_path(dir, filename);
-			m_truncate = !append;
-			*this << "\n\n\n*** starting log ***\n";
+
+			mutex::scoped_lock l(file_mutex);
+			open(!append);
+			log_file << "\n\n\n*** starting log ***\n";
 		}
 
 #if TORRENT_USE_IOSTREAM
-		void open()
+		void open(bool truncate)
 		{
 			if (open_filename == m_filename) return;
 			log_file.close();
 			log_file.clear();
-			log_file.open(m_filename.c_str(), m_truncate ? std::ios_base::trunc : std::ios_base::app);
+			log_file.open(m_filename.c_str(), truncate ? std::ios_base::trunc : std::ios_base::app);
 			open_filename = m_filename;
-			m_truncate = false;
 			if (!log_file.good())
 				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
 		}
@@ -92,14 +93,13 @@ namespace libtorrent
 		{
 #if TORRENT_USE_IOSTREAM
 			mutex::scoped_lock l(file_mutex);
-			open();
+			open(false);
 			log_file << v;
 #endif
 			return *this;
 		}
 
 		std::string m_filename;
-		bool m_truncate;
 	};
 
 }
