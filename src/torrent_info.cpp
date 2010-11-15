@@ -833,8 +833,8 @@ namespace libtorrent
 				ec = errors::torrent_invalid_length;
 				return false;
 			}
-			bool ommit_hash = (flags & torrent_info::ommit_filehashes) || e.filehash_index == -1;
-			m_files.add_file(e, ommit_hash ? 0 : &filehash
+			bool omit_hash = (flags & torrent_info::omit_filehashes) || e.filehash_index == -1;
+			m_files.add_file(e, omit_hash ? 0 : &filehash
 				, e.symlink_index != -1 ? &symlink : 0);
 			m_multifile = false;
 		}

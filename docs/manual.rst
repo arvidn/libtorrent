@@ -1346,7 +1346,7 @@ The ``torrent_info`` has the following synopsis::
 	public:
 
 		// flags for torrent_info constructor
-		enum flags_t { ommit_filehashes = 1 };
+		enum flags_t { omit_filehashes = 1 };
 
 		// these constructors throws exceptions on error
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
@@ -1459,7 +1459,7 @@ exception support.
 The ``flags`` argument can be used to disable loading of potentially unnecessary hashes
 for individual files (if included in the torrent file). This is especially useful if
 you're loading torrents with thousands of files on a memory constrained system. If so,
-pass in ``torrent_info::ommit_filehashes`` as the flags argument.
+pass in ``torrent_info::omit_filehashes`` as the flags argument.
 
 
 add_tracker()

@@ -226,7 +226,7 @@ namespace libtorrent
 	{
 	public:
 
-		enum flags_t { ommit_filehashes = 1 };
+		enum flags_t { omit_filehashes = 1 };
 
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
