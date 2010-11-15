@@ -1345,19 +1345,22 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
+		// flags for torrent_info constructor
+		enum flags_t { ommit_filehashes = 1 };
+
 		// these constructors throws exceptions on error
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
 		// these constructors sets the error code on error
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1418,17 +1421,17 @@ torrent_info()
    
 	::
 
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
@@ -1452,6 +1455,11 @@ will simply set the error code to describe what went wrong and not fully initial
 torrent_info object. The overloads that do not take the extra error_code_ parameter will
 always throw if an error occurs. These overloads are not available when building without
 exception support.
+
+The ``flags`` argument can be used to disable loading of potentially unnecessary hashes
+for individual files (if included in the torrent file). This is especially useful if
+you're loading torrents with thousands of files on a memory constrained system. If so,
+pass in ``torrent_info::ommit_filehashes`` as the flags argument.
 
 
 add_tracker()
@@ -1534,12 +1542,13 @@ iterators with the type ``file_entry``.
 
 	struct file_entry
 	{
-		boost::filesystem::path path;
+		std::string path;
 		size_type offset;
 		size_type size;
 		size_type file_base;
-		std::string symlink_path;
-		boost::shared_ptr<sha1_hash> filehash;
+		time_t mtime;
+		int symlink_index;
+		int filehash_index;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -1561,6 +1570,17 @@ the ``file_base`` should be set to an offset so that the different regions do
 not overlap. This is used when mapping "unselected" files into a so-called part
 file.
 
+``mtime`` is the modification time of this file specified in posix time.
+
+``symlink_index`` is an index into an array of paths in ``file_storage``, or
+-1 if this file is not a symlink. This field is only used if the ``symlink_attribute``
+is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
+
+``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
+-1 if this file doesn't have a hash specified. The hash is the hash of the actual
+content of the file, and can be used to potentially find alternative sources for it.
+To resolve the hash, use ``file_storage::hash(e.filehash_index)``.
+
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
 or piece boundry. These files should typically be hidden from an end user. They are
@@ -1571,11 +1591,8 @@ not written to disk.
 ``executable_attribute`` is true if the file was marked as executable (posix)
 
 ``symlink_attribute`` is true if the file was a symlink. If this is the case
-the ``symlink_path`` specifies the original location where the data for this file
-was found.
-
-``filehash`` is a pointer that is set in case the torrent file included a sha1 hash
-for this file. This may be use to look up more sources for this file on other networks.
+the ``symlink_index`` refers to a string which specifies the original location
+where the data for this file was found.
 
 num_files() file_at()
 ---------------------

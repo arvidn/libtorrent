@@ -314,11 +314,13 @@ namespace libtorrent
 				if (m_files.at(0).executable_attribute) attr += 'x';
 				if (m_include_symlinks && m_files.at(0).symlink_attribute) attr += 'l';
 			}
-			if (m_include_symlinks && m_files.at(0).symlink_attribute)
+			if (m_include_symlinks
+				&& m_files.at(0).symlink_attribute
+				&& m_files.at(0).symlink_index != -1)
 			{
 				entry& sympath_e = info["symlink path"];
 				
-				std::string split = split_path(m_files.at(0).symlink_path);
+				std::string split = split_path(m_files.symlink(m_files.at(0).symlink_index));
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}
@@ -362,11 +364,13 @@ namespace libtorrent
 						if (i->executable_attribute) attr += 'x';
 						if (m_include_symlinks && i->symlink_attribute) attr += 'l';
 					}
-					if (m_include_symlinks && i->symlink_attribute)
+					if (m_include_symlinks
+						&& i->symlink_attribute
+						&& i->symlink_index != -1)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
-						std::string split = split_path(i->symlink_path);
+						std::string split = split_path(m_files.symlink(i->symlink_index));
 						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
 					}

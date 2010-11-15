@@ -47,14 +47,20 @@ namespace
     {
         ct.add_node(std::make_pair(addr, port));
     }
+
+	 void add_file(file_storage& ct, file_entry const& fe
+		 , std::string const& hash, std::string const& linkpath)
+	 {
+	 	ct.add_file(fe, hash.empty() ? 0 : &sha1_hash(hash)
+			, linkpath.empty() ? 0 : &linkpath);
+	 }
 }
 
 void bind_create_torrent()
 {
-    void (file_storage::*add_file0)(file_entry const&) = &file_storage::add_file;
-    void (file_storage::*add_file1)(std::string const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
+    void (file_storage::*add_file0)(std::string const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
 #if TORRENT_USE_WSTRING
-    void (file_storage::*add_file2)(std::wstring const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
+    void (file_storage::*add_file1)(std::wstring const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
 #endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
@@ -69,10 +75,10 @@ void bind_create_torrent()
 
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
-        .def("add_file", add_file0)
-        .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file, (arg("entry"), arg("hash") = std::string(), arg("symlink") = std::string()))
+        .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #if TORRENT_USE_WSTRING
-        .def("add_file", add_file2, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #endif
         .def("num_files", &file_storage::num_files)
         .def("at", &file_storage::at, return_internal_reference<>())
