@@ -348,6 +348,7 @@ void bind_session()
         .def("set_severity_level", allow_threads(&session::set_severity_level))
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
+        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)

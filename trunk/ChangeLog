@@ -54,7 +54,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
-
+	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links
 	* support 100 Continue HTTP responses
 	* changed default choker behavior to use 8 unchoke slots (instead of being rate based)
