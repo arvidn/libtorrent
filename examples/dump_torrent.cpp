@@ -127,10 +127,10 @@ int main(int argc, char* argv[])
 			, (i->hidden_attribute?'h':'-')
 			, (i->symlink_attribute?'l':'-')
 			, first, last
-			, i->filehash ? to_hex(i->filehash->to_string()).c_str() : ""
+			, i->filehash_index != -1 ? to_hex(t.files().hash(i->filehash_index).to_string()).c_str() : ""
 			, i->path.c_str()
 			, i->symlink_attribute ? "-> ": ""
-			, i->symlink_attribute ? i->symlink_path.c_str() : "");
+			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(i->symlink_index).c_str() : "");
 	}
 
 	return 0;

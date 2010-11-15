@@ -225,22 +225,25 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
+
+		enum flags_t { ommit_filehashes = 1 };
+
 #ifndef BOOST_NO_EXCEPTIONS
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(std::string const& filename);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename);
+		torrent_info(std::wstring const& filename, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 #endif
 
-		torrent_info(torrent_info const& t);
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(std::string const& filename, error_code& ec);
+		torrent_info(torrent_info const& t, int flags = 0);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename, error_code& ec);
+		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 
 		~torrent_info();
@@ -369,7 +372,7 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
 		
-		bool parse_info_section(lazy_entry const& e, error_code& ex);
+		bool parse_info_section(lazy_entry const& e, error_code& ec, int flags);
 
 		lazy_entry const* info(char const* key) const
 		{
@@ -406,7 +409,7 @@ namespace libtorrent
 		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
-		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);
+		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
 
 		file_storage m_files;
 

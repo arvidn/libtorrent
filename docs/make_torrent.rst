@@ -172,6 +172,9 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
+		sha1_hash const& hash(int index) const;
+		std::string const& symlink(int index) const;
+
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
 		const std::string& name() const;
@@ -214,6 +217,17 @@ can be changed by calling ``set_name``.
 
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
+
+hash() symlink()
+----------------
+
+	::
+
+		sha1_hash const& hash(int index) const;
+		std::string const& symlink(int index) const;
+
+These functions are used to resolve the symlink index and file hash
+index in ``file_entry``.
 
 
 create_torrent

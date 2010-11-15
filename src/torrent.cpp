@@ -4486,7 +4486,7 @@ namespace libtorrent
 		lazy_entry metadata;
 		error_code ec;
 		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
+		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
