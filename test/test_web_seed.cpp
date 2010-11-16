@@ -256,8 +256,8 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	// verify that the file hashes are correct
 	for (int i = 0; i < torrent_file->num_files(); ++i)
 	{
-		TEST_CHECK(torrent_file->file_at(i).filehash);
-		sha1_hash h1 = *torrent_file->file_at(i).filehash;
+		TEST_CHECK(torrent_file->file_at(i).filehash_index >= 0);
+		sha1_hash h1 = torrent_file->files().hash(torrent_file->file_at(i).filehash_index);
 		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed", torrent_file->file_at(i).path));
 		fprintf(stderr, "%s: %s == %s\n", torrent_file->file_at(i).path.c_str()
 			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
