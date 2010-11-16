@@ -84,6 +84,10 @@ namespace libtorrent
 		};
 
 	private:
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
+	public:
+#endif
 
 		callback_t m_callback;
 

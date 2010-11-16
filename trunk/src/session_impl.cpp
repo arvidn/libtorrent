@@ -98,6 +98,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #endif // TORRENT_DISABLE_DHT
 
+#include "libtorrent/http_tracker_connection.hpp"
+#include "libtorrent/udp_tracker_connection.hpp"
+
 #include "libtorrent/debug.hpp"
 
 #if TORRENT_USE_IOSTREAM
@@ -672,6 +675,51 @@ namespace aux {
 #if TORRENT_USE_IPV6
 		PRINT_SIZEOF(policy::ipv6_peer)
 #endif
+
+		PRINT_SIZEOF(udp_socket)
+		PRINT_OFFSETOF(udp_socket, m_callback)
+		PRINT_OFFSETOF(udp_socket, m_mutex)
+		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
+		PRINT_OFFSETOF(udp_socket, m_v4_ep)
+		PRINT_OFFSETOF(udp_socket, m_v4_buf)
+#if TORRENT_USE_IPV6
+		PRINT_OFFSETOF(udp_socket, m_ipv6_sock)
+		PRINT_OFFSETOF(udp_socket, m_v6_ep)
+		PRINT_OFFSETOF(udp_socket, m_v6_buf)
+#endif
+		PRINT_OFFSETOF(udp_socket, m_bind_port)
+		PRINT_OFFSETOF(udp_socket, m_outstanding)
+		PRINT_OFFSETOF(udp_socket, m_socks5_sock)
+		PRINT_OFFSETOF(udp_socket, m_connection_ticket)
+		PRINT_OFFSETOF(udp_socket, m_proxy_settings)
+		PRINT_OFFSETOF(udp_socket, m_cc)
+		PRINT_OFFSETOF(udp_socket, m_resolver)
+		PRINT_OFFSETOF(udp_socket, m_tmp_buf)
+		PRINT_OFFSETOF(udp_socket, m_queue_packets)
+		PRINT_OFFSETOF(udp_socket, m_tunnel_packets)
+		PRINT_OFFSETOF(udp_socket, m_abort)
+		PRINT_OFFSETOF(udp_socket, m_proxy_addr)
+		PRINT_OFFSETOF(udp_socket, m_queue)
+#ifdef TORRENT_DEBUG
+		PRINT_OFFSETOF(udp_socket, m_started)
+		PRINT_OFFSETOF(udp_socket, m_magic)
+		PRINT_OFFSETOF(udp_socket, m_outstanding_when_aborted)
+#endif
+
+		PRINT_SIZEOF(tracker_connection)
+		PRINT_SIZEOF(http_tracker_connection)
+
+		PRINT_SIZEOF(udp_tracker_connection)
+		PRINT_OFFSETOF(udp_tracker_connection, m_man)
+		PRINT_OFFSETOF(udp_tracker_connection, m_abort)
+		PRINT_OFFSETOF(udp_tracker_connection, m_hostname)
+		PRINT_OFFSETOF(udp_tracker_connection, m_target)
+		PRINT_OFFSETOF(udp_tracker_connection, m_endpoints)
+		PRINT_OFFSETOF(udp_tracker_connection, m_transaction_id)
+		PRINT_OFFSETOF(udp_tracker_connection, m_ses)
+		PRINT_OFFSETOF(udp_tracker_connection, m_attempts)
+		PRINT_OFFSETOF(udp_tracker_connection, m_state)
+		PRINT_OFFSETOF(udp_tracker_connection, m_proxy)
 
 #ifndef TORRENT_DISABLE_DHT
 		PRINT_SIZEOF(dht::find_data_observer)
