@@ -78,7 +78,10 @@ namespace libtorrent
 		void start();
 		void close();
 
+#if !defined TORRENT_VERBOSE_LOGGING && !defined TORRENT_LOGGING && !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
 	private:
+#endif
 
 		enum action_t
 		{

@@ -280,8 +280,6 @@ namespace libtorrent
 		// ignore packets smaller than 8 bytes
 		if (size < 8) return;
 
-		restart_read_timeout();
-
 		const char* ptr = buf;
 		int action = detail::read_int32(ptr);
 		int transaction = detail::read_int32(ptr);
@@ -306,6 +304,8 @@ namespace libtorrent
 
 		// ignore packets that's not a response to our message
 		if (action != m_state) return;
+
+		restart_read_timeout();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
@@ -461,7 +461,7 @@ namespace libtorrent
 
 		if (!cb)
 		{
-			m_man.remove_request(this);
+			close();
 			return;
 		}
 
@@ -492,7 +492,6 @@ namespace libtorrent
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
 			, peer_list, interval, min_interval, complete, incomplete, address());
 
-		m_man.remove_request(this);
 		close();
 	}
 
@@ -540,7 +539,6 @@ namespace libtorrent
 		cb->tracker_scrape_response(tracker_req()
 			, complete, incomplete, downloaded);
 
-		m_man.remove_request(this);
 		close();
 	}
 
