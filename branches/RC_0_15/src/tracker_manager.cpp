@@ -77,10 +77,19 @@ namespace libtorrent
 		m_read_timeout = read_timeout;
 		m_start_time = m_read_time = time_now_hires();
 
+		TORRENT_ASSERT(completion_timeout > 0 || read_timeout > 0);
+
 		if (m_abort) return;
 
-		int timeout = (std::min)(
-			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
+		int timeout = 0;
+		if (m_read_timeout > 0) timeout = m_read_timeout;
+		if (m_completion_timeout > 0)
+		{
+			timeout = timeout == 0
+				? m_completion_timeout
+				: (std::min)(m_completion_timeout, timeout);
+		}
+
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(boost::bind(
@@ -102,26 +111,30 @@ namespace libtorrent
 
 	void timeout_handler::timeout_callback(error_code const& error)
 	{
-		if (error) return;
-		if (m_completion_timeout == 0) return;
-		
+		if (m_abort) return;
+
 		ptime now = time_now_hires();
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
 		
-		if (m_read_timeout
-			<= total_seconds(receive_timeout)
-			|| m_completion_timeout
-			<= total_seconds(completion_timeout))
+		if ((m_read_timeout
+				&& m_read_timeout <= total_seconds(receive_timeout))
+			|| (m_completion_timeout
+				&& m_completion_timeout <= total_seconds(completion_timeout))
+			|| error)
 		{
-			on_timeout();
+			on_timeout(error);
 			return;
 		}
 
-		if (m_abort) return;
-
-		int timeout = (std::min)(
-			m_read_timeout, (std::min)(m_completion_timeout, m_read_timeout));
+		int timeout = 0;
+		if (m_read_timeout > 0) timeout = m_read_timeout;
+		if (m_completion_timeout > 0)
+		{
+			timeout = timeout == 0
+				? m_completion_timeout - total_seconds(m_read_time - m_start_time)
+				: (std::min)(m_completion_timeout  - total_seconds(m_read_time - m_start_time), timeout);
+		}
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(

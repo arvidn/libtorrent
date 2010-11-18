@@ -232,8 +232,14 @@ namespace libtorrent
 		send_udp_connect();
 	}
 
-	void udp_tracker_connection::on_timeout()
+	void udp_tracker_connection::on_timeout(error_code const& ec)
 	{
+		if (ec)
+		{
+			fail(-1, ec.message().c_str());
+			return;
+		}
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		char msg[200];

@@ -170,7 +170,7 @@ namespace libtorrent
 		void cancel();
 		bool cancelled() const { return m_abort; }
 
-		virtual void on_timeout() = 0;
+		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler() {}
 
 	private:
