@@ -110,7 +110,7 @@ namespace libtorrent
 		void send_udp_announce();
 		void send_udp_scrape();
 
-		virtual void on_timeout();
+		virtual void on_timeout(error_code const& ec);
 
 		tracker_manager& m_man;
 
