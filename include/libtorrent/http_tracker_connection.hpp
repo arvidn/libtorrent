@@ -90,7 +90,7 @@ namespace libtorrent
 		void on_response(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 
-		virtual void on_timeout() {}
+		virtual void on_timeout(error_code const& ec) {}
 
 		void parse(int status_code, lazy_entry const& e);
 		bool extract_peer_info(lazy_entry const& e, peer_entry& ret);
