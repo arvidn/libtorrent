@@ -155,6 +155,13 @@ namespace
         return ret;
     }
 
+	 cache_status get_cache_info(session& s, sha1_hash const& ih)
+	 {
+	 	cache_status ret;
+		s.get_cache_info(ih, &ret);
+		return ret;
+	 }
+
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
     {
@@ -386,7 +393,7 @@ void bind_session()
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
-        .def("get_cache_status", allow_threads(&session::get_cache_status))
+        .def("get_cache_info", &get_cache_info)
         ;
 
     enum_<session::save_state_flags_t>("save_state_flags_t")
