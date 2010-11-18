@@ -1,3 +1,4 @@
+	* support trackerid tracker extension
 	* graceful peer disconnect mode which finishes transactions before disconnecting peers
 	* support chunked encoding for web seeds
 	* optimized session startup time
