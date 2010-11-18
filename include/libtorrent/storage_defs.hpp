@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
+#include <boost/function.hpp>
 #include <string>
 
 namespace libtorrent
@@ -49,14 +50,16 @@ namespace libtorrent
 		storage_mode_compact
 	};
 	
-	typedef storage_interface* (*storage_constructor_type)(
-		file_storage const&, file_storage const*, std::string const&, file_pool&, std::vector<boost::uint8_t> const&);
+	typedef boost::function<storage_interface*(file_storage const&, file_storage const*
+		, std::string const&, file_pool&, std::vector<boost::uint8_t> const&)> storage_constructor_type;
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&, std::vector<boost::uint8_t> const&);
+		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
+		, std::vector<boost::uint8_t> const&);
 
 	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
-		file_storage const&, file_storage const* mapped, std::string const&, file_pool&, std::vector<boost::uint8_t> const&);
+		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
+		, std::vector<boost::uint8_t> const&);
 
 }
 

@@ -356,9 +356,9 @@ add_torrent()
 
 	::
 
-		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&
-			, std::vector<boost::uint8_t> const&);
+		typedef boost::function<storage_interface*(file_storage const&
+			, file_storage const*, std::string const&, file_pool&
+			, std::vector<boost::uint8_t> const&) storage_constructor_type;
 
 		struct add_torrent_params
 		{
@@ -382,6 +382,7 @@ add_torrent()
 			bool upload_mode;
 			std::vector<boost::uint8_t> const* file_priorities;
 			bool share_mode;
+			std::string trackerid;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -513,6 +514,10 @@ a torrent. The semantics are the same as for ``torrent_handle::prioritize_files(
 
 ``version`` is filled in by the constructor and should be left untouched. It
 is used for forward binary compatibility.
+
+``trackerid`` is the default tracker id to be used when announcing to trackers. By default
+this is empty, and no tracker ID is used, since this is an optional argument. If
+a tracker returns a tracker ID, that ID is used instead of this.
 
 remove_torrent()
 ----------------
