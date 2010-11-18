@@ -527,7 +527,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list
-			, peer_list, interval, min_interval, complete, incomplete, address());
+			, peer_list, interval, min_interval, complete, incomplete, address(), "" /*trackerid*/);
 
 		close();
 		return true;

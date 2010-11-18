@@ -115,6 +115,7 @@ namespace libtorrent
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
+		std::string trackerid;
 		int key;
 		int num_want;
 		std::string ipv6;
@@ -142,7 +143,8 @@ namespace libtorrent
 			, int min_interval
 			, int complete
 			, int incomplete
-			, address const& external_ip) = 0;
+			, address const& external_ip
+			, std::string const& trackerid) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code

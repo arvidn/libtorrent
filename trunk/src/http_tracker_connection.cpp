@@ -156,6 +156,12 @@ namespace libtorrent
 			if (m_ses.get_pe_settings().in_enc_policy != pe_settings::disabled)
 				url += "&supportcrypto=1";
 #endif
+			if (!tracker_req().trackerid.empty())
+			{
+				std::string id = tracker_req().trackerid;
+				url += "&trackerid=";
+				url += escape_string(id.c_str(), id.length());
+			}
 
 			if (tracker_req().event != tracker_request::none)
 			{
@@ -363,6 +369,10 @@ namespace libtorrent
 		int interval = e.dict_find_int_value("interval", 1800);
 		int min_interval = e.dict_find_int_value("min interval", 60);
 
+		std::string trackerid;
+		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
+		if (tracker_id)
+			trackerid = tracker_id->string_value();
 		// parse the response
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
@@ -506,7 +516,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
-			, interval, min_interval, complete, incomplete, external_ip);
+			, interval, min_interval, complete, incomplete, external_ip, trackerid);
 	}
 
 }

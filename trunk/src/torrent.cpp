@@ -329,6 +329,7 @@ namespace libtorrent
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
 		, m_save_path(complete(p.save_path))
+		, m_trackerid(p.trackerid)
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
@@ -1494,6 +1495,8 @@ namespace libtorrent
 		for (int i = 0; i < int(m_trackers.size()); ++i)
 		{
 			announce_entry& ae = m_trackers[i];
+			// if trackerid is not specified for tracker use default one, probably set explicitly
+			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			if (settings().announce_to_all_tiers
 				&& !settings().announce_to_all_trackers
 				&& sent_announce
@@ -1652,7 +1655,8 @@ namespace libtorrent
 		, int min_interval
 		, int complete
 		, int incomplete
-		, address const& external_ip)
+		, address const& external_ip
+		, const std::string& trackerid)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -1681,6 +1685,13 @@ namespace libtorrent
 			ae->min_announce = now + seconds(min_interval);
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
+
+			if ((!trackerid.empty()) && (ae->trackerid != trackerid))
+			{
+				ae->trackerid = trackerid;
+				if (m_ses.m_alerts.should_post<trackerid_alert>())
+				m_ses.m_alerts.post_alert(trackerid_alert(get_handle(), r.url, trackerid));
+			}
 		}
 		update_tracker_timer(now);
 

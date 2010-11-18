@@ -486,5 +486,10 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string trackerid_alert::message() const
+	{
+		return "trackerid received: " + trackerid;
+	}
+
 } // namespace libtorrent
 

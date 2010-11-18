@@ -444,7 +444,8 @@ namespace libtorrent
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
 			, std::vector<peer_entry>& e, int interval, int min_interval
-			, int complete, int incomplete, address const& external_ip);
+			, int complete, int incomplete, address const& external_ip
+			, std::string const& trackerid);
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
 			, int retry_interval);
@@ -942,6 +943,7 @@ namespace libtorrent
 		// this list is sorted by time_critical_piece::deadline
 		std::list<time_critical_piece> m_time_critical_pieces;
 
+		std::string m_trackerid;
 		std::string m_username;
 		std::string m_password;
 

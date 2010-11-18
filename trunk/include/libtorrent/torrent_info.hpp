@@ -91,6 +91,7 @@ namespace libtorrent
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
+		std::string trackerid;
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
