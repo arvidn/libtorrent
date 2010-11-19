@@ -60,9 +60,9 @@ namespace libtorrent
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
-	void sleep(int milliseconds);
+	TORRENT_EXPORT void sleep(int milliseconds);
 
-	struct condition
+	struct TORRENT_EXPORT condition
 	{
 		condition();
 		~condition();
@@ -82,7 +82,7 @@ namespace libtorrent
 
 	// #error these semaphores needs to release all threads that are waiting for the semaphore when signalled
 #if TORRENT_USE_POSIX_SEMAPHORE
-	struct semaphore
+	struct TORRENT_EXPORT semaphore
 	{
 		semaphore() { sem_init(&m_sem, 0, 0); }
 		~semaphore() { sem_destroy(&m_sem); }
@@ -91,7 +91,7 @@ namespace libtorrent
 		sem_t m_sem;
 	};
 #elif TORRENT_USE_MACH_SEMAPHORE
-	struct semaphore
+	struct TORRENT_EXPORT semaphore
 	{
 		semaphore() { semaphore_create(current_task(), &m_sem, SYNC_POLICY_FIFO, 0); }
 		~semaphore() { semaphore_destroy(current_task(), m_sem); }
@@ -100,7 +100,7 @@ namespace libtorrent
 		semaphore_t m_sem;
 	};
 #elif defined TORRENT_WINDOWS
-	struct semaphore
+	struct TORRENT_EXPORT semaphore
 	{
 		semaphore() { m_sem = CreateSemaphore(0, 0, 100, 0); }
 		~semaphore() { CloseHandle(m_sem); }

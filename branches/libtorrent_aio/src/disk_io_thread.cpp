@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-/*
-	Disk queue elevator patch by Morten Husveit
-*/
-
 #include "libtorrent/storage.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -65,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/unistd.h>
 #endif
 
-#define DEBUG_STORAGE 0
+#define DEBUG_STORAGE 1
 
 #define DLOG if (DEBUG_STORAGE) fprintf
 
@@ -104,7 +100,7 @@ namespace libtorrent
 	// it's inserted close to the end where the elevator has turned back.
 	// if it's lower it's inserted early, as the offset would pass it.
 	// a positive elevator direction has the same semantics but oposite order
-	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction)
+	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction)
 	{
 		if (aios == 0) return;
 		if (elevator_direction == 0)
@@ -1206,7 +1202,7 @@ namespace libtorrent
 		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
-				, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+			, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
 #elif defined IOPRIO_WHO_PROCESS
 		syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
 #endif
@@ -1514,6 +1510,7 @@ namespace libtorrent
 		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
+		DLOG(stderr, "signal global job semaphore!\n");
 		g_job_sem.signal();
 	}
 

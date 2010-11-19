@@ -373,7 +373,7 @@ namespace libtorrent
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
 
-	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction);
+	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction);
 }
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);

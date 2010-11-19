@@ -1840,7 +1840,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			a->handler->done(error_code(error, boost::system::get_system_category()), transferred);
 			CloseHandle(a->ov.hEvent);
-			pool.destroy(aio);
+			pool.destroy(a);
 		}
 
 		// terminate the new chain
