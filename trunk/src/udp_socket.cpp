@@ -415,12 +415,18 @@ void udp_socket::close()
 	// utp connections or NAT-PMP. We need to cancel the
 	// outstanding operations
 	m_ipv4_sock.cancel(ec);
+	if (ec == error::operation_not_supported)
+		m_ipv4_sock.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 #if TORRENT_USE_IPV6
 	m_ipv6_sock.cancel(ec);
+	if (ec == error::operation_not_supported)
+		m_ipv6_sock.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 #endif
 	m_socks5_sock.cancel(ec);
+	if (ec == error::operation_not_supported)
+		m_socks5_sock.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
 	m_resolver.cancel();
 	m_abort = true;

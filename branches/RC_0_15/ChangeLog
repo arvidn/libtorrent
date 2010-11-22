@@ -1,3 +1,4 @@
+	* potential WOW64 fix for unbuffered I/O (windows)
 	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links
 	* support 100 Continue HTTP responses

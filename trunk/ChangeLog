@@ -55,6 +55,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* potential WOW64 fix for unbuffered I/O (windows)
 	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links
 	* support 100 Continue HTTP responses
