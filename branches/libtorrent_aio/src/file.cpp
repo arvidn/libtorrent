@@ -997,28 +997,18 @@ namespace libtorrent
 		, aiocb_pool& pool)
 	{
 		aiocb_t* ret = 0;
-		aiocb_t** prev = &ret;
-#if TORRENT_USE_AIO
+		aiocb_t* prev = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			aiocb_t* aio = pool.construct();
 			memset(aio, 0, sizeof(aiocb_t));
+#if TORRENT_USE_AIO
 			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_buf = bufs[i].iov_base;
 			aio->cb.aio_nbytes = bufs[i].iov_len;
 			aio->cb.aio_offset = offset;
 			aio->cb.aio_lio_opcode = op;
-
-			offset += bufs[i].iov_len;
-			*prev = aio;
-			prev = &aio->next;
-		}
 #elif TORRENT_USE_OVERLAPPED
-
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			aiocb_t* aio = pool.construct();
-			memset(aio, 0, sizeof(aiocb_t));
 			aio->ov.Internal = 0;
 			aio->ov.InternalHigh = 0;
 			aio->ov.OffsetHigh = DWORD(offset >> 32);
@@ -1029,29 +1019,24 @@ namespace libtorrent
 			aio->phys_offset = phys_offset(offset);
 			aio->op = op;
 			aio->file = native_handle();
-
-			offset += bufs[i].iov_len;
-			*prev = aio;
-			prev = &aio->next;
-		}
-
 #else
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			aiocb_t* aio = pool.construct();
-			memset(aio, 0, sizeof(aiocb_t));
 			aio->file_ptr = this;
 			aio->buf = bufs[i].iov_base;
 			aio->size = bufs[i].iov_len;
 			aio->offset = offset;
 			aio->op = op;
 			aio->phys_offset = phys_offset(offset);
+#endif
+			// link in to the double linked list
+			aio->prev = prev;
+			aio->next = 0;
+			if (prev) prev->next = aio;
+			if (ret == 0) ret = aio;
 
 			offset += bufs[i].iov_len;
-			*prev = aio;
-			prev = &aio->next;
+			prev = aio;
 		}
-#endif
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
 		return ret;
 	}
 
@@ -1159,7 +1144,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < int(i->iov_len); k += m_page_size)
 			{
-				cur_seg->Buffer = ((char*)i->iov_base) + k;
+				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
 				++cur_seg;
 			}
 		}
@@ -1180,6 +1165,7 @@ namespace libtorrent
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING)
 			{
+				TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
@@ -1342,7 +1328,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < int(i->iov_len); k += m_page_size)
 			{
-				cur_seg->Buffer = ((char*)i->iov_base) + k;
+				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
 				++cur_seg;
 			}
 		}
@@ -1377,6 +1363,7 @@ namespace libtorrent
 		{
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
+				TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
@@ -1778,85 +1765,186 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	file::aiocb_t* reap_aios(file::aiocb_t* aios, aiocb_pool& pool)
 	{
-		ptime now = time_now_hires();
+		file::aiocb_t* ret = aios;
+		// loop through all aiocb structures, for operations
+		// that are still in progress, add them to a new chain
+		// which is returned. For operations that are complete,
+		// call the handler and delete aiocb entry.
+		while (aios)
+		{
+			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
+			file::aiocb_t* a = aios;
+			aios = aios->next;
+			bool removed = reap_aio(a, pool);
+			if (removed && ret == a) ret = aios;
+		}
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+		return ret;
+	}
+
+	bool reap_aio(file::aiocb_t* aio, aiocb_pool& pool)
+	{
 #if TORRENT_USE_AIO
-		file::aiocb_t* ret = 0;
-		file::aiocb_t** last = &ret;
-		// loop through all aiocb structures, for operations
-		// that are still in progress, add them to a new chain
-		// which is returned. For operations that are complete,
-		// call the handler and delete aiocb entry.
-		while (aios)
-		{
-			file::aiocb_t* a = aios;
-			aios = aios->next;
+		int e = aio_error(&aio->cb);
+		if (e == EINPROGRESS) return false;
 
-			int e = aio_error(&a->cb);
-			if (e == EINPROGRESS)
-			{
-				*last = a;
-				a->next = 0;
-				last = &a->next;
-				continue;
-			}
-
-			size_t ret = aio_return(&a->cb);
-			DLOG(stderr, "aio_return(%p) = %d\n", &a->cb, int(ret));
-			if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
-			a->handler->done(error_code(e, boost::system::get_posix_category()), ret);
-			pool.destroy(a);
-		}
-
-		// terminate the new chain
-		*last = 0;	
-		return ret;
+		size_t ret = aio_return(&aio->cb);
+		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
+		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
+		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
 #elif TORRENT_USE_OVERLAPPED
-		file::aiocb_t* ret = 0;
-		file::aiocb_t** last = &ret;
-		// loop through all aiocb structures, for operations
-		// that are still in progress, add them to a new chain
-		// which is returned. For operations that are complete,
-		// call the handler and delete aiocb entry.
-		while (aios)
+		BOOL ret = HasOverlappedIoCompleted(&aio->ov);
+		if (ret == FALSE) return false;
+
+		DWORD transferred = 0;
+		ret = GetOverlappedResult(aio->file, &aio->ov, &transferred, TRUE);
+		DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &aio->ov, int(ret));
+		int error = ERROR_SUCCESS;
+		if (ret == FALSE)
 		{
-			file::aiocb_t* a = aios;
-			aios = aios->next;
-
-			BOOL ret = HasOverlappedIoCompleted(&a->ov);
-			if (ret == FALSE)
-			{
-				*last = a;
-				a->next = 0;
-				last = &a->next;
-				continue;
-			}
-
-			DWORD transferred = 0;
-			ret = GetOverlappedResult(a->file, &a->ov, &transferred, TRUE);
-			DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &a->ov, int(ret));
-			int error = ERROR_SUCCESS;
-			if (ret == FALSE)
-			{
-				error = GetLastError();
-				DLOG(stderr, " error: %d\n", error);
-			}
-			a->handler->done(error_code(error, boost::system::get_system_category()), transferred);
-			CloseHandle(a->ov.hEvent);
-			pool.destroy(a);
+			error = GetLastError();
+			DLOG(stderr, " error: %d\n", error);
 		}
-
-		// terminate the new chain
-		*last = 0;	
-		return ret;
+		aio->handler->done(error_code(error, boost::system::get_system_category()), transferred);
+		CloseHandle(aio->ov.hEvent);
 #else
 		// since we don't have AIO, all operations should have
 		// been performed as they were issued, and no operation
 		// should ever be outstanding
 		TORRENT_ASSERT(aios == 0);
-		return 0;
+		return false;
 #endif
+
+		// unlink
+		if (aio->prev) aio->prev->next = aio->next;
+		if (aio->next) aio->next->prev = aio->prev;
+
+		pool.destroy(aio);
+		return true;
 	}
 
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool, int& num_issued, void* userdata)
+	{
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = aios;
+
+		while (aios)
+		{
+			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
+#if TORRENT_USE_AIO
+			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
+			int ret;
+			switch (aios->cb.aio_lio_opcode)
+			{
+				case file::read_op: ret = aio_read(&aios->cb); break;
+				case file::write_op: ret = aio_write(&aios->cb); break;
+				default: TORRENT_ASSERT(false);
+			}
+			DLOG(stderr, " aio_%s() = %d\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write", ret);
+
+			if (ret == -1)
+			{
+				DLOG(stderr, "  error = %s\n", strerror(errno));
+				if (errno == EAGAIN) break;
+			
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
+				pool.destroy(del);
+				continue;
+			}
+#elif TORRENT_USE_OVERLAPPED
+			extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
+
+			int ret;
+			switch (aios->op)
+			{
+				case file::read_op:
+					ret = ReadFileEx(aios->file, aios->buf
+						, aios->size, &aios->ov
+						, &signal_handler);
+					break;
+				case file::write_op:
+					ret = WriteFileEx(aios->file, aios->buf
+						, aios->size, &aios->ov
+						, &signal_handler);
+					break;
+				default: TORRENT_ASSERT(false);
+			}
+			DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
+				? "Read" : "Write", ret);
+
+			if (ret == FALSE && GetLastError() != ERROR_IO_PENDING)
+			{
+				DWORD error = GetLastError();
+				DLOG(stderr, "  error = %d\n", error);
+
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
+				pool.destroy(del);
+				continue;
+			}
+			aios->userdata = userdata;
+#else
+			error_code ec;
+			int ret;
+			// #error merge adjacent operations into a vector call
+			file::iovec_t b = {aios->buf, aios->size};
+			switch (aios->op)
+			{
+				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
+				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
+				default: TORRENT_ASSERT(false);
+			}
+			file::aiocb_t* del = aios;
+			if (aios->next) aios->next->prev = aios->prev;
+			if (aios->prev) aios->prev->next = aios->next;
+			aios = aios->next;
+			del->handler->done(ec, ret);
+			pool.destroy(del);
+			++num_issued;
+			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
+#endif
+		
+			++num_issued;
+			aios = aios->next;
+		}
+
+		if (aios)
+		{
+			// this job, and all following it, could not be submitted
+			// cut the chain in two, one for the ones that were submitted
+			// and one for the ones that are left
+			if (aios->prev)
+			{
+				aios->prev->next = 0;
+			}
+			else
+			{
+				TORRENT_ASSERT(ret == aios);
+				ret = 0;
+			}
+			aios->prev = 0;
+		}
+
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+		TORRENT_ASSERT(aios == 0 || aios->prev == 0);
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
+	}
+
+#if 0
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
@@ -1991,8 +2079,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// easy appending to it
 		file::aiocb_t** last = &ret;
 
-		ptime now = time_now_hires();
-
 		while (aios)
 		{
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
@@ -2045,8 +2131,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		file::aiocb_t** last = &ret;
 
 		extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
-
-		ptime now = time_now_hires();
 
 		while (aios)
 		{
@@ -2112,7 +2196,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			++num_issued;
 		}
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
-#endif	
+#endif
 	}
+
+#endif
+
 }
 

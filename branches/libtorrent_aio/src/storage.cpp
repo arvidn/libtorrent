@@ -1137,8 +1137,10 @@ ret:
 		TORRENT_ASSERT(offset < m_files.piece_size(slot));
 		TORRENT_ASSERT(num_bufs > 0);
 
-		// this is the end of the chain where we add more aiocb_t entries
-		file::aiocb_t** last = &op.ret;
+		// this is the last element in the chain, that we hook new
+		// aiocb's to
+		file::aiocb_t* last = 0;
+		op.ret = 0;
 
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
@@ -1237,14 +1239,16 @@ ret:
 				TORRENT_ASSERT(op.handler);
 				file::aiocb_t* aio = ((*file_handle).*op.async_op)(file_iter->file_base + file_offset
 					, tmp_bufs, num_tmp_bufs, *aiocbs());
+				if (op.ret == 0) op.ret = aio;
 				// add this to the chain
-				*last = aio;
 				while (aio)
 				{
 					bytes_transferred += aio->nbytes();
 					aio->handler = op.handler;
 					++op.handler->references;
-					last = &aio->next;
+					if (last) last->next = aio;
+					aio->prev = last;
+					last = aio;
 					aio = aio->next;
 				}
 			}

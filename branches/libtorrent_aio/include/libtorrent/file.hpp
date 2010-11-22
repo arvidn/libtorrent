@@ -248,10 +248,11 @@ namespace libtorrent
 #if TORRENT_USE_AIO
 		struct aiocb_t
 		{
+			aiocb cb;
+			aiocb_t* prev;
 			aiocb_t* next;
 			async_handler* handler;
 			size_type phys_offset;
-			aiocb cb;
 			size_t nbytes() const { return cb.aio_nbytes; }
 		};
 
@@ -264,6 +265,7 @@ namespace libtorrent
 		struct aiocb_t
 		{
 			OVERLAPPED ov;
+			aiocb_t* prev;
 			aiocb_t* next;
 			async_handler* handler;
 			size_type phys_offset;
@@ -271,6 +273,7 @@ namespace libtorrent
 			size_t size;
 			void* buf;
 			HANDLE file;
+			void* userdata; // points to the PIPE to signal
 			size_t nbytes() const { return size; }
 		};
 
@@ -285,6 +288,7 @@ namespace libtorrent
 		// by physical disk offset
 		struct aiocb_t
 		{
+			aiocb_t* prev;
 			aiocb_t* next;
 			async_handler* handler;
 			// used to insert jobs ordered
@@ -362,6 +366,9 @@ namespace libtorrent
 
 	private:
 
+		// allocates aiocb structures and links them
+		// together and returns the pointer to the first
+		// element in the (doubly) linked list
 		aiocb_t* async_io(size_type offset
 			, iovec_t const* bufs, int num_bufs, int op
 			, aiocb_pool& pool);
@@ -391,11 +398,17 @@ namespace libtorrent
 	// returns two chains, one with jobs that were issued and
 	// one with jobs that couldn't be issued
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool, int& num_issued);
+		, aiocb_pool& pool, int& num_issued, void* userdata);
 
 	file::aiocb_t* reap_aios(file::aiocb_t* aios
 		, aiocb_pool& pool);
 
+	// reaps one aiocb element. If the operation is
+	// not complete, it just returns false. If it is
+	// complete, processes it, unlinks it, frees it
+	// and returns true.
+	bool reap_aio(file::aiocb_t* aio
+		, aiocb_pool& pool);
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED

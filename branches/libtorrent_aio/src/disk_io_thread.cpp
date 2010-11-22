@@ -76,6 +76,11 @@ namespace libtorrent
 			|| (b2 >= b1 && v >= b1 && v <= b2);
 	}
 
+	bool is_ahead_of(size_type head, size_type v, int elevator)
+	{
+		return (v > head && elevator == 1) || (v < head && elevator == -1);
+	}
+
 	bool elevator_ordered(size_type v, size_type next, size_type prev, int elevator)
 	{
 		// if the point is in between prev and next, we should always sort it in
@@ -105,9 +110,17 @@ namespace libtorrent
 		if (aios == 0) return;
 		if (elevator_direction == 0)
 		{
-			file::aiocb_t* last = aios;
-			while (last->next) last = last->next;
-			last->next = list;
+			if (list)
+			{
+				file::aiocb_t* last = aios;
+				while (last->next)
+				{
+					TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
+					last = last->next;
+				}
+				last->next = list;
+				list->prev = last;
+			}
 			list = aios;
 			return;
 		}
@@ -120,23 +133,41 @@ namespace libtorrent
 			file::aiocb_t* i = aios;
 			aios = aios->next;
 			i->next = 0;
+			if (aios) aios->prev = 0;
 
 			// find the right place in the current list to insert i
 			// since the local elevator direction may change during
 			// this scan, use a local copy
 			// we want the ordering to look something like this:
 			//
-			// \            or like this:      ^
-			//  \         (depending on the   /  \ 
-			//   \   /     elevator          /    \ 
-			//    \ /      direction)       /
-			//     V                       /
+			//     /      or like this:      ^
+			//    /     (depending on the   /
+			// \         elevator          /
+			//  \        direction)           \
+			//   V                             \
 			//
+
+			/* for this to work, we need a tail pointer
+
+			// first, if if i is "ahead of" list, we search from the
+			// beginning of the right place for insertion. If i is "behind"
+			// list, search from the end of the list
+			size_type last_offset = j ? j->phys_offset : 0;
+			if (is_ahead_of(last_offset, i->phys_offset, elevator_direction))
+			{
+				// scan from the beginning
+			}
+			else
+			{
+				// scan from the end
+			}
+			*/
+
 			// the knee is where the elevator direction changes. We never
 			// want to insert an element before the first one, since that
 			// might make the drive head move backwards
 			int elevator = elevator_direction;
-			file::aiocb_t** last = &list;
+			file::aiocb_t* last = 0;
 			file::aiocb_t* j = list;
 			size_type last_offset = j ? j->phys_offset : 0;
 			// this will keep iterating as long as j->phys_offset < i->phys_offset
@@ -155,17 +186,16 @@ namespace libtorrent
 				}
 
 				last_offset = j->phys_offset;
-				last = &j->next;
+				last = j;
 				j = j->next;
 			}
-			*last = i;
+			last->next = i;
 			i->next = j;
+			j->prev = i;
 		}
 	}
 
-#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
-	// #error do something smarter on windows (and linux, which supports rt-signals)
-
+#if TORRENT_USE_AIO
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
 	// that if there are more than one instances of libtorrent
@@ -211,6 +241,11 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DISK_STATS
 		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+
+#if TORRENT_USE_OVERLAPPED
+		BOOL pipe = CreatePipe(&m_event_read_pipe, &m_event_write_pipe, 0, 4096);
+		TORRENT_ASSERT(pipe == TRUE);
 #endif
 
 #if TORRENT_USE_RLIMIT
@@ -277,6 +312,9 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
+#elif TORRENT_USE_OVERLAPPED
+		CloseHandle(m_event_read_pipe);
+		CloseHandle(m_event_write_pipe);
 #endif
 
 		TORRENT_ASSERT(m_abort == true);
@@ -425,7 +463,10 @@ namespace libtorrent
 						? m_elevator_direction : 0);
 
 					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+					{
+						TORRENT_ASSERT(j->next == 0 || j->next->prev == j);
 						DLOG(stderr, "  %"PRId64, j->phys_offset);
+					}
 					DLOG(stderr, "\n");
 				}
 				iov_counter = 0;
@@ -1486,7 +1527,13 @@ namespace libtorrent
 		mutex::scoped_lock l (m_job_mutex);
 		m_queued_jobs.push_back(j);
 		// wake up the disk thread to issue this new job
+#if TORRENT_USE_OVERLAPPED
+		void* null = 0;
+		DWORD num_written;
+		WriteFile(m_event_write_pipe, &null, sizeof(0), &num_written, 0);
+#else
 		g_job_sem.signal();
+#endif
 	}
 
 #if TORRENT_USE_AIO
@@ -1507,11 +1554,14 @@ namespace libtorrent
 	// instead of iterating over all outstanding jobs
 	void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped)
 	{
-		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
-		DLOG(stderr, "signal global job semaphore!\n");
-		g_job_sem.signal();
+		file::aiocb_t* aio = (file::aiocb_t*)overlapped;
+		DLOG(stderr, "pass on aiocb pointer (%p) to disk thread\n", aio);
+
+		HANDLE pipe = *((HANDLE*)aio->userdata);
+		DWORD num_written;
+		WriteFile(pipe, &aio, sizeof(aio), &num_written, 0);
 	}
 
 #endif
@@ -1549,6 +1599,18 @@ namespace libtorrent
 
 		do
 		{
+#if TORRENT_USE_OVERLAPPED
+			file::aiocb_t* aio = 0;
+			DWORD num_read;
+			ReadFile(m_event_read_pipe, &aio, sizeof(aio), &num_read, 0);
+			if (aio != 0)
+			{
+				file::aiocb_t* next = aio->next;
+				bool removed = reap_aio(aio, m_aiocb_pool);
+				if (removed && m_in_progress == aio) m_in_progress = next;
+			}
+
+#else
 			DLOG(stderr, "sem_wait() [%p]\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
 			g_job_sem.wait();
@@ -1571,6 +1633,7 @@ namespace libtorrent
 				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
 				complete_aios = g_completed_aios;
 			}
+#endif
 
 			// keep the mutex locked for as short as possible
 			// while we swap out all the jobs in the queue
@@ -1608,16 +1671,11 @@ namespace libtorrent
 					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
 				file::aiocb_t* pending;
 				int num_issued = 0;
-				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool, num_issued);
+				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
+					, num_issued, &m_event_write_pipe);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
-				if (pending)
-				{
-					file::aiocb_t* last = pending;
-					while (last->next) last = last->next;
-					last->next = m_in_progress;
-					m_in_progress = pending;
-				}
+				prepend_aios(m_in_progress, pending, 0);
 
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 				if (m_to_issue)
