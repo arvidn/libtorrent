@@ -1067,7 +1067,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < int(i->iov_len); k += m_page_size)
 			{
-				cur_seg->Buffer = ((char*)i->iov_base) + k;
+				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
 				++cur_seg;
 			}
 		}
@@ -1250,7 +1250,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < int(i->iov_len); k += m_page_size)
 			{
-				cur_seg->Buffer = ((char*)i->iov_base) + k;
+				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
 				++cur_seg;
 			}
 		}
@@ -1285,6 +1285,8 @@ namespace libtorrent
 		{
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
+				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
+				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
