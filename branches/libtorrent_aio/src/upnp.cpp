@@ -383,12 +383,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			}
 			else
 			{
-				char msg[200];
+				char msg[400];
 				int num_chars = snprintf(msg, sizeof(msg), "ignoring response from: %s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end; ++i)
 				{
+					if (num_chars >= sizeof(msg)-1) break;
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
@@ -736,6 +737,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
+		"<NewRemoteHost></NewRemoteHost>"
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
 		"</u:%s></s:Body></s:Envelope>"
@@ -1253,7 +1255,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	}
 	else
 	{
-		char msg[200];
+		char msg[500];
 		snprintf(msg, sizeof(msg), "unmap response: %s"
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);

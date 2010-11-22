@@ -307,7 +307,7 @@ namespace libtorrent
 
 		// clears the given piece's download flag
 		// this means that this piece-block can be picked again
-		void abort_download(piece_block block);
+		void abort_download(piece_block block, void* peer = 0);
 
 		bool is_piece_finished(int index) const;
 

@@ -200,16 +200,22 @@ namespace libtorrent
 		e.size = size;
 		e.path = file;
 		e.offset = m_total_size;
-		e.pad_file = bool(flags & pad_file);
-		e.hidden_attribute = bool(flags & attribute_hidden);
-		e.executable_attribute = bool(flags & attribute_executable);
-		e.symlink_attribute = bool(flags & attribute_symlink);
-		if (e.symlink_attribute) e.symlink_path = symlink_path;
+		e.pad_file = (flags & pad_file) != 0;
+		e.hidden_attribute = (flags & attribute_hidden) != 0;
+		e.executable_attribute = (flags & attribute_executable) != 0;
+		e.symlink_attribute = (flags & attribute_symlink) != 0;
+		if (e.symlink_attribute)
+		{
+			e.symlink_index = m_symlinks.size();
+			m_symlinks.push_back(symlink_path);
+
+		}
 		e.mtime = mtime;
 		m_total_size += size;
 	}
 
-	void file_storage::add_file(file_entry const& ent)
+	void file_storage::add_file(file_entry const& ent, sha1_hash const* filehash
+		, std::string const* symlink)
 	{
 		if (!has_parent_path(ent.path))
 		{
@@ -230,6 +236,17 @@ namespace libtorrent
 		e.offset = m_total_size;
 		e.file_index = m_files.size() - 1;
 		m_total_size += ent.size;
+		if (filehash)
+		{
+			e.filehash_index = m_file_hashes.size();
+			m_file_hashes.push_back(*filehash);
+		}
+
+		if (symlink)
+		{
+			e.symlink_index = m_symlinks.size();
+			m_symlinks.push_back(*symlink);
+		}
 	}
 
 	void file_storage::optimize(int pad_file_limit)

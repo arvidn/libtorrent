@@ -299,7 +299,7 @@ void bind_torrent_handle()
         .def("is_seed", _(&torrent_handle::is_seed))
         .def("is_finished", _(&torrent_handle::is_finished))
         .def("is_paused", _(&torrent_handle::is_paused))
-        .def("pause", _(&torrent_handle::pause))
+        .def("pause", _(&torrent_handle::pause), arg("flags") = 0)
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
         .def("set_priority", _(&torrent_handle::set_priority))
@@ -334,7 +334,7 @@ void bind_torrent_handle()
         .def("prioritize_files", &prioritize_files)
         .def("file_priorities", &file_priorities)
         .def("use_interface", &torrent_handle::use_interface)
-        .def("save_resume_data", _(&torrent_handle::save_resume_data))
+        .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", &force_reannounce)
@@ -365,6 +365,14 @@ void bind_torrent_handle()
         .def("rename_file", _(rename_file1))
 #endif
         ;
+
+    enum_<torrent_handle::pause_flags_t>("pause_flags_t")
+        .value("graceful_pause", torrent_handle::graceful_pause)
+    ;
+
+    enum_<torrent_handle::save_resume_flags_t>("save_resume_flags_t")
+        .value("flush_disk_cache", torrent_handle::flush_disk_cache)
+    ;
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")
         .value("alert_when_available", torrent_handle::alert_when_available)

@@ -34,11 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/mpl/max_element.hpp>
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/sizeof.hpp>
-#include <boost/mpl/transform_view.hpp>
-#include <boost/mpl/deref.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -53,13 +48,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <time.h> // time()
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
+#endif
 
 namespace libtorrent { namespace dht
 {
 
 namespace io = libtorrent::detail;
-namespace mpl = boost::mpl;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(rpc)
@@ -78,9 +74,9 @@ void intrusive_ptr_release(observer const* o)
 	TORRENT_ASSERT(o != 0);
 	if (--o->m_refs == 0)
 	{
-		boost::pool<>& p = o->m_algorithm->allocator();
+		boost::intrusive_ptr<traversal_algorithm> ta = o->m_algorithm;
 		(const_cast<observer*>(o))->~observer();
-		p.free(const_cast<observer*>(o));
+		ta->free_observer(const_cast<observer*>(o));
 	}
 }
 
@@ -127,14 +123,14 @@ void observer::abort()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->failed(target_ep(), traversal_algorithm::prevent_request);
+	m_algorithm->failed(observer_ptr(this), traversal_algorithm::prevent_request);
 }
 
 void observer::done()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->finished(target_ep());
+	m_algorithm->finished(observer_ptr(this));
 }
 
 void observer::short_timeout()
@@ -142,7 +138,7 @@ void observer::short_timeout()
 	if (m_short_timeout) return;
 	TORRENT_ASSERT(m_short_timeout == false);
 	m_short_timeout = true;
-	m_algorithm->failed(target_ep(), traversal_algorithm::short_timeout);
+	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
 // this is called when no reply has been received within
@@ -151,25 +147,22 @@ void observer::timeout()
 {
 	if (m_done) return;
 	m_done = true;
-	m_algorithm->failed(target_ep());
+	m_algorithm->failed(observer_ptr(this));
 }
 
 node_id generate_id();
 
-typedef mpl::vector<
-	find_data_observer
-	, announce_observer
-	, null_observer
-	> observer_types;
-
-typedef mpl::max_element<
-	mpl::transform_view<observer_types, mpl::sizeof_<mpl::_1> >
-    >::type max_observer_type_iter;
+enum { observer_size = max3<
+	sizeof(find_data_observer)
+	, sizeof(announce_observer)
+	, sizeof(null_observer)
+	>::value
+};
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
 	, void* userdata)
-	: m_pool_allocator(sizeof(mpl::deref<max_observer_type_iter::base>::type), 10)
+	: m_pool_allocator(observer_size, 10)
 	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
 	, m_userdata(userdata)
@@ -177,6 +170,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_table(table)
 	, m_timer(time_now())
 	, m_random_number(generate_id())
+	, m_allocated_observers(0)
 	, m_destructing(false)
 {
 	std::srand(time(0));
@@ -187,9 +181,11 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
+	PRINT_OFFSETOF(observer, flags);
 	PRINT_OFFSETOF(observer, m_sent);
 	PRINT_OFFSETOF(observer, m_refs);
 	PRINT_OFFSETOF(observer, m_algorithm);
+	PRINT_OFFSETOF(observer, m_id);
 	PRINT_OFFSETOF(observer, m_addr);
 	PRINT_OFFSETOF(observer, m_port);
 	PRINT_OFFSETOF(observer, m_transaction_id);
@@ -197,12 +193,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
 	TORRENT_LOG(rpc) << " find_data_observer: " << sizeof(find_data_observer);
-
-	TORRENT_LOG(rpc) << " traversal_algorithm::result: " << sizeof(traversal_algorithm::result);
-	PRINT_OFFSETOF(traversal_algorithm::result, id);
-	PRINT_OFFSETOF(traversal_algorithm::result, addr);
-	PRINT_OFFSETOF(traversal_algorithm::result, port);
-	PRINT_OFFSETOF(traversal_algorithm::result, flags);
 
 #undef PRINT_OFFSETOF
 #endif
@@ -224,11 +214,25 @@ rpc_manager::~rpc_manager()
 	}
 }
 
+void* rpc_manager::allocate_observer()
+{
+	m_pool_allocator.set_next_size(10);
+	void* ret = m_pool_allocator.malloc();
+	if (ret) ++m_allocated_observers;
+	return ret;
+}
+
+void rpc_manager::free_observer(void* ptr)
+{
+	if (!ptr) return;
+	--m_allocated_observers;
+	m_pool_allocator.free(ptr);
+}
+
 #ifdef TORRENT_DEBUG
 size_t rpc_manager::allocation_size() const
 {
-	size_t s = sizeof(mpl::deref<max_observer_type_iter::base>::type);
-	return s;
+	return observer_size;
 }
 
 void rpc_manager::check_invariant() const

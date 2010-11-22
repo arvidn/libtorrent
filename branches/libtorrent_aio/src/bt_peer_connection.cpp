@@ -469,7 +469,7 @@ namespace libtorrent
 
 		int pad_size = rand() % 512;
 
-		TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
+		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		buffer::interval send_buf = 
@@ -531,10 +531,7 @@ namespace libtorrent
 		write_pe_vc_cryptofield(send_buf, crypto_provide, pad_size);
 		m_RC4_handler->encrypt(send_buf.end - encrypt_size, encrypt_size);
 #ifdef TORRENT_DEBUG
-		const int packet_size = 20 + 20 + 8 + 4 + 2 + pad_size + 2;
-		TORRENT_ASSERT(send_buffer_size() - packet_size == m_encrypted_bytes);
-		m_encrypted_bytes += packet_size;
-		TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size());
+		m_encrypted_bytes = send_buffer_size();
 #endif
 
 		TORRENT_ASSERT(send_buf.begin == send_buf.end);
@@ -551,9 +548,9 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int pad_size =rand() % 512;
+		int pad_size = rand() % 512;
 
-		TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
+		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
 		const int buf_size = 8 + 4 + 2 + pad_size;
 		buffer::interval send_buf = allocate_send_buffer(buf_size);
@@ -684,7 +681,7 @@ namespace libtorrent
 
 		if (m_encrypted && m_rc4_encrypted)
 		{
-			TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
+			TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 			m_RC4_handler->encrypt(const_cast<char*>(buf), size);
 #ifdef TORRENT_DEBUG
 			m_encrypted_bytes += size;
@@ -1248,7 +1245,9 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " <== HASHPIECE " << p.piece << " list: " << list_size << " ";
 #endif
 			lazy_entry hash_list;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size, hash_list) != 0)
+			error_code ec;
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size
+				, hash_list, ec) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, 2);
 				return;
@@ -1518,11 +1517,14 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		lazy_entry root;
-		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root);
+		error_code ec;
+		int pos;
+		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
 		if (root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " invalid extended handshake\n";
+			(*m_logger) << time_now_string() << " invalid extended handshake: " << ec.message()
+				<< "pos: " << pos << "\n";
 #endif
 			return;
 		}
@@ -2542,6 +2544,9 @@ namespace libtorrent
 						return;
 					}
 					m_rc4_encrypted = true;
+#ifdef TORRENT_DEBUG
+					m_encrypted_bytes = send_buffer_size();
+#endif
 				}
 				else if (crypto_field == 0x01)
 				{

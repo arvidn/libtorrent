@@ -79,6 +79,11 @@ namespace libtorrent
 	{
 		tracker_request()
 			: kind(announce_request)
+			, downloaded(-1)
+			, uploaded(-1)
+			, left(-1)
+			, corrupt(0)
+			, redundant(0)
 			, event(none)
 			, key(0)
 			, num_want(0)
@@ -106,9 +111,11 @@ namespace libtorrent
 		size_type uploaded;
 		size_type left;
 		size_type corrupt;
+		size_type redundant;
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
+		std::string trackerid;
 		int key;
 		int num_want;
 		std::string ipv6;
@@ -136,7 +143,8 @@ namespace libtorrent
 			, int min_interval
 			, int complete
 			, int incomplete
-			, address const& external_ip) = 0;
+			, address const& external_ip
+			, std::string const& trackerid) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
@@ -164,7 +172,7 @@ namespace libtorrent
 		void cancel();
 		bool cancelled() const { return m_abort; }
 
-		virtual void on_timeout() = 0;
+		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler() {}
 
 	private:

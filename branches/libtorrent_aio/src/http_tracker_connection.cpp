@@ -138,8 +138,8 @@ namespace libtorrent
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
 			snprintf(str, sizeof(str), "&peer_id=%s&port=%d&uploaded=%"PRId64
-				"&downloaded=%"PRId64"&left=%"PRId64"&corrupt=%"PRId64"&compact=1"
-				"&numwant=%d&key=%x&no_peer_id=1"
+				"&downloaded=%"PRId64"&left=%"PRId64"&corrupt=%"PRId64"&redundant=%"PRId64
+				"&compact=1&numwant=%d&key=%x&no_peer_id=1"
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
@@ -148,6 +148,7 @@ namespace libtorrent
 				, stats ? tracker_req().downloaded : 0
 				, stats ? tracker_req().left : 0
 				, stats ? tracker_req().corrupt : 0
+				, stats ? tracker_req().redundant: 0
 				, tracker_req().num_want
 				, tracker_req().key);
 			url += str;
@@ -155,6 +156,12 @@ namespace libtorrent
 			if (m_ses.get_pe_settings().in_enc_policy != pe_settings::disabled)
 				url += "&supportcrypto=1";
 #endif
+			if (!tracker_req().trackerid.empty())
+			{
+				std::string id = tracker_req().trackerid;
+				url += "&trackerid=";
+				url += escape_string(id.c_str(), id.length());
+			}
 
 			if (tracker_req().event != tracker_request::none)
 			{
@@ -300,7 +307,8 @@ namespace libtorrent
 
 		// handle tracker response
 		lazy_entry e;
-		int res = lazy_bdecode(data, data + size, e);
+		error_code ecode;
+		int res = lazy_bdecode(data, data + size, e, ecode);
 
 		if (res == 0 && e.type() == lazy_entry::dict_t)
 		{
@@ -308,7 +316,7 @@ namespace libtorrent
 		}
 		else
 		{
-			fail(error_code(errors::invalid_bencoding), parser.status_code());
+			fail(ecode, parser.status_code());
 		}
 		close();
 	}
@@ -361,6 +369,10 @@ namespace libtorrent
 		int interval = e.dict_find_int_value("interval", 1800);
 		int min_interval = e.dict_find_int_value("min interval", 60);
 
+		std::string trackerid;
+		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
+		if (tracker_id)
+			trackerid = tracker_id->string_value();
 		// parse the response
 		lazy_entry const* failure = e.dict_find_string("failure reason");
 		if (failure)
@@ -464,7 +476,9 @@ namespace libtorrent
 		lazy_entry const* ipv6_peers = 0;
 #endif
 
-		if (peers_ent == 0 && ipv6_peers == 0)
+		// if we didn't receive any peers. We don't care if we're stopping anyway
+		if (peers_ent == 0 && ipv6_peers == 0
+			&& tracker_req().event != tracker_request::stopped)
 		{
 			fail(error_code(errors::invalid_peers_entry), -1, ""
 				, interval, min_interval);
@@ -502,7 +516,7 @@ namespace libtorrent
 		}
 
 		cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, peer_list
-			, interval, min_interval, complete, incomplete, external_ip);
+			, interval, min_interval, complete, incomplete, external_ip, trackerid);
 	}
 
 }

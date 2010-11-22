@@ -1167,6 +1167,23 @@ namespace libtorrent
 		virtual std::string message() const;
 	};
 
+	struct TORRENT_EXPORT trackerid_alert: tracker_alert
+	{
+		trackerid_alert(torrent_handle const& h
+			, std::string const& url_
+                        , const std::string& id)
+			: tracker_alert(h, url_)
+			, trackerid(id)
+		{}
+
+		TORRENT_DEFINE_ALERT(trackerid_alert);
+
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+
+		std::string trackerid;
+	};
+
 }
 
 

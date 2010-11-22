@@ -462,6 +462,12 @@ int test_main()
 	sett.auto_scrape_interval = 235;
 	sett.auto_scrape_min_interval = 62;
 	s->set_settings(sett);
+
+#ifndef TORRENT_DISABLE_DHT
+	dht_settings dhts;
+	dhts.max_peers_reply = 70;
+	s->set_dht_settings(dhts);
+#endif
 /*
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht_sett;
@@ -476,7 +482,7 @@ int test_main()
 	p.save_path = ".";
 	error_code ec;
 	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&tr=http://1&tr=http://2&tr=http://3&dn=foo";
+		"&tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43";
 	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
@@ -507,10 +513,14 @@ int test_main()
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
 	lazy_entry session_state2;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2);
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
 	TEST_CHECK(ret == 0);
 
-	printf("session_state\n%s\n", print_entry(session_state2).c_str());
+	fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());
+
+	// make sure settings that haven't been changed from their defaults are not saved
+	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
+
 	s->load_state(session_state2);
 #define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
 
@@ -856,7 +866,6 @@ int test_main()
 	std::cerr << unescape_string(escape_string(test_string, strlen(test_string)), ec) << std::endl;
 
 	// verify_encoding
-
 	test = "\b?filename=4";
 	TEST_CHECK(!verify_encoding(test));
 #ifdef TORRENT_WINDOWS
@@ -868,8 +877,8 @@ int test_main()
 	test = "filename=4";
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
-	// HTTP request parser
 
+	// HTTP request parser
 	http_parser parser;
 	boost::tuple<int, int, bool> received;
 
@@ -980,8 +989,56 @@ int test_main()
 	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
 	TEST_CHECK(parser.content_range() == (std::pair<size_type, size_type>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
-	// test xml parser
 
+	parser.reset();
+
+	// make sure we support content-range responses
+	// and that we're case insensitive
+	char const* one_hundred_response =
+		"HTTP/1.1 100 Continue\n"
+		"\r\n"
+		"HTTP/1.1 200 OK\n"
+		"Content-Length: 4\r\n"
+		"Content-Type: test/plain\r\n"
+		"\r\n"
+		"test";
+
+	received = feed_bytes(parser, one_hundred_response);
+
+	TEST_CHECK(received == make_tuple(4, int(strlen(one_hundred_response) - 4), false));
+	TEST_EQUAL(parser.content_length(), 4);
+
+	{
+		// test chunked encoding parser
+		char const chunk_header1[] = "f;this is a comment\r\n";
+		size_type chunk_size;
+		int header_size;
+		bool ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + 10)
+			, &chunk_size, &header_size);
+		TEST_EQUAL(ret, false);
+		ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + sizeof(chunk_header1))
+			, &chunk_size, &header_size);
+		TEST_EQUAL(ret, true);
+		TEST_EQUAL(chunk_size, 15);
+		TEST_EQUAL(header_size, sizeof(chunk_header1) - 1);
+
+		char const chunk_header2[] =
+			"0;this is a comment\r\n"
+			"test1: foo\r\n"
+			"test2: bar\r\n"
+			"\r\n";
+
+		ret = parser.parse_chunk_header(buffer::const_interval(chunk_header2, chunk_header2 + sizeof(chunk_header2))
+			, &chunk_size, &header_size);
+		TEST_EQUAL(ret, true);
+		TEST_EQUAL(chunk_size, 0);
+		TEST_EQUAL(header_size, sizeof(chunk_header2) - 1);
+
+		TEST_EQUAL(parser.headers().find("test1")->second, "foo");
+		TEST_EQUAL(parser.headers().find("test2")->second, "bar");
+	}
+
+	// test xml parser
 	char xml1[] = "<a>foo<b/>bar</a>";
 	std::string out1;
 

@@ -1,3 +1,15 @@
+	* support trackerid tracker extension
+	* graceful peer disconnect mode which finishes transactions before disconnecting peers
+	* support chunked encoding for web seeds
+	* optimized session startup time
+	* support SSL for web seeds, through all proxies
+	* support extending web seeds with custom authorization and extra headers
+	* settings that are not changed from the default values are not saved
+	  in the session state
+	* made seeding choking algorithm configurable
+	* deprecated setters for max connections, max half-open, upload and download
+	  rates and unchoke slots. These are now set through session_settings
+	* added functions to query an individual peer's upload and download limit
 	* full support for BEP 21 (event=paused)
 	* added share-mode feature for improving share ratios
 	* merged all proxy settings into a single one
@@ -43,6 +55,29 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* expose set_alert_queue_size_limit to python binding
+	* support dht nodes in magnet links
+	* support 100 Continue HTTP responses
+	* changed default choker behavior to use 8 unchoke slots (instead of being rate based)
+	* fixed error reporting issue in disk I/O thread
+	* fixed file allocation issues on linux
+	* fixed filename encoding and decoding issue on platforms using iconv
+	* reports redundant downloads to tracker, fixed downloaded calculation to
+	  be more stable when not including redundant. Improved redundant data accounting
+	  to be more accurate
+	* fixed bugs in http seed connection and added unit test for it
+	* fixed error reporting when fallocate fails
+	* deprecate support for separate proxies for separate kinds of connections
+
+0.15.4 release
+
+	* fixed piece picker issue triggered by hash failure and timed out requests to the piece
+	* fixed optimistic unchoke issue when setting per torrent unchoke limits
+	* fixed UPnP shutdown issue
+	* fixed UPnP DeletePortmapping issue
+	* fixed NAT-PMP issue when adding the same mapping multiple times
+	* no peers from tracker when stopping is no longer an error
+	* improved web seed retry behavior
 	* fixed announce issue
 
 0.15.3 release

@@ -91,6 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 namespace libtorrent
 {
 
@@ -147,6 +151,7 @@ namespace libtorrent
 #endif
 				);
 			~session_impl();
+			void start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
@@ -268,6 +273,7 @@ namespace libtorrent
 
 			void get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m);
 
+#ifndef TORRENT_NO_DEPRECATE
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
 			int local_upload_rate_limit() const;
@@ -275,16 +281,17 @@ namespace libtorrent
 
 			void set_local_download_rate_limit(int bytes_per_second);
 			void set_local_upload_rate_limit(int bytes_per_second);
-
 			void set_download_rate_limit(int bytes_per_second);
 			void set_upload_rate_limit(int bytes_per_second);
 			void set_max_half_open_connections(int limit);
 			void set_max_connections(int limit);
 			void set_max_uploads(int limit);
 
-			int max_connections() const { return m_max_connections; }
-			int max_uploads() const { return m_max_uploads; }
-			int max_half_open_connections() const { return m_half_open.limit(); }
+			int max_connections() const;
+			int max_uploads() const;
+			int max_half_open_connections() const;
+
+#endif
 
 			int num_uploads() const { return m_num_unchoked; }
 			int num_connections() const
@@ -407,6 +414,10 @@ namespace libtorrent
 
 			void disk_performance_warning(alert* a);
 
+			void update_connections_limit();
+			void update_unchoke_limit();
+			void update_rate_settings();
+
 			void update_disk_thread_settings();
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
@@ -473,6 +484,10 @@ namespace libtorrent
 			// the selector can sleep while there's no activity on
 			// them
 			mutable io_service m_io_service;
+
+#ifdef TORRENT_USE_OPENSSL
+			asio::ssl::context m_ssl_ctx;
+#endif
 
 			// handles delayed alerts
 			alert_manager m_alerts;
@@ -609,15 +624,9 @@ namespace libtorrent
 			// is true if the session is paused
 			bool m_paused;
 
-			// the max number of unchoked peers as set by the user
-			int m_max_uploads;
-
 			// the number of unchoked peers as set by the auto-unchoker
 			// this should always be >= m_max_uploads
 			int m_allowed_upload_slots;
-
-			// the max number of connections, as set by the user
-			int m_max_connections;
 
 			// the number of unchoked peers
 			int m_num_unchoked;

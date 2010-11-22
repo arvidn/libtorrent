@@ -85,6 +85,7 @@ namespace libtorrent
 		void set_hash(int index, sha1_hash const& h);
 		void set_file_hash(int index, sha1_hash const& h);
 		void add_url_seed(std::string const& url);
+		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 		void set_priv(bool p) { m_private = p; }
@@ -109,6 +110,7 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 
 		std::vector<std::string> m_url_seeds;
+		std::vector<std::string> m_http_seeds;
 
 		std::vector<sha1_hash> m_piece_hash;
 
@@ -189,7 +191,7 @@ namespace libtorrent
 			if (ec) return;
 
 			// recurse into directories
-			bool recurse = s.mode & file_status::directory;
+			bool recurse = (s.mode & file_status::directory) != 0;
 
 			// if the file is not a link or we're following links, and it's a directory
 			// only then should we recurse
@@ -275,11 +277,16 @@ namespace libtorrent
 			if (t.should_add_file_hashes())
 			{
 				int left_in_piece = t.piece_size(i);
+				int this_piece_size = left_in_piece;
 				// the number of bytes from this file we just read
 				while (left_in_piece > 0)
 				{
-					int to_hash_for_file = (std::min)(size_type(left_in_piece), left_in_file);
-					filehash.update(buf.bytes(), to_hash_for_file);
+					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
+					if (to_hash_for_file > 0)
+					{
+						int offset = this_piece_size - left_in_piece;
+						filehash.update(buf.bytes() + offset, to_hash_for_file);
+					}
 					left_in_file -= to_hash_for_file;
 					left_in_piece -= to_hash_for_file;
 					if (left_in_file == 0)

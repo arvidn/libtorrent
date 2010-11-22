@@ -216,6 +216,8 @@ namespace libtorrent
 
 		void on_metadata_impl();
 
+		int get_upload_limit() const;
+		int get_download_limit() const;
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
 
@@ -292,6 +294,8 @@ namespace libtorrent
 		std::vector<pending_block> const& download_queue() const;
 		std::vector<pending_block> const& request_queue() const;
 		std::vector<peer_request> const& upload_queue() const;
+
+		void clear_request_queue();
 
 		// estimate of how long it will take until we have
 		// received all piece requests that we have sent
@@ -413,6 +417,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		void peer_log(char const* fmt, ...);
 		boost::shared_ptr<logger> m_logger;
 #endif
 
@@ -537,6 +542,8 @@ namespace libtorrent
 		bool has_country() const { return m_country[0] != 0; }
 #endif
 
+		int outstanding_bytes() const { return m_outstanding_bytes; }
+
 		int send_buffer_size() const
 		{ return m_send_buffer.size(); }
 
@@ -619,7 +626,7 @@ namespace libtorrent
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
 		char* release_disk_receive_buffer();
 		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
-		void cut_receive_buffer(int size, int packet_size);
+		void cut_receive_buffer(int size, int packet_size, int offset = 0);
 		void reset_recv_buffer(int packet_size);
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 

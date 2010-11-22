@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/peer_connection.hpp"
+#include "libtorrent/web_connection_base.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -71,7 +71,7 @@ namespace libtorrent
 	}
 
 	class TORRENT_EXPORT web_peer_connection
-		: public peer_connection
+		: public web_connection_base
 	{
 	friend class invariant_access;
 	public:
@@ -85,43 +85,23 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, std::string const& url
-			, policy::peer* peerinfo);
-		void start();
+			, policy::peer* peerinfo
+			, std::string const& ext_auth
+			, web_seed_entry::headers_t const& ext_headers);
 
 		virtual int type() const { return peer_connection::url_seed_connection; }
 
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_sent(error_code const& error
-			, std::size_t bytes_transferred);
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
 			
 		std::string const& url() const { return m_original_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual bool in_handshake() const;
 		virtual void disconnect(error_code const& ec, int error = 0);
 
-		// the following functions appends messages
-		// to the send buffer
-		void write_choke() {}
-		void write_unchoke() {}
-		void write_interested() {}
-		void write_not_interested() {}
 		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r) {}
-		void write_have(int index) {}
-		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
-		void write_keepalive() {}
-		void on_connected();
-		void write_reject_request(peer_request const&) {}
-		void write_allow_fast(int) {}
-		void write_suggest(int piece) {}
-
-#ifdef TORRENT_DEBUG
-		void check_invariant() const;
-#endif
 
 	private:
 
@@ -132,33 +112,17 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const;
 
-		// this has one entry per bittorrent request
-		std::deque<peer_request> m_requests;
 		// this has one entry per http-request
 		// (might be more than the bt requests)
 		std::deque<int> m_file_requests;
 
-		std::string m_server_string;
-		http_parser m_parser;
-		std::string m_auth;
-		std::string m_host;
-		int m_port;
-		std::string m_path;
 		std::string m_url;
 		std::string m_original_url;
 			
-		// the first request will contain a little bit more data
-		// than subsequent ones, things that aren't critical are left
-		// out to save bandwidth.
-		bool m_first_request;
-		
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
 		std::vector<char> m_piece;
 		
-		// the number of bytes into the receive buffer where
-		// current read cursor is.
-		int m_body_start;
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts
@@ -169,6 +133,18 @@ namespace libtorrent
 
 		// the position in the current block
 		int m_block_pos;
+
+		// this is the offset inside the current receive
+		// buffer where the next chunk header will be.
+		// this is updated for each chunk header that's
+		// parsed. It does not necessarily point to a valid
+		// offset in the receive buffer, if we haven't received
+		// it yet. This offset never includes the HTTP header
+		int m_chunk_pos;
+
+		// this is the number of bytes we've already received
+		// from the next chunk header we're waiting for
+		int m_partial_chunk_header;
 	};
 }
 

@@ -78,7 +78,10 @@ namespace libtorrent
 		void start();
 		void close();
 
+#if !defined TORRENT_VERBOSE_LOGGING && !defined TORRENT_LOGGING && !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
 	private:
+#endif
 
 		enum action_t
 		{
@@ -107,7 +110,7 @@ namespace libtorrent
 		void send_udp_announce();
 		void send_udp_scrape();
 
-		virtual void on_timeout();
+		virtual void on_timeout(error_code const& ec);
 
 		tracker_manager& m_man;
 

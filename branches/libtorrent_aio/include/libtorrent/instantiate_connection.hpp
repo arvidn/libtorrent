@@ -41,7 +41,8 @@ namespace libtorrent
 	struct proxy_settings;
 
 	bool instantiate_connection(io_service& ios
-		, proxy_settings const& ps, socket_type& s);
+		, proxy_settings const& ps, socket_type& s
+		, void* ssl_context = 0);
 }
 
 #endif

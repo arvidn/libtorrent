@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/address.hpp>
 
 #include <boost/noncopyable.hpp>
@@ -60,13 +61,15 @@ class node_impl;
 struct traversal_algorithm : boost::noncopyable
 {
 	void traverse(node_id const& id, udp::endpoint addr);
-	void finished(udp::endpoint const& ep);
+	void finished(observer_ptr o);
 
 	enum flags_t { prevent_request = 1, short_timeout = 2 };
-	void failed(udp::endpoint const& ep, int flags = 0);
+	void failed(observer_ptr o, int flags = 0);
 	virtual ~traversal_algorithm();
-	boost::pool<>& allocator() const;
 	void status(dht_lookup& l);
+
+	void* allocate_observer();
+	void free_observer(void* ptr);
 
 	virtual char const* name() const { return "traversal_algorithm"; }
 	virtual void start();
@@ -74,60 +77,6 @@ struct traversal_algorithm : boost::noncopyable
 	node_id const& target() const { return m_target; }
 
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
-
-	struct result
-	{
-		result(node_id const& id, udp::endpoint ep, unsigned char f = 0) 
-			: id(id), flags(f)
-		{
-#if TORRENT_USE_IPV6
-			if (ep.address().is_v6())
-			{
-				flags |= ipv6_address;
-				addr.v6 = ep.address().to_v6().to_bytes();
-			}
-			else
-#endif
-			{
-				flags &= ~ipv6_address;
-				addr.v4 = ep.address().to_v4().to_bytes();
-			}
-			port = ep.port();
-		}
-
-		udp::endpoint endpoint() const
-		{
-#if TORRENT_USE_IPV6
-			if (flags & ipv6_address)
-				return udp::endpoint(address_v6(addr.v6), port);
-			else
-#endif
-				return udp::endpoint(address_v4(addr.v4), port);
-		}
-
-		node_id id;
-
-		TORRENT_UNION addr_t
-		{
-			address_v4::bytes_type v4;
-#if TORRENT_USE_IPV6
-			address_v6::bytes_type v6;
-#endif
-		} addr;
-
-		boost::uint16_t port;
-
-		enum {
-			queried = 1,
-			initial = 2,
-			no_id = 4,
-			short_timeout = 8,
-			failed = 16,
-			ipv6_address = 32,
-			alive = 64
-		};
-		unsigned char flags;
-	};
 
 	traversal_algorithm(
 		node_impl& node
@@ -151,8 +100,13 @@ protected:
 	void add_router_entries();
 	void init();
 
-	virtual void done() {}
-	virtual bool invoke(udp::endpoint addr) { return false; }
+	virtual void done();
+	// should construct an algorithm dependent
+	// observer in ptr.
+	virtual observer_ptr new_observer(void* ptr
+		, udp::endpoint const& ep, node_id const& id);
+
+	virtual bool invoke(observer_ptr o) { return false; }
 
 	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
 	{
@@ -169,7 +123,7 @@ protected:
 
 	node_impl& m_node;
 	node_id m_target;
-	std::vector<result> m_results;
+	std::vector<observer_ptr> m_results;
 	int m_invoke_count;
 	int m_branch_factor;
 	int m_responses;

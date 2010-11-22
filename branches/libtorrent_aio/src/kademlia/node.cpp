@@ -267,7 +267,7 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(0), *i, traversal_algorithm::result::initial);
+		r->add_entry(node_id(0), *i, observer::flag_initial);
 	}
 	
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -366,10 +366,9 @@ namespace
 			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->first.id));
 #endif
 
-			void* ptr = node.m_rpc.allocator().malloc();
+			void* ptr = node.m_rpc.allocate_observer();
 			if (ptr == 0) return;
-			node.m_rpc.allocator().set_next_size(10);
-			observer_ptr o(new (ptr) announce_observer(algo));
+			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
 #ifdef TORRENT_DEBUG
 			o->m_in_constructor = false;
 #endif
@@ -397,14 +396,15 @@ void node_impl::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
-	void* ptr = m_rpc.allocator().malloc();
+	void* ptr = m_rpc.allocate_observer();
 	if (ptr == 0) return;
-	m_rpc.allocator().set_next_size(10);
 
 	// create a dummy traversal_algorithm		
+	// this is unfortunately necessary for the observer
+	// to free itself from the pool when it's being released
 	boost::intrusive_ptr<traversal_algorithm> algo(
 		new traversal_algorithm(*this, (node_id::min)()));
-	observer_ptr o(new (ptr) null_observer(algo));
+	observer_ptr o(new (ptr) null_observer(algo, node, node_id(0)));
 #ifdef TORRENT_DEBUG
 	o->m_in_constructor = false;
 #endif
@@ -468,6 +468,7 @@ void node_impl::status(session_status& s)
 	m_table.status(s);
 	s.dht_torrents = int(m_map.size());
 	s.active_requests.clear();
+	s.dht_total_allocations = m_rpc.num_allocated_observers();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
 		, end(m_running_requests.end()); i != end; ++i)
 	{

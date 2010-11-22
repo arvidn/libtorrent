@@ -178,7 +178,8 @@ namespace libtorrent {
 
 	std::string tracker_announce_alert::message() const
 	{
-		const static char* event_str[] = {"none", "completed", "started", "stopped"};
+		const static char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
+		TORRENT_ASSERT_VAL(event < sizeof(event_str)/sizeof(event_str[0]), event);
 		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 	}
 
@@ -484,6 +485,11 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), "%s: received peer from local service discovery"
 			, peer_alert::message().c_str());
 		return msg;
+	}
+
+	std::string trackerid_alert::message() const
+	{
+		return "trackerid received: " + trackerid;
 	}
 
 } // namespace libtorrent

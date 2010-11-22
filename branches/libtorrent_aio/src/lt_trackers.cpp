@@ -191,7 +191,8 @@ namespace libtorrent { namespace
 			if (!m_pc.packet_finished()) return true;
 
 			lazy_entry msg;
-			int ret = lazy_bdecode(body.begin, body.end, msg);
+			error_code ec;
+			int ret = lazy_bdecode(body.begin, body.end, msg, ec);
 			if (ret != 0 || msg.type() != lazy_entry::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_lt_tracker_message, 2);

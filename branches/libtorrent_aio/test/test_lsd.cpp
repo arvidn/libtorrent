@@ -75,13 +75,13 @@ void test_lsd()
 			<< "\033[0m" << int(st2.progress * 100) << "% "
 			<< std::endl;
 
-		if (tor2.is_seed() /*&& tor3.is_seed()*/) break;
+		if (st2.is_seeding /*&& st3.is_seeding*/) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.is_seed());
+	TEST_CHECK(tor2.status().is_seeding);
 
-	if (tor2.is_seed()) std::cerr << "done\n";
+	if (tor2.status().is_seeding) std::cerr << "done\n";
 }
 
 int test_main()

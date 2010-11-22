@@ -60,17 +60,17 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 100000;
-	ses1.set_upload_rate_limit(int(rate_limit));
-	ses2.set_download_rate_limit(int(rate_limit));
-	ses3.set_download_rate_limit(int(rate_limit));
-	ses2.set_upload_rate_limit(int(rate_limit / 2));
-	ses3.set_upload_rate_limit(int(rate_limit / 2));
 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
 	settings.strict_super_seeding = strict;
+
+	settings.upload_rate_limit = rate_limit;
 	ses1.set_settings(settings);
+
+	settings.download_rate_limit = rate_limit / 2;
+	settings.upload_rate_limit = rate_limit;
 	ses2.set_settings(settings);
 	ses3.set_settings(settings);
 
@@ -147,12 +147,12 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 			<< st3.num_peers
 			<< std::endl;
 
-		if (tor2.is_seed() && tor3.is_seed()) break;
+		if (st2.is_seeding && st3.is_seeding) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.is_seed());
-	TEST_CHECK(tor3.is_seed());
+	TEST_CHECK(tor2.status().is_seeding);
+	TEST_CHECK(tor3.status().is_seeding);
 
 	float average2 = sum_dl_rate2 / float(count_dl_rates2);
 	float average3 = sum_dl_rate3 / float(count_dl_rates3);
@@ -161,7 +161,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	if (tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
+	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, session::delete_files);

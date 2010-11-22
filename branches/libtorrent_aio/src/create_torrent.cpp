@@ -108,10 +108,10 @@ namespace libtorrent
 		, m_creation_date(time(0))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
-		, m_merkle_torrent(flags & merkle)
-		, m_include_mtime(flags & modification_time)
-		, m_include_symlinks(flags & symlinks)
-		, m_calculate_file_hashes(flags & calculate_file_hashes)
+		, m_merkle_torrent((flags & merkle) != 0)
+		, m_include_mtime((flags & modification_time) != 0)
+		, m_include_symlinks((flags & symlinks) != 0)
+		, m_calculate_file_hashes((flags & calculate_file_hashes) != 0)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 
@@ -184,10 +184,15 @@ namespace libtorrent
 			, end(trackers.end()); i != end; ++i)
 			add_tracker(i->url, i->tier);
 
-		std::vector<std::string> const& web_seeds = ti.url_seeds();
-		for (std::vector<std::string>::const_iterator i = web_seeds.begin()
+		std::vector<web_seed_entry> const& web_seeds = ti.web_seeds();
+		for (std::vector<web_seed_entry>::const_iterator i = web_seeds.begin()
 			, end(web_seeds.end()); i != end; ++i)
-			add_url_seed(*i);
+		{
+			if (i->type == web_seed_entry::url_seed)
+				add_url_seed(i->url);
+			else if (i->type == web_seed_entry::http_seed)
+				add_http_seed(i->url);
+		}
 
 		m_piece_hash.resize(m_files.num_pieces());
 		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
@@ -266,6 +271,23 @@ namespace libtorrent
 			}
 		}
 
+		if (!m_http_seeds.empty())
+		{
+			if (m_http_seeds.size() == 1)
+			{
+				dict["httpseeds"] = m_http_seeds.front();
+			}
+			else
+			{
+				entry& list = dict["httpseeds"];
+				for (std::vector<std::string>::const_iterator i
+					= m_http_seeds.begin(); i != m_http_seeds.end(); ++i)
+				{
+					list.list().push_back(entry(*i));
+				}
+			}
+		}
+
 		entry& info = dict["info"];
 		if (m_info_dict.type() == entry::dictionary_t)
 		{
@@ -292,11 +314,13 @@ namespace libtorrent
 				if (m_files.at(0).executable_attribute) attr += 'x';
 				if (m_include_symlinks && m_files.at(0).symlink_attribute) attr += 'l';
 			}
-			if (m_include_symlinks && m_files.at(0).symlink_attribute)
+			if (m_include_symlinks
+				&& m_files.at(0).symlink_attribute
+				&& m_files.at(0).symlink_index != -1)
 			{
 				entry& sympath_e = info["symlink path"];
 				
-				std::string split = split_path(m_files.at(0).symlink_path);
+				std::string split = split_path(m_files.symlink(m_files.at(0).symlink_index));
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}
@@ -340,11 +364,13 @@ namespace libtorrent
 						if (i->executable_attribute) attr += 'x';
 						if (m_include_symlinks && i->symlink_attribute) attr += 'l';
 					}
-					if (m_include_symlinks && i->symlink_attribute)
+					if (m_include_symlinks
+						&& i->symlink_attribute
+						&& i->symlink_index != -1)
 					{
 						entry& sympath_e = file_e["symlink path"];
 
-						std::string split = split_path(i->symlink_path);
+						std::string split = split_path(m_files.symlink(i->symlink_index));
 						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
 					}
@@ -444,6 +470,11 @@ namespace libtorrent
 	void create_torrent::add_url_seed(std::string const& url)
 	{
 		m_url_seeds.push_back(url);
+	}
+
+	void create_torrent::add_http_seed(std::string const& url)
+	{
+		m_http_seeds.push_back(url);
 	}
 
 	void create_torrent::set_comment(char const* str)

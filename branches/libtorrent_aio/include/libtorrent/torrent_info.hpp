@@ -57,9 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
+	class peer_connection;
+
 	enum
 	{
 		// wait 60 seconds before retrying a failed tracker
@@ -88,6 +91,7 @@ namespace libtorrent
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
+		std::string trackerid;
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -168,6 +172,50 @@ namespace libtorrent
 		void trim();
 	};
 
+	struct web_seed_entry
+	{
+		// http seeds are different from url seeds in the
+		// protocol they use. http seeds follows the original
+		// http seed spec. by John Hoffman
+		enum type_t { url_seed, http_seed };
+
+		typedef std::vector<std::pair<std::string, std::string> > headers_t;
+
+		web_seed_entry(std::string const& url_, type_t type_
+			, std::string const& auth_ = std::string()
+			, headers_t const& extra_headers_ = headers_t())
+			: url(url_), type(type_)
+			, auth(auth_), extra_headers(extra_headers_)
+			, retry(time_now()), resolving(false), connection(0)
+		{}
+
+		bool operator==(web_seed_entry const& e) const
+		{ return url == e.url && type == e.type; }
+
+		bool operator<(web_seed_entry const& e) const
+		{
+			if (url < e.url) return true;
+			if (url > e.url) return false;
+		  	return type < e.type;
+		}
+
+		std::string url;
+		type_t type;
+		std::string auth;
+		headers_t extra_headers;
+
+		// if this is > now, we can't reconnect yet
+		ptime retry;
+
+		// this indicates whether or not we're resolving the
+		// hostname of this URL
+		bool resolving;
+
+		tcp::endpoint endpoint;
+
+		peer_connection* connection;
+	};
+
 #ifndef BOOST_NO_EXCEPTIONS
 	// for backwards compatibility with 0.14
 	typedef libtorrent_exception invalid_torrent_file;
@@ -178,22 +226,25 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
+
+		enum flags_t { omit_filehashes = 1 };
+
 #ifndef BOOST_NO_EXCEPTIONS
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(std::string const& filename);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename);
+		torrent_info(std::wstring const& filename, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 #endif
 
-		torrent_info(torrent_info const& t);
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(std::string const& filename, error_code& ec);
+		torrent_info(torrent_info const& t, int flags = 0);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #if TORRENT_USE_WSTRING
-		torrent_info(std::wstring const& filename, error_code& ec);
+		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 
 		~torrent_info();
@@ -220,15 +271,24 @@ namespace libtorrent
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
-		std::vector<std::string> const& url_seeds() const
-		{ return m_url_seeds; }
-		void add_url_seed(std::string const& url)
-		{ m_url_seeds.push_back(url); }
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16. Use web_seeds() instead
+		TORRENT_DEPRECATED_PREFIX
+		std::vector<std::string> url_seeds() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		std::vector<std::string> http_seeds() const TORRENT_DEPRECATED;
+#endif // TORRENT_NO_DEPRECATE
 
-		std::vector<std::string> const& http_seeds() const
-		{ return m_http_seeds; }
-		void add_http_seed(std::string const& url)
-		{ m_http_seeds.push_back(url); }
+		void add_url_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+
+		void add_http_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+
+		std::vector<web_seed_entry> const& web_seeds() const
+		{ return m_web_seeds; }
 
 		size_type total_size() const { return m_files.total_size(); }
 		int piece_length() const { return m_files.piece_length(); }
@@ -284,7 +344,7 @@ namespace libtorrent
 			TORRENT_ASSERT(index < m_files.num_pieces());
 			if (is_merkle_torrent())
 			{
-				TORRENT_ASSERT(index < int(m_merkle_tree.size()) - m_merkle_first_leaf);
+				TORRENT_ASSERT(index < int(m_merkle_tree.size() - m_merkle_first_leaf));
 				return (const char*)&m_merkle_tree[m_merkle_first_leaf + index][0];
 			}
 			else
@@ -292,7 +352,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_hashes);
 				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-				TORRENT_ASSERT(index < m_info_section_size / 20);
+				TORRENT_ASSERT(index < int(m_info_section_size / 20));
 				return &m_piece_hashes[index*20];
 			}
 		}
@@ -313,13 +373,16 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
 		
-		bool parse_info_section(lazy_entry const& e, error_code& ex);
+		bool parse_info_section(lazy_entry const& e, error_code& ec, int flags);
 
 		lazy_entry const* info(char const* key) const
 		{
 			if (m_info_dict.type() == lazy_entry::none_t)
+			{
+				error_code ec;
 				lazy_bdecode(m_info_section.get(), m_info_section.get()
-					+ m_info_section_size, m_info_dict);
+					+ m_info_section_size, m_info_dict, ec);
+			}
 			return m_info_dict.dict_find(key);
 		}
 
@@ -347,7 +410,7 @@ namespace libtorrent
 		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
-		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec);
+		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
 
 		file_storage m_files;
 
@@ -358,8 +421,7 @@ namespace libtorrent
 
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
-		std::vector<std::string> m_url_seeds;
-		std::vector<std::string> m_http_seeds;
+		std::vector<web_seed_entry> m_web_seeds;
 		nodes_t m_nodes;
 
 		// if this is a merkle torrent, this is the merkle

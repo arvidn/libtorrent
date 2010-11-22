@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,64 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_COPY_PTR
-#define TORRENT_COPY_PTR
+#include <stdlib.h>
+#include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
 
-namespace libtorrent
+void print_alert(libtorrent::alert const* a)
 {
-	template <class T>
-	struct copy_ptr
+	using namespace libtorrent;
+
+	if (alert_cast<portmap_error_alert>(a))
 	{
-		copy_ptr(): m_ptr(0) {}
-		copy_ptr(T* t): m_ptr(t) {}
-		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : 0) {}
-		void reset(T* t = 0) { delete m_ptr; m_ptr = t; }
-		copy_ptr& operator=(copy_ptr const& p)
-		{
-			delete m_ptr;
-			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
-			return *this;
-		}
-		T* operator->() { return m_ptr; }
-		T const* operator->() const { return m_ptr; }
-		T& operator*() { return *m_ptr; }
-		T const& operator*() const { return *m_ptr; }
-		void swap(copy_ptr<T>& p)
-		{
-			T* tmp = m_ptr;
-			m_ptr = p.m_ptr;
-			p.m_ptr = tmp;
-		}
-		operator bool() const { return m_ptr != 0; }
-		~copy_ptr() { delete m_ptr; }
-	private:
-		T* m_ptr;
-	};
+		printf("%s","\x1b[32m");
+	}
+	else if (alert_cast<portmap_alert>(a))
+	{
+		printf("%s","\x1b[33m");
+	}
+
+	printf("[%s] %s\n", time_now_string(), a->message().c_str());
+	printf("%s", "\x1b[0m");
 }
 
-#endif // TORRENT_COPY_PTR
+int main(int argc, char* argv[])
+{
+	using namespace libtorrent;
+
+	if (argc != 1)
+	{
+		fputs("usage: ./upnp_test\n", stderr);
+		return 1;
+	}
+
+	session s;
+	s.set_alert_mask(alert::port_mapping_notification);
+
+	for (;;)
+	{
+		alert const* a = s.wait_for_alert(seconds(5));
+		if (a == 0)
+		{
+			s.stop_upnp();
+			s.stop_natpmp();
+			break;
+		}
+		std::auto_ptr<alert> holder = s.pop_alert();
+		print_alert(holder.get());
+	}
+
+	printf("\x1b[1m\n\n===================== done mapping. Now deleting mappings ========================\n\n\n\x1b[0m");
+
+	for (;;)
+	{
+		alert const* a = s.wait_for_alert(seconds(5));
+		if (a == 0) break;
+		std::auto_ptr<alert> holder = s.pop_alert();
+		print_alert(holder.get());
+	}
+
+
+	return 0;
+}
 

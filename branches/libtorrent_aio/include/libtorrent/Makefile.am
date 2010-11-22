@@ -22,6 +22,7 @@ nobase_include_HEADERS = \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
+  build_config.hpp             \
   chained_buffer.hpp           \
   config.hpp                   \
   connection_queue.hpp         \
@@ -81,6 +82,7 @@ nobase_include_HEADERS = \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
+  settings.hpp                 \
   size_type.hpp                \
   socket.hpp                   \
   socket_io.hpp                \
@@ -102,7 +104,6 @@ nobase_include_HEADERS = \
   union_endpoint.hpp           \
   upnp.hpp                     \
   utf8.hpp                     \
-  variant_stream.hpp           \
   version.hpp                  \
   web_peer_connection.hpp      \
   xml_parse.hpp                \

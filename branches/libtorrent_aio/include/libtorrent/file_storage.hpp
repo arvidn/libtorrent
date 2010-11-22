@@ -49,15 +49,21 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0), file_index(0)
-			, mtime(0), pad_file(false), hidden_attribute(false)
+		file_entry()
+			: offset(0)
+			, size(0)
+			, file_base(0)
+			, mtime(0)
+			, file_index(0)
+			, filehash_index(-1)
+			, symlink_index(-1)
+			, pad_file(false)
+			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
 		{}
 
 		std::string path;
-		std::string symlink_path;
-		copy_ptr<sha1_hash> filehash;
 		// the offset of this file inside the torrent
 		size_type offset;
 		// the size of this file
@@ -66,9 +72,16 @@ namespace libtorrent
 		// This is always 0 unless parts of the torrent is
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
+		// modification time
+		time_t mtime;
 		// the index of this file, as ordered in the torrent
 		int file_index;
-		time_t mtime;
+		// index into file_storage::m_file_hashes or -1
+		// if this file does not have a hash
+		int filehash_index;
+		// index into file_storage::m_symlinks or -1
+		// if this is not a symlink
+		int symlink_index;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -101,7 +114,9 @@ namespace libtorrent
 
 		void reserve(int num_files);
 
-		void add_file(file_entry const& e);
+		void add_file(file_entry const& e, sha1_hash const* filehash = 0
+			, std::string const* symlink = 0);
+
 		void add_file(std::string const& p, size_type size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");
 		void rename_file(int index, std::string const& new_filename);
@@ -133,7 +148,19 @@ namespace libtorrent
 			TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 			return m_files[index];
 		}
+
+		sha1_hash const& hash(int index) const
+		{
+			TORRENT_ASSERT(index >= 0 && index < int(m_file_hashes.size()));
+			return m_file_hashes[index];
+		}
 		
+		std::string const& symlink(int index) const
+		{
+			TORRENT_ASSERT(index >= 0 && index < int(m_symlinks.size()));
+			return m_symlinks[index];
+		}
+
 		size_type total_size() const { return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
@@ -160,9 +187,22 @@ namespace libtorrent
 		void optimize(int pad_file_limit = -1);
 
 	private:
+
 		// the list of files that this torrent consists of
 		std::vector<file_entry> m_files;
 
+		// if there are sha1 hashes for each individual file
+		// each file_entry has an index into this vector
+		// and the actual hashes are in here
+		std::vector<sha1_hash> m_file_hashes;
+
+		// for files that are symlinks, the symlink
+		// path_index in the file_entry indexes
+		// this vector of strings
+		std::vector<std::string> m_symlinks;
+
+		// name of torrent. For multi-file torrents
+		// this is always the root directory
 		std::string m_name;
 
 		// the sum of all filesizes

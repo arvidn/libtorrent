@@ -46,6 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/socket_type.hpp"
+#include "libtorrent/instantiate_connection.hpp"
+
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/context.hpp>
+#endif
 
 using namespace libtorrent;
 
@@ -92,7 +99,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
 		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.is_seed())
+			|| (!handles.empty() && h.status().is_seeding)
 			|| pea->error.message() == "connecting to peer"
 			|| pea->error.message() == "closing connection to ourself"
 			|| pea->error.message() == "duplicate connection"
@@ -504,9 +511,9 @@ void stop_web_server()
 	}
 }
 
-void web_server_thread(int* port, bool ssl);
+void web_server_thread(int* port, bool ssl, bool chunked);
 
-int start_web_server(bool ssl)
+int start_web_server(bool ssl, bool chunked_encoding)
 {
 	stop_web_server();
 
@@ -515,9 +522,23 @@ int start_web_server(bool ssl)
 		web_initialized.clear(l);
 	}
 
+	if (ssl)
+	{
+		system("echo . > tmp");
+		system("echo test province >>tmp");
+		system("echo test city >> tmp");
+		system("echo test company >> tmp");
+		system("echo test department >> tmp");
+		system("echo tester >> tmp");
+		system("echo test@test.com >> tmp");   
+		system("openssl req -new -x509 -keyout server.pem -out server.pem "
+			"-days 365 -nodes <tmp");
+	}
+
 	int port = 0;
 
-	web_server.reset(new libtorrent::thread(boost::bind(&web_server_thread, &port, ssl)));
+	web_server.reset(new libtorrent::thread(boost::bind(
+		&web_server_thread, &port, ssl, chunked_encoding)));
 
 	{
 		libtorrent::mutex::scoped_lock l(web_lock);
@@ -532,17 +553,23 @@ int start_web_server(bool ssl)
 	return port;
 }
 
-void send_response(stream_socket& s, error_code& ec
-	, int code, char const* status_message, char const* extra_header
+void send_response(socket_type& s, error_code& ec
+	, int code, char const* status_message, char const** extra_header
 	, int len)
 {
-	char msg[400];
+	char msg[600];
 	int pkt_len = snprintf(msg, sizeof(msg), "HTTP/1.0 %d %s\r\n"
 		"content-length: %d\r\n"
 		"%s"
+		"%s"
+		"%s"
+		"%s"
 		"\r\n"
 		, code, status_message, len
-		, extra_header ? extra_header : "");
+		, extra_header[0]
+		, extra_header[1]
+		, extra_header[2]
+		, extra_header[3]);
 //	fprintf(stderr, ">> %s\n", msg);
 	write(s, boost::asio::buffer(msg, pkt_len), boost::asio::transfer_all(), ec);
 }
@@ -558,15 +585,48 @@ void on_accept(error_code const& ec)
 	}
 	else
 	{
-		fprintf(stderr, "accepting connection\n");
+//		fprintf(stderr, "accepting connection\n");
 		accept_done = true;
 	}
 }
 
-void web_server_thread(int* port, bool ssl)
+void send_content(socket_type& s, char const* file, int size, bool chunked)
 {
-	// TODO: support SSL
+	error_code ec;
+	if (chunked)
+	{
+		int chunk_size = 13;
+		char head[20];
+		std::vector<boost::asio::const_buffer> bufs(3);
+		bufs[2] = asio::const_buffer("\r\n", 2);
+		while (chunk_size > 0)
+		{
+			chunk_size = std::min(chunk_size, size);
+			int len = snprintf(head, sizeof(head), "%x\r\n", chunk_size);
+			bufs[0] = asio::const_buffer(head, len);
+			if (chunk_size == 0)
+			{
+				// terminate
+				bufs.erase(bufs.begin()+1);
+			}
+			else
+			{
+				bufs[1] = asio::const_buffer(file, chunk_size);
+			}
+			write(s, bufs, boost::asio::transfer_all(), ec);
+			size -= chunk_size;
+			file += chunk_size;
+			chunk_size *= 2;
+		}
+	}
+	else
+	{
+		write(s, boost::asio::buffer(file, size), boost::asio::transfer_all(), ec);
+	}
+}
 
+void web_server_thread(int* port, bool ssl, bool chunked)
+{
 	io_service ios;
 	socket_acceptor acceptor(ios);
 	error_code ec;
@@ -617,12 +677,24 @@ void web_server_thread(int* port, bool ssl)
 	int len = 0;
 	int offset = 0;
 	bool connection_close = false;
-	stream_socket s(ios);
+	socket_type s(ios);
+	void* ctx = 0;
+#ifdef TORRENT_USE_OPENSSL
+	boost::asio::ssl::context ssl_ctx(ios, boost::asio::ssl::context::sslv2_server);
+	ssl_ctx.use_certificate_chain_file("server.pem");
+	ssl_ctx.use_private_key_file("server.pem", asio::ssl::context::pem);
+	ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 
+	if (ssl) ctx = &ssl_ctx;
+#endif
+
+	proxy_settings p;
+	instantiate_connection(ios, p, s, ctx);
 	for (;;)
 	{
 		if (connection_close)
 		{
+//			fprintf(stderr, "closing connection\n");
 			s.close(ec);
          TORRENT_ASSERT(!s.is_open());
 			connection_close = false;
@@ -634,16 +706,31 @@ void web_server_thread(int* port, bool ssl)
 			len = 0;
 			offset = 0;
 
+			error_code ec;
+			stream_socket* sock;
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl) sock = &s.get<ssl_stream<stream_socket> >()->next_layer().next_layer();
+			else
+#endif
+			sock = s.get<stream_socket>();
+
 			accept_done = false;
-			acceptor.async_accept(s, &on_accept);
+			acceptor.async_accept(*sock, &on_accept);
 			ios.reset();
 			ios.run_one();
 			if (!accept_done)
 			{
-				fprintf(stderr, "accept failed\n");
+				fprintf(stderr, "accept failed: %s\n", ec.message().c_str());
 				return;
 			}
+//			fprintf(stderr, "accepting incoming connection\n");
 			if (!s.is_open()) continue;
+
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl)
+				s.get<ssl_stream<stream_socket> >()->next_layer().handshake(asio::ssl::stream_base::server);
+#endif
+
 		}
 
 		http_parser p;
@@ -655,6 +742,8 @@ void web_server_thread(int* port, bool ssl)
 			bool error = false;
 
 			p.incoming(buffer::const_interval(buf + offset, buf + len), error);
+
+			char const* extra_header[4] = {"","","",""};
 
 			TEST_CHECK(error == false);
 			if (error)
@@ -673,8 +762,10 @@ void web_server_thread(int* port, bool ssl)
 					failed = true;
 					break;
 				}
+				TORRENT_ASSERT(len < sizeof(buf));
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
+//				fprintf(stderr, "read: %d\n", int(received));
 
 				if (ec || received <= 0)
 				{
@@ -703,6 +794,7 @@ void web_server_thread(int* port, bool ssl)
 			// the Via: header is an indicator of delegate making the request
 			if (connection == "close" || !via.empty())
 			{
+//				fprintf(stderr, "got connection close\n");
 				connection_close = true;
 			}
 
@@ -710,7 +802,8 @@ void web_server_thread(int* port, bool ssl)
 
 			if (failed)
 			{
-				s.close(ec);
+				fprintf(stderr, "connection failed\n");
+				connection_close = true;
             TORRENT_ASSERT(!s.is_open());
 				break;
 			}
@@ -728,19 +821,22 @@ void web_server_thread(int* port, bool ssl)
 
 			if (path == "/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /test_file\r\n", 0);
+				extra_header[0] = "Location: /test_file\r\n";
+				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
 			if (path == "/infinite_redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: /infinite_redirect\r\n", 0);
+				extra_header[0] = "Location: /infinite_redirect\r\n";
+				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
 			if (path == "/relative/redirect")
 			{
-				send_response(s, ec, 301, "Moved Permanently", "Location: ../test_file\r\n", 0);
+				extra_header[0] = "Location: ../test_file\r\n";
+				send_response(s, ec, 301, "Moved Permanently", extra_header, 0);
 				break;
 			}
 
@@ -754,8 +850,61 @@ void web_server_thread(int* port, bool ssl)
 				std::vector<char> buf;
 				bencode(std::back_inserter(buf), announce);
 			
-				send_response(s, ec, 200, "OK", 0, buf.size());
+				send_response(s, ec, 200, "OK", extra_header, buf.size());
 				write(s, boost::asio::buffer(&buf[0], buf.size()), boost::asio::transfer_all(), ec);
+			}
+
+			if (path.substr(0, 6) == "/seed?")
+			{
+				char const* piece = strstr(path.c_str(), "&piece=");
+				if (piece == 0)
+				{
+					fprintf(stderr, "invalid web seed request: %s\n", path.c_str());
+					break;
+				}
+				boost::uint64_t idx = atoi(piece + 7);
+				char const* range = strstr(path.c_str(), "&ranges=");
+				int range_end = 0;
+				int range_start = 0;
+				if (range)
+				{
+					range_start = atoi(range + 8);
+					range = strchr(range, '-');
+					if (range == 0)
+					{
+						fprintf(stderr, "invalid web seed request: %s\n", path.c_str());
+						break;
+					}
+					range_end = atoi(range + 1);
+				}
+				else
+				{
+					range_start = 0;
+					// assume piece size of 64kiB
+					range_end = 64*1024-1;
+				}
+
+				int size = range_end - range_start + 1;
+				boost::uint64_t off = idx * 64 * 1024 + range_start;
+				std::vector<char> file_buf;
+				int res = load_file("./tmp1_web_seed/seed", file_buf);
+
+				error_code ec;
+				if (res == -1 || file_buf.empty())
+				{
+					send_response(s, ec, 404, "Not Found", extra_header, 0);
+					continue;
+				}
+				send_response(s, ec, 200, "OK", extra_header, size);
+//				fprintf(stderr, "sending %d bytes of payload [%d, %d)\n"
+//					, size, int(off), int(off + size));
+				write(s, boost::asio::buffer(&file_buf[0] + off, size)
+					, boost::asio::transfer_all(), ec);
+
+				memmove(buf, buf + offset, len - offset);
+				len -= offset;
+				offset = 0;
+				continue;
 			}
 
 //			fprintf(stderr, ">> serving file %s\n", path.c_str());
@@ -765,24 +914,27 @@ void web_server_thread(int* port, bool ssl)
 			int res = load_file(path, file_buf);
 			if (res == -1)
 			{
-				send_response(s, ec, 404, "Not Found", 0, 0);
+				send_response(s, ec, 404, "Not Found", extra_header, 0);
 				continue;
 			}
 
 			if (res != 0)
 			{
 				// this means the file was either too big or couldn't be read
-				send_response(s, ec, 503, "Internal Error", 0, 0);
+				send_response(s, ec, 503, "Internal Error", extra_header, 0);
 				continue;
 			}
 
 			// serve file
 
-			char const* extra_header = 0;
-
 			if (extension(path) == ".gz")
 			{
-				extra_header = "Content-Encoding: gzip\r\n";
+				extra_header[0] = "Content-Encoding: gzip\r\n";
+			}
+
+			if (chunked)
+			{
+				extra_header[2] = "Transfer-Encoding: chunked\r\n";
 			}
 
 			if (!p.header("range").empty())
@@ -790,14 +942,13 @@ void web_server_thread(int* port, bool ssl)
 				std::string range = p.header("range");
 				int start, end;
 				sscanf(range.c_str(), "bytes=%d-%d", &start, &end);
-				char eh[200];
-				snprintf(eh, sizeof(eh), "%sContent-Range: bytes %d-%d\r\n"
-						, extra_header ? extra_header : "", start, end);
-				send_response(s, ec, 206, "Partial", eh, end - start + 1);
+				char eh[400];
+				snprintf(eh, sizeof(eh), "Content-Range: bytes %d-%d\r\n", start, end);
+				extra_header[1] = eh;
+				send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
 				if (!file_buf.empty())
 				{
-					write(s, boost::asio::buffer(&file_buf[0] + start, end - start + 1)
-						, boost::asio::transfer_all(), ec);
+					send_content(s, &file_buf[0] + start, end - start + 1, chunked);
 				}
 //				fprintf(stderr, "send %d bytes of payload\n", end - start + 1);
 			}
@@ -805,7 +956,7 @@ void web_server_thread(int* port, bool ssl)
 			{
 				send_response(s, ec, 200, "OK", extra_header, file_buf.size());
 				if (!file_buf.empty())
-					write(s, boost::asio::buffer(&file_buf[0], file_buf.size()), boost::asio::transfer_all(), ec);
+					send_content(s, &file_buf[0], file_buf.size(), chunked);
 			}
 //			fprintf(stderr, "%d bytes left in receive buffer. offset: %d\n", len - offset, offset);
 			memmove(buf, buf + offset, len - offset);

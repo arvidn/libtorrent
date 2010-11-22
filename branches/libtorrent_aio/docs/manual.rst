@@ -121,14 +121,11 @@ The ``session`` class has the following synopsis::
 		{
 			save_settings = 0x001,
 			save_dht_settings = 0x002,
-			save_dht_proxy = 0x004,
-			save_dht_state = 0x008,
+			save_dht_state = 0x004,
+			save_proxy = 0x008,
 			save_i2p_proxy = 0x010,
 			save_encryption_settings = 0x020,
-			save_peer_proxy = 0x040,
-			save_web_proxy = 0x080,
-			save_tracker_proxy = 0x100,
-			save_as_map = 0x200,
+			save_as_map = 0x040,
 		};
 
 		void load_state(lazy_entry const& e);
@@ -142,7 +139,6 @@ The ``session`` class has the following synopsis::
 
 		void pause();
 		void resume();
-		bool is_paused() const;
 
 		session_proxy abort();
 
@@ -182,13 +178,8 @@ The ``session`` class has the following synopsis::
 		void set_max_half_open_connections(int limit);
 		int max_half_open_connections() const;
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-
-		proxy_settings const& peer_proxy() const;
-		proxy_settings const& web_seed_proxy() const;
-		proxy_settings const& tracker_proxy() const;
+		void set_proxy(proxy_settings const& s);
+		proxy_settings proxy() const;
 
 		int num_uploads() const;
 		int num_connections() const;
@@ -309,16 +300,13 @@ torrents). These are the possible flags. A flag that's set, means those settings
 
 	enum save_state_flags_t
 	{
-		save_settings = 0x001,
+		save_settings =     0x001,
 		save_dht_settings = 0x002,
-		save_dht_proxy = 0x004,
-		save_dht_state = 0x008,
-		save_i2p_proxy = 0x010,
+		save_dht_state =    0x004,
+		save_proxy =        0x008,
+		save_i2p_proxy =    0x010,
 		save_encryption_settings = 0x020,
-		save_peer_proxy = 0x040,
-		save_web_proxy = 0x080,
-		save_tracker_proxy = 0x100,
-		save_as_map = 0x200,
+		save_as_map =       0x040,
 	};
 
 
@@ -367,9 +355,9 @@ add_torrent()
 
 	::
 
-		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&
-			, std::vector<boost::uint8_t> const&);
+		typedef boost::function<storage_interface*(file_storage const&
+			, file_storage const*, std::string const&, file_pool&
+			, std::vector<boost::uint8_t> const&) storage_constructor_type;
 
 		struct add_torrent_params
 		{
@@ -393,6 +381,7 @@ add_torrent()
 			bool upload_mode;
 			std::vector<boost::uint8_t> const* file_priorities;
 			bool share_mode;
+			std::string trackerid;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -525,6 +514,10 @@ a torrent. The semantics are the same as for ``torrent_handle::prioritize_files(
 ``version`` is filled in by the constructor and should be left untouched. It
 is used for forward binary compatibility.
 
+``trackerid`` is the default tracker id to be used when announcing to trackers. By default
+this is empty, and no tracker ID is used, since this is an optional argument. If
+a tracker returns a tracker ID, that ID is used instead of this.
+
 remove_torrent()
 ----------------
 
@@ -556,116 +549,6 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 
 ``get_torrents()`` returns a vector of torrent_handles to all the torrents
 currently in the session.
-
-
-set_upload_rate_limit() set_download_rate_limit() upload_rate_limit() download_rate_limit()
--------------------------------------------------------------------------------------------
-
-	::
-
-		void set_upload_rate_limit(int bytes_per_second);
-		void set_download_rate_limit(int bytes_per_second);
-		int upload_rate_limit() const;
-		int download_rate_limit() const;
-
-``set_upload_rate_limit()`` set the maximum number of bytes allowed to be
-sent to peers per second. This bandwidth is distributed among all the peers. If
-you don't want to limit upload rate, you can set this to 0 (the default).
-``set_download_rate_limit()`` works the same way but for download rate instead
-of upload rate.
-``download_rate_limit()`` and ``upload_rate_limit()`` returns the previously
-set limits.
-
-A rate limit of 0 means infinite.
-
-Upload and download rate limits are not applied to peers on the local network
-by default. To change that, see ``session_settings::ignore_limits_on_local_network``.
-
-
-set_local_upload_rate_limit() set_local_download_rate_limit() local_upload_rate_limit() local_download_rate_limit()
--------------------------------------------------------------------------------------------------------------------
-
-	::
-
-		void set_local_upload_rate_limit(int bytes_per_second);
-		void set_local_download_rate_limit(int bytes_per_second);
-		int local_upload_rate_limit() const;
-		int local_download_rate_limit() const;
-
-These rate limits are only used for local peers (peers within the same subnet as
-the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
-is set to true (which it is by default). These rate limits default to unthrottled,
-but can be useful in case you want to treat local peers preferentially, but not
-quite unthrottled.
-
-A rate limit of 0 means infinite.
-
-
-set_max_uploads() max_uploads()
--------------------------------
-
-	::
-
-		void set_max_uploads(int limit);
-		int max_uploads() const;
-
-``set_max_uploads`` sets a global limit on the number of unchoked peers (uploads).
-The number of uploads is at least one per torrent.
-
-``max_uploads()`` returns the current settings.
-
-The number of unchoke slots may be ignored depending on what
-``session_settings::choking_algorithm`` is set to.
-
-
-set_max_connections() max_connections()
----------------------------------------
-
-	::
-
-		void set_max_connections(int limit);
-		int max_connections() const;
-
-``set_max_connections`` sets a global limit on the number of connections
-opened. The number of connections is set to a hard minimum of at least two per
-torrent, so if you set a too low connections limit, and open too many torrents,
-the limit will not be met.
-
-``max_connections()`` returns the current settings.
-
-
-num_uploads() num_connections()
--------------------------------
-
-	::
-		
-		int num_uploads() const;
-		int num_connections() const;
-
-Returns the number of currently unchoked peers and the number of connections
-(including half-open ones) respectively.
-
-
-set_max_half_open_connections() max_half_open_connections()
------------------------------------------------------------
-
-	::
-		
-		void set_max_half_open_connections(int limit);
-		int max_half_open_connections() const;
-
-Sets the maximum number of half-open connections libtorrent will have when
-connecting to peers. A half-open connection is one where connect() has been
-called, but the connection still hasn't been established (nor failed). Windows
-XP Service Pack 2 sets a default, system wide, limit of the number of half-open
-connections to 10. So, this limit can be used to work nicer together with
-other network applications on that system. The default is to have no limit,
-and passing -1 as the limit, means to have no limit. When limiting the number
-of simultaneous connection attempts, peers will be put in a queue waiting for
-their turn to get connected.
-
-``max_half_open_connections()`` returns the set limit. This limit defaults
-to 8 on windows.
 
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
@@ -776,8 +659,9 @@ struct has the following members::
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
-		int dht_global_nodes;
+		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		int dht_total_allocations;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -841,6 +725,9 @@ network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
 
+``dht_total_allocations`` is the number of nodes allocated dynamically for a
+particular DHT lookup. This represents roughly the amount of memory used
+by the DHT.
 
 get_cache_info()
 ----------------
@@ -1098,46 +985,18 @@ See session_settings_ and pe_settings_ for more information on available
 options.
 
 
-set_peer_proxy() set_web_seed_proxy() set_tracker_proxy() set_dht_proxy()
--------------------------------------------------------------------------
+set_proxy() proxy()
+-------------------
 
 	::
 
-		void set_peer_proxy(proxy_settings const& s);
-		void set_web_seed_proxy(proxy_settings const& s);
-		void set_tracker_proxy(proxy_settings const& s);
-		void set_dht_proxy(proxy_settings const& s);
+		void set_proxy(proxy_settings const& s);
+		proxy_setting proxy() const;
 
-The ``set_dht_proxy`` is not available when DHT is disabled. These functions
-sets the proxy settings for different kinds of connections, bittorrent peers,
-web seeds, trackers and the DHT traffic.
-
-``set_peer_proxy`` affects regular bittorrent peers. ``set_web_seed_proxy``
-affects only web seeds. see `HTTP seeding`_.
-
-``set_tracker_proxy`` only affects HTTP tracker connections (UDP tracker
-connections are affected if the given proxy supports UDP, e.g. SOCKS5).
-
-``set_dht_proxy`` affects the DHT messages. Since they are sent over UDP,
-it only has any effect if the proxy supports UDP.
+These functions sets and queries the proxy settings to be used for the session.
 
 For more information on what settings are available for proxies, see
 `proxy_settings`_.
-
-
-peer_proxy() web_seed_proxy() tracker_proxy() dht_proxy()
----------------------------------------------------------
-
-	::
-
-		proxy_settings peer_proxy() const;
-		proxy_settings web_seed_proxy() const;
-		proxy_settings tracker_proxy() const;
-		proxy_settings dht_proxy() const;
-
-These functions returns references to their respective current settings.
-
-The ``dht_proxy`` is not available when DHT is disabled.
 
 
 set_i2p_proxy() i2p_proxy()
@@ -1480,19 +1339,22 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
+		// flags for torrent_info constructor
+		enum flags_t { omit_filehashes = 1 };
+
 		// these constructors throws exceptions on error
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
 		// these constructors sets the error code on error
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1523,10 +1385,9 @@ The ``torrent_info`` has the following synopsis::
 
 		bool priv() const;
 
-		std::vector<std::string> const& url_seeds() const;
 		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
 		void add_http_seed(std::string const& url);
+		std::vector<web_seed_entry> const& web_seeds() const;
 
 		size_type total_size() const;
 		int piece_length() const;
@@ -1554,17 +1415,17 @@ torrent_info()
    
 	::
 
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
@@ -1588,6 +1449,11 @@ will simply set the error code to describe what went wrong and not fully initial
 torrent_info object. The overloads that do not take the extra error_code_ parameter will
 always throw if an error occurs. These overloads are not available when building without
 exception support.
+
+The ``flags`` argument can be used to disable loading of potentially unnecessary hashes
+for individual files (if included in the torrent file). This is especially useful if
+you're loading torrents with thousands of files on a memory constrained system. If so,
+pass in ``torrent_info::omit_filehashes`` as the flags argument.
 
 
 add_tracker()
@@ -1670,12 +1536,13 @@ iterators with the type ``file_entry``.
 
 	struct file_entry
 	{
-		boost::filesystem::path path;
+		std::string path;
 		size_type offset;
 		size_type size;
 		size_type file_base;
-		std::string symlink_path;
-		boost::shared_ptr<sha1_hash> filehash;
+		time_t mtime;
+		int symlink_index;
+		int filehash_index;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
@@ -1697,6 +1564,17 @@ the ``file_base`` should be set to an offset so that the different regions do
 not overlap. This is used when mapping "unselected" files into a so-called part
 file.
 
+``mtime`` is the modification time of this file specified in posix time.
+
+``symlink_index`` is an index into an array of paths in ``file_storage``, or
+-1 if this file is not a symlink. This field is only used if the ``symlink_attribute``
+is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
+
+``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
+-1 if this file doesn't have a hash specified. The hash is the hash of the actual
+content of the file, and can be used to potentially find alternative sources for it.
+To resolve the hash, use ``file_storage::hash(e.filehash_index)``.
+
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
 or piece boundry. These files should typically be hidden from an end user. They are
@@ -1707,11 +1585,8 @@ not written to disk.
 ``executable_attribute`` is true if the file was marked as executable (posix)
 
 ``symlink_attribute`` is true if the file was a symlink. If this is the case
-the ``symlink_path`` specifies the original location where the data for this file
-was found.
-
-``filehash`` is a pointer that is set in case the torrent file included a sha1 hash
-for this file. This may be use to look up more sources for this file on other networks.
+the ``symlink_index`` refers to a string which specifies the original location
+where the data for this file was found.
 
 num_files() file_at()
 ---------------------
@@ -1784,23 +1659,58 @@ The input range is assumed to be valid within the torrent. ``file_offset``
 must refer to a valid file, i.e. it cannot be >= ``num_files()``.
 
 
-url_seeds() add_url_seed() http_seeds() add_http_seed()
--------------------------------------------------------
+add_url_seed() add_http_seed()
+------------------------------
 
 	::
 
-		std::vector<std::string> const& url_seeds() const;
-		void add_url_seed(std::string const& url);
-		std::vector<std::string> const& http_seeds() const;
-		void add_http_seed(std::string const& url);
+		void add_url_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_http_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		std::vector<web_seed_entry> const& web_seeds() const;
 
-If there are any url-seeds or http seeds in this torrent, ``url_seeds()``
-and ``http_seeds()`` will return a vector of those urls.
+``web_seeds()`` returns all url seeds and http seeds in the torrent. Each entry
+is a ``web_seed_entry`` and may refer to either a url seed or http seed.
+		
 ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-url/http seeds. Currently, the only transport protocol
-supported for the url is http.
+url/http seeds. Currently, the only transport protocol supported for the url
+is http.
+
+The ``extern_auth`` argument can be used for other athorization schemese than
+basic HTTP authorization. If set, it will override any username and password
+found in the URL itself. The string will be sent as the HTTP authorization header's
+value (without specifying "Basic").
+
+The ``extra_headers`` argument defaults to an empty list, but can be used to
+insert custom HTTP headers in the requests to a specific web seed.
 
 See `HTTP seeding`_ for more information.
+
+The ``web_seed_entry`` has the following members::
+
+	struct web_seed_entry
+	{
+		enum type_t { url_seed, http_seed };
+
+		typedef std::vector<std::pair<std::string, std::string> > headers_t;
+
+		web_seed_entry(std::string const& url_, type_t type_
+			, std::string const& auth_ = std::string()
+			, headers_t const& extra_headers_ = headers_t());
+
+		bool operator==(web_seed_entry const& e) const;
+		bool operator<(web_seed_entry const& e) const;
+
+		std::string url;
+		type_t type;
+		std::string auth;
+		headers_t extra_headers;
+
+		// ...
+	};
 
 
 trackers()
@@ -1987,6 +1897,16 @@ torrent_handle
 
 You will usually have to store your torrent handles somewhere, since it's the
 object through which you retrieve information about the torrent and aborts the torrent.
+
+.. warning::
+	Any member function that returns a value or fills in a value has to
+	be made synchronously. This means it has to wait for the main thread
+	to complete the query before it can return. This might potentially be
+	expensive if done from within a GUI thread that needs to stay responsive.
+	Try to avoid quering for information you don't need, and try to do it
+	in as few calls as possible. You can get most of the interesting information
+	about a torrent from the ``torrent_handle::status()`` call.
+
 Its declaration looks like this::
 
 	struct torrent_handle
@@ -2009,7 +1929,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
-		void save_resume_data() const;
+		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 		void force_reannounce() const;
 		void force_dht_announce() const;
@@ -2044,6 +1964,8 @@ Its declaration looks like this::
 		void set_sequential_download(bool sd) const;
 		bool is_sequential_download() const;
 
+		int get_peer_upload_limit(tcp::endpoint ip);
+		int get_peer_download_limit(tcp::endpoint ip);
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
@@ -2057,9 +1979,9 @@ Its declaration looks like this::
 
 		void use_interface(char const* net_interface) const;
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags = 0) const;
 		void resume() const;
-		bool is_paused() const;
 		bool is_seed() const;
 		void force_recheck() const;
 		void clear_error() const;
@@ -2085,10 +2007,8 @@ Its declaration looks like this::
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
-		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
-		bool has_metadata() const;
 		bool set_metadata(char const* buf, int size) const;
 
 		boost::filesystem::path save_path() const;
@@ -2458,13 +2378,12 @@ limit.
 download, respectively.
 
 
-set_sequential_download() is_sequential_download()
---------------------------------------------------
+set_sequential_download()
+-------------------------
 
 	::
 
 		void set_sequential_download(bool sd);
-		bool is_sequential_download() const;
 
 ``set_sequential_download()`` enables or disables *sequential download*. When enabled, the piece
 picker will pick pieces in sequence instead of rarest first.
@@ -2472,44 +2391,46 @@ picker will pick pieces in sequence instead of rarest first.
 Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.
 
-``is_sequential_download()`` returns true if this torrent is downloading in sequence, and false
-otherwise.
-
-
-set_peer_upload_limit() set_peer_download_limit()
--------------------------------------------------
+get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()
+---------------------------------------------------------------------------------------------------
 
 	::
 
+		int get_peer_upload_limit(tcp::endpoint ip);
+		int get_peer_download_limit(tcp::endpoint ip);
 		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
 		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
 
-Works like ``set_upload_limit`` and ``set_download_limit`` respectively, but controls individual
-peer instead of the whole torrent.
+Works like ``get_upload_limit``, ``get_download_limit``, ``set_upload_limit`` and
+``set_download_limit`` respectively, but controls individual peer instead of the
+whole torrent.
 
-pause() resume() is_paused()
-----------------------------
+pause() resume()
+----------------
 
 	::
 
-		void pause() const;
+		enum pause_flags_t { graceful_pause = 1 };
+		void pause(int flags) const;
 		void resume() const;
-		bool is_paused() const;
 
 ``pause()``, and ``resume()`` will disconnect all peers and reconnect all peers respectively.
 When a torrent is paused, it will however remember all share ratios to all peers and remember
-all potential (not connected) peers. You can use ``is_paused()`` to determine if a torrent
-is currently paused. Torrents may be paused automatically if there is a file error (e.g. disk full)
-or something similar. See file_error_alert_.
+all potential (not connected) peers. Torrents may be paused automatically if there is a file
+error (e.g. disk full) or something similar. See file_error_alert_.
+
+To know if a torrent is paused or not, call ``torrent_handle::status()`` and inspect
+``torrent_status::paused``.
+
+The ``flags`` argument to pause can be set to ``torrent_handle::graceful_pause`` which will
+delay the disconnect of peers that we're still downloading outstanding requests from. The torrent
+will not accept any more requests and will disconnect all idle peers. As soon as a peer is
+done transferring the blocks that were requested from it, it is disconnected. This is a graceful
+shut down of the torrent in the sense that no downloaded bytes are wasted.
 
 torrents that are auto-managed may be automatically resumed again. It does not make sense to
 pause an auto-managed torrent without making it not automanaged first. Torrents are auto-managed
 by default when added to the session. For more information, see queuing_.
-
-``is_paused()`` only returns true if the torrent itself is paused. If the torrent
-is not running because the session is paused, this still returns false. To know if a
-torrent is active or not, you need to inspect both ``torrent_handle::is_paused()``
-and ``session::is_paused()``.
 
 flush_cache()
 -------------
@@ -2600,31 +2521,22 @@ is_seed()
 
 Returns true if the torrent is in seed mode (i.e. if it has finished downloading).
 
-is_auto_managed() auto_managed()
---------------------------------
+auto_managed()
+--------------
 
 	::
 
-		bool is_auto_managed() const;
 		void auto_managed(bool m) const;
 
-``is_auto_managed()`` returns true if this torrent is currently *auto managed*.
 ``auto_managed()`` changes whether the torrent is auto managed or not. For more info,
 see queuing_.
 
-has_metadata() set_metadata()
------------------------------
+set_metadata()
+--------------
 
 	::
 
-		bool has_metadata() const;
 		bool set_metadata(char const* buf, int size) const;
-
-``has_metadata`` returns true if this torrent has metadata (either it was started from a
-.torrent file or the metadata has been downloaded). The only scenario where this can return
-false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip). Note that if the torrent doesn't have metadata, the member `get_torrent_info()`_ will
-throw.
 
 ``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
 hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
@@ -2727,6 +2639,8 @@ have their positions decreased to fill in the space in the sequence.
 with the smallest numbers are the ones that are being downloaded. The smaller number,
 the closer the torrent is to the front of the line to be started.
 
+The queue position is also available in the ``torrent_status``.
+
 The ``queue_position_*()`` functions adjust the torrents position in the queue. Up means
 closer to the front and down means closer to the back of the queue. Top and bottom refers
 to the front and the back of the queue respectively.
@@ -2814,10 +2728,14 @@ save_resume_data()
 
 	::
 
-		void save_resume_data() const;
+		void save_resume_data(int flags = 0) const;
 
 ``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
+
+The ``flags`` argument may be set to ``torrent_handle::flush_cache``. Doing so will flush the disk
+cache before creating the resume data. This avoids a problem with file timestamps in the resume
+data in case the cache hasn't been flushed yet.
 
 This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
 is delivered when it's done through an `save_resume_data_alert`_.
@@ -2837,6 +2755,12 @@ the `save_resume_data_alert`_ though. There's no need to pause when saving inter
 
 .. warning:: If you pause every torrent individually instead of pausing the session, every torrent
 	will have its paused state saved in the resume data!
+
+.. warning:: The resume data contains the modification timestamps for all files. If one file has
+	been modified when the torrent is added again, the will be rechecked. When shutting down, make
+	sure to flush the disk cache before saving the resume data. This will make sure that the file
+	timestamps are up to date and won't be modified after saving the resume data. The recommended way
+	to do this is to pause the torrent, which will flush the cache and disconnect all peers.
 
 .. note:: It is typically a good idea to save resume data whenever a torrent is completed or paused. In those
 	cases you don't need to pause the torrent or the session, since the torrent will do no more writing
@@ -2865,8 +2789,9 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		i != handles.end(); ++i)
 	{
 		torrent_handle& h = *i;
-		if (!h.has_metadata()) continue;
 		if (!h.is_valid()) continue;
+		torrent_status s = h.status();
+		if (!s.has_metadata) continue;
 
 		h.save_resume_data();
 		++num_resume_data;
@@ -3072,6 +2997,10 @@ It contains the following fields::
 	
 		state_t state;
 		bool paused;
+		bool auto_managed;
+		bool sequential_download;
+		bool seeding;
+		bool finished;
 		float progress;
 		int progress_ppm;
 		std::string error;
@@ -3159,6 +3088,9 @@ It contains the following fields::
 
 		int time_since_upload;
 		int time_since_download;
+
+		int queue_position;
+		bool need_save_resume;
 	};
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
@@ -3207,7 +3139,29 @@ The torrent's current task is in the ``state`` member, it will be one of the fol
 When downloading, the progress is ``total_wanted_done`` / ``total_wanted``. This takes
 into account files whose priority have been set to 0. They are not considered.
 
-``paused`` is set to true if the torrent is paused and false otherwise.
+``paused`` is set to true if the torrent is paused and false otherwise. It's only true
+if the torrent itself is paused. If the torrent is not running because the session is
+paused, this is still false. To know if a torrent is active or not, you need to inspect
+both ``torrent_status::paused`` and ``session::is_paused()``.
+
+``auto_managed`` is set to true if the torrent is auto managed, i.e. libtorrent is
+responsible for determining whether it should be started or queued. For more info
+see queuing_
+
+``sequential_download`` is true when the torrent is in sequential download mode. In
+this mode pieces are downloaded in order rather than rarest first.
+
+``is_seeding`` is true if all pieces have been downloaded.
+
+``is_finished`` is true if all pieces that have a priority > 0 are downloaded. There is
+only a distinction between finished and seeding if some pieces or files have been
+set to priority 0, i.e. are not downloaded.
+
+``has_metadata`` is true if this torrent has metadata (either it was started from a
+.torrent file or the metadata has been downloaded). The only scenario where this can be
+false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
+ip, a magnet link for instance). Note that if the torrent doesn't have metadata, the member
+`get_torrent_info()`_ will throw.
 
 ``error`` may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
@@ -3397,6 +3351,13 @@ saw a complete copy of this torrent.
 ``time_since_upload`` and ``time_since_download`` are the number of
 seconds since any peer last uploaded from this torrent and the last
 time a downloaded piece passed the hash check, respectively.
+
+``queue_position`` is the position this torrent has in the download
+queue. If the torrent is a seed or finished, this is -1.
+
+``need_save_resume`` is true if this torrent has unsaved changes
+to its download state and statistics since the last resume data
+was saved.
 
 peer_info
 =========
@@ -3846,6 +3807,15 @@ session_settings
 
 		int choking_algorithm;
 		
+		enum seed_choking_algorithm_t
+		{
+			round_robin,
+			fastest_upload,
+			anti_leech
+		};
+
+		int seed_choking_algorithm;
+
 		bool use_parole_mode;
 		int cache_size;
 		int cache_buffer_chunk_size;
@@ -3877,6 +3847,9 @@ session_settings
 		float share_ratio_limit;
 		float seed_time_ratio_limit;
 		int seed_time_limit;
+		int peer_turnover_interval;
+		float peer_turnover;
+		float peer_turnover_cutoff;
 		bool close_redundant_connections;
 
 		int auto_scrape_interval;
@@ -3952,6 +3925,15 @@ session_settings
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
+		int upload_rate_limit;
+		int download_rate_limit;
+		int local_upload_rate_limit;
+		int local_download_rate_limit;
+		int unchoke_slots_limit;
+		int half_open_limit;
+		int connections_limit;
+
+		int listen_queue_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4190,6 +4172,20 @@ The options for choking algorithms are:
 
 .. _paper: http://bittyrant.cs.washington.edu/#papers
 
+``seed_choking_algorithm`` controls the seeding unchoke behavior. The available
+options are:
+
+* ``round_robin`` which round-robins the peers that are unchoked when seeding. This
+  distributes the upload bandwidht uniformly and fairly. It minimizes the ability
+  for a peer to download everything without redistributing it.
+
+* ``fastest_upload`` unchokes the peers we can send to the fastest. This might be
+  a bit more reliable in utilizing all available capacity.
+
+* ``anti_leech`` prioritizes peers who have just started or are just about to finish
+  the download. The intention is to force peers in the middle of the download to
+  trade with each other.
+
 ``use_parole_mode`` specifies if parole mode should be used. Parole mode means
 that peers that participate in pieces that fail the hash check are put in a mode
 where they are only allowed to download whole pieces. If the whole piece a peer
@@ -4317,6 +4313,19 @@ for considering a seeding torrent to have met the seed limit criteria. See queui
 ``seed_time_limit`` is the limit on the time a torrent has been an active seed
 (specified in seconds) before it is considered having met the seed limit criteria.
 See queuing_.
+
+``peer_turnover_interval`` controls a feature where libtorrent periodically can disconnect
+the least useful peers in the hope of connecting to better ones. This settings controls
+the interval of this optimistic disconnect. It defaults to every 5 minutes, and
+is specified in seconds.
+
+``peer_turnover`` Is the fraction of the peers that are disconnected. This is
+a float where 1.f represents all peers an 0 represents no peers. It defaults to
+4% (i.e. 0.04f)
+
+``peer_turnover_cutoff`` is the cut off trigger for optimistic unchokes. If a torrent
+has more than this fraction of its connection limit, the optimistic unchoke is
+triggered. This defaults to 90% (i.e. 0.9f).
 
 ``close_redundant_connections`` specifies whether libtorrent should close
 connections where both ends have no utility in keeping the connection open.
@@ -4579,7 +4588,7 @@ the default upload and download rate limits for peers, respectively. These
 default to 0, which means unlimited. These settings affect the rate limits
 set on new peer connections (not existing ones). The peer rate limits can
 be changed individually later using
-`set_peer_upload_limit() set_peer_download_limit()`_.
+`get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()`_.
 
 if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
@@ -4621,6 +4630,47 @@ not make any sense to set this any lower than 2. For instance, if only 3 peers
 need to download the rarest piece, it's impossible to download a single piece
 and upload it more than 3 times. If the share_mode_target is set to more than 3,
 nothing is downloaded.
+
+``upload_rate_limit``, ``download_rate_limit``, ``local_upload_rate_limit``
+and ``local_download_rate_limit`` sets the session-global limits of upload
+and download rate limits, in bytes per second. The local rates refer to peers
+on the local network. By default peers on the local network are not rate limited.
+
+These rate limits are only used for local peers (peers within the same subnet as
+the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
+is set to true (which it is by default). These rate limits default to unthrottled,
+but can be useful in case you want to treat local peers preferentially, but not
+quite unthrottled.
+
+A value of 0 means unlimited.
+
+``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
+
+The number of unchoke slots may be ignored depending on what
+``choking_algorithm`` is set to.
+
+``half_open_limit`` sets the maximum number of half-open connections
+libtorrent will have when connecting to peers. A half-open connection is one
+where connect() has been called, but the connection still hasn't been established
+(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
+the number of half-open connections to 10. So, this limit can be used to work
+nicer together with other network applications on that system. The default is
+to have no limit, and passing -1 as the limit, means to have no limit. When
+limiting the number of simultaneous connection attempts, peers will be put in
+a queue waiting for their turn to get connected.
+
+``connections_limit`` sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.
+
+``listen_queue_size`` is the value passed in to listen() for the listen socket.
+It is the number of outstanding incoming connections to queue up while we're not
+actively waiting for a connection to be accepted. The default is 5 which should
+be sufficient for any normal client. If this is a high performance server which
+expects to receive a lot of connections, or used in a simulator or test, it
+might make sense to raise this number. It will not take affect until listen_on()
+is called again (or for the first time).
 
 pe_settings
 ===========
