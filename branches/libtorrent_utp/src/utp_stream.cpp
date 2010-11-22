@@ -966,11 +966,15 @@ void utp_stream::set_write_handler(handler_t h)
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
+
 	// try to write. send_pkt returns false if there's
 	// no more payload to send or if the congestion window
 	// is full and we can't send more packets right now
 	while (m_impl->send_pkt(false));
-	m_impl->maybe_trigger_send_callback(time_now_hires());
+
+	// if there was an error in send_pkt(), m_impl may be
+	// 0 at this point
+	if (m_impl) m_impl->maybe_trigger_send_callback(time_now_hires());
 }
 
 void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
@@ -1963,21 +1967,20 @@ bool utp_socket_impl::test_socket_state()
 	// if the socket is in a state where it's dead, just waiting to
 	// tell the client that it's closed. Do that and transition into
 	// the deleted state, where it will be deleted
-	if (m_state == UTP_STATE_ERROR_WAIT)
-	{
+	if (m_state != UTP_STATE_ERROR_WAIT) return false;
+
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: state:%s error:%s\n"
-			, this, socket_state_names[m_state], m_error.message().c_str());
+	UTP_LOGV("%8p: state:%s error:%s\n"
+		, this, socket_state_names[m_state], m_error.message().c_str());
 #endif
 
-		if (cancel_handlers(m_error, true))
-		{
-			m_state = UTP_STATE_DELETE;
+	if (cancel_handlers(m_error, true))
+	{
+		m_state = UTP_STATE_DELETE;
 #if TORRENT_UTP_LOG
-			UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
-			return true;
-		}
+		return true;
 	}
 	return false;
 }
