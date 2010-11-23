@@ -237,6 +237,10 @@ namespace libtorrent
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
 		, m_post_alert(post_alert)
+#if TORRENT_USE_OVERLAPPED
+		, m_completion_port(CreateIoCompletionPort(INVALID_HANDLE_VALUE
+			, NULL, 0, 1))
+#endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 #ifdef TORRENT_DISK_STATS
@@ -244,8 +248,8 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_OVERLAPPED
-		BOOL pipe = CreatePipe(&m_event_read_pipe, &m_event_write_pipe, 0, 4096);
-		TORRENT_ASSERT(pipe == TRUE);
+		TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
+		m_file_pool.set_iocp(m_completion_port);
 #endif
 
 #if TORRENT_USE_RLIMIT
@@ -313,8 +317,7 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 #elif TORRENT_USE_OVERLAPPED
-		CloseHandle(m_event_read_pipe);
-		CloseHandle(m_event_write_pipe);
+		CloseHandle(m_completion_port);
 #endif
 
 		TORRENT_ASSERT(m_abort == true);
@@ -1528,9 +1531,7 @@ namespace libtorrent
 		m_queued_jobs.push_back(j);
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
-		void* null = 0;
-		DWORD num_written;
-		WriteFile(m_event_write_pipe, &null, sizeof(0), &num_written, 0);
+		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
 #else
 		g_job_sem.signal();
 #endif
@@ -1547,7 +1548,7 @@ namespace libtorrent
 		// make it handle these completed jobs
 		g_job_sem.signal();
 	}
-
+/*
 #elif TORRENT_USE_OVERLAPPED
 
 	// #error this could be optimized by calling the callback right away
@@ -1563,7 +1564,7 @@ namespace libtorrent
 		DWORD num_written;
 		WriteFile(pipe, &aio, sizeof(aio), &num_written, 0);
 	}
-
+*/
 #endif
 
 	void disk_io_thread::thread_fun()
@@ -1600,16 +1601,49 @@ namespace libtorrent
 		do
 		{
 #if TORRENT_USE_OVERLAPPED
+			TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
 			file::aiocb_t* aio = 0;
-			DWORD num_read;
-			ReadFile(m_event_read_pipe, &aio, sizeof(aio), &num_read, 0);
-			if (aio != 0)
+			DWORD bytes_transferred;
+			ULONG_PTR key;
+			OVERLAPPED* ol = 0;
+			DLOG(stderr, "GetQueuedCompletionStatus() [%p]\n", this);
+			bool ret = GetQueuedCompletionStatus(m_completion_port
+				, &bytes_transferred, &key, &ol, INFINITE);
+			if (ret == false)
 			{
+				error_code ec(GetLastError(), get_system_category());
+				DLOG(stderr, "GetQueuedCompletionStatus() = FALSE %s [%p]\n", ec.message().c_str(), this);
+				sleep(100);
+			}
+			if (key == NULL && ol != 0)
+			{
+				aio = (file::aiocb_t*)ol;
+				// since synchronous calls also use overlapped
+				// we'll get some stack allocated overlapped structures
+				// as well. Once everything is moved over to async.
+				// operations, hopefully this won't be needed anymore
+				if (!m_aiocb_pool.is_from(aio)) continue;
+#ifdef TORRENT_DEBUG
+				// make sure we only get OVERLAPPED pointers that
+				// actually point to our structures, and nothing else
+				bool found = false;
+				for (file::aiocb_t* i = m_in_progress; i; i = i->next)
+				{
+					if (i != aio) continue;
+					found = true;
+					break;
+				}
+				TORRENT_ASSERT(found);
+#endif
 				file::aiocb_t* next = aio->next;
 				bool removed = reap_aio(aio, m_aiocb_pool);
 				if (removed && m_in_progress == aio) m_in_progress = next;
+				DLOG(stderr, "overlapped = %p removed = %d [%p]\n", ol, removed, this);
+				continue;
 			}
-
+			// this should only happen for our own posted
+			// events from add_job()
+//			TORRENT_ASSERT(key == 1);
 #else
 			DLOG(stderr, "sem_wait() [%p]\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
@@ -1672,7 +1706,7 @@ namespace libtorrent
 				file::aiocb_t* pending;
 				int num_issued = 0;
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
-					, num_issued, &m_event_write_pipe);
+					, num_issued);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
 				prepend_aios(m_in_progress, pending, 0);

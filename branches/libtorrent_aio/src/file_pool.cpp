@@ -43,6 +43,10 @@ namespace libtorrent
 	file_pool::file_pool(int size)
 		: m_size(size), m_low_prio_io(true)
 	{
+#if TORRENT_USE_OVERLAPPED
+		m_iocp = INVALID_HANDLE_VALUE;
+#endif
+
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_owning_thread = pthread_self();
 #endif
@@ -116,6 +120,14 @@ namespace libtorrent
 				}
 #endif
 #endif
+
+#if TORRENT_USE_OVERLAPPED
+				// when we're using overlapped I/O, register this file with
+				// the I/O completion port
+				if (m_iocp != INVALID_HANDLE_VALUE)
+					CreateIoCompletionPort(e.file_ptr->native_handle(), m_iocp, 0, 1);
+#endif
+
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
@@ -143,6 +155,13 @@ namespace libtorrent
 		e.key = st;
 		m_files.insert(std::make_pair(std::make_pair(st, fe.file_index), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
+
+#if TORRENT_USE_OVERLAPPED
+		// when we're using overlapped I/O, register this file with
+		// the I/O completion port
+		if (m_iocp != INVALID_HANDLE_VALUE)
+			CreateIoCompletionPort(e.file_ptr->native_handle(), m_iocp, 0, 1);
+#endif
 		return e.file_ptr;
 	}
 

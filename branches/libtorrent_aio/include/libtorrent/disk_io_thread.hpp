@@ -348,10 +348,9 @@ namespace libtorrent
 		aiocb_pool m_aiocb_pool;
 
 #if TORRENT_USE_OVERLAPPED
-		// used to pipe aiocb_t pointers from the signal handler
-		// to the disk thread
-		HANDLE m_event_read_pipe;
-		HANDLE m_event_write_pipe;
+		// this is used to feed events of completed disk I/O
+		// operations to the disk thread
+		HANDLE m_completion_port;
 #endif
 
 		// thread for performing blocking disk io operations

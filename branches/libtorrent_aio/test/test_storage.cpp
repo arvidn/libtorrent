@@ -1074,6 +1074,7 @@ int test_main()
 
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_fastresume, _1));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_rename_file_in_fastresume, _1));
+
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
 

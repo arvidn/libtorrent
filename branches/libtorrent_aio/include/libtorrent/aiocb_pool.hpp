@@ -42,6 +42,8 @@ namespace libtorrent
 	{
 		aiocb_pool(): m_in_use(0), m_peak_in_use(0) {}
 
+		bool is_from(file::aiocb_t* p) const { return m_pool.is_from(p); }
+
 		file::aiocb_t* construct()
 		{
 			++m_in_use;

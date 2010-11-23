@@ -784,7 +784,10 @@ namespace libtorrent
 		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
 			, m.create_mode, m.flags
 				| (a ? a : FILE_ATTRIBUTE_NORMAL)
-				| (mode & file::overlapped) ? FILE_FLAG_OVERLAPPED : 0, 0);
+#if TORRENT_USE_OVERLAPPED
+				| FILE_FLAG_OVERLAPPED
+#endif
+				, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
@@ -1111,6 +1114,11 @@ namespace libtorrent
 			// this means the buffer base or the buffer size is not aligned
 			// to the page size. Use a regular file for this operation.
 
+#if !TORRENT_USE_OVERLAPPED
+
+			// If we're not using overlapped I/O, we can't use ReadFileScatter
+			// anyway. Just loop over the buffers and write them one at a time
+   
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
@@ -1118,7 +1126,7 @@ namespace libtorrent
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
 			}
-
+   
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
@@ -1129,6 +1137,47 @@ namespace libtorrent
 					return -1;
 				}
 				ret += intermediate;
+			}
+			return ret;
+
+#endif // TORRENT_USE_OVERLAPPED
+
+			OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+			memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+
+			int c = 0;
+			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i, ++c)
+			{
+				ol[c].Internal = 0;
+				ol[c].InternalHigh = 0;
+				ol[c].OffsetHigh = file_offset >> 32;
+				ol[c].Offset = file_offset & 0xffffffff;
+				ol[c].hEvent = CreateEvent(0, true, false, 0);
+
+				if (ReadFile(native_handle(), (char*)i->iov_base
+					, (DWORD)i->iov_len, NULL, &ol[c]) == FALSE)
+				{
+					if (GetLastError() != ERROR_IO_PENDING)
+					{
+						TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
+						ec.assign(GetLastError(), get_system_category());
+						ret = -1;
+						break;
+					}
+				}
+				file_offset += i->iov_len;
+			}
+
+			for (int i = 0; i < c; ++i)
+			{
+				DWORD intermediate = 0;
+				if (GetOverlappedResult(native_handle(), &ol[i], &intermediate, true) == 0)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					ret = -1;
+				}
+				CloseHandle(ol[i].hEvent);
+				if (ret != -1) ret += intermediate;
 			}
 			return ret;
 		}
@@ -1295,6 +1344,12 @@ namespace libtorrent
 			// this means the buffer base or the buffer size is not aligned
 			// to the page size. Use a regular file for this operation.
 
+#if !TORRENT_USE_OVERLAPPED
+
+			// If we're not using overlapped I/O at all. We can't use
+			// WriteFileGather anyway. Just loop over the buffers and
+			// write them one at a time
+   
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
@@ -1302,7 +1357,7 @@ namespace libtorrent
 				ec.assign(GetLastError(), get_system_category());
 				return -1;
 			}
-
+   
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
@@ -1313,6 +1368,47 @@ namespace libtorrent
 					return -1;
 				}
 				ret += intermediate;
+			}
+			return ret;
+
+#endif // TORRENT_USE_OVERLAPPED
+
+			OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+			memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+
+			int c = 0;
+			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i, ++c)
+			{
+				ol[c].Internal = 0;
+				ol[c].InternalHigh = 0;
+				ol[c].OffsetHigh = file_offset >> 32;
+				ol[c].Offset = file_offset & 0xffffffff;
+				ol[c].hEvent = CreateEvent(0, true, false, 0);
+
+				if (WriteFile(native_handle(), (char const*)i->iov_base
+					, (DWORD)i->iov_len, NULL, &ol[c]) == FALSE)
+				{
+					if (GetLastError() != ERROR_IO_PENDING)
+					{
+						TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
+						ec.assign(GetLastError(), get_system_category());
+						ret = -1;
+						break;
+					}
+				}
+				file_offset += i->iov_len;
+			}
+
+			for (int i = 0; i < c; ++i)
+			{
+				DWORD intermediate = 0;
+				if (GetOverlappedResult(native_handle(), &ol[i], &intermediate, true) == 0)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					ret = -1;
+				}
+				CloseHandle(ol[i].hEvent);
+				if (ret != -1) ret += intermediate;
 			}
 			return ret;
 		}
@@ -1335,6 +1431,7 @@ namespace libtorrent
 		// terminate the array
 		cur_seg->Buffer = 0;
 
+		TORRENT_ASSERT((file_offset % pos_alignment()) == 0);
 		OVERLAPPED ol;
 		ol.Internal = 0;
 		ol.InternalHigh = 0;
@@ -1359,7 +1456,7 @@ namespace libtorrent
 			size = num_pages * m_page_size;
 		}
 
-		if (WriteFileGather(native_handle(), segment_array, size, 0, &ol) == 0)
+		if (WriteFileGather(native_handle(), segment_array, size, NULL, &ol) == 0)
 		{
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
@@ -1824,7 +1921,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool, int& num_issued, void* userdata)
+		, aiocb_pool& pool, int& num_issued)
 	{
 		// this is the chain of aios that were
 		// successfully submitted
@@ -1864,18 +1961,18 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #elif TORRENT_USE_OVERLAPPED
 			extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
 
+			// TODO: make the aiocb_t contain the vector of buffers
+			// on windows, to allow for issuing a single async operation
 			int ret;
 			switch (aios->op)
 			{
 				case file::read_op:
-					ret = ReadFileEx(aios->file, aios->buf
-						, aios->size, &aios->ov
-						, &signal_handler);
+					ret = ReadFile(aios->file, aios->buf
+						, aios->size, NULL, &aios->ov);
 					break;
 				case file::write_op:
-					ret = WriteFileEx(aios->file, aios->buf
-						, aios->size, &aios->ov
-						, &signal_handler);
+					ret = WriteFile(aios->file, aios->buf
+						, aios->size, NULL, &aios->ov);
 					break;
 				default: TORRENT_ASSERT(false);
 			}
@@ -1896,7 +1993,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				pool.destroy(del);
 				continue;
 			}
-			aios->userdata = userdata;
 #else
 			error_code ec;
 			int ret;

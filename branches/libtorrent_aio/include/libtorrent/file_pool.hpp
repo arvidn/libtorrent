@@ -68,6 +68,10 @@ namespace libtorrent
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 
+#if TORRENT_USE_OVERLAPPED
+		void set_iocp(HANDLE completion_port) { m_iocp = completion_port; }
+#endif
+
 	private:
 		file_pool(file_pool const&);
 
@@ -93,6 +97,10 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		pthread_t m_owning_thread;
+#endif
+
+#if TORRENT_USE_OVERLAPPED
+		HANDLE m_iocp;
 #endif
 	};
 }

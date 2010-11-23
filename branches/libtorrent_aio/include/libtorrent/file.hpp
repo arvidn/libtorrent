@@ -224,7 +224,6 @@ namespace libtorrent
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
 			no_atime = 16,
-			overlapped = 32,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
@@ -273,7 +272,6 @@ namespace libtorrent
 			size_t size;
 			void* buf;
 			HANDLE file;
-			void* userdata; // points to the PIPE to signal
 			size_t nbytes() const { return size; }
 		};
 
@@ -398,7 +396,7 @@ namespace libtorrent
 	// returns two chains, one with jobs that were issued and
 	// one with jobs that couldn't be issued
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool, int& num_issued, void* userdata);
+		, aiocb_pool& pool, int& num_issued);
 
 	file::aiocb_t* reap_aios(file::aiocb_t* aios
 		, aiocb_pool& pool);
