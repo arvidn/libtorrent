@@ -696,7 +696,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 		{
 //			fprintf(stderr, "closing connection\n");
 			s.close(ec);
-         TORRENT_ASSERT(!s.is_open());
 			connection_close = false;
 		}
       ec.clear();
