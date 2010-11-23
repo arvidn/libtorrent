@@ -191,7 +191,7 @@ namespace libtorrent
 			}
 			last->next = i;
 			i->next = j;
-			j->prev = i;
+			if (j) j->prev = i;
 		}
 	}
 
