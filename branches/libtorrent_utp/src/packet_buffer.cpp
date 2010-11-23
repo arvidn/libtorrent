@@ -111,6 +111,7 @@ namespace libtorrent {
 			m_first = idx;
 		}
 
+		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
 
@@ -180,6 +181,7 @@ namespace libtorrent {
 			m_last &= 0xffff;
 		}
 
+		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
 	}
 
