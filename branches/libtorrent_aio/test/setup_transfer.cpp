@@ -803,7 +803,6 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			{
 				fprintf(stderr, "connection failed\n");
 				connection_close = true;
-            TORRENT_ASSERT(!s.is_open());
 				break;
 			}
 
