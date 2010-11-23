@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/unistd.h>
 #endif
 
+#if TORRENT_USE_AIO
+#include <signal.h>
+#endif
+
 #define DEBUG_STORAGE 1
 
 #define DLOG if (DEBUG_STORAGE) fprintf
@@ -390,7 +394,8 @@ namespace libtorrent
 		TORRENT_ASSERT(start < end);
 		end = (std::min)(end, int(p->blocks_in_piece));
 
-		int piece_size = p->storage->info()->piece_size(p->piece);
+		block_cache::cached_piece_entry const& pe = *p;
+		int piece_size = pe.storage->info()->piece_size(pe.piece);
 #ifdef TORRENT_DISK_STATS
 		m_log << log_time() << " flushing " << piece_size << std::endl;
 #endif
@@ -398,11 +403,11 @@ namespace libtorrent
 		
 		int buffer_size = 0;
 
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, p->blocks_in_piece);
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe.blocks_in_piece);
 		int iov_counter = 0;
 		int ret = 0;
 
-		end = (std::min)(end, int(p->blocks_in_piece));
+		end = (std::min)(end, int(pe.blocks_in_piece));
 
 		// the termination condition is deliberately <= end here
 		// so that we get one extra loop where we can issue the last
@@ -412,15 +417,22 @@ namespace libtorrent
 			// don't flush blocks that are empty (buf == 0), not dirty
 			// (read cache blocks), or pending (already being written)
 			if (i == end
-				|| p->blocks[i].buf == 0
+				|| pe.blocks[i].buf == 0
 				// if we're writing and the block is already pending, it
 				// means we're already writing it, skip it!
-				|| p->blocks[i].pending
-				|| (!p->blocks[i].dirty && readwrite == op_write)
-				|| (!p->blocks[i].uninitialized && readwrite == op_read))
+				|| pe.blocks[i].pending
+				|| (!pe.blocks[i].dirty && readwrite == op_write)
+				|| (!pe.blocks[i].uninitialized && readwrite == op_read))
 			{
-				DLOG(stderr, "[%p] io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
-					, this, i, end, p->blocks[i].buf, p->blocks[i].pending, p->blocks[i].dirty);
+				if (i == end)
+				{
+					DLOG(stderr, "[%p] io_range: skipping block=%d end: %d\n", this, i, end);
+				}
+				else
+				{
+					DLOG(stderr, "[%p] io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
+						, this, i, end, pe.blocks[i].buf, pe.blocks[i].pending, pe.blocks[i].dirty);
+				}
 				if (buffer_size == 0) continue;
 
 				TORRENT_ASSERT(buffer_size <= i * m_block_size);
@@ -429,10 +441,10 @@ namespace libtorrent
 				if (readwrite == op_write)
 				{
 					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
-						, this, int(p->piece), range_start, i);
+						, this, int(pe.piece), range_start, i);
 					m_queue_buffer_size += to_write;
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
-						, p->piece, to_write, iov_counter
+						, pe.piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
 							, range_start, i, to_write, _1));
 					m_write_blocks += i - range_start;
@@ -451,9 +463,9 @@ namespace libtorrent
 				else
 				{
 					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
-						, this, int(p->piece), range_start, i);
+						, this, int(pe.piece), range_start, i);
 					++m_outstanding_jobs;
-					file::aiocb_t* aios = p->storage->read_async_impl(iov, p->piece
+					file::aiocb_t* aios = pe.storage->read_async_impl(iov, pe.piece
 						, range_start * m_block_size, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_read, this, p
 							, range_start, i, _1));
@@ -477,24 +489,25 @@ namespace libtorrent
 				continue;
 			}
 			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
-			iov[iov_counter].iov_base = p->blocks[i].buf;
+			TORRENT_ASSERT_VAL(i < end, i);
+			iov[iov_counter].iov_base = pe.blocks[i].buf;
 			iov[iov_counter].iov_len = block_size;
 #ifdef TORRENT_DEBUG
 			if (readwrite == op_write)
-				TORRENT_ASSERT(p->blocks[i].dirty == true);
+				TORRENT_ASSERT(pe.blocks[i].dirty == true);
 			else
-				TORRENT_ASSERT(p->blocks[i].dirty == false);
+				TORRENT_ASSERT(pe.blocks[i].dirty == false);
 #endif
-			TORRENT_ASSERT(p->blocks[i].pending == false);
-			p->blocks[i].uninitialized = false;
-			TORRENT_ASSERT(!p->blocks[i].pending);
-			if (!p->blocks[i].pending)
+			TORRENT_ASSERT(pe.blocks[i].pending == false);
+			pe.blocks[i].uninitialized = false;
+			TORRENT_ASSERT(!pe.blocks[i].pending);
+			if (!pe.blocks[i].pending)
 			{
-				p->blocks[i].pending = true;
-				TORRENT_ASSERT(p->blocks[i].refcount == 0);
-				++p->blocks[i].refcount;
-				TORRENT_ASSERT(p->blocks[i].refcount == 1);
-				++const_cast<block_cache::cached_piece_entry&>(*p).refcount;
+				pe.blocks[i].pending = true;
+				TORRENT_ASSERT(pe.blocks[i].refcount == 0);
+				++pe.blocks[i].refcount;
+				TORRENT_ASSERT(pe.blocks[i].refcount == 1);
+				++const_cast<block_cache::cached_piece_entry&>(pe).refcount;
 			}
 			++iov_counter;
 			++ret;
