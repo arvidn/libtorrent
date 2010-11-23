@@ -6920,8 +6920,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 		m_ses.add_redundant_bytes(b);
-		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-			<= m_stat.total_payload_download());
+//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+//			<= m_stat.total_payload_download());
 	}
 
 	void torrent::add_failed_bytes(int b)
