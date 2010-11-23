@@ -2958,7 +2958,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!m_peer_info || !m_peer_info->optimistically_unchoked);
+		if (m_peer_info && m_peer_info->optimistically_unchoked)
+			m_peer_info->optimistically_unchoked = false;
 
 		if (m_choked) return false;
 		write_choke();
