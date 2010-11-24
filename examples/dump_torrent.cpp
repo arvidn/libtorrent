@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-//	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
+	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	torrent_info t(e, ec);
 	if (ec)
