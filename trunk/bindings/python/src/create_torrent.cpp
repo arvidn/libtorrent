@@ -48,12 +48,12 @@ namespace
         ct.add_node(std::make_pair(addr, port));
     }
 
-	 void add_file(file_storage& ct, file_entry const& fe
-		 , std::string const& hash, std::string const& linkpath)
-	 {
-	 	ct.add_file(fe, hash.empty() ? 0 : &sha1_hash(hash)
-			, linkpath.empty() ? 0 : &linkpath);
-	 }
+    void add_file(file_storage& ct, file_entry const& fe
+       , std::string const& hash, std::string const& linkpath)
+    {
+       ct.add_file(fe, hash.empty() ? 0 : hash.c_str()
+          , linkpath.empty() ? 0 : &linkpath);
+    }
 }
 
 void bind_create_torrent()
@@ -82,6 +82,12 @@ void bind_create_torrent()
 #endif
         .def("num_files", &file_storage::num_files)
         .def("at", &file_storage::at, return_internal_reference<>())
+        .def("hash", &file_storage::hash)
+        .def("symlink", &file_storage::symlink, return_internal_reference<>())
+        .def("file_index", &file_storage::file_index)
+        .def("file_base", &file_storage::file_base)
+        .def("set_file_base", &file_storage::set_file_base)
+        .def("file_path", &file_storage::file_path)
         .def("total_size", &file_storage::total_size)
         .def("set_num_pieces", &file_storage::set_num_pieces)
         .def("num_pieces", &file_storage::num_pieces)

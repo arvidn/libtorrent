@@ -1350,9 +1350,6 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
-		// flags for torrent_info constructor
-		enum flags_t { omit_filehashes = 1 };
-
 		// these constructors throws exceptions on error
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
@@ -1461,10 +1458,7 @@ torrent_info object. The overloads that do not take the extra error_code_ parame
 always throw if an error occurs. These overloads are not available when building without
 exception support.
 
-The ``flags`` argument can be used to disable loading of potentially unnecessary hashes
-for individual files (if included in the torrent file). This is especially useful if
-you're loading torrents with thousands of files on a memory constrained system. If so,
-pass in ``torrent_info::omit_filehashes`` as the flags argument.
+The ``flags`` argument is currently unused.
 
 
 add_tracker()
@@ -1547,7 +1541,7 @@ iterators with the type ``file_entry``.
 
 	struct file_entry
 	{
-		std::string path;
+		std::string filename();
 		size_type offset;
 		size_type size;
 		size_type file_base;
@@ -1560,9 +1554,9 @@ iterators with the type ``file_entry``.
 		bool symlink_attribute:1;
 	};
 
-The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
-torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
-The filenames are encoded with UTF-8.
+The ``filename`` function returns the filename of this file. It does not include the
+path, just the leaf name. To get the full path name, use ``file_storage::file_path()``.
+The filenames are unicode strings encoded in UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
@@ -1584,7 +1578,7 @@ is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
 ``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
 -1 if this file doesn't have a hash specified. The hash is the hash of the actual
 content of the file, and can be used to potentially find alternative sources for it.
-To resolve the hash, use ``file_storage::hash(e.filehash_index)``.
+To resolve the hash, use ``file_storage::hash(e)``.
 
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset

@@ -245,7 +245,7 @@ namespace libtorrent
 		m_data.start = start;
 		m_size = length;
 		m_begin = start - 1 - num_digits(length);
-		m_end = start + length;
+		m_len = start - m_begin + length;
 	}
 
 	namespace
@@ -400,7 +400,7 @@ namespace libtorrent
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_end - m_begin);
+		return return_t(m_begin, m_len);
 	}
 
 #if TORRENT_USE_IOSTREAM

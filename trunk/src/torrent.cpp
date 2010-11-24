@@ -4142,7 +4142,7 @@ namespace libtorrent
 			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
 				, end(m_torrent_file->end_files()); i != end; ++i)
 			{
-				fl.push_back(i->path);
+				fl.push_back(m_torrent_file->files().file_path(*i));
 			}
 		}
 

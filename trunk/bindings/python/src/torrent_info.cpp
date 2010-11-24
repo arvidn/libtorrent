@@ -102,6 +102,20 @@ namespace
     bool get_send_stats(announce_entry const& ae)
     { return ae.send_stats; }
 
+
+    bool get_size(file_entry const& fe)
+    { return fe.size; }
+    bool get_offset(file_entry const& fe)
+    { return fe.offset; }
+    bool get_pad_file(file_entry const& fe)
+    { return fe.pad_file; }
+    bool get_executable_attribute(file_entry const& fe)
+    { return fe.executable_attribute; }
+    bool get_hidden_attribute(file_entry const& fe)
+    { return fe.hidden_attribute; }
+    bool get_symlink_attribute(file_entry const& fe)
+    { return fe.symlink_attribute; }
+
 } // namespace unnamed
 
 void bind_torrent_info()
@@ -168,14 +182,14 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-       .add_property("path"
-          , make_getter(
-                &file_entry::path, return_value_policy<copy_non_const_reference>()
-            )
-        )
-        .def_readonly("offset", &file_entry::offset)
-        .def_readonly("size", &file_entry::size)
-        .def_readonly("file_base", &file_entry::file_base)
+        .def("filename", &file_entry::filename)
+        .def("set_name", &file_entry::set_name)
+        .add_property("pad_file", &get_pad_file)
+        .add_property("executable_attribute", &get_executable_attribute)
+        .add_property("hidden_attribute", &get_hidden_attribute)
+        .add_property("symlink_attribute", &get_symlink_attribute)
+        .add_property("offset", &get_offset)
+        .add_property("size", &get_size)
         ;
 
     class_<announce_entry>("announce_entry", init<std::string const&>())

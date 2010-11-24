@@ -78,7 +78,7 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
-		lazy_entry() : m_begin(0), m_end(0), m_type(none_t)
+		lazy_entry() : m_begin(0), m_len(0), m_type(none_t)
 		{ m_data.start = 0; }
 
 		entry_type_t type() const { return (entry_type_t)m_type; }
@@ -92,7 +92,7 @@ namespace libtorrent
 			m_data.start = start;
 			m_size = length;
 			m_begin = start - 1; // include 'i'
-			m_end = start + length + 1; // include 'e'
+			m_len = length + 2; // include 'e'
 		}
 
 		size_type int_value() const;
@@ -202,7 +202,7 @@ namespace libtorrent
 		void set_end(char const* end)
 		{
 			TORRENT_ASSERT(end > m_begin);
-			m_end = end;
+			m_len = end - m_begin;
 		}
 		
 		void clear();
@@ -235,7 +235,7 @@ namespace libtorrent
 			swap(m_data.start, e.m_data.start);
 			swap(m_size, e.m_size);
 			swap(m_begin, e.m_begin);
-			swap(m_end, e.m_end);
+			swap(m_len, e.m_len);
 		}
 
 	private:
@@ -250,11 +250,16 @@ namespace libtorrent
 		// used for dictionaries and lists to record the range
 		// in the original buffer they are based on
 		char const* m_begin;
-		char const* m_end;
+		// the number of bytes this entry extends in the
+		// bencoded byffer
+		boost::uint32_t m_len;
 
-		boost::uint32_t m_size; // if list or dictionary, the number of items
-		boost::uint32_t m_capacity:29; // if list or dictionary, allocated number of items
-		unsigned int m_type:3;
+		// if list or dictionary, the number of items
+		boost::uint32_t m_size;
+		// if list or dictionary, allocated number of items
+		boost::uint32_t m_capacity:29;
+		// element type (dict, list, int, string)
+		boost::uint32_t m_type:3;
 
 		// non-copyable
 		lazy_entry(lazy_entry const&);

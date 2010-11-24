@@ -166,7 +166,7 @@ namespace libtorrent
 			{
 				file_status s;
 				error_code ec;
-				stat_file(combine_path(save_path, i->path), &s, ec);
+				stat_file(combine_path(save_path, storage.file_path(*i)), &s, ec);
 
 				if (!ec)
 				{
@@ -216,7 +216,7 @@ namespace libtorrent
 
 			file_status s;
 			error_code ec;
-			stat_file(combine_path(p, i->path), &s, ec);
+			stat_file(combine_path(p, fs.file_path(*i)), &s, ec);
 
 			if (!ec)
 			{
@@ -516,7 +516,7 @@ namespace libtorrent
 		for (file_storage::iterator file_iter = files().begin(),
 			end_iter = files().end(); file_iter != end_iter; ++file_iter)
 		{
-			std::string file_path = combine_path(m_save_path, file_iter->path);
+			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
 			std::string dir = parent_path(file_path);
 
 			if (dir != last_path)
@@ -527,7 +527,7 @@ namespace libtorrent
 					create_directories(last_path, ec);
 			}
 
-			int file_index = file_iter - files().begin();
+			int file_index = files().file_index(*file_iter);
 
 			// ignore files that have priority 0
 			if (int(m_file_priority.size()) > file_index
@@ -592,7 +592,7 @@ namespace libtorrent
 		{
 			error_code ec;
 			file_status s;
-			stat_file(combine_path(m_save_path, i->path), &s, ec);
+			stat_file(combine_path(m_save_path, files().file_path(*i)), &s, ec);
 			if (ec) continue;
 			if (s.mode & file_status::regular_file && i->size > 0)
 				return true;
@@ -603,8 +603,8 @@ namespace libtorrent
 	bool storage::rename_file(int index, std::string const& new_filename)
 	{
 		if (index < 0 || index >= m_files.num_files()) return true;
-		std::string old_name = combine_path(m_save_path, files().at(index).path);
-		m_pool.release(this, files().at(index));
+		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
+		m_pool.release(this, index);
 
 		error_code ec;
 		rename(old_name, combine_path(m_save_path, new_filename), ec);
@@ -650,8 +650,9 @@ namespace libtorrent
 		for (file_storage::iterator i = files().begin()
 			, end(files().end()); i != end; ++i)
 		{
-			std::string p = combine_path(m_save_path, i->path);
-			std::string bp = parent_path(i->path);
+			std::string fp = files().file_path(*i);
+			std::string p = combine_path(m_save_path, fp);
+			std::string bp = parent_path(fp);
 			std::pair<iter_t, bool> ret;
 			ret.second = true;
 			while (ret.second && !bp.empty())
@@ -861,7 +862,7 @@ namespace libtorrent
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
-			std::string split = split_path(i->path);
+			std::string split = split_path(f.file_path(*i));
 			to_move.insert(to_move.begin(), split);
 		}
 
@@ -1178,8 +1179,8 @@ ret:
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT(slice_size == file_bytes_left);
-			TORRENT_ASSERT(files().at(slices[counter].file_index).path
-				== file_iter->path);
+			TORRENT_ASSERT(&files().at(slices[counter].file_index)
+				== &*file_iter);
 			++counter;
 #endif
 
@@ -1201,7 +1202,7 @@ ret:
 			file_handle = open_file(*file_iter, op.mode, ec);
 			if (!file_handle || ec)
 			{
-				std::string path = combine_path(m_save_path, file_iter->path);
+				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
 				TORRENT_ASSERT(ec);
 				set_error(path, ec);
 				return -1;
@@ -1215,23 +1216,24 @@ ret:
 			// read is unaligned, we need to fall back on a slow
 			// special read that reads aligned buffers and copies
 			// it into the one supplied
+			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
 			if ((file_handle->open_mode() & file::no_buffer)
-				&& (((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0
+				&& ((adjusted_offset & (file_handle->pos_alignment()-1)) != 0
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
-				bytes_transferred = (this->*op.unaligned_op)(file_handle, file_iter->file_base
-					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
+				bytes_transferred = (this->*op.unaligned_op)(file_handle, adjusted_offset
+					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			else
 			{
-				bytes_transferred = (int)((*file_handle).*op.regular_op)(file_iter->file_base
-					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
+				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
+					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			file_offset = 0;
 
 			if (ec)
 			{
-				set_error(combine_path(m_save_path, file_iter->path), ec);
+				set_error(combine_path(m_save_path, files().file_path(*file_iter)), ec);
 				return -1;
 			}
 
@@ -1312,12 +1314,12 @@ ret:
 		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		if (cache_setting == session_settings::disable_os_cache
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
-			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
+			&& ((fe.offset + files().file_base(fe)) & (m_page_size-1)) == 0))
 			mode |= file::no_buffer;
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 
-		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, mode, ec);
+		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs
