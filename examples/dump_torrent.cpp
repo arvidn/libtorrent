@@ -40,6 +40,8 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
+	printf("sizeof(file_entry): %d\n", int(sizeof(file_entry)));
+
 	if (argc != 2)
 	{
 		fputs("usage: dump_torrent torrent-file\n", stderr);
@@ -70,7 +72,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
+//	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	torrent_info t(e, ec);
 	if (ec)
@@ -78,6 +80,8 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
+	e.clear();
+	std::vector<char>().swap(buf);
 
 	// print info about torrent
 	printf("\n\n----- torrent file info -----\n\n"
@@ -106,6 +110,7 @@ int main(int argc, char* argv[])
 		"created by: %s\n"
 		"magnet link: %s\n"
 		"name: %s\n"
+		"number of files: %d\n"
 		"files:\n"
 		, t.num_pieces()
 		, t.piece_length()
@@ -113,24 +118,26 @@ int main(int argc, char* argv[])
 		, t.comment().c_str()
 		, t.creator().c_str()
 		, make_magnet_uri(t).c_str()
-		, t.name().c_str());
+		, t.name().c_str()
+		, t.num_files());
 	int index = 0;
 	for (torrent_info::file_iterator i = t.begin_files();
 		i != t.end_files(); ++i, ++index)
 	{
 		int first = t.map_file(index, 0, 0).piece;
 		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
-		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s %s%s\n"
+		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 			, i->size
 			, (i->pad_file?'p':'-')
 			, (i->executable_attribute?'x':'-')
 			, (i->hidden_attribute?'h':'-')
 			, (i->symlink_attribute?'l':'-')
 			, first, last
-			, i->filehash_index != -1 ? to_hex(t.files().hash(i->filehash_index).to_string()).c_str() : ""
-			, i->path.c_str()
+			, boost::uint32_t(t.files().mtime(*i))
+			, t.files().hash(*i) != sha1_hash(0) ? to_hex(t.files().hash(*i).to_string()).c_str() : ""
+			, t.files().file_path(*i).c_str()
 			, i->symlink_attribute ? "-> ": ""
-			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(i->symlink_index).c_str() : "");
+			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(*i).c_str() : "");
 	}
 
 	return 0;

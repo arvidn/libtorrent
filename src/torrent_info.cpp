@@ -184,8 +184,8 @@ namespace libtorrent
 
 	void verify_encoding(file_entry& target)
 	{
-		std::string p = target.path;
-		if (!verify_encoding(p, true)) target.path = p;
+		std::string p = target.filename();
+		if (!verify_encoding(p, true)) target.set_name(p.c_str());
 	}
 
 	// TODO: should this take a char const*?
@@ -233,18 +233,17 @@ namespace libtorrent
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
-		, std::string const& root_dir, sha1_hash* filehash, std::string* symlink)
+		, std::string const& root_dir, lazy_entry const** filehash, std::string* symlink
+		, lazy_entry const** filename, time_t* mtime)
 	{
 		if (dict.type() != lazy_entry::dict_t) return false;
 		lazy_entry const* length = dict.dict_find("length");
 		if (length == 0 || length->type() != lazy_entry::int_t)
 			return false;
 		target.size = length->int_value();
-		target.path = root_dir;
-		target.file_base = 0;
 
 		size_type ts = dict.dict_find_int_value("mtime", -1);
-		if (ts >= 0) target.mtime = std::time_t(ts);
+		if (ts > 0) *mtime = std::time_t(ts);
 
 		// prefer the name.utf-8
 		// because if it exists, it is more
@@ -256,20 +255,24 @@ namespace libtorrent
 		if (p == 0 || p->type() != lazy_entry::list_t)
 			return false;
 
+		std::string path = root_dir;
 		for (int i = 0, end(p->list_size()); i < end; ++i)
 		{
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
 			std::string path_element = p->list_at(i)->string_value();
+			if (i == end - 1) *filename = p->list_at(i);
 			trim_path_element(path_element);
-			target.path = combine_path(target.path, path_element);
+			path = combine_path(path, path_element);
 		}
-		target.path = sanitize_path(target.path);
+		path = sanitize_path(path);
 		verify_encoding(target);
 
 		// bitcomet pad file
-		if (target.path.find("_____padding_file_") != std::string::npos)
+		if (path.find("_____padding_file_") != std::string::npos)
 			target.pad_file = true;
+
+		target.set_name(path.c_str());
 
 		lazy_entry const* attr = dict.dict_find_string("attr");
 		if (attr)
@@ -288,11 +291,7 @@ namespace libtorrent
 
 		lazy_entry const* fh = dict.dict_find_string("sha1");
 		if (fh && fh->string_length() == 20 && filehash)
-		{
-			std::memcpy(&(*filehash)[0], fh->string_ptr(), 20);
-			// indicate that the file has a filehash
-			target.filehash_index = 0;
-		}
+			*filehash = fh;
 
 		lazy_entry const* s_p = dict.dict_find("symlink path");
 		if (s_p != 0 && s_p->type() == lazy_entry::list_t && symlink)
@@ -332,16 +331,19 @@ namespace libtorrent
 	};
 
 	bool extract_files(lazy_entry const& list, file_storage& target
-		, std::string const& root_dir)
+		, std::string const& root_dir, ptrdiff_t info_ptr_diff)
 	{
 		if (list.type() != lazy_entry::list_t) return false;
 		target.reserve(list.list_size());
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
-			sha1_hash file_hash;
+			lazy_entry const* file_hash = 0;
+			time_t mtime = 0;
 			std::string symlink;
 			file_entry e;
-			if (!extract_single_file(*list.list_at(i), e, root_dir, &file_hash, &symlink))
+			lazy_entry const* fee = 0;
+			if (!extract_single_file(*list.list_at(i), e, root_dir
+				, &file_hash, &symlink, &fee, &mtime))
 				return false;
 
 			// TODO: this logic should be a separate step
@@ -352,15 +354,31 @@ namespace libtorrent
 
 			// as long as this file already exists
 			// increase the counter
-			while (!files.insert(e.path).second)
+			std::string path = e.filename();
+			while (!files.insert(path).second)
 			{
 				++cnt;
 				char suffix[50];
-				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
-				replace_extension(e.path, suffix);
+				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(path).c_str());
+				replace_extension(path, suffix);
 			}
-			target.add_file(e, e.filehash_index != -1 ? &file_hash : 0
-				, e.symlink_index != -1 ? &symlink : 0);
+			e.set_name(path.c_str());
+			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0
+				, e.symlink_index != -1 ? &symlink : 0, mtime);
+
+			// This is a memory optimization! Instead of having
+			// each entry keep a string for its filename, make it
+			// simply point into the info-section buffer
+			file_entry const& fe = target.at(target.num_files() - 1);
+			// TODO: once the filename renaming is removed from here
+			// this check can be removed as well
+			if (fee && fe.filename() == fee->string_value())
+			{
+				// this string pointer does not necessarily point into
+				// the m_info_section buffer.
+				char const* str_ptr = fee->string_ptr() + info_ptr_diff;
+				const_cast<file_entry&>(fe).set_name(str_ptr, fee->string_length());
+			}
 		}
 		return true;
 	}
@@ -748,6 +766,11 @@ namespace libtorrent
 		TORRENT_ASSERT(section.first[0] == 'd');
 		TORRENT_ASSERT(section.first[m_info_section_size-1] == 'e');
 
+		// when translating a pointer that points into the 'info' tree's
+		// backing buffer, into a pointer to our copy of the info section,
+		// this is the pointer offset to use.
+		ptrdiff_t info_ptr_diff = m_info_section.get() - section.first;
+
 		// extract piece length
 		int piece_length = info.dict_find_int_value("piece length", -1);
 		if (piece_length <= 0)
@@ -784,12 +807,12 @@ namespace libtorrent
 			// if there's no list of files, there has to be a length
 			// field.
 			file_entry e;
-			e.path = name;
+			e.set_name(name.c_str());
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
 			size_type ts = info.dict_find_int_value("mtime", -1);
-			if (ts >= 0)
-				e.mtime = std::time_t(ts);
+			time_t mtime = 0;
+			if (ts > 0) mtime = std::time_t(ts);
 			lazy_entry const* attr = info.dict_find_string("attr");
 			if (attr)
 			{
@@ -818,29 +841,23 @@ namespace libtorrent
 				e.symlink_index = 0;
 			}
 			lazy_entry const* fh = info.dict_find_string("sha1");
-			sha1_hash filehash;
-			if (fh && fh->string_length() == 20)
-			{
-				std::memcpy(&filehash[0], fh->string_ptr(), 20);
-				e.filehash_index = 0;
-			}
+			if (fh && fh->string_length() != 20) fh = 0;
 
 			// bitcomet pad file
-			if (e.path.find("_____padding_file_") != std::string::npos)
+			if (e.filename().find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
 			if (e.size < 0)
 			{
 				ec = errors::torrent_invalid_length;
 				return false;
 			}
-			bool omit_hash = (flags & torrent_info::omit_filehashes) || e.filehash_index == -1;
-			m_files.add_file(e, omit_hash ? 0 : &filehash
-				, e.symlink_index != -1 ? &symlink : 0);
+			m_files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0
+				, e.symlink_index != -1 ? &symlink : 0, mtime);
 			m_multifile = false;
 		}
 		else
 		{
-			if (!extract_files(*i, m_files, name))
+			if (!extract_files(*i, m_files, name, info_ptr_diff))
 			{
 				ec = errors::torrent_file_parse_failed;
 				return false;
@@ -873,7 +890,7 @@ namespace libtorrent
 				return false;
 			}
 
-			m_piece_hashes = m_info_section.get() + (pieces->string_ptr() - section.first);
+			m_piece_hashes = pieces->string_ptr() + info_ptr_diff;
 			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 		}
@@ -1204,7 +1221,7 @@ namespace libtorrent
 		os << "piece length: " << piece_length() << "\n";
 		os << "files:\n";
 		for (file_storage::iterator i = m_files.begin(); i != m_files.end(); ++i)
-			os << "  " << std::setw(11) << i->size << "  " << i->path << "\n";
+			os << "  " << std::setw(11) << i->size << "  " << m_files.file_path(*i) << "\n";
 	}
 
 // ------- end deprecation -------

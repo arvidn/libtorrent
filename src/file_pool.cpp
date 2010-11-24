@@ -41,14 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
-		, file_entry const& fe, int m, error_code& ec)
+		, file_entry const& fe, file_storage const& fs, int m, error_code& ec)
 	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
+		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(fe)));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -77,7 +77,7 @@ namespace libtorrent
 				// the new read/write privilages
 				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
 				e.file_ptr->close();
-				std::string full_path = combine_path(p, fe.path);
+				std::string full_path = combine_path(p, fs.file_path(fe));
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
@@ -115,12 +115,12 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = combine_path(p, fe.path);
+		std::string full_path = combine_path(p, fs.file_path(fe));
 		if (!e.file_ptr->open(full_path, m, ec))
 			return boost::intrusive_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, fe.file_index), e));
+		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(fe)), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
 		return e.file_ptr;
 	}
@@ -134,10 +134,10 @@ namespace libtorrent
 		m_files.erase(i);
 	}
 
-	void file_pool::release(void* st, file_entry const& fe)
+	void file_pool::release(void* st, int file_index)
 	{
 		mutex::scoped_lock l(m_mutex);
-		file_set::iterator i = m_files.find(std::make_pair(st, fe.file_index));
+		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end()) m_files.erase(i);
 	}
 

@@ -210,7 +210,7 @@ namespace libtorrent
 				if (using_proxy)
 				{
 					request += m_url;
-					std::string path = info.orig_files().at(f.file_index).path;
+					std::string path = info.orig_files().file_path(info.orig_files().at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -219,7 +219,7 @@ namespace libtorrent
 				else
 				{
 					std::string path = m_path;
-					path += info.orig_files().at(f.file_index).path;
+					path += info.orig_files().file_path(info.orig_files().at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -421,7 +421,7 @@ namespace libtorrent
 						int file_index = m_file_requests.front();
 
 						torrent_info const& info = t->torrent_file();
-						std::string path = info.orig_files().at(file_index).path;
+						std::string path = info.orig_files().file_path(info.orig_files().at(file_index));
 #ifdef TORRENT_WINDOWS
 						convert_path_to_posix(path);
 #endif

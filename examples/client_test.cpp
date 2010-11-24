@@ -1715,7 +1715,7 @@ int main(int argc, char* argv[])
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
-						, filename(info.file_at(i).path).c_str()
+						, filename(info.files().file_path(info.file_at(i))).c_str()
 						, pad_file?esc("0"):"");
 					out += str;
 				}
