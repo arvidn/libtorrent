@@ -105,7 +105,7 @@ namespace libtorrent
 		// be extra nice on the hard drive when running
 		// on embedded devices. This might slow down
 		// torrent checking
-		set.file_checks_delay_per_block = 15;
+		set.file_checks_delay_per_block = 5;
 
 		// only have 4 files open at a time
 		set.file_pool_size = 4;
