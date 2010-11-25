@@ -293,7 +293,7 @@ settings. ``save_state`` writes all keys to the ``entry`` that's passed in, whic
 either not be initialized, or initialized as a dictionary.
 
 ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
-``lazy_bdecode``.
+`lazy_bdecode()`_.
 
 The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
 of the session state to save. By default, all state is saved (except for the individual
@@ -1443,7 +1443,7 @@ from the swarm.
 The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
 information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
 an bencoded file. To load an ordinary .torrent file
-into a ``lazy_entry``, use lazy_bdecode(), see `bdecode() bencode()`_.
+into a ``lazy_entry``, use `lazy_bdecode()`_.
 
 The version that takes a buffer pointer and a size will decode it as a .torrent file and
 initialize the torrent_info object for you.
@@ -5179,18 +5179,60 @@ standard encodings. Only Azureus style, Shadow's style and Mainline style. This 
 declared in the header ``<libtorrent/identify_client.hpp>``.
 
 
-bdecode() bencode()
--------------------
+lazy_bdecode()
+--------------
+
+	::
+
+		int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
+			, error_code& ec, int* error_pos = 0, int depth_limit = 1000
+			, int item_limit = 1000000);
+
+This function decodes bencoded_ data.
+
+.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+
+Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
+It is more efficient and more secure. It supports having constraints on the
+amount of memory is consumed by the parser.
+
+*lazy* refers to the fact that it doesn't copy any actual data out of the
+bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
+the bencoded buffer. This makes it very fast and efficient. On top of that,
+it is not recursive, which saves a lot of stack space when parsing deeply
+nested trees. However, in order to protect against potential attacks, the
+``depth_limit`` and ``item_limit`` control how many levels deep the tree is
+allowed to get. With recursive parser, a few thousand levels would be enough
+to exhaust the threads stack and terminate the process. The ``item_limit``
+protects against very large structures, not necessarily deep. Each bencoded
+item in the structure causes the parser to allocate some amount of memory,
+this memory is constant regardless of how much data actually is stored in
+the item. One potential attack is to create a bencoded list of hundreds of
+thousands empty strings, which would cause the parser to allocate a significant
+amount of memory, perhaps more than is available on the machine, and effectively
+provide a denial of service. The default item limit is set as a reasonable
+upper limit for desktop computers. Very few torrents have more items in them.
+The limit corresponds to about 25 MB, which might be a bit much for embedded
+systems.
+
+``start`` and ``end`` defines the bencoded buffer to be decoded. ``ret`` is
+the ``lazy_entry`` which is filled in with the whole decoded tree. ``ec``
+is a reference to an ``error_code`` which is set to describe the error encountered
+in case the function fails. ``error_pos`` is an optional pointer to an int,
+which will be set to the byte offset into the buffer where an error occurred,
+in case the function fails.
+
+bdecode() bencode() 
+--------------------
 
 	::
 
 		template<class InIt> entry bdecode(InIt start, InIt end);
 		template<class OutIt> void bencode(OutIt out, const entry& e);
 
-
 These functions will encode data to bencoded_ or decode bencoded_ data.
 
-.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+If possible, `lazy_bdecode()`_ should be preferred over ``bdecode()``.
 
 The entry_ class is the internal representation of the bencoded data
 and it can be used to retrieve information, an entry_ can also be build by
@@ -6849,6 +6891,18 @@ tracker errors:
 178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
 ------ ----------------------------------------- -----------------------------------------------------------------
 179    invalid_tracker_action                    invalid action field in udp tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+190    expected_string                           expected string in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+191    expected_colon                            expected colon in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+192    unexpected_eof                            unexpected end of file in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+193    expected_value                            expected value (list, dict, int or string) in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+194    depth_exceeded                            bencoded recursion depth limit exceeded
+------ ----------------------------------------- -----------------------------------------------------------------
+195    item_limit_exceeded                       bencoded item count limit exceeded
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.

@@ -52,10 +52,11 @@ namespace libtorrent
 
 	TORRENT_EXPORT char const* parse_int(char const* start, char const* end
 		, char delimiter, boost::int64_t& val);
+
 	// return 0 = success
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
-		, int depth_limit = 1000);
+		, int depth_limit = 1000, int item_limit = 1000000);
 
 	struct pascal_string
 	{
