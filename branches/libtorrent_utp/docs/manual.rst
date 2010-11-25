@@ -293,7 +293,7 @@ settings. ``save_state`` writes all keys to the ``entry`` that's passed in, whic
 either not be initialized, or initialized as a dictionary.
 
 ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
-``lazy_bdecode``.
+`lazy_bdecode()`_.
 
 The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
 of the session state to save. By default, all state is saved (except for the individual
@@ -356,9 +356,9 @@ add_torrent()
 
 	::
 
-		typedef storage_interface* (&storage_constructor_type)(
-			file_storage const&, file_storage const*, fs::path const&, file_pool&
-			, std::vector<boost::uint8_t> const&);
+		typedef boost::function<storage_interface*(file_storage const&
+			, file_storage const*, std::string const&, file_pool&
+			, std::vector<boost::uint8_t> const&) storage_constructor_type;
 
 		struct add_torrent_params
 		{
@@ -382,6 +382,7 @@ add_torrent()
 			bool upload_mode;
 			std::vector<boost::uint8_t> const* file_priorities;
 			bool share_mode;
+			std::string trackerid;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -513,6 +514,10 @@ a torrent. The semantics are the same as for ``torrent_handle::prioritize_files(
 
 ``version`` is filled in by the constructor and should be left untouched. It
 is used for forward binary compatibility.
+
+``trackerid`` is the default tracker id to be used when announcing to trackers. By default
+this is empty, and no tracker ID is used, since this is an optional argument. If
+a tracker returns a tracker ID, that ID is used instead of this.
 
 remove_torrent()
 ----------------
@@ -1357,18 +1362,18 @@ The ``torrent_info`` has the following synopsis::
 	public:
 
 		// these constructors throws exceptions on error
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
 		// these constructors sets the error code on error
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const;
@@ -1429,17 +1434,17 @@ torrent_info()
    
 	::
 
-		torrent_info(sha1_hash const& info_hash);
-		torrent_info(lazy_entry const& torrent_file);
-		torrent_info(char const* buffer, int size);
-		torrent_info(boost::filesystem::path const& filename);
-		torrent_info(boost::filesystem::wpath const& filename);
+		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		torrent_info(char const* buffer, int size, int flags = 0);
+		torrent_info(boost::filesystem::path const& filename, int flags = 0);
+		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
 
-		torrent_info(sha1_hash const& info_hash, error_code& ec);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec);
-		torrent_info(fs::path const& filename, error_code& ec);
-		torrent_info(fs::wpath const& filename, error_code& ec);
+		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
+		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
+		torrent_info(fs::path const& filename, error_code& ec, int flags = 0);
+		torrent_info(fs::wpath const& filename, error_code& ec, int flags = 0);
 
 The constructor that takes an info-hash  will initialize the info-hash to the given value,
 but leave all other fields empty. This is used internally when downloading torrents without
@@ -1449,7 +1454,7 @@ from the swarm.
 The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
 information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
 an bencoded file. To load an ordinary .torrent file
-into a ``lazy_entry``, use lazy_bdecode(), see `bdecode() bencode()`_.
+into a ``lazy_entry``, use `lazy_bdecode()`_.
 
 The version that takes a buffer pointer and a size will decode it as a .torrent file and
 initialize the torrent_info object for you.
@@ -1463,6 +1468,8 @@ will simply set the error code to describe what went wrong and not fully initial
 torrent_info object. The overloads that do not take the extra error_code_ parameter will
 always throw if an error occurs. These overloads are not available when building without
 exception support.
+
+The ``flags`` argument is currently unused.
 
 
 add_tracker()
@@ -1545,21 +1552,22 @@ iterators with the type ``file_entry``.
 
 	struct file_entry
 	{
-		boost::filesystem::path path;
+		std::string filename();
 		size_type offset;
 		size_type size;
 		size_type file_base;
-		std::string symlink_path;
-		boost::shared_ptr<sha1_hash> filehash;
+		time_t mtime;
+		int symlink_index;
+		int filehash_index;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
 	};
 
-The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
-torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
-The filenames are encoded with UTF-8.
+The ``filename`` function returns the filename of this file. It does not include the
+path, just the leaf name. To get the full path name, use ``file_storage::file_path()``.
+The filenames are unicode strings encoded in UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
@@ -1572,6 +1580,17 @@ the ``file_base`` should be set to an offset so that the different regions do
 not overlap. This is used when mapping "unselected" files into a so-called part
 file.
 
+``mtime`` is the modification time of this file specified in posix time.
+
+``symlink_index`` is an index into an array of paths in ``file_storage``, or
+-1 if this file is not a symlink. This field is only used if the ``symlink_attribute``
+is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
+
+``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
+-1 if this file doesn't have a hash specified. The hash is the hash of the actual
+content of the file, and can be used to potentially find alternative sources for it.
+To resolve the hash, use ``file_storage::hash(e)``.
+
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
 or piece boundry. These files should typically be hidden from an end user. They are
@@ -1582,11 +1601,8 @@ not written to disk.
 ``executable_attribute`` is true if the file was marked as executable (posix)
 
 ``symlink_attribute`` is true if the file was a symlink. If this is the case
-the ``symlink_path`` specifies the original location where the data for this file
-was found.
-
-``filehash`` is a pointer that is set in case the torrent file included a sha1 hash
-for this file. This may be use to look up more sources for this file on other networks.
+the ``symlink_index`` refers to a string which specifies the original location
+where the data for this file was found.
 
 num_files() file_at()
 ---------------------
@@ -5273,18 +5289,60 @@ standard encodings. Only Azureus style, Shadow's style and Mainline style. This 
 declared in the header ``<libtorrent/identify_client.hpp>``.
 
 
-bdecode() bencode()
--------------------
+lazy_bdecode()
+--------------
+
+	::
+
+		int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
+			, error_code& ec, int* error_pos = 0, int depth_limit = 1000
+			, int item_limit = 1000000);
+
+This function decodes bencoded_ data.
+
+.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+
+Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
+It is more efficient and more secure. It supports having constraints on the
+amount of memory is consumed by the parser.
+
+*lazy* refers to the fact that it doesn't copy any actual data out of the
+bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
+the bencoded buffer. This makes it very fast and efficient. On top of that,
+it is not recursive, which saves a lot of stack space when parsing deeply
+nested trees. However, in order to protect against potential attacks, the
+``depth_limit`` and ``item_limit`` control how many levels deep the tree is
+allowed to get. With recursive parser, a few thousand levels would be enough
+to exhaust the threads stack and terminate the process. The ``item_limit``
+protects against very large structures, not necessarily deep. Each bencoded
+item in the structure causes the parser to allocate some amount of memory,
+this memory is constant regardless of how much data actually is stored in
+the item. One potential attack is to create a bencoded list of hundreds of
+thousands empty strings, which would cause the parser to allocate a significant
+amount of memory, perhaps more than is available on the machine, and effectively
+provide a denial of service. The default item limit is set as a reasonable
+upper limit for desktop computers. Very few torrents have more items in them.
+The limit corresponds to about 25 MB, which might be a bit much for embedded
+systems.
+
+``start`` and ``end`` defines the bencoded buffer to be decoded. ``ret`` is
+the ``lazy_entry`` which is filled in with the whole decoded tree. ``ec``
+is a reference to an ``error_code`` which is set to describe the error encountered
+in case the function fails. ``error_pos`` is an optional pointer to an int,
+which will be set to the byte offset into the buffer where an error occurred,
+in case the function fails.
+
+bdecode() bencode() 
+--------------------
 
 	::
 
 		template<class InIt> entry bdecode(InIt start, InIt end);
 		template<class OutIt> void bencode(OutIt out, const entry& e);
 
-
 These functions will encode data to bencoded_ or decode bencoded_ data.
 
-.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+If possible, `lazy_bdecode()`_ should be preferred over ``bdecode()``.
 
 The entry_ class is the internal representation of the bencoded data
 and it can be used to retrieve information, an entry_ can also be build by
@@ -6946,6 +7004,18 @@ tracker errors:
 178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
 ------ ----------------------------------------- -----------------------------------------------------------------
 179    invalid_tracker_action                    invalid action field in udp tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+190    expected_string                           expected string in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+191    expected_colon                            expected colon in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+192    unexpected_eof                            unexpected end of file in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+193    expected_value                            expected value (list, dict, int or string) in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+194    depth_exceeded                            bencoded recursion depth limit exceeded
+------ ----------------------------------------- -----------------------------------------------------------------
+195    item_limit_exceeded                       bencoded item count limit exceeded
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.

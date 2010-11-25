@@ -173,6 +173,13 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
+		sha1_hash const& hash(file_entry const& fe) const;
+		std::string const& symlink(file_entry const& fe) const;
+		time_t mtime(file_entry const& fe) const;
+		int file_index(file_entry const& fe) const;
+		size_type file_base(file_entry const& fe) const;
+		void set_file_base(file_entry const& fe, size_type off);
+
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
 		const std::string& name() const;
@@ -216,6 +223,47 @@ can be changed by calling ``set_name``.
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
 
+hash() symlink() mtime() file_index()
+-------------------------------------
+
+	::
+
+		sha1_hash hash(file_entry const& fe) const;
+		std::string const& symlink(file_entry const& fe) const;
+		time_t mtime(file_entry const& fe) const;
+		int file_index(file_entry const& fe) const;
+
+These functions are used to query the symlink, file hash,
+modification time and the file-index from a ``file_entry``.
+
+For these functions to function, the file entry must be an
+actual object from this same ``file_storage`` object. It may
+not be a copy.
+
+The file hash is a sha-1 hash of the file, or 0 if none was
+provided in the torrent file. This can potentially be used to
+join a bittorrent network with other file sharing networks.
+
+The modification time is the posix time when a file was last
+modified when the torrent was created, or 0 if it was not provided.
+
+The file index of a file is simply a 0 based index of the
+file as they are ordered in the torrent file.
+
+file_base() set_file_base()
+---------------------------
+
+	::
+
+		size_type file_base(file_entry const& fe) const;
+		void set_file_base(file_entry const& fe, size_type off);
+
+The file base of a file is the offset within the file on the filsystem
+where it starts to write. For the most part, this is always 0. It's
+possible to map several files (in the torrent) into a single file on
+the filesystem by making them all point to the same filename, but with
+different file bases, so that they don't overlap.
+``torrent_info::remap_files`` can be used to use a new file layout.
 
 create_torrent
 ==============

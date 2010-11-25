@@ -332,6 +332,7 @@ namespace libtorrent
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
 		, m_save_path(complete(p.save_path))
+		, m_trackerid(p.trackerid)
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
@@ -1524,6 +1525,8 @@ namespace libtorrent
 		for (int i = 0; i < int(m_trackers.size()); ++i)
 		{
 			announce_entry& ae = m_trackers[i];
+			// if trackerid is not specified for tracker use default one, probably set explicitly
+			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			if (settings().announce_to_all_tiers
 				&& !settings().announce_to_all_trackers
 				&& sent_announce
@@ -1682,7 +1685,8 @@ namespace libtorrent
 		, int min_interval
 		, int complete
 		, int incomplete
-		, address const& external_ip)
+		, address const& external_ip
+		, const std::string& trackerid)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -1711,6 +1715,13 @@ namespace libtorrent
 			ae->min_announce = now + seconds(min_interval);
 			int tracker_index = ae - &m_trackers[0];
 			m_last_working_tracker = prioritize_tracker(tracker_index);
+
+			if ((!trackerid.empty()) && (ae->trackerid != trackerid))
+			{
+				ae->trackerid = trackerid;
+				if (m_ses.m_alerts.should_post<trackerid_alert>())
+				m_ses.m_alerts.post_alert(trackerid_alert(get_handle(), r.url, trackerid));
+			}
 		}
 		update_tracker_timer(now);
 
@@ -4161,7 +4172,7 @@ namespace libtorrent
 			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
 				, end(m_torrent_file->end_files()); i != end; ++i)
 			{
-				fl.push_back(i->path);
+				fl.push_back(m_torrent_file->files().file_path(*i));
 			}
 		}
 
@@ -4530,7 +4541,7 @@ namespace libtorrent
 		lazy_entry metadata;
 		error_code ec;
 		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
-		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec))
+		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
@@ -6953,8 +6964,8 @@ namespace libtorrent
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 		m_ses.add_redundant_bytes(b);
-		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
-			<= m_stat.total_payload_download());
+//		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
+//			<= m_stat.total_payload_download());
 	}
 
 	void torrent::add_failed_bytes(int b)

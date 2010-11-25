@@ -262,6 +262,7 @@ namespace libtorrent
 			unexpected_eof,
 			expected_value,
 			depth_exceeded,
+			limit_exceeded,
 
 			error_code_max
 		};

@@ -1,3 +1,6 @@
+	* optimized memory usage of torrent_info and file_storage, forcing some API changes
+	  around file_storage and file_entry
+	* support trackerid tracker extension
 	* graceful peer disconnect mode which finishes transactions before disconnecting peers
 	* support chunked encoding for web seeds
 	* uTP protocol support
@@ -57,7 +60,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
-
+	* potential WOW64 fix for unbuffered I/O (windows)
+	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links
 	* support 100 Continue HTTP responses
 	* changed default choker behavior to use 8 unchoke slots (instead of being rate based)
