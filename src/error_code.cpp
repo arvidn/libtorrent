@@ -242,14 +242,16 @@ namespace libtorrent
 			"",
 			"",
 			"",
+			"",
 
 
 // bdecode errors
-			"expected string in bdecoded string",
-			"expected colon in bdecoded string",
-			"unexpected end of file in bdecoded string",
+			"expected string in bencoded string",
+			"expected colon in bencoded string",
+			"unexpected end of file in bencoded string",
 			"expected value (list, dict, int or string) in bencoded string",
 			"bencoded nesting depth exceeded",
+			"bencoded item count limit exceeded",
 		};
 		if (ev < 0 || ev >= sizeof(msgs)/sizeof(msgs[0]))
 			return "Unknown error";

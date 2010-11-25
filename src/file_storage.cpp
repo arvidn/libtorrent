@@ -428,7 +428,6 @@ namespace libtorrent
 			}
 			m_file_base.insert(m_file_base.begin() + dst, base);
 		}
-	
 	}
 
 	void file_storage::optimize(int pad_file_limit)

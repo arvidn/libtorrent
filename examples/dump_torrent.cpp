@@ -40,13 +40,17 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	printf("sizeof(file_entry): %d\n", int(sizeof(file_entry)));
-
-	if (argc != 2)
+	if (argc < 2 || argc > 4)
 	{
-		fputs("usage: dump_torrent torrent-file\n", stderr);
+		fputs("usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n", stderr);
 		return 1;
 	}
+
+	int item_limit = 100000;
+	int depth_limit = 1000;
+
+	if (argc > 2) item_limit = atoi(argv[2]);
+	if (argc > 3) depth_limit = atoi(argv[3]);
 
 	int size = file_size(argv[1]);
 	if (size > 10 * 1000000)
@@ -64,7 +68,10 @@ int main(int argc, char* argv[])
 	lazy_entry e;
 	error_code ec;
 	int pos;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos);
+	printf("decoding. recursion limit: %d total item count limit: %d\n"
+		, depth_limit, item_limit);
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
+		, depth_limit, item_limit);
 
 	if (ret != 0)
 	{
