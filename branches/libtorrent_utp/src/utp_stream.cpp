@@ -1082,8 +1082,13 @@ void utp_socket_impl::destroy()
 
 	if (m_userdata == 0) return;
 
-	m_error = asio::error::operation_aborted;
-	cancel_handlers(m_error, true);
+	if (m_state == UTP_STATE_CONNECTED)
+	{
+		send_fin();
+		if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
+	}
+
+	bool cancelled = cancel_handlers(asio::error::operation_aborted, true);
 
 	m_userdata = 0;
 	m_read_buffer.clear();
@@ -1092,9 +1097,9 @@ void utp_socket_impl::destroy()
 	m_write_buffer.clear();
 	m_write_buffer_size = 0;
 
-	if (m_state == UTP_STATE_ERROR_WAIT
+	if ((m_state == UTP_STATE_ERROR_WAIT
 		|| m_state == UTP_STATE_NONE
-		|| m_state == UTP_STATE_SYN_SENT)
+		|| m_state == UTP_STATE_SYN_SENT) && cancelled)
 	{
 		m_state = UTP_STATE_DELETE;
 #if TORRENT_UTP_LOG
@@ -1102,12 +1107,6 @@ void utp_socket_impl::destroy()
 #endif
 		return;
 	}
-
-	// you should never close a socket with an outstanding write!
-	TORRENT_ASSERT(!m_write_handler);
-
-	if (m_state == UTP_STATE_CONNECTED)
-		send_fin();
 
 	// #error our end is closing. Wait for everything to be acked
 }
@@ -1154,12 +1153,14 @@ void utp_socket_impl::send_syn()
 		, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str());
 #endif
 
-	TORRENT_ASSERT(!m_error);
+	error_code ec;
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
-		, sizeof(utp_header), m_error);
-	if (m_error)
+		, sizeof(utp_header), ec);
+
+	if (ec)
 	{
 		free(p);
+		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
 		return;
@@ -1170,6 +1171,7 @@ void utp_socket_impl::send_syn()
 
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
+	TORRENT_ASSERT(!m_error);
 	m_state = UTP_STATE_SYN_SENT;
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
@@ -1202,21 +1204,25 @@ void utp_socket_impl::send_fin()
 	p->send_time = now;
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
+	error_code ec;
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)h, sizeof(utp_header), m_error);
+		, (char const*)h, sizeof(utp_header), ec);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: sending FIN seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, int(sizeof(utp_header)), m_error.message().c_str(), m_write_buffer_size);
+		, int(sizeof(utp_header)), ec.message().c_str(), m_write_buffer_size);
 #endif
 
-	if (m_error)
+	if (ec)
 	{
+		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
+		free(p);
+		return;
 	}
 
 #if !TORRENT_UT_SEQ
@@ -1235,6 +1241,7 @@ void utp_socket_impl::send_fin()
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 	m_fast_resend_seq_nr = m_seq_nr;
 
+	TORRENT_ASSERT(!m_error);
 	m_state = UTP_STATE_FIN_SENT;
 
 #if TORRENT_UTP_LOG
@@ -1447,6 +1454,8 @@ bool utp_socket_impl::send_pkt(bool ack)
 			// to send our ack anyway, if we don't have to send an
 			// ack, we might as well return
 			if (!ack) return false;
+			// resend_packet might have failed
+			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return false;
 			break;
 		}
 
@@ -1507,7 +1516,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
 			, this, int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-			, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+			, header_size, ec.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 			, int(ret), m_adv_wnd, m_bytes_in_flight, m_mtu);
 #endif
 		return false;
@@ -1595,26 +1604,30 @@ bool utp_socket_impl::send_pkt(bool ack)
 		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe));
 #endif
 
+	TORRENT_ASSERT(!m_error);
+
+	error_code ec;
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)h, packet_size, m_error
+		, (char const*)h, packet_size, ec
 		, use_as_probe ? utp_socket_manager::dont_fragment : 0);
 
 	++m_out_packets;
 
-	if (m_error == error::message_size && use_as_probe)
+	if (ec == error::message_size && use_as_probe)
 	{
-		m_error.clear();
 		m_mtu_ceiling = m_mtu - 1;
 		update_mtu_limits();
 		// TODO: we might want to do something else here
 		// as well, to resend the packet immediately without
 		// it being an MTU probe
 	}
-
-	if (m_error)
+	else if (ec)
 	{
+		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
+		if (payload_size) free(p);
+		return false;
 	}
 
 	// we just sent a packet. this means we just ACKed the last received
@@ -1671,6 +1684,8 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	// for fast re-sends the packet hasn't been marked as needing resending
 	TORRENT_ASSERT(p->need_resend || fast_resend);
 
+	TORRENT_ASSERT(!m_error);
+
 	if (fast_resend
 		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
 		&& m_mtu_seq != 0)
@@ -1705,23 +1720,25 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	p->send_time = time_now_hires();
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(p->send_time - min_time()));
 
+	error_code ec;
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, (char const*)p->buf, p->size, ec);
+	++m_out_packets;
+
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+		, p->size, ec.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
 
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)p->buf, p->size, m_error);
-	++m_out_packets;
-
-	if (m_error)
+	if (ec)
 	{
+		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
 		return false;
@@ -1967,7 +1984,11 @@ bool utp_socket_impl::test_socket_state()
 	// if the socket is in a state where it's dead, just waiting to
 	// tell the client that it's closed. Do that and transition into
 	// the deleted state, where it will be deleted
-	if (m_state != UTP_STATE_ERROR_WAIT) return false;
+	// it might be possible to get here twice, in which we need to
+	// cancel any new handlers as well, even though we're already
+	// in the delete state
+	if (!m_error) return false;
+	TORRENT_ASSERT(m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s error:%s\n"
@@ -2275,6 +2296,10 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		ptr += len;
 		extension = next_extension;
 	}
+	
+	// the send operation in parse_sack() may have set the socket to an error
+	// state, in which case we shouldn't continue
+	if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 
 	if (m_duplicate_acks >= dup_ack_limit
 		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_fast_resend_seq_nr)
@@ -2290,6 +2315,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		{
 			experienced_loss(m_fast_resend_seq_nr);
 			resend_packet(p, true);
+			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 		}
 		// don't fast-resend this again
 		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
@@ -2330,10 +2356,12 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (m_state == UTP_STATE_FIN_SENT)
 			{
 				send_pkt(true);
+				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 			}
 			else
 			{
 				send_fin();
+				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 			}
 		}
 
@@ -2399,6 +2427,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				return true;
 			}
 
+			TORRENT_ASSERT(!m_error);
 			m_state = UTP_STATE_CONNECTED;
 #if TORRENT_UTP_LOG
 			UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
@@ -2463,6 +2492,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				while (send_pkt(false));
 			}
 			maybe_trigger_send_callback(receive_time);
+			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 
 			// Everything up to the FIN has been receieved, respond with a FIN
 			// from our side.
@@ -2472,6 +2502,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 
 				// This transitions to the UTP_STATE_FIN_SENT state.
 				send_fin();
+				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 			}
 
 #if TORRENT_UTP_LOG
@@ -2623,20 +2654,21 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				// received all of our packets.
 
 				UTP_LOGV("%8p: FIN acked\n", this);
-/*
-				if (!m_userdata)
+
+				if (!m_attached)
 				{
-					UTP_LOGV("%8p: close initiated here, "
-					"wait for remote FIN\n", this);
+					UTP_LOGV("%8p: close initiated here, delete socket\n", this);
+					m_error = asio::error::eof;
+					m_state = UTP_STATE_DELETE;
+					test_socket_state();
 				}
 				else
 				{
-*/
-				UTP_LOGV("%8p: closing socket\n", this);
-				m_error = asio::error::eof;
-				m_state = UTP_STATE_ERROR_WAIT;
-				test_socket_state();
-//				}
+					UTP_LOGV("%8p: closing socket\n", this);
+					m_error = asio::error::eof;
+					m_state = UTP_STATE_ERROR_WAIT;
+					test_socket_state();
+				}
 			}
 
 			return true;
@@ -2730,6 +2762,11 @@ void utp_socket_impl::tick(ptime const& now)
 	maybe_trigger_receive_callback(now);
 	maybe_trigger_send_callback(now);
 
+	// if we're already in an error state, we're just waiting for the
+	// client to perform an operation so that we can communicate the
+	// error. No need to do anything else with this socket
+	if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
+
 	if (now > m_timeout)
 	{
 		// TIMEOUT!
@@ -2809,16 +2846,12 @@ void utp_socket_impl::tick(ptime const& now)
 
 			// the packet timed out, resend it
 			resend_packet(p);
-			if (m_error)
-			{
-				m_state = UTP_STATE_ERROR_WAIT;
-				test_socket_state();
-				return;
-			}
+			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
 		}
 		else if (m_state < UTP_STATE_FIN_SENT)
 		{
 			send_pkt(false);
+			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
 		}
 		else if (m_state == UTP_STATE_FIN_SENT)
 		{
@@ -2835,6 +2868,7 @@ void utp_socket_impl::tick(ptime const& now)
 		UTP_LOGV("%8p: ack timer expired, sending ACK\n", this);
 		// we need to send an ACK now!
 		send_pkt(true);
+		if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
 	}
 
 	switch (m_state)
