@@ -180,10 +180,8 @@ namespace libtorrent
 					continue;
 				}
 			}
-			printf("lazy_bdecode item_limit: %d\n", item_limit);
 			return 0;
 		}
-		printf("lazy_bdecode item_limit: %d\n", item_limit);
 		return 0;
 	}
 

@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		i != t.end_files(); ++i, ++index)
 	{
 		int first = t.map_file(index, 0, 0).piece;
-		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
+		int last = t.map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
 		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 			, i->size
 			, (i->pad_file?'p':'-')
