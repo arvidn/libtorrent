@@ -1,3 +1,4 @@
+	* fixed bug when allow_multiple_connections_per_ip was enabled
 	* fixed UPnP shutdown issue
 	* no peers from tracker when stopping is no longer an error
 
