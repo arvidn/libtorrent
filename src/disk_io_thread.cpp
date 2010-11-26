@@ -2101,7 +2101,7 @@ namespace libtorrent
 						ret = piece_manager::fatal_disk_error;
 						break;
 					}
-					TORRENT_ASSERT(ret != -2 || !j.str.empty());
+					TORRENT_ASSERT(ret != -2 || j.error);
 					
 					// if the check is not done, add it at the end of the job queue
 					if (ret == piece_manager::need_full_check)
@@ -2155,7 +2155,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				TORRENT_ASSERT(ret != -2 || !j.str.empty()
+				TORRENT_ASSERT(ret != -2 || j.error
 					|| j.action == disk_io_job::hash);
 #if TORRENT_DISK_STATS
 				if ((j.action == disk_io_job::read || j.action == disk_io_job::read_and_hash)
