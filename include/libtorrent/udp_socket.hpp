@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/session_settings.hpp"
 
-#include <vector>
+#include <list>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
 
