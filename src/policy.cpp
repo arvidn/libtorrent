@@ -884,7 +884,7 @@ namespace libtorrent
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iterator i = std::find_if(range.first, range.second
 				, match_peer_endpoint(remote));
-			if (i != m_peers.end())
+			if (i != range.second)
 			{
 				policy::peer& pp = **i;
 				if (pp.connection)
