@@ -403,6 +403,22 @@ void node_impl::on_announce(msg const& m, msg& reply)
 	// the table get a chance to add it.
 	m_table.node_seen(m.id, m.addr);
 
+	if (!m_map.empty() && m_map.size() >= 3000)
+	{
+		// we need to remove some. Remove the ones with the
+		// fewest peers
+		int num_peers = m_map.begin()->second.peers.size();
+		table_t::iterator candidate = m_map.begin();
+		for (table_t::iterator i = m_map.begin()
+			, end(m_map.end()); i != end; ++i)
+		{
+			if (i->second.peers.size() > num_peers) continue;
+			if (i->first == m.info_hash) continue;
+			num_peers = i->second.peers.size();
+			candidate = i;
+		}
+		m_map.erase(candidate);
+	}
 	torrent_entry& v = m_map[m.info_hash];
 	peer_entry e;
 	e.addr = tcp::endpoint(m.addr.address(), m.port);
