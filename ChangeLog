@@ -1,3 +1,4 @@
+	* limit number of torrents tracked by DHT
 	* fixed bug when allow_multiple_connections_per_ip was enabled
 	* potential WOW64 fix for unbuffered I/O (windows)
 	* expose set_alert_queue_size_limit to python binding
