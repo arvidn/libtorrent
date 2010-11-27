@@ -511,7 +511,7 @@ namespace libtorrent { namespace dht
 		lazy_entry e;
 		int pos;
 		error_code ec;
-		int ret = lazy_bdecode(buf, buf + bytes_transferred, e, ec, &pos);
+		int ret = lazy_bdecode(buf, buf + bytes_transferred, e, ec, &pos, 10, 500);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
