@@ -536,6 +536,8 @@ bool node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply) const
 	torrent_entry const& v = i->second;
 	if (v.peers.empty()) return false;
 
+	if (!v.name.empty()) reply["n"] = v.name;
+
 	int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
 	int t = 0;
 	int m = 0;
@@ -753,10 +755,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"info_hash", lazy_entry::string_t, 20, 0},
 			{"port", lazy_entry::int_t, 0, 0},
 			{"token", lazy_entry::string_t, 0, 0},
+			{"n", lazy_entry::string_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[3];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[4];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
@@ -795,7 +798,33 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr);
 
+		if (!m_map.empty() && m_map.size() >= m_ses.settings().dht_max_torrents)
+		{
+			// we need to remove some. Remove the ones with the
+			// fewest peers
+			int num_peers = m_map.begin()->second.peers.size();
+			table_t::iterator candidate = m_map.begin();
+			for (table_t::iterator i = m_map.begin()
+				, end(m_map.end()); i != end; ++i)
+			{
+				if (i->second.peers.size() > num_peers) continue;
+				if (i->first == info_hash) continue;
+				num_peers = i->second.peers.size();
+				candidate = i;
+			}
+			m_map.erase(candidate);
+		}
 		torrent_entry& v = m_map[info_hash];
+
+		// the peer announces a torrent name, and we don't have a name
+		// for this torrent. Store it.
+		if (msg_keys[3] && v.name.empty())
+		{
+			std::string name = msg_keys[3]->string_value();
+			if (name.size() > 50) name.resize(50);
+			v.name = name;
+		}
+
 		peer_entry e;
 		e.addr = tcp::endpoint(m.addr.address(), port);
 		e.added = time_now();

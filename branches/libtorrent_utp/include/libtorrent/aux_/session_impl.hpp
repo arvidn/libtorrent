@@ -869,7 +869,8 @@ namespace libtorrent
 				, int min_interval
 				, int complete
 				, int incomplete
-				, address const& external_ip)
+				, address const& external_ip
+				, std::string const& tracker_id)
 			{
 				std::string s;
 				s = "TRACKER RESPONSE:\n";

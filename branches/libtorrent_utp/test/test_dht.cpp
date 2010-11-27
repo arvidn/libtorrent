@@ -43,7 +43,9 @@ using namespace libtorrent;
 
 int dht_port = 48199;
 
-void send_dht_msg(datagram_socket& sock, char const* msg, lazy_entry* reply, char const* t = "10")
+void send_dht_msg(datagram_socket& sock, char const* msg, lazy_entry* reply
+	, char const* t = "10", char const* info_hash = 0, char const* name = 0
+	, char const* token = 0, int port = 0)
 {
 	entry e;
 	e["q"] = msg;
@@ -51,6 +53,10 @@ void send_dht_msg(datagram_socket& sock, char const* msg, lazy_entry* reply, cha
 	e["y"] = "q";
 	entry::dictionary_type& a = e["a"].dict();
 	a["id"] = "00000000000000000000";
+	if (info_hash) a["info_hash"] = info_hash;
+	if (name) a["n"] = name;
+	if (token) a["token"] = token;
+	if (port) a["port"] = port;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 
@@ -98,12 +104,17 @@ int test_main()
 		{"t", lazy_entry::string_t, 2, 0},
 	};
 
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 	ret = dht::verify_message(&response, pong_desc, parsed, 2, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
 		TEST_CHECK(parsed[1]->string_value() == "10");
+	}
+	else
+	{
+		fprintf(stderr, "invalid ping response: %s\n", error_string);
 	}
 
 	// ====== invalid message ======
@@ -115,6 +126,7 @@ int test_main()
 		{"e", lazy_entry::list_t, 0, 0},
 	};
 
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
@@ -131,6 +143,75 @@ int test_main()
 		{
 			TEST_ERROR("invalid error response");
 		}
+	}
+	else
+	{
+		fprintf(stderr, "invalid error response: %s\n", error_string);
+	}
+
+	// ====== get_peers ======
+
+	send_dht_msg(sock, "get_peers", &response, "10", "01010101010101010101");
+
+	dht::key_desc_t peer1_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, 0},
+	};
+
+	std::string token;
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	ret = dht::verify_message(&response, peer1_desc, parsed, 2, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		token = parsed[1]->dict_find_string_value("token");
+	}
+	else
+	{
+		fprintf(stderr, "invalid get_peers response: %s\n", error_string);
+	}
+
+	// ====== announce ======
+
+	send_dht_msg(sock, "announce_peer", &response, "10", "01010101010101010101", "test", token.c_str(), 8080);
+
+	dht::key_desc_t ann_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+	};
+
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	ret = dht::verify_message(&response, ann_desc, parsed, 1, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "r");
+	}
+	else
+	{
+		fprintf(stderr, "invalid announce response: %s\n", error_string);
+	}
+
+	// ====== get_peers ======
+
+	send_dht_msg(sock, "get_peers", &response, "10", "01010101010101010101");
+
+	dht::key_desc_t peer2_desc[] = {
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, 0},
+	};
+
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	ret = dht::verify_message(&response, peer2_desc, parsed, 2, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		TEST_EQUAL(parsed[1]->dict_find_string_value("n"), "test");
+	}
+	else
+	{
+		fprintf(stderr, "invalid get_peers response: %s\n", error_string);
 	}
 
 	return 0;

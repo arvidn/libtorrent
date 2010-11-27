@@ -1328,7 +1328,7 @@ namespace libtorrent
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.str <<
+				" error: " << j.error.message() <<
 				" torrent: " << torrent_file().name() <<
 				" ]\n";
 #endif

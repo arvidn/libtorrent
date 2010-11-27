@@ -95,6 +95,7 @@ struct peer_entry
 // this is a group. It contains a set of group members
 struct torrent_entry
 {
+	std::string name;
 	std::set<peer_entry> peers;
 };
 

@@ -3936,6 +3936,7 @@ session_settings
 		bool low_prio_disk;
 		int local_service_announce_interval;
 		int dht_announce_interval;
+		int dht_max_torrents;
 
 		int udp_tracker_token_expiry;
 		bool volatile_read_cache;
@@ -4564,6 +4565,9 @@ This interval is specified in seconds.
 ``dht_announce_interval`` is the number of seconds between announcing
 torrents to the distributed hash table (DHT). This is specified to
 be 15 minutes which is its default.
+
+``dht_max_torrents`` is the max number of torrents we will track
+in the DHT.
 
 ``udp_tracker_token_expiry`` is the number of seconds libtorrent
 will keep UDP tracker connection tokens around for. This is specified

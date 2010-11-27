@@ -1,3 +1,4 @@
+	* support DHT name lookup
 	* optimized memory usage of torrent_info and file_storage, forcing some API changes
 	  around file_storage and file_entry
 	* support trackerid tracker extension
@@ -60,6 +61,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* limit number of torrents tracked by DHT
+	* fixed bug when allow_multiple_connections_per_ip was enabled
 	* potential WOW64 fix for unbuffered I/O (windows)
 	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links

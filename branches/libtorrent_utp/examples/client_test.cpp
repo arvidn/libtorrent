@@ -842,6 +842,9 @@ int main(int argc, char* argv[])
 			"  -Y                    Rate limit local peers\n"
 			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
 			"                        incoming TCP connections)\n"
+			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
+			"                        this is useful for scripting tests\n"
+			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet: url\n")
@@ -864,6 +867,7 @@ int main(int argc, char* argv[])
 	int refresh_delay = 1;
 	bool start_dht = true;
 	bool start_upnp = true;
+	int loop_limit = 0;
 
 	std::deque<std::string> events;
 
@@ -1044,6 +1048,7 @@ int main(int argc, char* argv[])
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
+			case 'q': loop_limit = atoi(arg); break;
 		}
 		++i; // skip the argument
 	}
@@ -1139,8 +1144,9 @@ int main(int argc, char* argv[])
 	std::vector<peer_info> peers;
 	std::vector<partial_piece_info> queue;
 
-	for (;;)
+	while (loop_limit > 1 || loop_limit == 0)
 	{
+		if (loop_limit > 1) --loop_limit;
 		char c;
 		while (sleep_and_input(&c, refresh_delay))
 		{

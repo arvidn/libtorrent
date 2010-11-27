@@ -683,7 +683,6 @@ namespace aux {
 
 		PRINT_SIZEOF(udp_socket)
 		PRINT_OFFSETOF(udp_socket, m_callback)
-		PRINT_OFFSETOF(udp_socket, m_mutex)
 		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
 		PRINT_OFFSETOF(udp_socket, m_v4_ep)
 		PRINT_OFFSETOF(udp_socket, m_v4_buf)
