@@ -392,8 +392,8 @@ int test_main()
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file")
 		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file", (char const*)0));
 
-	TEST_CHECK(parse_url_components("http://[::1]/path/to/file")
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file", (char const*)0));
+	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file")
+		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file", (char const*)0));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
