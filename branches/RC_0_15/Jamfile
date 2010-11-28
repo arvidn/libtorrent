@@ -325,7 +325,7 @@ lib boost_thread : : <name>boost_thread ;
 lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
-lib crypto : : <name>crypto ;
+lib crypto : : <name>crypto <search>/lib ;
 lib ssl : : <name>ssl ;
 
 # time functions used on linux require librt

@@ -160,9 +160,10 @@ namespace libtorrent
 			save_proxy =        0x008,
 			save_i2p_proxy =    0x010,
 			save_encryption_settings = 0x020,
-			save_as_map =       0x040,
+			save_as_map =       0x040
 
 #ifndef TORRENT_NO_DEPRECATE
+			,
 			save_dht_proxy = save_proxy,
 			save_peer_proxy = save_proxy,
 			save_web_proxy = save_proxy,
