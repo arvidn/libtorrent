@@ -1002,7 +1002,7 @@ namespace libtorrent
 #endif
 		m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 			, tracker_login(), m_ses.m_listen_interface.address()
-			, m_abort?boost::shared_ptr<torrent>():shared_from_this(), &m_ses.m_ip_filter);
+			, shared_from_this(), &m_ses.m_ip_filter);
 
 		if (m_ses.m_alerts.should_post<tracker_announce_alert>())
 		{

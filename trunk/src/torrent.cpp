@@ -1582,7 +1582,7 @@ namespace libtorrent
 			else
 #endif
 				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-					, tracker_login() , m_abort?boost::shared_ptr<torrent>():shared_from_this());
+					, tracker_login() , shared_from_this());
 			ae.updating = true;
 			ae.next_announce = now + seconds(20);
 			ae.min_announce = now + seconds(10);
