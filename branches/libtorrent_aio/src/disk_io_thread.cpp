@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 #endif
 
-#define DEBUG_STORAGE 1
+#define DEBUG_STORAGE 0
 
 #define DLOG if (DEBUG_STORAGE) fprintf
 
