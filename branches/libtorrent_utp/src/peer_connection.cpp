@@ -637,13 +637,11 @@ namespace libtorrent
 
 	peer_plugin const* peer_connection::find_plugin(char const* type)
 	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
 			if (strcmp((*i)->type(), type) == 0) return (*i).get();
 		}
-#endif
 		return 0;
 	}
 #endif
@@ -2235,8 +2233,6 @@ namespace libtorrent
 		if (!m_bitfield_received) incoming_have_none();
 		if (is_disconnecting()) return;
 
-		ptime now = time_now();
-
 		update_desired_queue_size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2292,6 +2288,8 @@ namespace libtorrent
 			t->add_redundant_bytes(p.length);
 			return;
 		}
+
+		ptime now = time_now();
 
 		piece_picker& picker = t->picker();
 		piece_manager& fs = t->filesystem();
@@ -3129,8 +3127,6 @@ namespace libtorrent
 
 		bool empty_download_queue = m_download_queue.empty();
 
-		ptime now = time_now_hires();
-
 		while (!m_request_queue.empty()
 			&& ((int)m_download_queue.size() < m_desired_queue_size
 				|| m_queued_time_critical > 0))
@@ -3236,7 +3232,7 @@ namespace libtorrent
 #endif
 			{
 				write_request(r);
-				m_last_request = now;
+				m_last_request = time_now();
 			}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -3247,7 +3243,7 @@ namespace libtorrent
 				, m_request_large_blocks?"large":"single");
 #endif
 		}
-		m_last_piece = now;
+		m_last_piece = time_now();
 
 		if (!m_download_queue.empty()
 			&& empty_download_queue)

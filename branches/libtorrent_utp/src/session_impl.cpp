@@ -319,6 +319,11 @@ namespace aux {
 		TORRENT_SETTING(integer, default_peer_upload_rate)
 		TORRENT_SETTING(integer, default_peer_download_rate)
 		TORRENT_SETTING(boolean, broadcast_lsd)
+		TORRENT_SETTING(boolean, enable_outgoing_utp)
+		TORRENT_SETTING(boolean, enable_incoming_utp)
+		TORRENT_SETTING(boolean, enable_outgoing_tcp)
+		TORRENT_SETTING(boolean, enable_incoming_tcp)
+		TORRENT_SETTING(integer, max_pex_peers)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
 		TORRENT_SETTING(integer, tick_interval)
@@ -331,6 +336,15 @@ namespace aux {
 		TORRENT_SETTING(integer, connections_limit)
 		TORRENT_SETTING(integer, utp_target_delay)
 		TORRENT_SETTING(integer, utp_gain_factor)
+		TORRENT_SETTING(integer, utp_syn_resends)
+		TORRENT_SETTING(integer, utp_fin_resends)
+		TORRENT_SETTING(integer, utp_num_resends)
+		TORRENT_SETTING(integer, utp_connect_timeout)
+		TORRENT_SETTING(integer, utp_delayed_ack)
+		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
+		TORRENT_SETTING(integer, mixed_mode_algorithm)
+		TORRENT_SETTING(boolean, rate_limit_utp)
+		TORRENT_SETTING(integer, listen_queue_size)
 	};
 
 #undef TORRENT_SETTING

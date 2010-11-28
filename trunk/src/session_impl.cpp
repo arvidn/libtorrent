@@ -329,6 +329,7 @@ namespace aux {
 		TORRENT_SETTING(integer, unchoke_slots_limit)
 		TORRENT_SETTING(integer, half_open_limit)
 		TORRENT_SETTING(integer, connections_limit)
+		TORRENT_SETTING(integer, listen_queue_size)
 	};
 
 #undef TORRENT_SETTING

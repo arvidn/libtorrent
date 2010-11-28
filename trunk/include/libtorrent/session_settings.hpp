@@ -227,7 +227,6 @@ namespace libtorrent
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 			, share_mode_target(3)
-
 			, upload_rate_limit(0)
 			, download_rate_limit(0)
 			, local_upload_rate_limit(0)
