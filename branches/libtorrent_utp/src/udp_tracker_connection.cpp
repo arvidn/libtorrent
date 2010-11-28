@@ -110,6 +110,9 @@ namespace libtorrent
 		}
 		else
 		{
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("udp_tracker_connection::name_lookup");
+#endif
 			tcp::resolver::query q(hostname, to_string(port).elems);
 			m_ses.m_host_resolver.async_resolve(q
 				, boost::bind(
@@ -129,6 +132,9 @@ namespace libtorrent
 	void udp_tracker_connection::name_lookup(error_code const& error
 		, tcp::resolver::iterator i)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("udp_tracker_connection::name_lookup");
+#endif
 		if (m_abort) return;
 		if (error == asio::error::operation_aborted) return;
 		if (error || i == tcp::resolver::iterator())

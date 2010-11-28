@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #if BOOST_VERSION < 103500
@@ -110,6 +114,9 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 	}
 #endif
 
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("lsd::resend_announce");
+#endif
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1
 		, std::string(msg)));
@@ -117,6 +124,9 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 void lsd::resend_announce(error_code const& e, std::string msg)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("lsd::resend_announce");
+#endif
 	if (e) return;
 
 	error_code ec;
@@ -126,6 +136,9 @@ void lsd::resend_announce(error_code const& e, std::string msg)
 	if (m_retry_count >= 5)
 		return;
 
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("lsd::resend_announce");
+#endif
 	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1, msg));
 }

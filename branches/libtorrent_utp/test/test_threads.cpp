@@ -37,10 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void fun(condition* s, mutex* m, int i)
+void fun(condition* s, libtorrent::mutex* m, int i)
 {
 	fprintf(stderr, "thread %d waiting\n", i);
-	mutex::scoped_lock l(*m);
+	libtorrent::mutex::scoped_lock l(*m);
 	s->wait(l);
 	fprintf(stderr, "thread %d done\n", i);
 }
@@ -48,7 +48,7 @@ void fun(condition* s, mutex* m, int i)
 int test_main()
 {
 	condition cond;
-	mutex m;
+	libtorrent::mutex m;
 	std::list<thread*> threads;
 	for (int i = 0; i < 20; ++i)
 	{
@@ -58,7 +58,7 @@ int test_main()
 	// make sure all threads are waiting on the condition
 	sleep(10);
 
-	mutex::scoped_lock l(m);
+	libtorrent::mutex::scoped_lock l(m);
 	cond.signal_all(l);
 	l.unlock();
 
