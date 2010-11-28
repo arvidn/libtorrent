@@ -241,6 +241,9 @@ feature asserts : on off production : composite propagated ;
 feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
 
+feature asio-debugging : off on : composite propagated link-incompatible ;
+feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
+
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 

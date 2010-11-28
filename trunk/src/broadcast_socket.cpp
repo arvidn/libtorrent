@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 #ifndef NDEBUG
 //#include "libtorrent/socket_io.hpp"
 #endif
@@ -259,6 +263,9 @@ namespace libtorrent
 		if (ec) return;
 		m_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_sockets.back();
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
@@ -275,6 +282,9 @@ namespace libtorrent
 		if (ec) return;
 		m_unicast_sockets.push_back(socket_entry(s, mask));
 		socket_entry& se = m_unicast_sockets.back();
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
@@ -330,9 +340,15 @@ namespace libtorrent
 	void broadcast_socket::on_receive(socket_entry* s, error_code const& ec
 		, std::size_t bytes_transferred)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("broadcast_socket::on_receive");
+#endif
 		if (ec || bytes_transferred == 0 || !m_on_receive) return;
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
 		if (!s->socket) return;
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 	}

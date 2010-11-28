@@ -4436,6 +4436,9 @@ namespace libtorrent
 		peer_log("==> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
 #endif
 		std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("peer_connection::on_send_data");
+#endif
 		m_socket->async_write_some(
 			vec, make_write_handler(boost::bind(
 				&peer_connection::on_send_data, self(), _1, _2)));
@@ -4503,6 +4506,9 @@ namespace libtorrent
 
 			if (ec != asio::error::would_block)
 			{
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("peer_connection::on_receive_data");
+#endif
 				++m_read_recurse;
 				m_channel_state[download_channel] = peer_info::bw_network;
 				on_receive_data(ec, bytes_transferred);
@@ -4592,6 +4598,9 @@ namespace libtorrent
 			peer_log("<== ASYNC_READ      [ max: %d bytes ]", max_receive);
 #endif
 
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("peer_connection::on_receive_data");
+#endif
 			if (num_bufs == 1)
 			{
 				m_socket->async_read_some(
@@ -4776,6 +4785,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("peer_connection::on_receive_data");
+#endif
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
 		boost::intrusive_ptr<peer_connection> me(self());
@@ -4994,6 +5006,9 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << time_now_string() << " ASYNC_CONNECT: " << print_endpoint(m_remote) << "\n";
 #endif
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("peer_connection::on_connection_complete");
+#endif
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now();
@@ -5008,6 +5023,9 @@ namespace libtorrent
 	
 	void peer_connection::on_connection_complete(error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("peer_connection::on_connection_complete");
+#endif
 		ptime completed = time_now();
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -5094,6 +5112,9 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("peer_connection::on_send_data");
+#endif
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
 		boost::intrusive_ptr<peer_connection> me(self());

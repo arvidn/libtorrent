@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/escape_string.hpp"
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #if BOOST_VERSION < 103500
@@ -144,6 +148,9 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 		return;
 	}
 
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("upnp::resend_request");
+#endif
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&upnp::resend_request
@@ -244,6 +251,9 @@ bool upnp::get_mapping(int index, int& local_port, int& external_port, int& prot
 
 void upnp::resend_request(error_code const& e)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("upnp::resend_request");
+#endif
 	if (e) return;
 
 	boost::intrusive_ptr<upnp> me(self());
@@ -1188,6 +1198,9 @@ void upnp::on_upnp_map_response(error_code const& e
 			if (next_expire < time_now()
 				|| next_expire > m.expires)
 			{
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("upnp::on_expire");
+#endif
 				error_code ec;
 				m_refresh_timer.expires_at(m.expires, ec);
 				m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
@@ -1268,6 +1281,9 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 void upnp::on_expire(error_code const& e)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("upnp::on_expire");
+#endif
 	if (e) return;
 
 	ptime now = time_now();
@@ -1298,6 +1314,9 @@ void upnp::on_expire(error_code const& e)
 	}
 	if (next_expire != max_time())
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("upnp::on_expire");
+#endif
 		error_code ec;
 		m_refresh_timer.expires_at(next_expire, ec);
 		m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));

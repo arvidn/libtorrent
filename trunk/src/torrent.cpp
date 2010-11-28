@@ -1353,6 +1353,9 @@ namespace libtorrent
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
 		, error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("tracker::on_tracker_announce_disp");
+#endif
 		if (e) return;
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
@@ -1756,6 +1759,9 @@ namespace libtorrent
 				else
 #endif
 				{
+#if defined TORRENT_ASIO_DEBUGGING
+					add_outstanding_async("torrent::on_peer_name_lookup");
+#endif
 					tcp::resolver::query q(i->ip, to_string(i->port).elems);
 					m_ses.m_host_resolver.async_resolve(q,
 						boost::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i->pid));
@@ -1862,6 +1868,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
+
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("torrent::on_peer_name_lookup");
+#endif
 
 #if defined TORRENT_LOGGING
 		if (e)
@@ -5803,6 +5813,9 @@ namespace libtorrent
 		// always do it
 //		if (m_tracker_timer.expires_at() <= next_announce) return;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("tracker::on_tracker_announce_disp");
+#endif
 		m_tracker_timer.expires_at(next_announce, ec);
 		m_tracker_timer.async_wait(boost::bind(&torrent::on_tracker_announce_disp, self, _1));
 	}
