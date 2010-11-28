@@ -26,6 +26,7 @@ nobase_include_HEADERS = \
   config.hpp                   \
   connection_queue.hpp         \
   ConvertUTF.h                 \
+  copy_ptr.hpp                 \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \
@@ -81,6 +82,7 @@ nobase_include_HEADERS = \
   session_status.hpp           \
   settings.hpp                 \
   size_type.hpp                \
+  sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
   socket_type.hpp              \
