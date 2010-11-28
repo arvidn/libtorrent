@@ -333,7 +333,7 @@ lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib crypto : : <name>crypto <link>shared ;
+lib crypto : : <name>crypto <search>/lib ;
 lib ssl : : <name>ssl <link>shared <use>crypto ;
 
 # time functions used on linux require librt
