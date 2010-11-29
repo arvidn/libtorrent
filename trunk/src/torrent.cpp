@@ -313,6 +313,9 @@ namespace libtorrent
 		return ret;
 	}
 
+	// defined in ut_pex.cpp
+	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
+
 	torrent::torrent(
 		session_impl& ses
 		, tcp::endpoint const& net_interface
@@ -984,6 +987,33 @@ namespace libtorrent
 		m_storage->async_check_fastresume(&m_resume_entry
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
+	}
+
+	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		{
+			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			bt_peer_connection* p = (bt_peer_connection*)(*i);
+			if (!p->supports_holepunch()) continue;
+			peer_plugin const* pp = p->find_plugin("ut_pex");
+			if (!pp) continue;
+			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
+		}
+#endif
+		return 0;
+	}
+
+	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
+	{
+		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		{
+			peer_connection* p = *i;
+			if (p->type() != peer_connection::bittorrent_connection) continue;
+			if (p->remote() == ep) return (bt_peer_connection*)p;
+		}
+		return 0;
 	}
 
 	void torrent::on_resume_data_checked(int ret, disk_io_job const& j)
@@ -4366,7 +4396,7 @@ namespace libtorrent
 	
 	}
 	
-	bool torrent::connect_to_peer(policy::peer* peerinfo)
+	bool torrent::connect_to_peer(policy::peer* peerinfo, bool ignore_limit)
 	{
 		INVARIANT_CHECK;
 
@@ -4390,8 +4420,8 @@ namespace libtorrent
 #endif
 #endif
 
-		TORRENT_ASSERT(want_more_peers());
-		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit);
+		TORRENT_ASSERT(want_more_peers() || ignore_limit);
+		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
 
 		tcp::endpoint a(peerinfo->ip());
 		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);
@@ -4412,7 +4442,21 @@ namespace libtorrent
 		else
 #endif
 		{
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s);
+			// this is where we determine if we open a regular TCP connection
+			// or a uTP connection. If the m_utp_socket_manager pointer is not passed in
+			// we'll instantiate a TCP connection
+			utp_socket_manager* sm = 0;
+
+			if (m_ses.m_settings.enable_outgoing_utp
+				&& (!m_ses.m_settings.enable_outgoing_tcp
+					|| peerinfo->supports_utp
+					|| peerinfo->confirmed_supports_utp))
+				sm = &m_ses.m_utp_socket_manager;
+
+			// don't make a TCP connection if it's disabled
+			if (sm == 0 && !m_ses.m_settings.enable_outgoing_tcp) return false;
+
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, 0, sm);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}

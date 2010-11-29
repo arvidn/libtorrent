@@ -81,8 +81,9 @@ rule linking ( properties * )
 	{
 		result += <library>ws2_32
 			<library>wsock32
+			<library>iphlpapi
 			<define>WIN32_LEAN_AND_MEAN
-			<define>_WIN32_WINNT=0x0500
+			<define>_WIN32_WINNT=0x0600
 			<define>__USE_W32_SOCKETS
 			<define>WIN32
 			<define>_WIN32
@@ -353,6 +354,7 @@ lib GeoIP : : <name>GeoIP <link>shared ;
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
 lib ws2_32 : : <name>ws2_32 <link>shared ;
+lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
@@ -384,6 +386,7 @@ SOURCES =
 	i2p_stream
 	instantiate_connection
 	natpmp
+	packet_buffer
 	piece_picker
 	policy
 	puff
@@ -403,8 +406,11 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
+	timestamp_history
 	udp_socket
 	upnp
+	utp_socket_manager
+	utp_stream
 	logger
 	file_pool
 	lsd
@@ -443,6 +449,8 @@ local usage-requirements =
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
+# enable cancel support in asio
+	<define>BOOST_ASIO_ENABLE_CANCELIO
 	<conditional>@linking
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t

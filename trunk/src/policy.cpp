@@ -108,7 +108,7 @@ namespace libtorrent
 {
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
-	// problems when out peer list is diluted by stale peers from
+	// problems when our peer list is diluted by stale peers from
 	// the resume data for instance
 	int source_rank(int source_bitmask)
 	{
@@ -1008,6 +1008,10 @@ namespace libtorrent
 			p->seed = true;
 			++m_num_seeds;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as = m_torrent->session().as_for_ip(p->address());
@@ -1048,6 +1052,10 @@ namespace libtorrent
 			if (!p->seed) ++m_num_seeds;
 			p->seed = true;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (p->connection)
@@ -1362,7 +1370,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(c);
 		error_code ec;
-		TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint(ec) || ec);
+		if (c->remote() != c->get_socket()->remote_endpoint(ec) && !ec)
+		{
+			fprintf(stderr, "c->remote: %s\nc->get_socket()->remote_endpoint: %s\n"
+				, print_endpoint(c->remote()).c_str()
+				, print_endpoint(c->get_socket()->remote_endpoint(ec)).c_str());
+			TORRENT_ASSERT(false);
+		}
 
 		return std::find_if(
 			m_peers.begin()
@@ -1525,6 +1539,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		, added_to_dht(false)
 #endif
+		, supports_utp(true) // assume peers support utp
+		, confirmed_supports_utp(false)
+		, supports_holepunch(false)
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 	}

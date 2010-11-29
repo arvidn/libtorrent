@@ -319,6 +319,11 @@ namespace aux {
 		TORRENT_SETTING(integer, default_peer_upload_rate)
 		TORRENT_SETTING(integer, default_peer_download_rate)
 		TORRENT_SETTING(boolean, broadcast_lsd)
+		TORRENT_SETTING(boolean, enable_outgoing_utp)
+		TORRENT_SETTING(boolean, enable_incoming_utp)
+		TORRENT_SETTING(boolean, enable_outgoing_tcp)
+		TORRENT_SETTING(boolean, enable_incoming_tcp)
+		TORRENT_SETTING(integer, max_pex_peers)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
 		TORRENT_SETTING(integer, tick_interval)
@@ -329,6 +334,16 @@ namespace aux {
 		TORRENT_SETTING(integer, unchoke_slots_limit)
 		TORRENT_SETTING(integer, half_open_limit)
 		TORRENT_SETTING(integer, connections_limit)
+		TORRENT_SETTING(integer, utp_target_delay)
+		TORRENT_SETTING(integer, utp_gain_factor)
+		TORRENT_SETTING(integer, utp_syn_resends)
+		TORRENT_SETTING(integer, utp_fin_resends)
+		TORRENT_SETTING(integer, utp_num_resends)
+		TORRENT_SETTING(integer, utp_connect_timeout)
+		TORRENT_SETTING(integer, utp_delayed_ack)
+		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
+		TORRENT_SETTING(integer, mixed_mode_algorithm)
+		TORRENT_SETTING(boolean, rate_limit_utp)
 		TORRENT_SETTING(integer, listen_queue_size)
 	};
 
@@ -482,6 +497,8 @@ namespace aux {
 			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
 			, m_half_open)
+		, m_utp_socket_manager(m_settings, m_udp_socket
+			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
@@ -645,6 +662,7 @@ namespace aux {
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
+		(*m_logger) << "sizeof(utp_socket_impl): " << socket_impl_size() << "\n";
 
 		PRINT_SIZEOF(file_entry)
 
@@ -1792,12 +1810,15 @@ namespace aux {
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
+			return;
 		}
+		
+		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
+			return;
+
 		// maybe it's a udp tracker response
-		else if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-		{
+		if (m_tracker_manager.incoming_udp(e, ep, buf, len))
 			m_stat.received_tracker_bytes(len + 28);
-		}
 	}
 
 	void session_impl::on_receive_udp_hostname(error_code const& e
@@ -1901,9 +1922,33 @@ namespace aux {
 			return;
 		}
 
+		TORRENT_ASSERT(endp.address() != address_v4::any());
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
+
+		if (!m_settings.enable_incoming_utp
+			&& s->get<utp_stream>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected uTP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
+
+		if (!m_settings.enable_incoming_tcp
+			&& s->get<stream_socket>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected TCP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
 
 		// local addresses do not count, since it's likely
 		// coming from our own client through local service discovery
@@ -2184,6 +2229,8 @@ namespace aux {
 
 		m_last_tick = now;
 
+		m_utp_socket_manager.tick(now);
+
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
@@ -2223,6 +2270,45 @@ namespace aux {
 						pe->last_connected -= four_hours;
 				}
 			}
+		}
+
+		switch (m_settings.mixed_mode_algorithm)
+		{
+			case session_settings::prefer_tcp:
+				m_tcp_upload_channel.throttle(0);
+				m_tcp_download_channel.throttle(0);
+				break;
+			case session_settings::peer_proportional:
+				{
+					int num_tcp_peers = 0;
+					int num_peers = 0;
+					for (connection_map::iterator i = m_connections.begin()
+						, end(m_connections.end());i != end; ++i)
+					{
+						peer_connection& p = *(*i);
+						if (p.in_handshake()) continue;
+						if (!p.get_socket()->get<utp_stream>()) ++num_tcp_peers;
+						++num_peers;
+					}
+
+					if (num_peers == 0)
+					{
+						m_tcp_upload_channel.throttle(0);
+						m_tcp_download_channel.throttle(0);
+					}
+					else
+					{
+						if (num_tcp_peers == 0) num_tcp_peers = 1;
+						int upload_rate = (std::max)(m_stat.upload_rate(), 5000);
+						int download_rate = (std::max)(m_stat.download_rate(), 5000);
+						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
+						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
+						
+						m_tcp_upload_channel.throttle(upload_rate * num_tcp_peers / num_peers);
+						m_tcp_download_channel.throttle(download_rate * num_tcp_peers / num_peers);
+					}
+				}
+				break;
 		}
 
 #ifdef TORRENT_STATS
@@ -3681,6 +3767,8 @@ namespace aux {
 			s.dht_total_allocations = 0;
 		}
 #endif
+
+		m_utp_socket_manager.get_status(s.utp_stats);
 
 		int peerlist_size = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()

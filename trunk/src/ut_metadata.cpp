@@ -210,6 +210,8 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
+		virtual char const* type() const { return "ut_metadata"; }
+
 		// can add entries to the extension handshake
 		virtual void add_handshake(entry& h)
 		{

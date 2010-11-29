@@ -37,6 +37,8 @@
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>0.16.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -58,7 +60,7 @@
 <li><a class="reference internal" href="#set-creator" id="id14">set_creator()</a></li>
 <li><a class="reference internal" href="#set-hash" id="id15">set_hash()</a></li>
 <li><a class="reference internal" href="#set-file-hash" id="id16">set_file_hash()</a></li>
-<li><a class="reference internal" href="#add-url-seed" id="id17">add_url_seed()</a></li>
+<li><a class="reference internal" href="#add-url-seed-add-http-seed" id="id17">add_url_seed() add_http_seed()</a></li>
 <li><a class="reference internal" href="#add-node" id="id18">add_node()</a></li>
 <li><a class="reference internal" href="#add-tracker" id="id19">add_tracker()</a></li>
 <li><a class="reference internal" href="#set-priv-priv" id="id20">set_priv() priv()</a></li>
@@ -291,6 +293,7 @@ struct create_torrent
         void set_hash(int index, sha1_hash const&amp; h);
         void set_file_hash(int index, sha1_hash const&amp; h);
         void add_url_seed(std::string const&amp; url);
+        void add_http_seed(std::string const&amp; url);
         void add_node(std::pair&lt;std::string, int&gt; const&amp; node);
         void add_tracker(std::string const&amp; url, int tier = 0);
         void set_priv(bool p);
@@ -433,11 +436,12 @@ void set_file_hash(int index, sha1_hash const&amp; h);
 associated with this file (for multi-file torrents) or in the root info dictionary
 for single-file torrents.</p>
 </div>
-<div class="section" id="add-url-seed">
-<h2>add_url_seed()</h2>
+<div class="section" id="add-url-seed-add-http-seed">
+<h2>add_url_seed() add_http_seed()</h2>
 <blockquote>
 <pre class="literal-block">
 void add_url_seed(std::string const&amp; url);
+void add_http_seed(std::string const&amp; url);
 </pre>
 </blockquote>
 <p>This adds a url seed to the torrent. You can have any number of url seeds. For a
@@ -445,6 +449,7 @@ single file torrent, this should be an HTTP url, pointing to a file with identic
 content as the file of the torrent. For a multi-file torrent, it should point to
 a directory containing a directory with the same name as this torrent, and all the
 files of the torrent in it.</p>
+<p>The second function, <tt class="docutils literal"><span class="pre">add_http_seed()</span></tt> adds an HTTP seed instead.</p>
 </div>
 <div class="section" id="add-node">
 <h2>add_node()</h2>

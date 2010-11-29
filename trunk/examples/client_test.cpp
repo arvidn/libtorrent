@@ -174,6 +174,7 @@ bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
 bool sequential_download = false;
+bool print_utp_stats = false;
 
 bool print_ip = true;
 bool print_as = false;
@@ -384,7 +385,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	if (print_ip) out += "IP                                           ";
+	if (print_ip) out += "IP                                                   ";
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
@@ -409,8 +410,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 
 		if (print_ip)
 		{
-			error_code ec;
-			snprintf(str, sizeof(str), "%-22s %22s ", print_endpoint(i->ip).c_str()
+			snprintf(str, sizeof(str), "%-30s %-22s", (print_endpoint(i->ip) +
+				(i->connection_type == peer_info::bittorrent_utp ? " [uTP]" : "")).c_str()
 				, print_endpoint(i->local_endpoint).c_str());
 			out += str;
 		}
@@ -425,7 +426,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
@@ -456,6 +457,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #else
 			, '.'
 #endif
+			, (i->flags & peer_info::holepunched)?'h':'.'
+
 			, (i->source & peer_info::tracker)?'T':'_'
 			, (i->source & peer_info::pex)?'P':'_'
 			, (i->source & peer_info::dht)?'D':'_'
@@ -833,9 +836,12 @@ int main(int argc, char* argv[])
 			"  -L <user:passwd>      Use the specified username and password for the\n"
 			"                        proxy specified by -P\n"
 			"  -H                    Don't start DHT\n"
+			"  -M                    Disable TCP/uTP bandwidth balancing\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  -Y                    Rate limit local peers\n"
+			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
+			"                        incoming TCP connections)\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
 			"                        this is useful for scripting tests\n"
 			"  "
@@ -903,8 +909,6 @@ int main(int argc, char* argv[])
 	{
 		if (argv[i][0] != '-')
 		{
-			// interpret this as a torrent
-
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
 				&& is_hex(argv[i], 40)
@@ -955,7 +959,7 @@ int main(int argc, char* argv[])
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = arg; break;
-			case 'M': share_mode = true; --i; break;
+			case 'Q': share_mode = true; --i; break;
 			case 'b': bind_to_interface = arg; break;
 			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
 			case 't': poll_interval = atoi(arg); break;
@@ -1006,6 +1010,8 @@ int main(int argc, char* argv[])
 			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
 			case 'R': settings.read_cache_line_size = atoi(arg); break;
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
+			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
+			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
 			case 'P':
 				{
 					char* port = (char*) strrchr(arg, ':');
@@ -1297,6 +1303,7 @@ int main(int argc, char* argv[])
 			if (c == 'h') show_pad_files = !show_pad_files;
 			if (c == 'a') print_piece_bar = !print_piece_bar;
 			if (c == 'g') show_dht_status = !show_dht_status;
+			if (c == 'u') print_utp_stats = !print_utp_stats;
 			// toggle columns
 			if (c == '1') print_ip = !print_ip;
 			if (c == '2') print_as = !print_as;
@@ -1565,6 +1572,15 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
+
+		if (print_utp_stats)
+		{
+			snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\n"
+				, sess_stat.utp_stats.num_idle, sess_stat.utp_stats.num_syn_sent
+				, sess_stat.utp_stats.num_connected, sess_stat.utp_stats.num_fin_sent
+				, sess_stat.utp_stats.num_close_wait);
+			out += str;
+		}
 
 		if (active_handle.is_valid())
 		{

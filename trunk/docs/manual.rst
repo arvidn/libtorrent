@@ -618,6 +618,15 @@ struct has the following members::
 		int branch_factor;
 	};
 
+	struct utp_status
+	{
+		int num_idle;
+		int num_syn_sent;
+		int num_connected;
+		int num_fin_sent;
+		int num_close_wait;
+	};
+
 	struct session_status
 	{
 		bool has_incoming_connections;
@@ -663,6 +672,8 @@ struct has the following members::
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
 		int dht_total_allocations;
+
+		utp_status utp_stats;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -729,6 +740,8 @@ network.
 ``dht_total_allocations`` is the number of nodes allocated dynamically for a
 particular DHT lookup. This represents roughly the amount of memory used
 by the DHT.
+
+``utp_stats`` contains statistics on the uTP sockets.
 
 get_cache_status()
 ------------------
@@ -1074,7 +1087,6 @@ struct has the following members::
 	{
 		int max_peers_reply;
 		int search_branching;
-		int service_port;
 		int max_fail_count;
 	};
 
@@ -1085,19 +1097,18 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to. This will default
-to 0, which means the udp listen port will be the same as the tcp listen
-port. This is in general a good idea, since some NAT implementations
-reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
-guarantees this for example.
-
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
 
-``is_dht_running`` returns true if the DHT support has been started and false
+The ``dht_settings`` struct used to contain a ``service_port`` member to control
+which port the DHT would listen on and send messages from. This field is deprecated
+and ignored. libtorrent always tries to open the UDP socket on the same port
+as the TCP socket.
+
+``is_dht_running()`` returns true if the DHT support has been started and false
 otherwise.
 
 
@@ -3387,6 +3398,7 @@ It contains the following fields::
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
 			upload_only = 0x2000,
+			holepunched = 0x4000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -3535,6 +3547,11 @@ any combination of the enums above. The following table describes each flag:
 |                         | will not downloading anything more, regardless of     |
 |                         | which pieces we have.                                 |
 +-------------------------+-------------------------------------------------------+
+| ``holepunched``         | This flag is set if the peer was in holepunch mode    |
+|                         | when the connection succeeded. This typically only    |
+|                         | happens if both peers are behind a NAT and the peers  |
+|                         | connect via the NAT holepunch mechanism.              |
++-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
 
@@ -3673,8 +3690,19 @@ that may give away something about which software is running in the other end.
 In the case of a web seed, the server type and version will be a part of this
 string.
 
-``connection_type`` can currently be one of ``standard_bittorrent`` or
-``web_seed``. These are currently the only implemented protocols.
+``connection_type`` can currently be one of:
+
++---------------------------------------+-------------------------------------------------------+
+| type                                  | meaning                                               |
++=======================================+=======================================================+
+| ``peer_info::standard_bittorrent``    | Regular bittorrent connection over TCP                |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::bittorrent_utp``         | Bittorrent connection over uTP                        |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::web_sesed``              | HTTP connection using the `BEP 19`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::http_seed``              | HTTP connection using the `BEP 17`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
 
 ``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
 bytes per second.
@@ -3927,10 +3955,17 @@ session_settings
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
 		bool broadcast_lsd;
+
+		bool enable_outgoing_utp;
+		bool enable_incoming_utp;
+		bool enable_outgoing_tcp;
+		bool enable_incoming_tcp;
+		int max_pex_peers;
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
+
 		int upload_rate_limit;
 		int download_rate_limit;
 		int local_upload_rate_limit;
@@ -3938,6 +3973,24 @@ session_settings
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
+
+		int utp_target_delay;
+		int utp_gain_factor;
+		int utp_min_timeout;
+		int utp_syn_resends;
+		int utp_num_resends;
+		int utp_connect_timeout;
+		int utp_delayed_ack;
+		bool utp_dynamic_sock_buf;
+
+		enum bandwidth_mixed_algo_t
+		{
+			prefer_tcp = 0,
+			peer_proportional = 1
+
+		};
+		int mixed_mode_algorithm;
+		bool rate_limit_utp;
 
 		int listen_queue_size;
 	};
@@ -4604,6 +4657,11 @@ if ``broadcast_lsd`` is set to true, the local peer discovery
 broadcast its messages. This can be useful when running on networks
 that don't support multicast. It's off by default since it's inefficient.
 
+``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
+``enable_incoming_tcp`` all determines if libtorrent should attempt to make
+outgoing connections of the specific type, or allow incoming connection. By
+default all of them are enabled.
+
 ``ignore_resume_timestamps`` determines if the storage, when loading
 resume data files, should verify that the file modification time
 with the timestamps in the resume data. This defaults to false, which
@@ -4672,6 +4730,58 @@ a queue waiting for their turn to get connected.
 opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
+
+``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
+value will make uTP connections more aggressive and cause longer queues in the upload
+bottleneck. It cannot be too low, since the noise in the measurements would cause
+it to send too slow. The default is 50 milliseconds.
+
+``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
+at the most in one RTT. This defaults to 300 bytes. If this is set too high,
+the congestion controller reacts too hard to noise and will not be stable, if it's
+set too low, it will react slow to congestion and not back off as fast.
+
+``utp_min_timeout`` is the shortest allowed uTP socket timeout, specified in milliseconds.
+This defaults to 500 milliseconds. The timeout depends on the RTT of the connection, but
+is never smaller than this value. A connection times out when every packet in a window
+is lost, or when a packet is lost twice in a row (i.e. the resent packet is lost as well).
+
+The shorter the timeout is, the faster the connection will recover from this situation,
+assuming the RTT is low enough.
+
+``utp_syn_resends`` is the number of SYN packets that are sent (and timed out) before
+giving up and closing the socket.
+
+``utp_num_resends`` is the number of times a packet is sent (and lossed or timed out)
+before giving up and closing the connection.
+
+``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
+packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
+
+``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
+significantly helps reducing the amount of protocol overhead in the reverse direction
+from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
+and every incoming payload packet is ACKed. The granularity of this timer is capped by
+the tick interval (as specified by ``tick_interval``).
+
+``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
+the socket buffer if a network interface with a large MTU is used (such as loopback
+or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
+For RAM constrained systems, disabling this typically saves around 30kB in user space
+and probably around 400kB in kernel socket buffers (it adjusts the send and receive
+buffer size on the kernel socket, both for IPv4 and IPv6).
+
+The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
+uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
+when using swarms that have both TCP and uTP connections. If nothing is done, uTP
+connections would often be starved out for bandwidth by the TCP connections. This mode
+is ``prefer_tcp``. The ``peer_proportional`` mode simply looks at the current throughput
+and rate limits all TCP connections to their proportional share based on how many of
+the connections are TCP. This works best if uTP connections are not rate limited by
+the global rate limiter (which they aren't by default).
+
+``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
+limiter or not. By default they are not, since uTP manages its own rate.
 
 ``listen_queue_size`` is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
@@ -6797,6 +6907,9 @@ code   symbol                                    description
 106    invalid_pex_message                       The peer sent an invalid peer exchange message
 ------ ----------------------------------------- -----------------------------------------------------------------
 107    invalid_lt_tracker_message                The peer sent an invalid tracker exchange message
+------ ----------------------------------------- -----------------------------------------------------------------
+108    too_frequent_pex                          The peer sent an pex messages too often. This is a possible
+                                                 attempt of and attack
 ====== ========================================= =================================================================
 
 NAT-PMP errors:

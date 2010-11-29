@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -258,7 +259,7 @@ namespace libtorrent
 		write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_supports_dht_port && m_ses.m_dht)
-			write_dht_port(m_ses.get_dht_settings().service_port);
+			write_dht_port(m_ses.m_external_udp_port);
 #endif
 	}
 
@@ -390,8 +391,9 @@ namespace libtorrent
 		if (is_queued()) p.flags |= peer_info::queued;
 
 		p.client = m_client_version;
-		p.connection_type = peer_info::standard_bittorrent;
-
+		p.connection_type = get_socket()->get<utp_stream>()
+			? peer_info::bittorrent_utp
+			: peer_info::standard_bittorrent;
 	}
 	
 	bool bt_peer_connection::in_handshake() const
@@ -657,6 +659,7 @@ namespace libtorrent
 
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
+		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 		// if we're encrypting this buffer, we need to make a copy
 		// since we'll mutate it
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -1349,7 +1352,7 @@ namespace libtorrent
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.m_dht)
-				write_dht_port(m_ses.get_dht_settings().service_port);
+				write_dht_port(m_ses.m_external_udp_port);
 #endif
 		}
 	}
@@ -1444,6 +1447,203 @@ namespace libtorrent
 	}
 
 	// -----------------------------
+	// -------- RENDEZVOUS ---------
+	// -----------------------------
+
+	void bt_peer_connection::on_holepunch()
+	{
+		INVARIANT_CHECK;
+
+		if (!packet_finished()) return;
+
+		// we can't accept holepunch messages from peers
+		// that don't support the holepunch extension
+		// because we wouldn't be able to respond
+		if (m_holepunch_id == 0) return;
+
+		buffer::const_interval recv_buffer = receive_buffer();
+		TORRENT_ASSERT(*recv_buffer.begin == msg_extended);
+		++recv_buffer.begin;
+		TORRENT_ASSERT(*recv_buffer.begin == holepunch_msg);
+		++recv_buffer.begin;
+
+		const char* ptr = recv_buffer.begin;
+
+		// ignore invalid messages
+		if (recv_buffer.left() < 2) return;
+
+		int msg_type = detail::read_uint8(ptr);
+		int addr_type = detail::read_uint8(ptr);
+
+		tcp::endpoint ep;
+
+		if (addr_type == 0)
+		{
+			if (recv_buffer.left() < 2 + 4 + 2) return;
+			// IPv4 address
+			ep = detail::read_v4_endpoint<tcp::endpoint>(ptr);
+		}
+#if TORRENT_USE_IPV6
+		else if (addr_type == 1)
+		{
+			// IPv6 address
+			if (recv_buffer.left() < 2 + 18 + 2) return;
+			ep = detail::read_v6_endpoint<tcp::endpoint>(ptr);
+		}
+#endif
+		else
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			error_code ec;
+			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+			(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:"
+				<< (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
+				<< " from:" << remote().address().to_string(ec)
+				<< " to: unknown address type ]\n";
+#endif
+
+			return; // unknown address type
+		}
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		if (!t) return;
+
+		switch (msg_type)
+		{
+			case hp_rendezvous: // rendezvous
+			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				error_code ec;
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:rendezvous"
+					<< " to:" << ep.address().to_string(ec) << " ]\n";
+#endif
+				// this peer is asking us to introduce it to
+				// the peer at 'ep'. We need to find which of
+				// our connections points to that endpoint
+				bt_peer_connection* p = t->find_peer(ep);
+				if (p == 0)
+				{
+					// we're not connected to this peer
+					write_holepunch_msg(hp_failed, ep, hp_not_connected);
+					break;
+				}
+				if (!p->supports_holepunch())
+				{
+					write_holepunch_msg(hp_failed, ep, hp_no_support);
+					break;
+				}
+				if (p == this)
+				{
+					write_holepunch_msg(hp_failed, ep, hp_no_self);
+					break;
+				}
+
+				write_holepunch_msg(hp_connect, ep, 0);
+				p->write_holepunch_msg(hp_connect, remote(), 0);
+			} break;
+			case hp_connect:
+			{
+				// add or find the peer with this endpoint
+				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
+				if (p == 0 || p->connection)
+				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " error:failed to add peer ]\n";
+#endif
+					// we either couldn't add this peer, or it's
+					// already connected. Just ignore the connect message
+					break;
+				}
+				if (p->banned)
+				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " error:peer banned ]\n";
+#endif
+					// this peer is banned, don't connect to it
+					break;
+				
+				}
+				// to make sure we use the uTP protocol
+				p->supports_utp = true;
+				// #error make sure we make this a connection candidate
+				// in case it has too many failures for instance
+				t->connect_to_peer(p, true);
+				// mark this connection to be in holepunch mode
+				// so that it will retry faster and stick to uTP while it's
+				// retrying
+				if (p->connection)
+					p->connection->set_holepunch_mode();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+					error_code ec;
+					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
+						<< " to:" << ep.address().to_string(ec) << " ]\n";
+#endif
+			} break;
+			case hp_failed:
+			{
+				boost::uint32_t error = detail::read_uint32(ptr);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+				error_code ec;
+				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:failed"
+					" error:" << error <<
+					" msg:" << ((error >= 0 && error < 4)?err_msg[error]:"unknown message id") <<
+					" ]\n";
+#endif
+				// #error deal with holepunch errors
+			} break;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			default:
+			{
+				error_code ec;
+				(*m_logger) << time_now_string() << " <== HOLEPUNCH ["
+					" msg:unknown message type (" << msg_type << ")"
+					<< " to:" << ep.address().to_string(ec) << " ]\n";
+			}
+#endif
+		}
+	}
+
+	void bt_peer_connection::write_holepunch_msg(int type, tcp::endpoint const& ep, int error)
+	{
+		char buf[35];
+		char* ptr = buf + 6;
+		detail::write_uint8(type, ptr);
+		if (ep.address().is_v4()) detail::write_uint8(0, ptr);
+		else detail::write_uint8(1, ptr);
+		detail::write_endpoint(ep, ptr);
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		error_code ec;
+		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
+		(*m_logger) << time_now_string() << " ==> HOLEPUNCH [ msg:"
+			<< (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
+			<< " to:" << ep.address().to_string(ec)
+			<< " error:" << hp_error_string[error]
+			<< " ]\n";
+#endif
+		if (type == hp_failed)
+		{
+			detail::write_uint32(error, ptr);
+		}
+
+		// write the packet length and type
+		char* hdr = buf;
+		detail::write_uint32(ptr - buf - 4, hdr);
+		detail::write_uint8(msg_extended, hdr);
+		detail::write_uint8(m_holepunch_id, hdr);
+
+		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
+
+		send_buffer(buf, ptr - buf);
+	}
+
+	// -----------------------------
 	// --------- EXTENDED ----------
 	// -----------------------------
 
@@ -1478,6 +1678,31 @@ namespace libtorrent
 			on_extended_handshake();
 			return;
 		}
+
+		if (extended_id == upload_only_msg)
+		{
+			if (!packet_finished()) return;
+			bool ul = detail::read_uint8(recv_buffer.begin);
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " <== UPLOAD_ONLY [ " << (ul?"true":"false") << " ]\n";
+#endif
+			set_upload_only(ul);
+			return;
+		}
+
+		if (extended_id == holepunch_msg)
+		{
+			if (!packet_finished()) return;
+			on_holepunch();
+			return;
+		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (packet_finished())
+			(*m_logger) << time_now_string() << " <== EXTENSION MESSAGE ["
+				" msg:" << extended_id <<
+				" size:" << packet_size() << " ]\n";
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1549,7 +1774,10 @@ namespace libtorrent
 
 		// upload_only
 		if (lazy_entry const* m = root.dict_find_dict("m"))
+		{
 			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
+			m_holepunch_id = m->dict_find_int_value("ut_holepunch", 0);
+		}
 
 		// there is supposed to be a remote listen port
 		int listen_port = root.dict_find_int_value("p");
@@ -1929,7 +2157,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
+		m["ut_holepunch"] = holepunch_msg;
 		m["share_mode"] = share_mode_msg;
+
 		int complete_ago = -1;
 		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
 		handshake["complete_ago"] = complete_ago;
@@ -1968,6 +2198,19 @@ namespace libtorrent
 			(*i)->add_handshake(handshake);
 		}
 
+#ifndef NDEBUG
+		// make sure there are not conflicting extensions
+		std::set<int> ext;
+		for (entry::dictionary_type::const_iterator i = m.begin()
+			, end(m.end()); i != end; ++i)
+		{
+			if (i->second.type() != entry::int_t) continue;
+			int val = i->second.integer();
+			TORRENT_ASSERT(ext.find(val) == ext.end());
+			ext.insert(val);
+		}
+#endif
+
 		std::vector<char> msg;
 		bencode(std::back_inserter(msg), handshake);
 
@@ -1986,9 +2229,9 @@ namespace libtorrent
 		TORRENT_ASSERT(i.begin == i.end);
 
 #if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
-		std::stringstream ext;
-		handshake.print(ext);
-		(*m_logger) << time_now_string() << " ==> EXTENDED HANDSHAKE: \n" << ext.str();
+		std::stringstream handshake_str;
+		handshake.print(handshake_str);
+		(*m_logger) << time_now_string() << " ==> EXTENDED HANDSHAKE: \n" << handshake_str.str();
 #endif
 
 		setup_send();
@@ -2198,6 +2441,8 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " received DH key\n";
 #endif
 						
+			TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
+
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
 			// the sync hash (if incoming), or 8 bytes more for the
 			// encrypted verification constant (if outgoing). Instead
@@ -2981,7 +3226,7 @@ namespace libtorrent
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 				if (m_supports_dht_port && m_ses.m_dht)
-					write_dht_port(m_ses.get_dht_settings().service_port);
+					write_dht_port(m_ses.m_external_udp_port);
 #endif
 			}
 

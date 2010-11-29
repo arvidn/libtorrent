@@ -53,6 +53,9 @@ namespace libtorrent
 			case socket_type_int_impl<http_stream>::value:
 				get<http_stream>()->~http_stream();
 				break;
+			case socket_type_int_impl<utp_stream>::value:
+					  get<utp_stream>()->~utp_stream();
+					  break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
 				get<i2p_stream>()->~i2p_stream();
@@ -69,6 +72,7 @@ namespace libtorrent
 				get<ssl_stream<http_stream> >()->~ssl_stream();
 				break;
 #endif
+			default: TORRENT_ASSERT(false);
 		}
 		m_type = 0;
 	}
@@ -87,6 +91,9 @@ namespace libtorrent
 				break;
 			case socket_type_int_impl<http_stream>::value:
 				new ((http_stream*)m_data) http_stream(m_io_service);
+				break;
+			case socket_type_int_impl<utp_stream>::value:
+				new ((utp_stream*)m_data) utp_stream(m_io_service);
 				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
@@ -110,6 +117,7 @@ namespace libtorrent
 					, *((boost::asio::ssl::context*)userdata));
 				break;
 #endif
+			default: TORRENT_ASSERT(false);
 		}
 
 		m_type = type;
@@ -126,9 +134,6 @@ namespace libtorrent
 		if (m_type == 0) return false;
 		TORRENT_SOCKTYPE_FORWARD_RET(is_open(), false)
 	}
-
-	socket_type::lowest_layer_type& socket_type::lowest_layer()
-	{ TORRENT_SOCKTYPE_FORWARD_RET(lowest_layer(), *((lowest_layer_type*)m_data)) }
 
 	void socket_type::open(protocol_type const& p, error_code& ec)
 	{ TORRENT_SOCKTYPE_FORWARD(open(p, ec)) }

@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -150,6 +151,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
@@ -195,6 +197,8 @@ namespace libtorrent
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		(*m_logger) << time_now_string() << " *** OUTGOING CONNECTION: "
 			<< print_endpoint(m_remote) << "\n";
+		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
+		else (*m_logger) << "TCP connection\n";
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -289,6 +293,7 @@ namespace libtorrent
 		, m_bitfield_received(false)
 		, m_no_download(false)
 		, m_sent_suggests(false)
+		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
 #ifdef TORRENT_DEBUG
 		, m_in_constructor(true)
@@ -335,6 +340,8 @@ namespace libtorrent
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		(*m_logger) << time_now_string() << " *** INCOMING CONNECTION: "
 			<< print_endpoint(m_remote) << "\n";
+		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
+		else (*m_logger) << "TCP connection\n";
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -557,6 +564,7 @@ namespace libtorrent
 				return;
 			}
 			m_remote = m_socket->remote_endpoint(ec);
+			TORRENT_ASSERT(m_remote.address() != address_v4::any());
 			if (ec)
 			{
 				disconnect(ec);
@@ -625,6 +633,16 @@ namespace libtorrent
 	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
 	{
 		m_extensions.push_back(ext);
+	}
+
+	peer_plugin const* peer_connection::find_plugin(char const* type)
+	{
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if (strcmp((*i)->type(), type) == 0) return (*i).get();
+		}
+		return 0;
 	}
 #endif
 
@@ -2215,6 +2233,8 @@ namespace libtorrent
 		if (!m_bitfield_received) incoming_have_none();
 		if (is_disconnecting()) return;
 
+		update_desired_queue_size();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -3238,13 +3258,62 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(m_connecting);
+		connect_failed(errors::timed_out);
+	}
+	
+	void peer_connection::connect_failed(error_code const& e)
+	{
+		TORRENT_ASSERT(m_connecting);
+		TORRENT_ASSERT(e);
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		peer_log("CONNECTION TIMED OUT: %s", print_endpoint(m_remote).c_str());
+		peer_log("CONNECTION FAILED: %s", print_endpoint(m_remote).c_str());
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "CONNECTION TIMED OUT: " << print_endpoint(m_remote) << "\n";
+		(*m_ses.m_logger) << "CONNECTION FAILED: " << print_endpoint(m_remote) << "\n";
 #endif
-		disconnect(errors::timed_out, 1);
+
+		if (m_connection_ticket != -1)
+		{
+			m_ses.m_half_open.done(m_connection_ticket);
+			m_connecting = false;
+		}
+
+		// a connection attempt using uTP just failed
+		// mark this peer as not supporting uTP
+		// we'll never try it again (unless we're trying holepunch)
+		if (m_socket->get<utp_stream>()
+			&& m_peer_info
+			&& m_peer_info->supports_utp
+			&& !m_holepunch_mode)
+		{
+			m_peer_info->supports_utp = false;
+			// reconnect immediately using TCP
+			policy::peer* pi = peer_info_struct();
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			fast_reconnect(true);
+			disconnect(e, 0);
+			if (t && pi) t->connect_to_peer(pi, true);
+			return;
+		}
+
+		if (m_holepunch_mode)
+			fast_reconnect(true);
+
+		if ((!m_socket->get<utp_stream>() || !m_ses.m_settings.enable_outgoing_tcp)
+			&& m_peer_info
+			&& m_peer_info->supports_holepunch
+			&& !m_holepunch_mode)
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			// see if we can try a holepunch
+			bt_peer_connection* p = t->find_introducer(remote());
+			if (p)
+				p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
+		}
+
+		disconnect(e, 1);
+		return;
 	}
 
 	// the error argument defaults to 0, which means deliberate disconnect
@@ -3524,6 +3593,7 @@ namespace libtorrent
 		p.flags |= is_seed() ? peer_info::seed : 0;
 		p.flags |= m_snubbed ? peer_info::snubbed : 0;
 		p.flags |= m_upload_only ? peer_info::upload_only : 0;
+		p.flags |= m_holepunch_mode ? peer_info::holepunched : 0;
 		if (peer_info_struct())
 		{
 			policy::peer* pi = peer_info_struct();
@@ -3678,6 +3748,37 @@ namespace libtorrent
 #endif
 		write_have(index);
 		m_superseed_piece = index;
+	}
+
+	void peer_connection::update_desired_queue_size()
+	{
+		if (m_snubbed)
+		{
+			m_desired_queue_size = 1;
+			return;
+		}
+	
+		int download_rate = statistics().download_rate();
+
+		// calculate the desired download queue size
+		const int queue_time = m_ses.settings().request_queue_time;
+		// (if the latency is more than this, the download will stall)
+		// so, the queue size is queue_time * down_rate / 16 kiB
+		// (16 kB is the size of each request)
+		// the minimum number of requests is 2 and the maximum is 48
+		// the block size doesn't have to be 16. So we first query the
+		// torrent for it
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		const int block_size = t->block_size();
+
+		TORRENT_ASSERT(block_size > 0);
+		
+		m_desired_queue_size = queue_time * download_rate / block_size;
+
+		if (m_desired_queue_size > m_max_out_request_queue)
+			m_desired_queue_size = m_max_out_request_queue;
+		if (m_desired_queue_size < min_request_queue)
+			m_desired_queue_size = min_request_queue;
 	}
 
 	void peer_connection::second_tick(int tick_interval_ms)
@@ -3880,36 +3981,13 @@ namespace libtorrent
 
 		if (!t->ready_for_connections()) return;
 
-		// calculate the desired download queue size
-		const int queue_time = m_ses.settings().request_queue_time;
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is queue_time * down_rate / 16 kiB
-		// (16 kB is the size of each request)
-		// the minimum number of requests is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the
-		// torrent for it
-		const int block_size = t->block_size();
-		TORRENT_ASSERT(block_size > 0);
-		
-		if (m_snubbed)
-		{
-			m_desired_queue_size = 1;
-		}
-		else
-		{
-			m_desired_queue_size = queue_time
-				* statistics().download_rate() / block_size;
-			if (m_desired_queue_size > m_max_out_request_queue)
-				m_desired_queue_size = m_max_out_request_queue;
-			if (m_desired_queue_size < min_request_queue)
-				m_desired_queue_size = min_request_queue;
+		update_desired_queue_size();
 
-			if (m_desired_queue_size == m_max_out_request_queue 
+		if (m_desired_queue_size == m_max_out_request_queue 
 				&& t->alerts().should_post<performance_alert>())
-			{
-				t->alerts().post_alert(performance_alert(t->get_handle()
-					, performance_alert::outstanding_request_limit_reached));
-			}
+		{
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, performance_alert::outstanding_request_limit_reached));
 		}
 
 		int piece_timeout = m_ses.settings().piece_timeout;
@@ -3926,6 +4004,7 @@ namespace libtorrent
 		// allowed to download. If it is impossible to beat the piece
 		// timeout at this rate, adjust it to be realistic
 
+		const int block_size = t->block_size();
 		int rate_limit_timeout = rate_limit / block_size;
 		if (piece_timeout < rate_limit_timeout) piece_timeout = rate_limit_timeout;
 
@@ -4131,8 +4210,11 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int buffer_size_watermark = int(m_statistics.upload_rate())
+		int upload_rate = int(m_statistics.upload_rate());
+
+		int buffer_size_watermark = upload_rate
 			* m_ses.settings().send_buffer_watermark_factor;
+
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
 		{
@@ -4351,13 +4433,16 @@ namespace libtorrent
 		{
 			if (!m_ignore_bandwidth_limits)
 			{
+				bool utp = m_socket->get<utp_stream>();
+
 				// in this case, we have data to send, but no
 				// bandwidth. So, we simply request bandwidth
 				// from the bandwidth manager
 				request_upload_bandwidth(
-					&m_ses.m_upload_channel
+					(m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_upload_channel : 0
 					, &t->m_bandwidth_channel[upload_channel]
-					, &m_bandwidth_channel[upload_channel]);
+					, &m_bandwidth_channel[upload_channel]
+					, !utp ? &m_ses.m_tcp_upload_channel : 0);
 			}
 			else
 			{
@@ -4461,13 +4546,16 @@ namespace libtorrent
 		{
 			if (!m_ignore_bandwidth_limits)
 			{
+				bool utp = m_socket->get<utp_stream>();
+
 				// in this case, we have outstanding data to
 				// receive, but no bandwidth quota. So, we simply
 				// request bandwidth from the bandwidth manager
 				request_download_bandwidth(
-					&m_ses.m_download_channel
+					(m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_download_channel : 0
 					, &t->m_bandwidth_channel[download_channel]
-					, &m_bandwidth_channel[download_channel]);
+					, &m_bandwidth_channel[download_channel]
+					, !utp ? &m_ses.m_tcp_download_channel : 0);
 			}
 			else
 			{
@@ -4785,6 +4873,12 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** ON_RECEIVE_DATA ["
+				" bytes: " << bytes_transferred <<
+				" error: " << error.message() <<
+				" ]\n";
+#endif
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
 #endif
@@ -4816,6 +4910,7 @@ namespace libtorrent
 		int num_loops = 0;
 		do
 		{
+			TORRENT_ASSERT(m_recv_pos + bytes_transferred <= m_packet_size);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< read %d bytes", int(bytes_transferred));
 #endif
@@ -4869,6 +4964,7 @@ namespace libtorrent
 
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);
+			TORRENT_ASSERT(bytes_transferred > 0 || ec);
 			if (ec && ec != asio::error::would_block)
 			{
 				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
@@ -5036,26 +5132,24 @@ namespace libtorrent
 		
 		if (m_disconnecting) return;
 
-		m_connecting = false;
-		m_ses.m_half_open.done(m_connection_ticket);
-
 		error_code ec;
 		if (e)
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << print_endpoint(m_remote)
-				<< ": " << e.message() << "\n";
-#endif
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " CONNECTION FAILED: " << print_endpoint(m_remote)
-				<< ": " << e.message() << "\n";
-#endif
-			disconnect(e, 1);
+			connect_failed(e);
 			return;
 		}
 
+		m_connecting = false;
+		m_ses.m_half_open.done(m_connection_ticket);
+
 		if (m_disconnecting) return;
 		m_last_receive = time_now();
+
+		if (m_socket->get<utp_stream>() && m_peer_info)
+		{
+			m_peer_info->confirmed_supports_utp = true;
+			m_peer_info->supports_utp = false;
+		}
 
 		// this means the connection just succeeded
 
@@ -5109,6 +5203,13 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			(*m_logger) << time_now_string() << " *** ON_SEND_DATA ["
+				" bytes: " << bytes_transferred <<
+				" error: " << error.message() <<
+				" ]\n";
+#endif
 
 		INVARIANT_CHECK;
 
