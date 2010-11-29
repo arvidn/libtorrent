@@ -55,10 +55,10 @@ namespace
     list files(torrent_info const& ti, bool storage) {
         list result;
 
-        typedef std::vector<file_entry> list_type;
+        typedef torrent_info::file_iterator iter;
 
-        for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
-            result.append(*i);
+        for (iter i = ti.begin_files(); i != ti.end_files(); ++i)
+            result.append(ti.files().at(i));
 
         return result;
     }
@@ -160,7 +160,7 @@ void bind_torrent_info()
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
-        .def("file_at", &torrent_info::file_at, return_internal_reference<>())
+        .def("file_at", &torrent_info::file_at) 
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
         .def("rename_file", rename_file0)
@@ -182,8 +182,10 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-        .def("filename", &file_entry::filename)
-        .def("set_name", &file_entry::set_name)
+        .def_readwrite("path", &file_entry::path)
+        .def_readwrite("symlink_path", &file_entry::symlink_path)
+        .def_readwrite("filehash", &file_entry::filehash)
+        .def_readwrite("mtime", &file_entry::mtime)
         .add_property("pad_file", &get_pad_file)
         .add_property("executable_attribute", &get_executable_attribute)
         .add_property("hidden_attribute", &get_hidden_attribute)
