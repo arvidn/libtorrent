@@ -93,6 +93,18 @@ namespace libtorrent
 			value = max3<temp1, temp2, temp3>::value
 		};
 	};
+
+	template<int v1, int v2, int v3, int v4, int v5, int v6, int v7, int v8>
+	struct max8
+	{
+		enum
+		{
+			temp1 = max<v1,v2>::value,
+			temp2 = max3<v3,v4,v5>::value,
+			temp3 = max3<v6,v7,v8>::value,
+			value = max3<temp1, temp2, temp3>::value
+		};
+	};
 }
 
 #endif

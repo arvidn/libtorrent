@@ -154,6 +154,9 @@ namespace libtorrent
 		set.coalesce_reads = false;
 		set.coalesce_writes = false;
 
+		// disallow the buffer size to grow for the uTP socket
+		set.utp_dynamic_sock_buf = false;
+
 		return set;
 	}
 
@@ -225,6 +228,9 @@ namespace libtorrent
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.max_failcount = 1;
+
+		// allow the buffer size to grow for the uTP socket
+		set.utp_dynamic_sock_buf = true;
 
 		return set;
 	}

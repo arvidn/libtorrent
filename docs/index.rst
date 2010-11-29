@@ -22,6 +22,7 @@
 
 Extensions
 
+* `uTP`_
 * `extensions protocol`_
 * `plugin interface`_
 * `DHT extensions`_
@@ -59,6 +60,7 @@ libtorrent
 .. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
+.. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html

@@ -17,6 +17,7 @@ TARGETS = index \
 	python_binding \
 	projects \
 	running_tests \
+	utp \
 	tuning
 
 FIGURES = read_disk_buffers write_disk_buffers

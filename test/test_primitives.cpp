@@ -43,8 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/enum_net.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -382,6 +385,98 @@ int test_main()
 	error_code ec;
 	int ret = 0;
 
+	// test timestamp_history
+	{
+		timestamp_history h;
+		TEST_EQUAL(h.add_sample(0x32, false), 0);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x33, false), 0x1);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x3433, false), 0x3401);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x30, false), 0);
+		TEST_EQUAL(h.base(), 0x30);
+
+		// test that wrapping of the timestamp is properly handled
+		h.add_sample(0xfffffff3, false);
+		TEST_EQUAL(h.base(), 0xfffffff3);
+	}
+
+	// test packet_buffer
+	{
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.capacity(), 0);
+		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
+
+		pb.insert(123, (void*)123);
+		TEST_EQUAL(pb.at(123 + 16), 0);
+		
+		TEST_CHECK(pb.at(123) == (void*)123);
+		TEST_CHECK(pb.capacity() > 0);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(125, (void*)125);
+
+		TEST_CHECK(pb.at(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 3);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
+		TEST_EQUAL(pb.span(), 501 - 123);
+		TEST_EQUAL(pb.capacity(), 512);
+
+		TEST_CHECK(pb.remove(123) == (void*)123);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 501 - 125);
+		TEST_EQUAL(pb.cursor(), 125);
+		TEST_CHECK(pb.remove(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
+		TEST_EQUAL(pb.cursor(), 500);
+
+		TEST_CHECK(pb.remove(500) == (void*)500);
+		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
+
+		for (int i = 0; i < 0xff; ++i)
+		{
+			int index = (i + 0xfff0) & 0xffff;
+			pb.insert(index, (void*)(index + 1));
+			fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
+			TEST_EQUAL(pb.capacity(), 512);
+			if (i >= 14)
+			{
+				index = (index - 14) & 0xffff;
+				fprintf(stderr, "remove: %u\n", index);
+				TEST_CHECK(pb.remove(index) == (void*)(index + 1));
+				TEST_EQUAL(pb.size(), 14);
+			}
+		}
+	}
+
+	{
+		// test wrapping the indices
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(0xfffe, (void*)1);
+		TEST_CHECK(pb.at(0xfffe) == (void*)1);
+
+		pb.insert(2, (void*)2);
+		TEST_CHECK(pb.at(2) == (void*)2);
+
+		pb.remove(0xfffe);
+		TEST_CHECK(pb.at(0xfffe) == (void*)0);
+		TEST_CHECK(pb.at(2) == (void*)2);
+	}
+
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
 	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
@@ -391,7 +486,7 @@ int test_main()
 
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved108 == 108);
+	TEST_CHECK(errors::reserved109 == 109);
 
 	{
 	// test session state load/restore
@@ -1062,6 +1157,16 @@ int test_main()
 #endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
+	
+	TEST_CHECK(match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.0.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
+
+	TEST_CHECK(!match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.1.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
 
 	// test torrent parsing
 

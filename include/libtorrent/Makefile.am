@@ -94,6 +94,7 @@ nobase_include_HEADERS = \
   storage_defs.hpp             \
   thread.hpp                   \
   time.hpp                     \
+  timestamp_history.hpp        \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
@@ -102,6 +103,8 @@ nobase_include_HEADERS = \
   udp_tracker_connection.hpp   \
   union_endpoint.hpp           \
   upnp.hpp                     \
+  utp_socket_manager.hpp       \
+  utp_stream.hpp               \
   utf8.hpp                     \
   version.hpp                  \
   web_peer_connection.hpp      \

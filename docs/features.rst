@@ -52,6 +52,7 @@ extensions
 * share-mode. This is a special mode torrents can be put in to optimize share
   ratio rather than downloading the torrent.
 
+.. _article: utp.html
 .. _extensions: manual.html#extensions
 .. _`http seeding`: manual.html#http-seeding
 
@@ -78,6 +79,8 @@ disk management
 network
 -------
 
+* a high quality uTP implementation (BEP29_). A transport protocol with
+  delay based congestion control. See separate article_.
 * adjusts the length of the request queue depending on download rate.
 * serves multiple torrents on a single port and in a single thread
 * piece picking on block-level (as opposed to piece-level).
@@ -116,6 +119,7 @@ network
 .. _`BEP 21`: http://bittorrent.org/beps/bep_0021.html
 .. _`BEP 24`: http://bittorrent.org/beps/bep_0024.html
 .. _`BEP 27`: http://bittorrent.org/beps/bep_0027.html
+.. _`BEP 29`: http://bittorrent.org/beps/bep_0029.html
 .. _`extension protocol`: extension_protocol.html
 
 highlighted features

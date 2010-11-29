@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
+#define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
+
 namespace libtorrent
 {
 // a sliding average accumulator. Add samples to it and it
@@ -69,4 +72,6 @@ private:
 };
 
 }
+
+#endif
 

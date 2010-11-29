@@ -241,9 +241,9 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
 	if (ses3) ses3->set_settings(sess_set);
-	ses1->set_alert_mask(~alert::progress_notification);
-	ses2->set_alert_mask(~alert::progress_notification);
-	if (ses3) ses3->set_alert_mask(~alert::progress_notification);
+	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
 	std::srand(time(0));
 	peer_id pid;
@@ -289,9 +289,11 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
+	param.seed_mode = true;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
+	param.seed_mode = false;
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
@@ -753,7 +755,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			while (!p.finished())
 			{
-				TORRENT_ASSERT(len < sizeof(buf));
+				TORRENT_ASSERT(len < int(sizeof(buf)));
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
 //				fprintf(stderr, "read: %d\n", int(received));
