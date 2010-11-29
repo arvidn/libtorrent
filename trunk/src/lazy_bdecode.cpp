@@ -77,6 +77,16 @@ namespace libtorrent
 		return start;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	int lazy_bdecode(char const* start, char const* end
+		, lazy_entry& ret, int depth_limit, int item_limit)
+	{
+		error_code ec;
+		int pos;
+		return lazy_bdecode(start, end, ret, ec, &pos, depth_limit, item_limit);
+	}
+#endif
+
 	// return 0 = success
 	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
 		, error_code& ec, int* error_pos, int depth_limit, int item_limit)

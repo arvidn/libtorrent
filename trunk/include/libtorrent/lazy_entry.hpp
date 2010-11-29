@@ -58,6 +58,14 @@ namespace libtorrent
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
 		, int depth_limit = 1000, int item_limit = 1000000);
 
+#ifndef TORRENT_NO_DEPRECATE
+	// for backwards compatibility, does not report error code
+	// deprecated in 0.16
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
+		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000) TORRENT_DEPRECATED;
+#endif
+
 	struct pascal_string
 	{
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
