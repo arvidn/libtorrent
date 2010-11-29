@@ -118,7 +118,7 @@ namespace libtorrent
 		// return instead of crash in release mode
 		if (fs.num_files() == 0) return;
 
-		if (!m_multifile && has_parent_path(m_files.file_path(m_files.at(0)))) m_multifile = true;
+		if (!m_multifile && has_parent_path(m_files.file_path(*m_files.begin()))) m_multifile = true;
 
 		// a piece_size of 0 means automatic
 		if (piece_size == 0 && !m_merkle_torrent)
@@ -301,26 +301,26 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
-			if (m_include_mtime) info["mtime"] = m_files.mtime(m_files.at(0));
-			info["length"] = m_files.at(0).size;
-			if (m_files.at(0).pad_file
-				|| m_files.at(0).hidden_attribute
-				|| m_files.at(0).executable_attribute
-				|| m_files.at(0).symlink_attribute)
+			file_entry e = m_files.at(0);
+			if (m_include_mtime) info["mtime"] = e.mtime;
+			info["length"] = e.size;
+			if (e.pad_file
+				|| e.hidden_attribute
+				|| e.executable_attribute
+				|| e.symlink_attribute)
 			{
 				std::string& attr = info["attr"].string();
-				if (m_files.at(0).pad_file) attr += 'p';
-				if (m_files.at(0).hidden_attribute) attr += 'h';
-				if (m_files.at(0).executable_attribute) attr += 'x';
-				if (m_include_symlinks && m_files.at(0).symlink_attribute) attr += 'l';
+				if (e.pad_file) attr += 'p';
+				if (e.hidden_attribute) attr += 'h';
+				if (e.executable_attribute) attr += 'x';
+				if (m_include_symlinks && e.symlink_attribute) attr += 'l';
 			}
 			if (m_include_symlinks
-				&& m_files.at(0).symlink_attribute
-				&& m_files.at(0).symlink_index != -1)
+				&& e.symlink_attribute)
 			{
 				entry& sympath_e = info["symlink path"];
 				
-				std::string split = split_path(m_files.symlink(m_files.at(0)));
+				std::string split = split_path(e.symlink_path);
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}

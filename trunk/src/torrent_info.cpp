@@ -182,12 +182,6 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	void verify_encoding(file_entry& target)
-	{
-		std::string p = target.filename();
-		if (!verify_encoding(p, true)) target.set_name(p.c_str());
-	}
-
 	// TODO: should this take a char const*?
 	bool valid_path_element(std::string const& element)
 	{
@@ -233,7 +227,7 @@ namespace libtorrent
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
-		, std::string const& root_dir, lazy_entry const** filehash, std::string* symlink
+		, std::string const& root_dir, lazy_entry const** filehash
 		, lazy_entry const** filename, time_t* mtime)
 	{
 		if (dict.type() != lazy_entry::dict_t) return false;
@@ -266,13 +260,13 @@ namespace libtorrent
 			path = combine_path(path, path_element);
 		}
 		path = sanitize_path(path);
-		verify_encoding(target);
+		verify_encoding(path, true);
 
 		// bitcomet pad file
 		if (path.find("_____padding_file_") != std::string::npos)
 			target.pad_file = true;
 
-		target.set_name(path.c_str());
+		target.path = path;
 
 		lazy_entry const* attr = dict.dict_find_string("attr");
 		if (attr)
@@ -300,10 +294,8 @@ namespace libtorrent
 			{
 				std::string path_element = s_p->list_at(i)->string_value();
 				trim_path_element(path_element);
-				*symlink = combine_path(*symlink, path_element);
+				target.symlink_path = combine_path(target.symlink_path, path_element);
 			}
-			// indeicate that we have a symlink
-			target.symlink_index = 0;
 		}
 
 		return true;
@@ -339,11 +331,10 @@ namespace libtorrent
 		{
 			lazy_entry const* file_hash = 0;
 			time_t mtime = 0;
-			std::string symlink;
 			file_entry e;
 			lazy_entry const* fee = 0;
 			if (!extract_single_file(*list.list_at(i), e, root_dir
-				, &file_hash, &symlink, &fee, &mtime))
+				, &file_hash, &fee, &mtime))
 				return false;
 
 			// TODO: this logic should be a separate step
@@ -354,22 +345,19 @@ namespace libtorrent
 
 			// as long as this file already exists
 			// increase the counter
-			std::string path = e.filename();
-			while (!files.insert(path).second)
+			while (!files.insert(e.path).second)
 			{
 				++cnt;
 				char suffix[50];
-				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(path).c_str());
-				replace_extension(path, suffix);
+				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
+				replace_extension(e.path, suffix);
 			}
-			e.set_name(path.c_str());
-			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0
-				, e.symlink_index != -1 ? &symlink : 0, mtime);
+			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0);
 
 			// This is a memory optimization! Instead of having
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
-			file_entry const& fe = target.at(target.num_files() - 1);
+			internal_file_entry const& fe = *target.rbegin();
 			// TODO: once the filename renaming is removed from here
 			// this check can be removed as well
 			if (fee && fe.filename() == fee->string_value())
@@ -377,7 +365,7 @@ namespace libtorrent
 				// this string pointer does not necessarily point into
 				// the m_info_section buffer.
 				char const* str_ptr = fee->string_ptr() + info_ptr_diff;
-				const_cast<file_entry&>(fe).set_name(str_ptr, fee->string_length());
+				const_cast<internal_file_entry&>(fe).set_name(str_ptr, fee->string_length());
 			}
 		}
 		return true;
@@ -807,12 +795,10 @@ namespace libtorrent
 			// if there's no list of files, there has to be a length
 			// field.
 			file_entry e;
-			e.set_name(name.c_str());
+			e.path = name;
 			e.offset = 0;
 			e.size = info.dict_find_int_value("length", -1);
-			size_type ts = info.dict_find_int_value("mtime", -1);
-			time_t mtime = 0;
-			if (ts > 0) mtime = std::time_t(ts);
+			e.mtime = info.dict_find_int_value("mtime", 0);
 			lazy_entry const* attr = info.dict_find_string("attr");
 			if (attr)
 			{
@@ -829,30 +815,27 @@ namespace libtorrent
 			}
 
 			lazy_entry const* s_p = info.dict_find("symlink path");
-			std::string symlink;
 			if (s_p != 0 && s_p->type() == lazy_entry::list_t)
 			{
 				for (int i = 0, end(s_p->list_size()); i < end; ++i)
 				{
 					std::string path_element = s_p->list_at(i)->string_value();
 					trim_path_element(path_element);
-					symlink = combine_path(symlink, path_element);
+					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
-				e.symlink_index = 0;
 			}
 			lazy_entry const* fh = info.dict_find_string("sha1");
 			if (fh && fh->string_length() != 20) fh = 0;
 
 			// bitcomet pad file
-			if (e.filename().find("_____padding_file_") != std::string::npos)
+			if (e.path.find("_____padding_file_") != std::string::npos)
 				e.pad_file = true;
 			if (e.size < 0)
 			{
 				ec = errors::torrent_invalid_length;
 				return false;
 			}
-			m_files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0
-				, e.symlink_index != -1 ? &symlink : 0, mtime);
+			m_files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
 			m_multifile = false;
 		}
 		else

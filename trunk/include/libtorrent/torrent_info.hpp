@@ -302,7 +302,7 @@ namespace libtorrent
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 		int num_files() const { return m_files.num_files(); }
-		file_entry const& file_at(int index) const { return m_files.at(index); }
+		file_entry file_at(int index) const { return m_files.at(index); }
 
 		file_iterator file_at_offset(size_type offset) const
 		{ return m_files.file_at_offset(offset); }

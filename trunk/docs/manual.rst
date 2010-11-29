@@ -1546,28 +1546,29 @@ begin_files() end_files() rbegin_files() rend_files()
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
-iterators with the type ``file_entry``.
+iterators with the type ``internal_file_entry``, which is an internal type.
+
+You can resolve it into the public representation of a file (``file_entry``)
+using the ``file_storage::at`` function, which takes an index and an iterator;
 
 ::
 
 	struct file_entry
 	{
-		std::string filename();
+		std::string path;
 		size_type offset;
 		size_type size;
 		size_type file_base;
 		time_t mtime;
-		int symlink_index;
-		int filehash_index;
+		sha1_hash filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
 	};
 
-The ``filename`` function returns the filename of this file. It does not include the
-path, just the leaf name. To get the full path name, use ``file_storage::file_path()``.
-The filenames are unicode strings encoded in UTF-8.
+The ``path`` is the full path of this file. The paths are unicode strings
+encoded in UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
@@ -1582,14 +1583,12 @@ file.
 
 ``mtime`` is the modification time of this file specified in posix time.
 
-``symlink_index`` is an index into an array of paths in ``file_storage``, or
--1 if this file is not a symlink. This field is only used if the ``symlink_attribute``
-is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
+``symlink_path`` is the path which this is a symlink to, or empty if this is
+not a symlink. This field is only used if the ``symlink_attribute`` is set.
 
-``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
--1 if this file doesn't have a hash specified. The hash is the hash of the actual
-content of the file, and can be used to potentially find alternative sources for it.
-To resolve the hash, use ``file_storage::hash(e)``.
+``filehash`` is a sha-1 hash of the content of the file, or zeroes, if no
+file hash was present in the torrent file. It can be used to potentially
+find alternative sources for the file.
 
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
