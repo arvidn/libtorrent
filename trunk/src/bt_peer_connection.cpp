@@ -1493,7 +1493,7 @@ namespace libtorrent
 #endif
 		else
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 			error_code ec;
 			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 			(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:"
@@ -1512,7 +1512,7 @@ namespace libtorrent
 		{
 			case hp_rendezvous: // rendezvous
 			{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 				error_code ec;
 				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:rendezvous"
 					<< " to:" << ep.address().to_string(ec) << " ]\n";
@@ -1547,7 +1547,7 @@ namespace libtorrent
 				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
 				if (p == 0 || p->connection)
 				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 					error_code ec;
 					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
 						<< " to:" << ep.address().to_string(ec) << " error:failed to add peer ]\n";
@@ -1558,7 +1558,7 @@ namespace libtorrent
 				}
 				if (p->banned)
 				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 					error_code ec;
 					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
 						<< " to:" << ep.address().to_string(ec) << " error:peer banned ]\n";
@@ -1577,7 +1577,7 @@ namespace libtorrent
 				// retrying
 				if (p->connection)
 					p->connection->set_holepunch_mode();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 					error_code ec;
 					(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:connect"
 						<< " to:" << ep.address().to_string(ec) << " ]\n";
@@ -1586,7 +1586,7 @@ namespace libtorrent
 			case hp_failed:
 			{
 				boost::uint32_t error = detail::read_uint32(ptr);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 				error_code ec;
 				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 				(*m_logger) << time_now_string() << " <== HOLEPUNCH [ msg:failed"
@@ -1596,7 +1596,7 @@ namespace libtorrent
 #endif
 				// #error deal with holepunch errors
 			} break;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 			default:
 			{
 				error_code ec;
@@ -1617,7 +1617,7 @@ namespace libtorrent
 		else detail::write_uint8(1, ptr);
 		detail::write_endpoint(ep, ptr);
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 		error_code ec;
 		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
