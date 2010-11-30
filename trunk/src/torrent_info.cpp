@@ -288,7 +288,7 @@ namespace libtorrent
 			*filehash = fh;
 
 		lazy_entry const* s_p = dict.dict_find("symlink path");
-		if (s_p != 0 && s_p->type() == lazy_entry::list_t && symlink)
+		if (s_p != 0 && s_p->type() == lazy_entry::list_t && target.symlink_attribute)
 		{
 			for (int i = 0, end(s_p->list_size()); i < end; ++i)
 			{
