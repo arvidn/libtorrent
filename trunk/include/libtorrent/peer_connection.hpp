@@ -292,7 +292,7 @@ namespace libtorrent
 		{
 			m_holepunch_mode = true;
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << "*** HOLEPUNCH MODE ***\n";
+			peer_log("*** HOLEPUNCH MODE ***");
 #endif
 		}
 
@@ -432,7 +432,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		void peer_log(char const* fmt, ...);
+		void peer_log(char const* fmt, ...) const;
 		boost::shared_ptr<logger> m_logger;
 #endif
 
@@ -520,7 +520,7 @@ namespace libtorrent
 		downloading_piece_progress() const
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";
+			peer_log("*** downloading_piece_progress() dispatched to the base class!");
 #endif
 			return boost::optional<piece_block_progress>();
 		}

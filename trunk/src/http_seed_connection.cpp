@@ -408,7 +408,7 @@ namespace libtorrent
 				int retry_time = atol(std::string(recv_buffer.begin, recv_buffer.end).c_str());
 				if (retry_time <= 0) retry_time = 60;
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("retrying in %d seconds", retry_time);
+				peer_log("*** retrying in %d seconds", retry_time);
 #endif
 
 				m_statistics.received_bytes(0, bytes_transferred);

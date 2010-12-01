@@ -613,7 +613,7 @@ namespace libtorrent
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-	void peer_connection::peer_log(char const* fmt, ...)
+	void peer_connection::peer_log(char const* fmt, ...) const
 	{
 		if (!m_logger) return;
 
@@ -4367,11 +4367,6 @@ namespace libtorrent
 
 		// peers that we are not interested in are non-prioritized
 		m_channel_state[upload_channel] = peer_info::bw_limit;
-		m_ses.m_upload_rate.request_bandwidth(self()
-			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				/ (1000 / m_ses.m_settings.tick_interval))
-			, priority
-			, bwc1, bwc2, bwc3, bwc4);
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
@@ -4383,6 +4378,11 @@ namespace libtorrent
          , (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
+		m_ses.m_upload_rate.request_bandwidth(self()
+			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
+				/ (1000 / m_ses.m_settings.tick_interval))
+			, priority
+			, bwc1, bwc2, bwc3, bwc4);
 	}
 
 	void peer_connection::request_download_bandwidth(
