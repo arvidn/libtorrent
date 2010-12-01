@@ -52,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #endif
 
-using boost::shared_ptr;
-
 namespace libtorrent { namespace dht
 {
 

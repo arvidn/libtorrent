@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	bool instantiate_connection(io_service& ios
+	TORRENT_EXPORT bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm)

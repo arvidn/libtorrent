@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PACKET_BUFFER_HPP_INCLUDED
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
 #include "boost/cstdint.hpp"
 #include <cstddef>
 
@@ -64,7 +65,7 @@ namespace libtorrent
 	// whenever the element at the cursor is removed, the
 	// cursor is bumped to the next occupied element
 
-	class packet_buffer
+	class TORRENT_EXPORT packet_buffer
 	{
 	public:
 		typedef boost::uint32_t index_type;
