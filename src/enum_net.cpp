@@ -454,6 +454,7 @@ namespace libtorrent
 
 #elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
+#if _WIN32_WINNT >= 0x0501
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (iphlp)
@@ -512,6 +513,7 @@ namespace libtorrent
 			}
 			FreeLibrary(iphlp);
 		}
+#endif
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
@@ -803,6 +805,7 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
+#if _WIN32_WINNT >= 0x0600
 		typedef DWORD (WINAPI *GetIpForwardTable2_t)(
 			ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
 		typedef void (WINAPI *FreeMibTable_t)(PVOID Memory);
@@ -839,6 +842,7 @@ namespace libtorrent
 			FreeLibrary(iphlp);
 			return ret;
 		}
+#endif
 
 		// Get GetIpForwardTable() pointer
 		typedef DWORD (WINAPI *GetIpForwardTable_t)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);

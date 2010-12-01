@@ -83,7 +83,6 @@ rule linking ( properties * )
 			<library>wsock32
 			<library>iphlpapi
 			<define>WIN32_LEAN_AND_MEAN
-			<define>_WIN32_WINNT=0x0600
 			<define>__USE_W32_SOCKETS
 			<define>WIN32
 			<define>_WIN32
@@ -241,6 +240,12 @@ feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 feature asserts : on off production : composite propagated ;
 feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
+
+feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
+feature.compose <windows-version>2k : <define>_WIN32_WINNT=0x0500 ;
+feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
+feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
+feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
 
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;

@@ -88,6 +88,7 @@ namespace libtorrent
 #if _WIN32_WINNT >= 0x0600
 				if (m_low_prio_io)
 				{
+					// TODO: load this function dynamically from Kernel32.dll
 					FILE_IO_PRIORITY_HINT_INFO priorityHint;
 					priorityHint.PriorityHint = IoPriorityHintLow;
 					SetFileInformationByHandle(e.file_ptr->native_handle(),
