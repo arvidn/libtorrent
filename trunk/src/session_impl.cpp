@@ -2180,17 +2180,24 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
+		std::vector<peer_connection*> conns;
+		conns.reserve(m_connections.size() / 2);
 		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
+			i != m_connections.end(); ++i)
 		{
-			boost::intrusive_ptr<peer_connection> p = *i;
-			++i;
+			peer_connection* p = i->get();
 			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
 
+			conns.push_back(p);
+		}
+
+		for (std::vector<peer_connection*>::iterator i = conns.begin()
+			, end(conns.end()); i != end; ++i)
+		{
 			// setup_receive() may disconnect the connection
 			// and clear it out from the m_connections list
-			p->setup_receive();
+			(*i)->setup_receive();
 		}
 	}
 
