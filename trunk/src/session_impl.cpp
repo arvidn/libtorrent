@@ -512,6 +512,9 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		, m_network_thread(0)
+#endif
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -815,17 +818,20 @@ namespace aux {
 		update_rate_settings();
 		update_connections_limit();
 		update_unchoke_limit();
+	}
 
+	void session_impl::start_session()
+	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << time_now_string() << " spawning network thread\n";
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
-	void session_impl::start()
+	void session_impl::init()
 	{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " *** session start\n";
+		(*m_logger) << time_now_string() << " *** session thread init\n";
 #endif
 
 		// this is where we should set up all async operations. This
@@ -1308,6 +1314,7 @@ namespace aux {
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(is_network_thread());
 
 		TORRENT_ASSERT_VAL(s.file_pool_size > 0, s.file_pool_size);
 
@@ -1915,6 +1922,8 @@ namespace aux {
 
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		error_code ec;
 		// we got a connection request!
 		tcp::endpoint endp = s->remote_endpoint(ec);
@@ -2091,6 +2100,8 @@ namespace aux {
 	void session_impl::close_connection(peer_connection const* p
 		, error_code const& ec)
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -2946,6 +2957,7 @@ namespace aux {
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
+		TORRENT_ASSERT(is_network_thread());
 		if (m_allowed_upload_slots == 0) return;
 	
 		std::vector<policy::peer*> opt_unchoke;
@@ -3037,6 +3049,7 @@ namespace aux {
 	void session_impl::recalculate_unchoke_slots(int congested_torrents
 		, int uncongested_torrents)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
@@ -3273,16 +3286,14 @@ namespace aux {
 
 	void session_impl::main_thread()
 	{
-#ifdef TORRENT_DEBUG
-#if defined BOOST_HAS_PTHREADS
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_network_thread = pthread_self();
-#endif
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		eh_initializer();
 
 		// initialize async operations
-		start();
+		init();
 
 		bool stop_loop = false;
 		while (!stop_loop)
@@ -3322,6 +3333,10 @@ namespace aux {
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_network_thread = 0;
+#endif
 	}
 
 
@@ -3688,6 +3703,7 @@ namespace aux {
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
+		TORRENT_ASSERT(is_network_thread());
 
 		session_status s;
 
@@ -4353,6 +4369,8 @@ namespace aux {
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 	void session_impl::log_buffer_usage()
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		int send_buffer_capacity = 0;
 		int used_send_buffer = 0;
 		for (connection_map::const_iterator i = m_connections.begin()
@@ -4393,6 +4411,8 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 	void session_impl::check_invariant() const
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		int num_checking = 0;
 		for (check_queue_t::const_iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)

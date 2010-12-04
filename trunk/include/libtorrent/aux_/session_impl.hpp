@@ -151,7 +151,8 @@ namespace libtorrent
 #endif
 				);
 			~session_impl();
-			void start();
+			void init();
+			void start_session();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
@@ -160,6 +161,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			bool has_peer(peer_connection const* p) const
 			{
+				TORRENT_ASSERT(is_network_thread());
 				return std::find_if(m_connections.begin(), m_connections.end()
 					, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
 					!= m_connections.end();
@@ -184,11 +186,9 @@ namespace libtorrent
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
 #ifdef TORRENT_DEBUG
-#if defined BOOST_HAS_PTHREADS
-			pthread_t m_network_thread;
-#endif
 			bool is_network_thread() const
 			{
+				if (m_network_thread == 0) return true;
 #if defined BOOST_HAS_PTHREADS
 				return m_network_thread == pthread_self();
 #endif
@@ -849,6 +849,10 @@ namespace libtorrent
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+			pthread_t m_network_thread;
+#endif
 		};
 		
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

@@ -395,6 +395,7 @@ namespace libtorrent
 		, m_interface_index(0)
 		, m_graceful_pause_mode(false)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
 			<< torrent_file().name() << "\n";
@@ -437,6 +438,7 @@ namespace libtorrent
 
 	void torrent::start()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " starting torrent: "
 			<< torrent_file().name() << "\n";
@@ -485,6 +487,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 	bool torrent::should_announce_dht() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_ses.m_listen_sockets.empty()) return false;
 
 		if (!m_ses.m_dht) return false;
@@ -508,6 +511,7 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
 		// reset, which means that all its peers already have an
@@ -627,6 +631,7 @@ namespace libtorrent
 
 	void torrent::handle_disk_error(disk_io_job const& j, peer_connection* c)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!j.error) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -721,6 +726,7 @@ namespace libtorrent
 
 	void torrent::add_piece(int piece, char const* data, int flags)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
@@ -864,6 +870,7 @@ namespace libtorrent
 	// shared_from_this()
 	void torrent::init()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
@@ -1225,6 +1232,7 @@ namespace libtorrent
 
 	void torrent::queue_torrent_check()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_queued_for_checking) return;
 		m_queued_for_checking = true;
 		m_ses.queue_check_torrent(shared_from_this());
@@ -1232,6 +1240,7 @@ namespace libtorrent
 
 	void torrent::dequeue_torrent_check()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_queued_for_checking) return;
 		m_queued_for_checking = false;
 		m_ses.dequeue_check_torrent(shared_from_this());
@@ -1426,6 +1435,7 @@ namespace libtorrent
 
 	void torrent::dht_announce()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_ses.m_dht) return;
 		if (!should_announce_dht()) return;
 
@@ -1447,6 +1457,7 @@ namespace libtorrent
 
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (peers.empty()) return;
 
 		if (m_ses.m_alerts.should_post<dht_reply_alert>())
@@ -1468,6 +1479,7 @@ namespace libtorrent
 	void torrent::announce_with_tracker(tracker_request::event_t e
 		, address const& bind_interface)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_trackers.empty()) return;
@@ -1634,6 +1646,7 @@ namespace libtorrent
 
 	void torrent::scrape_tracker()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_last_scrape = 0;
 
 		if (m_trackers.empty()) return;
@@ -2220,6 +2233,7 @@ namespace libtorrent
 	// -2: piece failed check
 	void torrent::piece_finished(int index, int passed_hash_check)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
 			<< index << " chk: " << ((passed_hash_check == 0)
@@ -2276,6 +2290,7 @@ namespace libtorrent
 
 	void torrent::we_have(int index)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		// update m_file_progress
 		TORRENT_ASSERT(m_picker);
 		TORRENT_ASSERT(!have_piece(index));
@@ -2323,6 +2338,7 @@ namespace libtorrent
 	void torrent::piece_passed(int index)
 	{
 //		INVARIANT_CHECK;
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
@@ -2451,6 +2467,7 @@ namespace libtorrent
 		// invariant check here since it assumes:
 		// (total_done == m_torrent_file->total_size()) => is_seed()
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(m_storage);
 		TORRENT_ASSERT(m_storage->refcount() > 0);
@@ -2596,6 +2613,7 @@ namespace libtorrent
 
 	void torrent::abort()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_abort) return;
@@ -3313,6 +3331,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p != 0);
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		peer_iterator i = m_connections.find(p);
 		if (i == m_connections.end())
@@ -3378,6 +3397,7 @@ namespace libtorrent
 
 	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!web->resolving);
@@ -3593,6 +3613,7 @@ namespace libtorrent
 
 	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
@@ -3726,6 +3747,7 @@ namespace libtorrent
 	
 	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_resolving_country
 			|| is_local(p->remote().address())
 			|| p->has_country()
@@ -4319,6 +4341,7 @@ namespace libtorrent
 
 	void torrent::get_download_queue(std::vector<partial_piece_info>& queue)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		queue.clear();
 		std::vector<block_info>& blk = m_ses.m_block_info_storage;
 		blk.clear();
@@ -4398,6 +4421,7 @@ namespace libtorrent
 	
 	bool torrent::connect_to_peer(policy::peer* peerinfo, bool ignore_limit)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(peerinfo);
@@ -4531,6 +4555,7 @@ namespace libtorrent
 
 	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		if (m_torrent_file->is_valid()) return false;
@@ -4989,6 +5014,7 @@ namespace libtorrent
 
 	alert_manager& torrent::alerts() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		return m_ses.m_alerts;
 	}
 
@@ -5726,6 +5752,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 	void torrent::log_to_all_peers(char const* message)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
@@ -6751,6 +6778,7 @@ namespace libtorrent
 	
 	void torrent::set_state(torrent_status::state_t s)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 #ifdef TORRENT_DEBUG
 		if (s != torrent_status::checking_files
 			&& s != torrent_status::queued_for_checking)
@@ -6974,6 +7002,7 @@ namespace libtorrent
 
 	void torrent::add_redundant_bytes(int b)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 		m_ses.add_redundant_bytes(b);
@@ -6983,6 +7012,7 @@ namespace libtorrent
 
 	void torrent::add_failed_bytes(int b)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_failed_bytes += b;
 		m_ses.add_failed_bytes(b);
@@ -6992,6 +7022,7 @@ namespace libtorrent
 
 	int torrent::num_seeds() const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
 		int ret = 0;
@@ -7048,6 +7079,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	void torrent::debug_log(const std::string& line)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		(*m_ses.m_logger) << time_now_string() << " " << line << "\n";
 	}
 #endif
