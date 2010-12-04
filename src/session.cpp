@@ -342,6 +342,8 @@ namespace libtorrent
 #endif
 			start_lsd();
 		}
+
+		m_impl->start_session();
 	}
 
 	session::~session()
