@@ -297,6 +297,7 @@ struct utp_socket_impl
 	void parse_sack(boost::uint16_t packet_ack, char const* ptr, int size, int* acked_bytes
 		, ptime const now, boost::uint32_t& min_rtt);
 	void write_payload(char* ptr, int size);
+	void maybe_inc_acked_seq_nr();
 	void ack_packet(packet* p, ptime const& receive_time
 		, boost::uint32_t& min_rtt, boost::uint16_t seq_nr);
 	void write_sack(char* buf, int size) const;
@@ -1332,11 +1333,11 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 						, this, m_duplicate_acks, m_fast_resend_seq_nr);
 					ack_packet(p, now, min_rtt, ack_nr);
 				}
-				else if ((m_acked_seq_nr + 1) == ack_nr)
+				else
 				{
-					// this packet must have been acked by a previous
+					// this packet might have been acked by a previous
 					// selective ack
-					m_acked_seq_nr = ack_nr;
+					maybe_inc_acked_seq_nr();
 				}
 			}
 
@@ -1350,6 +1351,8 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 		}
 		if (ack_nr == m_seq_nr) break;
 	}
+
+	TORRENT_ASSERT(m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) || ((m_seq_nr - m_acked_seq_nr) & ACK_MASK) <= 1);
 
 	// we received more than dup_ack_limit ACKs in this SACK message.
 	// trigger fast re-send
@@ -1719,6 +1722,13 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	h->timestamp_difference_microseconds = m_reply_micro;
 	p->send_time = time_now_hires();
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(p->send_time - min_time()));
+	if (h->extension == 0)
+	{
+		// if extension != 0, there might be a SACK in the header
+		// and we can't update the ack field (since the SACK bits
+		// depend on it). If it's zero however, we can update it.
+		h->ack_nr = m_ack_nr;
+	}
 
 	error_code ec;
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
@@ -1767,10 +1777,42 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// we'll get a timeout in about one second
 }
 
+void utp_socket_impl::maybe_inc_acked_seq_nr()
+{
+	bool incremented = false;
+	// don't pass m_seq_nr, since we move into sequence
+	// numbers that haven't been sent yet, and aren't
+	// supposed to be in m_outbuf
+	while (((m_acked_seq_nr + 1) & ACK_MASK) != m_seq_nr
+		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == 0)
+	{
+		// increment the fast resend sequence number
+		if (m_fast_resend_seq_nr == m_acked_seq_nr)
+			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+
+		m_acked_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
+		incremented = true;
+	}
+
+	if (!incremented) return;
+
+	// update loss seq number if it's less than the packet
+	// that was just acked. If loss seq nr is greater, it suggests
+	// that we're still in a window that has experienced loss
+	if (compare_less_wrap(m_loss_seq_nr, m_acked_seq_nr, ACK_MASK))
+		m_loss_seq_nr = m_acked_seq_nr;
+	m_duplicate_acks = 0;
+}
+
 void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	, boost::uint32_t& min_rtt, boost::uint16_t seq_nr)
 {
 	TORRENT_ASSERT(p);
+
+	// verify that the packet we're removing was in fact sent
+	// with the sequence number we expect
+	TORRENT_ASSERT(((utp_header*)p->buf)->seq_nr == seq_nr);
+
 	if (!p->need_resend)
 	{
 		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
@@ -1786,19 +1828,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	}
 
 	// increment the acked sequence number counter
-	if (((m_acked_seq_nr + 1) & ACK_MASK) == seq_nr)
-	{
-		m_acked_seq_nr = seq_nr;
-		// update loss seq number if it's less than the packet
-		// that was just acked. If loss seq nr is greater, it suggests
-		// that we're still in a window that has experienced loss
-		if (compare_less_wrap(m_loss_seq_nr, m_acked_seq_nr, ACK_MASK))
-			m_loss_seq_nr = m_acked_seq_nr;
-		m_duplicate_acks = 0;
-	}
-	// increment the fast resend sequence number
-	if (m_fast_resend_seq_nr == seq_nr)
-		m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+	maybe_inc_acked_seq_nr();
 
 	boost::uint32_t rtt = boost::uint32_t(total_microseconds(receive_time - p->send_time));
 	if (receive_time < p->send_time)
@@ -2244,25 +2274,14 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			if (m_fast_resend_seq_nr == ack_nr)
 				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 			packet* p = (packet*)m_outbuf.remove(ack_nr);
-			if (!p)
-			{
-				if (((m_acked_seq_nr + 1) & ACK_MASK) == ack_nr)
-					m_acked_seq_nr = ack_nr;
-				continue;
-			}
+
+			if (!p) continue;
+
 			acked_bytes += p->size - p->header_size;
 			ack_packet(p, receive_time, min_rtt, ack_nr);
 		}
 
-		// update loss seq number if it's less than the packet
-		// that was just acked. If loss seq nr is greater, it suggests
-		// that we're still in a window that has experienced loss
-		if (compare_less_wrap(m_loss_seq_nr, m_acked_seq_nr, ACK_MASK))
-			m_loss_seq_nr = m_acked_seq_nr;
-
-		m_duplicate_acks = 0;
-		if (compare_less_wrap(m_fast_resend_seq_nr, (m_acked_seq_nr + 1) & ACK_MASK, ACK_MASK))
-			m_fast_resend_seq_nr = (m_acked_seq_nr + 1) & ACK_MASK;
+		maybe_inc_acked_seq_nr();
 	}
 
 	// look for extended headers
