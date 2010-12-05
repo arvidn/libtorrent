@@ -960,7 +960,42 @@ void upnp::on_upnp_xml(error_code const& e
 		return;
 	}
 
-	if (num_mappings() > 0) update_map(d, 0, l);
+	d.upnp_connection.reset(new http_connection(m_io_service
+		, m_cc, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
+		, boost::ref(d), _5), true
+		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
+	d.upnp_connection->start(d.hostname, to_string(d.port).elems
+		, seconds(10), 1);
+}
+
+void upnp::get_ip_address(rootdevice& d)
+{
+	mutex::scoped_lock l(m_mutex);
+
+	TORRENT_ASSERT(d.magic == 1337);
+
+	if (!d.upnp_connection)
+	{
+		TORRENT_ASSERT(d.disabled);
+		char msg[200];
+		snprintf(msg, sizeof(msg), "getting external IP address");
+		log(msg, l);
+		return;
+	}
+
+	char const* soap_action = "GetExternalIPAddress";
+
+	char soap[2048];
+	error_code ec;
+	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
+		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
+		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+		"<s:Body><u:%s xmlns:u=\"%s\">"
+		"</u:%s></s:Body></s:Envelope>"
+		, soap_action, d.service_namespace
+		, soap_action);
+
+	post(d, soap, soap_action, l);
 }
 
 void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
@@ -974,7 +1009,7 @@ void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
 		if (i->protocol == none) continue;
 		i->protocol = none;
 		l.unlock();
-		m_callback(i - m_mappings.begin(), 0, ec);
+		m_callback(i - m_mappings.begin(), address(), 0, ec);
 		l.lock();
 	}
 	
@@ -1008,6 +1043,29 @@ namespace
 		else if (type == xml_string && state.in_error_code)
 		{
 			state.error_code = std::atoi(string);
+			state.exit = true;
+		}
+	}
+
+	struct ip_address_parse_state: public error_code_parse_state
+	{
+		ip_address_parse_state(): in_ip_address(false) {}
+		bool in_ip_address;
+		std::string ip_address;
+	};
+
+	void find_ip_address(int type, char const* string, ip_address_parse_state& state)
+	{
+		find_error_code(type, string, state);
+		if (state.exit) return;
+
+		if (type == xml_start_tag && !std::strcmp("NewExternalIPAddress", string))
+		{
+			state.in_ip_address = true;
+		}
+		else if (type == xml_string && state.in_ip_address)
+		{
+			state.ip_address = string;
 			state.exit = true;
 		}
 	}
@@ -1073,6 +1131,84 @@ namespace libtorrent
 }
 
 #endif
+
+void upnp::on_upnp_get_ip_address_response(error_code const& e
+	, libtorrent::http_parser const& p, rootdevice& d
+	, http_connection& c)
+{
+	boost::intrusive_ptr<upnp> me(self());
+
+	mutex::scoped_lock l(m_mutex);
+
+	TORRENT_ASSERT(d.magic == 1337);
+	if (d.upnp_connection && d.upnp_connection.get() == &c)
+	{
+		d.upnp_connection->close();
+		d.upnp_connection.reset();
+	}
+
+	if (m_closing) return;
+
+	if (e && e != asio::error::eof)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "error while getting external IP address: %s", e.message().c_str());
+		log(msg, l);
+		if (num_mappings() > 0) update_map(d, 0, l);
+		return;
+	}
+
+	if (!p.header_finished())
+	{
+		log("error while getting external IP address: incomplete http message", l);
+		if (num_mappings() > 0) update_map(d, 0, l);
+		return;
+	}
+
+	if (p.status_code() != 200)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "error while getting external IP address: %s", p.message().c_str());
+		log(msg, l);
+		if (num_mappings() > 0) update_map(d, 0, l);
+		return;
+	}
+
+	// response may look like
+	// <?xml version="1.0"?>
+	// <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+	// <s:Body><u:GetExternalIPAddressResponse xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1">
+	// <NewExternalIPAddress>192.168.160.19</NewExternalIPAddress>
+	// </u:GetExternalIPAddressResponse>
+	// </s:Body>
+	// </s:Envelope>
+
+	char msg[500];
+	snprintf(msg, sizeof(msg), "get external IP address response: %s"
+		, std::string(p.get_body().begin, p.get_body().end).c_str());
+	log(msg, l);
+
+	ip_address_parse_state s;
+	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+		, boost::bind(&find_ip_address, _1, _2, boost::ref(s)));
+	if (s.error_code != -1)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "error while getting external IP address, code: %u"
+			, s.error_code);
+		log(msg, l);
+	}
+
+	if (!s.ip_address.empty()) {
+		snprintf(msg, sizeof(msg), "got router external IP address %s", s.ip_address.c_str());
+		log(msg, l);
+		d.external_ip = address::from_string(s.ip_address.c_str(), ec);
+	} else {
+		log("failed to find external IP address in response", l);
+	}
+
+	if (num_mappings() > 0) update_map(d, 0, l);
+}
 
 void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
@@ -1188,7 +1324,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == -1)
 	{
 		l.unlock();
-		m_callback(mapping, m.external_port, error_code());
+		m_callback(mapping, d.external_ip, m.external_port, error_code());
 		l.lock();
 		if (d.lease_duration > 0)
 		{
@@ -1231,7 +1367,7 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 		error_string += e->msg;
 	}
 	l.unlock();
-	m_callback(mapping, 0, error_code(code, upnp_category));
+	m_callback(mapping, address(), 0, error_code(code, upnp_category));
 	l.lock();
 }
 

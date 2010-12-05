@@ -235,8 +235,8 @@ namespace libtorrent
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
-			void on_port_mapping(int mapping, int port, error_code const& ec
-				, int nat_transport);
+			void on_port_mapping(int mapping, address const& ip, int port
+				, error_code const& ec, int nat_transport);
 
 			bool is_aborted() const { return m_abort; }
 			bool is_paused() const { return m_paused; }
@@ -301,6 +301,7 @@ namespace libtorrent
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
+			address listen_address() const;
 			unsigned short listen_port() const;
 			
 			void abort();
@@ -581,6 +582,11 @@ namespace libtorrent
 			struct listen_socket_t
 			{
 				listen_socket_t(): external_port(0) {}
+
+				// this is typically empty but can be set
+				// to the WAN IP address of NAT-PMP or UPnP router
+				address external_address;
+
 				// this is typically set to the same as the local
 				// listen port. In case a NAT port forward was
 				// successfully opened, this will be set to the

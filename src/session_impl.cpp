@@ -3608,6 +3608,16 @@ namespace aux {
 		return !m_listen_sockets.empty();
 	}
 
+	address session_impl::listen_address() const
+	{
+		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			if (i->external_address != address()) return i->external_address;
+		}
+		return address();
+	}
+
 	unsigned short session_impl::listen_port() const
 	{
 		// if peer connections are set up to be received over a socks
@@ -3667,7 +3677,7 @@ namespace aux {
 			m_alerts.post_alert(portmap_log_alert(map_transport, msg));
 	}
 
-	void session_impl::on_port_mapping(int mapping, int port
+	void session_impl::on_port_mapping(int mapping, address const& ip, int port
 		, error_code const& ec, int map_transport)
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -3685,8 +3695,12 @@ namespace aux {
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
-			if (!m_listen_sockets.empty())
+			if (ip != address()) set_external_address(ip);
+
+			if (!m_listen_sockets.empty()) {
+				m_listen_sockets.front().external_address = ip;
 				m_listen_sockets.front().external_port = port;
+			}
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
 					, map_transport));
@@ -4248,7 +4262,7 @@ namespace aux {
 		natpmp* n = new (std::nothrow) natpmp(m_io_service
 			, m_listen_interface.address()
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 0)
+				, this, _1, _2, _3, _4, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
 		if (n == 0) return 0;
@@ -4280,7 +4294,7 @@ namespace aux {
 			, m_listen_interface.address()
 			, m_settings.user_agent
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 1)
+				, this, _1, _2, _3, _4, 1)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.upnp_ignore_nonrouters);
