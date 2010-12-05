@@ -90,12 +90,13 @@ namespace libtorrent
 #endif
 
 // int: port-mapping index
+// address: external address as queried from router
 // int: external port
 // std::string: error message
 // an empty string as error means success
 // a port-mapping index of -1 means it's
 // an informational log message
-typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
 class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
@@ -147,6 +148,9 @@ private:
 	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, http_connection& c);
+	void on_upnp_get_ip_address_response(error_code const& e
+		, libtorrent::http_parser const& p, rootdevice& d
+		, http_connection& c);
 	void on_upnp_map_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, int mapping, http_connection& c);
@@ -159,6 +163,7 @@ private:
 	void return_error(int mapping, int code, mutex::scoped_lock& l);
 	void log(char const* msg, mutex::scoped_lock& l);
 
+	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
 	void post(upnp::rootdevice const& d, char const* soap
@@ -247,6 +252,7 @@ private:
 		std::string hostname;
 		int port;
 		std::string path;
+		address external_ip;
 
 		int lease_duration;
 		// true if the device supports specifying a

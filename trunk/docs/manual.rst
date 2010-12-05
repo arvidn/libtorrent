@@ -3992,6 +3992,8 @@ session_settings
 		bool rate_limit_utp;
 
 		int listen_queue_size;
+
+		bool announce_double_nat;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4789,6 +4791,10 @@ be sufficient for any normal client. If this is a high performance server which
 expects to receive a lot of connections, or used in a simulator or test, it
 might make sense to raise this number. It will not take affect until listen_on()
 is called again (or for the first time).
+
+if ``announce_double_nat`` is true, the ``&ip=`` argument in tracker requests
+(unless otherwise specified) will be set to the intermediate IP address, if the
+user is double NATed. If ther user is not double NATed, this option has no affect.
 
 pe_settings
 ===========

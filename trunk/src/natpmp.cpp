@@ -120,6 +120,7 @@ void natpmp::rebind(address const& listen_interface)
 #endif
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
+	send_get_ip_address_request(l);
 
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
@@ -130,6 +131,20 @@ void natpmp::rebind(address const& listen_interface)
 		i->action = mapping_t::action_add;
 		update_mapping(i - m_mappings.begin(), l);
 	}
+}
+
+void natpmp::send_get_ip_address_request(mutex::scoped_lock& l)
+{
+	using namespace libtorrent::detail;
+
+	char buf[2];
+	char* out = buf;
+	write_uint8(0, out); // NAT-PMP version
+	write_uint8(0, out); // public IP address request opcode
+	log("==> get public IP address", l);
+
+	error_code ec;
+	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 }
 
 bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
@@ -164,7 +179,7 @@ void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
 		i->protocol = none;
 		int index = i - m_mappings.begin();
 		l.unlock();
-		m_callback(index, 0, ec);
+		m_callback(index, address(), 0, ec);
 		l.lock();
 	}
 	close_impl(l);
@@ -337,7 +352,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 	log(msg, l);
 
 	error_code ec;
-	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
+	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
 	m.outstanding_request = true;
 	if (m_abort)
@@ -428,11 +443,45 @@ void natpmp::on_reply(error_code const& e
 	error_code ec;
 	m_send_timer.cancel(ec);
 
+	if (bytes_transferred < 12)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", bytes_transferred);
+		log(msg, l);
+		return;
+	}
+
 	char* in = m_response_buffer;
 	int version = read_uint8(in);
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
 	int time = read_uint32(in);
+
+	// for some reason the Airport extreme responds with
+	// a cmd of 130 for the public IP request. However, the
+	// response is still identifiable by its size
+	// this might be a bug triggered by libtorrent not serializing
+	// its port mapping requests and the external IP request
+	if (cmd == 128 || bytes_transferred == 12)
+	{
+		// public IP request response
+		m_external_ip = address_v4(read_uint32(in));
+
+		char msg[200];
+		snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+		log(msg, l);
+		return;
+
+	}
+
+	if (bytes_transferred < 16)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", bytes_transferred);
+		log(msg, l);
+		return;
+	}
+
 	int private_port = read_uint16(in);
 	int public_port = read_uint16(in);
 	int lifetime = read_uint32(in);
@@ -505,13 +554,14 @@ void natpmp::on_reply(error_code const& e
 
 		m->expires = time_now() + hours(2);
 		l.unlock();
-		m_callback(index, 0, error_code(ev, get_libtorrent_category()));
+		m_callback(index, address(), 0, error_code(ev, get_libtorrent_category()));
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		l.unlock();
-		m_callback(index, m->external_port, error_code(errors::no_error, get_libtorrent_category()));
+		m_callback(index, m_external_ip, m->external_port,
+			error_code(errors::no_error, get_libtorrent_category()));
 		l.lock();
 	}
 

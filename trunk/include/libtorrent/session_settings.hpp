@@ -251,6 +251,7 @@ namespace libtorrent
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 			, listen_queue_size(5)
+			, announce_double_nat(false)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -992,6 +993,12 @@ namespace libtorrent
 		// the number of connections to accept while we're
 		// not waiting in an accept() call.
 		int listen_queue_size;
+
+		// if this is true, the &ip= argument in tracker requests
+		// (unless otherwise specified) will be set to the intermediate
+		// IP address if the user is double NATed. If ther user is not
+		// double NATed, this option does not have an affect
+		bool announce_double_nat;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
