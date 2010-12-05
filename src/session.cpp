@@ -333,6 +333,9 @@ namespace libtorrent
 			add_extension(create_smart_ban_plugin);
 		}
 #endif
+
+		m_impl->start_session();
+
 		if (flags & start_default_features)
 		{
 			start_upnp();
@@ -342,8 +345,6 @@ namespace libtorrent
 #endif
 			start_lsd();
 		}
-
-		m_impl->start_session();
 	}
 
 	session::~session()
