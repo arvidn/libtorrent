@@ -1356,6 +1356,21 @@ int test_main()
 
 	h2 = sha1_hash("                    ");
 	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
+
+	h1 = to_hash("ffffffffff0000000000ffffffffff0000000000");
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	h1 <<= 12;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("fffffff0000000000ffffffffff0000000000000"));
+	h1 >>= 12;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
 	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");

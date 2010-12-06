@@ -525,13 +525,20 @@ bool node_impl::lookup_torrents(sha1_hash const& target
 	return true;
 }
 
-bool node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply) const
+bool node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply) const
 {
 	if (m_ses.m_alerts.should_post<dht_get_peers_alert>())
 		m_ses.m_alerts.post_alert(dht_get_peers_alert(info_hash));
 
-	table_t::const_iterator i = m_map.find(info_hash);
+	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return false;
+	if (i->first != info_hash && prefix == 20) return false;
+	if (prefix != 20)
+	{
+		sha1_hash mask = sha1_hash::max();
+		mask <<= (20 - prefix) * 8;
+		if ((i->first & mask) != (info_hash & mask)) return false;
+	}
 
 	torrent_entry const& v = i->second;
 	if (v.peers.empty()) return false;
@@ -704,10 +711,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	{
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
+			{"ifhpfxl", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[1];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[2];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -721,7 +729,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		bool ret = lookup_peers(info_hash, reply);
+		int prefix = msg_keys[1] ? msg_keys[1]->int_value() : 20;
+		if (prefix > 20) prefix = 20;
+		else if (prefix < 4) prefix = 4;
+
+		bool ret = lookup_peers(info_hash, prefix, reply);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (ret) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
 #endif

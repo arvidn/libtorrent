@@ -118,6 +118,48 @@ namespace libtorrent
 			return true;
 		}
 
+		big_number& operator<<=(int n)
+		{
+			TORRENT_ASSERT(n >= 0);
+			if (n > number_size * 8) n = number_size;
+			int num_bytes = n / 8;
+			if (num_bytes > 0)
+			{
+				std::memmove(m_number, m_number + num_bytes, number_size - num_bytes);
+				std::memset(m_number + number_size - num_bytes, 0, num_bytes);
+				n -= num_bytes * 8;
+			}
+			if (n > 0)
+			{
+				for (int i = 0; i < number_size - 1; ++i)
+				{
+					m_number[i] <<= n;
+					m_number[i] |= m_number[i+1] >> (8 - n);
+				}
+			}
+			return *this;
+		}
+
+		big_number& operator>>=(int n)
+		{
+			int num_bytes = n / 8;
+			if (num_bytes > 0)
+			{
+				std::memmove(m_number + num_bytes, m_number, number_size - num_bytes);
+				std::memset(m_number, 0, num_bytes);
+				n -= num_bytes * 8;
+			}
+			if (n > 0)
+			{
+				for (int i = number_size - 1; i > 0; --i)
+				{
+					m_number[i] >>= n;
+					m_number[i] |= m_number[i-1] << (8 - n);
+				}
+			}
+			return *this;
+		}
+
 		bool operator==(big_number const& n) const
 		{
 			return std::equal(n.m_number, n.m_number+number_size, m_number);
@@ -146,6 +188,20 @@ namespace libtorrent
 			return ret;
 		}
 		
+		big_number operator^ (big_number const& n) const
+		{
+			big_number ret = *this;
+			ret ^= n;
+			return ret;
+		}
+
+		big_number operator& (big_number const& n) const
+		{
+			big_number ret = *this;
+			ret &= n;
+			return ret;
+		}
+
 		big_number& operator &= (big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)
