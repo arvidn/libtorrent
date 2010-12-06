@@ -261,7 +261,7 @@ protected:
 	// is called when a find data request is received. Should
 	// return false if the data is not stored on this node. If
 	// the data is stored, it should be serialized into 'data'.
-	bool lookup_peers(sha1_hash const& info_hash, entry& reply) const;
+	bool lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply) const;
 	bool lookup_torrents(sha1_hash const& target, entry& reply
 		, char* tags) const;
 
