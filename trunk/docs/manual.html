@@ -2,6 +2,19 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
@@ -182,118 +195,119 @@
 <li><a class="reference internal" href="#free-functions" id="id135">free functions</a><ul>
 <li><a class="reference internal" href="#identify-client" id="id136">identify_client()</a></li>
 <li><a class="reference internal" href="#client-fingerprint" id="id137">client_fingerprint()</a></li>
-<li><a class="reference internal" href="#bdecode-bencode" id="id138">bdecode() bencode()</a></li>
-<li><a class="reference internal" href="#add-magnet-uri" id="id139">add_magnet_uri()</a></li>
-<li><a class="reference internal" href="#make-magnet-uri" id="id140">make_magnet_uri()</a></li>
+<li><a class="reference internal" href="#lazy-bdecode" id="id138">lazy_bdecode()</a></li>
+<li><a class="reference internal" href="#bdecode-bencode" id="id139">bdecode() bencode()</a></li>
+<li><a class="reference internal" href="#add-magnet-uri" id="id140">add_magnet_uri()</a></li>
+<li><a class="reference internal" href="#make-magnet-uri" id="id141">make_magnet_uri()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alerts" id="id141">alerts</a><ul>
-<li><a class="reference internal" href="#read-piece-alert" id="id142">read_piece_alert</a></li>
-<li><a class="reference internal" href="#external-ip-alert" id="id143">external_ip_alert</a></li>
-<li><a class="reference internal" href="#listen-failed-alert" id="id144">listen_failed_alert</a></li>
-<li><a class="reference internal" href="#listen-succeeded-alert" id="id145">listen_succeeded_alert</a></li>
-<li><a class="reference internal" href="#portmap-error-alert" id="id146">portmap_error_alert</a></li>
-<li><a class="reference internal" href="#portmap-alert" id="id147">portmap_alert</a></li>
-<li><a class="reference internal" href="#portmap-log-alert" id="id148">portmap_log_alert</a></li>
-<li><a class="reference internal" href="#file-error-alert" id="id149">file_error_alert</a></li>
-<li><a class="reference internal" href="#file-renamed-alert" id="id150">file_renamed_alert</a></li>
-<li><a class="reference internal" href="#file-rename-failed-alert" id="id151">file_rename_failed_alert</a></li>
-<li><a class="reference internal" href="#tracker-announce-alert" id="id152">tracker_announce_alert</a></li>
-<li><a class="reference internal" href="#tracker-error-alert" id="id153">tracker_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-reply-alert" id="id154">tracker_reply_alert</a></li>
-<li><a class="reference internal" href="#dht-reply-alert" id="id155">dht_reply_alert</a></li>
-<li><a class="reference internal" href="#tracker-warning-alert" id="id156">tracker_warning_alert</a></li>
-<li><a class="reference internal" href="#scrape-reply-alert" id="id157">scrape_reply_alert</a></li>
-<li><a class="reference internal" href="#scrape-failed-alert" id="id158">scrape_failed_alert</a></li>
-<li><a class="reference internal" href="#url-seed-alert" id="id159">url_seed_alert</a></li>
-<li><a class="reference internal" href="#hash-failed-alert" id="id160">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-alert" id="id161">peer_alert</a></li>
-<li><a class="reference internal" href="#peer-connect-alert" id="id162">peer_connect_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id163">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-snubbed-alert" id="id164">peer_snubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id165">peer_unsnubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id166">peer_error_alert</a></li>
-<li><a class="reference internal" href="#peer-connected-alert" id="id167">peer_connected_alert</a></li>
-<li><a class="reference internal" href="#peer-disconnected-alert" id="id168">peer_disconnected_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id169">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#request-dropped-alert" id="id170">request_dropped_alert</a></li>
-<li><a class="reference internal" href="#block-timeout-alert" id="id171">block_timeout_alert</a></li>
-<li><a class="reference internal" href="#block-finished-alert" id="id172">block_finished_alert</a></li>
-<li><a class="reference internal" href="#lsd-peer-alert" id="id173">lsd_peer_alert</a></li>
-<li><a class="reference internal" href="#file-completed-alert" id="id174">file_completed_alert</a></li>
-<li><a class="reference internal" href="#block-downloading-alert" id="id175">block_downloading_alert</a></li>
-<li><a class="reference internal" href="#unwanted-block-alert" id="id176">unwanted_block_alert</a></li>
-<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id177">torrent_delete_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-deleted-alert" id="id178">torrent_deleted_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id179">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id180">performance_alert</a></li>
-<li><a class="reference internal" href="#state-changed-alert" id="id181">state_changed_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id182">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id183">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id184">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id185">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id186">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-failed-alert" id="id187">storage_moved_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id188">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id189">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id190">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id191">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#stats-alert" id="id192">stats_alert</a></li>
-<li><a class="reference internal" href="#cache-flushed-alert" id="id193">cache_flushed_alert</a></li>
-<li><a class="reference internal" href="#dht-announce-alert" id="id194">dht_announce_alert</a></li>
-<li><a class="reference internal" href="#dht-get-peers-alert" id="id195">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#anonymous-mode-alert" id="id196">anonymous_mode_alert</a></li>
+<li><a class="reference internal" href="#alerts" id="id142">alerts</a><ul>
+<li><a class="reference internal" href="#read-piece-alert" id="id143">read_piece_alert</a></li>
+<li><a class="reference internal" href="#external-ip-alert" id="id144">external_ip_alert</a></li>
+<li><a class="reference internal" href="#listen-failed-alert" id="id145">listen_failed_alert</a></li>
+<li><a class="reference internal" href="#listen-succeeded-alert" id="id146">listen_succeeded_alert</a></li>
+<li><a class="reference internal" href="#portmap-error-alert" id="id147">portmap_error_alert</a></li>
+<li><a class="reference internal" href="#portmap-alert" id="id148">portmap_alert</a></li>
+<li><a class="reference internal" href="#portmap-log-alert" id="id149">portmap_log_alert</a></li>
+<li><a class="reference internal" href="#file-error-alert" id="id150">file_error_alert</a></li>
+<li><a class="reference internal" href="#file-renamed-alert" id="id151">file_renamed_alert</a></li>
+<li><a class="reference internal" href="#file-rename-failed-alert" id="id152">file_rename_failed_alert</a></li>
+<li><a class="reference internal" href="#tracker-announce-alert" id="id153">tracker_announce_alert</a></li>
+<li><a class="reference internal" href="#tracker-error-alert" id="id154">tracker_error_alert</a></li>
+<li><a class="reference internal" href="#tracker-reply-alert" id="id155">tracker_reply_alert</a></li>
+<li><a class="reference internal" href="#dht-reply-alert" id="id156">dht_reply_alert</a></li>
+<li><a class="reference internal" href="#tracker-warning-alert" id="id157">tracker_warning_alert</a></li>
+<li><a class="reference internal" href="#scrape-reply-alert" id="id158">scrape_reply_alert</a></li>
+<li><a class="reference internal" href="#scrape-failed-alert" id="id159">scrape_failed_alert</a></li>
+<li><a class="reference internal" href="#url-seed-alert" id="id160">url_seed_alert</a></li>
+<li><a class="reference internal" href="#hash-failed-alert" id="id161">hash_failed_alert</a></li>
+<li><a class="reference internal" href="#peer-alert" id="id162">peer_alert</a></li>
+<li><a class="reference internal" href="#peer-connect-alert" id="id163">peer_connect_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id164">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-snubbed-alert" id="id165">peer_snubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id166">peer_unsnubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id167">peer_error_alert</a></li>
+<li><a class="reference internal" href="#peer-connected-alert" id="id168">peer_connected_alert</a></li>
+<li><a class="reference internal" href="#peer-disconnected-alert" id="id169">peer_disconnected_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id170">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#request-dropped-alert" id="id171">request_dropped_alert</a></li>
+<li><a class="reference internal" href="#block-timeout-alert" id="id172">block_timeout_alert</a></li>
+<li><a class="reference internal" href="#block-finished-alert" id="id173">block_finished_alert</a></li>
+<li><a class="reference internal" href="#lsd-peer-alert" id="id174">lsd_peer_alert</a></li>
+<li><a class="reference internal" href="#file-completed-alert" id="id175">file_completed_alert</a></li>
+<li><a class="reference internal" href="#block-downloading-alert" id="id176">block_downloading_alert</a></li>
+<li><a class="reference internal" href="#unwanted-block-alert" id="id177">unwanted_block_alert</a></li>
+<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id178">torrent_delete_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-deleted-alert" id="id179">torrent_deleted_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id180">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id181">performance_alert</a></li>
+<li><a class="reference internal" href="#state-changed-alert" id="id182">state_changed_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id183">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id184">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id185">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id186">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id187">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id188">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id189">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id190">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id191">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id192">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#stats-alert" id="id193">stats_alert</a></li>
+<li><a class="reference internal" href="#cache-flushed-alert" id="id194">cache_flushed_alert</a></li>
+<li><a class="reference internal" href="#dht-announce-alert" id="id195">dht_announce_alert</a></li>
+<li><a class="reference internal" href="#dht-get-peers-alert" id="id196">dht_get_peers_alert</a></li>
+<li><a class="reference internal" href="#anonymous-mode-alert" id="id197">anonymous_mode_alert</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alert-dispatcher" id="id197">alert dispatcher</a></li>
-<li><a class="reference internal" href="#exceptions" id="id198">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id199">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#alert-dispatcher" id="id198">alert dispatcher</a></li>
+<li><a class="reference internal" href="#exceptions" id="id199">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id200">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id200">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id201">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id201">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id202">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id202">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id203">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id204">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id205">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id206">sparse_end()</a></li>
-<li><a class="reference internal" href="#id10" id="id207">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id208">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id209">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id210">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id211">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id212">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id11" id="id213">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id214">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id215">delete_files()</a></li>
-<li><a class="reference internal" href="#finalize-file" id="id216">finalize_file()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id203">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id204">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id205">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id206">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id207">sparse_end()</a></li>
+<li><a class="reference internal" href="#id10" id="id208">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id209">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id210">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id211">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id212">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id213">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id11" id="id214">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id215">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id216">delete_files()</a></li>
+<li><a class="reference internal" href="#finalize-file" id="id217">finalize_file()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id217">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id218">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id219">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id220">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id218">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id219">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id220">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id221">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id221">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id222">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id222">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id223">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id223">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id224">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id225">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id226">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id227">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id224">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id225">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id226">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id227">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id228">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id228">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id229">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id230">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id229">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id230">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id231">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id231">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id232">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -570,7 +584,7 @@ void save_state(entry&amp; e, boost::uint32_t flags) const;
 settings. <tt class="docutils literal"><span class="pre">save_state</span></tt> writes all keys to the <tt class="docutils literal"><span class="pre">entry</span></tt> that's passed in, which needs to
 either not be initialized, or initialized as a dictionary.</p>
 <p><tt class="docutils literal"><span class="pre">load_state</span></tt> expects a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> which can be built from a bencoded buffer with
-<tt class="docutils literal"><span class="pre">lazy_bdecode</span></tt>.</p>
+<a class="reference internal" href="#lazy-bdecode">lazy_bdecode()</a>.</p>
 <p>The <tt class="docutils literal"><span class="pre">flags</span></tt> arguments passed in to <tt class="docutils literal"><span class="pre">save_state</span></tt> can be used to filter which parts
 of the session state to save. By default, all state is saved (except for the individual
 torrents). These are the possible flags. A flag that's set, means those settings are saved:</p>
@@ -631,9 +645,9 @@ public:
 <h2>add_torrent()</h2>
 <blockquote>
 <pre class="literal-block">
-typedef storage_interface* (&amp;storage_constructor_type)(
-        file_storage const&amp;, file_storage const*, fs::path const&amp;, file_pool&amp;
-        , std::vector&lt;boost::uint8_t&gt; const&amp;);
+typedef boost::function&lt;storage_interface*(file_storage const&amp;
+        , file_storage const*, std::string const&amp;, file_pool&amp;
+        , std::vector&lt;boost::uint8_t&gt; const&amp;) storage_constructor_type;
 
 struct add_torrent_params
 {
@@ -657,6 +671,7 @@ struct add_torrent_params
         bool upload_mode;
         std::vector&lt;boost::uint8_t&gt; const* file_priorities;
         bool share_mode;
+        std::string trackerid;
 };
 
 torrent_handle add_torrent(add_torrent_params const&amp; params);
@@ -764,6 +779,9 @@ for more info.</p>
 a torrent. The semantics are the same as for <tt class="docutils literal"><span class="pre">torrent_handle::prioritize_files()</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is filled in by the constructor and should be left untouched. It
 is used for forward binary compatibility.</p>
+<p><tt class="docutils literal"><span class="pre">trackerid</span></tt> is the default tracker id to be used when announcing to trackers. By default
+this is empty, and no tracker ID is used, since this is an optional argument. If
+a tracker returns a tracker ID, that ID is used instead of this.</p>
 </div>
 <div class="section" id="remove-torrent">
 <h2>remove_torrent()</h2>
@@ -1514,18 +1532,18 @@ class torrent_info
 public:
 
         // these constructors throws exceptions on error
-        torrent_info(sha1_hash const&amp; info_hash);
-        torrent_info(lazy_entry const&amp; torrent_file);
-        torrent_info(char const* buffer, int size);
-        torrent_info(boost::filesystem::path const&amp; filename);
-        torrent_info(boost::filesystem::wpath const&amp; filename);
+        torrent_info(sha1_hash const&amp; info_hash, int flags = 0);
+        torrent_info(lazy_entry const&amp; torrent_file, int flags = 0);
+        torrent_info(char const* buffer, int size, int flags = 0);
+        torrent_info(boost::filesystem::path const&amp; filename, int flags = 0);
+        torrent_info(boost::filesystem::wpath const&amp; filename, int flags = 0);
 
         // these constructors sets the error code on error
-        torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec);
-        torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec);
-        torrent_info(char const* buffer, int size, error_code&amp; ec);
-        torrent_info(fs::path const&amp; filename, error_code&amp; ec);
-        torrent_info(fs::wpath const&amp; filename, error_code&amp; ec);
+        torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec, int flags = 0);
+        torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
+        torrent_info(char const* buffer, int size, error_code&amp; ec, int flags = 0);
+        torrent_info(fs::path const&amp; filename, error_code&amp; ec, int flags = 0);
+        torrent_info(fs::wpath const&amp; filename, error_code&amp; ec, int flags = 0);
 
         void add_tracker(std::string const&amp; url, int tier = 0);
         std::vector&lt;announce_entry&gt; const&amp; trackers() const;
@@ -1585,17 +1603,17 @@ public:
 <h2>torrent_info()</h2>
 <blockquote>
 <pre class="literal-block">
-torrent_info(sha1_hash const&amp; info_hash);
-torrent_info(lazy_entry const&amp; torrent_file);
-torrent_info(char const* buffer, int size);
-torrent_info(boost::filesystem::path const&amp; filename);
-torrent_info(boost::filesystem::wpath const&amp; filename);
+torrent_info(sha1_hash const&amp; info_hash, int flags = 0);
+torrent_info(lazy_entry const&amp; torrent_file, int flags = 0);
+torrent_info(char const* buffer, int size, int flags = 0);
+torrent_info(boost::filesystem::path const&amp; filename, int flags = 0);
+torrent_info(boost::filesystem::wpath const&amp; filename, int flags = 0);
 
-torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec);
-torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec);
-torrent_info(char const* buffer, int size, error_code&amp; ec);
-torrent_info(fs::path const&amp; filename, error_code&amp; ec);
-torrent_info(fs::wpath const&amp; filename, error_code&amp; ec);
+torrent_info(sha1_hash const&amp; info_hash, error_code&amp; ec, int flags = 0);
+torrent_info(lazy_entry const&amp; torrent_file, error_code&amp; ec, int flags = 0);
+torrent_info(char const* buffer, int size, error_code&amp; ec, int flags = 0);
+torrent_info(fs::path const&amp; filename, error_code&amp; ec, int flags = 0);
+torrent_info(fs::wpath const&amp; filename, error_code&amp; ec, int flags = 0);
 </pre>
 </blockquote>
 <p>The constructor that takes an info-hash  will initialize the info-hash to the given value,
@@ -1605,7 +1623,7 @@ from the swarm.</p>
 <p>The constructor that takes a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> will create a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object from the
 information found in the given torrent_file. The <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> represents a tree node in
 an bencoded file. To load an ordinary .torrent file
-into a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt>, use lazy_bdecode(), see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a>.</p>
+into a <tt class="docutils literal"><span class="pre">lazy_entry</span></tt>, use <a class="reference internal" href="#lazy-bdecode">lazy_bdecode()</a>.</p>
 <p>The version that takes a buffer pointer and a size will decode it as a .torrent file and
 initialize the torrent_info object for you.</p>
 <p>The version that takes a filename will simply load the torrent file and decode it inside
@@ -1616,6 +1634,7 @@ will simply set the error code to describe what went wrong and not fully initial
 torrent_info object. The overloads that do not take the extra <a class="reference internal" href="#error-code">error_code</a> parameter will
 always throw if an error occurs. These overloads are not available when building without
 exception support.</p>
+<p>The <tt class="docutils literal"><span class="pre">flags</span></tt> argument is currently unused.</p>
 </div>
 <div class="section" id="add-tracker">
 <h2>add_tracker()</h2>
@@ -1686,25 +1705,26 @@ reverse_file_iterator rend_files() const;
 <p>This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use <tt class="docutils literal"><span class="pre">begin_files()</span></tt>, <tt class="docutils literal"><span class="pre">end_files()</span></tt>,
 <tt class="docutils literal"><span class="pre">rbegin_files()</span></tt> and <tt class="docutils literal"><span class="pre">rend_files()</span></tt>. These will give you standard vector
-iterators with the type <tt class="docutils literal"><span class="pre">file_entry</span></tt>.</p>
+iterators with the type <tt class="docutils literal"><span class="pre">internal_file_entry</span></tt>, which is an internal type.</p>
+<p>You can resolve it into the public representation of a file (<tt class="docutils literal"><span class="pre">file_entry</span></tt>)
+using the <tt class="docutils literal"><span class="pre">file_storage::at</span></tt> function, which takes an index and an iterator;</p>
 <pre class="literal-block">
 struct file_entry
 {
-        boost::filesystem::path path;
+        std::string path;
         size_type offset;
         size_type size;
         size_type file_base;
-        std::string symlink_path;
-        boost::shared_ptr&lt;sha1_hash&gt; filehash;
+        time_t mtime;
+        sha1_hash filehash;
         bool pad_file:1;
         bool hidden_attribute:1;
         bool executable_attribute:1;
         bool symlink_attribute:1;
 };
 </pre>
-<p>The <tt class="docutils literal"><span class="pre">path</span></tt> is the full (relative) path of each file. i.e. if it is a multi-file
-torrent, all the files starts with a directory with the same name as <tt class="docutils literal"><span class="pre">torrent_info::name()</span></tt>.
-The filenames are encoded with UTF-8.</p>
+<p>The <tt class="docutils literal"><span class="pre">path</span></tt> is the full path of this file. The paths are unicode strings
+encoded in UTF-8.</p>
 <p><tt class="docutils literal"><span class="pre">size</span></tt> is the size of the file (in bytes) and <tt class="docutils literal"><span class="pre">offset</span></tt> is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
 before it in the list.</p>
@@ -1714,6 +1734,12 @@ if the file. In cases where multiple files are mapped into the same file though,
 the <tt class="docutils literal"><span class="pre">file_base</span></tt> should be set to an offset so that the different regions do
 not overlap. This is used when mapping &quot;unselected&quot; files into a so-called part
 file.</p>
+<p><tt class="docutils literal"><span class="pre">mtime</span></tt> is the modification time of this file specified in posix time.</p>
+<p><tt class="docutils literal"><span class="pre">symlink_path</span></tt> is the path which this is a symlink to, or empty if this is
+not a symlink. This field is only used if the <tt class="docutils literal"><span class="pre">symlink_attribute</span></tt> is set.</p>
+<p><tt class="docutils literal"><span class="pre">filehash</span></tt> is a sha-1 hash of the content of the file, or zeroes, if no
+file hash was present in the torrent file. It can be used to potentially
+find alternative sources for the file.</p>
 <p><tt class="docutils literal"><span class="pre">pad_file</span></tt> is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
 or piece boundry. These files should typically be hidden from an end user. They are
@@ -1721,10 +1747,8 @@ not written to disk.</p>
 <p><tt class="docutils literal"><span class="pre">hidden_attribute</span></tt> is true if the file was marked as hidden (on windows).</p>
 <p><tt class="docutils literal"><span class="pre">executable_attribute</span></tt> is true if the file was marked as executable (posix)</p>
 <p><tt class="docutils literal"><span class="pre">symlink_attribute</span></tt> is true if the file was a symlink. If this is the case
-the <tt class="docutils literal"><span class="pre">symlink_path</span></tt> specifies the original location where the data for this file
-was found.</p>
-<p><tt class="docutils literal"><span class="pre">filehash</span></tt> is a pointer that is set in case the torrent file included a sha1 hash
-for this file. This may be use to look up more sources for this file on other networks.</p>
+the <tt class="docutils literal"><span class="pre">symlink_index</span></tt> refers to a string which specifies the original location
+where the data for this file was found.</p>
 </div>
 <div class="section" id="num-files-file-at">
 <h2>num_files() file_at()</h2>
@@ -3924,6 +3948,7 @@ struct session_settings
         bool low_prio_disk;
         int local_service_announce_interval;
         int dht_announce_interval;
+        int dht_max_torrents;
 
         int udp_tracker_token_expiry;
         bool volatile_read_cache;
@@ -3980,6 +4005,8 @@ struct session_settings
         bool rate_limit_utp;
 
         int listen_queue_size;
+
+        bool announce_double_nat;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -4459,6 +4486,8 @@ This interval is specified in seconds.</p>
 <p><tt class="docutils literal"><span class="pre">dht_announce_interval</span></tt> is the number of seconds between announcing
 torrents to the distributed hash table (DHT). This is specified to
 be 15 minutes which is its default.</p>
+<p><tt class="docutils literal"><span class="pre">dht_max_torrents</span></tt> is the max number of torrents we will track
+in the DHT.</p>
 <p><tt class="docutils literal"><span class="pre">udp_tracker_token_expiry</span></tt> is the number of seconds libtorrent
 will keep UDP tracker connection tokens around for. This is specified
 to be 60 seconds, and defaults to that. The higher this value is, the
@@ -4642,6 +4671,9 @@ be sufficient for any normal client. If this is a high performance server which
 expects to receive a lot of connections, or used in a simulator or test, it
 might make sense to raise this number. It will not take affect until listen_on()
 is called again (or for the first time).</p>
+<p>if <tt class="docutils literal"><span class="pre">announce_double_nat</span></tt> is true, the <tt class="docutils literal"><span class="pre">&amp;ip=</span></tt> argument in tracker requests
+(unless otherwise specified) will be set to the intermediate IP address, if the
+user is double NATed. If ther user is not double NATed, this option has no affect.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -5108,6 +5140,44 @@ to automate the identification of clients. It will not be able to identify peers
 standard encodings. Only Azureus style, Shadow's style and Mainline style. This function is
 declared in the header <tt class="docutils literal"><span class="pre">&lt;libtorrent/identify_client.hpp&gt;</span></tt>.</p>
 </div>
+<div class="section" id="lazy-bdecode">
+<h2>lazy_bdecode()</h2>
+<blockquote>
+<pre class="literal-block">
+int lazy_bdecode(char const* start, char const* end, lazy_entry&amp; ret
+        , error_code&amp; ec, int* error_pos = 0, int depth_limit = 1000
+        , int item_limit = 1000000);
+</pre>
+</blockquote>
+<p>This function decodes <a class="reference external" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a> data.</p>
+<p>Whenever possible, <tt class="docutils literal"><span class="pre">lazy_bdecode()</span></tt> should be preferred over <tt class="docutils literal"><span class="pre">bdecode()</span></tt>.
+It is more efficient and more secure. It supports having constraints on the
+amount of memory is consumed by the parser.</p>
+<p><em>lazy</em> refers to the fact that it doesn't copy any actual data out of the
+bencoded buffer. It builds a tree of <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> which has pointers into
+the bencoded buffer. This makes it very fast and efficient. On top of that,
+it is not recursive, which saves a lot of stack space when parsing deeply
+nested trees. However, in order to protect against potential attacks, the
+<tt class="docutils literal"><span class="pre">depth_limit</span></tt> and <tt class="docutils literal"><span class="pre">item_limit</span></tt> control how many levels deep the tree is
+allowed to get. With recursive parser, a few thousand levels would be enough
+to exhaust the threads stack and terminate the process. The <tt class="docutils literal"><span class="pre">item_limit</span></tt>
+protects against very large structures, not necessarily deep. Each bencoded
+item in the structure causes the parser to allocate some amount of memory,
+this memory is constant regardless of how much data actually is stored in
+the item. One potential attack is to create a bencoded list of hundreds of
+thousands empty strings, which would cause the parser to allocate a significant
+amount of memory, perhaps more than is available on the machine, and effectively
+provide a denial of service. The default item limit is set as a reasonable
+upper limit for desktop computers. Very few torrents have more items in them.
+The limit corresponds to about 25 MB, which might be a bit much for embedded
+systems.</p>
+<p><tt class="docutils literal"><span class="pre">start</span></tt> and <tt class="docutils literal"><span class="pre">end</span></tt> defines the bencoded buffer to be decoded. <tt class="docutils literal"><span class="pre">ret</span></tt> is
+the <tt class="docutils literal"><span class="pre">lazy_entry</span></tt> which is filled in with the whole decoded tree. <tt class="docutils literal"><span class="pre">ec</span></tt>
+is a reference to an <tt class="docutils literal"><span class="pre">error_code</span></tt> which is set to describe the error encountered
+in case the function fails. <tt class="docutils literal"><span class="pre">error_pos</span></tt> is an optional pointer to an int,
+which will be set to the byte offset into the buffer where an error occurred,
+in case the function fails.</p>
+</div>
 <div class="section" id="bdecode-bencode">
 <h2>bdecode() bencode()</h2>
 <blockquote>
@@ -5117,6 +5187,7 @@ template&lt;class OutIt&gt; void bencode(OutIt out, const entry&amp; e);
 </pre>
 </blockquote>
 <p>These functions will encode data to <a class="reference external" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a> or decode <a class="reference external" href="http://wiki.theory.org/index.php/BitTorrentSpecification">bencoded</a> data.</p>
+<p>If possible, <a class="reference internal" href="#lazy-bdecode">lazy_bdecode()</a> should be preferred over <tt class="docutils literal"><span class="pre">bdecode()</span></tt>.</p>
 <p>The <a class="reference internal" href="#entry">entry</a> class is the internal representation of the bencoded data
 and it can be used to retrieve information, an <a class="reference internal" href="#entry">entry</a> can also be build by
 the program and given to <tt class="docutils literal"><span class="pre">bencode()</span></tt> to encode it into the <tt class="docutils literal"><span class="pre">OutIt</span></tt>
@@ -6922,6 +6993,30 @@ URL. i.e. it doesn't contain &quot;announce.</td>
 <tr><td>179</td>
 <td>invalid_tracker_action</td>
 <td>invalid action field in udp tracker response</td>
+</tr>
+<tr><td>190</td>
+<td>expected_string</td>
+<td>expected string in bencoded string</td>
+</tr>
+<tr><td>191</td>
+<td>expected_colon</td>
+<td>expected colon in bencoded string</td>
+</tr>
+<tr><td>192</td>
+<td>unexpected_eof</td>
+<td>unexpected end of file in bencoded string</td>
+</tr>
+<tr><td>193</td>
+<td>expected_value</td>
+<td>expected value (list, dict, int or string) in bencoded string</td>
+</tr>
+<tr><td>194</td>
+<td>depth_exceeded</td>
+<td>bencoded recursion depth limit exceeded</td>
+</tr>
+<tr><td>195</td>
+<td>item_limit_exceeded</td>
+<td>bencoded item count limit exceeded</td>
 </tr>
 </tbody>
 </table>
