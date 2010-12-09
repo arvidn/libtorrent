@@ -527,7 +527,7 @@ namespace libtorrent
 		if (!parse_torrent_file(e, ec, 0))
 			throw invalid_torrent_file(ec);
 #else
-		parse_torrent_file(e, ec);
+		parse_torrent_file(e, ec, 0);
 #endif
 	}
 #endif
