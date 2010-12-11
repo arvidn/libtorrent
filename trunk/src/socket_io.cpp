@@ -47,6 +47,20 @@ namespace libtorrent
 		return addr.to_string(ec);
 	}
 
+	std::string address_to_bytes(address const& a)
+	{
+		if (a.is_v4())
+		{
+			address_v4::bytes_type b = a.to_v4().to_bytes();
+			return std::string((char*)&b[0], b.size());
+		}
+		else
+		{
+			address_v6::bytes_type b = a.to_v6().to_bytes();
+			return std::string((char*)&b[0], b.size());
+		}
+	}
+
 	std::string print_endpoint(tcp::endpoint const& ep)
 	{
 		error_code ec;

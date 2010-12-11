@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/address.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -55,7 +56,9 @@ bool TORRENT_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id co
 // usefult for finding out which bucket a node belongs to
 int TORRENT_EXPORT distance_exp(node_id const& n1, node_id const& n2);
 
-node_id TORRENT_EXPORT generate_id();
+node_id TORRENT_EXPORT generate_id(address const& external_ip = address());
+
+bool TORRENT_EXPORT verify_id(node_id const& nid, address const& source_ip);
 
 } } // namespace libtorrent::dht
 

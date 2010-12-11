@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>BitTorrent DHT security extension</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-dht-security-extension">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">BitTorrent DHT security extension</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>Draft</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#id1" id="id2">BitTorrent DHT security extension</a></li>
+<li><a class="reference internal" href="#node-ids" id="id3">node IDs</a></li>
+<li><a class="reference internal" href="#bootstrapping" id="id4">bootstrapping</a></li>
+<li><a class="reference internal" href="#enforcement" id="id5">enforcement</a></li>
+<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id6">backwards compatibility and transition</a></li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h1>BitTorrent DHT security extension</h1>
+<p>The purpose of this extension is to make it harder to launch a few
+specific attacks against the BitTorrent DHT and also to make it harder
+to snoop the network.</p>
+<p>Specifically the attack this extension intends to make harder is launching
+8 or more DHT nodes which node-IDs selected close to a specific target
+info-hash, in order to become the main nodes hosting peers for it. Currently
+this is very easy to do and lets the attacker not only see all the traffic
+related to this specific info-hash but also block access to it by other
+peers.</p>
+<p>The proposed guard against this is to enforce restrictions on which node-ID
+a node can choose, based on its external IP address.</p>
+</div>
+<div class="section" id="node-ids">
+<h1>node IDs</h1>
+<p>The proposed formula for restricting node IDs is that the 4 first bytes of
+the node ID MUST match the 4 first bytes of <tt class="docutils literal"><span class="pre">SHA-1(IP_address)</span></tt>. That is,
+the raw, big endian, storage of the address, either IPv4 or IPv6, hashed
+with SHA-1.</p>
+<p>Example:</p>
+<blockquote>
+An IP address 89.5.5.5 has a big endian byte representation of
+<tt class="docutils literal"><span class="pre">0x59</span> <span class="pre">0x05</span> <span class="pre">0x05</span> <span class="pre">0x05</span></tt>. The SHA-1 hash of this byte sequence is
+<tt class="docutils literal"><span class="pre">656d41da810a0a6d92fd2f6a8ba3b466e35ab368</span></tt>. The DHT node must choose
+a node ID which starts with <tt class="docutils literal"><span class="pre">656d41da</span></tt>.</blockquote>
+</div>
+<div class="section" id="bootstrapping">
+<h1>bootstrapping</h1>
+<p>In order to set ones initial node ID, the external IP needs to be known. This
+is not a trivial problem. WIth this extension, <em>all</em> DHT requests whose node
+ID does not match its IP address MUST be serviced and MUST also include one
+extra result value (inside the <tt class="docutils literal"><span class="pre">r</span></tt> dictionary) called <tt class="docutils literal"><span class="pre">ip</span></tt>. The IP field
+contains the raw (big endian) byte representation of the external IP address.
+This is the same byte sequence passed to SHA-1.</p>
+<p>A DHT node which receives an <tt class="docutils literal"><span class="pre">ip</span></tt> result in a request SHOULD consider restarting
+its DHT node with a new node ID, taking this IP into account. Since a single node
+can not be trusted, there should be some mechanism of determining whether or
+not the node has a correct understanding of its external IP or not. This could
+be done by voting, or only restart the DHT once at least a certain number of
+nodes, from separate searches, tells you your node ID is incorrect.</p>
+</div>
+<div class="section" id="enforcement">
+<h1>enforcement</h1>
+<p>Write tokens from peers whose node ID does not match its external IP should be
+considered dropped. In other words, a peer that uses a non-matching ID MUST
+never be used to store information on, regardless of which request. In the
+original DHT specification only <tt class="docutils literal"><span class="pre">announce_peer</span></tt> stores data in the network,
+but any future extension which stores data in the network SHOULD use the same
+restriction.</p>
+<p>Any peer on a local network address is exempt from this node ID verification.
+This includes the following IP blocks:</p>
+<dl class="docutils">
+<dt>10.0.0.0/8</dt>
+<dd>reserved for local networks</dd>
+<dt>172.16.0.0/12</dt>
+<dd>reserved for local networks</dd>
+<dt>192.168.0.0/16</dt>
+<dd>reserved for local networks</dd>
+<dt>169.254.0.0/16</dt>
+<dd>reserved for self-assigned IPs</dd>
+<dt>127.0.0.0/8</dt>
+<dd>reserved for loopback</dd>
+</dl>
+</div>
+<div class="section" id="backwards-compatibility-and-transition">
+<h1>backwards compatibility and transition</h1>
+<p>During some transition period, this restriction should not be enforced, and
+peers whose node ID does not match this formula relative to their external IP
+should not be blocked.</p>
+<p>Requests from peers whose node ID does not match their external IP should
+always be serviced, even after the transition period. The attack this protects
+from is storing data on an attacker's node, not servicing an attackers request.</p>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>

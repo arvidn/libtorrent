@@ -33,10 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/socket.hpp"
 
+// TODO: it would be nice to not have this dependency here
+#include "libtorrent/aux_/session_impl.hpp"
+
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
+#include <libtorrent/kademlia/node_id.hpp> // for generate_id
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -150,8 +154,6 @@ void observer::timeout()
 	m_algorithm->failed(observer_ptr(this));
 }
 
-node_id generate_id();
-
 enum { observer_size = max3<
 	sizeof(find_data_observer)
 	, sizeof(announce_observer)
@@ -161,7 +163,7 @@ enum { observer_size = max3<
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
-	, void* userdata)
+	, void* userdata, aux::session_impl& ses)
 	: m_pool_allocator(observer_size, 10)
 	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
@@ -172,6 +174,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_random_number(generate_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
+	, m_ses(ses)
 {
 	std::srand(time(0));
 
@@ -337,6 +340,22 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		incoming_error(e, "missing 'id' key");
 		m_send(m_userdata, e, m.addr, 0);
 		return false;
+	}
+
+	lazy_entry const* ext_ip = ret_ent->dict_find_string("ip");
+	if (ext_ip && ext_ip->string_length() == 4)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		m_ses.set_external_address(address_v4(b));
+	}
+	else if (ext_ip && ext_ip->string_length() == 16)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v6::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		m_ses.set_external_address(address_v6(b));
 	}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
