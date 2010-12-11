@@ -221,7 +221,8 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	int TORRENT_EXPORT load_file(std::string const& filename, std::vector<char>& v);
+	int TORRENT_EXPORT load_file(std::string const& filename
+		, std::vector<char>& v, int limit = 8000000);
 
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
