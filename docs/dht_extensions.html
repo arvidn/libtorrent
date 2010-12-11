@@ -51,6 +51,14 @@ among the 8 closest nodes of the info hash. libtorrent also keeps traversing
 nodes using get_peers until it has found the 8 closest ones, and then announces
 to those nodes.</p>
 </div>
+<div class="section" id="forward-compatibility">
+<h2>forward compatibility</h2>
+<p>In order to support future DHT messages, any message which is not recognized
+but has either an <tt class="docutils literal"><span class="pre">info_hash</span></tt> or <tt class="docutils literal"><span class="pre">target</span></tt> argument is interpreted as
+find node for that target. i.e. it returns nodes. This allows future messages
+to be properly forwarded by clients that don't understand them instead of
+being blocked.</p>
+</div>
 <div class="section" id="client-identification">
 <h2>client identification</h2>
 <p>In each DHT packet, an extra key is inserted named &quot;v&quot;. This is a string
@@ -82,6 +90,7 @@ as a binary number describing the client version.</p>
 </div>
 <div class="section" id="ipv6-support">
 <h2>IPv6 support</h2>
+<p><strong>This extension is superseeded by</strong> <a class="reference external" href="http://bittorrent.org/beps/bep_0032.html">BEP 32</a>.</p>
 <p>The DHT messages that don't support IPv6 are the <tt class="docutils literal"><span class="pre">nodes</span></tt> replies.
 They encode all the contacts as 6 bytes packed together in sequence in a
 string. The problem is that IPv6 endpoints cannot be encoded as 6 bytes, but
