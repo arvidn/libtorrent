@@ -46,20 +46,20 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	int item_limit = 100000;
+	int item_limit = 1000000;
 	int depth_limit = 1000;
 
 	if (argc > 2) item_limit = atoi(argv[2]);
 	if (argc > 3) depth_limit = atoi(argv[3]);
 
 	int size = file_size(argv[1]);
-	if (size > 10 * 1000000)
+	if (size > 40 * 1000000)
 	{
 		fprintf(stderr, "file too big (%d), aborting\n", size);
 		return 1;
 	}
 	std::vector<char> buf(size);
-	int ret = load_file(argv[1], buf);
+	int ret = load_file(argv[1], buf, 40 * 1000000);
 	if (ret != 0)
 	{
 		fprintf(stderr, "failed to load file: %d\n", ret);
