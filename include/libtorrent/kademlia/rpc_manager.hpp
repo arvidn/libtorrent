@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ptime.hpp"
 
+namespace libtorrent { namespace aux { struct session_impl; } }
+
 namespace libtorrent { namespace dht
 {
 
@@ -69,7 +71,7 @@ public:
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, send_fun const& sf
-		, void* userdata);
+		, void* userdata, aux::session_impl& ses);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -116,6 +118,7 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
+	aux::session_impl& m_ses;
 };
 
 } } // namespace libtorrent::dht

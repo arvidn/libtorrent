@@ -13,6 +13,7 @@ TARGETS = index \
 	extension_protocol \
 	make_torrent \
 	dht_extensions \
+	dht_sec \
 	libtorrent_plugins \
 	python_binding \
 	projects \

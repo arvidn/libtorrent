@@ -4353,6 +4353,12 @@ namespace aux {
 		m_external_address = ip;
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
+
+		// since we have a new external IP now, we need to
+		// restart the DHT with a new node ID
+#ifndef TORRENT_DISABLE_DHT
+		start_dht(m_dht_state);
+#endif
 	}
 
 	void session_impl::free_disk_buffer(char* buf)

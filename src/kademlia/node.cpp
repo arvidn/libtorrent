@@ -183,9 +183,9 @@ node_impl::node_impl(libtorrent::aux::session_impl& ses
 	, node_id nid
 	, void* userdata)
 	: m_settings(settings)
-	, m_id(nid == (node_id::min)() ? generate_id() : nid)
+	, m_id(nid == (node_id::min)() || !verify_id(nid, ses.external_address()) ? generate_id(ses.external_address()) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, f, userdata)
+	, m_rpc(m_id, m_table, f, userdata, ses)
 	, m_last_tracker_tick(time_now())
 	, m_ses(ses)
 	, m_send(f)
@@ -702,6 +702,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	entry& reply = e["r"];
 	m_rpc.add_our_id(reply);
 
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is
+	if (!verify_id(id, m.addr.address()))
+		reply["ip"] = address_to_bytes(m.addr.address());
+
 	if (strcmp(query, "ping") == 0)
 	{
 		// we already have 't' and 'id' in the response
@@ -848,6 +853,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		++g_announces;
 #endif
 	}
+/*
 	else if (strcmp(query, "find_torrent") == 0)
 	{
 		key_desc_t msg_desc[] = {
@@ -921,6 +927,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		i->second.publish(msg_keys[2]->string_value(), in_tags, num_tags);
 	}
+*/
 	else
 	{
 		// if we don't recognize the message but there's a
