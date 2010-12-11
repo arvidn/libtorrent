@@ -15,6 +15,15 @@ among the 8 closest nodes of the info hash. libtorrent also keeps traversing
 nodes using get_peers until it has found the 8 closest ones, and then announces
 to those nodes.
 
+forward compatibility
+---------------------
+
+In order to support future DHT messages, any message which is not recognized
+but has either an ``info_hash`` or ``target`` argument is interpreted as
+find node for that target. i.e. it returns nodes. This allows future messages
+to be properly forwarded by clients that don't understand them instead of
+being blocked.
+
 client identification
 ---------------------
 
@@ -38,6 +47,10 @@ Currently known clients:
 
 IPv6 support
 ------------
+
+**This extension is superseeded by** `BEP 32`_.
+
+.. _`BEP 32`: http://bittorrent.org/beps/bep_0032.html
 
 The DHT messages that don't support IPv6 are the ``nodes`` replies.
 They encode all the contacts as 6 bytes packed together in sequence in a
