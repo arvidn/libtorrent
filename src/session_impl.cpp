@@ -806,13 +806,13 @@ namespace aux {
 	  
 		if (e.type() != lazy_entry::dict_t) return;
 
-		set_upload_rate_limit(e.dict_find_int_value("upload_rate_limit", 0));
-		set_download_rate_limit(e.dict_find_int_value("download_rate_limit", 0));
-		set_local_upload_rate_limit(e.dict_find_int_value("local_upload_rate_limit", 0));
-		set_local_download_rate_limit(e.dict_find_int_value("local_download_rate_limit", 0));
-		set_max_uploads(e.dict_find_int_value("max_uploads", 0));
-		set_max_half_open_connections(e.dict_find_int_value("max_half_open_connections", 0));
-		set_max_connections(e.dict_find_int_value("max_connections", 0));
+		set_upload_rate_limit(e.dict_find_int_value("upload_rate_limit", upload_rate_limit()));
+		set_download_rate_limit(e.dict_find_int_value("download_rate_limit", download_rate_limit()));
+		set_local_upload_rate_limit(e.dict_find_int_value("local_upload_rate_limit", local_upload_rate_limit()));
+		set_local_download_rate_limit(e.dict_find_int_value("local_download_rate_limit", local_download_rate_limit()));
+		set_max_uploads(e.dict_find_int_value("max_uploads", max_uploads()));
+		set_max_half_open_connections(e.dict_find_int_value("max_half_open_connections", max_half_open_connections()));
+		set_max_connections(e.dict_find_int_value("max_connections", max_connections()));
 
 		settings = e.dict_find_dict("settings");
 		if (settings)
