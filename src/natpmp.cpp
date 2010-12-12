@@ -451,7 +451,7 @@ void natpmp::on_reply(error_code const& e
 	if (bytes_transferred < 12)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", bytes_transferred);
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
 		log(msg, l);
 		return;
 	}
@@ -477,7 +477,7 @@ void natpmp::on_reply(error_code const& e
 	if (bytes_transferred < 16)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", bytes_transferred);
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
 		log(msg, l);
 		return;
 	}
