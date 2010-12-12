@@ -221,7 +221,9 @@ bool routing_table::need_refresh(node_id& target) const
 
 	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - num_bits);
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(table) << "need_refresh [ bucket: " << num_bits << " target: " << target << " ]";
+#endif
 	m_last_refresh = now;
 	return true;
 }
