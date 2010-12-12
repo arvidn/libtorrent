@@ -183,8 +183,8 @@ void routing_table::touch_bucket(node_id const& target)
 bool compare_bucket_refresh(routing_table_node const& lhs, routing_table_node const& rhs)
 {
 	// add the number of nodes to prioritize buckets with few nodes in them
-	return lhs.last_active + seconds(lhs.live_nodes.size())
-		< rhs.last_active + seconds(rhs.live_nodes.size());
+	return lhs.last_active + seconds(lhs.live_nodes.size() * 5)
+		< rhs.last_active + seconds(rhs.live_nodes.size() * 5);
 }
 
 bool routing_table::need_refresh(node_id& target) const
@@ -425,15 +425,29 @@ bool routing_table::add_node(node_entry const& e)
 		new_bucket.push_back(*j);
 		j = b.erase(j);
 	}
+
+	// split the replacement bucket as well. If the live bucket
+	// is not full anymore, also move the replacement entries
+	// into the main bucket
 	for (bucket_t::iterator j = rb.begin(); j != rb.end();)
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
 		{
-			++j;
-			continue;
+			if (b.size() >= m_bucket_size)
+			{
+				++j;
+				continue;
+			}
+			b.push_back(*j);
 		}
-		// this entry belongs in the new bucket
-		new_replacement_bucket.push_back(*j);
+		else
+		{
+			// this entry belongs in the new bucket
+			if (new_bucket.size() < m_bucket_size)
+				new_bucket.push_back(*j);
+			else
+				new_replacement_bucket.push_back(*j);
+		}
 		j = rb.erase(j);
 	}
 

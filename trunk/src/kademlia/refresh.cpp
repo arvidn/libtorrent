@@ -85,6 +85,9 @@ bootstrap::bootstrap(
 	, done_callback const& callback)
 	: refresh(node, target, callback)
 {
+	// make it more resilient to nodes not responding.
+	// we don't want to terminate early when we're bootstrapping
+	m_num_target_nodes *= 2;
 }
 
 char const* bootstrap::name() const { return "bootstrap"; }
