@@ -58,6 +58,23 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 	return o;
 }
 
+traversal_algorithm::traversal_algorithm(
+	node_impl& node
+	, node_id target)
+	: m_ref_count(0)
+	, m_node(node)
+	, m_target(target)
+	, m_invoke_count(0)
+	, m_branch_factor(3)
+	, m_responses(0)
+	, m_timeouts(0)
+	, m_num_target_nodes(m_node.m_table.bucket_size() * 2)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
+#endif
+}
+
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -237,7 +254,7 @@ namespace
 
 void traversal_algorithm::add_requests()
 {
-	int results_target = m_node.m_table.bucket_size();
+	int results_target = m_num_target_nodes;
 
 	// Find the first node that hasn't already been queried.
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()

@@ -78,21 +78,7 @@ struct traversal_algorithm : boost::noncopyable
 
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
-	traversal_algorithm(
-		node_impl& node
-		, node_id target)
-		: m_ref_count(0)
-		, m_node(node)
-		, m_target(target)
-		, m_invoke_count(0)
-		, m_branch_factor(3)
-		, m_responses(0)
-		, m_timeouts(0)
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
-#endif
-	}
+	traversal_algorithm(node_impl& node, node_id target);
 
 protected:
 
@@ -128,6 +114,7 @@ protected:
 	int m_branch_factor;
 	int m_responses;
 	int m_timeouts;
+	int m_num_target_nodes;
 };
 
 } } // namespace libtorrent::dht

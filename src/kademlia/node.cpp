@@ -433,7 +433,7 @@ time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 	ptime now(time_now());
-	if (now - m_last_tracker_tick < minutes(10)) return d;
+	if (now - m_last_tracker_tick < minutes(2)) return d;
 	m_last_tracker_tick = now;
 
 	// look through all peers and see if any have timed out
