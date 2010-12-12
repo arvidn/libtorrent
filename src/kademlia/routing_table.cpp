@@ -179,6 +179,14 @@ void routing_table::touch_bucket(node_id const& target)
 	i->last_active = time_now();
 }
 
+// returns true if lhs is in more need of a refresh than rhs
+bool compare_bucket_refresh(routing_table_node const& lhs, routing_table_node const& rhs)
+{
+	// add the number of nodes to prioritize buckets with few nodes in them
+	return lhs.last_active + seconds(lhs.live_nodes.size())
+		< rhs.last_active + seconds(rhs.live_nodes.size());
+}
+
 bool routing_table::need_refresh(node_id& target) const
 {
 	ptime now = time_now();
@@ -188,14 +196,16 @@ bool routing_table::need_refresh(node_id& target) const
 	{
 		m_last_self_refresh = now;
 		target = m_id;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		TORRENT_LOG(table) << "need_refresh [ bucket: self target: " << target << " ]";
+#endif
 		return true;
 	}
 
 	if (m_buckets.empty()) return false;
 
 	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
-		, boost::bind(&routing_table_node::last_active, _1)
-			< boost::bind(&routing_table_node::last_active, _2));
+		, &compare_bucket_refresh);
 
 	if (now - i->last_active < minutes(15)) return false;
 	if (now - m_last_refresh < seconds(45)) return false;
@@ -246,7 +256,8 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	if (num_buckets == 0)
 	{
 		m_buckets.push_back(routing_table_node());
-		m_buckets.back().last_active = min_time();
+		// add 160 seconds to prioritize higher buckets (i.e. buckets closer to us)
+		m_buckets.back().last_active = min_time() + seconds(160);
 		++num_buckets;
 	}
 
@@ -394,7 +405,9 @@ bool routing_table::add_node(node_entry const& e)
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
 	m_buckets.push_back(routing_table_node());
-	m_buckets.back().last_active = min_time();
+	// the extra seconds added to the end is to prioritize
+	// buckets closer to us when refreshing
+	m_buckets.back().last_active = min_time() + seconds(160 - m_buckets.size());
 	bucket_t& new_bucket = m_buckets.back().live_nodes;
 	bucket_t& new_replacement_bucket = m_buckets.back().replacements;
 
