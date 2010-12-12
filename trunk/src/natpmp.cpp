@@ -420,6 +420,11 @@ void natpmp::on_reply(error_code const& e
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("natpmp::on_reply");
 #endif
+	// make a copy of the response packet buffer
+	// to avoid overwriting it in the next receive call
+	char msg_buf[16];
+	memcpy(msg_buf, m_response_buffer, bytes_transferred);
+
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 
@@ -451,21 +456,16 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	char* in = m_response_buffer;
+	char* in = msg_buf;
 	int version = read_uint8(in);
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
 	int time = read_uint32(in);
 
-	// for some reason the Airport extreme responds with
-	// a cmd of 130 for the public IP request. However, the
-	// response is still identifiable by its size
-	// this might be a bug triggered by libtorrent not serializing
-	// its port mapping requests and the external IP request
-	if (cmd == 128 || bytes_transferred == 12)
+	if (cmd == 128)
 	{
 		// public IP request response
-		m_external_ip = address_v4(read_uint32(in));
+		m_external_ip = read_v4_address(in);
 
 		char msg[200];
 		snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
