@@ -973,7 +973,6 @@ namespace aux {
 		{
 			m_dht_state = *settings;
 		}
-
 #endif
 
 #if TORRENT_USE_I2P
@@ -4350,6 +4349,9 @@ namespace aux {
 		if (is_loopback(ip)) return;
 		if (m_external_address == ip) return;
 
+		// for now, just trust whoever tells us our external address first
+		if (m_external_address != address()) return;
+
 		m_external_address = ip;
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
@@ -4357,7 +4359,18 @@ namespace aux {
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
 #ifndef TORRENT_DISABLE_DHT
-		start_dht(m_dht_state);
+		if (m_dht)
+		{
+			entry s = m_dht->state();
+			int cur_state = 0;
+			int prev_state = 0;
+			entry* nodes1 = s.find_key("nodes");
+			if (nodes1 && nodes1->type() == entry::list_t) cur_state = nodes1->list().size();
+			entry* nodes2 = m_dht_state.find_key("nodes");
+			if (nodes2 && nodes2->type() == entry::list_t) prev_state = nodes2->list().size();
+			if (cur_state > prev_state) m_dht_state = s;
+			start_dht(m_dht_state);
+		}
 #endif
 	}
 
