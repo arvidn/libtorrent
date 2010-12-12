@@ -616,6 +616,16 @@ struct has the following members::
 		int timeouts;
 		int responses;
 		int branch_factor;
+		int nodes_left;
+		int last_sent;
+		int first_timeout;
+	};
+
+	struct dht_routing_bucket
+	{
+		int num_nodes;
+		int num_replacements;
+		int last_active;
 	};
 
 	struct utp_status
@@ -671,6 +681,7 @@ struct has the following members::
 		int dht_torrents;
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		std::vector<dht_routing_table> dht_routing_table;
 		int dht_total_allocations;
 
 		utp_status utp_stats;
@@ -736,6 +747,9 @@ becomes unresponsive.
 network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
+
+``dht_routing_table`` contains information about every bucket in the DHT routing
+table.
 
 ``dht_total_allocations`` is the number of nodes allocated dynamically for a
 particular DHT lookup. This represents roughly the amount of memory used
@@ -5480,6 +5494,9 @@ is a bitmask with the following bits:
 |                                | These alerts contain all statistics counters for the interval since |
 |                                | the lasts stats alert.                                              |
 +--------------------------------+---------------------------------------------------------------------+
+| ``dht_notification``           | Alerts on events in the DHT node. For incoming searches or          |
+|                                | bootstrapping being done etc.                                       |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -5520,6 +5537,7 @@ is its synopsis:
 			ip_block_notification = *implementation defined*,
 			performance_warning = *implementation defined*,
 			dht_notification = *implementation defined*,
+			stats_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -5850,23 +5868,6 @@ the DHT.
 
 The ``num_peers`` tells how many peers were returned from the tracker. This is
 not necessarily all new peers, some of them may already be connected.
-
-dht_reply_alert
----------------
-
-This alert is generated each time the DHT receives peers from a node. ``num_peers``
-is the number of peers we received in this packet. Typically these packets are
-received from multiple DHT nodes, and so the alerts are typically generated
-a few at a time.
-
-::
-
-	struct dht_reply_alert: tracker_alert
-	{
-		// ...
-		int num_peers;
-	};
-
 
 tracker_warning_alert
 ---------------------
@@ -6557,6 +6558,35 @@ It belongs to the ``dht_notification`` category.
 	{
 		// ...
 		sha1_hash info_hash;
+	};
+
+dht_reply_alert
+---------------
+
+This alert is generated each time the DHT receives peers from a node. ``num_peers``
+is the number of peers we received in this packet. Typically these packets are
+received from multiple DHT nodes, and so the alerts are typically generated
+a few at a time.
+
+::
+
+	struct dht_reply_alert: tracker_alert
+	{
+		// ...
+		int num_peers;
+	};
+
+dht_bootstrap_alert
+-------------------
+
+This alert is posted when the initial DHT bootstrap is done. There's no any other
+relevant information associated with this alert.
+
+::
+	
+	struct dht_bootstrap_alert: alert
+	{
+		// ...
 	};
 
 anonymous_mode_alert

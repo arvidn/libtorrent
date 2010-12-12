@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include "libtorrent/time.hpp" // for total_seconds
+
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
@@ -63,8 +65,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (ptr == 0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
+		TORRENT_LOG(traversal) << "[" << this << ":" << name()
+			<< "] failed to allocate memory for observer. aborting!";
 #endif
 		done();
 		return;
@@ -95,7 +97,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] adding result: " << id << " " << addr;
+		TORRENT_LOG(traversal) << "[" << this << ":" << name()
+			<< "] adding result: " << id << " " << addr;
 #endif
 		i = m_results.insert(i, o);
 	}
@@ -126,8 +129,8 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
-		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING: "
-			"node returned a list which included a node with id 0";
+		TORRENT_LOG(traversal) << time_now_string() << "[" << this << ":" << name()
+			<< "] WARNING: node returned a list which included a node with id 0";
 #endif
 	add_entry(id, addr, 0);
 }
@@ -146,6 +149,7 @@ void traversal_algorithm::finished(observer_ptr o)
 	if (o->flags & observer::flag_short_timeout)
 		--m_branch_factor;
 
+	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	o->flags |= observer::flag_alive;
 
 	++m_responses;
@@ -177,7 +181,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] first chance timeout: "
+		TORRENT_LOG(traversal) << " [" << this << ":" << name()
+			<< "] first chance timeout: "
 			<< o->id() << " " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
@@ -192,8 +197,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] failed: "
-			<< o->id() << " " << o->target_ep()
+		TORRENT_LOG(traversal) << " [" << this << ":" << name()
+			<< "] failed: " << o->id() << " " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
 #endif
@@ -243,7 +248,7 @@ void traversal_algorithm::add_requests()
 		if ((*i)->flags & observer::flag_queried) continue;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "]"
+		TORRENT_LOG(traversal) << " [" << this << ":" << name() << "]"
 			<< " nodes-left: " << (m_results.end() - i)
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor;
@@ -292,12 +297,23 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.branch_factor = m_branch_factor;
 	l.type = name();
 	l.nodes_left = 0;
+	l.first_timeout = 0;
+
+	int last_sent = INT_MAX;
+	ptime now = time_now();
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end; ++i)
 	{
-		if ((*i)->flags & observer::flag_queried) continue;
+		observer& o = **i;
+		if (o.flags & observer::flag_queried)
+		{
+			last_sent = (std::min)(last_sent, total_seconds(now - o.sent()));
+			if (o.has_short_timeout()) ++l.first_timeout;
+			continue;
+		}
 		++l.nodes_left;
 	}
+	l.last_sent = last_sent;
 }
 
 } } // namespace libtorrent::dht

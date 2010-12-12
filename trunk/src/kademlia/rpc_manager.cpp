@@ -97,13 +97,13 @@ void observer::set_target(udp::endpoint const& ep)
 #if TORRENT_USE_IPV6
 	if (ep.address().is_v6())
 	{
-		m_is_v6 = true;
+		flags |= flag_ipv6_address;
 		m_addr.v6 = ep.address().to_v6().to_bytes();
 	}
 	else
 #endif
 	{
-		m_is_v6 = false;
+		flags &= ~flag_ipv6_address;
 		m_addr.v4 = ep.address().to_v4().to_bytes();
 	}
 }
@@ -111,7 +111,7 @@ void observer::set_target(udp::endpoint const& ep)
 address observer::target_addr() const
 {
 #if TORRENT_USE_IPV6
-	if (m_is_v6)
+	if (flags & flag_ipv6_address)
 		return address_v6(m_addr.v6);
 	else
 #endif
@@ -125,23 +125,21 @@ udp::endpoint observer::target_ep() const
 
 void observer::abort()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::prevent_request);
 }
 
 void observer::done()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->finished(observer_ptr(this));
 }
 
 void observer::short_timeout()
 {
-	if (m_short_timeout) return;
-	TORRENT_ASSERT(m_short_timeout == false);
-	m_short_timeout = true;
+	if (flags & flag_short_timeout) return;
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
@@ -149,8 +147,8 @@ void observer::short_timeout()
 // some timeout
 void observer::timeout()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->failed(observer_ptr(this));
 }
 
@@ -487,7 +485,7 @@ observer::~observer()
 	// reported back to the traversal_algorithm as
 	// well. If it wasn't sent, it cannot have been
 	// reported back
-	TORRENT_ASSERT(m_was_sent == m_done);
+	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done));
 	TORRENT_ASSERT(!m_in_constructor);
 }
 

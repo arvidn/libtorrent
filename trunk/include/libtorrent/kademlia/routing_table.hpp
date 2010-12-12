@@ -184,6 +184,15 @@ private:
 
 	// the last time need_bootstrap() returned true
 	mutable ptime m_last_bootstrap;
+
+	// the last time the routing table was refreshed.
+	// this is used to stagger buckets needing refresh
+	// to be at least 45 seconds apart.
+	mutable ptime m_last_refresh;
+
+	// the last time we refreshed our own bucket
+	// refreshed every 15 minutes
+	mutable ptime m_last_self_refresh;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will

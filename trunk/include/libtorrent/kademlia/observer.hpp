@@ -58,7 +58,7 @@ TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 // 16     4     4         pool_allocator
 // 20     16    4         m_addr
 // 36     2     2         m_port
-// 38     1     1         m_is_v6, m_short_timeout, m_in_constructor, m_was_sent
+// 38     1     1         flags
 // 39     1     1         <padding>
 // 40
 
@@ -69,14 +69,11 @@ struct observer : boost::noncopyable
 
 	observer(boost::intrusive_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)
-		: flags(0)
-		, m_sent()
+		: m_sent()
 		, m_refs(0)
 		, m_algorithm(a)
 		, m_id(id)
-		, m_is_v6(false)
-		, m_short_timeout(false)
-		, m_done(false)
+		, flags(0)
 	{
 		TORRENT_ASSERT(a);
 #ifdef TORRENT_DEBUG
@@ -95,7 +92,7 @@ struct observer : boost::noncopyable
 	// a few seconds, before the request has timed out
 	void short_timeout();
 
-	bool has_short_timeout() const { return m_short_timeout; }
+	bool has_short_timeout() const { return flags & flag_short_timeout; }
 
 	// this is called when no reply has been received within
 	// some timeout
@@ -129,9 +126,9 @@ struct observer : boost::noncopyable
 		flag_short_timeout = 8,
 		flag_failed = 16,
 		flag_ipv6_address = 32,
-		flag_alive = 64
+		flag_alive = 64,
+		flag_done = 128
 	};
-	unsigned char flags;
 
 #ifndef TORRENT_DHT_VERBOSE_LOGGING
 protected:
@@ -160,15 +157,10 @@ protected:
 
 	// the transaction ID for this call
 	boost::uint16_t m_transaction_id;
-
-	bool m_is_v6:1;
-	bool m_short_timeout:1;
-	// when true, this observer has reported
-	// back to the traversal algorithm already
-	bool m_done:1;
+public:
+	unsigned char flags;
 
 #ifdef TORRENT_DEBUG
-public:
 	bool m_in_constructor:1;
 	bool m_was_sent:1;
 #endif

@@ -1184,6 +1184,16 @@ namespace libtorrent
 		std::string trackerid;
 	};
 
+	struct TORRENT_EXPORT dht_bootstrap_alert: alert
+	{
+		dht_bootstrap_alert() {}
+		
+		TORRENT_DEFINE_ALERT(dht_bootstrap_alert);
+
+		const static int static_category = alert::dht_notification;
+		virtual std::string message() const;
+	};
+
 }
 
 

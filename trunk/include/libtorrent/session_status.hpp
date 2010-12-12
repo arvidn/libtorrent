@@ -50,6 +50,24 @@ namespace libtorrent
 		int responses;
 		int branch_factor;
 		int nodes_left;
+		// the number of seconds ago the
+		// last message was sent that's still
+		// outstanding
+		int last_sent;
+		// the number of outstanding requests
+		// that have exceeded the short timeout
+		// and are considered timed out in the
+		// sense that they increased the branch
+		// factor
+		int first_timeout;
+	};
+
+	struct dht_routing_bucket
+	{
+		int num_nodes;
+		int num_replacements;
+		// number of seconds since last activity
+		int last_active;
 	};
 
 #endif
@@ -114,6 +132,7 @@ namespace libtorrent
 		int dht_torrents;
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		std::vector<dht_routing_bucket> dht_routing_table;
 		int dht_total_allocations;
 #endif
 
