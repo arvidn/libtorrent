@@ -1576,10 +1576,21 @@ int main(int argc, char* argv[])
 				, end(sess_stat.active_requests.end()); i != end; ++i)
 			{
 				snprintf(str, sizeof(str)
-					, "  %s in flight: %d [limit: %d] timeouts: %d responses: %d "
-					"left: %d last_sent: %d 1st-timeout: %d\n"
-					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts
-					, i->responses, i->nodes_left, i->last_sent, i->first_timeout);
+					, "  %10s [limit: %2d] "
+					"in-flight: %-2d "
+					"left: %-3d "
+					"1st-timeout: %-2d "
+					"timeouts: %-2d "
+					"responses: %-2d "
+					"last_sent: %-2d\n"
+					, i->type
+					, i->branch_factor
+					, i->outstanding_requests
+					, i->nodes_left
+					, i->first_timeout
+					, i->timeouts
+					, i->responses
+					, i->last_sent);
 				out += str;
 			}
 		}
