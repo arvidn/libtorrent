@@ -184,7 +184,7 @@ bool routing_table::need_refresh(node_id& target) const
 	ptime now = time_now();
 
 	// refresh our own bucket once every 15 minutes
-	if (now - m_last_self_refresh < minutes(15))
+	if (now - m_last_self_refresh > minutes(15))
 	{
 		m_last_self_refresh = now;
 		target = m_id;
@@ -272,11 +272,6 @@ bool routing_table::add_node(node_entry const& e)
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 
-	// if the replacement cache is full, we don't
-	// need another node. The table is fine the
-	// way it is.
-	if ((int)rb.size() >= m_bucket_size) return ret;
-	
 	// if the node already exists, we don't need it
 	bucket_t::iterator j = std::find_if(b.begin(), b.end()
 		, boost::bind(&node_entry::id, _1) == e.id);
