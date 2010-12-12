@@ -1556,18 +1556,30 @@ int main(int argc, char* argv[])
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
-			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d total DHT size: %"PRId64" total observers: %d\n"
+			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
+				"total DHT size: %"PRId64" total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
 			out += str;
+
+			int bucket = 0;
+			for (std::vector<dht_routing_bucket>::iterator i = sess_stat.dht_routing_table.begin()
+				, end(sess_stat.dht_routing_table.end()); i != end; ++i, ++bucket)
+			{
+				snprintf(str, sizeof(str)
+					, "%3d [%2d, %2d] active: %d\n"
+					, bucket, i->num_nodes, i->num_replacements, i->last_active);
+				out += str;
+			}
 
 			for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
 				, end(sess_stat.active_requests.end()); i != end; ++i)
 			{
 				snprintf(str, sizeof(str)
-					, "  %s in flight: %d [limit: %d] timeouts %d responses %d left %d\n"
+					, "  %s in flight: %d [limit: %d] timeouts: %d responses: %d "
+					"left: %d last_sent: %d 1st-timeout: %d\n"
 					, i->type, i->outstanding_requests, i->branch_factor, i->timeouts
-					, i->responses, i->nodes_left);
+					, i->responses, i->nodes_left, i->last_sent, i->first_timeout);
 				out += str;
 			}
 		}

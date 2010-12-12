@@ -160,7 +160,7 @@ public:
 		: observer(algo, ep, id)
 	{}
 
-	void reply(msg const&) { m_done = true; }
+	void reply(msg const&) { flags |= flag_done; }
 };
 
 struct count_peers

@@ -491,5 +491,10 @@ namespace libtorrent {
 		return "trackerid received: " + trackerid;
 	}
 
+	std::string dht_bootstrap_alert::message() const
+	{
+		return "DHT bootstrap complete";
+	}
+
 } // namespace libtorrent
 

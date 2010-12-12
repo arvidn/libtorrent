@@ -608,7 +608,9 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&)
-	{}
+	{
+	// #error post an alert
+	}
 
 	bool dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
 	{

@@ -61,6 +61,8 @@ routing_table::routing_table(node_id const& id, int bucket_size
 	, m_settings(settings)
 	, m_id(id)
 	, m_last_bootstrap(min_time())
+	, m_last_refresh(min_time())
+	, m_last_self_refresh(min_time())
 {
 }
 
@@ -68,6 +70,18 @@ void routing_table::status(session_status& s) const
 {
 	boost::tie(s.dht_nodes, s.dht_node_cache) = size();
 	s.dht_global_nodes = num_global_nodes();
+
+	ptime now = time_now();
+
+	for (table_t::const_iterator i = m_buckets.begin()
+		, end(m_buckets.end()); i != end; ++i)
+	{
+		dht_routing_bucket b;
+		b.num_nodes = i->live_nodes.size();
+		b.num_replacements = i->replacements.size();
+		b.last_active = total_seconds(now - i->last_active);
+		s.dht_routing_table.push_back(b);
+	}
 }
 
 boost::tuple<int, int> routing_table::size() const
@@ -141,8 +155,8 @@ void routing_table::print_state(std::ostream& os) const
 		i != end; ++i, ++bucket_index)
 	{
 //		if (i->live_nodes.empty()) continue;
-		os << "=== BUCKET = " << bucket_index
-			<< " = " << total_seconds(time_now() - i->last_active)
+		os << "=== BUCKET == " << bucket_index
+			<< " == " << total_seconds(time_now() - i->last_active)
 			<< " seconds ago ===== \n";
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
 			, end(i->live_nodes.end()); j != end; ++j)
@@ -167,13 +181,24 @@ void routing_table::touch_bucket(node_id const& target)
 
 bool routing_table::need_refresh(node_id& target) const
 {
+	ptime now = time_now();
+
+	// refresh our own bucket once every 15 minutes
+	if (now - m_last_self_refresh < minutes(15))
+	{
+		m_last_self_refresh = now;
+		target = m_id;
+		return true;
+	}
+
 	if (m_buckets.empty()) return false;
 
 	table_t::const_iterator i = std::min_element(m_buckets.begin(), m_buckets.end()
 		, boost::bind(&routing_table_node::last_active, _1)
 			< boost::bind(&routing_table_node::last_active, _2));
 
-	if (time_now() - i->last_active < minutes(15)) return false;
+	if (now - i->last_active < minutes(15)) return false;
+	if (now - m_last_refresh < seconds(45)) return false;
 
 	// generate a random node_id within the given bucket
 	target = generate_id(address());
@@ -195,6 +220,9 @@ bool routing_table::need_refresh(node_id& target) const
 		(~(m_id[(num_bits - 1) / 8])) & (0x80 >> ((num_bits - 1) % 8));
 
 	TORRENT_ASSERT(distance_exp(m_id, target) == 160 - num_bits);
+
+	TORRENT_LOG(table) << "need_refresh [ bucket: " << num_bits << " target: " << target << " ]";
+	m_last_refresh = now;
 	return true;
 }
 
@@ -216,6 +244,7 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	if (num_buckets == 0)
 	{
 		m_buckets.push_back(routing_table_node());
+		m_buckets.back().last_active = min_time();
 		++num_buckets;
 	}
 
@@ -368,6 +397,7 @@ bool routing_table::add_node(node_entry const& e)
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
 	m_buckets.push_back(routing_table_node());
+	m_buckets.back().last_active = min_time();
 	bucket_t& new_bucket = m_buckets.back().live_nodes;
 	bucket_t& new_replacement_bucket = m_buckets.back().replacements;
 

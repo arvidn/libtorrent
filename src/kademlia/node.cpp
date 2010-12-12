@@ -255,7 +255,7 @@ void node_impl::refresh(node_id const& id
 void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	, find_data::nodes_callback const& f)
 {
-	boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id, f));
+	boost::intrusive_ptr<dht::refresh> r(new dht::bootstrap(*this, m_id, f));
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	int count = 0;
@@ -275,13 +275,7 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 #endif
 	r->start();
 }
-/*
-void node_impl::refresh()
-{
-	boost::intrusive_ptr<dht::refresh> r(new dht::refresh(*this, m_id, boost::bind(&nop)));
-	r->start();
-}
-*/
+
 int node_impl::bucket_size(int bucket)
 {
 	return m_table.bucket_size(bucket);
