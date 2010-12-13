@@ -973,7 +973,7 @@ namespace libtorrent
 		for (file_storage::iterator i = m_torrent_file->files().begin()
 			, end(m_torrent_file->files().end()); i != end; ++i, ++file)
 		{
-			if (!i->pad_file) continue;
+			if (!i->pad_file || i->size == 0) continue;
 			m_padding += i->size;
 			
 			peer_request pr = m_torrent_file->map_file(file, 0, m_torrent_file->file_at(file).size);
@@ -983,11 +983,44 @@ namespace libtorrent
 
 			int block = block_size();
 			int blocks_per_piece = m_torrent_file->piece_length() / block;
-			piece_block pb(pr.piece, pr.start / block_size());
+			piece_block pb(pr.piece, pr.start / block);
 			for (; pr.length >= block; pr.length -= block, ++pb.block_index)
 			{
 				if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
 				m_picker->mark_as_finished(pb, 0);
+			}
+			// ugly edge case where padfiles are not used they way they're
+			// supposed to be. i.e. added back-to back or at the end
+			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+			if (pr.length > 0 && (boost::next(i) != end && boost::next(i)->pad_file)
+				|| boost::next(i) == end)
+			{
+				m_picker->mark_as_finished(pb, 0);
+			}
+		}
+
+		if (m_padding > 0)
+		{
+			// if we marked an entire piece as finished, we actually
+			// need to consider it finished
+
+			std::vector<piece_picker::downloading_piece> const& dq
+				= m_picker->get_download_queue();
+
+			std::vector<int> have_pieces;
+
+			for (std::vector<piece_picker::downloading_piece>::const_iterator i
+				= dq.begin(); i != dq.end(); ++i)
+			{
+				int num_blocks = m_picker->blocks_in_piece(i->index);
+				if (i->finished < num_blocks) continue;
+				have_pieces.push_back(i->index);
+			}
+
+			for (std::vector<int>::iterator i = have_pieces.begin();
+				i != have_pieces.end(); ++i)
+			{
+				we_have(*i);
 			}
 		}
 
