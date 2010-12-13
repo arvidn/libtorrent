@@ -1196,6 +1196,7 @@ ret:
 				}
 				advance_bufs(current_buf, file_bytes_left);
 				TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
+				file_offset = 0;
 				continue;
 			}
 
