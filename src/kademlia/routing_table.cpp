@@ -99,14 +99,21 @@ boost::tuple<int, int> routing_table::size() const
 
 size_type routing_table::num_global_nodes() const
 {
-	int num_nodes = 1; // we are one of the nodes
+	int deepest_bucket = 0;
+	int deepest_size = 0;
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		num_nodes += i->live_nodes.size();
+		deepest_size = i->live_nodes.size(); // + i->replacements.size();
+		if (deepest_size < m_bucket_size) break;
+		// this bucket is full
+		++deepest_bucket;
 	}
 
-	return (2 << m_buckets.size()) * num_nodes;
+	if (deepest_bucket == 0) return 1 + deepest_size;
+
+	if (deepest_size < m_bucket_size / 2) return (1 << deepest_bucket) * m_bucket_size;
+	else return (2 << deepest_bucket) * deepest_size;
 }
 
 #if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
