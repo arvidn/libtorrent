@@ -15,8 +15,18 @@ std::string get_buffer(read_piece_alert const& rpa)
        : std::string();
 }
 
+struct endpoint_to_python
+{
+    static PyObject* convert(tcp::endpoint const& ep)
+    {
+        return incref(make_tuple(ep.address().to_string(), ep.port()).ptr());
+    }
+};
+
 void bind_alert()
 {
+    to_python_converter<tcp::endpoint, endpoint_to_python>();
+
     using boost::noncopyable;
 
     {
@@ -52,6 +62,7 @@ void bind_alert()
             .value("progress_notification", alert::progress_notification)
             .value("ip_block_notification", alert::ip_block_notification)
             .value("performance_warning", alert::performance_warning)
+            .value("stats_notification", alert::stats_notification)
             .value("all_categories", alert::all_categories)
             ;
 

@@ -1,3 +1,4 @@
+	* fixed python bindings for tcp::endpoint
 	* fixed edge case of pad file support
 	* limit number of torrents tracked by DHT
 	* fixed bug when allow_multiple_connections_per_ip was enabled
