@@ -21,11 +21,17 @@ struct endpoint_to_python
     {
         return incref(make_tuple(ep.address().to_string(), ep.port()).ptr());
     }
+
+    static PyObject* convert(udp::endpoint const& ep)
+    {
+        return incref(make_tuple(ep.address().to_string(), ep.port()).ptr());
+    }
 };
 
 void bind_alert()
 {
     to_python_converter<tcp::endpoint, endpoint_to_python>();
+    to_python_converter<udp::endpoint, endpoint_to_python>();
 
     using boost::noncopyable;
 
