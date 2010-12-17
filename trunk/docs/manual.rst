@@ -4008,6 +4008,8 @@ session_settings
 		int listen_queue_size;
 
 		bool announce_double_nat;
+
+		int torrent_connect_boost;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4809,6 +4811,12 @@ is called again (or for the first time).
 if ``announce_double_nat`` is true, the ``&ip=`` argument in tracker requests
 (unless otherwise specified) will be set to the intermediate IP address, if the
 user is double NATed. If ther user is not double NATed, this option has no affect.
+
+``torrent_connect_boost`` is the number of peers to try to connect to immediately
+when the first tracker response is received for a torrent. This is a boost to
+given to new torrents to accelerate them starting up. The normal connect scheduler
+is run once every second, this allows peers to be connected immediately instead
+of waiting for the session tick to trigger connections.
 
 pe_settings
 ===========

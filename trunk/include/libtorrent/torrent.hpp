@@ -1243,6 +1243,13 @@ namespace libtorrent
 		// is waiting to finish all current download requests
 		// before actually closing all connections
 		bool m_graceful_pause_mode:1;
+
+		// this is set to true when the torrent starts up
+		// The first tracker response, when this is true,
+		// will attempt to connect to a bunch of peers immediately
+		// and set this to false. We only do this once to get
+		// the torrent kick-started
+		bool m_need_connect_boost:1;
 	};
 }
 

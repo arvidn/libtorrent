@@ -1,3 +1,4 @@
+	* optimized swarm startup time (shaved off about 1-2 seconds)
 	* support DHT name lookup
 	* optimized memory usage of torrent_info and file_storage, forcing some API changes
 	  around file_storage and file_entry

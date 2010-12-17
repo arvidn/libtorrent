@@ -499,6 +499,7 @@ namespace aux {
 			, m_half_open)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
+		, m_boost_connections(0)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
@@ -2603,15 +2604,33 @@ namespace aux {
 		// equally likely to connect to a peer
 
 		int free_slots = m_half_open.free_slots();
+		int max_connections = m_settings.connection_speed;
+		// boost connections are connections made by torrent connection
+		// boost, which are done immediately on a tracker response. These
+		// connections needs to be deducted from this second
+		if (m_boost_connections > 0)
+		{
+			if (m_boost_connections > max_connections)
+			{
+				m_boost_connections -= max_connections;
+				max_connections = 0;
+			}
+			else
+			{
+				max_connections -= m_boost_connections;
+				m_boost_connections = 0;
+			}
+		}
+
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()
 			&& num_connections() < m_settings.connections_limit
 			&& !m_abort
-			&& m_settings.connection_speed > 0)
+			&& m_settings.connection_speed > 0
+			&& max_connections > 0)
 		{
 			// this is the maximum number of connections we will
 			// attempt this tick
-			int max_connections = m_settings.connection_speed;
 			int average_peers = 0;
 			if (num_downloads > 0)
 				average_peers = num_downloads_peers / num_downloads;
