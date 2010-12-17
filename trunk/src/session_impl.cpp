@@ -345,6 +345,8 @@ namespace aux {
 		TORRENT_SETTING(integer, mixed_mode_algorithm)
 		TORRENT_SETTING(boolean, rate_limit_utp)
 		TORRENT_SETTING(integer, listen_queue_size)
+		TORRENT_SETTING(boolean, announce_double_nat)
+		TORRENT_SETTING(integer, torrent_connect_boost)
 	};
 
 #undef TORRENT_SETTING
