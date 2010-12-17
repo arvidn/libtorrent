@@ -4010,6 +4010,7 @@ session_settings
 		bool announce_double_nat;
 
 		int torrent_connect_boost;
+		bool seeding_outgoing_connections;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4817,6 +4818,13 @@ when the first tracker response is received for a torrent. This is a boost to
 given to new torrents to accelerate them starting up. The normal connect scheduler
 is run once every second, this allows peers to be connected immediately instead
 of waiting for the session tick to trigger connections.
+
+``seeding_outgoing_connections`` determines if seeding (and finished) torrents
+should attempt to make outgoing connections or not. By default this is true. It
+may be set to false in very specific applications where the cost of making
+outgoing connections is high, and there are no or small benefits of doing so.
+For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
+make outgoing connections.
 
 pe_settings
 ===========

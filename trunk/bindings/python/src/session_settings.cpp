@@ -133,6 +133,11 @@ void bind_session_settings()
         .def_readwrite("tick_interval", &session_settings::tick_interval)
         .def_readwrite("report_web_seed_downloads", &session_settings::report_web_seed_downloads)
         .def_readwrite("share_mode_target", &session_settings::share_mode_target)
+        .def_readwrite("rate_limit_utp", &session_settings::rate_limit_utp)
+        .def_readwrite("listen_queue_size", &session_settings::listen_queue_size)
+        .def_readwrite("announce_double_nat", &session_settings::announce_double_nat)
+        .def_readwrite("torrent_connect_boost", &session_settings::torrent_connect_boost)
+        .def_readwrite("seeding_outgoing_connections", &session_settings::seeding_outgoing_connections)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

@@ -347,6 +347,7 @@ namespace aux {
 		TORRENT_SETTING(integer, listen_queue_size)
 		TORRENT_SETTING(boolean, announce_double_nat)
 		TORRENT_SETTING(integer, torrent_connect_boost)
+		TORRENT_SETTING(boolean, seeding_outgoing_connections)
 	};
 
 #undef TORRENT_SETTING

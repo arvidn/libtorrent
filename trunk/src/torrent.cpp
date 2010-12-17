@@ -4752,7 +4752,10 @@ namespace libtorrent
 			&& m_state != torrent_status::queued_for_checking)
 				|| !valid_metadata())
 			&& m_policy.num_connect_candidates() > 0
-			&& !m_abort;
+			&& !m_abort
+			&& (m_ses.settings().seeding_outgoing_connections
+				|| m_state != torrent_status::seeding
+				|| m_state != torrent_status::finished);
 	}
 
 	void torrent::disconnect_all(error_code const& ec)
