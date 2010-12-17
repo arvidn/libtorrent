@@ -253,6 +253,7 @@ namespace libtorrent
 			, listen_queue_size(5)
 			, announce_double_nat(false)
 			, torrent_connect_boost(10)
+			, seeding_outgoing_connections(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1006,6 +1007,13 @@ namespace libtorrent
 		// instead of waiting for the connection scheduler which
 		// triggeres every second
 		int torrent_connect_boost;
+
+		// this controls whether or not seeding (and complete) torrents
+		// attempt to make outgoing connections or not. It defaults to
+		// true, but can be set to zero for specific applications where
+		// making outgoing connections is costly and known to not
+		// add any benefits
+		bool seeding_outgoing_connections;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
