@@ -236,6 +236,7 @@ namespace libtorrent { namespace
 			int metadata_size = h.dict_find_int_value("metadata_size");
 			if (metadata_size > 0)
 				m_tp.metadata_size(metadata_size);
+			maybe_send_request();
 			return true;
 		}
 
@@ -342,6 +343,7 @@ namespace libtorrent { namespace
 					entry const* total_size = msg.find_key("total_size");
 					m_tp.received_metadata(body.begin + len, body.left() - len, piece
 						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
+					maybe_send_request();
 				}
 				break;
 			case 2: // have no data
@@ -362,6 +364,11 @@ namespace libtorrent { namespace
 		}
 
 		virtual void tick()
+		{
+			maybe_send_request();
+		}
+
+		void maybe_send_request()
 		{
 			// if we don't have any metadata, and this peer
 			// supports the request metadata extension
