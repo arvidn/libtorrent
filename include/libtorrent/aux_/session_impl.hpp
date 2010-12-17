@@ -743,6 +743,11 @@ namespace libtorrent
 
 			utp_socket_manager m_utp_socket_manager;
 
+			// the number of torrent connection boosts
+			// connections that have been made this second
+			// this is deducted from the connect speed
+			int m_boost_connections;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			pe_settings m_pe_settings;
 #endif

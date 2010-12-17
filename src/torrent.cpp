@@ -394,6 +394,7 @@ namespace libtorrent
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 		, m_graceful_pause_mode(false)
+		, m_need_connect_boost(true)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1890,6 +1891,27 @@ namespace libtorrent
 				debug_log("announce again using " + print_address(bind_interface)
 					+ " as the bind interface");
 #endif
+			}
+		}
+
+		if (m_need_connect_boost)
+		{
+			m_need_connect_boost = false;
+			// this is the first tracker response for this torrent
+			// instead of waiting one second for session_impl::on_tick()
+			// to be called, connect to a few peers immediately
+			int conns = (std::min)((std::min)(m_ses.m_settings.torrent_connect_boost
+				, m_ses.m_settings.connections_limit - m_ses.num_connections())
+				, m_ses.m_half_open.free_slots());
+
+			while (want_more_peers() && conns > 0)
+			{
+				if (!m_policy.connect_one_peer(m_ses.session_time())) break;
+				// increase m_ses.m_boost_connections for each connection
+				// attempt. This will be deducted from the connect speed
+				// the next time session_impl::on_tick() is triggered
+				--conns;
+				++m_ses.m_boost_connections;
 			}
 		}
 	}

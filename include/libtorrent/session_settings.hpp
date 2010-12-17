@@ -252,6 +252,7 @@ namespace libtorrent
 			, rate_limit_utp(false)
 			, listen_queue_size(5)
 			, announce_double_nat(false)
+			, torrent_connect_boost(10)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -999,6 +1000,12 @@ namespace libtorrent
 		// IP address if the user is double NATed. If ther user is not
 		// double NATed, this option does not have an affect
 		bool announce_double_nat;
+
+		// the first tracker response after a torrent is started
+		// will cause this many connections to be made immediately.
+		// instead of waiting for the connection scheduler which
+		// triggeres every second
+		int torrent_connect_boost;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
