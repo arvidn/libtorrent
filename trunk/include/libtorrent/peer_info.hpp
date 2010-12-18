@@ -60,7 +60,8 @@ namespace libtorrent
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
 			upload_only = 0x2000,
-			holepunched = 0x4000
+			endgame_mode = 0x4000,
+			holepunched = 0x8000
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			, rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000

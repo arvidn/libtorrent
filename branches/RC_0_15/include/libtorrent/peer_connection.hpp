@@ -230,6 +230,9 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
+		void set_endgame(bool b) { m_endgame_mode = b; }
+		bool endgame() const { return m_endgame_mode; }
+
 		bool no_download() const { return m_no_download; }
 		void no_download(bool b) { m_no_download = b; }
 
@@ -371,7 +374,12 @@ namespace libtorrent
 
 		bool failed() const { return m_failed; }
 
-		int desired_queue_size() const { return m_desired_queue_size; }
+		int desired_queue_size() const
+		{
+			// this peer is in end-game mode we only want
+			// one outstanding request
+			return m_endgame_mode ? 1: m_desired_queue_size;
+		}
 
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
@@ -1022,6 +1030,13 @@ namespace libtorrent
 		// if this is set to true, the client will not
 		// pick any pieces from this peer
 		bool m_no_download:1;
+
+		// this is set to true if the last time we tried to
+		// pick a piece to download, we could only find
+		// blocks that were already requested from other
+		// peers. In this case, we should not try to pick
+		// another piece until the last one we requested is done
+		bool m_endgame_mode:1;
 		
 		template <std::size_t Size>
 		struct handler_storage

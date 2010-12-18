@@ -150,6 +150,7 @@ namespace libtorrent
 		, m_snubbed(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
+		, m_endgame_mode(false)
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
@@ -292,6 +293,7 @@ namespace libtorrent
 		, m_snubbed(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
+		, m_endgame_mode(false)
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
@@ -3593,6 +3595,7 @@ namespace libtorrent
 		p.flags |= is_seed() ? peer_info::seed : 0;
 		p.flags |= m_snubbed ? peer_info::snubbed : 0;
 		p.flags |= m_upload_only ? peer_info::upload_only : 0;
+		p.flags |= m_endgame_mode ? peer_info::endgame_mode : 0;
 		p.flags |= m_holepunch_mode ? peer_info::holepunched : 0;
 		if (peer_info_struct())
 		{
@@ -3850,6 +3853,23 @@ namespace libtorrent
 			m_connecting = false;
 			disconnect(errors::torrent_aborted);
 			return;
+		}
+
+		if (m_endgame_mode
+			&& m_interesting
+			&& m_download_queue.empty()
+			&& m_request_queue.empty()
+			&& total_seconds(now - m_last_request) > 5)
+		{
+			// this happens when we're in strict end-game
+			// mode and the peer could not request any blocks
+			// because they were all taken but there were still
+			// unrequested blocks. Now, 5 seconds later, there
+			// might not be any unrequested blocks anymore, so
+			// we should try to pick another block to see
+			// if we can pick a busy one
+			request_a_block(*t, *this);
+			if (m_disconnecting) return;
 		}
 
 		on_tick();

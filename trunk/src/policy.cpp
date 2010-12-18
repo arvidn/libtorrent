@@ -145,7 +145,7 @@ namespace libtorrent
 			- (int)c.request_queue().size();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		c.peer_log("*** PIECE_PICKER [ req: %d ]", num_requests);
+		c.peer_log("*** PIECE_PICKER [ req: %d engame: %d ]", num_requests, c.endgame());
 #endif
 		TORRENT_ASSERT(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
@@ -252,7 +252,10 @@ namespace libtorrent
 			// don't request pieces we already have in our request queue
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
+			{
+				TORRENT_ASSERT(false); // this shouldn't happen!
 				continue;
+			}
 
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
@@ -263,12 +266,27 @@ namespace libtorrent
 			num_requests--;
 		}
 
+		// we have picked as many blocks as we should
+		// we're done!
+		if (num_requests <= 0)
+		{
+			// since we could pick as many blocks as we
+			// requested without having to resort to picking
+			// busy ones, we're not in end-game mode
+			c.set_endgame(false);
+			return;
+		}
+
+		// we did not pick as many pieces as we wanted, because
+		// there aren't enough. This means we're in end-game mode
+		// as long as we have at least one request outstanding,
+		// we shouldn't pick another piece
+		c.set_endgame(true);
+	
 		// if we don't have any potential busy blocks to request
-		// or if we have picked as many blocks as we should
 		// or if we already have outstanding requests, don't
 		// pick a busy piece
 		if (busy_pieces.empty()
-			|| num_requests <= 0
 			|| dq.size() + rq.size() > 0)
 		{
 			return;
