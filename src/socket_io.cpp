@@ -49,14 +49,16 @@ namespace libtorrent
 
 	std::string address_to_bytes(address const& a)
 	{
-		if (a.is_v4())
+#if TORRENT_USE_IPV6
+		if (a.is_v6())
 		{
-			address_v4::bytes_type b = a.to_v4().to_bytes();
+			address_v6::bytes_type b = a.to_v6().to_bytes();
 			return std::string((char*)&b[0], b.size());
 		}
 		else
+#endif
 		{
-			address_v6::bytes_type b = a.to_v6().to_bytes();
+			address_v4::bytes_type b = a.to_v4().to_bytes();
 			return std::string((char*)&b[0], b.size());
 		}
 	}
