@@ -348,6 +348,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
 		m_ses.set_external_address(address_v4(b));
 	}
+#if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
 	{
 		// this node claims we use the wrong node-ID!
@@ -355,6 +356,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
 		m_ses.set_external_address(address_v6(b));
 	}
+#endif
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 

@@ -98,14 +98,16 @@ struct static_ { static_() { std::srand(std::time(0)); } } static__;
 
 void hash_address(address const& ip, sha1_hash& h)
 {
-	if (ip.is_v4())
+#if TORRENT_USE_IPV6
+	if (ip.is_v6())
 	{
-		address_v4::bytes_type b = ip.to_v4().to_bytes();
+		address_v6::bytes_type b = ip.to_v6().to_bytes();
 		h = hasher((char*)&b[0], b.size()).final();
 	}
 	else
+#endif
 	{
-		address_v6::bytes_type b = ip.to_v6().to_bytes();
+		address_v4::bytes_type b = ip.to_v4().to_bytes();
 		h = hasher((char*)&b[0], b.size()).final();
 	}
 }
