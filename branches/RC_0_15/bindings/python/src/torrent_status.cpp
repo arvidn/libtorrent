@@ -85,10 +85,12 @@ void bind_torrent_status()
     enum_<torrent_status::state_t>("states")
         .value("queued_for_checking", torrent_status::queued_for_checking)
         .value("checking_files", torrent_status::checking_files)
+        .value("downloading_metadata", torrent_status::downloading_metadata)
         .value("downloading", torrent_status::downloading)
         .value("finished", torrent_status::finished)
         .value("seeding", torrent_status::seeding)
         .value("allocating", torrent_status::allocating)
+        .value("checking_resume_data", torrent_status::checking_resume_data)
         .export_values()
         ;
 }
