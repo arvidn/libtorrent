@@ -1900,9 +1900,10 @@ namespace libtorrent
 			// this is the first tracker response for this torrent
 			// instead of waiting one second for session_impl::on_tick()
 			// to be called, connect to a few peers immediately
-			int conns = (std::min)((std::min)(m_ses.m_settings.torrent_connect_boost
+			int conns = (std::min)((std::min)((std::min)(m_ses.m_settings.torrent_connect_boost
 				, m_ses.m_settings.connections_limit - m_ses.num_connections())
-				, m_ses.m_half_open.free_slots());
+				, m_ses.m_half_open.free_slots())
+				, m_ses.m_boost_connections - m_ses.m_settings.connection_speed);
 
 			while (want_more_peers() && conns > 0)
 			{
