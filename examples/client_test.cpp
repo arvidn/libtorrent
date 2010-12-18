@@ -325,7 +325,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out << "AS                                         ";
 #endif
-	out << "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source ";
+	out << "down     (total | peak   )  up      (total | peak   ) sent-req recv flags          source ";
 	if (print_fails) out << "fail hshf ";
 	if (print_send_bufs) out << "rq sndb            quota rcvb            ";
 	if (print_timers) out << "inactive wait timeout ";
@@ -388,6 +388,7 @@ void print_peer_info(std::ostream& out, std::vector<libtorrent::peer_info> const
 				(i->write_state == peer_info::bw_network)?'W':'.')
 			<< ((i->flags & peer_info::snubbed)?'S':'.')
 			<< ((i->flags & peer_info::upload_only)?'U':'D')
+			<< ((i->flags & peer_info::endgame_mode)?'-':'.')
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			<< ((i->flags & peer_info::rc4_encrypted)?'E':
 				(i->flags & peer_info::plaintext_encrypted)?'e':'.')
