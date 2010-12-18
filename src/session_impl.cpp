@@ -701,13 +701,14 @@ namespace aux {
 		if (flags & session::save_settings)
 		{
 			// TODO: move these to session_settings
-			e["upload_rate_limit"] = upload_rate_limit();
-			e["download_rate_limit"] = download_rate_limit();
-			e["local_upload_rate_limit"] = local_upload_rate_limit();
-			e["local_download_rate_limit"] = local_download_rate_limit();
-			e["max_uploads"] = max_uploads();
-			e["max_half_open_connections"] = max_half_open_connections();
-			e["max_connections"] = max_connections();
+			entry& s = e["settings"];
+			s["upload_rate_limit"] = upload_rate_limit();
+			s["download_rate_limit"] = download_rate_limit();
+			s["local_upload_rate_limit"] = local_upload_rate_limit();
+			s["local_download_rate_limit"] = local_download_rate_limit();
+			s["max_uploads"] = max_uploads();
+			s["max_half_open_connections"] = max_half_open_connections();
+			s["max_connections"] = max_connections();
 		}
 
 		if (flags & session::save_settings)
@@ -806,17 +807,22 @@ namespace aux {
 	  
 		if (e.type() != lazy_entry::dict_t) return;
 
-		set_upload_rate_limit(e.dict_find_int_value("upload_rate_limit", upload_rate_limit()));
-		set_download_rate_limit(e.dict_find_int_value("download_rate_limit", download_rate_limit()));
-		set_local_upload_rate_limit(e.dict_find_int_value("local_upload_rate_limit", local_upload_rate_limit()));
-		set_local_download_rate_limit(e.dict_find_int_value("local_download_rate_limit", local_download_rate_limit()));
-		set_max_uploads(e.dict_find_int_value("max_uploads", max_uploads()));
-		set_max_half_open_connections(e.dict_find_int_value("max_half_open_connections", max_half_open_connections()));
-		set_max_connections(e.dict_find_int_value("max_connections", max_connections()));
-
 		settings = e.dict_find_dict("settings");
 		if (settings)
 		{
+			set_upload_rate_limit(settings->dict_find_int_value("upload_rate_limit"
+				, upload_rate_limit()));
+			set_download_rate_limit(settings->dict_find_int_value("download_rate_limit"
+				, download_rate_limit()));
+			set_local_upload_rate_limit(settings->dict_find_int_value("local_upload_rate_limit"
+				, local_upload_rate_limit()));
+			set_local_download_rate_limit(settings->dict_find_int_value("local_download_rate_limit"
+				, local_download_rate_limit()));
+			set_max_uploads(settings->dict_find_int_value("max_uploads", max_uploads()));
+			set_max_half_open_connections(settings->dict_find_int_value("max_half_open_connections"
+				, max_half_open_connections()));
+			set_max_connections(settings->dict_find_int_value("max_connections", max_connections()));
+
 			session_settings s;
 			load_struct(*settings, &s, session_settings_map
 				, sizeof(session_settings_map)/sizeof(session_settings_map[0]));
