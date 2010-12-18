@@ -2673,6 +2673,7 @@ It contains the following fields::
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
 			upload_only = 0x2000,
+			endgame_mode = 0x4000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -2815,6 +2816,11 @@ any combination of the enums above. The following table describes each flag:
 |                         | or implicitly (by becoming a seed) told us that it    |
 |                         | will not downloading anything more, regardless of     |
 |                         | which pieces we have.                                 |
++-------------------------+-------------------------------------------------------+
+| ``endgame_mode``        | This means the last time this peer picket a piece,    |
+|                         | it could not pick as many as it wanted because there  |
+|                         | were not enough free ones. i.e. all pieces this peer  |
+|                         | has were already requested from other peers.          |
 +-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
