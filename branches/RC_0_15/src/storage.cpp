@@ -186,7 +186,13 @@ namespace libtorrent
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& s, fs::path p)
 	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
 		p = complete(p);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch (std::exception&) {}
+#endif
 		std::vector<std::pair<size_type, std::time_t> > sizes;
 		for (file_storage::iterator i = s.begin()
 			, end(s.end());i != end; ++i)
@@ -392,7 +398,15 @@ namespace libtorrent
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
 			TORRENT_ASSERT(m_files.begin() != m_files.end());
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
 			m_save_path = fs::complete(path);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {
+			m_save_path = path;
+			}
+#endif
 			TORRENT_ASSERT(m_save_path.is_complete());
 		}
 
