@@ -1209,7 +1209,6 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 
 		// save transfer rate limits
-		int rate_limit;
 		p->upload_rate_limit = c.upload_limit();
 		p->download_rate_limit = c.download_limit();
 

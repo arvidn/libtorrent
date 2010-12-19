@@ -380,7 +380,9 @@ namespace libtorrent
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_end - m_begin);
+		TORRENT_ASSERT(m_end - m_begin < INT_MAX);
+		TORRENT_ASSERT(m_end >= m_begin);
+		return return_t(m_begin, int(m_end - m_begin));
 	}
 
 #if TORRENT_USE_IOSTREAM

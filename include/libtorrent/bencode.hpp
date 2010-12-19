@@ -97,7 +97,7 @@ namespace libtorrent
 			for (std::string::const_iterator i = val.begin()
 				, end(val.end()); i != end; ++i)
 				*out++ = *i;
-			return val.length();
+			return int(val.length());
 		}
 
 		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
