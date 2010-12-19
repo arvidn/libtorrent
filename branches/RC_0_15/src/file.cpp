@@ -472,7 +472,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < i->iov_len; k += m_page_size)
 			{
-				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
+				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
 				++cur_seg;
 			}
 		}
@@ -656,7 +656,7 @@ namespace libtorrent
 		{
 			for (int k = 0; k < i->iov_len; k += m_page_size)
 			{
-				cur_seg->Buffer = PtrToPtr64(((char*)i->iov_base) + k);
+				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
 				++cur_seg;
 			}
 		}
