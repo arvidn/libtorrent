@@ -87,7 +87,7 @@ namespace detail
 	Addr plus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
 			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
 			{
@@ -105,7 +105,7 @@ namespace detail
 	Addr minus_one(Addr const& a)
 	{
 		Addr tmp(a);
-		for (int i = tmp.size() - 1; i >= 0; --i)
+		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
 			if (tmp[i] > 0)
 			{

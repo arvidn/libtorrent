@@ -91,7 +91,7 @@ struct bandwidth_manager
 
 	int queue_size() const
 	{
-		return m_queue.size();
+		return int(m_queue.size());
 	}
 
 	int queued_bytes() const

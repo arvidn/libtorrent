@@ -180,7 +180,7 @@ namespace libtorrent
 			remove(old_path);
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		} catch (std::exception& e) {}
+		} catch (std::exception&) {}
 #endif
 	}
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
@@ -1048,7 +1048,7 @@ namespace libtorrent
 					rename(old_path, new_path);
 #ifndef BOOST_NO_EXCEPTIONS
 			}
-			catch (std::exception& e)
+			catch (std::exception&)
 			{
 				error_code ec;
 				recursive_copy(old_path, new_path, ec);

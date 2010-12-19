@@ -314,7 +314,7 @@ public:
 			return 0;
 		}
 #ifdef TORRENT_DEBUG
-		int buf_size = 0;
+		size_t buf_size = 0;
 #endif
 
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
