@@ -188,8 +188,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 			bool is_network_thread() const
 			{
-				if (m_network_thread == 0) return true;
 #if defined BOOST_HAS_PTHREADS
+				if (m_network_thread == 0) return true;
 				return m_network_thread == pthread_self();
 #endif
 				return true;
