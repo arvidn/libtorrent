@@ -836,7 +836,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log("extension bits: %s", bitmask.c_str());
+		peer_log("<<< EXTENSION_BITS [ %s ]", bitmask.c_str());
 #endif
 		i.begin += 8;
 
@@ -1723,7 +1723,7 @@ namespace libtorrent
 		if (root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log(" invalid extended handshake: %s pos: %d"
+			peer_log("*** invalid extended handshake: %s pos: %d"
 				, ec.message().c_str(), pos);
 #endif
 			return;
@@ -2102,9 +2102,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> EXTENSIONS");
-#endif
 		TORRENT_ASSERT(m_supports_extensions);
 		TORRENT_ASSERT(m_sent_handshake);
 
