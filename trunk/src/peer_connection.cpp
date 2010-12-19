@@ -196,10 +196,9 @@ namespace libtorrent
 		error_code ec;
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
-		(*m_logger) << time_now_string() << " *** OUTGOING CONNECTION: "
-			<< print_endpoint(m_remote) << "\n";
-		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
-		else (*m_logger) << "TCP connection\n";
+		peer_log(">>> OUTGOING_CONNECTION [ ep: %s transport: %s ]"
+			, print_endpoint(m_remote).c_str()
+			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection");
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -340,10 +339,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
-		(*m_logger) << time_now_string() << " *** INCOMING CONNECTION: "
-			<< print_endpoint(m_remote) << "\n";
-		if (m_socket->get<utp_stream>()) (*m_logger) << "uTP connection\n";
-		else (*m_logger) << "TCP connection\n";
+		peer_log("<<< INCOMING_CONNECTION [ ep: %s transport: %s ]"
+			, print_endpoint(m_remote).c_str()
+			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection");
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1905,15 +1903,19 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("<== REQUEST [ piece: %d s: %d l: ]"
+			, r.piece, r.start, r.length);
+#endif
+
 		if (m_superseed_piece != -1
 			&& r.piece != m_superseed_piece)
 		{
 			++m_num_invalid_requests;
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<== INVALID_SUPER_SEED_REQUEST [ "
-				"piece: %d | s: %d | l: %d | i: %d | "
-				"t: %d | n: %d | h: %d | ss: %d ]"
-				, r.piece, r.start, r.length, m_peer_interested
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			peer_log("*** INVALID_REQUEST [ piece not superseeded "
+				"i: %d t: %d n: %d h: %d ss: %d ]"
+				, m_peer_interested
 				, int(t->torrent_file().piece_size(r.piece))
 				, t->torrent_file().num_pieces()
 				, t->have_piece(r.piece)
@@ -1947,20 +1949,9 @@ namespace libtorrent
 			// if we don't have valid metadata yet,
 			// we shouldn't get a request
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " <== UNEXPECTED_REQUEST [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " | "
-				"i: " << m_peer_interested << " | "
-				"t: " << t->torrent_file().piece_size(r.piece) << " | "
-				"n: " << t->torrent_file().num_pieces() << " ]\n";
-
-			(*m_logger) << time_now_string()
-				<< " ==> REJECT_PIECE [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " ]\n";
+			peer_log("*** INVALID_REQUEST [ we don't have metadata yet ]");
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -1973,20 +1964,10 @@ namespace libtorrent
 			// ignore requests if the client
 			// is making too many of them.
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " <== TOO MANY REQUESTS [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " | "
-				"i: " << m_peer_interested << " | "
-				"t: " << t->torrent_file().piece_size(r.piece) << " | "
-				"n: " << t->torrent_file().num_pieces() << " ]\n";
-
-			(*m_logger) << time_now_string()
-				<< " ==> REJECT_PIECE [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " ]\n";
+			peer_log("*** INVALID_REQUEST [ incoming request queue full %d ]"
+				, int(m_requests.size()));
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2005,22 +1986,18 @@ namespace libtorrent
 			&& m_peer_interested
 			&& r.length <= t->block_size())
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<== REQUEST [ piece: %d | s: %d | l: %d ]"
-				, r.piece, r.start, r.length);
-#endif
 			// if we have choked the client
 			// ignore the request
 			if (m_choked && std::find(m_accept_fast.begin(), m_accept_fast.end()
 				, r.piece) == m_accept_fast.end())
 			{
-				write_reject_request(r);
-				++m_choke_rejects;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				peer_log("*** REJECTING REQUEST [ peer choked and piece not in allowed fast set ]");
 				peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
 					, r.piece, r.start, r.length);
 #endif
+				write_reject_request(r);
+				++m_choke_rejects;
 
 				if (m_choke_rejects > m_ses.settings().max_rejects)
 				{
@@ -2031,6 +2008,9 @@ namespace libtorrent
 				{
 					// tell the peer it's choked again
 					// every 16 requests in a row
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+					peer_log("==> CHOKE [ peer keeps sending request when choked ]");
+#endif
 					write_choke();
 				}
 			}
@@ -2045,22 +2025,16 @@ namespace libtorrent
 		else
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " <== INVALID_REQUEST [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " | "
-				"i: " << m_peer_interested << " | "
-				"t: " << t->torrent_file().piece_size(r.piece) << " | "
-				"n: " << t->torrent_file().num_pieces() << " | "
-				"h: " << t->have_piece(r.piece) << " | "
-				"block_limit: " << t->block_size() << " ]\n";
+			peer_log("*** INVALID_REQUEST [ "
+				"i: %d t: %d n: %d h: %d block_limit: %d ]"
+				, m_peer_interested
+				, int(t->torrent_file().piece_size(r.piece))
+				, t->torrent_file().num_pieces()
+				, t->have_piece(r.piece)
+				, t->block_size());
 
-			(*m_logger) << time_now_string()
-				<< " ==> REJECT_PIECE [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " ]\n";
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece , r.start , r.length);
 #endif
 
 			write_reject_request(r);
@@ -2109,10 +2083,8 @@ namespace libtorrent
 		if (!verify_piece(r))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " <== INVALID_PIECE [ piece: " << r.piece << " | "
-				"start: " << r.start << " | "
-				"length: " << r.length << " ]\n";
+			peer_log("*** INVALID_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece, r.start, r.length);
 #endif
 			disconnect(errors::invalid_piece, 2);
 			return;
@@ -2337,10 +2309,8 @@ namespace libtorrent
 			TORRENT_ASSERT(i < block_index);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " *** SKIPPED_PIECE [ piece: " << qe.block.piece_index << " | "
-				"b: " << qe.block.block_index << " | skip: " << qe.skipped << " | "
-				"dqs: " << int(m_desired_queue_size) << "] ***\n";
+			peer_log("*** SKIPPED_PIECE [ piece: %d b: %d dqs: %d ]"
+				, qe.block.piece_index, qe.block.block_index, int(m_desired_queue_size));
 #endif
 
 			++qe.skipped;
@@ -2355,10 +2325,9 @@ namespace libtorrent
 						, remote(), pid(), qe.block.block_index, qe.block.piece_index));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_logger) << time_now_string()
-					<< " *** DROPPED_PIECE [ piece: " << qe.block.piece_index << " | "
-					"b: " << qe.block.block_index << " | skip: " << qe.skipped << " | "
-					"dqs: " << int(m_desired_queue_size) << "] ***\n";
+				peer_log("*** DROPPED_PIECE [ piece: %d b: %d dqs: %d skip: %d ]"
+					, qe.block.piece_index, qe.block.block_index
+					, int(m_desired_queue_size), qe.skipped);
 #endif
 				if (!qe.timed_out && !qe.not_wanted)
 					picker.abort_download(qe.block, peer_info_struct());
@@ -2548,11 +2517,8 @@ namespace libtorrent
 		{
 			m_requests.erase(i);
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " ==> REJECT_PIECE [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " ]\n";
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece , r.start , r.length);
 #endif
 			write_reject_request(r);
 		}
@@ -2908,9 +2874,8 @@ namespace libtorrent
 			r.length = block_size;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " ==> CANCEL  [ piece: " << b.piece_index << " | s: "
-				<< block_offset << " | l: " << block_size << " | " << b.block_index << " ]\n";
+			peer_log("==> CANCEL  [ piece: %d s: %d l: %d b: %d ]"
+				, b.piece_index, block_offset, block_size, b.block_index);
 #endif
 			write_cancel(r);
 		}
@@ -2969,9 +2934,8 @@ namespace libtorrent
 		r.length = block_size;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-				<< " ==> CANCEL  [ piece: " << block.piece_index << " | s: "
-				<< block_offset << " | l: " << block_size << " | " << block.block_index << " ]\n";
+			peer_log("==> CANCEL  [ piece: %d s: %d l: %d b: %d ]"
+				, block.piece_index, block_offset, block_size, block.block_index);
 #endif
 		write_cancel(r);
 	}
@@ -2984,12 +2948,12 @@ namespace libtorrent
 			m_peer_info->optimistically_unchoked = false;
 
 		if (m_choked) return false;
-		write_choke();
-		m_choked = true;
-
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> CHOKE");
 #endif
+		write_choke();
+		m_choked = true;
+
 #ifdef TORRENT_DEBUG
 		m_last_choke = time_now();
 #endif
@@ -3006,17 +2970,12 @@ namespace libtorrent
 				++i;
 				continue;
 			}
-
 			peer_request const& r = *i;
-			write_reject_request(r);
-
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string()
-				<< " ==> REJECT_PIECE [ "
-				"piece: " << r.piece << " | "
-				"s: " << r.start << " | "
-				"l: " << r.length << " ]\n";
+			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+				, r.piece , r.start , r.length);
 #endif
+			write_reject_request(r);
 			i = m_requests.erase(i);
 		}
 		return true;
@@ -3199,10 +3158,8 @@ namespace libtorrent
 					if (m_queued_time_critical) --m_queued_time_critical;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string()
-						<< " *** MERGING REQUEST ** [ "
-						"piece: " << block.block.piece_index << " | "
-						"block: " << block.block.block_index << " ]\n";
+					peer_log("*** MERGING REQUEST [ piece: %d block: %d ]"
+						, block.block.piece_index, block.block.block_index);
 #endif
 
 					block_offset = block.block.block_index * t->block_size();
@@ -3956,9 +3913,8 @@ namespace libtorrent
 			|| (t && t->num_peers() >= t->max_connections())))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " *** MUTUAL NO INTEREST [ "
-				"t1: " << total_seconds(d1) << " | "
-				"t2: " << total_seconds(d2) << " ] ***\n";
+			peer_log("*** MUTUAL NO INTEREST [ t1: %d t2: %d ]"
+				, total_seconds(d1), total_seconds(d2));
 #endif
 			disconnect(errors::timed_out_no_interest);
 			return;
@@ -4037,11 +3993,9 @@ namespace libtorrent
 			// in this case we'll clear our download queue and
 			// re-request the blocks.
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string()
-				<< " *** PIECE_REQUESTS TIMED OUT [ " << (int)m_download_queue.size()
-				<< " time: " << total_seconds(now - m_last_piece)
-				<< " to: " << piece_timeout
-				<< " extened: " << m_timeout_extend << " ] ***\n";
+			peer_log("*** PIECE_REQUEST TIMED OUT [ %d time: %d to: %d extend: %d ]"
+				, (int)m_download_queue.size(), total_seconds(now - m_last_piece)
+				, piece_timeout, m_timeout_extend);
 #endif
 
 			snub_peer();
@@ -4302,6 +4256,10 @@ namespace libtorrent
 			if (ret == -3)
 			{
 				if (t->seed_mode()) t->leave_seed_mode(false);
+#if defined TORRENT_VERBOSE_LOGGING
+				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+					, r.piece , r.start , r.length);
+#endif
 				write_reject_request(r);
 			}
 			else
@@ -4318,10 +4276,9 @@ namespace libtorrent
 				t->leave_seed_mode(true);
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " ==> PIECE   [ piece: " << r.piece << " | s: " << r.start
-			<< " | l: " << r.length << " ]\n";
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("==> PIECE   [ piece: %d s: %d l: ]"
+			, r.piece, r.start, r.length);
 #endif
 
 #if TORRENT_DISK_STATS
@@ -4335,7 +4292,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("%s ASSIGN BANDWIDHT [ bytes: %d ]"
-			, channel == upload_channel ? "==>" : "<==", amount);
+			, channel == upload_channel ? ">>>" : "<<<", amount);
 #endif
 
 		TORRENT_ASSERT(amount > 0);
@@ -4388,7 +4345,7 @@ namespace libtorrent
 		// peers that we are not interested in are non-prioritized
 		m_channel_state[upload_channel] = peer_info::bw_limit;
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> REQUEST_BANDWIDTH [ upload: %d prio: %d "
+		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
 			, int(m_send_buffer.size()), priority
 			, bwc1, bwc2, bwc3, bwc4
@@ -4414,7 +4371,7 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== REQUEST_BANDWIDTH [ download: %d prio: %d "
+		peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
 			, int(m_download_queue.size() * 16 * 1024 + 30), m_priority
 			, bwc1, bwc2, bwc3, bwc4
@@ -4512,7 +4469,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			if (m_send_buffer.empty())
 			{
-				peer_log("==> SEND BUFFER DEPLETED ["
+				peer_log(">>> SEND BUFFER DEPLETED ["
 					" quota: %d ignore: %s buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
 					, m_quota[upload_channel], m_ignore_bandwidth_limits?"yes":"no"
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
@@ -4520,7 +4477,7 @@ namespace libtorrent
 			}
 			else
 			{
-				peer_log("==> CANNOT WRITE ["
+				peer_log(">>> CANNOT WRITE ["
 					" quota: %d ignore: %s buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
 					, m_quota[upload_channel], m_ignore_bandwidth_limits?"yes":"no"
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
@@ -4538,7 +4495,7 @@ namespace libtorrent
 		TORRENT_ASSERT(amount_to_send > 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
+		peer_log(">>> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
 #endif
 		std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
 #if defined TORRENT_ASIO_DEBUGGING
@@ -4593,13 +4550,13 @@ namespace libtorrent
 		if (!can_read(&m_channel_state[download_channel]))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** CANNOT READ ["
-				" quota: " << m_quota[download_channel] <<
-				" ignore: " << (m_ignore_bandwidth_limits?"yes":"no") <<
-				" queue-size: " << ((t && t->get_storage())?t->filesystem().queued_bytes():0) <<
-				" queue-limit: " << m_ses.settings().max_queued_disk_bytes <<
-				" disconnecting: " << (m_disconnecting?"yes":"no") <<
-				" ]\n";
+			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
+				"queue-size: %d queue-limit: %d disconnecting: %s ]"
+				, m_quota[download_channel]
+				, (m_ignore_bandwidth_limits?"yes":"no")
+				, ((t && t->get_storage())?t->filesystem().queued_bytes():0)
+				, m_ses.settings().max_queued_disk_bytes
+				, (m_disconnecting?"yes":"no"));
 #endif
 			// if we block reading, waiting for the disk, we will wake up
 			// by the disk_io_thread posting a message every time it drops
@@ -4703,7 +4660,7 @@ namespace libtorrent
 		{
 			m_channel_state[download_channel] = peer_info::bw_network;
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<== ASYNC_READ      [ max: %d bytes ]", max_receive);
+			peer_log("<<< ASYNC_READ      [ max: %d bytes ]", max_receive);
 #endif
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -4735,7 +4692,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== SYNC_READ [ max: %d ret: %d e: %s ]", max_receive, ret, ec ? ec.message().c_str() : "");
+		peer_log("<<< SYNC_READ [ max: %d ret: %d e: %s ]", max_receive, ret, ec ? ec.message().c_str() : "");
 #endif
 		return ret;
 	}
@@ -4894,10 +4851,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** ON_RECEIVE_DATA ["
-				" bytes: " << bytes_transferred <<
-				" error: " << error.message() <<
-				" ]\n";
+			peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
+				, bytes_transferred, error.message().c_str());
 #endif
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
@@ -4917,8 +4872,8 @@ namespace libtorrent
 		if (error)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " **ERROR**: "
-				<< error.message() << "[in peer_connection::on_receive_data]\n";
+			peer_log("*** ERROR [ in peer_connection::on_receive_data error: %s ]"
+				, error.message().c_str());
 #endif
 			m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 			on_receive(error, bytes_transferred);
@@ -5066,7 +5021,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " OPEN " << (m_remote.address().is_v4()?"IPv4":"IPv6") << "\n";
+		peer_log(">>> OPEN [ protocol: %s ]", (m_remote.address().is_v4()?"IPv4":"IPv6"));
 #endif
 		m_socket->open(m_remote.protocol(), ec);
 		if (ec)
@@ -5081,7 +5036,7 @@ namespace libtorrent
 		if (out_ports.first > 0 && out_ports.second >= out_ports.first)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " SET REUSE ADDRESS\n";
+			peer_log(">>> SET_REUSE_ADDRESS");
 #endif
 			m_socket->set_option(socket_acceptor::reuse_address(true), ec);
 			// ignore errors because the underlying socket may not
@@ -5108,7 +5063,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " BIND: " << print_endpoint(bind_interface) << "\n";
+		peer_log(">>> BIND [ ep: %s ]", print_endpoint(bind_interface).c_str());
 #endif
 		m_socket->bind(bind_interface, ec);
 		if (ec)
@@ -5116,11 +5071,8 @@ namespace libtorrent
 			disconnect(ec);
 			return;
 		}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " ASYNC_CONNECT: " << print_endpoint(m_remote) << "\n";
-#endif
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " ASYNC_CONNECT: " << print_endpoint(m_remote) << "\n";
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log(">>> ASYNC_CONENCT [ dst: %s ]", print_endpoint(m_remote).c_str());
 #endif
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_connection_complete");
@@ -5176,16 +5128,15 @@ namespace libtorrent
 		m_statistics.received_synack(m_remote.address().is_v6());
 
 		TORRENT_ASSERT(m_socket);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_ses.m_logger) << time_now_string() << " COMPLETED: " << print_endpoint(m_remote)
-			<< " rtt = " << m_rtt << "\n";
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log(">>> COMPLETED [ ep: %s rtt: %d ]", print_endpoint(m_remote).c_str(), m_rtt);
 #endif
 
 		// set the socket to non-blocking, so that we can
 		// read the entire buffer on each read event we get
 		tcp::socket::non_blocking_io ioc(true);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " SET NON-BLOCKING\n";
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("*** SET NON-BLOCKING");
 #endif
 		m_socket->io_control(ioc, ec);
 		if (ec)
@@ -5224,11 +5175,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-#ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << time_now_string() << " *** ON_SEND_DATA ["
-				" bytes: " << bytes_transferred <<
-				" error: " << error.message() <<
-				" ]\n";
+#if defined TORRENT_VERBOSE_LOGGING 
+		peer_log("*** ON_SEND_DATA [ bytes: %d error: %s ]"
+			, int(bytes_transferred), error.message().c_str());
 #endif
 
 		INVARIANT_CHECK;
@@ -5584,7 +5533,7 @@ namespace libtorrent
 		if (m_channel_state[upload_channel] != peer_info::bw_idle) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " ==> KEEPALIVE\n";
+		peer_log("==> KEEPALIVE");
 #endif
 
 		m_last_sent = time_now();
