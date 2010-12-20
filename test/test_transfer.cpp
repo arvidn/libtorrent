@@ -274,6 +274,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	sett.announce_to_all_tiers = true;
 	// make sure we announce to both http and udp trackers
 	sett.prefer_udp_trackers = false;
+	sett.enable_outgoing_utp = false;
+	sett.enable_incoming_utp = false;
 
 	ses1.set_settings(sett);
 	ses2.set_settings(sett);

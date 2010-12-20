@@ -163,7 +163,7 @@ void start_proxy(int port, int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "starting delegated proxy...\n");
+	fprintf(stderr, "starting delegated proxy on port %d...\n", port);
 	system(buf);
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
