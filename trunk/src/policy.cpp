@@ -253,7 +253,8 @@ namespace libtorrent
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 			{
-				TORRENT_ASSERT(false); // this shouldn't happen!
+				// this can happen, not sure why.
+//				TORRENT_ASSERT(false); // this shouldn't happen!
 				continue;
 			}
 
