@@ -1045,7 +1045,7 @@ int main(int argc, char* argv[])
 
 	for (;;)
 	{
-		char c;
+		char c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
 			if (c == 27)

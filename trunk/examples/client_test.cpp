@@ -1148,7 +1148,7 @@ int main(int argc, char* argv[])
 	while (loop_limit > 1 || loop_limit == 0)
 	{
 		if (loop_limit > 1) --loop_limit;
-		char c;
+		char c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
 			if (c == 27)
