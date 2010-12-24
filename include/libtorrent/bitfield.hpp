@@ -43,11 +43,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT bitfield
 	{
 		bitfield(): m_bytes(0), m_size(0), m_own(false) {}
-		bitfield(int bits): m_bytes(0), m_size(0)
+		bitfield(int bits): m_bytes(0), m_size(0), m_own(false)
 		{ resize(bits); }
-		bitfield(int bits, bool val): m_bytes(0), m_size(0)
+		bitfield(int bits, bool val): m_bytes(0), m_size(0), m_own(false)
 		{ resize(bits, val); }
-		bitfield(char const* b, int bits): m_bytes(0), m_size(0)
+		bitfield(char const* b, int bits): m_bytes(0), m_size(0), m_own(false)
 		{ assign(b, bits); }
 		bitfield(bitfield const& rhs): m_bytes(0), m_size(0), m_own(false)
 		{ assign(rhs.bytes(), rhs.size()); }
