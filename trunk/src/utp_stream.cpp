@@ -2129,7 +2129,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 		UTP_LOGV("%8p: their_delay::add_sample:%u prev_base:%u new_base:%u\n"
 			, this, m_reply_micro, prev_base, m_their_delay_hist.base());
 
-		if (prev_base && base_change < 0 && base_change > -10000)
+		if (prev_base && base_change < 0 && base_change > -10000 && m_delay_hist.initialized())
 		{
 			// their base delay went down. This is caused by clock drift. To compensate,
 			// adjust our base delay upwards
