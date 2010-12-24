@@ -196,9 +196,10 @@ namespace libtorrent
 		error_code ec;
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
-		peer_log(">>> OUTGOING_CONNECTION [ ep: %s transport: %s ]"
+		peer_log(">>> OUTGOING_CONNECTION [ ep: %s transport: %s seed: %d p: %p]"
 			, print_endpoint(m_remote).c_str()
-			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection");
+			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection"
+			, m_peer_info ? m_peer_info->seed : 0, m_peer_info);
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -772,7 +773,7 @@ namespace libtorrent
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** on_metadata(): THIS IS A SEED ***");
+			peer_log("*** on_metadata(): THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			t->get_policy().set_seed(m_peer_info, true);
@@ -840,7 +841,7 @@ namespace libtorrent
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** THIS IS A SEED ***");
+			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			t->get_policy().set_seed(m_peer_info, true);
@@ -1727,6 +1728,9 @@ namespace libtorrent
 		// decrement the piece count without first incrementing it
 		if (is_seed())
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
+#endif
 			t->seen_complete();
 			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
@@ -1804,6 +1808,10 @@ namespace libtorrent
 		// (since it doesn't exist yet)
 		if (!t->ready_for_connections())
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (m_num_pieces == int(bits.size()))
+				peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
+#endif
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
 			t->get_policy().set_seed(m_peer_info, m_num_pieces == int(bits.size()));
@@ -1816,7 +1824,7 @@ namespace libtorrent
 		if (num_pieces == int(m_have_piece.size()))
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** THIS IS A SEED ***");
+			peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
 			// if this is a web seed. we don't have a peer_info struct
 			t->get_policy().set_seed(m_peer_info, true);
@@ -2577,13 +2585,13 @@ namespace libtorrent
 
 		m_have_all = true;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
+#endif
+
 		t->get_policy().set_seed(m_peer_info, true);
 		m_upload_only = true;
 		m_bitfield_received = true;
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("*** THIS IS A SEED ***");
-#endif
 
 		// if we don't have metadata yet
 		// just remember the bitmask
@@ -5560,7 +5568,7 @@ namespace libtorrent
 	{
 		// if the peer is a seed, don't allow setting
 		// upload_only to false
-		if (m_upload_only && is_seed()) return;
+		if (m_upload_only || is_seed()) return;
 
 		m_upload_only = u;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();

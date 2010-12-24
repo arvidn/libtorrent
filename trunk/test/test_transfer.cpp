@@ -59,8 +59,11 @@ void test_rate()
 	remove_all("./tmp1_transfer_moved", ec);
 	remove_all("./tmp2_transfer_moved", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0);
+	int alert_mask = alert::all_categories
+		& ~alert::progress_notification
+		& ~alert::stats_notification;
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -70,15 +73,11 @@ void test_rate()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
 
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses1");
+
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
-
-	ses1.set_alert_mask(alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification);
-	ses2.set_alert_mask(alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification);
 
 	ptime start = time_now();
 
@@ -262,6 +261,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	session_settings sett;
+	sett.allow_multiple_connections_per_ip = false;
 
 	if (test_allowed_fast)
 	{
@@ -269,7 +269,12 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		sett.unchoke_slots_limit = 0;
 	}
 
-	sett.min_reconnect_time = 1;
+	// we need a short reconnect time since we
+	// finish the torrent and then restart it
+	// immediately to complete the second half.
+	// using a reconnect time > 0 will just add
+	// to the time it will take to complete the test
+	sett.min_reconnect_time = 0;
 	sett.announce_to_all_trackers = true;
 	sett.announce_to_all_tiers = true;
 	// make sure we announce to both http and udp trackers
@@ -307,6 +312,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	t->add_tracker(tracker_url);
 
 	add_torrent_params addp(&test_storage_constructor);
+	addp.paused = false;
+	addp.auto_managed = false;
 
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
@@ -329,9 +336,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		& ~alert::stats_notification);
 //	ses1.set_alert_dispatch(&print_alert);
 
-	sett = ses2.settings();
-	sett.download_rate_limit = tor2.get_torrent_info().piece_length() * 5;
-	ses2.set_settings(sett);
+//	sett = ses2.settings();
+//	sett.download_rate_limit = tor2.get_torrent_info().piece_length() * 5;
+//	ses2.set_settings(sett);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
@@ -381,6 +388,14 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		if (!test_disk_full && st2.is_finished) break;
 
+		if (st2.state != torrent_status::downloading)
+		{
+			static char const* state_str[] =	
+				{"checking (q)", "checking", "dl metadata"
+				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
+			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
+		}
+
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
@@ -396,6 +411,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	TEST_CHECK(tor2.status().is_finished);
 	if (tor2.status().is_finished)
 		std::cerr << "torrent is finished (50% complete)" << std::endl;
+	else return;
 
 	std::cerr << "force recheck" << std::endl;
 	tor2.force_recheck();
@@ -471,6 +487,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
+	p.paused = false;
+	p.auto_managed = false;
 	p.ti = t;
 	p.save_path = "./tmp2_transfer_moved";
 	p.resume_data = &resume_data;

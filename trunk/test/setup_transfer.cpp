@@ -114,6 +114,27 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	return ret;
 }
 
+bool listen_done = false;
+bool listen_alert(libtorrent::alert* a)
+{
+	if (alert_cast<listen_failed_alert>(a)
+		|| alert_cast<listen_succeeded_alert>(a))
+		listen_done = true;
+	return true;
+}
+
+void wait_for_listen(libtorrent::session& ses, char const* name)
+{
+	listen_done = false;
+	alert const* a = 0;
+	do
+	{
+		print_alerts(ses, name, true, true, true, &listen_alert);
+		if (listen_done) break;
+		a = ses.wait_for_alert(milliseconds(500));
+	} while (a);
+}
+
 void test_sleep(int millisec)
 {
 	libtorrent::sleep(millisec);
@@ -163,7 +184,7 @@ void start_proxy(int port, int proxy_type)
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "starting delegated proxy on port %d...\n", port);
+	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
 	system(buf);
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
@@ -235,9 +256,14 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1);
 	assert(ses2);
 
+	ses1->stop_lsd();
+	ses2->stop_lsd();
+	if (ses3) ses3->stop_lsd();
+
 	session_settings sess_set = ses1->settings();
-	sess_set.allow_multiple_connections_per_ip = true;
+	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
 	sess_set.ignore_limits_on_local_network = false;
+	sess_set.max_failcount = 1;
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
 	if (ses3) ses3->set_settings(sess_set);
@@ -286,6 +312,8 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
 	add_torrent_params param;
+	param.paused = false;
+	param.auto_managed = false;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
@@ -326,7 +354,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1->get_torrents().size() == 1);
 	assert(ses2->get_torrents().size() == 1);
 
-	test_sleep(100);
+//	test_sleep(100);
 
 	if (connect_peers)
 	{
@@ -388,7 +416,7 @@ int start_tracker()
 		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.wait(l);
 	}
-	test_sleep(100);
+//	test_sleep(100);
 	return port;
 }
 
@@ -551,7 +579,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 	// "relative/../test_file" can resolve
 	error_code ec;
 	create_directory("relative", ec);
-	test_sleep(100);
+//	test_sleep(100);
 	return port;
 }
 

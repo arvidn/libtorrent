@@ -819,6 +819,10 @@ namespace aux {
 
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " generated peer ID: " << m_peer_id.to_string() << "\n";
+#endif
+
 		update_rate_settings();
 		update_connections_limit();
 		update_unchoke_limit();
