@@ -9,6 +9,7 @@ set(sources
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
+	bloom_filter
 	connection_queue
 	create_torrent
 	disk_buffer_holder

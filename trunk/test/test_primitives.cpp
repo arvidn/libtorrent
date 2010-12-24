@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/timestamp_history.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -379,11 +381,88 @@ namespace libtorrent
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
 
+address rand_v4()
+{
+	return address_v4(rand() << 16 | rand());
+}
+
 int test_main()
 {
 	using namespace libtorrent;
 	error_code ec;
 	int ret = 0;
+
+	// test external ip voting
+	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		, ""
+#endif
+		);
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 malicious responses from the same peer
+	address real_external = address_v4::from_string("5.5.5.5");
+	address malicious = address_v4::from_string("4.4.4.4");
+	for (int i = 0; i < 50; ++i)
+	{
+		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
+		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ses->external_address() == real_external);
+	ses->abort();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	ses->m_logger.reset();
+#endif
+	delete ses;
+	ses = new aux::session_impl(std::pair<int, int>(0,0)
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		, ""
+#endif
+		);
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 consistent malicious responses from the same peer
+	real_external = address_v4::from_string("5.5.5.5");
+	malicious = address_v4::from_string("4.4.4.4");
+	address malicious_external = address_v4::from_string("3.3.3.3");
+	for (int i = 0; i < 50; ++i)
+	{
+		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
+		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ses->external_address() == real_external);
+	ses->abort();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	ses->m_logger.reset();
+#endif
+	delete ses;
+
+	// test bloom_filter
+	bloom_filter<32> filter;
+	sha1_hash k1 = hasher("test1", 5).final();
+	sha1_hash k2 = hasher("test2", 5).final();
+	sha1_hash k3 = hasher("test3", 5).final();
+	sha1_hash k4 = hasher("test4", 5).final();
+	TEST_CHECK(!filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(!filter.find(k4));
+
+	filter.set(k1);
+	TEST_CHECK(filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(!filter.find(k4));
+
+	filter.set(k4);
+	TEST_CHECK(filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(filter.find(k4));
 
 	// test timestamp_history
 	{

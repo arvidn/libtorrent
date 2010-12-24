@@ -901,11 +901,6 @@ namespace aux {
 				, c.map, c.num_entries, reinterpret_cast<char const*>(&def) + c.default_offset);
 		}
 #ifndef TORRENT_DISABLE_DHT
-		if (flags & session::save_dht_settings)
-		{
-		}
-#endif
-#ifndef TORRENT_DISABLE_DHT
 		if (m_dht && (flags & session::save_dht_state))
 		{
 			e["dht state"] = m_dht->state();
@@ -3720,7 +3715,9 @@ namespace aux {
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
-			if (ip != address()) set_external_address(ip);
+			// TODO: report the proper address of the router
+			if (ip != address()) set_external_address(ip, source_router
+				, address());
 
 			if (!m_listen_sockets.empty()) {
 				m_listen_sockets.front().external_address = ip;
@@ -3994,10 +3991,6 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-#if defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(!is_network_thread());
-#endif
-
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 #endif
@@ -4026,7 +4019,7 @@ namespace aux {
 			printf("\n==== Waiting to shut down: %d ==== \n\n", counter);
 		}
 #endif
-		m_thread->join();
+		if (m_thread) m_thread->join();
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
@@ -4367,18 +4360,95 @@ namespace aux {
 		m_upnp = 0;
 	}
 	
-	void session_impl::set_external_address(address const& ip)
+	bool session_impl::external_ip_t::add_vote(sha1_hash const& k, int type)
+	{
+		sources |= type;
+		if (voters.find(k)) return false;
+		voters.set(k);
+		++num_votes;
+		return true;
+	}
+
+	void session_impl::set_external_address(address const& ip
+		, int source_type, address const& source)
 	{
 		TORRENT_ASSERT(ip != address());
 
 		if (is_local(ip)) return;
 		if (is_loopback(ip)) return;
-		if (m_external_address == ip) return;
 
-		// for now, just trust whoever tells us our external address first
-		if (m_external_address != address()) return;
+#if defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << ": set_external_address(" << print_address(ip)
+			<< ", " << source_type << ", " << print_address(source) << ")\n";
+#endif
+		// this is the key to use for the bloom filters
+		// it represents the identity of the voter
+		sha1_hash k;
+		hash_address(source, k);
 
-		m_external_address = ip;
+		// do we already have an entry for this external IP?
+		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
+			, m_external_addresses.end(), boost::bind(&external_ip_t::addr, _1) == ip);
+
+		if (i == m_external_addresses.end())
+		{
+			// each IP only gets to add a new IP once
+			if (m_external_address_voters.find(k)) return;
+		
+			if (m_external_addresses.size() > 20)
+			{
+				if (rand() < RAND_MAX / 2)
+				{
+#if defined TORRENT_VERBOSE_LOGGING
+					(*m_logger) << time_now_string() << ": More than 20 slots, dopped\n";
+#endif
+					return;
+				}
+				// use stable sort here to maintain the fifo-order
+				// of the entries with the same number of votes
+				// this will sort in ascending order, i.e. the lowest
+				// votes first. Also, the oldest are first, so this
+				// is a sort of weighted LRU.
+				std::stable_sort(m_external_addresses.begin(), m_external_addresses.end());
+				// erase the first element, since this is the
+				// oldest entry and the one with lowst number
+				// of votes. This makes sense because the oldest
+				// entry has had the longest time to receive more
+				// votes to be bumped up
+#if defined TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "  More than 20 slots, dopping "
+					<< print_address(m_external_addresses.front().addr)
+					<< " (" << m_external_addresses.front().num_votes << ")\n";
+#endif
+				m_external_addresses.erase(m_external_addresses.begin());
+			}
+			m_external_addresses.push_back(external_ip_t());
+			i = m_external_addresses.end() - 1;
+			i->addr = ip;
+		}
+		// add one more vote to this external IP
+		if (!i->add_vote(k, source_type)) return;
+		
+		i = std::max_element(m_external_addresses.begin(), m_external_addresses.end());
+		TORRENT_ASSERT(i != m_external_addresses.end());
+
+#if defined TORRENT_VERBOSE_LOGGING
+		for (std::vector<external_ip_t>::iterator j = m_external_addresses.begin()
+			, end(m_external_addresses.end()); j != end; ++j)
+		{
+			(*m_logger) << ((j == i)?"-->":"   ")
+				<< print_address(j->addr) << " votes: "
+				<< j->num_votes << "\n";
+		}
+#endif
+		if (i->addr == m_external_address) return;
+
+#if defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "  external IP updated\n";
+#endif
+		m_external_address = i->addr;
+		m_external_address_voters.clear();
+
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
 
