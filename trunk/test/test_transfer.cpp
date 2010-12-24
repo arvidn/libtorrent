@@ -49,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using boost::tuples::ignore;
 
+int const alert_mask = alert::all_categories
+& ~alert::progress_notification
+& ~alert::stats_notification;
+
 // test the maximum transfer rate
 void test_rate()
 {
@@ -59,9 +63,6 @@ void test_rate()
 	remove_all("./tmp1_transfer_moved", ec);
 	remove_all("./tmp2_transfer_moved", ec);
 
-	int alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, alert_mask);
 
@@ -243,8 +244,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	remove_all("./tmp1_transfer_moved", ec);
 	remove_all("./tmp2_transfer_moved", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	int proxy_port = (rand() % 30000) + 10000;
 	if (proxy_type)
@@ -275,6 +276,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	// using a reconnect time > 0 will just add
 	// to the time it will take to complete the test
 	sett.min_reconnect_time = 0;
+	sett.stop_tracker_timeout = 1;
 	sett.announce_to_all_trackers = true;
 	sett.announce_to_all_tiers = true;
 	// make sure we announce to both http and udp trackers
@@ -315,6 +317,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	addp.paused = false;
 	addp.auto_managed = false;
 
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses1");
+
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:0);
@@ -328,12 +333,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
 	std::cerr << std::endl;
 
-	ses1.set_alert_mask(alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification);
-	ses2.set_alert_mask(alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification);
 //	ses1.set_alert_dispatch(&print_alert);
 
 //	sett = ses2.settings();
