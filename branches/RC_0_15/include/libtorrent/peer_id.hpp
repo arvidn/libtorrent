@@ -65,7 +65,7 @@ namespace libtorrent
 	public:
 		enum { size = number_size };
 
-		big_number() {}
+		big_number() { clear(); }
 
 		explicit big_number(char const* s)
 		{
@@ -87,15 +87,8 @@ namespace libtorrent
 			std::memcpy(m_number, &s[0], sl);
 		}
 
-		void assign(char const* str)
-		{
-			std::memcpy(m_number, str, size);
-		}
-
-		void clear()
-		{
-			std::fill(m_number,m_number+number_size,(const unsigned char)(0));
-		}
+		void assign(char const* str) { std::memcpy(m_number, str, size); }
+		void clear() { std::memset(m_number, 0, number_size); }
 
 		bool is_all_zeros() const
 		{

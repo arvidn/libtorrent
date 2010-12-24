@@ -66,6 +66,11 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
+	int round_up8(int v)
+	{
+		return ((v & 7) == 0) ? v : v + (8 - (v & 7));
+	}
+
 	// outbound connection
 	peer_connection::peer_connection(
 		session_impl& ses
@@ -4630,7 +4635,7 @@ namespace libtorrent
 		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
 
 		if (int(m_recv_buffer.size()) < regular_buffer_size)
-			m_recv_buffer.resize(regular_buffer_size);
+			m_recv_buffer.resize(round_up8(regular_buffer_size));
 
 		boost::array<asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
@@ -4938,7 +4943,8 @@ namespace libtorrent
 				&& m_recv_pos == 0
 				&& (m_recv_buffer.capacity() - m_packet_size) > 128)
 			{
-				buffer(m_packet_size).swap(m_recv_buffer);
+				// round up to an even 8 bytes since that's the RC4 blocksize
+				buffer(round_up8(m_packet_size)).swap(m_recv_buffer);
 			}
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
