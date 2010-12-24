@@ -1743,8 +1743,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
 
+		TORRENT_ASSERT(!tracker_ips.empty());
 		if (external_ip != address())
-			m_ses.set_external_address(external_ip);
+			m_ses.set_external_address(external_ip, aux::session_impl::source_tracker
+				, *tracker_ips.begin());
 
 		ptime now = time_now();
 

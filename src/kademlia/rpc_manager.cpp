@@ -346,7 +346,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v4::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
-		m_ses.set_external_address(address_v4(b));
+		m_ses.set_external_address(address_v4(b), aux::session_impl::source_dht, m.addr.address());
 	}
 #if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
@@ -354,7 +354,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
-		m_ses.set_external_address(address_v6(b));
+		m_ses.set_external_address(address_v6(b), aux::session_impl::source_dht, m.addr.address());
 	}
 #endif
 

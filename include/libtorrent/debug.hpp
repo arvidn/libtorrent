@@ -124,6 +124,12 @@ namespace libtorrent
 		static mutex file_mutex;
 #endif
 
+		~logger()
+		{
+			mutex::scoped_lock l(file_mutex);
+			log_file.close();
+		}
+
 		logger(std::string const& logpath, std::string const& filename
 			, int instance, bool append)
 		{

@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/address.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/bloom_filter.hpp"
 
 #ifdef TORRENT_STATS
 #include <fstream>
@@ -393,7 +394,16 @@ namespace libtorrent
 			char* allocate_disk_buffer(char const* category);
 			void free_disk_buffer(char* buf);
 
-			void set_external_address(address const& ip);
+			enum
+			{
+				source_dht = 1,
+				source_peer = 2,
+				source_tracker = 4,
+				source_router = 8
+			};
+
+			void set_external_address(address const& ip
+				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
 			// used when posting synchronous function
@@ -834,6 +844,34 @@ namespace libtorrent
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif
+			struct external_ip_t
+			{
+				external_ip_t(): sources(0), num_votes(0) {}
+
+				bool add_vote(sha1_hash const& k, int type);
+				bool operator<(external_ip_t const& rhs) const
+				{
+					if (num_votes < rhs.num_votes) return true;
+					if (rhs.num_votes > num_votes) return false;
+					return sources < rhs.sources;
+				}
+
+				// this is a bloom filter of the IPs that have
+				// reported this address
+				bloom_filter<16> voters;
+				// this is the actual external address
+				address addr;
+				// a bitmask of sources the reporters have come from
+				boost::uint16_t sources;
+				// the total number of votes for this IP
+				boost::uint16_t num_votes;
+			};
+
+			// this is a bloom filter of all the IPs that have
+			// been the first to report an external address. Each
+			// IP only gets to add a new item once.
+			bloom_filter<32> m_external_address_voters;
+			std::vector<external_ip_t> m_external_addresses;
 			address m_external_address;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

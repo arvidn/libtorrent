@@ -1788,7 +1788,8 @@ namespace libtorrent
 			{
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
-				m_ses.set_external_address(address_v4(bytes));
+				m_ses.set_external_address(address_v4(bytes)
+					, aux::session_impl::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type::static_size)
@@ -1797,9 +1798,11 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
-					m_ses.set_external_address(ipv6_address.to_v4());
+					m_ses.set_external_address(ipv6_address.to_v4()
+						, aux::session_impl::source_peer, remote().address());
 				else
-					m_ses.set_external_address(ipv6_address);
+					m_ses.set_external_address(ipv6_address
+						, aux::session_impl::source_peer, remote().address());
 			}
 #endif
 		}
