@@ -49,6 +49,7 @@ namespace libtorrent
 		, m_last_socket(0)
 		, m_new_connection(-1)
 		, m_sett(sett)
+		, m_last_route_update(min_time())
 		, m_sock_buf_size(0)
 	{}
 
