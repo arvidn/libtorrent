@@ -93,6 +93,7 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 
 void timestamp_history::adjust_base(int change)
 {
+	TORRENT_ASSERT(m_initialized);
 	m_base += change;
 	// make sure this adjustment sticks by updating all history slots
 	for (int i = 0; i < history_size; ++i)

@@ -109,7 +109,8 @@ get_out:
 
 #elif defined TORRENT_USE_OPENSSL
 		// create local key
-		RAND_bytes((unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret));
+		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
+			m_dh_local_secret[i] = rand();
 
 		BIGNUM* prime = 0;
 		BIGNUM* secret = 0;

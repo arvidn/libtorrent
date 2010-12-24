@@ -99,6 +99,7 @@ namespace libtorrent
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
+		, m_holepunch_id(0)
 		, m_share_mode_id(0)
 		, m_supports_extensions(false)
 #endif
@@ -134,6 +135,9 @@ namespace libtorrent
 		: peer_connection(ses, s, remote, peerinfo)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_upload_only_id(0)
+		, m_holepunch_id(0)
+		, m_share_mode_id(0)
 		, m_supports_extensions(false)
 #endif
 		, m_supports_dht_port(false)
