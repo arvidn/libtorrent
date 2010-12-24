@@ -68,6 +68,10 @@ natpmp::natpmp(io_service& ios, address const& listen_interface
 	, m_disabled(false)
 	, m_abort(false)
 {
+	// unfortunately async operations rely on the storage
+	// for this array not to be reallocated, by passing
+	// around pointers to its elements. so reserve size for now
+	m_mappings.reserve(10);
 	rebind(listen_interface);
 }
 
