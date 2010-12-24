@@ -1161,7 +1161,7 @@ namespace libtorrent
 		int block = j.offset / m_block_size;
 		int block_offset = j.offset & (m_block_size-1);
 		int size = j.buffer_size;
-		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+		int min_blocks_to_read = block_offset > 0 && (size > m_block_size - block_offset) ? 2 : 1;
 		TORRENT_ASSERT(size <= m_block_size);
 		int start_block = block;
 		// if we have to read more than one block, and
@@ -1169,6 +1169,12 @@ namespace libtorrent
 		// for the second block
 		if (p->blocks[start_block].buf != 0 && min_blocks_to_read > 1)
 			++start_block;
+
+#ifdef TORRENT_DEBUG
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+		TORRENT_ASSERT(start_block < blocks_in_piece);
+#endif
 
 		return p->blocks[start_block].buf != 0;
 	}
@@ -1188,18 +1194,21 @@ namespace libtorrent
 		int block_offset = j.offset & (m_block_size-1);
 		int buffer_offset = 0;
 		int size = j.buffer_size;
-		int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+		int min_blocks_to_read = block_offset > 0 && (size > m_block_size - block_offset) ? 2 : 1;
 		TORRENT_ASSERT(size <= m_block_size);
 		int start_block = block;
 		if (p->blocks[start_block].buf != 0 && min_blocks_to_read > 1)
 			++start_block;
+
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+		TORRENT_ASSERT(start_block < blocks_in_piece);
+
 		// if block_offset > 0, we need to read two blocks, and then
 		// copy parts of both, because it's not aligned to the block
 		// boundaries
 		if (p->blocks[start_block].buf == 0)
 		{
-			int piece_size = j.storage->info()->piece_size(j.piece);
-			int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 			int end_block = start_block;
 			while (end_block < blocks_in_piece && p->blocks[end_block].buf == 0) ++end_block;
 
