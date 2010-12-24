@@ -328,7 +328,7 @@ public:
 #endif
 		}
 		std::size_t ret = read_some(true);
-		TORRENT_ASSERT(int(ret) <= buf_size);
+		TORRENT_ASSERT(ret <= buf_size);
 		TORRENT_ASSERT(ret > 0);
 		return ret;
 	}
