@@ -172,6 +172,8 @@ namespace libtorrent {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
+	int _async_ops_nthreads = 0;
+	mutex _async_ops_mutex;
 #endif
 
 namespace detail
@@ -847,6 +849,7 @@ namespace aux {
 		// constructor which is called from the main thread
 
 #if defined TORRENT_ASIO_DEBUGGING
+		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
 		error_code ec;
@@ -1207,7 +1210,9 @@ namespace aux {
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
 			i->sock->close(ec);
+			TORRENT_ASSERT(!ec);
 		}
+		m_listen_sockets.clear();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all torrents (" << m_torrents.size() << ")\n";
@@ -1851,6 +1856,7 @@ namespace aux {
 	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
+		TORRENT_ASSERT(!m_abort);
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
 #if defined TORRENT_ASIO_DEBUGGING
@@ -4010,6 +4016,7 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " waiting for main thread\n";
 #endif
+
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;
 		while (log_async())
@@ -4018,7 +4025,9 @@ namespace aux {
 			++counter;
 			printf("\n==== Waiting to shut down: %d ==== \n\n", counter);
 		}
+		async_dec_threads();
 #endif
+
 		if (m_thread) m_thread->join();
 
 		TORRENT_ASSERT(m_torrents.empty());
