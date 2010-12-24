@@ -39,6 +39,14 @@ extern bool tests_failure;
 
 int main()
 {
+#ifdef O_NONBLOCK
+	// on darwin, stdout is set to non-blocking mode by default
+	// which sometimes causes tests to fail with EAGAIN just
+	// by printing logs
+	int flags = fcntl(stdout, F_GETFL, 0);
+	fcntl(stdout, F_SETFL, flags & ~O_NONBLOCK);
+#endif
+
 #ifndef BOOST_NO_EXCEPTIONS
 	try
 	{

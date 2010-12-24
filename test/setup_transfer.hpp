@@ -48,6 +48,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_failed_fastresume = false
 	, bool (*)(libtorrent::alert*) = 0);
 
+void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
