@@ -88,6 +88,8 @@ upnp::upnp(io_service& ios, connection_queue& cc
 		m_mappings.swap(s->mappings);
 		delete s;
 	}
+
+	m_mappings.reserve(10);
 }
 
 void* upnp::drain_state()
