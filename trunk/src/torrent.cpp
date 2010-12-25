@@ -3669,7 +3669,7 @@ namespace libtorrent
 		connect_web_seed(web, a);
 	}
 
-	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a)
+	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
