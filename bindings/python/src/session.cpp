@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <libtorrent/session.hpp>
+#include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
@@ -57,6 +58,75 @@ namespace
         allow_threading_guard guard;
         s.add_extension(invoke_extension_factory(e));
     }
+
+	void session_set_settings(session& ses, dict const& sett_dict)
+	{
+		bencode_map_entry* map;
+		int len;
+		boost::tie(map, len) = aux::settings_map();
+	 
+		session_settings sett;
+		for (int i = 0; i < len; ++i)
+		{
+			if (!sett_dict.has_key(map[i].name)) continue;
+
+			void* dest = ((char*)&sett) + map[i].offset;
+			char const* name = map[i].name;
+			switch (map[i].type)
+			{
+				case std_string:
+					*((std::string*)dest) = extract<std::string>(sett_dict[name]);
+					break;
+				case character:
+					*((char*)dest) = extract<char>(sett_dict[name]);
+					break;
+				case boolean:
+					*((bool*)dest) = extract<bool>(sett_dict[name]);
+					break;
+				case integer:
+					*((int*)dest) = extract<int>(sett_dict[name]);
+					break;
+				case floating_point:
+					*((float*)dest) = extract<float>(sett_dict[name]);
+					break;
+			}
+		}
+
+		ses.set_settings(sett);
+	}
+
+	dict session_get_settings(session const& ses)
+	{
+		session_settings sett = ses.settings();
+		dict sett_dict;
+		bencode_map_entry* map;
+		int len;
+		boost::tie(map, len) = aux::settings_map();
+		for (int i = 0; i < len; ++i)
+		{
+			void const* dest = ((char const*)&sett) + map[i].offset;
+			char const* name = map[i].name;
+			switch (map[i].type)
+			{
+				case std_string:
+					sett_dict[name] = *((std::string const*)dest);
+					break;
+				case character:
+					sett_dict[name] = *((char const*)dest);
+					break;
+				case boolean:
+					sett_dict[name] = *((bool const*)dest);
+					break;
+				case integer:
+					sett_dict[name] = *((int const*)dest);
+					break;
+				case floating_point:
+					sett_dict[name] = *((float const*)dest);
+					break;
+			}
+		}
+		return sett_dict;
+	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
@@ -342,8 +412,14 @@ void bind_session()
         .def("set_max_connections", allow_threads(&session::set_max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
-        .def("set_settings", allow_threads(&session::set_settings))
-        .def("settings", allow_threads(&session::settings))
+#ifndef TORRENT_NO_DEPRECATE
+        .def("set_settings", &session::set_settings)
+        .def("settings", &session::settings)
+        .def("get_settings", &session_get_settings)
+#else
+        .def("settings", &session_get_settings)
+#endif
+        .def("set_settings", &session_set_settings)
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&session::set_pe_settings))
         .def("get_pe_settings", allow_threads(&session::get_pe_settings))

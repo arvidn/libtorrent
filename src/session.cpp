@@ -691,7 +691,7 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_settings, s);
 	}
 
-	session_settings session::settings()
+	session_settings session::settings() const
 	{
 		TORRENT_SYNC_CALL_RET(session_settings, settings);
 		return r;

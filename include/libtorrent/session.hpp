@@ -328,7 +328,7 @@ namespace libtorrent
 		void remove_torrent(const torrent_handle& h, int options = none);
 
 		void set_settings(session_settings const& s);
-		session_settings settings();
+		session_settings settings() const;
 
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
