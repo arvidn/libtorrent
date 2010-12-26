@@ -15,18 +15,30 @@ std::string get_buffer(read_piece_alert const& rpa)
        : std::string();
 }
 
-struct endpoint_to_python
+tuple endpoint_to_tuple(tcp::endpoint const& ep)
 {
-    static PyObject* convert(tcp::endpoint const& ep)
-    {
-        return incref(make_tuple(ep.address().to_string(), ep.port()).ptr());
-    }
-};
+    return make_tuple(ep.address().to_string(), ep.port());
+}
+
+tuple peer_alert_ip(peer_alert const& pa)
+{
+    return endpoint_to_tuple(pa.ip);
+}
+
+std::string peer_blocked_alert_ip(peer_blocked_alert const& pa)
+{
+    error_code ec;
+    return pa.ip.to_string(ec);
+}
+
+std::string dht_announce_alert_ip(dht_announce_alert const& pa)
+{
+    error_code ec;
+    return pa.ip.to_string(ec);
+}
 
 void bind_alert()
 {
-    to_python_converter<tcp::endpoint, endpoint_to_python>();
-
     using boost::noncopyable;
 
     {
@@ -91,7 +103,7 @@ void bind_alert()
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init
     )
-        .def_readonly("ip", &peer_alert::ip)
+        .add_property("ip", &peer_alert_ip)
         .def_readonly("pid", &peer_alert::pid)
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
@@ -271,7 +283,7 @@ void bind_alert()
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
         "peer_blocked_alert", no_init
     )
-        .def_readonly("ip", &peer_blocked_alert::ip)
+        .add_property("ip", &peer_blocked_alert_ip)
         ;
 
     class_<scrape_reply_alert, bases<tracker_alert>, noncopyable>(
@@ -344,7 +356,7 @@ void bind_alert()
     class_<dht_announce_alert, bases<alert>, noncopyable>(
         "dht_announce_alert", no_init
     )
-        .def_readonly("ip", &dht_announce_alert::ip)
+        .add_property("ip", &dht_announce_alert_ip)
         .def_readonly("port", &dht_announce_alert::port)
         .def_readonly("info_hash", &dht_announce_alert::info_hash)
     ;
