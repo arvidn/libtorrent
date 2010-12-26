@@ -112,6 +112,8 @@ namespace libtorrent
 		struct dht_tracker;
 	}
 
+	struct bencode_map_entry;
+
 	namespace aux
 	{
 		struct session_impl;
@@ -126,6 +128,8 @@ namespace libtorrent
 		{
 			initialize_timer();
 		};
+
+		std::pair<bencode_map_entry*, int> settings_map();
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop

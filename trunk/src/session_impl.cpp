@@ -435,6 +435,10 @@ namespace aux {
 #endif
 	};
 
+	std::pair<bencode_map_entry*, int> settings_map()
+	{
+		std::make_pair(session_settings_map, lenof(session_settings_map));
+	}
 #undef lenof
 
 #ifdef TORRENT_STATS

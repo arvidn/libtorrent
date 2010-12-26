@@ -160,6 +160,7 @@ The ``session`` class has the following synopsis::
 		std::vector<torrent_handle> get_torrents() const;
 
 		void set_settings(session_settings const& settings);
+		session_settings settings() const;
 		void set_pe_settings(pe_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
