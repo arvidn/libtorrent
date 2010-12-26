@@ -475,6 +475,8 @@ namespace libtorrent
 		std::list<address> ip_list;
 		if (m_tracker_connection)
 		{
+			error_code ec;
+			ip_list.push_back(m_tracker_connection->socket().remote_endpoint(ec).address());
 			std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
 			for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
 				, end(epts.end()); i != end; ++i)
