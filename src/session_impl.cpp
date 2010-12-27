@@ -2335,8 +2335,8 @@ namespace aux {
 					else
 					{
 						if (num_tcp_peers == 0) num_tcp_peers = 1;
-						int upload_rate = (std::max)(m_stat.upload_rate(), 5000);
-						int download_rate = (std::max)(m_stat.download_rate(), 5000);
+						int upload_rate = (std::max)(m_stat.upload_rate(), 20000);
+						int download_rate = (std::max)(m_stat.download_rate(), 20000);
 						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
 						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
 						
