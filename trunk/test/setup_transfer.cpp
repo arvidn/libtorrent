@@ -180,7 +180,7 @@ void start_proxy(int port, int proxy_type)
 	char buf[512];
 	// we need to echo n since dg will ask us to configure it
 	snprintf(buf, sizeof(buf), "echo n | delegated -P%d ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate "
+		"PERMIT=\"*:*:localhost\" REMITTABLE=\"*\" RELAY=proxy,delegate "
 		"SERVER=%s %s"
 		, port, type, auth);
 
@@ -188,7 +188,7 @@ void start_proxy(int port, int proxy_type)
 	system(buf);
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
-	test_sleep(1000);
+	test_sleep(500);
 }
 
 using namespace libtorrent;
@@ -263,6 +263,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	session_settings sess_set = ses1->settings();
 	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
 	sess_set.ignore_limits_on_local_network = false;
+	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
 	sess_set.max_failcount = 1;
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
