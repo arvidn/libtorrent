@@ -222,12 +222,12 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
 #endif
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
-
 			void on_dht_announce(error_code const& e);
 			void on_dht_router_name_lookup(error_code const& e
 				, tcp::resolver::iterator host);
 #endif
+
+			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			void set_pe_settings(pe_settings const& settings);
@@ -738,16 +738,16 @@ namespace libtorrent
 			// (and bootstrapping it), and then erased
 			std::list<udp::endpoint> m_dht_router_nodes;
 
+			// this announce timer is used
+			// by the DHT.
+			deadline_timer m_dht_announce_timer;
+#endif
+
 			void on_receive_udp(error_code const& e
 				, udp::endpoint const& ep, char const* buf, int len);
 
 			void on_receive_udp_hostname(error_code const& e
 				, char const* hostname, char const* buf, int len);
-
-			// this announce timer is used
-			// by the DHT.
-			deadline_timer m_dht_announce_timer;
-#endif
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.

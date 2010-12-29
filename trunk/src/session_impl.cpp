@@ -66,7 +66,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#endif
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/utf8.hpp"
@@ -437,7 +439,7 @@ namespace aux {
 
 	std::pair<bencode_map_entry*, int> settings_map()
 	{
-		std::make_pair(session_settings_map, lenof(session_settings_map));
+		return std::make_pair(session_settings_map, lenof(session_settings_map));
 	}
 #undef lenof
 
@@ -1809,8 +1811,6 @@ namespace aux {
 	}
 #endif
 
-#ifndef TORRENT_DISABLE_DHT
-
 	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
@@ -1820,7 +1820,9 @@ namespace aux {
 				|| e == asio::error::connection_reset
 				|| e == asio::error::connection_aborted)
 			{
+#ifndef TORRENT_DISABLE_DHT
 				if (m_dht) m_dht->on_unreachable(ep);
+#endif
 				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
 					m_stat.received_tracker_bytes(len + 28);
 			}
@@ -1830,12 +1832,14 @@ namespace aux {
 			return;
 		}
 
+#ifndef TORRENT_DISABLE_DHT
 		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
 			return;
 		}
+#endif
 		
 		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
 			return;
@@ -1855,9 +1859,6 @@ namespace aux {
 		}
 	}
 
-
-#endif
-	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
 		TORRENT_ASSERT(!m_abort);
@@ -2512,11 +2513,17 @@ namespace aux {
 
 		if (m_settings.rate_limit_ip_overhead)
 		{
-			m_download_channel.use_quota(m_stat.download_dht()
-				+ m_stat.download_tracker());
+			m_download_channel.use_quota(
+#ifndef TORRENT_DISABLE_DHT
+				m_stat.download_dht() +
+#endif
+				m_stat.download_tracker());
 
-			m_upload_channel.use_quota(m_stat.upload_dht()
-				+ m_stat.upload_tracker());
+			m_upload_channel.use_quota(
+#ifndef TORRENT_DISABLE_DHT
+				m_stat.upload_dht() +
+#endif
+				m_stat.upload_tracker());
 
 			int up_limit = m_upload_channel.throttle();
 			int down_limit = m_download_channel.throttle();
@@ -3797,11 +3804,13 @@ namespace aux {
 		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
 		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
 
+#ifndef TORRENT_DISABLE_DHT
 		// DHT protocol
 		s.dht_download_rate = m_stat.transfer_rate(stat::download_dht_protocol);
 		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
 		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
 		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
+#endif
 
 		// tracker
 		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
@@ -3892,45 +3901,6 @@ namespace aux {
 		}
 	}
 
-#ifndef TORRENT_DISABLE_DHT	
-	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
-	{
-		int local, external, protocol;
-		if (nat == 0 && m_natpmp.get())
-		{
-			if (m_udp_mapping[nat] != -1)
-			{
-				if (m_natpmp->get_mapping(m_udp_mapping[nat], local, external, protocol))
-				{
-					// we already have a mapping. If it's the same, don't do anything
-					if (local == local_port && external == external_port && protocol == natpmp::udp)
-						return;
-				}
-				m_natpmp->delete_mapping(m_udp_mapping[nat]);
-			}
-			m_udp_mapping[nat] = m_natpmp->add_mapping(natpmp::udp
-				, local_port, external_port);
-			return;
-		}
-		else if (nat == 1 && m_upnp.get())
-		{
-			if (m_udp_mapping[nat] != -1)
-			{
-				if (m_upnp->get_mapping(m_udp_mapping[nat], local, external, protocol))
-				{
-					// we already have a mapping. If it's the same, don't do anything
-					if (local == local_port && external == external_port && protocol == natpmp::udp)
-						return;
-				}
-				m_upnp->delete_mapping(m_udp_mapping[nat]);
-			}
-			m_udp_mapping[nat] = m_upnp->add_mapping(upnp::udp
-				, local_port, external_port);
-			return;
-		}
-	}
-#endif
-
 	void session_impl::stop_dht()
 	{
 		if (!m_dht) return;
@@ -3986,6 +3956,43 @@ namespace aux {
 		}
 	}
 #endif
+
+	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
+	{
+		int local, external, protocol;
+		if (nat == 0 && m_natpmp.get())
+		{
+			if (m_udp_mapping[nat] != -1)
+			{
+				if (m_natpmp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				{
+					// we already have a mapping. If it's the same, don't do anything
+					if (local == local_port && external == external_port && protocol == natpmp::udp)
+						return;
+				}
+				m_natpmp->delete_mapping(m_udp_mapping[nat]);
+			}
+			m_udp_mapping[nat] = m_natpmp->add_mapping(natpmp::udp
+				, local_port, external_port);
+			return;
+		}
+		else if (nat == 1 && m_upnp.get())
+		{
+			if (m_udp_mapping[nat] != -1)
+			{
+				if (m_upnp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				{
+					// we already have a mapping. If it's the same, don't do anything
+					if (local == local_port && external == external_port && protocol == natpmp::udp)
+						return;
+				}
+				m_upnp->delete_mapping(m_udp_mapping[nat]);
+			}
+			m_udp_mapping[nat] = m_upnp->add_mapping(upnp::udp
+				, local_port, external_port);
+			return;
+		}
+	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	void session_impl::set_pe_settings(pe_settings const& settings)

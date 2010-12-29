@@ -1066,9 +1066,9 @@ int main(int argc, char* argv[])
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
 		, bind_to_interface.c_str());
 
+#ifndef TORRENT_DISABLE_DHT
 	if (start_dht)
 	{
-#ifndef TORRENT_DISABLE_DHT
 		settings.use_dht_as_fallback = false;
 
 		ses.add_dht_router(std::make_pair(
