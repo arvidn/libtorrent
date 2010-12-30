@@ -378,6 +378,7 @@ namespace libtorrent
 		disk_io_job j;
 		m_waiting_to_shutdown = true;
 		j.action = disk_io_job::abort_thread;
+		j.start_time = time_now_hires();
 		m_jobs.insert(m_jobs.begin(), j);
 		m_signal.signal(l);
 	}

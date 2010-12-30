@@ -744,6 +744,7 @@ namespace libtorrent
 		if (found)
 		{
 			i = *iter;
+			TORRENT_ASSERT(i->connection != &c);
 
 			if (i->banned)
 			{
