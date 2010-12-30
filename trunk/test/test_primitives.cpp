@@ -383,7 +383,7 @@ TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& 
 
 address rand_v4()
 {
-	return address_v4(rand() << 16 | rand());
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
 }
 
 int test_main()
