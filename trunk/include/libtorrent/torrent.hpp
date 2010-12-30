@@ -699,6 +699,8 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
+		std::string const& url() const { return m_url; }
+
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
 
