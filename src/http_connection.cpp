@@ -58,6 +58,8 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #endif
 	)
 {
+	m_user_agent = user_agent;
+
 	std::string protocol;
 	std::string auth;
 	std::string hostname;
@@ -129,11 +131,13 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		else APPEND_FMT("\r\n");
 	}
 
+//	APPEND_FMT("Accept: */*\r\n");
+
 	if (!auth.empty())
 		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
 
-	if (!user_agent.empty())
-		APPEND_FMT1("User-Agent: %s\r\n", user_agent.c_str());
+	if (!m_user_agent.empty())
+		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
 	
 	if (m_bottled)
 		APPEND_FMT("Accept-Encoding: gzip\r\n");
@@ -675,7 +679,12 @@ void http_connection::on_read(error_code const& e
 					= parse_url_components(location, ec);
 				if (!ec)
 				{
-					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1);
+					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1
+						, m_user_agent, m_bind_addr
+#if TORRENT_USE_I2P
+						, m_i2p_conn
+#endif
+						);
 				}
 				else
 				{
@@ -691,7 +700,12 @@ void http_connection::on_read(error_code const& e
 						url += '/';
 					url += location;
 
-					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
+					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1
+						, m_user_agent, m_bind_addr
+#if TORRENT_USE_I2P
+						, m_i2p_conn
+#endif
+						);
 				}
 				return;
 			}

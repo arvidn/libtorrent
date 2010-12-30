@@ -184,6 +184,7 @@ private:
 	std::string m_hostname;
 	std::string m_port;
 	std::string m_url;
+	std::string m_user_agent;
 
 	std::list<tcp::endpoint> m_endpoints;
 #ifdef TORRENT_USE_OPENSSL
