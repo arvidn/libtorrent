@@ -384,6 +384,7 @@ add_torrent()
 			std::vector<boost::uint8_t> const* file_priorities;
 			bool share_mode;
 			std::string trackerid;
+			std::string url;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -396,9 +397,10 @@ object with all the parameters.
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
 
-The only mandatory parameter is ``save_path`` which is the directory where you
+The only mandatory parameters are ``save_path`` which is the directory where you
 want the files to be saved. You also need to specify either the ``ti`` (the
-torrent file) or ``info_hash`` (the info hash of the torrent). If you specify the
+torrent file), the ``info_hash`` (the info hash of the torrent) or the ``url``
+(the URL to where to download the .torrent file from). If you specify the
 info-hash, the torrent file will be downloaded from peers, which requires them to
 support the metadata extension. For the metadata extension to work, libtorrent must
 be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
@@ -409,6 +411,11 @@ the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
 If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
 ``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
 torrent.
+
+If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
+until the .torrent file has been downloaded. If there's any error while downloading,
+the torrent will be stopped and the torrent error state (``torrent_status::error``)
+will indicate what went wrong. The ``url`` may also refer to a magnet link.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
@@ -5447,6 +5454,9 @@ the ``add_torrent_params``, ``p``. See `add_torrent()`_.
 
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
+
+A simpler way to add a magnet link to a session is to pass in the
+link through ``add_torrent_params::url`` argument to ``session::add_torrent()``.
 
 For more information about magnet links, see `magnet links`_.
 

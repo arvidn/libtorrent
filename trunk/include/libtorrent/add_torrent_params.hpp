@@ -85,6 +85,7 @@ namespace libtorrent
 		std::vector<boost::uint8_t> const* file_priorities;
 		bool share_mode;
 		std::string trackerid;
+		std::string url;
 	};
 }
 

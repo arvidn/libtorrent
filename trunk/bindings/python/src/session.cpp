@@ -187,6 +187,10 @@ namespace
             p.upload_mode = params["share_mode"];
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
+        if (params.has_key("trackerid"))
+            p.trackerid = extract<std::string>(params["trackerid"]);
+        if (params.has_key("url"))
+            p.url = extract<std::string>(params["url"]);
 
 #ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);

@@ -198,6 +198,7 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
+			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 
 		void on_piece_pass(int)

@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct http_parser;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
@@ -108,7 +110,8 @@ namespace libtorrent
 	public:
 
 		torrent(aux::session_impl& ses, tcp::endpoint const& net_interface
-			, int block_size, int seq, add_torrent_params const& p);
+			, int block_size, int seq, add_torrent_params const& p
+			, sha1_hash const& info_hash);
 		~torrent();
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -121,6 +124,8 @@ namespace libtorrent
 
 		// starts the announce timer
 		void start();
+
+		void start_download_url();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
@@ -176,6 +181,7 @@ namespace libtorrent
 			, peer_request p);
 		void on_disk_cache_complete(int ret, disk_io_job const& j);
 
+		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
 		{
 			boost::shared_array<char> piece_data;
@@ -761,6 +767,9 @@ namespace libtorrent
 		// a return value of false indicates an error
 		bool set_metadata(char const* metadata_buf, int metadata_size);
 
+		void on_torrent_download(error_code const& ec, http_parser const& parser
+			, char const* data, int size);
+
 		int sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
@@ -963,6 +972,14 @@ namespace libtorrent
 		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
+
+		// if we don't have the metadata, this is a url to
+		// the torrent file
+		std::string m_url;
+
+		// this is used as temporary storage while downloading
+		// the .torrent file from m_url
+		std::vector<char> m_torrent_file_buf;
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This

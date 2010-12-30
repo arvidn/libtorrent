@@ -3453,7 +3453,18 @@ namespace aux {
 		
 		// figure out the info hash of the torrent
 		sha1_hash const* ih = 0;
+		sha1_hash tmp;
 		if (params.ti) ih = &params.ti->info_hash();
+		else if (!params.url.empty())
+		{
+			// in order to avoid info-hash collisions, for
+			// torrents where we don't have an info-hash, but
+			// just a URL, set the temporary info-hash to the
+			// hash of the URL. This will be changed once we
+			// have the actual .torrent file
+			tmp = hasher(&params.url[0], params.url.size()).final();
+			ih = &tmp;
+		}
 		else ih = &params.info_hash;
 
 		// is the torrent already active?
@@ -3476,7 +3487,7 @@ namespace aux {
 		}
 
 		torrent_ptr.reset(new torrent(*this, m_listen_interface
-			, 16 * 1024, queue_pos, params));
+			, 16 * 1024, queue_pos, params, *ih));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
