@@ -1,4 +1,5 @@
-	* supporr CDATA tags in xml parser
+	* support adding torrents by url to the .torrent file
+	* support CDATA tags in xml parser
 	* use a python python dictionary for settings instead of session_settings object (in python bindings)
 	* optimized metadata transfer (magnet link) startup time (shaved off about 1 second)
 	* optimized swarm startup time (shaved off about 1 second)

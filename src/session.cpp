@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 using boost::shared_ptr;
 using boost::weak_ptr;
@@ -481,6 +482,13 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			add_torrent_params p(params);
+			p.url.clear();
+			return add_magnet_uri(*this, params.url, p);
+		}
+
 		error_code ec;
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
 		if (ec) throw libtorrent_exception(ec);
@@ -490,6 +498,13 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			add_torrent_params p(params);
+			p.url.clear();
+			return add_magnet_uri(*this, params.url, p, ec);
+		}
+
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
 		return r;
 	}

@@ -78,6 +78,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/http_connection.hpp"
+#include "libtorrent/gzip.hpp" // for inflate_gzip
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -321,18 +323,20 @@ namespace libtorrent
 		, tcp::endpoint const& net_interface
 		, int block_size
 		, int seq
-		, add_torrent_params const& p)
+		, add_torrent_params const& p
+		, sha1_hash const& info_hash)
 		: m_policy(this)
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
-		, m_torrent_file(p.ti ? p.ti : new torrent_info(p.info_hash))
+		, m_torrent_file(p.ti ? p.ti : new torrent_info(info_hash))
 		, m_storage(0)
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackers(m_torrent_file->trackers())
-		, m_save_path(complete(p.save_path))
 		, m_trackerid(p.trackerid)
+		, m_save_path(complete(p.save_path))
+		, m_url(p.url)
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
@@ -427,6 +431,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (p.name && !p.ti) m_name.reset(new std::string(p.name));
+		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
 		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
 		{
@@ -435,6 +440,95 @@ namespace libtorrent
 			m_trackers.back().source = announce_entry::source_magnet_link;
 			m_torrent_file->add_tracker(p.tracker_url);
 		}
+	}
+
+	// since this download is not bottled, this callback will
+	// be called every time we receive another piece of the
+	// .torrent file
+	void torrent::on_torrent_download(error_code const& ec
+		, http_parser const& parser
+		, char const* data, int size)
+	{
+		if (ec && ec != asio::error::eof)
+		{
+			set_error(ec, m_url);
+			pause();
+			return;
+		}
+		if (size > 0)
+		{
+			m_torrent_file_buf.insert(m_torrent_file_buf.end(), data, data + size);
+			if (parser.content_length() > 0)
+				set_progress_ppm(boost::int64_t(m_torrent_file_buf.size())
+					* 1000000 / parser.content_length());
+		}
+
+		if (!ec) return;
+
+		std::string const& encoding = parser.header("content-encoding");
+		if ((encoding == "gzip" || encoding == "x-gzip") && m_torrent_file_buf.size())
+		{
+			std::vector<char> buf;
+			std::string error;
+			if (inflate_gzip(&m_torrent_file_buf[0], m_torrent_file_buf.size()
+				, buf, 4 * 1024 * 1024, error))
+			{
+				set_error(errors::http_failed_decompress, m_url);
+				pause();
+				std::vector<char>().swap(m_torrent_file_buf);
+				return;
+			}
+			m_torrent_file_buf.swap(buf);
+		}
+
+		// we're done!
+		error_code e;
+		intrusive_ptr<torrent_info> tf(new torrent_info(
+			&m_torrent_file_buf[0], m_torrent_file_buf.size(), e));
+		if (e)
+		{
+			set_error(e, m_url);
+			pause();
+			std::vector<char>().swap(m_torrent_file_buf);
+			return;
+		}
+		std::vector<char>().swap(m_torrent_file_buf);
+		
+		// update our torrent_info object and move the
+		// torrent from the old info-hash to the new one
+		// as we replace the torrent_info object
+#ifdef TORRENT_DEBUG
+		int num_torrents = m_ses.m_torrents.size();
+#endif
+		m_ses.m_torrents.erase(m_torrent_file->info_hash());
+		m_torrent_file = tf;
+		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), shared_from_this()));
+
+		TORRENT_ASSERT(num_torrents == m_ses.m_torrents.size());
+
+		// TODO: if the user added any trackers while downloading the
+		// .torrent file, they are overwritten. Merge them into the
+		// new tracker list
+		m_trackers = m_torrent_file->trackers();
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&m_torrent_file->info_hash()[0], 20);
+		m_obfuscated_hash = h.final();
+#endif
+
+		if (m_ses.m_alerts.should_post<metadata_received_alert>())
+		{
+			m_ses.m_alerts.post_alert(metadata_received_alert(
+				get_handle()));
+		}
+
+		set_state(torrent_status::downloading);
+
+		m_override_resume_data = true;
+		init();
+		announce_with_tracker();
 	}
 
 	void torrent::start()
@@ -472,10 +566,15 @@ namespace libtorrent
 			}
 		}
 
-		// we need to start announcing since we don't have any
-		// metadata. To receive peers to ask for it.
-		if (m_torrent_file->is_valid())
+		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
+			// we need to download the .torrent file from m_url
+			start_download_url();
+		}
+		else if (m_torrent_file->is_valid())
+		{
+			// we need to start announcing since we don't have any
+			// metadata. To receive peers to ask for it.
 			init();
 		}
 		else
@@ -483,6 +582,18 @@ namespace libtorrent
 			set_state(torrent_status::downloading_metadata);
 			start_announcing();
 		}
+	}
+
+	void torrent::start_download_url()
+	{
+		TORRENT_ASSERT(!m_url.empty());
+		TORRENT_ASSERT(!m_torrent_file->is_valid());
+		boost::shared_ptr<http_connection> conn(
+			new http_connection(m_ses.m_io_service, m_ses.m_half_open
+				, boost::bind(&torrent::on_torrent_download, shared_from_this()
+					, _1, _2, _3, _4), false));
+		conn->get(m_url);
+		set_state(torrent_status::downloading_metadata);
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -919,7 +1030,6 @@ namespace libtorrent
 		// in case file priorities were passed in via the add_torrent_params
 		// ans also in the case of share mode, we need to update the priorities
 		update_piece_priorities();
-
 
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
 		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
@@ -5518,10 +5628,18 @@ namespace libtorrent
 			m_ses.m_auto_manage_time_scaler = 2;
 		m_error = error_code();
 		m_error_file.clear();
+
+		// if we haven't downloaded the metadata from m_url, try again
+		if (!m_url.empty() && !m_torrent_file->is_valid())
+		{
+			start_download_url();
+			return;
+		}
 		// if the error happened during initialization, try again now
 		if (!m_storage) init();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
+
 	}
 
 	void torrent::set_error(error_code const& ec, std::string const& error_file)

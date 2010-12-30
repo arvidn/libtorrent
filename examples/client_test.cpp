@@ -797,7 +797,7 @@ int main(int argc, char* argv[])
 {
 	if (argc == 1)
 	{
-		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL]\n\n"
+		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"
 			"OPTIONS:\n"
 			"  -f <log file>         logs all events to the given file\n"
 			"  -o <limit>            limits the number of simultaneous\n"
@@ -848,7 +848,8 @@ int main(int argc, char* argv[])
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
-			"MAGNETURL is a magnet: url\n")
+			"MAGNETURL is a magnet link\n"
+			"URL is a url to a torrent file\n")
 			;
 		return 0;
 	}
@@ -1108,16 +1109,19 @@ int main(int argc, char* argv[])
 	for (std::vector<std::string>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		// first see if this is a torrentless download
-		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+		if (std::strstr(i->c_str(), "http://") == i->c_str()
+			|| std::strstr(i->c_str(), "https://") == i->c_str()
+			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
 			p.share_mode = share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
-			printf("adding MANGET link: %s\n", i->c_str());
+			p.url = *i;
+
+			printf("adding URL: %s\n", i->c_str());
 			error_code ec;
-			torrent_handle h = add_magnet_uri(ses, i->c_str(), p, ec);
+			torrent_handle h = ses.add_torrent(p, ec);
 			if (ec)
 			{
 				fprintf(stderr, "%s\n", ec.message().c_str());
