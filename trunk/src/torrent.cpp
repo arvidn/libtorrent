@@ -449,18 +449,29 @@ namespace libtorrent
 		, http_parser const& parser
 		, char const* data, int size)
 	{
+		if (m_abort) return;
+
 		if (ec && ec != asio::error::eof)
 		{
 			set_error(ec, m_url);
 			pause();
 			return;
 		}
+
 		if (size > 0)
 		{
 			m_torrent_file_buf.insert(m_torrent_file_buf.end(), data, data + size);
 			if (parser.content_length() > 0)
 				set_progress_ppm(boost::int64_t(m_torrent_file_buf.size())
 					* 1000000 / parser.content_length());
+		}
+
+		if (parser.header_finished() && parser.status_code() != 200)
+		{
+			// #error there should really be an error code category for HTTP
+			set_error(errors::http_error, parser.message());
+			pause();
+			return;
 		}
 
 		if (!ec) return;
@@ -592,7 +603,7 @@ namespace libtorrent
 			new http_connection(m_ses.m_io_service, m_ses.m_half_open
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
 					, _1, _2, _3, _4), false));
-		conn->get(m_url);
+		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
 		set_state(torrent_status::downloading_metadata);
 	}
 
