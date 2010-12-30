@@ -3575,6 +3575,14 @@ namespace aux {
 		session_impl::torrent_map::iterator i =
 			m_torrents.find(tptr->torrent_file().info_hash());
 
+		// this torrent might be filed under the URL-hash
+		if (i == m_torrents.end() && !tptr->url().empty())
+		{
+			std::string const& url = tptr->url();
+			sha1_hash urlhash = hasher(&url[0], url.size()).final();
+			i = m_torrents.find(urlhash);
+		}
+
 		if (i != m_torrents.end())
 		{
 			torrent& t = *i->second;
