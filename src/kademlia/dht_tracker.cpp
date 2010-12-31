@@ -1031,6 +1031,13 @@ namespace libtorrent { namespace dht
 			e["r"] = entry(entry::dictionary_t);
 			entry& r = e["r"];
 			r["id"] = std::string((char*)m.id.begin(), (char*)m.id.end());
+			if (!m.ip.empty())
+			{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				log_line << " ip: " << to_hex(m.ip);
+#endif
+				r["ip"] = m.ip;
+			}
 			if (!m.write_token.empty())
 			{
 			 	r["token"] = m.write_token;

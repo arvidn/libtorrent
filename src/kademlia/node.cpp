@@ -480,6 +480,22 @@ bool node_impl::on_find(msg const& m, std::vector<tcp::endpoint>& peers) const
 	return true;
 }
 
+std::string address_to_bytes(address const& a)
+{
+#if TORRENT_USE_IPV6
+	if (a.is_v6())
+	{
+		address_v6::bytes_type b = a.to_v6().to_bytes();
+		return std::string((char*)&b[0], b.size());
+	}
+	else
+#endif
+	{
+		address_v4::bytes_type b = a.to_v4().to_bytes();
+		return std::string((char*)&b[0], b.size());
+	}
+}
+
 void node_impl::incoming_request(msg const& m)
 {
 	msg reply;
@@ -534,7 +550,13 @@ void node_impl::incoming_request(msg const& m)
 		TORRENT_ASSERT(false);
 	};
 
+	// if this nodes ID doesn't match its IP, tell it what
+	// its IP is
+	if (!verify_id(m.id, m.addr.address()))
+		reply.ip = address_to_bytes(m.addr.address());
+
 	m_table.heard_about(m.id, m.addr);
+
 	m_rpc.reply(reply);
 }
 

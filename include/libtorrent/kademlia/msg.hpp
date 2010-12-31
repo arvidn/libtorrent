@@ -83,6 +83,9 @@ struct msg
 	// similar to transaction_id but for write operations.
 	std::string write_token;
 
+	// if non-empty, include the "ip" key in the response
+	std::string ip;
+
 	// the info has for peer_requests, announce_peer
 	// and responses
 	node_id info_hash;
