@@ -84,14 +84,14 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		error_code ec(errors::unsupported_url_protocol);
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, this, ec, (char*)0, 0));
+			, me, ec, (char*)0, 0));
 		return;
 	}
 
 	if (ec)
 	{
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, this, ec, (char*)0, 0));
+			, me, ec, (char*)0, 0));
 		return;
 	}
 
@@ -167,6 +167,10 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_redirects = handle_redirects;
 	if (ps) m_proxy = *ps;
 
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	boost::shared_ptr<http_connection> me(shared_from_this());
+
 	m_timeout = timeout;
 	error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
@@ -174,21 +178,17 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	add_outstanding_async("http_connection::on_timeout");
 #endif
 	m_timer.async_wait(boost::bind(&http_connection::on_timeout
-		, boost::weak_ptr<http_connection>(shared_from_this()), _1));
+		, boost::weak_ptr<http_connection>(me), _1));
 	m_called = false;
 	m_parser.reset();
 	m_recvbuffer.clear();
 	m_read_pos = 0;
 	m_priority = prio;
 
-	// keep ourselves alive even if the callback function
-	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
-
 	if (ec)
 	{
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, this, ec, (char*)0, 0));
+			, me, ec, (char*)0, 0));
 		return;
 	}
 
@@ -199,7 +199,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		add_outstanding_async("http_connection::on_write");
 #endif
 		async_write(m_sock, asio::buffer(sendbuffer)
-			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
+			, boost::bind(&http_connection::on_write, me, _1));
 	}
 	else
 	{
@@ -227,7 +227,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
 		{
 			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-				, this, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
+				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
 			return;
 		}
 #endif
@@ -263,7 +263,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			if (ec)
 			{
 				m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-					, this, ec, (char*)0, 0));
+					, me, ec, (char*)0, 0));
 				return;
 			}
 		}
@@ -275,7 +275,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			add_outstanding_async("http_connection::on_i2p_resolve");
 #endif
 			i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
-				, shared_from_this(), _1, _2));
+				, me, _1, _2));
 		}
 		else
 #endif
@@ -295,7 +295,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #endif
 			tcp::resolver::query query(hostname, port);
 			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
-				, shared_from_this(), _1, _2));
+				, me, _1, _2));
 		}
 		m_hostname = hostname;
 		m_port = port;
