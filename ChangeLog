@@ -1,3 +1,4 @@
+	* fixed rare crash in http_connection's error handling
 	* avoid connecting to peers listening on ports < 1024
 	* optimized piece picking to not cause busy loops in some end-game modes
 	* fixed python bindings for tcp::endpoint
