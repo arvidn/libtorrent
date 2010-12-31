@@ -557,6 +557,10 @@ namespace libtorrent
 		aux::session_impl const& ses = m_torrent->session();
 		if (ses.m_port_filter.access(p.port) & port_filter::blocked)
 			return false;
+
+		if (ses.m_settings.no_connect_privileged_ports && p.port < 1024)
+			return false;
+
 		return true;
 	}
 
@@ -1174,6 +1178,13 @@ namespace libtorrent
 
 		port_filter const& pf = ses.m_port_filter;
 		if (pf.access(remote.port()) & port_filter::blocked)
+		{
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			return 0;
+		}
+
+		if (ses.m_settings.no_connect_privileged_ports && remote.port() < 1024)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));

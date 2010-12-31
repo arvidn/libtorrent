@@ -254,6 +254,7 @@ namespace libtorrent
 			, announce_double_nat(false)
 			, torrent_connect_boost(10)
 			, seeding_outgoing_connections(true)
+			, no_connect_privileged_ports(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1014,6 +1015,11 @@ namespace libtorrent
 		// making outgoing connections is costly and known to not
 		// add any benefits
 		bool seeding_outgoing_connections;
+
+		// when this is true, libtorrent will not attempt to make outgoing
+		// connections to peers whose port is < 1024. This is a safety
+		// precaution to avoid being part of a DDoS attack
+		bool no_connect_privileged_ports;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
