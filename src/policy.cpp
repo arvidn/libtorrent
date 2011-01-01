@@ -250,11 +250,18 @@ namespace libtorrent
 			TORRENT_ASSERT(p.num_peers(*i) == 0);
 
 			// don't request pieces we already have in our request queue
+			// This happens when pieces time out or the peer sends us
+			// pieces we didn't request. Those aren't marked in the
+			// piece picker, but we still keep track of them in the
+			// download queue
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 			{
-				// this can happen, not sure why.
-//				TORRENT_ASSERT(false); // this shouldn't happen!
+#ifdef TORRENT_DEBUG
+				std::vector<pending_block>::const_iterator j
+					= std::find_if(dq.begin(), dq.end(), has_block(*i));
+				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
+#endif
 				continue;
 			}
 
