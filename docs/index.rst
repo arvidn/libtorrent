@@ -27,6 +27,7 @@ Extensions
 * `plugin interface`_
 * `DHT extensions`_
 * `DHT security extension`_
+* `DHT feed extension`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
 * multitracker_
@@ -66,6 +67,7 @@ libtorrent
 .. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html
 .. _`DHT security extension`: dht_sec.html
+.. _`DHT feed extension`: dht_rss.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
 .. _multitracker: http://bittorrent.org/beps/bep_0012.html

@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>BitTorrent extension for DHT RSS feeds</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-extension-for-dht-rss-feeds">
+    <div id="container">
+    <div id="headerNav">
+    <ul>
+    <li class="first"><a href="/">Home</a></li>
+    <li><a href="../../products.html">Products</a></li>
+    <li><a href="../../contact.html">Contact</a></li>
+    </ul>
+    </div>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
+    <div id="main">
+<h1 class="title">BitTorrent extension for DHT RSS feeds</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>Draft</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#id1" id="id2">BitTorrent extension for DHT RSS feeds</a></li>
+<li><a class="reference internal" href="#target-id" id="id3">target ID</a></li>
+<li><a class="reference internal" href="#messages" id="id4">messages</a></li>
+<li><a class="reference internal" href="#requesting-items" id="id5">requesting items</a></li>
+<li><a class="reference internal" href="#request-item-response" id="id6">request item response</a></li>
+<li><a class="reference internal" href="#announcing-items" id="id7">announcing items</a><ul>
+<li><a class="reference internal" href="#example" id="id8">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#uri-scheme" id="id9">URI Scheme</a></li>
+<li><a class="reference internal" href="#rationale" id="id10">rationale</a></li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h1>BitTorrent extension for DHT RSS feeds</h1>
+<p>This is a proposal for an extension to the BitTorrent DHT to allow
+for decentralized RSS feed like functionality.</p>
+<p>The intention is to allow the creation of repositories of torrents
+where only a single identity has the authority to add new content. For
+this repository to be robust against network failures and resilient
+to attacks at the source.</p>
+<p>The target ID under which the repository is stored in the DHT, is the
+SHA-1 hash of a feed name and the 512 bit public key. This private key
+in this pair MUST be used to sign every item stored in the repository.
+Every message that contain signed items MUST also include this key, to
+allow the receiver to verify the key itself against the target ID as well
+as the validity of the signatures of the items. Every recipient of a
+message with feed items in it MUST verify both the validity of the public
+key against the target ID it is stored under, as well as the validity of
+the signatures of each individual item.</p>
+<p>Any peer who is subscribing to a DHT feed SHOULD also participate in
+regularly re-announcing items that it knows about. Every participant
+SHOULD store items in long term storage, across sessions, in order to
+keep items alive for as long as possible, with as few sources as possible.</p>
+<p>As with normal DHT announces, the write-token mechanism is used to
+prevent spoof attacks.</p>
+<p>There are two new proposed messages, <tt class="docutils literal"><span class="pre">announce_item</span></tt> and <tt class="docutils literal"><span class="pre">get_item</span></tt>.
+Every valid item that is announced, should be stored. In a request to get items,
+as many items as can fit in a normal UDP packet size should be returned. If
+there are more items than can fit, a random sub-set should be returned.</p>
+<p><em>Is there a better heuristic here? Should there be a bias towards newer items?
+If so, there needs to be a signed timestamp as well, which might get messy</em></p>
+</div>
+<div class="section" id="target-id">
+<h1>target ID</h1>
+<p>The target, i.e. the ID in the DHT key space feeds are announced to, MUST always
+be SHA-1(<em>feed_name</em> + <em>public_key</em>). Any request where this condition is not met,
+MUST be dropped.</p>
+<p>Using the feed name as part of the target means a feed publisher only needs one
+public-private keypair for any number of feeds, as long as the feeds have different
+names.</p>
+</div>
+<div class="section" id="messages">
+<h1>messages</h1>
+<p>These are the proposed new message formats.</p>
+</div>
+<div class="section" id="requesting-items">
+<h1>requesting items</h1>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;filter&quot;: <em>&lt;variable size bloom-filter&gt;</em>,
+                &quot;id&quot;: <em>&lt;20 byte id of origin node&gt;</em>,
+                &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this feed&gt;</em>,
+                &quot;n&quot;: <em>&lt;feed-name&gt;</em>
+                &quot;target&quot;: <em>&lt;target-id as derived from public key&gt;</em>
+        },
+        &quot;q&quot;: &quot;get_item&quot;,
+        &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+        &quot;y&quot;: &quot;q&quot;,
+}
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">target</span></tt> MUST always be SHA-1(<em>feed_name</em> + <em>public_key</em>). Any request where
+this condition is not met, MUST be dropped.</p>
+<p>The <tt class="docutils literal"><span class="pre">n</span></tt> field is the name of this feed. It MUST be UTF-8 encoded string and it
+MUST match the name of the feed in the receiving node.</p>
+<p>The bloom filter argument (<tt class="docutils literal"><span class="pre">filter</span></tt>) in the <tt class="docutils literal"><span class="pre">get_item</span></tt> requests is optional.
+If included in a request, it represents info-hashes that should be excluded from
+the response. In this case, the response should be a random subset of the non-excluded
+items, or all of the non-excluded items if they all fit within a packet size.</p>
+<p>If the bloom filter is specified, its size MUST be an even multiple of 8 bits. The size
+is implied by the length of the string. For each info-hash to exclude from the response,</p>
+<p>There are no hash functions for the bloom filter. Since the info-hash is already a
+hash digest, each pair of bytes, starting with the first bytes (MSB), are used as the
+results from the imaginary hash functions for the bloom filter. k is 3 in this bloom
+filter. This means the first 6 bytes of the info-hash is used to set 3 bits in the bloom
+filter. The pairs of bytes pulled out from the info-hash are interpreted as a big-endian
+16 bit value.</p>
+<p>Bits are indexed in bytes from left to right, and within bytes from LSB to MSB. i.e., to
+set bit 12: <tt class="docutils literal"><span class="pre">bitfield[12/8]</span> <span class="pre">|=</span> <span class="pre">(12</span> <span class="pre">%</span> <span class="pre">8)</span></tt>.</p>
+<dl class="docutils">
+<dt>Example:</dt>
+<dd>To indicate that you are not interested in knowing about the info-hash that
+starts with 0x4f7d25a... and you choose a bloom filter of size 80 bits. Set bits
+(0x4f % 80), (0x7d % 80) and (0x25 % 80) in the bloom filter bitmask.</dd>
+</dl>
+</div>
+<div class="section" id="request-item-response">
+<h1>request item response</h1>
+<pre class="literal-block">
+{
+        &quot;r&quot;:
+        {
+                &quot;ih&quot;:
+                [
+                        <em>&lt;n * 20 byte(s) info-hash&gt;</em>,
+                        ...
+                ],
+                &quot;sig&quot;:
+                [
+                        <em>&lt;64 byte curve25519 signature of info-hash&gt;</em>,
+                        ...
+                ],
+                &quot;id&quot;: <em>&lt;20 byte id of origin node&gt;</em>,
+                &quot;token&quot;: <em>&lt;write-token&gt;</em>
+                &quot;nodes&quot;: <em>&lt;n * compact IPv4-port pair&gt;</em>
+                &quot;nodes6&quot;: <em>&lt;n * compact IPv6-port pair&gt;</em>
+        },
+        &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
+        &quot;y&quot;: &quot;r&quot;,
+}
+</pre>
+<p>Since the data that's being signed by the public key already is a hash (i.e.
+an info-hash), the signature of each hash-entry is simply the hash encrypted
+by the feed's private key.</p>
+<p>The <tt class="docutils literal"><span class="pre">ih</span></tt> and <tt class="docutils literal"><span class="pre">sig</span></tt> lists MUST have equal number of items. Each item in <tt class="docutils literal"><span class="pre">sig</span></tt>
+is the signature of the full string in the corresponding item in the <tt class="docutils literal"><span class="pre">ih</span></tt> list.</p>
+<p>Each item in the <tt class="docutils literal"><span class="pre">ih</span></tt> list may contain any positive number of 20 byte info-hashes.</p>
+<p>The rationale behind using lists of strings where the strings contain multiple
+info-hashes is to allow the publisher of a feed to sign multiple info-hashes
+together, and thus saving space in the UDP packets, allowing nodes to transfer more
+info-hashes per packet. Original publishers of a feed MAY re-announce items lumped
+together over time to make the feed more efficient.</p>
+<p>A client receiving a <tt class="docutils literal"><span class="pre">get_item</span></tt> response MUST verify each signature in the <tt class="docutils literal"><span class="pre">sig</span></tt>
+list against each corresponding item in the <tt class="docutils literal"><span class="pre">ih</span></tt> list using the feed's public key.
+Any item whose signature</p>
+<p><tt class="docutils literal"><span class="pre">nodes</span></tt> and <tt class="docutils literal"><span class="pre">nodes6</span></tt> are optional and have the same semantics as the standard
+<tt class="docutils literal"><span class="pre">get_peers</span></tt> request. The intention is to be able to use this <tt class="docutils literal"><span class="pre">get_item</span></tt> request
+in the same way, searching for the nodes responsible for the feed.</p>
+</div>
+<div class="section" id="announcing-items">
+<h1>announcing items</h1>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;ih&quot;:
+                [
+                        <em>&lt;n * 20 byte info-hash(es)&gt;</em>,
+                        ...
+                ],
+                &quot;sig&quot;:
+                [
+                        <em>&lt;64 byte curve25519 signature of info-hash(es)&gt;</em>,
+                        ...
+                ],
+                &quot;id&quot;: <em>&lt;20 byte node-id of origin node&gt;</em>,
+                &quot;key&quot;: <em>&lt;64 byte public curve25519 key for this feed&gt;</em>,
+                &quot;n&quot;: <em>&lt;feed name&gt;</em>
+                &quot;target&quot;: <em>&lt;target-id as derived from public key&gt;</em>,
+                &quot;token&quot;: <em>&lt;write-token as obtained by previous req.&gt;</em>
+        },
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;announce_item&quot;,
+        &quot;t&quot;: <em>&lt;transaction-id&gt;</em>
+}
+</pre>
+<p>An announce can include any number of items, as long as they fit in a packet.</p>
+<p>Subscribers to a feed SHOULD also announce items that they know of, to the feed.
+In order to make the repository of torrents as reliable as possible, subscribers
+SHOULD announce random items from their local repository of items. When re-announcing
+items, a random subset of all known items should be announced, randomized
+independently for each node it's announced to. This makes it a little bit harder
+to determine the IP address an item originated from, since it's a matter of
+seeing the first announce, and knowing that it wasn't announced anywhere else
+first.</p>
+<p>Any subscriber and publisher SHOULD re-announce items every 30 minutes. If
+a feed does not receive any announced items in 60 minutes, a peer MAY time
+it out and remove it.</p>
+<p>Subscribers and publishers SHOULD announce random items.</p>
+<div class="section" id="example">
+<h2>Example</h2>
+<pre class="literal-block">
+{
+        &quot;a&quot;:
+        {
+                &quot;ih&quot;:
+                [
+                        &quot;7ea94c240691311dc0916a2a91eb7c3db2c6f3e4&quot;,
+                        &quot;0d92ad53c052ac1f49cf4434afffafa4712dc062e4168d940a48e45a45a0b10808014dc267549624&quot;
+                ],
+                &quot;sig&quot;:
+                [
+                        &quot;980774404e404941b81aa9da1da0101cab54e670cff4f0054aa563c3b5abcb0fe3c6df5dac1ea25266035f09040bf2a24ae5f614787f1fe7404bf12fee5e6101&quot;,
+                        &quot;3fee52abea47e4d43e957c02873193fb9aec043756845946ec29cceb1f095f03d876a7884e38c53cd89a8041a2adfb2d9241b5ec5d70268714d168b9353a2c01&quot;
+                ],
+                &quot;id&quot;: &quot;b46989156404e8e0acdb751ef553b210ef77822e&quot;,
+                &quot;key&quot;: &quot;6bc1de5443d1a7c536cdf69433ac4a7163d3c63e2f9c92d78f6011cf63dbcd5b638bbc2119cdad0c57e4c61bc69ba5e2c08b918c2db8d1848cf514bd9958d307&quot;,
+                &quot;n&quot;: &quot;my stuff&quot;
+                &quot;target&quot;: &quot;b4692ef0005639e86d7165bf378474107bf3a762&quot;
+                &quot;token&quot;: &quot;23ba&quot;
+        },
+        &quot;y&quot;: &quot;q&quot;,
+        &quot;q&quot;: &quot;announce_item&quot;,
+        &quot;t&quot;: &quot;a421&quot;
+}
+</pre>
+<p>Strings are printed in hex for printability, but actual encoding is binary. The
+response contains 3 feed items, starting with &quot;7ea94c&quot;, &quot;0d92ad&quot; and &quot;e4168d&quot;.
+These 3 items are not published optimally. If they were to be merged into a single
+string in the <tt class="docutils literal"><span class="pre">ih</span></tt> list, more than 64 bytes would be saved (because of having
+one less signature).</p>
+<p>Note that <tt class="docutils literal"><span class="pre">target</span></tt> is in fact SHA1('my stuff' + 'key'). The private key
+used in this example is 980f4cd7b812ae3430ea05af7c09a7e430275f324f42275ca534d9f7c6d06f5b.</p>
+</div>
+</div>
+<div class="section" id="uri-scheme">
+<h1>URI Scheme</h1>
+<p>The proposed URI scheme for DHT feeds is:</p>
+<pre class="literal-block">
+magnet:?xt=btfd:<em>&lt;base16-curve25519-public-key&gt;</em> &amp;dn= <em>&lt;feed name&gt;</em>
+</pre>
+<p>Note that a difference from regular torrent magnet links is the <strong>btfd</strong>
+versus <strong>btih</strong> used in regular magnet links to torrents.</p>
+<p>The <em>feed name</em> is mandatory since it is used in the request and when
+calculating the target ID.</p>
+</div>
+<div class="section" id="rationale">
+<h1>rationale</h1>
+<p>The reason to use <a class="reference external" href="http://cr.yp.to/ecdh.html">curve25519</a> instead of, for instance, RSA is to fit more signatures
+(i.e. items) in a single DHT packet. One packet is typically restricted to between
+1280 - 1480 bytes. According to <a class="reference external" href="http://cr.yp.to/">http://cr.yp.to/</a>, curve25519 is free from patent claims
+and there are open implementations in both C and Java.</p>
+</div>
+    </div>
+    <div id="footer">
+    <span>Copyright &copy; 2005 Rasterbar Software.</span>
+    </div>
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
+</div>
+</body>
+</html>
