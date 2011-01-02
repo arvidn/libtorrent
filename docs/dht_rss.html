@@ -57,21 +57,18 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#id1" id="id2">BitTorrent extension for DHT RSS feeds</a></li>
-<li><a class="reference internal" href="#target-id" id="id3">target ID</a></li>
-<li><a class="reference internal" href="#messages" id="id4">messages</a></li>
-<li><a class="reference internal" href="#requesting-items" id="id5">requesting items</a></li>
-<li><a class="reference internal" href="#request-item-response" id="id6">request item response</a></li>
-<li><a class="reference internal" href="#announcing-items" id="id7">announcing items</a><ul>
-<li><a class="reference internal" href="#example" id="id8">Example</a></li>
+<li><a class="reference internal" href="#target-id" id="id1">target ID</a></li>
+<li><a class="reference internal" href="#messages" id="id2">messages</a><ul>
+<li><a class="reference internal" href="#requesting-items" id="id3">requesting items</a></li>
+<li><a class="reference internal" href="#request-item-response" id="id4">request item response</a></li>
+<li><a class="reference internal" href="#announcing-items" id="id5">announcing items</a></li>
+<li><a class="reference internal" href="#example" id="id6">example</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#uri-scheme" id="id9">URI Scheme</a></li>
-<li><a class="reference internal" href="#rationale" id="id10">rationale</a></li>
+<li><a class="reference internal" href="#uri-scheme" id="id7">URI scheme</a></li>
+<li><a class="reference internal" href="#rationale" id="id8">rationale</a></li>
 </ul>
 </div>
-<div class="section" id="id1">
-<h1>BitTorrent extension for DHT RSS feeds</h1>
 <p>This is a proposal for an extension to the BitTorrent DHT to allow
 for decentralized RSS feed like functionality.</p>
 <p>The intention is to allow the creation of repositories of torrents
@@ -99,7 +96,6 @@ as many items as can fit in a normal UDP packet size should be returned. If
 there are more items than can fit, a random sub-set should be returned.</p>
 <p><em>Is there a better heuristic here? Should there be a bias towards newer items?
 If so, there needs to be a signed timestamp as well, which might get messy</em></p>
-</div>
 <div class="section" id="target-id">
 <h1>target ID</h1>
 <p>The target, i.e. the ID in the DHT key space feeds are announced to, MUST always
@@ -112,9 +108,8 @@ names.</p>
 <div class="section" id="messages">
 <h1>messages</h1>
 <p>These are the proposed new message formats.</p>
-</div>
 <div class="section" id="requesting-items">
-<h1>requesting items</h1>
+<h2>requesting items</h2>
 <pre class="literal-block">
 {
         &quot;a&quot;:
@@ -156,7 +151,7 @@ starts with 0x4f7d25a... and you choose a bloom filter of size 80 bits. Set bits
 </dl>
 </div>
 <div class="section" id="request-item-response">
-<h1>request item response</h1>
+<h2>request item response</h2>
 <pre class="literal-block">
 {
         &quot;r&quot;:
@@ -199,7 +194,7 @@ Any item whose signature</p>
 in the same way, searching for the nodes responsible for the feed.</p>
 </div>
 <div class="section" id="announcing-items">
-<h1>announcing items</h1>
+<h2>announcing items</h2>
 <pre class="literal-block">
 {
         &quot;a&quot;:
@@ -238,8 +233,10 @@ first.</p>
 a feed does not receive any announced items in 60 minutes, a peer MAY time
 it out and remove it.</p>
 <p>Subscribers and publishers SHOULD announce random items.</p>
+</div>
 <div class="section" id="example">
-<h2>Example</h2>
+<h2>example</h2>
+<p>This is an example of an <tt class="docutils literal"><span class="pre">announce_item</span></tt> message:</p>
 <pre class="literal-block">
 {
         &quot;a&quot;:
@@ -275,7 +272,7 @@ used in this example is 980f4cd7b812ae3430ea05af7c09a7e430275f324f42275ca534d9f7
 </div>
 </div>
 <div class="section" id="uri-scheme">
-<h1>URI Scheme</h1>
+<h1>URI scheme</h1>
 <p>The proposed URI scheme for DHT feeds is:</p>
 <pre class="literal-block">
 magnet:?xt=btfd:<em>&lt;base16-curve25519-public-key&gt;</em> &amp;dn= <em>&lt;feed name&gt;</em>
