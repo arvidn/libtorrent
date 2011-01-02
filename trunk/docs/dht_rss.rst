@@ -9,9 +9,6 @@ BitTorrent extension for DHT RSS feeds
   :depth: 2
   :backlinks: none
 
-BitTorrent extension for DHT RSS feeds
---------------------------------------
-
 This is a proposal for an extension to the BitTorrent DHT to allow
 for decentralized RSS feed like functionality.
 
@@ -63,7 +60,7 @@ messages
 These are the proposed new message formats.
 
 requesting items
-----------------
+................
 
 .. parsed-literal::
 
@@ -112,7 +109,7 @@ Example:
 
 
 request item response
----------------------
+.....................
 
 .. parsed-literal::
 
@@ -162,7 +159,7 @@ Any item whose signature
 in the same way, searching for the nodes responsible for the feed.
 
 announcing items
-----------------
+................
 
 .. parsed-literal::
 
@@ -207,10 +204,10 @@ it out and remove it.
 
 Subscribers and publishers SHOULD announce random items.
 
-Example
+example
 .......
 
-::
+This is an example of an ``announce_item`` message::
 
 	{
 		"a":
@@ -246,7 +243,7 @@ Note that ``target`` is in fact SHA1('my stuff' + 'key'). The private key
 used in this example is 980f4cd7b812ae3430ea05af7c09a7e430275f324f42275ca534d9f7c6d06f5b.
 
 
-URI Scheme
+URI scheme
 ----------
 
 The proposed URI scheme for DHT feeds is:
