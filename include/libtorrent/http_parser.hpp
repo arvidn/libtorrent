@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -115,9 +116,10 @@ namespace libtorrent
 		void reset();
 
 		std::map<std::string, std::string> const& headers() const { return m_header; }
+		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
 		
 	private:
-		int m_recv_pos;
+		size_type m_recv_pos;
 		int m_status_code;
 		std::string m_method;
 		std::string m_path;
@@ -136,6 +138,20 @@ namespace libtorrent
 
 		bool m_chunked_encoding;
 		bool m_finished;
+
+		// contains offsets of the first and one-past-end of
+		// each chunked range in the response
+		std::vector<std::pair<size_type, size_type> > m_chunked_ranges;
+
+		// while reading a chunk, this is the offset where the
+		// current chunk will end (it refers to the first character
+		// in the chunk tail header or the next chunk header)
+		int m_cur_chunk_end;
+
+		// the sum of all chunk headers read so far
+		int m_chunk_header_size;
+
+		int m_partial_chunk_header;
 	};
 
 }

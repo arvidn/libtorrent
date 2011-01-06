@@ -81,6 +81,7 @@ void http_handler(error_code const& ec, http_parser const& parser
 	++handler_called;
 	data_size = size;
 	g_error_code = ec;
+	TORRENT_ASSERT(size == 0 || parser.finished());
 
 	if (parser.header_finished())
 	{
@@ -196,8 +197,9 @@ int test_main()
 	ps.port = 8034;
 	ps.username = "testuser";
 	ps.password = "testpass";
+	int port = 0;
 	
-	int port = start_web_server();
+	port = start_web_server();
 	for (int i = 0; i < 5; ++i)
 	{
 		ps.type = (proxy_settings::proxy_type)i;
@@ -214,6 +216,13 @@ int test_main()
 	}
 	stop_web_server();
 #endif
+
+	// test chunked encoding
+	port = start_web_server(false, true);
+	ps.type = proxy_settings::none;
+	run_suite("http", ps, port);
+
+	stop_web_server();
 
 	std::remove("test_file");
 	return 0;

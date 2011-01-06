@@ -528,13 +528,35 @@ void http_connection::on_connect(error_code const& e)
 	}
 }
 
-void http_connection::callback(error_code const& e, char const* data, int size)
+void http_connection::callback(error_code e, char const* data, int size)
 {
 	if (m_bottled && m_called) return;
 
 	std::vector<char> buf;
 	if (m_bottled && m_parser.header_finished())
 	{
+		if (m_parser.chunked_encoding())
+		{
+			// go through all chunks and compact them
+			// since we're bottled, and the buffer is our after all
+			// it's OK to mutate it
+			char* write_ptr = (char*)data;
+			// the offsets in the array are from the start of the
+			// buffer, not start of the body, so subtract the size
+			// of the HTTP header from them
+			int offset = m_parser.body_start();
+			std::vector<std::pair<size_type, size_type> > const& chunks = m_parser.chunks();
+			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
+				, end(chunks.end()); i != end; ++i)
+			{
+				int len = i->second - i->first;
+				if (i->first - offset + len > size) len = size - i->first + offset;
+				memmove(write_ptr, data + i->first - offset, len);
+				write_ptr += len;
+			}
+			size = write_ptr - data;
+		}
+
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
@@ -548,6 +570,11 @@ void http_connection::callback(error_code const& e, char const* data, int size)
 			size = int(buf.size());
 			data = size == 0 ? 0 : &buf[0];
 		}
+
+		// if we completed the whole response, no need
+		// to tell the user that the connection was closed by
+		// the server or by us. Just clear any error
+		if (m_parser.finished()) e.clear();
 	}
 	m_called = true;
 	error_code ec;
