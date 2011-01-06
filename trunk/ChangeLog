@@ -1,3 +1,4 @@
+	* support chunked encoding in http downloads (http_connection)
 	* support adding torrents by url to the .torrent file
 	* support CDATA tags in xml parser
 	* use a python python dictionary for settings instead of session_settings object (in python bindings)

@@ -71,6 +71,9 @@ namespace libtorrent
 		, m_body_start_pos(0)
 		, m_chunked_encoding(false)
 		, m_finished(false)
+		, m_cur_chunk_end(-1)
+		, m_chunk_header_size(0)
+		, m_partial_chunk_header(0)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(
@@ -176,7 +179,7 @@ restart_response:
 					m_state = read_body;
 					// if this is a request (not a response)
 					// we're done once we reach the end of the headers
-					if (!m_method.empty()) m_finished = true;
+//					if (!m_method.empty()) m_finished = true;
 					m_body_start_pos = m_recv_pos;
 					break;
 				}
@@ -230,7 +233,7 @@ restart_response:
 					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
 				}
 
-				TORRENT_ASSERT(m_recv_pos <= (int)recv_buffer.left());
+				TORRENT_ASSERT(m_recv_pos <= recv_buffer.left());
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
 			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
@@ -239,15 +242,84 @@ restart_response:
 		if (m_state == read_body)
 		{
 			int incoming = recv_buffer.end - pos;
-			if (m_recv_pos - m_body_start_pos + incoming > m_content_length
-				&& m_content_length >= 0)
-				incoming = m_content_length - m_recv_pos + m_body_start_pos;
 
-			TORRENT_ASSERT(incoming >= 0);
-			m_recv_pos += incoming;
-			boost::get<0>(ret) += incoming;
+			if (m_chunked_encoding)
+			{
+				if (m_cur_chunk_end == -1)
+					m_cur_chunk_end = m_body_start_pos;
+
+				while (m_cur_chunk_end <= m_recv_pos + incoming && !m_finished && incoming > 0)
+				{
+					int payload = m_cur_chunk_end - m_recv_pos;
+					if (payload > 0)
+					{
+						m_recv_pos += payload;
+						boost::get<0>(ret) += payload;
+						incoming -= payload;
+					}
+					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
+					size_type chunk_size;
+					int header_size;
+					if (parse_chunk_header(buf, &chunk_size, &header_size))
+					{
+						if (chunk_size > 0)
+						{
+							std::pair<int, int> chunk_range(m_cur_chunk_end + header_size
+								, m_cur_chunk_end + header_size + chunk_size);
+							m_chunked_ranges.push_back(chunk_range);
+						}
+						m_cur_chunk_end += header_size + chunk_size;
+						if (chunk_size == 0)
+						{
+							m_finished = true;
+							TORRENT_ASSERT(m_content_length < 0 || m_recv_pos - m_body_start_pos
+								- m_chunk_header_size == m_content_length);
+						}
+						header_size -= m_partial_chunk_header;
+						m_partial_chunk_header = 0;
+//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
+//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
+//							"  content-length = %d\n"
+//							, buf.left(), int(chunk_size), header_size, 1, incoming, int(m_recv_pos)
+//							, m_cur_chunk_end, int(m_content_length));
+					}
+					else
+					{
+						m_partial_chunk_header += incoming;
+						header_size = incoming;
+						
+//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
+//							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
+//							"  content-length = %d\n"
+//							, buf.left(), int(chunk_size), header_size, 0, incoming, int(m_recv_pos)
+//							, m_cur_chunk_end, int(m_content_length));
+					}
+					m_chunk_header_size += header_size;
+					m_recv_pos += header_size;
+					boost::get<1>(ret) += header_size;
+					incoming -= header_size;
+				}
+				if (incoming > 0)
+				{
+					m_recv_pos += incoming;
+					boost::get<0>(ret) += incoming;
+					incoming = 0;
+				}
+			}
+			else
+			{
+				int payload_received = m_recv_pos - m_body_start_pos + incoming;
+				if (payload_received > m_content_length
+					&& m_content_length >= 0)
+					incoming = m_content_length - m_recv_pos + m_body_start_pos;
+
+				TORRENT_ASSERT(incoming >= 0);
+				m_recv_pos += incoming;
+				boost::get<0>(ret) += incoming;
+			}
 
 			if (m_content_length >= 0
+				&& !m_chunked_encoding
 				&& m_recv_pos - m_body_start_pos >= m_content_length)
 			{
 				m_finished = true;
@@ -265,8 +337,9 @@ restart_response:
 		// is terminated by a newline. we're likely to see one
 		// before the actual header.
 
-		if (pos[0] == '\r' && pos[1] == '\n') pos += 2;
-		else if (pos[0] == '\n') pos += 1;
+		if (pos < buf.end && pos[0] == '\r') ++pos;
+		if (pos < buf.end && pos[0] == '\n') ++pos;
+		if (pos == buf.end) return false;
 
 		char const* newline = std::find(pos, buf.end, '\n');
 		if (newline == buf.end) return false;
@@ -333,6 +406,7 @@ restart_response:
 				++separator;
 			std::string value = line.substr(separator, std::string::npos);
 			tail_headers.insert(std::make_pair(name, value));
+//			fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
 
 			newline = std::find(pos, buf.end, '\n');
 		}
@@ -342,17 +416,19 @@ restart_response:
 	buffer::const_interval http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
-		if (m_content_length >= 0)
-			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
-				, m_recv_buffer.begin + (std::min)(size_type(m_recv_pos)
-				, m_body_start_pos + m_content_length));
-		else
-			return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
-				, m_recv_buffer.begin + m_recv_pos);
+		size_type last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
+			? (std::min)(m_chunked_ranges.back().second, m_recv_pos)
+			: m_content_length < 0
+				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
+
+		TORRENT_ASSERT(last_byte >= m_body_start_pos);
+		return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
+			, m_recv_buffer.begin + last_byte);
 	}
 	
 	void http_parser::reset()
 	{
+		m_method.clear();
 		m_recv_pos = 0;
 		m_body_start_pos = 0;
 		m_status_code = -1;
@@ -364,6 +440,11 @@ restart_response:
 		m_recv_buffer.begin = 0;
 		m_recv_buffer.end = 0;
 		m_header.clear();
+		m_chunked_encoding = false;
+		m_chunked_ranges.clear();
+		m_cur_chunk_end = -1;
+		m_chunk_header_size = 0;
+		m_partial_chunk_header = 0;
 	}
 	
 }

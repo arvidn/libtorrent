@@ -100,6 +100,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
 		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+		TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
 		prev = ret;
 	}
 	return ret;
@@ -1082,6 +1083,37 @@ int test_main()
 
 	parser.reset();
 	TEST_CHECK(!parser.finished());
+
+	// test chunked encoding
+	char const* chunked_test = "HTTP/1.1 200 OK\r\n"
+		"Content-Length: 20\r\n"
+		"Content-Type: text/plain\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"4\r\n"
+		"test\r\n"
+		"10\r\n"
+		"0123456789abcdef\r\n"
+		"0\r\n"
+		"Test-header: foobar\r\n"
+		"\r\n";
+
+	received = feed_bytes(parser, chunked_test);
+
+	printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
+	TEST_CHECK(received == make_tuple(20, strlen(chunked_test) - 20, false));
+	TEST_CHECK(parser.finished());
+	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end
+		, "4\r\ntest\r\n10\r\n0123456789abcdef"));
+	TEST_CHECK(parser.header("test-header") == "foobar");
+	TEST_CHECK(parser.header("content-type") == "text/plain");
+	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
+	TEST_CHECK(parser.chunked_encoding());
+	typedef std::pair<size_type, size_type> chunk_range;
+	std::vector<chunk_range> cmp;
+	cmp.push_back(chunk_range(96, 100));
+	cmp.push_back(chunk_range(106, 122));
+	TEST_CHECK(cmp == parser.chunks());
 
 	// make sure we support trackers with incorrect line endings
 	char const* tracker_response =
