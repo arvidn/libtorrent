@@ -175,7 +175,7 @@ restart_response:
 					m_state = read_body;
 					// if this is a request (not a response)
 					// we're done once we reach the end of the headers
-					if (!m_method.empty()) m_finished = true;
+//					if (!m_method.empty()) m_finished = true;
 					m_body_start_pos = m_recv_pos;
 					break;
 				}
@@ -265,6 +265,7 @@ restart_response:
 	
 	void http_parser::reset()
 	{
+		m_method.clear();
 		m_recv_pos = 0;
 		m_body_start_pos = 0;
 		m_status_code = -1;

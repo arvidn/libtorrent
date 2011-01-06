@@ -92,6 +92,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
 		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+		TEST_CHECK(ret.get<0>() + ret.get<1>() == strlen(str));
 		prev = ret;
 	}
 	return ret;
