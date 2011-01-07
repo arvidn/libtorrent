@@ -67,6 +67,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+0.15.5 release
+
 	* support DHT extension to report external IPs
 	* fixed rare crash in http_connection's error handling
 	* avoid connecting to peers listening on ports < 1024
