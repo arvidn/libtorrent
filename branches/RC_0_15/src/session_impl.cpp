@@ -727,11 +727,13 @@ namespace aux {
 			save_struct(e["dht"], &m_dht_settings, dht_settings_map
 				, sizeof(dht_settings_map)/sizeof(dht_settings_map[0]));
 		}
+#ifndef TORRENT_NO_DEPRECATE
 		if (flags & session::save_dht_proxy)
 		{
 			save_struct(e["dht proxy"], &m_dht_proxy, proxy_settings_map
 				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 		}
+#endif
 
 		if (m_dht && (flags & session::save_dht_state))
 		{
@@ -759,6 +761,7 @@ namespace aux {
 		}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (flags & session::save_peer_proxy)
 		{
 			save_struct(e["peer proxy"], &m_peer_proxy, proxy_settings_map
@@ -772,6 +775,13 @@ namespace aux {
 		if (flags & session::save_tracker_proxy)
 		{
 			save_struct(e["tracker proxy"], &m_tracker_proxy, proxy_settings_map
+				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
+		}
+#endif
+
+		if (flags & session::save_proxy)
+		{
+			save_struct(e["proxy"], &m_peer_proxy, proxy_settings_map
 				, sizeof(proxy_settings_map)/sizeof(proxy_settings_map[0]));
 		}
 
@@ -845,6 +855,7 @@ namespace aux {
 		}
 
 		settings = e.dict_find_dict("dht proxy");
+		if (!settings) settings = e.dict_find_dict("proxy");
 		if (settings)
 		{
 			proxy_settings s;
@@ -858,7 +869,6 @@ namespace aux {
 		{
 			m_dht_state = *settings;
 		}
-
 #endif
 
 #if TORRENT_USE_I2P
@@ -884,6 +894,7 @@ namespace aux {
 #endif
 
 		settings = e.dict_find_dict("peer proxy");
+		if (!settings) settings = e.dict_find_dict("proxy");
 		if (settings)
 		{
 			proxy_settings s;
@@ -893,6 +904,7 @@ namespace aux {
 		}
 
 		settings = e.dict_find_dict("web proxy");
+		if (!settings) settings = e.dict_find_dict("proxy");
 		if (settings)
 		{
 			proxy_settings s;
@@ -902,6 +914,7 @@ namespace aux {
 		}
 
 		settings = e.dict_find_dict("tracker proxy");
+		if (!settings) settings = e.dict_find_dict("proxy");
 		if (settings)
 		{
 			proxy_settings s;

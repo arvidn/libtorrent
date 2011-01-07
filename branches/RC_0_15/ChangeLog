@@ -1,3 +1,5 @@
+	* fixed build with deprecated functions disabled
+
 0.15.5 release
 
 	* support DHT extension to report external IPs
