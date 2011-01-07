@@ -35,86 +35,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/socket_type.hpp"
-#include "libtorrent/utp_socket_manager.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
 
 namespace libtorrent
 {
 
-	TORRENT_EXPORT bool instantiate_connection(io_service& ios
-		, proxy_settings const& ps, socket_type& s
-		, void* ssl_context
-		, utp_socket_manager* sm)
+	bool instantiate_connection(io_service& ios
+		, proxy_settings const& ps, socket_type& s)
 	{
-		if (sm)
+		if (ps.type == proxy_settings::none)
 		{
-			s.instantiate<utp_stream>(ios);
-			s.get<utp_stream>()->set_impl(sm->new_utp_socket(s.get<utp_stream>()));
-		}
-		else if (ps.type == proxy_settings::none)
-		{
-#ifdef TORRENT_USE_OPENSSL
-			if (ssl_context)
-				s.instantiate<ssl_stream<stream_socket> >(ios, ssl_context);
-			else
-#endif
-				s.instantiate<stream_socket>(ios);
+			s.instantiate<stream_socket>(ios);
 		}
 		else if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
 		{
-			http_stream* str;
-#ifdef TORRENT_USE_OPENSSL
-			if (ssl_context)
-			{
-				s.instantiate<ssl_stream<http_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<http_stream> >()->next_layer().next_layer();
-			}
-			else
-#endif
-			{
-				s.instantiate<http_stream>(ios);
-				str = s.get<http_stream>();
-			}
-
-			str->set_proxy(ps.hostname, ps.port);
+			s.instantiate<http_stream>(ios);
+			s.get<http_stream>()->set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::http_pw)
-				str->set_username(ps.username, ps.password);
+				s.get<http_stream>()->set_username(ps.username, ps.password);
 		}
 		else if (ps.type == proxy_settings::socks5
 			|| ps.type == proxy_settings::socks5_pw
 			|| ps.type == proxy_settings::socks4)
 		{
-			socks5_stream* str;
-#ifdef TORRENT_USE_OPENSSL
-			if (ssl_context)
-			{
-				s.instantiate<ssl_stream<socks5_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<socks5_stream> >()->next_layer().next_layer();
-			}
-			else
-#endif
-			{
-				s.instantiate<socks5_stream>(ios);
-				str = s.get<socks5_stream>();
-			}
-			str->set_proxy(ps.hostname, ps.port);
+			s.instantiate<socks5_stream>(ios);
+			s.get<socks5_stream>()->set_proxy(ps.hostname, ps.port);
 			if (ps.type == proxy_settings::socks5_pw)
-				str->set_username(ps.username, ps.password);
+				s.get<socks5_stream>()->set_username(ps.username, ps.password);
 			if (ps.type == proxy_settings::socks4)
-				str->set_version(4);
+				s.get<socks5_stream>()->set_version(4);
 		}
-#if TORRENT_USE_I2P
-		else if (ps.type == proxy_settings::i2p_proxy)
-		{
-			s.instantiate<i2p_stream>(ios);
-			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
-		}
-#endif
 		else
 		{
-			TORRENT_ASSERT_VAL(false, ps.type);
 			return false;
 		}
 		return true;

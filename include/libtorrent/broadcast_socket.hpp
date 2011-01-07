@@ -34,12 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BROADCAST_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
 #include <list>
 
 namespace libtorrent
@@ -49,7 +46,6 @@ namespace libtorrent
 	TORRENT_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXPORT bool is_multicast(address const& addr);
 	TORRENT_EXPORT bool is_any(address const& addr);
-	TORRENT_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXPORT int cidr_distance(address const& a1, address const& a2);
 
 	// determines if the operating system supports IPv6

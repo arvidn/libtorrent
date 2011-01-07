@@ -35,12 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
 
 #include <boost/noncopyable.hpp>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -49,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -58,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <windows.h>
 #include <winioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #else
 // posix part
 #define _FILE_OFFSET_BITS 64
@@ -77,99 +76,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <dirent.h> // for DIR
-
 #undef _FILE_OFFSET_BITS
-
 #endif
-
 namespace libtorrent
 {
-	struct file_status
-	{
-		size_type file_size;
-		time_t atime;
-		time_t mtime;
-		time_t ctime;
-		enum {
-#if defined TORRENT_WINDOWS
-			directory = _S_IFDIR,
-			regular_file = _S_IFREG
-#else
-			fifo = S_IFIFO,
-			character_special = S_IFCHR,
-			directory = S_IFDIR,
-			block_special = S_IFBLK,
-			regular_file = S_IFREG,
-			link = S_IFLNK,
-			socket = S_IFSOCK
-#endif
-		} modes_t;
-		int mode;
-	};
+	namespace fs = boost::filesystem;
 
-	enum stat_flags_t { dont_follow_links = 1 };
-	TORRENT_EXPORT void stat_file(std::string const& f, file_status* s
-		, error_code& ec, int flags = 0);
-	TORRENT_EXPORT void rename(std::string const& f
-		, std::string const& newf, error_code& ec);
-	TORRENT_EXPORT void create_directories(std::string const& f
-		, error_code& ec);
-	TORRENT_EXPORT void create_directory(std::string const& f
-		, error_code& ec);
-	TORRENT_EXPORT void remove_all(std::string const& f
-		, error_code& ec);
-	TORRENT_EXPORT void remove(std::string const& f, error_code& ec);
-	TORRENT_EXPORT bool exists(std::string const& f);
-	TORRENT_EXPORT size_type file_size(std::string const& f);
-	TORRENT_EXPORT bool is_directory(std::string const& f
-		, error_code& ec);
-	TORRENT_EXPORT void copy_file(std::string const& f
-		, std::string const& newf, error_code& ec);
-
-	TORRENT_EXPORT std::string split_path(std::string const& f);
-	TORRENT_EXPORT char const* next_path_element(char const* p);
-	TORRENT_EXPORT std::string extension(std::string const& f);
-	TORRENT_EXPORT void replace_extension(std::string& f, std::string const& ext);
-	TORRENT_EXPORT bool is_root_path(std::string const& f);
-	TORRENT_EXPORT std::string parent_path(std::string const& f);
-	TORRENT_EXPORT bool has_parent_path(std::string const& f);
-	TORRENT_EXPORT std::string filename(std::string const& f);
-	TORRENT_EXPORT std::string combine_path(std::string const& lhs
-		, std::string const& rhs);
-	TORRENT_EXPORT std::string complete(std::string const& f);
-	TORRENT_EXPORT bool is_complete(std::string const& f);
-	TORRENT_EXPORT std::string current_working_directory();
-
-	class TORRENT_EXPORT directory : public boost::noncopyable
+	class TORRENT_EXPORT file: public boost::noncopyable
 	{
 	public:
-		directory(std::string const& path, error_code& ec);
-		~directory();
-		void next(error_code& ec);
-		std::string file() const;
-		bool done() const { return m_done; }
-	private:
-#ifdef TORRENT_WINDOWS
-		HANDLE m_handle;
-#if TORRENT_USE_WSTRING
-		WIN32_FIND_DATAW m_fd;
-#else
-		WIN32_FIND_DATAA m_fd;
-#endif
-#else
-		DIR* m_handle;
-		// the dirent struct contains a zero-sized
-		// array at the end, it will end up referring
-		// to the m_name field
-		struct dirent m_dirent;
-		char m_name[TORRENT_MAX_PATH + 1]; // +1 to make room for null
-#endif
-		bool m_done;
-	};
 
-	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
-	{
 		enum
 		{
 			// when a file is opened with no_buffer
@@ -184,7 +100,6 @@ namespace libtorrent
 			no_buffer = 4,
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
-			no_atime = 16,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
@@ -210,17 +125,13 @@ namespace libtorrent
 #endif
 
 		file();
-		file(std::string const& p, int m, error_code& ec);
+		file(fs::path const& p, int m, error_code& ec);
 		~file();
 
-		bool open(std::string const& p, int m, error_code& ec);
+		bool open(fs::path const& p, int m, error_code& ec);
 		bool is_open() const;
 		void close();
 		bool set_size(size_type size, error_code& ec);
-
-		// called when we're done writing to the file.
-		// On windows this will clear the sparse bit
-		void finalize();
 
 		int open_mode() const { return m_open_mode; }
 
@@ -259,15 +170,14 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		HANDLE m_file_handle;
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WPATH
 		std::wstring m_path;
 #else
 		std::string m_path;
-#endif // TORRENT_USE_WSTRING
-#else // TORRENT_WINDOWS
+#endif
+#else
 		int m_fd;
-#endif // TORRENT_WINDOWS
-
+#endif
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		static void init_file();
 		static int m_page_size;

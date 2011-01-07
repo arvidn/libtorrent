@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
 #include "libtorrent/socket.hpp"
-#include <boost/bind.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ssl.hpp>
 #else
@@ -51,12 +50,15 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(io_service& io_service, asio::ssl::context& ctx)
-		: m_sock(io_service, ctx)
+	explicit ssl_stream(io_service& io_service)
+		: m_context(io_service, asio::ssl::context::sslv23_client)
+		, m_sock(io_service, m_context)
 	{
+		error_code ec;
+		m_context.set_verify_mode(asio::ssl::context::verify_none, ec);
 	}
 
-	typedef asio::ssl::stream<Stream> next_layer_type;
+	typedef Stream next_layer_type;
 	typedef typename Stream::lowest_layer_type lowest_layer_type;
 	typedef typename Stream::endpoint_type endpoint_type;
 	typedef typename Stream::protocol_type protocol_type;
@@ -92,20 +94,6 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	template <class SettableSocketOption>
-	void set_option(SettableSocketOption const& opt)
-	{
-		m_sock.next_layer().set_option(opt);
-	}
-#endif
-
-	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const& opt, error_code& ec)
-	{
-		return m_sock.next_layer().set_option(opt, ec);
-	}
-
-#ifndef BOOST_NO_EXCEPTIONS
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
@@ -130,20 +118,6 @@ public:
 	{
 		m_sock.async_write_some(buffers, handler);
 	}
-
-	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
-	{
-		return m_sock.write_some(buffers, ec);
-	}
-
-#ifndef BOOST_NO_EXCEPTIONS
-	std::size_t available() const
-	{ return const_cast<sock_type&>(m_sock).next_layer().available(); }
-#endif
-
-	std::size_t available(error_code& ec) const
-	{ return const_cast<sock_type&>(m_sock).next_layer().available(ec); }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
@@ -222,7 +196,7 @@ public:
 	
 	next_layer_type& next_layer()
 	{
-		return m_sock;
+		return m_sock.next_layer();
 	}
 
 private:
@@ -244,6 +218,7 @@ private:
 		(*h)(e);
 	}
 
+	asio::ssl::context m_context;
 	asio::ssl::stream<Stream> m_sock;
 };
 

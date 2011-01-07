@@ -59,8 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
@@ -102,12 +104,7 @@ namespace libtorrent
 
 		void start();
 
-		enum
-		{
-			upload_only_msg = 2,
-			holepunch_msg = 3,
-			share_mode_msg = 4
-		};
+		enum { upload_only_msg = 2 };
 
 		~bt_peer_connection();
 		
@@ -115,8 +112,6 @@ namespace libtorrent
 		bool supports_encryption() const
 		{ return m_encrypted; }
 #endif
-
-		virtual int type() const { return peer_connection::bittorrent_connection; }
 
 		enum message_type
 		{
@@ -145,20 +140,6 @@ namespace libtorrent
 			num_supported_messages
 		};
 
-		enum hp_message_t
-		{
-			// msg_types
-			hp_rendezvous = 0,
-			hp_connect = 1,
-			hp_failed = 2,
-
-			// error codes
-			hp_no_such_peer = 1,
-			hp_not_connected = 2,
-			hp_no_support = 3,
-			hp_no_self = 4
-		};
-
 		// called from the main loop when this connection has any
 		// work to do.
 
@@ -170,11 +151,20 @@ namespace libtorrent
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
 
-		bool supports_holepunch() const { return m_holepunch_id != 0; }
-		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool support_extensions() const { return m_supports_extensions; }
+
+		template <class T>
+		T* supports_extension() const
+		{
+			for (extension_list_t::const_iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				T* ret = dynamic_cast<T*>(i->get());
+				if (ret) return ret;
+			}
+			return 0;
+		}
 #endif
 
 		// the message handlers are called
@@ -205,7 +195,6 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
-		void on_holepunch();
 
 		void on_extended(int received);
 
@@ -228,7 +217,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
-		void write_share_mode();
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -242,7 +230,6 @@ namespace libtorrent
 		void write_have_none();
 		void write_reject_request(peer_request const&);
 		void write_allow_fast(int piece);
-		void write_suggest(int piece);
 		
 		void on_connected();
 		void on_metadata();
@@ -306,7 +293,7 @@ public:
 #endif
 			}
 #endif
-			peer_connection::append_send_buffer(buffer, size, destructor, true);
+			peer_connection::append_send_buffer(buffer, size, destructor);
 		}
 		void setup_send();
 
@@ -380,21 +367,10 @@ private:
 		{ return r.start < 0; }
 		std::vector<range> m_payloads;
 
-		// we have suggested these pieces to the peer
-		// don't suggest it again
-		bitfield m_sent_suggested_pieces;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
 		int m_upload_only_id;
-
-		// the message ID for holepunch messages
-		int m_holepunch_id;
-
-		// the message ID for share mode message
-		// 0 if not supported
-		int m_share_mode_id;
 
 		char m_reserved_bits[8];
 		// this is set to true if the handshake from

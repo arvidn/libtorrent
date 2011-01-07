@@ -34,12 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include <iostream>
+
+using boost::filesystem::remove_all;
 
 void test_pex()
 {
@@ -53,21 +55,13 @@ void test_pex()
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
 	float rate_limit = 1000;
-	session_settings set = ses1.settings();
-	set.upload_rate_limit = rate_limit;
-	ses1.set_settings(set);
-
+	ses1.set_upload_rate_limit(int(rate_limit));
+	ses2.set_download_rate_limit(int(rate_limit));
+	ses3.set_download_rate_limit(int(rate_limit));
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
-	set = ses2.settings();
-	set.download_rate_limit = rate_limit;
-	set.upload_rate_limit = 2000;
-	ses2.set_settings(set);
-
-	set = ses3.settings();
-	set.download_rate_limit = rate_limit;
-	set.upload_rate_limit = rate_limit / 2;
-	ses3.set_settings(set);
+	ses2.set_upload_rate_limit(2000);
+	ses3.set_upload_rate_limit(int(rate_limit / 2));
 
 	ses1.add_extension(&create_ut_pex_plugin);
 	ses2.add_extension(&create_ut_pex_plugin);
@@ -135,24 +129,24 @@ void test_pex()
 
 	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
 
-	if (!tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
+	if (!tor2.is_seed() && tor3.is_seed()) std::cerr << "done\n";
 }
 
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	try { remove_all("./tmp1_pex"); } catch (std::exception&) {}
+	try { remove_all("./tmp2_pex"); } catch (std::exception&) {}
+	try { remove_all("./tmp3_pex"); } catch (std::exception&) {}
 
 	test_pex();
 	
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	remove_all("./tmp1_pex");
+	remove_all("./tmp2_pex");
+	remove_all("./tmp3_pex");
 
 	return 0;
 }

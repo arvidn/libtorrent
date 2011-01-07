@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace dht
 {

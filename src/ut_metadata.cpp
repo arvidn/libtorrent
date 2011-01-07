@@ -162,7 +162,6 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
-			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 
 		void on_piece_pass(int)
@@ -211,8 +210,6 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const { return "ut_metadata"; }
-
 		// can add entries to the extension handshake
 		virtual void add_handshake(entry& h)
 		{
@@ -237,7 +234,6 @@ namespace libtorrent { namespace
 			int metadata_size = h.dict_find_int_value("metadata_size");
 			if (metadata_size > 0)
 				m_tp.metadata_size(metadata_size);
-			maybe_send_request();
 			return true;
 		}
 
@@ -344,7 +340,6 @@ namespace libtorrent { namespace
 					entry const* total_size = msg.find_key("total_size");
 					m_tp.received_metadata(body.begin + len, body.left() - len, piece
 						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
-					maybe_send_request();
 				}
 				break;
 			case 2: // have no data
@@ -365,11 +360,6 @@ namespace libtorrent { namespace
 		}
 
 		virtual void tick()
-		{
-			maybe_send_request();
-		}
-
-		void maybe_send_request()
 		{
 			// if we don't have any metadata, and this peer
 			// supports the request metadata extension
@@ -413,10 +403,8 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
-
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new ut_metadata_peer_plugin(m_torrent, *c, *this));
 	}
 

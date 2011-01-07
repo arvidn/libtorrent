@@ -38,14 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
-#include "libtorrent/escape_string.hpp" // for string conversion
 
 #include <boost/scoped_ptr.hpp>
-#include <boost/static_assert.hpp>
-
 #ifdef TORRENT_WINDOWS
 // windows part
-
 #include "libtorrent/utf8.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -53,12 +49,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <windows.h>
 #include <winioctl.h>
-#include <direct.h> // for _getcwd, _mkdir
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #else
 // posix part
-
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <fcntl.h> // for F_LOG2PHYS
@@ -66,11 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/statvfs.h>
 #include <errno.h>
-#include <dirent.h>
-
 #ifdef TORRENT_LINUX
-// linux specifics
-
 #include <sys/ioctl.h>
 #ifdef HAVE_LINUX_FIEMAP_H
 #include <linux/fiemap.h> // FIEMAP_*
@@ -94,15 +83,11 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 #endif
 }
 
-#elif defined __APPLE__ && defined __MACH__
-// mac specifics
-
-#include <copyfile.h>
-
-#endif
+#endif // TORRENT_LINUX
 
 #undef _FILE_OFFSET_BITS
 
+#include <boost/static_assert.hpp>
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
@@ -110,15 +95,16 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 // at least 64 bits wide
 BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
-#endif // posix part
+#endif
 
+#include <boost/filesystem/operations.hpp>
 #include "libtorrent/file.hpp"
 #include <cstring>
 #include <vector>
 
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
-#include <stdio.h>
+
 #include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_DEBUG
@@ -128,574 +114,14 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 #endif
 
 #ifdef TORRENT_WINDOWS
-#if defined UNICODE && !TORRENT_USE_WSTRING
+#if defined UNICODE && !TORRENT_USE_WPATH
 #warning wide character support not available. Files will be saved using narrow string names
 #endif
 #endif // TORRENT_WINDOWS
 
 namespace libtorrent
 {
-	void stat_file(std::string const& inf, file_status* s
-		, error_code& ec, int flags)
-	{
-		ec.clear();
-
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-		std::wstring f = convert_to_wstring(inf);
-#else
-		std::string f = convert_to_native(inf);
-#endif
-
-#ifdef TORRENT_WINDOWS
-		struct _stati64 ret;
-#if TORRENT_USE_WSTRING
-		if (_wstati64(f.c_str(), &ret) < 0)
-#else
-		if (_stati64(f.c_str(), &ret) < 0)
-#endif
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-#else
-		struct stat ret;
-		int retval;
-		if (flags & dont_follow_links)
-			retval = ::lstat(f.c_str(), &ret);
-		else
-			retval = ::stat(f.c_str(), &ret);
-		if (retval < 0)
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-#endif // TORRENT_WINDOWS
-
-		s->file_size = ret.st_size;
-		s->atime = ret.st_atime;
-		s->mtime = ret.st_mtime;
-		s->ctime = ret.st_ctime;
-		s->mode = ret.st_mode;
-	}
-
-	void rename(std::string const& inf, std::string const& newf, error_code& ec)
-	{
-		ec.clear();
-
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-		std::wstring f1 = convert_to_wstring(inf);
-		std::wstring f2 = convert_to_wstring(newf);
-		if (_wrename(f1.c_str(), f2.c_str()) < 0)
-#else
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
-		if (::rename(f1.c_str(), f2.c_str()) < 0)
-#endif
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-	}
-
-	void create_directories(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-		if (is_root_path(f)) return;
-		if (has_parent_path(f))
-		{
-			create_directories(parent_path(f), ec);
-			if (ec) return;
-		}
-		create_directory(f, ec);
-	}
-
-	void create_directory(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
-#define CreateDirectory_ CreateDirectoryW
-		std::wstring n = convert_to_wstring(f);
-#else
-#define CreateDirectory_ CreateDirectoryA
-		std::string n = convert_to_native(f);
-#endif
-
-#ifdef TORRENT_WINDOWS
-		if (CreateDirectory_(n.c_str(), 0) == 0
-			&& GetLastError() != ERROR_ALREADY_EXISTS)
-			ec.assign(GetLastError(), boost::system::get_system_category());
-#else
-		int ret = mkdir(n.c_str(), 0777);
-		if (ret < 0 && errno != EEXIST)
-			ec.assign(errno, boost::system::get_generic_category());
-#endif
-	}
-
-	bool is_directory(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-		error_code e;
-		file_status s;
-		stat_file(f, &s, e);
-		if (!e && s.mode & file_status::directory) return true;
-		ec = e;
-		return false;
-	}
-
-	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
-	{
-		ec.clear();
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-#define CopyFile_ CopyFileW
-		std::wstring f1 = convert_to_wstring(inf);
-		std::wstring f2 = convert_to_wstring(newf);
-#else
-#define CopyFile_ CopyFileA
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
-#endif
-
-#ifdef TORRENT_WINDOWS
-		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), boost::system::get_system_category());
-#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-		// this only works on 10.5
-		copyfile_state_t state = copyfile_state_alloc();
-		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
-			ec.assign(errno, boost::system::get_generic_category());
-		copyfile_state_free(state);
-#else
-		int infd = ::open(inf.c_str(), O_RDONLY);
-		if (infd < 0)
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-
-		// rely on default umask to filter x and w permissions
-		// for group and others
-		// TODO: copy the mode from the source file
-		int permissions = S_IRUSR | S_IWUSR
-			| S_IRGRP | S_IWGRP
-			| S_IROTH | S_IWOTH;
-
-		int outfd = ::open(newf.c_str(), O_WRONLY | O_CREAT, permissions);
-		if (outfd < 0)
-		{
-			close(infd);
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-		char buffer[4096];
-		for (;;)
-		{
-			int num_read = read(infd, buffer, sizeof(buffer));
-			if (num_read == 0) break;
-			int num_written = write(outfd, buffer, num_read);
-			if (num_written < num_read)
-			{
-				ec.assign(errno, boost::system::get_generic_category());
-				break;
-			}
-			if (num_read < sizeof(buffer)) break;
-		}
-		close(infd);
-		close(outfd);
-#endif // TORRENT_WINDOWS
-	}
-
-	std::string split_path(std::string const& f)
-	{
-		if (f.empty()) return f;
-
-		std::string ret;
-		char const* start = f.c_str();
-		char const* p = start;
-		while (*start != 0)
-		{
-			while (*p != '/'
-				&& *p != '\0'
-#ifdef TORRENT_WINDOWS
-				&& *p != '\\'
-#endif
-				) ++p;
-			if (p - start > 0)
-			{
-				ret.append(start, p - start);
-				ret.append(1, '\0');
-			}
-			if (*p != 0) ++p;
-			start = p;
-		}
-		ret.append(1, '\0');
-		return ret;
-	}
-
-	char const* next_path_element(char const* p)
-	{
-		p += strlen(p) + 1;
-		if (*p == 0) return 0;
-		return p;
-	}
-
-	std::string extension(std::string const& f)
-	{
-		char const* ext = strrchr(f.c_str(), '.');
-		if (ext == 0) return "";
-		return ext;
-	}
-
-	void replace_extension(std::string& f, std::string const& ext)
-	{
-		char const* e = strrchr(f.c_str(), '.');
-		if (e == 0) f += '.';
-		else f.resize(e - f.c_str() + 1);
-		f += ext;
-	}
-
-	bool is_root_path(std::string const& f)
-	{
-		if (f.empty()) return false;
-
-#ifdef TORRENT_WINDOWS
-		if (f == "\\\\") return true;
-		int i = 0;
-		// match the xx:\ or xx:/ form
-		while (f[i] && is_alpha(f[i])) ++i;
-		if (i == int(f.size()-2) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
-			return true;
-#else
-		// as well as parent_path("/") should be "/".
-		if (f == "/") return true;
-#endif
-		return false;
-	}
-
-	bool has_parent_path(std::string const& f)
-	{
-		if (f.empty()) return false;
-
-#ifdef TORRENT_WINDOWS
-		if (f == "\\\\") return false;
-#else
-		// as well as parent_path("/") should be "/".
-		if (f == "/") return false;
-#endif
-
-		int len = f.size() - 1;
-		// if the last character is / or \ ignore it
-		if (f[len] == '/' || f[len] == '\\') --len;
-		while (len >= 0)
-		{
-			if (f[len] == '/' || f[len] == '\\')
-				break;
-			--len;
-		}
-
-		return len >= 0;
-	}
-
-	std::string parent_path(std::string const& f)
-	{
-		if (f.empty()) return f;
-
-#ifdef TORRENT_WINDOWS
-		if (f == "\\\\") return "";
-#endif
-		if (f == "/") return "";
-
-		int len = f.size();
-		// if the last character is / or \ ignore it
-		if (f[len-1] == '/' || f[len-1] == '\\') --len;
-		while (len > 0)
-		{
-			--len;
-			if (f[len] == '/' || f[len] == '\\')
-				break;
-		}
-
-		if (f[len] == '/' || f[len] == '\\') ++len;
-		return std::string(f.c_str(), len);
-	}
-
-	std::string filename(std::string const& f)
-	{
-		if (f.empty()) return "";
-		char const* first = f.c_str();
-		char const* sep = strrchr(first, '/');
-#ifdef TORRENT_WINDOWS
-		char const* altsep = strrchr(first, '\\');
-		if (sep == 0 || altsep > sep) sep = altsep;
-#endif
-		if (sep == 0) return f;
-
-		if (sep - first == f.size() - 1)
-		{
-			// if the last character is a / (or \)
-			// ignore it
-			int len = 0;
-			while (sep > first)
-			{
-				--sep;
-				if (*sep == '/'
-#ifdef TORRENT_WINDOWS
-					|| *sep == '\\'
-#endif
-					)
-					return std::string(sep + 1, len);
-				++len;
-			}
-			return std::string(first, len);
-			
-		}
-		return std::string(sep + 1);
-	}
-
-	std::string combine_path(std::string const& lhs, std::string const& rhs)
-	{
-		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty()) return rhs;
-		if (rhs.empty()) return lhs;
-
-#ifdef TORRENT_WINDOWS
-#define TORRENT_SEPARATOR "\\"
-		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
-#else
-#define TORRENT_SEPARATOR "/"
-		bool need_sep = lhs[lhs.size()-1] != '/';
-#endif
-		std::string ret;
-		int target_size = lhs.size() + rhs.size() + 2;
-		ret.resize(target_size);
-		target_size = snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
-			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
-		ret.resize(target_size);
-		return ret;
-	}
-
-	std::string current_working_directory()
-	{
-#ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-		wchar_t cwd[TORRENT_MAX_PATH];
-		_wgetcwd(cwd, sizeof(cwd) / sizeof(wchar_t));
-#else
-		char cwd[TORRENT_MAX_PATH];
-		_getcwd(cwd, sizeof(cwd));
-#endif // TORRENT_USE_WSTRING
-#else
-		char cwd[TORRENT_MAX_PATH];
-		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
-#endif
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
-		return convert_from_wstring(cwd);
-#else
-		return convert_from_native(cwd);
-#endif
-	}
-
-	size_type file_size(std::string const& f)
-	{
-		error_code ec;
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return 0;
-		return s.file_size;
-	}
-
-	bool exists(std::string const& f)
-	{
-		error_code ec;
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return false;
-		return true;
-	}
-
-	void remove(std::string const& inf, error_code& ec)
-	{
-		ec.clear();
-
-#ifdef TORRENT_WINDOWS
-		// windows does not allow trailing / or \ in
-		// the path when removing files
-		std::string pruned;
-		if (inf[inf.size() - 1] == '/'
-			|| inf[inf.size() - 1] == '\\')
-			pruned = inf.substr(0, inf.size() - 1);
-		else
-			pruned = inf;
-#if TORRENT_USE_WSTRING
-#define DeleteFile_ DeleteFileW
-#define RemoveDirectory_ RemoveDirectoryW
-		std::wstring f = convert_to_wstring(pruned);
-#else
-#define DeleteFile_ DeleteFileA
-#define RemoveDirectory_ RemoveDirectoryA
-		std::string f = convert_to_native(pruned);
-#endif
-		if (DeleteFile_(f.c_str()) == 0)
-		{
-			if (GetLastError() == ERROR_ACCESS_DENIED)
-			{
-				if (RemoveDirectory_(f.c_str()) != 0)
-					return;
-			}
-			ec.assign(GetLastError(), boost::system::get_system_category());
-			return;
-		}
-#else // TORRENT_WINDOWS
-		std::string f = convert_to_native(inf);
-		if (::remove(f.c_str()) < 0)
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			return;
-		}
-#endif // TORRENT_WINDOWS
-	}
-
-	void remove_all(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return;
-
-		if (s.mode & file_status::directory)
-		{
-			for (directory i(f, ec); !i.done(); i.next(ec))
-			{
-				if (ec) return;
-				std::string p = i.file();
-				if (p == "." || p == "..") continue;
-				remove_all(combine_path(f, p), ec);
-				if (ec) return;
-			}
-		}
-		remove(f, ec);
-	}
-
-	std::string complete(std::string const& f)
-	{
-		if (is_complete(f)) return f;
-		return combine_path(current_working_directory(), f);
-	}
-
-	bool is_complete(std::string const& f)
-	{
-		if (f.empty()) return false;
-#ifdef TORRENT_WINDOWS
-		int i = 0;
-		// match the xx:\ or xx:/ form
-		while (f[i] && is_alpha(f[i])) ++i;
-		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
-			return true;
-
-		// match the \\ form
-		if (int(f.size()) >= 2 && f[0] == '\\' && f[1] == '\\')
-			return true;
-		return false;
-#else
-		if (f[0] == '/') return true;
-		return false;
-#endif
-	}
-
-	directory::directory(std::string const& path, error_code& ec)
-		: m_done(false)
-	{
-		ec.clear();
-#ifdef TORRENT_WINDOWS
-		// the path passed to FindFirstFile() must be
-		// a pattern
-		std::string f = path;
-		if (!f.empty() && (f[f.size()-1] != '/' || f[f.size()-1] != '\\')) f += "\\*";
-		else f += "*";
-#if TORRENT_USE_WSTRING
-#define FindFirstFile_ FindFirstFileW
-		std::wstring p = convert_to_wstring(f);
-#else
-#define FindFirstFile_ FindFirstFileA
-		std::string p = convert_to_native(f);
-#endif
-		m_handle = FindFirstFile_(p.c_str(), &m_fd);
-		if (m_handle == INVALID_HANDLE_VALUE)
-		{
-			ec.assign(GetLastError(), boost::system::get_system_category());
-			m_done = true;
-			return;
-		}
-#else
-		// the path passed to opendir() may not
-		// end with a /
-		std::string p = path;
-		if (!path.empty() && path[path.size()-1] == '/')
-			p.resize(path.size()-1);
-
-		p = convert_to_native(p);
-		m_handle = opendir(p.c_str());
-		if (m_handle == 0)
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			m_done = true;
-			return;
-		}
-		// read the first entry
-		next(ec);
-#endif
-	}
-
-	directory::~directory()
-	{
-#ifdef TORRENT_WINDOWS
-		if (m_handle != INVALID_HANDLE_VALUE)
-			FindClose(m_handle);
-#else
-		if (m_handle) closedir(m_handle);
-#endif
-	}
-
-	std::string directory::file() const
-	{
-#ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-		return convert_from_wstring(m_fd.cFileName);
-#else
-		return convert_from_native(m_fd.cFileName);
-#endif
-#else
-		return convert_from_native(m_dirent.d_name);
-#endif
-	}
-
-	void directory::next(error_code& ec)
-	{
-		ec.clear();
-#ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define FindNextFile_ FindNextFileW
-#else
-#define FindNextFile_ FindNextFileA
-#endif
-		if (FindNextFile_(m_handle, &m_fd) == 0)
-		{
-			m_done = true;
-			int err = GetLastError();
-			if (err != ERROR_NO_MORE_FILES)
-				ec.assign(err, boost::system::get_system_category());
-		}
-#else
-		dirent* dummy;
-		if (readdir_r(m_handle, &m_dirent, &dummy) != 0)
-		{
-			ec.assign(errno, boost::system::get_generic_category());
-			m_done = true;
-		}
-		if (dummy == 0) m_done = true;
-#endif
-	}
+	namespace fs = boost::filesystem;
 
 	file::file()
 #ifdef TORRENT_WINDOWS
@@ -709,7 +135,7 @@ namespace libtorrent
 #endif
 	{}
 
-	file::file(std::string const& path, int mode, error_code& ec)
+	file::file(fs::path const& path, int mode, error_code& ec)
 #ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
 #else
@@ -725,7 +151,7 @@ namespace libtorrent
 		close();
 	}
 
-	bool file::open(std::string const& path, int mode, error_code& ec)
+	bool file::open(fs::path const& path, int mode, error_code& ec)
 	{
 		close();
 #ifdef TORRENT_WINDOWS
@@ -766,12 +192,12 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WPATH
 #define CreateFile_ CreateFileW
-		m_path = convert_to_wstring(path);
+		m_path = convert_to_wstring(path.external_file_string());
 #else
 #define CreateFile_ CreateFileA
-		m_path = convert_to_native(path);
+		m_path = convert_to_native(path.external_file_string());
 #endif
 
 		TORRENT_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
@@ -783,20 +209,18 @@ namespace libtorrent
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec = error_code(GetLastError(), get_system_category());
 			return false;
 		}
 
 		// try to make the file sparse if supported
-		// only set this flag if the file is opened for writing
-		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
+		if (mode & file::sparse)
 		{
 			DWORD temp;
 			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, 0);
 		}
-#else // TORRENT_WINDOWS
-
+#else
 		// rely on default umask to filter x and w permissions
 		// for group and others
 		int permissions = S_IRUSR | S_IWUSR
@@ -813,17 +237,8 @@ namespace libtorrent
 		static const int no_buffer_flag[] = {0, 0};
 #endif
 
-#ifdef O_NOATIME
-		static const int no_atime_flag[] = {0, O_NOATIME};
-#endif
-
- 		m_fd = ::open(convert_to_native(path).c_str()
- 			, mode_array[mode & rw_mask]
-			| no_buffer_flag[(mode & no_buffer) >> 2]
-#ifdef O_NOATIME
-			| no_atime_flag[(mode & no_atime) >> 4]
-#endif
-			, permissions);
+ 		m_fd = ::open(convert_to_native(path.external_file_string()).c_str()
+ 			, mode_array[mode & rw_mask] | no_buffer_flag[(mode & no_buffer) >> 2], permissions);
 
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
@@ -831,29 +246,19 @@ namespace libtorrent
 		if (m_fd == -1 && (mode & no_buffer) && errno == EINVAL)
 		{
 			mode &= ~no_buffer;
-			m_fd = ::open(path.c_str()
+			m_fd = ::open(path.external_file_string().c_str()
 				, mode & (rw_mask | no_buffer), permissions);
 		}
 
 #endif
 		if (m_fd == -1)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
 
-#ifdef DIRECTIO_ON
-		// for solaris
-		if (mode & no_buffer)
-		{
-			int yes = 1;
-			directio(m_fd, DIRECTIO_ON);
-		}
-#endif
-
 #ifdef F_NOCACHE
-		// for BSD/Mac
 		if (mode & no_buffer)
 		{
 			int yes = 1;
@@ -903,7 +308,7 @@ namespace libtorrent
 			DWORD bytes_per_sector;
 			DWORD free_clusters;
 			DWORD total_clusters;
-#if TORRENT_USE_WSTRING
+#if TORRENT_USE_WPATH
 #define GetDiskFreeSpace_ GetDiskFreeSpaceW
 			wchar_t backslash = L'\\';
 #else
@@ -1038,7 +443,7 @@ namespace libtorrent
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				return -1;
 			}
 
@@ -1048,7 +453,7 @@ namespace libtorrent
 				if (ReadFile(m_file_handle, (char*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
-					ec.assign(GetLastError(), get_system_category());
+					ec = error_code(GetLastError(), get_system_category());
 					return -1;
 				}
 				ret += intermediate;
@@ -1065,7 +470,7 @@ namespace libtorrent
 
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			for (int k = 0; k < int(i->iov_len); k += m_page_size)
+			for (int k = 0; k < i->iov_len; k += m_page_size)
 			{
 				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
 				++cur_seg;
@@ -1077,8 +482,8 @@ namespace libtorrent
 		OVERLAPPED ol;
 		ol.Internal = 0;
 		ol.InternalHigh = 0;
-		ol.OffsetHigh = DWORD(file_offset >> 32);
-		ol.Offset = DWORD(file_offset & 0xffffffff);
+		ol.OffsetHigh = file_offset >> 32;
+		ol.Offset = file_offset & 0xffffffff;
 		ol.hEvent = CreateEvent(0, true, false, 0);
 
 		ret += size;
@@ -1088,13 +493,14 @@ namespace libtorrent
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
+				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
 			if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
@@ -1107,7 +513,7 @@ namespace libtorrent
 		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
 		if (ret < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 #if TORRENT_USE_READV
@@ -1128,7 +534,7 @@ namespace libtorrent
 			ret = ::readv(m_fd, bufs, num_bufs);
 			if (ret < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec = error_code(errno, get_posix_category());
 				return -1;
 			}
 			return ret;
@@ -1141,7 +547,7 @@ namespace libtorrent
 		ret = ::readv(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 		return (std::min)(ret, size_type(size));
@@ -1155,7 +561,7 @@ namespace libtorrent
 			int tmp = read(m_fd, i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec = error_code(errno, get_posix_category());
 				return -1;
 			}
 			ret += tmp;
@@ -1221,7 +627,7 @@ namespace libtorrent
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				return -1;
 			}
 
@@ -1231,7 +637,7 @@ namespace libtorrent
 				if (WriteFile(m_file_handle, (char const*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
-					ec.assign(GetLastError(), get_system_category());
+					ec = error_code(GetLastError(), get_system_category());
 					return -1;
 				}
 				ret += intermediate;
@@ -1248,7 +654,7 @@ namespace libtorrent
 
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			for (int k = 0; k < int(i->iov_len); k += m_page_size)
+			for (int k = 0; k < i->iov_len; k += m_page_size)
 			{
 				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
 				++cur_seg;
@@ -1260,8 +666,8 @@ namespace libtorrent
 		OVERLAPPED ol;
 		ol.Internal = 0;
 		ol.InternalHigh = 0;
-		ol.OffsetHigh = DWORD(file_offset >> 32);
-		ol.Offset = DWORD(file_offset & 0xffffffff);
+		ol.OffsetHigh = file_offset >> 32;
+		ol.Offset = file_offset & 0xffffffff;
 		ol.hEvent = CreateEvent(0, true, false, 0);
 
 		ret += size;
@@ -1286,15 +692,14 @@ namespace libtorrent
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
 				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
-				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
 			DWORD tmp;
 			if (GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
@@ -1304,13 +709,18 @@ namespace libtorrent
 
 		if (file_size > 0)
 		{
+#if TORRENT_USE_WPATH
+#define CreateFile_ CreateFileW
+#else
+#define CreateFile_ CreateFileA
+#endif
 			HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
 			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
 			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 
 			if (f == INVALID_HANDLE_VALUE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				return -1;
 			}
 
@@ -1319,12 +729,12 @@ namespace libtorrent
 			if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				CloseHandle(f);
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				return -1;
 			}
 			if (::SetEndOfFile(f) == FALSE)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec = error_code(GetLastError(), get_system_category());
 				CloseHandle(f);
 				return -1;
 			}
@@ -1336,7 +746,7 @@ namespace libtorrent
 		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
 		if (ret < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 
@@ -1358,7 +768,7 @@ namespace libtorrent
 			ret = ::writev(m_fd, bufs, num_bufs);
 			if (ret < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec = error_code(errno, get_posix_category());
 				return -1;
 			}
 			return ret;
@@ -1371,12 +781,12 @@ namespace libtorrent
 		ret = ::writev(m_fd, temp_bufs, num_bufs);
 		if (ret < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 		if (ftruncate(m_fd, file_offset + size) < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 		return (std::min)(ret, size_type(size));
@@ -1390,7 +800,7 @@ namespace libtorrent
 			int tmp = write(m_fd, i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec = error_code(errno, get_posix_category());
 				return -1;
 			}
 			ret += tmp;
@@ -1452,7 +862,7 @@ namespace libtorrent
 		// query cluster size
 		pos_alignment();
 		in.StartingVcn.QuadPart = offset / m_cluster_size;
-		int cluster_offset = int(in.StartingVcn.QuadPart % m_cluster_size);
+		int cluster_offset = in.StartingVcn.QuadPart % m_cluster_size;
 
 		if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
 			, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
@@ -1485,7 +895,7 @@ namespace libtorrent
 		LARGE_INTEGER cur_size;
 		if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec = error_code(GetLastError(), get_system_category());
 			return false;
 		}
 		offs.QuadPart = s;
@@ -1556,7 +966,7 @@ namespace libtorrent
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
 			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec = error_code(errno, get_posix_category());
 				return false;
 			}
 #endif // F_PREALLOCATE
@@ -1589,7 +999,7 @@ namespace libtorrent
 			// filesystem does bot support this operation
 			if (ret != 0 && ret != EINVAL)
 			{
-				ec.assign(ret, get_posix_category());
+				ec = error_code(ret, get_posix_category());
 				return false;
 			}
 #endif // TORRENT_HAS_FALLOCATE
@@ -1598,31 +1008,13 @@ namespace libtorrent
 		return true;
 	}
 
-	void file::finalize()
-	{
-#ifdef TORRENT_WINDOWS
-		// according to MSDN, clearing the sparse flag of a file only
-		// works on windows vista and later
-#ifdef TORRENT_MINGW
-typedef struct _FILE_SET_SPARSE_BUFFER {
-	    BOOLEAN SetSparse;
-} FILE_SET_SPARSE_BUFFER, *PFILE_SET_SPARSE_BUFFER;
-#endif
-		DWORD temp;
-		FILE_SET_SPARSE_BUFFER b;
-		b.SetSparse = FALSE;
-		::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
-			, 0, 0, &temp, 0);
-#endif
-	}
-
 	size_type file::get_size(error_code& ec) const
 	{
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER file_size;
 		if (!GetFileSizeEx(m_file_handle, &file_size))
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec = error_code(GetLastError(), get_system_category());
 			return -1;
 		}
 		return file_size.QuadPart;
@@ -1630,7 +1022,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 		struct stat fs;
 		if (fstat(m_fd, &fs) != 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec = error_code(errno, get_posix_category());
 			return -1;
 		}
 		return fs.st_size;
