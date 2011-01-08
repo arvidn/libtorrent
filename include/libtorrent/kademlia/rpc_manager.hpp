@@ -98,17 +98,12 @@ public:
 
 private:
 
-	enum { max_transaction_id = 0x10000 };
-
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
 	typedef std::list<observer_ptr> transactions_t;
 	transactions_t m_transactions;
-	
-	// this is the next transaction id to be used
-	int m_next_transaction_id;
 	
 	send_fun m_send;
 	void* m_userdata;

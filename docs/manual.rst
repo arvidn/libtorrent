@@ -1110,6 +1110,8 @@ struct has the following members::
 		int max_peers_reply;
 		int search_branching;
 		int max_fail_count;
+		bool restrict_routing_ips;
+		bool restrict_search_ips;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1124,6 +1126,15 @@ before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
+
+``restrict_routing_ips`` determines if the routing table entries should restrict
+entries to one per IP. This defaults to true, which helps mitigate some attacks
+on the DHT. It prevents adding multiple nodes with IPs with a very close CIDR
+distance.
+
+``restrict_search_ips`` determines if DHT searches should prevent adding nodes
+with IPs with very close CIDR distance. This also defaults to true and helps
+mitigate certain attacks on the DHT.
 
 The ``dht_settings`` struct used to contain a ``service_port`` member to control
 which port the DHT would listen on and send messages from. This field is deprecated

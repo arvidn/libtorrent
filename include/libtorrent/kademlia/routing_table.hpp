@@ -199,6 +199,12 @@ private:
 	// be used in searches, but they will never
 	// be added to the routing table.
 	std::set<udp::endpoint> m_router_nodes;
+
+	// these are all the IPs that are in the routing
+	// table. It's used to only allow a single entry
+	// per IP in the whole table. Currently only for
+	// IPv4
+	std::set<address_v4::bytes_type> m_ips;
 };
 
 } } // namespace libtorrent::dht

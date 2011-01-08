@@ -4411,8 +4411,7 @@ namespace aux {
 	void session_impl::set_external_address(address const& ip
 		, int source_type, address const& source)
 	{
-		TORRENT_ASSERT(ip != address());
-
+		if (is_any(ip)) return;
 		if (is_local(ip)) return;
 		if (is_loopback(ip)) return;
 
