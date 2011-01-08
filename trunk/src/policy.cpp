@@ -565,7 +565,11 @@ namespace libtorrent
 		if (ses.m_port_filter.access(p.port) & port_filter::blocked)
 			return false;
 
-		if (ses.m_settings.no_connect_privileged_ports && p.port < 1024)
+		// only apply this to peers we've only heard
+		// about from the DHT
+		if (ses.m_settings.no_connect_privileged_ports
+			&& p.port < 1024
+			&& p.source == peer_info::dht)
 			return false;
 
 		return true;

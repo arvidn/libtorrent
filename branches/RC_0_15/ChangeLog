@@ -1,3 +1,4 @@
+	* only apply privileged port filter to DHT-only peers
 	* fixed build with deprecated functions disabled
 
 0.15.5 release
