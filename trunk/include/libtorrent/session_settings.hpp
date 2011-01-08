@@ -1033,6 +1033,8 @@ namespace libtorrent
 #endif
 			, max_fail_count(20)
 			, max_torrent_search_reply(20)
+			, restrict_routing_ips(true)
+			, restrict_search_ips(true)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -1056,6 +1058,18 @@ namespace libtorrent
 		// the max number of torrents to return in a
 		// torrent search query to the DHT
 		int max_torrent_search_reply;
+
+		// when set, nodes whose IP address that's in
+		// the same /24 (or /64 for IPv6) range in the
+		// same routing table bucket. This is an attempt
+		// to mitigate node ID spoofing attacks
+		// also restrict any IP to only have a single
+		// entry in the whole routing table
+		bool restrict_routing_ips;
+
+		// applies the same IP restrictions on nodes
+		// received during a DHT search (traversal algorithm)
+		bool restrict_search_ips;
 	};
 #endif
 

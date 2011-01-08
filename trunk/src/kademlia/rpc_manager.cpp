@@ -163,7 +163,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
 	, void* userdata, aux::session_impl& ses)
 	: m_pool_allocator(observer_size, 10)
-	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
 	, m_userdata(userdata)
 	, m_our_id(our_id)
@@ -182,7 +181,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
-	PRINT_OFFSETOF(observer, flags);
 	PRINT_OFFSETOF(observer, m_sent);
 	PRINT_OFFSETOF(observer, m_refs);
 	PRINT_OFFSETOF(observer, m_algorithm);
@@ -190,6 +188,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	PRINT_OFFSETOF(observer, m_addr);
 	PRINT_OFFSETOF(observer, m_port);
 	PRINT_OFFSETOF(observer, m_transaction_id);
+	PRINT_OFFSETOF(observer, flags);
 
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
@@ -238,9 +237,6 @@ size_t rpc_manager::allocation_size() const
 
 void rpc_manager::check_invariant() const
 {
-	TORRENT_ASSERT(m_next_transaction_id >= 0);
-	TORRENT_ASSERT(m_next_transaction_id < max_transaction_id);
-
 	for (transactions_t::const_iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
@@ -458,11 +454,12 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	io::write_uint16(m_next_transaction_id, out);
+	int tid = rand() ^ (rand() << 5);
+	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
 		
 	o->set_target(target_addr);
-	o->set_transaction_id(m_next_transaction_id);
+	o->set_transaction_id(tid);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] invoking "
@@ -472,8 +469,6 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	if (m_send(m_userdata, e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
-		++m_next_transaction_id;
-  		m_next_transaction_id %= max_transaction_id;
 #ifdef TORRENT_DEBUG
 		o->m_was_sent = true;
 #endif

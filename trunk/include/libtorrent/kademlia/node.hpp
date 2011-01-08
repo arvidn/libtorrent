@@ -257,6 +257,8 @@ public:
 
 	void status(libtorrent::session_status& s);
 
+	dht_settings const& settings() const { return m_settings; }
+
 protected:
 	// is called when a find data request is received. Should
 	// return false if the data is not stored on this node. If

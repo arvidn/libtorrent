@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
+#include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 
 #include <boost/bind.hpp>
 
@@ -73,6 +74,18 @@ traversal_algorithm::traversal_algorithm(
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
 #endif
+}
+
+bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
+{
+	TORRENT_ASSERT(lhs->target_addr().is_v4() == rhs->target_addr().is_v4());
+	// the number of bits in the IPs that may match. If
+	// more bits that this matches, something suspicious is
+	// going on and we shouldn't add the second one to our
+	// routing table
+	int cutoff = rhs->target_addr().is_v4() ? 4 : 64;
+	int dist = cidr_distance(lhs->target_addr(), rhs->target_addr());
+	return dist <= cutoff;
 }
 
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
@@ -111,6 +124,26 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || (*i)->id() != id)
 	{
+		if (m_node.settings().restrict_search_ips)
+		{
+			// don't allow multiple entries from IPs very close to each other
+			std::vector<observer_ptr>::iterator j = std::find_if(
+				m_results.begin(), m_results.end(), boost::bind(&compare_ip_cidr, _1, o));
+
+			if (j != m_results.end())
+			{
+				// we already have a node in this search with an IP very
+				// close to this one. We know that it's not the same, because
+				// it claims a different node-ID. Ignore this to avoid attacks
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "ignoring DHT search entry: " << o->id()
+				<< " " << o->target_addr()
+				<< " existing node: "
+				<< (*j)->id() << " " << (*j)->target_addr();
+#endif
+				return;
+			}
+		}
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING

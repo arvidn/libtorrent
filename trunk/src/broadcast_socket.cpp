@@ -172,7 +172,8 @@ namespace libtorrent
 	}
 
 	// returns the number of bits in that differ from the right
-	// between the addresses.
+	// between the addresses. The larger number, the further apart
+	// the IPs are
 	int cidr_distance(address const& a1, address const& a2)
 	{
 #if TORRENT_USE_IPV6
