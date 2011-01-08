@@ -68,6 +68,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* only apply privileged port filter to DHT-only peers
+
 0.15.5 release
 
 	* support DHT extension to report external IPs
