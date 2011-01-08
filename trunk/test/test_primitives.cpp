@@ -1355,6 +1355,7 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
+	s.restrict_routing_ips = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
 	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
