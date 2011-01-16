@@ -615,6 +615,12 @@ namespace libtorrent
 		if (!m_ses.m_dht) return false;
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
 		if (!m_announce_to_dht) return false;
+		if (!m_allow_peers) return false;
+
+		// if we don't have the metadata, and we're waiting
+		// for a web server to serve it to us, no need to announce
+		// because the info-hash is just the URL hash
+		if (!m_torrent_file->is_valid() && !m_url.empty()) return false;
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
