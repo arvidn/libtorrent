@@ -1,3 +1,4 @@
+	* fix python binding for wait_for_alert
 	* only apply privileged port filter to DHT-only peers
 	* fixed build with deprecated functions disabled
 
