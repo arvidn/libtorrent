@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #endif
 #include <list>
-#include	<string.h> // for memcpy
+#include <string.h> // for memcpy
 
 namespace libtorrent
 {
