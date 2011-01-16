@@ -146,6 +146,7 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(file_mutex);
 			log_file.close();
+			open_filename.clear();
 		}
 
 		logger(std::string const& logpath, std::string const& filename
