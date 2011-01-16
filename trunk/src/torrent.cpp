@@ -468,8 +468,7 @@ namespace libtorrent
 
 		if (parser.header_finished() && parser.status_code() != 200)
 		{
-			// #error there should really be an error code category for HTTP
-			set_error(errors::http_error, parser.message());
+			set_error(error_code(parser.status_code(), get_http_category()), parser.message());
 			pause();
 			return;
 		}

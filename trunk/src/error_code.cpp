@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/escape_string.hpp" // for to_string()
 
 namespace libtorrent
 {
@@ -258,6 +259,39 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
+	const char* http_error_category::name() const
+	{
+		return "http error";
+	}
+
+	std::string http_error_category::message(int ev) const
+	{
+		std::string ret;
+		ret += to_string(ev).elems;
+		ret += " ";
+		switch (ev)
+		{
+			case errors::cont: ret += "Continue"; break;
+			case errors::ok: ret += "OK"; break;
+			case errors::created: ret += "Created"; break;
+			case errors::accepted: ret += "Accepted"; break;
+			case errors::no_content: ret += "No Content"; break;
+			case errors::multiple_choices: ret += "Multiple Choices"; break;
+			case errors::moved_permanently: ret += "Moved Permanently"; break;
+			case errors::moved_temporarily: ret += "Moved Temporarily"; break;
+			case errors::not_modified: ret += "Not Modified"; break;
+			case errors::bad_request: ret += "Bad Request"; break;
+			case errors::unauthorized: ret += "Unauthorized"; break;
+			case errors::forbidden: ret += "Forbidden"; break;
+			case errors::not_found: ret += "Not Found"; break;
+			case errors::internal_server_error: ret += "Internal Server Error"; break;
+			case errors::not_implemented: ret += "Not Implemented"; break;
+			case errors::bad_gateway: ret += "Bad Gateway"; break;
+			case errors::service_unavailable: ret += "Service Unavailable"; break;
+			default: ret += "(unknown HTTP error)"; break;
+		}
+		return ret;
+	}
 #endif
 
 }
