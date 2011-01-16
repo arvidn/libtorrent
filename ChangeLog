@@ -1,3 +1,4 @@
+	* added error category and error codes for HTTP errors
 	* made the DHT implementation slightly more robust against routing table poisoning and node ID spoofing
 	* support chunked encoding in http downloads (http_connection)
 	* support adding torrents by url to the .torrent file

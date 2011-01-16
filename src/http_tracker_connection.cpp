@@ -305,7 +305,8 @@ namespace libtorrent
 
 		if (parser.status_code() != 200)
 		{
-			fail(error_code(errors::http_error), parser.status_code(), parser.message().c_str());
+			fail(error_code(parser.status_code(), get_http_category())
+				, parser.status_code(), parser.message().c_str());
 			return;
 		}
 	

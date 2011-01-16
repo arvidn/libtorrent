@@ -279,7 +279,7 @@ namespace libtorrent
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(errors::http_error, 1);
+					disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
 					return;
 				}
 				if (!m_parser.header_finished())
@@ -414,7 +414,7 @@ namespace libtorrent
 				m_statistics.received_bytes(0, bytes_transferred);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
-				disconnect(errors::http_error, 1);
+				disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
 				return;
 			}
 
