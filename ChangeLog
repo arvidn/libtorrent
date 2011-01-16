@@ -69,6 +69,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix python binding for wait_for_alert
 	* only apply privileged port filter to DHT-only peers
 
 0.15.5 release
