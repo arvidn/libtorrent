@@ -131,6 +131,7 @@ namespace
 
     alert const* wait_for_alert(session& s, int ms)
     {
+        allow_threading_guard guard;
         return s.wait_for_alert(milliseconds(ms));
     }
 
