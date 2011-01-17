@@ -1355,20 +1355,109 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
-	s.restrict_routing_ips = false;
+//	s.restrict_routing_ips = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
-	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
+	std::vector<node_entry> nodes;
+	TEST_EQUAL(table.size().get<0>(), 0);
 
 	node_id tmp = id;
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
-	std::vector<node_entry> nodes;
+
+	// test a node with the same IP:port changing ID
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 0);
+	}
+
+	// set timeout_count to 1
+	table.node_failed(tmp, udp::endpoint(address_v4::from_string("4.4.4.4"), 4));
+
+	nodes.clear();
+	table.for_each_node(node_push_back, nop, &nodes);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 1);
+	}
+
+	// add the exact same node again, it should set the timeout_count to 0
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	nodes.clear();
+	table.for_each_node(node_push_back, nop, &nodes);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 0);
+	}
+
+	// test adding the same IP:port again with a new node ID (should replace the old one)
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	// test adding the same node ID again with a different IP (should be ignored)
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 5));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	// test adding a node that ends up in the same bucket with an IP
+	// very close to the current one (should be ignored)
+	// if restrict_routing_ips == true
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.5"), 5));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	s.restrict_routing_ips = false;
+
+	add_and_replace(tmp, diff);
+	table.node_seen(id, udp::endpoint(rand_v4(), rand()));
+
+	nodes.clear();
 	for (int i = 0; i < 7000; ++i)
 	{
-		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
+		table.node_seen(tmp, udp::endpoint(rand_v4(), rand()));
 		add_and_replace(tmp, diff);
 	}
 	TEST_EQUAL(table.num_active_buckets(), 11);
+	TEST_CHECK(table.size().get<0>() > 10 * 10);
+//#error test num_global_nodes
+//#error test need_refresh
 
 #if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
 	table.print_state(std::cerr);
