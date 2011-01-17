@@ -447,6 +447,8 @@ namespace libtorrent
 		if (m_files.total_size() != f.total_size()) return;
 		copy_on_write();
 		m_files = f;
+		m_files.set_num_pieces(m_orig_files->num_pieces());
+		m_files.set_piece_length(m_orig_files->piece_length());
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

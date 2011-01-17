@@ -70,6 +70,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in torrent_info::remap_files
 	* fix python binding for wait_for_alert
 	* only apply privileged port filter to DHT-only peers
 
