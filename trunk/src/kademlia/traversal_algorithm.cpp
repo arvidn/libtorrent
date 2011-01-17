@@ -255,7 +255,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		// don't tell the routing table about
 		// node ids that we just generated ourself
 		if ((o->flags & observer::flag_no_id) == 0)
-			m_node.m_table.node_failed(o->id());
+			m_node.m_table.node_failed(o->id(), o->target_ep());
 		++m_timeouts;
 		--m_invoke_count;
 		TORRENT_ASSERT(m_invoke_count >= 0);

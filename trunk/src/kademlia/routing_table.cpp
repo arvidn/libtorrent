@@ -290,61 +290,115 @@ bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 	return dist <= cutoff;
 }
 
+node_entry* routing_table::find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket)
+{
+	for (table_t::iterator i = m_buckets.begin()
+		, end(m_buckets.end()); i != end; ++i)
+	{
+		for (bucket_t::iterator j = i->replacements.begin();
+			j != i->replacements.end(); ++j)
+		{
+			if (j->addr != ep.address()) continue;
+			if (j->port != ep.port()) continue;
+			*bucket = i;
+			return &*j;
+		}
+		for (bucket_t::iterator j = i->live_nodes.begin();
+			j != i->live_nodes.end(); ++j)
+		{
+			if (j->addr != ep.address()) continue;
+			if (j->port != ep.port()) continue;
+			*bucket = i;
+			return &*j;
+		}
+	}
+	*bucket = m_buckets.end();
+	return 0;
+}
+
 bool routing_table::add_node(node_entry const& e)
 {
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end()) return false;
 
 	bool ret = need_bootstrap();
 
-	// if we're restricting IPs, check if we already have this IP in the table
-	if (m_settings.restrict_routing_ips
-		&& m_ips.find(e.addr.to_v4().to_bytes()) != m_ips.end())
-	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		bool id_match = false;
-		bool found = false;
-		node_id other_id;
-		for (table_t::iterator i = m_buckets.begin()
-			, end(m_buckets.end()); i != end; ++i)
-		{
-			for (bucket_t::iterator j = i->replacements.begin();
-				j != i->replacements.end(); ++j)
-			{
-				if (j->addr != e.addr) continue;
-				found = true;
-				other_id = j->id;
-				if (j->id != e.id) continue;
-				id_match = true;
-				break;
-			}
-			if (id_match) break;
-			for (bucket_t::iterator j = i->live_nodes.begin();
-				j != i->live_nodes.end(); ++j)
-			{
-				if (j->addr != e.addr) continue;
-				found = true;
-				other_id = j->id;
-				if (j->id != e.id) continue;
-				id_match = true;
-				break;
-			}
-			if (id_match) break;
-		}
-		TORRENT_ASSERT(found);
-		if (!id_match)
-		{
-			TORRENT_LOG(table) << "ignoring node (duplicate IP): "
-				<< e.id << " " << e.addr
-				<< " existing: " << other_id;
-		}
-#endif
-		return ret;
-	}
-
 	// don't add ourself
 	if (e.id == m_id) return ret;
 
-	table_t::iterator i = find_bucket(e.id);
+	// do we already have this IP in the table?
+	if (m_ips.find(e.addr.to_v4().to_bytes()) != m_ips.end())
+	{
+		// this exact IP already exists in the table. It might be the case
+		// that the node changed IP. If pinged is true, and the port also
+		// matches the we assume it's in fact the same node, and just update
+		// the routing table
+		// pinged means that we have sent a message to the IP, port and received
+		// a response with a correct transaction ID, i.e. it is verified to not
+		// be the result of a poioned routing table
+
+		node_entry* existing = 0;
+		table_t::iterator existing_bucket;
+		if (!e.pinged() || (existing = find_node(e.ep(), &existing_bucket)) == 0)
+		{
+			// the new node is not pinged, or it's not an existing node
+			// we should ignore it, unless we allow duplicate IPs in our
+			// routing table
+			if (m_settings.restrict_routing_ips)
+			{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+				TORRENT_LOG(table) << "ignoring node (duplicate IP): "
+					<< e.id << " " << e.addr;
+#endif
+				return ret;
+			}
+		}
+		if (e.pinged() && existing)
+		{
+			// if the node ID is the same, just update the failcount
+			// and be done with it
+			if (existing->id == e.id)
+			{
+				existing->timeout_count = 0;
+				return ret;
+			}
+
+			// delete the current entry before we instert the new one
+			bucket_t& b = existing_bucket->live_nodes;
+			bucket_t& rb = existing_bucket->replacements;
+			bool done = false;
+			for (bucket_t::iterator i = b.begin(), end(b.end());
+				i != end; ++i)
+			{
+				if (i->addr != e.addr || i->port != e.port) continue;
+   #ifdef TORRENT_DHT_VERBOSE_LOGGING
+				TORRENT_LOG(table) << "node ID changed, deleting old entry: "
+					<< i->id << " " << i->addr;
+	#endif
+				b.erase(i);
+				done = true;
+				break;
+			}
+			if (!done)
+   		{
+				for (bucket_t::iterator i = rb.begin(), end(rb.end());
+					i != end; ++i)
+				{
+					if (i->addr != e.addr || i->port != e.port) continue;
+	#ifdef TORRENT_DHT_VERBOSE_LOGGING
+					TORRENT_LOG(table) << "node ID changed, deleting old entry: "
+						<< i->id << " " << i->addr;
+	#endif
+   				rb.erase(i);
+					done = true;
+					break;
+				}
+			}
+			TORRENT_ASSERT(done);
+			m_ips.erase(e.addr.to_v4().to_bytes());
+		}
+	}
+	
+   table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 
@@ -364,7 +418,8 @@ bool routing_table::add_node(node_entry const& e)
 		// just move it to the back since it was
 		// the last node we had any contact with
 		// in this bucket
-		*j = e;
+		TORRENT_ASSERT(j->id == e.id && j->ep() == e.ep());
+		j->timeout_count = 0;
 //		TORRENT_LOG(table) << "updating node: " << i->id << " " << i->addr;
 		return ret;
 	}
@@ -614,7 +669,7 @@ void routing_table::for_each_node(
 	}
 }
 
-void routing_table::node_failed(node_id const& id)
+void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 {
 	// if messages to ourself fails, ignore it
 	if (id == m_id) return;
@@ -627,6 +682,11 @@ void routing_table::node_failed(node_id const& id)
 		, boost::bind(&node_entry::id, _1) == id);
 
 	if (j == b.end()) return;
+
+	// if the endpoint doesn't match, it's a different node
+	// claiming the same ID. The node we have in our routing
+	// table is not necessarily stale
+	if (j->ep() != ep) return;
 	
 	if (rb.empty())
 	{

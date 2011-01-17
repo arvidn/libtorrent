@@ -91,7 +91,7 @@ public:
 
 	void status(session_status& s) const;
 
-	void node_failed(node_id const& id);
+	void node_failed(node_id const& id, udp::endpoint const& ep);
 	
 	// adds an endpoint that will never be added to
 	// the routing table
@@ -132,6 +132,7 @@ public:
 	int bucket_size(int bucket)
 	{
 		int num_buckets = m_buckets.size();
+		if (num_buckets == 0) return 0;
 		if (bucket < num_buckets) bucket = num_buckets - 1;
 		table_t::iterator i = m_buckets.begin();
 		std::advance(i, bucket);
@@ -166,6 +167,11 @@ private:
 	typedef std::list<routing_table_node> table_t;
 
 	table_t::iterator find_bucket(node_id const& id);
+
+	// return a pointer the node_entry with the given endpoint
+	// or 0 if we don't have such a node. Both the address and the
+	// port has to match
+	node_entry* find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket);
 
 	// constant called k in paper
 	int m_bucket_size;
