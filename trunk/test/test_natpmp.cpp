@@ -1,5 +1,6 @@
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
