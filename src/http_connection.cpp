@@ -116,7 +116,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
-		APPEND_FMT1("GET %s HTTP/1.0\r\n", url.c_str());
+		APPEND_FMT1("GET %s HTTP/1.1\r\n", url.c_str());
 		if (ps->type == proxy_settings::http_pw)
 			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
 				ps->username + ":" + ps->password).c_str());
@@ -125,7 +125,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	}
 	else
 	{
-		APPEND_FMT2("GET %s HTTP/1.0\r\n"
+		APPEND_FMT2("GET %s HTTP/1.1\r\n"
 			"Host: %s", path.c_str(), hostname.c_str());
 		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
 		else APPEND_FMT("\r\n");

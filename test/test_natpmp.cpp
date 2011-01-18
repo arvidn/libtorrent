@@ -8,11 +8,12 @@
 
 using namespace libtorrent;
 
-void callback(int mapping, int port, error_code const& err)
+void callback(int mapping, address extip, int port, error_code const& err)
 {
 	std::cerr
 		<< "mapping: " << mapping
 		<< ", port: " << port
+		<< ", external-IP: " << print_address(extip)
 		<< ", error: \"" << err.message() << "\"\n";
 }
 

@@ -140,10 +140,8 @@ namespace
 #endif
 #endif
 
-    torrent_handle add_torrent(session& s, dict params)
+    void dict_to_add_torrent_params(dict params, add_torrent_params& p)
     {
-        add_torrent_params p;
-
         if (params.has_key("ti"))
             p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
 
@@ -191,6 +189,12 @@ namespace
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
             p.url = extract<std::string>(params["url"]);
+    }
+
+    torrent_handle add_torrent(session& s, dict params)
+    {
+        add_torrent_params p;
+        dict_to_add_torrent_params(params, p);
 
 #ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
@@ -200,6 +204,76 @@ namespace
 #endif
     }
 
+    void dict_to_feed_settings(dict params, feed_settings& feed)
+    {
+        if (params.has_key("auto_download"))
+            feed.auto_download = extract<bool>(params["auto_download"]);
+        if (params.has_key("default_ttl"))
+            feed.default_ttl = extract<int>(params["default_ttl"]);
+        if (params.has_key("url"))
+            feed.url = extract<std::string>(params["url"]);
+        if (params.has_key("add_args"))
+            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args);
+    }
+
+    feed_handle add_feed(session& s, dict params)
+    {
+        feed_settings feed;
+        dict_to_feed_settings(params, feed);
+
+        return s.add_feed(feed);
+    }
+
+    dict get_feed_status(feed_handle const& h)
+    {
+        feed_status s = h.get_feed_status();
+        dict ret;
+        ret["url"] = s.url;
+        ret["title"] = s.title;
+        ret["description"] = s.description;
+        ret["last_update"] = s.last_update;
+        ret["next_update"] = s.next_update;
+        ret["updating"] = s.updating;
+        ret["error"] = s.error ? s.error.message() : "";
+        ret["ttl"] = s.ttl;
+
+        list items;
+        for (std::vector<feed_item>::iterator i = s.items.begin()
+            , end(s.items.end()); i != end; ++i)
+        {
+            dict item;
+            item["url"] = i->url;
+            item["uuid"] = i->uuid;
+            item["title"] = i->title;
+            item["description"] = i->description;
+            item["comment"] = i->comment;
+            item["category"] = i->category;
+            item["size"] = i->size;
+            item["handle"] = i->handle;
+            item["info_hash"] = i->info_hash.to_string();
+            items.append(item);
+        }
+		  ret["items"] = items;
+        return ret;
+    }
+
+    void set_feed_settings(feed_handle& h, dict sett)
+    {
+        feed_settings feed;
+        dict_to_feed_settings(sett, feed);
+        h.set_settings(feed);
+    }
+
+    dict get_feed_settings(feed_handle& h)
+    {
+        feed_settings s = h.settings();
+        dict ret;
+        ret["url"] = s.url;
+        ret["auto_download"] = s.auto_download;
+        ret["default_ttl"] = s.default_ttl;
+        return ret;
+    }
+	
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
@@ -399,6 +473,7 @@ void bind_session()
         )
 #endif
 #endif
+        .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
         .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
@@ -483,6 +558,14 @@ void bind_session()
         .value("save_tracker_proxy", session::save_tracker_proxy)
         .value("save_as_map", session::save_as_map)
     ;
+
+    class_<feed_handle>("feed_handle")
+        .def("update_feed", &feed_handle::update_feed)
+        .def("get_feed_status", &get_feed_status)
+        .def("set_settings", &set_feed_settings)
+        .def("settings", &get_feed_settings)
+    ;
+
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 }

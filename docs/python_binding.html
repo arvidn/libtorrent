@@ -141,6 +141,12 @@ a list of entries.</p>
 </ul>
 <p><tt class="docutils literal"><span class="pre">create_torrent::add_node()</span></tt> takes two arguments, one string and one integer,
 instead of a pair. The string is the address and the integer is the port.</p>
+<p><tt class="docutils literal"><span class="pre">session::set_settings()</span></tt> not only accepts a <tt class="docutils literal"><span class="pre">session_settings</span></tt> object, but also
+a dictionary with keys matching the names of the members of the <tt class="docutils literal"><span class="pre">session_settings</span></tt> struct.
+When calling <tt class="docutils literal"><span class="pre">set_settings</span></tt>, the dictionary does not need to have every settings set,
+keys that are not present, are set to their default value.</p>
+<p>For backwards compatibility, <tt class="docutils literal"><span class="pre">session::settings()</span></tt> still returns a <tt class="docutils literal"><span class="pre">session_settings</span></tt>
+struct. To get a python dictionary of the settings, call <tt class="docutils literal"><span class="pre">session::get_settings</span></tt>.</p>
 <p>For an example python program, see <tt class="docutils literal"><span class="pre">client.py</span></tt> in the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
 directory.</p>
 <p>A very simple example usage of the module would be something like this:</p>

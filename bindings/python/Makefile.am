@@ -3,6 +3,7 @@ EXTRA_DIST = \
   Jamfile                   \
   setup.py                  \
   client.py                 \
+  rss_reader.py             \
   simple_client.py          \
   src/alert.cpp             \
   src/big_number.cpp        \

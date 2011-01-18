@@ -337,6 +337,8 @@ namespace libtorrent
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
+		, m_uuid(p.uuid)
+		, m_source_feed_url(p.source_feed_url)
 		, m_storage_constructor(p.storage)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
@@ -400,6 +402,8 @@ namespace libtorrent
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
 	{
+		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
@@ -441,6 +445,10 @@ namespace libtorrent
 			m_torrent_file->add_tracker(p.tracker_url);
 		}
 	}
+
+#if 1
+	
+	// NON BOTTLED VERSION. SUPPORTS PROGRESS REPORTING
 
 	// since this download is not bottled, this callback will
 	// be called every time we receive another piece of the
@@ -516,6 +524,85 @@ namespace libtorrent
 
 		TORRENT_ASSERT(num_torrents == m_ses.m_torrents.size());
 
+		// if the user added any trackers while downloading the
+		// .torrent file, serge them into the new tracker list
+		std::vector<announce_entry> new_trackers = m_torrent_file->trackers();
+		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
+			, end(m_trackers.end()); i != end; ++i)
+		{
+			// if we already have this tracker, ignore it
+			if (std::find_if(new_trackers.begin(), new_trackers.end()
+				, boost::bind(&announce_entry::url, _1) == i->url) != new_trackers.end())
+				continue;
+
+			// insert the tracker ordered by tier
+			new_trackers.insert(std::find_if(new_trackers.begin(), new_trackers.end()
+				, boost::bind(&announce_entry::tier, _1) >= i->tier), *i);
+		}
+		m_trackers.swap(new_trackers);
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&m_torrent_file->info_hash()[0], 20);
+		m_obfuscated_hash = h.final();
+#endif
+
+		if (m_ses.m_alerts.should_post<metadata_received_alert>())
+		{
+			m_ses.m_alerts.post_alert(metadata_received_alert(
+				get_handle()));
+		}
+
+		set_state(torrent_status::downloading);
+
+		m_override_resume_data = true;
+		init();
+		announce_with_tracker();
+	}
+#else
+
+	void torrent::on_torrent_download(error_code const& ec
+		, http_parser const& parser, char const* data, int size)
+	{
+		if (m_abort) return;
+
+		if (ec && ec != asio::error::eof)
+		{
+			set_error(ec, m_url);
+			pause();
+			return;
+		}
+
+		if (parser.status_code() != 200)
+		{
+			// #error there should really be an error code category for HTTP
+			set_error(errors::http_error, parser.message());
+			pause();
+			return;
+		}
+
+		error_code e;
+		intrusive_ptr<torrent_info> tf(new torrent_info(data, size, e));
+		if (e)
+		{
+			set_error(e, m_url);
+			pause();
+			return;
+		}
+		
+		// update our torrent_info object and move the
+		// torrent from the old info-hash to the new one
+		// as we replace the torrent_info object
+#ifdef TORRENT_DEBUG
+		int num_torrents = m_ses.m_torrents.size();
+#endif
+		m_ses.m_torrents.erase(m_torrent_file->info_hash());
+		m_torrent_file = tf;
+		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), shared_from_this()));
+
+		TORRENT_ASSERT(num_torrents == m_ses.m_torrents.size());
+
 		// TODO: if the user added any trackers while downloading the
 		// .torrent file, they are overwritten. Merge them into the
 		// new tracker list
@@ -540,6 +627,8 @@ namespace libtorrent
 		init();
 		announce_with_tracker();
 	}
+
+#endif
 
 	void torrent::start()
 	{
@@ -4086,6 +4175,9 @@ namespace libtorrent
 		m_last_download = rd.dict_find_int_value("last_download", 0);
 		m_last_upload = rd.dict_find_int_value("last_upload", 0);
 
+		m_url = rd.dict_find_string_value("url");
+		m_uuid = rd.dict_find_string_value("uuid");
+
 		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
 		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
@@ -4255,6 +4347,9 @@ namespace libtorrent
 		ret["last_scrape"] = m_last_scrape;
 		ret["last_download"] = m_last_download;
 		ret["last_upload"] = m_last_upload;
+
+		if (!m_url.empty()) ret["url"] = m_url;
+		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());

@@ -1,3 +1,4 @@
+	* added support for RSS feeds
 	* fixed up some edge cases in DHT routing table and improved unit test of it
 	* added error category and error codes for HTTP errors
 	* made the DHT implementation slightly more robust against routing table poisoning and node ID spoofing

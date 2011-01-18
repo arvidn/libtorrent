@@ -84,6 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/rss.hpp"
 
 #ifdef TORRENT_STATS
 #include <fstream>
@@ -201,7 +202,13 @@ namespace libtorrent
 			}
 #endif
 
-			boost::weak_ptr<torrent> find_torrent(const sha1_hash& info_hash);
+			feed_handle add_feed(feed_settings const& feed);
+			void remove_feed(feed_handle h);
+			void get_feeds(std::vector<feed_handle>* f) const;
+
+			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
+			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
+
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
 			void close_connection(peer_connection const* p, error_code const& ec);
@@ -551,6 +558,8 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
+			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this has all torrents that wants to be checked in it
@@ -726,6 +735,13 @@ namespace libtorrent
 			// to decide which ones to choke/unchoke
 			ptime m_last_choke;
 
+			// the time when the next rss feed needs updating
+			ptime m_next_rss_update;
+
+			// update any rss feeds that need updating and
+			// recalculate m_next_rss_update
+			void update_rss_feeds();
+
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
 			int m_next_port;
@@ -899,6 +915,8 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
+
+			std::vector<boost::shared_ptr<feed> > m_feeds;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;

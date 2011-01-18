@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/rss.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -160,7 +161,8 @@ namespace libtorrent
 			save_proxy =        0x008,
 			save_i2p_proxy =    0x010,
 			save_encryption_settings = 0x020,
-			save_as_map =       0x040
+			save_as_map =       0x040,
+			save_feeds =        0x080
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
@@ -236,6 +238,10 @@ namespace libtorrent
 
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
+
+		feed_handle add_feed(feed_settings const& feed);
+		void remove_feed(feed_handle h);
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 #ifndef TORRENT_DISABLE_DHT
 		void start_dht();

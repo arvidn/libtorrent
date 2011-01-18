@@ -58,6 +58,8 @@ namespace libtorrent
 				case character:
 				case boolean:
 				case integer:
+				case size_integer:
+				case time_integer:
 				case floating_point:
 				{
 					if (key->type() != lazy_entry::int_t) continue;
@@ -66,6 +68,8 @@ namespace libtorrent
 					{
 						case character: *((char*)dest) = val; break;
 						case integer: *((int*)dest) = val; break;
+						case size_integer: *((size_type*)dest) = val; break;
+						case time_integer: *((time_t*)dest) = val; break;
 						case floating_point: *((float*)dest) = float(val) / 1000.f; break;
 						case boolean: *((bool*)dest) = val; break;
 					}
@@ -76,7 +80,7 @@ namespace libtorrent
 
 	void save_struct(entry& e, void const* s, bencode_map_entry const* m, int num, void const* def)
 	{
-		e = entry(entry::dictionary_t);
+		if (e.type() != entry::dictionary_t) e = entry(entry::dictionary_t);
 		for (int i = 0; i < num; ++i)
 		{
 			char const* key = m[i].name;
@@ -97,6 +101,12 @@ namespace libtorrent
 					case integer:
 						if (*((int*)src) == *((int*)default_value)) continue;
 						break;
+					case size_integer:
+						if (*((size_type*)src) == *((size_type*)default_value)) continue;
+						break;
+					case time_integer:
+						if (*((time_t*)src) == *((time_t*)default_value)) continue;
+						break;
 					case floating_point:
 						if (*((float*)src) == *((float*)default_value)) continue;
 						break;
@@ -113,6 +123,8 @@ namespace libtorrent
 				case std_string: val = *((std::string*)src); break;
 				case character: val = *((char*)src); break;
 				case integer: val = *((int*)src); break;
+				case size_integer: val = *((size_type*)src); break;
+				case time_integer: val = *((time_t*)src); break;
 				case floating_point: val = size_type(*((float*)src) * 1000.f); break;
 				case boolean: val = *((bool*)src); break;
 				default: TORRENT_ASSERT(false);

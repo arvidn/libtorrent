@@ -86,6 +86,8 @@ namespace libtorrent
 		bool share_mode;
 		std::string trackerid;
 		std::string url;
+		std::string uuid;
+		std::string source_feed_url;
 	};
 }
 
