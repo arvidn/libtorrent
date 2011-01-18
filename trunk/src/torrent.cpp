@@ -5987,6 +5987,8 @@ namespace libtorrent
 
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
+		else if (checking_files && !should_check_files())
+			dequeue_torrent_check();
 	}
 
 	void torrent::resume()
