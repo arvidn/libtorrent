@@ -126,6 +126,7 @@ The ``session`` class has the following synopsis::
 			save_i2p_proxy = 0x010,
 			save_encryption_settings = 0x020,
 			save_as_map = 0x040,
+			save_feeds = 0x080,
 		};
 
 		void load_state(lazy_entry const& e);
@@ -211,6 +212,10 @@ The ``session`` class has the following synopsis::
 		void set_alert_mask(int m);
 		size_t set_alert_queue_size_limit(
 			size_t queue_size_limit_);
+
+		feed_handle session::add_feed(feed_settings const& feed);
+		void session::remove_feed(feed_handle h);
+		void session::get_feeds(std::vector<feed_handle>& f) const;
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -309,6 +314,7 @@ torrents). These are the possible flags. A flag that's set, means those settings
 		save_i2p_proxy =    0x010,
 		save_encryption_settings = 0x020,
 		save_as_map =       0x040,
+		save_feeds =        0x080
 	};
 
 
@@ -964,6 +970,78 @@ by calling ``pop_alert``. Default value is 1000.
 
 ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
 of the alert mask.
+
+add_feed()
+----------
+
+	::
+
+		feed_handle session::add_feed(feed_settings const& feed);
+
+This adds an RSS feed to the session. The feed will be refreshed
+regularly and optionally add all torrents from the feed, as they
+appear. The feed is defined by the ``feed_settings`` object::
+
+	struct feed_settings
+	{
+		feed_settings();
+	
+   	std::string url;
+		bool auto_download;
+		int default_ttl;
+		add_torrent_params add_args;
+	};
+
+By default ``auto_download`` is true, which means all torrents in
+the feed will be downloaded. Set this to false in order to manually
+add torrents to the session. You may react to the rss_alert_ when
+a feed has been updated to poll it for the new items in the feed
+when adding torrents manually. When torrents are added automatically,
+you have to call ``session::get_torrents()`` to get the handles to
+the new torrents.
+
+Before adding the feed, you must set the ``url`` field to the
+feed's url. It may point to an RSS or an atom feed.
+
+The ``default_ttl`` is the default interval for refreshing a feed.
+This may be overridden by the feed itself (by specifying the ``<ttl>``
+tag) and defaults to 30 minutes. The field specifies the number of
+minutes between refreshes.
+
+If torrents are added automatically, you may want to set the
+``add_args`` to appropriate values for download directory etc.
+This object is used as a template for adding torrents from feeds,
+but some torrent specific fields will be overridden by the
+individual torrent being added. For more information on the
+``add_torrent_params``, see `add_torrent()`_.
+
+The returned feed_handle_ is a handle which is used to interact
+with the feed, things like forcing a refresh or querying for
+information about the items in the feed. For more information,
+see feed_handle_.
+
+
+remove_feed()
+-------------
+
+	::
+
+		void session::remove_feed(feed_handle h);
+
+Removes a feed from being watched by the session. When this
+call returns, the feed handle is invalid and won't refer
+to any feed.
+
+
+get_feeds()
+-----------
+
+	::
+
+		void session::get_feeds(std::vector<feed_handle>& f) const;
+
+Returns a list of all RSS feeds that are being watched by the session.
+
 
 add_extension()
 ---------------
@@ -3772,6 +3850,127 @@ floating point operations are diabled, instead use ``progress_ppm``.
 address of the interface it's going out over. This may be useful for multi-homed
 clients with multiple interfaces to the internet.
 
+feed_handle
+===========
+
+The ``feed_handle`` refers to a specific RSS feed which is watched by the session.
+The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``. It has the following
+functions::
+
+	struct feed_handle
+	{
+		feed_handle();
+		void update_feed();
+		feed_status get_feed_status() const;
+		void set_settings(feed_settings const& s);
+		feed_settings settings() const;
+	};
+
+update_feed()
+-------------
+
+	::
+
+		void update_feed();
+
+Forces an update/refresh of the feed. Regular updates of the feed is managed
+by libtorrent, be careful to not call this too frequently since it may
+overload the RSS server.
+
+get_feed_status()
+-----------------
+
+	::
+
+		feed_status get_feed_status() const;
+
+Queries the RSS feed for information, including all the items in the feed.
+The ``feed_status`` object has the following fields::
+
+	struct feed_status
+	{
+		std::string url;
+		std::string title;
+		std::string description;
+		time_t last_update;
+		int next_update;
+		bool updating;
+		std::vector<feed_item> items;
+		error_code error;
+		int ttl;
+	};
+
+``url`` is the URL of the feed.
+
+``title`` is the name of the feed (as specified by the feed itself). This
+may be empty if we have not recevied a response from the RSS server yet,
+or if the feed does not specify a title.
+
+``description`` is the feed description (as specified by the feed itself).
+This may be empty if we have not received a response from the RSS server
+yet, or if the feed does not specify a description.
+
+``last_update`` is the posix time of the last successful response from the feed.
+
+``next_update`` is the number of seconds, from now, when the feed will be
+updated again.
+
+``updating`` is true if the feed is currently being updated (i.e. waiting for
+DNS resolution, connecting to the server or waiting for the response to the
+HTTP request, or receiving the response).
+
+``items`` is a vector of all items that we have received from the feed. See
+feed_item_ for more information.
+
+``error`` is set to the appropriate error code if the feed encountered an
+error.
+
+``ttl`` is the current refresh time (in minutes). It's either the configured
+default ttl, or the ttl specified by the feed.
+
+
+set_settings() settings()
+-------------------------
+
+	::
+
+		void set_settings(feed_settings const& s);
+		feed_settings settings() const;
+
+Sets and gets settings for this feed. For more information on the
+available settings, see `add_feed()`_.
+
+feed_item
+=========
+
+The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``.
+	::
+
+		struct feed_item
+		{
+			feed_item();
+			std::string url;
+			std::string uuid;
+			std::string title;
+			std::string description;
+			std::string comment;
+			std::string category;
+			size_type size;
+			torrent_handle handle;
+			sha1_hash info_hash;
+		};
+
+``size`` is the total size of the content the torrent refers to, or -1
+if no size was specified by the feed.
+
+``handle`` is the handle to the torrent, if the session is already downloading
+this torrent.
+
+``info_hash`` is the info-hash of the torrent, or cleared (i.e. all zeroes) if
+the feed does not specify the info-hash.
+
+All the strings are self explanatory and may be empty if the feed does not specify
+those fields.
 
 session customization
 =====================
@@ -5541,6 +5740,10 @@ is a bitmask with the following bits:
 | ``dht_notification``           | Alerts on events in the DHT node. For incoming searches or          |
 |                                | bootstrapping being done etc.                                       |
 +--------------------------------+---------------------------------------------------------------------+
+| ``rss_notification``           | Alerts on RSS related events, like feeds being updated, feed error  |
+|                                | conditions and successful RSS feed updates. Enabling this categoty  |
+|                                | will make you receive ``rss_alert`` alerts.                         |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -6659,6 +6862,56 @@ when in anonymous mode.
 ``tracker_not_anonymous`` means that there's no proxy set up for tracker
 communication and the tracker will not be contacted. The tracker which
 this failed for is specified in the ``str`` member.
+
+rss_alert
+---------
+
+This alert is posted on RSS feed events such as start of RSS feed updates,
+successful completed updates and errors during updates.
+
+This alert is only posted if the ``rss_notifications`` category is enabled
+in the alert mask.
+
+::
+
+	struct rss_alert: alert
+	{
+		// ..
+		virtual std::string message() const;
+
+		enum state_t
+		{
+			state_updating, state_updated, state_error
+		};
+
+		feed_handle handle;
+		std::string url;
+		int state;
+		error_code error;
+	};
+
+``handle`` is the handle to the feed which generated this alert.
+
+``url`` is a short cut to access the url of the feed, without
+having to call ``get_settings()``.
+
+``state`` is one of:
+
+``rss_alert::state_updating``
+	An update of this feed was just initiated, it will either succeed
+	or fail soon.
+
+``rss_alert::state_updated``
+	The feed just completed a successful update, there may be new items
+	in it. If you're adding torrents manually, you may want to request
+	the feed status of the feed and look through the ``items`` vector.
+
+``rss_akert::state_error``
+	An error just occurred. See the ``error`` field for information on
+	what went wrong.
+
+``error`` is an error code used for when an error occurs on the feed.
+
 
 alert dispatcher
 ================

@@ -496,5 +496,14 @@ namespace libtorrent {
 		return "DHT bootstrap complete";
 	}
 
+	std::string rss_alert::message() const
+	{
+		char msg[600];
+		char const* state_msg[] = {"updating", "updated", "error"};
+		snprintf(msg, sizeof(msg), "RSS feed %s: %s (%s)"
+			, url.c_str(), state_msg[state], error.message().c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

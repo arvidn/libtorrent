@@ -36,6 +36,7 @@ set(sources
 	piece_picker
 	policy
 	puff
+	rss
 	session
 	session_impl
 	settings

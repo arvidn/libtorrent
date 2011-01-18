@@ -375,6 +375,25 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
+	feed_handle session::add_feed(feed_settings const& feed)
+	{
+		// if you have auto-download enabled, you must specify a download directory!
+		TORRENT_ASSERT(!feed.auto_download || !feed.add_args.save_path.empty());
+		TORRENT_SYNC_CALL_RET1(feed_handle, add_feed, feed);
+		return r;
+	}
+
+	void session::remove_feed(feed_handle h)
+	{
+		TORRENT_ASYNC_CALL1(remove_feed, h);
+	}
+
+	void session::get_feeds(std::vector<feed_handle>& f) const
+	{
+		f.clear();
+		TORRENT_SYNC_CALL1(get_feeds, &f);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{

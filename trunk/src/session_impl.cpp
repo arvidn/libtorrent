@@ -500,6 +500,7 @@ namespace aux {
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
+		, m_next_rss_update(min_time())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
 #endif
@@ -914,7 +915,6 @@ namespace aux {
 		{
 			e["dht state"] = m_dht->state();
 		}
-
 #endif
 
 #if TORRENT_USE_I2P
@@ -939,6 +939,17 @@ namespace aux {
 			}
 		}
 #endif
+
+		if (flags & session::save_feeds)
+		{
+			entry::list_type& feeds = e["feeds"].list();
+			for (std::vector<boost::shared_ptr<feed> >::const_iterator i =
+				m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+			{
+				feeds.push_back(entry());
+				(*i)->save_state(feeds.back());
+			}
+		}
 
 	}
 	
@@ -1018,6 +1029,19 @@ namespace aux {
 			m_lsd->use_broadcast(true);
 
 		update_disk_thread_settings();
+
+		settings = e->dict_find_list("feeds");
+		if (settings)
+		{
+			m_feeds.reserve(settings->list_size());
+			for (int i = 0; i < settings->list_size(); ++i)
+			{
+				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
+				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
+				f->load_state(*settings->list_at(i));
+				m_feeds.push_back(f);
+			}
+		}
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1150,6 +1174,51 @@ namespace aux {
 		if (m_dht) m_dht->add_node(n);
 	}
 #endif
+
+	feed_handle session_impl::add_feed(feed_settings const& sett)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		// look for duplicates. If we already have a feed with this
+		// URL, return a handle to the existing one
+		for (std::vector<boost::shared_ptr<feed> >::const_iterator i
+			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+		{
+			if (sett.url != (*i)->m_settings.url) continue;
+			return feed_handle(*i);
+		}
+
+		boost::shared_ptr<feed> f(new_feed(*this, sett));
+		m_feeds.push_back(f);
+		update_rss_feeds();
+		return feed_handle(f);
+	}
+
+	void session_impl::remove_feed(feed_handle h)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		boost::shared_ptr<feed> f = h.m_feed_ptr.lock();
+		if (!f) return;
+
+		std::vector<boost::shared_ptr<feed> >::iterator i
+			= std::find(m_feeds.begin(), m_feeds.end(), f);
+
+		if (i == m_feeds.end()) return;
+
+		m_feeds.erase(i);
+	}
+
+	void session_impl::get_feeds(std::vector<feed_handle>* ret) const
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		ret->clear();
+		ret->reserve(m_feeds.size());
+		for (std::vector<boost::shared_ptr<feed> >::const_iterator i = m_feeds.begin()
+			, end(m_feeds.end()); i != end; ++i)
+			ret->push_back(feed_handle(*i));
+	}
 
 	void session_impl::pause()
 	{
@@ -2309,6 +2378,12 @@ namespace aux {
 			}
 		}
 
+		// --------------------------------------------------------------
+		// RSS feeds
+		// --------------------------------------------------------------
+		if (now > m_next_rss_update)
+			update_rss_feeds();
+
 		switch (m_settings.mixed_mode_algorithm)
 		{
 			case session_settings::prefer_tcp:
@@ -2788,6 +2863,27 @@ namespace aux {
 
 		while (m_tick_residual >= 1000) m_tick_residual -= 1000;
 //		m_peer_pool.release_memory();
+	}
+
+	void session_impl::update_rss_feeds()
+	{
+		time_t now_posix = time(0);
+		ptime min_update = max_time();
+		ptime now = time_now();
+		for (std::vector<boost::shared_ptr<feed> >::iterator i
+			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+		{
+			feed& f = **i;
+			int delta = f.next_update(now_posix);
+			if (delta <= 0)
+			{
+				f.update_feed();
+				continue;
+			}
+			ptime next_update = now + seconds(delta);
+			if (next_update < min_update) min_update = next_update;
+		}
+		m_next_rss_update = min_update;
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -3404,6 +3500,16 @@ namespace aux {
 		return boost::weak_ptr<torrent>();
 	}
 
+	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		std::map<std::string, boost::shared_ptr<torrent> >::iterator i
+			= m_uuids.find(uuid);
+		if (i != m_uuids.end()) return i->second;
+		return boost::weak_ptr<torrent>();
+	}
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name
 		, int instance, bool append)
@@ -3469,6 +3575,8 @@ namespace aux {
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
+		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
+
 		if (torrent_ptr)
 		{
 			if (!params.duplicate_is_error)
@@ -3511,6 +3619,9 @@ namespace aux {
 #endif
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
+		if (!params.uuid.empty() || !params.url.empty())
+			m_uuids.insert(std::make_pair(params.uuid.empty()
+				? params.url : params.uuid, torrent_ptr));
 
 		// if this is an auto managed torrent, force a recalculation
 		// of which torrents to have active
@@ -3547,9 +3658,10 @@ namespace aux {
 		{
 			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
 			if (*i == t) done = i;
-			if (next_check == t || next_check->queue_position() > (*i)->queue_position())
+			else if (next_check == t || next_check->queue_position() > (*i)->queue_position())
 				next_check = *i;
 		}
+		TORRENT_ASSERT(next_check != t || m_queued_for_checking.size() == 1);
 		// only start a new one if we removed the one that is checking
 		TORRENT_ASSERT(done != m_queued_for_checking.end());
 		if (done == m_queued_for_checking.end()) return;
@@ -3571,6 +3683,14 @@ namespace aux {
 #endif
 
 		INVARIANT_CHECK;
+
+		// remove from uuid list
+		if (!tptr->uuid().empty())
+		{
+			std::map<std::string, boost::shared_ptr<torrent> >::iterator j
+				= m_uuids.find(tptr->uuid());
+			if (j != m_uuids.end()) m_uuids.erase(j);
+		}
 
 		session_impl::torrent_map::iterator i =
 			m_torrents.find(tptr->torrent_file().info_hash());

@@ -63,6 +63,7 @@ libtorrent_rasterbar_la_SOURCES = \
   packet_buffer.cpp               \
   policy.cpp                      \
   puff.cpp                        \
+  rss.cpp                         \
   session.cpp                     \
   session_impl.cpp                \
   settings.cpp                    \

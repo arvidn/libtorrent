@@ -699,6 +699,7 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
+		std::string const& uuid() const { return m_uuid; }
 		std::string const& url() const { return m_url; }
 
 		std::vector<announce_entry> const& trackers() const
@@ -978,6 +979,14 @@ namespace libtorrent
 		// if we don't have the metadata, this is a url to
 		// the torrent file
 		std::string m_url;
+
+		// if this was added from an RSS feed, this is the unique
+		// identifier in the feed.
+		std::string m_uuid;
+
+		// if this torrent was added by an RSS feed, this is the
+		// URL to that feed
+		std::string m_source_feed_url;
 
 		// this is used as temporary storage while downloading
 		// the .torrent file from m_url
