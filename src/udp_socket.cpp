@@ -61,10 +61,12 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_ipv4_sock(ios)
 	, m_v4_buf_size(0)
 	, m_v4_buf(0)
+	, m_reallocate_buffer4(false)
 #if TORRENT_USE_IPV6
 	, m_ipv6_sock(ios)
 	, m_v6_buf_size(0)
 	, m_v6_buf(0)
+	, m_reallocate_buffer6(false)
 #endif
 	, m_bind_port(0)
 	, m_outstanding(0)
@@ -75,7 +77,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_abort(false)
-	, m_reallocate_buffers(false)
 {
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
@@ -184,16 +185,20 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 #endif
 }
 
-void udp_socket::maybe_realloc_buffers()
+void udp_socket::maybe_realloc_buffers(int which)
 {
-	if (m_reallocate_buffers)
+	if (m_reallocate_buffer4 && (which & 1))
 	{
 		m_v4_buf = (char*)realloc(m_v4_buf, m_v4_buf_size);
-#if TORRENT_USE_IPV6
-		m_v6_buf = (char*)realloc(m_v6_buf, m_v6_buf_size);
-#endif
-		m_reallocate_buffers = false;
+		m_reallocate_buffer4 = false;
 	}
+#if TORRENT_USE_IPV6
+	if (m_reallocate_buffer6 && (which & 2))
+	{
+		m_v6_buf = (char*)realloc(m_v6_buf, m_v6_buf_size);
+		m_reallocate_buffer6 = false;
+	}
+#endif
 }
 
 void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_transferred)
@@ -220,6 +225,12 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 	CHECK_MAGIC;
 	if (!m_callback) return;
+
+#if TORRENT_USE_IPV6
+	int which = (s == &m_ipv4_sock) ? 1 : 2;
+#else
+	int which = 1;
+#endif
 
 	if (e)
 	{
@@ -259,7 +270,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers();
+		maybe_realloc_buffers(which);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
@@ -308,7 +319,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers();
+		maybe_realloc_buffers(which);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
@@ -340,7 +351,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers();
+		maybe_realloc_buffers(which);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
@@ -505,10 +516,11 @@ void udp_socket::set_buf_size(int s)
 	if (s > m_v4_buf_size)
 	{
 		m_v4_buf_size = s;
+		m_reallocate_buffer4 = true;
 #if TORRENT_USE_IPV6
 		m_v6_buf_size = s;
+		m_reallocate_buffer6 = true;
 #endif
-		m_reallocate_buffers = true;
 	}
 }
 

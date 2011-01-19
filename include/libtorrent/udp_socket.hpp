@@ -147,7 +147,7 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		void maybe_realloc_buffers();
+		void maybe_realloc_buffers(int which = 3);
 
 #ifdef TORRENT_DEBUG
 #if defined BOOST_HAS_PTHREADS
@@ -168,12 +168,22 @@ namespace libtorrent
 		udp::endpoint m_v4_ep;
 		int m_v4_buf_size;
 		char* m_v4_buf;
+		// this is set to true to indicate that the
+		// m_v4_buf should be reallocated to the size
+		// of the buffer size members the next time their
+		// read handler gets triggered
+		bool m_reallocate_buffer4;
 
 #if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
 		udp::endpoint m_v6_ep;
 		int m_v6_buf_size;
 		char* m_v6_buf;
+		// this is set to true to indicate that the
+		// m_v6_buf should be reallocated to the size
+		// of the buffer size members the next time their
+		// read handler gets triggered
+		bool m_reallocate_buffer6;
 #endif
 
 		int m_bind_port;
@@ -188,11 +198,6 @@ namespace libtorrent
 		bool m_queue_packets;
 		bool m_tunnel_packets;
 		bool m_abort;
-		// this is set to true to indicate that the m_v4_buf
-		// and m_v6_buf should be reallocated to the size
-		// of the buffer size members the next time their
-		// read handler gets triggered
-		bool m_reallocate_buffers;
 		udp::endpoint m_proxy_addr;
 		// while we're connecting to the proxy
 		// we have to queue the packets, we'll flush
