@@ -78,10 +78,10 @@ int main(int argc, char* argv[])
 	ses.set_settings(sett);
 
 	std::vector<char> in;
-	if (load_file(".ses_state", in) == 0)
+	error_code ec;
+	if (load_file(".ses_state", in, ec) == 0)
 	{
 		lazy_entry e;
-		error_code ec;
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}

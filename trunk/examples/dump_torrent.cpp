@@ -59,14 +59,14 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	std::vector<char> buf(size);
-	int ret = load_file(argv[1], buf, 40 * 1000000);
+	error_code ec;
+	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
 	if (ret != 0)
 	{
-		fprintf(stderr, "failed to load file: %d\n", ret);
+		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
 		return 1;
 	}
 	lazy_entry e;
-	error_code ec;
 	int pos;
 	printf("decoding. recursion limit: %d total item count limit: %d\n"
 		, depth_limit, item_limit);

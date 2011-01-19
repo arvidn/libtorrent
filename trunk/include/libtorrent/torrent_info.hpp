@@ -222,7 +222,7 @@ namespace libtorrent
 #endif
 
 	int TORRENT_EXPORT load_file(std::string const& filename
-		, std::vector<char>& v, int limit = 8000000);
+		, std::vector<char>& v, error_code& ec, int limit = 8000000);
 
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{

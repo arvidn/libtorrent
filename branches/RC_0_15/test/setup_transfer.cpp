@@ -621,9 +621,9 @@ void web_server_thread(int* port, bool ssl)
 				int size = range_end - range_start + 1;
 				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
-				int res = load_file("./tmp1_web_seed/seed", file_buf);
-
 				error_code ec;
+				int res = load_file("./tmp1_web_seed/seed", file_buf, ec);
+
 				if (res == -1 || file_buf.empty())
 				{
 					send_response(s, ec, 404, "Not Found", 0, 0);
@@ -645,7 +645,8 @@ void web_server_thread(int* port, bool ssl)
 			std::vector<char> file_buf;
 			// remove the / from the path
 			path = path.substr(1);
-			int res = load_file(path, file_buf);
+			error_code ec;
+			int res = load_file(path, file_buf, ec);
 			if (res == -1)
 			{
 				send_response(s, ec, 404, "Not Found", 0, 0);
