@@ -2,6 +2,7 @@
 #include "libtorrent/rss.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
+#include <signal.h>
 
 using namespace libtorrent;
 
