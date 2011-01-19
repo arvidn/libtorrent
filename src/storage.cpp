@@ -537,11 +537,6 @@ namespace libtorrent
 			// ignore pad files
 			if (file_iter->pad_file) continue;
 
-			// if the file is empty, just create it either way.
-			// if the file already exists, but is larger than what
-			// it's supposed to be, also truncate it
-			if (!allocate_files && file_iter->size > 0) continue;
-
 			file_status s;
 			stat_file(file_path, &s, ec);
 			if (ec && ec != boost::system::errc::no_such_file_or_directory)
@@ -551,7 +546,11 @@ namespace libtorrent
 			}
 
 			// ec is either ENOENT or the file existed and s is valid
-			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
+			// allocate file only if it is not exist and (allocate_files == true)
+			// if the file already exists, but is larger than what
+			// it's supposed to be, also truncate it
+			// if the file is empty, just create it either way.
+			if ((ec && allocate_files) || s.file_size > file_iter->size || file_iter->size == 0)
 			{
 				ec.clear();
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
