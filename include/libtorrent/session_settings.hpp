@@ -206,7 +206,6 @@ namespace libtorrent
 			, low_prio_disk(true)
 			, local_service_announce_interval(5 * 60)
 			, dht_announce_interval(15 * 60)
-			, dht_max_torrents(3000)
 			, udp_tracker_token_expiry(60)
 			, volatile_read_cache(false)
 			, guided_read_cache(true)
@@ -800,9 +799,6 @@ namespace libtorrent
 		// torrents. Defaults to 15 minutes
 		int dht_announce_interval;
 
-		// this is the max number of torrents the DHT will track
-		int dht_max_torrents;
-
 		// the number of seconds a connection ID received
 		// from a UDP tracker is valid for. This is specified
 		// as 60 seconds
@@ -1032,6 +1028,8 @@ namespace libtorrent
 			, service_port(0)
 #endif
 			, max_fail_count(20)
+			, max_torrents(3000)
+			, max_feed_items(3000)
 			, max_torrent_search_reply(20)
 			, restrict_routing_ips(true)
 			, restrict_search_ips(true)
@@ -1054,6 +1052,12 @@ namespace libtorrent
 		// the maximum number of times a node can fail
 		// in a row before it is removed from the table.
 		int max_fail_count;
+
+		// this is the max number of torrents the DHT will track
+		int max_torrents;
+
+		// max number of feed items the DHT will store
+		int max_feed_items;
 
 		// the max number of torrents to return in a
 		// torrent search query to the DHT

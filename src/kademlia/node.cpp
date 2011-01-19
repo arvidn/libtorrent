@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/alert.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -174,20 +175,16 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
-// TODO: the session_impl argument could be an alert reference
-// instead, and make the dht_tracker less dependent on session_impl
-// which would make it simpler to unit test
-node_impl::node_impl(libtorrent::aux::session_impl& ses
+node_impl::node_impl(libtorrent::alert_manager& alerts
 	, bool (*f)(void*, entry const&, udp::endpoint const&, int)
-	, dht_settings const& settings
-	, node_id nid
-	, void* userdata)
+	, dht_settings const& settings, node_id nid, address const& external_address
+	, external_ip_fun ext_ip, void* userdata)
 	: m_settings(settings)
-	, m_id(nid == (node_id::min)() || !verify_id(nid, ses.external_address()) ? generate_id(ses.external_address()) : nid)
+	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, f, userdata, ses)
+	, m_rpc(m_id, m_table, f, userdata, ext_ip)
 	, m_last_tracker_tick(time_now())
-	, m_ses(ses)
+	, m_alerts(alerts)
 	, m_send(f)
 	, m_userdata(userdata)
 {
@@ -436,6 +433,16 @@ time_duration node_impl::connection_timeout()
 	if (now - m_last_tracker_tick < minutes(2)) return d;
 	m_last_tracker_tick = now;
 
+	for (feed_table_t::iterator i = m_feeds.begin(); i != m_feeds.end();)
+	{
+		if (i->second.last_seen + minutes(60) > now)
+		{
+			++i;
+			continue;
+		}
+		m_feeds.erase(i);
+	}
+
 	// look through all peers and see if any have timed out
 	for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
 	{
@@ -475,8 +482,8 @@ void node_impl::status(session_status& s)
 bool node_impl::lookup_torrents(sha1_hash const& target
 	, entry& reply, char* tags) const
 {
-//	if (m_ses.m_alerts.should_post<dht_find_torrents_alert>())
-//		m_ses.m_alerts.post_alert(dht_find_torrents_alert(info_hash));
+//	if (m_alerts.should_post<dht_find_torrents_alert>())
+//		m_alerts.post_alert(dht_find_torrents_alert(info_hash));
 
 	search_table_t::const_iterator first, last;
 	first = m_search_map.lower_bound(std::make_pair(target, (sha1_hash::min)()));
@@ -521,8 +528,8 @@ bool node_impl::lookup_torrents(sha1_hash const& target
 
 bool node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply) const
 {
-	if (m_ses.m_alerts.should_post<dht_get_peers_alert>())
-		m_ses.m_alerts.post_alert(dht_get_peers_alert(info_hash));
+	if (m_alerts.should_post<dht_get_peers_alert>())
+		m_alerts.post_alert(dht_get_peers_alert(info_hash));
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return false;
@@ -616,14 +623,24 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 	// clear the return buffer
 	memset(ret, 0, sizeof(ret[0]) * size);
 
+	// when parsing child nodes, this is the stack
+	// of lazy_entry pointers to return to
+	lazy_entry const* stack[5];
+	int stack_ptr = -1;
+
 	if (msg->type() != lazy_entry::dict_t)
 	{
 		snprintf(error, error_size, "not a dictionary");
 		return false;
 	}
+	++stack_ptr;
+	stack[stack_ptr] = msg;
 	for (int i = 0; i < size; ++i)
 	{
 		key_desc_t const& k = desc[i];
+
+//		fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
+
 		ret[i] = msg->dict_find(k.name);
 		if (ret[i] && ret[i]->type() != k.type) ret[i] = 0;
 		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
@@ -635,16 +652,49 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 
 		if (k.size > 0
 			&& ret[i]
-			&& k.type == lazy_entry::string_t
-			&& ret[i]->string_length() != k.size)
+			&& k.type == lazy_entry::string_t)
 		{
-			// the string was not of the required size
-			ret[i] = 0;
-			if ((k.flags & key_desc_t::optional) == 0)
+			bool invalid = false;
+			if (k.flags & key_desc_t::size_divisible)
+				invalid = (ret[i]->string_length() % k.size) != 0;
+			else
+				invalid = ret[i]->string_length() != k.size;
+
+			if (invalid)
 			{
-				snprintf(error, error_size, "invalid value for '%s'", k.name);
-				return false;
+				// the string was not of the required size
+				ret[i] = 0;
+				if ((k.flags & key_desc_t::optional) == 0)
+				{
+					snprintf(error, error_size, "invalid value for '%s'", k.name);
+					return false;
+				}
 			}
+		}
+		if (k.flags & key_desc_t::parse_children)
+		{
+			TORRENT_ASSERT(k.type == lazy_entry::dict_t);
+
+			if (ret[i])
+			{
+				++stack_ptr;
+				TORRENT_ASSERT(stack_ptr < sizeof(stack)/sizeof(stack[0]));
+				msg = ret[i];
+				stack[stack_ptr] = msg;
+			}
+			else
+			{
+				// skip all children
+				while (i < size && (desc[i].flags & key_desc_t::last_child) == 0) ++i;
+				// if this assert is hit, desc is incorrect
+				TORRENT_ASSERT(i < size);
+			}
+		}
+		else if (k.flags & key_desc_t::last_child)
+		{
+			TORRENT_ASSERT(stack_ptr > 0);
+			--stack_ptr;
+			msg = stack[stack_ptr];
 		}
 	}
 	return true;
@@ -785,14 +835,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
 #endif
-			incoming_error(e, "invalid 'port' in announce");
+			incoming_error(e, "invalid port");
 			return;
 		}
 
 		sha1_hash info_hash(msg_keys[0]->string_ptr());
 
-		if (m_ses.m_alerts.should_post<dht_announce_alert>())
-			m_ses.m_alerts.post_alert(dht_announce_alert(
+		if (m_alerts.should_post<dht_announce_alert>())
+			m_alerts.post_alert(dht_announce_alert(
 				m.addr.address(), port, info_hash));
 
 		if (!verify_token(msg_keys[2]->string_value(), msg_keys[0]->string_ptr(), m.addr))
@@ -800,7 +850,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
 #endif
-			incoming_error(e, "invalid token in announce");
+			incoming_error(e, "invalid token");
 			return;
 		}
 
@@ -809,7 +859,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr);
 
-		if (!m_map.empty() && m_map.size() >= m_ses.settings().dht_max_torrents)
+		if (!m_map.empty() && m_map.size() >= m_settings.max_torrents)
 		{
 			// we need to remove some. Remove the ones with the
 			// fewest peers
@@ -872,6 +922,187 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		lookup_torrents(target, reply, (char*)msg_keys[1]->string_cstr());
 	}
+*/
+	else if (strcmp(query, "announce_item") == 0)
+	{
+		feed_item add_item;
+		const static key_desc_t msg_desc[] = {
+			{"target", lazy_entry::string_t, 20, 0},
+			{"token", lazy_entry::string_t, 0, 0},
+			{"sig", lazy_entry::string_t, sizeof(add_item.signature), 0},
+			{"head", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+				{"n", lazy_entry::string_t, 0, 0},
+				{"key", lazy_entry::string_t, 64, 0},
+				{"seq", lazy_entry::int_t, 0, 0},
+				{"next", lazy_entry::string_t, 20, key_desc_t::last_child | key_desc_t::size_divisible},
+			{"item", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+				{"key", lazy_entry::string_t, 64, 0},
+				{"next", lazy_entry::string_t, 20, key_desc_t::last_child | key_desc_t::size_divisible},
+		};
+
+		// attempt to parse the message
+		lazy_entry const* msg_keys[11];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 11, error_string, sizeof(error_string)))
+		{
+			incoming_error(e, error_string);
+			return;
+		}
+
+		sha1_hash target(msg_keys[0]->string_ptr());
+
+		// verify the write-token
+		if (!verify_token(msg_keys[1]->string_value(), msg_keys[0]->string_ptr(), m.addr))
+		{
+			incoming_error(e, "invalid token");
+			return;
+		}
+
+		sha1_hash expected_target;
+		sha1_hash item_hash;
+		std::pair<char const*, int> buf;
+		if (msg_keys[3])
+		{
+			// we found the "head" entry
+			add_item.type = feed_item::list_head;
+			add_item.item = *msg_keys[3];
+
+			add_item.name = msg_keys[4]->string_value();
+			add_item.sequence_number = msg_keys[6]->int_value();
+
+			buf = msg_keys[3]->data_section();
+			item_hash = hasher(buf.first, buf.second).final();
+
+			hasher h;
+			h.update(add_item.name);
+			h.update((const char*)msg_keys[5]->string_ptr(), msg_keys[5]->string_length());
+			expected_target = h.final();
+		}
+		else if (msg_keys[8])
+		{
+			// we found the "item" entry
+			add_item.type = feed_item::list_item;
+			add_item.item = *msg_keys[8];
+
+			buf = msg_keys[8]->data_section();
+			item_hash = hasher(buf.first, buf.second).final();
+			expected_target = item_hash;
+		}
+		else
+		{
+			incoming_error(e, "missing head or item");
+			return;
+		}
+
+		if (buf.second > 1024)
+		{
+			incoming_error(e, "message too big");
+			return;
+		}
+
+		// verify that the key matches the target
+		if (expected_target != target)
+		{
+			incoming_error(e, "invalid target");
+			return;
+		}
+
+		memcpy(add_item.signature, msg_keys[2]->string_ptr(), sizeof(add_item.signature));
+
+		// #error verify signature by comparing it to item_hash
+
+		m_table.node_seen(id, m.addr);
+
+		feed_table_t::iterator i = m_feeds.find(target);
+		if (i == m_feeds.end())
+		{
+			// make sure we don't add too many items
+			if (m_feeds.size() >= m_settings.max_feed_items)
+			{
+				// delete the least important one (i.e. the one
+				// the fewest peers are announcing)
+				i = std::min_element(m_feeds.begin(), m_feeds.end()
+					, boost::bind(&feed_item::num_announcers
+						, boost::bind(&feed_table_t::value_type::second, _1)));
+				TORRENT_ASSERT(i != m_feeds.end());
+//				std::cerr << " removing: " << i->second.item << std::endl;
+				m_feeds.erase(i);
+			}
+			boost::tie(i, boost::tuples::ignore) = m_feeds.insert(std::make_pair(target, add_item));
+		}
+		feed_item& f = i->second;
+		if (f.type != add_item.type) return;
+
+		f.last_seen = time_now();
+		if (add_item.sequence_number > f.sequence_number)
+		{
+			f.item.swap(add_item.item);
+			f.name.swap(add_item.name);
+			f.sequence_number = add_item.sequence_number;
+			memcpy(f.signature, add_item.signature, sizeof(f.signature));
+		}
+
+		// maybe increase num_announcers if we haven't seen this IP before
+		sha1_hash iphash;
+		hash_address(m.addr.address(), iphash);
+		if (!f.ips.find(iphash))
+		{
+			f.ips.set(iphash);
+			++f.num_announcers;
+		}
+	}
+	else if (strcmp(query, "get_item") == 0)
+	{
+		key_desc_t msg_desc[] = {
+			{"target", lazy_entry::string_t, 20, 0},
+			{"key", lazy_entry::string_t, 64, 0},
+			{"n", lazy_entry::string_t, 0, key_desc_t::optional},
+		};
+
+		// attempt to parse the message
+		lazy_entry const* msg_keys[3];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
+		{
+			incoming_error(e, error_string);
+			return;
+		}
+
+		sha1_hash target(msg_keys[0]->string_ptr());
+
+		// verify that the key matches the target
+		// we can only do this for list heads, where
+		// we have the name.
+		if (msg_keys[2])
+		{
+			hasher h;
+			h.update(msg_keys[2]->string_ptr(), msg_keys[2]->string_length());
+			h.update(msg_keys[1]->string_ptr(), msg_keys[1]->string_length());
+			if (h.final() != target)
+			{
+				incoming_error(e, "invalid target");
+				return;
+			}
+		}
+
+		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
+		
+		nodes_t n;
+		// always return nodes as well as peers
+		m_table.find_node(target, n, 0);
+		write_nodes_entry(reply, n);
+
+		feed_table_t::iterator i = m_feeds.find(target);
+		if (i != m_feeds.end())
+		{
+			feed_item const& f = i->second;
+
+			if (f.type == feed_item::list_head)
+				reply["head"] = f.item;
+			else
+				reply["item"] = f.item;
+			reply["sig"] = std::string((char*)f.signature, sizeof(f.signature));
+		}
+	}
+/*
 	else if (strcmp(query, "announce_torrent") == 0)
 	{
 		key_desc_t msg_desc[] = {
@@ -889,8 +1120,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-//		if (m_ses.m_alerts.should_post<dht_announce_torrent_alert>())
-//			m_ses.m_alerts.post_alert(dht_announce_torrent_alert(
+//		if (m_alerts.should_post<dht_announce_torrent_alert>())
+//			m_alerts.post_alert(dht_announce_torrent_alert(
 //				m.addr.address(), name, tags, info_hash));
 
 		if (!verify_token(msg_keys[4]->string_value(), msg_keys[0]->string_ptr(), m.addr))

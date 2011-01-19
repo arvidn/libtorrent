@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/thread.hpp>
+#include <libtorrent/bloom_filter.hpp>
 
 #include <boost/cstdint.hpp>
 #include <boost/ref.hpp>
@@ -55,10 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 
 namespace libtorrent {
-	
-	namespace aux { struct session_impl; }
-	struct session_status;
-
+	struct alert_manager;
 }
 
 namespace libtorrent { namespace dht
@@ -77,7 +75,22 @@ struct key_desc_t
 	int size;
 	int flags;
 
-	enum { optional = 1}; 
+	enum {
+		// this argument is optional, parsing will not
+		// fail if it's not present
+		optional = 1,
+		// for dictionaries, the following entries refer
+		// to child nodes to this node, up until and including
+		// the next item that has the last_child flag set.
+		// these flags are nestable
+		parse_children = 2,
+		// this is the last item in a child dictionary
+		last_child = 4,
+		// the size argument refers to that the size
+		// has to be divisible by the number, instead
+		// of having that exact size
+		size_divisible = 8
+	}; 
 };
 
 bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
@@ -97,6 +110,22 @@ struct torrent_entry
 {
 	std::string name;
 	std::set<peer_entry> peers;
+};
+
+struct feed_item
+{
+	feed_item() : sequence_number(0), num_announcers(0) {}
+	enum { list_head, list_item } type;
+	size_type sequence_number;
+	std::string name;
+	unsigned char signature[64];
+	entry item;
+	ptime last_seen;
+	// this counts the number of IPs we have seen
+	// announcing this item, this is used to determine
+	// popularity if we reach the limit of items to store
+	bloom_filter<8> ips;
+	int num_announcers;
 };
 
 // this is the entry for a torrent that has been published
@@ -177,12 +206,16 @@ struct count_peers
 class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
+typedef std::map<node_id, feed_item> feed_table_t;
 typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_table_t;
+
 public:
-	node_impl(libtorrent::aux::session_impl& ses
+	typedef boost::function3<void, address, int, address> external_ip_fun;
+
+	node_impl(libtorrent::alert_manager& alerts
 		, bool (*f)(void*, entry const&, udp::endpoint const&, int)
-		, dht_settings const& settings, node_id nid
-		, void* userdata);
+		, dht_settings const& settings, node_id nid, address const& external_address
+		, external_ip_fun ext_ip, void* userdata);
 
 	virtual ~node_impl() {}
 
@@ -292,6 +325,7 @@ public:
 
 private:
 	table_t m_map;
+	feed_table_t m_feeds;
 	search_table_t m_search_map;
 	
 	ptime m_last_tracker_tick;
@@ -299,7 +333,7 @@ private:
 	// secret random numbers used to create write tokens
 	int m_secret[2];
 
-	libtorrent::aux::session_impl& m_ses;
+	libtorrent::alert_manager& m_alerts;
 	bool (*m_send)(void*, entry const&, udp::endpoint const&, int);
 	void* m_userdata;
 };

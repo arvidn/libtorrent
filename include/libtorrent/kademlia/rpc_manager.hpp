@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
+#include <boost/function/function3.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
@@ -68,10 +69,11 @@ class rpc_manager
 {
 public:
 	typedef bool (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
+	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, send_fun const& sf
-		, void* userdata, aux::session_impl& ses);
+		, void* userdata, external_ip_fun ext_ip);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -113,7 +115,7 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
-	aux::session_impl& m_ses;
+	external_ip_fun m_ext_ip;
 };
 
 } } // namespace libtorrent::dht

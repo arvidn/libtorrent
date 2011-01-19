@@ -208,7 +208,10 @@ namespace libtorrent { namespace dht
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 		, dht_settings const& settings, entry const* state)
-		: m_dht(ses, &send_callback, settings, extract_node_id(state), this)
+		: m_dht(ses.m_alerts, &send_callback, settings, extract_node_id(state)
+			, ses.external_address()
+			, boost::bind(&aux::session_impl::set_external_address, &ses, _1, _2, _3)
+			, this)
 		, m_ses(ses)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))

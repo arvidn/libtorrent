@@ -390,8 +390,87 @@ address rand_v4()
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace libtorrent::dht;
 	error_code ec;
 	int ret = 0;
+
+	// test verify_message
+	const static key_desc_t msg_desc[] = {
+		{"A", lazy_entry::string_t, 4, 0},
+		{"B", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"B1", lazy_entry::string_t, 0, 0},
+			{"B2", lazy_entry::string_t, 0, key_desc_t::last_child},
+		{"C", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"C1", lazy_entry::string_t, 0, 0},
+			{"C2", lazy_entry::string_t, 0, key_desc_t::last_child},
+	};
+
+	lazy_entry const* msg_keys[7];
+
+	lazy_entry ent;
+
+	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
+	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	char error_string[200];
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1]);
+	TEST_CHECK(msg_keys[2]);
+	if (msg_keys[2]) TEST_EQUAL(msg_keys[2]->string_value(), "test2");
+	TEST_CHECK(msg_keys[3]);
+	if (msg_keys[3]) TEST_EQUAL(msg_keys[3]->string_value(), "test3");
+	TEST_CHECK(msg_keys[4] == 0);
+	TEST_CHECK(msg_keys[5] == 0);
+	TEST_CHECK(msg_keys[6] == 0);
+
+	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1] == 0);
+	TEST_CHECK(msg_keys[2] == 0);
+	TEST_CHECK(msg_keys[3] == 0);
+	TEST_CHECK(msg_keys[4]);
+	TEST_CHECK(msg_keys[5]);
+	if (msg_keys[5]) TEST_EQUAL(msg_keys[5]->string_value(), "test2");
+	TEST_CHECK(msg_keys[6]);
+	if (msg_keys[6]) TEST_EQUAL(msg_keys[6]->string_value(), "test3");
+
+
+	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'A' key"));
+
+	char const test_msg4[] = "d1:A6:foobare";
+	lazy_bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
+
+	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
+	lazy_bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
 
 	// test external ip voting
 	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
