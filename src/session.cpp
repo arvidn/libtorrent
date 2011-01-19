@@ -517,6 +517,7 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
+		ec.clear();
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			add_torrent_params p(params);

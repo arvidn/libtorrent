@@ -180,7 +180,8 @@ void save_file(char const* filename, char const* data, int size)
 sha1_hash file_hash(std::string const& name)
 {
 	std::vector<char> buf;
-	load_file(name, buf);
+	error_code ec;
+	load_file(name, buf, ec);
 	if (buf.empty()) return sha1_hash(0);
 	hasher h(&buf[0], buf.size());
 	return h.final();
