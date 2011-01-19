@@ -539,7 +539,8 @@ namespace libtorrent
 
 			file_status s;
 			stat_file(file_path, &s, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+			if (ec && ec != boost::system::errc::no_such_file_or_directory
+				&& ec != boost::system::errc::not_a_directory)
 			{
 				set_error(file_path, ec);
 				break;
