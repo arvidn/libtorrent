@@ -573,8 +573,8 @@ namespace libtorrent
 
 	void storage::finalize_file(int index)
 	{
-		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
-		if (index < 0 || index >= m_files.num_files()) return;
+		TORRENT_ASSERT(index >= 0 && index < files().num_files());
+		if (index < 0 || index >= files().num_files()) return;
 	
 		error_code ec;
 		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, ec);
@@ -602,7 +602,7 @@ namespace libtorrent
 
 	bool storage::rename_file(int index, std::string const& new_filename)
 	{
-		if (index < 0 || index >= m_files.num_files()) return true;
+		if (index < 0 || index >= files().num_files()) return true;
 		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
 		m_pool.release(this, index);
 
