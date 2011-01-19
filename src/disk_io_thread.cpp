@@ -2060,6 +2060,7 @@ namespace libtorrent
 					lazy_entry const* rd = (lazy_entry const*)j.buffer;
 					TORRENT_ASSERT(rd != 0);
 					ret = j.storage->check_fastresume(*rd, j.error);
+					test_error(j);
 					break;
 				}
 				case disk_io_job::check_files:

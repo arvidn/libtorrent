@@ -368,14 +368,18 @@ namespace libtorrent
 		return 1 << i;
 	}
 
-	int load_file(fs::path const& filename, std::vector<char>& v)
+	int load_file(fs::path const& filename, std::vector<char>& v, error_code& ec)
 	{
+		ec.clear();
 		file f;
-		error_code ec;
 		if (!f.open(filename, file::read_only, ec)) return -1;
 		size_type s = f.get_size(ec);
 		if (ec) return -1;
-		if (s > 5000000) return -2;
+		if (s > 5000000)
+		{
+			ec = error_code(errors::metadata_too_large, get_libtorrent_category());
+			return -2;
+		}
 		v.resize(s);
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], s};
@@ -522,13 +526,13 @@ namespace libtorrent
 		, m_piece_hashes(0)
 	{
 		std::vector<char> buf;
-		int ret = load_file(filename, buf);
-		if (ret < 0) return;
+		error_code ec;
+		int ret = load_file(filename, buf, ec);
+		if (ret < 0) throw invalid_torrent_file(ec);
 
 		lazy_entry e;
 		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 			throw invalid_torrent_file(errors::invalid_bencoding);
-		error_code ec;
 		if (!parse_torrent_file(e, ec))
 			throw invalid_torrent_file(ec);
 	}
@@ -545,14 +549,14 @@ namespace libtorrent
 		std::vector<char> buf;
 		std::string utf8;
 		wchar_utf8(filename.string(), utf8);
-		int ret = load_file(utf8, buf);
-		if (ret < 0) return;
+		error_code ec;
+		int ret = load_file(utf8, buf, ec);
+		if (ret < 0) throw invalid_torrent_file(ec);
 
 		lazy_entry e;
 		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e) != 0)
 			throw invalid_torrent_file(errors::invalid_bencoding);
 
-		error_code ec;
 		if (!parse_torrent_file(e, ec))
 			throw invalid_torrent_file(ec);
 	}
@@ -594,7 +598,7 @@ namespace libtorrent
 		, m_piece_hashes(0)
 	{
 		std::vector<char> buf;
-		int ret = load_file(filename, buf);
+		int ret = load_file(filename, buf, ec);
 		if (ret < 0) return;
 
 		lazy_entry e;
@@ -617,7 +621,7 @@ namespace libtorrent
 		std::vector<char> buf;
 		std::string utf8;
 		wchar_utf8(filename.string(), utf8);
-		int ret = load_file(utf8, buf);
+		int ret = load_file(utf8, buf, ec);
 		if (ret < 0) return;
 
 		lazy_entry e;

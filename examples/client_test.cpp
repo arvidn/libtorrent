@@ -553,7 +553,7 @@ void add_torrent(libtorrent::session& ses
 	std::string filename = (save_path / (t->name() + ".resume")).string();
 
 	std::vector<char> buf;
-	if (load_file(filename.c_str(), buf) == 0)
+	if (load_file(filename.c_str(), buf, ec) == 0)
 		p.resume_data = &buf;
 
 	p.ti = t;
@@ -816,7 +816,8 @@ int main(int argc, char* argv[])
 			+ alert::stats_notification));
 
 	std::vector<char> in;
-	if (load_file(".ses_state", in) == 0)
+	error_code ec;
+	if (load_file(".ses_state", in, ec) == 0)
 	{
 		lazy_entry e;
 		if (lazy_bdecode(&in[0], &in[0] + in.size(), e) == 0)

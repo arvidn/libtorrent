@@ -478,6 +478,7 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
+		ec.clear();
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		return m_impl->add_torrent(params, ec);
 	}
