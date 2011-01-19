@@ -78,6 +78,8 @@ DOCS_PAGES = \
   docs/projects.rst               \
   docs/python_binding.html        \
   docs/python_binding.rst         \
+  docs/dht_rss.html               \
+  docs/dht_rss.rst                \
   docs/running_tests.html         \
   docs/running_tests.rst          \
   docs/tuning.html                \

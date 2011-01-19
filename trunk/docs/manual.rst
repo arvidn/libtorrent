@@ -1188,6 +1188,7 @@ struct has the following members::
 		int max_peers_reply;
 		int search_branching;
 		int max_fail_count;
+		int max_torrents;
 		bool restrict_routing_ips;
 		bool restrict_search_ips;
 	};
@@ -1204,6 +1205,14 @@ before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
+
+``max_torrents`` is the total number of torrents to track from the DHT. This
+is simply an upper limit to make sure malicious DHT nodes cannot make us allocate
+an unbounded amount of memory.
+
+``max_feed_items`` is the total number of feed items to store from the DHT. This
+is simply an upper limit to make sure malicious DHT nodes cannot make us allocate
+an unbounded amount of memory.
 
 ``restrict_routing_ips`` determines if the routing table entries should restrict
 entries to one per IP. This defaults to true, which helps mitigate some attacks
@@ -4173,7 +4182,6 @@ session_settings
 		bool low_prio_disk;
 		int local_service_announce_interval;
 		int dht_announce_interval;
-		int dht_max_torrents;
 
 		int udp_tracker_token_expiry;
 		bool volatile_read_cache;

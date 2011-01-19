@@ -183,6 +183,8 @@ void bind_session_settings()
         .def_readwrite("service_port", &dht_settings::service_port)
 #endif
         .def_readwrite("max_fail_count", &dht_settings::max_fail_count)
+        .def_readwrite("max_torrents", &dht_settings::max_torrents)
+        .def_readwrite("max_feed_items", &dht_settings::max_feed_items)
         .def_readwrite("restrict_routing_ips", &dht_settings::restrict_routing_ips)
         .def_readwrite("restrict_search_ips", &dht_settings::restrict_search_ips)
     ;
