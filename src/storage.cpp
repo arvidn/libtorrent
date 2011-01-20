@@ -451,6 +451,7 @@ namespace libtorrent
 					size -= bufs[i].iov_len;
 				}
 				num_read = m_storage->readv(bufs, slot, ph.offset, num_blocks);
+				// TODO: if the read fails, set error and exit immediately
 
 				for (int i = 0; i < num_blocks; ++i)
 				{
@@ -483,6 +484,7 @@ namespace libtorrent
 					buf.iov_len = (std::min)(block_size, size);
 					int ret = m_storage->readv(&buf, slot, ph.offset, 1);
 					if (ret > 0) num_read += ret;
+					// TODO: if the read fails, set error and exit immediately
 
 					if (small_hash && small_piece_size <= block_size)
 					{
