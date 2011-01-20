@@ -841,6 +841,7 @@ int main(int argc, char* argv[])
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  -Y                    Rate limit local peers\n"
+			"  -v <limit>            Set the max number of active torrents\n"
 			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
 			"                        incoming TCP connections)\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
@@ -1050,6 +1051,11 @@ int main(int argc, char* argv[])
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
+			case 'v':
+				settings.active_limit = atoi(arg);
+				settings.active_downloads = atoi(arg) / 2;
+				settings.active_seeds = atoi(arg) / 2;
+				break;
 			case 'q': loop_limit = atoi(arg); break;
 		}
 		++i; // skip the argument
