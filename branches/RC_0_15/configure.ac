@@ -340,6 +340,7 @@ AS_CASE(["$ARG_ENABLE_DEPRECATED"],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_NO_DEPRECATE],[1],[Define to exclude all deprecated functions from the API.])
+      COMPILETIME_OPTIONS+="-DTORRENT_NO_DEPRECATE "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEPRECATED])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DEPRECATED". Use either "yes" or "no".])]
