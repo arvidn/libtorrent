@@ -3196,6 +3196,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
+		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
 
 		bool was_finished = is_finished();
 		bool filter_updated = m_picker->set_piece_priority(index, priority);
@@ -3219,6 +3220,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
+		if (index < 0 || index >= m_torrent_file->num_pieces()) return 0;
 
 		return m_picker->piece_priority(index);
 	}
@@ -3302,6 +3304,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
+		if (index < 0 || index >= m_torrent_file->num_files()) return;
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
 		update_piece_priorities();
@@ -3314,6 +3317,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
+		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
 		return m_file_priority[index];
 	}
 
@@ -3396,6 +3400,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
+
 		bool was_finished = is_finished();
 		m_picker->set_piece_priority(index, filter ? 1 : 0);
 		update_peer_interest(was_finished);
@@ -3435,6 +3441,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		if (index < 0 || index >= m_torrent_file->num_pieces()) return true;
+
 		return m_picker->piece_priority(index) == 0;
 	}
 
@@ -3465,6 +3473,8 @@ namespace libtorrent
 		// the bitmask need to have exactly one bit for every file
 		// in the torrent
 		TORRENT_ASSERT((int)bitmask.size() == m_torrent_file->num_files());
+
+		if (bitmask.size() != m_torrent_file->num_files()) return;
 		
 		size_type position = 0;
 
