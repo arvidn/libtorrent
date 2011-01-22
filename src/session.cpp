@@ -103,6 +103,9 @@ namespace libtorrent
 		set.use_parole_mode = false;
 		set.prioritize_partial_pieces = true;
 
+		// connect to 5 peers per second
+		set.connection_speed = 5;
+
 		// be extra nice on the hard drive when running
 		// on embedded devices. This might slow down
 		// torrent checking
@@ -172,6 +175,9 @@ namespace libtorrent
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;
 
+		// connect to 50 peers per second
+		set.connection_speed = 50;
+
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;
@@ -185,6 +191,9 @@ namespace libtorrent
 		// delays when freeing a large number of buffers
 		set.lock_disk_cache = false;
 
+		// the max number of bytes pending write before we throttle
+		// download rate
+		set.max_queued_disk_bytes = 100 * 1024 * 1024;
 		// flush write cache based on largest contiguous block
 		set.disk_cache_algorithm = session_settings::largest_contiguous;
 
