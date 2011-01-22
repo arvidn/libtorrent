@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/utf8.hpp"
+#include <boost/thread.hpp>
 
 #if TORRENT_USE_LOCALE_FILENAMES
 #include <iconv.h>
@@ -572,6 +573,10 @@ namespace libtorrent
 #elif TORRENT_USE_LOCALE_FILENAMES
 	std::string convert_to_native(std::string const& s)
 	{
+		// only one thread can use this handle at a time
+		static boost::mutex iconv_mutex;
+		boost::mutex::scoped_lock l(iconv_mutex);
+
 		// the empty string represents the local dependent encoding
 		static iconv_t iconv_handle = iconv_open("", "UTF-8");
 		if (iconv_handle == iconv_t(-1)) return s;
