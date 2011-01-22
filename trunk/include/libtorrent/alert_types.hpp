@@ -1216,6 +1216,22 @@ namespace libtorrent
 		error_code error;
 	};
 
+	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
+	{
+		torrent_error_alert(torrent_handle const& h
+			, error_code const& e)
+			: torrent_alert(h)
+			, error(e)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_error_alert);
+
+		const static int static_category = alert::error_notification | alert::status_notification;
+		virtual std::string message() const;
+
+		error_code error;
+	};
+
 
 }
 

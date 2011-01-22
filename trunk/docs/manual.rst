@@ -6024,6 +6024,21 @@ generated and the torrent is paused.
 		error_code error;
 	};
 
+torrent_error_alert
+-------------------
+
+This is posted whenever a torrent is transitioned into the error state.
+
+::
+
+	struct torrent_error_alert: torrent_alert
+	{
+		// ...
+		error_code error;
+	};
+
+The ``error`` specifies which error the torrent encountered.
+
 file_renamed_alert
 ------------------
 

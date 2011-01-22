@@ -5770,6 +5770,9 @@ namespace libtorrent
 		m_error = ec;
 		m_error_file = error_file;
 
+		if (alerts().should_post<torrent_error_alert>())
+			alerts().post_alert(torrent_error_alert(get_handle(), ec));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		if (ec)
 		{
