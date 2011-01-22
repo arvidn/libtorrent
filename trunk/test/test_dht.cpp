@@ -75,6 +75,9 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, std::string const* target = 0, entry const* item = 0, std::string const* signature = 0
 	, std::string const* key = 0, std::string const* id = 0)
 {
+	// we're about to clear out the backing buffer
+	// for this lazy_entry, so we better clear it now
+	reply->clear();
 	entry e;
 	e["q"] = msg;
 	e["t"] = t;
@@ -111,7 +114,6 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	}
 
 	static char inbuf[1500];
-	char* ptr = inbuf;
 	int len = bencode(inbuf, i->second);
 	g_responses.erase(i);
 	error_code ec;
@@ -271,7 +273,7 @@ int test_main()
 	lazy_entry const* parsed[5];
 	char error_string[200];
 	bool ret;
-/*
+
 	// ====== ping ======
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	send_dht_msg(node, "ping", source, &response, "10");
@@ -354,7 +356,7 @@ int test_main()
 
 	// ====== announce ======
 
-	send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", token.c_str(), 8080);
+	send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", &token, 8080);
 
 	dht::key_desc_t ann_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
@@ -396,7 +398,9 @@ int test_main()
 	{
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
-*/
+
+	response.clear();
+
 	// ====== announce_item ======
 
 	udp::endpoint eps[1000];
