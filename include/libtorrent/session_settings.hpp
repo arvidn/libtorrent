@@ -254,6 +254,7 @@ namespace libtorrent
 			, torrent_connect_boost(10)
 			, seeding_outgoing_connections(true)
 			, no_connect_privileged_ports(true)
+			, alert_queue_size(1000)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1016,6 +1017,9 @@ namespace libtorrent
 		// connections to peers whose port is < 1024. This is a safety
 		// precaution to avoid being part of a DDoS attack
 		bool no_connect_privileged_ports;
+
+		// the max alert queue size
+		int alert_queue_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -403,10 +403,10 @@ namespace libtorrent {
 			return;
 		}
 
-		if (m_alerts.size() >= m_queue_size_limit) return;
+		if (m_alerts.size() >= m_queue_size_limit && alert_.discardable()) return;
 		m_alerts.push_back(alert_.clone().release());
-		m_condition.signal(lock);
-		m_condition.clear(lock);
+//		m_condition.signal(lock);
+//		m_condition.clear(lock);
 	}
 
 	std::auto_ptr<alert> alert_manager::get()

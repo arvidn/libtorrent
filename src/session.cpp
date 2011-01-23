@@ -94,6 +94,9 @@ namespace libtorrent
 	session_settings min_memory_usage()
 	{
 		session_settings set;
+
+		set.alert_queue_size = 100;
+
 		// setting this to a low limit, means more
 		// peers are more likely to request from the
 		// same piece. Which means fewer partial
@@ -167,6 +170,8 @@ namespace libtorrent
 	session_settings high_performance_seed()
 	{
 		session_settings set;
+
+		set.alert_queue_size = 10000;
 
 		// allow 500 files open at a time
 		set.file_pool_size = 500;
@@ -903,16 +908,16 @@ namespace libtorrent
 		TORRENT_SYNC_CALL_RET(int, num_connections);
 		return r;
 	}
+
+	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
+	{
+		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
+	}
 #endif // TORRENT_NO_DEPRECATE
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
 		return m_impl->pop_alert();
-	}
-
-	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
-	{
-		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)
@@ -925,13 +930,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_alert_mask, m);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		TORRENT_SYNC_CALL_RET1(size_t, set_alert_queue_size_limit, queue_size_limit_);
 		return r;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	void session::set_severity_level(alert::severity_t s)
 	{
 		int m = 0;

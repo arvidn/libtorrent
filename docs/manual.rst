@@ -941,14 +941,13 @@ Changes the mask of which alerts to receive. By default only errors are reported
 
 See alerts_ for mor information on the alert categories.
 
-pop_alert() wait_for_alert() set_alert_queue_size_limit()
----------------------------------------------------------
+pop_alert() wait_for_alert()
+----------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 `set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
@@ -964,9 +963,8 @@ can be called and it can pop the alert independently.
 
 In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
 
-``set_alert_queue_size_limit()`` you can specify how many alerts can be awaiting for dispatching.
-If this limit is reached, new incoming alerts can not be received until alerts are popped
-by calling ``pop_alert``. Default value is 1000.
+To control the max number of alerts that's queued by the session, see
+``session_settings::alert_queue_size``.
 
 ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
 of the alert mask.
@@ -4243,6 +4241,9 @@ session_settings
 
 		int torrent_connect_boost;
 		bool seeding_outgoing_connections;
+
+		bool no_connect_privileged_ports;
+		int alert_queue_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5058,6 +5059,14 @@ outgoing connections is high, and there are no or small benefits of doing so.
 For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
 make outgoing connections.
 
+if ``no_connect_privileged_ports`` is true (which is the default), libtorrent
+will not connect to any peers on priviliged ports (<= 1023). This can mitigate
+using bittorrent swarms for certain DDoS attacks.
+
+``alert_queue_size`` is the maximum number of alerts queued up internally. If
+alerts are not popped, the queue will eventually fill up to this level. This
+defaults to 1000.
+
 pe_settings
 ===========
 
@@ -5805,6 +5814,7 @@ is its synopsis:
 		virtual std::string message() const = 0;
 		virtual char const* what() const = 0;
 		virtual int category() const = 0;
+		virtual bool discardable() const;
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
 
@@ -5836,6 +5846,10 @@ not include any information that might be bundled with the alert.
 ``category()`` returns a bitmask specifying which categories this alert belong to.
 
 ``clone()`` returns a pointer to a copy of the alert.
+
+``discardable()`` determines whether or not an alert is allowed to be discarded
+when the alert queue is full. There are a few alerts which may not be discared,
+since they would break the user contract, such as ``save_resume_data_alert``.
 
 ``message()`` generate a string describing the alert and the information bundled
 with it. This is mainly intended for debug and development use. It is not suitable

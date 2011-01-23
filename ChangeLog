@@ -1,3 +1,5 @@
+	* pausing the session now also pauses checking torrents
+	* moved alert queue size limit into session_settings
 	* added support for DHT rss feeds (storing only)
 	* added support for RSS feeds
 	* fixed up some edge cases in DHT routing table and improved unit test of it
