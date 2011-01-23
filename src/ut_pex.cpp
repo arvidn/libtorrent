@@ -215,11 +215,16 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
-			, m_last_pex(min_time())
 			, m_1_minute(55)
 			, m_message_index(0)
 			, m_first_time(true)
-		{}
+		{
+			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
+			for (int i = 0; i < num_pex_timers; ++i)
+			{
+				m_last_pex[i]= min_time();
+			}
+		}
 
 		virtual char const* type() const { return "ut_pex"; }
 
@@ -253,8 +258,10 @@ namespace libtorrent { namespace
 				return true;
 			}
  
-			ptime now = time_now();
-			if (now - m_last_pex < seconds(10))
+			if (body.left() < length) return true;
+
+			ptime now = time_now_hires(); //#error TEMP!
+			if (now - m_last_pex[0]< seconds(60))
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
@@ -262,9 +269,10 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			if (body.left() < length) return true;
-
-			m_last_pex = now;
+			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
+			for (int i = 0; i < num_pex_timers-1; ++i)
+				m_last_pex[i] = m_last_pex[i+1];
+			m_last_pex[num_pex_timers-1] = now;
 
 			lazy_entry pex_msg;
 			error_code ec;
@@ -508,8 +516,14 @@ namespace libtorrent { namespace
 		typedef std::vector<std::pair<address_v6::bytes_type, boost::uint16_t> > peers6_t;
 		peers6_t m_peers6;
 #endif
-		// the last pex message we received
-		ptime m_last_pex;
+		// the last pex messages we received
+		// [0] is the oldest one. There is a problem with
+		// rate limited connections, because we may sit
+		// for a long time, accumulating pex messages, and
+		// then once we read from the socket it will look like
+		// we received them all back to back. That's why
+		// we look at 6 pex messages back.
+		ptime m_last_pex[6];
 
 		int m_1_minute;
 		int m_message_index;
