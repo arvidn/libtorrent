@@ -293,15 +293,13 @@ void bind_session()
           , (arg("router"), "port")
         )
         .def("start_dht", allow_threads(start_dht0))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("start_dht", allow_threads(start_dht1))
-#endif
         .def("stop_dht", allow_threads(&session::stop_dht))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_dht", allow_threads(start_dht1))
         .def("dht_state", allow_threads(&session::dht_state))
-#endif
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
         .def("dht_proxy", allow_threads(&session::dht_proxy), return_value_policy<copy_const_reference>())
+#endif
 #endif
         .def("add_torrent", &add_torrent)
 #ifndef TORRENT_NO_DEPRECATE
@@ -316,6 +314,7 @@ void bind_session()
 #endif
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
         .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
 
@@ -332,6 +331,7 @@ void bind_session()
         .def("set_max_connections", allow_threads(&session::set_max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
+#endif // TORRENT_NO_DEPRECATE
         .def("set_settings", allow_threads(&session::set_settings))
         .def("settings", allow_threads(&session::settings), return_value_policy<copy_const_reference>())
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -347,18 +347,18 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("load_state", load_state1)
         .def("set_severity_level", allow_threads(&session::set_severity_level))
-#endif
-        .def("set_alert_mask", allow_threads(&session::set_alert_mask))
-        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
-        .def("pop_alert", allow_threads(&session::pop_alert))
-        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
-        .def("add_extension", &add_extension)
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
         .def("peer_proxy", allow_threads(&session::peer_proxy), return_value_policy<copy_const_reference>())
         .def("tracker_proxy", allow_threads(&session::tracker_proxy), return_value_policy<copy_const_reference>())
         .def("web_seed_proxy", allow_threads(&session::web_seed_proxy), return_value_policy<copy_const_reference>())
+#endif
+        .def("set_alert_mask", allow_threads(&session::set_alert_mask))
+        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
+        .def("pop_alert", allow_threads(&session::pop_alert))
+        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
+        .def("add_extension", &add_extension)
         .def("start_upnp", &start_upnp)
         .def("stop_upnp", allow_threads(&session::stop_upnp))
         .def("start_lsd", allow_threads(&session::start_lsd))
@@ -379,14 +379,17 @@ void bind_session()
     enum_<session::save_state_flags_t>("save_state_flags_t")
         .value("save_settings", session::save_settings)
         .value("save_dht_settings", session::save_dht_settings)
-        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_dht_state", session::save_dht_state)
         .value("save_i2p_proxy", session::save_i2p_proxy)
         .value("save_encryption_settings", session:: save_encryption_settings)
+        .value("save_as_map", session::save_as_map)
+        .value("save_proxy", session::save_proxy)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_peer_proxy", session::save_peer_proxy)
         .value("save_web_proxy", session::save_web_proxy)
         .value("save_tracker_proxy", session::save_tracker_proxy)
-        .value("save_as_map", session::save_as_map)
+#endif
     ;
 
     register_ptr_to_python<std::auto_ptr<alert> >();
