@@ -450,15 +450,13 @@ void bind_session()
           , (arg("router"), "port")
         )
         .def("start_dht", allow_threads(start_dht0))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("start_dht", allow_threads(start_dht1))
-#endif
         .def("stop_dht", allow_threads(&session::stop_dht))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_dht", allow_threads(start_dht1))
         .def("dht_state", allow_threads(&session::dht_state))
-#endif
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
         .def("dht_proxy", allow_threads(&session::dht_proxy))
+#endif
 #endif
         .def("add_torrent", &add_torrent)
 #ifndef BOOST_NO_EXCEPTIONS
@@ -476,6 +474,7 @@ void bind_session()
         .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
         .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
 
@@ -492,7 +491,6 @@ void bind_session()
         .def("set_max_connections", allow_threads(&session::set_max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
-#ifndef TORRENT_NO_DEPRECATE
         .def("set_settings", &session::set_settings)
         .def("settings", &session::settings)
         .def("get_settings", &session_get_settings)
@@ -549,14 +547,17 @@ void bind_session()
     enum_<session::save_state_flags_t>("save_state_flags_t")
         .value("save_settings", session::save_settings)
         .value("save_dht_settings", session::save_dht_settings)
-        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_dht_state", session::save_dht_state)
         .value("save_i2p_proxy", session::save_i2p_proxy)
         .value("save_encryption_settings", session:: save_encryption_settings)
+        .value("save_as_map", session::save_as_map)
+        .value("save_proxy", session::save_proxy)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_peer_proxy", session::save_peer_proxy)
         .value("save_web_proxy", session::save_web_proxy)
         .value("save_tracker_proxy", session::save_tracker_proxy)
-        .value("save_as_map", session::save_as_map)
+#endif
     ;
 
     class_<feed_handle>("feed_handle")
