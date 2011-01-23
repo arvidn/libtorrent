@@ -352,6 +352,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, announce_double_nat)
 		TORRENT_SETTING(integer, torrent_connect_boost)
 		TORRENT_SETTING(boolean, seeding_outgoing_connections)
+		TORRENT_SETTING(boolean, no_connect_privileged_ports)
+		TORRENT_SETTING(integer, alert_queue_size)
 	};
 
 #undef TORRENT_SETTING
@@ -1515,6 +1517,9 @@ namespace aux {
 			}
 		}
 
+		if (m_settings.alert_queue_size != s.alert_queue_size)
+			m_alerts.set_alert_queue_size_limit(s.alert_queue_size);
+
 		m_settings = s;
 
 		update_rate_settings();
@@ -2006,6 +2011,14 @@ namespace aux {
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
 		TORRENT_ASSERT(is_network_thread());
+
+		if (m_paused)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << time_now_string() << " <== INCOMING CONNECTION [ ignored, paused ]\n";
+#endif
+			return;
+		}
 
 		error_code ec;
 		// we got a connection request!
@@ -4411,10 +4424,13 @@ namespace aux {
 		m_alerts.set_alert_mask(m);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
+		m_settings.alert_queue_size = queue_size_limit_;
 		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
 	}
+#endif
 
 	void session_impl::start_lsd()
 	{

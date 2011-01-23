@@ -121,6 +121,7 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		boost::shared_array<char> buffer;
 		int piece;
@@ -157,6 +158,7 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		std::string name;
 		int index;
@@ -177,6 +179,7 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		int index;
 		error_code error;
@@ -721,6 +724,7 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " resume data generated"; }
+		virtual bool discardable() const { return false; }
 
 		boost::shared_ptr<entry> resume_data;
 	};
@@ -746,6 +750,7 @@ namespace libtorrent
 			return torrent_alert::message() + " resume data was not generated: "
 				+ error.message();
 		}
+		virtual bool discardable() const { return false; }
 
 		error_code error;
 
@@ -939,6 +944,7 @@ namespace libtorrent
 
 		const static int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		tcp::endpoint endpoint;
 		error_code error;
@@ -954,6 +960,7 @@ namespace libtorrent
 
 		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		tcp::endpoint endpoint;
 	};

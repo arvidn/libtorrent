@@ -5924,7 +5924,8 @@ namespace libtorrent
 			&& (m_allow_peers || m_auto_managed)
 			&& !has_error()
 			&& !m_abort
-			&& !m_graceful_pause_mode;
+			&& !m_graceful_pause_mode
+			&& !m_ses.is_paused();
 	}
 
 	void torrent::flush_cache()
@@ -5953,7 +5954,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
-		bool checking_files = should_check_files();
 		if (!graceful) m_allow_peers = false;
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -5964,13 +5964,6 @@ namespace libtorrent
 
 		if (!m_ses.is_paused() || (prev_graceful && !m_graceful_pause_mode))
 			do_pause();
-		if (checking_files && !should_check_files())
-		{
-			// stop checking
-			m_storage->abort_disk_io();
-			dequeue_torrent_check();
-			set_state(torrent_status::queued_for_checking);
-		}
 	}
 
 	void torrent::do_pause()
@@ -6050,6 +6043,14 @@ namespace libtorrent
 		}
 
 		stop_announcing();
+
+		if (m_queued_for_checking && !should_check_files())
+		{
+			// stop checking
+			m_storage->abort_disk_io();
+			dequeue_torrent_check();
+			set_state(torrent_status::queued_for_checking);
+		}
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
@@ -6092,11 +6093,6 @@ namespace libtorrent
 		{
 			do_resume();
 		}
-
-		if (!checking_files && should_check_files())
-			queue_torrent_check();
-		else if (checking_files && !should_check_files())
-			dequeue_torrent_check();
 	}
 
 	void torrent::resume()
@@ -6115,8 +6111,6 @@ namespace libtorrent
 		m_announce_to_lsd = true;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 		do_resume();
-		if (!checking_files && should_check_files())
-			queue_torrent_check();
 	}
 
 	void torrent::do_resume()
@@ -6144,6 +6138,8 @@ namespace libtorrent
 		m_started = time_now();
 		clear_error();
 		start_announcing();
+		if (!m_queued_for_checking && should_check_files())
+			queue_torrent_check();
 	}
 
 	void torrent::update_tracker_timer(ptime now)

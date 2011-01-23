@@ -416,9 +416,11 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+
+		TORRENT_DEPRECATED_PREFIX
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(int m);
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);

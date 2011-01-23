@@ -138,6 +138,8 @@ void bind_session_settings()
         .def_readwrite("announce_double_nat", &session_settings::announce_double_nat)
         .def_readwrite("torrent_connect_boost", &session_settings::torrent_connect_boost)
         .def_readwrite("seeding_outgoing_connections", &session_settings::seeding_outgoing_connections)
+        .def_readwrite("no_connect_privileged_ports", &session_settings::no_connect_privileged_ports)
+        .def_readwrite("alert_queue_size", &session_settings::alert_queue_size)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
