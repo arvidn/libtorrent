@@ -499,6 +499,7 @@ namespace aux {
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
+		, m_last_disk_performance_warning(min_time())
 		, m_last_choke(m_created)
 		, m_next_rss_update(min_time())
 #ifndef TORRENT_DISABLE_DHT

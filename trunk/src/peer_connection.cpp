@@ -2402,8 +2402,10 @@ namespace libtorrent
 
 		if (t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes
 			&& m_ses.settings().max_queued_disk_bytes
-			&& t->alerts().should_post<performance_alert>())
+			&& t->alerts().should_post<performance_alert>()
+			&& (now - m_ses.m_last_disk_performance_warning) > seconds(10))
 		{
+			m_ses.m_last_disk_performance_warning = now;
 			t->alerts().post_alert(performance_alert(t->get_handle()
 				, performance_alert::outstanding_disk_buffer_limit_reached));
 		}
@@ -3857,11 +3859,12 @@ namespace libtorrent
 		// time, it is considered to have timed out
 		time_duration d;
 		d = now - m_last_receive;
+
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
-		bool may_timeout = can_read()
-;
+		bool may_timeout = (m_channel_state[download_channel] == peer_info::bw_network);
+
 		if (may_timeout && d > seconds(m_timeout) && !m_connecting)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -4995,7 +4998,10 @@ namespace libtorrent
 
 		bool disk = m_ses.settings().max_queued_disk_bytes == 0
 			|| !t || t->get_storage() == 0
-			|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes;
+			|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes
+			// don't block this peer because of disk saturation
+			// if we're not downloading any pieces from it
+			|| m_outstanding_bytes == 0;
 
 		if (!disk)
 		{
