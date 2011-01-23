@@ -68,7 +68,7 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef bool (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
+	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
 	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id

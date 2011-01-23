@@ -176,7 +176,7 @@ void purge_peers(std::set<peer_entry>& peers)
 void nop() {}
 
 node_impl::node_impl(libtorrent::alert_manager& alerts
-	, bool (*f)(void*, entry const&, udp::endpoint const&, int)
+	, bool (*f)(void*, entry&, udp::endpoint const&, int)
 	, dht_settings const& settings, node_id nid, address const& external_address
 	, external_ip_fun ext_ip, void* userdata)
 	: m_settings(settings)

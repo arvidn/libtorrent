@@ -198,7 +198,7 @@ namespace libtorrent { namespace dht
 		return node_id(node_id(nid->string().c_str()));
 	}
 
-	bool send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)
+	bool send_callback(void* userdata, entry& e, udp::endpoint const& addr, int flags)
 	{
 		dht_tracker* self = (dht_tracker*)userdata;
 		return self->send_packet(e, addr, flags);
@@ -615,11 +615,15 @@ namespace libtorrent { namespace dht
 	// #error post an alert
 	}
 
-	bool dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
+	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		using libtorrent::bencode;
 		using libtorrent::entry;
+
+		static char const version_str[] = {'L', 'T'
+			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
+		e["v"] = std::string(version_str, version_str + 4);
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);

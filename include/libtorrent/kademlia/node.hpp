@@ -213,7 +213,7 @@ public:
 	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	node_impl(libtorrent::alert_manager& alerts
-		, bool (*f)(void*, entry const&, udp::endpoint const&, int)
+		, bool (*f)(void*, entry&, udp::endpoint const&, int)
 		, dht_settings const& settings, node_id nid, address const& external_address
 		, external_ip_fun ext_ip, void* userdata);
 
@@ -334,7 +334,7 @@ private:
 	int m_secret[2];
 
 	libtorrent::alert_manager& m_alerts;
-	bool (*m_send)(void*, entry const&, udp::endpoint const&, int);
+	bool (*m_send)(void*, entry&, udp::endpoint const&, int);
 	void* m_userdata;
 };
 

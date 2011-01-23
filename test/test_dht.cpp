@@ -44,7 +44,7 @@ using namespace libtorrent::dht;
 
 std::list<std::pair<udp::endpoint, entry> > g_responses;
 
-bool our_send(void* user, entry const& msg, udp::endpoint const& ep, int flags)
+bool our_send(void* user, entry& msg, udp::endpoint const& ep, int flags)
 {
 	g_responses.push_back(std::make_pair(ep, msg));
 	return true;
