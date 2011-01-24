@@ -4161,9 +4161,6 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
-#endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
 		// we need to wait for the disk-io thread to
@@ -4172,14 +4169,7 @@ namespace aux {
 		// to disk_io_pool inside the disk_io_thread. Once
 		// the main thread has handled all the outstanding requests
 		// we know it's safe to destruct the disk thread.
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for disk io thread\n";
-#endif
 		m_disk_thread.join();
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for main thread\n";
-#endif
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;
@@ -4196,9 +4186,6 @@ namespace aux {
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " shutdown complete!\n";
-#endif
 		TORRENT_ASSERT(m_connections.empty());
 	}
 
