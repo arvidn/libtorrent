@@ -1806,7 +1806,11 @@ int main(int argc, char* argv[])
 	// keep track of the number of resume data
 	// alerts to wait for
 	int num_resume_data = 0;
+	int num_paused = 0;
+	int num_failed = 0;
+
 	ses.pause();
+	printf("saving resume data\n");
 	for (handles_t::iterator i = handles.begin();
 		i != handles.end(); ++i)
 	{
@@ -1816,38 +1820,50 @@ int main(int argc, char* argv[])
 		if (te.status.paused) continue;
 		if (!te.status.has_metadata) continue;
 
-		printf("saving resume data for %s\n", te.handle.name().c_str());
 		// save_resume_data will generate an alert when it's done
 		te.handle.save_resume_data();
 		++num_resume_data;
+		printf("\r%d  ", num_resume_data);
 	}
-	printf("waiting for resume data\n");
+	printf("\nwaiting for resume data\n");
 
 	while (num_resume_data > 0)
 	{
-		alert const* a = ses.wait_for_alert(seconds(30));
-		if (a == 0)
-		{
-			printf(" aborting with %d outstanding "
-				"torrents to save resume data for\n", num_resume_data);
-			break;
-		}
+		alert const* a = ses.wait_for_alert(seconds(10));
+		if (a == 0) continue;
 
 		std::auto_ptr<alert> holder = ses.pop_alert();
 
-		std::string log;
-		::print_alert(holder.get(), log);
-		printf("%s\n", log.c_str());
-
-		if (alert_cast<save_resume_data_failed_alert>(a))
+		torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(a);
+		if (tp)
 		{
-			--num_resume_data;
+			++num_paused;
+			printf("\rleft: %d failed: %d pause: %d "
+				, num_resume_data, num_failed, num_paused);
 			continue;
 		}
 
 		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+/*		if (!rd)
+		{
+			std::string log;
+			::print_alert(a, log);
+			printf("\n%s\n", log.c_str());
+		}
+*/
+		if (alert_cast<save_resume_data_failed_alert>(a))
+		{
+			++num_failed;
+			--num_resume_data;
+			printf("\rleft: %d failed: %d pause: %d "
+				, num_resume_data, num_failed, num_paused);
+			continue;
+		}
+
 		if (!rd) continue;
 		--num_resume_data;
+		printf("\rleft: %d failed: %d pause: %d "
+			, num_resume_data, num_failed, num_paused);
 
 		if (!rd->resume_data) continue;
 
@@ -1856,7 +1872,7 @@ int main(int argc, char* argv[])
 		bencode(std::back_inserter(out), *rd->resume_data);
 		save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
 	}
-	printf("saving session state\n");
+	printf("\nsaving session state\n");
 	{
 		entry session_state;
 		ses.save_state(session_state);
