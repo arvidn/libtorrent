@@ -5157,6 +5157,7 @@ direct certain traffic to a proxy.
 		
 			proxy_type type;
 			bool proxy_hostnames;
+			bool proxy_peer_connections;
 		};
 
 ``hostname`` is the name or IP of the proxy server. ``port`` is the
@@ -5196,6 +5197,10 @@ options are available:
 ``proxy_hostnames`` defaults to true. It means that hostnames should be
 attempted to be resolved through the proxy instead of using the local DNS
 service. This is only supported by SOCKS5 and HTTP.
+
+``proxy_peer_connections`` determines whether or not to excempt peer and
+web seed connections from using the proxy. This defaults to true, i.e. peer
+connections are proxied by default.
 
 ip_filter
 =========

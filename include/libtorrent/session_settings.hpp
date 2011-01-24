@@ -45,7 +45,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT proxy_settings
 	{
 		proxy_settings() : port(0), type(none)
-			, proxy_hostnames(true) {}
+			, proxy_hostnames(true)
+			, proxy_peer_connections(true)
+		{}
 
 		std::string hostname;
 		int port;
@@ -85,6 +87,9 @@ namespace libtorrent
 		// when set to true, hostname are resolved
 		// through the proxy (if supported)
 		bool proxy_hostnames;
+
+		// if true, use this proxy for peers too
+		bool proxy_peer_connections;
 	};
 
 	struct TORRENT_EXPORT session_settings

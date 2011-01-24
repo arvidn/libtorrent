@@ -44,7 +44,8 @@ namespace libtorrent
 	TORRENT_EXPORT bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
 		, void* ssl_context = 0
-		, utp_socket_manager* sm = 0);
+		, utp_socket_manager* sm = 0
+		, bool peer_connection = false);
 }
 
 #endif

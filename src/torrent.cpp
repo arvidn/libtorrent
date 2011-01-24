@@ -3920,7 +3920,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl) userdata = &m_ses.m_ssl_ctx;
 #endif
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata);
+		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata, 0, true);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
@@ -4769,7 +4769,7 @@ namespace libtorrent
 			// don't make a TCP connection if it's disabled
 			if (sm == 0 && !m_ses.m_settings.enable_outgoing_tcp) return false;
 
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, 0, sm);
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, 0, sm, true);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}

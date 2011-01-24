@@ -59,6 +59,8 @@ namespace libtorrent
 		udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
 		~udp_socket();
 
+		enum flags_t { dont_drop = 1, peer_connection = 2 };
+
 		bool is_open() const
 		{
 			return m_ipv4_sock.is_open()
@@ -72,7 +74,7 @@ namespace libtorrent
 		// this is only valid when using a socks5 proxy
 		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
 
-		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
 		void bind(int port);
 		void close();
@@ -114,6 +116,7 @@ namespace libtorrent
 			udp::endpoint ep;
 			char* hostname;
 			buffer buf;
+			int flags;
 		};
 
 	private:

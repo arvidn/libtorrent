@@ -366,6 +366,8 @@ namespace aux {
 		TORRENT_SETTING(std_string, username)
 		TORRENT_SETTING(std_string, password)
 		TORRENT_SETTING(integer, type)
+		TORRENT_SETTING(boolean, proxy_hostnames)
+		TORRENT_SETTING(boolean, proxy_peer_connections)
 	};
 #undef TORRENT_SETTING
 
