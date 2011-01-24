@@ -147,9 +147,11 @@ void udp_socket::send_hostname(char const* hostname, int port
 	qp.ep.port(port);
 	qp.hostname = strdup(hostname);
 	qp.buf.insert(qp.buf.begin(), p, p + len);
+	qp.flags = 0;
 }
 
-void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec)
+void udp_socket::send(udp::endpoint const& ep, char const* p, int len
+	, error_code& ec, int flags)
 {
 	CHECK_MAGIC;
 
@@ -158,21 +160,25 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_cod
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open()) return;
 
-	if (m_tunnel_packets)
+	if (!(flags & peer_connection) || m_proxy_settings.proxy_peer_connections)
 	{
-		// send udp packets through SOCKS5 server
-		wrap(ep, p, len, ec);
-		return;	
-	}
+		if (m_tunnel_packets)
+		{
+			// send udp packets through SOCKS5 server
+			wrap(ep, p, len, ec);
+			return;	
+		}
 
-	if (m_queue_packets)
-	{
-		m_queue.push_back(queued_packet());
-		queued_packet& qp = m_queue.back();
-		qp.ep = ep;
-		qp.hostname = 0;
-		qp.buf.insert(qp.buf.begin(), p, p + len);
-		return;
+		if (m_queue_packets)
+		{
+			m_queue.push_back(queued_packet());
+			queued_packet& qp = m_queue.back();
+			qp.ep = ep;
+			qp.hostname = 0;
+			qp.flags = flags;
+			qp.buf.insert(qp.buf.begin(), p, p + len);
+			return;
+		}
 	}
 
 #if TORRENT_USE_IPV6
@@ -931,7 +937,7 @@ void udp_socket::connect2(error_code const& e)
 		}
 		else
 		{
-			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
 		}
 		m_queue.pop_front();
 	}
@@ -977,22 +983,23 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	TORRENT_ASSERT_VAL(!ec, ec);
 }
 
-bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags)
+bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
+	, int len, error_code& ec, int flags)
 {
 	if (m_quota < len)
 	{
-		// bit 1 of flags means "don't drop"
-		if (int(m_queue.size()) >= m_queue_size_limit && (flags & 1) == 0)
+		if (int(m_queue.size()) >= m_queue_size_limit && (flags & dont_drop) == 0)
 			return false;
 		m_queue.push_back(queued_packet());
 		queued_packet& qp = m_queue.back();
 		qp.ep = ep;
+		qp.flags = flags;
 		qp.buf.insert(qp.buf.begin(), p, p + len);
 		return true;
 	}
 
 	m_quota -= len;
-	udp_socket::send(ep, p, len, ec);
+	udp_socket::send(ep, p, len, ec, flags);
 	return true;
 }
 
@@ -1023,7 +1030,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 		TORRENT_ASSERT(m_quota >= p.buf.size());
 		m_quota -= p.buf.size();
 		error_code ec;
-		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);
+		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
 		m_queue.pop_front();
 	}
 }
