@@ -135,10 +135,17 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
-	void stat_file(std::string const& inf, file_status* s
+	void stat_file(std::string inf, file_status* s
 		, error_code& ec, int flags)
 	{
 		ec.clear();
+#ifdef TORRENT_WINDOWS
+		// apparently windows doesn't expect paths
+		// to directories to ever end with a \ or /
+		if (!inf.empty() && (inf[inf.size() - 1] == '\\'
+			|| inf[inf.size() - 1] == '/'))
+			inf.resize(inf.size() - 1);
+#endif
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring f = convert_to_wstring(inf);

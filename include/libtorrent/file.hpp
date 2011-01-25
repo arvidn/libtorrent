@@ -109,7 +109,7 @@ namespace libtorrent
 	};
 
 	enum stat_flags_t { dont_follow_links = 1 };
-	TORRENT_EXPORT void stat_file(std::string const& f, file_status* s
+	TORRENT_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
 	TORRENT_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
