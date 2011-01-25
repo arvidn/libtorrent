@@ -601,6 +601,10 @@ namespace libtorrent
 		size_type downloaded_since_unchoke() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
 
+		// called when the disk write buffer is drained again, and we can
+		// start downloading payload again
+		void on_disk();
+
 		enum sync_t { read_async, read_sync };
 		void setup_receive(sync_t sync = read_sync);
 

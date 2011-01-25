@@ -2217,11 +2217,10 @@ namespace aux {
 		TORRENT_ASSERT(p->is_disconnecting());
 
 		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
-//		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
-//			, p, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
-//		if (i->get() != p) i == m_connections.end();
-		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+		TORRENT_ASSERT(p->refcount() > 0);
+
+		boost::intrusive_ptr<peer_connection> sp((peer_connection*)p);
+		connection_map::iterator i = m_connections.find(sp);
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
@@ -2295,7 +2294,7 @@ namespace aux {
 		{
 			// setup_receive() may disconnect the connection
 			// and clear it out from the m_connections list
-			(*i)->setup_receive();
+			(*i)->on_disk();
 		}
 	}
 
@@ -2427,8 +2426,10 @@ namespace aux {
 					else
 					{
 						if (num_tcp_peers == 0) num_tcp_peers = 1;
-						int upload_rate = (std::max)(m_stat.upload_rate(), 20000);
-						int download_rate = (std::max)(m_stat.download_rate(), 20000);
+						// these are 64 bits since they are multiplied by the number
+						// of peers, which otherwise might overflow an int
+						boost::uint64_t upload_rate = (std::max)(m_stat.upload_rate(), 20000);
+						boost::uint64_t download_rate = (std::max)(m_stat.download_rate(), 20000);
 						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
 						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
 						
@@ -4316,8 +4317,6 @@ namespace aux {
 
 	void session_impl::update_connections_limit()
 	{
-		INVARIANT_CHECK;
-
 		if (m_settings.connections_limit <= 0)
 		{
 			m_settings.connections_limit = (std::numeric_limits<int>::max)();

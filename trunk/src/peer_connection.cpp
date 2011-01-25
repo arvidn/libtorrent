@@ -4524,12 +4524,20 @@ namespace libtorrent
 		m_channel_state[upload_channel] = peer_info::bw_network;
 	}
 
+	void peer_connection::on_disk()
+	{
+		if (m_channel_state[download_channel] != peer_info::bw_disk) return;
+		boost::intrusive_ptr<peer_connection> me(this);
+	
+		m_channel_state[download_channel] = peer_info::bw_idle;
+		setup_receive();
+	}
+
 	void peer_connection::setup_receive(sync_t sync)
 	{
 		INVARIANT_CHECK;
 
-		if (m_channel_state[download_channel] != peer_info::bw_idle
-			&& m_channel_state[download_channel] != peer_info::bw_disk) return;
+		if (m_channel_state[download_channel] != peer_info::bw_idle) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
 		
@@ -4864,6 +4872,13 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		// keep ourselves alive in until this function exits in
+		// case we disconnect
+		// this needs to be created before the invariant check,
+		// to keep the object alive through the exit check
+		boost::intrusive_ptr<peer_connection> me(self());
+
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4873,10 +4888,6 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
 #endif
-		// keep ourselves alive in until this function exits in
-		// case we disconnect
-		boost::intrusive_ptr<peer_connection> me(self());
-
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_network);
 		m_channel_state[download_channel] = peer_info::bw_idle;
 
