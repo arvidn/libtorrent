@@ -7288,7 +7288,7 @@ namespace libtorrent
 		{
 			time_t last = last_seen_complete();
 			for (std::set<peer_connection*>::const_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != i; ++i)
+				, end(m_connections.end()); i != end; ++i)
 			{
 				last = (std::max)(last, (*i)->last_seen_complete());
 			}
