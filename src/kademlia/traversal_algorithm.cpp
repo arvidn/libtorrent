@@ -76,9 +76,12 @@ traversal_algorithm::traversal_algorithm(
 #endif
 }
 
+// returns true of lhs and rhs are too close to each other to appear
+// in the same DHT search under different node IDs
 bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
 {
-	TORRENT_ASSERT(lhs->target_addr().is_v4() == rhs->target_addr().is_v4());
+	if (lhs->target_addr().is_v4() != rhs->target_addr().is_v4())
+		return false;
 	// the number of bits in the IPs that may match. If
 	// more bits that this matches, something suspicious is
 	// going on and we shouldn't add the second one to our
