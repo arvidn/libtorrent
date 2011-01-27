@@ -307,8 +307,19 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			int type = msg["msg_type"].integer();
-			int piece = msg["piece"].integer();
+			entry const* type_ent = msg.find_key("msg_type");
+			entry const* piece_ent = msg.find_key("piece");
+			if (type_ent == 0 || type_ent->type() != entry::int_t
+				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ missing or invalid keys ]\n";
+#endif
+				m_pc.disconnect(errors::invalid_metadata_message, 2);
+				return true;
+			}
+			int type = type_ent->integer();
+			int piece = type_ent->integer();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ "
@@ -422,7 +433,7 @@ namespace libtorrent { namespace
 		}
 
 		int piece = i - m_requested_metadata.begin();
-		m_requested_metadata[piece] = piece;
+		++m_requested_metadata[piece];
 		return piece;
 	}
 
