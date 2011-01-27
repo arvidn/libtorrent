@@ -1,3 +1,4 @@
+	* made the metadata block requesting algorithm more robust against hash check failures
 	* support a separate option to use proxies for peers or not
 	* pausing the session now also pauses checking torrents
 	* moved alert queue size limit into session_settings
@@ -75,6 +76,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed minor bug in metadata block requester (for magnet links)
 	* fixed race condition in iconv string converter
 	* fixed error handling in torrent_info constructor
 	* fixed bug in torrent_info::remap_files
