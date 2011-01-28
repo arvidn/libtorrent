@@ -303,7 +303,7 @@ namespace libtorrent { namespace
 				return true;
 			}
 			int type = type_ent->integer();
-			int piece = type_ent->integer();
+			int piece = piece_ent->integer();
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ "
