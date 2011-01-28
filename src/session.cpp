@@ -171,6 +171,10 @@ namespace libtorrent
 	{
 		session_settings set;
 
+		// don't throttle TCP, assume there is
+		// plenty of bandwidth
+		set.mixed_mode_algorithm = session_settings::prefer_tcp;
+
 		set.alert_queue_size = 10000;
 
 		// allow 500 files open at a time
