@@ -283,6 +283,24 @@ the same pieces, and on the other hand assume that they won't request the same p
 and drop them when the first peer requests it. To enable volatile read cache, set
 ``session_settings::volatile_read_cache`` to true.
 
+uTP-TCP mixed mode
+------------------
+
+libtorrent supports uTP_, which has a delay based congestion controller. In order to
+avoid having a single TCP bittorrent connection completely starve out any uTP connection,
+there is a mixed mode algorithm. This attempts to detect congestion on the uTP peers and
+throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth resources
+between the two protocols. When running on a network where the bandwidth is in such an
+abundance that it's virtually infinite, this algorithm is no longer necessary, and might
+even be harmful to throughput. It is adviced to experiment with the
+``session_setting::mixed_mode_algorithm``, setting it to ``session_settings::prefer_tcp``.
+This setting entirely disables the balancing and unthrottles all connections. On a typical
+home connection, this would mean that none of the benefits of uTP would be preserved
+(the modem's send buffer would be full at all times) and uTP connections would for the most
+part be squashed by the TCP traffic.
+
+.. _`uTP`: utp.html
+
 send buffer low watermark
 -------------------------
 
