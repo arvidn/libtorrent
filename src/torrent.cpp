@@ -315,8 +315,10 @@ namespace libtorrent
 		return ret;
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	// defined in ut_pex.cpp
 	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
+#endif
 
 	torrent::torrent(
 		session_impl& ses

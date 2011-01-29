@@ -64,7 +64,6 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_impl;
-		struct checker_impl;
 	}
 
 	struct torrent_plugin;

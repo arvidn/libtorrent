@@ -1439,6 +1439,7 @@ namespace libtorrent
 	// -------- RENDEZVOUS ---------
 	// -----------------------------
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	void bt_peer_connection::on_holepunch()
 	{
 		INVARIANT_CHECK;
@@ -1622,6 +1623,7 @@ namespace libtorrent
 
 		send_buffer(buf, ptr - buf);
 	}
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 	// -----------------------------
 	// --------- EXTENDED ----------
@@ -1749,7 +1751,6 @@ namespace libtorrent
 				++i;
 		}
 		if (is_disconnecting()) return;
-#endif
 
 		// upload_only
 		if (lazy_entry const* m = root.dict_find_dict("m"))
@@ -1757,6 +1758,7 @@ namespace libtorrent
 			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
 			m_holepunch_id = m->dict_find_int_value("ut_holepunch", 0);
 		}
+#endif
 
 		// there is supposed to be a remote listen port
 		int listen_port = root.dict_find_int_value("p");
@@ -3013,7 +3015,7 @@ namespace libtorrent
 				, (recv_buffer[5] & 0x10) ? "extension " : "");
 #endif
 
-#ifndef DISABLE_EXTENSIONS
+#ifndef TORRENT_DISABLE_EXTENSIONS
 			std::memcpy(m_reserved_bits, recv_buffer.begin, 8);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;

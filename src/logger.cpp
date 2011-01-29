@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer_request.hpp"
 
-#if TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM && !defined TORRENT_DISABLE_EXTENSIONS
 
 #include <fstream>
 #include "libtorrent/file.hpp"

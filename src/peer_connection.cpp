@@ -3274,6 +3274,7 @@ namespace libtorrent
 		if (m_holepunch_mode)
 			fast_reconnect(true);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		if ((!m_socket->get<utp_stream>() || !m_ses.m_settings.enable_outgoing_tcp)
 			&& m_peer_info
 			&& m_peer_info->supports_holepunch
@@ -3285,6 +3286,7 @@ namespace libtorrent
 			if (p)
 				p->write_holepunch_msg(bt_peer_connection::hp_rendezvous, remote(), 0);
 		}
+#endif
 
 		disconnect(e, 1);
 		return;

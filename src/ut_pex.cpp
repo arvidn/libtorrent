@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -582,4 +584,5 @@ namespace libtorrent
 	}
 }
 
+#endif
 

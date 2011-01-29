@@ -170,12 +170,11 @@ namespace libtorrent
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual bool in_handshake() const;
 
-		bool supports_holepunch() const { return m_holepunch_id != 0; }
-		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		bool support_extensions() const { return m_supports_extensions; }
+		bool supports_holepunch() const { return m_holepunch_id != 0; }
 #endif
+
+		bool support_extensions() const { return m_supports_extensions; }
 
 		// the message handlers are called
 		// each time a recv() returns some new
@@ -205,7 +204,9 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		void on_holepunch();
+#endif
 
 		void on_extended(int received);
 
@@ -229,6 +230,7 @@ namespace libtorrent
 		void write_extensions();
 		void write_upload_only();
 		void write_share_mode();
+		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -397,11 +399,11 @@ private:
 		int m_share_mode_id;
 
 		char m_reserved_bits[8];
+#endif
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions:1;
-#endif
 		bool m_supports_dht_port:1;
 		bool m_supports_fast:1;
 
