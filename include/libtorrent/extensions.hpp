@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace aux { struct session_impl; }
+
 	struct peer_plugin;
 	class bt_peer_connection;
 	struct peer_request;
@@ -59,6 +61,32 @@ namespace libtorrent
 	struct lazy_entry;
 	struct disk_buffer_holder;
 	struct bitfield;
+	class alert;
+
+	struct TORRENT_EXPORT plugin
+	{
+		virtual ~plugin() {}
+
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		{ return boost::shared_ptr<torrent_plugin>(); }
+
+		// called when plugin is added to a session
+		virtual void added(boost::weak_ptr<aux::session_impl> s) {}
+
+		// called when an alert is posted
+		// alerts that are filtered are not
+		// posted
+		virtual void on_alert(alert const* a) {}
+
+		// called once per second
+		virtual void on_tick() {}
+
+		// called when saving settings state
+		virtual void save_state(entry& ent) const {}
+
+		// called when loading settings state
+		virtual void load_state(lazy_entry const& ent) {}
+	};
 
 	struct TORRENT_EXPORT torrent_plugin
 	{
@@ -79,11 +107,16 @@ namespace libtorrent
 		// and no other plugins will have their handlers called, and the
 		// default behavior will be skipped
 		virtual bool on_pause() { return false; }
-		virtual bool on_resume() { return false;}
+		virtual bool on_resume() { return false; }
 
 		// this is called when the initial checking of
 		// files is completed.
 		virtual void on_files_checked() {}
+
+		// called when the torrent changes state
+		// the state is one of torrent_status::state_t
+		// enum members
+		virtual void on_state(int s) {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin

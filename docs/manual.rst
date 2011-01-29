@@ -4244,6 +4244,7 @@ session_settings
 
 		bool no_connect_privileged_ports;
 		int alert_queue_size;
+		int max_metadata_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5066,6 +5067,9 @@ using bittorrent swarms for certain DDoS attacks.
 ``alert_queue_size`` is the maximum number of alerts queued up internally. If
 alerts are not popped, the queue will eventually fill up to this level. This
 defaults to 1000.
+
+``max_metadata_size`` is the maximum allowed size (in bytes) to be received
+by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
 
 pe_settings
 ===========

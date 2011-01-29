@@ -417,6 +417,11 @@ namespace libtorrent
 	{
 		TORRENT_ASYNC_CALL1(add_extension, ext);
 	}
+
+	void session::add_extension(boost::shared_ptr<plugin> ext)
+	{
+		TORRENT_ASYNC_CALL1(add_ses_extension, ext);
+	}
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP

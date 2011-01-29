@@ -49,6 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include <boost/shared_ptr.hpp>
+#include <list>
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -64,6 +69,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct plugin;
+#endif
 
 	class TORRENT_EXPORT alert
 	{
@@ -144,10 +153,16 @@ namespace libtorrent {
 			m_alert_mask = m;
 		}
 
+		int alert_mask() const { return m_alert_mask; }
+
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::shared_ptr<plugin> ext);
+#endif
 
 	private:
 		std::deque<alert*> m_alerts;
@@ -157,6 +172,11 @@ namespace libtorrent {
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
 		io_service& m_ios;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
+		ses_extension_list_t m_ses_extensions;
+#endif
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception

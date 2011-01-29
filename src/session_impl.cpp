@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/settings.hpp"
 #include "libtorrent/build_config.hpp"
+#include "libtorrent/extensions.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #endif
@@ -354,6 +355,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, seeding_outgoing_connections)
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
+		TORRENT_SETTING(integer, max_metadata_size)
 	};
 
 #undef TORRENT_SETTING
@@ -956,6 +958,19 @@ namespace aux {
 			}
 		}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->save_state(*eptr);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 	}
 	
 	void session_impl::set_proxy(proxy_settings const& s)
@@ -1047,6 +1062,20 @@ namespace aux {
 				m_feeds.push_back(f);
 			}
 		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->load_state(*e);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1168,6 +1197,16 @@ namespace aux {
 		}
 
 		m_extensions.push_back(ext);
+	}
+
+	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
+	{
+		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT_VAL(ext, ext);
+
+		m_ses_extensions.push_back(ext);
+		m_alerts.add_extension(ext);
+		ext->added(shared_from_this());
 	}
 #endif
 
@@ -2392,6 +2431,20 @@ namespace aux {
 				}
 			}
 		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->on_tick();
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 
 		// --------------------------------------------------------------
 		// RSS feeds
@@ -3620,6 +3673,13 @@ namespace aux {
 			, end(m_extensions.end()); i != end; ++i)
 		{
 			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), params.userdata));
+			if (tp) torrent_ptr->add_extension(tp);
+		}
+
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), params.userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif

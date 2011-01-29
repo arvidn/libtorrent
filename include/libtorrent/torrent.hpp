@@ -238,6 +238,7 @@ namespace libtorrent
 		void clear_error();
 		void set_error(error_code const& ec, std::string const& file);
 		bool has_error() const { return m_error; }
+		error_code error() const { return m_error; }
 
 		void flush_cache();
 		void pause(bool graceful = false);

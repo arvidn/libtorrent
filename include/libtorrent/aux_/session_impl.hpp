@@ -101,6 +101,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	struct plugin;
 	class upnp;
 	class natpmp;
 	class lsd;
@@ -135,6 +136,7 @@ namespace libtorrent
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct session_impl: boost::noncopyable, initialize_timer
+			, boost::enable_shared_from_this<session_impl>
 		{
 
 			// the size of each allocation that is chained in the send buffer
@@ -163,6 +165,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
+			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
 #ifdef TORRENT_DEBUG
 			bool has_peer(peer_connection const* p) const
@@ -280,6 +283,7 @@ namespace libtorrent
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
 			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
+			void post_alert(const alert& alert_);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
@@ -901,6 +905,9 @@ namespace libtorrent
 				torrent_plugin>(torrent*, void*)> > extension_list_t;
 
 			extension_list_t m_extensions;
+
+			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
+			ses_extension_list_t m_ses_extensions;
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
