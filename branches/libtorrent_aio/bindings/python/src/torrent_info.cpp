@@ -55,10 +55,10 @@ namespace
     list files(torrent_info const& ti, bool storage) {
         list result;
 
-        typedef std::vector<file_entry> list_type;
+        typedef torrent_info::file_iterator iter;
 
-        for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
-            result.append(*i);
+        for (iter i = ti.begin_files(); i != ti.end_files(); ++i)
+            result.append(ti.files().at(i));
 
         return result;
     }
@@ -101,6 +101,20 @@ namespace
     { return ae.complete_sent; }
     bool get_send_stats(announce_entry const& ae)
     { return ae.send_stats; }
+
+
+    bool get_size(file_entry const& fe)
+    { return fe.size; }
+    bool get_offset(file_entry const& fe)
+    { return fe.offset; }
+    bool get_pad_file(file_entry const& fe)
+    { return fe.pad_file; }
+    bool get_executable_attribute(file_entry const& fe)
+    { return fe.executable_attribute; }
+    bool get_hidden_attribute(file_entry const& fe)
+    { return fe.hidden_attribute; }
+    bool get_symlink_attribute(file_entry const& fe)
+    { return fe.symlink_attribute; }
 
 } // namespace unnamed
 
@@ -146,7 +160,7 @@ void bind_torrent_info()
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
-        .def("file_at", &torrent_info::file_at, return_internal_reference<>())
+        .def("file_at", &torrent_info::file_at) 
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
         .def("rename_file", rename_file0)
@@ -168,14 +182,16 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-       .add_property("path"
-          , make_getter(
-                &file_entry::path, return_value_policy<copy_non_const_reference>()
-            )
-        )
-        .def_readonly("offset", &file_entry::offset)
-        .def_readonly("size", &file_entry::size)
-        .def_readonly("file_base", &file_entry::file_base)
+        .def_readwrite("path", &file_entry::path)
+        .def_readwrite("symlink_path", &file_entry::symlink_path)
+        .def_readwrite("filehash", &file_entry::filehash)
+        .def_readwrite("mtime", &file_entry::mtime)
+        .add_property("pad_file", &get_pad_file)
+        .add_property("executable_attribute", &get_executable_attribute)
+        .add_property("hidden_attribute", &get_hidden_attribute)
+        .add_property("symlink_attribute", &get_symlink_attribute)
+        .add_property("offset", &get_offset)
+        .add_property("size", &get_size)
         ;
 
     class_<announce_entry>("announce_entry", init<std::string const&>())

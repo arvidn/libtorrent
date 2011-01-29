@@ -102,7 +102,12 @@ namespace libtorrent
 
 		void start();
 
-		enum { upload_only_msg = 2, share_mode_msg = 3 };
+		enum
+		{
+			upload_only_msg = 2,
+			holepunch_msg = 3,
+			share_mode_msg = 4
+		};
 
 		~bt_peer_connection();
 		
@@ -140,6 +145,20 @@ namespace libtorrent
 			num_supported_messages
 		};
 
+		enum hp_message_t
+		{
+			// msg_types
+			hp_rendezvous = 0,
+			hp_connect = 1,
+			hp_failed = 2,
+
+			// error codes
+			hp_no_such_peer = 1,
+			hp_not_connected = 2,
+			hp_no_support = 3,
+			hp_no_self = 4
+		};
+
 		// called from the main loop when this connection has any
 		// work to do.
 
@@ -152,8 +171,10 @@ namespace libtorrent
 		virtual bool in_handshake() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		bool support_extensions() const { return m_supports_extensions; }
+		bool supports_holepunch() const { return m_holepunch_id != 0; }
 #endif
+
+		bool support_extensions() const { return m_supports_extensions; }
 
 		// the message handlers are called
 		// each time a recv() returns some new
@@ -183,6 +204,9 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		void on_holepunch();
+#endif
 
 		void on_extended(int received);
 
@@ -206,6 +230,7 @@ namespace libtorrent
 		void write_extensions();
 		void write_upload_only();
 		void write_share_mode();
+		void write_holepunch_msg(int type, tcp::endpoint const& ep, int error);
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
@@ -283,7 +308,7 @@ public:
 #endif
 			}
 #endif
-			peer_connection::append_send_buffer(buffer, size, destructor);
+			peer_connection::append_send_buffer(buffer, size, destructor, true);
 		}
 		void setup_send();
 
@@ -366,16 +391,19 @@ private:
 		// 0 if not supported
 		int m_upload_only_id;
 
+		// the message ID for holepunch messages
+		int m_holepunch_id;
+
 		// the message ID for share mode message
 		// 0 if not supported
 		int m_share_mode_id;
 
 		char m_reserved_bits[8];
+#endif
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
 		// extension protocol
 		bool m_supports_extensions:1;
-#endif
 		bool m_supports_dht_port:1;
 		bool m_supports_fast:1;
 

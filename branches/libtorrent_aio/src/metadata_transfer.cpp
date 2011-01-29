@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -198,6 +200,7 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
+			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 
 		void on_piece_pass(int)
@@ -247,6 +250,8 @@ namespace libtorrent { namespace
 			, m_pc(pc)
 			, m_tp(tp)
 		{}
+
+		virtual char const* type() const { return "LT_metadata"; }
 
 		// can add entries to the extension handshake
 		virtual void add_handshake(entry& h)
@@ -418,7 +423,7 @@ namespace libtorrent { namespace
 						<< " ]\n";
 #endif
 
-					if (total_size > 500 * 1024)
+					if (total_size > m_torrent.session().settings().max_metadata_size)
 					{
 						m_pc.disconnect(errors::metadata_too_large, 2);
 						return true;
@@ -586,4 +591,5 @@ namespace libtorrent
 
 }
 
+#endif
 

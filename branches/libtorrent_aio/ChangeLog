@@ -1,6 +1,28 @@
+	* expanded plugin interface to support session wide states
+	* made the metadata block requesting algorithm more robust against hash check failures
+	* support a separate option to use proxies for peers or not
+	* pausing the session now also pauses checking torrents
+	* moved alert queue size limit into session_settings
+	* added support for DHT rss feeds (storing only)
+	* added support for RSS feeds
+	* fixed up some edge cases in DHT routing table and improved unit test of it
+	* added error category and error codes for HTTP errors
+	* made the DHT implementation slightly more robust against routing table poisoning and node ID spoofing
+	* support chunked encoding in http downloads (http_connection)
+	* support adding torrents by url to the .torrent file
+	* support CDATA tags in xml parser
+	* use a python python dictionary for settings instead of session_settings object (in python bindings)
+	* optimized metadata transfer (magnet link) startup time (shaved off about 1 second)
+	* optimized swarm startup time (shaved off about 1 second)
+	* support DHT name lookup
+	* optimized memory usage of torrent_info and file_storage, forcing some API changes
+	  around file_storage and file_entry
 	* support trackerid tracker extension
 	* graceful peer disconnect mode which finishes transactions before disconnecting peers
 	* support chunked encoding for web seeds
+	* uTP protocol support
+	* resistance towards certain flood attacks
+	* support chunked encoding for web seeds (only for BEP 19, web seeds)
 	* optimized session startup time
 	* support SSL for web seeds, through all proxies
 	* support extending web seeds with custom authorization and extra headers
@@ -55,6 +77,24 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed minor bug in metadata block requester (for magnet links)
+	* fixed race condition in iconv string converter
+	* fixed error handling in torrent_info constructor
+	* fixed bug in torrent_info::remap_files
+	* fix python binding for wait_for_alert
+	* only apply privileged port filter to DHT-only peers
+
+0.15.5 release
+
+	* support DHT extension to report external IPs
+	* fixed rare crash in http_connection's error handling
+	* avoid connecting to peers listening on ports < 1024
+	* optimized piece picking to not cause busy loops in some end-game modes
+	* fixed python bindings for tcp::endpoint
+	* fixed edge case of pad file support
+	* limit number of torrents tracked by DHT
+	* fixed bug when allow_multiple_connections_per_ip was enabled
+	* potential WOW64 fix for unbuffered I/O (windows)
 	* expose set_alert_queue_size_limit to python binding
 	* support dht nodes in magnet links
 	* support 100 Continue HTTP responses

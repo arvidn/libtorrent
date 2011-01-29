@@ -85,6 +85,9 @@ namespace libtorrent
 				: (std::min)(m_completion_timeout, timeout);
 		}
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("timeout_handler::timeout_callback");
+#endif
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(boost::bind(
@@ -106,6 +109,9 @@ namespace libtorrent
 
 	void timeout_handler::timeout_callback(error_code const& error)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("timeout_handler::timeout_callback");
+#endif
 		if (m_abort) return;
 
 		ptime now = time_now_hires();
@@ -130,6 +136,9 @@ namespace libtorrent
 				? m_completion_timeout - total_seconds(m_read_time - m_start_time)
 				: (std::min)(m_completion_timeout  - total_seconds(m_read_time - m_start_time), timeout);
 		}
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("timeout_handler::timeout_callback");
+#endif
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(

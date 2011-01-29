@@ -59,6 +59,8 @@ namespace libtorrent
 		udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
 		~udp_socket();
 
+		enum flags_t { dont_drop = 1, peer_connection = 2 };
+
 		bool is_open() const
 		{
 			return m_ipv4_sock.is_open()
@@ -72,7 +74,7 @@ namespace libtorrent
 		// this is only valid when using a socks5 proxy
 		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
 
-		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec);
+		void send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
 		void bind(int port);
 		void close();
@@ -82,12 +84,30 @@ namespace libtorrent
 		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 
 		bool is_closed() const { return m_abort; }
-		tcp::endpoint local_endpoint() const
+		tcp::endpoint local_endpoint(error_code& ec) const
 		{
-			error_code ec;
 			udp::endpoint ep = m_ipv4_sock.local_endpoint(ec);
 			return tcp::endpoint(ep.address(), ep.port());
 		}
+
+		void set_buf_size(int s);
+
+		template <class SocketOption>
+		void set_option(SocketOption const& opt, error_code& ec)
+		{
+			m_ipv4_sock.set_option(opt, ec);
+#if TORRENT_USE_IPV6
+			m_ipv6_sock.set_option(opt, ec);
+#endif
+		}
+
+		template <class SocketOption>
+		void get_option(SocketOption& opt, error_code& ec)
+		{
+			m_ipv4_sock.get_option(opt, ec);
+		}
+
+		udp::endpoint proxy_addr() const { return m_proxy_addr; }
 
 	protected:
 
@@ -96,6 +116,7 @@ namespace libtorrent
 			udp::endpoint ep;
 			char* hostname;
 			buffer buf;
+			int flags;
 		};
 
 	private:
@@ -129,6 +150,8 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
+		void maybe_realloc_buffers(int which = 3);
+
 #ifdef TORRENT_DEBUG
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
@@ -146,12 +169,24 @@ namespace libtorrent
 
 		udp::socket m_ipv4_sock;
 		udp::endpoint m_v4_ep;
-		char m_v4_buf[1600];
+		int m_v4_buf_size;
+		char* m_v4_buf;
+		// this is set to true to indicate that the
+		// m_v4_buf should be reallocated to the size
+		// of the buffer size members the next time their
+		// read handler gets triggered
+		bool m_reallocate_buffer4;
 
 #if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
 		udp::endpoint m_v6_ep;
-		char m_v6_buf[1600];
+		int m_v6_buf_size;
+		char* m_v6_buf;
+		// this is set to true to indicate that the
+		// m_v6_buf should be reallocated to the size
+		// of the buffer size members the next time their
+		// read handler gets triggered
+		bool m_reallocate_buffer6;
 #endif
 
 		int m_bind_port;

@@ -35,17 +35,33 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/utp_socket_manager.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
 
 namespace libtorrent
 {
 
-	bool instantiate_connection(io_service& ios
+	TORRENT_EXPORT bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
-		, void* ssl_context)
+		, void* ssl_context
+		, utp_socket_manager* sm
+		, bool peer_connection)
 	{
-		if (ps.type == proxy_settings::none)
+		if (sm)
+		{
+			s.instantiate<utp_stream>(ios);
+			s.get<utp_stream>()->set_impl(sm->new_utp_socket(s.get<utp_stream>()));
+		}
+#if TORRENT_USE_I2P
+		else if (ps.type == proxy_settings::i2p_proxy)
+		{
+			s.instantiate<i2p_stream>(ios);
+			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
+		}
+#endif
+		else if (ps.type == proxy_settings::none
+			|| (peer_connection && !ps.proxy_peer_connections))
 		{
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
@@ -98,13 +114,6 @@ namespace libtorrent
 			if (ps.type == proxy_settings::socks4)
 				str->set_version(4);
 		}
-#if TORRENT_USE_I2P
-		else if (ps.type == proxy_settings::i2p_proxy)
-		{
-			s.instantiate<i2p_stream>(ios);
-			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
-		}
-#endif
 		else
 		{
 			TORRENT_ASSERT_VAL(false, ps.type);

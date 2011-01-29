@@ -2,6 +2,19 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
@@ -203,6 +216,16 @@ of C++ exceptions. By disabling exceptions (-fno-exceptions on GCC), you can
 reduce the executable size with up to 45%. In order to build without exception
 support, you need to patch parts of boost.</p>
 <p>Also make sure to optimize for size when compiling.</p>
+<p>Another way of reducing the executable size is to disable code that isn't used.
+There are a number of <tt class="docutils literal"><span class="pre">TORRENT_*</span></tt> macros that control which features are included
+in libtorrent. If these macros are used to strip down libtorrent, make sure the same
+macros are defined when building libtorrent as when linking against it. If these
+are different the structures will look different from the libtorrent side and from
+the client side and memory corruption will follow.</p>
+<p>One, probably, safe macro to define is <tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt> which removes all
+deprecated functions and struct members. As long as no deprecated functions are
+relied upon, this should be a simple way to eliminate a little bit of code.</p>
+<p>For all available options, see the <a class="reference external" href="building.html">building libtorrent</a> secion.</p>
 </div>
 <div class="section" id="reduce-statistics">
 <h2>reduce statistics</h2>

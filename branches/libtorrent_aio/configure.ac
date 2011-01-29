@@ -323,6 +323,7 @@ AS_CASE(["$ARG_ENABLE_DEPRECATED"],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_NO_DEPRECATE],[1],[Define to exclude all deprecated functions from the API.])
+      COMPILETIME_OPTIONS+="-DTORRENT_NO_DEPRECATE "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEPRECATED])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DEPRECATED". Use either "yes" or "no".])]
@@ -592,6 +593,9 @@ COMPILETIME_OPTIONS+="-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
 COMPILETIME_OPTIONS+="-DBOOST_EXCEPTION_DISABLE "
+
+AC_DEFINE([BOOST_ASIO_ENABLE_CANCELIO],[1],[Define to enable cancel support in asio on windows XP and older.])
+COMPILETIME_OPTIONS+="-DBOOST_ASIO_ENABLE_CANCELIO "
 
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])

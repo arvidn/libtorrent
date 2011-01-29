@@ -50,8 +50,15 @@ rule linking ( properties * )
 		}
 		else
 		{
-			result += <library>crypto <library>ssl ;
+			result += <library>crypto <library>ssl <library>z ;
 		}
+
+		if <target-os>linux in $(properties)
+		{
+			# linker library on linux, required when using openssl
+#			result += <library>dl ;
+		}
+
 	}
 
 	# gcrypt libraries, if enabled
@@ -81,8 +88,8 @@ rule linking ( properties * )
 	{
 		result += <library>ws2_32
 			<library>wsock32
+			<library>iphlpapi
 			<define>WIN32_LEAN_AND_MEAN
-			<define>_WIN32_WINNT=0x0500
 			<define>__USE_W32_SOCKETS
 			<define>WIN32
 			<define>_WIN32
@@ -190,14 +197,6 @@ rule building ( properties * )
 	if ! ( <encryption>off in $(properties) )
 	{
 		result += <source>src/pe_crypto.cpp ;
-
-		if <target-os>linux in $(properties)
-			&& <encryption>openssl in $(properties)
-		{
-			# linker library on linux, required when using openssl
-			result += <source>/usr/lib/libdl.so ;
-		}
-
 	}
 
 	return $(result) ;
@@ -240,6 +239,15 @@ feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 feature asserts : on off production : composite propagated ;
 feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
+
+feature windows-version : 2k xp vista win7 : composite propagated link-incompatible ;
+feature.compose <windows-version>2k : <define>_WIN32_WINNT=0x0500 ;
+feature.compose <windows-version>xp : <define>_WIN32_WINNT=0x0501 ;
+feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
+feature.compose <windows-version>win7 : <define>_WIN32_WINNT=0x0601 ;
+
+feature asio-debugging : off on : composite propagated link-incompatible ;
+feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
@@ -333,8 +341,10 @@ lib boost_system : : <name>boost_system ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
-lib crypto : : <name>crypto <link>shared ;
+lib z : : <link>shared <name>z <search>/lib ;
+lib crypto : : <name>crypto <search>/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto ;
+lib dl : : <link>shared <name>/libdl.so <search>/lib ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -350,6 +360,7 @@ lib GeoIP : : <name>GeoIP <link>shared ;
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
 lib ws2_32 : : <name>ws2_32 <link>shared ;
+lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
 	alert
@@ -359,6 +370,7 @@ SOURCES =
 	bandwidth_manager
 	bandwidth_queue_entry
 	block_cache
+	bloom_filter
 	connection_queue
 	create_torrent
 	disk_buffer_holder
@@ -383,9 +395,11 @@ SOURCES =
 	i2p_stream
 	instantiate_connection
 	natpmp
+	packet_buffer
 	piece_picker
 	policy
 	puff
+	rss
 	session
 	session_impl
 	settings
@@ -402,8 +416,11 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
+	timestamp_history
 	udp_socket
 	upnp
+	utp_socket_manager
+	utp_stream
 	logger
 	file_pool
 	lsd
@@ -442,6 +459,8 @@ local usage-requirements =
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
+# enable cancel support in asio
+	<define>BOOST_ASIO_ENABLE_CANCELIO
 	<conditional>@linking
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t

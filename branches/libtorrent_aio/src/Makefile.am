@@ -24,6 +24,7 @@ libtorrent_rasterbar_la_SOURCES = \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
   bandwidth_queue_entry.cpp       \
+  bloom_filter.cpp                \
   broadcast_socket.cpp            \
   block_cache.cpp                 \
   bt_peer_connection.cpp          \
@@ -61,8 +62,10 @@ libtorrent_rasterbar_la_SOURCES = \
   pe_crypto.cpp                   \
   peer_connection.cpp             \
   piece_picker.cpp                \
+  packet_buffer.cpp               \
   policy.cpp                      \
   puff.cpp                        \
+  rss.cpp                         \
   session.cpp                     \
   session_impl.cpp                \
   settings.cpp                    \
@@ -78,12 +81,15 @@ libtorrent_rasterbar_la_SOURCES = \
   torrent_handle.cpp              \
   torrent_info.cpp                \
   time.cpp                        \
+  timestamp_history.cpp           \
   tracker_manager.cpp             \
   udp_socket.cpp                  \
   udp_tracker_connection.cpp      \
   upnp.cpp                        \
   ut_metadata.cpp                 \
   ut_pex.cpp                      \
+  utp_socket_manager.cpp          \
+  utp_stream.cpp                  \
   web_peer_connection.cpp         \
   \
   $(KADEMLIA_SOURCES)             \

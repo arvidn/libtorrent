@@ -79,5 +79,35 @@ bool refresh::invoke(observer_ptr o)
 	return true;
 }
 
+bootstrap::bootstrap(
+	node_impl& node
+	, node_id target
+	, done_callback const& callback)
+	: refresh(node, target, callback)
+{
+	// make it more resilient to nodes not responding.
+	// we don't want to terminate early when we're bootstrapping
+	m_num_target_nodes *= 2;
+}
+
+char const* bootstrap::name() const { return "bootstrap"; }
+
+void bootstrap::done()
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " [" << this << "]"
+		<< " bootstrap done, pinging remaining nodes";
+#endif
+
+	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+		, end(m_results.end()); i != end; ++i)
+	{
+		if ((*i)->flags & observer::flag_queried) continue;
+		// this will send a ping
+		m_node.add_node((*i)->target_ep());
+	}
+	refresh::done();
+}
+
 } } // namespace libtorrent::dht
 

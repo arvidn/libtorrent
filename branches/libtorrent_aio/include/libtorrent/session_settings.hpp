@@ -45,7 +45,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT proxy_settings
 	{
 		proxy_settings() : port(0), type(none)
-			, proxy_hostnames(true) {}
+			, proxy_hostnames(true)
+			, proxy_peer_connections(true)
+		{}
 
 		std::string hostname;
 		int port;
@@ -85,6 +87,9 @@ namespace libtorrent
 		// when set to true, hostname are resolved
 		// through the proxy (if supported)
 		bool proxy_hostnames;
+
+		// if true, use this proxy for peers too
+		bool proxy_peer_connections;
 	};
 
 	struct TORRENT_EXPORT session_settings
@@ -226,12 +231,16 @@ namespace libtorrent
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
 			, broadcast_lsd(false)
+			, enable_outgoing_utp(true)
+			, enable_incoming_utp(true)
+			, enable_outgoing_tcp(true)
+			, enable_incoming_tcp(true)
+			, max_pex_peers(200)
 			, ignore_resume_timestamps(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
 			, share_mode_target(3)
-
 			, upload_rate_limit(0)
 			, download_rate_limit(0)
 			, local_upload_rate_limit(0)
@@ -239,7 +248,24 @@ namespace libtorrent
 			, unchoke_slots_limit(8)
 			, half_open_limit(0)
 			, connections_limit(200)
+			, utp_target_delay(75) // milliseconds
+			, utp_gain_factor(1500) // bytes per rtt
+			, utp_min_timeout(500) // milliseconds
+			, utp_syn_resends(2)
+			, utp_fin_resends(2)
+			, utp_num_resends(6)
+			, utp_connect_timeout(3000) // milliseconds
+			, utp_delayed_ack(0) // milliseconds
+			, utp_dynamic_sock_buf(true)
+			, mixed_mode_algorithm(peer_proportional)
+			, rate_limit_utp(false)
 			, listen_queue_size(5)
+			, announce_double_nat(false)
+			, torrent_connect_boost(10)
+			, seeding_outgoing_connections(true)
+			, no_connect_privileged_ports(true)
+			, alert_queue_size(1000)
+			, max_metadata_size(1024*1024)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -864,6 +890,24 @@ namespace libtorrent
 		// a network is known not to support multicast, this can be enabled
 		bool broadcast_lsd;
 
+		// when set to true, libtorrent will try to make outgoing utp connections
+		bool enable_outgoing_utp;
+
+		// if set to false, libtorrent will reject incoming utp connections
+		bool enable_incoming_utp;
+
+		// when set to false, no outgoing TCP connections will be made
+		bool enable_outgoing_tcp;
+
+		// if set to false, libtorrent will reject incoming tcp connections
+		bool enable_incoming_tcp;
+
+		// the max number of peers we accept from pex messages from a single peer.
+		// this limits the number of concurrent peers any of our peers claims to
+		// be connected to. If they clain to be connected to more than this, we'll
+		// ignore any peer that exceeds this limit
+		int max_pex_peers;
+
 		// when set to true, the file modification time is ignored when loading
 		// resume data. The resume data includes the expected timestamp of each
 		// file and is typically compared to make sure the files haven't changed
@@ -914,10 +958,92 @@ namespace libtorrent
 		// the max number of connections in the session
 		int connections_limit;
 
+		// target delay, milliseconds
+		int utp_target_delay;
+
+		// max number of bytes to increase cwnd per rtt in uTP
+		// congestion controller
+		int utp_gain_factor;
+
+		// the shortest allowed uTP connection timeout in milliseconds
+		// defaults to 500 milliseconds. The shorter timeout, the
+		// faster the connection recovers from a loss of an entire window
+		int utp_min_timeout;
+
+		// the number of SYN packets that are sent before giving up
+		int utp_syn_resends;
+		
+		// the number of resent packets sent on a closed socket before giving up
+		int utp_fin_resends;
+
+		// the number of times to send a packet before giving up
+		int utp_num_resends;
+
+		// initial timeout for uTP SYN packets
+		int utp_connect_timeout;
+
+		// number of milliseconds of delaying ACKing packets the most
+		int utp_delayed_ack;
+
+		// set to true if the uTP socket buffer size is allowed to increase
+		// dynamically based on the NIC MTU setting. This is true by default
+		// and improves uTP performance for networks with larger frame sizes
+		// including loopback
+		bool utp_dynamic_sock_buf;
+
+		enum bandwidth_mixed_algo_t
+		{
+			// disables the mixed mode bandwidth balancing
+			prefer_tcp = 0,
+
+			// does not throttle uTP, throttles TCP to the same proportion
+			// of throughput as there are TCP connections
+			peer_proportional = 1
+
+		};
+		// the algorithm to use to balance bandwidth between tcp
+		// connections and uTP connections
+		int mixed_mode_algorithm;
+
+		// set to true if uTP connections should be rate limited
+		// defaults to false
+		bool rate_limit_utp;
+
 		// this is the number passed in to listen(). i.e.
 		// the number of connections to accept while we're
 		// not waiting in an accept() call.
 		int listen_queue_size;
+
+		// if this is true, the &ip= argument in tracker requests
+		// (unless otherwise specified) will be set to the intermediate
+		// IP address if the user is double NATed. If ther user is not
+		// double NATed, this option does not have an affect
+		bool announce_double_nat;
+
+		// the first tracker response after a torrent is started
+		// will cause this many connections to be made immediately.
+		// instead of waiting for the connection scheduler which
+		// triggeres every second
+		int torrent_connect_boost;
+
+		// this controls whether or not seeding (and complete) torrents
+		// attempt to make outgoing connections or not. It defaults to
+		// true, but can be set to zero for specific applications where
+		// making outgoing connections is costly and known to not
+		// add any benefits
+		bool seeding_outgoing_connections;
+
+		// when this is true, libtorrent will not attempt to make outgoing
+		// connections to peers whose port is < 1024. This is a safety
+		// precaution to avoid being part of a DDoS attack
+		bool no_connect_privileged_ports;
+
+		// the max alert queue size
+		int alert_queue_size;
+
+		// the max allowed size for metadata received by the
+		// ut_metadata extension (i.e. magnet links)
+		int max_metadata_size;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
@@ -926,9 +1052,15 @@ namespace libtorrent
 		dht_settings()
 			: max_peers_reply(100)
 			, search_branching(5)
+#ifndef TORRENT_NO_DEPRECATE
 			, service_port(0)
+#endif
 			, max_fail_count(20)
+			, max_torrents(3000)
+			, max_feed_items(3000)
 			, max_torrent_search_reply(20)
+			, restrict_routing_ips(true)
+			, restrict_search_ips(true)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -939,17 +1071,37 @@ namespace libtorrent
 		// searching the DHT.
 		int search_branching;
 		
+#ifndef TORRENT_NO_DEPRECATE
 		// the listen port for the dht. This is a UDP port.
 		// zero means use the same as the tcp interface
 		int service_port;
+#endif
 		
 		// the maximum number of times a node can fail
 		// in a row before it is removed from the table.
 		int max_fail_count;
 
+		// this is the max number of torrents the DHT will track
+		int max_torrents;
+
+		// max number of feed items the DHT will store
+		int max_feed_items;
+
 		// the max number of torrents to return in a
 		// torrent search query to the DHT
 		int max_torrent_search_reply;
+
+		// when set, nodes whose IP address that's in
+		// the same /24 (or /64 for IPv6) range in the
+		// same routing table bucket. This is an attempt
+		// to mitigate node ID spoofing attacks
+		// also restrict any IP to only have a single
+		// entry in the whole routing table
+		bool restrict_routing_ips;
+
+		// applies the same IP restrictions on nodes
+		// received during a DHT search (traversal algorithm)
+		bool restrict_search_ips;
 	};
 #endif
 

@@ -126,6 +126,7 @@ The ``session`` class has the following synopsis::
 			save_i2p_proxy = 0x010,
 			save_encryption_settings = 0x020,
 			save_as_map = 0x040,
+			save_feeds = 0x080,
 		};
 
 		void load_state(lazy_entry const& e);
@@ -160,6 +161,7 @@ The ``session`` class has the following synopsis::
 		std::vector<torrent_handle> get_torrents() const;
 
 		void set_settings(session_settings const& settings);
+		session_settings settings() const;
 		void set_pe_settings(pe_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
@@ -209,6 +211,10 @@ The ``session`` class has the following synopsis::
 		void set_alert_mask(int m);
 		size_t set_alert_queue_size_limit(
 			size_t queue_size_limit_);
+
+		feed_handle session::add_feed(feed_settings const& feed);
+		void session::remove_feed(feed_handle h);
+		void session::get_feeds(std::vector<feed_handle>& f) const;
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
@@ -292,7 +298,7 @@ settings. ``save_state`` writes all keys to the ``entry`` that's passed in, whic
 either not be initialized, or initialized as a dictionary.
 
 ``load_state`` expects a ``lazy_entry`` which can be built from a bencoded buffer with
-``lazy_bdecode``.
+`lazy_bdecode()`_.
 
 The ``flags`` arguments passed in to ``save_state`` can be used to filter which parts
 of the session state to save. By default, all state is saved (except for the individual
@@ -307,6 +313,7 @@ torrents). These are the possible flags. A flag that's set, means those settings
 		save_i2p_proxy =    0x010,
 		save_encryption_settings = 0x020,
 		save_as_map =       0x040,
+		save_feeds =        0x080
 	};
 
 
@@ -382,6 +389,7 @@ add_torrent()
 			std::vector<boost::uint8_t> const* file_priorities;
 			bool share_mode;
 			std::string trackerid;
+			std::string url;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -394,9 +402,10 @@ object with all the parameters.
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
 
-The only mandatory parameter is ``save_path`` which is the directory where you
+The only mandatory parameters are ``save_path`` which is the directory where you
 want the files to be saved. You also need to specify either the ``ti`` (the
-torrent file) or ``info_hash`` (the info hash of the torrent). If you specify the
+torrent file), the ``info_hash`` (the info hash of the torrent) or the ``url``
+(the URL to where to download the .torrent file from). If you specify the
 info-hash, the torrent file will be downloaded from peers, which requires them to
 support the metadata extension. For the metadata extension to work, libtorrent must
 be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
@@ -407,6 +416,11 @@ the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
 If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
 ``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
 torrent.
+
+If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
+until the .torrent file has been downloaded. If there's any error while downloading,
+the torrent will be stopped and the torrent error state (``torrent_status::error``)
+will indicate what went wrong. The ``url`` may also refer to a magnet link.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
@@ -615,6 +629,25 @@ struct has the following members::
 		int timeouts;
 		int responses;
 		int branch_factor;
+		int nodes_left;
+		int last_sent;
+		int first_timeout;
+	};
+
+	struct dht_routing_bucket
+	{
+		int num_nodes;
+		int num_replacements;
+		int last_active;
+	};
+
+	struct utp_status
+	{
+		int num_idle;
+		int num_syn_sent;
+		int num_connected;
+		int num_fin_sent;
+		int num_close_wait;
 	};
 
 	struct session_status
@@ -661,7 +694,10 @@ struct has the following members::
 		int dht_torrents;
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
+		std::vector<dht_routing_table> dht_routing_table;
 		int dht_total_allocations;
+
+		utp_status utp_stats;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -725,9 +761,14 @@ network.
 
 ``active_requests`` is a vector of the currently running DHT lookups.
 
+``dht_routing_table`` contains information about every bucket in the DHT routing
+table.
+
 ``dht_total_allocations`` is the number of nodes allocated dynamically for a
 particular DHT lookup. This represents roughly the amount of memory used
 by the DHT.
+
+``utp_stats`` contains statistics on the uTP sockets.
 
 get_cache_info()
 ----------------
@@ -889,14 +930,13 @@ Changes the mask of which alerts to receive. By default only errors are reported
 
 See alerts_ for mor information on the alert categories.
 
-pop_alert() wait_for_alert() set_alert_queue_size_limit()
----------------------------------------------------------
+pop_alert() wait_for_alert()
+----------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 `set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
@@ -912,12 +952,83 @@ can be called and it can pop the alert independently.
 
 In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
 
-``set_alert_queue_size_limit()`` you can specify how many alerts can be awaiting for dispatching.
-If this limit is reached, new incoming alerts can not be received until alerts are popped
-by calling ``pop_alert``. Default value is 1000.
+To control the max number of alerts that's queued by the session, see
+``session_settings::alert_queue_size``.
 
 ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
 of the alert mask.
+
+add_feed()
+----------
+
+	::
+
+		feed_handle session::add_feed(feed_settings const& feed);
+
+This adds an RSS feed to the session. The feed will be refreshed
+regularly and optionally add all torrents from the feed, as they
+appear. The feed is defined by the ``feed_settings`` object::
+
+	struct feed_settings
+	{
+		feed_settings();
+	
+   	std::string url;
+		bool auto_download;
+		int default_ttl;
+		add_torrent_params add_args;
+	};
+
+By default ``auto_download`` is true, which means all torrents in
+the feed will be downloaded. Set this to false in order to manually
+add torrents to the session. You may react to the rss_alert_ when
+a feed has been updated to poll it for the new items in the feed
+when adding torrents manually. When torrents are added automatically,
+you have to call ``session::get_torrents()`` to get the handles to
+the new torrents.
+
+Before adding the feed, you must set the ``url`` field to the
+feed's url. It may point to an RSS or an atom feed.
+
+The ``default_ttl`` is the default interval for refreshing a feed.
+This may be overridden by the feed itself (by specifying the ``<ttl>``
+tag) and defaults to 30 minutes. The field specifies the number of
+minutes between refreshes.
+
+If torrents are added automatically, you may want to set the
+``add_args`` to appropriate values for download directory etc.
+This object is used as a template for adding torrents from feeds,
+but some torrent specific fields will be overridden by the
+individual torrent being added. For more information on the
+``add_torrent_params``, see `add_torrent()`_.
+
+The returned feed_handle_ is a handle which is used to interact
+with the feed, things like forcing a refresh or querying for
+information about the items in the feed. For more information,
+see feed_handle_.
+
+
+remove_feed()
+-------------
+
+	::
+
+		void session::remove_feed(feed_handle h);
+
+Removes a feed from being watched by the session. When this
+call returns, the feed handle is invalid and won't refer
+to any feed.
+
+
+get_feeds()
+-----------
+
+	::
+
+		void session::get_feeds(std::vector<feed_handle>& f) const;
+
+Returns a list of all RSS feeds that are being watched by the session.
+
 
 add_extension()
 ---------------
@@ -1063,8 +1174,10 @@ struct has the following members::
 	{
 		int max_peers_reply;
 		int search_branching;
-		int service_port;
 		int max_fail_count;
+		int max_torrents;
+		bool restrict_routing_ips;
+		bool restrict_search_ips;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1074,19 +1187,35 @@ response to a ``get_peers`` message from another node.
 send when announcing and refreshing the routing table. This parameter is
 called alpha in the kademlia paper.
 
-``service_port`` is the udp port the node will listen to. This will default
-to 0, which means the udp listen port will be the same as the tcp listen
-port. This is in general a good idea, since some NAT implementations
-reserves the udp port for any mapped tcp port, and vice versa. NAT-PMP
-guarantees this for example.
-
 ``max_fail_count`` is the maximum number of failed tries to contact a node
 before it is removed from the routing table. If there are known working nodes
 that are ready to replace a failing node, it will be replaced immediately,
 this limit is only used to clear out nodes that don't have any node that can
 replace them.
 
-``is_dht_running`` returns true if the DHT support has been started and false
+``max_torrents`` is the total number of torrents to track from the DHT. This
+is simply an upper limit to make sure malicious DHT nodes cannot make us allocate
+an unbounded amount of memory.
+
+``max_feed_items`` is the total number of feed items to store from the DHT. This
+is simply an upper limit to make sure malicious DHT nodes cannot make us allocate
+an unbounded amount of memory.
+
+``restrict_routing_ips`` determines if the routing table entries should restrict
+entries to one per IP. This defaults to true, which helps mitigate some attacks
+on the DHT. It prevents adding multiple nodes with IPs with a very close CIDR
+distance.
+
+``restrict_search_ips`` determines if DHT searches should prevent adding nodes
+with IPs with very close CIDR distance. This also defaults to true and helps
+mitigate certain attacks on the DHT.
+
+The ``dht_settings`` struct used to contain a ``service_port`` member to control
+which port the DHT would listen on and send messages from. This field is deprecated
+and ignored. libtorrent always tries to open the UDP socket on the same port
+as the TCP socket.
+
+``is_dht_running()`` returns true if the DHT support has been started and false
 otherwise.
 
 
@@ -1339,9 +1468,6 @@ The ``torrent_info`` has the following synopsis::
 	{
 	public:
 
-		// flags for torrent_info constructor
-		enum flags_t { omit_filehashes = 1 };
-
 		// these constructors throws exceptions on error
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
@@ -1435,7 +1561,7 @@ from the swarm.
 The constructor that takes a ``lazy_entry`` will create a ``torrent_info`` object from the
 information found in the given torrent_file. The ``lazy_entry`` represents a tree node in
 an bencoded file. To load an ordinary .torrent file
-into a ``lazy_entry``, use lazy_bdecode(), see `bdecode() bencode()`_.
+into a ``lazy_entry``, use `lazy_bdecode()`_.
 
 The version that takes a buffer pointer and a size will decode it as a .torrent file and
 initialize the torrent_info object for you.
@@ -1450,10 +1576,7 @@ torrent_info object. The overloads that do not take the extra error_code_ parame
 always throw if an error occurs. These overloads are not available when building without
 exception support.
 
-The ``flags`` argument can be used to disable loading of potentially unnecessary hashes
-for individual files (if included in the torrent file). This is especially useful if
-you're loading torrents with thousands of files on a memory constrained system. If so,
-pass in ``torrent_info::omit_filehashes`` as the flags argument.
+The ``flags`` argument is currently unused.
 
 
 add_tracker()
@@ -1530,7 +1653,10 @@ begin_files() end_files() rbegin_files() rend_files()
 This class will need some explanation. First of all, to get a list of all files
 in the torrent, you can use ``begin_files()``, ``end_files()``,
 ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
-iterators with the type ``file_entry``.
+iterators with the type ``internal_file_entry``, which is an internal type.
+
+You can resolve it into the public representation of a file (``file_entry``)
+using the ``file_storage::at`` function, which takes an index and an iterator;
 
 ::
 
@@ -1541,17 +1667,15 @@ iterators with the type ``file_entry``.
 		size_type size;
 		size_type file_base;
 		time_t mtime;
-		int symlink_index;
-		int filehash_index;
+		sha1_hash filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
 	};
 
-The ``path`` is the full (relative) path of each file. i.e. if it is a multi-file
-torrent, all the files starts with a directory with the same name as ``torrent_info::name()``.
-The filenames are encoded with UTF-8.
+The ``path`` is the full path of this file. The paths are unicode strings
+encoded in UTF-8.
 
 ``size`` is the size of the file (in bytes) and ``offset`` is the byte offset
 of the file within the torrent. i.e. the sum of all the sizes of the files
@@ -1566,14 +1690,12 @@ file.
 
 ``mtime`` is the modification time of this file specified in posix time.
 
-``symlink_index`` is an index into an array of paths in ``file_storage``, or
--1 if this file is not a symlink. This field is only used if the ``symlink_attribute``
-is set. To resolve the symlink, call ``file_storage::symlink(e.symlink_index)``.
+``symlink_path`` is the path which this is a symlink to, or empty if this is
+not a symlink. This field is only used if the ``symlink_attribute`` is set.
 
-``filehash_index`` is an index into an array of sha-1 hashes in ``file_storage``, or
--1 if this file doesn't have a hash specified. The hash is the hash of the actual
-content of the file, and can be used to potentially find alternative sources for it.
-To resolve the hash, use ``file_storage::hash(e.filehash_index)``.
+``filehash`` is a sha-1 hash of the content of the file, or zeroes, if no
+file hash was present in the torrent file. It can be used to potentially
+find alternative sources for the file.
 
 ``pad_file`` is set to true for files that are not part of the data of the torrent.
 They are just there to make sure the next file is aligned to a particular byte offset
@@ -3382,6 +3504,8 @@ It contains the following fields::
 			optimistic_unchoke = 0x800,
 			snubbed = 0x1000,
 			upload_only = 0x2000,
+			endgame_mode = 0x4000,
+			holepunched = 0x8000,
 			rc4_encrypted = 0x100000,
 			plaintext_encrypted = 0x200000
 		};
@@ -3530,6 +3654,16 @@ any combination of the enums above. The following table describes each flag:
 |                         | will not downloading anything more, regardless of     |
 |                         | which pieces we have.                                 |
 +-------------------------+-------------------------------------------------------+
+| ``endgame_mode``        | This means the last time this peer picket a piece,    |
+|                         | it could not pick as many as it wanted because there  |
+|                         | were not enough free ones. i.e. all pieces this peer  |
+|                         | has were already requested from other peers.          |
++-------------------------+-------------------------------------------------------+
+| ``holepunched``         | This flag is set if the peer was in holepunch mode    |
+|                         | when the connection succeeded. This typically only    |
+|                         | happens if both peers are behind a NAT and the peers  |
+|                         | connect via the NAT holepunch mechanism.              |
++-------------------------+-------------------------------------------------------+
 
 __ extension_protocol.html
 
@@ -3668,8 +3802,19 @@ that may give away something about which software is running in the other end.
 In the case of a web seed, the server type and version will be a part of this
 string.
 
-``connection_type`` can currently be one of ``standard_bittorrent`` or
-``web_seed``. These are currently the only implemented protocols.
+``connection_type`` can currently be one of:
+
++---------------------------------------+-------------------------------------------------------+
+| type                                  | meaning                                               |
++=======================================+=======================================================+
+| ``peer_info::standard_bittorrent``    | Regular bittorrent connection over TCP                |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::bittorrent_utp``         | Bittorrent connection over uTP                        |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::web_sesed``              | HTTP connection using the `BEP 19`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
+| ``peer_info::http_seed``              | HTTP connection using the `BEP 17`_ protocol          |
++---------------------------------------+-------------------------------------------------------+
 
 ``remote_dl_rate`` is an estimate of the rate this peer is downloading at, in
 bytes per second.
@@ -3701,6 +3846,127 @@ floating point operations are diabled, instead use ``progress_ppm``.
 address of the interface it's going out over. This may be useful for multi-homed
 clients with multiple interfaces to the internet.
 
+feed_handle
+===========
+
+The ``feed_handle`` refers to a specific RSS feed which is watched by the session.
+The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``. It has the following
+functions::
+
+	struct feed_handle
+	{
+		feed_handle();
+		void update_feed();
+		feed_status get_feed_status() const;
+		void set_settings(feed_settings const& s);
+		feed_settings settings() const;
+	};
+
+update_feed()
+-------------
+
+	::
+
+		void update_feed();
+
+Forces an update/refresh of the feed. Regular updates of the feed is managed
+by libtorrent, be careful to not call this too frequently since it may
+overload the RSS server.
+
+get_feed_status()
+-----------------
+
+	::
+
+		feed_status get_feed_status() const;
+
+Queries the RSS feed for information, including all the items in the feed.
+The ``feed_status`` object has the following fields::
+
+	struct feed_status
+	{
+		std::string url;
+		std::string title;
+		std::string description;
+		time_t last_update;
+		int next_update;
+		bool updating;
+		std::vector<feed_item> items;
+		error_code error;
+		int ttl;
+	};
+
+``url`` is the URL of the feed.
+
+``title`` is the name of the feed (as specified by the feed itself). This
+may be empty if we have not recevied a response from the RSS server yet,
+or if the feed does not specify a title.
+
+``description`` is the feed description (as specified by the feed itself).
+This may be empty if we have not received a response from the RSS server
+yet, or if the feed does not specify a description.
+
+``last_update`` is the posix time of the last successful response from the feed.
+
+``next_update`` is the number of seconds, from now, when the feed will be
+updated again.
+
+``updating`` is true if the feed is currently being updated (i.e. waiting for
+DNS resolution, connecting to the server or waiting for the response to the
+HTTP request, or receiving the response).
+
+``items`` is a vector of all items that we have received from the feed. See
+feed_item_ for more information.
+
+``error`` is set to the appropriate error code if the feed encountered an
+error.
+
+``ttl`` is the current refresh time (in minutes). It's either the configured
+default ttl, or the ttl specified by the feed.
+
+
+set_settings() settings()
+-------------------------
+
+	::
+
+		void set_settings(feed_settings const& s);
+		feed_settings settings() const;
+
+Sets and gets settings for this feed. For more information on the
+available settings, see `add_feed()`_.
+
+feed_item
+=========
+
+The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``.
+	::
+
+		struct feed_item
+		{
+			feed_item();
+			std::string url;
+			std::string uuid;
+			std::string title;
+			std::string description;
+			std::string comment;
+			std::string category;
+			size_type size;
+			torrent_handle handle;
+			sha1_hash info_hash;
+		};
+
+``size`` is the total size of the content the torrent refers to, or -1
+if no size was specified by the feed.
+
+``handle`` is the handle to the torrent, if the session is already downloading
+this torrent.
+
+``info_hash`` is the info-hash of the torrent, or cleared (i.e. all zeroes) if
+the feed does not specify the info-hash.
+
+All the strings are self explanatory and may be empty if the feed does not specify
+those fields.
 
 session customization
 =====================
@@ -3921,10 +4187,17 @@ session_settings
 		int default_peer_upload_rate;
 		int default_peer_download_rate;
 		bool broadcast_lsd;
+
+		bool enable_outgoing_utp;
+		bool enable_incoming_utp;
+		bool enable_outgoing_tcp;
+		bool enable_incoming_tcp;
+		int max_pex_peers;
 		bool ignore_resume_timestamps;
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
+
 		int upload_rate_limit;
 		int download_rate_limit;
 		int local_upload_rate_limit;
@@ -3933,7 +4206,34 @@ session_settings
 		int half_open_limit;
 		int connections_limit;
 
+		int utp_target_delay;
+		int utp_gain_factor;
+		int utp_min_timeout;
+		int utp_syn_resends;
+		int utp_num_resends;
+		int utp_connect_timeout;
+		int utp_delayed_ack;
+		bool utp_dynamic_sock_buf;
+
+		enum bandwidth_mixed_algo_t
+		{
+			prefer_tcp = 0,
+			peer_proportional = 1
+
+		};
+		int mixed_mode_algorithm;
+		bool rate_limit_utp;
+
 		int listen_queue_size;
+
+		bool announce_double_nat;
+
+		int torrent_connect_boost;
+		bool seeding_outgoing_connections;
+
+		bool no_connect_privileged_ports;
+		int alert_queue_size;
+		int max_metadata_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4507,6 +4807,9 @@ This interval is specified in seconds.
 torrents to the distributed hash table (DHT). This is specified to
 be 15 minutes which is its default.
 
+``dht_max_torrents`` is the max number of torrents we will track
+in the DHT.
+
 ``udp_tracker_token_expiry`` is the number of seconds libtorrent
 will keep UDP tracker connection tokens around for. This is specified
 to be 60 seconds, and defaults to that. The higher this value is, the
@@ -4595,6 +4898,11 @@ if ``broadcast_lsd`` is set to true, the local peer discovery
 broadcast its messages. This can be useful when running on networks
 that don't support multicast. It's off by default since it's inefficient.
 
+``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
+``enable_incoming_tcp`` all determines if libtorrent should attempt to make
+outgoing connections of the specific type, or allow incoming connection. By
+default all of them are enabled.
+
 ``ignore_resume_timestamps`` determines if the storage, when loading
 resume data files, should verify that the file modification time
 with the timestamps in the resume data. This defaults to false, which
@@ -4664,6 +4972,58 @@ opened. The number of connections is set to a hard minimum of at least two per
 torrent, so if you set a too low connections limit, and open too many torrents,
 the limit will not be met.
 
+``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
+value will make uTP connections more aggressive and cause longer queues in the upload
+bottleneck. It cannot be too low, since the noise in the measurements would cause
+it to send too slow. The default is 50 milliseconds.
+
+``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
+at the most in one RTT. This defaults to 300 bytes. If this is set too high,
+the congestion controller reacts too hard to noise and will not be stable, if it's
+set too low, it will react slow to congestion and not back off as fast.
+
+``utp_min_timeout`` is the shortest allowed uTP socket timeout, specified in milliseconds.
+This defaults to 500 milliseconds. The timeout depends on the RTT of the connection, but
+is never smaller than this value. A connection times out when every packet in a window
+is lost, or when a packet is lost twice in a row (i.e. the resent packet is lost as well).
+
+The shorter the timeout is, the faster the connection will recover from this situation,
+assuming the RTT is low enough.
+
+``utp_syn_resends`` is the number of SYN packets that are sent (and timed out) before
+giving up and closing the socket.
+
+``utp_num_resends`` is the number of times a packet is sent (and lossed or timed out)
+before giving up and closing the connection.
+
+``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
+packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
+
+``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
+significantly helps reducing the amount of protocol overhead in the reverse direction
+from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
+and every incoming payload packet is ACKed. The granularity of this timer is capped by
+the tick interval (as specified by ``tick_interval``).
+
+``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
+the socket buffer if a network interface with a large MTU is used (such as loopback
+or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
+For RAM constrained systems, disabling this typically saves around 30kB in user space
+and probably around 400kB in kernel socket buffers (it adjusts the send and receive
+buffer size on the kernel socket, both for IPv4 and IPv6).
+
+The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
+uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
+when using swarms that have both TCP and uTP connections. If nothing is done, uTP
+connections would often be starved out for bandwidth by the TCP connections. This mode
+is ``prefer_tcp``. The ``peer_proportional`` mode simply looks at the current throughput
+and rate limits all TCP connections to their proportional share based on how many of
+the connections are TCP. This works best if uTP connections are not rate limited by
+the global rate limiter (which they aren't by default).
+
+``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
+limiter or not. By default they are not, since uTP manages its own rate.
+
 ``listen_queue_size`` is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
 actively waiting for a connection to be accepted. The default is 5 which should
@@ -4671,6 +5031,34 @@ be sufficient for any normal client. If this is a high performance server which
 expects to receive a lot of connections, or used in a simulator or test, it
 might make sense to raise this number. It will not take affect until listen_on()
 is called again (or for the first time).
+
+if ``announce_double_nat`` is true, the ``&ip=`` argument in tracker requests
+(unless otherwise specified) will be set to the intermediate IP address, if the
+user is double NATed. If ther user is not double NATed, this option has no affect.
+
+``torrent_connect_boost`` is the number of peers to try to connect to immediately
+when the first tracker response is received for a torrent. This is a boost to
+given to new torrents to accelerate them starting up. The normal connect scheduler
+is run once every second, this allows peers to be connected immediately instead
+of waiting for the session tick to trigger connections.
+
+``seeding_outgoing_connections`` determines if seeding (and finished) torrents
+should attempt to make outgoing connections or not. By default this is true. It
+may be set to false in very specific applications where the cost of making
+outgoing connections is high, and there are no or small benefits of doing so.
+For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
+make outgoing connections.
+
+if ``no_connect_privileged_ports`` is true (which is the default), libtorrent
+will not connect to any peers on priviliged ports (<= 1023). This can mitigate
+using bittorrent swarms for certain DDoS attacks.
+
+``alert_queue_size`` is the maximum number of alerts queued up internally. If
+alerts are not popped, the queue will eventually fill up to this level. This
+defaults to 1000.
+
+``max_metadata_size`` is the maximum allowed size (in bytes) to be received
+by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
 
 pe_settings
 ===========
@@ -4762,6 +5150,7 @@ direct certain traffic to a proxy.
 		
 			proxy_type type;
 			bool proxy_hostnames;
+			bool proxy_peer_connections;
 		};
 
 ``hostname`` is the name or IP of the proxy server. ``port`` is the
@@ -4801,6 +5190,10 @@ options are available:
 ``proxy_hostnames`` defaults to true. It means that hostnames should be
 attempted to be resolved through the proxy instead of using the local DNS
 service. This is only supported by SOCKS5 and HTTP.
+
+``proxy_peer_connections`` determines whether or not to excempt peer and
+web seed connections from using the proxy. This defaults to true, i.e. peer
+connections are proxied by default.
 
 ip_filter
 =========
@@ -5174,18 +5567,60 @@ standard encodings. Only Azureus style, Shadow's style and Mainline style. This 
 declared in the header ``<libtorrent/identify_client.hpp>``.
 
 
-bdecode() bencode()
--------------------
+lazy_bdecode()
+--------------
+
+	::
+
+		int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
+			, error_code& ec, int* error_pos = 0, int depth_limit = 1000
+			, int item_limit = 1000000);
+
+This function decodes bencoded_ data.
+
+.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+
+Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
+It is more efficient and more secure. It supports having constraints on the
+amount of memory is consumed by the parser.
+
+*lazy* refers to the fact that it doesn't copy any actual data out of the
+bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
+the bencoded buffer. This makes it very fast and efficient. On top of that,
+it is not recursive, which saves a lot of stack space when parsing deeply
+nested trees. However, in order to protect against potential attacks, the
+``depth_limit`` and ``item_limit`` control how many levels deep the tree is
+allowed to get. With recursive parser, a few thousand levels would be enough
+to exhaust the threads stack and terminate the process. The ``item_limit``
+protects against very large structures, not necessarily deep. Each bencoded
+item in the structure causes the parser to allocate some amount of memory,
+this memory is constant regardless of how much data actually is stored in
+the item. One potential attack is to create a bencoded list of hundreds of
+thousands empty strings, which would cause the parser to allocate a significant
+amount of memory, perhaps more than is available on the machine, and effectively
+provide a denial of service. The default item limit is set as a reasonable
+upper limit for desktop computers. Very few torrents have more items in them.
+The limit corresponds to about 25 MB, which might be a bit much for embedded
+systems.
+
+``start`` and ``end`` defines the bencoded buffer to be decoded. ``ret`` is
+the ``lazy_entry`` which is filled in with the whole decoded tree. ``ec``
+is a reference to an ``error_code`` which is set to describe the error encountered
+in case the function fails. ``error_pos`` is an optional pointer to an int,
+which will be set to the byte offset into the buffer where an error occurred,
+in case the function fails.
+
+bdecode() bencode() 
+--------------------
 
 	::
 
 		template<class InIt> entry bdecode(InIt start, InIt end);
 		template<class OutIt> void bencode(OutIt out, const entry& e);
 
-
 These functions will encode data to bencoded_ or decode bencoded_ data.
 
-.. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
+If possible, `lazy_bdecode()`_ should be preferred over ``bdecode()``.
 
 The entry_ class is the internal representation of the bencoded data
 and it can be used to retrieve information, an entry_ can also be build by
@@ -5244,6 +5679,9 @@ the ``add_torrent_params``, ``p``. See `add_torrent()`_.
 
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
+
+A simpler way to add a magnet link to a session is to pass in the
+link through ``add_torrent_params::url`` argument to ``session::add_torrent()``.
 
 For more information about magnet links, see `magnet links`_.
 
@@ -5314,6 +5752,13 @@ is a bitmask with the following bits:
 |                                | These alerts contain all statistics counters for the interval since |
 |                                | the lasts stats alert.                                              |
 +--------------------------------+---------------------------------------------------------------------+
+| ``dht_notification``           | Alerts on events in the DHT node. For incoming searches or          |
+|                                | bootstrapping being done etc.                                       |
++--------------------------------+---------------------------------------------------------------------+
+| ``rss_notification``           | Alerts on RSS related events, like feeds being updated, feed error  |
+|                                | conditions and successful RSS feed updates. Enabling this categoty  |
+|                                | will make you receive ``rss_alert`` alerts.                         |
++--------------------------------+---------------------------------------------------------------------+
 | ``all_categories``             | The full bitmask, representing all available categories.            |
 +--------------------------------+---------------------------------------------------------------------+
 
@@ -5354,6 +5799,7 @@ is its synopsis:
 			ip_block_notification = *implementation defined*,
 			performance_warning = *implementation defined*,
 			dht_notification = *implementation defined*,
+			stats_notification = *implementation defined*,
 
 			all_categories = *implementation defined*
 		};
@@ -5366,6 +5812,7 @@ is its synopsis:
 		virtual std::string message() const = 0;
 		virtual char const* what() const = 0;
 		virtual int category() const = 0;
+		virtual bool discardable() const;
 		virtual std::auto_ptr<alert> clone() const = 0;
 	};
 
@@ -5397,6 +5844,10 @@ not include any information that might be bundled with the alert.
 ``category()`` returns a bitmask specifying which categories this alert belong to.
 
 ``clone()`` returns a pointer to a copy of the alert.
+
+``discardable()`` determines whether or not an alert is allowed to be discarded
+when the alert queue is full. There are a few alerts which may not be discared,
+since they would break the user contract, such as ``save_resume_data_alert``.
 
 ``message()`` generate a string describing the alert and the information bundled
 with it. This is mainly intended for debug and development use. It is not suitable
@@ -5585,6 +6036,21 @@ generated and the torrent is paused.
 		error_code error;
 	};
 
+torrent_error_alert
+-------------------
+
+This is posted whenever a torrent is transitioned into the error state.
+
+::
+
+	struct torrent_error_alert: torrent_alert
+	{
+		// ...
+		error_code error;
+	};
+
+The ``error`` specifies which error the torrent encountered.
+
 file_renamed_alert
 ------------------
 
@@ -5684,23 +6150,6 @@ the DHT.
 
 The ``num_peers`` tells how many peers were returned from the tracker. This is
 not necessarily all new peers, some of them may already be connected.
-
-dht_reply_alert
----------------
-
-This alert is generated each time the DHT receives peers from a node. ``num_peers``
-is the number of peers we received in this packet. Typically these packets are
-received from multiple DHT nodes, and so the alerts are typically generated
-a few at a time.
-
-::
-
-	struct dht_reply_alert: tracker_alert
-	{
-		// ...
-		int num_peers;
-	};
-
 
 tracker_warning_alert
 ---------------------
@@ -6393,6 +6842,35 @@ It belongs to the ``dht_notification`` category.
 		sha1_hash info_hash;
 	};
 
+dht_reply_alert
+---------------
+
+This alert is generated each time the DHT receives peers from a node. ``num_peers``
+is the number of peers we received in this packet. Typically these packets are
+received from multiple DHT nodes, and so the alerts are typically generated
+a few at a time.
+
+::
+
+	struct dht_reply_alert: tracker_alert
+	{
+		// ...
+		int num_peers;
+	};
+
+dht_bootstrap_alert
+-------------------
+
+This alert is posted when the initial DHT bootstrap is done. There's no any other
+relevant information associated with this alert.
+
+::
+	
+	struct dht_bootstrap_alert: alert
+	{
+		// ...
+	};
+
 anonymous_mode_alert
 --------------------
 
@@ -6419,6 +6897,56 @@ when in anonymous mode.
 ``tracker_not_anonymous`` means that there's no proxy set up for tracker
 communication and the tracker will not be contacted. The tracker which
 this failed for is specified in the ``str`` member.
+
+rss_alert
+---------
+
+This alert is posted on RSS feed events such as start of RSS feed updates,
+successful completed updates and errors during updates.
+
+This alert is only posted if the ``rss_notifications`` category is enabled
+in the alert mask.
+
+::
+
+	struct rss_alert: alert
+	{
+		// ..
+		virtual std::string message() const;
+
+		enum state_t
+		{
+			state_updating, state_updated, state_error
+		};
+
+		feed_handle handle;
+		std::string url;
+		int state;
+		error_code error;
+	};
+
+``handle`` is the handle to the feed which generated this alert.
+
+``url`` is a short cut to access the url of the feed, without
+having to call ``get_settings()``.
+
+``state`` is one of:
+
+``rss_alert::state_updating``
+	An update of this feed was just initiated, it will either succeed
+	or fail soon.
+
+``rss_alert::state_updated``
+	The feed just completed a successful update, there may be new items
+	in it. If you're adding torrents manually, you may want to request
+	the feed status of the feed and look through the ``items`` vector.
+
+``rss_akert::state_error``
+	An error just occurred. See the ``error`` field for information on
+	what went wrong.
+
+``error`` is an error code used for when an error occurs on the feed.
+
 
 alert dispatcher
 ================
@@ -6746,6 +7274,9 @@ code   symbol                                    description
 106    invalid_pex_message                       The peer sent an invalid peer exchange message
 ------ ----------------------------------------- -----------------------------------------------------------------
 107    invalid_lt_tracker_message                The peer sent an invalid tracker exchange message
+------ ----------------------------------------- -----------------------------------------------------------------
+108    too_frequent_pex                          The peer sent an pex messages too often. This is a possible
+                                                 attempt of and attack
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
@@ -6844,6 +7375,18 @@ tracker errors:
 178    invalid_tracker_transaction_id            invalid transaction id in udp tracker response
 ------ ----------------------------------------- -----------------------------------------------------------------
 179    invalid_tracker_action                    invalid action field in udp tracker response
+------ ----------------------------------------- -----------------------------------------------------------------
+190    expected_string                           expected string in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+191    expected_colon                            expected colon in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+192    unexpected_eof                            unexpected end of file in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+193    expected_value                            expected value (list, dict, int or string) in bencoded string
+------ ----------------------------------------- -----------------------------------------------------------------
+194    depth_exceeded                            bencoded recursion depth limit exceeded
+------ ----------------------------------------- -----------------------------------------------------------------
+195    item_limit_exceeded                       bencoded item count limit exceeded
 ====== ========================================= =================================================================
 
 The names of these error codes are declared in then ``libtorrent::errors`` namespace.
@@ -6884,6 +7427,47 @@ code   symbol                                    description
 ====== ========================================= ====================================================
 
 The UPnP errors are declared in the ``libtorrent::upnp_errors`` namespace.
+
+HTTP errors are reported in the ``libtorrent::http_category``, with error code enums in
+the ``libtorrent::errors`` namespace.
+
+====== =========================================
+code   symbol                                   
+====== =========================================
+100    cont                                     
+------ -----------------------------------------
+200    ok                                       
+------ -----------------------------------------
+201    created                                  
+------ -----------------------------------------
+202    accepted                                 
+------ -----------------------------------------
+204    no_content                               
+------ -----------------------------------------
+300    multiple_choices                         
+------ -----------------------------------------
+301    moved_permanently                        
+------ -----------------------------------------
+302    moved_temporarily                        
+------ -----------------------------------------
+304    not_modified                             
+------ -----------------------------------------
+400    bad_request                              
+------ -----------------------------------------
+401    unauthorized                             
+------ -----------------------------------------
+403    forbidden                                
+------ -----------------------------------------
+404    not_found                                
+------ -----------------------------------------
+500    internal_server_error                    
+------ -----------------------------------------
+501    not_implemented                          
+------ -----------------------------------------
+502    bad_gateway                              
+------ -----------------------------------------
+503    service_unavailable                      
+====== =========================================
 
 translating error codes
 -----------------------

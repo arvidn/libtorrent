@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/utp_stream.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/max.hpp"
 #include "libtorrent/assert.hpp"
@@ -96,6 +97,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<socks5_stream>()->x; break; \
 		case socket_type_int_impl<http_stream>::value: \
 			get<http_stream>()->x; break; \
+		case socket_type_int_impl<utp_stream>::value: \
+			get<utp_stream>()->x; break; \
 		TORRENT_SOCKTYPE_I2P_FORWARD(x) \
 		TORRENT_SOCKTYPE_SSL_FORWARD(x) \
 		default: TORRENT_ASSERT(false); \
@@ -109,6 +112,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<socks5_stream>()->x; \
 		case socket_type_int_impl<http_stream>::value: \
 			return get<http_stream>()->x; \
+		case socket_type_int_impl<utp_stream>::value: \
+			return get<utp_stream>()->x; \
 		TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
 		TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
 		default: TORRENT_ASSERT(false); return def; \
@@ -133,36 +138,38 @@ namespace libtorrent
 	struct socket_type_int_impl<http_stream>
 	{ enum { value = 3 }; };
 
+	template <>
+	struct socket_type_int_impl<utp_stream>
+	{ enum { value = 4 }; };
+
 #if TORRENT_USE_I2P
 	template <>
 	struct socket_type_int_impl<i2p_stream>
-	{ enum { value = 4 }; };
+	{ enum { value = 5 }; };
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
 	template <>
 	struct socket_type_int_impl<ssl_stream<stream_socket> >
-	{ enum { value = 5 }; };
-
-	template <>
-	struct socket_type_int_impl<ssl_stream<socks5_stream> >
 	{ enum { value = 6 }; };
 
 	template <>
-	struct socket_type_int_impl<ssl_stream<http_stream> >
+	struct socket_type_int_impl<ssl_stream<socks5_stream> >
 	{ enum { value = 7 }; };
+
+	template <>
+	struct socket_type_int_impl<ssl_stream<http_stream> >
+	{ enum { value = 8 }; };
 #endif
 
 	struct TORRENT_EXPORT socket_type
 	{
-		typedef stream_socket::lowest_layer_type lowest_layer_type;
 		typedef stream_socket::endpoint_type endpoint_type;
 		typedef stream_socket::protocol_type protocol_type;
 	
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
-		lowest_layer_type& lowest_layer();
 		io_service& get_io_service() const;
 		bool is_open() const;
 
@@ -253,10 +260,11 @@ namespace libtorrent
 
 		io_service& m_io_service;
 		int m_type;
-		enum { storage_size = max7<
+		enum { storage_size = max8<
 			sizeof(stream_socket)
 			, sizeof(socks5_stream)
 			, sizeof(http_stream)
+			, sizeof(utp_stream)
 #if TORRENT_USE_I2P
 			, sizeof(i2p_stream)
 #else

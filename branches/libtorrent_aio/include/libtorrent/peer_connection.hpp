@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/sliding_average.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -86,9 +87,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
-	struct peer_plugin;
 	struct peer_info;
 	struct disk_io_job;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct peer_plugin;
+#endif
 
 	namespace detail
 	{
@@ -202,6 +205,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<peer_plugin>);
+		peer_plugin const* find_plugin(char const* type);
 #endif
 
 		// this function is called once the torrent associated
@@ -244,6 +248,9 @@ namespace libtorrent
 		void request_large_blocks(bool b)
 		{ m_request_large_blocks = b; }
 
+		void set_endgame(bool b) { m_endgame_mode = b; }
+		bool endgame() const { return m_endgame_mode; }
+
 		bool no_download() const { return m_no_download; }
 		void no_download(bool b) { m_no_download = b; }
 
@@ -283,6 +290,14 @@ namespace libtorrent
 
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
+
+		void set_holepunch_mode()
+		{
+			m_holepunch_mode = true;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** HOLEPUNCH MODE ***");
+#endif
+		}
 
 		// will send a keep-alive message to the peer
 		void keep_alive();
@@ -341,6 +356,9 @@ namespace libtorrent
 		void on_timeout();
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec, int error = 0);
+		// called when a connect attempt fails (not when an
+		// established connection fails)
+		void connect_failed(error_code const& e);
 		bool is_disconnecting() const { return m_disconnecting; }
 
 		// this is called when the connection attempt has succeeded
@@ -394,7 +412,12 @@ namespace libtorrent
 
 		bool failed() const { return m_failed; }
 
-		int desired_queue_size() const { return m_desired_queue_size; }
+		int desired_queue_size() const
+		{
+			// this peer is in end-game mode we only want
+			// one outstanding request
+			return m_endgame_mode ? 1: m_desired_queue_size;
+		}
 
 		bool bittyrant_unchoke_compare(
 			boost::intrusive_ptr<peer_connection const> const& p) const;
@@ -417,7 +440,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-		void peer_log(char const* fmt, ...);
+		void peer_log(char const* fmt, ...) const;
 		boost::shared_ptr<logger> m_logger;
 #endif
 
@@ -505,7 +528,7 @@ namespace libtorrent
 		downloading_piece_progress() const
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "downloading_piece_progress() dispatched to the base class!\n";
+			peer_log("*** downloading_piece_progress() dispatched to the base class!");
 #endif
 			return boost::optional<piece_block_progress>();
 		}
@@ -522,11 +545,17 @@ namespace libtorrent
 #endif
 
 		template <class Destructor>
-		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
+		void append_send_buffer(char* buffer, int size, Destructor const& destructor
+			, bool encrypted = false)
 		{
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 			log_buffer_usage(buffer, size, "queued send buffer");
 #endif
+			// bittorrent connections should never use this function, since
+			// they might be encrypted and this would circumvent the actual
+			// encryption. bt_peer_connection overrides this function with
+			// its own version.
+			TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
 			m_send_buffer.append_buffer(buffer, size, size, destructor);
 		}
 
@@ -571,6 +600,10 @@ namespace libtorrent
 
 		size_type downloaded_since_unchoke() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_unchoke; }
+
+		// called when the disk write buffer is drained again, and we can
+		// start downloading payload again
+		void on_disk();
 
 		enum sync_t { read_async, read_sync };
 		void setup_receive(sync_t sync = read_sync);
@@ -634,6 +667,8 @@ namespace libtorrent
 
 		bool verify_piece(peer_request const& p) const;
 
+		void update_desired_queue_size();
+
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
 		bandwidth_channel m_bandwidth_channel[num_channels];
@@ -664,6 +699,10 @@ namespace libtorrent
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.
 		int m_max_out_request_queue;
+
+		// the average rate of receiving complete piece messages
+		sliding_average<20> m_piece_rate;
+		sliding_average<20> m_send_rate;
 
 		void set_timeout(int s) { m_timeout = s; }
 
@@ -711,6 +750,7 @@ namespace libtorrent
 		// the time when we last got a part of a
 		// piece packet from this peer
 		ptime m_last_piece;
+
 		// the time we sent a request to
 		// this peer the last time
 		ptime m_last_request;
@@ -1073,8 +1113,18 @@ namespace libtorrent
 		// pick any pieces from this peer
 		bool m_no_download:1;
 
+		// this is set to true if the last time we tried to
+		// pick a piece to download, we could only find
+		// blocks that were already requested from other
+		// peers. In this case, we should not try to pick
+		// another piece until the last one we requested is done
+		bool m_endgame_mode:1;
+
 		// set to true when we've sent the first round of suggests
 		bool m_sent_suggests:1;
+
+		// set to true while we're trying to holepunch
+		bool m_holepunch_mode:1;
 
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats

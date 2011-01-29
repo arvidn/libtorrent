@@ -198,7 +198,7 @@ namespace libtorrent { namespace dht
 		return node_id(node_id(nid->string().c_str()));
 	}
 
-	bool send_callback(void* userdata, entry const& e, udp::endpoint const& addr, int flags)
+	bool send_callback(void* userdata, entry& e, udp::endpoint const& addr, int flags)
 	{
 		dht_tracker* self = (dht_tracker*)userdata;
 		return self->send_packet(e, addr, flags);
@@ -208,7 +208,10 @@ namespace libtorrent { namespace dht
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 		, dht_settings const& settings, entry const* state)
-		: m_dht(ses, &send_callback, settings, extract_node_id(state), this)
+		: m_dht(ses.m_alerts, &send_callback, settings, extract_node_id(state)
+			, ses.external_address()
+			, boost::bind(&aux::session_impl::set_external_address, &ses, _1, _2, _3)
+			, this)
 		, m_ses(ses)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
@@ -511,7 +514,7 @@ namespace libtorrent { namespace dht
 		lazy_entry e;
 		int pos;
 		error_code ec;
-		int ret = lazy_bdecode(buf, buf + bytes_transferred, e, ec, &pos);
+		int ret = lazy_bdecode(buf, buf + bytes_transferred, e, ec, &pos, 10, 500);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -608,13 +611,19 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&)
-	{}
+	{
+	// #error post an alert
+	}
 
-	bool dht_tracker::send_packet(libtorrent::entry const& e, udp::endpoint const& addr, int send_flags)
+	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		using libtorrent::bencode;
 		using libtorrent::entry;
+
+		static char const version_str[] = {'L', 'T'
+			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
+		e["v"] = std::string(version_str, version_str + 4);
 
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);

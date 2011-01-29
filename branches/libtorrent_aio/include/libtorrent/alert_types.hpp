@@ -41,12 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
+#include "libtorrent/rss.hpp" // for feed_handle
 
 // lines reserved for future includes
 // the type-ids of the alert types
 // are derived from the line on which
 // they are declared
-
 
 
 
@@ -121,6 +121,7 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		boost::shared_array<char> buffer;
 		int piece;
@@ -157,6 +158,7 @@ namespace libtorrent
 
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		std::string name;
 		int index;
@@ -177,6 +179,7 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		int index;
 		error_code error;
@@ -721,6 +724,7 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " resume data generated"; }
+		virtual bool discardable() const { return false; }
 
 		boost::shared_ptr<entry> resume_data;
 	};
@@ -746,6 +750,7 @@ namespace libtorrent
 			return torrent_alert::message() + " resume data was not generated: "
 				+ error.message();
 		}
+		virtual bool discardable() const { return false; }
 
 		error_code error;
 
@@ -939,6 +944,7 @@ namespace libtorrent
 
 		const static int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		tcp::endpoint endpoint;
 		error_code error;
@@ -954,6 +960,7 @@ namespace libtorrent
 
 		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
 
 		tcp::endpoint endpoint;
 	};
@@ -1183,6 +1190,55 @@ namespace libtorrent
 
 		std::string trackerid;
 	};
+
+	struct TORRENT_EXPORT dht_bootstrap_alert: alert
+	{
+		dht_bootstrap_alert() {}
+		
+		TORRENT_DEFINE_ALERT(dht_bootstrap_alert);
+
+		const static int static_category = alert::dht_notification;
+		virtual std::string message() const;
+	};
+
+	struct TORRENT_EXPORT rss_alert: alert
+	{
+		rss_alert(feed_handle h, std::string const& url_, int state_, error_code const& ec)
+			: handle(h), url(url_), state(state_), error(ec)
+		{}
+
+		TORRENT_DEFINE_ALERT(rss_alert);
+
+		const static int static_category = alert::rss_notification;
+		virtual std::string message() const;
+
+		enum state_t
+		{
+			state_updating, state_updated, state_error
+		};
+
+		feed_handle handle;
+		std::string url;
+		int state;
+		error_code error;
+	};
+
+	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
+	{
+		torrent_error_alert(torrent_handle const& h
+			, error_code const& e)
+			: torrent_alert(h)
+			, error(e)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_error_alert);
+
+		const static int static_category = alert::error_notification | alert::status_notification;
+		virtual std::string message() const;
+
+		error_code error;
+	};
+
 
 }
 

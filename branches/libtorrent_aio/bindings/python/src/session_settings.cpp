@@ -133,6 +133,13 @@ void bind_session_settings()
         .def_readwrite("tick_interval", &session_settings::tick_interval)
         .def_readwrite("report_web_seed_downloads", &session_settings::report_web_seed_downloads)
         .def_readwrite("share_mode_target", &session_settings::share_mode_target)
+        .def_readwrite("rate_limit_utp", &session_settings::rate_limit_utp)
+        .def_readwrite("listen_queue_size", &session_settings::listen_queue_size)
+        .def_readwrite("announce_double_nat", &session_settings::announce_double_nat)
+        .def_readwrite("torrent_connect_boost", &session_settings::torrent_connect_boost)
+        .def_readwrite("seeding_outgoing_connections", &session_settings::seeding_outgoing_connections)
+        .def_readwrite("no_connect_privileged_ports", &session_settings::no_connect_privileged_ports)
+        .def_readwrite("alert_queue_size", &session_settings::alert_queue_size)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")
@@ -174,8 +181,14 @@ void bind_session_settings()
     class_<dht_settings>("dht_settings")
         .def_readwrite("max_peers_reply", &dht_settings::max_peers_reply)
         .def_readwrite("search_branching", &dht_settings::search_branching)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("service_port", &dht_settings::service_port)
+#endif
         .def_readwrite("max_fail_count", &dht_settings::max_fail_count)
+        .def_readwrite("max_torrents", &dht_settings::max_torrents)
+        .def_readwrite("max_feed_items", &dht_settings::max_feed_items)
+        .def_readwrite("restrict_routing_ips", &dht_settings::restrict_routing_ips)
+        .def_readwrite("restrict_search_ips", &dht_settings::restrict_search_ips)
     ;
 #endif
 

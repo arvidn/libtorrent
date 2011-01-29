@@ -33,10 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/socket.hpp"
 
+// TODO: it would be nice to not have this dependency here
+#include "libtorrent/aux_/session_impl.hpp"
+
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
+#include <libtorrent/kademlia/node_id.hpp> // for generate_id
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -93,13 +97,13 @@ void observer::set_target(udp::endpoint const& ep)
 #if TORRENT_USE_IPV6
 	if (ep.address().is_v6())
 	{
-		m_is_v6 = true;
+		flags |= flag_ipv6_address;
 		m_addr.v6 = ep.address().to_v6().to_bytes();
 	}
 	else
 #endif
 	{
-		m_is_v6 = false;
+		flags &= ~flag_ipv6_address;
 		m_addr.v4 = ep.address().to_v4().to_bytes();
 	}
 }
@@ -107,7 +111,7 @@ void observer::set_target(udp::endpoint const& ep)
 address observer::target_addr() const
 {
 #if TORRENT_USE_IPV6
-	if (m_is_v6)
+	if (flags & flag_ipv6_address)
 		return address_v6(m_addr.v6);
 	else
 #endif
@@ -121,23 +125,21 @@ udp::endpoint observer::target_ep() const
 
 void observer::abort()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::prevent_request);
 }
 
 void observer::done()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->finished(observer_ptr(this));
 }
 
 void observer::short_timeout()
 {
-	if (m_short_timeout) return;
-	TORRENT_ASSERT(m_short_timeout == false);
-	m_short_timeout = true;
+	if (flags & flag_short_timeout) return;
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
@@ -145,12 +147,10 @@ void observer::short_timeout()
 // some timeout
 void observer::timeout()
 {
-	if (m_done) return;
-	m_done = true;
+	if (flags & flag_done) return;
+	flags |= flag_done;
 	m_algorithm->failed(observer_ptr(this));
 }
-
-node_id generate_id();
 
 enum { observer_size = max3<
 	sizeof(find_data_observer)
@@ -161,9 +161,9 @@ enum { observer_size = max3<
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, send_fun const& sf
-	, void* userdata)
+	, void* userdata
+	, external_ip_fun ext_ip)
 	: m_pool_allocator(observer_size, 10)
-	, m_next_transaction_id(std::rand() % max_transaction_id)
 	, m_send(sf)
 	, m_userdata(userdata)
 	, m_our_id(our_id)
@@ -172,6 +172,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_random_number(generate_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
+	, m_ext_ip(ext_ip)
 {
 	std::srand(time(0));
 
@@ -181,7 +182,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
-	PRINT_OFFSETOF(observer, flags);
 	PRINT_OFFSETOF(observer, m_sent);
 	PRINT_OFFSETOF(observer, m_refs);
 	PRINT_OFFSETOF(observer, m_algorithm);
@@ -189,6 +189,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	PRINT_OFFSETOF(observer, m_addr);
 	PRINT_OFFSETOF(observer, m_port);
 	PRINT_OFFSETOF(observer, m_transaction_id);
+	PRINT_OFFSETOF(observer, flags);
 
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
@@ -237,9 +238,6 @@ size_t rpc_manager::allocation_size() const
 
 void rpc_manager::check_invariant() const
 {
-	TORRENT_ASSERT(m_next_transaction_id >= 0);
-	TORRENT_ASSERT(m_next_transaction_id < max_transaction_id);
-
 	for (transactions_t::const_iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
@@ -338,6 +336,24 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
+
+	lazy_entry const* ext_ip = ret_ent->dict_find_string("ip");
+	if (ext_ip && ext_ip->string_length() == 4)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v4::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		m_ext_ip(address_v4(b), aux::session_impl::source_dht, m.addr.address());
+	}
+#if TORRENT_USE_IPV6
+	else if (ext_ip && ext_ip->string_length() == 16)
+	{
+		// this node claims we use the wrong node-ID!
+		address_v6::bytes_type b;
+		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		m_ext_ip(address_v6(b), aux::session_impl::source_dht, m.addr.address());
+	}
+#endif
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 
@@ -439,11 +455,12 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	io::write_uint16(m_next_transaction_id, out);
+	int tid = rand() ^ (rand() << 5);
+	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
 		
 	o->set_target(target_addr);
-	o->set_transaction_id(m_next_transaction_id);
+	o->set_transaction_id(tid);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] invoking "
@@ -453,8 +470,6 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	if (m_send(m_userdata, e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
-		++m_next_transaction_id;
-  		m_next_transaction_id %= max_transaction_id;
 #ifdef TORRENT_DEBUG
 		o->m_was_sent = true;
 #endif
@@ -468,7 +483,7 @@ observer::~observer()
 	// reported back to the traversal_algorithm as
 	// well. If it wasn't sent, it cannot have been
 	// reported back
-	TORRENT_ASSERT(m_was_sent == m_done);
+	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done));
 	TORRENT_ASSERT(!m_in_constructor);
 }
 

@@ -114,6 +114,27 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	return ret;
 }
 
+bool listen_done = false;
+bool listen_alert(libtorrent::alert* a)
+{
+	if (alert_cast<listen_failed_alert>(a)
+		|| alert_cast<listen_succeeded_alert>(a))
+		listen_done = true;
+	return true;
+}
+
+void wait_for_listen(libtorrent::session& ses, char const* name)
+{
+	listen_done = false;
+	alert const* a = 0;
+	do
+	{
+		print_alerts(ses, name, true, true, true, &listen_alert);
+		if (listen_done) break;
+		a = ses.wait_for_alert(milliseconds(500));
+	} while (a);
+}
+
 void test_sleep(int millisec)
 {
 	libtorrent::sleep(millisec);
@@ -159,15 +180,15 @@ void start_proxy(int port, int proxy_type)
 	char buf[512];
 	// we need to echo n since dg will ask us to configure it
 	snprintf(buf, sizeof(buf), "echo n | delegated -P%d ADMIN=test@test.com "
-		"PERMIT=\"*:*:localhost\" REMITTABLE=+,https RELAY=proxy,delegate "
+		"PERMIT=\"*:*:localhost\" REMITTABLE=\"*\" RELAY=proxy,delegate "
 		"SERVER=%s %s"
 		, port, type, auth);
 
-	fprintf(stderr, "starting delegated proxy...\n");
+	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
 	system(buf);
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
-	test_sleep(1000);
+	test_sleep(500);
 }
 
 using namespace libtorrent;
@@ -235,15 +256,21 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1);
 	assert(ses2);
 
+	ses1->stop_lsd();
+	ses2->stop_lsd();
+	if (ses3) ses3->stop_lsd();
+
 	session_settings sess_set = ses1->settings();
-	sess_set.allow_multiple_connections_per_ip = true;
+	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
 	sess_set.ignore_limits_on_local_network = false;
+	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
+	sess_set.max_failcount = 1;
 	ses1->set_settings(sess_set);
 	ses2->set_settings(sess_set);
 	if (ses3) ses3->set_settings(sess_set);
-	ses1->set_alert_mask(~alert::progress_notification);
-	ses2->set_alert_mask(~alert::progress_notification);
-	if (ses3) ses3->set_alert_mask(~alert::progress_notification);
+	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
+	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
 	std::srand(time(0));
 	peer_id pid;
@@ -286,12 +313,16 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// use the same files
 	sha1_hash info_hash = t->info_hash();
 	add_torrent_params param;
+	param.paused = false;
+	param.auto_managed = false;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
+	param.seed_mode = true;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
+	param.seed_mode = false;
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
@@ -324,7 +355,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	assert(ses1->get_torrents().size() == 1);
 	assert(ses2->get_torrents().size() == 1);
 
-	test_sleep(100);
+//	test_sleep(100);
 
 	if (connect_peers)
 	{
@@ -386,7 +417,7 @@ int start_tracker()
 		libtorrent::mutex::scoped_lock l(tracker_lock);
 		tracker_initialized.wait(l);
 	}
-	test_sleep(100);
+//	test_sleep(100);
 	return port;
 }
 
@@ -549,7 +580,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 	// "relative/../test_file" can resolve
 	error_code ec;
 	create_directory("relative", ec);
-	test_sleep(100);
+//	test_sleep(100);
 	return port;
 }
 
@@ -885,9 +916,9 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				int size = range_end - range_start + 1;
 				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
-				int res = load_file("./tmp1_web_seed/seed", file_buf);
-
 				error_code ec;
+				int res = load_file("./tmp1_web_seed/seed", file_buf, ec);
+
 				if (res == -1 || file_buf.empty())
 				{
 					send_response(s, ec, 404, "Not Found", extra_header, 0);
@@ -909,7 +940,8 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			std::vector<char> file_buf;
 			// remove the / from the path
 			path = path.substr(1);
-			int res = load_file(path, file_buf);
+			error_code ec;
+			int res = load_file(path, file_buf, ec);
 			if (res == -1)
 			{
 				send_response(s, ec, 404, "Not Found", extra_header, 0);

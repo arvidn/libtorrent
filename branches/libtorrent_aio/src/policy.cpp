@@ -108,7 +108,7 @@ namespace libtorrent
 {
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
-	// problems when out peer list is diluted by stale peers from
+	// problems when our peer list is diluted by stale peers from
 	// the resume data for instance
 	int source_rank(int source_bitmask)
 	{
@@ -145,7 +145,7 @@ namespace libtorrent
 			- (int)c.request_queue().size();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		c.peer_log("*** PIECE_PICKER [ req: %d ]", num_requests);
+		c.peer_log("*** PIECE_PICKER [ req: %d engame: %d ]", num_requests, c.endgame());
 #endif
 		TORRENT_ASSERT(c.desired_queue_size() > 0);
 		// if our request queue is already full, we
@@ -250,9 +250,20 @@ namespace libtorrent
 			TORRENT_ASSERT(p.num_peers(*i) == 0);
 
 			// don't request pieces we already have in our request queue
+			// This happens when pieces time out or the peer sends us
+			// pieces we didn't request. Those aren't marked in the
+			// piece picker, but we still keep track of them in the
+			// download queue
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
+			{
+#ifdef TORRENT_DEBUG
+				std::vector<pending_block>::const_iterator j
+					= std::find_if(dq.begin(), dq.end(), has_block(*i));
+				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
+#endif
 				continue;
+			}
 
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
@@ -263,12 +274,27 @@ namespace libtorrent
 			num_requests--;
 		}
 
+		// we have picked as many blocks as we should
+		// we're done!
+		if (num_requests <= 0)
+		{
+			// since we could pick as many blocks as we
+			// requested without having to resort to picking
+			// busy ones, we're not in end-game mode
+			c.set_endgame(false);
+			return;
+		}
+
+		// we did not pick as many pieces as we wanted, because
+		// there aren't enough. This means we're in end-game mode
+		// as long as we have at least one request outstanding,
+		// we shouldn't pick another piece
+		c.set_endgame(true);
+	
 		// if we don't have any potential busy blocks to request
-		// or if we have picked as many blocks as we should
 		// or if we already have outstanding requests, don't
 		// pick a busy piece
 		if (busy_pieces.empty()
-			|| num_requests <= 0
 			|| dq.size() + rq.size() > 0)
 		{
 			return;
@@ -538,6 +564,14 @@ namespace libtorrent
 		aux::session_impl const& ses = m_torrent->session();
 		if (ses.m_port_filter.access(p.port) & port_filter::blocked)
 			return false;
+
+		// only apply this to peers we've only heard
+		// about from the DHT
+		if (ses.m_settings.no_connect_privileged_ports
+			&& p.port < 1024
+			&& p.source == peer_info::dht)
+			return false;
+
 		return true;
 	}
 
@@ -725,6 +759,7 @@ namespace libtorrent
 		if (found)
 		{
 			i = *iter;
+			TORRENT_ASSERT(i->connection != &c);
 
 			if (i->banned)
 			{
@@ -889,7 +924,7 @@ namespace libtorrent
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iterator i = std::find_if(range.first, range.second
 				, match_peer_endpoint(remote));
-			if (i != m_peers.end())
+			if (i != range.second)
 			{
 				policy::peer& pp = **i;
 				if (pp.connection)
@@ -1008,6 +1043,10 @@ namespace libtorrent
 			p->seed = true;
 			++m_num_seeds;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 		int as = m_torrent->session().as_for_ip(p->address());
@@ -1048,6 +1087,10 @@ namespace libtorrent
 			if (!p->seed) ++m_num_seeds;
 			p->seed = true;
 		}
+		if (flags & 0x04)
+			p->supports_utp = true;
+		if (flags & 0x08)
+			p->supports_holepunch = true;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (p->connection)
@@ -1146,6 +1189,13 @@ namespace libtorrent
 
 		port_filter const& pf = ses.m_port_filter;
 		if (pf.access(remote.port()) & port_filter::blocked)
+		{
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			return 0;
+		}
+
+		if (ses.m_settings.no_connect_privileged_ports && remote.port() < 1024)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
@@ -1362,7 +1412,13 @@ namespace libtorrent
 
 		TORRENT_ASSERT(c);
 		error_code ec;
-		TORRENT_ASSERT(c->remote() == c->get_socket()->remote_endpoint(ec) || ec);
+		if (c->remote() != c->get_socket()->remote_endpoint(ec) && !ec)
+		{
+			fprintf(stderr, "c->remote: %s\nc->get_socket()->remote_endpoint: %s\n"
+				, print_endpoint(c->remote()).c_str()
+				, print_endpoint(c->get_socket()->remote_endpoint(ec)).c_str());
+			TORRENT_ASSERT(false);
+		}
 
 		return std::find_if(
 			m_peers.begin()
@@ -1525,6 +1581,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		, added_to_dht(false)
 #endif
+		, supports_utp(true) // assume peers support utp
+		, confirmed_supports_utp(false)
+		, supports_holepunch(false)
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 	}

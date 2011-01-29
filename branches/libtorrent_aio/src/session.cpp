@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 using boost::shared_ptr;
 using boost::weak_ptr;
@@ -93,6 +94,9 @@ namespace libtorrent
 	session_settings min_memory_usage()
 	{
 		session_settings set;
+
+		set.alert_queue_size = 100;
+
 		// setting this to a low limit, means more
 		// peers are more likely to request from the
 		// same piece. Which means fewer partial
@@ -102,10 +106,13 @@ namespace libtorrent
 		set.use_parole_mode = false;
 		set.prioritize_partial_pieces = true;
 
+		// connect to 5 peers per second
+		set.connection_speed = 5;
+
 		// be extra nice on the hard drive when running
 		// on embedded devices. This might slow down
 		// torrent checking
-		set.file_checks_delay_per_block = 15;
+		set.file_checks_delay_per_block = 5;
 
 		// only have 4 files open at a time
 		set.file_pool_size = 4;
@@ -154,6 +161,9 @@ namespace libtorrent
 		set.coalesce_reads = false;
 		set.coalesce_writes = false;
 
+		// disallow the buffer size to grow for the uTP socket
+		set.utp_dynamic_sock_buf = false;
+
 		return set;
 	}
 
@@ -161,12 +171,21 @@ namespace libtorrent
 	{
 		session_settings set;
 
+		// don't throttle TCP, assume there is
+		// plenty of bandwidth
+		set.mixed_mode_algorithm = session_settings::prefer_tcp;
+
+		set.alert_queue_size = 10000;
+
 		// allow 500 files open at a time
 		set.file_pool_size = 500;
 
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;
+
+		// connect to 50 peers per second
+		set.connection_speed = 50;
 
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
@@ -181,6 +200,9 @@ namespace libtorrent
 		// delays when freeing a large number of buffers
 		set.lock_disk_cache = false;
 
+		// the max number of bytes pending write before we throttle
+		// download rate
+		set.max_queued_disk_bytes = 100 * 1024 * 1024;
 		// flush write cache based on largest contiguous block
 		set.disk_cache_algorithm = session_settings::largest_contiguous;
 
@@ -225,6 +247,9 @@ namespace libtorrent
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.max_failcount = 1;
+
+		// allow the buffer size to grow for the uTP socket
+		set.utp_dynamic_sock_buf = true;
 
 		return set;
 	}
@@ -327,6 +352,9 @@ namespace libtorrent
 			add_extension(create_smart_ban_plugin);
 		}
 #endif
+
+		m_impl->start_session();
+
 		if (flags & start_default_features)
 		{
 			start_upnp();
@@ -365,10 +393,34 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
+	feed_handle session::add_feed(feed_settings const& feed)
+	{
+		// if you have auto-download enabled, you must specify a download directory!
+		TORRENT_ASSERT(!feed.auto_download || !feed.add_args.save_path.empty());
+		TORRENT_SYNC_CALL_RET1(feed_handle, add_feed, feed);
+		return r;
+	}
+
+	void session::remove_feed(feed_handle h)
+	{
+		TORRENT_ASYNC_CALL1(remove_feed, h);
+	}
+
+	void session::get_feeds(std::vector<feed_handle>& f) const
+	{
+		f.clear();
+		TORRENT_SYNC_CALL1(get_feeds, &f);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
 		TORRENT_ASYNC_CALL1(add_extension, ext);
+	}
+
+	void session::add_extension(boost::shared_ptr<plugin> ext)
+	{
+		TORRENT_ASYNC_CALL1(add_ses_extension, ext);
 	}
 #endif
 
@@ -472,6 +524,13 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			add_torrent_params p(params);
+			p.url.clear();
+			return add_magnet_uri(*this, params.url, p);
+		}
+
 		error_code ec;
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
 		if (ec) throw libtorrent_exception(ec);
@@ -481,6 +540,14 @@ namespace libtorrent
 
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
+		ec.clear();
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			add_torrent_params p(params);
+			p.url.clear();
+			return add_magnet_uri(*this, params.url, p, ec);
+		}
+
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
 		return r;
 	}
@@ -680,7 +747,7 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_settings, s);
 	}
 
-	session_settings session::settings()
+	session_settings session::settings() const
 	{
 		TORRENT_SYNC_CALL_RET(session_settings, settings);
 		return r;
@@ -848,16 +915,16 @@ namespace libtorrent
 		TORRENT_SYNC_CALL_RET(int, num_connections);
 		return r;
 	}
+
+	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
+	{
+		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
+	}
 #endif // TORRENT_NO_DEPRECATE
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
 		return m_impl->pop_alert();
-	}
-
-	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
-	{
-		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)
@@ -870,13 +937,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_alert_mask, m);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	size_t session::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		TORRENT_SYNC_CALL_RET1(size_t, set_alert_queue_size_limit, queue_size_limit_);
 		return r;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	void session::set_severity_level(alert::severity_t s)
 	{
 		int m = 0;

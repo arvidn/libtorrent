@@ -152,7 +152,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists(combine_path("./tmp2_web_seed", torrent_file->file_at(0).path)));
+	TEST_CHECK(exists(combine_path("./tmp2_web_seed", torrent_file->files().file_path(
+		torrent_file->file_at(0)))));
 	remove_all("./tmp2_web_seed", ec);
 }
 
@@ -180,7 +181,8 @@ void save_file(char const* filename, char const* data, int size)
 sha1_hash file_hash(std::string const& name)
 {
 	std::vector<char> buf;
-	load_file(name, buf);
+	error_code ec;
+	load_file(name, buf, ec);
 	if (buf.empty()) return sha1_hash(0);
 	hasher h(&buf[0], buf.size());
 	return h.final();
@@ -257,10 +259,11 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	// verify that the file hashes are correct
 	for (int i = 0; i < torrent_file->num_files(); ++i)
 	{
-		TEST_CHECK(torrent_file->file_at(i).filehash_index >= 0);
-		sha1_hash h1 = torrent_file->files().hash(torrent_file->file_at(i).filehash_index);
-		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed", torrent_file->file_at(i).path));
-		fprintf(stderr, "%s: %s == %s\n", torrent_file->file_at(i).path.c_str()
+		sha1_hash h1 = torrent_file->file_at(i).filehash;
+		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed"
+			, torrent_file->file_at(i).path));
+		fprintf(stderr, "%s: %s == %s\n"
+			, torrent_file->file_at(i).path.c_str()
 			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
 		TEST_EQUAL(h1, h2);
 	}

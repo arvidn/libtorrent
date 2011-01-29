@@ -59,6 +59,20 @@ protected:
 	virtual bool invoke(observer_ptr o);
 };
 
+class bootstrap : public refresh
+{
+public:
+	bootstrap(node_impl& node, node_id target
+		, done_callback const& callback);
+
+	virtual char const* name() const;
+
+protected:
+
+	virtual void done();
+
+};
+
 } } // namespace libtorrent::dht
 
 #endif // REFRESH_050324_HPP

@@ -91,7 +91,7 @@ public:
 
 	void status(session_status& s) const;
 
-	void node_failed(node_id const& id);
+	void node_failed(node_id const& id, udp::endpoint const& ep);
 	
 	// adds an endpoint that will never be added to
 	// the routing table
@@ -132,6 +132,7 @@ public:
 	int bucket_size(int bucket)
 	{
 		int num_buckets = m_buckets.size();
+		if (num_buckets == 0) return 0;
 		if (bucket < num_buckets) bucket = num_buckets - 1;
 		table_t::iterator i = m_buckets.begin();
 		std::advance(i, bucket);
@@ -167,6 +168,11 @@ private:
 
 	table_t::iterator find_bucket(node_id const& id);
 
+	// return a pointer the node_entry with the given endpoint
+	// or 0 if we don't have such a node. Both the address and the
+	// port has to match
+	node_entry* find_node(udp::endpoint const& ep, routing_table::table_t::iterator* bucket);
+
 	// constant called k in paper
 	int m_bucket_size;
 	
@@ -184,12 +190,27 @@ private:
 
 	// the last time need_bootstrap() returned true
 	mutable ptime m_last_bootstrap;
+
+	// the last time the routing table was refreshed.
+	// this is used to stagger buckets needing refresh
+	// to be at least 45 seconds apart.
+	mutable ptime m_last_refresh;
+
+	// the last time we refreshed our own bucket
+	// refreshed every 15 minutes
+	mutable ptime m_last_self_refresh;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will
 	// be used in searches, but they will never
 	// be added to the routing table.
 	std::set<udp::endpoint> m_router_nodes;
+
+	// these are all the IPs that are in the routing
+	// table. It's used to only allow a single entry
+	// per IP in the whole table. Currently only for
+	// IPv4
+	std::set<address_v4::bytes_type> m_ips;
 };
 
 } } // namespace libtorrent::dht

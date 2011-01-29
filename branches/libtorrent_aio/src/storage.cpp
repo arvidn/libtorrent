@@ -169,7 +169,7 @@ namespace libtorrent
 			{
 				file_status s;
 				error_code ec;
-				stat_file(combine_path(save_path, i->path), &s, ec);
+				stat_file(combine_path(save_path, storage.file_path(*i)), &s, ec);
 
 				if (!ec)
 				{
@@ -219,7 +219,7 @@ namespace libtorrent
 
 			file_status s;
 			error_code ec;
-			stat_file(combine_path(p, i->path), &s, ec);
+			stat_file(combine_path(p, fs.file_path(*i)), &s, ec);
 
 			if (!ec)
 			{
@@ -350,10 +350,10 @@ namespace libtorrent
 		storage(file_storage const& fs, file_storage const* mapped, std::string const& path
 			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
 			: m_files(fs)
+			, m_file_priority(file_prio)
 			, m_pool(fp)
 			, m_page_size(page_size())
 			, m_allocate_files(false)
-			, m_file_priority(file_prio)
 		{
 			if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
@@ -430,7 +430,8 @@ namespace libtorrent
 		file_storage const& m_files;
 
 		// helper function to open a file in the file pool with the right mode
-		boost::intrusive_ptr<file> open_file(file_entry const& fe, int mode, error_code& ec) const;
+		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
+			, error_code& ec) const;
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;
@@ -470,6 +471,7 @@ namespace libtorrent
 					size -= bufs[i].iov_len;
 				}
 				num_read = m_storage->readv(bufs, slot, ph.offset, num_blocks, ec);
+				// TODO: if the read fails, set error and exit immediately
 
 				for (int i = 0; i < num_blocks; ++i)
 				{
@@ -502,6 +504,7 @@ namespace libtorrent
 					buf.iov_len = (std::min)(block_size, size);
 					int ret = m_storage->readv(&buf, slot, ph.offset, 1, ec);
 					if (ret > 0) num_read += ret;
+					// TODO: if the read fails, set error and exit immediately
 
 					if (small_hash && small_piece_size <= block_size)
 					{
@@ -535,7 +538,7 @@ namespace libtorrent
 		for (file_storage::iterator file_iter = files().begin(),
 			end_iter = files().end(); file_iter != end_iter; ++file_iter)
 		{
-			std::string file_path = combine_path(m_save_path, file_iter->path);
+			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
 			std::string dir = parent_path(file_path);
 
 			if (dir != last_path)
@@ -546,7 +549,7 @@ namespace libtorrent
 					create_directories(last_path, ec);
 			}
 
-			int file_index = file_iter - files().begin();
+			int file_index = files().file_index(*file_iter);
 
 			// ignore files that have priority 0
 			if (int(m_file_priority.size()) > file_index
@@ -555,21 +558,21 @@ namespace libtorrent
 			// ignore pad files
 			if (file_iter->pad_file) continue;
 
-			// if the file is empty, just create it either way.
-			// if the file already exists, but is larger than what
-			// it's supposed to be, also truncate it
-			if (!allocate_files && file_iter->size > 0) continue;
-
 			file_status s;
 			stat_file(file_path, &s, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory)
+			if (ec && ec != boost::system::errc::no_such_file_or_directory
+				&& ec != boost::system::errc::not_a_directory)
 				break;
 
 			// ec is either ENOENT or the file existed and s is valid
-			if (ec || s.file_size > file_iter->size || file_iter->size == 0)
+			// allocate file only if it is not exist and (allocate_files == true)
+			// if the file already exists, but is larger than what
+			// it's supposed to be, also truncate it
+			// if the file is empty, just create it either way.
+			if ((ec && allocate_files) || s.file_size > file_iter->size || file_iter->size == 0)
 			{
 				ec.clear();
-				boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_write, ec);
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
 				if (!ec && f) f->set_size(file_iter->size, ec);
 			}
 
@@ -583,10 +586,10 @@ namespace libtorrent
 
 	void storage::finalize_file(int index, error_code& ec)
 	{
-		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
-		if (index < 0 || index >= m_files.num_files()) return;
+		TORRENT_ASSERT(index >= 0 && index < files().num_files());
+		if (index < 0 || index >= files().num_files()) return;
 	
-		boost::intrusive_ptr<file> f = open_file(files().at(index), file::read_write, ec);
+		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, ec);
 		if (ec || !f) return;
 
 		f->finalize();
@@ -601,7 +604,7 @@ namespace libtorrent
 		{
 			error_code ec;
 			file_status s;
-			stat_file(combine_path(m_save_path, i->path), &s, ec);
+			stat_file(combine_path(m_save_path, files().file_path(*i)), &s, ec);
 			if (ec) return false;
 			if (s.mode & file_status::regular_file && i->size > 0)
 				return true;
@@ -611,11 +614,9 @@ namespace libtorrent
 
 	void storage::rename_file(int index, std::string const& new_filename, error_code& ec)
 	{
-		TORRENT_ASSERT(index >= 0 && index < m_files.num_files());
-		if (index < 0 || index >= m_files.num_files()) return;
-
-		std::string old_name = combine_path(m_save_path, files().at(index).path);
-		m_pool.release(this, files().at(index));
+		if (index < 0 || index >= files().num_files()) return;
+		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
+		m_pool.release(this, index);
 
 		rename(old_name, combine_path(m_save_path, new_filename), ec);
 		
@@ -656,8 +657,9 @@ namespace libtorrent
 		for (file_storage::iterator i = files().begin()
 			, end(files().end()); i != end; ++i)
 		{
-			std::string p = combine_path(m_save_path, i->path);
-			std::string bp = parent_path(i->path);
+			std::string fp = files().file_path(*i);
+			std::string p = combine_path(m_save_path, fp);
+			std::string bp = parent_path(fp);
 			std::pair<iter_t, bool> ret;
 			ret.second = true;
 			while (ret.second && !bp.empty())
@@ -702,7 +704,7 @@ namespace libtorrent
 		TORRENT_ASSERT(slot < m_files.num_pieces());
 
 		size_type file_offset = (size_type)slot * m_files.piece_length();
-		std::vector<file_entry>::const_iterator file_iter;
+		file_storage::iterator file_iter;
 
 		for (file_iter = files().begin();;)
 		{
@@ -715,7 +717,7 @@ namespace libtorrent
 		}
 	
 		error_code ec;
-		boost::intrusive_ptr<file> file_handle = open_file(*file_iter, file::read_only, ec);
+		boost::intrusive_ptr<file> file_handle = open_file(file_iter, file::read_only, ec);
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
@@ -860,7 +862,7 @@ namespace libtorrent
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
-			std::string split = split_path(i->path);
+			std::string split = split_path(f.file_path(*i));
 			to_move.insert(to_move.begin(), split);
 		}
 
@@ -1039,7 +1041,7 @@ ret:
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
 		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(*file_iter, file::read_only, ec);
+		boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
@@ -1156,7 +1158,7 @@ ret:
 
 		// find the file iterator and file offset
 		size_type file_offset = start;
-		std::vector<file_entry>::const_iterator file_iter;
+		file_storage::iterator file_iter;
 
 		for (file_iter = files().begin();;)
 		{
@@ -1204,8 +1206,8 @@ ret:
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT(slice_size == file_bytes_left);
-			TORRENT_ASSERT(files().at(slices[counter].file_index).path
-				== file_iter->path);
+			TORRENT_ASSERT((files().begin() + slices[counter].file_index)
+				== file_iter);
 			++counter;
 #endif
 
@@ -1220,11 +1222,17 @@ ret:
 				}
 				advance_bufs(current_buf, file_bytes_left);
 				TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
+				file_offset = 0;
 				continue;
 			}
 
-			file_handle = open_file(*file_iter, op.mode, ec);
-			if (!file_handle || ec) return -1;
+			file_handle = open_file(file_iter, op.mode, ec);
+			if (!file_handle || ec)
+			{
+				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				TORRENT_ASSERT(ec);
+				return -1;
+			}
 
 			int num_tmp_bufs = copy_bufs(current_buf, file_bytes_left, tmp_bufs);
 			TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
@@ -1234,10 +1242,11 @@ ret:
 			// read is unaligned, we need to fall back on a slow
 			// special read that reads aligned buffers and copies
 			// it into the one supplied
+			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
 			if (op.async_op)
 			{
 				TORRENT_ASSERT(op.handler);
-				file::aiocb_t* aio = ((*file_handle).*op.async_op)(file_iter->file_base + file_offset
+				file::aiocb_t* aio = ((*file_handle).*op.async_op)(adjusted_offset
 					, tmp_bufs, num_tmp_bufs, *aiocbs());
 				if (op.ret == 0) op.ret = aio;
 				// add this to the chain
@@ -1253,16 +1262,16 @@ ret:
 				}
 			}
 			else if ((file_handle->open_mode() & file::no_buffer)
-				&& (((file_iter->file_base + file_offset) & (file_handle->pos_alignment()-1)) != 0
+				&& ((adjusted_offset & (file_handle->pos_alignment()-1)) != 0
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
-				bytes_transferred = (this->*op.unaligned_op)(file_handle, file_iter->file_base
-					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
+				bytes_transferred = (this->*op.unaligned_op)(file_handle, adjusted_offset
+					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			else
 			{
-				bytes_transferred = (int)((*file_handle).*op.regular_op)(file_iter->file_base
-					+ file_offset, tmp_bufs, num_tmp_bufs, ec);
+				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
+					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			file_offset = 0;
 
@@ -1342,17 +1351,18 @@ ret:
 		return readv(&b, slot, offset, 1, ec);
 	}
 
-	boost::intrusive_ptr<file> storage::open_file(file_entry const& fe, int mode, error_code& ec) const
+	boost::intrusive_ptr<file> storage::open_file(file_storage::iterator fe, int mode
+		, error_code& ec) const
 	{
 		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		if (cache_setting == session_settings::disable_os_cache
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
-			&& ((fe.offset + fe.file_base) & (m_page_size-1)) == 0))
+			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
 			mode |= file::no_buffer;
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 
-		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, mode, ec);
+		return m_pool.open_file(const_cast<storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
 
 	storage_interface* default_storage_constructor(file_storage const& fs

@@ -22,9 +22,12 @@
 
 Extensions
 
+* `uTP`_
 * `extensions protocol`_
 * `plugin interface`_
 * `DHT extensions`_
+* `DHT security extension`_
+* `DHT feed extension`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
 * multitracker_
@@ -59,9 +62,12 @@ libtorrent
 .. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
+.. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html
+.. _`DHT security extension`: dht_sec.html
+.. _`DHT feed extension`: dht_rss.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
 .. _multitracker: http://bittorrent.org/beps/bep_0012.html
@@ -99,17 +105,7 @@ Support the development of libtorrent
 
 .. raw:: html
 	
-	<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-		<input type="hidden" name="cmd" value="_xclick">
-		<input type="hidden" name="business" value="arvid@cs.umu.se">
-		<input type="hidden" name="item_name" value="libtorrent">
-		<input type="hidden" name="return" value="http://libtorrent.sf.net">
-		<input type="hidden" name="currency_code" value="USD">
-		<input type="hidden" name="tax" value="0">
-		<input type="image" src="https://www.paypal.com/images/x-click-but04.gif"
-			border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!">
-	</form>
-
+	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
 
 
 Feedback

@@ -83,6 +83,12 @@ for l in f:
 	if 'std::string::append' in fun: fold = indentation
 	if 'getipnodebyname' == fun: fold = indentation
 	if '__gnu_debug::_Safe_iterator<std::' in fun: fold = indentation
+	if 'fflush' == fun: fold = indentation
+	if 'vfprintf' == fun: fold = indentation
+	if 'fprintf' == fun: fold = indentation
+	if 'BN_mod_exp' == fun: fold = indentation
+	if 'BN_CTX_free' == fun: fold = indentation
+	if 'cerror' == fun: fold = indentation
 	
 list = []
 for k in fun_samples:

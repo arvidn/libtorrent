@@ -4,6 +4,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
 TARGETS = index \
 	udp_tracker_protocol \
+	dht_rss \
 	client_test \
 	manual \
 	building \
@@ -13,10 +14,12 @@ TARGETS = index \
 	extension_protocol \
 	make_torrent \
 	dht_extensions \
+	dht_sec \
 	libtorrent_plugins \
 	python_binding \
 	projects \
 	running_tests \
+	utp \
 	tuning
 
 FIGURES = read_disk_buffers write_disk_buffers

@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/hasher.hpp" // for hasher
 
 namespace libtorrent
 {
@@ -45,6 +46,22 @@ namespace libtorrent
 	{
 		error_code ec;
 		return addr.to_string(ec);
+	}
+
+	std::string address_to_bytes(address const& a)
+	{
+#if TORRENT_USE_IPV6
+		if (a.is_v6())
+		{
+			address_v6::bytes_type b = a.to_v6().to_bytes();
+			return std::string((char*)&b[0], b.size());
+		}
+		else
+#endif
+		{
+			address_v4::bytes_type b = a.to_v4().to_bytes();
+			return std::string((char*)&b[0], b.size());
+		}
 	}
 
 	std::string print_endpoint(tcp::endpoint const& ep)
@@ -74,6 +91,22 @@ namespace libtorrent
 	std::string print_endpoint(udp::endpoint const& ep)
 	{
 		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+	}
+
+	void hash_address(address const& ip, sha1_hash& h)
+	{
+#if TORRENT_USE_IPV6
+		if (ip.is_v6())
+		{
+			address_v6::bytes_type b = ip.to_v6().to_bytes();
+			h = hasher((char*)&b[0], b.size()).final();
+		}
+		else
+#endif
+		{
+			address_v4::bytes_type b = ip.to_v4().to_bytes();
+			h = hasher((char*)&b[0], b.size()).final();
+		}
 	}
 
 }

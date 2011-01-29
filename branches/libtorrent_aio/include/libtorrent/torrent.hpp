@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct http_parser;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
@@ -91,6 +93,7 @@ namespace libtorrent
 	struct tracker_request;
 	struct add_torrent_params;
 	struct storage_interface;
+	struct bt_peer_connection;
 
 	namespace aux
 	{
@@ -107,7 +110,8 @@ namespace libtorrent
 	public:
 
 		torrent(aux::session_impl& ses, tcp::endpoint const& net_interface
-			, int block_size, int seq, add_torrent_params const& p);
+			, int block_size, int seq, add_torrent_params const& p
+			, sha1_hash const& info_hash);
 		~torrent();
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -120,6 +124,8 @@ namespace libtorrent
 
 		// starts the announce timer
 		void start();
+
+		void start_download_url();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
@@ -135,6 +141,15 @@ namespace libtorrent
 		// this is called when the torrent has metadata.
 		// it will initialize the storage and the piece-picker
 		void init();
+
+		// find the peer that introduced us to the given endpoint. This is
+		// used when trying to holepunch. We need the introducer so that we
+		// can send a rendezvous connect message
+		bt_peer_connection* find_introducer(tcp::endpoint const& ep) const;
+
+		// if we're connected to a peer at ep, return its peer connection
+		// only count BitTorrent peers
+		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
@@ -166,6 +181,7 @@ namespace libtorrent
 			, peer_request p);
 		void on_disk_cache_complete(int ret, disk_io_job const& j);
 
+		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
 		{
 			boost::shared_array<char> piece_data;
@@ -222,6 +238,7 @@ namespace libtorrent
 		void clear_error();
 		void set_error(error_code const& ec, std::string const& file);
 		bool has_error() const { return m_error; }
+		error_code error() const { return m_error; }
 
 		void flush_cache();
 		void pause(bool graceful = false);
@@ -291,7 +308,7 @@ namespace libtorrent
 		tcp::endpoint get_interface() const;
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
-		bool connect_to_peer(policy::peer* peerinfo);
+		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
 
 		void set_ratio(float r)
 		{ TORRENT_ASSERT(r >= 0.0f); m_ratio = r; }
@@ -607,7 +624,7 @@ namespace libtorrent
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::list<web_seed_entry>::iterator url, tcp::endpoint proxy);
 
-		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint const& a);
+		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
@@ -683,6 +700,9 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
+		std::string const& uuid() const { return m_uuid; }
+		std::string const& url() const { return m_url; }
+
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
 
@@ -750,6 +770,9 @@ namespace libtorrent
 		// of the storage.
 		// a return value of false indicates an error
 		bool set_metadata(char const* metadata_buf, int metadata_size);
+
+		void on_torrent_download(error_code const& ec, http_parser const& parser
+			, char const* data, int size);
 
 		int sequence_number() const { return m_sequence_number; }
 
@@ -955,6 +978,22 @@ namespace libtorrent
 		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
+
+		// if we don't have the metadata, this is a url to
+		// the torrent file
+		std::string m_url;
+
+		// if this was added from an RSS feed, this is the unique
+		// identifier in the feed.
+		std::string m_uuid;
+
+		// if this torrent was added by an RSS feed, this is the
+		// URL to that feed
+		std::string m_source_feed_url;
+
+		// this is used as temporary storage while downloading
+		// the .torrent file from m_url
+		std::vector<char> m_torrent_file_buf;
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This
@@ -1235,6 +1274,13 @@ namespace libtorrent
 		// is waiting to finish all current download requests
 		// before actually closing all connections
 		bool m_graceful_pause_mode:1;
+
+		// this is set to true when the torrent starts up
+		// The first tracker response, when this is true,
+		// will attempt to connect to a bunch of peers immediately
+		// and set this to false. We only do this once to get
+		// the torrent kick-started
+		bool m_need_connect_boost:1;
 	};
 }
 

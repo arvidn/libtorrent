@@ -43,8 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/enum_net.hpp"
+#include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -95,6 +100,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
 		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+		TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
 		prev = ret;
 	}
 	return ret;
@@ -378,9 +384,15 @@ namespace libtorrent
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
 
+address rand_v4()
+{
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+}
+
 int test_main()
 {
 	using namespace libtorrent;
+	using namespace libtorrent::dht;
 	error_code ec;
 	int ret = 0;
 
@@ -432,6 +444,248 @@ int test_main()
 		fprintf(stderr, "\n");
 	}
 
+	// test verify_message
+	const static key_desc_t msg_desc[] = {
+		{"A", lazy_entry::string_t, 4, 0},
+		{"B", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"B1", lazy_entry::string_t, 0, 0},
+			{"B2", lazy_entry::string_t, 0, key_desc_t::last_child},
+		{"C", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"C1", lazy_entry::string_t, 0, 0},
+			{"C2", lazy_entry::string_t, 0, key_desc_t::last_child},
+	};
+
+	lazy_entry const* msg_keys[7];
+
+	lazy_entry ent;
+
+	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
+	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	char error_string[200];
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1]);
+	TEST_CHECK(msg_keys[2]);
+	if (msg_keys[2]) TEST_EQUAL(msg_keys[2]->string_value(), "test2");
+	TEST_CHECK(msg_keys[3]);
+	if (msg_keys[3]) TEST_EQUAL(msg_keys[3]->string_value(), "test3");
+	TEST_CHECK(msg_keys[4] == 0);
+	TEST_CHECK(msg_keys[5] == 0);
+	TEST_CHECK(msg_keys[6] == 0);
+
+	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1] == 0);
+	TEST_CHECK(msg_keys[2] == 0);
+	TEST_CHECK(msg_keys[3] == 0);
+	TEST_CHECK(msg_keys[4]);
+	TEST_CHECK(msg_keys[5]);
+	if (msg_keys[5]) TEST_EQUAL(msg_keys[5]->string_value(), "test2");
+	TEST_CHECK(msg_keys[6]);
+	if (msg_keys[6]) TEST_EQUAL(msg_keys[6]->string_value(), "test3");
+
+
+	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
+	lazy_bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'A' key"));
+
+	char const test_msg4[] = "d1:A6:foobare";
+	lazy_bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
+
+	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
+	lazy_bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
+
+	// test external ip voting
+	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		, ""
+#endif
+		);
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 malicious responses from the same peer
+	address real_external = address_v4::from_string("5.5.5.5");
+	address malicious = address_v4::from_string("4.4.4.4");
+	for (int i = 0; i < 50; ++i)
+	{
+		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
+		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ses->external_address() == real_external);
+	ses->abort();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	ses->m_logger.reset();
+#endif
+	delete ses;
+	ses = new aux::session_impl(std::pair<int, int>(0,0)
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		, ""
+#endif
+		);
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 consistent malicious responses from the same peer
+	real_external = address_v4::from_string("5.5.5.5");
+	malicious = address_v4::from_string("4.4.4.4");
+	address malicious_external = address_v4::from_string("3.3.3.3");
+	for (int i = 0; i < 50; ++i)
+	{
+		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
+		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ses->external_address() == real_external);
+	ses->abort();
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+	ses->m_logger.reset();
+#endif
+	delete ses;
+
+	// test bloom_filter
+	bloom_filter<32> filter;
+	sha1_hash k1 = hasher("test1", 5).final();
+	sha1_hash k2 = hasher("test2", 5).final();
+	sha1_hash k3 = hasher("test3", 5).final();
+	sha1_hash k4 = hasher("test4", 5).final();
+	TEST_CHECK(!filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(!filter.find(k4));
+
+	filter.set(k1);
+	TEST_CHECK(filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(!filter.find(k4));
+
+	filter.set(k4);
+	TEST_CHECK(filter.find(k1));
+	TEST_CHECK(!filter.find(k2));
+	TEST_CHECK(!filter.find(k3));
+	TEST_CHECK(filter.find(k4));
+
+	// test timestamp_history
+	{
+		timestamp_history h;
+		TEST_EQUAL(h.add_sample(0x32, false), 0);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x33, false), 0x1);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x3433, false), 0x3401);
+		TEST_EQUAL(h.base(), 0x32);
+		TEST_EQUAL(h.add_sample(0x30, false), 0);
+		TEST_EQUAL(h.base(), 0x30);
+
+		// test that wrapping of the timestamp is properly handled
+		h.add_sample(0xfffffff3, false);
+		TEST_EQUAL(h.base(), 0xfffffff3);
+	}
+
+	// test packet_buffer
+	{
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.capacity(), 0);
+		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
+
+		pb.insert(123, (void*)123);
+		TEST_EQUAL(pb.at(123 + 16), 0);
+		
+		TEST_CHECK(pb.at(123) == (void*)123);
+		TEST_CHECK(pb.capacity() > 0);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(125, (void*)125);
+
+		TEST_CHECK(pb.at(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 3);
+		TEST_EQUAL(pb.cursor(), 123);
+
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
+		TEST_EQUAL(pb.span(), 501 - 123);
+		TEST_EQUAL(pb.capacity(), 512);
+
+		TEST_CHECK(pb.remove(123) == (void*)123);
+		TEST_EQUAL(pb.size(), 2);
+		TEST_EQUAL(pb.span(), 501 - 125);
+		TEST_EQUAL(pb.cursor(), 125);
+		TEST_CHECK(pb.remove(125) == (void*)125);
+		TEST_EQUAL(pb.size(), 1);
+		TEST_EQUAL(pb.span(), 1);
+		TEST_EQUAL(pb.cursor(), 500);
+
+		TEST_CHECK(pb.remove(500) == (void*)500);
+		TEST_EQUAL(pb.size(), 0);
+		TEST_EQUAL(pb.span(), 0);
+
+		for (int i = 0; i < 0xff; ++i)
+		{
+			int index = (i + 0xfff0) & 0xffff;
+			pb.insert(index, (void*)(index + 1));
+			fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
+			TEST_EQUAL(pb.capacity(), 512);
+			if (i >= 14)
+			{
+				index = (index - 14) & 0xffff;
+				fprintf(stderr, "remove: %u\n", index);
+				TEST_CHECK(pb.remove(index) == (void*)(index + 1));
+				TEST_EQUAL(pb.size(), 14);
+			}
+		}
+	}
+
+	{
+		// test wrapping the indices
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(0xfffe, (void*)1);
+		TEST_CHECK(pb.at(0xfffe) == (void*)1);
+
+		pb.insert(2, (void*)2);
+		TEST_CHECK(pb.at(2) == (void*)2);
+
+		pb.remove(0xfffe);
+		TEST_CHECK(pb.at(0xfffe) == (void*)0);
+		TEST_CHECK(pb.at(2) == (void*)2);
+	}
+
 	// make sure the error codes and error strings are aligned
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
@@ -442,7 +696,7 @@ int test_main()
 
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved108 == 108);
+	TEST_CHECK(errors::reserved109 == 109);
 
 	{
 	// test session state load/restore
@@ -784,8 +1038,8 @@ int test_main()
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file", ec)
 		== make_tuple("http", "", "192.168.0.1", 80, "/path/to/file"));
 
-	TEST_CHECK(parse_url_components("http://[::1]/path/to/file", ec)
-		== make_tuple("http", "", "[::1]", 80, "/path/to/file"));
+	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
+		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 
@@ -960,6 +1214,37 @@ int test_main()
 	parser.reset();
 	TEST_CHECK(!parser.finished());
 
+	// test chunked encoding
+	char const* chunked_test = "HTTP/1.1 200 OK\r\n"
+		"Content-Length: 20\r\n"
+		"Content-Type: text/plain\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"4\r\n"
+		"test\r\n"
+		"10\r\n"
+		"0123456789abcdef\r\n"
+		"0\r\n"
+		"Test-header: foobar\r\n"
+		"\r\n";
+
+	received = feed_bytes(parser, chunked_test);
+
+	printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
+	TEST_CHECK(received == make_tuple(20, strlen(chunked_test) - 20, false));
+	TEST_CHECK(parser.finished());
+	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end
+		, "4\r\ntest\r\n10\r\n0123456789abcdef"));
+	TEST_CHECK(parser.header("test-header") == "foobar");
+	TEST_CHECK(parser.header("content-type") == "text/plain");
+	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
+	TEST_CHECK(parser.chunked_encoding());
+	typedef std::pair<size_type, size_type> chunk_range;
+	std::vector<chunk_range> cmp;
+	cmp.push_back(chunk_range(96, 100));
+	cmp.push_back(chunk_range(106, 122));
+	TEST_CHECK(cmp == parser.chunks());
+
 	// make sure we support trackers with incorrect line endings
 	char const* tracker_response =
 		"HTTP/1.1 200 OK\n"
@@ -1113,6 +1398,16 @@ int test_main()
 #endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
+	
+	TEST_CHECK(match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.0.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
+
+	TEST_CHECK(!match_addr_mask(
+		address::from_string("10.0.1.3", ec),
+		address::from_string("10.1.3.3", ec),
+		address::from_string("255.255.0.0", ec)));
 
 	// test torrent parsing
 
@@ -1190,19 +1485,109 @@ int test_main()
 
 	// test kademlia routing table
 	dht_settings s;
+//	s.restrict_routing_ips = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	dht::routing_table table(id, 10, s);
-	table.node_seen(id, udp::endpoint(address_v4::any(), rand()));
+	std::vector<node_entry> nodes;
+	TEST_EQUAL(table.size().get<0>(), 0);
 
 	node_id tmp = id;
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
-	std::vector<node_entry> nodes;
+
+	// test a node with the same IP:port changing ID
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 0);
+	}
+
+	// set timeout_count to 1
+	table.node_failed(tmp, udp::endpoint(address_v4::from_string("4.4.4.4"), 4));
+
+	nodes.clear();
+	table.for_each_node(node_push_back, nop, &nodes);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 1);
+	}
+
+	// add the exact same node again, it should set the timeout_count to 0
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	nodes.clear();
+	table.for_each_node(node_push_back, nop, &nodes);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+		TEST_EQUAL(nodes[0].timeout_count, 0);
+	}
+
+	// test adding the same IP:port again with a new node ID (should replace the old one)
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	TEST_EQUAL(nodes.size(), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	// test adding the same node ID again with a different IP (should be ignored)
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 5));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	// test adding a node that ends up in the same bucket with an IP
+	// very close to the current one (should be ignored)
+	// if restrict_routing_ips == true
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.5"), 5));
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 1);
+	if (!nodes.empty())
+	{
+		TEST_EQUAL(nodes[0].id, tmp);
+		TEST_EQUAL(nodes[0].addr, address_v4::from_string("4.4.4.4"));
+		TEST_EQUAL(nodes[0].port, 4);
+	}
+
+	s.restrict_routing_ips = false;
+
+	add_and_replace(tmp, diff);
+	table.node_seen(id, udp::endpoint(rand_v4(), rand()));
+
+	nodes.clear();
 	for (int i = 0; i < 7000; ++i)
 	{
-		table.node_seen(tmp, udp::endpoint(address_v4::any(), rand()));
+		table.node_seen(tmp, udp::endpoint(rand_v4(), rand()));
 		add_and_replace(tmp, diff);
 	}
 	TEST_EQUAL(table.num_active_buckets(), 11);
+	TEST_CHECK(table.size().get<0>() > 10 * 10);
+//#error test num_global_nodes
+//#error test need_refresh
 
 #if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
 	table.print_state(std::cerr);
@@ -1302,6 +1687,21 @@ int test_main()
 
 	h2 = sha1_hash("                    ");
 	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
+
+	h1 = to_hash("ffffffffff0000000000ffffffffff0000000000");
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	h1 <<= 12;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("fffffff0000000000ffffffffff0000000000000"));
+	h1 >>= 12;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
 	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");

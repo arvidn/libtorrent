@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 
 #include <boost/function/function1.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function/function4.hpp>
 
 namespace libtorrent
 {
@@ -50,7 +50,7 @@ namespace libtorrent
 // int: port mapping index
 // int: external port
 // std::string: error message
-typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
 class TORRENT_EXPORT natpmp : public intrusive_ptr_base<natpmp>
@@ -75,6 +75,7 @@ private:
 	
 	void update_mapping(int i, mutex::scoped_lock& l);
 	void send_map_request(int i, mutex::scoped_lock& l);
+	void send_get_ip_address_request(mutex::scoped_lock& l);
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
@@ -141,6 +142,9 @@ private:
 
 	// used to receive responses in	
 	char m_response_buffer[16];
+
+	// router external IP address
+	address m_external_ip;
 
 	// the endpoint we received the message from
 	udp::endpoint m_remote;

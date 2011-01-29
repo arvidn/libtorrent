@@ -42,11 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// the interface should not have a netmask
 	struct ip_interface
 	{
 		address interface_address;
 		address netmask;
 		char name[64];
+		int mtu;
 	};
 
 	struct ip_route
@@ -55,6 +57,7 @@ namespace libtorrent
 		address netmask;
 		address gateway;
 		char name[64];
+		int mtu;
 	};
 
 	// returns a list of the configured IP interfaces
@@ -64,9 +67,8 @@ namespace libtorrent
 
 	TORRENT_EXPORT std::vector<ip_route> enum_routes(io_service& ios, error_code& ec);
 
-	// returns true if the specified address is on the same
-	// local network as the specified interface
-	TORRENT_EXPORT bool in_subnet(address const& addr, ip_interface const& iface);
+	// return (a1 & mask) == (a2 & mask)
+	TORRENT_EXPORT bool match_addr_mask(address const& a1, address const& a2, address const& mask);
 
 	// returns true if the specified address is on the same
 	// local network as us

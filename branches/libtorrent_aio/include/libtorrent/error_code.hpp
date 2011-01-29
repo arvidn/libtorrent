@@ -165,7 +165,7 @@ namespace libtorrent
 			pex_message_too_large,
 			invalid_pex_message,
 			invalid_lt_tracker_message,
-			reserved108,
+			too_frequent_pex,
 			reserved109,
 			reserved110,
 			reserved111,
@@ -262,8 +262,30 @@ namespace libtorrent
 			unexpected_eof,
 			expected_value,
 			depth_exceeded,
+			limit_exceeded,
 
 			error_code_max
+		};
+
+		enum http_errors
+		{
+			cont = 100,
+			ok = 200,
+			created = 201,
+			accepted = 202,
+			no_content = 204,
+			multiple_choices = 300,
+			moved_permanently = 301,
+			moved_temporarily = 302,
+			not_modified = 304,
+			bad_request = 400,
+			unauthorized = 401,
+			forbidden = 403,
+			not_found = 404,
+			internal_server_error = 500,
+			not_implemented = 501,
+			bad_gateway = 502,
+			service_unavailable = 503
 		};
 	}
 }
@@ -295,6 +317,12 @@ namespace libtorrent
 		return libtorrent_category;
 	}
 
+	boost::system::error_category const& get_http_category()
+	{
+		static ::asio::error::error_category http_category(21);
+		return http_category;
+	}
+
 #else
 
 	struct TORRENT_EXPORT libtorrent_error_category : boost::system::error_category
@@ -309,6 +337,20 @@ namespace libtorrent
 	{
 		static libtorrent_error_category libtorrent_category;
 		return libtorrent_category;
+	}
+
+	struct TORRENT_EXPORT http_error_category : boost::system::error_category
+	{
+		virtual const char* name() const;
+		virtual std::string message(int ev) const;
+		virtual boost::system::error_condition default_error_condition(int ev) const
+		{ return boost::system::error_condition(ev, *this); }
+	};
+
+	inline boost::system::error_category& get_http_category()
+	{
+		static http_error_category http_category;
+		return http_category;
 	}
 
 	namespace errors

@@ -882,13 +882,20 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 	int block_offset = j.offset & (block_size-1);
 	int buffer_offset = 0;
 	int size = j.buffer_size;
-	int min_blocks_to_read = block_offset > 0 ? 2 : 1;
+	int min_blocks_to_read = block_offset > 0 && (size > block_size - block_offset) ? 2 : 1;
 	TORRENT_ASSERT(size <= block_size);
 	int start_block = block;
 	if (pe->blocks[start_block].buf != 0
 		&& !pe->blocks[start_block].pending
 		&& min_blocks_to_read > 1)
 		++start_block;
+
+#ifdef TORRENT_DEBUG	
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		TORRENT_ASSERT(start_block < blocks_in_piece);
+#endif
+
 	// if block_offset > 0, we need to read two blocks, and then
 	// copy parts of both, because it's not aligned to the block
 	// boundaries

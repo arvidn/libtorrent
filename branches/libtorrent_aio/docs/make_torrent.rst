@@ -3,6 +3,7 @@ creating torrents
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
+:Version: 0.16.0
 
 .. contents:: Table of contents
   :depth: 2
@@ -172,8 +173,12 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
-		sha1_hash const& hash(int index) const;
-		std::string const& symlink(int index) const;
+		sha1_hash const& hash(internal_file_entry const& fe) const;
+		std::string const& symlink(internal_file_entry const& fe) const;
+		time_t mtime(internal_file_entry const& fe) const;
+		int file_index(internal_file_entry const& fe) const;
+		size_type file_base(internal_file_entry const& fe) const;
+		void set_file_base(internal_file_entry const& fe, size_type off);
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
@@ -188,8 +193,8 @@ add_file()
 	::
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
+		void add_file(std::string const& p, size_type size, int flags = 0);
+		void add_file(std::wstring const& p, size_type size, int flags = 0);
 
 Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
 The file attributes is an extension and may not work in all bittorrent clients.
@@ -199,17 +204,8 @@ The possible arreibutes are::
 	attribute_hidden
 	attribute_executable
 
-add_file
---------
-
-	::
-
-		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size);
-
-Adds a file to the file storage. If more files than one are added,
-certain restrictions to their paths apply. In a multi-file file
-storage (torrent), all files must share the same root directory.
+If more files than one are added, certain restrictions to their paths apply.
+In a multi-file file storage (torrent), all files must share the same root directory.
 
 That is, the first path element of all files must be the same.
 This shared path element is also set to the name of the torrent. It
@@ -218,17 +214,48 @@ can be changed by calling ``set_name``.
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
 
-hash() symlink()
-----------------
+hash() symlink() mtime() file_index()
+-------------------------------------
 
 	::
 
-		sha1_hash const& hash(int index) const;
-		std::string const& symlink(int index) const;
+		sha1_hash hash(internal_file_entry const& fe) const;
+		std::string const& symlink(internal_file_entry const& fe) const;
+		time_t mtime(internal_file_entry const& fe) const;
+		int file_index(internal_file_entry const& fe) const;
 
-These functions are used to resolve the symlink index and file hash
-index in ``file_entry``.
+These functions are used to query the symlink, file hash,
+modification time and the file-index from a ``internal_file_entry``,
+which typically would be acquired from an iterator.
 
+For these functions to function, the file entry must be an
+actual object from this same ``file_storage`` object. It may
+not be a copy.
+
+The file hash is a sha-1 hash of the file, or 0 if none was
+provided in the torrent file. This can potentially be used to
+join a bittorrent network with other file sharing networks.
+
+The modification time is the posix time when a file was last
+modified when the torrent was created, or 0 if it was not provided.
+
+The file index of a file is simply a 0 based index of the
+file as they are ordered in the torrent file.
+
+file_base() set_file_base()
+---------------------------
+
+	::
+
+		size_type file_base(internal_file_entry const& fe) const;
+		void set_file_base(internal_file_entry const& fe, size_type off);
+
+The file base of a file is the offset within the file on the filsystem
+where it starts to write. For the most part, this is always 0. It's
+possible to map several files (in the torrent) into a single file on
+the filesystem by making them all point to the same filename, but with
+different file bases, so that they don't overlap.
+``torrent_info::remap_files`` can be used to use a new file layout.
 
 create_torrent
 ==============

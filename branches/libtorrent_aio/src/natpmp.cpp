@@ -54,6 +54,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #endif
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 using namespace libtorrent;
 
 natpmp::natpmp(io_service& ios, address const& listen_interface
@@ -69,6 +73,10 @@ natpmp::natpmp(io_service& ios, address const& listen_interface
 	, m_disabled(false)
 	, m_abort(false)
 {
+	// unfortunately async operations rely on the storage
+	// for this array not to be reallocated, by passing
+	// around pointers to its elements. so reserve size for now
+	m_mappings.reserve(10);
 	rebind(listen_interface);
 }
 
@@ -111,8 +119,12 @@ void natpmp::rebind(address const& listen_interface)
 		return;
 	}
 
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("natpmp::on_reply");
+#endif
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
+	send_get_ip_address_request(l);
 
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
@@ -123,6 +135,20 @@ void natpmp::rebind(address const& listen_interface)
 		i->action = mapping_t::action_add;
 		update_mapping(i - m_mappings.begin(), l);
 	}
+}
+
+void natpmp::send_get_ip_address_request(mutex::scoped_lock& l)
+{
+	using namespace libtorrent::detail;
+
+	char buf[2];
+	char* out = buf;
+	write_uint8(0, out); // NAT-PMP version
+	write_uint8(0, out); // public IP address request opcode
+	log("==> get public IP address", l);
+
+	error_code ec;
+	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 }
 
 bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
@@ -157,7 +183,7 @@ void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
 		i->protocol = none;
 		int index = i - m_mappings.begin();
 		l.unlock();
-		m_callback(index, 0, ec);
+		m_callback(index, address(), 0, ec);
 		l.lock();
 	}
 	close_impl(l);
@@ -330,7 +356,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 	log(msg, l);
 
 	error_code ec;
-	m_socket.send_to(asio::buffer(buf, 12), m_nat_endpoint, 0, ec);
+	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
 	m.outstanding_request = true;
 	if (m_abort)
@@ -344,6 +370,9 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 	}
 	else
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("natpmp::resend_request");
+#endif
 		// linear back-off instead of exponential
 		++m_retry_count;
 		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -353,6 +382,9 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 
 void natpmp::resend_request(int i, error_code const& e)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("natpmp::resend_request");
+#endif
 	if (e) return;
 	mutex::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
@@ -376,6 +408,10 @@ void natpmp::on_reply(error_code const& e
 {
 	mutex::scoped_lock l(m_mutex);
 
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("natpmp::on_reply");
+#endif
+
 	using namespace libtorrent::detail;
 	if (e)
 	{
@@ -384,6 +420,14 @@ void natpmp::on_reply(error_code const& e
 		log(msg, l);
 		return;
 	}
+
+#if defined TORRENT_ASIO_DEBUGGING
+	add_outstanding_async("natpmp::on_reply");
+#endif
+	// make a copy of the response packet buffer
+	// to avoid overwriting it in the next receive call
+	char msg_buf[16];
+	memcpy(msg_buf, m_response_buffer, bytes_transferred);
 
 	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
@@ -408,11 +452,40 @@ void natpmp::on_reply(error_code const& e
 	error_code ec;
 	m_send_timer.cancel(ec);
 
-	char* in = m_response_buffer;
+	if (bytes_transferred < 12)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
+		log(msg, l);
+		return;
+	}
+
+	char* in = msg_buf;
 	int version = read_uint8(in);
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
 	int time = read_uint32(in);
+
+	if (cmd == 128)
+	{
+		// public IP request response
+		m_external_ip = read_v4_address(in);
+
+		char msg[200];
+		snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+		log(msg, l);
+		return;
+
+	}
+
+	if (bytes_transferred < 16)
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
+		log(msg, l);
+		return;
+	}
+
 	int private_port = read_uint16(in);
 	int public_port = read_uint16(in);
 	int lifetime = read_uint32(in);
@@ -485,13 +558,14 @@ void natpmp::on_reply(error_code const& e
 
 		m->expires = time_now() + hours(2);
 		l.unlock();
-		m_callback(index, 0, error_code(ev, get_libtorrent_category()));
+		m_callback(index, address(), 0, error_code(ev, get_libtorrent_category()));
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		l.unlock();
-		m_callback(index, m->external_port, error_code(errors::no_error, get_libtorrent_category()));
+		m_callback(index, m_external_ip, m->external_port,
+			error_code(errors::no_error, get_libtorrent_category()));
 		l.lock();
 	}
 
@@ -560,6 +634,10 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 #endif
 		error_code ec;
 		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("natpmp::mapping_expired");
+#endif
 		m_refresh_timer.expires_from_now(min_expire - now, ec);
 		m_refresh_timer.async_wait(boost::bind(&natpmp::mapping_expired, self(), _1, min_index));
 		m_next_refresh = min_index;
@@ -568,6 +646,9 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 
 void natpmp::mapping_expired(error_code const& e, int i)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("natpmp::mapping_expired");
+#endif
 	if (e) return;
 	mutex::scoped_lock l(m_mutex);
 	char msg[200];

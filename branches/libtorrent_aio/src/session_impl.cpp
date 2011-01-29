@@ -66,7 +66,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#endif
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/utf8.hpp"
@@ -77,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/settings.hpp"
 #include "libtorrent/build_config.hpp"
+#include "libtorrent/extensions.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #endif
@@ -169,6 +172,12 @@ namespace boost {
 #endif
 
 namespace libtorrent {
+
+#if defined TORRENT_ASIO_DEBUGGING
+	std::map<std::string, async_t> _async_ops;
+	int _async_ops_nthreads = 0;
+	mutex _async_ops_mutex;
+#endif
 
 namespace detail
 {
@@ -315,6 +324,11 @@ namespace aux {
 		TORRENT_SETTING(integer, default_peer_upload_rate)
 		TORRENT_SETTING(integer, default_peer_download_rate)
 		TORRENT_SETTING(boolean, broadcast_lsd)
+		TORRENT_SETTING(boolean, enable_outgoing_utp)
+		TORRENT_SETTING(boolean, enable_incoming_utp)
+		TORRENT_SETTING(boolean, enable_outgoing_tcp)
+		TORRENT_SETTING(boolean, enable_incoming_tcp)
+		TORRENT_SETTING(integer, max_pex_peers)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
 		TORRENT_SETTING(boolean, anonymous_mode)
 		TORRENT_SETTING(integer, tick_interval)
@@ -325,6 +339,23 @@ namespace aux {
 		TORRENT_SETTING(integer, unchoke_slots_limit)
 		TORRENT_SETTING(integer, half_open_limit)
 		TORRENT_SETTING(integer, connections_limit)
+		TORRENT_SETTING(integer, utp_target_delay)
+		TORRENT_SETTING(integer, utp_gain_factor)
+		TORRENT_SETTING(integer, utp_syn_resends)
+		TORRENT_SETTING(integer, utp_fin_resends)
+		TORRENT_SETTING(integer, utp_num_resends)
+		TORRENT_SETTING(integer, utp_connect_timeout)
+		TORRENT_SETTING(integer, utp_delayed_ack)
+		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
+		TORRENT_SETTING(integer, mixed_mode_algorithm)
+		TORRENT_SETTING(boolean, rate_limit_utp)
+		TORRENT_SETTING(integer, listen_queue_size)
+		TORRENT_SETTING(boolean, announce_double_nat)
+		TORRENT_SETTING(integer, torrent_connect_boost)
+		TORRENT_SETTING(boolean, seeding_outgoing_connections)
+		TORRENT_SETTING(boolean, no_connect_privileged_ports)
+		TORRENT_SETTING(integer, alert_queue_size)
+		TORRENT_SETTING(integer, max_metadata_size)
 	};
 
 #undef TORRENT_SETTING
@@ -337,6 +368,8 @@ namespace aux {
 		TORRENT_SETTING(std_string, username)
 		TORRENT_SETTING(std_string, password)
 		TORRENT_SETTING(integer, type)
+		TORRENT_SETTING(boolean, proxy_hostnames)
+		TORRENT_SETTING(boolean, proxy_peer_connections)
 	};
 #undef TORRENT_SETTING
 
@@ -410,6 +443,10 @@ namespace aux {
 #endif
 	};
 
+	std::pair<bencode_map_entry*, int> settings_map()
+	{
+		return std::make_pair(session_settings_map, lenof(session_settings_map));
+	}
 #undef lenof
 
 #ifdef TORRENT_STATS
@@ -467,7 +504,9 @@ namespace aux {
 		, m_created(time_now_hires())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
+		, m_last_disk_performance_warning(min_time())
 		, m_last_choke(m_created)
+		, m_next_rss_update(min_time())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
 #endif
@@ -476,6 +515,9 @@ namespace aux {
 			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
 			, m_half_open)
+		, m_utp_socket_manager(m_settings, m_udp_socket
+			, boost::bind(&session_impl::incoming_connection, this, _1))
+		, m_boost_connections(0)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
@@ -490,6 +532,9 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_writing_bytes(0)
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		, m_network_thread(0)
+#endif
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
@@ -642,6 +687,7 @@ namespace aux {
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
 		PRINT_SIZEOF(policy)
+		(*m_logger) << "sizeof(utp_socket_impl): " << socket_impl_size() << "\n";
 
 		PRINT_SIZEOF(file_entry)
 
@@ -680,7 +726,6 @@ namespace aux {
 
 		PRINT_SIZEOF(udp_socket)
 		PRINT_OFFSETOF(udp_socket, m_callback)
-		PRINT_OFFSETOF(udp_socket, m_mutex)
 		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
 		PRINT_OFFSETOF(udp_socket, m_v4_ep)
 		PRINT_OFFSETOF(udp_socket, m_v4_buf)
@@ -694,7 +739,9 @@ namespace aux {
 		PRINT_OFFSETOF(udp_socket, m_socks5_sock)
 		PRINT_OFFSETOF(udp_socket, m_connection_ticket)
 		PRINT_OFFSETOF(udp_socket, m_proxy_settings)
+#ifndef _MSC_VER
 		PRINT_OFFSETOF(udp_socket, m_cc)
+#endif
 		PRINT_OFFSETOF(udp_socket, m_resolver)
 		PRINT_OFFSETOF(udp_socket, m_tmp_buf)
 		PRINT_OFFSETOF(udp_socket, m_queue_packets)
@@ -712,13 +759,17 @@ namespace aux {
 		PRINT_SIZEOF(http_tracker_connection)
 
 		PRINT_SIZEOF(udp_tracker_connection)
+#ifndef _MSC_VER
 		PRINT_OFFSETOF(udp_tracker_connection, m_man)
+#endif
 		PRINT_OFFSETOF(udp_tracker_connection, m_abort)
 		PRINT_OFFSETOF(udp_tracker_connection, m_hostname)
 		PRINT_OFFSETOF(udp_tracker_connection, m_target)
 		PRINT_OFFSETOF(udp_tracker_connection, m_endpoints)
 		PRINT_OFFSETOF(udp_tracker_connection, m_transaction_id)
+#ifndef _MSC_VER
 		PRINT_OFFSETOF(udp_tracker_connection, m_ses)
+#endif
 		PRINT_OFFSETOF(udp_tracker_connection, m_attempts)
 		PRINT_OFFSETOF(udp_tracker_connection, m_state)
 		PRINT_OFFSETOF(udp_tracker_connection, m_proxy)
@@ -784,29 +835,43 @@ namespace aux {
 
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_logger) << time_now_string() << " generated peer ID: " << m_peer_id.to_string() << "\n";
+#endif
+
 		update_rate_settings();
 		update_connections_limit();
 		update_unchoke_limit();
+	}
 
+	void session_impl::start_session()
+	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << time_now_string() << " spawning network thread\n";
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
-	void session_impl::start()
+	void session_impl::init()
 	{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " *** session start\n";
+		(*m_logger) << time_now_string() << " *** session thread init\n";
 #endif
 
 		// this is where we should set up all async operations. This
 		// is called from within the network thread as opposed to the
 		// constructor which is called from the main thread
 
+#if defined TORRENT_ASIO_DEBUGGING
+		async_inc_threads();
+		add_outstanding_async("session_impl::on_tick");
+#endif
 		error_code ec;
 		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_lsd_announce");
+#endif
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
@@ -815,6 +880,10 @@ namespace aux {
 		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_DHT
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_announce");
+#endif
 		delay = (std::max)(m_settings.dht_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
@@ -849,16 +918,10 @@ namespace aux {
 				, c.map, c.num_entries, reinterpret_cast<char const*>(&def) + c.default_offset);
 		}
 #ifndef TORRENT_DISABLE_DHT
-		if (flags & session::save_dht_settings)
-		{
-		}
-#endif
-#ifndef TORRENT_DISABLE_DHT
 		if (m_dht && (flags & session::save_dht_state))
 		{
 			e["dht state"] = m_dht->state();
 		}
-
 #endif
 
 #if TORRENT_USE_I2P
@@ -884,6 +947,30 @@ namespace aux {
 		}
 #endif
 
+		if (flags & session::save_feeds)
+		{
+			entry::list_type& feeds = e["feeds"].list();
+			for (std::vector<boost::shared_ptr<feed> >::const_iterator i =
+				m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+			{
+				feeds.push_back(entry());
+				(*i)->save_state(feeds.back());
+			}
+		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->save_state(*eptr);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 	}
 	
 	void session_impl::set_proxy(proxy_settings const& s)
@@ -929,7 +1016,6 @@ namespace aux {
 		{
 			m_dht_state = *settings;
 		}
-
 #endif
 
 #if TORRENT_USE_I2P
@@ -963,6 +1049,33 @@ namespace aux {
 			m_lsd->use_broadcast(true);
 
 		update_disk_thread_settings();
+
+		settings = e->dict_find_list("feeds");
+		if (settings)
+		{
+			m_feeds.reserve(settings->list_size());
+			for (int i = 0; i < settings->list_size(); ++i)
+			{
+				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
+				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
+				f->load_state(*settings->list_at(i));
+				m_feeds.push_back(f);
+			}
+		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->load_state(*e);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 	}
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1085,6 +1198,16 @@ namespace aux {
 
 		m_extensions.push_back(ext);
 	}
+
+	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
+	{
+		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT_VAL(ext, ext);
+
+		m_ses_extensions.push_back(ext);
+		m_alerts.add_extension(ext);
+		ext->added(shared_from_this());
+	}
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1095,6 +1218,51 @@ namespace aux {
 		if (m_dht) m_dht->add_node(n);
 	}
 #endif
+
+	feed_handle session_impl::add_feed(feed_settings const& sett)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		// look for duplicates. If we already have a feed with this
+		// URL, return a handle to the existing one
+		for (std::vector<boost::shared_ptr<feed> >::const_iterator i
+			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+		{
+			if (sett.url != (*i)->m_settings.url) continue;
+			return feed_handle(*i);
+		}
+
+		boost::shared_ptr<feed> f(new_feed(*this, sett));
+		m_feeds.push_back(f);
+		update_rss_feeds();
+		return feed_handle(f);
+	}
+
+	void session_impl::remove_feed(feed_handle h)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		boost::shared_ptr<feed> f = h.m_feed_ptr.lock();
+		if (!f) return;
+
+		std::vector<boost::shared_ptr<feed> >::iterator i
+			= std::find(m_feeds.begin(), m_feeds.end(), f);
+
+		if (i == m_feeds.end()) return;
+
+		m_feeds.erase(i);
+	}
+
+	void session_impl::get_feeds(std::vector<feed_handle>* ret) const
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		ret->clear();
+		ret->reserve(m_feeds.size());
+		for (std::vector<boost::shared_ptr<feed> >::const_iterator i = m_feeds.begin()
+			, end(m_feeds.end()); i != end; ++i)
+			ret->push_back(feed_handle(*i));
+	}
 
 	void session_impl::pause()
 	{
@@ -1161,7 +1329,9 @@ namespace aux {
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
 			i->sock->close(ec);
+			TORRENT_ASSERT(!ec);
 		}
+		m_listen_sockets.clear();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all torrents (" << m_torrents.size() << ")\n";
@@ -1290,6 +1460,7 @@ namespace aux {
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(is_network_thread());
 
 		TORRENT_ASSERT_VAL(s.file_pool_size > 0, s.file_pool_size);
 
@@ -1358,6 +1529,9 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (m_settings.dht_announce_interval != s.dht_announce_interval)
 		{
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("session_impl::on_dht_announce");
+#endif
 			error_code ec;
 			int delay = (std::max)(s.dht_announce_interval
 				/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -1369,6 +1543,9 @@ namespace aux {
 
 		if (m_settings.local_service_announce_interval != s.local_service_announce_interval)
 		{
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("session_impl::on_lsd_announce");
+#endif
 			error_code ec;
 			int delay = (std::max)(s.local_service_announce_interval
 				/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -1403,6 +1580,9 @@ namespace aux {
 					(*i)->ignore_stats(!s.report_web_seed_downloads);
 			}
 		}
+
+		if (m_settings.alert_queue_size != s.alert_queue_size)
+			m_alerts.set_alert_queue_size_limit(s.alert_queue_size);
 
 		m_settings = s;
 
@@ -1706,6 +1886,9 @@ namespace aux {
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT_VAL(ret, ret);
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_socks_accept");
+#endif
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
 		m_socks_listen_port = m_listen_interface.port();
@@ -1731,6 +1914,9 @@ namespace aux {
 			, *m_i2p_listen_socket);
 		TORRENT_ASSERT_VAL(ret, ret);
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_i2p_accept");
+#endif
 		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
@@ -1741,6 +1927,9 @@ namespace aux {
 	void session_impl::on_i2p_accept(boost::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_i2p_accept");
+#endif
 		m_i2p_listen_socket.reset();
 		if (e == asio::error::operation_aborted) return;
 		if (e)
@@ -1761,8 +1950,6 @@ namespace aux {
 	}
 #endif
 
-#ifndef TORRENT_DISABLE_DHT
-
 	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
@@ -1772,7 +1959,9 @@ namespace aux {
 				|| e == asio::error::connection_reset
 				|| e == asio::error::connection_aborted)
 			{
+#ifndef TORRENT_DISABLE_DHT
 				if (m_dht) m_dht->on_unreachable(ep);
+#endif
 				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
 					m_stat.received_tracker_bytes(len + 28);
 			}
@@ -1782,16 +1971,21 @@ namespace aux {
 			return;
 		}
 
+#ifndef TORRENT_DISABLE_DHT
 		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
 		{
 			// this is probably a dht message
 			m_dht->on_receive(ep, buf, len);
+			return;
 		}
+#endif
+		
+		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
+			return;
+
 		// maybe it's a udp tracker response
-		else if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-		{
+		if (m_tracker_manager.incoming_udp(e, ep, buf, len))
 			m_stat.received_tracker_bytes(len + 28);
-		}
 	}
 
 	void session_impl::on_receive_udp_hostname(error_code const& e
@@ -1804,13 +1998,14 @@ namespace aux {
 		}
 	}
 
-
-#endif
-	
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
 	{
+		TORRENT_ASSERT(!m_abort);
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
 		c->instantiate<stream_socket>(m_io_service);
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_accept_connection");
+#endif
 		listener->async_accept(*c->get<stream_socket>()
 			, boost::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1));
@@ -1819,6 +2014,9 @@ namespace aux {
 	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_accept_connection");
+#endif
 		TORRENT_ASSERT(is_network_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -1876,6 +2074,16 @@ namespace aux {
 
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
+		TORRENT_ASSERT(is_network_thread());
+
+		if (m_paused)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << time_now_string() << " <== INCOMING CONNECTION [ ignored, paused ]\n";
+#endif
+			return;
+		}
+
 		error_code ec;
 		// we got a connection request!
 		tcp::endpoint endp = s->remote_endpoint(ec);
@@ -1889,9 +2097,33 @@ namespace aux {
 			return;
 		}
 
+		TORRENT_ASSERT(endp.address() != address_v4::any());
+
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
+
+		if (!m_settings.enable_incoming_utp
+			&& s->get<utp_stream>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected uTP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
+
+		if (!m_settings.enable_incoming_tcp
+			&& s->get<stream_socket>())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_logger) << "    rejected TCP connection\n";
+#endif
+			if (m_alerts.should_post<peer_blocked_alert>())
+				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
 
 		// local addresses do not count, since it's likely
 		// coming from our own client through local service discovery
@@ -2009,6 +2241,9 @@ namespace aux {
 	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_socks_accept");
+#endif
 		m_socks_listen_socket.reset();
 		if (e == asio::error::operation_aborted) return;
 		if (e)
@@ -2025,6 +2260,8 @@ namespace aux {
 	void session_impl::close_connection(peer_connection const* p
 		, error_code const& ec)
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -2042,11 +2279,10 @@ namespace aux {
 		TORRENT_ASSERT(p->is_disconnecting());
 
 		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
-//		connection_map::iterator i = std::lower_bound(m_connections.begin(), m_connections.end()
-//			, p, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) < p);
-//		if (i->get() != p) i == m_connections.end();
-		connection_map::iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p);
+		TORRENT_ASSERT(p->refcount() > 0);
+
+		boost::intrusive_ptr<peer_connection> sp((peer_connection*)p);
+		connection_map::iterator i = m_connections.find(sp);
 		if (i != m_connections.end()) m_connections.erase(i);
 	}
 
@@ -2127,17 +2363,24 @@ namespace aux {
 		// is less than max_queued. We just went from being congested to not be.
 		// trigger all peers to continue reading
 
+		std::vector<peer_connection*> conns;
+		conns.reserve(m_connections.size() / 2);
 		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end();)
+			i != m_connections.end(); ++i)
 		{
-			boost::intrusive_ptr<peer_connection> p = *i;
-			++i;
+			peer_connection* p = i->get();
 			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
 
+			conns.push_back(p);
+		}
+
+		for (std::vector<peer_connection*>::iterator i = conns.begin()
+			, end(conns.end()); i != end; ++i)
+		{
 			// setup_receive() may disconnect the connection
 			// and clear it out from the m_connections list
-			p->setup_receive();
+			(*i)->on_disk();
 		}
 	}
 
@@ -2155,6 +2398,9 @@ namespace aux {
 
 	void session_impl::on_tick(error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_tick");
+#endif
 		TORRENT_ASSERT(is_network_thread());
 
 		ptime now = time_now_hires();
@@ -2178,6 +2424,9 @@ namespace aux {
 			return;
 		}
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_tick");
+#endif
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.tick_interval), ec);
 		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
@@ -2186,6 +2435,8 @@ namespace aux {
 		m_upload_rate.update_quotas(now - m_last_tick);
 
 		m_last_tick = now;
+
+		m_utp_socket_manager.tick(now);
 
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
@@ -2226,6 +2477,67 @@ namespace aux {
 						pe->last_connected -= four_hours;
 				}
 			}
+		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->on_tick();
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
+
+		// --------------------------------------------------------------
+		// RSS feeds
+		// --------------------------------------------------------------
+		if (now > m_next_rss_update)
+			update_rss_feeds();
+
+		switch (m_settings.mixed_mode_algorithm)
+		{
+			case session_settings::prefer_tcp:
+				m_tcp_upload_channel.throttle(0);
+				m_tcp_download_channel.throttle(0);
+				break;
+			case session_settings::peer_proportional:
+				{
+					int num_tcp_peers = 0;
+					int num_peers = 0;
+					for (connection_map::iterator i = m_connections.begin()
+						, end(m_connections.end());i != end; ++i)
+					{
+						peer_connection& p = *(*i);
+						if (p.in_handshake()) continue;
+						if (!p.get_socket()->get<utp_stream>()) ++num_tcp_peers;
+						++num_peers;
+					}
+
+					if (num_peers == 0)
+					{
+						m_tcp_upload_channel.throttle(0);
+						m_tcp_download_channel.throttle(0);
+					}
+					else
+					{
+						if (num_tcp_peers == 0) num_tcp_peers = 1;
+						// these are 64 bits since they are multiplied by the number
+						// of peers, which otherwise might overflow an int
+						boost::uint64_t upload_rate = (std::max)(m_stat.upload_rate(), 20000);
+						boost::uint64_t download_rate = (std::max)(m_stat.download_rate(), 20000);
+						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
+						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
+						
+						m_tcp_upload_channel.throttle(upload_rate * num_tcp_peers / num_peers);
+						m_tcp_download_channel.throttle(download_rate * num_tcp_peers / num_peers);
+					}
+				}
+				break;
 		}
 
 #ifdef TORRENT_STATS
@@ -2393,11 +2705,17 @@ namespace aux {
 
 		if (m_settings.rate_limit_ip_overhead)
 		{
-			m_download_channel.use_quota(m_stat.download_dht()
-				+ m_stat.download_tracker());
+			m_download_channel.use_quota(
+#ifndef TORRENT_DISABLE_DHT
+				m_stat.download_dht() +
+#endif
+				m_stat.download_tracker());
 
-			m_upload_channel.use_quota(m_stat.upload_dht()
-				+ m_stat.upload_tracker());
+			m_upload_channel.use_quota(
+#ifndef TORRENT_DISABLE_DHT
+				m_stat.upload_dht() +
+#endif
+				m_stat.upload_tracker());
 
 			int up_limit = m_upload_channel.throttle();
 			int down_limit = m_download_channel.throttle();
@@ -2497,15 +2815,33 @@ namespace aux {
 		// equally likely to connect to a peer
 
 		int free_slots = m_half_open.free_slots();
+		int max_connections = m_settings.connection_speed;
+		// boost connections are connections made by torrent connection
+		// boost, which are done immediately on a tracker response. These
+		// connections needs to be deducted from this second
+		if (m_boost_connections > 0)
+		{
+			if (m_boost_connections > max_connections)
+			{
+				m_boost_connections -= max_connections;
+				max_connections = 0;
+			}
+			else
+			{
+				max_connections -= m_boost_connections;
+				m_boost_connections = 0;
+			}
+		}
+
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()
 			&& num_connections() < m_settings.connections_limit
 			&& !m_abort
-			&& m_settings.connection_speed > 0)
+			&& m_settings.connection_speed > 0
+			&& max_connections > 0)
 		{
 			// this is the maximum number of connections we will
 			// attempt this tick
-			int max_connections = m_settings.connection_speed;
 			int average_peers = 0;
 			if (num_downloads > 0)
 				average_peers = num_downloads_peers / num_downloads;
@@ -2646,15 +2982,42 @@ namespace aux {
 //		m_peer_pool.release_memory();
 	}
 
+	void session_impl::update_rss_feeds()
+	{
+		time_t now_posix = time(0);
+		ptime min_update = max_time();
+		ptime now = time_now();
+		for (std::vector<boost::shared_ptr<feed> >::iterator i
+			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
+		{
+			feed& f = **i;
+			int delta = f.next_update(now_posix);
+			if (delta <= 0)
+			{
+				f.update_feed();
+				continue;
+			}
+			ptime next_update = now + seconds(delta);
+			if (next_update < min_update) min_update = next_update;
+		}
+		m_next_rss_update = min_update;
+	}
+
 #ifndef TORRENT_DISABLE_DHT
 
 	void session_impl::on_dht_announce(error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_dht_announce");
+#endif
 		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
 
 		if (m_abort) return;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_announce");
+#endif
 		// announce to DHT every 15 minutes
 		int delay = (std::max)(m_settings.dht_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -2676,11 +3039,17 @@ namespace aux {
 
 	void session_impl::on_lsd_announce(error_code const& e)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_lsd_announce");
+#endif
 		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
 
 		if (m_abort) return;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_lsd_announce");
+#endif
 		// announce on local network every 5 minutes
 		int delay = (std::max)(m_settings.local_service_announce_interval
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -2845,6 +3214,7 @@ namespace aux {
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
+		TORRENT_ASSERT(is_network_thread());
 		if (m_allowed_upload_slots == 0) return;
 	
 		std::vector<policy::peer*> opt_unchoke;
@@ -2936,6 +3306,7 @@ namespace aux {
 	void session_impl::recalculate_unchoke_slots(int congested_torrents
 		, int uncongested_torrents)
 	{
+		TORRENT_ASSERT(is_network_thread());
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
@@ -3172,16 +3543,14 @@ namespace aux {
 
 	void session_impl::main_thread()
 	{
-#ifdef TORRENT_DEBUG
-#if defined BOOST_HAS_PTHREADS
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_network_thread = pthread_self();
-#endif
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		eh_initializer();
 
 		// initialize async operations
-		start();
+		init();
 
 		bool stop_loop = false;
 		while (!stop_loop)
@@ -3221,6 +3590,10 @@ namespace aux {
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_network_thread = 0;
+#endif
 	}
 
 
@@ -3241,6 +3614,16 @@ namespace aux {
 		}
 #endif
 		if (i != m_torrents.end()) return i->second;
+		return boost::weak_ptr<torrent>();
+	}
+
+	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
+	{
+		TORRENT_ASSERT(is_network_thread());
+
+		std::map<std::string, boost::shared_ptr<torrent> >::iterator i
+			= m_uuids.find(uuid);
+		if (i != m_uuids.end()) return i->second;
 		return boost::weak_ptr<torrent>();
 	}
 
@@ -3293,11 +3676,24 @@ namespace aux {
 		
 		// figure out the info hash of the torrent
 		sha1_hash const* ih = 0;
+		sha1_hash tmp;
 		if (params.ti) ih = &params.ti->info_hash();
+		else if (!params.url.empty())
+		{
+			// in order to avoid info-hash collisions, for
+			// torrents where we don't have an info-hash, but
+			// just a URL, set the temporary info-hash to the
+			// hash of the URL. This will be changed once we
+			// have the actual .torrent file
+			tmp = hasher(&params.url[0], params.url.size()).final();
+			ih = &tmp;
+		}
 		else ih = &params.info_hash;
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
+		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
+
 		if (torrent_ptr)
 		{
 			if (!params.duplicate_is_error)
@@ -3316,7 +3712,7 @@ namespace aux {
 		}
 
 		torrent_ptr.reset(new torrent(*this, m_listen_interface
-			, 16 * 1024, queue_pos, params));
+			, 16 * 1024, queue_pos, params, *ih));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3324,6 +3720,13 @@ namespace aux {
 			, end(m_extensions.end()); i != end; ++i)
 		{
 			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), params.userdata));
+			if (tp) torrent_ptr->add_extension(tp);
+		}
+
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), params.userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 #endif
@@ -3340,6 +3743,9 @@ namespace aux {
 #endif
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
+		if (!params.uuid.empty() || !params.url.empty())
+			m_uuids.insert(std::make_pair(params.uuid.empty()
+				? params.url : params.uuid, torrent_ptr));
 
 		// if this is an auto managed torrent, force a recalculation
 		// of which torrents to have active
@@ -3376,9 +3782,10 @@ namespace aux {
 		{
 			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
 			if (*i == t) done = i;
-			if (next_check == t || next_check->queue_position() > (*i)->queue_position())
+			else if (next_check == t || next_check->queue_position() > (*i)->queue_position())
 				next_check = *i;
 		}
+		TORRENT_ASSERT(next_check != t || m_queued_for_checking.size() == 1);
 		// only start a new one if we removed the one that is checking
 		TORRENT_ASSERT(done != m_queued_for_checking.end());
 		if (done == m_queued_for_checking.end()) return;
@@ -3401,8 +3808,24 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
+		// remove from uuid list
+		if (!tptr->uuid().empty())
+		{
+			std::map<std::string, boost::shared_ptr<torrent> >::iterator j
+				= m_uuids.find(tptr->uuid());
+			if (j != m_uuids.end()) m_uuids.erase(j);
+		}
+
 		session_impl::torrent_map::iterator i =
 			m_torrents.find(tptr->torrent_file().info_hash());
+
+		// this torrent might be filed under the URL-hash
+		if (i == m_torrents.end() && !tptr->url().empty())
+		{
+			std::string const& url = tptr->url();
+			sha1_hash urlhash = hasher(&url[0], url.size()).final();
+			i = m_torrents.find(urlhash);
+		}
 
 		if (i != m_torrents.end())
 		{
@@ -3485,6 +3908,16 @@ namespace aux {
 		return !m_listen_sockets.empty();
 	}
 
+	address session_impl::listen_address() const
+	{
+		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			if (i->external_address != address()) return i->external_address;
+		}
+		return address();
+	}
+
 	unsigned short session_impl::listen_port() const
 	{
 		// if peer connections are set up to be received over a socks
@@ -3544,7 +3977,7 @@ namespace aux {
 			m_alerts.post_alert(portmap_log_alert(map_transport, msg));
 	}
 
-	void session_impl::on_port_mapping(int mapping, int port
+	void session_impl::on_port_mapping(int mapping, address const& ip, int port
 		, error_code const& ec, int map_transport)
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -3562,8 +3995,14 @@ namespace aux {
 
 		if (mapping == m_tcp_mapping[map_transport] && port != 0)
 		{
-			if (!m_listen_sockets.empty())
+			// TODO: report the proper address of the router
+			if (ip != address()) set_external_address(ip, source_router
+				, address());
+
+			if (!m_listen_sockets.empty()) {
+				m_listen_sockets.front().external_address = ip;
 				m_listen_sockets.front().external_port = port;
+			}
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.post_alert(portmap_alert(mapping, port
 					, map_transport));
@@ -3587,6 +4026,7 @@ namespace aux {
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
+		TORRENT_ASSERT(is_network_thread());
 
 		session_status s;
 
@@ -3627,11 +4067,13 @@ namespace aux {
 		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
 		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
 
+#ifndef TORRENT_DISABLE_DHT
 		// DHT protocol
 		s.dht_download_rate = m_stat.transfer_rate(stat::download_dht_protocol);
 		s.total_dht_download = m_stat.total_transfer(stat::download_dht_protocol);
 		s.dht_upload_rate = m_stat.transfer_rate(stat::upload_dht_protocol);
 		s.total_dht_upload = m_stat.total_transfer(stat::upload_dht_protocol);
+#endif
 
 		// tracker
 		s.tracker_download_rate = m_stat.transfer_rate(stat::download_tracker_protocol);
@@ -3672,6 +4114,8 @@ namespace aux {
 			s.dht_total_allocations = 0;
 		}
 #endif
+
+		m_utp_socket_manager.get_status(s.utp_stats);
 
 		int peerlist_size = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
@@ -3720,7 +4164,62 @@ namespace aux {
 		}
 	}
 
-#ifndef TORRENT_DISABLE_DHT	
+	void session_impl::stop_dht()
+	{
+		if (!m_dht) return;
+		m_dht->stop();
+		m_dht = 0;
+	}
+
+	void session_impl::set_dht_settings(dht_settings const& settings)
+	{
+		m_dht_settings = settings;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	entry session_impl::dht_state() const
+	{
+		if (!m_dht) return entry();
+		return m_dht->state();
+	}
+#endif
+
+	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
+	{
+		if (m_dht) m_dht->add_node(node);
+	}
+
+	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_router_name_lookup");
+#endif
+		char port[7];
+		snprintf(port, sizeof(port), "%d", node.second);
+		tcp::resolver::query q(node.first, port);
+		m_host_resolver.async_resolve(q,
+			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
+	}
+
+	void session_impl::on_dht_router_name_lookup(error_code const& e
+		, tcp::resolver::iterator host)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_dht_router_name_lookup");
+#endif
+		// TODO: report errors as alerts
+		if (e) return;
+		while (host != tcp::resolver::iterator())
+		{
+			// router nodes should be added before the DHT is started (and bootstrapped)
+			udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
+			if (m_dht) m_dht->add_router_node(ep);
+			m_dht_router_nodes.push_back(ep);
+			++host;
+		}
+	}
+#endif
+
 	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
 	{
 		int local, external, protocol;
@@ -3757,57 +4256,6 @@ namespace aux {
 			return;
 		}
 	}
-#endif
-
-	void session_impl::stop_dht()
-	{
-		if (!m_dht) return;
-		m_dht->stop();
-		m_dht = 0;
-	}
-
-	void session_impl::set_dht_settings(dht_settings const& settings)
-	{
-		m_dht_settings = settings;
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	entry session_impl::dht_state() const
-	{
-		if (!m_dht) return entry();
-		return m_dht->state();
-	}
-#endif
-
-	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
-	{
-		if (m_dht) m_dht->add_node(node);
-	}
-
-	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
-	{
-		char port[7];
-		snprintf(port, sizeof(port), "%d", node.second);
-		tcp::resolver::query q(node.first, port);
-		m_host_resolver.async_resolve(q,
-			boost::bind(&session_impl::on_dht_router_name_lookup, this, _1, _2));
-	}
-
-	void session_impl::on_dht_router_name_lookup(error_code const& e
-		, tcp::resolver::iterator host)
-	{
-		// TODO: report errors as alerts
-		if (e) return;
-		while (host != tcp::resolver::iterator())
-		{
-			// router nodes should be added before the DHT is started (and bootstrapped)
-			udp::endpoint ep(host->endpoint().address(), host->endpoint().port());
-			if (m_dht) m_dht->add_router_node(ep);
-			m_dht_router_nodes.push_back(ep);
-			++host;
-		}
-	}
-#endif
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	void session_impl::set_pe_settings(pe_settings const& settings)
@@ -3823,12 +4271,7 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-#if defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(!is_network_thread());
-#endif
-
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << "\n\n *** shutting down session *** \n\n";
 		fclose(m_request_logger);
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
@@ -3839,21 +4282,23 @@ namespace aux {
 		// to disk_io_pool inside the disk_io_thread. Once
 		// the main thread has handled all the outstanding requests
 		// we know it's safe to destruct the disk thread.
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for disk io thread\n";
-#endif
 		m_disk_thread.join();
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " waiting for main thread\n";
+#if defined TORRENT_ASIO_DEBUGGING
+		int counter = 0;
+		while (log_async())
+		{
+			sleep(1000);
+			++counter;
+			printf("\n==== Waiting to shut down: %d ==== \n\n", counter);
+		}
+		async_dec_threads();
 #endif
-		m_thread->join();
+
+		if (m_thread) m_thread->join();
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " shutdown complete!\n";
-#endif
 		TORRENT_ASSERT(m_connections.empty());
 	}
 
@@ -3982,8 +4427,6 @@ namespace aux {
 
 	void session_impl::update_connections_limit()
 	{
-		INVARIANT_CHECK;
-
 		if (m_settings.connections_limit <= 0)
 		{
 			m_settings.connections_limit = (std::numeric_limits<int>::max)();
@@ -4079,10 +4522,13 @@ namespace aux {
 		m_alerts.set_alert_mask(m);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
+		m_settings.alert_queue_size = queue_size_limit_;
 		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
 	}
+#endif
 
 	void session_impl::start_lsd()
 	{
@@ -4108,7 +4554,7 @@ namespace aux {
 		natpmp* n = new (std::nothrow) natpmp(m_io_service
 			, m_listen_interface.address()
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 0)
+				, this, _1, _2, _3, _4, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
 		if (n == 0) return 0;
@@ -4140,7 +4586,7 @@ namespace aux {
 			, m_listen_interface.address()
 			, m_settings.user_agent
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, 1)
+				, this, _1, _2, _3, _4, 1)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.upnp_ignore_nonrouters);
@@ -4188,17 +4634,113 @@ namespace aux {
 		m_upnp = 0;
 	}
 	
-	void session_impl::set_external_address(address const& ip)
+	bool session_impl::external_ip_t::add_vote(sha1_hash const& k, int type)
 	{
-		TORRENT_ASSERT(ip != address());
+		sources |= type;
+		if (voters.find(k)) return false;
+		voters.set(k);
+		++num_votes;
+		return true;
+	}
 
+	void session_impl::set_external_address(address const& ip
+		, int source_type, address const& source)
+	{
+		if (is_any(ip)) return;
 		if (is_local(ip)) return;
 		if (is_loopback(ip)) return;
-		if (m_external_address == ip) return;
 
-		m_external_address = ip;
+#if defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string() << ": set_external_address(" << print_address(ip)
+			<< ", " << source_type << ", " << print_address(source) << ")\n";
+#endif
+		// this is the key to use for the bloom filters
+		// it represents the identity of the voter
+		sha1_hash k;
+		hash_address(source, k);
+
+		// do we already have an entry for this external IP?
+		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
+			, m_external_addresses.end(), boost::bind(&external_ip_t::addr, _1) == ip);
+
+		if (i == m_external_addresses.end())
+		{
+			// each IP only gets to add a new IP once
+			if (m_external_address_voters.find(k)) return;
+		
+			if (m_external_addresses.size() > 20)
+			{
+				if (rand() < RAND_MAX / 2)
+				{
+#if defined TORRENT_VERBOSE_LOGGING
+					(*m_logger) << time_now_string() << ": More than 20 slots, dopped\n";
+#endif
+					return;
+				}
+				// use stable sort here to maintain the fifo-order
+				// of the entries with the same number of votes
+				// this will sort in ascending order, i.e. the lowest
+				// votes first. Also, the oldest are first, so this
+				// is a sort of weighted LRU.
+				std::stable_sort(m_external_addresses.begin(), m_external_addresses.end());
+				// erase the first element, since this is the
+				// oldest entry and the one with lowst number
+				// of votes. This makes sense because the oldest
+				// entry has had the longest time to receive more
+				// votes to be bumped up
+#if defined TORRENT_VERBOSE_LOGGING
+				(*m_logger) << "  More than 20 slots, dopping "
+					<< print_address(m_external_addresses.front().addr)
+					<< " (" << m_external_addresses.front().num_votes << ")\n";
+#endif
+				m_external_addresses.erase(m_external_addresses.begin());
+			}
+			m_external_addresses.push_back(external_ip_t());
+			i = m_external_addresses.end() - 1;
+			i->addr = ip;
+		}
+		// add one more vote to this external IP
+		if (!i->add_vote(k, source_type)) return;
+		
+		i = std::max_element(m_external_addresses.begin(), m_external_addresses.end());
+		TORRENT_ASSERT(i != m_external_addresses.end());
+
+#if defined TORRENT_VERBOSE_LOGGING
+		for (std::vector<external_ip_t>::iterator j = m_external_addresses.begin()
+			, end(m_external_addresses.end()); j != end; ++j)
+		{
+			(*m_logger) << ((j == i)?"-->":"   ")
+				<< print_address(j->addr) << " votes: "
+				<< j->num_votes << "\n";
+		}
+#endif
+		if (i->addr == m_external_address) return;
+
+#if defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << "  external IP updated\n";
+#endif
+		m_external_address = i->addr;
+		m_external_address_voters.clear();
+
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
+
+		// since we have a new external IP now, we need to
+		// restart the DHT with a new node ID
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht)
+		{
+			entry s = m_dht->state();
+			int cur_state = 0;
+			int prev_state = 0;
+			entry* nodes1 = s.find_key("nodes");
+			if (nodes1 && nodes1->type() == entry::list_t) cur_state = nodes1->list().size();
+			entry* nodes2 = m_dht_state.find_key("nodes");
+			if (nodes2 && nodes2->type() == entry::list_t) prev_state = nodes2->list().size();
+			if (cur_state > prev_state) m_dht_state = s;
+			start_dht(m_dht_state);
+		}
+#endif
 	}
 
 	void session_impl::free_disk_buffer(char* buf)
@@ -4236,6 +4778,8 @@ namespace aux {
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 	void session_impl::log_buffer_usage()
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		int send_buffer_capacity = 0;
 		int used_send_buffer = 0;
 		for (connection_map::const_iterator i = m_connections.begin()
@@ -4276,6 +4820,8 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 	void session_impl::check_invariant() const
 	{
+		TORRENT_ASSERT(is_network_thread());
+
 		int num_checking = 0;
 		for (check_queue_t::const_iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)

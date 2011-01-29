@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <libtorrent/session.hpp>
+#include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
@@ -58,6 +59,75 @@ namespace
         s.add_extension(invoke_extension_factory(e));
     }
 
+	void session_set_settings(session& ses, dict const& sett_dict)
+	{
+		bencode_map_entry* map;
+		int len;
+		boost::tie(map, len) = aux::settings_map();
+	 
+		session_settings sett;
+		for (int i = 0; i < len; ++i)
+		{
+			if (!sett_dict.has_key(map[i].name)) continue;
+
+			void* dest = ((char*)&sett) + map[i].offset;
+			char const* name = map[i].name;
+			switch (map[i].type)
+			{
+				case std_string:
+					*((std::string*)dest) = extract<std::string>(sett_dict[name]);
+					break;
+				case character:
+					*((char*)dest) = extract<char>(sett_dict[name]);
+					break;
+				case boolean:
+					*((bool*)dest) = extract<bool>(sett_dict[name]);
+					break;
+				case integer:
+					*((int*)dest) = extract<int>(sett_dict[name]);
+					break;
+				case floating_point:
+					*((float*)dest) = extract<float>(sett_dict[name]);
+					break;
+			}
+		}
+
+		ses.set_settings(sett);
+	}
+
+	dict session_get_settings(session const& ses)
+	{
+		session_settings sett = ses.settings();
+		dict sett_dict;
+		bencode_map_entry* map;
+		int len;
+		boost::tie(map, len) = aux::settings_map();
+		for (int i = 0; i < len; ++i)
+		{
+			void const* dest = ((char const*)&sett) + map[i].offset;
+			char const* name = map[i].name;
+			switch (map[i].type)
+			{
+				case std_string:
+					sett_dict[name] = *((std::string const*)dest);
+					break;
+				case character:
+					sett_dict[name] = *((char const*)dest);
+					break;
+				case boolean:
+					sett_dict[name] = *((bool const*)dest);
+					break;
+				case integer:
+					sett_dict[name] = *((int const*)dest);
+					break;
+				case floating_point:
+					sett_dict[name] = *((float const*)dest);
+					break;
+			}
+		}
+		return sett_dict;
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
     torrent_handle add_torrent_depr(session& s, torrent_info const& ti
@@ -70,10 +140,8 @@ namespace
 #endif
 #endif
 
-    torrent_handle add_torrent(session& s, dict params)
+    void dict_to_add_torrent_params(dict params, add_torrent_params& p)
     {
-        add_torrent_params p;
-
         if (params.has_key("ti"))
             p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
 
@@ -117,6 +185,16 @@ namespace
             p.upload_mode = params["share_mode"];
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
+        if (params.has_key("trackerid"))
+            p.trackerid = extract<std::string>(params["trackerid"]);
+        if (params.has_key("url"))
+            p.url = extract<std::string>(params["url"]);
+    }
+
+    torrent_handle add_torrent(session& s, dict params)
+    {
+        add_torrent_params p;
+        dict_to_add_torrent_params(params, p);
 
 #ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
@@ -126,6 +204,76 @@ namespace
 #endif
     }
 
+    void dict_to_feed_settings(dict params, feed_settings& feed)
+    {
+        if (params.has_key("auto_download"))
+            feed.auto_download = extract<bool>(params["auto_download"]);
+        if (params.has_key("default_ttl"))
+            feed.default_ttl = extract<int>(params["default_ttl"]);
+        if (params.has_key("url"))
+            feed.url = extract<std::string>(params["url"]);
+        if (params.has_key("add_args"))
+            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args);
+    }
+
+    feed_handle add_feed(session& s, dict params)
+    {
+        feed_settings feed;
+        dict_to_feed_settings(params, feed);
+
+        return s.add_feed(feed);
+    }
+
+    dict get_feed_status(feed_handle const& h)
+    {
+        feed_status s = h.get_feed_status();
+        dict ret;
+        ret["url"] = s.url;
+        ret["title"] = s.title;
+        ret["description"] = s.description;
+        ret["last_update"] = s.last_update;
+        ret["next_update"] = s.next_update;
+        ret["updating"] = s.updating;
+        ret["error"] = s.error ? s.error.message() : "";
+        ret["ttl"] = s.ttl;
+
+        list items;
+        for (std::vector<feed_item>::iterator i = s.items.begin()
+            , end(s.items.end()); i != end; ++i)
+        {
+            dict item;
+            item["url"] = i->url;
+            item["uuid"] = i->uuid;
+            item["title"] = i->title;
+            item["description"] = i->description;
+            item["comment"] = i->comment;
+            item["category"] = i->category;
+            item["size"] = i->size;
+            item["handle"] = i->handle;
+            item["info_hash"] = i->info_hash.to_string();
+            items.append(item);
+        }
+		  ret["items"] = items;
+        return ret;
+    }
+
+    void set_feed_settings(feed_handle& h, dict sett)
+    {
+        feed_settings feed;
+        dict_to_feed_settings(sett, feed);
+        h.set_settings(feed);
+    }
+
+    dict get_feed_settings(feed_handle& h)
+    {
+        feed_settings s = h.settings();
+        dict ret;
+        ret["url"] = s.url;
+        ret["auto_download"] = s.auto_download;
+        ret["default_ttl"] = s.default_ttl;
+        return ret;
+    }
+	
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
@@ -140,6 +288,7 @@ namespace
 
     alert const* wait_for_alert(session& s, int ms)
     {
+        allow_threading_guard guard;
         return s.wait_for_alert(milliseconds(ms));
     }
 
@@ -308,15 +457,13 @@ void bind_session()
           , (arg("router"), "port")
         )
         .def("start_dht", allow_threads(start_dht0))
-#ifndef TORRENT_NO_DEPRECATE
-        .def("start_dht", allow_threads(start_dht1))
-#endif
         .def("stop_dht", allow_threads(&session::stop_dht))
 #ifndef TORRENT_NO_DEPRECATE
+        .def("start_dht", allow_threads(start_dht1))
         .def("dht_state", allow_threads(&session::dht_state))
-#endif
         .def("set_dht_proxy", allow_threads(&session::set_dht_proxy))
         .def("dht_proxy", allow_threads(&session::dht_proxy))
+#endif
 #endif
         .def("add_torrent", &add_torrent)
 #ifndef BOOST_NO_EXCEPTIONS
@@ -331,8 +478,10 @@ void bind_session()
         )
 #endif
 #endif
+        .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&session::remove_torrent), arg("option") = session::none
 )
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_local_download_rate_limit", allow_threads(&session::set_local_download_rate_limit))
         .def("local_download_rate_limit", allow_threads(&session::local_download_rate_limit))
 
@@ -349,8 +498,13 @@ void bind_session()
         .def("set_max_connections", allow_threads(&session::set_max_connections))
         .def("set_max_half_open_connections", allow_threads(&session::set_max_half_open_connections))
         .def("num_connections", allow_threads(&session::num_connections))
-        .def("set_settings", allow_threads(&session::set_settings))
-        .def("settings", allow_threads(&session::settings))
+        .def("set_settings", &session::set_settings)
+        .def("settings", &session::settings)
+        .def("get_settings", &session_get_settings)
+#else
+        .def("settings", &session_get_settings)
+#endif
+        .def("set_settings", &session_set_settings)
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&session::set_pe_settings))
         .def("get_pe_settings", allow_threads(&session::get_pe_settings))
@@ -364,9 +518,9 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("load_state", load_state1)
         .def("set_severity_level", allow_threads(&session::set_severity_level))
+        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
-        .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
@@ -400,15 +554,26 @@ void bind_session()
     enum_<session::save_state_flags_t>("save_state_flags_t")
         .value("save_settings", session::save_settings)
         .value("save_dht_settings", session::save_dht_settings)
-        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_dht_state", session::save_dht_state)
         .value("save_i2p_proxy", session::save_i2p_proxy)
         .value("save_encryption_settings", session:: save_encryption_settings)
+        .value("save_as_map", session::save_as_map)
+        .value("save_proxy", session::save_proxy)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("save_dht_proxy", session::save_dht_proxy)
         .value("save_peer_proxy", session::save_peer_proxy)
         .value("save_web_proxy", session::save_web_proxy)
         .value("save_tracker_proxy", session::save_tracker_proxy)
-        .value("save_as_map", session::save_as_map)
+#endif
     ;
+
+    class_<feed_handle>("feed_handle")
+        .def("update_feed", &feed_handle::update_feed)
+        .def("get_feed_status", &get_feed_status)
+        .def("set_settings", &set_feed_settings)
+        .def("settings", &get_feed_settings)
+    ;
+
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 }

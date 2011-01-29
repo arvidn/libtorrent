@@ -19,6 +19,7 @@ nobase_include_HEADERS = \
   bencode.hpp                  \
   bitfield.hpp                 \
   block_cache.hpp              \
+  bloom_filter.hpp             \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
@@ -27,6 +28,7 @@ nobase_include_HEADERS = \
   config.hpp                   \
   connection_queue.hpp         \
   ConvertUTF.h                 \
+  copy_ptr.hpp                 \
   create_torrent.hpp           \
   deadline_timer.hpp           \
   debug.hpp                    \
@@ -79,11 +81,13 @@ nobase_include_HEADERS = \
   proxy_base.hpp               \
   ptime.hpp                    \
   puff.hpp                     \
+  rss.hpp                      \
   session.hpp                  \
   session_settings.hpp         \
   session_status.hpp           \
   settings.hpp                 \
   size_type.hpp                \
+  sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
   socket_type.hpp              \
@@ -95,6 +99,7 @@ nobase_include_HEADERS = \
   storage_defs.hpp             \
   thread.hpp                   \
   time.hpp                     \
+  timestamp_history.hpp        \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
@@ -103,6 +108,8 @@ nobase_include_HEADERS = \
   udp_tracker_connection.hpp   \
   union_endpoint.hpp           \
   upnp.hpp                     \
+  utp_socket_manager.hpp       \
+  utp_stream.hpp               \
   utf8.hpp                     \
   version.hpp                  \
   web_peer_connection.hpp      \

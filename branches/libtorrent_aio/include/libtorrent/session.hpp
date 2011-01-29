@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/rss.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -65,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct plugin;
 	struct torrent_plugin;
 	class torrent;
 	struct ip_filter;
@@ -161,8 +163,10 @@ namespace libtorrent
 			save_i2p_proxy =    0x010,
 			save_encryption_settings = 0x020,
 			save_as_map =       0x040,
+			save_feeds =        0x080
 
 #ifndef TORRENT_NO_DEPRECATE
+			,
 			save_dht_proxy = save_proxy,
 			save_peer_proxy = save_proxy,
 			save_web_proxy = save_proxy,
@@ -235,6 +239,10 @@ namespace libtorrent
 		void get_cache_info(sha1_hash const& ih
 			, cache_status* ret) const;
 
+		feed_handle add_feed(feed_settings const& feed);
+		void remove_feed(feed_handle h);
+		void get_feeds(std::vector<feed_handle>& f) const;
+
 #ifndef TORRENT_DISABLE_DHT
 		void start_dht();
 		void stop_dht();
@@ -259,6 +267,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
+		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -326,7 +335,7 @@ namespace libtorrent
 		void remove_torrent(const torrent_handle& h, int options = none);
 
 		void set_settings(session_settings const& s);
-		session_settings settings();
+		session_settings settings() const;
 
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
@@ -408,9 +417,11 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+
+		TORRENT_DEPRECATED_PREFIX
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(int m);
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);

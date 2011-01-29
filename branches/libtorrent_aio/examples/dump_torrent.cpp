@@ -40,29 +40,38 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	if (argc != 2)
+	if (argc < 2 || argc > 4)
 	{
-		fputs("usage: dump_torrent torrent-file\n", stderr);
+		fputs("usage: dump_torrent torrent-file [total-items-limit] [recursion-limit]\n", stderr);
 		return 1;
 	}
 
+	int item_limit = 1000000;
+	int depth_limit = 1000;
+
+	if (argc > 2) item_limit = atoi(argv[2]);
+	if (argc > 3) depth_limit = atoi(argv[3]);
+
 	int size = file_size(argv[1]);
-	if (size > 10 * 1000000)
+	if (size > 40 * 1000000)
 	{
 		fprintf(stderr, "file too big (%d), aborting\n", size);
 		return 1;
 	}
 	std::vector<char> buf(size);
-	int ret = load_file(argv[1], buf);
+	error_code ec;
+	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
 	if (ret != 0)
 	{
-		fprintf(stderr, "failed to load file: %d\n", ret);
+		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
 		return 1;
 	}
 	lazy_entry e;
-	error_code ec;
 	int pos;
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos);
+	printf("decoding. recursion limit: %d total item count limit: %d\n"
+		, depth_limit, item_limit);
+	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
+		, depth_limit, item_limit);
 
 	if (ret != 0)
 	{
@@ -78,6 +87,8 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
+	e.clear();
+	std::vector<char>().swap(buf);
 
 	// print info about torrent
 	printf("\n\n----- torrent file info -----\n\n"
@@ -106,6 +117,7 @@ int main(int argc, char* argv[])
 		"created by: %s\n"
 		"magnet link: %s\n"
 		"name: %s\n"
+		"number of files: %d\n"
 		"files:\n"
 		, t.num_pieces()
 		, t.piece_length()
@@ -113,24 +125,26 @@ int main(int argc, char* argv[])
 		, t.comment().c_str()
 		, t.creator().c_str()
 		, make_magnet_uri(t).c_str()
-		, t.name().c_str());
+		, t.name().c_str()
+		, t.num_files());
 	int index = 0;
 	for (torrent_info::file_iterator i = t.begin_files();
 		i != t.end_files(); ++i, ++index)
 	{
 		int first = t.map_file(index, 0, 0).piece;
-		int last = t.map_file(index, (std::max)(i->size-1, size_type(0)), 0).piece;
-		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %s %s %s%s\n"
+		int last = t.map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
+		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 			, i->size
 			, (i->pad_file?'p':'-')
 			, (i->executable_attribute?'x':'-')
 			, (i->hidden_attribute?'h':'-')
 			, (i->symlink_attribute?'l':'-')
 			, first, last
-			, i->filehash_index != -1 ? to_hex(t.files().hash(i->filehash_index).to_string()).c_str() : ""
-			, i->path.c_str()
+			, boost::uint32_t(t.files().mtime(*i))
+			, t.files().hash(*i) != sha1_hash(0) ? to_hex(t.files().hash(*i).to_string()).c_str() : ""
+			, t.files().file_path(*i).c_str()
 			, i->symlink_attribute ? "-> ": ""
-			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(i->symlink_index).c_str() : "");
+			, i->symlink_attribute && i->symlink_index != -1 ? t.files().symlink(*i).c_str() : "");
 	}
 
 	return 0;

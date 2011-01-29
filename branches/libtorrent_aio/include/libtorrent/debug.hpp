@@ -33,6 +33,88 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
+#if defined TORRENT_ASIO_DEBUGGING
+
+#include "libtorrent/assert.hpp"
+#include "libtorrent/thread.hpp"
+
+#include <execinfo.h>
+#include <map>
+
+std::string demangle(char const* name);
+
+namespace libtorrent
+{
+	struct async_t
+	{
+		async_t() : refs(0) {}
+		std::string stack;
+		int refs;
+	};
+
+	extern std::map<std::string, async_t> _async_ops;
+	extern int _async_ops_nthreads;
+	extern mutex _async_ops_mutex;
+
+	inline void add_outstanding_async(char const* name)
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		async_t& a = _async_ops[name];
+		if (a.stack.empty())
+		{
+			void* stack[50];
+			int size = backtrace(stack, 50);
+			char** symbols = backtrace_symbols(stack, size);
+
+			for (int i = 1; i < size; ++i)
+			{
+				char str[200];
+				snprintf(str, sizeof(str), "%d: %s\n", i, demangle(symbols[i]).c_str());
+				a.stack += str;
+			}
+
+			free(symbols);
+		}
+		++a.refs;
+	}
+
+	inline void complete_async(char const* name)
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		async_t& a = _async_ops[name];
+		TORRENT_ASSERT(a.refs > 0);
+		--a.refs;
+	}
+
+	inline void async_inc_threads()
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		++_async_ops_nthreads;
+	}
+
+	inline void async_dec_threads()
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		--_async_ops_nthreads;
+	}
+
+	inline int log_async()
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		int ret = 0;
+		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
+			, end(_async_ops.end()); i != end; ++i)
+		{
+			if (i->second.refs <= _async_ops_nthreads - 1) continue;
+			ret += i->second.refs;
+			printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
+		}
+		return ret;
+	}
+}
+
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 
 #include <string>
@@ -59,6 +141,13 @@ namespace libtorrent
 		static std::string open_filename;
 		static mutex file_mutex;
 #endif
+
+		~logger()
+		{
+			mutex::scoped_lock l(file_mutex);
+			log_file.close();
+			open_filename.clear();
+		}
 
 		logger(std::string const& logpath, std::string const& filename
 			, int instance, bool append)

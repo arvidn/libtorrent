@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #endif
 #include <list>
-#include <cstring>
+#include <string.h> // for memcpy
 
 namespace libtorrent
 {
@@ -127,7 +127,7 @@ namespace libtorrent
 		{
 			char* insert = allocate_appendix(s);
 			if (insert == 0) return false;
-			std::memcpy(insert, buf, s);
+			memcpy(insert, buf, s);
 			return true;
 		}
 

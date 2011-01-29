@@ -32,11 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include "libtorrent/time.hpp" // for total_seconds
+
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
+#include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 
 #include <boost/bind.hpp>
 
@@ -56,6 +59,38 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 	return o;
 }
 
+traversal_algorithm::traversal_algorithm(
+	node_impl& node
+	, node_id target)
+	: m_ref_count(0)
+	, m_node(node)
+	, m_target(target)
+	, m_invoke_count(0)
+	, m_branch_factor(3)
+	, m_responses(0)
+	, m_timeouts(0)
+	, m_num_target_nodes(m_node.m_table.bucket_size() * 2)
+{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(traversal) << " [" << this << "] new traversal process. Target: " << target;
+#endif
+}
+
+// returns true of lhs and rhs are too close to each other to appear
+// in the same DHT search under different node IDs
+bool compare_ip_cidr(observer_ptr const& lhs, observer_ptr const& rhs)
+{
+	if (lhs->target_addr().is_v4() != rhs->target_addr().is_v4())
+		return false;
+	// the number of bits in the IPs that may match. If
+	// more bits that this matches, something suspicious is
+	// going on and we shouldn't add the second one to our
+	// routing table
+	int cutoff = rhs->target_addr().is_v4() ? 4 : 64;
+	int dist = cidr_distance(lhs->target_addr(), rhs->target_addr());
+	return dist <= cutoff;
+}
+
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
@@ -63,8 +98,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (ptr == 0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] failed to "
-			"allocate memory for observer. aborting!";
+		TORRENT_LOG(traversal) << "[" << this << ":" << name()
+			<< "] failed to allocate memory for observer. aborting!";
 #endif
 		done();
 		return;
@@ -92,10 +127,31 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 	if (i == m_results.end() || (*i)->id() != id)
 	{
+		if (m_node.settings().restrict_search_ips)
+		{
+			// don't allow multiple entries from IPs very close to each other
+			std::vector<observer_ptr>::iterator j = std::find_if(
+				m_results.begin(), m_results.end(), boost::bind(&compare_ip_cidr, _1, o));
+
+			if (j != m_results.end())
+			{
+				// we already have a node in this search with an IP very
+				// close to this one. We know that it's not the same, because
+				// it claims a different node-ID. Ignore this to avoid attacks
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+			TORRENT_LOG(traversal) << "ignoring DHT search entry: " << o->id()
+				<< " " << o->target_addr()
+				<< " existing node: "
+				<< (*j)->id() << " " << (*j)->target_addr();
+#endif
+				return;
+			}
+		}
 		TORRENT_ASSERT(std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << this << "] adding result: " << id << " " << addr;
+		TORRENT_LOG(traversal) << "[" << this << ":" << name()
+			<< "] adding result: " << id << " " << addr;
 #endif
 		i = m_results.insert(i, o);
 	}
@@ -126,8 +182,8 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
-		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING: "
-			"node returned a list which included a node with id 0";
+		TORRENT_LOG(traversal) << time_now_string() << "[" << this << ":" << name()
+			<< "] WARNING: node returned a list which included a node with id 0";
 #endif
 	add_entry(id, addr, 0);
 }
@@ -146,6 +202,7 @@ void traversal_algorithm::finished(observer_ptr o)
 	if (o->flags & observer::flag_short_timeout)
 		--m_branch_factor;
 
+	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	o->flags |= observer::flag_alive;
 
 	++m_responses;
@@ -177,7 +234,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] first chance timeout: "
+		TORRENT_LOG(traversal) << " [" << this << ":" << name()
+			<< "] first chance timeout: "
 			<< o->id() << " " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
@@ -192,15 +250,15 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "] failed: "
-			<< o->id() << " " << o->target_ep()
+		TORRENT_LOG(traversal) << " [" << this << ":" << name()
+			<< "] failed: " << o->id() << " " << o->target_ep()
 			<< " branch-factor: " << m_branch_factor
 			<< " invoke-count: " << m_invoke_count;
 #endif
 		// don't tell the routing table about
 		// node ids that we just generated ourself
 		if ((o->flags & observer::flag_no_id) == 0)
-			m_node.m_table.node_failed(o->id());
+			m_node.m_table.node_failed(o->id(), o->target_ep());
 		++m_timeouts;
 		--m_invoke_count;
 		TORRENT_ASSERT(m_invoke_count >= 0);
@@ -232,7 +290,7 @@ namespace
 
 void traversal_algorithm::add_requests()
 {
-	int results_target = m_node.m_table.bucket_size();
+	int results_target = m_num_target_nodes;
 
 	// Find the first node that hasn't already been queried.
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
@@ -243,7 +301,7 @@ void traversal_algorithm::add_requests()
 		if ((*i)->flags & observer::flag_queried) continue;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << " [" << this << "]"
+		TORRENT_LOG(traversal) << " [" << this << ":" << name() << "]"
 			<< " nodes-left: " << (m_results.end() - i)
 			<< " invoke-count: " << m_invoke_count
 			<< " branch-factor: " << m_branch_factor;
@@ -292,12 +350,23 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.branch_factor = m_branch_factor;
 	l.type = name();
 	l.nodes_left = 0;
+	l.first_timeout = 0;
+
+	int last_sent = INT_MAX;
+	ptime now = time_now();
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end; ++i)
 	{
-		if ((*i)->flags & observer::flag_queried) continue;
+		observer& o = **i;
+		if (o.flags & observer::flag_queried)
+		{
+			last_sent = (std::min)(last_sent, total_seconds(now - o.sent()));
+			if (o.has_short_timeout()) ++l.first_timeout;
+			continue;
+		}
 		++l.nodes_left;
 	}
+	l.last_sent = last_sent;
 }
 
 } } // namespace libtorrent::dht

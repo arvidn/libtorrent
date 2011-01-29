@@ -2,6 +2,19 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent python binding</title>
@@ -128,6 +141,12 @@ a list of entries.</p>
 </ul>
 <p><tt class="docutils literal"><span class="pre">create_torrent::add_node()</span></tt> takes two arguments, one string and one integer,
 instead of a pair. The string is the address and the integer is the port.</p>
+<p><tt class="docutils literal"><span class="pre">session::set_settings()</span></tt> not only accepts a <tt class="docutils literal"><span class="pre">session_settings</span></tt> object, but also
+a dictionary with keys matching the names of the members of the <tt class="docutils literal"><span class="pre">session_settings</span></tt> struct.
+When calling <tt class="docutils literal"><span class="pre">set_settings</span></tt>, the dictionary does not need to have every settings set,
+keys that are not present, are set to their default value.</p>
+<p>For backwards compatibility, <tt class="docutils literal"><span class="pre">session::settings()</span></tt> still returns a <tt class="docutils literal"><span class="pre">session_settings</span></tt>
+struct. To get a python dictionary of the settings, call <tt class="docutils literal"><span class="pre">session::get_settings</span></tt>.</p>
 <p>For an example python program, see <tt class="docutils literal"><span class="pre">client.py</span></tt> in the <tt class="docutils literal"><span class="pre">bindings/python</span></tt>
 directory.</p>
 <p>A very simple example usage of the module would be something like this:</p>

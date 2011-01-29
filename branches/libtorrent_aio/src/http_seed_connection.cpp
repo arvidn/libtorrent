@@ -279,7 +279,7 @@ namespace libtorrent
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
-					disconnect(errors::http_error, 1);
+					disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
 					return;
 				}
 				if (!m_parser.header_finished())
@@ -408,13 +408,13 @@ namespace libtorrent
 				int retry_time = atol(std::string(recv_buffer.begin, recv_buffer.end).c_str());
 				if (retry_time <= 0) retry_time = 60;
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("retrying in %d seconds", retry_time);
+				peer_log("*** retrying in %d seconds", retry_time);
 #endif
 
 				m_statistics.received_bytes(0, bytes_transferred);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
-				disconnect(errors::http_error, 1);
+				disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
 				return;
 			}
 

@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
+#include <memory> // for auto_ptr required by asio
+
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>

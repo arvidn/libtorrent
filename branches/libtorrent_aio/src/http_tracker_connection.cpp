@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_local
 
 using namespace libtorrent;
 
@@ -180,23 +181,34 @@ namespace libtorrent
 			}
 			else
 #endif
-			if (!settings.announce_ip.empty())
+			if (!m_ses.settings().anonymous_mode)
 			{
-				error_code ec;
-				if (!ec) url += "&ip=" + escape_string(
-					settings.announce_ip.c_str(), settings.announce_ip.size());
-			}
-
-			if (!tracker_req().ipv6.empty() && !i2p)
-			{
-				url += "&ipv6=";
-				url += tracker_req().ipv6;
-			}
-
-			if (!tracker_req().ipv4.empty() && !i2p)
-			{
-				url += "&ipv4=";
-				url += tracker_req().ipv4;
+				if (!settings.announce_ip.empty())
+				{
+					url += "&ip=" + escape_string(
+						settings.announce_ip.c_str(), settings.announce_ip.size());
+				}
+				else if (m_ses.settings().announce_double_nat
+					&& is_local(m_ses.listen_address()))
+				{
+					// only use the global external listen address here
+					// if it turned out to be on a local network
+					// since otherwise the tracker should use our
+					// source IP to determine our origin
+					url += "&ip=" + print_address(m_ses.listen_address());
+				}
+   
+				if (!tracker_req().ipv6.empty() && !i2p)
+				{
+					url += "&ipv6=";
+					url += tracker_req().ipv6;
+				}
+   
+				if (!tracker_req().ipv4.empty() && !i2p)
+				{
+					url += "&ipv4=";
+					url += tracker_req().ipv4;
+				}
 			}
 		}
 
@@ -293,7 +305,8 @@ namespace libtorrent
 
 		if (parser.status_code() != 200)
 		{
-			fail(error_code(errors::http_error), parser.status_code(), parser.message().c_str());
+			fail(error_code(parser.status_code(), get_http_category())
+				, parser.status_code(), parser.message().c_str());
 			return;
 		}
 	
@@ -507,6 +520,8 @@ namespace libtorrent
 		std::list<address> ip_list;
 		if (m_tracker_connection)
 		{
+			error_code ec;
+			ip_list.push_back(m_tracker_connection->socket().remote_endpoint(ec).address());
 			std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
 			for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
 				, end(epts.end()); i != end; ++i)

@@ -2,6 +2,19 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
@@ -37,28 +50,31 @@
 <tbody valign="top">
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>0.16.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id3">overview</a></li>
-<li><a class="reference internal" href="#high-level-example" id="id4">high level example</a></li>
-<li><a class="reference internal" href="#add-files" id="id5">add_files</a></li>
-<li><a class="reference internal" href="#set-piece-hashes" id="id6">set_piece_hashes()</a></li>
-<li><a class="reference internal" href="#file-storage" id="id7">file_storage</a><ul>
-<li><a class="reference internal" href="#add-file" id="id8">add_file()</a></li>
-<li><a class="reference internal" href="#id1" id="id9">add_file</a></li>
+<li><a class="reference internal" href="#overview" id="id2">overview</a></li>
+<li><a class="reference internal" href="#high-level-example" id="id3">high level example</a></li>
+<li><a class="reference internal" href="#add-files" id="id4">add_files</a></li>
+<li><a class="reference internal" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
+<li><a class="reference internal" href="#file-storage" id="id6">file_storage</a><ul>
+<li><a class="reference internal" href="#add-file" id="id7">add_file()</a></li>
+<li><a class="reference internal" href="#hash-symlink-mtime-file-index" id="id8">hash() symlink() mtime() file_index()</a></li>
+<li><a class="reference internal" href="#file-base-set-file-base" id="id9">file_base() set_file_base()</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#create-torrent" id="id10">create_torrent</a><ul>
-<li><a class="reference internal" href="#id2" id="id11">create_torrent()</a></li>
+<li><a class="reference internal" href="#id1" id="id11">create_torrent()</a></li>
 <li><a class="reference internal" href="#generate" id="id12">generate()</a></li>
 <li><a class="reference internal" href="#set-comment" id="id13">set_comment()</a></li>
 <li><a class="reference internal" href="#set-creator" id="id14">set_creator()</a></li>
 <li><a class="reference internal" href="#set-hash" id="id15">set_hash()</a></li>
 <li><a class="reference internal" href="#set-file-hash" id="id16">set_file_hash()</a></li>
-<li><a class="reference internal" href="#add-url-seed" id="id17">add_url_seed()</a></li>
+<li><a class="reference internal" href="#add-url-seed-add-http-seed" id="id17">add_url_seed() add_http_seed()</a></li>
 <li><a class="reference internal" href="#add-node" id="id18">add_node()</a></li>
 <li><a class="reference internal" href="#add-tracker" id="id19">add_tracker()</a></li>
 <li><a class="reference internal" href="#set-priv-priv" id="id20">set_priv() priv()</a></li>
@@ -222,6 +238,13 @@ public:
         int piece_length() const;
         int piece_size(int index) const;
 
+        sha1_hash const&amp; hash(internal_file_entry const&amp; fe) const;
+        std::string const&amp; symlink(internal_file_entry const&amp; fe) const;
+        time_t mtime(internal_file_entry const&amp; fe) const;
+        int file_index(internal_file_entry const&amp; fe) const;
+        size_type file_base(internal_file_entry const&amp; fe) const;
+        void set_file_base(internal_file_entry const&amp; fe, size_type off);
+
         void set_name(std::string const&amp; n);
         void set_name(std::wstring const&amp; n);
         const std::string&amp; name() const;
@@ -234,8 +257,8 @@ public:
 <blockquote>
 <pre class="literal-block">
 void add_file(file_entry const&amp; e);
-void add_file(fs::path const&amp; p, size_type size, int flags = 0);
-void add_file(fs::wpath const&amp; p, size_type size, int flags = 0);
+void add_file(std::string const&amp; p, size_type size, int flags = 0);
+void add_file(std::wstring const&amp; p, size_type size, int flags = 0);
 </pre>
 </blockquote>
 <p>Adds a file to the file storage. The <tt class="docutils literal"><span class="pre">flags</span></tt> argument sets attributes on the file.
@@ -246,23 +269,52 @@ pad_file
 attribute_hidden
 attribute_executable
 </pre>
-</div>
-<div class="section" id="id1">
-<h2>add_file</h2>
-<blockquote>
-<pre class="literal-block">
-void add_file(file_entry const&amp; e);
-void add_file(fs::path const&amp; p, size_type size);
-</pre>
-</blockquote>
-<p>Adds a file to the file storage. If more files than one are added,
-certain restrictions to their paths apply. In a multi-file file
-storage (torrent), all files must share the same root directory.</p>
+<p>If more files than one are added, certain restrictions to their paths apply.
+In a multi-file file storage (torrent), all files must share the same root directory.</p>
 <p>That is, the first path element of all files must be the same.
 This shared path element is also set to the name of the torrent. It
 can be changed by calling <tt class="docutils literal"><span class="pre">set_name</span></tt>.</p>
 <p>The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.</p>
+</div>
+<div class="section" id="hash-symlink-mtime-file-index">
+<h2>hash() symlink() mtime() file_index()</h2>
+<blockquote>
+<pre class="literal-block">
+sha1_hash hash(internal_file_entry const&amp; fe) const;
+std::string const&amp; symlink(internal_file_entry const&amp; fe) const;
+time_t mtime(internal_file_entry const&amp; fe) const;
+int file_index(internal_file_entry const&amp; fe) const;
+</pre>
+</blockquote>
+<p>These functions are used to query the symlink, file hash,
+modification time and the file-index from a <tt class="docutils literal"><span class="pre">internal_file_entry</span></tt>,
+which typically would be acquired from an iterator.</p>
+<p>For these functions to function, the file entry must be an
+actual object from this same <tt class="docutils literal"><span class="pre">file_storage</span></tt> object. It may
+not be a copy.</p>
+<p>The file hash is a sha-1 hash of the file, or 0 if none was
+provided in the torrent file. This can potentially be used to
+join a bittorrent network with other file sharing networks.</p>
+<p>The modification time is the posix time when a file was last
+modified when the torrent was created, or 0 if it was not provided.</p>
+<p>The file index of a file is simply a 0 based index of the
+file as they are ordered in the torrent file.</p>
+</div>
+<div class="section" id="file-base-set-file-base">
+<h2>file_base() set_file_base()</h2>
+<blockquote>
+<pre class="literal-block">
+size_type file_base(internal_file_entry const&amp; fe) const;
+void set_file_base(internal_file_entry const&amp; fe, size_type off);
+</pre>
+</blockquote>
+<p>The file base of a file is the offset within the file on the filsystem
+where it starts to write. For the most part, this is always 0. It's
+possible to map several files (in the torrent) into a single file on
+the filesystem by making them all point to the same filename, but with
+different file bases, so that they don't overlap.
+<tt class="docutils literal"><span class="pre">torrent_info::remap_files</span></tt> can be used to use a new file layout.</p>
 </div>
 </div>
 <div class="section" id="create-torrent">
@@ -291,6 +343,7 @@ struct create_torrent
         void set_hash(int index, sha1_hash const&amp; h);
         void set_file_hash(int index, sha1_hash const&amp; h);
         void add_url_seed(std::string const&amp; url);
+        void add_http_seed(std::string const&amp; url);
         void add_node(std::pair&lt;std::string, int&gt; const&amp; node);
         void add_tracker(std::string const&amp; url, int tier = 0);
         void set_priv(bool p);
@@ -301,7 +354,7 @@ struct create_torrent
         bool priv() const;
 };
 </pre>
-<div class="section" id="id2">
+<div class="section" id="id1">
 <h2>create_torrent()</h2>
 <blockquote>
 <pre class="literal-block">
@@ -433,11 +486,12 @@ void set_file_hash(int index, sha1_hash const&amp; h);
 associated with this file (for multi-file torrents) or in the root info dictionary
 for single-file torrents.</p>
 </div>
-<div class="section" id="add-url-seed">
-<h2>add_url_seed()</h2>
+<div class="section" id="add-url-seed-add-http-seed">
+<h2>add_url_seed() add_http_seed()</h2>
 <blockquote>
 <pre class="literal-block">
 void add_url_seed(std::string const&amp; url);
+void add_http_seed(std::string const&amp; url);
 </pre>
 </blockquote>
 <p>This adds a url seed to the torrent. You can have any number of url seeds. For a
@@ -445,6 +499,7 @@ single file torrent, this should be an HTTP url, pointing to a file with identic
 content as the file of the torrent. For a multi-file torrent, it should point to
 a directory containing a directory with the same name as this torrent, and all the
 files of the torrent in it.</p>
+<p>The second function, <tt class="docutils literal"><span class="pre">add_http_seed()</span></tt> adds an HTTP seed instead.</p>
 </div>
 <div class="section" id="add-node">
 <h2>add_node()</h2>

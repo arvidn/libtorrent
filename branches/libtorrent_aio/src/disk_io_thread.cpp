@@ -331,6 +331,7 @@ namespace libtorrent
 	{
 		disk_io_job j;
 		j.action = disk_io_job::abort_thread;
+		j.start_time = time_now_hires();
 		add_job(j);
 	}
 

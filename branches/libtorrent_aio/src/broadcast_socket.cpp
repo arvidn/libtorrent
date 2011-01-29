@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 #ifndef NDEBUG
 //#include "libtorrent/socket_io.hpp"
 #endif
@@ -63,7 +67,8 @@ namespace libtorrent
 		return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
 			|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
 			|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
-			|| (ip & 0xffff0000) == 0xa9fe0000); // 169.254.x.x
+			|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
+			|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
 	}
 
 	bool is_loopback(address const& addr)
@@ -101,6 +106,18 @@ namespace libtorrent
 			return addr.to_v6() == address_v6::any();
 #else
 		return addr.to_v4() == address_v4::any();
+#endif
+	}
+
+	TORRENT_EXPORT bool is_teredo(address const& addr)
+	{
+#if TORRENT_USE_IPV6
+		if (!addr.is_v6()) return false;
+		boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
+		address_v6::bytes_type b = addr.to_v6().to_bytes();
+		return memcmp(&b[0], teredo_prefix, 4) == 0;
+#else
+		return false;
 #endif
 	}
 
@@ -155,7 +172,8 @@ namespace libtorrent
 	}
 
 	// returns the number of bits in that differ from the right
-	// between the addresses.
+	// between the addresses. The larger number, the further apart
+	// the IPs are
 	int cidr_distance(address const& a1, address const& a2)
 	{
 #if TORRENT_USE_IPV6
@@ -259,6 +277,9 @@ namespace libtorrent
 		if (ec) return;
 		m_sockets.push_back(socket_entry(s));
 		socket_entry& se = m_sockets.back();
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
@@ -275,6 +296,9 @@ namespace libtorrent
 		if (ec) return;
 		m_unicast_sockets.push_back(socket_entry(s, mask));
 		socket_entry& se = m_unicast_sockets.back();
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
@@ -330,9 +354,15 @@ namespace libtorrent
 	void broadcast_socket::on_receive(socket_entry* s, error_code const& ec
 		, std::size_t bytes_transferred)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("broadcast_socket::on_receive");
+#endif
 		if (ec || bytes_transferred == 0 || !m_on_receive) return;
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
 		if (!s->socket) return;
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("broadcast_socket::on_receive");
+#endif
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 	}

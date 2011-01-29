@@ -47,11 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/file_storage.hpp"
 
 namespace libtorrent
 {
-	struct file_entry;
-
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40);
@@ -61,9 +60,9 @@ namespace libtorrent
 #endif
 
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
-			, file_entry const& fe, int m, error_code& ec);
+			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
 		void release(void* st);
-		void release(void* st, file_entry const& fe);
+		void release(void* st, int file_index);
 		void resize(int size);
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }

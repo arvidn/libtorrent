@@ -65,7 +65,7 @@ namespace libtorrent
 	public:
 		enum { size = number_size };
 
-		big_number() {}
+		big_number() { clear(); }
 
 		static big_number max()
 		{
@@ -101,21 +101,56 @@ namespace libtorrent
 			std::memcpy(m_number, s.c_str(), sl);
 		}
 
-		void assign(char const* str)
-		{
-			std::memcpy(m_number, str, size);
-		}
-
-		void clear()
-		{
-			std::fill(m_number,m_number+number_size,(const unsigned char)(0));
-		}
+		void assign(char const* str) { std::memcpy(m_number, str, size); }
+		void clear() { std::memset(m_number, 0, number_size); }
 
 		bool is_all_zeros() const
 		{
 			for (const unsigned char* i = m_number; i < m_number+number_size; ++i)
 				if (*i != 0) return false;
 			return true;
+		}
+
+		big_number& operator<<=(int n)
+		{
+			TORRENT_ASSERT(n >= 0);
+			if (n > number_size * 8) n = number_size;
+			int num_bytes = n / 8;
+			if (num_bytes > 0)
+			{
+				std::memmove(m_number, m_number + num_bytes, number_size - num_bytes);
+				std::memset(m_number + number_size - num_bytes, 0, num_bytes);
+				n -= num_bytes * 8;
+			}
+			if (n > 0)
+			{
+				for (int i = 0; i < number_size - 1; ++i)
+				{
+					m_number[i] <<= n;
+					m_number[i] |= m_number[i+1] >> (8 - n);
+				}
+			}
+			return *this;
+		}
+
+		big_number& operator>>=(int n)
+		{
+			int num_bytes = n / 8;
+			if (num_bytes > 0)
+			{
+				std::memmove(m_number + num_bytes, m_number, number_size - num_bytes);
+				std::memset(m_number, 0, num_bytes);
+				n -= num_bytes * 8;
+			}
+			if (n > 0)
+			{
+				for (int i = number_size - 1; i > 0; --i)
+				{
+					m_number[i] >>= n;
+					m_number[i] |= m_number[i-1] << (8 - n);
+				}
+			}
+			return *this;
 		}
 
 		bool operator==(big_number const& n) const
@@ -146,6 +181,20 @@ namespace libtorrent
 			return ret;
 		}
 		
+		big_number operator^ (big_number const& n) const
+		{
+			big_number ret = *this;
+			ret ^= n;
+			return ret;
+		}
+
+		big_number operator& (big_number const& n) const
+		{
+			big_number ret = *this;
+			ret &= n;
+			return ret;
+		}
+
 		big_number& operator &= (big_number const& n)
 		{
 			for (int i = 0; i< number_size; ++i)

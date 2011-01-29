@@ -77,9 +77,19 @@ namespace libtorrent
 		return start;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	int lazy_bdecode(char const* start, char const* end
+		, lazy_entry& ret, int depth_limit, int item_limit)
+	{
+		error_code ec;
+		int pos;
+		return lazy_bdecode(start, end, ret, ec, &pos, depth_limit, item_limit);
+	}
+#endif
+
 	// return 0 = success
 	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
-		, error_code& ec, int* error_pos, int depth_limit)
+		, error_code& ec, int* error_pos, int depth_limit, int item_limit)
 	{
 		char const* const orig_start = start;
 		ret.clear();
@@ -141,6 +151,9 @@ namespace libtorrent
 				}
 				default: break;
 			}
+
+			--item_limit;
+			if (item_limit <= 0) TORRENT_FAIL_BDECODE(errors::limit_exceeded);
 
 			top = stack.back();
 			switch (t)
@@ -245,7 +258,7 @@ namespace libtorrent
 		m_data.start = start;
 		m_size = length;
 		m_begin = start - 1 - num_digits(length);
-		m_end = start + length;
+		m_len = start - m_begin + length;
 	}
 
 	namespace
@@ -400,7 +413,7 @@ namespace libtorrent
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_end - m_begin);
+		return return_t(m_begin, m_len);
 	}
 
 #if TORRENT_USE_IOSTREAM
@@ -505,7 +518,7 @@ namespace libtorrent
 			case lazy_entry::list_t:
 			{
 				ret += '[';
-				bool one_liner = line_longer_than(e, 130) != -1 || single_line;
+				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str + 1;
 				for (int i = 0; i < e.list_size(); ++i)
@@ -521,7 +534,7 @@ namespace libtorrent
 			case lazy_entry::dict_t:
 			{
 				ret += "{";
-				bool one_liner = line_longer_than(e, 130) != -1 || single_line;
+				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str+1;
 				for (int i = 0; i < e.dict_size(); ++i)

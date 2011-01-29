@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/extensions.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
@@ -395,20 +396,43 @@ namespace libtorrent {
 
 	void alert_manager::post_alert(const alert& alert_)
 	{
+
 		mutex::scoped_lock lock(m_mutex);
 
 		if (m_dispatch)
 		{
 			TORRENT_ASSERT(m_alerts.empty());
 			m_dispatch(std::auto_ptr<alert>(alert_.clone()));
-			return;
+		}
+		else if (m_alerts.size() < m_queue_size_limit || !alert_.discardable())
+		{
+			m_alerts.push_back(alert_.clone().release());
 		}
 
-		if (m_alerts.size() >= m_queue_size_limit) return;
-		m_alerts.push_back(alert_.clone().release());
-		m_condition.signal(lock);
-		m_condition.clear(lock);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		lock.unlock();
+
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+			(*i)->on_alert(&alert_);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
+
 	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
+	{
+		m_ses_extensions.push_back(ext);
+	}
+#endif
 
 	std::auto_ptr<alert> alert_manager::get()
 	{
@@ -491,6 +515,28 @@ namespace libtorrent {
 	{
 		return "trackerid received: " + trackerid;
 	}
+
+	std::string dht_bootstrap_alert::message() const
+	{
+		return "DHT bootstrap complete";
+	}
+
+	std::string rss_alert::message() const
+	{
+		char msg[600];
+		char const* state_msg[] = {"updating", "updated", "error"};
+		snprintf(msg, sizeof(msg), "RSS feed %s: %s (%s)"
+			, url.c_str(), state_msg[state], error.message().c_str());
+		return msg;
+	}
+
+	std::string torrent_error_alert::message() const
+	{
+		char msg[200];
+		snprintf(msg, sizeof(msg), " ERROR: %s", error.message().c_str());
+		return torrent_alert::message() + msg;
+	}
+
 
 } // namespace libtorrent
 

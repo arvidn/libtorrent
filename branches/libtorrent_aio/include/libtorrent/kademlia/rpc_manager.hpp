@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
+#include <boost/function/function3.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
@@ -45,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 
 #include "libtorrent/ptime.hpp"
+
+namespace libtorrent { namespace aux { struct session_impl; } }
 
 namespace libtorrent { namespace dht
 {
@@ -57,7 +60,7 @@ struct null_observer : public observer
 {
 	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
-	virtual void reply(msg const&) { m_done = true; }
+	virtual void reply(msg const&) { flags |= flag_done; }
 };
 
 class routing_table;
@@ -65,11 +68,12 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef bool (*send_fun)(void* userdata, entry const&, udp::endpoint const&, int);
+	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
+	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, send_fun const& sf
-		, void* userdata);
+		, void* userdata, external_ip_fun ext_ip);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -96,17 +100,12 @@ public:
 
 private:
 
-	enum { max_transaction_id = 0x10000 };
-
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
 	typedef std::list<observer_ptr> transactions_t;
 	transactions_t m_transactions;
-	
-	// this is the next transaction id to be used
-	int m_next_transaction_id;
 	
 	send_fun m_send;
 	void* m_userdata;
@@ -116,6 +115,7 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
+	external_ip_fun m_ext_ip;
 };
 
 } } // namespace libtorrent::dht

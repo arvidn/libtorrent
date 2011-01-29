@@ -221,13 +221,12 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	int TORRENT_EXPORT load_file(std::string const& filename, std::vector<char>& v);
+	int TORRENT_EXPORT load_file(std::string const& filename
+		, std::vector<char>& v, error_code& ec, int limit = 8000000);
 
 	class TORRENT_EXPORT torrent_info : public intrusive_ptr_base<torrent_info>
 	{
 	public:
-
-		enum flags_t { omit_filehashes = 1 };
 
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
@@ -304,7 +303,7 @@ namespace libtorrent
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 		int num_files() const { return m_files.num_files(); }
-		file_entry const& file_at(int index) const { return m_files.at(index); }
+		file_entry file_at(int index) const { return m_files.at(index); }
 
 		file_iterator file_at_offset(size_type offset) const
 		{ return m_files.file_at_offset(offset); }

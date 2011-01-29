@@ -49,6 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include <boost/shared_ptr.hpp>
+#include <list>
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -64,6 +69,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct plugin;
+#endif
 
 	class TORRENT_EXPORT alert
 	{
@@ -88,6 +97,7 @@ namespace libtorrent {
 			performance_warning = 0x200,
 			dht_notification = 0x400,
 			stats_notification = 0x800,
+			rss_notification = 0x1000,
 
 			all_categories = 0xffffffff
 		};
@@ -102,6 +112,7 @@ namespace libtorrent {
 		virtual char const* what() const = 0;
 		virtual std::string message() const = 0;
 		virtual int category() const = 0;
+		virtual bool discardable() const { return true; }
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
@@ -142,19 +153,30 @@ namespace libtorrent {
 			m_alert_mask = m;
 		}
 
+		int alert_mask() const { return m_alert_mask; }
+
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::shared_ptr<plugin> ext);
+#endif
+
 	private:
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
-		event m_condition;
+//		event m_condition;
 		int m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
 		io_service& m_ios;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
+		ses_extension_list_t m_ses_extensions;
+#endif
 	};
 
 	struct TORRENT_EXPORT unhandled_alert : std::exception
@@ -217,6 +239,7 @@ namespace libtorrent {
 template <class T>
 T* alert_cast(alert* a)
 {
+	if (a == 0) return 0;
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
 	return 0;
 }
@@ -224,6 +247,7 @@ T* alert_cast(alert* a)
 template <class T>
 T const* alert_cast(alert const* a)
 {
+	if (a == 0) return 0;
 	if (a->type() == T::alert_type) return static_cast<T const*>(a);
 	return 0;
 }
