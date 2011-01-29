@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct plugin;
 	struct torrent_plugin;
 	class torrent;
 	struct ip_filter;
@@ -267,6 +268,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext);
+		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP

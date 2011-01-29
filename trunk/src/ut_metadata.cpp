@@ -107,6 +107,7 @@ namespace libtorrent { namespace
 
 		// returns a piece of the metadata that
 		// we should request.
+		// returns -1 if we should hold off the request
 		int metadata_request();
 
 		// this is called from the peer_connection for
@@ -148,8 +149,9 @@ namespace libtorrent { namespace
 
 		struct metadata_piece
 		{
-			metadata_piece(): num_requests(0) {}
+			metadata_piece(): num_requests(0), last_request(0) {}
 			int num_requests;
+			time_t last_request;
 			boost::weak_ptr<ut_metadata_peer_plugin> source;
 			bool operator<(metadata_piece const& rhs) const
 			{ return num_requests < rhs.num_requests; }
@@ -372,6 +374,8 @@ namespace libtorrent { namespace
 				&& has_metadata())
 			{
 				int piece = m_tp.metadata_request();
+				if (piece == -1) return;
+
 				m_sent_requests.push_back(piece);
 				write_metadata_packet(0, piece);
 			}
@@ -432,7 +436,13 @@ namespace libtorrent { namespace
 		}
 
 		int piece = i - m_requested_metadata.begin();
+
+		// don't request the same block more than once every 3 seconds
+		time_t now = time(0);
+		if (now - m_requested_metadata[piece].last_request < 3) return -1;
+
 		++m_requested_metadata[piece].num_requests;
+		m_requested_metadata[piece].last_request = now;
 		return piece;
 	}
 
@@ -440,12 +450,17 @@ namespace libtorrent { namespace
 		boost::weak_ptr<ut_metadata_peer_plugin> const& source
 		, char const* buf, int size, int piece, int total_size)
 	{
-		if (m_torrent.valid_metadata()) return false;
+		if (m_torrent.valid_metadata())
+		{
+			m_torrent.add_redundant_bytes(size);
+			return false;
+		}
 		
 		if (!m_metadata)
 		{
 			// verify the total_size
-			if (total_size <= 0 || total_size > 500 * 1024) return false;
+			if (total_size <= 0 || total_size > m_torrent.session().settings().max_metadata_size)
+				return false;
 
 			m_metadata.reset(new char[total_size]);
 			m_requested_metadata.resize(div_round_up(total_size, 16 * 1024));

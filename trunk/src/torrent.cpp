@@ -7107,6 +7107,20 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 		m_state = s;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(*i)->on_state(m_state);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
+#endif
 	}
 
 	torrent_status torrent::status(boost::uint32_t flags) const
