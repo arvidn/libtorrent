@@ -608,7 +608,7 @@ void add_torrent(libtorrent::session& ses
 	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, t->name() + ".resume");
+	std::string filename = combine_path(save_path, ".resume/" + t->name() + ".resume");
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
@@ -774,7 +774,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
+			save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
 			if (std::find_if(handles.begin(), handles.end()
 				, boost::bind(&torrent_entry::handle, boost::bind(&handles_t::value_type::second, _1)) == h) == handles.end())
 				ses.remove_torrent(h);
@@ -1870,7 +1870,7 @@ int main(int argc, char* argv[])
 		torrent_handle h = rd->handle;
 		std::vector<char> out;
 		bencode(std::back_inserter(out), *rd->resume_data);
-		save_file(combine_path(h.save_path(), h.name() + ".resume"), out);
+		save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
 	}
 	printf("\nsaving session state\n");
 	{
