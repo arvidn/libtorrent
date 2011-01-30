@@ -3703,11 +3703,6 @@ namespace aux {
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
 
-		// if this is an auto managed torrent, force a recalculation
-		// of which torrents to have active
-		if (params.auto_managed && m_auto_manage_time_scaler > 2)
-			m_auto_manage_time_scaler = 2;
-
 		return torrent_handle(torrent_ptr);
 	}
 
