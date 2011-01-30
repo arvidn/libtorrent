@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h> // free and calloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 namespace libtorrent {
 
@@ -47,6 +48,18 @@ namespace libtorrent {
 		, m_last(0)
 	{}
 
+#ifdef TORRENT_DEBUG
+	void packet_buffer::check_invariant() const
+	{
+		int count = 0;
+		for (int i = 0; i < m_capacity; ++i)
+		{
+			count += m_storage[i] ? 1 : 0;
+		}
+		TORRENT_ASSERT(count == m_size);
+	}
+#endif
+
 	packet_buffer::~packet_buffer()
 	{
 		free(m_storage);
@@ -54,9 +67,13 @@ namespace libtorrent {
 
 	void* packet_buffer::insert(index_type idx, void* value)
 	{
+		INVARIANT_CHECK;
+
 		TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
 		// you're not allowed to insert NULLs!
 		TORRENT_ASSERT(value);
+
+		if (value == 0) return remove(idx);
 
 		if (m_size != 0)
 		{
@@ -117,6 +134,7 @@ namespace libtorrent {
 
 	void* packet_buffer::at(index_type idx) const
 	{
+		INVARIANT_CHECK;
 		if (idx >= m_first + m_capacity)
 			return 0;
 
@@ -125,11 +143,13 @@ namespace libtorrent {
 			return 0;
 		}
 
-		return m_storage[idx & (m_capacity - 1)];
+		const int mask = (m_capacity - 1);
+		return m_storage[idx & mask];
 	}
 
 	void packet_buffer::reserve(std::size_t size)
 	{
+		INVARIANT_CHECK;
 		TORRENT_ASSERT_VAL(size <= 0xffff, size);
 		std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
 
@@ -152,6 +172,7 @@ namespace libtorrent {
 
 	void* packet_buffer::remove(index_type idx)
 	{
+		INVARIANT_CHECK;
 		// TODO: use compare_less_wrap for this comparison as well
 		if (idx >= m_first + m_capacity)
 			return 0;
@@ -159,8 +180,9 @@ namespace libtorrent {
 		if (compare_less_wrap(idx, m_first, 0xffff))
 			return 0;
 
-		void* old_value = m_storage[idx & (m_capacity - 1)];
-		m_storage[idx & (m_capacity - 1)] = 0;
+		const int mask = (m_capacity - 1);
+		void* old_value = m_storage[idx & mask];
+		m_storage[idx & mask] = 0;
 
 		if (old_value)
 		{
@@ -170,13 +192,13 @@ namespace libtorrent {
 
 		if (idx == m_first && m_size != 0)
 		{
-			while (!m_storage[++m_first & (m_capacity - 1)]);
+			while (!m_storage[++m_first & mask]);
 			m_first &= 0xffff;
 		}
 
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
-			while (!m_storage[--m_last & (m_capacity - 1)]);
+			while (!m_storage[--m_last & mask]);
 			++m_last;
 			m_last &= 0xffff;
 		}
