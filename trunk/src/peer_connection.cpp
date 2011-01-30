@@ -4458,6 +4458,8 @@ namespace libtorrent
 			&& m_reading_bytes > 0
 			&& quota_left > 0)
 		{
+			if (m_channel_state[upload_channel] != peer_info::bw_disk)
+				m_ses.inc_disk_queue(upload_channel);
 			m_channel_state[upload_channel] = peer_info::bw_disk;
 
 			if (!m_connecting
@@ -4523,6 +4525,8 @@ namespace libtorrent
 			vec, make_write_handler(boost::bind(
 				&peer_connection::on_send_data, self(), _1, _2)));
 
+		if (m_channel_state[upload_channel] == peer_info::bw_disk)
+			m_ses.dec_disk_queue(upload_channel);
 		m_channel_state[upload_channel] = peer_info::bw_network;
 	}
 
@@ -4531,6 +4535,7 @@ namespace libtorrent
 		if (m_channel_state[download_channel] != peer_info::bw_disk) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 	
+		m_ses.dec_disk_queue(download_channel);
 		m_channel_state[download_channel] = peer_info::bw_idle;
 		setup_receive();
 	}
@@ -5018,6 +5023,7 @@ namespace libtorrent
 
 		if (!disk)
 		{
+			if (m_channel_state[download_channel] != peer_info::bw_disk) m_ses.inc_disk_queue(download_channel);
 			if (state) *state = peer_info::bw_disk;
 			return false;
 		}

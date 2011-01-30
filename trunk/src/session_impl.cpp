@@ -536,6 +536,9 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+		m_disk_queues[0] = 0;
+		m_disk_queues[1] = 0;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
@@ -3999,6 +4002,9 @@ namespace aux {
 		s.up_bandwidth_bytes_queue = m_upload_rate.queued_bytes();
 		s.down_bandwidth_bytes_queue = m_download_rate.queued_bytes();
 
+		s.disk_write_queue = m_disk_queues[peer_connection::download_channel];
+		s.disk_read_queue = m_disk_queues[peer_connection::upload_channel];
+
 		s.has_incoming_connections = m_incoming_connection;
 
 		// total
@@ -4805,6 +4811,7 @@ namespace aux {
 			TORRENT_ASSERT(m_allowed_upload_slots >= m_settings.unchoke_slots_limit);
 		int unchokes = 0;
 		int num_optimistic = 0;
+		int disk_queue[2] = {0, 0};
 		for (connection_map::const_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 		{
@@ -4812,6 +4819,9 @@ namespace aux {
 			boost::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
 			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
 			unique_peers.insert(i->get());
+
+			if ((*i)->m_channel_state[0] == peer_info::bw_disk) ++disk_queue[0];
+			if ((*i)->m_channel_state[1] == peer_info::bw_disk) ++disk_queue[1];
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
@@ -4828,6 +4838,9 @@ namespace aux {
 				TORRENT_ASSERT(t->get_policy().has_connection(p));
 			}
 		}
+
+		TORRENT_ASSERT(disk_queue[0] == m_disk_queues[0]);
+		TORRENT_ASSERT(disk_queue[1] == m_disk_queues[1]);
 
 		if (m_settings.num_optimistic_unchoke_slots)
 		{

@@ -687,8 +687,17 @@ struct has the following members::
 		int num_unchoked;
 		int allowed_upload_slots;
 
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
+
+		int up_bandwidth_bytes_queue;
+		int down_bandwidth_bytes_queue;
+
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
+
+		int disk_write_queue;
+		int disk_read_queue;
 
 		int dht_nodes;
 		int dht_node_cache;
@@ -742,10 +751,19 @@ be assigned a torrent yet.
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
+``up_bandwidth_queue`` and ``down_bandwidth_queue`` are the number of peers that are
+waiting for more bandwidth quota from the torrent rate limiter.
+``up_bandwidth_bytes_queue`` and ``down_bandwidth_bytes_queue`` count the number of
+bytes the connections are waiting for to be able to send and receive.
+
 ``optimistic_unchoke_counter`` and ``unchoke_counter`` tells the number of
 seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.
+
+``disk_write_queue`` and ``disk_read_queue`` are the number of peers currently
+waiting on a disk write or disk read to complete before it receives or sends
+any more data on the socket. It'a a metric of how disk bound you are.
 
 ``dht_nodes``, ``dht_node_cache`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When

@@ -426,6 +426,19 @@ namespace libtorrent
 			mutable libtorrent::mutex mut;
 			mutable libtorrent::condition cond;
 
+			void inc_disk_queue(int channel)
+			{
+				TORRENT_ASSERT(channel >= 0 && channel < 2);
+				++m_disk_queues[channel];
+			}
+
+			void dec_disk_queue(int channel)
+			{
+				TORRENT_ASSERT(channel >= 0 && channel < 2);
+				TORRENT_ASSERT(m_disk_queues[channel] > 0);
+				--m_disk_queues[channel];
+			}
+
 //		private:
 
 			void update_connections_limit();
@@ -559,6 +572,12 @@ namespace libtorrent
 			bandwidth_channel m_tcp_upload_channel;
 
 			bandwidth_channel* m_bandwidth_channel[2];
+
+			// the number of peer connections that are waiting
+			// for the disk. one for each channel.
+			// upload_channel means waiting to read from disk
+			// and download_channel is waiting to write to disk
+			int m_disk_queues[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
