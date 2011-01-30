@@ -45,18 +45,19 @@ namespace libtorrent
 	// old elements are removed when new elements are inserted,
 	// the buffer will be resized.
 
-	// if m_mask is 0xf, m_array has 16 elements
-	// m_cursor is the lowest index that has an element
+	// m_capacity is the number of elements in m_array
+	// and must be an even 2^x.
+	// m_first is the lowest index that has an element
 	// it also determines which indices the other slots
 	// refers to. Since it's a circular buffer, it wraps
 	// around. For example
 
-	//                    m_cursor = 9
+	//                    m_first = 9
 	//                    |           refers to index 14
 	//                    |           |
 	//                    V           V
 	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	// | | | | | | | | | | | | | | | | |  m_mask = 0xf
+	// | | | | | | | | | | | | | | | | |  mask = (m_capacity-1)
 	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	//  ^
 	//  |
@@ -92,6 +93,10 @@ namespace libtorrent
 
 		index_type span() const
 		{ return (m_last - m_first) & 0xffff; }
+
+#ifdef TORRENT_DEBUG
+		void check_invariant() const;
+#endif
 
 	private:
 		void** m_storage;
