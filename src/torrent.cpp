@@ -5148,6 +5148,12 @@ namespace libtorrent
 		// we need to keep the object alive during this operation
 		m_storage->async_release_files(
 			boost::bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+		
+		// this torrent just completed downloads, which means it will fall
+		// under a different limit with the auto-manager. Make sure we
+		// update auto-manage torrents in that case
+		if (m_auto_managed && m_ses.m_auto_manage_time_scaler > 1)
+			m_ses.m_auto_manage_time_scaler = 1;
 	}
 
 	// this is called when we were finished, but some files were
@@ -5247,6 +5253,11 @@ namespace libtorrent
 				get_handle()));
 		}
 		
+		// if this is an auto managed torrent, force a recalculation
+		// of which torrents to have active
+		if (m_auto_managed && m_ses.m_auto_manage_time_scaler > 1)
+			m_ses.m_auto_manage_time_scaler = 1;
+
 		if (!is_seed())
 		{
 			// turn off super seeding if we're not a seed
@@ -5816,6 +5827,12 @@ namespace libtorrent
 			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
+
+		// if this torrent is running and just became auto-managed
+		// we might want to pause it in favor of some other torrent
+		if (m_auto_managed && !is_paused()
+			&& m_ses.m_auto_manage_time_scaler > 1)
+			m_ses.m_auto_manage_time_scaler = 1;
 	}
 
 	// the higher seed rank, the more important to seed
@@ -6053,6 +6070,11 @@ namespace libtorrent
 			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
 		}
+
+		// if this torrent was just paused
+		// we might have to resume some other auto-managed torrent
+		if (m_ses.m_auto_manage_time_scaler > 1)
+			m_ses.m_auto_manage_time_scaler = 1;
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
