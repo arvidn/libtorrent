@@ -126,6 +126,9 @@ namespace libtorrent
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
 
+		int disk_write_queue;
+		int disk_read_queue;
+
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;

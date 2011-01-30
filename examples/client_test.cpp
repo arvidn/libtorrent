@@ -1544,7 +1544,8 @@ int main(int argc, char* argv[])
 		out += str;
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
-			"bw queues: %8d (%d) | %8d (%d) cache: w: %"PRId64"%% r: %"PRId64"%% size: %s (%s) / %s dq: %"PRId64" ===\n"
+			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %"PRId64"%% r: %"PRId64"%% "
+			"size: %s (%s) / %s dq: %"PRId64" ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -1552,6 +1553,8 @@ int main(int argc, char* argv[])
 			, sess_stat.up_bandwidth_queue
 			, sess_stat.down_bandwidth_bytes_queue
 			, sess_stat.down_bandwidth_queue
+			, sess_stat.disk_write_queue
+			, sess_stat.disk_read_queue
 			, (cs.blocks_written - cs.writes) * 100 / cs.blocks_written
 			, cs.blocks_read_hit * 100 / cs.blocks_read
 			, add_suffix(cs.cache_size * 16 * 1024).c_str()
