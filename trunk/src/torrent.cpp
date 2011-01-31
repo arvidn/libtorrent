@@ -4270,17 +4270,6 @@ namespace libtorrent
 				prioritize_udp_trackers();
 		}
 
-		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files->list_size() == m_torrent_file->num_files())
-		{
-			for (int i = 0; i < m_torrent_file->num_files(); ++i)
-			{
-				std::string new_filename = mapped_files->list_string_value_at(i);
-				if (new_filename.empty()) continue;
-				m_torrent_file->rename_file(i, new_filename);
-			}
-		}
-
 		lazy_entry const* url_list = rd.dict_find_list("url-list");
 		if (url_list)
 		{
@@ -4489,7 +4478,10 @@ namespace libtorrent
 		}
 
 		// write renamed files
-		if (&m_torrent_file->files() != &m_torrent_file->orig_files())
+		// TODO: make this more generic to not just work if files have been
+		// renamed, but also if they have been merged into a single file for instance
+		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
+			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
 			entry::list_type& fl = ret["mapped_files"].list();
 			for (torrent_info::file_iterator i = m_torrent_file->begin_files()
