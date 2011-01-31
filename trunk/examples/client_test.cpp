@@ -1061,6 +1061,11 @@ int main(int argc, char* argv[])
 		++i; // skip the argument
 	}
 
+	// create directory for resume files
+	create_directory(combine_path(save_path, ".resume/"), ec);
+	if (ec)
+		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
+
 	ses.start_lsd();
 	if (start_upnp)
 	{
