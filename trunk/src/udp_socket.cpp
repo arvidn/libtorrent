@@ -127,6 +127,7 @@ void udp_socket::send_hostname(char const* hostname, int port
 	CHECK_MAGIC;
 
 	TORRENT_ASSERT(is_open());
+	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open()) return;
@@ -156,6 +157,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 	CHECK_MAGIC;
 
 	TORRENT_ASSERT(is_open());
+	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
 	if (!is_open()) return;
@@ -193,6 +195,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 
 void udp_socket::maybe_realloc_buffers(int which)
 {
+	TORRENT_ASSERT(is_single_thread());
 	if (m_reallocate_buffer4 && (which & 1))
 	{
 		m_v4_buf = (char*)realloc(m_v4_buf, m_v4_buf_size);
@@ -245,13 +248,11 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #endif
 
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv4_sock)
+		if (s == &m_ipv6_sock)
+			m_callback(e, m_v6_ep, 0, 0);
+		else
 #endif
 			m_callback(e, m_v4_ep, 0, 0);
-#if TORRENT_USE_IPV6
-		else
-			m_callback(e, m_v6_ep, 0, 0);
-#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
 		} catch(std::exception&) {}
@@ -282,15 +283,13 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		add_outstanding_async("udp_socket::on_read");
 #endif
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv4_sock)
+		if (s == &m_ipv6_sock)
+			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
+				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		else
 #endif
 			s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
-#if TORRENT_USE_IPV6
-		else
-			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
-				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
-#endif
 
 		++m_outstanding;
 #ifdef TORRENT_DEBUG
@@ -300,8 +299,39 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 	}
 
 #if TORRENT_USE_IPV6
-	if (s == &m_ipv4_sock)
+	if (s == &m_ipv6_sock)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
 #endif
+
+		if (m_tunnel_packets)
+		{
+			// if the source IP doesn't match the proxy's, ignore the packet
+			if (m_v6_ep == m_proxy_addr)
+				unwrap(e, m_v6_buf, bytes_transferred);
+		}
+		else
+		{
+			m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
+		}
+
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+
+		if (m_abort) return;
+
+		maybe_realloc_buffers(2);
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("udp_socket::on_read");
+#endif
+		s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
+			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+	}
+	else
+#endif // TORRENT_USE_IPV6
 	{
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -325,7 +355,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers(which);
+		maybe_realloc_buffers(1);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
@@ -333,40 +363,8 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 			, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 	}
-#if TORRENT_USE_IPV6
-	else
-	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
-
-		if (m_tunnel_packets)
-		{
-			// if the source IP doesn't match the proxy's, ignore the packet
-			if (m_v6_ep == m_proxy_addr)
-				unwrap(e, m_v6_buf, bytes_transferred);
-		}
-		else
-		{
-			m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
-		}
-
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
-
-		if (m_abort) return;
-
-		maybe_realloc_buffers(which);
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("udp_socket::on_read");
-#endif
-		s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
-			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
-	}
-#endif
 	++m_outstanding;
+
 #ifdef TORRENT_DEBUG
 	m_started = true;
 #endif
@@ -519,6 +517,7 @@ void udp_socket::close()
 
 void udp_socket::set_buf_size(int s)
 {
+	TORRENT_ASSERT(is_single_thread());
 	if (s > m_v4_buf_size)
 	{
 		m_v4_buf_size = s;
