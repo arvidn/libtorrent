@@ -727,6 +727,9 @@ namespace libtorrent
 
 	bool storage::verify_resume_data(lazy_entry const& rd, error_code& error)
 	{
+		// TODO: make this more generic to not just work if files have been
+		// renamed, but also if they have been merged into a single file for instance
+		// maybe use the same format as .torrent files and reuse some code from torrent_info
 		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files && mapped_files->list_size() == m_files.num_files())
 		{
