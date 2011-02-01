@@ -300,6 +300,12 @@ namespace libtorrent
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
 	do { m_impl->cond.wait(l); } while(!done)
 
+#define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
+	bool done = false; \
+	mutex::scoped_lock l(m_impl->mut); \
+	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
+	do { m_impl->cond.wait(l); } while(!done)
+
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
@@ -507,6 +513,19 @@ namespace libtorrent
 	void session::set_key(int key)
 	{
 		TORRENT_ASYNC_CALL1(set_key, key);
+	}
+
+	void session::get_torrent_status(std::vector<torrent_status>* ret
+		, boost::function<bool(torrent_status const&)> const& pred
+		, boost::uint32_t flags) const
+	{
+		TORRENT_SYNC_CALL3(get_torrent_status, ret, boost::ref(pred), flags);
+	}
+
+	void session::refresh_torrent_status(std::vector<torrent_status>* ret
+		, boost::uint32_t flags) const
+	{
+		TORRENT_SYNC_CALL2(refresh_torrent_status, ret, flags);
 	}
 
 	std::vector<torrent_handle> session::get_torrents() const

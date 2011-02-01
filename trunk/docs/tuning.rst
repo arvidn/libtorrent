@@ -343,10 +343,41 @@ torrent limits
 To seed thousands of torrents, you need to increase the ``session_settings::active_limit``
 and ``session_settings::active_seeds``.
 
+scalability
+===========
+
+In order to make more efficient use of the libtorrent interface when running a large
+number of torrents simultaneously, one can use the ``session::get_torrent_status()`` call
+together with ``session::refresh_torrent_status()``. Keep in mind that every call into
+libtorrent that return some value have to block your thread while posting a message to
+the main network thread and then wait for a response (calls that don't return any data
+will simply post the message and then immediately return). The time this takes might
+become significant once you reach a few hundred torrents (depending on how many calls
+you make to each torrent and how often). ``get_torrent_status`` lets you query the
+status of all torrents in a single call. This will actually loop through all torrents
+and run a provided predicate function to determine whether or not to include it in
+the returned vector. If you have a lot of torrents, you might want to update the status
+of only certain torrents. For instance, you might only be interested in torrents that
+are being downloaded.
+
+The intended use of these functions is to start off by calling ``get_torrent_status``
+to get a list of all torrents that match your criteria. Then call ``refresh_torrent_status``
+on that list. This will only refresh the status for the torrents in your list, and thus
+ignore all other torrents you might be running. This may save a significant amount of
+time, especially if the number of torrents you're interested in is small. In order to
+keep your list of interested torrents up to date, you can either call ``get_torrent_status``
+from time to time, to include torrents you might have become interested in since the last
+time. In order to stop refreshing a certain torrent, simply remove it from the list.
+
+A more efficient way however, would be to subscribe to status alert notifications, and
+update your list based on these alerts. There are alerts for when torrents are added, removed,
+paused, resumed, completed etc. Doing this ensures that you only query status for the
+minimal set of torrents you are actually interested in.
+
 benchmarking
 ============
 
-There are a bunch of built-in instrumentation of libtorrent that can be used to get an insight
+There is a bunch of built-in instrumentation of libtorrent that can be used to get an insight
 into what it's doing and how well it performs. This instrumentation is enabled by defining
 preprocessor symbols when building.
 

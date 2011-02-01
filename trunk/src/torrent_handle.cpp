@@ -469,8 +469,9 @@ namespace libtorrent
 	torrent_status torrent_handle::status(boost::uint32_t flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET1(torrent_status, torrent_status(), status, flags);
-		return r;
+		torrent_status st;
+		TORRENT_SYNC_CALL2(status, &st, flags);
+		return st;
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const

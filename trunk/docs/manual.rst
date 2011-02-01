@@ -158,7 +158,13 @@ The ``session`` class has the following synopsis::
 		void remove_torrent(torrent_handle const& h
 			, int options = none);
 		torrent_handle find_torrent(sha_hash const& ih);
+
 		std::vector<torrent_handle> get_torrents() const;
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, boost::function<bool(torrent_status const&)> const& pred
+			, boost::uint32_t flags = 0) const;
+		void refresh_torrent_status(std::vector<torrent_status>* ret
+			, boost::uint32_t flags) const;
 
 		void set_settings(session_settings const& settings);
 		session_settings settings() const;
@@ -564,6 +570,36 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 
 ``get_torrents()`` returns a vector of torrent_handles to all the torrents
 currently in the session.
+
+get_torrent_status() refresh_torrent_status()
+---------------------------------------------
+
+	::
+
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, boost::function<bool(torrent_status const&)> const& pred
+			, boost::uint32_t flags = 0) const;
+		void refresh_torrent_status(std::vector<torrent_status>* ret
+			, boost::uint32_t flags = 0) const;
+
+``get_torrent_status`` returns a vector of the ``torrent_status`` for every
+torrent which satisfies ``pred``, which is a predicate function which determines
+if a torrent should be included in the returned set or not. Returning true means
+it should be included and false means excluded. The ``flags`` argument is the same
+as to ``torrent_handle::status()``. Since ``pred`` is guaranteed to be called for
+every torrent, it may be used to count the number of torrents of different categories
+as well.
+
+``refresh_torrent_status`` takes a vector of ``torrent_status`` structs (for instance
+the same vector that was returned by ``get_torrent_status()``) and refreshes the
+status based on the ``handle`` member. It is possible to use this function by
+first setting up a vector of default constructed ``torrent_status`` objects, only
+initializing the ``handle`` member, in order to request the torrent status for
+multiple torrents in a single call. This can save a significant amount of time
+if you have a lot of torrents.
+
+Any ``torrent_status`` object whose ``handle`` member is not referring to a
+valid torrent are ignored.
 
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
@@ -3145,6 +3181,8 @@ It contains the following fields::
 			allocating,
 			checking_resume_data
 		};
+
+		torrent_handle handle;
 	
 		state_t state;
 		bool paused;
@@ -3243,6 +3281,8 @@ It contains the following fields::
 		int queue_position;
 		bool need_save_resume;
 	};
+
+``handle`` is a handle to the torrent whose status the object represents.
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
 torrent's current task. It may be checking files or downloading.

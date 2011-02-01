@@ -7139,96 +7139,96 @@ namespace libtorrent
 #endif
 	}
 
-	torrent_status torrent::status(boost::uint32_t flags) const
+	void torrent::status(torrent_status* st, boost::uint32_t flags)
 	{
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
 
-		torrent_status st;
+		st->handle = get_handle();
 
-		st.has_incoming = m_has_incoming;
-		if (m_error) st.error = m_error.message() + ": " + m_error_file;
-		st.seed_mode = m_seed_mode;
+		st->has_incoming = m_has_incoming;
+		if (m_error) st->error = m_error.message() + ": " + m_error_file;
+		st->seed_mode = m_seed_mode;
 
-		st.added_time = m_added_time;
-		st.completed_time = m_completed_time;
+		st->added_time = m_added_time;
+		st->completed_time = m_completed_time;
 
-		st.last_scrape = m_last_scrape;
-		st.share_mode = m_share_mode;
-		st.upload_mode = m_upload_mode;
-		st.up_bandwidth_queue = 0;
-		st.down_bandwidth_queue = 0;
-		st.priority = m_priority;
+		st->last_scrape = m_last_scrape;
+		st->share_mode = m_share_mode;
+		st->upload_mode = m_upload_mode;
+		st->up_bandwidth_queue = 0;
+		st->down_bandwidth_queue = 0;
+		st->priority = m_priority;
 
-		st.num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
+		st->num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
 			, !boost::bind(&peer_connection::is_connecting, _1));
 
-		st.list_peers = m_policy.num_peers();
-		st.list_seeds = m_policy.num_seeds();
-		st.connect_candidates = m_policy.num_connect_candidates();
-		st.seed_rank = seed_rank(settings());
+		st->list_peers = m_policy.num_peers();
+		st->list_seeds = m_policy.num_seeds();
+		st->connect_candidates = m_policy.num_connect_candidates();
+		st->seed_rank = seed_rank(settings());
 
-		st.all_time_upload = m_total_uploaded;
-		st.all_time_download = m_total_downloaded;
+		st->all_time_upload = m_total_uploaded;
+		st->all_time_download = m_total_downloaded;
 
 		// activity time
-		st.active_time = m_active_time;
-		st.active_time = m_active_time;
-		st.seeding_time = m_seeding_time;
-		st.time_since_upload = m_last_upload;
-		st.time_since_download = m_last_download;
+		st->active_time = m_active_time;
+		st->active_time = m_active_time;
+		st->seeding_time = m_seeding_time;
+		st->time_since_upload = m_last_upload;
+		st->time_since_download = m_last_download;
 
-		st.storage_mode = (storage_mode_t)m_storage_mode;
+		st->storage_mode = (storage_mode_t)m_storage_mode;
 
-		st.num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
-		st.num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
-		st.paused = is_torrent_paused();
-		st.auto_managed = m_auto_managed;
-		st.sequential_download = m_sequential_download;
-		st.is_seeding = is_seed();
-		st.is_finished = is_finished();
-		st.has_metadata = valid_metadata();
-		bytes_done(st, flags & torrent_handle::query_accurate_download_counters);
-		TORRENT_ASSERT(st.total_wanted_done >= 0);
-		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
+		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
+		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
+		st->paused = is_torrent_paused();
+		st->auto_managed = m_auto_managed;
+		st->sequential_download = m_sequential_download;
+		st->is_seeding = is_seed();
+		st->is_finished = is_finished();
+		st->has_metadata = valid_metadata();
+		bytes_done(*st, flags & torrent_handle::query_accurate_download_counters);
+		TORRENT_ASSERT(st->total_wanted_done >= 0);
+		TORRENT_ASSERT(st->total_done >= st->total_wanted_done);
 
 		// payload transfer
-		st.total_payload_download = m_stat.total_payload_download();
-		st.total_payload_upload = m_stat.total_payload_upload();
+		st->total_payload_download = m_stat.total_payload_download();
+		st->total_payload_upload = m_stat.total_payload_upload();
 
 		// total transfer
-		st.total_download = m_stat.total_payload_download()
+		st->total_download = m_stat.total_payload_download()
 			+ m_stat.total_protocol_download();
-		st.total_upload = m_stat.total_payload_upload()
+		st->total_upload = m_stat.total_payload_upload()
 			+ m_stat.total_protocol_upload();
 
 		// failed bytes
-		st.total_failed_bytes = m_total_failed_bytes;
-		st.total_redundant_bytes = m_total_redundant_bytes;
+		st->total_failed_bytes = m_total_failed_bytes;
+		st->total_redundant_bytes = m_total_redundant_bytes;
 
 		// transfer rate
-		st.download_rate = m_stat.download_rate();
-		st.upload_rate = m_stat.upload_rate();
-		st.download_payload_rate = m_stat.download_payload_rate();
-		st.upload_payload_rate = m_stat.upload_payload_rate();
+		st->download_rate = m_stat.download_rate();
+		st->upload_rate = m_stat.upload_rate();
+		st->download_payload_rate = m_stat.download_payload_rate();
+		st->upload_payload_rate = m_stat.upload_payload_rate();
 
 		if (m_waiting_tracker && !is_paused())
-			st.next_announce = boost::posix_time::seconds(
+			st->next_announce = boost::posix_time::seconds(
 				total_seconds(next_announce() - now));
 		else
-			st.next_announce = boost::posix_time::seconds(0);
+			st->next_announce = boost::posix_time::seconds(0);
 
-		if (st.next_announce.is_negative())
-			st.next_announce = boost::posix_time::seconds(0);
+		if (st->next_announce.is_negative())
+			st->next_announce = boost::posix_time::seconds(0);
 
-		st.announce_interval = boost::posix_time::seconds(0);
+		st->announce_interval = boost::posix_time::seconds(0);
 
-		st.current_tracker.clear();
+		st->current_tracker.clear();
 		if (m_last_working_tracker >= 0)
 		{
 			TORRENT_ASSERT(m_last_working_tracker < int(m_trackers.size()));
-			st.current_tracker = m_trackers[m_last_working_tracker].url;
+			st->current_tracker = m_trackers[m_last_working_tracker].url;
 		}
 		else
 		{
@@ -7236,82 +7236,82 @@ namespace libtorrent
 			for (i = m_trackers.begin(); i != m_trackers.end(); ++i)
 			{
 				if (!i->updating) continue;
-				st.current_tracker = i->url;
+				st->current_tracker = i->url;
 				break;
 			}
 		}
 
-		st.num_uploads = m_num_uploads;
-		st.uploads_limit = m_max_uploads;
-		st.num_connections = int(m_connections.size());
-		st.connections_limit = m_max_connections;
+		st->num_uploads = m_num_uploads;
+		st->uploads_limit = m_max_uploads;
+		st->num_connections = int(m_connections.size());
+		st->connections_limit = m_max_connections;
 		// if we don't have any metadata, stop here
 
-		st.queue_position = queue_position();
-		st.need_save_resume = need_save_resume_data();
+		st->queue_position = queue_position();
+		st->need_save_resume = need_save_resume_data();
 
-		st.state = (torrent_status::state_t)m_state;
+		st->state = (torrent_status::state_t)m_state;
 
 		if (!valid_metadata())
 		{
-			st.state = torrent_status::downloading_metadata;
-			st.progress_ppm = m_progress_ppm;
+			st->state = torrent_status::downloading_metadata;
+			st->progress_ppm = m_progress_ppm;
 #if !TORRENT_NO_FPU
-			st.progress = m_progress_ppm / 1000000.f;
+			st->progress = m_progress_ppm / 1000000.f;
 #endif
-			st.block_size = 0;
-			return st;
+			st->block_size = 0;
+			return;
 		}
 
-		st.block_size = block_size();
+		st->block_size = block_size();
 
 		if (m_state == torrent_status::checking_files)
 		{
-			st.progress_ppm = m_progress_ppm;
+			st->progress_ppm = m_progress_ppm;
 #if !TORRENT_NO_FPU
-			st.progress = m_progress_ppm / 1000000.f;
+			st->progress = m_progress_ppm / 1000000.f;
 #endif
 		}
-		else if (st.total_wanted == 0)
+		else if (st->total_wanted == 0)
 		{
-			st.progress_ppm = 1000000;
-			st.progress = 1.f;
+			st->progress_ppm = 1000000;
+			st->progress = 1.f;
 		}
 		else
 		{
-			st.progress_ppm = st.total_wanted_done * 1000000
-				/ st.total_wanted;
+			st->progress_ppm = st->total_wanted_done * 1000000
+				/ st->total_wanted;
 #if !TORRENT_NO_FPU
-			st.progress = st.progress_ppm / 1000000.f;
+			st->progress = st->progress_ppm / 1000000.f;
 #endif
 		}
 
 		if (has_picker())
 		{
-			st.sparse_regions = m_picker->sparse_regions();
+			st->sparse_regions = m_picker->sparse_regions();
 			int num_pieces = m_picker->num_pieces();
-			st.pieces.resize(num_pieces, false);
+			st->pieces.resize(num_pieces, false);
 			for (int i = 0; i < num_pieces; ++i)
-				if (m_picker->have_piece(i)) st.pieces.set_bit(i);
+				if (m_picker->have_piece(i)) st->pieces.set_bit(i);
 		}
-		st.num_pieces = num_have();
-		st.num_seeds = num_seeds();
+		st->num_pieces = num_have();
+		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
 		{
-			boost::tie(st.distributed_full_copies, st.distributed_fraction) =
+			boost::tie(st->distributed_full_copies, st->distributed_fraction) =
 				m_picker->distributed_copies();
 #if TORRENT_NO_FPU
-			st.distributed_copies = -1.f;
+			st->distributed_copies = -1.f;
 #else
-			st.distributed_copies = st.distributed_full_copies
-				+ float(st.distributed_fraction) / 1000;
+			st->distributed_copies = st->distributed_full_copies
+				+ float(st->distributed_fraction) / 1000;
 #endif
 		}
 		else
 		{
-			st.distributed_full_copies = -1;
-			st.distributed_fraction = -1;
-			st.distributed_copies = -1.f;
+			st->distributed_full_copies = -1;
+			st->distributed_fraction = -1;
+			st->distributed_copies = -1.f;
 		}
 
 		if (flags & torrent_handle::query_last_seen_complete)
@@ -7322,13 +7322,12 @@ namespace libtorrent
 			{
 				last = (std::max)(last, (*i)->last_seen_complete());
 			}
-			st.last_seen_complete = last;
+			st->last_seen_complete = last;
 		}
 		else
 		{
-			st.last_seen_complete = 0;
+			st->last_seen_complete = 0;
 		}
-		return st;
 	}
 
 	void torrent::add_redundant_bytes(int b)

@@ -3592,11 +3592,39 @@ namespace aux {
 	}
 #endif
 
-	std::vector<torrent_handle> session_impl::get_torrents()
+	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
+		, boost::function<bool(torrent_status const&)> const& pred
+		, boost::uint32_t flags) const
+	{
+		for (session_impl::torrent_map::const_iterator i
+			= m_torrents.begin(), end(m_torrents.end());
+			i != end; ++i)
+		{
+			if (i->second->is_aborted()) continue;
+			torrent_status st;
+			i->second->status(&st, flags);
+			if (!pred(st)) continue;
+			ret->push_back(st);
+		}
+	}
+
+	void session_impl::refresh_torrent_status(std::vector<torrent_status>* ret
+		, boost::uint32_t flags) const
+	{
+		for (std::vector<torrent_status>::iterator i
+			= ret->begin(), end(ret->end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent> t = i->handle.m_torrent.lock();
+			if (!t) continue;
+			t->status(&*i, flags);
+		}
+	}
+
+	std::vector<torrent_handle> session_impl::get_torrents() const
 	{
 		std::vector<torrent_handle> ret;
 
-		for (session_impl::torrent_map::iterator i
+		for (session_impl::torrent_map::const_iterator i
 			= m_torrents.begin(), end(m_torrents.end());
 			i != end; ++i)
 		{
