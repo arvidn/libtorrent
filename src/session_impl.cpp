@@ -3703,6 +3703,9 @@ namespace aux {
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
 
+		if (m_alerts.should_post<torrent_added_alert>())
+			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
+
 		return torrent_handle(torrent_ptr);
 	}
 
@@ -3778,43 +3781,44 @@ namespace aux {
 			i = m_torrents.find(urlhash);
 		}
 
-		if (i != m_torrents.end())
-		{
-			torrent& t = *i->second;
-			if (options & session::delete_files)
-				t.delete_files();
-			t.abort();
+		if (i == m_torrents.end()) return;
+
+		torrent& t = *i->second;
+		if (options & session::delete_files)
+			t.delete_files();
+		t.abort();
+
+		if (m_alerts.should_post<torrent_removed_alert>())
+			m_alerts.post_alert(torrent_removed_alert(t.get_handle(), t.info_hash()));
 
 #ifdef TORRENT_DEBUG
-			sha1_hash i_hash = t.torrent_file().info_hash();
+		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 #ifndef TORRENT_DISABLE_DHT
-			if (i == m_next_dht_torrent)
-				++m_next_dht_torrent;
+		if (i == m_next_dht_torrent)
+			++m_next_dht_torrent;
 #endif
-			if (i == m_next_lsd_torrent)
-				++m_next_lsd_torrent;
-			if (i == m_next_connect_torrent)
-				++m_next_connect_torrent;
+		if (i == m_next_lsd_torrent)
+			++m_next_lsd_torrent;
+		if (i == m_next_connect_torrent)
+			++m_next_connect_torrent;
 
-			t.set_queue_position(-1);
-			m_torrents.erase(i);
+		t.set_queue_position(-1);
+		m_torrents.erase(i);
 
 #ifndef TORRENT_DISABLE_DHT
-			if (m_next_dht_torrent == m_torrents.end())
-				m_next_dht_torrent = m_torrents.begin();
+		if (m_next_dht_torrent == m_torrents.end())
+			m_next_dht_torrent = m_torrents.begin();
 #endif
-			if (m_next_lsd_torrent == m_torrents.end())
-				m_next_lsd_torrent = m_torrents.begin();
-			if (m_next_connect_torrent == m_torrents.end())
-				m_next_connect_torrent = m_torrents.begin();
+		if (m_next_lsd_torrent == m_torrents.end())
+			m_next_lsd_torrent = m_torrents.begin();
+		if (m_next_connect_torrent == m_torrents.end())
+			m_next_connect_torrent = m_torrents.begin();
 
-			std::list<boost::shared_ptr<torrent> >::iterator k
-				= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
-			if (k != m_queued_for_checking.end()) m_queued_for_checking.erase(k);
-			TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
-			return;
-		}
+		std::list<boost::shared_ptr<torrent> >::iterator k
+			= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
+		if (k != m_queued_for_checking.end()) m_queued_for_checking.erase(k);
+		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
 	bool session_impl::listen_on(
