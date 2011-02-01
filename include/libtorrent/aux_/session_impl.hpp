@@ -274,7 +274,13 @@ namespace libtorrent
 
 			void remove_torrent(torrent_handle const& h, int options);
 
-			std::vector<torrent_handle> get_torrents();
+			void get_torrent_status(std::vector<torrent_status>* ret
+				, boost::function<bool(torrent_status const&)> const& pred
+				, boost::uint32_t flags) const;
+			void refresh_torrent_status(std::vector<torrent_status>* ret
+				, boost::uint32_t flags) const;
+
+			std::vector<torrent_handle> get_torrents() const;
 			
 			void queue_check_torrent(boost::shared_ptr<torrent> const& t);
 			void dequeue_check_torrent(boost::shared_ptr<torrent> const& t);

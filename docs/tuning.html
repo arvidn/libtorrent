@@ -73,17 +73,19 @@
 <li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
 <li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
 <li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id15">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id16">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id17">torrent limits</a></li>
+<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id15">uTP-TCP mixed mode</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id17">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#benchmarking" id="id18">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id19">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id20">session stats</a></li>
+<li><a class="reference internal" href="#scalability" id="id19">scalability</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id20">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id21">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id22">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#contributions" id="id21">contributions</a></li>
+<li><a class="reference internal" href="#contributions" id="id23">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -312,6 +314,21 @@ the same pieces, and on the other hand assume that they won't request the same p
 and drop them when the first peer requests it. To enable volatile read cache, set
 <tt class="docutils literal"><span class="pre">session_settings::volatile_read_cache</span></tt> to true.</p>
 </div>
+<div class="section" id="utp-tcp-mixed-mode">
+<h2>uTP-TCP mixed mode</h2>
+<p>libtorrent supports <a class="reference external" href="utp.html">uTP</a>, which has a delay based congestion controller. In order to
+avoid having a single TCP bittorrent connection completely starve out any uTP connection,
+there is a mixed mode algorithm. This attempts to detect congestion on the uTP peers and
+throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth resources
+between the two protocols. When running on a network where the bandwidth is in such an
+abundance that it's virtually infinite, this algorithm is no longer necessary, and might
+even be harmful to throughput. It is adviced to experiment with the
+<tt class="docutils literal"><span class="pre">session_setting::mixed_mode_algorithm</span></tt>, setting it to <tt class="docutils literal"><span class="pre">session_settings::prefer_tcp</span></tt>.
+This setting entirely disables the balancing and unthrottles all connections. On a typical
+home connection, this would mean that none of the benefits of uTP would be preserved
+(the modem's send buffer would be full at all times) and uTP connections would for the most
+part be squashed by the TCP traffic.</p>
+</div>
 <div class="section" id="send-buffer-low-watermark">
 <h2>send buffer low watermark</h2>
 <p>libtorrent uses a low watermark for send buffers to determine when a new piece should
@@ -347,9 +364,37 @@ number via <tt class="docutils literal"><span class="pre">session::set_max_uploa
 and <tt class="docutils literal"><span class="pre">session_settings::active_seeds</span></tt>.</p>
 </div>
 </div>
+<div class="section" id="scalability">
+<h1>scalability</h1>
+<p>In order to make more efficient use of the libtorrent interface when running a large
+number of torrents simultaneously, one can use the <tt class="docutils literal"><span class="pre">session::get_torrent_status()</span></tt> call
+together with <tt class="docutils literal"><span class="pre">session::refresh_torrent_status()</span></tt>. Keep in mind that every call into
+libtorrent that return some value have to block your thread while posting a message to
+the main network thread and then wait for a response (calls that don't return any data
+will simply post the message and then immediately return). The time this takes might
+become significant once you reach a few hundred torrents (depending on how many calls
+you make to each torrent and how often). <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt> lets you query the
+status of all torrents in a single call. This will actually loop through all torrents
+and run a provided predicate function to determine whether or not to include it in
+the returned vector. If you have a lot of torrents, you might want to update the status
+of only certain torrents. For instance, you might only be interested in torrents that
+are being downloaded.</p>
+<p>The intended use of these functions is to start off by calling <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
+to get a list of all torrents that match your criteria. Then call <tt class="docutils literal"><span class="pre">refresh_torrent_status</span></tt>
+on that list. This will only refresh the status for the torrents in your list, and thus
+ignore all other torrents you might be running. This may save a significant amount of
+time, especially if the number of torrents you're interested in is small. In order to
+keep your list of interested torrents up to date, you can either call <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
+from time to time, to include torrents you might have become interested in since the last
+time. In order to stop refreshing a certain torrent, simply remove it from the list.</p>
+<p>A more efficient way however, would be to subscribe to status alert notifications, and
+update your list based on these alerts. There are alerts for when torrents are added, removed,
+paused, resumed, completed etc. Doing this ensures that you only query status for the
+minimal set of torrents you are actually interested in.</p>
+</div>
 <div class="section" id="benchmarking">
 <h1>benchmarking</h1>
-<p>There are a bunch of built-in instrumentation of libtorrent that can be used to get an insight
+<p>There is a bunch of built-in instrumentation of libtorrent that can be used to get an insight
 into what it's doing and how well it performs. This instrumentation is enabled by defining
 preprocessor symbols when building.</p>
 <p>There are also a number of scripts that parses the log files and generates graphs (requires

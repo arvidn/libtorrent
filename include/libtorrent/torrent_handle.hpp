@@ -69,6 +69,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	struct peer_info;
 	struct peer_list_entry;
+	struct torrent_status;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
@@ -76,273 +77,6 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_handle;
 	void throw_invalid_handle();
 #endif
-
-	struct TORRENT_EXPORT torrent_status
-	{
-		torrent_status()
-			: state(checking_resume_data)
-			, paused(false)
-			, auto_managed(false)
-			, sequential_download(false)
-			, is_seeding(false)
-			, is_finished(false)
-			, has_metadata(false)
-			, progress(0.f)
-			, progress_ppm(0)
-			, total_download(0)
-			, total_upload(0)
-			, total_payload_download(0)
-			, total_payload_upload(0)
-			, total_failed_bytes(0)
-			, total_redundant_bytes(0)
-			, download_rate(0)
-			, upload_rate(0)
-			, download_payload_rate(0)
-			, upload_payload_rate(0)
-			, num_seeds(0)
-			, num_peers(0)
-			, num_complete(-1)
-			, num_incomplete(-1)
-			, list_seeds(0)
-			, list_peers(0)
-			, num_pieces(0)
-			, total_done(0)
-			, total_wanted_done(0)
-			, total_wanted(0)
-			, distributed_copies(0.f)
-			, block_size(0)
-			, num_uploads(0)
-			, num_connections(0)
-			, uploads_limit(0)
-			, connections_limit(0)
-			, storage_mode(storage_mode_sparse)
-			, up_bandwidth_queue(0)
-			, down_bandwidth_queue(0)
-			, all_time_upload(0)
-			, all_time_download(0)
-			, active_time(0)
-			, finished_time(0)
-			, seeding_time(0)
-			, seed_rank(0)
-			, last_scrape(0)
-			, has_incoming(false)
-			, sparse_regions(0)
-			, seed_mode(false)
-			, upload_mode(false)
-			, share_mode(false)
-			, priority(0)
-			, added_time(0)
-			, completed_time(0)
-			, last_seen_complete(0)
-			, time_since_upload(0)
-			, time_since_download(0)
-			, queue_position(0)
-		{}
-
-		enum state_t
-		{
-			queued_for_checking,
-			checking_files,
-			downloading_metadata,
-			downloading,
-			finished,
-			seeding,
-			allocating,
-			checking_resume_data
-		};
-		
-		state_t state;
-		bool paused;
-		bool auto_managed;
-		bool sequential_download;
-		bool is_seeding;
-		bool is_finished;
-		bool has_metadata;
-
-		float progress;
-		// progress parts per million (progress * 1000000)
-		// when disabling floating point operations, this is
-		// the only option to query progress
-		int progress_ppm;
-		std::string error;
-
-		boost::posix_time::time_duration next_announce;
-		boost::posix_time::time_duration announce_interval;
-
-		std::string current_tracker;
-
-		// transferred this session!
-		// total, payload plus protocol
-		size_type total_download;
-		size_type total_upload;
-
-		// payload only
-		size_type total_payload_download;
-		size_type total_payload_upload;
-
-		// the amount of payload bytes that
-		// has failed their hash test
-		size_type total_failed_bytes;
-
-		// the number of payload bytes that
-		// has been received redundantly.
-		size_type total_redundant_bytes;
-
-		// current transfer rate
-		// payload plus protocol
-		int download_rate;
-		int upload_rate;
-
-		// the rate of payload that is
-		// sent and received
-		int download_payload_rate;
-		int upload_payload_rate;
-
-		// the number of peers this torrent is connected to
-		// that are seeding.
-		int num_seeds;
-
-		// the number of peers this torrent
-		// is connected to (including seeds).
-		int num_peers;
-
-		// if the tracker sends scrape info in its
-		// announce reply, these fields will be
-		// set to the total number of peers that
-		// have the whole file and the total number
-		// of peers that are still downloading
-		int num_complete;
-		int num_incomplete;
-
-		// this is the number of seeds whose IP we know
-		// but are not necessarily connected to
-		int list_seeds;
-
-		// this is the number of peers whose IP we know
-		// (including seeds), but are not necessarily
-		// connected to
-		int list_peers;
-
-		// the number of peers in our peerlist that
-		// we potentially could connect to
-		int connect_candidates;
-		
-		bitfield pieces;
-		
-		// this is the number of pieces the client has
-		// downloaded. it is equal to:
-		// std::accumulate(pieces->begin(), pieces->end());
-		int num_pieces;
-
-		// the number of bytes of the file we have
-		// including pieces that may have been filtered
-		// after we downloaded them
-		size_type total_done;
-
-		// the number of bytes we have of those that we
-		// want. i.e. not counting bytes from pieces that
-		// are filtered as not wanted.
-		size_type total_wanted_done;
-
-		// the total number of bytes we want to download
-		// this may be smaller than the total torrent size
-		// in case any pieces are filtered as not wanted
-		size_type total_wanted;
-
-		// the number of distributed copies of the file.
-		// note that one copy may be spread out among many peers.
-		//
-		// the integer part tells how many copies
-		//   there are of the rarest piece(s)
-		//
-		// the fractional part tells the fraction of pieces that
-		//   have more copies than the rarest piece(s).
-
-		// the number of full distributed copies (i.e. the number
-		// of peers that have the rarest piece)
-		int distributed_full_copies;
-
-		// the fraction of pieces that more peers has than the
-		// rarest pieces. This indicates how close the swarm is
-		// to have one more full distributed copy
-		int distributed_fraction;
-
-		float distributed_copies;
-
-		// the block size that is used in this torrent. i.e.
-		// the number of bytes each piece request asks for
-		// and each bit in the download queue bitfield represents
-		int block_size;
-
-		int num_uploads;
-		int num_connections;
-		int uploads_limit;
-		int connections_limit;
-
-		// true if the torrent is saved in compact mode
-		// false if it is saved in full allocation mode
-		storage_mode_t storage_mode;
-
-		int up_bandwidth_queue;
-		int down_bandwidth_queue;
-
-		// number of bytes downloaded since torrent was started
-		// saved and restored from resume data
-		size_type all_time_upload;
-		size_type all_time_download;
-
-		// the number of seconds of being active
-		// and as being a seed, saved and restored
-		// from resume data
-		int active_time;
-		int finished_time;
-		int seeding_time;
-
-		// higher value means more important to seed
-		int seed_rank;
-
-		// number of seconds since last scrape, or -1 if
-		// there hasn't been a scrape
-		int last_scrape;
-
-		// true if there are incoming connections to this
-		// torrent
-		bool has_incoming;
-
-		// the number of "holes" in the torrent
-		int sparse_regions;
-
-		// is true if this torrent is (still) in seed_mode
-		bool seed_mode;
-
-		// this is set to true when the torrent is blocked
-		// from downloading, typically caused by a file
-		// write operation failing
-		bool upload_mode;
-
-		// this is true if the torrent is in share-mode
-		bool share_mode;
-
-		// the priority of this torrent
-		int priority;
-
-		// the time this torrent was added and completed
-		time_t added_time;
-		time_t completed_time;
-		time_t last_seen_complete;
-
-		// number of seconds since last upload or download activity
-		int time_since_upload;
-		int time_since_download;
-
-		// the position in the download queue where this torrent is
-		// this is -1 for seeds and finished torrents
-		int queue_position;
-
-		// true if this torrent has had changes since the last
-		// time resume data was saved
-		bool need_save_resume;
-	};
 
 	struct TORRENT_EXPORT block_info
 	{
@@ -677,6 +411,275 @@ namespace libtorrent
 
 	};
 
+	struct TORRENT_EXPORT torrent_status
+	{
+		torrent_status()
+			: state(checking_resume_data)
+			, paused(false)
+			, auto_managed(false)
+			, sequential_download(false)
+			, is_seeding(false)
+			, is_finished(false)
+			, has_metadata(false)
+			, progress(0.f)
+			, progress_ppm(0)
+			, total_download(0)
+			, total_upload(0)
+			, total_payload_download(0)
+			, total_payload_upload(0)
+			, total_failed_bytes(0)
+			, total_redundant_bytes(0)
+			, download_rate(0)
+			, upload_rate(0)
+			, download_payload_rate(0)
+			, upload_payload_rate(0)
+			, num_seeds(0)
+			, num_peers(0)
+			, num_complete(-1)
+			, num_incomplete(-1)
+			, list_seeds(0)
+			, list_peers(0)
+			, num_pieces(0)
+			, total_done(0)
+			, total_wanted_done(0)
+			, total_wanted(0)
+			, distributed_copies(0.f)
+			, block_size(0)
+			, num_uploads(0)
+			, num_connections(0)
+			, uploads_limit(0)
+			, connections_limit(0)
+			, storage_mode(storage_mode_sparse)
+			, up_bandwidth_queue(0)
+			, down_bandwidth_queue(0)
+			, all_time_upload(0)
+			, all_time_download(0)
+			, active_time(0)
+			, finished_time(0)
+			, seeding_time(0)
+			, seed_rank(0)
+			, last_scrape(0)
+			, has_incoming(false)
+			, sparse_regions(0)
+			, seed_mode(false)
+			, upload_mode(false)
+			, share_mode(false)
+			, priority(0)
+			, added_time(0)
+			, completed_time(0)
+			, last_seen_complete(0)
+			, time_since_upload(0)
+			, time_since_download(0)
+			, queue_position(0)
+		{}
+
+		// handle to the torrent
+		torrent_handle handle;
+
+		enum state_t
+		{
+			queued_for_checking,
+			checking_files,
+			downloading_metadata,
+			downloading,
+			finished,
+			seeding,
+			allocating,
+			checking_resume_data
+		};
+		
+		state_t state;
+		bool paused;
+		bool auto_managed;
+		bool sequential_download;
+		bool is_seeding;
+		bool is_finished;
+		bool has_metadata;
+
+		float progress;
+		// progress parts per million (progress * 1000000)
+		// when disabling floating point operations, this is
+		// the only option to query progress
+		int progress_ppm;
+		std::string error;
+
+		boost::posix_time::time_duration next_announce;
+		boost::posix_time::time_duration announce_interval;
+
+		std::string current_tracker;
+
+		// transferred this session!
+		// total, payload plus protocol
+		size_type total_download;
+		size_type total_upload;
+
+		// payload only
+		size_type total_payload_download;
+		size_type total_payload_upload;
+
+		// the amount of payload bytes that
+		// has failed their hash test
+		size_type total_failed_bytes;
+
+		// the number of payload bytes that
+		// has been received redundantly.
+		size_type total_redundant_bytes;
+
+		// current transfer rate
+		// payload plus protocol
+		int download_rate;
+		int upload_rate;
+
+		// the rate of payload that is
+		// sent and received
+		int download_payload_rate;
+		int upload_payload_rate;
+
+		// the number of peers this torrent is connected to
+		// that are seeding.
+		int num_seeds;
+
+		// the number of peers this torrent
+		// is connected to (including seeds).
+		int num_peers;
+
+		// if the tracker sends scrape info in its
+		// announce reply, these fields will be
+		// set to the total number of peers that
+		// have the whole file and the total number
+		// of peers that are still downloading
+		int num_complete;
+		int num_incomplete;
+
+		// this is the number of seeds whose IP we know
+		// but are not necessarily connected to
+		int list_seeds;
+
+		// this is the number of peers whose IP we know
+		// (including seeds), but are not necessarily
+		// connected to
+		int list_peers;
+
+		// the number of peers in our peerlist that
+		// we potentially could connect to
+		int connect_candidates;
+		
+		bitfield pieces;
+		
+		// this is the number of pieces the client has
+		// downloaded. it is equal to:
+		// std::accumulate(pieces->begin(), pieces->end());
+		int num_pieces;
+
+		// the number of bytes of the file we have
+		// including pieces that may have been filtered
+		// after we downloaded them
+		size_type total_done;
+
+		// the number of bytes we have of those that we
+		// want. i.e. not counting bytes from pieces that
+		// are filtered as not wanted.
+		size_type total_wanted_done;
+
+		// the total number of bytes we want to download
+		// this may be smaller than the total torrent size
+		// in case any pieces are filtered as not wanted
+		size_type total_wanted;
+
+		// the number of distributed copies of the file.
+		// note that one copy may be spread out among many peers.
+		//
+		// the integer part tells how many copies
+		//   there are of the rarest piece(s)
+		//
+		// the fractional part tells the fraction of pieces that
+		//   have more copies than the rarest piece(s).
+
+		// the number of full distributed copies (i.e. the number
+		// of peers that have the rarest piece)
+		int distributed_full_copies;
+
+		// the fraction of pieces that more peers has than the
+		// rarest pieces. This indicates how close the swarm is
+		// to have one more full distributed copy
+		int distributed_fraction;
+
+		float distributed_copies;
+
+		// the block size that is used in this torrent. i.e.
+		// the number of bytes each piece request asks for
+		// and each bit in the download queue bitfield represents
+		int block_size;
+
+		int num_uploads;
+		int num_connections;
+		int uploads_limit;
+		int connections_limit;
+
+		// true if the torrent is saved in compact mode
+		// false if it is saved in full allocation mode
+		storage_mode_t storage_mode;
+
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
+
+		// number of bytes downloaded since torrent was started
+		// saved and restored from resume data
+		size_type all_time_upload;
+		size_type all_time_download;
+
+		// the number of seconds of being active
+		// and as being a seed, saved and restored
+		// from resume data
+		int active_time;
+		int finished_time;
+		int seeding_time;
+
+		// higher value means more important to seed
+		int seed_rank;
+
+		// number of seconds since last scrape, or -1 if
+		// there hasn't been a scrape
+		int last_scrape;
+
+		// true if there are incoming connections to this
+		// torrent
+		bool has_incoming;
+
+		// the number of "holes" in the torrent
+		int sparse_regions;
+
+		// is true if this torrent is (still) in seed_mode
+		bool seed_mode;
+
+		// this is set to true when the torrent is blocked
+		// from downloading, typically caused by a file
+		// write operation failing
+		bool upload_mode;
+
+		// this is true if the torrent is in share-mode
+		bool share_mode;
+
+		// the priority of this torrent
+		int priority;
+
+		// the time this torrent was added and completed
+		time_t added_time;
+		time_t completed_time;
+		time_t last_seen_complete;
+
+		// number of seconds since last upload or download activity
+		int time_since_upload;
+		int time_since_download;
+
+		// the position in the download queue where this torrent is
+		// this is -1 for seeds and finished torrents
+		int queue_position;
+
+		// true if this torrent has had changes since the last
+		// time resume data was saved
+		bool need_save_resume;
+	};
 
 }
 
