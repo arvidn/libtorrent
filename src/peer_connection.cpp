@@ -3323,6 +3323,17 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		if (m_channel_state[upload_channel] == peer_info::bw_disk)
+		{
+			m_ses.dec_disk_queue(upload_channel);
+			m_channel_state[upload_channel] = peer_info::bw_idle;
+		}
+		if (m_channel_state[download_channel] == peer_info::bw_disk)
+		{
+			m_ses.dec_disk_queue(download_channel);
+			m_channel_state[download_channel] = peer_info::bw_idle;
+		}
+
 		if (m_connecting && m_connection_ticket >= 0)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
@@ -4361,6 +4372,7 @@ namespace libtorrent
 		TORRENT_ASSERT(priority < 0xffff);
 
 		// peers that we are not interested in are non-prioritized
+		TORRENT_ASSERT(m_channel_state[upload_channel] != peer_info::bw_disk);
 		m_channel_state[upload_channel] = peer_info::bw_limit;
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
@@ -4406,6 +4418,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle
 			|| m_channel_state[download_channel] == peer_info::bw_disk);
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
+		TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
 		m_channel_state[download_channel] = peer_info::bw_limit;
 		m_ses.m_download_rate.request_bandwidth(self()
 			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
@@ -4606,6 +4619,7 @@ namespace libtorrent
 				add_outstanding_async("peer_connection::on_receive_data");
 #endif
 				++m_read_recurse;
+				TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
 				m_channel_state[download_channel] = peer_info::bw_network;
 				on_receive_data(ec, bytes_transferred);
 				--m_read_recurse;
@@ -4689,6 +4703,7 @@ namespace libtorrent
 
 		if (s == read_async)
 		{
+			TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
 			m_channel_state[download_channel] = peer_info::bw_network;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< ASYNC_READ      [ max: %d bytes ]", max_receive);
@@ -5023,8 +5038,11 @@ namespace libtorrent
 
 		if (!disk)
 		{
-			if (m_channel_state[download_channel] != peer_info::bw_disk) m_ses.inc_disk_queue(download_channel);
-			if (state) *state = peer_info::bw_disk;
+			if (state)
+			{
+				if (*state != peer_info::bw_disk) m_ses.inc_disk_queue(download_channel);
+				*state = peer_info::bw_disk;
+			}
 			return false;
 		}
 
@@ -5240,6 +5258,7 @@ namespace libtorrent
 			&& m_requests_in_buffer.front() <= 0)
 			m_requests_in_buffer.erase(m_requests_in_buffer.begin());
 		
+		TORRENT_ASSERT(m_channel_state[upload_channel] != peer_info::bw_disk);
 		m_channel_state[upload_channel] = peer_info::bw_idle;
 
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
