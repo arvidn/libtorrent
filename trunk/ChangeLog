@@ -1,3 +1,4 @@
+	* added alerts for added and removed torrents
 	* expanded plugin interface to support session wide states
 	* made the metadata block requesting algorithm more robust against hash check failures
 	* support a separate option to use proxies for peers or not

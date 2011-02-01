@@ -5903,6 +5903,37 @@ There's also a base class for all alerts referring to tracker events::
 
 The specific alerts are:
 
+torrent_added_alert
+-------------------
+
+The ``torrent_added_alert`` is posted once every time a torrent is added.
+It doesn't contain any members of its own, but inherits the torrent handle
+from its base class.
+It's posted when the ``status_notification`` bit is set in the alert mask.
+
+::
+
+	struct torrent_added_alert: torrent_alert
+	{
+		// ...
+	};
+
+torrent_removed_alert
+---------------------
+
+The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
+the torrent handle in its baseclass will always be invalid (since the torrent
+is already removed) it has the info hash as a member, to identify it.
+It's posted when the ``status_notification`` bit is set in the alert mask.
+
+::
+
+	struct torrent_removed_alert: torrent_alert
+	{
+		// ...
+		sha1_hash info_hash;
+	};
+
 read_piece_alert
 ----------------
 

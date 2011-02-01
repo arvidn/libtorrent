@@ -535,7 +535,16 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), " ERROR: %s", error.message().c_str());
 		return torrent_alert::message() + msg;
 	}
+	
+	std::string torrent_added_alert::message() const
+	{
+		return torrent_alert::message() + " added";
+	}
 
+	std::string torrent_removed_alert::message() const
+	{
+		return torrent_alert::message() + " removed";
+	}
 
 } // namespace libtorrent
 

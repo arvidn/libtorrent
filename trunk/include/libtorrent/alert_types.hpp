@@ -107,6 +107,30 @@ namespace libtorrent
 	virtual int category() const { return static_category; } \
 	virtual char const* what() const { return #name; }
 
+	struct TORRENT_EXPORT torrent_added_alert: torrent_alert
+	{
+		torrent_added_alert(torrent_handle const& h)
+			: torrent_alert(h)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_added_alert);
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+	};
+
+	struct TORRENT_EXPORT torrent_removed_alert: torrent_alert
+	{
+		torrent_removed_alert(torrent_handle const& h, sha1_hash const& ih)
+			: torrent_alert(h)
+			, info_hash(ih)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_removed_alert);
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+		sha1_hash info_hash;
+	};
+
 	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
 		read_piece_alert(torrent_handle const& h

@@ -90,6 +90,15 @@ void bind_alert()
         .def_readonly("url", &tracker_alert::url)
         ;
 
+    class_<torrent_added_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_added_alert", no_init)
+        ;
+
+    class_<torrent_removed_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_removed_alert", no_init)
+        .def_readonly("info_hash", &torrent_removed_alert::info_hash) 
+        ;
+
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
         "read_piece_alert", 0, no_init)
         .add_property("buffer", get_buffer)
