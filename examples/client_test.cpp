@@ -210,8 +210,42 @@ typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
 
 using libtorrent::torrent_status;
 
-bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter)
+bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int* counters)
 {
+	++counters[torrents_all];
+	
+	if (!st.paused
+		&& st.state != torrent_status::seeding
+		&& st.state != torrent_status::finished)
+	{
+		++counters[torrents_downloading];
+	}
+
+	if (!st.paused) ++counters[torrents_not_paused];
+
+	if (!st.paused
+		&& (st.state == torrent_status::seeding
+		|| st.state == torrent_status::finished))
+	{
+		++counters[torrents_seeding];
+	}
+
+	if (st.paused && st.auto_managed)
+	{
+		++counters[torrents_queued];
+	}
+
+	if (st.paused && !st.auto_managed)
+	{
+		++counters[torrents_stopped];
+	}
+
+	if (st.state == torrent_status::checking_files
+		|| st.state == torrent_status::queued_for_checking)
+	{
+		++counters[torrents_checking];
+	}
+
 	switch (torrent_filter)
 	{
 		case torrents_all: return true;
@@ -911,6 +945,7 @@ int main(int argc, char* argv[])
 	// monitor when they're not in the directory anymore.
 	std::vector<torrent_status> handles;
 	handles_t files;
+	int counters[torrents_max];
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins
@@ -1191,7 +1226,8 @@ int main(int argc, char* argv[])
 	{
 
 		handles.clear();
-		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter));
+		memset(counters, 0, sizeof(counters));
+		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
 		if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
 
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
@@ -1221,7 +1257,8 @@ int main(int argc, char* argv[])
 					{
 						--torrent_filter;
 						handles.clear();
-						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter));
+						memset(counters, 0, sizeof(counters));
+						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
 						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
@@ -1233,7 +1270,8 @@ int main(int argc, char* argv[])
 					{
 						++torrent_filter;
 						handles.clear();
-						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter));
+						memset(counters, 0, sizeof(counters));
+						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
 						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
@@ -1420,11 +1458,10 @@ int main(int argc, char* argv[])
 		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking"};
 		for (int i = 0; i < sizeof(filter_names)/sizeof(filter_names[0]); ++i)
 		{
-			out += '[';
-			if (torrent_filter == i) out += esc("7");
-			out += filter_names[i];
-			if (torrent_filter == i) out += esc("0");
-			out += ']';
+			char filter[200];
+			snprintf(filter, sizeof(filter), "%s[%s (%d)]%s", torrent_filter == i?esc("7"):""
+				, filter_names[i], counters[i], torrent_filter == i?esc("0"):"");
+			out += filter;
 		}
 		out += '\n';
 
