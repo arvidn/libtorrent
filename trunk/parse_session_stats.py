@@ -31,13 +31,16 @@ def gen_report(name, lines):
 	print >>out, "set key box"
 	print >>out, 'plot',
 	column = 2
+	first = True
 	for k in keys:
 		if k not in lines:
 			column = column + 1
 			continue
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], column, k, axes[column-2]),
+		if not first: print >>out, ', ',
+		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (sys.argv[1], column, k, axes[column-2]),
+		first = False
 		column = column + 1
-	print >>out, 'x=0'
+	print >>out, ''
 	out.close()
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
