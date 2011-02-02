@@ -1914,8 +1914,8 @@ int main(int argc, char* argv[])
 	{
 		torrent_status& st = *i;
 		if (!st.handle.is_valid()) continue;
-		if (st.paused) continue;
 		if (!st.has_metadata) continue;
+		if (!st.need_save_resume) continue;
 
 		// save_resume_data will generate an alert when it's done
 		st.handle.save_resume_data();
