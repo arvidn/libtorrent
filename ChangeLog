@@ -79,6 +79,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed mingw build
 	* fixed minor bug in metadata block requester (for magnet links)
 	* fixed race condition in iconv string converter
 	* fixed error handling in torrent_info constructor
