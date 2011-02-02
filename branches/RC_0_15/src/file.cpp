@@ -42,6 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_ptr.hpp>
 #ifdef TORRENT_WINDOWS
 // windows part
+
+#ifndef PtrToPtr64
+#define PtrToPtr64(x) (x)
+#endif
+
 #include "libtorrent/utf8.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
