@@ -852,18 +852,18 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#ifdef TORRENT_DISK_STATS
 			void log_buffer_usage();
+			// used to log send buffer usage statistics
+			std::ofstream m_buffer_usage_logger;
+			// the number of send buffers that are allocated
+			int m_buffer_allocations;
 #endif
 
 #if defined TORRENT_STATS
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;
-			// used to log send buffer usage statistics
-			std::ofstream m_buffer_usage_logger;
-			// the number of send buffers that are allocated
-			int m_buffer_allocations;
 #endif
 
 			// each second tick the timer takes a little
