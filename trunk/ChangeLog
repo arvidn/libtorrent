@@ -1,3 +1,4 @@
+	* extended stats logging with statistics=on builds
 	* added new session functions to more efficiently query torrent status
 	* added alerts for added and removed torrents
 	* expanded plugin interface to support session wide states

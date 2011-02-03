@@ -786,15 +786,23 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_STATS
+//#error log wasted bytes, failed bytes, peers disconnected with an error, disk buffer usage
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
-			":peers:connecting peers:disk block buffers:unchoked peers:num list peers"
+			":peers:connecting peers:disk block buffers:num list peers"
 			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
 			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
 			":smooth upload rate:smooth download rate:disk write queued bytes"
-			":peers 0-10:peers 10-50:peers 50-100:peers 100-500:peers 500-1000:peers 1000-\n\n";
+			":peers down 0:peers down 0-10:peers down 10-50:peers down 50-100:peers down 100-500"
+			":peers down 500-1000:peers down 1000-"
+			":peers up 0:peers up 0-10:peers up 10-50:peers up 50-100:peers up 100-500: peers up 500-1000"
+			":peers up 1000-:error peers"
+			":peers down interesting:peers down unchoked:peers down requests"
+			":peers up interested:peers up unchoked:peers up requests"
+			"\n\n";
 		m_second_counter = 0;
+		m_error_peers = 0;
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
@@ -2514,9 +2522,15 @@ namespace aux {
 		downloaded = m_stat.total_download();
 		uploaded = m_stat.total_upload();
 		size_type num_peers = 0;
-		int peer_dl_rate_buckets[6];
+		int peer_dl_rate_buckets[7];
+		int peer_ul_rate_buckets[7];
 		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
+		memset(peer_ul_rate_buckets, 0, sizeof(peer_ul_rate_buckets));
 
+		int peers_up_interested = 0;
+		int peers_down_interesting = 0;
+		int peers_up_requests = 0;
+		int peers_down_requests = 0;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -2533,34 +2547,48 @@ namespace aux {
 		}
 		int num_complete_connections = 0;
 		int num_half_open = 0;
-		int unchoked_peers = 0;
+		int peers_down_unchoked = 0;
+		int peers_up_unchoked = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
 			peer_connection* p = i->get();
 			if (p->is_connecting())
-				++num_half_open;
-			else
 			{
-				++num_complete_connections;
-				if (!p->is_choked()) ++unchoked_peers;
+				++num_half_open;
+				continue;
 			}
 
-			int bucket = 0;
+			++num_complete_connections;
+			if (!p->is_choked()) ++peers_up_unchoked;
+			if (!p->has_peer_choked()) ++peers_down_unchoked;
+			if (!p->download_queue().empty()) ++peers_down_requests;
+			if (p->is_peer_interested()) ++peers_up_interested;
+			if (p->is_interesting()) ++peers_down_interesting;
+			if (p->send_buffer_size() > 20) ++peers_up_requests;
+
+			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_rate();
-			if (dl_rate < 10000)
-				bucket = 0;
-			else if (dl_rate < 50000)
-				bucket = 1;
-			else if (dl_rate < 100000)
-				bucket = 2;
-			else if (dl_rate < 500000)
-				bucket = 3;
-			else if (dl_rate < 1000000)
-				bucket = 4;
-			else
-				bucket = 5;
-			++peer_dl_rate_buckets[bucket];
+			if (dl_rate == 0) dl_bucket = 0;
+			else if (dl_rate < 10000) dl_bucket = 1;
+			else if (dl_rate < 50000) dl_bucket = 2;
+			else if (dl_rate < 100000) dl_bucket = 3;
+			else if (dl_rate < 500000) dl_bucket = 4;
+			else if (dl_rate < 1000000) dl_bucket = 5;
+			else dl_bucket = 6;
+
+			int ul_rate = p->statistics().upload_rate();
+			int ul_bucket = 0;
+			if (ul_rate == 0) dl_bucket = 0;
+			else if (ul_rate < 10000) dl_bucket = 1;
+			else if (ul_rate < 50000) dl_bucket = 2;
+			else if (ul_rate < 100000) dl_bucket = 3;
+			else if (ul_rate < 500000) dl_bucket = 4;
+			else if (ul_rate < 1000000) dl_bucket = 5;
+			else ul_bucket = 6;
+
+			++peer_dl_rate_buckets[dl_bucket];
+			++peer_ul_rate_buckets[ul_bucket];
 		}
 		
 		m_stats_logger
@@ -2572,7 +2600,6 @@ namespace aux {
 			<< num_complete_connections << "\t"
 			<< num_half_open << "\t"
 			<< m_disk_thread.disk_allocations() << "\t"
-			<< unchoked_peers << "\t"
 			<< num_peers << "\t"
 			<< logging_allocator::allocations << "\t"
 			<< logging_allocator::allocated_bytes << "\t"
@@ -2591,7 +2618,23 @@ namespace aux {
 			<< peer_dl_rate_buckets[3] << "\t"
 			<< peer_dl_rate_buckets[4] << "\t"
 			<< peer_dl_rate_buckets[5] << "\t"
+			<< peer_dl_rate_buckets[6] << "\t"
+			<< peer_ul_rate_buckets[0] << "\t"
+			<< peer_ul_rate_buckets[1] << "\t"
+			<< peer_ul_rate_buckets[2] << "\t"
+			<< peer_ul_rate_buckets[3] << "\t"
+			<< peer_ul_rate_buckets[4] << "\t"
+			<< peer_ul_rate_buckets[5] << "\t"
+			<< peer_ul_rate_buckets[6] << "\t"
+			<< m_error_peers << "\t"
+			<< peers_down_interesting << "\t"
+			<< peers_down_unchoked << "\t"
+			<< peers_down_requests << "\t"
+			<< peers_up_interested << "\t"
+			<< peers_up_unchoked << "\t"
+			<< peers_up_requests << "\t"
 			<< std::endl;
+		m_error_peers = 0;
 #endif
 
 		// --------------------------------------------------------------
