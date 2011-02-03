@@ -5,8 +5,6 @@
 
 import os, sys, time
 
-ignore = ['download rate', 'disk block buffers']
-
 stat = open(sys.argv[1])
 line = stat.readline()
 while not 'second:' in line:
@@ -44,7 +42,8 @@ def gen_report(name, lines):
 	out.close()
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
-gen_report('rates', ['upload rate', 'download rate', 'downloading torrents', 'seeding torrents', 'peers', 'unchoked peers'])
-gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'num list peers'])
-gen_report('buffers', ['upload rate', 'download rate', 'disk block buffers'])
+gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents'])
+gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down')
+gen_report('peers_list', ['num list peers')
+gen_report('rates', ['upload rate', 'download rate', 'disk block buffers'])
 

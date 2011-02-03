@@ -359,7 +359,7 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#ifdef TORRENT_DISK_STATS
 	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
 	{
 		if (m_ses.m_disk_thread.is_disk_buffer(buffer))

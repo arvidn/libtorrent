@@ -790,9 +790,14 @@ namespace aux {
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
 			":peers:connecting peers:disk block buffers:unchoked peers:num list peers"
-			":peer allocations:peer storage bytes\n\n";
-		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
+			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
+			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
+			":smooth upload rate:smooth download rate:disk write queued bytes"
+			":peers 0-10:peers 10-50:peers 50-100:peers 100-500:peers 500-1000:peers 1000-\n\n";
 		m_second_counter = 0;
+#endif
+#ifdef TORRENT_DISK_STATS
+		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_buffer_allocations = 0;
 #endif
 
@@ -2500,6 +2505,8 @@ namespace aux {
 		++m_second_counter;
 		int downloading_torrents = 0;
 		int seeding_torrents = 0;
+		int checking_torrents = 0;
+		int stopped_torrents = 0;
 		static size_type downloaded = 0;
 		static size_type uploaded = 0;
 		size_type download_rate = (m_stat.total_download() - downloaded) * 1000 / tick_interval_ms;
@@ -2507,6 +2514,9 @@ namespace aux {
 		downloaded = m_stat.total_download();
 		uploaded = m_stat.total_upload();
 		size_type num_peers = 0;
+		int peer_dl_rate_buckets[6];
+		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
+
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -2515,6 +2525,11 @@ namespace aux {
 				++seeding_torrents;
 			else
 				++downloading_torrents;
+			if (i->second->state() == torrent_status::checking_files
+				|| i->second->state() == torrent_status::queued_for_checking)
+				++checking_torrents;
+			if (i->second->is_paused())
+				++stopped_torrents;
 		}
 		int num_complete_connections = 0;
 		int num_half_open = 0;
@@ -2522,13 +2537,30 @@ namespace aux {
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			if ((*i)->is_connecting())
+			peer_connection* p = i->get();
+			if (p->is_connecting())
 				++num_half_open;
 			else
 			{
 				++num_complete_connections;
-				if (!(*i)->is_choked()) ++unchoked_peers;
+				if (!p->is_choked()) ++unchoked_peers;
 			}
+
+			int bucket = 0;
+			int dl_rate = p->statistics().download_rate();
+			if (dl_rate < 10000)
+				bucket = 0;
+			else if (dl_rate < 50000)
+				bucket = 1;
+			else if (dl_rate < 100000)
+				bucket = 2;
+			else if (dl_rate < 500000)
+				bucket = 3;
+			else if (dl_rate < 1000000)
+				bucket = 4;
+			else
+				bucket = 5;
+			++peer_dl_rate_buckets[bucket];
 		}
 		
 		m_stats_logger
@@ -2544,6 +2576,21 @@ namespace aux {
 			<< num_peers << "\t"
 			<< logging_allocator::allocations << "\t"
 			<< logging_allocator::allocated_bytes << "\t"
+			<< checking_torrents << "\t"
+			<< stopped_torrents << "\t"
+			<< m_upload_rate.queue_size() << "\t"
+			<< m_download_rate.queue_size() << "\t"
+			<< m_disk_queues[peer_connection::upload_channel] << "\t"
+			<< m_disk_queues[peer_connection::download_channel] << "\t"
+			<< m_stat.upload_rate() << "\t"
+			<< m_stat.download_rate() << "\t"
+			<< m_disk_thread.queue_buffer_size() << "\t"
+			<< peer_dl_rate_buckets[0] << "\t"
+			<< peer_dl_rate_buckets[1] << "\t"
+			<< peer_dl_rate_buckets[2] << "\t"
+			<< peer_dl_rate_buckets[3] << "\t"
+			<< peer_dl_rate_buckets[4] << "\t"
+			<< peer_dl_rate_buckets[5] << "\t"
 			<< std::endl;
 #endif
 
@@ -4743,7 +4790,7 @@ namespace aux {
 		TORRENT_ASSERT(num_buffers > 0);
 
 		mutex::scoped_lock l(m_send_buffer_mutex);
-#ifdef TORRENT_STATS
+#ifdef TORRENT_DISK_STATS
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_allocations += num_buffers;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
@@ -4758,7 +4805,7 @@ namespace aux {
 #endif
 	}
 
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#ifdef TORRENT_DISK_STATS
 	void session_impl::log_buffer_usage()
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -4787,7 +4834,7 @@ namespace aux {
 		TORRENT_ASSERT(num_buffers > 0);
 
 		mutex::scoped_lock l(m_send_buffer_mutex);
-#ifdef TORRENT_STATS
+#ifdef TORRENT_DISK_STATS
 		m_buffer_allocations -= num_buffers;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
