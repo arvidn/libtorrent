@@ -3315,6 +3315,11 @@ namespace libtorrent
 			break;
 		}
 #endif
+
+#ifdef TORRENT_STATS
+		if (error == 2) ++m_ses.m_error_peers;
+#endif
+
 		// we cannot do this in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
 		if (error > 0) m_failed = true;

@@ -864,6 +864,9 @@ namespace libtorrent
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;
+			// the number of peers that were disconnected this
+			// tick due to protocol error
+			int m_error_peers;
 #endif
 
 			// each second tick the timer takes a little
