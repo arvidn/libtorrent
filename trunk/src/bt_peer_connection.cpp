@@ -2470,7 +2470,7 @@ namespace libtorrent
 				m_statistics.received_bytes(0, bytes_transferred);
 
 				if (packet_finished())
-					disconnect(errors::sync_hash_not_found, 2);
+					disconnect(errors::sync_hash_not_found, 1);
 				return;
 			}
 
@@ -2504,7 +2504,7 @@ namespace libtorrent
 				m_sync_bytes_read += bytes_processed;
 				if (m_sync_bytes_read >= 512)
 				{
-					disconnect(errors::sync_hash_not_found, 2);
+					disconnect(errors::sync_hash_not_found, 1);
 					return;
 				}
 
@@ -2578,7 +2578,7 @@ namespace libtorrent
 
 			if (!m_RC4_handler.get())
 			{
-				disconnect(errors::invalid_info_hash, 2);
+				disconnect(errors::invalid_info_hash, 1);
 				return;
 			}
 
@@ -2962,7 +2962,7 @@ namespace libtorrent
 				
 				TORRENT_ASSERT((!is_local() && m_encrypted) || is_local());
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
-				disconnect(errors::invalid_info_hash, 2);
+				disconnect(errors::invalid_info_hash, 1);
 				return;
 			}
 
@@ -3048,7 +3048,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** received invalid info_hash");
 #endif
-					disconnect(errors::invalid_info_hash, 2);
+					disconnect(errors::invalid_info_hash, 1);
 					return;
 				}
 
