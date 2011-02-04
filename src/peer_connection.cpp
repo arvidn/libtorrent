@@ -3318,6 +3318,7 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_STATS
+		++m_ses.m_disconnected_peers;
 		if (error == 2) ++m_ses.m_error_peers;
 		if (ec == error::connection_reset) ++m_ses.m_connreset_peers;
 		if (ec == error::eof) ++m_ses.m_eof_peers;

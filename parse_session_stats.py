@@ -53,5 +53,5 @@ gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peer
 gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
 gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests'])
 gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests'])
-gen_report('peer_errors', ['error peers', 'peer disconnected', 'peers eof', 'peers connection reset'])
+gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset'])
 
