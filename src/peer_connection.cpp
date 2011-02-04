@@ -1173,7 +1173,7 @@ namespace libtorrent
 				peer_log("   %s", to_hex(i->second->torrent_file().info_hash().to_string()).c_str());
 			}
 #endif
-			disconnect(errors::invalid_info_hash, 2);
+			disconnect(errors::invalid_info_hash, 1);
 			return;
 		}
 
