@@ -48,10 +48,10 @@ gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking to
 gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down'])
 gen_report('peers_list', ['num list peers', 'peer storage bytes'])
 gen_report('overall_rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate'])
-gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-10', 'peers down 10-50', 'peers down 50-100', 'peers down 500-1000', 'peers down 1000-'])
-gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-10', 'peers up 10-50', 'peers up 50-100', 'peers up 500-1000', 'peers up 1000-'])
+gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
+gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
 gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
 gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests'])
-gen_report('peers_download', ['peers down interested', 'peers down unchoked', 'peers down requests'])
+gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests'])
 gen_report('peer_errors', ['error peers', 'peer disconnected', 'peers eof', 'peers connection reset'])
 
