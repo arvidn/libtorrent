@@ -1445,7 +1445,12 @@ namespace libtorrent
 		m_jobs.back().start_time = time_now_hires();
 
 		if (j.action == disk_io_job::write)
+		{
 			m_queue_buffer_size += j.buffer_size;
+			if (m_queue_buffer_size >= m_settings.max_queued_disk_bytes
+				&& m_settings.max_queued_disk_bytes > 0)
+				m_exceeded_write_queue;
+		}
 		m_signal.signal(l);
 	}
 
@@ -1546,6 +1551,10 @@ namespace libtorrent
 
 		for (;;)
 		{
+			// used to indicate whether or not we should post the
+			// 'restart download' event or not.
+			bool post = false;
+
 #ifdef TORRENT_DISK_STATS
 			m_log << log_time() << " idle" << std::endl;
 #endif
@@ -1607,6 +1616,24 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
 					m_queue_buffer_size -= j.buffer_size;
+					
+					if (m_exceeded_write_queue)
+					{
+						int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
+							? m_settings.max_queued_disk_bytes / 2
+							: m_settings.max_queued_disk_bytes_low_watermark;
+						if (low_watermark >= m_settings.max_queued_disk_bytes)
+							low_watermark = m_settings.max_queued_disk_bytes / 2;
+
+						if (m_queue_buffer_size < low_watermark
+							|| m_settings.max_queued_disk_bytes > 0)
+						{
+							// we just dropped below the high watermark of number of bytes
+							// queued for writing to the disk. Notify the session so that it
+							// can trigger all the connections waiting for this event
+							post = true;
+						}
+					}
 				}
 
 				jl.unlock();
@@ -1703,19 +1730,8 @@ namespace libtorrent
 			disk_buffer_holder holder(*this
 				, operation_has_buffer(j) ? j.buffer : 0);
 
-			bool post = false;
-			if (m_queue_buffer_size + j.buffer_size >= m_settings.max_queued_disk_bytes
-				&& m_queue_buffer_size < m_settings.max_queued_disk_bytes
-				&& m_queue_callback
-				&& m_settings.max_queued_disk_bytes > 0)
-			{
-				// we just dropped below the high watermark of number of bytes
-				// queued for writing to the disk. Notify the session so that it
-				// can trigger all the connections waiting for this event
-				post = true;
-			}
-
-			if (post) m_ios.post(m_queue_callback);
+			if (post && m_queue_callback)
+				m_ios.post(m_queue_callback);
 
 			flush_expired_pieces();
 

@@ -237,6 +237,7 @@ namespace aux {
 		TORRENT_SETTING(integer, allowed_fast_set_size)
 		TORRENT_SETTING(integer, suggest_mode)
 		TORRENT_SETTING(integer, max_queued_disk_bytes)
+		TORRENT_SETTING(integer, max_queued_disk_bytes_low_watermark)
 		TORRENT_SETTING(integer, handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_SETTING(boolean, use_dht_as_fallback)
@@ -786,7 +787,6 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_STATS
-//#error log wasted bytes, failed bytes, peers disconnected with an error, disk buffer usage
 		m_stats_logger.open("session_stats.log", std::ios::trunc);
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
@@ -1476,6 +1476,7 @@ namespace aux {
 			|| m_settings.coalesce_writes != s.coalesce_writes
 			|| m_settings.coalesce_reads != s.coalesce_reads
 			|| m_settings.max_queued_disk_bytes != s.max_queued_disk_bytes
+			|| m_settings.max_queued_disk_bytes_low_watermark != s.max_queued_disk_bytes_low_watermark
 			|| m_settings.disable_hash_checks != s.disable_hash_checks
 			|| m_settings.explicit_read_cache != s.explicit_read_cache
 #ifndef TORRENT_DISABLE_MLOCK
