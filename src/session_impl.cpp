@@ -794,10 +794,10 @@ namespace aux {
 			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
 			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
 			":smooth upload rate:smooth download rate:disk write queued bytes"
-			":peers down 0:peers down 0-10:peers down 10-50:peers down 50-100:peers down 100-500"
-			":peers down 500-1000:peers down 1000-"
-			":peers up 0:peers up 0-10:peers up 10-50:peers up 50-100:peers up 100-500: peers up 500-1000"
-			":peers up 1000-:error peers"
+			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
+			":peers down 50-100:peers down 100-"
+			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50: peers up 50-100"
+			":peers up 100-:error peers"
 			":peers down interesting:peers down unchoked:peers down requests"
 			":peers up interested:peers up unchoked:peers up requests"
 			"\n\n";
@@ -2566,26 +2566,26 @@ namespace aux {
 			if (!p->download_queue().empty()) ++peers_down_requests;
 			if (p->is_peer_interested()) ++peers_up_interested;
 			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 20) ++peers_up_requests;
+			if (p->send_buffer_size() > 100) ++peers_up_requests;
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_rate();
 			if (dl_rate == 0) dl_bucket = 0;
-			else if (dl_rate < 10000) dl_bucket = 1;
-			else if (dl_rate < 50000) dl_bucket = 2;
-			else if (dl_rate < 100000) dl_bucket = 3;
-			else if (dl_rate < 500000) dl_bucket = 4;
-			else if (dl_rate < 1000000) dl_bucket = 5;
+			else if (dl_rate < 2000) dl_bucket = 1;
+			else if (dl_rate < 5000) dl_bucket = 2;
+			else if (dl_rate < 10000) dl_bucket = 3;
+			else if (dl_rate < 50000) dl_bucket = 4;
+			else if (dl_rate < 100000) dl_bucket = 5;
 			else dl_bucket = 6;
 
 			int ul_rate = p->statistics().upload_rate();
 			int ul_bucket = 0;
-			if (ul_rate == 0) dl_bucket = 0;
-			else if (ul_rate < 10000) dl_bucket = 1;
-			else if (ul_rate < 50000) dl_bucket = 2;
-			else if (ul_rate < 100000) dl_bucket = 3;
-			else if (ul_rate < 500000) dl_bucket = 4;
-			else if (ul_rate < 1000000) dl_bucket = 5;
+			if (ul_rate == 0) ul_bucket = 0;
+			else if (ul_rate < 2000) ul_bucket = 1;
+			else if (ul_rate < 5000) ul_bucket = 2;
+			else if (ul_rate < 10000) ul_bucket = 3;
+			else if (ul_rate < 50000) ul_bucket = 4;
+			else if (ul_rate < 100000) ul_bucket = 5;
 			else ul_bucket = 6;
 
 			++peer_dl_rate_buckets[dl_bucket];
