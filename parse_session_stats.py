@@ -35,7 +35,9 @@ def gen_report(name, lines):
 			column = column + 1
 			continue
 		if not first: print >>out, ', ',
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (sys.argv[1], column, k, axes[column-2]),
+		axis = 'x1y1'
+		if column-2 < len(axes): axis = axes[column-2]
+		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (sys.argv[1], column, k, axis),
 		first = False
 		column = column + 1
 	print >>out, ''
@@ -43,7 +45,12 @@ def gen_report(name, lines):
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
 gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents'])
-gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down')
-gen_report('peers_list', ['num list peers')
-gen_report('rates', ['upload rate', 'download rate', 'disk block buffers'])
+gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down', 'error peers'])
+gen_report('peers_list', ['num list peers'])
+gen_report('overall_rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate'])
+gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-10', 'peers down 10-50', 'peers down 50-100', 'peers down 500-1000', 'peers down 1000-'])
+gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-10', 'peers up 10-50', 'peers up 50-100', 'peers up 500-1000', 'peers up 1000-'])
+gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
+gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests'])
+gen_report('peers_download', ['peers down interested', 'peers down unchoked', 'peers down requests'])
 

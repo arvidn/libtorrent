@@ -129,6 +129,7 @@ namespace libtorrent
 			, allowed_fast_set_size(10)
 			, suggest_mode(no_piece_suggestions)
 			, max_queued_disk_bytes(256 * 1024)
+			, max_queued_disk_bytes_low_watermark(0)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(false)
@@ -437,6 +438,14 @@ namespace libtorrent
 		// nothing will be written to disk.
 		// this is a per session setting.
 		int max_queued_disk_bytes;
+
+		// this is the low watermark for the disk buffer queue.
+		// whenever the number of queued bytes exceed the
+		// max_queued_disk_bytes, libtorrent will wait for
+		// it to drop below this value before issuing more
+		// reads from the sockets. If set to 0, the
+		// low watermark will be half of the max queued disk bytes
+		int max_queued_disk_bytes_low_watermark;
 
 		// the number of seconds to wait for a handshake
 		// response from a peer. If no response is received

@@ -403,8 +403,8 @@ namespace libtorrent
 		int cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p
 			, bool& hit, int options, mutex::scoped_lock& l);
 
-		// this mutex only protects m_jobs, m_queue_buffer_size
-		// and m_abort
+		// this mutex only protects m_jobs, m_queue_buffer_size,
+		// m_exceeded_write_queue and m_abort
 		mutable mutex m_queue_mutex;
 		event m_signal;
 		bool m_abort;
@@ -442,6 +442,11 @@ namespace libtorrent
 
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;
+
+		// if we exceeded the max queue disk write size
+		// this is set to true. It remains true until the
+		// queue is smaller than the low watermark
+		bool m_exceeded_write_queue;
 
 		io_service& m_ios;
 
