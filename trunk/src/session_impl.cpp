@@ -2572,7 +2572,7 @@ namespace aux {
 			if (p->send_buffer_size() > 100) ++peers_up_requests;
 
 			int dl_bucket = 0;
-			int dl_rate = p->statistics().payload_download_rate();
+			int dl_rate = p->statistics().download_payload_rate();
 			if (dl_rate == 0) dl_bucket = 0;
 			else if (dl_rate < 2000) dl_bucket = 1;
 			else if (dl_rate < 5000) dl_bucket = 2;
@@ -2581,7 +2581,7 @@ namespace aux {
 			else if (dl_rate < 100000) dl_bucket = 5;
 			else dl_bucket = 6;
 
-			int ul_rate = p->statistics().payload_upload_rate();
+			int ul_rate = p->statistics().upload_payload_rate();
 			int ul_bucket = 0;
 			if (ul_rate == 0) ul_bucket = 0;
 			else if (ul_rate < 2000) ul_bucket = 1;
