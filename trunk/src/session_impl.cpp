@@ -3150,6 +3150,11 @@ namespace aux {
 			, end(list.end()); i != end; ++i)
 		{
 			torrent* t = *i;
+
+			if ((t->state() == torrent_status::checking_files
+				|| t->state() == torrent_status::queued_for_checking))
+				continue;
+
 			if (!t->is_paused() && !is_active(t, settings())
 				&& hard_limit > 0)
 			{
@@ -3210,6 +3215,11 @@ namespace aux {
 		{
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
+
+			// checking torrents are not subject to auto-management
+			if (t->state() == torrent_status::checking_files
+				|| t->state() == torrent_status::queued_for_checking)
+				continue;
 			if (t->is_auto_managed() && !t->has_error())
 			{
 				// this torrent is auto managed, add it to
