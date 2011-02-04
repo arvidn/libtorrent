@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/error.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -3318,6 +3319,8 @@ namespace libtorrent
 
 #ifdef TORRENT_STATS
 		if (error == 2) ++m_ses.m_error_peers;
+		if (ec == error::connection_reset) ++m_ses.m_connreset_peers;
+		if (ec == error::eof) ++m_ses.m_eof_peers;
 #endif
 
 		// we cannot do this in a constructor

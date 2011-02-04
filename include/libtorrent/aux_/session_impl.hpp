@@ -867,6 +867,9 @@ namespace libtorrent
 			// the number of peers that were disconnected this
 			// tick due to protocol error
 			int m_error_peers;
+			int m_disconnected_peers;
+			int m_eof_peers;
+			int m_connreset_peers;
 #endif
 
 			// each second tick the timer takes a little
