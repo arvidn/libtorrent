@@ -800,9 +800,12 @@ namespace aux {
 			":peers up 100-:error peers"
 			":peers down interesting:peers down unchoked:peers down requests"
 			":peers up interested:peers up unchoked:peers up requests"
-			"\n\n";
+			":peer disconnects:peers eof:peers connection reset:\n\n";
 		m_second_counter = 0;
 		m_error_peers = 0;
+		m_disconnected_peers = 0;
+		m_eof_peers = 0;
+		m_connreset_peers = 0;
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
@@ -2634,8 +2637,14 @@ namespace aux {
 			<< peers_up_interested << "\t"
 			<< peers_up_unchoked << "\t"
 			<< peers_up_requests << "\t"
+			<< m_disconnected_peers << "\t"
+			<< m_eof_peers << "\t"
+			<< m_connreset_peers << "\t"
 			<< std::endl;
 		m_error_peers = 0;
+		m_disconnected_peers = 0;
+		m_eof_peers = 0;
+		m_connreset_peers = 0;
 #endif
 
 		// --------------------------------------------------------------
