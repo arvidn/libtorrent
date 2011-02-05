@@ -198,13 +198,15 @@ void udp_socket::maybe_realloc_buffers(int which)
 	TORRENT_ASSERT(is_single_thread());
 	if (m_reallocate_buffer4 && (which & 1))
 	{
-		m_v4_buf = (char*)realloc(m_v4_buf, m_v4_buf_size);
+		free(m_v4_buf);
+		m_v4_buf = (char*)malloc(m_v4_buf_size);
 		m_reallocate_buffer4 = false;
 	}
 #if TORRENT_USE_IPV6
 	if (m_reallocate_buffer6 && (which & 2))
 	{
-		m_v6_buf = (char*)realloc(m_v6_buf, m_v6_buf_size);
+		free(m_v6_buf);
+		m_v6_buf = (char*)malloc(m_v6_buf_size);
 		m_reallocate_buffer6 = false;
 	}
 #endif
