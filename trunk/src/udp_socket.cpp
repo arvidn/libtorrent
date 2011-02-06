@@ -96,13 +96,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_v6_buf_size = 1600;
 	m_v6_buf = (char*)malloc(m_v6_buf_size);
 #endif
-
-#ifdef TORRENT_DEBUG
-	m_v4_outstanding = 0;
-#if TORRENT_USE_IPV6
-	m_v6_outstanding = 0;
-#endif
-#endif
 }
 
 udp_socket::~udp_socket()
@@ -304,7 +297,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::connection_reset
 			&& e != asio::error::connection_refused
 			&& e != asio::error::connection_aborted
-			&& e != asio::error::connection_aborted
+			&& e != asio::error::operation_aborted
 			&& e != asio::error::message_size)
 		{
 			if (m_v4_outstanding + m_v6_outstanding == 0)
@@ -552,6 +545,10 @@ void udp_socket::close()
 	m_resolver.cancel();
 	m_abort = true;
 
+#ifdef TORRENT_DEBUG
+	m_outstanding_when_aborted = m_v4_outstanding + m_v6_outstanding;
+#endif
+
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -624,7 +621,6 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
 #endif
-			TORRENT_ASSERT(m_v6_outstanding == 0);
 			++m_v6_outstanding;
 			m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock
