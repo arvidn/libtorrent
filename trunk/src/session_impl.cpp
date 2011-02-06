@@ -331,6 +331,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, enable_incoming_tcp)
 		TORRENT_SETTING(integer, max_pex_peers)
 		TORRENT_SETTING(boolean, ignore_resume_timestamps)
+		TORRENT_SETTING(boolean, no_recheck_incomplete_resume)
 		TORRENT_SETTING(boolean, anonymous_mode)
 		TORRENT_SETTING(integer, tick_interval)
 		TORRENT_SETTING(integer, upload_rate_limit)
@@ -1491,6 +1492,7 @@ namespace aux {
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
 			|| m_settings.no_atime_storage!= s.no_atime_storage
 			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
+			|| m_settings.no_recheck_incomplete_resume != s.no_recheck_incomplete_resume
 			|| m_settings.low_prio_disk != s.low_prio_disk)
 			update_disk_io_thread = true;
 
