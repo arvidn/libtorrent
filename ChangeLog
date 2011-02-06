@@ -80,6 +80,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in udp_socket causing it to issue two simultaneous async. read operations
 	* fixed mingw build
 	* fixed minor bug in metadata block requester (for magnet links)
 	* fixed race condition in iconv string converter
