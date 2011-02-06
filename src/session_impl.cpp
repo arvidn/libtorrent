@@ -807,6 +807,9 @@ namespace aux {
 			":end game piece picks"
 			":strict end game piece picks"
 			":valid strict end game piece picks"
+			":% failed payload bytes"
+			":% wasted payload bytes"
+			":% protocol bytes"
 			"\n\n";
 		m_second_counter = 0;
 		m_error_peers = 0;
@@ -2603,7 +2606,8 @@ namespace aux {
 			if (!p->download_queue().empty()) ++peers_down_requests;
 			if (p->is_peer_interested()) ++peers_up_interested;
 			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 100) ++peers_up_requests;
+			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
+				++peers_up_requests;
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -2680,6 +2684,9 @@ namespace aux {
 			<< m_end_game_piece_picks << "\t"
 			<< m_strict_end_game_piece_picks << "\t"
 			<< m_valid_strict_end_game_piece_picks << "\t"
+			<< (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()) << "\t"
+			<< (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download()) << "\t"
+			<< (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()) << "\t"
 			<< std::endl;
 		m_error_peers = 0;
 		m_disconnected_peers = 0;
