@@ -870,6 +870,11 @@ namespace libtorrent
 			int m_disconnected_peers;
 			int m_eof_peers;
 			int m_connreset_peers;
+			// the number of times the piece picker fell through
+			// to the end-game mode
+			int m_end_game_piece_picks;
+			int m_strict_end_game_piece_picks;
+			int m_valid_strict_end_game_piece_picks;
 #endif
 
 			// each second tick the timer takes a little

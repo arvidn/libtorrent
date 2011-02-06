@@ -300,6 +300,11 @@ namespace libtorrent
 			return;
 		}
 
+#ifdef TORRENT_STATS
+		aux::session_impl& ses = t.session();
+		++ses.m_end_game_piece_picks;
+#endif
+
 		// if the number of pieces we have + the number of pieces
 		// we're requesting from is less than the number of pieces
 		// in the torrent, there are still some unrequested pieces
@@ -308,6 +313,10 @@ namespace libtorrent
 			&& p.num_have() + p.get_download_queue().size()
 				< t.torrent_file().num_pieces())
 			return;
+
+#ifdef TORRENT_STATS
+		++ses.m_strict_end_game_piece_picks;
+#endif
 
 		// if all blocks has the same number of peers on them
 		// we want to pick a random block
@@ -333,6 +342,10 @@ namespace libtorrent
 		// TODO: make configurable
 		if (now - last_request < seconds(5))
 			return;
+
+#ifdef TORRENT_STATS
+		++ses.m_valid_strict_end_game_piece_picks;
+#endif
 
 		c.add_request(*i, peer_connection::req_busy);
 	}

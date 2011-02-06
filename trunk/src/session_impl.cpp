@@ -801,12 +801,21 @@ namespace aux {
 			":peers up 100-:error peers"
 			":peers down interesting:peers down unchoked:peers down requests"
 			":peers up interested:peers up unchoked:peers up requests"
-			":peer disconnects:peers eof:peers connection reset:\n\n";
+			":peer disconnects:peers eof:peers connection reset"
+			":outstanding requests:outstanding end-game requests"
+			":outstanding writing blocks"
+			":end game piece picks"
+			":strict end game piece picks"
+			":valid strict end game piece picks"
+			"\n\n";
 		m_second_counter = 0;
 		m_error_peers = 0;
 		m_disconnected_peers = 0;
 		m_eof_peers = 0;
 		m_connreset_peers = 0;
+		m_end_game_piece_picks = 0;
+		m_strict_end_game_piece_picks = 0;
+		m_valid_strict_end_game_piece_picks = 0;
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
@@ -2532,11 +2541,16 @@ namespace aux {
 		int peer_ul_rate_buckets[7];
 		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
 		memset(peer_ul_rate_buckets, 0, sizeof(peer_ul_rate_buckets));
+		int outstanding_requests = 0;
+		int outstanding_end_game_requests = 0;
+		int outstanding_write_blocks = 0;
 
 		int peers_up_interested = 0;
 		int peers_down_interesting = 0;
 		int peers_up_requests = 0;
 		int peers_down_requests = 0;
+
+		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -2550,6 +2564,24 @@ namespace aux {
 				++checking_torrents;
 			if (i->second->is_paused())
 				++stopped_torrents;
+
+			dq.clear();
+			i->second->get_download_queue(dq);
+			for (std::vector<partial_piece_info>::iterator j = dq.begin()
+				, end(dq.end()); j != end; ++j)
+			{
+				for (int k = 0; k < j->blocks_in_piece; ++k)
+				{
+					block_info& bi = j->blocks[k];
+					if (bi.state == block_info::requested)
+					{
+						++outstanding_requests;
+						if (bi.num_peers > 1) ++outstanding_end_game_requests;
+					}
+					else if (bi.state == block_info::writing)
+						++outstanding_write_blocks;
+				}
+			}
 		}
 		int num_complete_connections = 0;
 		int num_half_open = 0;
@@ -2642,11 +2674,20 @@ namespace aux {
 			<< m_disconnected_peers << "\t"
 			<< m_eof_peers << "\t"
 			<< m_connreset_peers << "\t"
+			<< outstanding_requests << "\t"
+			<< outstanding_end_game_requests << "\t"
+			<< outstanding_write_blocks << "\t"
+			<< m_end_game_piece_picks << "\t"
+			<< m_strict_end_game_piece_picks << "\t"
+			<< m_valid_strict_end_game_piece_picks << "\t"
 			<< std::endl;
 		m_error_peers = 0;
 		m_disconnected_peers = 0;
 		m_eof_peers = 0;
 		m_connreset_peers = 0;
+		m_end_game_piece_picks = 0;
+		m_strict_end_game_piece_picks = 0;
+		m_valid_strict_end_game_piece_picks = 0;
 #endif
 
 		// --------------------------------------------------------------
