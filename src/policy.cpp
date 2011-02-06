@@ -232,16 +232,29 @@ namespace libtorrent
 		(*c.m_logger) << time_now_string() << " PIECE_PICKER [ php: " << prefer_whole_pieces
 			<< " picked: " << interesting_pieces.size() << " ]\n";
 #endif
+		aux::session_impl& ses = t.session();
+
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
+#ifdef TORRENT_STATS
+			++ses.m_piece_picker_blocks;
+#endif
+
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
 
-			if (p.is_requested(*i))
+			int num_block_requests = p.num_peers(*i);
+			if (num_block_requests > 0)
 			{
 				if (num_requests <= 0) break;
+
+				// if this piece already has the max number of requests to it,
+				// no need to consider it, since we won't send another request anyway
+				if (num_block_requests >= 7)
+					continue;
+
 				// don't request pieces we already have in our request queue
 				if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 					|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
@@ -330,14 +343,6 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(p.is_requested(*i));
 		TORRENT_ASSERT(p.num_peers(*i) > 0);
-
-		ptime last_request = p.last_request(i->piece_index);
-		ptime now = time_now();
-
-		// don't re-request from a piece more often than once every 5 seconds
-		// TODO: make configurable
-		if (now - last_request < seconds(5))
-			return;
 
 		c.add_request(*i, peer_connection::req_busy);
 	}

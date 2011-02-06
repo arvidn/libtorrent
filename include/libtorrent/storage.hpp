@@ -74,6 +74,7 @@ namespace libtorrent
 	struct file_pool;
 	struct disk_io_job;
 	struct disk_buffer_pool;
+	struct session_settings;
 
 	enum storage_mode_t
 	{
