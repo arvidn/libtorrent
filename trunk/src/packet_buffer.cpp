@@ -192,13 +192,17 @@ namespace libtorrent {
 
 		if (idx == m_first && m_size != 0)
 		{
-			while (!m_storage[++m_first & mask]);
+			++m_first;
+			for (int i = 0; i < m_capacity; ++i, ++m_first)
+				if (m_storage[m_first & mask]) break;
 			m_first &= 0xffff;
 		}
 
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
-			while (!m_storage[--m_last & mask]);
+			--m_last;
+			for (int i = 0; i < m_capacity; ++i, --m_last)
+				if (m_storage[m_last & mask]) break;
 			++m_last;
 			m_last &= 0xffff;
 		}
