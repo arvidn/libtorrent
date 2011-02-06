@@ -1,3 +1,4 @@
+	* end-game mode optimizations
 	* fixed bug in udp_socket causing it to issue two simultaneous async. read operations
 	* fixed mingw build
 	* fixed minor bug in metadata block requester (for magnet links)

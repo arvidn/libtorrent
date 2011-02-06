@@ -4304,6 +4304,7 @@ session_settings
 		bool no_connect_privileged_ports;
 		int alert_queue_size;
 		int max_metadata_size;
+		int max_duplicate_block_requests;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5136,6 +5137,12 @@ defaults to 1000.
 
 ``max_metadata_size`` is the maximum allowed size (in bytes) to be received
 by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
+
+``max_duplicate_block_requests`` is the max number of simultaneous outstanding
+requests ot have for a single block. It defaults to 7. It only applies in end
+game mode where a single block may be requested from multiple peers. Setting
+this too high may cause excessive redundant data being downloaded, setting it
+too low may slow down completion towards the end of a torrent download.
 
 pe_settings
 ===========

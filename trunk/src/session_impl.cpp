@@ -358,6 +358,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
+		TORRENT_SETTING(integer, max_duplicate_block_requests)
 	};
 
 #undef TORRENT_SETTING
@@ -806,7 +807,7 @@ namespace aux {
 			":outstanding writing blocks"
 			":end game piece picks"
 			":strict end game piece picks"
-			":valid strict end game piece picks"
+			":piece picker blocks"
 			":% failed payload bytes"
 			":% wasted payload bytes"
 			":% protocol bytes"
@@ -818,7 +819,7 @@ namespace aux {
 		m_connreset_peers = 0;
 		m_end_game_piece_picks = 0;
 		m_strict_end_game_piece_picks = 0;
-		m_valid_strict_end_game_piece_picks = 0;
+		m_piece_picker_blocks = 0;
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
@@ -2683,7 +2684,7 @@ namespace aux {
 			<< outstanding_write_blocks << "\t"
 			<< m_end_game_piece_picks << "\t"
 			<< m_strict_end_game_piece_picks << "\t"
-			<< m_valid_strict_end_game_piece_picks << "\t"
+			<< m_piece_picker_blocks << "\t"
 			<< (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()) << "\t"
 			<< (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download()) << "\t"
 			<< (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()) << "\t"
@@ -2694,7 +2695,7 @@ namespace aux {
 		m_connreset_peers = 0;
 		m_end_game_piece_picks = 0;
 		m_strict_end_game_piece_picks = 0;
-		m_valid_strict_end_game_piece_picks = 0;
+		m_piece_picker_blocks = 0;
 #endif
 
 		// --------------------------------------------------------------
