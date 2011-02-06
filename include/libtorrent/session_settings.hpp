@@ -233,6 +233,7 @@ namespace libtorrent
 			, enable_incoming_tcp(true)
 			, max_pex_peers(200)
 			, ignore_resume_timestamps(false)
+			, no_recheck_incomplete_resume(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
@@ -911,6 +912,12 @@ namespace libtorrent
 		// file and is typically compared to make sure the files haven't changed
 		// since the last session
 		bool ignore_resume_timestamps;
+
+		// normally, if a resume file is incomplete (typically there's no
+		// "file sizes" field) the torrent is queued for a full check. If
+		// this settings is set to true, instead libtorrent will assume
+		// we have none of the files and go straight to download
+		bool no_recheck_incomplete_resume;
 
 		// when this is true, libtorrent will take actions to make sure any
 		// privacy sensitive information is leaked out from the client. This

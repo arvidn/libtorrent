@@ -4263,6 +4263,7 @@ session_settings
 		bool enable_incoming_tcp;
 		int max_pex_peers;
 		bool ignore_resume_timestamps;
+		bool no_recheck_incomplete_resume;
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
@@ -4980,6 +4981,13 @@ to accepted (torrents are more likely to be fully checked when loaded).
 It might be useful to set this to true if your network is faster than your
 disk, and it would be faster to redownload potentially missed pieces than
 to go through the whole storage to look for them.
+
+``no_recheck_incomplete_resume`` determines if the storage should check
+the whole files when resume data is incomplete or missing or whether
+it should simply assume we don't have any of the data. By default, this
+is determined by the existance of any of the files. By setting this setting
+to true, the files won't be checked, but will go straight to download
+mode.
 
 ``anonymous_mode`` defaults to false. When set to true, the client tries
 to hide its identity to a certain degree. The peer-ID will no longer

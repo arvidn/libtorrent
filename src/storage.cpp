@@ -1971,25 +1971,28 @@ ret:
 
 	int piece_manager::check_no_fastresume(error_code& error)
 	{
-		bool has_files = m_storage->has_any_file();
-
-		if (m_storage->error())
-			return fatal_disk_error;
-
-		if (has_files)
+		bool has_files = false;
+		if (!m_storage->settings().no_recheck_incomplete_resume)
 		{
-			m_state = state_full_check;
-			m_piece_to_slot.clear();
-			m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
-			m_slot_to_piece.clear();
-			m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
-			if (m_storage_mode == storage_mode_compact)
+			m_storage->has_any_file();
+			if (m_storage->error())
+				return fatal_disk_error;
+
+			if (has_files)
 			{
-				m_unallocated_slots.clear();
-				m_free_slots.clear();
+				m_state = state_full_check;
+				m_piece_to_slot.clear();
+				m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
+				m_slot_to_piece.clear();
+				m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
+				if (m_storage_mode == storage_mode_compact)
+				{
+					m_unallocated_slots.clear();
+					m_free_slots.clear();
+				}
+				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
+				return need_full_check;
 			}
-			TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
-			return need_full_check;
 		}
 
 		if (m_storage_mode == storage_mode_compact)
