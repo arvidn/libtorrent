@@ -211,18 +211,16 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		if (m_abort) return;
 
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv4_sock)
+		if (s == &m_ipv4_sock && m_v4_outstanding == 0)
 #endif
 		{
-			TORRENT_ASSERT(m_v4_outstanding == 0);
 			++m_v4_outstanding;
 			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 		}
 #if TORRENT_USE_IPV6
-		else
+		else if (m_v6_outstanding == 0)
 		{
-			TORRENT_ASSERT(m_v6_outstanding == 0);
 			++m_v6_outstanding;
 			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
@@ -264,10 +262,12 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		TORRENT_ASSERT(m_v4_outstanding == 0);
-		++m_v4_outstanding;
-		s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
-			, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		if (m_v4_outstanding == 0)
+		{
+			++m_v4_outstanding;
+			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
+				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		}
 	}
 #if TORRENT_USE_IPV6
 	else
@@ -296,10 +296,12 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		TORRENT_ASSERT(m_v6_outstanding == 0);
-		++m_v6_outstanding;
-		s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
-			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		if (m_v6_outstanding == 0)
+		{
+			++m_v6_outstanding;
+			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
+				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		}
 	}
 #endif // TORRENT_USE_IPV6
 
