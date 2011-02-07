@@ -208,7 +208,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_UPNP_LOGGING
 #endif
 
-#if !TORRENT_USE_WPATH && defined TORRENT_LINUX
+#if !TORRENT_USE_WPATH && (defined TORRENT_LINUX || defined TORRENT_MINGW)
 // libiconv presence, not implemented yet
 #define TORRENT_USE_LOCALE_FILENAMES 1
 #else
