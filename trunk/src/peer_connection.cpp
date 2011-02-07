@@ -1395,6 +1395,9 @@ namespace libtorrent
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_reject_piece_picks;
+#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 		}
@@ -1486,6 +1489,9 @@ namespace libtorrent
 
 		if (is_interesting())
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_unchoke_piece_picks;
+#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 		}
@@ -2378,6 +2384,9 @@ namespace libtorrent
 			if (!m_download_queue.empty())
 				m_requested = now;
 
+#ifdef TORRENT_STATS
+			++m_ses.m_incoming_redundant_piece_picks;
+#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 			return;
@@ -2451,6 +2460,9 @@ namespace libtorrent
 				, p.piece, _1));
 		}
 
+#ifdef TORRENT_STATS
+		++m_ses.m_incoming_piece_picks;
+#endif
 		request_a_block(*t, *this);
 		send_block_requests();
 	}
@@ -3860,6 +3872,9 @@ namespace libtorrent
 			// might not be any unrequested blocks anymore, so
 			// we should try to pick another block to see
 			// if we can pick a busy one
+#ifdef TORRENT_STATS
+			++m_ses.m_end_game_piece_picks;
+#endif
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
 		}
@@ -4127,6 +4142,9 @@ namespace libtorrent
 		// picking the same block again, stalling the
 		// same piece indefinitely.
 		m_desired_queue_size = 2;
+#ifdef TORRENT_STATS
+		++m_ses.m_snubbed_piece_picks;
+#endif
 		request_a_block(*t, *this);
 		m_desired_queue_size = 1;
 
