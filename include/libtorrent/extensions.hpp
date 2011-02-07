@@ -62,6 +62,7 @@ namespace libtorrent
 	struct disk_buffer_holder;
 	struct bitfield;
 	class alert;
+	struct torrent_plugin;
 
 	struct TORRENT_EXPORT plugin
 	{
