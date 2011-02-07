@@ -239,10 +239,6 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-#ifdef TORRENT_STATS
-			++ses.m_piece_picker_blocks;
-#endif
-
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
 
 			int num_block_requests = p.num_peers(*i);
