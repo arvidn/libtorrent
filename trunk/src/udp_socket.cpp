@@ -268,12 +268,6 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 	CHECK_MAGIC;
 	if (!m_callback) return;
 
-#if TORRENT_USE_IPV6
-	int which = (s == &m_ipv4_sock) ? 1 : 2;
-#else
-	int which = 1;
-#endif
-
 	if (e)
 	{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -311,23 +305,22 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers(which);
-
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
 #endif
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv6_sock)
+		if (s == &m_ipv6_sock && m_v6_outstanding == 0)
 		{
-			TORRENT_ASSERT(m_v6_outstanding == 0);
+			maybe_realloc_buffers(2);
 			++m_v6_outstanding;
 			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
 		}
 		else
 #endif
+		if (m_v4_outstanding == 0)
 		{
-			TORRENT_ASSERT(m_v4_outstanding == 0);
+			maybe_realloc_buffers(1);
 			++m_v4_outstanding;
 			s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
@@ -363,15 +356,17 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers(2);
+		if (m_v6_outstanding == 0)
+		{
+			maybe_realloc_buffers(2);
 
 #if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("udp_socket::on_read");
+			add_outstanding_async("udp_socket::on_read");
 #endif
-		TORRENT_ASSERT(m_v6_outstanding == 0);
-		++m_v6_outstanding;
-		s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
-			, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+			++m_v6_outstanding;
+			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
+				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		}
 	}
 	else
 #endif // TORRENT_USE_IPV6
@@ -398,15 +393,17 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		maybe_realloc_buffers(1);
+		if (m_v4_outstanding == 0)
+		{
+			maybe_realloc_buffers(1);
 
 #if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("udp_socket::on_read");
+			add_outstanding_async("udp_socket::on_read");
 #endif
-		TORRENT_ASSERT(m_v4_outstanding == 0);
-		++m_v4_outstanding;
-		s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
-			, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+			++m_v4_outstanding;
+			s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
+				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+		}
 	}
 
 #ifdef TORRENT_DEBUG
