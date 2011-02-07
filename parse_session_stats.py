@@ -56,6 +56,6 @@ gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
 gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests'])
 gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests'])
 gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset'])
-gen_report('end_game', ['end game piece picks', 'strict end game piece picks', 'valid strict end game piece picks'])
+gen_report('piece_picker', ['end game piece picker blocks', 'strict end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
 gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'])
 

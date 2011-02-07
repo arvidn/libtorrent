@@ -314,7 +314,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_STATS
-		++ses.m_end_game_piece_picks;
+		++ses.m_end_game_piece_picker_blocks;
 #endif
 
 		// if the number of pieces we have + the number of pieces
@@ -327,7 +327,7 @@ namespace libtorrent
 			return;
 
 #ifdef TORRENT_STATS
-		++ses.m_strict_end_game_piece_picks;
+		++ses.m_strict_end_game_piece_picker_blocks;
 #endif
 
 		// if all blocks has the same number of peers on them
