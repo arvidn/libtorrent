@@ -4363,7 +4363,7 @@ namespace libtorrent
 	void peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
 		m_send_buffer.append_buffer((char*)buffer, size, size, &nop);
-#ifdef TORRENT_STATS
+#ifdef TORRENT_DISK_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " append_const_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
@@ -4381,7 +4381,7 @@ namespace libtorrent
 			m_send_buffer.append(buf, free_space);
 			size -= free_space;
 			buf += free_space;
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#ifdef TORRENT_DISK_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " send_buffer: "
 				<< free_space << std::endl;
 			m_ses.log_buffer_usage();
