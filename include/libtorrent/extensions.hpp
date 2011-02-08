@@ -63,6 +63,7 @@ namespace libtorrent
 	struct bitfield;
 	class alert;
 	struct torrent_plugin;
+	class torrent;
 
 	struct TORRENT_EXPORT plugin
 	{
