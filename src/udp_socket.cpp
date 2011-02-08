@@ -201,7 +201,7 @@ void udp_socket::maybe_realloc_buffers(int which)
 {
 	TORRENT_ASSERT(is_single_thread());
 	bool no_mem = false;
-	if (m_reallocate_buffer4 && (which & 1))
+	if (m_reallocate_buffer4 && (which & 1) && m_v4_outstanding == 0)
 	{
 		TORRENT_ASSERT(m_v4_outstanding == 0);
 		void* tmp = realloc(m_v4_buf, m_v4_buf_size);
@@ -210,7 +210,7 @@ void udp_socket::maybe_realloc_buffers(int which)
 		m_reallocate_buffer4 = false;
 	}
 #if TORRENT_USE_IPV6
-	if (m_reallocate_buffer6 && (which & 2))
+	if (m_reallocate_buffer6 && (which & 2) && m_v6_outstanding == 0)
 	{
 		TORRENT_ASSERT(m_v6_outstanding == 0);
 		void* tmp = realloc(m_v6_buf, m_v6_buf_size);
@@ -587,8 +587,6 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 #endif
 
-	maybe_realloc_buffers();
-
 	if (ep.address().is_v4())
 	{
 		m_ipv4_sock.open(udp::v4(), ec);
@@ -597,6 +595,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		if (m_v4_outstanding == 0)
 		{
+			maybe_realloc_buffers(1);
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
 #endif
@@ -615,6 +614,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (ec) return;
 		if (m_v6_outstanding == 0)
 		{
+			maybe_realloc_buffers(2);
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
 #endif
