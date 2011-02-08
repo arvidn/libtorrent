@@ -806,7 +806,6 @@ namespace aux {
 			":outstanding requests:outstanding end-game requests"
 			":outstanding writing blocks"
 			":end game piece picker blocks"
-			":strict end game piece picker blocks"
 			":piece picker blocks"
 			":piece picks"
 			":reject piece picks"
@@ -825,7 +824,6 @@ namespace aux {
 		m_eof_peers = 0;
 		m_connreset_peers = 0;
 		m_end_game_piece_picker_blocks = 0;
-		m_strict_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
 		m_piece_picks = 0;
 		m_reject_piece_picks = 0;
@@ -2697,7 +2695,6 @@ namespace aux {
 			<< outstanding_end_game_requests << "\t"
 			<< outstanding_write_blocks << "\t"
 			<< m_end_game_piece_picker_blocks << "\t"
-			<< m_strict_end_game_piece_picker_blocks << "\t"
 			<< m_piece_picker_blocks << "\t"
 			<< m_piece_picks << "\t"
 			<< m_reject_piece_picks << "\t"
@@ -2715,7 +2712,6 @@ namespace aux {
 		m_eof_peers = 0;
 		m_connreset_peers = 0;
 		m_end_game_piece_picker_blocks = 0;
-		m_strict_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
 		m_piece_picks = 0;
 		m_reject_piece_picks = 0;
