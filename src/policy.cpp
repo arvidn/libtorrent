@@ -231,6 +231,18 @@ namespace libtorrent
 
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
+
+		// if the number of pieces we have + the number of pieces
+		// we're requesting from is less than the number of pieces
+		// in the torrent, there are still some unrequested pieces
+		// and we're not strictly speaking in end-game mode yet
+		// also, if we already have at least one outstanding
+		// request, we shouldn't pick any busy pieces either
+		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
+			&& p.num_have() + p.get_download_queue().size()
+				< t.torrent_file().num_pieces())
+			|| dq.size() + rq.size() > 0;
+
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
@@ -243,7 +255,13 @@ namespace libtorrent
 			int num_block_requests = p.num_peers(*i);
 			if (num_block_requests > 0)
 			{
+				// have we picked enough pieces?
 				if (num_requests <= 0) break;
+
+				// this block is busy. This means all the following blocks
+				// in the interesting_pieces list are busy as well, we might
+				// as well just exit the loop
+				if (dont_pick_busy_blocks) break;
 
 				// if this piece already has the max number of requests to it,
 				// no need to consider it, since we won't send another request anyway
@@ -315,19 +333,6 @@ namespace libtorrent
 
 #ifdef TORRENT_STATS
 		++ses.m_end_game_piece_picker_blocks;
-#endif
-
-		// if the number of pieces we have + the number of pieces
-		// we're requesting from is less than the number of pieces
-		// in the torrent, there are still some unrequested pieces
-		// and we're not strictly speaking in end-game mode yet
-		if (t.settings().strict_end_game_mode
-			&& p.num_have() + p.get_download_queue().size()
-				< t.torrent_file().num_pieces())
-			return;
-
-#ifdef TORRENT_STATS
-		++ses.m_strict_end_game_piece_picker_blocks;
 #endif
 
 		// if all blocks has the same number of peers on them
