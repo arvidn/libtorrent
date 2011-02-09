@@ -1974,7 +1974,7 @@ ret:
 		bool has_files = false;
 		if (!m_storage->settings().no_recheck_incomplete_resume)
 		{
-			m_storage->has_any_file();
+			has_files = m_storage->has_any_file();
 			if (m_storage->error())
 				return fatal_disk_error;
 
