@@ -256,7 +256,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 	if (m_abort)
 	{
-		if (m_v4_outstanding + m_v6_outstanding == 0)
+		if (num_outstanding() == 0)
 		{
 			// "this" may be destructed in the callback
 			callback_t tmp = m_callback;
@@ -294,7 +294,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::operation_aborted
 			&& e != asio::error::message_size)
 		{
-			if (m_v4_outstanding + m_v6_outstanding == 0)
+			if (num_outstanding() == 0)
 			{
 				// "this" may be destructed in the callback
 				callback_t tmp = m_callback;
@@ -309,7 +309,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		add_outstanding_async("udp_socket::on_read");
 #endif
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv6_sock && m_v6_outstanding == 0)
+		if (s == &m_ipv6_sock && num_outstanding() == 0)
 		{
 			maybe_realloc_buffers(2);
 			++m_v6_outstanding;
@@ -356,7 +356,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 		if (m_abort) return;
 
-		if (m_v6_outstanding == 0)
+		if (num_outstanding() == 0)
 		{
 			maybe_realloc_buffers(2);
 
@@ -543,7 +543,7 @@ void udp_socket::close()
 	m_abort = true;
 
 #ifdef TORRENT_DEBUG
-	m_outstanding_when_aborted = m_v4_outstanding + m_v6_outstanding;
+	m_outstanding_when_aborted = num_outstanding();
 #endif
 
 	if (m_connection_ticket >= 0)
@@ -552,7 +552,7 @@ void udp_socket::close()
 		m_connection_ticket = -1;
 	}
 
-	if (m_v4_outstanding + m_v6_outstanding == 0)
+	if (num_outstanding() == 0)
 	{
 		// "this" may be destructed in the callback
 		callback_t tmp = m_callback;
