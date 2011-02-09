@@ -694,7 +694,8 @@ int test_main()
 		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_CHECK(picked.size() == 7 * blocks_per_piece);
+	// don't pick both busy pieces, just one
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
@@ -702,14 +703,14 @@ int test_main()
 		| piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_CHECK(picked.size() == 7 * blocks_per_piece);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_CHECK(picked.size() == 7 * blocks_per_piece);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 // ========================================================
 	
