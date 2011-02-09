@@ -1904,7 +1904,7 @@ int main(int argc, char* argv[])
 		if (!monitor_dir.empty()
 			&& next_dir_scan < time_now())
 		{
-			scan_dir(monitor_dir, ses, files, preferred_ratio
+			scan_dir(monitor_dir, ses, files, non_files, preferred_ratio
 				, allocation_mode, save_path, torrent_upload_limit
 				, torrent_download_limit);
 			next_dir_scan = time_now() + seconds(poll_interval);
