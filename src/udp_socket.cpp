@@ -73,9 +73,7 @@ udp_socket::udp_socket(asio::io_service& ios, udp_socket::callback_t const& c
 
 udp_socket::~udp_socket()
 {
-	free(m_v4_buf);
 #if TORRENT_USE_IPV6
-	free(m_v6_buf);
 	TORRENT_ASSERT(m_v6_outstanding == 0);
 #endif
 	TORRENT_ASSERT(m_v4_outstanding == 0);
