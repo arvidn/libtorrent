@@ -119,6 +119,15 @@ namespace libtorrent
 			int flags;
 		};
 
+		int num_outstanding() const
+		{
+			return m_v4_outstanding
+#if TORRENT_USE_IPV6
+			  	+ m_v6_outstanding
+#endif
+				;
+		}
+
 	private:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
