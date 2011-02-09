@@ -643,6 +643,7 @@ using boost::bind;
 // if it's no longer in that directory.
 void add_torrent(libtorrent::session& ses
 	, handles_t& handles
+	, std::set<libtorrent::torrent_handle>& non_files
 	, std::string const& torrent
 	, float preferred_ratio
 	, int allocation_mode
@@ -692,6 +693,10 @@ void add_torrent(libtorrent::session& ses
 		handles.insert(std::pair<const std::string, torrent_handle>(
 			torrent, h));
 	}
+	else
+	{
+		non_files.insert(h);
+	}
 
 	h.set_max_connections(max_connections_per_torrent);
 	h.set_max_uploads(-1);
@@ -707,6 +712,7 @@ void add_torrent(libtorrent::session& ses
 void scan_dir(std::string const& dir_path
 	, libtorrent::session& ses
 	, handles_t& files 
+	, std::set<libtorrent::torrent_handle>& non_files
 	, float preferred_ratio
 	, int allocation_mode
 	, std::string const& save_path
@@ -732,7 +738,7 @@ void scan_dir(std::string const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, files, file, preferred_ratio, allocation_mode
+		add_torrent(ses, files, non_files, file, preferred_ratio, allocation_mode
 			, save_path, true, torrent_upload_limit, torrent_download_limit);
 		valid.insert(file);
 	}
@@ -815,7 +821,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 }
 
 void handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t const& files)
+	, handles_t const& files, std::set<libtorrent::torrent_handle> const& non_files)
 {
 	using namespace libtorrent;
 
@@ -838,8 +844,9 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
 			save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
-			if (std::find_if(files.begin(), files.end()
-				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
+			if (non_files.find(h) == non_files.end()
+				&& std::find_if(files.begin(), files.end()
+					, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 				ses.remove_torrent(h);
 		}
 	}
@@ -945,6 +952,9 @@ int main(int argc, char* argv[])
 	// monitor when they're not in the directory anymore.
 	std::vector<torrent_status> handles;
 	handles_t files;
+	// torrents that were not added via the monitor dir
+	std::set<torrent_handle> non_files;
+
 	int counters[torrents_max];
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
@@ -1172,6 +1182,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
 			continue;
 		}
+		non_files.insert(h);
 
 		h.set_max_connections(max_connections_per_torrent);
 		h.set_max_uploads(-1);
@@ -1202,6 +1213,7 @@ int main(int argc, char* argv[])
 				fprintf(stderr, "%s\n", ec.message().c_str());
 				continue;
 			}
+			non_files.insert(h);
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
@@ -1213,7 +1225,7 @@ int main(int argc, char* argv[])
 		}
 
 		// if it's a torrent file, open it as usual
-		add_torrent(ses, files, i->c_str(), preferred_ratio
+		add_torrent(ses, files, non_files, i->c_str(), preferred_ratio
 			, allocation_mode, save_path, false
 			, torrent_upload_limit, torrent_download_limit);
 	}
@@ -1438,7 +1450,7 @@ int main(int argc, char* argv[])
 			std::string event_string;
 
 			::print_alert(a.get(), event_string);
-			::handle_alert(ses, a.get(), files);
+			::handle_alert(ses, a.get(), files, non_files);
 
 			events.push_back(event_string);
 			if (events.size() >= 20) events.pop_front();
@@ -1480,7 +1492,7 @@ int main(int argc, char* argv[])
 			torrent_status& s = *i;
 			if (!s.handle.is_valid())
 			{
-				handles.erase(i++);
+				i = handles.erase(i);
 				continue;
 			}
 			else
