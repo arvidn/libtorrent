@@ -357,6 +357,12 @@ Build features:
 |                          | * ``off`` - only collects the standard stats for   |
 |                          |   upload and download rate.                        |
 +--------------------------+----------------------------------------------------+
+| ``iconv``                | * ``auto`` - use iconv for string conversions for  |
+|                          |   linux and mingw and other posix platforms.       |
+|                          | * ``on`` - force use of iconv                      |
+|                          | * ``off`` - force not using iconv (disables locale |
+|                          |   awareness except on windows).                    |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
