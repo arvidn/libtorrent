@@ -525,8 +525,20 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
-	if (e) return;
+	if (e == asio::error::operation_aborted) return;
 	CHECK_MAGIC;
+
+	if (e)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+			m_callback(e, udp::endpoint(), 0, 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+		return;
+	}
 
 	mutex_t::scoped_lock l(m_mutex);	
 
@@ -551,6 +563,7 @@ void udp_socket::on_connect(int ticket)
 {
 	CHECK_MAGIC;
 	mutex_t::scoped_lock l(m_mutex);	
+	if (is_closed()) return;
 
 	m_connection_ticket = ticket;
 	error_code ec;
@@ -561,12 +574,26 @@ void udp_socket::on_connect(int ticket)
 
 void udp_socket::on_connected(error_code const& e)
 {
+	if (e == asio::error::operation_aborted) return;
+
 	CHECK_MAGIC;
+
+	if (e)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+			m_callback(e, udp::endpoint(), 0, 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+		return;
+	}
 
 	mutex_t::scoped_lock l(m_mutex);	
 	m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
-	if (e) return;
+	if (is_closed()) return;
 
 	using namespace libtorrent::detail;
 

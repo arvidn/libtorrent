@@ -81,6 +81,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed udp-socket race condition when using a proxy
 	* end-game mode optimizations
 	* fixed bug in udp_socket causing it to issue two simultaneous async. read operations
 	* fixed mingw build
