@@ -263,7 +263,6 @@ namespace libtorrent
 			, no_connect_privileged_ports(true)
 			, alert_queue_size(1000)
 			, max_metadata_size(1024*1024)
-			, max_duplicate_block_requests(7)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1047,12 +1046,6 @@ namespace libtorrent
 		// the max allowed size for metadata received by the
 		// ut_metadata extension (i.e. magnet links)
 		int max_metadata_size;
-
-		// the max number of requests to send for a block. This
-		// is relevant in end-game mode. If a block has been requested
-		// this many times, we won't request it again from any other
-		// peer until at least one of the requests have timed out
-		int max_duplicate_block_requests;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

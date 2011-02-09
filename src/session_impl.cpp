@@ -358,7 +358,6 @@ namespace aux {
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
-		TORRENT_SETTING(integer, max_duplicate_block_requests)
 	};
 
 #undef TORRENT_SETTING
