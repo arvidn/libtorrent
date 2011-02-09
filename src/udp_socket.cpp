@@ -238,6 +238,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_read");
 #endif
+
 	TORRENT_ASSERT(m_magic == 0x1337);
 	TORRENT_ASSERT(is_single_thread());
 
@@ -715,10 +716,22 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
-	if (e) return;
+	if (e == asio::error::operation_aborted) return;
 	CHECK_MAGIC;
 
 	TORRENT_ASSERT(is_single_thread());
+
+	if (e)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+		return;
+	}
 
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
@@ -743,6 +756,7 @@ void udp_socket::on_connect(int ticket)
 	TORRENT_ASSERT(is_single_thread());
 
 	if (m_abort) return;
+	if (is_closed()) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_connected");
@@ -759,12 +773,25 @@ void udp_socket::on_connected(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_connected");
 #endif
+
+	if (e == asio::error::operation_aborted) return;
+
 	CHECK_MAGIC;
 
 	TORRENT_ASSERT(is_single_thread());
 	m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
-	if (e) return;
+	if (e)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		try {
+#endif
+			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		} catch(std::exception&) {}
+#endif
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
