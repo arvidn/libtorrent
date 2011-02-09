@@ -2237,6 +2237,14 @@ namespace libtorrent
 		t->check_invariant();
 #endif
 
+#ifdef TORRENT_DEBUG
+		piece_picker::downloading_piece pi;
+		picker.piece_info(p.piece, pi);
+		int num_blocks = picker.blocks_in_piece(p.piece);
+		TORRENT_ASSERT(pi.writing + pi.finished + pi.requested <= num_blocks);
+		TORRENT_ASSERT(picker.is_piece_finished(p.piece) == (pi.writing + pi.finished == num_blocks));
+#endif
+
 		// did we just finish the piece?
 		// this means all blocks are either written
 		// to disk or are in the disk write cache
@@ -3511,7 +3519,7 @@ namespace libtorrent
 			&& m_interesting
 			&& m_download_queue.empty()
 			&& m_request_queue.empty()
-			&& total_seconds(now - m_last_request) >= 3)
+			&& total_seconds(now - m_last_request) >= 5)
 		{
 			// this happens when we're in strict end-game
 			// mode and the peer could not request any blocks
@@ -3520,6 +3528,7 @@ namespace libtorrent
 			// might not be any unrequested blocks anymore, so
 			// we should try to pick another block to see
 			// if we can pick a busy one
+			m_last_request = now;
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
 		}

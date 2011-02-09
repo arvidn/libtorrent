@@ -572,7 +572,7 @@ namespace libtorrent
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
-		// avoid crash trying to access the picker when there is nont
+		// avoid crash trying to access the picker when there is none
 		if (is_seed()) return;
 
 		if (picker().have_piece(piece)

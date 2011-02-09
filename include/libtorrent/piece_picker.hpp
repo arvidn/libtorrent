@@ -62,6 +62,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT piece_block
 	{
+		const static piece_block invalid;
+
 		piece_block() {}
 		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
@@ -543,17 +545,6 @@ namespace libtorrent
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 
 	};
-
-	inline int piece_picker::blocks_in_piece(int index) const
-	{
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_map.size());
-		if (index+1 == (int)m_piece_map.size())
-			return m_blocks_in_last_piece;
-		else
-			return m_blocks_per_piece;
-	}
-
 }
 
 #endif // TORRENT_PIECE_PICKER_HPP_INCLUDED
