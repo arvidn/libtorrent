@@ -1449,7 +1449,7 @@ namespace libtorrent
 			m_queue_buffer_size += j.buffer_size;
 			if (m_queue_buffer_size >= m_settings.max_queued_disk_bytes
 				&& m_settings.max_queued_disk_bytes > 0)
-				m_exceeded_write_queue;
+				m_exceeded_write_queue = true;
 		}
 		m_signal.signal(l);
 	}
