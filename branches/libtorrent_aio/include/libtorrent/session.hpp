@@ -176,6 +176,12 @@ namespace libtorrent
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(lazy_entry const& e);
 
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, boost::function<bool(torrent_status const&)> const& pred
+			, boost::uint32_t flags = 0) const;
+		void refresh_torrent_status(std::vector<torrent_status>* ret
+			, boost::uint32_t flags = 0) const;
+
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;
 		

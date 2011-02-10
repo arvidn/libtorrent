@@ -62,16 +62,17 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#plugin-interface" id="id3">plugin interface</a></li>
-<li><a class="reference internal" href="#torrent-plugin" id="id4">torrent_plugin</a><ul>
-<li><a class="reference internal" href="#new-connection" id="id5">new_connection()</a></li>
-<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id6">on_piece_pass() on_piece_fail()</a></li>
-<li><a class="reference internal" href="#tick" id="id7">tick()</a></li>
-<li><a class="reference internal" href="#on-pause-on-resume" id="id8">on_pause() on_resume()</a></li>
-<li><a class="reference internal" href="#on-files-checked" id="id9">on_files_checked()</a></li>
+<li><a class="reference internal" href="#plugin" id="id4">plugin</a></li>
+<li><a class="reference internal" href="#torrent-plugin" id="id5">torrent_plugin</a><ul>
+<li><a class="reference internal" href="#new-connection" id="id6">new_connection()</a></li>
+<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id7">on_piece_pass() on_piece_fail()</a></li>
+<li><a class="reference internal" href="#tick" id="id8">tick()</a></li>
+<li><a class="reference internal" href="#on-pause-on-resume" id="id9">on_pause() on_resume()</a></li>
+<li><a class="reference internal" href="#on-files-checked" id="id10">on_files_checked()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#peer-plugin" id="id10">peer_plugin</a></li>
-<li><a class="reference internal" href="#disk-buffer-holder" id="id11">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-plugin" id="id11">peer_plugin</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id12">disk_buffer_holder</a></li>
 </ul>
 </div>
 <p>libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -85,6 +86,8 @@ to fit a particular (closed) network.</p>
 <li>add data and parse data from the extension handshake.</li>
 <li>send extension messages and standard bittorrent messages.</li>
 <li>override or block the handling of standard bittorrent messages.</li>
+<li>save and restore state via the session state</li>
+<li>see all alerts that are posted</li>
 </ul>
 <div class="section" id="a-word-of-caution">
 <h2>a word of caution</h2>
@@ -92,24 +95,30 @@ to fit a particular (closed) network.</p>
 dead locks and race conditions. Since a plugin has access to internal
 structures it is also quite easy to sabotage libtorrent's operation.</p>
 <p>All the callbacks in this interface are called with the main libtorrent thread
-mutex locked. And they are always called from the libtorrent main thread. In
+mutex locked. And they are always called from the libtorrent network thread. In
 case portions of your plugin are called from other threads, typically the main
 thread, you cannot use any of the member functions on the internal structures
 in libtorrent, since those require the mutex to be locked. Futhermore, you would
 also need to have a mutex on your own shared data within the plugin, to make
 sure it is not accessed at the same time from the libtorrent thread (through a
 callback). See <a class="reference external" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
-another thread, use an internal queue, and do the actual sending in <tt class="docutils literal"><span class="pre">tick()</span></tt>.</p>
+another thread, it is advised to use an internal queue, and do the actual
+sending in <tt class="docutils literal"><span class="pre">tick()</span></tt>.</p>
+<p>Since the plugin interface gives you easy access to internal structures, it
+is not supported as a stable API. Plugins should be considered spcific to a
+specific version of libtorrent. Although, in practice the internals mostly
+don't change that dramatically.</p>
 </div>
 </div>
 <div class="section" id="plugin-interface">
 <h1>plugin interface</h1>
-<p>The plugin interface consists of two base classes that the plugin may
-implement. These are called <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> and <tt class="docutils literal"><span class="pre">peer_plugin</span></tt>. They are
-both found in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions.hpp&gt;</span></tt> header.</p>
-<p>These plugins are instantiated for each torrent and possibly each peer,
+<p>The plugin interface consists of three base classes that the plugin may
+implement. These are called <tt class="docutils literal"><span class="pre">plugin</span></tt>, <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> and <tt class="docutils literal"><span class="pre">peer_plugin</span></tt>.
+They are found in the <tt class="docutils literal"><span class="pre">&lt;libtorrent/extensions.hpp&gt;</span></tt> header.</p>
+<p>These plugins are instantiated for each session, torrent and possibly each peer,
 respectively.</p>
-<p>This is done by passing in a function or function object to
+<p>For plugins that only need per torrent state, it is enough to only implement
+<tt class="docutils literal"><span class="pre">torrent_plugin</span></tt> and pass a constructor function or function object to
 <tt class="docutils literal"><span class="pre">session::add_extension()</span></tt> or <tt class="docutils literal"><span class="pre">torrent_handle::add_extension()</span></tt> (if the
 torrent has already been started and you want to hook in the extension at
 run-time).</p>
@@ -125,6 +134,25 @@ may or may not be 0. If it is a null pointer, the extension is simply ignored
 for this torrent. If it is a valid pointer (to a class inheriting
 <tt class="docutils literal"><span class="pre">torrent_plugin</span></tt>), it will be associated with this torrent and callbacks
 will be made on torrent events.</p>
+<p>For more elaborate plugins which require session wide state, you would
+implement <tt class="docutils literal"><span class="pre">plugin</span></tt>, construct an object (in a <tt class="docutils literal"><span class="pre">boost::shared_ptr</span></tt>) and pass
+it in to <tt class="docutils literal"><span class="pre">session::add_extension()</span></tt>.</p>
+</div>
+<div class="section" id="plugin">
+<h1>plugin</h1>
+<pre class="literal-block">
+struct plugin
+{
+        virtual ~plugin();
+        virtual boost::shared_ptr&lt;torrent_plugin&gt; new_torrent(torrent* t, void* user);
+
+        virtual void added(boost::weak_ptr&lt;aux::session_impl&gt; s);
+        virtual void on_alert(alert const* a);
+        virtual void on_tick();
+        virtual void save_state(entry&amp; ent) const;
+        virtual void load_state(lazy_entry const&amp; ent);
+};
+</pre>
 </div>
 <div class="section" id="torrent-plugin">
 <h1>torrent_plugin</h1>

@@ -129,6 +129,7 @@ namespace libtorrent
 			, allowed_fast_set_size(10)
 			, suggest_mode(no_piece_suggestions)
 			, max_queued_disk_bytes(256 * 1024)
+			, max_queued_disk_bytes_low_watermark(0)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(false)
@@ -237,6 +238,7 @@ namespace libtorrent
 			, enable_incoming_tcp(true)
 			, max_pex_peers(200)
 			, ignore_resume_timestamps(false)
+			, no_recheck_incomplete_resume(false)
 			, anonymous_mode(false)
 			, tick_interval(100)
 			, report_web_seed_downloads(true)
@@ -442,6 +444,14 @@ namespace libtorrent
 		// nothing will be written to disk.
 		// this is a per session setting.
 		int max_queued_disk_bytes;
+
+		// this is the low watermark for the disk buffer queue.
+		// whenever the number of queued bytes exceed the
+		// max_queued_disk_bytes, libtorrent will wait for
+		// it to drop below this value before issuing more
+		// reads from the sockets. If set to 0, the
+		// low watermark will be half of the max queued disk bytes
+		int max_queued_disk_bytes_low_watermark;
 
 		// the number of seconds to wait for a handshake
 		// response from a peer. If no response is received
@@ -913,6 +923,12 @@ namespace libtorrent
 		// file and is typically compared to make sure the files haven't changed
 		// since the last session
 		bool ignore_resume_timestamps;
+
+		// normally, if a resume file is incomplete (typically there's no
+		// "file sizes" field) the torrent is queued for a full check. If
+		// this settings is set to true, instead libtorrent will assume
+		// we have none of the files and go straight to download
+		bool no_recheck_incomplete_resume;
 
 		// when this is true, libtorrent will take actions to make sure any
 		// privacy sensitive information is leaked out from the client. This

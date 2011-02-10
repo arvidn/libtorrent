@@ -275,7 +275,13 @@ namespace libtorrent
 
 			void remove_torrent(torrent_handle const& h, int options);
 
-			std::vector<torrent_handle> get_torrents();
+			void get_torrent_status(std::vector<torrent_status>* ret
+				, boost::function<bool(torrent_status const&)> const& pred
+				, boost::uint32_t flags) const;
+			void refresh_torrent_status(std::vector<torrent_status>* ret
+				, boost::uint32_t flags) const;
+
+			std::vector<torrent_handle> get_torrents() const;
 			
 			void queue_check_torrent(boost::shared_ptr<torrent> const& t);
 			void dequeue_check_torrent(boost::shared_ptr<torrent> const& t);
@@ -423,19 +429,35 @@ namespace libtorrent
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
-/*
+
 			void add_pending_write_bytes(int num)
 			{
 				TORRENT_ASSERT(num >= 0);
 				m_writing_bytes += num;
+				if (m_writing_bytes >= m_settings.max_queued_disk_bytes
+					&& m_settings.max_queued_disk_bytes > 0)
+					m_exceeded_write_queue = true;
 			}
-*/
-			int pending_write_bytes() const { return m_writing_bytes; }
+
+			int can_write_to_disk() const { return !m_exceeded_write_queue; }
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
 			mutable libtorrent::mutex mut;
 			mutable libtorrent::condition cond;
+
+			void inc_disk_queue(int channel)
+			{
+				TORRENT_ASSERT(channel >= 0 && channel < 2);
+				++m_disk_queues[channel];
+			}
+
+			void dec_disk_queue(int channel)
+			{
+				TORRENT_ASSERT(channel >= 0 && channel < 2);
+				TORRENT_ASSERT(m_disk_queues[channel] > 0);
+				--m_disk_queues[channel];
+			}
 
 //		private:
 
@@ -564,6 +586,12 @@ namespace libtorrent
 			bandwidth_channel m_tcp_upload_channel;
 
 			bandwidth_channel* m_bandwidth_channel[2];
+
+			// the number of peer connections that are waiting
+			// for the disk. one for each channel.
+			// upload_channel means waiting to read from disk
+			// and download_channel is waiting to write to disk
+			int m_disk_queues[2];
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
@@ -832,18 +860,35 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#ifdef TORRENT_DISK_STATS
 			void log_buffer_usage();
+			// used to log send buffer usage statistics
+			std::ofstream m_buffer_usage_logger;
+			// the number of send buffers that are allocated
+			int m_buffer_allocations;
 #endif
 
 #if defined TORRENT_STATS
 			// logger used to write bandwidth usage statistics
 			std::ofstream m_stats_logger;
 			int m_second_counter;
-			// used to log send buffer usage statistics
-			std::ofstream m_buffer_usage_logger;
-			// the number of send buffers that are allocated
-			int m_buffer_allocations;
+			// the number of peers that were disconnected this
+			// tick due to protocol error
+			int m_error_peers;
+			int m_disconnected_peers;
+			int m_eof_peers;
+			int m_connreset_peers;
+			// the number of times the piece picker fell through
+			// to the end-game mode
+			int m_end_game_piece_picker_blocks;
+			int m_piece_picker_blocks;
+			int m_piece_picks;
+			int m_reject_piece_picks;
+			int m_unchoke_piece_picks;
+			int m_incoming_redundant_piece_picks;
+			int m_incoming_piece_picks;
+			int m_end_game_piece_picks;
+			int m_snubbed_piece_picks;
 #endif
 
 			// each second tick the timer takes a little
@@ -938,6 +983,10 @@ namespace libtorrent
 			// is actually waiting for to be written (as opposed to
 			// bytes just hanging out in the cache)
 			int m_writing_bytes;
+			
+			// this is true if we exceeded the write queue limit,
+			// and we haven't yet gone below the low watermark
+			bool m_exceeded_write_queue;
 
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 

@@ -121,7 +121,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // (disables some float-dependent APIs)
 #define TORRENT_NO_FPU 1
 #define TORRENT_USE_I2P 0
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#endif
 
 // ==== Darwin/BSD ===
 #elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
@@ -131,10 +133,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // we don't need iconv on mac, because
 // the locale is always utf-8
 #if defined __APPLE__
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_MACH_SEMAPHORE 1
 #else
 #define TORRENT_USE_POSIX_SEMAPHORE 1
+#endif
 #endif
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_AIO 1
@@ -151,7 +155,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __MINGW32__
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
-#define TORRENT_USE_ICONV 0
+#ifndef TORRENT_USE_ICONV
+#define TORRENT_USE_ICONV 1
+#endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_USE_AIO 0
 
@@ -161,7 +167,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // windows has its own functions to convert
 // apple uses utf-8 as its locale, so no conversion
 // is necessary
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_OVERLAPPED 1
@@ -180,7 +188,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_MLOCK 0
+#ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#endif
 #if __GNUCC__ == 2
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)

@@ -1578,6 +1578,7 @@ namespace libtorrent
 		// don't double-pick anything if the peer is on parole
 		if (options & on_parole) return;
 
+		std::vector<piece_block> temp;
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
 			, end(m_downloads.end()); i != end; ++i)
 		{
@@ -1588,15 +1589,23 @@ namespace libtorrent
 
 			// fill in with blocks requested from other peers
 			// as backups
+			bool done = false;
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				block_info const& info = i->info[j];
 				if (info.state != block_info::state_requested
 					|| info.peer == peer)
 					continue;
-				interesting_blocks.push_back(piece_block(i->index, j));
+				if (info.num_peers >= 2) continue;
+				temp.push_back(piece_block(i->index, j));
+				done = true;
 			}
+			if (done) break;
 		}
+
+		// pick one random block from the first busy piece we encountered
+		// none of these blocks have more than one request to them
+		if (!temp.empty()) interesting_blocks.push_back(temp[rand() % temp.size()]);
 
 #ifdef TORRENT_DEBUG
 //		make sure that we at this point have added requests to all unrequested blocks
@@ -1666,6 +1675,16 @@ namespace libtorrent
 		}
 #endif
 
+	}
+
+	int piece_picker::blocks_in_piece(int index) const
+	{
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < (int)m_piece_map.size());
+		if (index+1 == (int)m_piece_map.size())
+			return m_blocks_in_last_piece;
+		else
+			return m_blocks_per_piece;
 	}
 
 	bool piece_picker::is_piece_free(int piece, bitfield const& bitmask) const
@@ -1839,8 +1858,6 @@ namespace libtorrent
 			block_info const& info = dp.info[j];
 			if (info.state != block_info::state_none) continue;
 
-			TORRENT_ASSERT(dp.info[j].state == block_info::state_none);
-
 			// if the piece is fast and the peer is slow, or vice versa,
 			// add the block as a backup.
 			// override this behavior if all the other blocks
@@ -2012,14 +2029,13 @@ namespace libtorrent
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			downloading_piece& dp = add_download_piece();
-			dp.state = state;
 			dp.index = block.piece_index;
+			dp.state = state;
 			block_info& info = dp.info[block.block_index];
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
 			++dp.requested;
-			dp.last_request = time_now();
 		}
 		else
 		{
@@ -2044,7 +2060,6 @@ namespace libtorrent
 			}
 			++info.num_peers;
 			if (i->state == none) i->state = state;
-			i->last_request = time_now();
 		}
 		return true;
 	}
@@ -2065,23 +2080,6 @@ namespace libtorrent
 
 		block_info const& info = i->info[block.block_index];
 		return info.num_peers;
-	}
-
-	ptime piece_picker::last_request(int piece) const
-	{
-		TORRENT_ASSERT(piece >= 0);
-		TORRENT_ASSERT(piece < (int)m_piece_map.size());
-
-		piece_pos const& p = m_piece_map[piece];
-		if (!p.downloading) return min_time();
-
-		std::vector<downloading_piece>::const_iterator i
-			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(piece));
-		TORRENT_ASSERT(i != m_downloads.end());
-		// just to play it safe
-		if (i == m_downloads.end()) return min_time();
-
-		return i->last_request;
 	}
 
 	void piece_picker::get_availability(std::vector<int>& avail) const
@@ -2112,6 +2110,9 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.downloading == 0)
 		{
+			// if we already have this piece, just ignore this
+			if (have_piece(block.piece_index)) return false;
+
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
@@ -2216,6 +2217,9 @@ namespace libtorrent
 
 		if (p.downloading == 0)
 		{
+			// if we already have this piece, just ignore this
+			if (have_piece(block.piece_index)) return;
+
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
@@ -2228,8 +2232,8 @@ namespace libtorrent
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			downloading_piece& dp = add_download_piece();
-			dp.state = none;
 			dp.index = block.piece_index;
+			dp.state = none;
 			block_info& info = dp.info[block.block_index];
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);

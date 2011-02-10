@@ -726,6 +726,9 @@ namespace libtorrent
 
 	bool storage::verify_resume_data(lazy_entry const& rd, error_code& error)
 	{
+		// TODO: make this more generic to not just work if files have been
+		// renamed, but also if they have been merged into a single file for instance
+		// maybe use the same format as .torrent files and reuse some code from torrent_info
 		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files && mapped_files->list_size() == m_files.num_files())
 		{
@@ -1948,29 +1951,33 @@ ret:
 
 	int piece_manager::check_no_fastresume(error_code& error)
 	{
-		error_code ec;
-		bool has_files = m_storage->has_any_file(ec);
-
-		if (ec)
+		bool has_files = false;
+		if (!m_storage->settings().no_recheck_incomplete_resume)
 		{
-			error = ec;
-			return fatal_disk_error; 
-		}
+			error_code ec;
+			has_files = m_storage->has_any_file(ec);
 
-		if (has_files)
-		{
-			m_state = state_full_check;
-			m_piece_to_slot.clear();
-			m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
-			m_slot_to_piece.clear();
-			m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
-			if (m_storage_mode == storage_mode_compact)
+			if (ec)
 			{
-				m_unallocated_slots.clear();
-				m_free_slots.clear();
+				error = ec;
+				return fatal_disk_error; 
 			}
-			TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
-			return need_full_check;
+
+			if (has_files)
+			{
+				m_state = state_full_check;
+				m_piece_to_slot.clear();
+				m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
+				m_slot_to_piece.clear();
+				m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
+				if (m_storage_mode == storage_mode_compact)
+				{
+					m_unallocated_slots.clear();
+					m_free_slots.clear();
+				}
+				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
+				return need_full_check;
+			}
 		}
 
 		if (m_storage_mode == storage_mode_compact)

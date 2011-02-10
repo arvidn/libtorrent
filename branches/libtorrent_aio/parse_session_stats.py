@@ -5,8 +5,6 @@
 
 import os, sys, time
 
-ignore = ['download rate', 'disk block buffers']
-
 stat = open(sys.argv[1])
 line = stat.readline()
 while not 'second:' in line:
@@ -31,17 +29,34 @@ def gen_report(name, lines):
 	print >>out, "set key box"
 	print >>out, 'plot',
 	column = 2
+	first = True
 	for k in keys:
 		if k not in lines:
 			column = column + 1
 			continue
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], column, k, axes[column-2]),
+		if not first: print >>out, ', ',
+		axis = 'x1y1'
+		if column-2 < len(axes): axis = axes[column-2]
+		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (sys.argv[1], column, k, axis),
+		first = False
 		column = column + 1
-	print >>out, 'x=0'
+	print >>out, ''
 	out.close()
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
-gen_report('rates', ['upload rate', 'download rate', 'downloading torrents', 'seeding torrents', 'peers', 'unchoked peers'])
-gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'num list peers'])
-gen_report('buffers', ['upload rate', 'download rate', 'disk block buffers'])
+gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents'])
+gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down'])
+gen_report('peers_list', ['num list peers', 'peer storage bytes'])
+gen_report('overall_rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate'])
+gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
+gen_report('peer_dl_rates2', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
+gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
+gen_report('peer_ul_rates2', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
+gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
+gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests'])
+gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests'])
+gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset'])
+gen_report('piece_picker_end_game', ['end game piece picker blocks', 'strict end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
+gen_report('piece_picker', ['piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
+gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'])
 

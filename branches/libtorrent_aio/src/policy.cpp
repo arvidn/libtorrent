@@ -174,23 +174,15 @@ namespace libtorrent
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 #endif
 
-		piece_picker::piece_state_t state;
-		peer_connection::peer_speed_t speed = c.peer_speed();
-		if (speed == peer_connection::fast) state = piece_picker::fast;
-		else if (speed == peer_connection::medium) state = piece_picker::medium;
-		else state = piece_picker::slow;
+		aux::session_impl& ses = t.session();
 
-		// this vector is filled with the interesting pieces
-		// that some other peer is currently downloading
-		// we should then compare this peer's download speed
-		// with the other's, to see if we should abort another
-		// peer_connection in favour of this one
-		std::vector<piece_block> busy_pieces;
-		busy_pieces.reserve(num_requests);
+		std::vector<pending_block> const& dq = c.download_queue();
+		std::vector<pending_block> const& rq = c.request_queue();
 
 		std::vector<int> const& suggested = c.suggested_pieces();
-		bitfield const& bits = c.get_bitfield();
-
+		bitfield const* bits = &c.get_bitfield();
+		bitfield fast_mask;
+		
 		if (c.has_peer_choked())
 		{
 			// if we are choked we can only pick pieces from the
@@ -199,51 +191,73 @@ namespace libtorrent
 			std::vector<int> const& allowed_fast = c.allowed_fast();
 
 			// build a bitmask with only the allowed pieces in it
-			bitfield mask(c.get_bitfield().size(), false);
+			fast_mask.resize(c.get_bitfield().size(), false);
 			for (std::vector<int>::const_iterator i = allowed_fast.begin()
 				, end(allowed_fast.end()); i != end; ++i)
-				if (bits[*i]) mask.set_bit(*i);
+				if ((*bits)[*i]) fast_mask.set_bit(*i);
+			bits = &fast_mask;
+		}
 
-			p.pick_pieces(mask, interesting_pieces
-				, num_requests, prefer_whole_pieces, c.peer_info_struct()
-				, state, c.picker_options(), suggested);
-		}
-		else
-		{
-			// picks the interesting pieces from this peer
-			// the integer is the number of pieces that
-			// should be guaranteed to be available for download
-			// (if num_requests is too big, too many pieces are
-			// picked and cpu-time is wasted)
-			// the last argument is if we should prefer whole pieces
-			// for this peer. If we're downloading one piece in 20 seconds
-			// then use this mode.
-			p.pick_pieces(bits, interesting_pieces
-				, num_requests, prefer_whole_pieces, c.peer_info_struct()
-				, state, c.picker_options(), suggested);
-		}
+		piece_picker::piece_state_t state;
+		peer_connection::peer_speed_t speed = c.peer_speed();
+		if (speed == peer_connection::fast) state = piece_picker::fast;
+		else if (speed == peer_connection::medium) state = piece_picker::medium;
+		else state = piece_picker::slow;
+
+		// picks the interesting pieces from this peer
+		// the integer is the number of pieces that
+		// should be guaranteed to be available for download
+		// (if num_requests is too big, too many pieces are
+		// picked and cpu-time is wasted)
+		// the last argument is if we should prefer whole pieces
+		// for this peer. If we're downloading one piece in 20 seconds
+		// then use this mode.
+		p.pick_pieces(*bits, interesting_pieces
+			, num_requests, prefer_whole_pieces, c.peer_info_struct()
+			, state, c.picker_options(), suggested);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
 			, prefer_whole_pieces, int(interesting_pieces.size()));
 #endif
-		std::vector<pending_block> const& dq = c.download_queue();
-		std::vector<pending_block> const& rq = c.request_queue();
+
+		// if the number of pieces we have + the number of pieces
+		// we're requesting from is less than the number of pieces
+		// in the torrent, there are still some unrequested pieces
+		// and we're not strictly speaking in end-game mode yet
+		// also, if we already have at least one outstanding
+		// request, we shouldn't pick any busy pieces either
+		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
+			&& p.num_have() + p.get_download_queue().size()
+				< t.torrent_file().num_pieces())
+			|| dq.size() + rq.size() > 0;
+
+		// this is filled with an interesting piece
+		// that some other peer is currently downloading
+		piece_block busy_block = piece_block::invalid;
+
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
+#ifdef TORRENT_STATS
+			++ses.m_piece_picker_blocks;
+#endif
+
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
 
-			if (p.is_requested(*i))
+			int num_block_requests = p.num_peers(*i);
+			if (num_block_requests > 0)
 			{
+				// have we picked enough pieces?
 				if (num_requests <= 0) break;
-				// don't request pieces we already have in our request queue
-				if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-					|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
-					continue;
-	
+
+				// this block is busy. This means all the following blocks
+				// in the interesting_pieces list are busy as well, we might
+				// as well just exit the loop
+				if (dont_pick_busy_blocks) break;
+
 				TORRENT_ASSERT(p.num_peers(*i) > 0);
-				busy_pieces.push_back(*i);
+				busy_block = *i;
 				continue;
 			}
 
@@ -294,47 +308,26 @@ namespace libtorrent
 		// if we don't have any potential busy blocks to request
 		// or if we already have outstanding requests, don't
 		// pick a busy piece
-		if (busy_pieces.empty()
+		if (busy_block == piece_block::invalid
 			|| dq.size() + rq.size() > 0)
 		{
 			return;
 		}
 
-		// if the number of pieces we have + the number of pieces
-		// we're requesting from is less than the number of pieces
-		// in the torrent, there are still some unrequested pieces
-		// and we're not strictly speaking in end-game mode yet
-		if (t.settings().strict_end_game_mode
-			&& p.num_have() + p.get_download_queue().size()
-				< t.torrent_file().num_pieces())
-			return;
+#ifdef TORRENT_STATS
+		++ses.m_end_game_piece_picker_blocks;
+#endif
 
-		// if all blocks has the same number of peers on them
-		// we want to pick a random block
-		std::random_shuffle(busy_pieces.begin(), busy_pieces.end());
-		
-		// find the block with the fewest requests to it
-		std::vector<piece_block>::iterator i = std::min_element(
-			busy_pieces.begin(), busy_pieces.end()
-			, boost::bind(&piece_picker::num_peers, boost::cref(p), _1) <
-			bind(&piece_picker::num_peers, boost::cref(p), _2));
 #ifdef TORRENT_DEBUG
 		piece_picker::downloading_piece st;
-		p.piece_info(i->piece_index, st);
-		TORRENT_ASSERT(st.requested + st.finished + st.writing == p.blocks_in_piece(i->piece_index));
+		p.piece_info(busy_block.piece_index, st);
+		TORRENT_ASSERT(st.requested + st.finished + st.writing
+			== p.blocks_in_piece(busy_block.piece_index));
 #endif
-		TORRENT_ASSERT(p.is_requested(*i));
-		TORRENT_ASSERT(p.num_peers(*i) > 0);
+		TORRENT_ASSERT(p.is_requested(busy_block));
+		TORRENT_ASSERT(p.num_peers(busy_block) > 0);
 
-		ptime last_request = p.last_request(i->piece_index);
-		ptime now = time_now();
-
-		// don't re-request from a piece more often than once every 5 seconds
-		// TODO: make configurable
-		if (now - last_request < seconds(5))
-			return;
-
-		c.add_request(*i, peer_connection::req_busy);
+		c.add_request(busy_block, peer_connection::req_busy);
 	}
 
 	policy::policy(torrent* t)

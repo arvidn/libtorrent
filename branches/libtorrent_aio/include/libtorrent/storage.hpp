@@ -75,6 +75,7 @@ namespace libtorrent
 	struct disk_buffer_pool;
 	struct cache_status;
 	struct aiocb_pool;
+	struct session_settings;
 
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t

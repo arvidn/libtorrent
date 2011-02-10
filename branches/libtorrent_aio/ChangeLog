@@ -1,3 +1,7 @@
+	* added option to not recheck on missing or incomplete resume data
+	* extended stats logging with statistics=on builds
+	* added new session functions to more efficiently query torrent status
+	* added alerts for added and removed torrents
 	* expanded plugin interface to support session wide states
 	* made the metadata block requesting algorithm more robust against hash check failures
 	* support a separate option to use proxies for peers or not
@@ -77,6 +81,10 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed udp-socket race condition when using a proxy
+	* end-game mode optimizations
+	* fixed bug in udp_socket causing it to issue two simultaneous async. read operations
+	* fixed mingw build
 	* fixed minor bug in metadata block requester (for magnet links)
 	* fixed race condition in iconv string converter
 	* fixed error handling in torrent_info constructor

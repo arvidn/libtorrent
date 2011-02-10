@@ -611,33 +611,7 @@ namespace libtorrent
 	}
 #endif
 
-#ifdef TORRENT_WINDOWS
-	std::string convert_to_native(std::string const& s)
-	{
-		std::wstring ws;
-		libtorrent::utf8_wchar(s, ws);
-		std::size_t size = wcstombs(0, ws.c_str(), 0);
-		if (size == std::size_t(-1)) return s;
-		std::string ret;
-		ret.resize(size);
-		size = wcstombs(&ret[0], ws.c_str(), size + 1);
-		if (size == std::size_t(-1)) return s;
-		ret.resize(size);
-		return ret;
-	}
-
-	std::string convert_from_native(std::string const& s)
-	{
-		std::wstring ws;
-		ws.resize(s.size());
-		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
-		if (size == std::size_t(-1)) return s;
-		std::string ret;
-		libtorrent::wchar_utf8(ws, ret);
-		return ret;
-	}
-
-#elif TORRENT_USE_ICONV
+#if TORRENT_USE_ICONV
 	std::string iconv_convert_impl(std::string const& s, iconv_t h)
 	{
 		std::string ret;
@@ -646,13 +620,8 @@ namespace libtorrent
 		ret.resize(outsize);
 		char const* in = s.c_str();
 		char* out = &ret[0];
-#ifdef TORRENT_LINUX
-// linux (and posix) seems to have a weird iconv signature
-#define ICONV_IN_CAST (char**)
-#else
-#define ICONV_IN_CAST
-#endif
-		size_t retval = iconv(h, ICONV_IN_CAST &in, &insize,
+		// posix has a weird iconv signature
+		size_t retval = iconv(h, (char**)&in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it
@@ -687,6 +656,31 @@ namespace libtorrent
 		static iconv_t iconv_handle = iconv_open("UTF-8", "");
 		if (iconv_handle == iconv_t(-1)) return s;
 		return iconv_convert_impl(s, iconv_handle);
+	}
+#elif defined TORRENT_WINDOWS
+	std::string convert_to_native(std::string const& s)
+	{
+		std::wstring ws;
+		libtorrent::utf8_wchar(s, ws);
+		std::size_t size = wcstombs(0, ws.c_str(), 0);
+		if (size == std::size_t(-1)) return s;
+		std::string ret;
+		ret.resize(size);
+		size = wcstombs(&ret[0], ws.c_str(), size + 1);
+		if (size == std::size_t(-1)) return s;
+		ret.resize(size);
+		return ret;
+	}
+
+	std::string convert_from_native(std::string const& s)
+	{
+		std::wstring ws;
+		ws.resize(s.size());
+		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
+		if (size == std::size_t(-1)) return s;
+		std::string ret;
+		libtorrent::wchar_utf8(ws, ret);
+		return ret;
 	}
 #endif
 

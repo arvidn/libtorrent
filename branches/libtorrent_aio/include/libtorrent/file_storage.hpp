@@ -217,11 +217,16 @@ namespace libtorrent
 		void swap(file_storage& ti)
 		{
 			using std::swap;
-			swap(ti.m_piece_length, m_piece_length);
 			swap(ti.m_files, m_files);
+			swap(ti.m_file_hashes, m_file_hashes);
+			swap(ti.m_symlinks, m_symlinks);
+			swap(ti.m_mtime, m_mtime);
+			swap(ti.m_file_base, m_file_base);
+			swap(ti.m_paths, m_paths);
+			swap(ti.m_name, m_name);
 			swap(ti.m_total_size, m_total_size);
 			swap(ti.m_num_pieces, m_num_pieces);
-			swap(ti.m_name, m_name);
+			swap(ti.m_piece_length, m_piece_length);
 		}
 
 		// if pad_file_limit >= 0, files larger than

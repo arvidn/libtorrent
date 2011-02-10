@@ -444,6 +444,7 @@ namespace libtorrent
 					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
 						, this, int(pe.piece), range_start, i);
 					m_queue_buffer_size += to_write;
+
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
 						, pe.piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
@@ -874,6 +875,7 @@ namespace libtorrent
 		file::iovec_t b = { j.buffer, j.buffer_size };
 
 		m_queue_buffer_size += j.buffer_size;
+
 		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"

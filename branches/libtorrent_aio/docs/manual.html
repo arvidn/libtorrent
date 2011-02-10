@@ -69,257 +69,261 @@
 <li><a class="reference internal" href="#add-torrent" id="id23">add_torrent()</a></li>
 <li><a class="reference internal" href="#remove-torrent" id="id24">remove_torrent()</a></li>
 <li><a class="reference internal" href="#find-torrent-get-torrents" id="id25">find_torrent() get_torrents()</a></li>
-<li><a class="reference internal" href="#load-asnum-db-load-country-db-as-for-ip" id="id26">load_asnum_db() load_country_db() as_for_ip()</a></li>
-<li><a class="reference internal" href="#set-ip-filter" id="id27">set_ip_filter()</a></li>
-<li><a class="reference internal" href="#get-ip-filter" id="id28">get_ip_filter()</a></li>
-<li><a class="reference internal" href="#status" id="id29">status()</a></li>
-<li><a class="reference internal" href="#get-cache-status" id="id30">get_cache_status()</a></li>
-<li><a class="reference internal" href="#get-cache-info" id="id31">get_cache_info()</a></li>
-<li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id32">is_listening() listen_port() listen_on()</a></li>
-<li><a class="reference internal" href="#set-alert-mask" id="id33">set_alert_mask()</a></li>
-<li><a class="reference internal" href="#pop-alert-wait-for-alert-set-alert-queue-size-limit" id="id34">pop_alert() wait_for_alert() set_alert_queue_size_limit()</a></li>
-<li><a class="reference internal" href="#add-feed" id="id35">add_feed()</a></li>
-<li><a class="reference internal" href="#remove-feed" id="id36">remove_feed()</a></li>
-<li><a class="reference internal" href="#get-feeds" id="id37">get_feeds()</a></li>
-<li><a class="reference internal" href="#add-extension" id="id38">add_extension()</a></li>
-<li><a class="reference internal" href="#set-settings-set-pe-settings" id="id39">set_settings() set_pe_settings()</a></li>
-<li><a class="reference internal" href="#set-proxy-proxy" id="id40">set_proxy() proxy()</a></li>
-<li><a class="reference internal" href="#set-i2p-proxy-i2p-proxy" id="id41">set_i2p_proxy() i2p_proxy()</a></li>
-<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running" id="id42">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a></li>
-<li><a class="reference internal" href="#add-dht-node-add-dht-router" id="id43">add_dht_node() add_dht_router()</a></li>
-<li><a class="reference internal" href="#start-lsd-stop-lsd" id="id44">start_lsd() stop_lsd()</a></li>
-<li><a class="reference internal" href="#start-upnp-stop-upnp" id="id45">start_upnp() stop_upnp()</a></li>
-<li><a class="reference internal" href="#start-natpmp-stop-natpmp" id="id46">start_natpmp() stop_natpmp()</a></li>
+<li><a class="reference internal" href="#get-torrent-status-refresh-torrent-status" id="id26">get_torrent_status() refresh_torrent_status()</a></li>
+<li><a class="reference internal" href="#load-asnum-db-load-country-db-as-for-ip" id="id27">load_asnum_db() load_country_db() as_for_ip()</a></li>
+<li><a class="reference internal" href="#set-ip-filter" id="id28">set_ip_filter()</a></li>
+<li><a class="reference internal" href="#get-ip-filter" id="id29">get_ip_filter()</a></li>
+<li><a class="reference internal" href="#status" id="id30">status()</a></li>
+<li><a class="reference internal" href="#get-cache-status" id="id31">get_cache_status()</a></li>
+<li><a class="reference internal" href="#get-cache-info" id="id32">get_cache_info()</a></li>
+<li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id33">is_listening() listen_port() listen_on()</a></li>
+<li><a class="reference internal" href="#set-alert-mask" id="id34">set_alert_mask()</a></li>
+<li><a class="reference internal" href="#pop-alert-wait-for-alert" id="id35">pop_alert() wait_for_alert()</a></li>
+<li><a class="reference internal" href="#add-feed" id="id36">add_feed()</a></li>
+<li><a class="reference internal" href="#remove-feed" id="id37">remove_feed()</a></li>
+<li><a class="reference internal" href="#get-feeds" id="id38">get_feeds()</a></li>
+<li><a class="reference internal" href="#add-extension" id="id39">add_extension()</a></li>
+<li><a class="reference internal" href="#set-settings-set-pe-settings" id="id40">set_settings() set_pe_settings()</a></li>
+<li><a class="reference internal" href="#set-proxy-proxy" id="id41">set_proxy() proxy()</a></li>
+<li><a class="reference internal" href="#set-i2p-proxy-i2p-proxy" id="id42">set_i2p_proxy() i2p_proxy()</a></li>
+<li><a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running" id="id43">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a></li>
+<li><a class="reference internal" href="#add-dht-node-add-dht-router" id="id44">add_dht_node() add_dht_router()</a></li>
+<li><a class="reference internal" href="#start-lsd-stop-lsd" id="id45">start_lsd() stop_lsd()</a></li>
+<li><a class="reference internal" href="#start-upnp-stop-upnp" id="id46">start_upnp() stop_upnp()</a></li>
+<li><a class="reference internal" href="#start-natpmp-stop-natpmp" id="id47">start_natpmp() stop_natpmp()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#entry" id="id47">entry</a><ul>
-<li><a class="reference internal" href="#integer-string-list-dict-type" id="id48">integer() string() list() dict() type()</a></li>
-<li><a class="reference internal" href="#operator" id="id49">operator[]</a></li>
-<li><a class="reference internal" href="#find-key" id="id50">find_key()</a></li>
+<li><a class="reference internal" href="#entry" id="id48">entry</a><ul>
+<li><a class="reference internal" href="#integer-string-list-dict-type" id="id49">integer() string() list() dict() type()</a></li>
+<li><a class="reference internal" href="#operator" id="id50">operator[]</a></li>
+<li><a class="reference internal" href="#find-key" id="id51">find_key()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-info" id="id51">torrent_info</a><ul>
-<li><a class="reference internal" href="#id3" id="id52">torrent_info()</a></li>
-<li><a class="reference internal" href="#add-tracker" id="id53">add_tracker()</a></li>
-<li><a class="reference internal" href="#files-orig-files" id="id54">files() orig_files()</a></li>
-<li><a class="reference internal" href="#remap-files" id="id55">remap_files()</a></li>
-<li><a class="reference internal" href="#rename-file" id="id56">rename_file()</a></li>
-<li><a class="reference internal" href="#begin-files-end-files-rbegin-files-rend-files" id="id57">begin_files() end_files() rbegin_files() rend_files()</a></li>
-<li><a class="reference internal" href="#num-files-file-at" id="id58">num_files() file_at()</a></li>
-<li><a class="reference internal" href="#map-block" id="id59">map_block()</a></li>
-<li><a class="reference internal" href="#map-file" id="id60">map_file()</a></li>
-<li><a class="reference internal" href="#add-url-seed-add-http-seed" id="id61">add_url_seed() add_http_seed()</a></li>
-<li><a class="reference internal" href="#trackers" id="id62">trackers()</a></li>
-<li><a class="reference internal" href="#total-size-piece-length-piece-size-num-pieces" id="id63">total_size() piece_length() piece_size() num_pieces()</a></li>
-<li><a class="reference internal" href="#hash-for-piece-hash-for-piece-ptr-info-hash" id="id64">hash_for_piece() hash_for_piece_ptr() info_hash()</a></li>
-<li><a class="reference internal" href="#name-comment-creation-date-creator" id="id65">name() comment() creation_date() creator()</a></li>
-<li><a class="reference internal" href="#priv" id="id66">priv()</a></li>
-<li><a class="reference internal" href="#nodes" id="id67">nodes()</a></li>
-<li><a class="reference internal" href="#add-node" id="id68">add_node()</a></li>
-<li><a class="reference internal" href="#metadata-metadata-size" id="id69">metadata() metadata_size()</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id52">torrent_info</a><ul>
+<li><a class="reference internal" href="#id3" id="id53">torrent_info()</a></li>
+<li><a class="reference internal" href="#add-tracker" id="id54">add_tracker()</a></li>
+<li><a class="reference internal" href="#files-orig-files" id="id55">files() orig_files()</a></li>
+<li><a class="reference internal" href="#remap-files" id="id56">remap_files()</a></li>
+<li><a class="reference internal" href="#rename-file" id="id57">rename_file()</a></li>
+<li><a class="reference internal" href="#begin-files-end-files-rbegin-files-rend-files" id="id58">begin_files() end_files() rbegin_files() rend_files()</a></li>
+<li><a class="reference internal" href="#num-files-file-at" id="id59">num_files() file_at()</a></li>
+<li><a class="reference internal" href="#map-block" id="id60">map_block()</a></li>
+<li><a class="reference internal" href="#map-file" id="id61">map_file()</a></li>
+<li><a class="reference internal" href="#add-url-seed-add-http-seed" id="id62">add_url_seed() add_http_seed()</a></li>
+<li><a class="reference internal" href="#trackers" id="id63">trackers()</a></li>
+<li><a class="reference internal" href="#total-size-piece-length-piece-size-num-pieces" id="id64">total_size() piece_length() piece_size() num_pieces()</a></li>
+<li><a class="reference internal" href="#hash-for-piece-hash-for-piece-ptr-info-hash" id="id65">hash_for_piece() hash_for_piece_ptr() info_hash()</a></li>
+<li><a class="reference internal" href="#name-comment-creation-date-creator" id="id66">name() comment() creation_date() creator()</a></li>
+<li><a class="reference internal" href="#priv" id="id67">priv()</a></li>
+<li><a class="reference internal" href="#nodes" id="id68">nodes()</a></li>
+<li><a class="reference internal" href="#add-node" id="id69">add_node()</a></li>
+<li><a class="reference internal" href="#metadata-metadata-size" id="id70">metadata() metadata_size()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-handle" id="id70">torrent_handle</a><ul>
-<li><a class="reference internal" href="#set-piece-deadline" id="id71">set_piece_deadline()</a></li>
-<li><a class="reference internal" href="#piece-availability" id="id72">piece_availability()</a></li>
-<li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id73">piece_priority() prioritize_pieces() piece_priorities()</a></li>
-<li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id74">file_priority() prioritize_files() file_priorities()</a></li>
-<li><a class="reference internal" href="#file-progress" id="id75">file_progress()</a></li>
-<li><a class="reference internal" href="#save-path" id="id76">save_path()</a></li>
-<li><a class="reference internal" href="#move-storage" id="id77">move_storage()</a></li>
-<li><a class="reference internal" href="#id4" id="id78">rename_file()</a></li>
-<li><a class="reference internal" href="#get-storage-impl" id="id79">get_storage_impl()</a></li>
-<li><a class="reference internal" href="#super-seeding" id="id80">super_seeding()</a></li>
-<li><a class="reference internal" href="#add-piece" id="id81">add_piece()</a></li>
-<li><a class="reference internal" href="#read-piece" id="id82">read_piece()</a></li>
-<li><a class="reference internal" href="#force-reannounce-force-dht-announce" id="id83">force_reannounce() force_dht_announce()</a></li>
-<li><a class="reference internal" href="#scrape-tracker" id="id84">scrape_tracker()</a></li>
-<li><a class="reference internal" href="#connect-peer" id="id85">connect_peer()</a></li>
-<li><a class="reference internal" href="#name" id="id86">name()</a></li>
-<li><a class="reference internal" href="#set-ratio" id="id87">set_ratio()</a></li>
-<li><a class="reference internal" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id88">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
-<li><a class="reference internal" href="#set-sequential-download" id="id89">set_sequential_download()</a></li>
-<li><a class="reference internal" href="#get-peer-download-limit-get-peer-upload-limit-set-peer-upload-limit-set-peer-download-limit" id="id90">get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()</a></li>
-<li><a class="reference internal" href="#pause-resume" id="id91">pause() resume()</a></li>
-<li><a class="reference internal" href="#flush-cache" id="id92">flush_cache()</a></li>
-<li><a class="reference internal" href="#force-recheck" id="id93">force_recheck()</a></li>
-<li><a class="reference internal" href="#clear-error" id="id94">clear_error()</a></li>
-<li><a class="reference internal" href="#set-upload-mode" id="id95">set_upload_mode()</a></li>
-<li><a class="reference internal" href="#set-share-mode" id="id96">set_share_mode()</a></li>
-<li><a class="reference internal" href="#resolve-countries" id="id97">resolve_countries()</a></li>
-<li><a class="reference internal" href="#is-seed" id="id98">is_seed()</a></li>
-<li><a class="reference internal" href="#auto-managed" id="id99">auto_managed()</a></li>
-<li><a class="reference internal" href="#set-metadata" id="id100">set_metadata()</a></li>
-<li><a class="reference internal" href="#set-tracker-login" id="id101">set_tracker_login()</a></li>
-<li><a class="reference internal" href="#trackers-replace-trackers-add-tracker" id="id102">trackers() replace_trackers() add_tracker()</a></li>
-<li><a class="reference internal" href="#add-url-seed-remove-url-seed-url-seeds" id="id103">add_url_seed() remove_url_seed() url_seeds()</a></li>
-<li><a class="reference internal" href="#add-http-seed-remove-http-seed-http-seeds" id="id104">add_http_seed() remove_http_seed() http_seeds()</a></li>
-<li><a class="reference internal" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id105">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
-<li><a class="reference internal" href="#set-priority" id="id106">set_priority()</a></li>
-<li><a class="reference internal" href="#use-interface" id="id107">use_interface()</a></li>
-<li><a class="reference internal" href="#info-hash" id="id108">info_hash()</a></li>
-<li><a class="reference internal" href="#set-max-uploads-max-uploads" id="id109">set_max_uploads() max_uploads()</a></li>
-<li><a class="reference internal" href="#set-max-connections-max-connections" id="id110">set_max_connections() max_connections()</a></li>
-<li><a class="reference internal" href="#save-resume-data" id="id111">save_resume_data()</a></li>
-<li><a class="reference internal" href="#need-save-resume-data" id="id112">need_save_resume_data()</a></li>
-<li><a class="reference internal" href="#id5" id="id113">status()</a></li>
-<li><a class="reference internal" href="#get-download-queue" id="id114">get_download_queue()</a></li>
-<li><a class="reference internal" href="#get-peer-info" id="id115">get_peer_info()</a></li>
-<li><a class="reference internal" href="#get-torrent-info" id="id116">get_torrent_info()</a></li>
-<li><a class="reference internal" href="#is-valid" id="id117">is_valid()</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id71">torrent_handle</a><ul>
+<li><a class="reference internal" href="#set-piece-deadline" id="id72">set_piece_deadline()</a></li>
+<li><a class="reference internal" href="#piece-availability" id="id73">piece_availability()</a></li>
+<li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id74">piece_priority() prioritize_pieces() piece_priorities()</a></li>
+<li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id75">file_priority() prioritize_files() file_priorities()</a></li>
+<li><a class="reference internal" href="#file-progress" id="id76">file_progress()</a></li>
+<li><a class="reference internal" href="#save-path" id="id77">save_path()</a></li>
+<li><a class="reference internal" href="#move-storage" id="id78">move_storage()</a></li>
+<li><a class="reference internal" href="#id4" id="id79">rename_file()</a></li>
+<li><a class="reference internal" href="#get-storage-impl" id="id80">get_storage_impl()</a></li>
+<li><a class="reference internal" href="#super-seeding" id="id81">super_seeding()</a></li>
+<li><a class="reference internal" href="#add-piece" id="id82">add_piece()</a></li>
+<li><a class="reference internal" href="#read-piece" id="id83">read_piece()</a></li>
+<li><a class="reference internal" href="#force-reannounce-force-dht-announce" id="id84">force_reannounce() force_dht_announce()</a></li>
+<li><a class="reference internal" href="#scrape-tracker" id="id85">scrape_tracker()</a></li>
+<li><a class="reference internal" href="#connect-peer" id="id86">connect_peer()</a></li>
+<li><a class="reference internal" href="#name" id="id87">name()</a></li>
+<li><a class="reference internal" href="#set-ratio" id="id88">set_ratio()</a></li>
+<li><a class="reference internal" href="#set-upload-limit-set-download-limit-upload-limit-download-limit" id="id89">set_upload_limit() set_download_limit() upload_limit() download_limit()</a></li>
+<li><a class="reference internal" href="#set-sequential-download" id="id90">set_sequential_download()</a></li>
+<li><a class="reference internal" href="#get-peer-download-limit-get-peer-upload-limit-set-peer-upload-limit-set-peer-download-limit" id="id91">get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()</a></li>
+<li><a class="reference internal" href="#pause-resume" id="id92">pause() resume()</a></li>
+<li><a class="reference internal" href="#flush-cache" id="id93">flush_cache()</a></li>
+<li><a class="reference internal" href="#force-recheck" id="id94">force_recheck()</a></li>
+<li><a class="reference internal" href="#clear-error" id="id95">clear_error()</a></li>
+<li><a class="reference internal" href="#set-upload-mode" id="id96">set_upload_mode()</a></li>
+<li><a class="reference internal" href="#set-share-mode" id="id97">set_share_mode()</a></li>
+<li><a class="reference internal" href="#resolve-countries" id="id98">resolve_countries()</a></li>
+<li><a class="reference internal" href="#is-seed" id="id99">is_seed()</a></li>
+<li><a class="reference internal" href="#auto-managed" id="id100">auto_managed()</a></li>
+<li><a class="reference internal" href="#set-metadata" id="id101">set_metadata()</a></li>
+<li><a class="reference internal" href="#set-tracker-login" id="id102">set_tracker_login()</a></li>
+<li><a class="reference internal" href="#trackers-replace-trackers-add-tracker" id="id103">trackers() replace_trackers() add_tracker()</a></li>
+<li><a class="reference internal" href="#add-url-seed-remove-url-seed-url-seeds" id="id104">add_url_seed() remove_url_seed() url_seeds()</a></li>
+<li><a class="reference internal" href="#add-http-seed-remove-http-seed-http-seeds" id="id105">add_http_seed() remove_http_seed() http_seeds()</a></li>
+<li><a class="reference internal" href="#queue-position-queue-position-up-queue-position-down-queue-position-top-queue-position-bottom" id="id106">queue_position() queue_position_up() queue_position_down() queue_position_top() queue_position_bottom()</a></li>
+<li><a class="reference internal" href="#set-priority" id="id107">set_priority()</a></li>
+<li><a class="reference internal" href="#use-interface" id="id108">use_interface()</a></li>
+<li><a class="reference internal" href="#info-hash" id="id109">info_hash()</a></li>
+<li><a class="reference internal" href="#set-max-uploads-max-uploads" id="id110">set_max_uploads() max_uploads()</a></li>
+<li><a class="reference internal" href="#set-max-connections-max-connections" id="id111">set_max_connections() max_connections()</a></li>
+<li><a class="reference internal" href="#save-resume-data" id="id112">save_resume_data()</a></li>
+<li><a class="reference internal" href="#need-save-resume-data" id="id113">need_save_resume_data()</a></li>
+<li><a class="reference internal" href="#id5" id="id114">status()</a></li>
+<li><a class="reference internal" href="#get-download-queue" id="id115">get_download_queue()</a></li>
+<li><a class="reference internal" href="#get-peer-info" id="id116">get_peer_info()</a></li>
+<li><a class="reference internal" href="#get-torrent-info" id="id117">get_torrent_info()</a></li>
+<li><a class="reference internal" href="#is-valid" id="id118">is_valid()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#torrent-status" id="id118">torrent_status</a></li>
-<li><a class="reference internal" href="#peer-info" id="id119">peer_info</a></li>
-<li><a class="reference internal" href="#feed-handle" id="id120">feed_handle</a><ul>
-<li><a class="reference internal" href="#update-feed" id="id121">update_feed()</a></li>
-<li><a class="reference internal" href="#get-feed-status" id="id122">get_feed_status()</a></li>
-<li><a class="reference internal" href="#set-settings-settings" id="id123">set_settings() settings()</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id119">torrent_status</a></li>
+<li><a class="reference internal" href="#peer-info" id="id120">peer_info</a></li>
+<li><a class="reference internal" href="#feed-handle" id="id121">feed_handle</a><ul>
+<li><a class="reference internal" href="#update-feed" id="id122">update_feed()</a></li>
+<li><a class="reference internal" href="#get-feed-status" id="id123">get_feed_status()</a></li>
+<li><a class="reference internal" href="#set-settings-settings" id="id124">set_settings() settings()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#feed-item" id="id124">feed_item</a></li>
-<li><a class="reference internal" href="#session-customization" id="id125">session customization</a><ul>
-<li><a class="reference internal" href="#presets" id="id126">presets</a></li>
-<li><a class="reference internal" href="#session-settings" id="id127">session_settings</a></li>
+<li><a class="reference internal" href="#feed-item" id="id125">feed_item</a></li>
+<li><a class="reference internal" href="#session-customization" id="id126">session customization</a><ul>
+<li><a class="reference internal" href="#presets" id="id127">presets</a></li>
+<li><a class="reference internal" href="#session-settings" id="id128">session_settings</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pe-settings" id="id128">pe_settings</a></li>
-<li><a class="reference internal" href="#proxy-settings" id="id129">proxy_settings</a></li>
-<li><a class="reference internal" href="#ip-filter" id="id130">ip_filter</a><ul>
-<li><a class="reference internal" href="#id8" id="id131">ip_filter()</a></li>
-<li><a class="reference internal" href="#add-rule" id="id132">add_rule()</a></li>
-<li><a class="reference internal" href="#access" id="id133">access()</a></li>
-<li><a class="reference internal" href="#export-filter" id="id134">export_filter()</a></li>
+<li><a class="reference internal" href="#pe-settings" id="id129">pe_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id130">proxy_settings</a></li>
+<li><a class="reference internal" href="#ip-filter" id="id131">ip_filter</a><ul>
+<li><a class="reference internal" href="#id8" id="id132">ip_filter()</a></li>
+<li><a class="reference internal" href="#add-rule" id="id133">add_rule()</a></li>
+<li><a class="reference internal" href="#access" id="id134">access()</a></li>
+<li><a class="reference internal" href="#export-filter" id="id135">export_filter()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#big-number" id="id135">big_number</a></li>
-<li><a class="reference internal" href="#bitfield" id="id136">bitfield</a></li>
-<li><a class="reference internal" href="#hasher" id="id137">hasher</a></li>
-<li><a class="reference internal" href="#fingerprint" id="id138">fingerprint</a></li>
-<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id139">UPnP and NAT-PMP</a><ul>
-<li><a class="reference internal" href="#add-mapping" id="id140">add_mapping()</a></li>
-<li><a class="reference internal" href="#delete-mapping" id="id141">delete_mapping()</a></li>
-<li><a class="reference internal" href="#router-model" id="id142">router_model()</a></li>
+<li><a class="reference internal" href="#big-number" id="id136">big_number</a></li>
+<li><a class="reference internal" href="#bitfield" id="id137">bitfield</a></li>
+<li><a class="reference internal" href="#hasher" id="id138">hasher</a></li>
+<li><a class="reference internal" href="#fingerprint" id="id139">fingerprint</a></li>
+<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id140">UPnP and NAT-PMP</a><ul>
+<li><a class="reference internal" href="#add-mapping" id="id141">add_mapping()</a></li>
+<li><a class="reference internal" href="#delete-mapping" id="id142">delete_mapping()</a></li>
+<li><a class="reference internal" href="#router-model" id="id143">router_model()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#free-functions" id="id143">free functions</a><ul>
-<li><a class="reference internal" href="#identify-client" id="id144">identify_client()</a></li>
-<li><a class="reference internal" href="#client-fingerprint" id="id145">client_fingerprint()</a></li>
-<li><a class="reference internal" href="#lazy-bdecode" id="id146">lazy_bdecode()</a></li>
-<li><a class="reference internal" href="#bdecode-bencode" id="id147">bdecode() bencode()</a></li>
-<li><a class="reference internal" href="#add-magnet-uri" id="id148">add_magnet_uri()</a></li>
-<li><a class="reference internal" href="#make-magnet-uri" id="id149">make_magnet_uri()</a></li>
+<li><a class="reference internal" href="#free-functions" id="id144">free functions</a><ul>
+<li><a class="reference internal" href="#identify-client" id="id145">identify_client()</a></li>
+<li><a class="reference internal" href="#client-fingerprint" id="id146">client_fingerprint()</a></li>
+<li><a class="reference internal" href="#lazy-bdecode" id="id147">lazy_bdecode()</a></li>
+<li><a class="reference internal" href="#bdecode-bencode" id="id148">bdecode() bencode()</a></li>
+<li><a class="reference internal" href="#add-magnet-uri" id="id149">add_magnet_uri()</a></li>
+<li><a class="reference internal" href="#make-magnet-uri" id="id150">make_magnet_uri()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alerts" id="id150">alerts</a><ul>
-<li><a class="reference internal" href="#read-piece-alert" id="id151">read_piece_alert</a></li>
-<li><a class="reference internal" href="#external-ip-alert" id="id152">external_ip_alert</a></li>
-<li><a class="reference internal" href="#listen-failed-alert" id="id153">listen_failed_alert</a></li>
-<li><a class="reference internal" href="#listen-succeeded-alert" id="id154">listen_succeeded_alert</a></li>
-<li><a class="reference internal" href="#portmap-error-alert" id="id155">portmap_error_alert</a></li>
-<li><a class="reference internal" href="#portmap-alert" id="id156">portmap_alert</a></li>
-<li><a class="reference internal" href="#portmap-log-alert" id="id157">portmap_log_alert</a></li>
-<li><a class="reference internal" href="#file-error-alert" id="id158">file_error_alert</a></li>
-<li><a class="reference internal" href="#file-renamed-alert" id="id159">file_renamed_alert</a></li>
-<li><a class="reference internal" href="#file-rename-failed-alert" id="id160">file_rename_failed_alert</a></li>
-<li><a class="reference internal" href="#tracker-announce-alert" id="id161">tracker_announce_alert</a></li>
-<li><a class="reference internal" href="#tracker-error-alert" id="id162">tracker_error_alert</a></li>
-<li><a class="reference internal" href="#tracker-reply-alert" id="id163">tracker_reply_alert</a></li>
-<li><a class="reference internal" href="#tracker-warning-alert" id="id164">tracker_warning_alert</a></li>
-<li><a class="reference internal" href="#scrape-reply-alert" id="id165">scrape_reply_alert</a></li>
-<li><a class="reference internal" href="#scrape-failed-alert" id="id166">scrape_failed_alert</a></li>
-<li><a class="reference internal" href="#url-seed-alert" id="id167">url_seed_alert</a></li>
-<li><a class="reference internal" href="#hash-failed-alert" id="id168">hash_failed_alert</a></li>
-<li><a class="reference internal" href="#peer-alert" id="id169">peer_alert</a></li>
-<li><a class="reference internal" href="#peer-connect-alert" id="id170">peer_connect_alert</a></li>
-<li><a class="reference internal" href="#peer-ban-alert" id="id171">peer_ban_alert</a></li>
-<li><a class="reference internal" href="#peer-snubbed-alert" id="id172">peer_snubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id173">peer_unsnubbed_alert</a></li>
-<li><a class="reference internal" href="#peer-error-alert" id="id174">peer_error_alert</a></li>
-<li><a class="reference internal" href="#peer-connected-alert" id="id175">peer_connected_alert</a></li>
-<li><a class="reference internal" href="#peer-disconnected-alert" id="id176">peer_disconnected_alert</a></li>
-<li><a class="reference internal" href="#invalid-request-alert" id="id177">invalid_request_alert</a></li>
-<li><a class="reference internal" href="#request-dropped-alert" id="id178">request_dropped_alert</a></li>
-<li><a class="reference internal" href="#block-timeout-alert" id="id179">block_timeout_alert</a></li>
-<li><a class="reference internal" href="#block-finished-alert" id="id180">block_finished_alert</a></li>
-<li><a class="reference internal" href="#lsd-peer-alert" id="id181">lsd_peer_alert</a></li>
-<li><a class="reference internal" href="#file-completed-alert" id="id182">file_completed_alert</a></li>
-<li><a class="reference internal" href="#block-downloading-alert" id="id183">block_downloading_alert</a></li>
-<li><a class="reference internal" href="#unwanted-block-alert" id="id184">unwanted_block_alert</a></li>
-<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id185">torrent_delete_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-deleted-alert" id="id186">torrent_deleted_alert</a></li>
-<li><a class="reference internal" href="#torrent-finished-alert" id="id187">torrent_finished_alert</a></li>
-<li><a class="reference internal" href="#performance-alert" id="id188">performance_alert</a></li>
-<li><a class="reference internal" href="#state-changed-alert" id="id189">state_changed_alert</a></li>
-<li><a class="reference internal" href="#metadata-failed-alert" id="id190">metadata_failed_alert</a></li>
-<li><a class="reference internal" href="#metadata-received-alert" id="id191">metadata_received_alert</a></li>
-<li><a class="reference internal" href="#fastresume-rejected-alert" id="id192">fastresume_rejected_alert</a></li>
-<li><a class="reference internal" href="#peer-blocked-alert" id="id193">peer_blocked_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-alert" id="id194">storage_moved_alert</a></li>
-<li><a class="reference internal" href="#storage-moved-failed-alert" id="id195">storage_moved_failed_alert</a></li>
-<li><a class="reference internal" href="#torrent-paused-alert" id="id196">torrent_paused_alert</a></li>
-<li><a class="reference internal" href="#torrent-resumed-alert" id="id197">torrent_resumed_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-alert" id="id198">save_resume_data_alert</a></li>
-<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id199">save_resume_data_failed_alert</a></li>
-<li><a class="reference internal" href="#stats-alert" id="id200">stats_alert</a></li>
-<li><a class="reference internal" href="#cache-flushed-alert" id="id201">cache_flushed_alert</a></li>
-<li><a class="reference internal" href="#dht-announce-alert" id="id202">dht_announce_alert</a></li>
-<li><a class="reference internal" href="#dht-get-peers-alert" id="id203">dht_get_peers_alert</a></li>
-<li><a class="reference internal" href="#dht-reply-alert" id="id204">dht_reply_alert</a></li>
-<li><a class="reference internal" href="#dht-bootstrap-alert" id="id205">dht_bootstrap_alert</a></li>
-<li><a class="reference internal" href="#anonymous-mode-alert" id="id206">anonymous_mode_alert</a></li>
-<li><a class="reference internal" href="#rss-alert" id="id207">rss_alert</a></li>
+<li><a class="reference internal" href="#alerts" id="id151">alerts</a><ul>
+<li><a class="reference internal" href="#torrent-added-alert" id="id152">torrent_added_alert</a></li>
+<li><a class="reference internal" href="#torrent-removed-alert" id="id153">torrent_removed_alert</a></li>
+<li><a class="reference internal" href="#read-piece-alert" id="id154">read_piece_alert</a></li>
+<li><a class="reference internal" href="#external-ip-alert" id="id155">external_ip_alert</a></li>
+<li><a class="reference internal" href="#listen-failed-alert" id="id156">listen_failed_alert</a></li>
+<li><a class="reference internal" href="#listen-succeeded-alert" id="id157">listen_succeeded_alert</a></li>
+<li><a class="reference internal" href="#portmap-error-alert" id="id158">portmap_error_alert</a></li>
+<li><a class="reference internal" href="#portmap-alert" id="id159">portmap_alert</a></li>
+<li><a class="reference internal" href="#portmap-log-alert" id="id160">portmap_log_alert</a></li>
+<li><a class="reference internal" href="#file-error-alert" id="id161">file_error_alert</a></li>
+<li><a class="reference internal" href="#torrent-error-alert" id="id162">torrent_error_alert</a></li>
+<li><a class="reference internal" href="#file-renamed-alert" id="id163">file_renamed_alert</a></li>
+<li><a class="reference internal" href="#file-rename-failed-alert" id="id164">file_rename_failed_alert</a></li>
+<li><a class="reference internal" href="#tracker-announce-alert" id="id165">tracker_announce_alert</a></li>
+<li><a class="reference internal" href="#tracker-error-alert" id="id166">tracker_error_alert</a></li>
+<li><a class="reference internal" href="#tracker-reply-alert" id="id167">tracker_reply_alert</a></li>
+<li><a class="reference internal" href="#tracker-warning-alert" id="id168">tracker_warning_alert</a></li>
+<li><a class="reference internal" href="#scrape-reply-alert" id="id169">scrape_reply_alert</a></li>
+<li><a class="reference internal" href="#scrape-failed-alert" id="id170">scrape_failed_alert</a></li>
+<li><a class="reference internal" href="#url-seed-alert" id="id171">url_seed_alert</a></li>
+<li><a class="reference internal" href="#hash-failed-alert" id="id172">hash_failed_alert</a></li>
+<li><a class="reference internal" href="#peer-alert" id="id173">peer_alert</a></li>
+<li><a class="reference internal" href="#peer-connect-alert" id="id174">peer_connect_alert</a></li>
+<li><a class="reference internal" href="#peer-ban-alert" id="id175">peer_ban_alert</a></li>
+<li><a class="reference internal" href="#peer-snubbed-alert" id="id176">peer_snubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-unsnubbed-alert" id="id177">peer_unsnubbed_alert</a></li>
+<li><a class="reference internal" href="#peer-error-alert" id="id178">peer_error_alert</a></li>
+<li><a class="reference internal" href="#peer-connected-alert" id="id179">peer_connected_alert</a></li>
+<li><a class="reference internal" href="#peer-disconnected-alert" id="id180">peer_disconnected_alert</a></li>
+<li><a class="reference internal" href="#invalid-request-alert" id="id181">invalid_request_alert</a></li>
+<li><a class="reference internal" href="#request-dropped-alert" id="id182">request_dropped_alert</a></li>
+<li><a class="reference internal" href="#block-timeout-alert" id="id183">block_timeout_alert</a></li>
+<li><a class="reference internal" href="#block-finished-alert" id="id184">block_finished_alert</a></li>
+<li><a class="reference internal" href="#lsd-peer-alert" id="id185">lsd_peer_alert</a></li>
+<li><a class="reference internal" href="#file-completed-alert" id="id186">file_completed_alert</a></li>
+<li><a class="reference internal" href="#block-downloading-alert" id="id187">block_downloading_alert</a></li>
+<li><a class="reference internal" href="#unwanted-block-alert" id="id188">unwanted_block_alert</a></li>
+<li><a class="reference internal" href="#torrent-delete-failed-alert" id="id189">torrent_delete_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-deleted-alert" id="id190">torrent_deleted_alert</a></li>
+<li><a class="reference internal" href="#torrent-finished-alert" id="id191">torrent_finished_alert</a></li>
+<li><a class="reference internal" href="#performance-alert" id="id192">performance_alert</a></li>
+<li><a class="reference internal" href="#state-changed-alert" id="id193">state_changed_alert</a></li>
+<li><a class="reference internal" href="#metadata-failed-alert" id="id194">metadata_failed_alert</a></li>
+<li><a class="reference internal" href="#metadata-received-alert" id="id195">metadata_received_alert</a></li>
+<li><a class="reference internal" href="#fastresume-rejected-alert" id="id196">fastresume_rejected_alert</a></li>
+<li><a class="reference internal" href="#peer-blocked-alert" id="id197">peer_blocked_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-alert" id="id198">storage_moved_alert</a></li>
+<li><a class="reference internal" href="#storage-moved-failed-alert" id="id199">storage_moved_failed_alert</a></li>
+<li><a class="reference internal" href="#torrent-paused-alert" id="id200">torrent_paused_alert</a></li>
+<li><a class="reference internal" href="#torrent-resumed-alert" id="id201">torrent_resumed_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-alert" id="id202">save_resume_data_alert</a></li>
+<li><a class="reference internal" href="#save-resume-data-failed-alert" id="id203">save_resume_data_failed_alert</a></li>
+<li><a class="reference internal" href="#stats-alert" id="id204">stats_alert</a></li>
+<li><a class="reference internal" href="#cache-flushed-alert" id="id205">cache_flushed_alert</a></li>
+<li><a class="reference internal" href="#dht-announce-alert" id="id206">dht_announce_alert</a></li>
+<li><a class="reference internal" href="#dht-get-peers-alert" id="id207">dht_get_peers_alert</a></li>
+<li><a class="reference internal" href="#dht-reply-alert" id="id208">dht_reply_alert</a></li>
+<li><a class="reference internal" href="#dht-bootstrap-alert" id="id209">dht_bootstrap_alert</a></li>
+<li><a class="reference internal" href="#anonymous-mode-alert" id="id210">anonymous_mode_alert</a></li>
+<li><a class="reference internal" href="#rss-alert" id="id211">rss_alert</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#alert-dispatcher" id="id208">alert dispatcher</a></li>
-<li><a class="reference internal" href="#exceptions" id="id209">exceptions</a><ul>
-<li><a class="reference internal" href="#libtorrent-exception" id="id210">libtorrent_exception</a></li>
+<li><a class="reference internal" href="#alert-dispatcher" id="id212">alert dispatcher</a></li>
+<li><a class="reference internal" href="#exceptions" id="id213">exceptions</a><ul>
+<li><a class="reference internal" href="#libtorrent-exception" id="id214">libtorrent_exception</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#error-code" id="id211">error_code</a><ul>
-<li><a class="reference internal" href="#translating-error-codes" id="id212">translating error codes</a></li>
+<li><a class="reference internal" href="#error-code" id="id215">error_code</a><ul>
+<li><a class="reference internal" href="#translating-error-codes" id="id216">translating error codes</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#storage-interface" id="id213">storage_interface</a><ul>
-<li><a class="reference internal" href="#initialize" id="id214">initialize()</a></li>
-<li><a class="reference internal" href="#has-any-file" id="id215">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id216">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id217">sparse_end()</a></li>
-<li><a class="reference internal" href="#id10" id="id218">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id219">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id220">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id221">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id222">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id223">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id11" id="id224">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id225">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id226">delete_files()</a></li>
-<li><a class="reference internal" href="#finalize-file" id="id227">finalize_file()</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id217">storage_interface</a><ul>
+<li><a class="reference internal" href="#initialize" id="id218">initialize()</a></li>
+<li><a class="reference internal" href="#has-any-file" id="id219">has_any_file()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id220">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id221">sparse_end()</a></li>
+<li><a class="reference internal" href="#id10" id="id222">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id223">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id224">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id225">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id226">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id227">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id11" id="id228">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id229">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id230">delete_files()</a></li>
+<li><a class="reference internal" href="#finalize-file" id="id231">finalize_file()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id228">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id229">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id230">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id231">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id232">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id233">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id234">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id235">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id232">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id233">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id236">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id237">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id234">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id235">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id236">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id237">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id238">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id238">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id239">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id240">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id241">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id242">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id239">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id240">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id241">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id243">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id244">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id245">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id242">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id246">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -466,7 +470,13 @@ class session: public boost::noncopyable
         void remove_torrent(torrent_handle const&amp; h
                 , int options = none);
         torrent_handle find_torrent(sha_hash const&amp; ih);
+
         std::vector&lt;torrent_handle&gt; get_torrents() const;
+        void get_torrent_status(std::vector&lt;torrent_status&gt;* ret
+                , boost::function&lt;bool(torrent_status const&amp;)&gt; const&amp; pred
+                , boost::uint32_t flags = 0) const;
+        void refresh_torrent_status(std::vector&lt;torrent_status&gt;* ret
+                , boost::uint32_t flags) const;
 
         void set_settings(session_settings const&amp; settings);
         session_settings settings() const;
@@ -838,6 +848,34 @@ In case the torrent cannot be found, an invalid torrent_handle is returned.</p>
 <p><tt class="docutils literal"><span class="pre">get_torrents()</span></tt> returns a vector of torrent_handles to all the torrents
 currently in the session.</p>
 </div>
+<div class="section" id="get-torrent-status-refresh-torrent-status">
+<h2>get_torrent_status() refresh_torrent_status()</h2>
+<blockquote>
+<pre class="literal-block">
+void get_torrent_status(std::vector&lt;torrent_status&gt;* ret
+        , boost::function&lt;bool(torrent_status const&amp;)&gt; const&amp; pred
+        , boost::uint32_t flags = 0) const;
+void refresh_torrent_status(std::vector&lt;torrent_status&gt;* ret
+        , boost::uint32_t flags = 0) const;
+</pre>
+</blockquote>
+<p><tt class="docutils literal"><span class="pre">get_torrent_status</span></tt> returns a vector of the <tt class="docutils literal"><span class="pre">torrent_status</span></tt> for every
+torrent which satisfies <tt class="docutils literal"><span class="pre">pred</span></tt>, which is a predicate function which determines
+if a torrent should be included in the returned set or not. Returning true means
+it should be included and false means excluded. The <tt class="docutils literal"><span class="pre">flags</span></tt> argument is the same
+as to <tt class="docutils literal"><span class="pre">torrent_handle::status()</span></tt>. Since <tt class="docutils literal"><span class="pre">pred</span></tt> is guaranteed to be called for
+every torrent, it may be used to count the number of torrents of different categories
+as well.</p>
+<p><tt class="docutils literal"><span class="pre">refresh_torrent_status</span></tt> takes a vector of <tt class="docutils literal"><span class="pre">torrent_status</span></tt> structs (for instance
+the same vector that was returned by <tt class="docutils literal"><span class="pre">get_torrent_status()</span></tt>) and refreshes the
+status based on the <tt class="docutils literal"><span class="pre">handle</span></tt> member. It is possible to use this function by
+first setting up a vector of default constructed <tt class="docutils literal"><span class="pre">torrent_status</span></tt> objects, only
+initializing the <tt class="docutils literal"><span class="pre">handle</span></tt> member, in order to request the torrent status for
+multiple torrents in a single call. This can save a significant amount of time
+if you have a lot of torrents.</p>
+<p>Any <tt class="docutils literal"><span class="pre">torrent_status</span></tt> object whose <tt class="docutils literal"><span class="pre">handle</span></tt> member is not referring to a
+valid torrent are ignored.</p>
+</div>
 <div class="section" id="load-asnum-db-load-country-db-as-for-ip">
 <h2>load_asnum_db() load_country_db() as_for_ip()</h2>
 <blockquote>
@@ -953,8 +991,17 @@ struct session_status
         int num_unchoked;
         int allowed_upload_slots;
 
+        int up_bandwidth_queue;
+        int down_bandwidth_queue;
+
+        int up_bandwidth_bytes_queue;
+        int down_bandwidth_bytes_queue;
+
         int optimistic_unchoke_counter;
         int unchoke_counter;
+
+        int disk_write_queue;
+        int disk_read_queue;
 
         int dht_nodes;
         int dht_node_cache;
@@ -997,10 +1044,17 @@ than the sum of all peers of all torrents because the incoming connections may n
 be assigned a torrent yet.</p>
 <p><tt class="docutils literal"><span class="pre">num_unchoked</span></tt> is the current number of unchoked peers.
 <tt class="docutils literal"><span class="pre">allowed_upload_slots</span></tt> is the current allowed number of unchoked peers.</p>
+<p><tt class="docutils literal"><span class="pre">up_bandwidth_queue</span></tt> and <tt class="docutils literal"><span class="pre">down_bandwidth_queue</span></tt> are the number of peers that are
+waiting for more bandwidth quota from the torrent rate limiter.
+<tt class="docutils literal"><span class="pre">up_bandwidth_bytes_queue</span></tt> and <tt class="docutils literal"><span class="pre">down_bandwidth_bytes_queue</span></tt> count the number of
+bytes the connections are waiting for to be able to send and receive.</p>
 <p><tt class="docutils literal"><span class="pre">optimistic_unchoke_counter</span></tt> and <tt class="docutils literal"><span class="pre">unchoke_counter</span></tt> tells the number of
 seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.</p>
+<p><tt class="docutils literal"><span class="pre">disk_write_queue</span></tt> and <tt class="docutils literal"><span class="pre">disk_read_queue</span></tt> are the number of peers currently
+waiting on a disk write or disk read to complete before it receives or sends
+any more data on the socket. It'a a metric of how disk bound you are.</p>
 <p><tt class="docutils literal"><span class="pre">dht_nodes</span></tt>, <tt class="docutils literal"><span class="pre">dht_node_cache</span></tt> and <tt class="docutils literal"><span class="pre">dht_torrents</span></tt> are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
 the DHT is running, <tt class="docutils literal"><span class="pre">dht_nodes</span></tt> is set to the number of nodes in the routing
@@ -1167,13 +1221,12 @@ void set_alert_mask(int m);
 <tt class="docutils literal"><span class="pre">m</span></tt> is a bitmask where each bit represents a category of alerts.</p>
 <p>See <a class="reference internal" href="#alerts">alerts</a> for mor information on the alert categories.</p>
 </div>
-<div class="section" id="pop-alert-wait-for-alert-set-alert-queue-size-limit">
-<h2>pop_alert() wait_for_alert() set_alert_queue_size_limit()</h2>
+<div class="section" id="pop-alert-wait-for-alert">
+<h2>pop_alert() wait_for_alert()</h2>
 <blockquote>
 <pre class="literal-block">
 std::auto_ptr&lt;alert&gt; pop_alert();
 alert const* wait_for_alert(time_duration max_wait);
-size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">pop_alert()</span></tt> is used to ask the session if any errors or events has occurred. With
@@ -1187,9 +1240,8 @@ same pointer until the alert is popped by calling <tt class="docutils literal"><
 leaving any alert dispatching mechanism independent of this blocking call, the dispatcher
 can be called and it can pop the alert independently.</p>
 <p>In the python binding, <tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> takes the number of milliseconds to wait as an integer.</p>
-<p><tt class="docutils literal"><span class="pre">set_alert_queue_size_limit()</span></tt> you can specify how many alerts can be awaiting for dispatching.
-If this limit is reached, new incoming alerts can not be received until alerts are popped
-by calling <tt class="docutils literal"><span class="pre">pop_alert</span></tt>. Default value is 1000.</p>
+<p>To control the max number of alerts that's queued by the session, see
+<tt class="docutils literal"><span class="pre">session_settings::alert_queue_size</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">save_resume_data_alert</span></tt> and <tt class="docutils literal"><span class="pre">save_resume_data_failed_alert</span></tt> are always posted, regardelss
 of the alert mask.</p>
 </div>
@@ -3186,6 +3238,8 @@ struct torrent_status
                 checking_resume_data
         };
 
+        torrent_handle handle;
+
         state_t state;
         bool paused;
         bool auto_managed;
@@ -3284,6 +3338,7 @@ struct torrent_status
         bool need_save_resume;
 };
 </pre>
+<p><tt class="docutils literal"><span class="pre">handle</span></tt> is a handle to the torrent whose status the object represents.</p>
 <p><tt class="docutils literal"><span class="pre">progress</span></tt> is a value in the range [0, 1], that represents the progress of the
 torrent's current task. It may be checking files or downloading.</p>
 <p><tt class="docutils literal"><span class="pre">progress_ppm</span></tt> reflects the same value as <tt class="docutils literal"><span class="pre">progress</span></tt>, but instead in a range
@@ -4246,6 +4301,10 @@ struct session_settings
 
         int torrent_connect_boost;
         bool seeding_outgoing_connections;
+
+        bool no_connect_privileged_ports;
+        int alert_queue_size;
+        int max_metadata_size;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -4924,6 +4983,14 @@ may be set to false in very specific applications where the cost of making
 outgoing connections is high, and there are no or small benefits of doing so.
 For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
 make outgoing connections.</p>
+<p>if <tt class="docutils literal"><span class="pre">no_connect_privileged_ports</span></tt> is true (which is the default), libtorrent
+will not connect to any peers on priviliged ports (&lt;= 1023). This can mitigate
+using bittorrent swarms for certain DDoS attacks.</p>
+<p><tt class="docutils literal"><span class="pre">alert_queue_size</span></tt> is the maximum number of alerts queued up internally. If
+alerts are not popped, the queue will eventually fill up to this level. This
+defaults to 1000.</p>
+<p><tt class="docutils literal"><span class="pre">max_metadata_size</span></tt> is the maximum allowed size (in bytes) to be received
+by the metadata extension, i.e. magnet links. It defaults to 1 MiB.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -5011,6 +5078,7 @@ struct proxy_settings
 
         proxy_type type;
         bool proxy_hostnames;
+        bool proxy_peer_connections;
 };
 </pre>
 </blockquote>
@@ -5042,6 +5110,9 @@ user authorization. The username and password will be sent to the proxy.</li>
 <p><tt class="docutils literal"><span class="pre">proxy_hostnames</span></tt> defaults to true. It means that hostnames should be
 attempted to be resolved through the proxy instead of using the local DNS
 service. This is only supported by SOCKS5 and HTTP.</p>
+<p><tt class="docutils literal"><span class="pre">proxy_peer_connections</span></tt> determines whether or not to excempt peer and
+web seed connections from using the proxy. This defaults to true, i.e. peer
+connections are proxied by default.</p>
 </div>
 <div class="section" id="ip-filter">
 <h1>ip_filter</h1>
@@ -5630,6 +5701,7 @@ public:
         virtual std::string message() const = 0;
         virtual char const* what() const = 0;
         virtual int category() const = 0;
+        virtual bool discardable() const;
         virtual std::auto_ptr&lt;alert&gt; clone() const = 0;
 };
 </pre>
@@ -5658,6 +5730,9 @@ switch (a-&gt;type())
 not include any information that might be bundled with the alert.</p>
 <p><tt class="docutils literal"><span class="pre">category()</span></tt> returns a bitmask specifying which categories this alert belong to.</p>
 <p><tt class="docutils literal"><span class="pre">clone()</span></tt> returns a pointer to a copy of the alert.</p>
+<p><tt class="docutils literal"><span class="pre">discardable()</span></tt> determines whether or not an alert is allowed to be discarded
+when the alert queue is full. There are a few alerts which may not be discared,
+since they would break the user contract, such as <tt class="docutils literal"><span class="pre">save_resume_data_alert</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">message()</span></tt> generate a string describing the alert and the information bundled
 with it. This is mainly intended for debug and development use. It is not suitable
 to use this for applications that may be localized. Instead, handle each alert
@@ -5681,6 +5756,33 @@ struct tracker_alert: torrent_alert
 };
 </pre>
 <p>The specific alerts are:</p>
+<div class="section" id="torrent-added-alert">
+<h2>torrent_added_alert</h2>
+<p>The <tt class="docutils literal"><span class="pre">torrent_added_alert</span></tt> is posted once every time a torrent is added.
+It doesn't contain any members of its own, but inherits the torrent handle
+from its base class.
+It's posted when the <tt class="docutils literal"><span class="pre">status_notification</span></tt> bit is set in the alert mask.</p>
+<pre class="literal-block">
+struct torrent_added_alert: torrent_alert
+{
+        // ...
+};
+</pre>
+</div>
+<div class="section" id="torrent-removed-alert">
+<h2>torrent_removed_alert</h2>
+<p>The <tt class="docutils literal"><span class="pre">torrent_removed_alert</span></tt> is posted whenever a torrent is removed. Since
+the torrent handle in its baseclass will always be invalid (since the torrent
+is already removed) it has the info hash as a member, to identify it.
+It's posted when the <tt class="docutils literal"><span class="pre">status_notification</span></tt> bit is set in the alert mask.</p>
+<pre class="literal-block">
+struct torrent_removed_alert: torrent_alert
+{
+        // ...
+        sha1_hash info_hash;
+};
+</pre>
+</div>
 <div class="section" id="read-piece-alert">
 <h2>read_piece_alert</h2>
 <p>This alert is posted when the asynchronous read operation initiated by
@@ -5816,6 +5918,18 @@ struct file_error_alert: torrent_alert
         error_code error;
 };
 </pre>
+</div>
+<div class="section" id="torrent-error-alert">
+<h2>torrent_error_alert</h2>
+<p>This is posted whenever a torrent is transitioned into the error state.</p>
+<pre class="literal-block">
+struct torrent_error_alert: torrent_alert
+{
+        // ...
+        error_code error;
+};
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">error</span></tt> specifies which error the torrent encountered.</p>
 </div>
 <div class="section" id="file-renamed-alert">
 <h2>file_renamed_alert</h2>
@@ -6060,7 +6174,7 @@ struct peer_disconnected_alert: peer_alert
 <div class="section" id="invalid-request-alert">
 <h2>invalid_request_alert</h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request.
-<tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
+<tt class="docutils literal"><span class="pre">Ïp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
 struct invalid_request_alert: peer_alert
@@ -7495,13 +7609,13 @@ std::string error_code_to_string(boost::system::error_code const&amp; ec)
         static const char const* swedish[] =
         {
                 &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil från en annan torrent&quot;,
+                &quot;en fil i torrenten kolliderar med en fil frÂn en annan torrent&quot;,
                 &quot;hash check misslyckades&quot;,
-                &quot;torrent filen är inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller är korrupt i torrentfilen&quot;,
-                &quot;'info'-fältet är inte en dictionary&quot;,
-                &quot;'piece length' fältet saknas eller är korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnfältet&quot;,
+                &quot;torrent filen ‰r inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;'info'-f‰ltet ‰r inte en dictionary&quot;,
+                &quot;'piece length' f‰ltet saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnf‰ltet&quot;,
                 &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
                 // ... more strings here
         };

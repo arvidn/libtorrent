@@ -119,6 +119,15 @@ namespace libtorrent
 			int flags;
 		};
 
+		int num_outstanding() const
+		{
+			return m_v4_outstanding
+#if TORRENT_USE_IPV6
+			  	+ m_v6_outstanding
+#endif
+				;
+		}
+
 	private:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
@@ -189,8 +198,11 @@ namespace libtorrent
 		bool m_reallocate_buffer6;
 #endif
 
-		int m_bind_port;
-		char m_outstanding;
+		boost::uint16_t m_bind_port;
+		boost::uint8_t m_v4_outstanding;
+#if TORRENT_USE_IPV6
+		boost::uint8_t m_v6_outstanding;
+#endif
 
 		tcp::socket m_socks5_sock;
 		int m_connection_ticket;

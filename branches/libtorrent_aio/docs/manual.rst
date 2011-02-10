@@ -158,7 +158,13 @@ The ``session`` class has the following synopsis::
 		void remove_torrent(torrent_handle const& h
 			, int options = none);
 		torrent_handle find_torrent(sha_hash const& ih);
+
 		std::vector<torrent_handle> get_torrents() const;
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, boost::function<bool(torrent_status const&)> const& pred
+			, boost::uint32_t flags = 0) const;
+		void refresh_torrent_status(std::vector<torrent_status>* ret
+			, boost::uint32_t flags) const;
 
 		void set_settings(session_settings const& settings);
 		session_settings settings() const;
@@ -564,6 +570,36 @@ See ``torrent_handle::is_valid()`` to know if the torrent was found or not.
 ``get_torrents()`` returns a vector of torrent_handles to all the torrents
 currently in the session.
 
+get_torrent_status() refresh_torrent_status()
+---------------------------------------------
+
+	::
+
+		void get_torrent_status(std::vector<torrent_status>* ret
+			, boost::function<bool(torrent_status const&)> const& pred
+			, boost::uint32_t flags = 0) const;
+		void refresh_torrent_status(std::vector<torrent_status>* ret
+			, boost::uint32_t flags = 0) const;
+
+``get_torrent_status`` returns a vector of the ``torrent_status`` for every
+torrent which satisfies ``pred``, which is a predicate function which determines
+if a torrent should be included in the returned set or not. Returning true means
+it should be included and false means excluded. The ``flags`` argument is the same
+as to ``torrent_handle::status()``. Since ``pred`` is guaranteed to be called for
+every torrent, it may be used to count the number of torrents of different categories
+as well.
+
+``refresh_torrent_status`` takes a vector of ``torrent_status`` structs (for instance
+the same vector that was returned by ``get_torrent_status()``) and refreshes the
+status based on the ``handle`` member. It is possible to use this function by
+first setting up a vector of default constructed ``torrent_status`` objects, only
+initializing the ``handle`` member, in order to request the torrent status for
+multiple torrents in a single call. This can save a significant amount of time
+if you have a lot of torrents.
+
+Any ``torrent_status`` object whose ``handle`` member is not referring to a
+valid torrent are ignored.
+
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
 
@@ -686,8 +722,17 @@ struct has the following members::
 		int num_unchoked;
 		int allowed_upload_slots;
 
+		int up_bandwidth_queue;
+		int down_bandwidth_queue;
+
+		int up_bandwidth_bytes_queue;
+		int down_bandwidth_bytes_queue;
+
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
+
+		int disk_write_queue;
+		int disk_read_queue;
 
 		int dht_nodes;
 		int dht_node_cache;
@@ -741,10 +786,19 @@ be assigned a torrent yet.
 ``num_unchoked`` is the current number of unchoked peers.
 ``allowed_upload_slots`` is the current allowed number of unchoked peers.
 
+``up_bandwidth_queue`` and ``down_bandwidth_queue`` are the number of peers that are
+waiting for more bandwidth quota from the torrent rate limiter.
+``up_bandwidth_bytes_queue`` and ``down_bandwidth_bytes_queue`` count the number of
+bytes the connections are waiting for to be able to send and receive.
+
 ``optimistic_unchoke_counter`` and ``unchoke_counter`` tells the number of
 seconds until the next optimistic unchoke change and the start of the next
 unchoke interval. These numbers may be reset prematurely if a peer that is
 unchoked disconnects or becomes notinterested.
+
+``disk_write_queue`` and ``disk_read_queue`` are the number of peers currently
+waiting on a disk write or disk read to complete before it receives or sends
+any more data on the socket. It'a a metric of how disk bound you are.
 
 ``dht_nodes``, ``dht_node_cache`` and ``dht_torrents`` are only available when
 built with DHT support. They are all set to 0 if the DHT isn't running. When
@@ -3116,6 +3170,8 @@ It contains the following fields::
 			allocating,
 			checking_resume_data
 		};
+
+		torrent_handle handle;
 	
 		state_t state;
 		bool paused;
@@ -3214,6 +3270,8 @@ It contains the following fields::
 		int queue_position;
 		bool need_save_resume;
 	};
+
+``handle`` is a handle to the torrent whose status the object represents.
 
 ``progress`` is a value in the range [0, 1], that represents the progress of the
 torrent's current task. It may be checking files or downloading.
@@ -4194,6 +4252,7 @@ session_settings
 		bool enable_incoming_tcp;
 		int max_pex_peers;
 		bool ignore_resume_timestamps;
+		bool no_recheck_incomplete_resume;
 		bool anonymous_mode;
 		int tick_interval;
 		int share_mode_target;
@@ -4911,6 +4970,13 @@ to accepted (torrents are more likely to be fully checked when loaded).
 It might be useful to set this to true if your network is faster than your
 disk, and it would be faster to redownload potentially missed pieces than
 to go through the whole storage to look for them.
+
+``no_recheck_incomplete_resume`` determines if the storage should check
+the whole files when resume data is incomplete or missing or whether
+it should simply assume we don't have any of the data. By default, this
+is determined by the existance of any of the files. By setting this setting
+to true, the files won't be checked, but will go straight to download
+mode.
 
 ``anonymous_mode`` defaults to false. When set to true, the client tries
 to hide its identity to a certain degree. The peer-ID will no longer
@@ -5873,6 +5939,37 @@ There's also a base class for all alerts referring to tracker events::
 	};
 
 The specific alerts are:
+
+torrent_added_alert
+-------------------
+
+The ``torrent_added_alert`` is posted once every time a torrent is added.
+It doesn't contain any members of its own, but inherits the torrent handle
+from its base class.
+It's posted when the ``status_notification`` bit is set in the alert mask.
+
+::
+
+	struct torrent_added_alert: torrent_alert
+	{
+		// ...
+	};
+
+torrent_removed_alert
+---------------------
+
+The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
+the torrent handle in its baseclass will always be invalid (since the torrent
+is already removed) it has the info hash as a member, to identify it.
+It's posted when the ``status_notification`` bit is set in the alert mask.
+
+::
+
+	struct torrent_removed_alert: torrent_alert
+	{
+		// ...
+		sha1_hash info_hash;
+	};
 
 read_piece_alert
 ----------------

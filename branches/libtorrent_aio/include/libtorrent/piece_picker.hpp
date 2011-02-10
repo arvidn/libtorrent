@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
@@ -147,9 +146,8 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): last_request(min_time()), finished(0), writing(0), requested(0) {}
+			downloading_piece(): finished(0), writing(0), requested(0) {}
 			piece_state_t state;
-			ptime last_request;
 
 			// the index of the piece
 			int index;
@@ -290,7 +288,6 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
-		ptime last_request(int piece) const;
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
@@ -567,17 +564,6 @@ namespace libtorrent
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 
 	};
-
-	inline int piece_picker::blocks_in_piece(int index) const
-	{
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_map.size());
-		if (index+1 == (int)m_piece_map.size())
-			return m_blocks_in_last_piece;
-		else
-			return m_blocks_per_piece;
-	}
-
 }
 
 #endif // TORRENT_PIECE_PICKER_HPP_INCLUDED
