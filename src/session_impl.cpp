@@ -788,36 +788,8 @@ namespace aux {
 #endif
 
 #ifdef TORRENT_STATS
-		m_stats_logger.open("session_stats.log", std::ios::trunc);
-		m_stats_logger <<
-			"second:upload rate:download rate:downloading torrents:seeding torrents"
-			":peers:connecting peers:disk block buffers:num list peers"
-			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
-			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
-			":smooth upload rate:smooth download rate:disk write queued bytes"
-			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
-			":peers down 50-100:peers down 100-"
-			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50: peers up 50-100"
-			":peers up 100-:error peers"
-			":peers down interesting:peers down unchoked:peers down requests"
-			":peers up interested:peers up unchoked:peers up requests"
-			":peer disconnects:peers eof:peers connection reset"
-			":outstanding requests:outstanding end-game requests"
-			":outstanding writing blocks"
-			":end game piece picker blocks"
-			":piece picker blocks"
-			":piece picks"
-			":reject piece picks"
-			":unchoke piece picks"
-			":incoming redundant piece picks"
-			":incoming piece picks"
-			":end game piece picks"
-			":snubbed piece picks"
-			":% failed payload bytes"
-			":% wasted payload bytes"
-			":% protocol bytes"
-			"\n\n";
-		m_second_counter = 0;
+		m_stats_logger = 0;
+		m_log_seq = 0;
 		m_error_peers = 0;
 		m_disconnected_peers = 0;
 		m_eof_peers = 0;
@@ -831,6 +803,7 @@ namespace aux {
 		m_incoming_piece_picks = 0;
 		m_end_game_piece_picks = 0;
 		m_snubbed_piece_picks = 0;
+		rotate_stats_log();
 #endif
 #ifdef TORRENT_DISK_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
@@ -887,6 +860,57 @@ namespace aux {
 		update_connections_limit();
 		update_unchoke_limit();
 	}
+
+#ifdef TORRENT_STATS
+	void session_impl::rotate_stats_log()
+	{
+		if (m_stats_logger)
+		{
+			++m_log_seq;
+			fclose(m_stats_logger);
+		}
+		error_code ec;
+		create_directory("session_stats", ec);
+		char filename[100];
+		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
+		m_stats_logger = fopen(filename, "w+");
+		if (m_stats_logger == 0)
+		{
+			fprintf(stderr, "Failed to create session stats log file \"%s\": (%d) %s\n"
+				, filename, errno, strerror(errno));
+			return;
+		}
+		m_last_log_rotation = time_now();
+			
+		fputs("second:upload rate:download rate:downloading torrents:seeding torrents"
+			":peers:connecting peers:disk block buffers:num list peers"
+			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
+			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
+			":smooth upload rate:smooth download rate:disk write queued bytes"
+			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
+			":peers down 50-100:peers down 100-"
+			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50: peers up 50-100"
+			":peers up 100-:error peers"
+			":peers down interesting:peers down unchoked:peers down requests"
+			":peers up interested:peers up unchoked:peers up requests"
+			":peer disconnects:peers eof:peers connection reset"
+			":outstanding requests:outstanding end-game requests"
+			":outstanding writing blocks"
+			":end game piece picker blocks"
+			":piece picker blocks"
+			":piece picks"
+			":reject piece picks"
+			":unchoke piece picks"
+			":incoming redundant piece picks"
+			":incoming piece picks"
+			":end game piece picks"
+			":snubbed piece picks"
+			":% failed payload bytes"
+			":% wasted payload bytes"
+			":% protocol bytes"
+			"\n\n", m_stats_logger);
+	}
+#endif
 
 	void session_impl::start_session()
 	{
@@ -2540,7 +2564,6 @@ namespace aux {
 		}
 
 #ifdef TORRENT_STATS
-		++m_second_counter;
 		int downloading_torrents = 0;
 		int seeding_torrents = 0;
 		int checking_torrents = 0;
@@ -2551,7 +2574,7 @@ namespace aux {
 		size_type upload_rate = (m_stat.total_upload() - uploaded) * 1000 / tick_interval_ms;
 		downloaded = m_stat.total_download();
 		uploaded = m_stat.total_upload();
-		size_type num_peers = 0;
+		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
 		int peer_ul_rate_buckets[7];
 		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
@@ -2644,68 +2667,81 @@ namespace aux {
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
 		}
+
+		if (now - m_last_log_rotation > hours(1))
+			rotate_stats_log();
 		
-		m_stats_logger
-			<< m_second_counter << "\t"
-			<< upload_rate << "\t"
-			<< download_rate << "\t"
-			<< downloading_torrents << "\t"
-			<< seeding_torrents << "\t"
-			<< num_complete_connections << "\t"
-			<< num_half_open << "\t"
-			<< m_disk_thread.disk_allocations() << "\t"
-			<< num_peers << "\t"
-			<< logging_allocator::allocations << "\t"
-			<< logging_allocator::allocated_bytes << "\t"
-			<< checking_torrents << "\t"
-			<< stopped_torrents << "\t"
-			<< m_upload_rate.queue_size() << "\t"
-			<< m_download_rate.queue_size() << "\t"
-			<< m_disk_queues[peer_connection::upload_channel] << "\t"
-			<< m_disk_queues[peer_connection::download_channel] << "\t"
-			<< m_stat.upload_rate() << "\t"
-			<< m_stat.download_rate() << "\t"
-			<< m_disk_thread.queue_buffer_size() << "\t"
-			<< peer_dl_rate_buckets[0] << "\t"
-			<< peer_dl_rate_buckets[1] << "\t"
-			<< peer_dl_rate_buckets[2] << "\t"
-			<< peer_dl_rate_buckets[3] << "\t"
-			<< peer_dl_rate_buckets[4] << "\t"
-			<< peer_dl_rate_buckets[5] << "\t"
-			<< peer_dl_rate_buckets[6] << "\t"
-			<< peer_ul_rate_buckets[0] << "\t"
-			<< peer_ul_rate_buckets[1] << "\t"
-			<< peer_ul_rate_buckets[2] << "\t"
-			<< peer_ul_rate_buckets[3] << "\t"
-			<< peer_ul_rate_buckets[4] << "\t"
-			<< peer_ul_rate_buckets[5] << "\t"
-			<< peer_ul_rate_buckets[6] << "\t"
-			<< m_error_peers << "\t"
-			<< peers_down_interesting << "\t"
-			<< peers_down_unchoked << "\t"
-			<< peers_down_requests << "\t"
-			<< peers_up_interested << "\t"
-			<< peers_up_unchoked << "\t"
-			<< peers_up_requests << "\t"
-			<< m_disconnected_peers << "\t"
-			<< m_eof_peers << "\t"
-			<< m_connreset_peers << "\t"
-			<< outstanding_requests << "\t"
-			<< outstanding_end_game_requests << "\t"
-			<< outstanding_write_blocks << "\t"
-			<< m_end_game_piece_picker_blocks << "\t"
-			<< m_piece_picker_blocks << "\t"
-			<< m_piece_picks << "\t"
-			<< m_reject_piece_picks << "\t"
-			<< m_unchoke_piece_picks << "\t"
-			<< m_incoming_redundant_piece_picks << "\t"
-			<< m_incoming_piece_picks << "\t"
-			<< m_end_game_piece_picks << "\t"
-			<< m_snubbed_piece_picks << "\t"
-			<< (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()) << "\t"
-			<< (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download()) << "\t"
-			<< (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()) << "\t"
-			<< std::endl;
+		if (m_stats_logger)
+		{
+			fprintf(m_stats_logger
+				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\n"
+				, total_milliseconds(now - m_last_log_rotation) / 1000.f
+				, int(upload_rate)
+				, int(download_rate)
+				, downloading_torrents
+				, seeding_torrents
+				, num_complete_connections
+				, num_half_open
+				, m_disk_thread.disk_allocations()
+				, num_peers
+				, logging_allocator::allocations
+				, logging_allocator::allocated_bytes
+				, checking_torrents
+				, stopped_torrents
+				, m_upload_rate.queue_size()
+				, m_download_rate.queue_size()
+				, m_disk_queues[peer_connection::upload_channel]
+				, m_disk_queues[peer_connection::download_channel]
+				, m_stat.upload_rate()
+				, m_stat.download_rate()
+				, int(m_disk_thread.queue_buffer_size())
+				, peer_dl_rate_buckets[0]
+				, peer_dl_rate_buckets[1]
+				, peer_dl_rate_buckets[2]
+				, peer_dl_rate_buckets[3]
+				, peer_dl_rate_buckets[4]
+				, peer_dl_rate_buckets[5]
+				, peer_dl_rate_buckets[6]
+				, peer_ul_rate_buckets[0]
+				, peer_ul_rate_buckets[1]
+				, peer_ul_rate_buckets[2]
+				, peer_ul_rate_buckets[3]
+				, peer_ul_rate_buckets[4]
+				, peer_ul_rate_buckets[5]
+				, peer_ul_rate_buckets[6]
+				, m_error_peers
+				, peers_down_interesting
+				, peers_down_unchoked
+				, peers_down_requests
+				, peers_up_interested
+				, peers_up_unchoked
+				, peers_up_requests
+				, m_disconnected_peers
+				, m_eof_peers
+				, m_connreset_peers
+				, outstanding_requests
+				, outstanding_end_game_requests
+				, outstanding_write_blocks
+				, m_end_game_piece_picker_blocks
+				, m_piece_picker_blocks
+				, m_piece_picks
+				, m_reject_piece_picks
+				, m_unchoke_piece_picks
+				, m_incoming_redundant_piece_picks
+				, m_incoming_piece_picks
+				, m_end_game_piece_picks
+				, m_snubbed_piece_picks
+				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
+				, (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download())
+				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
+			);
+		}
+
 		m_error_peers = 0;
 		m_disconnected_peers = 0;
 		m_eof_peers = 0;
@@ -4467,6 +4503,10 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 		TORRENT_ASSERT(m_connections.empty());
+
+#ifdef TORRENT_STATS
+		if (m_stats_logger) fclose(m_stats_logger);
+#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
