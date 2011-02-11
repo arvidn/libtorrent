@@ -1611,9 +1611,6 @@ namespace libtorrent
 		if (ret == piece_manager::need_full_check) return;
 
 		dequeue_torrent_check();
-		// calling pause will also trigger the auto managed
-		// recalculation
-		if (m_auto_managed) pause();
 		files_checked();
 	}
 
@@ -5248,6 +5245,10 @@ namespace libtorrent
 				get_handle()));
 		}
 		
+		// calling pause will also trigger the auto managed
+		// recalculation
+		if (m_auto_managed) pause();
+
 		// if this is an auto managed torrent, force a recalculation
 		// of which torrents to have active
 		if (m_auto_managed && m_ses.m_auto_manage_time_scaler > 1)
