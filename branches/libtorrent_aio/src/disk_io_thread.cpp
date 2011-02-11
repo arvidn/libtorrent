@@ -249,7 +249,7 @@ namespace libtorrent
 	{
 		// don't do anything in here. Essentially all members
 		// of this object are owned by the newly created thread.
-		// initialize stuff in thread_fun.
+		// initialize stuff in thread_fun().
 	}
 
 	disk_io_thread::~disk_io_thread()
