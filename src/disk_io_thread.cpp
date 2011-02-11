@@ -298,9 +298,9 @@ namespace libtorrent
 		, m_file_pool(fp)
 		, m_disk_io_thread(boost::ref(*this))
 	{
-#ifdef TORRENT_DISK_STATS
-		m_log.open("disk_io_thread.log", std::ios::trunc);
-#endif
+		// don't do anything in here. Essentially all members
+		// of this object are owned by the newly created thread.
+		// initialize stuff in operator().
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -1382,6 +1382,9 @@ namespace libtorrent
 
 	void disk_io_thread::operator()()
 	{
+#ifdef TORRENT_DISK_STATS
+		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
 		// 1 = forward in list, -1 = backwards in list
 		int elevator_direction = 1;
 
