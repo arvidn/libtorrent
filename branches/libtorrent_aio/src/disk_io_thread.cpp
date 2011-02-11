@@ -247,65 +247,9 @@ namespace libtorrent
 #endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
-#ifdef TORRENT_DISK_STATS
-		m_log.open("disk_io_thread.log", std::ios::trunc);
-#endif
-
-#if TORRENT_USE_OVERLAPPED
-		TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
-		m_file_pool.set_iocp(m_completion_port);
-#endif
-
-#if TORRENT_USE_RLIMIT
-		// ---- auto-cap open files ----
-
-		struct rlimit rl;
-		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
-		{
-			// deduct some margin for epoll/kqueue, log files,
-			// futexes, shared objects etc.
-			rl.rlim_cur -= 20;
-
-			// 80% of the available file descriptors should go to connections
-			// 20% goes towards regular files
-			m_file_pool.resize((std::min)(m_file_pool.size_limit(), int(rl.rlim_cur * 2 / 10)));
-		}
-#endif // TORRENT_USE_RLIMIT
-
-		// figure out how much physical RAM there is in
-		// this machine. This is used for automatically
-		// sizing the disk cache size when it's set to
-		// automatic.
-#ifdef TORRENT_BSD
-		int mib[2] = { CTL_HW, HW_MEMSIZE };
-		size_t len = sizeof(m_physical_ram);
-		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
-			m_physical_ram = 0;
-#elif defined TORRENT_WINDOWS
-		MEMORYSTATUSEX ms;
-		ms.dwLength = sizeof(MEMORYSTATUSEX);
-		if (GlobalMemoryStatusEx(&ms))
-			m_physical_ram = ms.ullTotalPhys;
-		else
-			m_physical_ram = 0;
-#elif defined TORRENT_LINUX
-		m_physical_ram = sysconf(_SC_PHYS_PAGES);
-		m_physical_ram *= sysconf(_SC_PAGESIZE);
-#elif defined TORRENT_AMIGA
-		m_physical_ram = AvailMem(MEMF_PUBLIC);
-#endif
-
-#if TORRENT_USE_RLIMIT
-		if (m_physical_ram > 0)
-		{
-			struct rlimit r;
-			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
-			{
-				if (m_physical_ram > r.rlim_cur)
-					m_physical_ram = r.rlim_cur;
-			}
-		}
-#endif
+		// don't do anything in here. Essentially all members
+		// of this object are owned by the newly created thread.
+		// initialize stuff in thread_fun.
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -1562,6 +1506,7 @@ namespace libtorrent
 		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
+		// #error on linux, use a signalfd() instead of g_job_sem
 		g_job_sem.signal();
 	}
 /*
@@ -1588,10 +1533,69 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_file_pool.set_thread_owner();
 #endif
+
+#ifdef TORRENT_DISK_STATS
+		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+
+#if TORRENT_USE_OVERLAPPED
+		TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
+		m_file_pool.set_iocp(m_completion_port);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		// ---- auto-cap open files ----
+
+		struct rlimit rl;
+		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+		{
+			// deduct some margin for epoll/kqueue, log files,
+			// futexes, shared objects etc.
+			rl.rlim_cur -= 20;
+
+			// 80% of the available file descriptors should go to connections
+			// 20% goes towards regular files
+			m_file_pool.resize((std::min)(m_file_pool.size_limit(), int(rl.rlim_cur * 2 / 10)));
+		}
+#endif // TORRENT_USE_RLIMIT
+
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+		size_t len = sizeof(m_physical_ram);
+		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
+			m_physical_ram = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
+		if (GlobalMemoryStatusEx(&ms))
+			m_physical_ram = ms.ullTotalPhys;
+		else
+			m_physical_ram = 0;
+#elif defined TORRENT_LINUX
+		m_physical_ram = sysconf(_SC_PHYS_PAGES);
+		m_physical_ram *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		m_physical_ram = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (m_physical_ram > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (m_physical_ram > r.rlim_cur)
+					m_physical_ram = r.rlim_cur;
+			}
+		}
+#endif
 		m_disk_cache.set_max_size(m_settings.cache_size);
 
-#if TORRENT_USE_AIO
-		// if we have posix aio, assume we have pthreads as well
+#if defined BOOST_HAS_PTHREADS
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, TORRENT_AIO_SIGNAL);
@@ -1600,7 +1604,9 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
+#endif
 
+#if TORRENT_USE_AIO
 		struct sigaction sa;
 
 		sa.sa_flags = SA_SIGINFO | SA_RESTART;
