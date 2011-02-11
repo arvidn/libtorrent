@@ -86,10 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
 
-#ifdef TORRENT_STATS
-#include <fstream>
-#endif
-
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
 #endif
@@ -861,9 +857,17 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_STATS
+			void rotate_stats_log();
+
+			// the last time we rotated the log file
+			ptime m_last_log_rotation;
+	
 			// logger used to write bandwidth usage statistics
-			std::ofstream m_stats_logger;
-			int m_second_counter;
+			FILE* m_stats_logger;
+			// sequence number for log file. Log files are
+			// rotated every hour and the sequence number is
+			// incremented by one
+			int m_log_seq;
 			// the number of peers that were disconnected this
 			// tick due to protocol error
 			int m_error_peers;
