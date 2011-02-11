@@ -2728,7 +2728,7 @@ namespace aux {
 			<< m_disk_queues[peer_connection::download_channel] << "\t"
 			<< m_stat.upload_rate() << "\t"
 			<< m_stat.download_rate() << "\t"
-			<< m_disk_thread.queue_buffer_size() << "\t"
+			<< m_writing_bytes << "\t"
 			<< peer_dl_rate_buckets[0] << "\t"
 			<< peer_dl_rate_buckets[1] << "\t"
 			<< peer_dl_rate_buckets[2] << "\t"

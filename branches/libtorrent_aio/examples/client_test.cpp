@@ -1636,8 +1636,8 @@ int main(int argc, char* argv[])
 		}
 
 		sha1_hash ih(0);
-		if (active_handle.is_valid())
-			ih = active_handle.info_hash();
+//		torrent_handle h = get_active_torrent(handles).handle;
+//		if (h.is_valid()) ih = h.info_hash();
 
 		cache_status cs;
 		ses.get_cache_info(ih, &cs);
