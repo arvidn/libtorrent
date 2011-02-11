@@ -327,44 +327,9 @@ namespace libtorrent
 		, m_file_pool(fp)
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
-#ifdef TORRENT_DISK_STATS
-		m_log.open("disk_io_thread.log", std::ios::trunc);
-#endif
-
-		// figure out how much physical RAM there is in
-		// this machine. This is used for automatically
-		// sizing the disk cache size when it's set to
-		// automatic.
-#ifdef TORRENT_BSD
-		int mib[2] = { CTL_HW, HW_MEMSIZE };
-		size_t len = sizeof(m_physical_ram);
-		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
-			m_physical_ram = 0;
-#elif defined TORRENT_WINDOWS
-		MEMORYSTATUSEX ms;
-		ms.dwLength = sizeof(MEMORYSTATUSEX);
-		if (GlobalMemoryStatusEx(&ms))
-			m_physical_ram = ms.ullTotalPhys;
-		else
-			m_physical_ram = 0;
-#elif defined TORRENT_LINUX
-		m_physical_ram = sysconf(_SC_PHYS_PAGES);
-		m_physical_ram *= sysconf(_SC_PAGESIZE);
-#elif defined TORRENT_AMIGA
-		m_physical_ram = AvailMem(MEMF_PUBLIC);
-#endif
-
-#if TORRENT_USE_RLIMIT
-		if (m_physical_ram > 0)
-		{
-			struct rlimit r;
-			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
-			{
-				if (m_physical_ram > r.rlim_cur)
-					m_physical_ram = r.rlim_cur;
-			}
-		}
-#endif
+		// don't do anything in here. Essentially all members
+		// of this object are owned by the newly created thread.
+		// initialize stuff in thread_fun().
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -1542,6 +1507,44 @@ namespace libtorrent
 
 	void disk_io_thread::thread_fun()
 	{
+#ifdef TORRENT_DISK_STATS
+		m_log.open("disk_io_thread.log", std::ios::trunc);
+#endif
+
+		// figure out how much physical RAM there is in
+		// this machine. This is used for automatically
+		// sizing the disk cache size when it's set to
+		// automatic.
+#ifdef TORRENT_BSD
+		int mib[2] = { CTL_HW, HW_MEMSIZE };
+		size_t len = sizeof(m_physical_ram);
+		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
+			m_physical_ram = 0;
+#elif defined TORRENT_WINDOWS
+		MEMORYSTATUSEX ms;
+		ms.dwLength = sizeof(MEMORYSTATUSEX);
+		if (GlobalMemoryStatusEx(&ms))
+			m_physical_ram = ms.ullTotalPhys;
+		else
+			m_physical_ram = 0;
+#elif defined TORRENT_LINUX
+		m_physical_ram = sysconf(_SC_PHYS_PAGES);
+		m_physical_ram *= sysconf(_SC_PAGESIZE);
+#elif defined TORRENT_AMIGA
+		m_physical_ram = AvailMem(MEMF_PUBLIC);
+#endif
+
+#if TORRENT_USE_RLIMIT
+		if (m_physical_ram > 0)
+		{
+			struct rlimit r;
+			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			{
+				if (m_physical_ram > r.rlim_cur)
+					m_physical_ram = r.rlim_cur;
+			}
+		}
+#endif
 		// 1 = forward in list, -1 = backwards in list
 		int elevator_direction = 1;
 
