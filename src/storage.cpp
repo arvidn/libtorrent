@@ -553,7 +553,7 @@ namespace libtorrent
 			// if the file already exists, but is larger than what
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && allocate_files) || s.file_size > file_iter->size || file_iter->size == 0)
+			if ((ec && allocate_files) || (!ec && s.file_size > file_iter->size) || file_iter->size == 0)
 			{
 				ec.clear();
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
