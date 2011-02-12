@@ -563,9 +563,8 @@ namespace libtorrent
 					f->set_size(file_iter->size, ec);
 					if (ec) set_error(file_path, ec);
 				}
+				if (ec) break;
 			}
-
-			if (ec) break;
 		}
 
 		std::vector<boost::uint8_t>().swap(m_file_priority);
