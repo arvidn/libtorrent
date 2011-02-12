@@ -378,7 +378,7 @@ namespace libtorrent
 		bool write_resume_data(entry& rd) const;
 
 		// this identifies a read or write operation
-		// so that storage::readwrite() knows what to
+		// so that storage::readwritev() knows what to
 		// do when it's actually touching the file
 		struct fileop
 		{
@@ -1207,6 +1207,18 @@ ret:
 
 			error_code ec;
 			file_handle = open_file(file_iter, op.mode, ec);
+			if ((op.mode == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			{
+				// this means the directory the file is in doesn't exist.
+				// so create it
+				ec.clear();
+				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				create_directories(parent_path(path), ec);
+				// if the directory creation failed, don't try to open the file again
+				// but actually just fail
+				if (!ec) file_handle = open_file(file_iter, op.mode, ec);
+			}
+
 			if (!file_handle || ec)
 			{
 				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
