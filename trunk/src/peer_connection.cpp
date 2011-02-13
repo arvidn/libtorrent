@@ -2410,7 +2410,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
-		if (t->filesystem().queued_bytes() >= m_ses.settings().max_queued_disk_bytes
+		if (!m_ses.can_write_to_disk()
 			&& m_ses.settings().max_queued_disk_bytes
 			&& t->alerts().should_post<performance_alert>()
 			&& (now - m_ses.m_last_disk_performance_warning) > seconds(10))
@@ -5064,8 +5064,7 @@ namespace libtorrent
 		if (!bw_limit) return false;
 
 		bool disk = m_ses.settings().max_queued_disk_bytes == 0
-			|| !t || t->get_storage() == 0
-			|| t->filesystem().queued_bytes() < m_ses.settings().max_queued_disk_bytes
+			|| m_ses.can_write_to_disk()
 			// don't block this peer because of disk saturation
 			// if we're not downloading any pieces from it
 			|| m_outstanding_bytes == 0;

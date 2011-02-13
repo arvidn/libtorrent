@@ -1626,11 +1626,6 @@ ret:
 #endif
 	}
 
-	int piece_manager::queued_bytes() const
-	{
-		return m_io_thread.queue_buffer_size();
-	}
-
 	void piece_manager::async_write(
 		peer_request const& r
 		, disk_buffer_holder& buffer

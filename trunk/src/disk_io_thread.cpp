@@ -321,6 +321,7 @@ namespace libtorrent
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
 		, m_physical_ram(0)
+		, m_exceeded_write_queue(false)
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
@@ -354,6 +355,12 @@ namespace libtorrent
 		mutex::scoped_lock l(m_queue_mutex);
 		TORRENT_ASSERT(m_abort == true);
 		m_jobs.clear();
+	}
+
+	bool disk_io_thread::can_write() const
+	{
+		mutex::scoped_lock l(m_queue_mutex);
+		return !m_exceeded_write_queue;
 	}
 
 	void disk_io_thread::get_cache_info(sha1_hash const& ih, std::vector<cached_piece_info>& ret) const
@@ -1623,14 +1630,15 @@ namespace libtorrent
 					if (m_exceeded_write_queue)
 					{
 						int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
-							? m_settings.max_queued_disk_bytes * 3 / 4
+							? m_settings.max_queued_disk_bytes / 2
 							: m_settings.max_queued_disk_bytes_low_watermark;
 						if (low_watermark >= m_settings.max_queued_disk_bytes)
-							low_watermark = m_settings.max_queued_disk_bytes * 3 / 4;
+							low_watermark = m_settings.max_queued_disk_bytes / 2;
 
 						if (m_queue_buffer_size < low_watermark
-							|| m_settings.max_queued_disk_bytes > 0)
+							|| m_settings.max_queued_disk_bytes == 0)
 						{
+							m_exceeded_write_queue = false;
 							// we just dropped below the high watermark of number of bytes
 							// queued for writing to the disk. Notify the session so that it
 							// can trigger all the connections waiting for this event
@@ -1734,7 +1742,10 @@ namespace libtorrent
 				, operation_has_buffer(j) ? j.buffer : 0);
 
 			if (post && m_queue_callback)
+			{
+				TORRENT_ASSERT(m_exceeded_write_queue == false);
 				m_ios.post(m_queue_callback);
+			}
 
 			flush_expired_pieces();
 

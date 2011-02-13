@@ -506,9 +506,11 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			, (i->flags & peer_info::on_parole)?'p':'.'
 			, (i->flags & peer_info::optimistic_unchoke)?'O':'.'
 			, (i->read_state == peer_info::bw_limit)?'r':
-				(i->read_state == peer_info::bw_network)?'R':'.'
+				(i->read_state == peer_info::bw_network)?'R':
+				(i->read_state == peer_info::bw_disk)?'D':'.'
 			, (i->write_state == peer_info::bw_limit)?'w':
-				(i->write_state == peer_info::bw_network)?'W':'.'
+				(i->write_state == peer_info::bw_network)?'W':
+				(i->write_state == peer_info::bw_disk)?'D':'.'
 			, (i->flags & peer_info::snubbed)?'S':'.'
 			, (i->flags & peer_info::upload_only)?'U':'D'
 			, (i->flags & peer_info::endgame_mode)?'-':'.'

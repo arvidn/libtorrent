@@ -423,6 +423,9 @@ namespace libtorrent
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
+			bool can_write_to_disk() const
+			{ return m_disk_thread.can_write(); }
+
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
 			mutable libtorrent::mutex mut;
