@@ -533,7 +533,7 @@ void http_connection::callback(error_code e, char const* data, int size)
 	if (m_bottled && m_called) return;
 
 	std::vector<char> buf;
-	if (m_bottled && m_parser.header_finished())
+	if (data && m_bottled && m_parser.header_finished())
 	{
 		if (m_parser.chunked_encoding())
 		{
