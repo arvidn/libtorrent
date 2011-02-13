@@ -565,6 +565,7 @@ namespace libtorrent
 				}
 				if (ec) break;
 			}
+			ec.clear();
 		}
 
 		std::vector<boost::uint8_t>().swap(m_file_priority);
