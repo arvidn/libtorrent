@@ -64,9 +64,46 @@ int read_message(stream_socket& s, char* buffer)
 	return length;
 }
 
-char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
-	, "have", "bitfield", "request", "piece", "cancel", "dht_port", "", "", ""
-	, "suggest_piece", "have_all", "have_none", "reject_request", "allowed_fast"};
+void print_message(char const* buffer, int len)
+{
+	char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
+		, "have", "bitfield", "request", "piece", "cancel", "dht_port", "", "", ""
+		, "suggest_piece", "have_all", "have_none", "reject_request", "allowed_fast"};
+
+	char message[50];
+	char extra[300];
+	extra[0] = 0;
+	if (len == 0)
+	{
+		strcpy(message, "keepalive");
+	}
+	else
+	{
+		int msg = buffer[0];
+		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
+			strcpy(message, message_name[msg]);
+		else
+			snprintf(message, sizeof(message), "unknown[%d]", msg);
+
+		if (msg == 0x6 && len == 13)
+		{
+			peer_request r;
+			const char* ptr = buffer + 1;
+			r.piece = detail::read_int32(ptr);
+			r.start = detail::read_int32(ptr);
+			r.length = detail::read_int32(ptr);
+			snprintf(extra, sizeof(extra), "p: %d s: %d l: %d", r.piece, r.start, r.length);
+		}
+		else if (msg == 0x11 && len == 5)
+		{
+			const char* ptr = buffer + 1;
+			int index = detail::read_int32(ptr);
+			snprintf(extra, sizeof(extra), "p: %d", index);
+		}
+	}
+
+	fprintf(stderr, "%s <== %s %s\n", time_now_string(), message, extra);
+}
 
 void send_allow_fast(stream_socket& s, int piece)
 {
@@ -188,12 +225,9 @@ void test_reject_fast()
 
 	while (!allowed_fast.empty())
 	{
-		read_message(s, recv_buffer);
+		int len = read_message(s, recv_buffer);
+		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
-		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
-			std::cerr << time_now_string() << " <== " << message_name[msg] << std::endl;
-		else
-			std::cerr << time_now_string() << " <== " << msg << std::endl;
 		if (recv_buffer[0] != 0x6) continue;
 
 		using namespace libtorrent::detail;
@@ -254,13 +288,9 @@ void test_respect_suggest()
 	int fail_counter = 100;	
 	while (!suggested.empty() && fail_counter > 0)
 	{
-		read_message(s, recv_buffer);
-		std::cerr << time_now_string() << " <== ";
+		int len = read_message(s, recv_buffer);
+		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
-		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
-			std::cerr << message_name[msg] << std::endl;
-		else
-			std::cerr << msg << std::endl;
 		fail_counter--;
 		if (recv_buffer[0] != 0x6) continue;
 
