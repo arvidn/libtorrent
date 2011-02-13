@@ -303,6 +303,7 @@ namespace libtorrent
 		// this is used to slow down the download global download
 		// speed when the queue buffer size is too big.
 		size_type queue_buffer_size() const;
+		bool can_write() const;
 
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const;
