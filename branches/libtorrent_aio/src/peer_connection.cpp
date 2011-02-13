@@ -4706,10 +4706,10 @@ namespace libtorrent
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
-				"queue-size: %d queue-limit: %d disconnecting: %s ]"
+				"disk-writable: %d queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
 				, (m_ignore_bandwidth_limits?"yes":"no")
-				, m_ses.pending_write_bytes()
+				, m_ses.can_write_to_disk()
 				, m_ses.settings().max_queued_disk_bytes
 				, (m_disconnecting?"yes":"no"));
 #endif

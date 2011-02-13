@@ -386,7 +386,7 @@ namespace libtorrent
 			, boost::function<void(async_handler*)> const& handler);
 
 		// this identifies a read or write operation
-		// so that storage::readwrite() knows what to
+		// so that storage::readwritev() knows what to
 		// do when it's actually touching the file
 		struct fileop
 		{
@@ -569,14 +569,14 @@ namespace libtorrent
 			// if the file already exists, but is larger than what
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && allocate_files) || s.file_size > file_iter->size || file_iter->size == 0)
+			if ((ec && allocate_files) || (!ec && s.file_size > file_iter->size) || file_iter->size == 0)
 			{
 				ec.clear();
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
 				if (!ec && f) f->set_size(file_iter->size, ec);
+				if (ec) break;
 			}
-
-			if (ec) break;
+			ec.clear();
 		}
 
 		std::vector<boost::uint8_t>().swap(m_file_priority);
@@ -1230,6 +1230,18 @@ ret:
 			}
 
 			file_handle = open_file(file_iter, op.mode, ec);
+			if ((op.mode == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			{
+				// this means the directory the file is in doesn't exist.
+				// so create it
+				ec.clear();
+				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				create_directories(parent_path(path), ec);
+				// if the directory creation failed, don't try to open the file again
+				// but actually just fail
+				if (!ec) file_handle = open_file(file_iter, op.mode, ec);
+			}
+
 			if (!file_handle || ec)
 			{
 				std::string path = combine_path(m_save_path, files().file_path(*file_iter));

@@ -741,7 +741,10 @@ namespace aux {
 		PRINT_OFFSETOF(udp_socket, m_v6_buf)
 #endif
 		PRINT_OFFSETOF(udp_socket, m_bind_port)
-		PRINT_OFFSETOF(udp_socket, m_outstanding)
+		PRINT_OFFSETOF(udp_socket, m_v4_outstanding)
+#if TORRENT_USE_IPV6
+		PRINT_OFFSETOF(udp_socket, m_v6_outstanding)
+#endif
 		PRINT_OFFSETOF(udp_socket, m_socks5_sock)
 		PRINT_OFFSETOF(udp_socket, m_connection_ticket)
 		PRINT_OFFSETOF(udp_socket, m_proxy_settings)
@@ -885,7 +888,8 @@ namespace aux {
 			
 		fputs("second:upload rate:download rate:downloading torrents:seeding torrents"
 			":peers:connecting peers:disk block buffers:num list peers"
-			":peer allocations:peer storage bytes:checking torrents:stopped torrents"
+			":peer allocations:peer storage bytes"
+			":checking torrents:stopped torrents:upload-only torrents"
 			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
 			":smooth upload rate:smooth download rate:disk write queued bytes"
 			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
@@ -2631,6 +2635,7 @@ namespace aux {
 		int seeding_torrents = 0;
 		int checking_torrents = 0;
 		int stopped_torrents = 0;
+		int upload_only_torrents = 0;
 		static size_type downloaded = 0;
 		static size_type uploaded = 0;
 		size_type download_rate = (m_stat.total_download() - downloaded) * 1000 / tick_interval_ms;
@@ -2665,6 +2670,8 @@ namespace aux {
 				++checking_torrents;
 			if (i->second->is_paused())
 				++stopped_torrents;
+			if (i->second->is_upload_only())
+				++upload_only_torrents;
 
 			dq.clear();
 			i->second->get_download_queue(dq);
@@ -2742,7 +2749,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(upload_rate)
 				, int(download_rate)
@@ -2756,6 +2763,7 @@ namespace aux {
 				, logging_allocator::allocated_bytes
 				, checking_torrents
 				, stopped_torrents
+				, upload_only_torrents
 				, m_upload_rate.queue_size()
 				, m_download_rate.queue_size()
 				, m_disk_queues[peer_connection::upload_channel]
