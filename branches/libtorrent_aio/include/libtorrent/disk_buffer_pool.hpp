@@ -78,7 +78,7 @@ namespace libtorrent
 
 		void release_memory();
 
-		int in_use() const { return m_in_use; }
+		boost::uint32_t in_use() const { return m_in_use; }
 
 	protected:
 
@@ -89,7 +89,7 @@ namespace libtorrent
 		const int m_block_size;
 
 		// number of disk buffers currently allocated
-		int m_in_use;
+		boost::uint32_t m_in_use;
 
 		session_settings m_settings;
 
