@@ -309,7 +309,7 @@ namespace libtorrent
 				ec.assign(errno, boost::system::get_generic_category());
 				break;
 			}
-			if (num_read < sizeof(buffer)) break;
+			if (num_read < int(sizeof(buffer))) break;
 		}
 		close(infd);
 		close(outfd);
@@ -441,7 +441,7 @@ namespace libtorrent
 #endif
 		if (sep == 0) return f;
 
-		if (sep - first == f.size() - 1)
+		if (sep - first == int(f.size()) - 1)
 		{
 			// if the last character is a / (or \)
 			// ignore it

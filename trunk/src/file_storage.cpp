@@ -374,7 +374,7 @@ namespace libtorrent
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_file_hashes.size()) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
 	
@@ -387,29 +387,29 @@ namespace libtorrent
 	time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_mtime.size()) return 0;
+		if (index >= int(m_mtime.size())) return 0;
 		return m_mtime[index];
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		TORRENT_ASSERT(index >= 0 && index < m_files.size());
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
 
 	void file_storage::set_file_base(internal_file_entry const& fe, size_type off)
 	{
 		int index = &fe - &m_files[0];
-		TORRENT_ASSERT(index >= 0 && index < m_files.size());
-		if (m_file_base.size() <= index) m_file_base.resize(index);
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index);
 		m_file_base[index] = off;
 	}
 
 	size_type file_storage::file_base(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_file_base.size()) return 0;
+		if (index >= int(m_file_base.size())) return 0;
 		return m_file_base[index];
 	}
 
@@ -424,7 +424,7 @@ namespace libtorrent
 		if (!m_mtime.empty())
 		{
 			time_t mtime = 0;
-			if (m_mtime.size() > index)
+			if (int(m_mtime.size()) > index)
 			{
 				mtime = m_mtime[index];
 				m_mtime.erase(m_mtime.begin() + index);
@@ -434,7 +434,7 @@ namespace libtorrent
 		if (!m_file_hashes.empty())
 		{
 			char const* fh = 0;
-			if (m_file_hashes.size() > index)
+			if (int(m_file_hashes.size()) > index)
 			{
 				fh = m_file_hashes[index];
 				m_file_hashes.erase(m_file_hashes.begin() + index);
@@ -444,7 +444,7 @@ namespace libtorrent
 		if (!m_file_base.empty())
 		{
 			size_type base = 0;
-			if (m_file_base.size() > index)
+			if (int(m_file_base.size()) > index)
 			{
 				base = m_file_base[index];
 				m_file_base.erase(m_file_base.begin() + index);

@@ -242,7 +242,7 @@ namespace libtorrent
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(offset < sizeof(unreserved_chars)-1);
+		TORRENT_ASSERT(offset < int(sizeof(unreserved_chars))-1);
 
 		std::string ret;
 		for (int i = 0; i < len; ++i)
