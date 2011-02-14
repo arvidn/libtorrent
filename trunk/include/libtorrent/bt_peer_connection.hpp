@@ -204,7 +204,7 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		void on_holepunch();
 #endif
 
