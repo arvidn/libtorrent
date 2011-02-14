@@ -890,6 +890,7 @@ namespace libtorrent
 			int m_snubbed_piece_picks;
 			int m_connect_timeouts;
 			int m_uninteresting_peers;
+			int m_timeout_peers;
 #endif
 
 			// each second tick the timer takes a little
