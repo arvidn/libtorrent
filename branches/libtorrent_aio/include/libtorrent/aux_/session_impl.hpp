@@ -429,10 +429,15 @@ namespace libtorrent
 			void add_pending_write_bytes(int num)
 			{
 				TORRENT_ASSERT(num >= 0);
-				m_writing_bytes += num;
-				if (m_writing_bytes >= m_settings.max_queued_disk_bytes
-					&& m_settings.max_queued_disk_bytes > 0)
-					m_exceeded_write_queue = true;
+				// #error we need a separate number for the number of bytes we've sent
+				// to the disk thread without having heard anything from yet
+				// this number also needs to decrease every time the job is
+				// received (popped) by the disk thread. Probably an atomic
+				// counter is the most appropriate
+//				m_writing_bytes += num;
+//				if (m_writing_bytes >= m_settings.max_queued_disk_bytes
+//					&& m_settings.max_queued_disk_bytes > 0)
+//					m_exceeded_write_queue = true;
 			}
 
 			int can_write_to_disk() const { return !m_exceeded_write_queue; }

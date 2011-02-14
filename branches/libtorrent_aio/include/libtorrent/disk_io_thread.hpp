@@ -286,7 +286,7 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
 		static void signal_handler(int signal, siginfo_t* si, void*);
 #endif
 
@@ -353,6 +353,25 @@ namespace libtorrent
 		HANDLE m_completion_port;
 #endif
 
+#if TORRENT_USE_SIGNALFD
+		// if we're using a signalfd instead of a signal handler
+		// this is its file descriptor
+		// this is fucked up. If we only have a single signalfd, in
+		// the disk thread itself, it will only catch signals specifically
+		// posted to that thread, and for some reason the aio implementation
+		// sometimes send signals to other threads. Now we have two signalfds,
+		// one created from the network thread and one from the disk thread.
+		// this seems to work, but there are other threads not covered by a
+		// signalfd. So it seems this is still broken.
+		// the symptom of lost signals is block writes being issued but
+		// never completed, so pieces will get stuck flushing and the usable
+		// portion of the disk cache will be smaller and smaller over time
+		int m_signal_fd[2];
+
+		// this is an eventfd used to signal the disk thread that
+		// there are new jobs in its in-queue
+		int m_event_fd;
+#endif
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
 	};

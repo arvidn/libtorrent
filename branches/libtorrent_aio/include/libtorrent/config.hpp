@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
 
+#ifdef __linux__
+#include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
+#endif // __linux
+
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
 #endif
@@ -135,11 +139,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __APPLE__
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#endif
 #define TORRENT_USE_MACH_SEMAPHORE 1
-#else
+#else // __APPLE__
 #define TORRENT_USE_POSIX_SEMAPHORE 1
-#endif
-#endif
+#endif // __APPLE__
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_AIO 1
 #define TORRENT_AIO_SIGNAL SIGIO
@@ -148,7 +152,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 #define TORRENT_USE_AIO 1
-#define TORRENT_AIO_SIGNAL SIGIO
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+#define TORRENT_USE_SIGNALFD 1
+#endif
+#define TORRENT_AIO_SIGNAL SIGRTMIN
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 
 // ==== MINGW ===
@@ -302,6 +309,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_AIO
 #define TORRENT_USE_AIO 0
+#endif
+
+#ifndef TORRENT_USE_SIGNALFD
+#define TORRENT_USE_SIGNALFD 0
 #endif
 
 #ifndef TORRENT_AIO_SIGNAL

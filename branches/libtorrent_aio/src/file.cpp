@@ -1946,15 +1946,17 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
+			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 			int ret;
+			DLOG(stderr, "aio_%s()\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write");
 			switch (aios->cb.aio_lio_opcode)
 			{
 				case file::read_op: ret = aio_read(&aios->cb); break;
 				case file::write_op: ret = aio_write(&aios->cb); break;
 				default: TORRENT_ASSERT(false);
 			}
-			DLOG(stderr, " aio_%s() = %d\n", aios->cb.aio_lio_opcode == file::read_op
-				? "read" : "write", ret);
+			DLOG(stderr, "  = %d\n", ret);
 
 			if (ret == -1)
 			{
@@ -2192,6 +2194,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
+			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 			int ret;
 			switch (aios->cb.aio_lio_opcode)
 			{

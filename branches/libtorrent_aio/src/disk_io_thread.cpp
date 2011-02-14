@@ -49,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
 
+#if TORRENT_USE_SIGNALFD
+#include <sys/signalfd.h>
+#endif
+
 #ifdef TORRENT_BSD
 #include <sys/sysctl.h>
 #endif
@@ -199,7 +203,7 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
 	// that if there are more than one instances of libtorrent
@@ -245,11 +249,28 @@ namespace libtorrent
 		, m_completion_port(CreateIoCompletionPort(INVALID_HANDLE_VALUE
 			, NULL, 0, 1))
 #endif
+#if TORRENT_USE_SIGNALFD
+		, m_event_fd(eventfd(0, 0))
+		// #error do error handling of this fd
+#endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 		// don't do anything in here. Essentially all members
 		// of this object are owned by the newly created thread.
 		// initialize stuff in thread_fun().
+#if TORRENT_USE_SIGNALFD
+		// however, we need another signalfd in this thread since
+		// some of the notification signals are sent to this thread
+		sigset_t mask;
+		sigemptyset(&mask);
+		sigaddset(&mask, TORRENT_AIO_SIGNAL);
+
+		m_signal_fd[1] = signalfd(-1, &mask, SFD_NONBLOCK);
+		if (pthread_sigmask(SIG_BLOCK, &mask, 0) == -1)
+		{
+			TORRENT_ASSERT(false);
+		}
+#endif
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -264,6 +285,13 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
+
+#if TORRENT_USE_SIGNALFD
+		close(m_signal_fd[0]);
+		close(m_signal_fd[1]);
+		close(m_event_fd);
+#endif
+
 #elif TORRENT_USE_OVERLAPPED
 		CloseHandle(m_completion_port);
 #endif
@@ -297,11 +325,12 @@ namespace libtorrent
 
 	int disk_io_thread::try_flush(block_cache::iterator p, int limit)
 	{
-		DLOG(stderr, "[%p] try_flush: %d\n", this, int(p->piece));
 		int start_of_run = 0;
 		int i = 0;
 		limit = (std::min)(limit, int(p->blocks_in_piece));
 		int ret = 0;
+		DLOG(stderr, "[%p] try_flush: %d blocks: %d limit: %d\n"
+			, this, int(p->piece), int(p->blocks_in_piece), int(limit));
 
 		for (; i < p->blocks_in_piece; ++i)
 		{
@@ -1492,12 +1521,17 @@ namespace libtorrent
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
+#elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
+		boost::uint64_t dummy = 1;
+		int len = write(m_event_fd, &dummy, sizeof(dummy));
+		DLOG(stderr, "write(m_event_fd) = %d [%p]\n", len, this);
+		TORRENT_ASSERT(len == sizeof(dummy));
 #else
 		g_job_sem.signal();
 #endif
 	}
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
 
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
@@ -1506,26 +1540,8 @@ namespace libtorrent
 		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
-		// #error on linux, use a signalfd() instead of g_job_sem
 		g_job_sem.signal();
 	}
-/*
-#elif TORRENT_USE_OVERLAPPED
-
-	// #error this could be optimized by calling the callback right away
-	// instead of iterating over all outstanding jobs
-	void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped)
-	{
-		// wake up the disk thread to
-		// make it handle these completed jobs
-		file::aiocb_t* aio = (file::aiocb_t*)overlapped;
-		DLOG(stderr, "pass on aiocb pointer (%p) to disk thread\n", aio);
-
-		HANDLE pipe = *((HANDLE*)aio->userdata);
-		DWORD num_written;
-		WriteFile(pipe, &aio, sizeof(aio), &num_written, 0);
-	}
-*/
 #endif
 
 	void disk_io_thread::thread_fun()
@@ -1595,18 +1611,32 @@ namespace libtorrent
 #endif
 		m_disk_cache.set_max_size(m_settings.cache_size);
 
+#if TORRENT_USE_AIO
 #if defined BOOST_HAS_PTHREADS
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, TORRENT_AIO_SIGNAL);
 
+// if we're using signalfd, we don't want a signal handler to catch our
+// signal, but our file descriptor to swallow all of them
+#if TORRENT_USE_SIGNALFD
+		m_signal_fd[0] = signalfd(-1, &mask, SFD_NONBLOCK);
+		// #error do error handling of this fd
+
+		if (pthread_sigmask(SIG_BLOCK, &mask, 0) == -1)
+		{
+			TORRENT_ASSERT(false);
+		}
+#else
 		if (pthread_sigmask(SIG_UNBLOCK, &mask, 0) == -1)
 		{
 			TORRENT_ASSERT(false);
 		}
 #endif
+#endif // BOOST_HAS_PTHREADS
+#endif // TORRENT_USE_AIO
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
 		struct sigaction sa;
 
 		sa.sa_flags = SA_SIGINFO | SA_RESTART;
@@ -1617,8 +1647,8 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
-#endif
 		int last_completed_aios = 0;
+#endif
 
 		do
 		{
@@ -1656,16 +1686,87 @@ namespace libtorrent
 					break;
 				}
 				TORRENT_ASSERT(found);
-#endif
+#endif // TORRENT_DEBUG
 				file::aiocb_t* next = aio->next;
 				bool removed = reap_aio(aio, m_aiocb_pool);
 				if (removed && m_in_progress == aio) m_in_progress = next;
-				DLOG(stderr, "overlapped = %p removed = %d [%p]\n", ol, removed, this);
+				DLOG(stderr, "[%p] overlapped = %p removed = %d\n", this, ol, removed);
 				continue;
 			}
 			// this should only happen for our own posted
 			// events from add_job()
 //			TORRENT_ASSERT(key == 1);
+#elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
+			// wait either for a signal coming in through the 
+			// signalfd or an add-job even coming in through
+			// the eventfd
+			fd_set set;
+			FD_ZERO(&set);
+			FD_SET(m_signal_fd[0], &set);
+			FD_SET(m_signal_fd[1], &set);
+			FD_SET(m_event_fd, &set);
+			DLOG(stderr, "[%p] select(m_signal_fd, m_event_fd)\n", this);
+			int ret = select((std::max)((std::max)(m_signal_fd[0], m_signal_fd[1]), m_event_fd) + 1, &set, 0, 0, 0);
+			DLOG(stderr, "[%p]  = %d\n", this, ret);
+			bool new_job = false;
+			if (FD_ISSET(m_event_fd, &set))
+			{
+				// yes, there's a new job available
+				boost::uint64_t dummy;
+				int len = read(m_event_fd, &dummy, sizeof(dummy));
+				TORRENT_ASSERT(len == sizeof(dummy));
+				new_job = true;
+			}
+			for (int i = 0; i < 2; ++i) {
+			if (FD_ISSET(m_signal_fd[i], &set))
+			{
+				int len = 0;
+				signalfd_siginfo sigbuf[30];
+				do
+				{
+					len = read(m_signal_fd[i], sigbuf, sizeof(sigbuf));
+					if (len <= 0)
+					{
+						error_code ec(errno, get_system_category());
+						DLOG(stderr, "[%p] read() = %d %s\n", this, len, ec.message().c_str());
+						break;
+					}
+					DLOG(stderr, "[%p] read() = %d\n", this, len);
+					TORRENT_ASSERT((len % sizeof(signalfd_siginfo)) == 0);
+					for (int i = 0; i < len / sizeof(signalfd_siginfo); ++i)
+					{
+						signalfd_siginfo* siginfo = &sigbuf[i];
+						// this is not an AIO signal.
+						if (siginfo->ssi_signo != TORRENT_AIO_SIGNAL) continue;
+						// the userdata pointer in our iocb requests is the pointer
+						// to our aiocb_t link
+						file::aiocb_t* aio = (file::aiocb_t*)siginfo->ssi_ptr;
+						TORRENT_ASSERT(m_aiocb_pool.is_from(aio));
+#ifdef TORRENT_DEBUG
+						// make sure we only get pointers that
+						// actually point to our structures, and nothing else
+						bool found = false;
+						for (file::aiocb_t* i = m_in_progress; i; i = i->next)
+						{
+							if (i != aio) continue;
+							found = true;
+							break;
+						}
+						TORRENT_ASSERT(found);
+#endif // TORRENT_DEBUG
+						file::aiocb_t* next = aio->next;
+						bool removed = reap_aio(aio, m_aiocb_pool);
+						if (removed && m_in_progress == aio) m_in_progress = next;
+						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+					}
+					// if we filled our signal buffer, read again
+					// until we read less than our max
+				} while (len == sizeof(sigbuf));
+			}
+			}
+			// if didn't receive a message waking us up because we have new jobs
+			// go back to sleep waiting for more signals
+			if (!new_job) continue;
 #else
 			DLOG(stderr, "sem_wait() [%p]\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
@@ -1699,6 +1800,7 @@ namespace libtorrent
 			mutex::scoped_lock l(m_job_mutex);
 			jobs.swap(m_queued_jobs);
 			l.unlock();
+			DLOG(stderr, "%d new jobs\n", int(jobs.size()));
 
 			// go through list of newly submitted jobs
 			// and perform the appropriate action
@@ -1764,7 +1866,7 @@ namespace libtorrent
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.
 		m_work.reset();
-		DLOG(stderr, "exiting disk thread [%p]\n", this);
+		DLOG(stderr, "[%p] exiting disk thread\n", this);
 
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_file_pool.clear_thread_owner();
