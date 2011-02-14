@@ -98,7 +98,7 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 #endif
 }
 
-#elif defined __APPLE__ && defined __MACH__
+#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 // mac specifics
 
 #include <copyfile.h>

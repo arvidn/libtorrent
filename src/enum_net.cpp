@@ -107,7 +107,7 @@ namespace libtorrent { namespace
 
 	int sockaddr_len(sockaddr const* sin)
 	{
-#if defined TORRENT_WINDOWS || TORRENT_MINGW || defined TORRENT_LINUX
+#if defined TORRENT_WINDOWS || defined TORRENT_MINGW || defined TORRENT_LINUX
 		return sin->sa_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
 #else
 		return sin->sa_len;
