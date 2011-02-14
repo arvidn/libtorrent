@@ -3356,10 +3356,12 @@ namespace libtorrent
 			++m_ses.m_uninteresting_peers;
 		
 		if (ec == error_code(errors::timed_out_inactivity)
-			|| ec == error_code(errors::timed_out_no_handshake)
 			|| ec == error_code(errors::timed_out_no_request)
 			|| ec == error_code(errors::timed_out_no_interest))
 			++m_ses.m_timeout_peers;
+
+		if (ec == error_code(errors::timed_out_no_handshake))
+			++m_ses.m_connect_timeouts;
 #endif
 
 		// we cannot do this in a constructor
