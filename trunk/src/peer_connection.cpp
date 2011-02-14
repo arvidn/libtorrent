@@ -3350,14 +3350,16 @@ namespace libtorrent
 		if (ec == error::eof) ++m_ses.m_eof_peers;
 		if (ec == error_code(errors::upload_upload_connection)
 			|| ec == error_code(errors::uninteresting_upload_peer)
-			|| ec == error_code(errors::timed_out_inactivity)
-			|| ec == error_code(errors::timed_out_no_handshake)
-			|| ec == error_code(errors::timed_out_no_request)
-			|| ec == error_code(errors::timed_out_no_interest)
 			|| ec == error_code(errors::torrent_aborted)
 			|| ec == error_code(errors::self_connection)
 			|| ec == error_code(errors::torrent_paused))
 			++m_ses.m_uninteresting_peers;
+		
+		if (ec == error_code(errors::timed_out_inactivity)
+			|| ec == error_code(errors::timed_out_no_handshake)
+			|| ec == error_code(errors::timed_out_no_request)
+			|| ec == error_code(errors::timed_out_no_interest))
+			++m_ses.m_timeout_peers;
 #endif
 
 		// we cannot do this in a constructor

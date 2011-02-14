@@ -808,6 +808,7 @@ namespace aux {
 		m_snubbed_piece_picks = 0;
 		m_connect_timeouts = 0;
 		m_uninteresting_peers = 0;
+		m_timeout_peers = 0;
 		rotate_stats_log();
 #endif
 #ifdef TORRENT_DISK_STATS
@@ -913,6 +914,7 @@ namespace aux {
 			":snubbed piece picks"
 			":connect timeouts"
 			":uninteresting peers disconnect"
+			":timeout peers"
 			":% failed payload bytes"
 			":% wasted payload bytes"
 			":% protocol bytes"
@@ -2690,7 +2692,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(upload_rate)
@@ -2751,6 +2753,7 @@ namespace aux {
 				, m_snubbed_piece_picks
 				, m_connect_timeouts
 				, m_uninteresting_peers
+				, m_timeout_peers
 				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
 				, (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download())
 				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
@@ -2772,6 +2775,7 @@ namespace aux {
 		m_snubbed_piece_picks = 0;
 		m_connect_timeouts = 0;
 		m_uninteresting_peers = 0;
+		m_timeout_peers = 0;
 #endif
 
 		// --------------------------------------------------------------
