@@ -144,7 +144,7 @@ get_out:
 		if (prime) BN_free(prime);
 #elif defined TORRENT_USE_TOMMATH
 		// create local key
-		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
+		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
 			m_dh_local_secret[i] = rand();
 
 		mp_int prime;

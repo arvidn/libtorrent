@@ -252,7 +252,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl) userdata = &m_ssl_ctx;
 #endif
-		bool ret = instantiate_connection(m_resolver.get_io_service()
+		instantiate_connection(m_resolver.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata);
 
 		if (m_bind_addr != address_v4::any())
