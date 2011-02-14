@@ -55,7 +55,7 @@ gen_report('peer_ul_rates2', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', '
 gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
 gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up'])
 gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down'])
-gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset'])
+gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset' 'connect timeouts', 'uninteresting peers disconnect'])
 gen_report('piece_picker_end_game', ['end game piece picker blocks', 'strict end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
 gen_report('piece_picker', ['piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
 gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'])

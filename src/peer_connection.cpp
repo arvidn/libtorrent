@@ -2021,7 +2021,7 @@ namespace libtorrent
 
 				if (m_choke_rejects > m_ses.settings().max_rejects)
 				{
-					disconnect(errors::too_many_requests_when_choked);
+					disconnect(errors::too_many_requests_when_choked, 2);
 					return;
 				}
 				else if ((m_choke_rejects & 0xf) == 0)
@@ -3268,11 +3268,17 @@ namespace libtorrent
 		(*m_ses.m_logger) << "CONNECTION FAILED: " << print_endpoint(m_remote) << "\n";
 #endif
 
+#ifdef TORRENT_STATS
+		++m_ses.m_connect_timeouts;
+#endif
+
 		if (m_connection_ticket != -1)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
 			m_connecting = false;
 		}
+
+		TORRENT_ASSERT(m_connecting);
 
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
@@ -3342,6 +3348,16 @@ namespace libtorrent
 		if (error == 2) ++m_ses.m_error_peers;
 		if (ec == error::connection_reset) ++m_ses.m_connreset_peers;
 		if (ec == error::eof) ++m_ses.m_eof_peers;
+		if (ec == error_code(errors::upload_upload_connection)
+			|| ec == error_code(errors::uninteresting_upload_peer)
+			|| ec == error_code(errors::timed_out_inactivity)
+			|| ec == error_code(errors::timed_out_no_handshake)
+			|| ec == error_code(errors::timed_out_no_request)
+			|| ec == error_code(errors::timed_out_no_interest)
+			|| ec == error_code(errors::torrent_aborted)
+			|| ec == error_code(errors::self_connection)
+			|| ec == error_code(errors::torrent_paused))
+			++m_ses.m_uninteresting_peers;
 #endif
 
 		// we cannot do this in a constructor

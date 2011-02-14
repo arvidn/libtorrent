@@ -888,6 +888,8 @@ namespace libtorrent
 			int m_incoming_piece_picks;
 			int m_end_game_piece_picks;
 			int m_snubbed_piece_picks;
+			int m_connect_timeouts;
+			int m_uninteresting_peers;
 #endif
 
 			// each second tick the timer takes a little
