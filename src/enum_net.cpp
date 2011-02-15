@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 #endif
 
 namespace libtorrent { namespace
@@ -279,6 +281,34 @@ namespace libtorrent { namespace
 	}
 #endif
 
+#if defined TORRENT_LINUX
+	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv, error_code& ec)
+	{
+		int family = ifa->ifa_addr->sa_family;
+
+		if (family != AF_INET
+#if TORRENT_USE_IPV6
+			&& family != AF_INET6
+#endif
+		)
+		{
+			return false;
+		}
+
+		strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
+		rv.name[sizeof(rv.name)-1] = 0;
+
+		// determine address
+		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
+		// determine netmask
+		if (ifa->ifa_netmask != NULL)
+		{
+			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
+		}
+		return true;
+	}
+#endif
+
 }} // <anonymous>
 
 namespace libtorrent
@@ -302,7 +332,7 @@ namespace libtorrent
 			m = mask.to_v6().to_bytes();
 			for (int i = 0; i < b1.size(); ++i)
 				b1[i] &= m[i];
-			return memcmp(&b1[0], &b2[0], b1.size());
+			return memcmp(&b1[0], &b2[0], b1.size()) == 0;
 		}
 #endif
 		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
@@ -370,8 +400,53 @@ namespace libtorrent
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ret;
-// covers linux, MacOS X and BSD distributions
-#if defined TORRENT_LINUX || defined TORRENT_BSD || defined TORRENT_SOLARIS
+#if defined TORRENT_LINUX
+		int s = socket(AF_INET, SOCK_DGRAM, 0);
+		if (s < 0)
+		{
+			ec = error_code(errno, asio::error::system_category);
+			return ret;
+		}
+
+		ifaddrs *ifaddr;
+		if (getifaddrs(&ifaddr) == -1)
+		{
+			ec = error_code(errno, asio::error::system_category);
+			close(s);
+			return ret;
+		}
+
+		for (ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+		{
+			if (ifa->ifa_addr == 0) continue;
+			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
+
+			int family = ifa->ifa_addr->sa_family;
+			if (family == AF_INET
+#if TORRENT_USE_IPV6
+				|| family == AF_INET6
+#endif
+				)
+			{
+				ip_interface iface;
+				if (iface_from_ifaddrs(ifa, iface, ec))
+				{
+					ifreq req;
+					memset(&req, 0, sizeof(req));
+					strncpy(req.ifr_name, iface.name, IF_NAMESIZE);
+					if (ioctl(s, SIOCGIFMTU, &req) < 0)
+					{
+						continue;
+					}
+					iface.mtu = req.ifr_mtu;
+					ret.push_back(iface);
+				}
+			}
+		}
+		close(s);
+		freeifaddrs(ifaddr);
+// MacOS X, BSD and solaris
+#elif defined TORRENT_BSD || defined TORRENT_SOLARIS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
