@@ -78,6 +78,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 #endif
 
 namespace libtorrent { namespace
@@ -225,6 +227,34 @@ namespace libtorrent { namespace
 	}
 #endif
 
+#if defined TORRENT_LINUX
+	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv, error_code& ec)
+	{
+		int family = ifa->ifa_addr->sa_family;
+
+		if (family != AF_INET
+#if TORRENT_USE_IPV6
+			&& family != AF_INET6
+#endif
+		)
+		{
+			return false;
+		}
+
+		strncpy(rv.name, ifa->ifa_name, sizeof(rv.name));
+		rv.name[sizeof(rv.name)-1] = 0;
+
+		// determine address
+		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
+		// determine netmask
+		if (ifa->ifa_netmask != NULL)
+		{
+			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
+		}
+		return true;
+	}
+#endif
+
 }} // <anonymous>
 
 namespace libtorrent
@@ -258,8 +288,34 @@ namespace libtorrent
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ret;
-// covers linux, MacOS X and BSD distributions
-#if defined TORRENT_LINUX || defined TORRENT_BSD || defined TORRENT_SOLARIS
+#if defined TORRENT_LINUX
+		ifaddrs *ifaddr;
+		if (getifaddrs(&ifaddr) == -1)
+		{
+			ec = error_code(errno, asio::error::system_category);
+			return ret;
+		}
+
+		for (ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+		{
+			if (ifa->ifa_addr == 0) continue;
+			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
+
+			int family = ifa->ifa_addr->sa_family;
+			if (family == AF_INET
+#if TORRENT_USE_IPV6
+				|| family == AF_INET6
+#endif
+				)
+			{
+				ip_interface iface;
+				if (iface_from_ifaddrs(ifa, iface, ec))
+					ret.push_back(iface);
+			}
+		}
+		freeifaddrs(ifaddr);
+// MacOS X, BSD and solaris
+#elif defined TORRENT_BSD || defined TORRENT_SOLARIS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{

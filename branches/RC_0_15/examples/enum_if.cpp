@@ -92,7 +92,7 @@ int main()
 
 	std::cout << std::setiosflags(std::ios::left)
 		<< std::setw(35) << "address"
-		<< std::setw(18) << "netmask"
+		<< std::setw(45) << "netmask"
 		<< std::setw(18) << "name"
 		<< "flags"
 		<< std::endl;
@@ -102,7 +102,7 @@ int main()
 	{
 		std::cout << std::setiosflags(std::ios::left)
 			<< std::setw(35) << i->interface_address
-			<< std::setw(18) << i->netmask
+			<< std::setw(45) << i->netmask
 			<< std::setw(18) << i->name
 			<< (is_multicast(i->interface_address)?"multicast ":"")
 			<< (is_local(i->interface_address)?"local ":"")
