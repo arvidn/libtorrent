@@ -81,6 +81,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#endif
+
+#if TORRENT_USE_IFADDRS
 #include <ifaddrs.h>
 #endif
 
@@ -281,7 +284,7 @@ namespace libtorrent { namespace
 	}
 #endif
 
-#if defined TORRENT_LINUX
+#if TORRENT_USE_IFADDRS
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv, error_code& ec)
 	{
 		int family = ifa->ifa_addr->sa_family;
@@ -400,7 +403,7 @@ namespace libtorrent
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ret;
-#if defined TORRENT_LINUX
+#if TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -446,7 +449,7 @@ namespace libtorrent
 		close(s);
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
-#elif defined TORRENT_BSD || defined TORRENT_SOLARIS
+#elif defined TORRENT_LINUX || defined TORRENT_BSD || defined TORRENT_SOLARIS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -519,7 +522,7 @@ namespace libtorrent
 
 #if defined TORRENT_BSD
 			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#elif defined TORRENT_LINUX || defined TORRENT_SOLARIS
+#else
 			int current_size = sizeof(ifreq);
 #endif
 			ifr += current_size;

@@ -138,10 +138,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_IFADDRS 1
 
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+#define TORRENT_USE_IFADDRS 1
 
 // ==== MINGW ===
 #elif defined __MINGW32__
@@ -285,6 +287,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_RLIMIT
 #define TORRENT_USE_RLIMIT 1
+#endif
+
+#ifndef TORRENT_USE_IFADDRS
+#define TORRENT_USE_IFADDRS 0
 #endif
 
 #ifndef TORRENT_USE_IPV6
