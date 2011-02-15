@@ -362,7 +362,7 @@ namespace libtorrent
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					TORRENT_ASSERT(bytes_transferred >= chunk_start.left() - m_partial_chunk_header);
+					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.left() - m_partial_chunk_header));
 					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
 					m_statistics.received_bytes(0, chunk_start.left() - m_partial_chunk_header);
 					m_partial_chunk_header = chunk_start.left();
@@ -374,7 +374,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
-					TORRENT_ASSERT(bytes_transferred >= header_size - m_partial_chunk_header);
+					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
 					bytes_transferred -= header_size - m_partial_chunk_header;
 					m_statistics.received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;

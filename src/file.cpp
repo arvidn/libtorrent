@@ -1572,7 +1572,10 @@ namespace libtorrent
 			}
 #endif // F_PREALLOCATE
 
+#if defined TORRENT_LINUX || defined TORRENT_HAS_FALLOCATE
 			int ret;
+#endif
+
 #if defined TORRENT_LINUX
 			ret = my_fallocate(m_fd, 0, 0, s);
 			// if we return 0, everything went fine

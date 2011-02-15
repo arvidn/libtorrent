@@ -4984,11 +4984,10 @@ namespace libtorrent
 			return;
 		}
 
-		int max_receive = 0;
 		int num_loops = 0;
 		do
 		{
-			TORRENT_ASSERT(m_recv_pos + bytes_transferred <= m_packet_size);
+			TORRENT_ASSERT(int(m_recv_pos + bytes_transferred) <= m_packet_size);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< read %d bytes", int(bytes_transferred));
 #endif
@@ -5369,7 +5368,7 @@ namespace libtorrent
 
 	void peer_connection::check_invariant() const
 	{
-		TORRENT_ASSERT(m_queued_time_critical <= m_request_queue.size());
+		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
@@ -5400,7 +5399,6 @@ namespace libtorrent
 			int block_size = t->block_size();
 			piece_block last_block(ti.num_pieces()-1
 				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
-			int last_block_size = t->torrent_file().piece_size(ti.num_pieces()-1) - last_block.block_index * block_size;
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
