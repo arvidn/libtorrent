@@ -3272,13 +3272,13 @@ namespace libtorrent
 		++m_ses.m_connect_timeouts;
 #endif
 
+		TORRENT_ASSERT(m_connecting);
+
 		if (m_connection_ticket != -1)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
 			m_connecting = false;
 		}
-
-		TORRENT_ASSERT(m_connecting);
 
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
