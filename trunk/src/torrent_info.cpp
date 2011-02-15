@@ -481,6 +481,7 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
+			TORRENT_ASSERT(ret == 0);
 
 			lazy_entry const* pieces = m_info_dict.dict_find_string("pieces");
 			if (pieces && pieces->string_length() == m_files.num_pieces() * 20)

@@ -78,7 +78,6 @@ namespace libtorrent
 
 		shared_ptr<torrent> tor = t.lock();
 		TORRENT_ASSERT(tor);
-		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
 
 		// we always prefer downloading 1 MB chunks
 		// from web seeds
@@ -266,7 +265,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_DEBUG
-		size_type dl_target = m_statistics.last_payload_downloaded()
+		TORRENT_ASSERT(m_statistics.last_payload_downloaded()
+			+ m_statistics.last_protocol_downloaded() + bytes_transferred < size_t(INT_MAX));
+		int dl_target = m_statistics.last_payload_downloaded()
 			+ m_statistics.last_protocol_downloaded() + bytes_transferred;
 #endif
 

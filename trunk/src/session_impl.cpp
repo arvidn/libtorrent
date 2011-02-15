@@ -650,8 +650,8 @@ namespace aux {
 
 		char tmp[300];
 		snprintf(tmp, sizeof(tmp), "libtorrent configuration: %s\n"
-			"libtorrent version: %d\n"
-			"libtorrent revision: %d\n\n"
+			"libtorrent version: %s\n"
+			"libtorrent revision: %s\n\n"
 		  	, TORRENT_CFG_STRING
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);
@@ -988,7 +988,7 @@ namespace aux {
 
 		all_default_values def;
 
-		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
+		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
 		{
 			session_category const& c = all_settings[i];
 			if ((flags & c.flag) == 0) continue;
@@ -1070,7 +1070,7 @@ namespace aux {
 	  
 		if (e->type() != lazy_entry::dict_t) return;
 
-		for (int i = 0; i < sizeof(all_settings)/sizeof(all_settings[0]); ++i)
+		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
 		{
 			session_category const& c = all_settings[i];
 			settings = e->dict_find_dict(c.name);
@@ -2964,7 +2964,7 @@ namespace aux {
 			m_cache_rotation_timer = m_settings.explicit_cache_interval;
 
 			torrent_map::iterator least_recently_refreshed = m_torrents.begin();
-			if (m_next_explicit_cache_torrent >= m_torrents.size())
+			if (m_next_explicit_cache_torrent >= int(m_torrents.size()))
 				m_next_explicit_cache_torrent = 0;
 
 			std::advance(least_recently_refreshed, m_next_explicit_cache_torrent);
@@ -3528,7 +3528,6 @@ namespace aux {
 			{
 				if (!p->is_choked() && p->is_interesting())
 				{
-					policy::peer* pi = p->peer_info_struct();
 					if (!p->has_peer_choked())
 					{
 						// we're unchoked, we may want to lower our estimated

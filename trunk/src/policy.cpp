@@ -228,7 +228,7 @@ namespace libtorrent
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
 		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
-			&& p.num_have() + p.get_download_queue().size()
+			&& p.num_have() + int(p.get_download_queue().size())
 				< t.torrent_file().num_pieces())
 			|| dq.size() + rq.size() > 0;
 
@@ -1115,7 +1115,6 @@ namespace libtorrent
 	policy::peer* policy::add_i2p_peer(char const* destination, int src, char flags)
 	{
 		INVARIANT_CHECK;
-		aux::session_impl& ses = m_torrent->session();
 	
 		bool found = false;
 		iterator iter = std::lower_bound(
@@ -1205,10 +1204,6 @@ namespace libtorrent
 
 		iterator iter;
 		peer* p = 0;
-
-		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
 
 		bool found = false;
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
