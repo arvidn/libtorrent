@@ -1124,9 +1124,6 @@ namespace aux {
 
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 
-		if (m_settings.broadcast_lsd && m_lsd)
-			m_lsd->use_broadcast(true);
-
 		update_disk_thread_settings();
 
 		settings = e->dict_find_list("feeds");
@@ -1669,8 +1666,6 @@ namespace aux {
 			m_listen_sockets.clear();
 		}
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
-		if (m_settings.broadcast_lsd && m_lsd)
-			m_lsd->use_broadcast(true);
  
 		if (update_disk_io_thread)
 			update_disk_thread_settings();
@@ -4171,11 +4166,11 @@ namespace aux {
 		return m_listen_sockets.front().external_port;
 	}
 
-	void session_impl::announce_lsd(sha1_hash const& ih)
+	void session_impl::announce_lsd(sha1_hash const& ih, bool broadcast)
 	{
 		// use internal listen port for local peers
 		if (m_lsd.get())
-			m_lsd->announce(ih, m_listen_interface.port());
+			m_lsd->announce(ih, m_listen_interface.port(), broadcast);
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
@@ -4782,8 +4777,6 @@ namespace aux {
 		m_lsd = new lsd(m_io_service
 			, m_listen_interface.address()
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
-		if (m_settings.broadcast_lsd)
-			m_lsd->use_broadcast(true);
 	}
 	
 	natpmp* session_impl::start_natpmp()

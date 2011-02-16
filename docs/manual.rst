@@ -4985,7 +4985,9 @@ be changed individually later using
 if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
 broadcast its messages. This can be useful when running on networks
-that don't support multicast. It's off by default since it's inefficient.
+that don't support multicast. Since broadcast messages might be
+expensive and disruptive on networks, only every 8th announce uses
+broadcast.
 
 ``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
 ``enable_incoming_tcp`` all determines if libtorrent should attempt to make

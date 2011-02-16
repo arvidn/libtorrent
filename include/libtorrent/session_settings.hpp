@@ -226,7 +226,7 @@ namespace libtorrent
 			, strict_end_game_mode(true)
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
-			, broadcast_lsd(false)
+			, broadcast_lsd(true)
 			, enable_outgoing_utp(true)
 			, enable_incoming_utp(true)
 			, enable_outgoing_tcp(true)
