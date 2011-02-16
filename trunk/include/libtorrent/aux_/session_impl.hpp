@@ -174,7 +174,7 @@ namespace libtorrent
 #endif
 			void main_thread();
 
-			void open_listen_port(bool reuse_address);
+			void open_listen_port(int flags, error_code& ec);
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
@@ -260,8 +260,9 @@ namespace libtorrent
 			
 			void set_port_filter(port_filter const& f);
 
-			bool listen_on(
+			void  listen_on(
 				std::pair<int, int> const& port_range
+				, error_code& ec
 				, const char* net_interface = 0
 				, int flags = 0);
 			bool is_listening() const;
@@ -667,7 +668,7 @@ namespace libtorrent
 #endif
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries
-				, bool v6_only, bool reuse_address);
+				, bool v6_only, int flags, error_code& ec);
 
 			// the settings for the client
 			session_settings m_settings;
