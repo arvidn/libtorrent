@@ -1662,9 +1662,9 @@ int main(int argc, char* argv[])
 			, sess_stat.disk_read_queue
 			, (cs.blocks_written - cs.writes) * 100 / cs.blocks_written
 			, cs.blocks_read_hit * 100 / cs.blocks_read
-			, add_suffix(cs.cache_size * 16 * 1024).c_str()
-			, add_suffix(cs.read_cache_size * 16 * 1024).c_str()
-			, add_suffix(cs.total_used_buffers * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.cache_size) * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str()
 			, cs.queued_bytes);
 		out += str;
 
