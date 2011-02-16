@@ -69,7 +69,7 @@ namespace libtorrent
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;
-			std::map<std::string, std::string>::const_iterator i
+			std::multimap<std::string, std::string>::const_iterator i
 				= m_header.find(key);
 			if (i == m_header.end()) return empty;
 			return i->second;
@@ -115,7 +115,7 @@ namespace libtorrent
 		// reset the whole state and start over
 		void reset();
 
-		std::map<std::string, std::string> const& headers() const { return m_header; }
+		std::multimap<std::string, std::string> const& headers() const { return m_header; }
 		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
 		
 	private:
@@ -132,7 +132,7 @@ namespace libtorrent
 
 		enum { read_status, read_header, read_body, error_state } m_state;
 
-		std::map<std::string, std::string> m_header;
+		std::multimap<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;
 		int m_body_start_pos;
 

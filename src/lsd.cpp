@@ -176,43 +176,52 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (port_str.empty())
 	{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " <== announce: invalid BT-SEARCH, missing port" << std::endl;
+		m_log << time_now_string()
+			<< " <== announce: invalid BT-SEARCH, missing port" << std::endl;
 #endif
 		return;
 	}
 
-	std::string const& ih_str = p.header("infohash");
-	if (ih_str.empty())
-	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	m_log << time_now_string()
-		<< " <== announce: invalid BT-SEARCH, missing infohash" << std::endl;
-#endif
-		return;
-	}
-
-	sha1_hash ih(0);
-	from_hex(ih_str.c_str(), 40, (char*)&ih[0]);
 	int port = std::atoi(port_str.c_str());
 
-	if (!ih.is_all_zeros() && port != 0)
+	typedef std::multimap<std::string, std::string> headers_t;
+	headers_t const& headers = p.headers();
+	std::pair<headers_t::const_iterator, headers_t::const_iterator> ihs
+		= headers.equal_range("infohash");
+
+	for (headers_t::const_iterator i = ihs.first; i != ihs.second; ++i)
 	{
+		std::string const& ih_str = i->second;
+		if (ih_str.size() != 40)
+		{
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-		char msg[200];
-		snprintf(msg, 200, "%s *** incoming local announce %s:%d ih: %s\n"
-			, time_now_string(), print_address(from.address()).c_str()
-			, port, ih_str.c_str());
+			m_log << time_now_string()
+				<< " <== announce: invalid BT-SEARCH, invalid infohash: "
+				<< ih_str << std::endl;
 #endif
-		// we got an announce, pass it on through the callback
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
-			m_callback(tcp::endpoint(from.address(), port), ih);
-#ifndef BOOST_NO_EXCEPTIONS
+			continue;
 		}
-		catch (std::exception&) {}
+
+		sha1_hash ih(0);
+		from_hex(ih_str.c_str(), 40, (char*)&ih[0]);
+
+		if (!ih.is_all_zeros() && port != 0)
+		{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			char msg[200];
+			snprintf(msg, 200, "%s *** incoming local announce %s:%d ih: %s\n"
+				, time_now_string(), print_address(from.address()).c_str()
+				, port, ih_str.c_str());
 #endif
+			// we got an announce, pass it on through the callback
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				m_callback(tcp::endpoint(from.address(), port), ih);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
+		}
 	}
 }
 
