@@ -4304,6 +4304,7 @@ session_settings
 		bool no_connect_privileged_ports;
 		int alert_queue_size;
 		int max_metadata_size;
+		bool smooth_connects;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5136,6 +5137,12 @@ defaults to 1000.
 
 ``max_metadata_size`` is the maximum allowed size (in bytes) to be received
 by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
+
+``smooth_connects`` is true by default, which means the number of connection
+attempts per second may be limited to below the ``connection_speed``, in case
+we're close to bump up against the limit of number of connections. The intention
+of this setting is to more evenly distribute our connection attempts over time,
+instead of attempting to connectin in batches, and timing them out in batches.
 
 pe_settings
 ===========

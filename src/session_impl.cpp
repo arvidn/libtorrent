@@ -358,6 +358,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
+		TORRENT_SETTING(integer, smooth_connects)
 	};
 
 #undef TORRENT_SETTING
@@ -3019,6 +3020,13 @@ namespace aux {
 				m_boost_connections = 0;
 			}
 		}
+
+		// this logic is here to smooth out the number of new connection
+		// attempts over time, to prevent connecting a large number of
+		// sockets, wait 10 seconds, and then try again
+		int limit = (std::min)(m_settings.connections_limit - num_connections(), free_slots);
+		if (m_settings.smooth_connects && max_connections > (limit+1) / 2)
+			max_connections = (limit+1) / 2;
 
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()

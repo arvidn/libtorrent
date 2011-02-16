@@ -263,6 +263,7 @@ namespace libtorrent
 			, no_connect_privileged_ports(true)
 			, alert_queue_size(1000)
 			, max_metadata_size(1024*1024)
+			, smooth_connects(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1046,6 +1047,10 @@ namespace libtorrent
 		// the max allowed size for metadata received by the
 		// ut_metadata extension (i.e. magnet links)
 		int max_metadata_size;
+
+		// attempt to smooth out connects to avoid getting spikes in
+		// opening connections and timing out connections
+		bool smooth_connects;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
