@@ -317,10 +317,24 @@ namespace libtorrent
 		// this function will return false on failure.
 		// If it fails, it will also generate alerts describing
 		// the error. It will return true on success.
-		enum { listen_reuse_address = 1 };
+		enum
+		{
+			listen_reuse_address = 0x01,
+			listen_no_system_port = 0x02
+		};
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
+		TORRENT_DEPRECATED_PREFIX
 		bool listen_on(
 			std::pair<int, int> const& port_range
+			, const char* net_interface = 0
+			, int flags = 0) TORRENT_DEPRECATED;
+#endif
+
+		void listen_on(
+			std::pair<int, int> const& port_range
+			, error_code& ec
 			, const char* net_interface = 0
 			, int flags = 0);
 

@@ -306,6 +306,12 @@ namespace libtorrent
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	do { m_impl->cond.wait(l); } while(!done)
 
+#define TORRENT_SYNC_CALL4(x, a1, a2, a3, a4) \
+	bool done = false; \
+	mutex::scoped_lock l(m_impl->mut); \
+	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3, a4)))); \
+	do { m_impl->cond.wait(l); } while(!done)
+
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
@@ -648,12 +654,23 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(remove_torrent, h, options);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	bool session::listen_on(
 		std::pair<int, int> const& port_range
 		, const char* net_interface, int flags)
 	{
-		TORRENT_SYNC_CALL_RET3(bool, listen_on, port_range, net_interface, flags);
-		return r;
+		error_code ec;
+		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
+		return bool(ec);
+	}
+#endif
+
+	void session::listen_on(
+		std::pair<int, int> const& port_range
+		, error_code& ec
+		, const char* net_interface, int flags)
+	{
+		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
 	}
 
 	unsigned short session::listen_port() const

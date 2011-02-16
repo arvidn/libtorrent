@@ -207,9 +207,14 @@ The ``session`` class has the following synopsis::
 		bool is_listening() const;
 		unsigned short listen_port() const;
 
-		enum { listen_reuse_address = 1 };
-		bool listen_on(
+		enum { 
+			listen_reuse_address = 1,
+			listen_no_system_port = 2
+		};
+
+		void listen_on(
 			std::pair<int, int> const& port_range
+			, error_code& ec
 			, char const* interface = 0
 			, int flags = 0);
 
@@ -927,8 +932,15 @@ is_listening() listen_port() listen_on()
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
-		bool listen_on(
+
+		enum { 
+			listen_reuse_address = 1,
+			listen_no_system_port = 2
+		};
+
+		void listen_on(
 			std::pair<int, int> const& port_range
+			, error_code& ec
 			, char const* interface = 0
 			, int flags = 0);
 
@@ -946,12 +958,18 @@ will be opened with these new settings. The port range is the ports it will try
 to listen on, if the first port fails, it will continue trying the next port within
 the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
-of the interface you want the listener socket bound to. ``listen_on()`` returns true
-if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (listen_failed_alert_). If all ports in the specified
-range fails to be opened for listening, libtorrent will try to use port 0 (which
-tells the operating system to pick a port that's free). If that still fails you
-may see a listen_failed_alert_ with port 0 even if you didn't ask to listen on it.
+of the interface you want the listener socket bound to. ``listen_on()`` returns the
+error code of the operation in ``ec``. If this indicates success, the session is
+listening on a port within the specified range. If it fails, it will also
+generate an appropriate alert (listen_failed_alert_).
+
+If all ports in the specified range fails to be opened for listening, libtorrent will
+try to use port 0 (which tells the operating system to pick a port that's free). If
+that still fails you may see a listen_failed_alert_ with port 0 even if you didn't
+ask to listen on it.
+
+It is possible to prevent libtorrent from binding to port 0 by passing in the flag
+``session::no_system_port`` in the ``flags`` argument.
 
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on. If you don't specify an interface, libtorrent may attempt to

@@ -974,8 +974,8 @@ namespace aux {
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " open listen port\n";
 #endif
-		// no reuse_address
-		open_listen_port(false);
+		// no reuse_address and allow system defined port
+		open_listen_port(0, ec);
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		(*m_logger) << time_now_string() << " done starting session\n";
 #endif
@@ -1706,32 +1706,36 @@ namespace aux {
 	}
 
 	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
-		, int retries, bool v6_only, bool reuse_address)
+		, int retries, bool v6_only, int flags, error_code& ec)
 	{
-		error_code ec;
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		if (ec)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
 				<< ": " << ec.message() << "\n" << "\n";
-		}
 #endif
-		if (reuse_address)
-			s.sock->set_option(socket_acceptor::reuse_address(true), ec);
+			return listen_socket_t();
+		}
+		if (flags & session::listen_reuse_address)
+		{
+			error_code err; // ignore errors here
+			s.sock->set_option(socket_acceptor::reuse_address(true), err);
+		}
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
-			s.sock->set_option(v6only(v6_only), ec);
+			error_code err; // ignore errors here
+			s.sock->set_option(v6only(v6_only), err);
 #ifdef TORRENT_WINDOWS
 
 #ifndef PROTECTION_LEVEL_UNRESTRICTED
 #define PROTECTION_LEVEL_UNRESTRICTED 10
 #endif
 			// enable Teredo on windows
-			s.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), ec);
+			s.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif
 		}
 #endif
@@ -1744,15 +1748,15 @@ namespace aux {
 				, print_endpoint(ep).c_str(), ec.message().c_str());
 			(*m_logger) << time_now_string() << " " << msg << "\n";
 #endif
-			ec = error_code();
+			ec.clear();
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			ep.port(ep.port() + 1);
 			s.sock->bind(ep, ec);
 		}
-		if (ec)
+		if (ec && !(flags & session::listen_no_system_port))
 		{
-			// instead of giving up, try
+			// instead of giving up, trying
 			// let the OS pick a port
 			ep.port(0);
 			ec = error_code();
@@ -1772,7 +1776,7 @@ namespace aux {
 			return listen_socket_t();
 		}
 		s.external_port = s.sock->local_endpoint(ec).port();
-		s.sock->listen(m_settings.listen_queue_size, ec);
+		if (!ec) s.sock->listen(m_settings.listen_queue_size, ec);
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -1796,7 +1800,7 @@ namespace aux {
 		return s;
 	}
 	
-	void session_impl::open_listen_port(bool reuse_address)
+	void session_impl::open_listen_port(int flags, error_code& ec)
 	{
 		TORRENT_ASSERT(is_network_thread());
 
@@ -1814,14 +1818,13 @@ namespace aux {
 		
 			listen_socket_t s = setup_listener(
 				tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries, false, reuse_address);
+				, m_listen_port_retries, false, flags, ec);
 
 			if (s.sock)
 			{
 				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
 				// sockets can be bound to the same one
-				error_code ec;
 				m_listen_interface.port(s.sock->local_endpoint(ec).port());
 
 				m_listen_sockets.push_back(s);
@@ -1834,7 +1837,7 @@ namespace aux {
 			{
 				s = setup_listener(
 					tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true, reuse_address);
+					, m_listen_port_retries, true, flags, ec);
 
 				if (s.sock)
 				{
@@ -1864,7 +1867,7 @@ namespace aux {
 			// binds to the given interface
 
 			listen_socket_t s = setup_listener(
-				m_listen_interface, m_listen_port_retries, false, reuse_address);
+				m_listen_interface, m_listen_port_retries, false, flags, ec);
 
 			if (s.sock)
 			{
@@ -1876,10 +1879,8 @@ namespace aux {
 				else
 					m_ipv4_interface = m_listen_interface;
 			}
-
 		}
 
-		error_code ec;
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
@@ -4097,8 +4098,9 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
-	bool session_impl::listen_on(
+	void session_impl::listen_on(
 		std::pair<int, int> const& port_range
+		, error_code& ec
 		, const char* net_interface, int flags)
 	{
 		INVARIANT_CHECK;
@@ -4106,7 +4108,6 @@ namespace aux {
 		tcp::endpoint new_interface;
 		if (net_interface && std::strlen(net_interface) > 0)
 		{
-			error_code ec;
 			new_interface = tcp::endpoint(address::from_string(net_interface, ec), port_range.first);
 			if (ec)
 			{
@@ -4114,29 +4115,33 @@ namespace aux {
 				(*m_logger) << time_now_string() << "listen_on: " << net_interface
 					<< " failed: " << ec.message() << "\n";
 #endif
-				return false;
+				return;
 			}
 		}
 		else
+		{
 			new_interface = tcp::endpoint(address_v4::any(), port_range.first);
+		}
 
 		m_listen_port_retries = port_range.second - port_range.first;
 
 		// if the interface is the same and the socket is open
 		// don't do anything
 		if (new_interface == m_listen_interface
-			&& !m_listen_sockets.empty()) return true;
+			&& !m_listen_sockets.empty())
+		{
+			TORRENT_ASSERT(ec);
+			return;
+		}
 
 		m_listen_interface = new_interface;
 
-		open_listen_port(flags & session::listen_reuse_address);
+		open_listen_port(flags, ec);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
 #endif
-
-		return !m_listen_sockets.empty();
 	}
 
 	address session_impl::listen_address() const
@@ -4373,7 +4378,10 @@ namespace aux {
 		INVARIANT_CHECK;
 
 		if (m_listen_interface.port() != 0)
-			open_listen_port(false);
+		{
+			error_code ec;
+			open_listen_port(0, ec);
+		}
 
 		if (m_dht)
 		{
