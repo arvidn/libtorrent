@@ -392,7 +392,7 @@ restart_response:
 				// add them to the headers in the parser
 				for (std::map<std::string, std::string>::const_iterator i = tail_headers.begin();
 					i != tail_headers.end(); ++i)
-					m_header[i->first] = i->second;
+					m_header.insert(std::make_pair(i->first, i->second));
 
 				return true;
 			}

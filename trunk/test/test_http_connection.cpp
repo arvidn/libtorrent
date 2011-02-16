@@ -57,7 +57,7 @@ void print_http_header(http_parser const& p)
 {
 	std::cerr << " < " << p.status_code() << " " << p.message() << std::endl;
 
-	for (std::map<std::string, std::string>::const_iterator i
+	for (std::multimap<std::string, std::string>::const_iterator i
 		= p.headers().begin(), end(p.headers().end()); i != end; ++i)
 	{
 		std::cerr << " < " << i->first << ": " << i->second << std::endl;

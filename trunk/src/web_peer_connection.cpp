@@ -362,8 +362,8 @@ namespace libtorrent
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
-				std::map<std::string, std::string> const& headers = m_parser.headers();
-				for (std::map<std::string, std::string>::const_iterator i = headers.begin()
+				std::multimap<std::string, std::string> const& headers = m_parser.headers();
+				for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
 					, end(headers.end()); i != end; ++i)
 					peer_log("   %s: %s", i->first.c_str(), i->second.c_str());
 #endif
