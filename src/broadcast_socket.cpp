@@ -241,7 +241,7 @@ namespace libtorrent
 		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
 			, end(m_unicast_sockets.end()); i != end; ++i)
 		{
-			if (i->socket) continue;
+			if (!i->socket) continue;
 			i->socket->set_option(option, ec);
 		}
 	}
