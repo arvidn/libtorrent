@@ -403,6 +403,7 @@ namespace libtorrent
 		, m_interface_index(0)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
+		, m_lsd_seq(0)
 	{
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
 
@@ -1679,7 +1680,9 @@ namespace libtorrent
 		if (is_paused()) return;
 
 		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file->info_hash());
+		m_ses.announce_lsd(m_torrent_file->info_hash()
+			, m_ses.settings().broadcast_lsd && m_lsd_seq == 0);
+		++m_lsd_seq;
 	}
 
 #ifndef TORRENT_DISABLE_DHT

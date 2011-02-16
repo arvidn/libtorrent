@@ -61,10 +61,8 @@ public:
 
 //	void rebind(address const& listen_interface);
 
-	void announce(sha1_hash const& ih, int listen_port);
+	void announce(sha1_hash const& ih, int listen_port, bool broadcast = false);
 	void close();
-
-	void use_broadcast(bool b);
 
 private:
 

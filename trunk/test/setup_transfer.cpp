@@ -251,14 +251,17 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p)
+	, add_torrent_params const* p, bool stop_lsd)
 {
 	assert(ses1);
 	assert(ses2);
 
-	ses1->stop_lsd();
-	ses2->stop_lsd();
-	if (ses3) ses3->stop_lsd();
+	if (stop_lsd)
+	{
+		ses1->stop_lsd();
+		ses2->stop_lsd();
+		if (ses3) ses3->stop_lsd();
+	}
 
 	session_settings sess_set = ses1->settings();
 	if (ses3) sess_set.allow_multiple_connections_per_ip = true;

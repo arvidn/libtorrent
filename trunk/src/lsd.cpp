@@ -82,7 +82,7 @@ lsd::lsd(io_service& ios, address const& listen_interface
 
 lsd::~lsd() {}
 
-void lsd::announce(sha1_hash const& ih, int listen_port)
+void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 {
 	if (m_disabled) return;
 
@@ -98,6 +98,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 
 	m_retry_count = 1;
 	error_code ec;
+	m_socket.enable_ip_broadcast(broadcast);
 	m_socket.send(msg, msg_len, ec);
 	if (ec)
 	{
@@ -117,7 +118,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("lsd::resend_announce");
 #endif
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1
 		, std::string(msg)));
 }
@@ -130,16 +131,17 @@ void lsd::resend_announce(error_code const& e, std::string msg)
 	if (e) return;
 
 	error_code ec;
+	// don't broadcast resends
+	m_socket.enable_ip_broadcast(false);
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 
 	++m_retry_count;
-	if (m_retry_count >= 5)
-		return;
+	if (m_retry_count >= 3) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("lsd::resend_announce");
 #endif
-	m_broadcast_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
+	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1, msg));
 }
 
@@ -232,10 +234,5 @@ void lsd::close()
 	m_broadcast_timer.cancel(ec);
 	m_disabled = true;
 	m_callback.clear();
-}
-
-void lsd::use_broadcast(bool b)
-{
-	m_socket.enable_ip_broadcast(b);
 }
 

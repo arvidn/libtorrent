@@ -58,7 +58,8 @@ void test_lsd()
 	torrent_handle tor2;
 
 	using boost::tuples::ignore;
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, false, "_lsd");
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, false, "_lsd"
+		, 16 * 1024, 0, false, 0, false);
 
 	for (int i = 0; i < 30; ++i)
 	{

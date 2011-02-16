@@ -1279,6 +1279,10 @@ namespace libtorrent
 		// and set this to false. We only do this once to get
 		// the torrent kick-started
 		bool m_need_connect_boost:1;
+
+		// rotating sequence number for LSD announces sent out.
+		// used to only use IP broadcast for every 8th lsd announce
+		boost::uint8_t m_lsd_seq:3;
 	};
 }
 
