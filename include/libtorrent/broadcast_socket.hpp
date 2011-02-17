@@ -70,7 +70,9 @@ namespace libtorrent
 			, receive_handler_t const& handler, bool loopback = true);
 		~broadcast_socket() { close(); }
 
-		void send(char const* buffer, int size, error_code& ec);
+		enum flags_t { broadcast = 1 };
+		void send(char const* buffer, int size, error_code& ec, int flags = 0);
+
 		void close();
 		int num_send_sockets() const { return m_unicast_sockets.size(); }
 		void enable_ip_broadcast(bool e);
@@ -80,18 +82,26 @@ namespace libtorrent
 		struct socket_entry
 		{
 			socket_entry(boost::shared_ptr<datagram_socket> const& s)
-				: socket(s) {}
+				: socket(s), broadcast(false) {}
 			socket_entry(boost::shared_ptr<datagram_socket> const& s
-				, address_v4 const& mask): socket(s), netmask(mask) {}
+				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false) {}
 			boost::shared_ptr<datagram_socket> socket;
-			char buffer[1024];
+			char buffer[1500];
 			udp::endpoint remote;
 			address_v4 netmask;
+			bool broadcast;
 			void close()
 			{
 				if (!socket) return;
 				error_code ec;
 				socket->close(ec);
+			}
+			bool can_broadcast() const
+			{
+				error_code ec;
+				return broadcast
+					&& netmask != address_v4()
+					&& socket->local_endpoint(ec).address().is_v4();
 			}
 			address_v4 broadcast_address() const
 			{
@@ -118,12 +128,6 @@ namespace libtorrent
 		std::list<socket_entry> m_unicast_sockets;
 		udp::endpoint m_multicast_endpoint;
 		receive_handler_t m_on_receive;
-
-		// if set, use IP broadcast as well as IP multicast
-		// this is off by default because it's expensive in
-		// terms of bandwidth usage
-		bool m_ip_broadcast;
-		
 	};
 }
 	

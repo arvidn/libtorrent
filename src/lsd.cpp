@@ -98,8 +98,7 @@ void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 
 	m_retry_count = 1;
 	error_code ec;
-	m_socket.enable_ip_broadcast(broadcast);
-	m_socket.send(msg, msg_len, ec);
+	m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::broadcast : 0);
 	if (ec)
 	{
 		m_disabled = true;
@@ -131,8 +130,6 @@ void lsd::resend_announce(error_code const& e, std::string msg)
 	if (e) return;
 
 	error_code ec;
-	// don't broadcast resends
-	m_socket.enable_ip_broadcast(false);
 	m_socket.send(msg.c_str(), int(msg.size()), ec);
 
 	++m_retry_count;

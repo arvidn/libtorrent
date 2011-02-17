@@ -205,7 +205,6 @@ namespace libtorrent
 		, bool loopback)
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
-		, m_ip_broadcast(false)
 	{
 		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
@@ -232,28 +231,14 @@ namespace libtorrent
 			ec = error_code();
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifndef NDEBUG
-//			fprintf(stderr, "broadcast socket [ if: %s group: %s ] %s\n"
+//			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
 //				, i->interface_address.to_string().c_str()
-//				, print_address(multicast_endpoint.address()).c_str()
+//				, multicast_endpoint.address().to_string().c_str()
+//				, i->netmask.to_string().c_str()
 //				, ec.message().c_str());
 #endif
 			open_unicast_socket(ios, i->interface_address
 				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());
-		}
-	}
-
-	void broadcast_socket::enable_ip_broadcast(bool e)
-	{
-		if (e == m_ip_broadcast) return;
-		m_ip_broadcast = e;
-
-		asio::socket_base::broadcast option(m_ip_broadcast);
-		error_code ec;
-		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
-			, end(m_unicast_sockets.end()); i != end; ++i)
-		{
-			if (!i->socket) continue;
-			i->socket->set_option(option, ec);
 		}
 	}
 
@@ -294,8 +279,15 @@ namespace libtorrent
 		if (ec) return;
 		s->bind(udp::endpoint(addr, 0), ec);
 		if (ec) return;
+
 		m_unicast_sockets.push_back(socket_entry(s, mask));
 		socket_entry& se = m_unicast_sockets.back();
+
+		// allow sending broadcast messages
+		asio::socket_base::broadcast option(true);
+		s->set_option(option, ec);
+		if (!ec) se.broadcast = true;
+
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("broadcast_socket::on_receive");
 #endif
@@ -303,7 +295,7 @@ namespace libtorrent
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 	}
 
-	void broadcast_socket::send(char const* buffer, int size, error_code& ec)
+	void broadcast_socket::send(char const* buffer, int size, error_code& ec, int flags)
 	{
 		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
 			, end(m_unicast_sockets.end()); i != end; ++i)
@@ -311,6 +303,13 @@ namespace libtorrent
 			if (!i->socket) continue;
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+
+			// if the user specified the broadcast flag, send one to the broadcast
+			// address as well
+			if ((flags & broadcast_socket::broadcast) && i->can_broadcast())
+				i->socket->send_to(asio::buffer(buffer, size)
+					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
+
 #ifndef NDEBUG
 //			fprintf(stderr, " sending on unicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
 //				, print_endpoint(m_multicast_endpoint).c_str());
@@ -331,9 +330,6 @@ namespace libtorrent
 			if (!i->socket) continue;
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
-			if (m_ip_broadcast && i->socket->local_endpoint(e).address().is_v4())
-				i->socket->send_to(asio::buffer(buffer, size)
-					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 #ifndef NDEBUG
 //			extern std::string print_address(address const& addr);
 //			extern std::string print_endpoint(udp::endpoint const& ep);
