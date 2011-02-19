@@ -1486,8 +1486,8 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = receive_buffer();
 
 		lazy_entry root;
-		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root);
-		if (root.type() != lazy_entry::dict_t)
+		int ret = lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root);
+		if (ret != 0 || root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			(*m_logger) << "invalid extended handshake\n";
