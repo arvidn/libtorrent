@@ -5588,9 +5588,12 @@ namespace libtorrent
 				interesting_blocks.clear();
 				backup1.clear();
 				backup2.clear();
+				// specifically request blocks with no affinity towards fast or slow
+				// pieces. If we would, the picked block might end up in one of
+				// the backup lists
 				m_picker->add_blocks(i->piece, c.get_bitfield(), interesting_blocks
 					, backup1, backup2, 1, 0, c.peer_info_struct()
-					, ignore, piece_picker::fast, 0);
+					, ignore, piece_picker::none, 0);
 
 				std::vector<pending_block> const& rq = c.request_queue();
 
