@@ -558,7 +558,7 @@ namespace aux {
 		m_next_lsd_torrent = m_torrents.begin();
 		m_next_connect_torrent = m_torrents.begin();
 
-		TORRENT_ASSERT_VAL(listen_interface, listen_interface);
+		if (!listen_interface) listen_interface = "0.0.0.0";
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
 		TORRENT_ASSERT_VAL(!ec, ec);
 
