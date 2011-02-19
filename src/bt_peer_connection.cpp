@@ -1578,6 +1578,7 @@ namespace libtorrent
 					, ((error >= 0 && error < 4)?err_msg[error]:"unknown message id"));
 #endif
 				// #error deal with holepunch errors
+				(void)error;
 			} break;
 #if defined TORRENT_VERBOSE_LOGGING
 			default:
@@ -1672,9 +1673,23 @@ namespace libtorrent
 			return;
 		}
 
+		if (extended_id == share_mode_msg)
+		{
+			if (!packet_finished()) return;
+			bool sm = detail::read_uint8(recv_buffer.begin);
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== SHARE_MODE [ %s ]", (sm?"true":"false"));
+#endif
+			set_share_mode(sm);
+			return;
+		}
+
 		if (extended_id == holepunch_msg)
 		{
 			if (!packet_finished()) return;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== HOLEPUNCH");
+#endif
 			on_holepunch();
 			return;
 		}
@@ -1695,20 +1710,6 @@ namespace libtorrent
 		}
 #endif
 
-		if (extended_id == upload_only_msg)
-		{
-			if (!packet_finished()) return;
-			set_upload_only(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
-		if (extended_id == share_mode_msg)
-		{
-			if (!packet_finished()) return;
-			set_share_mode(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
 		disconnect(errors::invalid_message, 2);
 		return;
 	}
@@ -1725,8 +1726,8 @@ namespace libtorrent
 		lazy_entry root;
 		error_code ec;
 		int pos;
-		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
-		if (root.type() != lazy_entry::dict_t)
+		int ret = lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
+		if (ret != 0 || ec || root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** invalid extended handshake: %s pos: %d"
