@@ -363,7 +363,7 @@ namespace libtorrent
 		, m_finished_time(0)
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
-		, m_connections_initialized(p.ti)
+		, m_connections_initialized(p.ti && pti->is_valid())
 		, m_super_seeding(false)
 		, m_override_resume_data(p.override_resume_data)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -376,7 +376,8 @@ namespace libtorrent
 		, m_max_uploads(~0)
 		, m_deficit_counter(0)
 		, m_num_uploads(0)
-		, m_block_size_shift(root2(p.ti ? (std::min)(block_size, m_torrent_file->piece_length()) : block_size))
+		, m_block_size_shift(root2((p.ti && p.ti->is_valid())
+			? (std::min)(block_size, m_torrent_file->piece_length()) : block_size))
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_queued_for_checking(false)
@@ -437,7 +438,7 @@ namespace libtorrent
 #endif
 		INVARIANT_CHECK;
 
-		if (p.name && !p.ti) m_name.reset(new std::string(p.name));
+		if (p.name && (!p.ti || !p.ti->is_valid())) m_name.reset(new std::string(p.name));
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
 		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
