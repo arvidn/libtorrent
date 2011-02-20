@@ -363,7 +363,7 @@ namespace libtorrent
 		, m_finished_time(0)
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
-		, m_connections_initialized(p.ti && pti->is_valid())
+		, m_connections_initialized(p.ti && p.ti->is_valid())
 		, m_super_seeding(false)
 		, m_override_resume_data(p.override_resume_data)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
