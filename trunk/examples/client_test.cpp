@@ -918,7 +918,6 @@ int main(int argc, char* argv[])
 			"                        incoming TCP connections)\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
 			"                        this is useful for scripting tests\n"
-			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet link\n"
@@ -1983,6 +1982,7 @@ int main(int argc, char* argv[])
 		bencode(std::back_inserter(out), *rd->resume_data);
 		save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
 	}
+	if (g_log_file) fclose(g_log_file);
 	printf("\nsaving session state\n");
 	{
 		entry session_state;
