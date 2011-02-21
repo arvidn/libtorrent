@@ -73,6 +73,8 @@ struct observer : boost::noncopyable
 		, m_refs(0)
 		, m_algorithm(a)
 		, m_id(id)
+		, m_port(0)
+		, m_transaction_id()
 		, flags(0)
 	{
 		TORRENT_ASSERT(a);
@@ -92,7 +94,7 @@ struct observer : boost::noncopyable
 	// a few seconds, before the request has timed out
 	void short_timeout();
 
-	bool has_short_timeout() const { return flags & flag_short_timeout; }
+	bool has_short_timeout() const { return (flags & flag_short_timeout) != 0; }
 
 	// this is called when no reply has been received within
 	// some timeout

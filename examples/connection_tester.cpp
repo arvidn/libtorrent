@@ -61,7 +61,7 @@ struct peer_conn
 		, outstanding_requests(0)
 	{
 		// build a list of all pieces and request them all!
-		for (int i = 0; i < pieces.size(); ++i)
+		for (int i = 0; i < int(pieces.size()); ++i)
 			pieces[i] = i;
 		std::random_shuffle(pieces.begin(), pieces.end());
 

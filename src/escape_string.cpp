@@ -101,7 +101,7 @@ namespace libtorrent
 	bool is_space(char c)
 	{
 		const static char* ws = " \t\n\r\f\v";
-		return bool(std::strchr(ws, c));
+		return std::strchr(ws, c) != 0;
 	}
 
 	// generate a url-safe random string

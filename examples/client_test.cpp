@@ -774,7 +774,7 @@ void scan_dir(std::string const& dir_path
 
 torrent_status const& get_active_torrent(std::vector<torrent_status> const& torrents)
 {
-	if (active_torrent >= torrents.size()
+	if (active_torrent >= int(torrents.size())
 		|| active_torrent < 0) active_torrent = 0;
 	std::vector<torrent_status>::const_iterator i = torrents.begin();
 	std::advance(i, active_torrent);
@@ -817,7 +817,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
 	size_type written = f.writev(0, &b, 1, ec);
-	if (written != v.size()) return -3;
+	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;
 }
@@ -1153,7 +1153,12 @@ int main(int argc, char* argv[])
 	ses.set_proxy(ps);
 
 	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
-		, bind_to_interface.c_str());
+		, ec, bind_to_interface.c_str());
+	if (ec)
+	{
+		fprintf(stderr, "failed to listen on %s on ports %d-%d: %s\n"
+			, bind_to_interface.c_str(), listen_port, listen_port+1, ec.message().c_str());
+	}
 
 #ifndef TORRENT_DISABLE_DHT
 	if (start_dht)
@@ -1241,7 +1246,7 @@ int main(int argc, char* argv[])
 		handles.clear();
 		memset(counters, 0, sizeof(counters));
 		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-		if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+		if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
@@ -1272,7 +1277,7 @@ int main(int argc, char* argv[])
 						handles.clear();
 						memset(counters, 0, sizeof(counters));
 						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
 				}
@@ -1285,7 +1290,7 @@ int main(int argc, char* argv[])
 						handles.clear();
 						memset(counters, 0, sizeof(counters));
 						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
 				}
@@ -1299,7 +1304,7 @@ int main(int argc, char* argv[])
 				{
 					// arrow down
 					++active_torrent;
-					if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+					if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 				}
 			}
 
@@ -1469,7 +1474,7 @@ int main(int argc, char* argv[])
 			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
 		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking"};
-		for (int i = 0; i < sizeof(filter_names)/sizeof(filter_names[0]); ++i)
+		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 		{
 			char filter[200];
 			snprintf(filter, sizeof(filter), "%s[%s (%d)]%s", torrent_filter == i?esc("7"):""

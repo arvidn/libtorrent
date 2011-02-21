@@ -119,8 +119,8 @@ namespace libtorrent
 		// would otherwise point to one past the end
 		int correction = m_block_pos ? -1 : 0;
 		ret.block_index = (m_requests.front().start + m_block_pos + correction) / t->block_size();
-		TORRENT_ASSERT(ret.block_index < piece_block::invalid.block_index);
-		TORRENT_ASSERT(ret.piece_index < piece_block::invalid.piece_index);
+		TORRENT_ASSERT(ret.block_index < int(piece_block::invalid.block_index));
+		TORRENT_ASSERT(ret.piece_index < int(piece_block::invalid.piece_index));
 
 		ret.full_block_bytes = t->block_size();
 		const int last_piece = t->torrent_file().num_pieces() - 1;
@@ -292,7 +292,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(m_statistics.last_payload_downloaded()
-				+ m_statistics.last_protocol_downloaded() + bytes_transferred
+				+ m_statistics.last_protocol_downloaded() + int(bytes_transferred)
 				== dl_target);
 #endif
 
@@ -306,7 +306,7 @@ namespace libtorrent
 				bool error = false;
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
 				m_statistics.received_bytes(0, protocol);
-				TORRENT_ASSERT(bytes_transferred >= protocol);
+				TORRENT_ASSERT(int(bytes_transferred) >= protocol);
 				bytes_transferred -= protocol;
 
 				if (error)
@@ -335,7 +335,7 @@ namespace libtorrent
 					TORRENT_ASSERT(bytes_transferred == 0);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
-						+ m_statistics.last_protocol_downloaded() + bytes_transferred
+						+ m_statistics.last_protocol_downloaded() + int(bytes_transferred)
 						== dl_target);
 #endif
 					break;
@@ -347,7 +347,7 @@ namespace libtorrent
 					TORRENT_ASSERT(bytes_transferred == 0);
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(m_statistics.last_payload_downloaded()
-						+ m_statistics.last_protocol_downloaded() + bytes_transferred
+						+ m_statistics.last_protocol_downloaded() + int(bytes_transferred)
 						== dl_target);
 #endif
 					break;
@@ -547,7 +547,7 @@ namespace libtorrent
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					TORRENT_ASSERT(bytes_transferred >= chunk_start.left() - m_partial_chunk_header);
+					TORRENT_ASSERT(int(bytes_transferred) >= chunk_start.left() - m_partial_chunk_header);
 					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
 					m_statistics.received_bytes(0, chunk_start.left() - m_partial_chunk_header);
 					m_partial_chunk_header = chunk_start.left();
@@ -559,13 +559,14 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
-					TORRENT_ASSERT(bytes_transferred >= header_size - m_partial_chunk_header);
+					TORRENT_ASSERT(int(bytes_transferred) >= header_size - m_partial_chunk_header);
 					bytes_transferred -= header_size - m_partial_chunk_header;
 					m_statistics.received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
-					cut_receive_buffer(header_size, t->block_size() + 1024, m_body_start + m_chunk_pos);
+					TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
+					cut_receive_buffer(header_size, t->block_size() + 1024, int(m_body_start + m_chunk_pos));
 					recv_buffer = receive_buffer();
 					recv_buffer.begin += m_body_start;
 					m_chunk_pos += chunk_size;
@@ -581,8 +582,8 @@ namespace libtorrent
 				}
 			}
 
-			int left_in_response = range_end - range_start - m_range_pos;
-			int payload_transferred = (std::min)(left_in_response, int(bytes_transferred));
+			size_type left_in_response = range_end - range_start - m_range_pos;
+			int payload_transferred = int((std::min)(left_in_response, size_type(bytes_transferred)));
 
 			torrent_info const& info = t->torrent_file();
 
@@ -596,7 +597,7 @@ namespace libtorrent
 				, front_request.start, front_request.length);
 #endif
 			m_statistics.received_bytes(payload_transferred, 0);
-			TORRENT_ASSERT(bytes_transferred >= payload_transferred);
+			TORRENT_ASSERT(int(bytes_transferred) >= payload_transferred);
 			bytes_transferred -= payload_transferred;
 			m_range_pos += payload_transferred;
 			m_block_pos += payload_transferred;

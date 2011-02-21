@@ -67,15 +67,15 @@ TORRENT_DEFINE_LOG(rpc)
 
 void intrusive_ptr_add_ref(observer const* o)
 {
-	TORRENT_ASSERT(o->m_refs >= 0);
 	TORRENT_ASSERT(o != 0);
+	TORRENT_ASSERT(o->m_refs >= 0);
 	++o->m_refs;
 }
 
 void intrusive_ptr_release(observer const* o)
 {
-	TORRENT_ASSERT(o->m_refs > 0);
 	TORRENT_ASSERT(o != 0);
+	TORRENT_ASSERT(o->m_refs > 0);
 	if (--o->m_refs == 0)
 	{
 		boost::intrusive_ptr<traversal_algorithm> ta = o->m_algorithm;

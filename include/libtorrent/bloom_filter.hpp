@@ -35,11 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include "libtorrent/peer_id.hpp" // for sha1_hash
+#include "libtorrent/config.hpp" // for sha1_hash
 
 namespace libtorrent
 {
-	void set_bit(boost::uint32_t b, boost::uint8_t* bits, int len);
-	bool has_bit(boost::uint32_t b, boost::uint8_t const* bits, int len);
+	TORRENT_EXPORT void set_bit(boost::uint32_t b, boost::uint8_t* bits, int len);
+	TORRENT_EXPORT bool has_bit(boost::uint32_t b, boost::uint8_t const* bits, int len);
 
 	template <int N>
 	struct bloom_filter

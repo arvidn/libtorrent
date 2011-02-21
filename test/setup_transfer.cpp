@@ -275,7 +275,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
-	std::srand(time(0));
+	std::srand((unsigned int)time(0));
 	peer_id pid;
 	std::generate(&pid[0], &pid[0] + 20, std::rand);
 	ses1->set_peer_id(pid);
@@ -831,7 +831,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				break;
 			}
 
-			offset += p.body_start() + p.content_length();
+			offset += int(p.body_start() + p.content_length());
 //			fprintf(stderr, "offset: %d len: %d\n", offset, len);
 
 			if (p.method() != "get" && p.method() != "post")

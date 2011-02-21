@@ -146,7 +146,7 @@ namespace libtorrent
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
 		// in the chunk tail header or the next chunk header)
-		int m_cur_chunk_end;
+		size_type m_cur_chunk_end;
 
 		// the sum of all chunk headers read so far
 		int m_chunk_header_size;

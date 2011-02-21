@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	bool has_bit(boost::uint32_t b, boost::uint8_t const* bits, int len)
-	{ b %= len * 8; return bits[b/8] & (1 << (b & 7)); }
+	{ b %= len * 8; return (bits[b/8] & (1 << (b & 7))) != 0; }
 
 	void set_bit(boost::uint32_t b, boost::uint8_t* bits, int len)
 	{ b %= len * 8; bits[b/8] |= (1 << (b & 7)); }

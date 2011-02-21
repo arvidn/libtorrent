@@ -124,12 +124,13 @@ namespace
 
 	// returns the amount of free upload left after
 	// it has been distributed to the peers
-	size_type distribute_free_upload(
+	boost::uint32_t distribute_free_upload(
 		torrent::peer_iterator start
 		, torrent::peer_iterator end
 		, size_type free_upload)
 	{
-		if (free_upload <= 0) return free_upload;
+		TORRENT_ASSERT(free_upload >= 0);
+		if (free_upload <= 0) return 0;
 		int num_peers = 0;
 		size_type total_diff = 0;
 		for (torrent::peer_iterator i = start; i != end; ++i)
@@ -141,7 +142,7 @@ namespace
 			++num_peers;
 		}
 
-		if (num_peers == 0) return free_upload;
+		if (num_peers == 0) return boost::uint32_t(free_upload);
 		size_type upload_share;
 		if (total_diff >= 0)
 		{
@@ -151,7 +152,7 @@ namespace
 		{
 			upload_share = (free_upload + total_diff) / num_peers;
 		}
-		if (upload_share < 0) return free_upload;
+		if (upload_share < 0) return boost::uint32_t(free_upload);
 
 		for (torrent::peer_iterator i = start; i != end; ++i)
 		{
@@ -160,7 +161,7 @@ namespace
 			p->add_free_upload(upload_share);
 			free_upload -= upload_share;
 		}
-		return free_upload;
+		return (std::min)(free_upload, size_type(UINT_MAX));
 	}
 
 	struct find_peer_by_ip
@@ -526,7 +527,7 @@ namespace libtorrent
 		m_torrent_file = tf;
 		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), shared_from_this()));
 
-		TORRENT_ASSERT(num_torrents == m_ses.m_torrents.size());
+		TORRENT_ASSERT(num_torrents == int(m_ses.m_torrents.size()));
 
 		// if the user added any trackers while downloading the
 		// .torrent file, serge them into the new tracker list
@@ -1206,12 +1207,12 @@ namespace libtorrent
 			piece_block pb(pr.piece, pr.start / block);
 			for (; pr.length >= block; pr.length -= block, ++pb.block_index)
 			{
-				if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+				if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
 				m_picker->mark_as_finished(pb, 0);
 			}
 			// ugly edge case where padfiles are not used they way they're
 			// supposed to be. i.e. added back-to back or at the end
-			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+			if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
 			if (pr.length > 0 && ((boost::next(i) != end && boost::next(i)->pad_file)
 				|| boost::next(i) == end))
 			{
@@ -2876,14 +2877,14 @@ namespace libtorrent
 				, end(dq.end()); k != end; ++k)
 			{
 				if (k->timed_out || k->not_wanted) continue;
-				if (k->block.piece_index != index) continue;
+				if (int(k->block.piece_index) != index) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
 				, end(rq.end()); k != end; ++k)
 			{
-				if (k->block.piece_index != index) continue;
+				if (int(k->block.piece_index) != index) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, (piece_picker::piece_state_t)p->peer_speed());
 			}
@@ -3480,7 +3481,7 @@ namespace libtorrent
 		// in the torrent
 		TORRENT_ASSERT((int)bitmask.size() == m_torrent_file->num_files());
 
-		if (bitmask.size() != m_torrent_file->num_files()) return;
+		if (int(bitmask.size()) != m_torrent_file->num_files()) return;
 		
 		size_type position = 0;
 
@@ -3670,7 +3671,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 				TORRENT_ASSERT(p->share_diff() < (std::numeric_limits<size_type>::max)());
-				m_available_free_upload += p->share_diff();
+				add_free_upload(p->share_diff());
 			}
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
@@ -4824,7 +4825,7 @@ namespace libtorrent
 				, seconds(timeout));
 #ifndef BOOST_NO_EXCEPTIONS
 		}
-		catch (std::exception& e)
+		catch (std::exception&)
 		{
 			std::set<peer_connection*>::iterator i
 				= m_connections.find(boost::get_pointer(c));
@@ -4926,7 +4927,7 @@ namespace libtorrent
 			return false;
 		}
 
-		if (int(m_connections.size()) >= m_max_connections)
+		if (m_connections.size() >= m_max_connections)
 		{
 			p->disconnect(errors::too_many_connections);
 			return false;
@@ -4950,6 +4951,7 @@ namespace libtorrent
 		}
 		catch (std::exception& e)
 		{
+			(void)e;
 #if defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
 				<< p->remote() << " policy::new_connection threw: " << e.what() << "\n";
@@ -4977,7 +4979,7 @@ namespace libtorrent
 
 	bool torrent::want_more_peers() const
 	{
-		return int(m_connections.size()) < m_max_connections
+		return m_connections.size() < m_max_connections
 			&& !is_paused()
 			&& ((m_state != torrent_status::checking_files
 			&& m_state != torrent_status::checking_resume_data
@@ -5078,7 +5080,7 @@ namespace libtorrent
 			int num_conns = m_connections.size();
 #endif
 			p->disconnect(ec);
-			TORRENT_ASSERT(m_connections.size() == num_conns - 1);
+			TORRENT_ASSERT(int(m_connections.size()) == num_conns - 1);
 		}
 
 		return ret;
@@ -5458,7 +5460,7 @@ namespace libtorrent
 			if (associated_torrent != this && associated_torrent != 0)
 				TORRENT_ASSERT(false);
 		}
-		TORRENT_ASSERT(num_uploads == m_num_uploads);
+		TORRENT_ASSERT(num_uploads == int(m_num_uploads));
 
 		if (has_picker())
 		{
@@ -5657,7 +5659,7 @@ namespace libtorrent
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
 		m_max_connections = limit;
 
-		if (num_peers() > m_max_connections)
+		if (num_peers() > int(m_max_connections))
 		{
 			disconnect_peers(num_peers() - m_max_connections
 				, error_code(errors::too_many_connections, get_libtorrent_category()));
@@ -6100,8 +6102,6 @@ namespace libtorrent
 		if (m_allow_peers == b
 			&& m_graceful_pause_mode == graceful) return;
 
-		bool checking_files = should_check_files();
-
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
@@ -6128,7 +6128,6 @@ namespace libtorrent
 			&& m_announce_to_dht
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
-		bool checking_files = should_check_files();
 		m_allow_peers = true;
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
@@ -6337,8 +6336,8 @@ namespace libtorrent
 			{
 				// accumulate all the free download we get
 				// and add it to the available free upload
-				m_available_free_upload += collect_free_download(
-					this->begin(), this->end());
+				add_free_upload(collect_free_download(
+					this->begin(), this->end()));
 
 				// distribute the free upload among the peers
 				m_available_free_upload = distribute_free_upload(
@@ -6351,7 +6350,7 @@ namespace libtorrent
 		// if we're in upload only mode and we're auto-managed
 		// leave upload mode every 10 minutes hoping that the error
 		// condition has been fixed
-		if (m_upload_mode && m_auto_managed && m_upload_mode_time
+		if (m_upload_mode && m_auto_managed && int(m_upload_mode_time)
 			>= settings().optimistic_disk_retry)
 		{
 			set_upload_mode(false);
@@ -6444,6 +6443,7 @@ namespace libtorrent
 			}
 			catch (std::exception& e)
 			{
+				(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
 #endif
@@ -6541,7 +6541,7 @@ namespace libtorrent
 
 		// don't have more pieces downloading in parallel than 5% of the total
 		// number of pieces we have downloaded
-		if (m_picker->get_download_queue().size() > num_downloaded_pieces / 20)
+		if (int(m_picker->get_download_queue().size()) > num_downloaded_pieces / 20)
 			return;
 
 		// one more important property is that there are enough pieces
@@ -6567,8 +6567,8 @@ namespace libtorrent
 			}
 			// don't count pieces we already have or are downloading
 			if (!pp.filtered() || pp.have()) continue;
-			if (pp.peer_count > rarest_rarity) continue;
-			if (pp.peer_count == rarest_rarity)
+			if (int(pp.peer_count) > rarest_rarity) continue;
+			if (int(pp.peer_count) == rarest_rarity)
 			{
 				rarest_pieces.push_back(i);
 				continue;
@@ -7068,7 +7068,7 @@ namespace libtorrent
 
 				if (offset + block > file->offset + file->size)
 				{
-					int left_over = block_size() - block;
+					int left_over = int(block_size() - block);
 					// split the block on multiple files
 					while (block > 0)
 					{
@@ -7130,7 +7130,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!is_finished());
 #endif
 
-		if (m_state == s) return;
+		if (int(m_state) == s) return;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 		m_state = s;

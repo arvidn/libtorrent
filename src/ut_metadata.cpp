@@ -507,7 +507,7 @@ namespace libtorrent { namespace
 				// if we only have one block, and thus requested it from a single
 				// peer, we bump up the retry time a lot more to try other peers
 				bool single_peer = m_requested_metadata.size() == 1;
-				for (int i = 0; i < m_requested_metadata.size(); ++i)
+				for (int i = 0; i < int(m_requested_metadata.size()); ++i)
 				{
 					m_requested_metadata[i].num_requests = 0;
 					boost::shared_ptr<ut_metadata_peer_plugin> peer

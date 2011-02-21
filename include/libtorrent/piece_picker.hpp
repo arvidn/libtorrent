@@ -146,7 +146,9 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): finished(0), writing(0), requested(0) {}
+			downloading_piece(): state(none), index(-1), info(0)
+				, finished(0), writing(0), requested(0) {}
+
 			piece_state_t state;
 
 			// the index of the piece

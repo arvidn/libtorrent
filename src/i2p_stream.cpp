@@ -64,12 +64,13 @@ namespace libtorrent
 			"key not found"
 		};
 
-		if (ev < 0 || ev > i2p_error::num_errors) return "unknown error";
+		if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
 		return messages[ev];
 	}
 
 	i2p_connection::i2p_connection(io_service& ios)
-		: m_io_service(ios)
+		: m_state(sam_idle)
+		, m_io_service(ios)
 	{}
 
 	i2p_connection::~i2p_connection()
@@ -325,7 +326,7 @@ namespace libtorrent
 			}
 			else if (strcmp("VERSION", name) == 0)
 			{
-				version = atof(ptr);
+				version = float(atof(ptr));
 			}
 			else if (strcmp("VALUE", name) == 0)
 			{

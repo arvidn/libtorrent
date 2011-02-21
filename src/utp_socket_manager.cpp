@@ -202,7 +202,7 @@ namespace libtorrent
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
-		if (size < sizeof(utp_header)) return false;
+		if (size < int(sizeof(utp_header))) return false;
 
 		utp_header const* ph = (utp_header*)p;
 

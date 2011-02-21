@@ -286,7 +286,6 @@ namespace libtorrent
 		error_code const& error() const { return m_storage->error(); }
 		std::string const& error_file() const { return m_storage->error_file(); }
 		int last_piece() const { return m_last_piece; }
-		int last_operation() const { return m_last_op; }
 		void clear_error() { m_storage->clear_error(); }
 
 		int slot_for(int piece) const;
@@ -423,9 +422,6 @@ namespace libtorrent
 
 		// the last piece we wrote to or read from
 		int m_last_piece;
-
-		// the last operation we did (read or write)
-		int m_last_op;
 
 		// this is saved in case we need to instantiate a new
 		// storage (osed when remapping files)

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct torrent_handle;
-	struct session;
+	class session;
 
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);

@@ -126,10 +126,10 @@ namespace libtorrent
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts
-		int m_received_body;
+		size_type m_received_body;
 
 		// position in the current range response
-		int m_range_pos;
+		size_type m_range_pos;
 
 		// the position in the current block
 		int m_block_pos;
@@ -140,7 +140,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		int m_chunk_pos;
+		size_type m_chunk_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for

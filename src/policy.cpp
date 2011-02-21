@@ -551,7 +551,7 @@ namespace libtorrent
 			|| p.banned
 			|| !p.connectable
 			|| (p.seed && finished)
-			|| p.failcount >= m_torrent->settings().max_failcount)
+			|| int(p.failcount) >= m_torrent->settings().max_failcount)
 			return false;
 		
 		aux::session_impl const& ses = m_torrent->session();
@@ -1572,6 +1572,9 @@ namespace libtorrent
 		, supports_utp(true) // assume peers support utp
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
+#ifdef TORRENT_DEBUG
+		, in_use(false)
+#endif
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 	}

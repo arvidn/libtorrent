@@ -243,7 +243,7 @@ namespace libtorrent { namespace
 			lazy_entry const* messages = h.dict_find("m");
 			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = messages->dict_find_int_value(extension_name, -1);
+			int index = int(messages->dict_find_int_value(extension_name, -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
@@ -326,7 +326,7 @@ namespace libtorrent { namespace
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
 
-					if (m_peers.size() >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers.size()) >= m_torrent.settings().max_pex_peers) break;
 
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
@@ -377,7 +377,7 @@ namespace libtorrent { namespace
 					char flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
-					if (m_peers6.size() >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers6.size()) >= m_torrent.settings().max_pex_peers) break;
 
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
 					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
@@ -542,7 +542,6 @@ namespace libtorrent { namespace
 		if (pc->type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
 			, *pc, *this));
 	}

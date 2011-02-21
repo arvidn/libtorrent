@@ -379,8 +379,8 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb) return;
 
-		int interval = e.dict_find_int_value("interval", 1800);
-		int min_interval = e.dict_find_int_value("min interval", 60);
+		int interval = int(e.dict_find_int_value("interval", 1800));
+		int min_interval = int(e.dict_find_int_value("min interval", 60));
 
 		std::string trackerid;
 		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
@@ -420,10 +420,10 @@ namespace libtorrent
 					, interval, min_interval);
 				return;
 			}
-			int complete = scrape_data->dict_find_int_value("complete", -1);
-			int incomplete = scrape_data->dict_find_int_value("incomplete", -1);
-			int downloaded = scrape_data->dict_find_int_value("downloaded", -1);
-			int downloaders = scrape_data->dict_find_int_value("downloaders", -1);
+			int complete = int(scrape_data->dict_find_int_value("complete", -1));
+			int incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
+			int downloaded = int(scrape_data->dict_find_int_value("downloaded", -1));
+			int downloaders = int(scrape_data->dict_find_int_value("downloaders", -1));
 			cb->tracker_scrape_response(tracker_req(), complete
 				, incomplete, downloaded, downloaders);
 			return;
@@ -514,8 +514,8 @@ namespace libtorrent
 #endif
 		}
 		
-		int complete = e.dict_find_int_value("complete", -1);
-		int incomplete = e.dict_find_int_value("incomplete", -1);
+		int complete = int(e.dict_find_int_value("complete", -1));
+		int incomplete = int(e.dict_find_int_value("incomplete", -1));
 
 		std::list<address> ip_list;
 		if (m_tracker_connection)

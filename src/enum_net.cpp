@@ -333,7 +333,7 @@ namespace libtorrent
 			b1 = a1.to_v6().to_bytes();
 			b2 = a2.to_v6().to_bytes();
 			m = mask.to_v6().to_bytes();
-			for (int i = 0; i < b1.size(); ++i)
+			for (int i = 0; i < int(b1.size()); ++i)
 				b1[i] &= m[i];
 			return memcmp(&b1[0], &b2[0], b1.size()) == 0;
 		}

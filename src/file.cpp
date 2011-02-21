@@ -303,6 +303,11 @@ namespace libtorrent
 		{
 			int num_read = read(infd, buffer, sizeof(buffer));
 			if (num_read == 0) break;
+			if (num_read < 0)
+			{
+				ec.assign(errno, boost::system::get_generic_category());
+				break;
+			}
 			int num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
@@ -728,6 +733,8 @@ namespace libtorrent
 #endif
 		, m_open_mode(0)
 	{
+		// the return value is not important, since the
+		// error code contains the same information
 		open(path, mode, ec);
 	}
 
@@ -795,6 +802,7 @@ namespace libtorrent
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), get_system_category());
+			TORRENT_ASSERT(ec);
 			return false;
 		}
 
@@ -1572,7 +1580,7 @@ namespace libtorrent
 			}
 #endif // F_PREALLOCATE
 
-#if defined TORRENT_LINUX || defined TORRENT_HAS_FALLOCATE
+#if defined TORRENT_LINUX || TORRENT_HAS_FALLOCATE
 			int ret;
 #endif
 

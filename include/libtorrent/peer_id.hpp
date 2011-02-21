@@ -116,6 +116,12 @@ namespace libtorrent
 			TORRENT_ASSERT(n >= 0);
 			if (n > number_size * 8) n = number_size;
 			int num_bytes = n / 8;
+			if (num_bytes >= number_size)
+			{
+				std::memset(m_number, 0, number_size);
+				return *this;
+			}
+
 			if (num_bytes > 0)
 			{
 				std::memmove(m_number, m_number + num_bytes, number_size - num_bytes);
@@ -136,6 +142,11 @@ namespace libtorrent
 		big_number& operator>>=(int n)
 		{
 			int num_bytes = n / 8;
+			if (num_bytes >= number_size)
+			{
+				std::memset(m_number, 0, number_size);
+				return *this;
+			}
 			if (num_bytes > 0)
 			{
 				std::memmove(m_number + num_bytes, m_number, number_size - num_bytes);

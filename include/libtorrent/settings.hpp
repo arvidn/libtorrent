@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct lazy_entry;
-	struct entry;
+	class entry;
 
 	enum { std_string, character, integer
 		, floating_point, boolean, size_integer
