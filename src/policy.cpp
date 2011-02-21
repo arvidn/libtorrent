@@ -233,7 +233,7 @@ namespace libtorrent
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
 		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
-			&& p.num_have() + p.get_download_queue().size()
+			&& p.num_have() + int(p.get_download_queue().size())
 				< t.torrent_file().num_pieces())
 			|| dq.size() + rq.size() > 0;
 
@@ -398,9 +398,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_num_connect_candidates > 0);
 			--m_num_connect_candidates;
 		}
-		TORRENT_ASSERT(m_num_connect_candidates < m_peers.size());
+		TORRENT_ASSERT(m_num_connect_candidates < int(m_peers.size()));
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
-		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
+		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 #ifdef TORRENT_DEBUG
 		TORRENT_ASSERT((*i)->in_use);
@@ -464,7 +464,7 @@ namespace libtorrent
 			if (m_peers.size() < max_peerlist_size * 0.95)
 				break;
 
-			if (round_robin == m_peers.size()) round_robin = 0;
+			if (round_robin == int(m_peers.size())) round_robin = 0;
 
 			peer& pe = *m_peers[round_robin];
 			int current = round_robin;
@@ -477,7 +477,7 @@ namespace libtorrent
 					if (should_erase_immediately(pe))
 					{
 						if (erase_candidate > current) --erase_candidate;
-						TORRENT_ASSERT(current >= 0 && current < m_peers.size());
+						TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
 						--round_robin;
 						erase_peer(m_peers.begin() + current);
 					}
@@ -493,7 +493,7 @@ namespace libtorrent
 		
 		if (erase_candidate > -1)
 		{
-			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < m_peers.size());
+			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < int(m_peers.size()));
 			erase_peer(m_peers.begin() + erase_candidate);
 		}
 	}
@@ -539,7 +539,7 @@ namespace libtorrent
 			|| p.banned
 			|| !p.connectable
 			|| (p.seed && finished)
-			|| p.failcount >= m_torrent->settings().max_failcount)
+			|| int(p.failcount) >= m_torrent->settings().max_failcount)
 			return false;
 		
 		aux::session_impl const& ses = m_torrent->session();
@@ -574,7 +574,7 @@ namespace libtorrent
 			external_ip = address_v4(bytes);
 		}
 
-		if (m_round_robin >= m_peers.size()) m_round_robin = 0;
+		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 		bool pinged = false;
@@ -587,7 +587,7 @@ namespace libtorrent
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
-			if (m_round_robin >= m_peers.size()) m_round_robin = 0;
+			if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 			peer& pe = *m_peers[m_round_robin];
 			int current = m_round_robin;
@@ -971,7 +971,7 @@ namespace libtorrent
 		if (s) ++m_num_seeds;
 		else --m_num_seeds;
 		TORRENT_ASSERT(m_num_seeds >= 0);
-		TORRENT_ASSERT(m_num_seeds <= m_peers.size());
+		TORRENT_ASSERT(m_num_seeds <= int(m_peers.size()));
 	}
 
 	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
@@ -1298,7 +1298,7 @@ namespace libtorrent
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(m_num_connect_candidates >= 0);
-		TORRENT_ASSERT(m_num_connect_candidates <= m_peers.size());
+		TORRENT_ASSERT(m_num_connect_candidates <= int(m_peers.size()));
 		if (m_torrent->is_aborted()) return;
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -1446,6 +1446,9 @@ namespace libtorrent
 		, banned(false)
 #ifndef TORRENT_DISABLE_DHT
 		, added_to_dht(false)
+#endif
+#ifdef TORRENT_DEBUG
+		, in_use(false)
 #endif
 	{
 		TORRENT_ASSERT((src & 0xff) == src);

@@ -1099,7 +1099,7 @@ namespace libtorrent
 // maintain sparse_regions
 		if (index == 0)
 		{
-			if (index == m_piece_map.size() - 1
+			if (index == int(m_piece_map.size() - 1)
 				|| m_piece_map[index + 1].have())
 				--m_sparse_regions;
 		}

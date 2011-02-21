@@ -391,7 +391,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end; ++i)
 				{
-					if (num_chars >= sizeof(msg)-1) break;
+					if (num_chars >= int(sizeof(msg)-1)) break;
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
@@ -762,7 +762,7 @@ namespace
 
 struct parse_state
 {
-	parse_state(): in_service(false) {}
+	parse_state(): in_service(false), service_type(0) {}
 	void reset(char const* st)
 	{
 		in_service = false;

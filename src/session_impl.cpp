@@ -554,7 +554,10 @@ namespace aux {
 		PRINT_OFFSETOF(udp_socket, m_v6_buf)
 #endif
 		PRINT_OFFSETOF(udp_socket, m_bind_port)
-		PRINT_OFFSETOF(udp_socket, m_outstanding)
+		PRINT_OFFSETOF(udp_socket, m_v4_outstanding)
+#if TORRENT_USE_IPV6
+		PRINT_OFFSETOF(udp_socket, m_v6_outstanding)
+#endif
 		PRINT_OFFSETOF(udp_socket, m_socks5_sock)
 		PRINT_OFFSETOF(udp_socket, m_connection_ticket)
 		PRINT_OFFSETOF(udp_socket, m_proxy_settings)

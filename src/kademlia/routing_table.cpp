@@ -214,7 +214,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 	if (std::find_if(rb.begin(), rb.end(), bind(&node_entry::id, _1) == id)
 		!= rb.end()) return;
 
-	if (b.size() < m_bucket_size)
+	if (int(b.size()) < m_bucket_size)
 	{
 		if (bucket_index < m_lowest_active_bucket
 			&& bucket_index > 0)
@@ -223,7 +223,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 		return;
 	}
 
-	if (rb.size() < m_bucket_size)
+	if (int(rb.size()) < m_bucket_size)
 		rb.push_back(node_entry(id, ep, false));
 }
 

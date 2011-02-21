@@ -2902,9 +2902,9 @@ namespace libtorrent
 
 		// the bitmask need to have exactly one bit for every file
 		// in the torrent
-		TORRENT_ASSERT((int)bitmask.size() == m_torrent_file->num_files());
+		TORRENT_ASSERT(int(bitmask.size()) == m_torrent_file->num_files());
 
-		if (bitmask.size() != m_torrent_file->num_files()) return;
+		if (int(bitmask.size()) != m_torrent_file->num_files()) return;
 		
 		size_type position = 0;
 
@@ -4351,7 +4351,7 @@ namespace libtorrent
 			int num_conns = m_connections.size();
 #endif
 			p->disconnect(errors::optimistic_disconnect);
-			TORRENT_ASSERT(m_connections.size() == num_conns - 1);
+			TORRENT_ASSERT(int(m_connections.size()) == num_conns - 1);
 		}
 
 		return ret;

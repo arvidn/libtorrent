@@ -223,7 +223,7 @@ namespace libtorrent
 			mach_timebase_info(&timebase_info);
 		boost::uint64_t at = mach_absolute_time();
 		// make sure we don't overflow
-		TORRENT_ASSERT((at >= 0 && at >= at / 1000 * timebase_info.numer / timebase_info.denom)
+		TORRENT_ASSERT((at >= at / 1000 * timebase_info.numer / timebase_info.denom)
 			|| (at < 0 && at < at / 1000 * timebase_info.numer / timebase_info.denom));
 		return ptime(at / 1000 * timebase_info.numer / timebase_info.denom);
 	}

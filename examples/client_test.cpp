@@ -643,7 +643,7 @@ void scan_dir(path const& dir_path
 
 libtorrent::torrent_handle get_active_torrent(handles_t const& handles)
 {
-	if (active_torrent >= handles.size()
+	if (active_torrent >= int(handles.size())
 		|| active_torrent < 0) return libtorrent::torrent_handle();
 	handles_t::const_iterator i = handles.begin();
 	std::advance(i, active_torrent);
@@ -1068,7 +1068,7 @@ int main(int argc, char* argv[])
 				{
 					// arrow down
 					++active_torrent;
-					if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+					if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 				}
 			}
 

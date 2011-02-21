@@ -46,7 +46,9 @@ struct TORRENT_EXPORT bandwidth_channel
 	static const int inf = boost::integer_traits<int>::const_max;
 
 	bandwidth_channel()
-		: m_quota_left(0)
+		: tmp(0)
+		, distribute_quota(0)
+		, m_quota_left(0)
 		, m_limit(0)
 	{}
 

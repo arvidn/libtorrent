@@ -207,7 +207,7 @@ namespace libtorrent
 		// TODO: Make this count Unicode characters instead of bytes on windows
 		const int max_path_len = NAME_MAX;
 #endif
-		if (path_element.size() > max_path_len)
+		if (int(path_element.size()) > max_path_len)
 		{
 			// truncate filenames that are too long. But keep extensions!
 			std::string ext = fs::extension(path_element);
@@ -431,6 +431,7 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict);
+			(void)ret;
 
 			lazy_entry const* pieces = m_info_dict.dict_find_string("pieces");
 			if (pieces && pieces->string_length() == m_files.num_pieces() * 20)
@@ -524,6 +525,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
+		, m_merkle_first_leaf(0)
 	{
 		std::vector<char> buf;
 		error_code ec;
@@ -569,6 +571,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
+		, m_merkle_first_leaf(0)
 	{
 		parse_torrent_file(torrent_file, ec);
 	}
@@ -596,6 +599,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
+		, m_merkle_first_leaf(0)
 	{
 		std::vector<char> buf;
 		int ret = load_file(filename, buf, ec);
@@ -617,6 +621,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
+		, m_merkle_first_leaf(0)
 	{
 		std::vector<char> buf;
 		std::string utf8;
@@ -645,6 +650,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_info_section_size(0)
 		, m_piece_hashes(0)
+		, m_merkle_first_leaf(0)
 	{}
 
 	torrent_info::~torrent_info()
