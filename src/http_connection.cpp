@@ -549,8 +549,7 @@ void http_connection::callback(error_code e, char const* data, int size)
 			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
 				, end(chunks.end()); i != end; ++i)
 			{
-				TORRENT_ASSERT(i->first < INT_MAX);
-				TORRENT_ASSERT(i->second < INT_MAX);
+				TORRENT_ASSERT(i->second - i->first < INT_MAX);
 				int len = int(i->second - i->first);
 				if (i->first - offset + len > size) len = size - int(i->first) + offset;
 				memmove(write_ptr, data + i->first - offset, len);
