@@ -3888,7 +3888,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
-		if (params.ti && params.ti->num_files() == 0)
+		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
 			return torrent_handle();
