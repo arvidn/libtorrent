@@ -268,7 +268,7 @@ namespace libtorrent { namespace
 			lazy_entry const* messages = h.dict_find("m");
 			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = messages->dict_find_int_value("LT_metadata", -1);
+			int index = int(messages->dict_find_int_value("LT_metadata", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
@@ -538,7 +538,6 @@ namespace libtorrent { namespace
 		if (pc->type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 
@@ -546,7 +545,6 @@ namespace libtorrent { namespace
 	{
 		// the number of blocks to request
 		int num_blocks = 256 / 4;
-		if (num_blocks < 1) num_blocks = 1;
 		TORRENT_ASSERT(num_blocks <= 128);
 
 		int min_element = (std::numeric_limits<int>::max)();

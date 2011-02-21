@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	bandwidth_channel::bandwidth_channel()
-		: m_quota_left(0)
+		: tmp(0)
+		, distribute_quota(0)
+		, m_quota_left(0)
 		, m_limit(0)
 	{}
 

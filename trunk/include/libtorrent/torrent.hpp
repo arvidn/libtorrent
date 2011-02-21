@@ -80,7 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct http_parser;
+	class http_parser;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
@@ -93,7 +93,7 @@ namespace libtorrent
 	struct tracker_request;
 	struct add_torrent_params;
 	struct storage_interface;
-	struct bt_peer_connection;
+	class bt_peer_connection;
 
 	namespace aux
 	{
@@ -237,7 +237,7 @@ namespace libtorrent
 		void handle_disk_error(disk_io_job const& j, peer_connection* c = 0);
 		void clear_error();
 		void set_error(error_code const& ec, std::string const& file);
-		bool has_error() const { return m_error; }
+		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
 		void flush_cache();
@@ -731,7 +731,14 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		void add_free_upload(int diff) { m_available_free_upload += diff; }
+		void add_free_upload(size_type diff)
+		{
+			TORRENT_ASSERT(diff >= 0);
+			if (UINT_MAX - m_available_free_upload > diff)
+				m_available_free_upload += boost::uint32_t(diff);
+			else
+				m_available_free_upload = UINT_MAX;
+		}
 
 		int get_peer_upload_limit(tcp::endpoint ip) const;
 		int get_peer_download_limit(tcp::endpoint ip) const;

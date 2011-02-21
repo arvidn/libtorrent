@@ -235,7 +235,8 @@ namespace libtorrent
 				f.file_index = file_iter - begin();
 				f.offset = file_offset + file_base(*file_iter);
 				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
-				size -= f.size;
+				TORRENT_ASSERT(f.size <= size);
+				size -= int(f.size);
 				file_offset += f.size;
 				ret.push_back(f);
 			}

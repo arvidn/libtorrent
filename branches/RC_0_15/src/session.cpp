@@ -396,7 +396,8 @@ namespace libtorrent
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e);
+		TORRENT_ASSERT(ret == 0);
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
 		m_impl->load_state(e);
 	}

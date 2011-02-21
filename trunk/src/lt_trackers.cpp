@@ -170,7 +170,7 @@ namespace libtorrent { namespace
 			lazy_entry const* messages = h.dict_find("m");
 			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = messages->dict_find_int_value("lt_tex", -1);
+			int index = int(messages->dict_find_int_value("lt_tex", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 

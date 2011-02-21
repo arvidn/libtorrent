@@ -220,11 +220,6 @@ protected:
 
 	dht_settings const& m_settings;
 	
-	// the maximum number of peers to send in a get_peers
-	// reply. Ordinary trackers usually limit this to 50.
-	// 50 => 6 * 50 = 250 bytes + packet overhead
-	int m_max_peers_reply;
-
 private:
 	typedef boost::mutex mutex_t;
 	mutex_t m_mutex;

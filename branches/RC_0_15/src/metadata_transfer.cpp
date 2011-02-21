@@ -555,7 +555,6 @@ namespace libtorrent { namespace
 
 		// the number of blocks to request
 		int num_blocks = 256 / (peers + 1);
-		if (num_blocks < 1) num_blocks = 1;
 		TORRENT_ASSERT(num_blocks <= 128);
 
 		int min_element = (std::numeric_limits<int>::max)();

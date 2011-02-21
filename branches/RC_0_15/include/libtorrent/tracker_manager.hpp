@@ -84,6 +84,7 @@ namespace libtorrent
 			, left(-1)
 			, corrupt(0)
 			, redundant(0)
+			, listen_port(0)
 			, event(none)
 			, key(0)
 			, num_want(0)

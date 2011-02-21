@@ -52,11 +52,11 @@ namespace libtorrent {
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;
-		for (int i = 0; i < m_capacity; ++i)
+		for (int i = 0; i < int(m_capacity); ++i)
 		{
 			count += m_storage[i] ? 1 : 0;
 		}
-		TORRENT_ASSERT(count == m_size);
+		TORRENT_ASSERT(count == int(m_size));
 	}
 #endif
 

@@ -312,7 +312,6 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	unsigned char key[256], tmp, *s;
 	int keylen, x, y, j;
 
-	TORRENT_ASSERT(key != 0);
 	TORRENT_ASSERT(state != 0);
 	TORRENT_ASSERT(len <= 256);
 

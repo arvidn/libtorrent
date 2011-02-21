@@ -63,7 +63,7 @@ namespace libtorrent
 			"SOCKS identd could not identify username"
 		};
 
-		if (ev < 0 || ev > socks_error::num_errors) return "unknown error";
+		if (ev < 0 || ev >= socks_error::num_errors) return "unknown error";
 		return messages[ev];
 	}
 #endif

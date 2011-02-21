@@ -140,6 +140,7 @@ namespace libtorrent
 			, blocks_read(0)
 			, blocks_read_hit(0)
 			, reads(0)
+			, queued_bytes(0)
 			, cache_size(0)
 			, read_cache_size(0)
 			, total_used_buffers(0)

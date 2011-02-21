@@ -270,7 +270,7 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	}
 
 	int bucket_index = (std::min)(159 - distance_exp(m_id, id), num_buckets - 1);
-	TORRENT_ASSERT(bucket_index < m_buckets.size());
+	TORRENT_ASSERT(bucket_index < int(m_buckets.size()));
 	TORRENT_ASSERT(bucket_index >= 0);
 
 	table_t::iterator i = m_buckets.begin();
@@ -461,7 +461,7 @@ bool routing_table::add_node(node_entry const& e)
 	// we will only insert it if there is room
 	// for it, or if some of our nodes have gone
 	// offline
-	if (b.size() < m_bucket_size)
+	if (int(b.size()) < m_bucket_size)
 	{
 		if (b.empty()) b.reserve(m_bucket_size);
 		b.push_back(e);
@@ -596,7 +596,7 @@ bool routing_table::add_node(node_entry const& e)
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
 		{
-			if (b.size() >= m_bucket_size)
+			if (int(b.size()) >= m_bucket_size)
 			{
 				++j;
 				continue;
@@ -606,7 +606,7 @@ bool routing_table::add_node(node_entry const& e)
 		else
 		{
 			// this entry belongs in the new bucket
-			if (new_bucket.size() < m_bucket_size)
+			if (int(new_bucket.size()) < m_bucket_size)
 				new_bucket.push_back(*j);
 			else
 				new_replacement_bucket.push_back(*j);
@@ -618,12 +618,12 @@ bool routing_table::add_node(node_entry const& e)
 	// now insert the new node in the appropriate bucket
 	if (distance_exp(m_id, e.id) >= 159 - bucket_index)
 	{
-		if (b.size() < m_bucket_size)
+		if (int(b.size()) < m_bucket_size)
 		{
 			b.push_back(e);
 			added = true;
 		}
-		else if (rb.size() < m_bucket_size)
+		else if (int(rb.size()) < m_bucket_size)
 		{
 			rb.push_back(e);
 			added = true;
@@ -631,12 +631,12 @@ bool routing_table::add_node(node_entry const& e)
 	}
 	else
 	{
-		if (new_bucket.size() < m_bucket_size)
+		if (int(new_bucket.size()) < m_bucket_size)
 		{
 			new_bucket.push_back(e);
 			added = true;
 		}
-		else if (new_replacement_bucket.size() < m_bucket_size)
+		else if (int(new_replacement_bucket.size()) < m_bucket_size)
 		{
 			new_replacement_bucket.push_back(e);
 			added = true;
@@ -822,7 +822,7 @@ void routing_table::find_node(node_id const& target
 	table_t::iterator j = i;
 	++j;
 
-	for (; j != m_buckets.end() && l.size() < count; ++j)
+	for (; j != m_buckets.end() && int(l.size()) < count; ++j)
 	{
 		bucket_t& b = j->live_nodes;
 		size_t to_copy = (std::min)(count - l.size(), b.size());
@@ -863,7 +863,7 @@ void routing_table::find_node(node_id const& target
 				, to_copy, boost::bind(&node_entry::confirmed, _1));
 		}
 	}
-	while (j != m_buckets.begin() && l.size() < count);
+	while (j != m_buckets.begin() && int(l.size()) < count);
 }
 /*
 routing_table::iterator routing_table::begin() const

@@ -261,7 +261,7 @@ void natpmp::try_next_mapping(int i, mutex_t::scoped_lock& l)
 
 void natpmp::update_mapping(int i, mutex_t::scoped_lock& l)
 {
-	if (i == m_mappings.size())
+	if (i == int(m_mappings.size()))
 	{
 		if (m_abort)
 		{

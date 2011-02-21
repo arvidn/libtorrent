@@ -76,6 +76,9 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler())
 		: m_sock(ios)
+#if TORRENT_USE_I2P
+		, m_i2p_conn(0)
+#endif
 		, m_read_pos(0)
 		, m_resolver(ios)
 		, m_handler(handler)

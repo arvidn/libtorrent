@@ -52,15 +52,15 @@ namespace libtorrent
 
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
-			TORRENT_ASSERT(s->m_refs >= 0);
 			TORRENT_ASSERT(s != 0);
+			TORRENT_ASSERT(s->m_refs >= 0);
 			++s->m_refs;
 		}
 
 		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
 		{
-			TORRENT_ASSERT(s->m_refs > 0);
 			TORRENT_ASSERT(s != 0);
+			TORRENT_ASSERT(s->m_refs > 0);
 			if (--s->m_refs == 0)
 				boost::checked_delete(static_cast<T const*>(s));
 		}

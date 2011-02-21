@@ -213,6 +213,7 @@ private:
 	struct rootdevice
 	{
 		rootdevice(): service_namespace(0)
+			, port(0)
 			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
 			, disabled(false)

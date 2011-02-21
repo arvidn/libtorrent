@@ -722,7 +722,7 @@ namespace libtorrent
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
-		return (data_start + m_files.piece_length() - 1) / m_files.piece_length();
+		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
 	}
 
 	bool storage::verify_resume_data(lazy_entry const& rd, error_code& error)
@@ -748,7 +748,7 @@ namespace libtorrent
 		{
 			m_file_priority.resize(file_priority->list_size());
 			for (int i = 0; i < file_priority->list_size(); ++i)
-				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+				m_file_priority[i] = boost::uint8_t(file_priority->list_int_value_at(i, 1));
 		}
 
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
@@ -1240,7 +1240,7 @@ ret:
 				&& ((adjusted_offset & (file_handle->pos_alignment()-1)) != 0
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
-				bytes_transferred = (this->*op.unaligned_op)(file_handle, adjusted_offset
+				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			else
@@ -1281,7 +1281,8 @@ ret:
 
 		const int size = bufs_size(bufs, num_bufs);
 		const int start_adjust = file_offset & pos_align;
-		const int aligned_start = file_offset - start_adjust;
+		TORRENT_ASSERT(start_adjust == (file_offset % file_handle->pos_alignment()));
+		const size_type aligned_start = file_offset - start_adjust;
 		const int aligned_size = ((size+start_adjust) & size_align)
 			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
 		const int num_blocks = (aligned_size + block_size - 1) / block_size;
@@ -2067,7 +2068,7 @@ ret:
 		}
 
 		int block_size = (std::min)(16 * 1024, m_files.piece_length());
-		int blocks_per_piece = rd.dict_find_int_value("blocks per piece", -1);
+		int blocks_per_piece = int(rd.dict_find_int_value("blocks per piece", -1));
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{

@@ -87,7 +87,7 @@ namespace libtorrent
 			none_t, dict_t, list_t, string_t, int_t
 		};
 
-		lazy_entry() : m_begin(0), m_len(0), m_type(none_t)
+		lazy_entry() : m_begin(0), m_len(0), m_size(0), m_capacity(0), m_type(none_t)
 		{ m_data.start = 0; }
 
 		entry_type_t type() const { return (entry_type_t)m_type; }

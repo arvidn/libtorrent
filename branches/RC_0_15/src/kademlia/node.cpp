@@ -412,7 +412,7 @@ void node_impl::on_announce(msg const& m, msg& reply)
 		for (table_t::iterator i = m_map.begin()
 			, end(m_map.end()); i != end; ++i)
 		{
-			if (i->second.peers.size() > num_peers) continue;
+			if (int(i->second.peers.size()) > num_peers) continue;
 			if (i->first == m.info_hash) continue;
 			num_peers = i->second.peers.size();
 			candidate = i;

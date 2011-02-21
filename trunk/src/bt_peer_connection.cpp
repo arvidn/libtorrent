@@ -1665,7 +1665,7 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
-			bool ul = detail::read_uint8(recv_buffer.begin);
+			bool ul = detail::read_uint8(recv_buffer.begin) != 0;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<== UPLOAD_ONLY [ %s ]", (ul?"true":"false"));
 #endif
@@ -1676,7 +1676,7 @@ namespace libtorrent
 		if (extended_id == share_mode_msg)
 		{
 			if (!packet_finished()) return;
-			bool sm = detail::read_uint8(recv_buffer.begin);
+			bool sm = detail::read_uint8(recv_buffer.begin) != 0;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<== SHARE_MODE [ %s ]", (sm?"true":"false"));
 #endif
@@ -1756,13 +1756,13 @@ namespace libtorrent
 		// upload_only
 		if (lazy_entry const* m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
-			m_holepunch_id = m->dict_find_int_value("ut_holepunch", 0);
+			m_upload_only_id = boost::uint8_t(m->dict_find_int_value("upload_only", 0));
+			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
 		}
 #endif
 
 		// there is supposed to be a remote listen port
-		int listen_port = root.dict_find_int_value("p");
+		int listen_port = int(root.dict_find_int_value("p"));
 		if (listen_port > 0 && peer_info_struct() != 0)
 		{
 			t->get_policy().update_peer_port(listen_port
@@ -1772,13 +1772,13 @@ namespace libtorrent
 		// there should be a version too
 		// but where do we put that info?
 
-		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
+		int last_seen_complete = boost::uint8_t(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 		
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
 
-		int reqq = root.dict_find_int_value("reqq");
+		int reqq = int(root.dict_find_int_value("reqq"));
 		if (reqq > 0) m_max_out_request_queue = reqq;
 
 		if (root.dict_find_int_value("upload_only", 0))
@@ -2184,7 +2184,7 @@ namespace libtorrent
 			, end(m.end()); i != end; ++i)
 		{
 			if (i->second.type() != entry::int_t) continue;
-			int val = i->second.integer();
+			int val = int(i->second.integer());
 			TORRENT_ASSERT(ext.find(val) == ext.end());
 			ext.insert(val);
 		}
@@ -3281,7 +3281,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == bytes_transferred);
+			TORRENT_ASSERT(stats_diff == size_type(bytes_transferred));
 #endif
 			TORRENT_ASSERT(!packet_finished());
 			return;

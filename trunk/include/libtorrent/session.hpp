@@ -87,13 +87,9 @@ namespace libtorrent
 		// hardware exceptions that makes
 		// it hard to debug stuff
 #ifdef _MSC_VER
-		struct eh_initializer
+		struct TORRENT_EXPORT eh_initializer
 		{
-			eh_initializer()
-			{
-				::_set_se_translator(straight_to_debugger);
-			}
-
+			eh_initializer();
 			static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
 			{ throw; }
 		};

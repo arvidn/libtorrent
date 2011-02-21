@@ -93,6 +93,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable: 4258)
 #pragma warning(disable: 4251)
 
+// class X needs to have dll-interface to be used by clients of class Y
+#pragma warning(disable:4251)
+// '_vsnprintf': This function or variable may be unsafe
+#pragma warning(disable:4996)
+// 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
+#pragma warning(disable: 4996)
+
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
 # elif defined(TORRENT_LINKING_SHARED)
@@ -223,11 +230,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
-// class X needs to have dll-interface to be used by clients of class Y
-#pragma warning(disable:4251)
-// '_vsnprintf': This function or variable may be unsafe
-#pragma warning(disable:4996)
-
 #include <stdarg.h>
 
 inline int snprintf(char* buf, int len, char const* fmt, ...)
@@ -323,6 +325,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_I2P 1
 #endif
 
+#ifndef TORRENT_HAS_STRDUP
+#define TORRENT_HAS_STRDUP 1
+#endif
+
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
 # define TORRENT_READ_HANDLER_MAX_SIZE 256
 #endif
@@ -366,6 +372,17 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_BOOST_DATE_TIME 1
 #endif
 
+#endif
+
+#if !TORRENT_HAS_STRDUP
+inline char* strdup(char const* str)
+{
+	if (str == 0) return 0;
+	char* tmp = (char*)malloc(strlen(str) + 1);
+	if (tmp == 0) return 0;
+	strcpy(tmp, str);
+	return tmp;
+}
 #endif
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED

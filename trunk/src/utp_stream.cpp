@@ -243,6 +243,7 @@ struct utp_socket_impl
 		, m_acked_seq_nr(0)
 		, m_fast_resend_seq_nr(0)
 		, m_eof_seq_nr(0)
+		, m_loss_seq_nr(0)
 		, m_mtu(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36)
 		, m_mtu_floor(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
 		, m_mtu_ceiling(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
@@ -906,7 +907,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
 		ret += to_copy;
 		target->buf = ((char*)target->buf) + to_copy;
-		TORRENT_ASSERT(target->len >= to_copy);
+		TORRENT_ASSERT(int(target->len) >= to_copy);
 		target->len -= to_copy;
 		m_impl->m_receive_buffer_size -= to_copy;
 		TORRENT_ASSERT(m_impl->m_read_buffer_size >= to_copy);
@@ -1327,7 +1328,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 				packet* p = (packet*)m_outbuf.remove(ack_nr);
 				if (p)
 				{
-					acked_bytes += p->size - p->header_size;
+					*acked_bytes += p->size - p->header_size;
 					// each ACKed packet counts as a duplicate ack
 					UTP_LOGV("%8p: duplicate_acks:%u fast_resend_seq_nr:%u\n"
 						, this, m_duplicate_acks, m_fast_resend_seq_nr);
@@ -1398,6 +1399,8 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 	{
 		// i points to the iovec we'll start copying from
 		int to_copy = (std::min)(size, int(i->len));
+		TORRENT_ASSERT(to_copy >= 0);
+		TORRENT_ASSERT(to_copy < INT_MAX / 2 && m_written < INT_MAX / 2);
 		memcpy(ptr, static_cast<char const*>(i->buf), to_copy);
 		size -= to_copy;
 		if (m_written == 0)
@@ -1405,8 +1408,6 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 			m_write_timeout = now + milliseconds(100);
 			UTP_LOGV("%8p: setting write timeout to 100 ms from now\n", this);
 		}
-		TORRENT_ASSERT(to_copy >= 0);
-		TORRENT_ASSERT(to_copy < INT_MAX / 2 && m_written < INT_MAX / 2);
 		m_written += to_copy;
 		ptr += to_copy;
 		i->len -= to_copy;
@@ -2063,7 +2064,7 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 
 	// if the window size is smaller than one packet size
 	// set it to one
-	if ((m_cwnd >> 16) < m_mtu) m_cwnd = m_mtu << 16;
+	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
 
 	UTP_LOGV("%8p: intializing MTU to: %d [%d, %d]\n"
 		, this, m_mtu, m_mtu_floor, m_mtu_ceiling);
@@ -2299,8 +2300,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			return true;
 		}
 		int next_extension = unsigned(*ptr++);
-		unsigned int len = unsigned(*ptr++);
-		if (ptr - buf + len > size)
+		int len = unsigned(*ptr++);
+		if (ptr - buf + len > size_t(size))
 		{
 			UTP_LOGV("%8p: invalid extension header size:%d packet:%d\n"
 				, this, len, int(ptr - buf));
@@ -2795,7 +2796,7 @@ void utp_socket_impl::tick(ptime const& now)
 		// we can now sent messages again, the send window was opened
 		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
-		m_cwnd = m_mtu << 16;
+		m_cwnd = boost::int64_t(m_mtu) << 16;
 		if (m_outbuf.size()) ++m_num_timeouts;
 		m_timeout = now + milliseconds(packet_timeout());
 	
@@ -2912,7 +2913,7 @@ void utp_socket_impl::check_receive_buffers() const
 			size += p->size - p->header_size;
 	}
 
-	TORRENT_ASSERT(size == m_receive_buffer_size);
+	TORRENT_ASSERT(int(size) == m_receive_buffer_size);
 }
 
 }

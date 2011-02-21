@@ -196,7 +196,7 @@ namespace aux {
 	{
 		seed_random_generator()
 		{
-			std::srand(total_microseconds(time_now_hires() - min_time()));
+			std::srand((unsigned int)total_microseconds(time_now_hires() - min_time()));
 		}
 	};
 
@@ -2563,8 +2563,8 @@ namespace aux {
 						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
 						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
 						
-						m_tcp_upload_channel.throttle(upload_rate * num_tcp_peers / num_peers);
-						m_tcp_download_channel.throttle(download_rate * num_tcp_peers / num_peers);
+						m_tcp_upload_channel.throttle(int(upload_rate * num_tcp_peers / num_peers));
+						m_tcp_download_channel.throttle(int(download_rate * num_tcp_peers / num_peers));
 					}
 				}
 				break;
@@ -3600,8 +3600,8 @@ namespace aux {
 				, end(peers.end()); i != end; ++i)
 			{
 				peer_connection const& p = **i;
-				int rate = p.uploaded_since_unchoke()
-					* 1000 / total_milliseconds(unchoke_interval);
+				int rate = int(p.uploaded_since_unchoke()
+					* 1000 / total_milliseconds(unchoke_interval));
 
 				if (rate < rate_threshold) break;
 

@@ -211,7 +211,7 @@ namespace libtorrent
 			, end(picked.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->piece_index >= 0);
-			TORRENT_ASSERT(i->piece_index < int(bits.size()));
+			TORRENT_ASSERT(i->piece_index < bits.size());
 			TORRENT_ASSERT(bits[i->piece_index]);
 			TORRENT_ASSERT(!m_piece_map[i->piece_index].have());
 		}
@@ -1365,8 +1365,8 @@ namespace libtorrent
 		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
 		// only one of rarest_first and sequential can be set.
-		TORRENT_ASSERT(bool(options & rarest_first)
-			+ bool(options & sequential) <= 1);
+		TORRENT_ASSERT(((options & rarest_first) ? 1 : 0)
+			+ ((options & sequential) ? 1 : 0) <= 1);
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
@@ -1963,7 +1963,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
 		std::vector<downloading_piece>::const_iterator i
@@ -1980,7 +1980,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
@@ -1995,7 +1995,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
@@ -2011,8 +2011,8 @@ namespace libtorrent
 		TORRENT_ASSERT(state != piece_picker::none);
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
-		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 		TORRENT_ASSERT(!m_piece_map[block.piece_index].have());
 
 		piece_pos& p = m_piece_map[block.piece_index];
@@ -2068,8 +2068,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
-		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
 		piece_pos const& p = m_piece_map[block.piece_index];
 		if (!p.downloading) return 0;
@@ -2102,8 +2102,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
-		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.downloading == 0)
@@ -2208,8 +2208,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
-		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
 
@@ -2317,8 +2317,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.piece_index < (int)m_piece_map.size());
-		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
+		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
 		if (m_piece_map[block.piece_index].downloading == 0)
 		{
@@ -2346,7 +2346,7 @@ namespace libtorrent
 			if (info.num_peers > 0) --info.num_peers;
 			if (info.peer == peer) info.peer = 0;
 
-			TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
+			TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
 			// if there are other peers, leave the block requested
 			if (info.num_peers > 0) return;

@@ -57,6 +57,7 @@ public:
 
 	explicit proxy_base(io_service& io_service)
 		: m_sock(io_service)
+		, m_port(0)
 		, m_resolver(io_service)
 	{}
 

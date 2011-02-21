@@ -466,7 +466,7 @@ namespace libtorrent
 		virtual std::string message() const
 		{
 			const static char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
-			TORRENT_ASSERT(event < sizeof(event_str)/sizeof(event_str[0]));
+			TORRENT_ASSERT(event < int(sizeof(event_str)/sizeof(event_str[0])));
 			return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 		}
 	};

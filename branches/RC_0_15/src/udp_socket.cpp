@@ -744,7 +744,7 @@ void udp_socket::connect2(error_code const& e)
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p); // VERSION
 	int status = read_uint8(p); // STATUS
-	read_uint8(p); // RESERVED
+	++p; // RESERVED
 	int atyp = read_uint8(p); // address type
 
 	if (version != 5) return;
@@ -842,7 +842,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 	while (!m_queue.empty() && int(m_queue.front().buf.size()) <= m_quota)
 	{
 		queued_packet const& p = m_queue.front();
-		TORRENT_ASSERT(m_quota >= p.buf.size());
+		TORRENT_ASSERT(m_quota >= int(p.buf.size()));
 		m_quota -= p.buf.size();
 		error_code ec;
 		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec);

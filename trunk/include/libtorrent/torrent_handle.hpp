@@ -439,10 +439,13 @@ namespace libtorrent
 			, num_incomplete(-1)
 			, list_seeds(0)
 			, list_peers(0)
+			, connect_candidates(0)
 			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
 			, total_wanted(0)
+			, distributed_full_copies(0)
+			, distributed_fraction(0)
 			, distributed_copies(0.f)
 			, block_size(0)
 			, num_uploads(0)
@@ -471,6 +474,7 @@ namespace libtorrent
 			, time_since_upload(0)
 			, time_since_download(0)
 			, queue_position(0)
+			, need_save_resume(false)
 		{}
 
 		// handle to the torrent

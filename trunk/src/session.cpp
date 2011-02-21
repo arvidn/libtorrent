@@ -85,6 +85,15 @@ void stop_malloc_debug();
 
 namespace libtorrent
 {
+#ifdef _MSC_VER
+	namespace aux
+	{
+		eh_initializer::eh_initializer()
+		{
+			::_set_se_translator(straight_to_debugger);
+		}
+	}
+#endif
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
@@ -472,7 +481,8 @@ namespace libtorrent
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
 		error_code ec;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		TORRENT_ASSERT(ret == 0);
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
@@ -661,7 +671,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
-		return bool(ec);
+		return !!ec;
 	}
 #endif
 

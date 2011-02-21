@@ -91,6 +91,8 @@ namespace libtorrent
 
 	struct feed_status
 	{
+		feed_status(): last_update(0), next_update(0)
+			, updating(false), ttl(0) {}
 		std::string url;
 		std::string title;
 		std::string description;
@@ -119,7 +121,7 @@ namespace libtorrent
 	};
 
 	struct feed_state;
-	struct http_parser;
+	class http_parser;
 
 	boost::shared_ptr<feed> new_feed(aux::session_impl& ses, feed_settings const& sett);
 

@@ -952,8 +952,8 @@ namespace libtorrent
 			| piece_picker::prioritize_partials;
 
 		// only one of rarest_first, common_first and sequential can be set.
-		TORRENT_ASSERT(bool(ret & piece_picker::rarest_first)
-			+ bool(ret & piece_picker::sequential) <= 1);
+		TORRENT_ASSERT((ret & piece_picker::rarest_first) ? 1 : 0
+			+ (ret & piece_picker::sequential) ? 1 : 0 <= 1);
 		return ret;
 	}
 
@@ -1307,8 +1307,8 @@ namespace libtorrent
 
 	bool match_request(peer_request const& r, piece_block const& b, int block_size)
 	{
-		if (b.piece_index != r.piece) return false;
-		if (b.block_index != r.start / block_size) return false;
+		if (int(b.piece_index) != r.piece) return false;
+		if (int(b.block_index) != r.start / block_size) return false;
 		if (r.start % block_size != 0) return false;
 		return true;
 	}
@@ -2789,9 +2789,9 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_disconnecting);
 		TORRENT_ASSERT(t->valid_metadata());
 		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(int(block.piece_index) < t->torrent_file().num_pieces());
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(int(block.block_index) < t->torrent_file().piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
 		TORRENT_ASSERT(std::find_if(m_download_queue.begin(), m_download_queue.end()
@@ -2849,7 +2849,7 @@ namespace libtorrent
 		}
 
 		pending_block pb(block);
-		pb.busy = flags & req_busy;
+		pb.busy = (flags & req_busy) ? true : false;
 		if (flags & req_time_critical)
 		{
 			m_request_queue.insert(m_request_queue.begin() + m_queued_time_critical
@@ -2928,9 +2928,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t->valid_metadata());
 
 		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(int(block.piece_index) < t->torrent_file().num_pieces());
 		TORRENT_ASSERT(block.block_index >= 0);
-		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(int(block.block_index) < t->torrent_file().piece_size(block.piece_index));
 
 		// if all the peers that requested this block has been
 		// cancelled, then just ignore the cancel.
@@ -4110,8 +4110,9 @@ namespace libtorrent
 			if (t->ratio() != 1.f)
 				soon_downloaded = size_type(soon_downloaded * t->ratio());
 
-			int upload_speed_limit = (soon_downloaded - have_uploaded
-				+ bias) / break_even_time;
+			TORRENT_ASSERT((soon_downloaded - have_uploaded + bias) / break_even_time < INT_MAX);
+			int upload_speed_limit = int((soon_downloaded - have_uploaded
+				+ bias) / break_even_time);
 
 			if (m_upload_limit > 0 && m_upload_limit < upload_speed_limit)
 				upload_speed_limit = m_upload_limit;
@@ -4495,7 +4496,7 @@ namespace libtorrent
 		{
 			if (!m_ignore_bandwidth_limits)
 			{
-				bool utp = m_socket->get<utp_stream>();
+				bool utp = m_socket->get<utp_stream>() != 0;
 
 				// in this case, we have data to send, but no
 				// bandwidth. So, we simply request bandwidth
@@ -4621,7 +4622,7 @@ namespace libtorrent
 		{
 			if (!m_ignore_bandwidth_limits)
 			{
-				bool utp = m_socket->get<utp_stream>();
+				bool utp = m_socket->get<utp_stream>() != 0;
 
 				// in this case, we have outstanding data to
 				// receive, but no bandwidth quota. So, we simply
@@ -5520,6 +5521,8 @@ namespace libtorrent
 				int count = pc.num_peers;
 				int count_with_timeouts = pc.num_peers_with_timeouts;
 				int count_with_nowant = pc.num_peers_with_nowant;
+				(void)count_with_timeouts;
+				(void)count_with_nowant;
 				int picker_count = t->picker().num_peers(b);
 				if (!t->picker().is_downloaded(b))
 					TORRENT_ASSERT(picker_count == count);

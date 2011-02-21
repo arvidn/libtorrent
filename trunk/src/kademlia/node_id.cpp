@@ -95,7 +95,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	return 0;
 }
 
-struct static_ { static_() { std::srand(std::time(0)); } } static__;
+struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
 
 // verifies whether a node-id matches the IP it's used from
 // returns true if the node-id is OK coming from this source

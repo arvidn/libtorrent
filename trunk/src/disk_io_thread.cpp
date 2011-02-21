@@ -771,14 +771,17 @@ namespace libtorrent
 			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
 			TORRENT_ASSERT(offset + block_size <= piece_size);
 			TORRENT_ASSERT(offset + block_size > 0);
-			if (!buf)
+			if (iov)
 			{
+				TORRENT_ASSERT(!buf);
 				iov[iov_counter].iov_base = p.blocks[i].buf;
 				iov[iov_counter].iov_len = block_size;
 				++iov_counter;
 			}
 			else
 			{
+				TORRENT_ASSERT(buf);
+				TORRENT_ASSERT(iov == 0);
 				std::memcpy(buf.get() + offset, p.blocks[i].buf, block_size);
 				offset += m_block_size;
 			}
@@ -963,7 +966,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(iov[i].iov_base);
 				TORRENT_ASSERT(iov[i].iov_len > 0);
-				TORRENT_ASSERT(offset + iov[i].iov_len <= buffer_size);
+				TORRENT_ASSERT(int(offset + iov[i].iov_len) <= buffer_size);
 				std::memcpy(iov[i].iov_base, buf.get() + offset, iov[i].iov_len);
 				offset += iov[i].iov_len;
 			}
@@ -1496,19 +1499,19 @@ namespace libtorrent
 
 	bool should_cancel_on_abort(disk_io_job const& j)
 	{
-		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		TORRENT_ASSERT(j.action >= 0 && j.action < int(sizeof(action_flags)));
 		return action_flags[j.action] & cancel_on_abort;
 	}
 
 	bool is_read_operation(disk_io_job const& j)
 	{
-		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		TORRENT_ASSERT(j.action >= 0 && j.action < int(sizeof(action_flags)));
 		return action_flags[j.action] & read_operation;
 	}
 
 	bool operation_has_buffer(disk_io_job const& j)
 	{
-		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(action_flags));
+		TORRENT_ASSERT(j.action >= 0 && j.action < int(sizeof(action_flags)));
 		return action_flags[j.action] & buffer_operation;
 	}
 

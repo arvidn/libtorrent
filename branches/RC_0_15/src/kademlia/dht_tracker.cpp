@@ -686,7 +686,7 @@ namespace libtorrent { namespace dht
 			if (token)
 			{
 				m.write_token = token->string_value();
-				TORRENT_ASSERT(m.write_token.size() == token->string_length());
+				TORRENT_ASSERT(int(m.write_token.size()) == token->string_length());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 				log_line << " token: " << to_hex(m.write_token);
 #endif

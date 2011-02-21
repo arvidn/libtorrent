@@ -118,6 +118,7 @@ public:
 	{
 		if (&b == this) return *this;
 		resize(b.size());
+		if (b.size() == 0) return *this;
 		std::memcpy(m_begin, b.begin(), b.size());
 		return *this;
 	}
