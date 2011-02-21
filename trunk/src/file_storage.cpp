@@ -501,6 +501,11 @@ namespace libtorrent
 				if (best_match != m_files.end())
 				{
 					// we found one
+					// We cannot have found i, because i->size > pad_file_limit
+					// which is forced to be no less than alignment. We only
+					// look for files <= pad_size, which never is greater than
+					// alignment
+					TORRENT_ASSERT(best_match != i);
 					int index = file_index(*best_match);
 					reorder_file(index, file_index(*i));
 
@@ -511,7 +516,9 @@ namespace libtorrent
 
 				// we could not find a file that fits in pad_size
 				// add a padding file
-
+				// note that i will be set to point to the
+				// new pad file. Once we're done adding it, we need
+				// to increment i to point to the current file again
 				internal_file_entry e;
 				i = m_files.insert(i, e);
 				i->size = pad_size;
@@ -522,6 +529,8 @@ namespace libtorrent
 				i->pad_file = true;
 				off += pad_size;
 				++padding_file;
+				// skip the pad file we just added and point
+				// at the current file again
 				++i;
 			}
 			i->offset = off;
