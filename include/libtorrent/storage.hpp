@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/allocator.hpp"
 
 namespace libtorrent
 {
@@ -415,8 +416,8 @@ namespace libtorrent
 		// used to move pieces while expanding
 		// the storage from compact allocation
 		// to full allocation
-		disk_buffer_holder m_scratch_buffer;
-		disk_buffer_holder m_scratch_buffer2;
+		aligned_holder m_scratch_buffer;
+		aligned_holder m_scratch_buffer2;
 		// the piece that is in the scratch buffer
 		int m_scratch_piece;
 
