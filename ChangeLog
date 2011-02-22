@@ -1,3 +1,4 @@
+	* implemented unaligned write (for unbuffered I/O)
 	* fixed broadcast_lsd option
 	* fixed udp-socket race condition when using a proxy
 	* end-game mode optimizations
