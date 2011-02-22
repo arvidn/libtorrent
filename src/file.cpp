@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_WINDOWS
 // windows part
 
-#ifndef PtrToPtr64
-#define PtrToPtr64(x) (x)
-#endif
-
 #include "libtorrent/utf8.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -54,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <windows.h>
 #include <winioctl.h>
+
+#ifndef PtrToPtr64
+#define PtrToPtr64(x) (x)
+#endif
 
 #else
 // posix part
