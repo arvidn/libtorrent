@@ -60,7 +60,7 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || !defined TORRENT_MINGW
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
 	SetConsoleTextAttribute(console, FOREGROUND_RED);
 	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
