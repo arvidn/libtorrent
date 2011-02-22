@@ -142,6 +142,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __APPLE__
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 0
 #endif
 #endif
 #define TORRENT_HAS_FALLOCATE 0
@@ -157,7 +158,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 1
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 
@@ -169,6 +171,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // is necessary
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
@@ -255,6 +258,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // libiconv presence, not implemented yet
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
+#endif
+
+#ifndef TORRENT_USE_LOCALE
+#define TORRENT_USE_LOCALE 0
 #endif
 
 #ifndef TORRENT_BROKEN_UNIONS

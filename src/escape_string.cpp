@@ -657,7 +657,9 @@ namespace libtorrent
 		if (iconv_handle == iconv_t(-1)) return s;
 		return iconv_convert_impl(s, iconv_handle);
 	}
-#elif defined TORRENT_WINDOWS
+
+#elif TORRENT_USE_LOCALE
+
 	std::string convert_to_native(std::string const& s)
 	{
 		std::wstring ws;
@@ -682,6 +684,7 @@ namespace libtorrent
 		libtorrent::wchar_utf8(ws, ret);
 		return ret;
 	}
+
 #endif
 
 }
