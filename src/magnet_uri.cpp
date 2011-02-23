@@ -54,20 +54,20 @@ namespace libtorrent
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
 				, escape_string(name.c_str(), name.length()).c_str());
 
-		char const* tracker = 0;
+		std::string tracker;
 		torrent_status st = handle.status();
 		if (!st.current_tracker.empty())
 		{
-			tracker = st.current_tracker.c_str();
+			tracker = st.current_tracker;
 		}
 		else
 		{
 			std::vector<announce_entry> const& tr = handle.trackers();
-			if (!tr.empty()) tracker = tr[0].url.c_str();
+			if (!tr.empty()) tracker = tr[0].url;
 		}
-		if (tracker)
+		if (!tracker.empty())
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
-				, escape_string(tracker, strlen(tracker)).c_str());
+				, escape_string(tracker.c_str(), tracker.size()).c_str());
 
 		return ret;
 	}
@@ -201,7 +201,10 @@ namespace libtorrent
 			pos = uri.find("&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
-			announce_entry ae(uri.substr(pos, uri.find('&', pos) - pos));
+			error_code ec;
+			std::string url = unescape_string(uri.substr(pos, uri.find('&', pos) - pos), ec);
+			if (ec) continue;
+			announce_entry ae(url);
 			ae.tier = tier++;
 			ret.add_tracker(ae);
 		}
