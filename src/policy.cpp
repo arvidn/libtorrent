@@ -325,6 +325,8 @@ namespace libtorrent
 			== p.blocks_in_piece(busy_block.piece_index));
 #endif
 		TORRENT_ASSERT(p.is_requested(busy_block));
+		TORRENT_ASSERT(!p.is_downloaded(busy_block));
+		TORRENT_ASSERT(!p.is_finished(busy_block));
 		TORRENT_ASSERT(p.num_peers(busy_block) > 0);
 
 		c.add_request(busy_block, peer_connection::req_busy);
