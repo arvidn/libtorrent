@@ -1277,7 +1277,6 @@ ret:
 	{
 		const int pos_align = file_handle->pos_alignment()-1;
 		const int size_align = file_handle->size_alignment()-1;
-		const int block_size = disk_pool()->block_size();
 
 		const int size = bufs_size(bufs, num_bufs);
 		const int start_adjust = file_offset & pos_align;
@@ -1315,7 +1314,6 @@ ret:
 	{
 		const int pos_align = file_handle->pos_alignment()-1;
 		const int size_align = file_handle->size_alignment()-1;
-		const int block_size = disk_pool()->block_size();
 
 		const int size = bufs_size(bufs, num_bufs);
 		const int start_adjust = file_offset & pos_align;
@@ -2377,10 +2375,7 @@ ret:
 				// where this one goes. Store it in the scratch
 				// buffer until next iteration.
 				if (!m_scratch_buffer.get())
-				{
-					int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
 					m_scratch_buffer.reset(page_aligned_allocator::malloc(m_files.piece_length()));
-				}
 			
 				int piece_size = m_files.piece_size(other_piece);
 				file::iovec_t b = {m_scratch_buffer.get(), piece_size};
