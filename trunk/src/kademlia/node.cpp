@@ -1021,12 +1021,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{
 				// delete the least important one (i.e. the one
 				// the fewest peers are announcing)
-				i = std::min_element(m_feeds.begin(), m_feeds.end()
+				feed_table_t::iterator j = std::min_element(m_feeds.begin(), m_feeds.end()
 					, boost::bind(&feed_item::num_announcers
 						, boost::bind(&feed_table_t::value_type::second, _1)));
-				TORRENT_ASSERT(i != m_feeds.end());
+				TORRENT_ASSERT(j != m_feeds.end());
 //				std::cerr << " removing: " << i->second.item << std::endl;
-				m_feeds.erase(i);
+				m_feeds.erase(j);
 			}
 			boost::tie(i, boost::tuples::ignore) = m_feeds.insert(std::make_pair(target, add_item));
 		}
