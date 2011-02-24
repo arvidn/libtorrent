@@ -363,6 +363,15 @@ Build features:
 |                          | * ``off`` - force not using iconv (disables locale |
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
+| ``asserts``              | * ``off`` - disable all asserts                    |
+|                          | * ``peoduction`` - enable asserts in release       |
+|                          |   builds, but don't abort, just log them to        |
+|                          |   ``extern char const* libtorrent_assert_log``.    |
+|                          | * ``on`` - enable asserts in debug builds (this is |
+|                          |   the default). On GNU systems, print a stack      |
+|                          |   trace of the assert and some more information.   |
+|                          | * ``system`` use the libc assert macro             |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
@@ -625,6 +634,14 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_NO_DEPRECATE``               | This will exclude all deprecated functions from |
 |                                        | the header files and cpp files.                 |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
+|                                        | in release builds.                              |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_NO_ASSERTS``                 | Disables all asserts.                           |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
+|                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
 
 
