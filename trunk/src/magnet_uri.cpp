@@ -199,9 +199,9 @@ namespace libtorrent
 			pos = uri.find("&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
-			error_code ec;
-			std::string url = unescape_string(uri.substr(pos, uri.find('&', pos) - pos), ec);
-			if (ec) continue;
+			error_code e;
+			std::string url = unescape_string(uri.substr(pos, uri.find('&', pos) - pos), e);
+			if (e) continue;
 			announce_entry ae(url);
 			ae.tier = tier++;
 			ret.add_tracker(ae);

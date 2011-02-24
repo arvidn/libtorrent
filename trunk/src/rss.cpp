@@ -368,11 +368,12 @@ void feed::on_feed(error_code const& ec
 		p.ti.reset();
 		p.info_hash.clear();
 		p.name = i->title.c_str();
-		error_code ec;
+
+		error_code e;
 		// #error session_impl::add_torrent doesn't support magnet links via url
-		m_ses.add_torrent(p, ec);
+		m_ses.add_torrent(p, e);
 		
-		if (ec)
+		if (e)
 		{
 // #error alert!
 		}

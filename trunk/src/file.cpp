@@ -623,6 +623,9 @@ namespace libtorrent
 		: m_done(false)
 	{
 		ec.clear();
+		memset(&m_dirent, 0, sizeof(dirent));
+		m_name[0] = 0;
+
 #ifdef TORRENT_WINDOWS
 		// the path passed to FindFirstFile() must be
 		// a pattern

@@ -436,7 +436,8 @@ namespace libtorrent
 				{
 					ifreq req;
 					memset(&req, 0, sizeof(req));
-					strncpy(req.ifr_name, iface.name, IF_NAMESIZE);
+					// -1 to leave a null terminator
+					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 					if (ioctl(s, SIOCGIFMTU, &req) < 0)
 					{
 						continue;
@@ -486,7 +487,8 @@ namespace libtorrent
 
 				ifreq req;
 				memset(&req, 0, sizeof(req));
-				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE);
+				// -1 to leave a null terminator
+				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFMTU, &req) < 0)
 				{
 					ec = error_code(errno, asio::error::system_category);
@@ -496,7 +498,7 @@ namespace libtorrent
 				iface.mtu = req.ifr_mtu;
 
 				memset(&req, 0, sizeof(req));
-				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE);
+				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
 #if TORRENT_USE_IPV6

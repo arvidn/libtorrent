@@ -1902,7 +1902,6 @@ namespace aux {
 
 		if (!m_listen_sockets.empty())
 		{
-			error_code ec;
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
 			if (!ec)
 			{

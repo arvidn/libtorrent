@@ -163,18 +163,18 @@ namespace libtorrent
 			, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
 		// remove endpoints that are filtered by the IP filter
-		for (std::list<tcp::endpoint>::iterator i = m_endpoints.begin();
-			i != m_endpoints.end();)
+		for (std::list<tcp::endpoint>::iterator k = m_endpoints.begin();
+			k != m_endpoints.end();)
 		{
-			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+			if (m_ses.m_ip_filter.access(k->address()) == ip_filter::blocked) 
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(i->address()) + " ]");
+				if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(k->address()) + " ]");
 #endif
-				i = m_endpoints.erase(i);
+				k = m_endpoints.erase(k);
 			}
 			else
-				++i;
+				++k;
 		}
 
 		if (m_endpoints.empty())

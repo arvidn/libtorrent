@@ -440,7 +440,7 @@ time_duration node_impl::connection_timeout()
 			++i;
 			continue;
 		}
-		m_feeds.erase(i);
+		m_feeds.erase(i++);
 	}
 
 	// look through all peers and see if any have timed out

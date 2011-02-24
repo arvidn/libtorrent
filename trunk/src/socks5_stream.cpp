@@ -362,19 +362,18 @@ namespace libtorrent
 			}
 			if (response != 0)
 			{
-				error_code e(socks_error::general_failure, socks_category);
+				error_code ec(socks_error::general_failure, socks_category);
 				switch (response)
 				{
-					case 2: e = asio::error::no_permission; break;
-					case 3: e = asio::error::network_unreachable; break;
-					case 4: e = asio::error::host_unreachable; break;
-					case 5: e = asio::error::connection_refused; break;
-					case 6: e = asio::error::timed_out; break;
-					case 7: e = error_code(socks_error::command_not_supported, socks_category); break;
-					case 8: e = asio::error::address_family_not_supported; break;
+					case 2: ec = asio::error::no_permission; break;
+					case 3: ec = asio::error::network_unreachable; break;
+					case 4: ec = asio::error::host_unreachable; break;
+					case 5: ec = asio::error::connection_refused; break;
+					case 6: ec = asio::error::timed_out; break;
+					case 7: ec = error_code(socks_error::command_not_supported, socks_category); break;
+					case 8: ec = asio::error::address_family_not_supported; break;
 				}
-				(*h)(e);
-				error_code ec;
+				(*h)(ec);
 				close(ec);
 				return;
 			}
@@ -466,9 +465,9 @@ namespace libtorrent
 				case 92: code = socks_error::no_identd; break;
 				case 93: code = socks_error::identd_error; break;
 			}
-			error_code e(code, socks_category);
-			(*h)(e);
-			close(e);
+			error_code ec(code, socks_category);
+			(*h)(ec);
+			close(ec);
 		}
 	}
 

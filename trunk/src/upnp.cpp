@@ -251,12 +251,12 @@ bool upnp::get_mapping(int index, int& local_port, int& external_port, int& prot
 	return true;
 }
 
-void upnp::resend_request(error_code const& e)
+void upnp::resend_request(error_code const& ec)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("upnp::resend_request");
 #endif
-	if (e) return;
+	if (ec) return;
 
 	boost::intrusive_ptr<upnp> me(self());
 
@@ -300,11 +300,10 @@ void upnp::resend_request(error_code const& e)
 				d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
 			}
-			catch (std::exception& e)
+			catch (std::exception& exc)
 			{
-				(void)e;
 				char msg[200];
-				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), e.what());
+				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
 			}
@@ -563,13 +562,11 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					d.upnp_connection->get(d.url, seconds(30), 1);
 #ifndef BOOST_NO_EXCEPTIONS
 				}
-				catch (std::exception& e)
+				catch (std::exception& exc)
 				{
-					(void)e;
-
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
-						, d.url.c_str(), e.what());
+						, d.url.c_str(), exc.what());
 					log(msg, l);
 					d.disabled = true;
 				}
@@ -655,12 +652,12 @@ void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
 	}
 	else
 	{
-		std::vector<mapping_t>::iterator i
+		std::vector<mapping_t>::iterator j
 			= std::find_if(d.mapping.begin(), d.mapping.end()
 			, boost::bind(&mapping_t::action, _1) != int(mapping_t::action_none));
-		if (i == d.mapping.end()) return;
+		if (j == d.mapping.end()) return;
 
-		update_map(d, i - d.mapping.begin(), l);
+		update_map(d, j - d.mapping.begin(), l);
 	}
 }
 
@@ -1417,12 +1414,12 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	next(d, mapping, l);
 }
 
-void upnp::on_expire(error_code const& e)
+void upnp::on_expire(error_code const& ec)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("upnp::on_expire");
 #endif
-	if (e) return;
+	if (ec) return;
 
 	ptime now = time_now();
 	ptime next_expire = max_time();

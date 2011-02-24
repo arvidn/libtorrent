@@ -225,7 +225,7 @@ struct peer_conn
 	}
 };
 
-int main(int argc, char const* argv[])
+int main(int argc, char* argv[])
 {
 	if (argc < 5)
 	{
