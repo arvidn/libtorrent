@@ -762,6 +762,10 @@ namespace libtorrent
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
+		// if blocks_in_piece is 0, rp will leak
+		TORRENT_ASSERT(blocks_in_piece > 0);
+		TORRENT_ASSERT(piece_size > 0);
+
 		read_piece_struct* rp = new read_piece_struct;
 		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
 		rp->blocks_left = 0;

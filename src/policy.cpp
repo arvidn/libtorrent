@@ -346,8 +346,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		aux::session_impl& ses = m_torrent->session();
-		piece_picker* p = 0;
-		if (m_torrent->has_picker()) p = &m_torrent->picker();
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{

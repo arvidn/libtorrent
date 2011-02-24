@@ -303,13 +303,13 @@ namespace libtorrent
 			bool header_finished = m_parser.header_finished();
 			if (!header_finished)
 			{
-				bool error = false;
-				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
+				bool failed = false;
+				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, failed);
 				m_statistics.received_bytes(0, protocol);
 				TORRENT_ASSERT(int(bytes_transferred) >= protocol);
 				bytes_transferred -= protocol;
 
-				if (error)
+				if (failed)
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
