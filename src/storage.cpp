@@ -2384,7 +2384,7 @@ ret:
 			
 				int piece_size = m_files.piece_size(other_piece);
 				file::iovec_t b = {m_scratch_buffer.get(), piece_size};
-				if (m_storage->readv(&b, piece, 0, piece_size) != piece_size)
+				if (m_storage->readv(&b, piece, 0, 1) != piece_size)
 				{
 					error = m_storage->error();
 					TORRENT_ASSERT(error);
