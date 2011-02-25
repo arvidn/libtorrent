@@ -73,7 +73,7 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): last_use(time_now()) {}
+			lru_file_entry(): key(0), last_use(time_now()), mode(0) {}
 			mutable boost::intrusive_ptr<file> file_ptr;
 			void* key;
 			ptime last_use;

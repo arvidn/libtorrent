@@ -1532,9 +1532,6 @@ namespace libtorrent
 	}
 #endif // TORRENT_DEBUG
 
-	policy::peer::peer()
-	{}
-
 	policy::peer::peer(boost::uint16_t port, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
