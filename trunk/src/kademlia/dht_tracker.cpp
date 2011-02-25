@@ -257,15 +257,10 @@ namespace libtorrent { namespace dht
 
 		if (bootstrap.type() == entry::dictionary_t)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try
-			{
-#endif
-			if (entry const* nodes = bootstrap.find_key("nodes"))
-				read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				if (entry const* nodes = bootstrap.find_key("nodes"))
+					read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 
 		error_code ec;

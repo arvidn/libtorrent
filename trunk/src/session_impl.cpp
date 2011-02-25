@@ -1041,13 +1041,9 @@ namespace aux {
 		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-			(*i)->save_state(*eptr);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->save_state(*eptr);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 	}
@@ -1143,13 +1139,9 @@ namespace aux {
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-			(*i)->load_state(*e);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->load_state(*e);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 	}
@@ -2512,13 +2504,9 @@ namespace aux {
 		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-			(*i)->on_tick();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->on_tick();
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 
@@ -3061,19 +3049,16 @@ namespace aux {
 						connect_points /= num_seeds + 1;
 					if (connect_points <= 0) connect_points = 1;
 					t.give_connect_points(connect_points);
-#ifndef BOOST_NO_EXCEPTIONS
-					try
+					TORRENT_TRY
 					{
-#endif
 						if (t.try_connect_peer())
 						{
 							--max_connections;
 							--free_slots;
 							steps_since_last_connect = 0;
 						}
-#ifndef BOOST_NO_EXCEPTIONS
 					}
-					catch (std::bad_alloc&)
+					TORRENT_CATCH(std::bad_alloc&)
 					{
 						// we ran out of memory trying to connect to a peer
 						// lower the global limit to the number of peers
@@ -3081,7 +3066,6 @@ namespace aux {
 						m_settings.connections_limit = num_connections();
 						if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
 					}
-#endif
 				}
 
 				++m_next_connect_torrent;

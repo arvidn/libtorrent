@@ -59,25 +59,29 @@ namespace libtorrent
 {
 	bool is_local(address const& a)
 	{
+		TORRENT_TRY {
 #if TORRENT_USE_IPV6
-		if (a.is_v6()) return a.to_v6().is_link_local();
+			if (a.is_v6()) return a.to_v6().is_link_local();
 #endif
-		address_v4 a4 = a.to_v4();
-		unsigned long ip = a4.to_ulong();
-		return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
-			|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
-			|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
-			|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
-			|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
+			address_v4 a4 = a.to_v4();
+			unsigned long ip = a4.to_ulong();
+			return ((ip & 0xff000000) == 0x0a000000 // 10.x.x.x
+				|| (ip & 0xfff00000) == 0xac100000 // 172.16.x.x
+				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
+				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
+				|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
 	bool is_loopback(address const& addr)
 	{
 #if TORRENT_USE_IPV6
-		if (addr.is_v4())
-			return addr.to_v4() == address_v4::loopback();
-		else
-			return addr.to_v6() == address_v6::loopback();
+		TORRENT_TRY {
+			if (addr.is_v4())
+				return addr.to_v4() == address_v4::loopback();
+			else
+				return addr.to_v6() == address_v6::loopback();
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4() == address_v4::loopback();
 #endif
@@ -86,10 +90,12 @@ namespace libtorrent
 	bool is_multicast(address const& addr)
 	{
 #if TORRENT_USE_IPV6
-		if (addr.is_v4())
-			return addr.to_v4().is_multicast();
-		else
-			return addr.to_v6().is_multicast();
+		TORRENT_TRY {
+			if (addr.is_v4())
+				return addr.to_v4().is_multicast();
+			else
+				return addr.to_v6().is_multicast();
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return addr.to_v4().is_multicast();
 #endif
@@ -97,6 +103,7 @@ namespace libtorrent
 
 	bool is_any(address const& addr)
 	{
+		TORRENT_TRY {
 #if TORRENT_USE_IPV6
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
@@ -107,15 +114,18 @@ namespace libtorrent
 #else
 		return addr.to_v4() == address_v4::any();
 #endif
+		} TORRENT_CATCH(std::exception& e) { return false; }
 	}
 
 	TORRENT_EXPORT bool is_teredo(address const& addr)
 	{
 #if TORRENT_USE_IPV6
-		if (!addr.is_v6()) return false;
-		boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
-		address_v6::bytes_type b = addr.to_v6().to_bytes();
-		return memcmp(&b[0], teredo_prefix, 4) == 0;
+		TORRENT_TRY {
+			if (!addr.is_v6()) return false;
+			boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
+			address_v6::bytes_type b = addr.to_v6().to_bytes();
+			return memcmp(&b[0], teredo_prefix, 4) == 0;
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif
@@ -124,9 +134,11 @@ namespace libtorrent
 	bool supports_ipv6()
 	{
 #if TORRENT_USE_IPV6
-		error_code ec;
-		address::from_string("::1", ec);
-		return !ec;
+		TORRENT_TRY {
+			error_code ec;
+			address::from_string("::1", ec);
+			return !ec;
+		} TORRENT_CATCH(std::exception& e) { return false; }
 #else
 		return false;
 #endif

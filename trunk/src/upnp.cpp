@@ -286,10 +286,8 @@ void upnp::resend_request(error_code const& ec)
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
 			TORRENT_ASSERT(d.magic == 1337);
-#ifndef BOOST_NO_EXCEPTIONS
-			try
+			TORRENT_TRY
 			{
-#endif
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
 				log(msg, l);
@@ -298,16 +296,14 @@ void upnp::resend_request(error_code const& ec)
 					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
-#ifndef BOOST_NO_EXCEPTIONS
 			}
-			catch (std::exception& exc)
+			TORRENT_CATCH (std::exception& exc)
 			{
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
 			}
-#endif
 		}
 	}
 }
@@ -546,10 +542,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				// ask for it
 				rootdevice& d = const_cast<rootdevice&>(*i);
 				TORRENT_ASSERT(d.magic == 1337);
-#ifndef BOOST_NO_EXCEPTIONS
-				try
+				TORRENT_TRY
 				{
-#endif
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connecting to: %s"
 						, d.url.c_str());
@@ -560,9 +554,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 						, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d), _5)));
 					d.upnp_connection->get(d.url, seconds(30), 1);
-#ifndef BOOST_NO_EXCEPTIONS
 				}
-				catch (std::exception& exc)
+				TORRENT_CATCH (std::exception& exc)
 				{
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
@@ -570,7 +563,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 					log(msg, l);
 					d.disabled = true;
 				}
-#endif
 			}
 		}
 	}

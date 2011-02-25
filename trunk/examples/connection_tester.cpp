@@ -233,10 +233,15 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	int num_connections = atoi(argv[1]);
-	address_v4 addr = address_v4::from_string(argv[2]);
+	error_code ec;
+	address_v4 addr = address_v4::from_string(argv[2], ec);
+	if (ec)
+	{
+		fprintf(stderr, "ERROR RESOLVING %s: %s\n", argv[2], ec.message().c_str());
+		return 1;
+	}
 	int port = atoi(argv[3]);
 	tcp::endpoint ep(addr, port);
-	error_code ec;
 	torrent_info ti(argv[4], ec);
 	if (ec)
 	{
@@ -250,10 +255,16 @@ int main(int argc, char* argv[])
 		conns.push_back(new peer_conn(ios, ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0]));
 		libtorrent::sleep(1);
-		ios.poll_one();
+		ios.poll_one(ec);
+		if (ec)
+		{
+			fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+			break;
+		}
 	}
 
-	ios.run();
+	ios.run(ec);
+	if (ec) fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
 
 	return 0;
 }

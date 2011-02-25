@@ -2698,13 +2698,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				(*i)->on_piece_pass(index);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -2790,13 +2786,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				(*i)->on_piece_failed(index);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -3997,10 +3989,8 @@ namespace libtorrent
 		}
 #endif
 
-#ifndef BOOST_NO_EXCEPTIONS
-		try
+		TORRENT_TRY
 		{
-#endif
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
@@ -4018,16 +4008,15 @@ namespace libtorrent
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
 				, seconds(settings().peer_connect_timeout));
-#ifndef BOOST_NO_EXCEPTIONS
 		}
-		catch (std::exception& e)
+		TORRENT_CATCH (std::exception& e)
 		{
+			(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
 #endif
 			c->disconnect(errors::no_error, 1);
 		}
-#endif
 	}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -4799,14 +4788,10 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
 				if (pp) c->add_extension(pp);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -4819,17 +4804,14 @@ namespace libtorrent
 		int timeout = settings().peer_connect_timeout;
 		if (peerinfo) timeout += 3 * peerinfo->failcount;
 
-#ifndef BOOST_NO_EXCEPTIONS
-		try
+		TORRENT_TRY
 		{
-#endif
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
 				, seconds(timeout));
-#ifndef BOOST_NO_EXCEPTIONS
 		}
-		catch (std::exception&)
+		TORRENT_CATCH (std::exception&)
 		{
 			std::set<peer_connection*>::iterator i
 				= m_connections.find(boost::get_pointer(c));
@@ -4837,7 +4819,6 @@ namespace libtorrent
 			c->disconnect(errors::no_error, 1);
 			return false;
 		}
-#endif
 
 		if (m_share_mode)
 			recalc_share_mode();
@@ -4937,10 +4918,8 @@ namespace libtorrent
 			return false;
 		}
 
-#ifndef BOOST_NO_EXCEPTIONS
-		try
+		TORRENT_TRY
 		{
-#endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
@@ -4951,9 +4930,8 @@ namespace libtorrent
 #endif
 			if (!m_policy.new_connection(*p, m_ses.session_time()))
 				return false;
-#ifndef BOOST_NO_EXCEPTIONS
 		}
-		catch (std::exception& e)
+		TORRENT_CATCH (std::exception& e)
 		{
 			(void)e;
 #if defined TORRENT_LOGGING
@@ -4963,7 +4941,6 @@ namespace libtorrent
 			p->disconnect(errors::no_error);
 			return false;
 		}
-#endif
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		peer_iterator ci = m_connections.insert(p).first;
 #ifdef TORRENT_DEBUG
@@ -5291,13 +5268,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				(*i)->on_files_checked();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -6000,13 +5973,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				if ((*i)->on_pause()) return;
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -6149,13 +6118,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				if ((*i)->on_resume()) return;
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -6292,13 +6257,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				(*i)->tick();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 
@@ -6438,14 +6399,10 @@ namespace libtorrent
 
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
-#ifndef BOOST_NO_EXCEPTIONS
-			try
-			{
-#endif
+			TORRENT_TRY {
 				p->second_tick(tick_interval_ms);
-#ifndef BOOST_NO_EXCEPTIONS
 			}
-			catch (std::exception& e)
+			TORRENT_CATCH (std::exception& e)
 			{
 				(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -6453,7 +6410,6 @@ namespace libtorrent
 #endif
 				p->disconnect(errors::no_error, 1);
 			}
-#endif
 		}
 		if (m_ses.m_alerts.should_post<stats_alert>())
 			m_ses.m_alerts.post_alert(stats_alert(get_handle(), tick_interval_ms, m_stat));
@@ -7143,13 +7099,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				(*i)->on_state(m_state);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
 	}
