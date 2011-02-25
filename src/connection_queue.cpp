@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/bind.hpp>
+#include "libtorrent/config.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/io_service.hpp"
@@ -140,13 +141,9 @@ namespace libtorrent
 			m_queue.pop_front();
 			if (e.connecting) --m_num_connecting;
 			l.unlock();
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				e.on_timeout();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH(std::exception&) {}
 			l.lock();
 		}
 	}
@@ -236,13 +233,9 @@ namespace libtorrent
 		while (!to_connect.empty())
 		{
 			entry& ent = to_connect.front();
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				ent.on_connect(ent.ticket);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH(std::exception&) {}
 			to_connect.pop_front();
 		}
 
@@ -299,13 +292,9 @@ namespace libtorrent
 		for (std::list<entry>::iterator i = timed_out.begin()
 			, end(timed_out.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				i->on_timeout();
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH(std::exception&) {}
 		}
 		
 		l.lock();

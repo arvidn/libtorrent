@@ -213,13 +213,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 				, port, ih_str.c_str());
 #endif
 			// we got an announce, pass it on through the callback
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				m_callback(tcp::endpoint(from.address(), port), ih);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			} TORRENT_CATCH(std::exception&) {}
 		}
 	}
 }

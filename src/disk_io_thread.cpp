@@ -2303,15 +2303,11 @@ namespace libtorrent
 
 						ret = j.storage->check_files(j.piece, j.offset, j.error);
 
-#ifndef BOOST_NO_EXCEPTIONS
-						try {
-#endif
+						TORRENT_TRY {
 							TORRENT_ASSERT(j.callback);
 							if (j.callback && ret == piece_manager::need_full_check)
 								post_callback(j.callback, j, ret);
-#ifndef BOOST_NO_EXCEPTIONS
-						} catch (std::exception&) {}
-#endif
+						} TORRENT_CATCH(std::exception&) {}
 						if (ret != piece_manager::need_full_check) break;
 					}
 					if (test_error(j))
@@ -2354,27 +2350,21 @@ namespace libtorrent
 						break;
 					}
 				}
+				}
 			}
-#ifndef BOOST_NO_EXCEPTIONS
-			}
-			catch (std::exception& e)
+			TORRENT_CATCH(std::exception& e)
 			{
 				ret = -1;
-				try
-				{
+				TORRENT_TRY {
 					j.str = e.what();
-				}
-				catch (std::exception&) {}
+				} TORRENT_CATCH(std::exception&) {}
 			}
-#endif
 
 			TORRENT_ASSERT(!j.storage || !j.storage->error());
 
 //			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY {
 				TORRENT_ASSERT(ret != -2 || j.error
 					|| j.action == disk_io_job::hash);
 #if TORRENT_DISK_STATS
@@ -2383,12 +2373,9 @@ namespace libtorrent
 					rename_buffer(j.buffer, "posted send buffer");
 #endif
 				post_callback(j.callback, j, ret);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&)
-			{
+			} TORRENT_CATCH(std::exception&) {
 				TORRENT_ASSERT(false);
 			}
-#endif
 		}
 		TORRENT_ASSERT(false);
 	}

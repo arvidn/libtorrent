@@ -1070,11 +1070,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifdef BOOST_NO_EXCEPTIONS
-			(*i)->on_piece_pass(index);
-#else
-			try { (*i)->on_piece_pass(index); } catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->on_piece_pass(index);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 	}
@@ -1087,11 +1085,9 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-#ifdef BOOST_NO_EXCEPTIONS
-			(*i)->on_piece_failed(index);
-#else
-			try { (*i)->on_piece_failed(index); } catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->on_piece_failed(index);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 		if (is_disconnecting()) return;

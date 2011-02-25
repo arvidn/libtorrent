@@ -392,5 +392,15 @@ inline char* strdup(char const* str)
 }
 #endif
 
+// for non-exception builds
+#ifdef BOOST_NO_EXCEPTIONS
+#define TORRENT_TRY if (true)
+#define TORRENT_CATCH(x) else if (false)
+#else
+#define TORRENT_TRY try
+#define TORRENT_CATCH(x) catch(x)
+#endif // BOOST_NO_EXCEPTIONS
+
+
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 

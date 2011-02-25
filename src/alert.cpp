@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io_service.hpp"
@@ -381,7 +382,9 @@ namespace libtorrent {
 
 		while (!alerts.empty())
 		{
-			m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			} TORRENT_CATCH(std::exception&) {}
 			alerts.pop_front();
 		}
 	}
@@ -401,7 +404,9 @@ namespace libtorrent {
 		if (m_dispatch)
 		{
 			TORRENT_ASSERT(m_alerts.empty());
-			m_dispatch(std::auto_ptr<alert>(alert_.clone()));
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alert_.clone()));
+			} TORRENT_CATCH(std::exception&) {}
 		}
 		else if (m_alerts.size() < m_queue_size_limit || !alert_.discardable())
 		{
@@ -414,13 +419,9 @@ namespace libtorrent {
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-			(*i)->on_alert(&alert_);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->on_alert(&alert_);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 
