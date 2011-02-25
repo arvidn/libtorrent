@@ -125,6 +125,7 @@ namespace libtorrent
 		m_in_constructor = false;
 		m_encrypted_bytes = 0;
 #endif
+		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
 
 	bt_peer_connection::bt_peer_connection(
@@ -176,6 +177,7 @@ namespace libtorrent
 		m_in_constructor = false;
 		m_encrypted_bytes = 0;
 #endif
+		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
 
 	void bt_peer_connection::start()

@@ -60,7 +60,7 @@ namespace libtorrent
 	// min value is 0, max value is 16775168
 	struct ufloat16
 	{
-		ufloat16() {}
+		ufloat16():m_val(0) {}
 		ufloat16(int v)
 		{ *this = v; }
 		operator int()
