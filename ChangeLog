@@ -1,3 +1,4 @@
+	* support saving metadata in resume file, enable it by default for magnet links
 	* support for receiving multi announce messages for local peer discovery
 	* added session::listen_no_system_port flag to prevent libtorrent from ever binding the listen socket to port 0
 	* added option to not recheck on missing or incomplete resume data
