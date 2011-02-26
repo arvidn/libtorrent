@@ -126,7 +126,7 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request) {
+		if (m_first_request || m_ses.settings().always_send_user_agent) {
 			request += "\r\nUser-Agent: ";
 			request += m_ses.settings().user_agent;
 		}
