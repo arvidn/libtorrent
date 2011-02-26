@@ -264,6 +264,7 @@ namespace libtorrent
 			, alert_queue_size(1000)
 			, max_metadata_size(1024*1024)
 			, smooth_connects(true)
+			, always_send_user_agent(false)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1051,6 +1052,9 @@ namespace libtorrent
 		// attempt to smooth out connects to avoid getting spikes in
 		// opening connections and timing out connections
 		bool smooth_connects;
+
+		// always send user-agent
+		bool always_send_user_agent;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

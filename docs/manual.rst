@@ -4329,6 +4329,7 @@ session_settings
 		int alert_queue_size;
 		int max_metadata_size;
 		bool smooth_connects;
+		bool always_send_user_agent;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5169,6 +5170,10 @@ attempts per second may be limited to below the ``connection_speed``, in case
 we're close to bump up against the limit of number of connections. The intention
 of this setting is to more evenly distribute our connection attempts over time,
 instead of attempting to connectin in batches, and timing them out in batches.
+
+``always_send_user_agent`` defaults to false. When set to true, web connections
+will include a user-agent with every request, as opposed to just the first
+request in a connection.
 
 pe_settings
 ===========
