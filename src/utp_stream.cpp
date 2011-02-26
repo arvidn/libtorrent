@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/timestamp_history.hpp"
 #include "libtorrent/error.hpp"
+#include "libtorrent/random.hpp"
 #include <boost/cstdint.hpp>
 
 #define TORRENT_UTP_LOG 0
@@ -1121,7 +1122,7 @@ void utp_socket_impl::detach()
 
 void utp_socket_impl::send_syn()
 {
-	m_seq_nr = rand();
+	m_seq_nr = random();
 	m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 	m_loss_seq_nr = m_acked_seq_nr;
 	m_ack_nr = 0;
@@ -1259,7 +1260,7 @@ void utp_socket_impl::send_reset(utp_header* ph)
 	h.connection_id = m_send_id;
 	h.timestamp_difference_microseconds = m_reply_micro;
 	h.wnd_size = 0;
-	h.seq_nr = rand();
+	h.seq_nr = random();
 	h.ack_nr = ph->seq_nr;
 	ptime now = time_now_hires();
 	h.timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
@@ -2414,7 +2415,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, this, socket_state_names[m_state]);
 #endif
 				m_ack_nr = ph->seq_nr;
-				m_seq_nr = rand();
+				m_seq_nr = random();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
 

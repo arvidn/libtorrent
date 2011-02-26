@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_any
+#include "libtorrent/random.hpp"
 
 namespace libtorrent
 {
@@ -402,7 +403,7 @@ namespace libtorrent
 		char* ptr = buf;
 
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		detail::write_uint32(0x417, ptr);
 		detail::write_uint32(0x27101980, ptr); // connection_id
@@ -432,7 +433,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_scrape()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		if (m_abort) return;
 
@@ -590,7 +591,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_announce()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		if (m_abort) return;
 

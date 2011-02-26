@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -427,7 +428,7 @@ namespace libtorrent
 			return;
 		}
 
-		int pad_size = std::rand() % 512;
+		int pad_size = random() % 512;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(" pad size: %d", pad_size);
@@ -472,7 +473,7 @@ namespace libtorrent
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		char const* const secret = m_dh_key_exchange->get_secret();
 
-		int pad_size = rand() % 512;
+		int pad_size = random() % 512;
 
 		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
@@ -549,7 +550,7 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int pad_size = rand() % 512;
+		int pad_size = random() % 512;
 
 		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
@@ -2032,7 +2033,7 @@ namespace libtorrent
 			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
 			for (int i = 0; i < num_pieces; ++i)
 			{
-				if (rand() % (num_pieces - i) >= num_lazy_pieces - lazy_piece) continue;
+				if (int(random() % (num_pieces - i)) >= num_lazy_pieces - lazy_piece) continue;
 				lazy_pieces[lazy_piece++] = i;
 			}
 			TORRENT_ASSERT(lazy_piece == num_lazy_pieces);

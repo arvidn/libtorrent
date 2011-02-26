@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
+//#include "libtorrent/random.hpp"
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
@@ -434,7 +435,7 @@ void natpmp::on_reply(error_code const& e
 
 	// simulate packet loss
 /*
-	if ((rand() % 2) == 0)
+	if ((random() % 2) == 0)
 	{
 		log(" simulating drop", l);
 		return;

@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/random.hpp"
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
 #endif
@@ -390,7 +391,7 @@ namespace libtorrent { namespace
 
 		void failed_hash_check(ptime const& now)
 		{
-			m_request_limit = now + seconds(20 + (rand() * 50) / RAND_MAX);
+			m_request_limit = now + seconds(20 + (random() * 50) / RAND_MAX);
 		}
 
 	private:

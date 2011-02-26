@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/gzip.hpp" // for inflate_gzip
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -3078,7 +3079,7 @@ namespace libtorrent
 			return -1;
 		}
 
-		return avail_vec[rand() % avail_vec.size()];
+		return avail_vec[random() % avail_vec.size()];
 	}
 
 	void torrent::on_files_deleted(int ret, disk_io_job const& j)
@@ -6651,7 +6652,7 @@ namespace libtorrent
 		// it num_interested == 0, we need to pick a new piece
 
 		// now, pick one of the rarest pieces to download
-		int pick = rand() % rarest_pieces.size();
+		int pick = random() % rarest_pieces.size();
 		bool was_finished = is_finished();
 		m_picker->set_piece_priority(rarest_pieces[pick], 1);
 		update_peer_interest(was_finished);

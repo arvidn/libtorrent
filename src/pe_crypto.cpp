@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <gcrypt.h>
 #elif defined TORRENT_USE_OPENSSL
 #include <openssl/bn.h>
-#include <openssl/rand.h>
+#include "libtorrent/random.hpp"
 #elif defined TORRENT_USE_TOMMATH
 extern "C" {
 #include "libtorrent/tommath.h"
@@ -110,7 +110,7 @@ get_out:
 #elif defined TORRENT_USE_OPENSSL
 		// create local key
 		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
-			m_dh_local_secret[i] = rand();
+			m_dh_local_secret[i] = random();
 
 		BIGNUM* prime = 0;
 		BIGNUM* secret = 0;
@@ -145,7 +145,7 @@ get_out:
 #elif defined TORRENT_USE_TOMMATH
 		// create local key
 		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
-			m_dh_local_secret[i] = rand();
+			m_dh_local_secret[i] = random();
 
 		mp_int prime;
 		mp_int secret;

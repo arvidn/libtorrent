@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/random.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -1296,7 +1297,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		// The external port cannot be wildcarder
 		// pick a random port
-		m.external_port = 40000 + (std::rand() % 10000);
+		m.external_port = 40000 + (random() % 10000);
 		m.action = mapping_t::action_add;
 		++m.failcount;
 		update_map(d, mapping, l);

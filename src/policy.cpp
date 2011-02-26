@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
@@ -468,7 +469,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
-		int round_robin = rand() % m_peers.size();
+		int round_robin = random() % m_peers.size();
 
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
@@ -586,7 +587,7 @@ namespace libtorrent
 			// set external_ip to a random value, to
 			// radomize which peers we prefer
 			address_v4::bytes_type bytes;
-			std::generate(bytes.begin(), bytes.end(), &std::rand);
+			std::generate(bytes.begin(), bytes.end(), &random);
 			external_ip = address_v4(bytes);
 		}
 

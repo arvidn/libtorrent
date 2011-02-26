@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
+#include "libtorrent/random.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135
 
@@ -314,7 +315,7 @@ namespace libtorrent
 		}
 		else
 		{
-			send_id = rand();
+			send_id = random();
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);
