@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 namespace libtorrent {
 
@@ -71,7 +72,7 @@ namespace
 	{
 		smart_ban_plugin(torrent& t)
 			: m_torrent(t)
-			, m_salt(rand())
+			, m_salt(random())
 		{
 		}
 

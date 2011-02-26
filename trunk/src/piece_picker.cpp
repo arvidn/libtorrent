@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/peer_connection.hpp"
@@ -539,7 +540,7 @@ namespace libtorrent
 		priority_range(priority, &range_start, &range_end);
 		int new_index;
 		if (range_end == range_start) new_index = range_start;
-		else new_index = rand() % (range_end - range_start + 1) + range_start;
+		else new_index = random() % (range_end - range_start + 1) + range_start;
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "add " << index << " (" << priority << ")" << std::endl;
@@ -750,7 +751,7 @@ namespace libtorrent
 		int range_start, range_end;
 		priority_range(priority, &range_start, &range_end);
 		TORRENT_ASSERT(range_start < range_end);
-		int other_index = rand() % (range_end - range_start) + range_start;
+		int other_index = random() % (range_end - range_start) + range_start;
 
 		if (other_index == elem_index) return;
 
@@ -1513,7 +1514,7 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
-			int start_piece = std::rand() % m_piece_map.size();
+			int start_piece = random() % m_piece_map.size();
 
 			int piece = start_piece;
 			while (num_blocks > 0)
@@ -1605,7 +1606,7 @@ namespace libtorrent
 
 		// pick one random block from the first busy piece we encountered
 		// none of these blocks have more than one request to them
-		if (!temp.empty()) interesting_blocks.push_back(temp[rand() % temp.size()]);
+		if (!temp.empty()) interesting_blocks.push_back(temp[random() % temp.size()]);
 
 #ifdef TORRENT_DEBUG
 //		make sure that we at this point have added requests to all unrequested blocks

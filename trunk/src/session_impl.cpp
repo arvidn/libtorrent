@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings.hpp"
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/random.hpp"
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #endif
@@ -196,7 +197,7 @@ namespace aux {
 	{
 		seed_random_generator()
 		{
-			std::srand((unsigned int)total_microseconds(time_now_hires() - min_time()));
+			random_seed((unsigned int)total_microseconds(time_now_hires() - min_time()));
 		}
 	};
 
@@ -847,7 +848,7 @@ namespace aux {
 		// ---- generate a peer id ----
 		static seed_random_generator seeder;
 
-		m_key = rand() + (rand() << 15) + (rand() << 30);
+		m_key = random() + (random() << 15) + (random() << 30);
 		std::string print = cl_fprint.to_string();
 		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
 
@@ -1937,7 +1938,7 @@ namespace aux {
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
 		m_socks_listen_port = m_listen_interface.port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + rand() % 60000;
+		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
 		s.async_connect(tcp::endpoint(address_v4::any(), m_socks_listen_port)
 			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
 	}
@@ -4889,7 +4890,7 @@ namespace aux {
 		
 			if (m_external_addresses.size() > 20)
 			{
-				if (rand() < RAND_MAX / 2)
+				if (random() < RAND_MAX / 2)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
 					(*m_logger) << time_now_string() << ": More than 20 slots, dopped\n";

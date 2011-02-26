@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -114,7 +115,7 @@ namespace libtorrent
 
 		// the random number
 		while (begin != end)
-			*begin++ = printable[rand() % (sizeof(printable)-1)];
+			*begin++ = printable[random() % (sizeof(printable)-1)];
 	}
 
 	char to_lower(char c)
