@@ -1275,6 +1275,10 @@ namespace libtorrent
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
 
+		// these are the flags sent in on a call to save_resume_data
+		// we need to save them to check them in write_resume_data
+		boost::uint8_t	m_save_resume_flags;
+
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
 		// before actually closing all connections
@@ -1290,6 +1294,12 @@ namespace libtorrent
 		// rotating sequence number for LSD announces sent out.
 		// used to only use IP broadcast for every 8th lsd announce
 		boost::uint8_t m_lsd_seq:3;
+
+		// this is set to true if the torrent was started without
+		// metadata. It is used to save metadata in the resume file
+		// by default for such torrents. It does not necessarily
+		// have to be a magnet link.
+		bool m_magnet_link:1;
 	};
 }
 

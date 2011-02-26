@@ -671,7 +671,7 @@ void add_torrent(libtorrent::session& ses
 	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, ".resume/" + t->name() + ".resume");
+	std::string filename = combine_path(save_path, ".resume/" + to_hex(t->info_hash().to_string()) + ".resume");
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
@@ -845,7 +845,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
+			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 			if (non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
 					, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
@@ -1210,6 +1210,26 @@ int main(int argc, char* argv[])
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			p.url = *i;
+
+			std::vector<char> buf;
+			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+			{
+				std::string btih = url_has_argument(*i, "xt");
+				if (btih.empty()) continue;
+
+				if (btih.compare(0, 9, "urn:btih:") != 0)
+					continue;
+
+				sha1_hash info_hash;
+				if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
+				else info_hash.assign(base32decode(btih.substr(9)));
+
+				std::string filename = combine_path(save_path, ".resume/"
+					+ to_hex(info_hash.to_string()) + ".resume");
+
+				if (load_file(filename.c_str(), buf, ec) == 0)
+					p.resume_data = &buf;
+			}
 
 			printf("adding URL: %s\n", i->c_str());
 			error_code ec;
@@ -1985,7 +2005,7 @@ int main(int argc, char* argv[])
 		torrent_handle h = rd->handle;
 		std::vector<char> out;
 		bencode(std::back_inserter(out), *rd->resume_data);
-		save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
+		save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 	}
 	if (g_log_file) fclose(g_log_file);
 	printf("\nsaving session state\n");

@@ -2134,6 +2134,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
+		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 		void force_reannounce() const;
@@ -2933,14 +2934,19 @@ save_resume_data()
 
 	::
 
+		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 
 ``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 
-The ``flags`` argument may be set to ``torrent_handle::flush_cache``. Doing so will flush the disk
-cache before creating the resume data. This avoids a problem with file timestamps in the resume
-data in case the cache hasn't been flushed yet.
+The ``flags`` argument is a bitmask of flags ORed together. If the flag ``torrent_handle::flush_cache``
+is set, the disk cache will be flushed before creating the resume data. This avoids a problem with
+file timestamps in the resume data in case the cache hasn't been flushed yet.
+
+If the flag ``torrent_handle::save_info_dict`` is set, the resume data will contain the metadata
+from the torrent file as well. This is default for any torrent that's added without a torrent
+file (such as a magnet link or a URL).
 
 This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
 is delivered when it's done through an `save_resume_data_alert`_.

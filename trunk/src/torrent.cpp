@@ -332,11 +332,9 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
-		, m_torrent_file(p.ti ? p.ti : new torrent_info(info_hash))
 		, m_storage(0)
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
-		, m_trackers(m_torrent_file->trackers())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
 		, m_url(p.url)
@@ -358,13 +356,13 @@ namespace libtorrent
 		, m_storage_mode(p.storage_mode)
 		, m_announcing(false)
 		, m_waiting_tracker(false)
-		, m_seed_mode(p.seed_mode && m_torrent_file->is_valid())
+		, m_seed_mode(false)
 		, m_active_time(0)
 		, m_last_working_tracker(-1)
 		, m_finished_time(0)
 		, m_sequential_download(false)
 		, m_got_tracker_response(false)
-		, m_connections_initialized(p.ti && p.ti->is_valid())
+		, m_connections_initialized(false)
 		, m_super_seeding(false)
 		, m_override_resume_data(p.override_resume_data)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -377,8 +375,7 @@ namespace libtorrent
 		, m_max_uploads(~0)
 		, m_deficit_counter(0)
 		, m_num_uploads(0)
-		, m_block_size_shift(root2((p.ti && p.ti->is_valid())
-			? (std::min)(block_size, m_torrent_file->piece_length()) : block_size))
+		, m_block_size_shift(root2(block_size))
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_queued_for_checking(false)
@@ -403,10 +400,99 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
+		, m_save_resume_flags(0)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
+		, m_magnet_link(false)
 	{
+		if (!p.ti || !p.ti->is_valid())
+		{
+			// we don't have metadata for this torrent. We'll download
+			// it either through the URL passed in, or through a metadata
+			// extension. Make sure that when we save resume data for this
+			// torrent, we also save the metadata
+			m_magnet_link = true;
+	
+			// did the user provide resume data?
+			// maybe the metadata is in there
+			if (p.resume_data)
+			{
+				int pos;
+				error_code ec;
+				lazy_entry tmp;
+				lazy_entry const* info = 0;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				(*m_ses.m_logger) << time_now_string() << " adding magnet link with resume data\n";
+#endif
+				if (lazy_bdecode(&(*p.resume_data)[0], &(*p.resume_data)[0]
+					+ p.resume_data->size(), tmp, ec, &pos) == 0
+					&& tmp.type() == lazy_entry::dict_t
+					&& (info = tmp.dict_find_dict("info")))
+				{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+					(*m_ses.m_logger) << time_now_string() << " found metadata in resume data\n";
+#endif
+					// verify the info-hash of the metadata stored in the resume file matches
+					// the torrent we're loading
+
+					std::pair<char const*, int> buf = info->data_section();
+					sha1_hash resume_ih = hasher(buf.first, buf.second).final();
+
+					// if url is set, the info_hash is not actually the info-hash of the
+					// torrent, but the hash of the URL, until we have the full torrent
+					if (resume_ih == info_hash || !p.url.empty())
+					{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+						(*m_ses.m_logger) << time_now_string() << " info-hash matched\n";
+#endif
+						m_torrent_file = (p.ti ? p.ti : new torrent_info(resume_ih));
+
+						if (!m_torrent_file->parse_info_section(*info, ec, 0))
+						{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+							(*m_ses.m_logger) << time_now_string() << " failed to load metadata from resume file: "
+								<< ec.message() << "\n";
+#endif
+						}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+						else
+						{
+							(*m_ses.m_logger) << time_now_string() << " successfully loaded metadata from resume file\n";
+						}
+#endif
+					}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+					else
+					{
+						(*m_ses.m_logger) << time_now_string() << " metadata info-hash failed\n";
+					}
+#endif
+				}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				else
+				{
+					(*m_ses.m_logger) << time_now_string() << " no metadata found\n";
+				}
+#endif
+			}
+		}
+
+		if (!m_torrent_file)
+			m_torrent_file = (p.ti ? p.ti : new torrent_info(info_hash));
+
+		m_trackers = m_torrent_file->trackers();
+		if (m_torrent_file->is_valid())
+		{
+			m_seed_mode = p.seed_mode;
+			m_connections_initialized = true;
+			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
+		}
+		else
+		{
+			if (p.name) m_name.reset(new std::string(p.name));
+		}
+
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -439,7 +525,6 @@ namespace libtorrent
 #endif
 		INVARIANT_CHECK;
 
-		if (p.name && (!p.ti || !p.ti->is_valid())) m_name.reset(new std::string(p.name));
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
 		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
@@ -4353,6 +4438,13 @@ namespace libtorrent
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
 
+		if (valid_metadata())
+		{
+			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
+				ret["info"] = bdecode(&torrent_file().metadata()[0]
+					, &torrent_file().metadata()[0] + torrent_file().metadata_size());
+		}
+
 		// blocks per piece
 		int num_blocks_per_piece =
 			static_cast<int>(torrent_file().piece_length()) / block_size();
@@ -5893,6 +5985,7 @@ namespace libtorrent
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = time(0);
+		m_save_resume_flags = boost::uint8_t(flags);
 
 		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::queued_for_checking
