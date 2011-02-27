@@ -406,6 +406,7 @@ namespace libtorrent
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
+		, m_apply_ip_filter(p.apply_ip_filter)
 	{
 		if (!p.ti || !p.ti->is_valid())
 		{
@@ -784,6 +785,13 @@ namespace libtorrent
 					, _1, _2, _3, _4), false));
 		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
 		set_state(torrent_status::downloading_metadata);
+	}
+
+	void torrent::set_apply_ip_filter(bool b)
+	{
+		if (b == m_apply_ip_filter) return;
+		m_apply_ip_filter = b;
+		m_policy.ip_filter_updated();
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -2293,7 +2301,8 @@ namespace libtorrent
 		if (e || host == tcp::resolver::iterator() ||
 			m_ses.is_aborted()) return;
 
-		if (m_ses.m_ip_filter.access(host->endpoint().address()) & ip_filter::blocked)
+		if (m_apply_ip_filter
+			&& m_ses.m_ip_filter.access(host->endpoint().address()) & ip_filter::blocked)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			error_code ec;
@@ -3937,7 +3946,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		if (m_apply_ip_filter
+			&& m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
 				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), a.address()));
@@ -3986,7 +3996,8 @@ namespace libtorrent
 	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		if (m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
+		if (m_apply_ip_filter
+			&& m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
 				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), a.address()));
@@ -4822,7 +4833,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
 
 		tcp::endpoint a(peerinfo->ip());
-		TORRENT_ASSERT((m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);
+		TORRENT_ASSERT(!m_apply_ip_filter
+			|| (m_ses.m_ip_filter.access(peerinfo->address()) & ip_filter::blocked) == 0);
 
 		boost::shared_ptr<socket_type> s(new socket_type(m_ses.m_io_service));
 
@@ -7310,6 +7322,7 @@ namespace libtorrent
 
 		st->queue_position = queue_position();
 		st->need_save_resume = need_save_resume_data();
+		st->ip_filter_applies = m_apply_ip_filter;
 
 		st->state = (torrent_status::state_t)m_state;
 

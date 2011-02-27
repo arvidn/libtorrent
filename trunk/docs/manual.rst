@@ -2194,6 +2194,8 @@ Its declaration looks like this::
 		void set_upload_mode(bool m) const;
 		void set_share_mode(bool m) const;
 
+		void apply_ip_filter(bool b) const;
+
 		void flush_cache() const;
 
 		void resolve_countries(bool r);
@@ -2704,6 +2706,16 @@ Enable or disable share mode for this torrent. When in share mode, the torrent w
 not necessarily be downloaded, especially not the whole of it. Only parts that are likely
 to be distributed to more than 2 other peers are downloaded, and only if the previous
 prediction was correct.
+
+apply_ip_filter()
+-----------------
+
+::
+
+		void apply_ip_filter(bool b) const;
+
+Set to true to apply the session global IP filter to this torrent (which is the
+default). Set to false to make this torrent ignore the IP filter.
 
 resolve_countries()
 -------------------
@@ -3304,6 +3316,7 @@ It contains the following fields::
 
 		int queue_position;
 		bool need_save_resume;
+		bool ip_filter_applies;
 	};
 
 ``handle`` is a handle to the torrent whose status the object represents.
@@ -3573,6 +3586,9 @@ queue. If the torrent is a seed or finished, this is -1.
 ``need_save_resume`` is true if this torrent has unsaved changes
 to its download state and statistics since the last resume data
 was saved.
+
+``ip_filter_applies`` is true if the session global IP filter applies
+to this torrent. This defaults to true.
 
 peer_info
 =========

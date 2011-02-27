@@ -228,6 +228,8 @@ namespace libtorrent
 		void set_share_mode(bool b) const;
 		void flush_cache() const;
 
+		void apply_ip_filter(bool b) const;
+
 		void force_recheck() const;
 
 		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
@@ -475,6 +477,7 @@ namespace libtorrent
 			, time_since_download(0)
 			, queue_position(0)
 			, need_save_resume(false)
+			, ip_filter_applies(true)
 		{}
 
 		// handle to the torrent
@@ -683,6 +686,10 @@ namespace libtorrent
 		// true if this torrent has had changes since the last
 		// time resume data was saved
 		bool need_save_resume;
+
+		// defaults to true. Determines whether the session
+		// IP filter applies to this torrent or not
+		bool ip_filter_applies;
 	};
 
 }

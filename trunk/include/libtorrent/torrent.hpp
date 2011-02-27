@@ -823,6 +823,9 @@ namespace libtorrent
 
 		void update_last_upload() { m_last_upload = 0; }
 
+		void set_apply_ip_filter(bool b);
+		bool apply_ip_filter() const { return m_apply_ip_filter; }
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -1300,6 +1303,10 @@ namespace libtorrent
 		// by default for such torrents. It does not necessarily
 		// have to be a magnet link.
 		bool m_magnet_link:1;
+
+		// set to true if the session IP filter applies to this
+		// torrent or not. Defaults to true.
+		bool m_apply_ip_filter:1;
 	};
 }
 
