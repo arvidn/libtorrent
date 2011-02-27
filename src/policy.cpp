@@ -347,6 +347,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		aux::session_impl& ses = m_torrent->session();
+		if (!m_torrent->apply_ip_filter()) return;
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{

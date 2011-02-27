@@ -351,6 +351,12 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(pause, bool(flags & graceful_pause));
 	}
 
+	void torrent_handle::apply_ip_filter(bool b) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(set_apply_ip_filter, b);
+	}
+
 	void torrent_handle::set_share_mode(bool b) const
 	{
 		INVARIANT_CHECK;

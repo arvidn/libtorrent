@@ -63,6 +63,7 @@ namespace libtorrent
 			, upload_mode(false)
 			, file_priorities(0)
 			, share_mode(false)
+			, apply_ip_filter(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -88,6 +89,7 @@ namespace libtorrent
 		std::string url;
 		std::string uuid;
 		std::string source_feed_url;
+		bool apply_ip_filter;
 	};
 }
 
