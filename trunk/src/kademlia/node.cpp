@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
@@ -555,7 +556,7 @@ bool node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 
 	while (m < num)
 	{
-		if ((std::rand() / (RAND_MAX + 1.f)) * (num - t) >= num - m)
+		if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m)
 		{
 			++iter;
 			++t;
