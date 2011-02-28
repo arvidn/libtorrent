@@ -39,10 +39,14 @@ namespace {
             std::memcpy(&resume_buf[0], &resume[0], resume.size());
             p.resume_data = &resume_buf;
         }
-        p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-        p.paused = params["paused"];
-        p.auto_managed = params["auto_managed"];
-        p.duplicate_is_error = params["duplicate_is_error"];
+        if (params.has_key("storage_mode"))
+            p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
+        if (params.has_key("paused"))
+            p.paused = params["paused"];
+        if (params.has_key("auto_managed"))
+            p.auto_managed = params["auto_managed"];
+        if (params.has_key("duplicate_is_error"))
+            p.duplicate_is_error = params["duplicate_is_error"];
         
         return add_magnet_uri(s, uri, p);
     }
