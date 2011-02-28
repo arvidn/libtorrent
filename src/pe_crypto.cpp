@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #include "libtorrent/tommath.h"
 }
+#include "libtorrent/random.hpp"
 #endif
 
 #include "libtorrent/pe_crypto.hpp"

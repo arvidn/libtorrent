@@ -170,7 +170,7 @@ namespace libtorrent
 // 48
 		struct TORRENT_EXPORT peer
 		{
-			peer();
+//			peer();
 			peer(boost::uint16_t port, bool connectable, int src);
 
 			size_type total_download() const;
@@ -325,7 +325,6 @@ namespace libtorrent
 		struct TORRENT_EXPORT ipv4_peer : peer
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
-			ipv4_peer(libtorrent::address const& a);
 
 			address_v4 addr;
 		};
@@ -334,7 +333,6 @@ namespace libtorrent
 		struct TORRENT_EXPORT i2p_peer : peer
 		{
 			i2p_peer(char const* destination, bool connectable, int src);
-			i2p_peer(char const* destination);
 			~i2p_peer();
 
 			char* destination;
@@ -345,7 +343,6 @@ namespace libtorrent
 		struct TORRENT_EXPORT ipv6_peer : peer
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
-			ipv6_peer(libtorrent::address const& a);
 
 			address_v6::bytes_type addr;
 		};
@@ -475,19 +472,8 @@ namespace libtorrent
 	inline policy::ipv4_peer::ipv4_peer(
 		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ep.port(), c, src)
-	  , addr(ep.address().to_v4())
-	{
-#if TORRENT_USE_IPV6
-		is_v6_addr = false;
-#endif
-#if TORRENT_USE_I2P
-		is_i2p_addr = false;
-#endif
-	}
-
-	inline policy::ipv4_peer::ipv4_peer(libtorrent::address const& a)
-	  : addr(a.to_v4())
+		: peer(ep.port(), c, src)
+		, addr(ep.address().to_v4())
 	{
 #if TORRENT_USE_IPV6
 		is_v6_addr = false;
@@ -506,14 +492,6 @@ namespace libtorrent
 #endif
 		is_i2p_addr = true;
 	}
-	inline policy::i2p_peer::i2p_peer(char const* dest)
-		: destination(strdup(dest))
-	{
-#if TORRENT_USE_IPV6
-		is_v6_addr = false;
-#endif
-		is_i2p_addr = true;
-	}
 
 	inline policy::i2p_peer::~i2p_peer()
 	{ free(destination); }
@@ -523,8 +501,8 @@ namespace libtorrent
 	inline policy::ipv6_peer::ipv6_peer(
 		tcp::endpoint const& ep, bool c, int src
 	)
-	  : peer(ep.port(), c, src)
-	  , addr(ep.address().to_v6().to_bytes())
+		: peer(ep.port(), c, src)
+		, addr(ep.address().to_v6().to_bytes())
 	{
 		is_v6_addr = true;
 #if TORRENT_USE_I2P
@@ -532,14 +510,6 @@ namespace libtorrent
 #endif
 	}
 
-	inline policy::ipv6_peer::ipv6_peer(libtorrent::address const& a)
-	  : addr(a.to_v6().to_bytes())
-	{
-		is_v6_addr = true;
-#if TORRENT_USE_I2P
-		is_i2p_addr = false;
-#endif
-	}
 #endif // TORRENT_USE_IPV6
 
 #if TORRENT_USE_I2P

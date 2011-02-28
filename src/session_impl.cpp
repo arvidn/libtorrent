@@ -4890,7 +4890,7 @@ namespace aux {
 		
 			if (m_external_addresses.size() > 20)
 			{
-				if (random() < RAND_MAX / 2)
+				if (random() < UINT_MAX / 2)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
 					(*m_logger) << time_now_string() << ": More than 20 slots, dopped\n";
