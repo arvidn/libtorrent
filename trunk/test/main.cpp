@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <boost/config.hpp>
 #include <fcntl.h>
+#include <stdio.h>
 
 int test_main();
 
