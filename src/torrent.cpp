@@ -408,6 +408,8 @@ namespace libtorrent
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.apply_ip_filter)
 	{
+		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
+
 		if (!p.ti || !p.ti->is_valid())
 		{
 			// we don't have metadata for this torrent. We'll download
@@ -790,6 +792,15 @@ namespace libtorrent
 	void torrent::set_apply_ip_filter(bool b)
 	{
 		if (b == m_apply_ip_filter) return;
+		if (b)
+		{
+			TORRENT_ASSERT(m_ses.m_non_filtered_torrents > 0);
+			--m_ses.m_non_filtered_torrents;
+		}
+		else
+		{
+			++m_ses.m_non_filtered_torrents;
+		}
 		m_apply_ip_filter = b;
 		m_policy.ip_filter_updated();
 	}

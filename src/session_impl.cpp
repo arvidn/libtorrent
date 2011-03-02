@@ -536,6 +536,7 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+		, m_non_filtered_torrents(0)
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
@@ -2178,7 +2179,11 @@ namespace aux {
 		if (!is_local(endp.address()))
 			m_incoming_connection = true;
 
-		if (m_ip_filter.access(endp.address()) & ip_filter::blocked)
+		// this filter is ignored if a single torrent
+		// is set to ignore the filter, since this peer might be
+		// for that torrent
+		if (m_non_filtered_torrents > 0
+			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "filtered blocked ip\n";

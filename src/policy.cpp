@@ -1197,7 +1197,8 @@ namespace libtorrent
 		}
 
 		// if the IP is blocked, don't add it
-		if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
+		if (m_torrent->apply_ip_filter()
+			&& (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked))
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));

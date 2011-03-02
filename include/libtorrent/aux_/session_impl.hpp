@@ -980,6 +980,10 @@ namespace libtorrent
 
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
+			// the number of torrents that have apply_ip_filter
+			// set to false. This is typically 0
+			int m_non_filtered_torrents;
+
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
 
