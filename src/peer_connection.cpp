@@ -412,61 +412,6 @@ namespace libtorrent
 		if (d1 > d2) return true;
 		if (d1 < d2) return false;
 
-		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
-		{
-			// in order to not switch back and forth too often,
-			// unchoked peers must be at least one piece ahead
-			// of a choked peer to be sorted at a lower unchoke-priority
-			int pieces = m_ses.settings().seeding_piece_quota;
-			bool c1_done = is_choked() || u1 > (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-			bool c2_done = rhs.is_choked() || u2 > (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
-
-			if (!c1_done && c2_done) return true;
-			if (c1_done && !c2_done) return false;
-		}
-		else if (m_ses.settings().seed_choking_algorithm == session_settings::fastest_upload)
-		{
-			size_type c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
-			size_type c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
-		
-			// take torrent priority into account
-			c1 *= 1 + t1->priority();
-			c2 *= 1 + t2->priority();
-
-			if (c1 > c2) return true;
-			if (c2 > c1) return false;
-		}
-		else if (m_ses.settings().seed_choking_algorithm == session_settings::anti_leech)
-		{
-			// the anti-leech seeding algorithm ranks peers based on how many pieces
-			// they have, prefering to unchoke peers that just started and peers that
-			// are close to completing. Like this:
-			//   ^
-			//   | \                       / |
-			//   |  \                     /  |
-			//   |   \                   /   |
-			// s |    \                 /    |
-			// c |     \               /     |
-			// o |      \             /      |
-			// r |       \           /       |
-			// e |        \         /        |
-			//   |         \       /         |
-			//   |          \     /          |
-			//   |           \   /           |
-			//   |            \ /            |
-			//   |             V             |
-			//   +---------------------------+
-			//   0%    num have pieces     100%
-			int t1_total = t1->torrent_file().num_pieces();
-			int t2_total = t2->torrent_file().num_pieces();
-			int score1 = (num_have_pieces() < t1_total / 2
-				? t1_total - num_have_pieces() : num_have_pieces()) * 1000 / t1_total;
-			int score2 = (rhs.num_have_pieces() < t2_total / 2
-				? t2_total - rhs.num_have_pieces() : rhs.num_have_pieces()) * 1000 / t2_total;
-			if (score1 > score2) return true;
-			if (score2 > score1) return false;
-		}
-		
 		// if both peers are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
 		return m_last_unchoke < rhs.m_last_unchoke;
@@ -524,6 +469,37 @@ namespace libtorrent
 			if (c1 > c2) return true;
 			if (c2 > c1) return false;
 		}
+		else if (m_ses.settings().seed_choking_algorithm == session_settings::anti_leech)
+		{
+			// the anti-leech seeding algorithm ranks peers based on how many pieces
+			// they have, prefering to unchoke peers that just started and peers that
+			// are close to completing. Like this:
+			//   ^
+			//   | \                       / |
+			//   |  \                     /  |
+			//   |   \                   /   |
+			// s |    \                 /    |
+			// c |     \               /     |
+			// o |      \             /      |
+			// r |       \           /       |
+			// e |        \         /        |
+			//   |         \       /         |
+			//   |          \     /          |
+			//   |           \   /           |
+			//   |            \ /            |
+			//   |             V             |
+			//   +---------------------------+
+			//   0%    num have pieces     100%
+			int t1_total = t1->torrent_file().num_pieces();
+			int t2_total = t2->torrent_file().num_pieces();
+			int score1 = (num_have_pieces() < t1_total / 2
+				? t1_total - num_have_pieces() : num_have_pieces()) * 1000 / t1_total;
+			int score2 = (rhs.num_have_pieces() < t2_total / 2
+				? t2_total - rhs.num_have_pieces() : rhs.num_have_pieces()) * 1000 / t2_total;
+			if (score1 > score2) return true;
+			if (score2 > score1) return false;
+		}
+		
 		// if both peers have are still in their send quota or not in their send quota
 		// prioritize the one that has waited the longest to be unchoked
 		return m_last_unchoke < rhs.m_last_unchoke;
