@@ -166,7 +166,7 @@ AC_CHECK_FUNCS([clock_gettime], [],
 
 
 dnl Pass some build options to setup.py and .pc file
-COMPILETIME_OPTIONS=""
+COMPILETIME_OPTIONS="-DBOOST_FILESYSTEM_VERSION=2 "
 
 
 ###############################################################################
