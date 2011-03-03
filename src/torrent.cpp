@@ -838,6 +838,13 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
+		if (!m_apply_ip_filter)
+		{
+			TORRENT_ASSERT(m_ses.m_non_filtered_torrents > 0);
+			--m_ses.m_non_filtered_torrents;
+			m_apply_ip_filter = true;
+		}
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
