@@ -4346,6 +4346,7 @@ session_settings
 		int max_metadata_size;
 		bool smooth_connects;
 		bool always_send_user_agent;
+		bool apply_ip_filter_to_trackers;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5190,6 +5191,11 @@ instead of attempting to connectin in batches, and timing them out in batches.
 ``always_send_user_agent`` defaults to false. When set to true, web connections
 will include a user-agent with every request, as opposed to just the first
 request in a connection.
+
+``apply_ip_filter_to_trackers`` defaults to true. It determines whether the
+IP filter applies to trackers as well as peers. If this is set to false,
+trackers are exempt from the IP filter (if there is one). If no IP filter
+is set, this setting is irrelevant.
 
 pe_settings
 ===========

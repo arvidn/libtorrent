@@ -255,6 +255,8 @@ namespace libtorrent
 
 	void http_tracker_connection::on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints)
 	{
+		if (tracker_req().apply_ip_filter == false) return;
+
 		// remove endpoints that are filtered by the IP filter
 		for (std::list<tcp::endpoint>::iterator i = endpoints.begin();
 			i != endpoints.end();)

@@ -1868,6 +1868,7 @@ namespace libtorrent
 			e = tracker_request::paused;
 
 		tracker_request req;
+		req.apply_ip_filter = m_apply_ip_filter && m_ses.m_settings.apply_ip_filter_to_trackers;
 		req.info_hash = m_torrent_file->info_hash();
 		req.pid = m_ses.get_peer_id();
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
@@ -2027,6 +2028,7 @@ namespace libtorrent
 		if (i == -1) i = 0;
 		
 		tracker_request req;
+		req.apply_ip_filter = m_apply_ip_filter && m_ses.m_settings.apply_ip_filter_to_trackers;
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
