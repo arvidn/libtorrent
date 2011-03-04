@@ -527,6 +527,7 @@ namespace aux {
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
 		, m_tick_residual(0)
+		, m_non_filtered_torrents(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
@@ -536,7 +537,6 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
-		, m_non_filtered_torrents(0)
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
