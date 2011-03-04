@@ -6007,6 +6007,13 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 	
+		if (!valid_metadata())
+		{
+			alerts().post_alert(save_resume_data_failed_alert(get_handle()
+				, errors::no_metadata));
+			return;
+		}
+
 		if (!m_owning_storage.get())
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle()
