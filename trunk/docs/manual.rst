@@ -7439,6 +7439,11 @@ code   symbol                                    description
 ------ ----------------------------------------- -----------------------------------------------------------------
 108    too_frequent_pex                          The peer sent an pex messages too often. This is a possible
                                                  attempt of and attack
+------ ----------------------------------------- -----------------------------------------------------------------
+109    no_metadata                               The operation failed because it requires the torrent to have
+                                                 the metadata (.torrent file) and it doesn't have it yet.
+                                                 This happens for magnet links before they have downloaded the
+                                                 metadata, and also torrents added by URL.
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
