@@ -265,6 +265,7 @@ namespace libtorrent
 			, max_metadata_size(1024*1024)
 			, smooth_connects(true)
 			, always_send_user_agent(false)
+			, apply_ip_filter_to_trackers(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1055,6 +1056,10 @@ namespace libtorrent
 
 		// always send user-agent
 		bool always_send_user_agent;
+
+		// if true, trackers will also be filtered by the IP
+		// filter, otherwise they are exempt
+		bool apply_ip_filter_to_trackers;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
