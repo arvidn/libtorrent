@@ -904,6 +904,10 @@ namespace libtorrent
 			// accumulated error
 			boost::uint16_t m_tick_residual;
 
+			// the number of torrents that have apply_ip_filter
+			// set to false. This is typically 0
+			int m_non_filtered_torrents;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
@@ -979,10 +983,6 @@ namespace libtorrent
 			size_type m_total_redundant_bytes;
 
 			std::vector<boost::shared_ptr<feed> > m_feeds;
-
-			// the number of torrents that have apply_ip_filter
-			// set to false. This is typically 0
-			int m_non_filtered_torrents;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
