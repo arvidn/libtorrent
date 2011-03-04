@@ -3967,6 +3967,10 @@ namespace aux {
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
 
+		// recalculate auto-managed torrents sooner
+		if (params.auto_managed && m_auto_manage_time_scaler > 1)
+			m_auto_manage_time_scaler = 1;
+
 		return torrent_handle(torrent_ptr);
 	}
 
