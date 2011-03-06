@@ -60,11 +60,11 @@ namespace libtorrent
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
-	torrent_handle add_feed_item(session& s, feed_item const& fi
+	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p);
 #endif
 
-	torrent_handle add_feed_item(session& s, feed_item const& fi
+	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p, error_code& ec);
 
 	// the feed_settings object is all the information
@@ -106,7 +106,7 @@ namespace libtorrent
 
 	struct feed;
 
-	struct feed_handle
+	struct TORRENT_EXPORT feed_handle
 	{
 		feed_handle() {}
 		void update_feed();
@@ -129,7 +129,7 @@ namespace libtorrent
 	// RSS feed. All user interaction with this object
 	// goes through the feed_handle, which makes sure all calls
 	// are posted to the network thread
-	struct feed : boost::enable_shared_from_this<feed>
+	struct TORRENT_EXPORT feed : boost::enable_shared_from_this<feed>
 	{
 		friend void parse_feed(feed_state& f, int token, char const* name, char const* val);
 
