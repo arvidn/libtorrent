@@ -5016,6 +5016,15 @@ namespace libtorrent
 
 		m_has_incoming = true;
 
+		if (m_apply_ip_filter
+			&& m_ses.m_ip_filter.access(p->remote().address()) & ip_filter::blocked)
+		{
+			if (m_ses.m_alerts.should_post<peer_blocked_alert>())
+				m_ses.m_alerts.post_alert(peer_blocked_alert(get_handle(), p->remote().address()));
+			p->disconnect(errors::banned_by_ip_filter);
+			return false;
+		}
+
 		if ((m_state == torrent_status::queued_for_checking
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
