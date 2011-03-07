@@ -455,6 +455,9 @@ namespace libtorrent
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
 
+			// the settings for the client
+			session_settings m_settings;
+
 			// this is a shared pool where policy_peer objects
 			// are allocated. It's a pool since we're likely
 			// to have tens of thousands of peers, and a pool
@@ -669,9 +672,6 @@ namespace libtorrent
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries
 				, bool v6_only, int flags, error_code& ec);
-
-			// the settings for the client
-			session_settings m_settings;
 
 			// the proxy used for bittorrent
 			proxy_settings m_proxy;
