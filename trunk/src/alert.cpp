@@ -328,9 +328,9 @@ namespace libtorrent {
 
 
 
-	alert_manager::alert_manager(io_service& ios)
+	alert_manager::alert_manager(io_service& ios, int queue_limit)
 		: m_alert_mask(alert::error_notification)
-		, m_queue_size_limit(queue_size_limit_default)
+		, m_queue_size_limit(queue_limit)
 		, m_ios(ios)
 	{}
 

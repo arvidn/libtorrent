@@ -478,7 +478,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
 #endif
-		, m_alerts(m_io_service)
+		, m_alerts(m_io_service, m_settings.alert_queue_size)
 		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
@@ -1078,9 +1078,9 @@ namespace aux {
 		}
 		
 		update_rate_settings();
-
 		update_connections_limit();
 		update_unchoke_limit();
+		m_alerts.set_alert_queue_size_limit(m_settings.alert_queue_size);
 
 		// in case we just set a socks proxy, we might have to
 		// open the socks incoming connection

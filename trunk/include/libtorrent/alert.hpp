@@ -128,9 +128,7 @@ namespace libtorrent {
 	class TORRENT_EXPORT alert_manager
 	{
 	public:
-		enum { queue_size_limit_default = 1000 };
-
-		alert_manager(io_service& ios);
+		alert_manager(io_service& ios, int queue_limit);
 		~alert_manager();
 
 		void post_alert(const alert& alert_);
