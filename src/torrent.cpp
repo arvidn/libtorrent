@@ -514,9 +514,6 @@ namespace libtorrent
 
 		if (p.resume_data) m_resume_data.swap(*p.resume_data);
 
-		if (settings().prefer_udp_trackers)
-			prioritize_udp_trackers();
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
 		h.update("req2", 4);
@@ -538,6 +535,9 @@ namespace libtorrent
 			m_trackers.back().source = announce_entry::source_magnet_link;
 			m_torrent_file->add_tracker(p.tracker_url);
 		}
+
+		if (settings().prefer_udp_trackers)
+			prioritize_udp_trackers();
 	}
 
 #if 1
