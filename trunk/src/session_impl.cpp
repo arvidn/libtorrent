@@ -2182,7 +2182,7 @@ namespace aux {
 		// this filter is ignored if a single torrent
 		// is set to ignore the filter, since this peer might be
 		// for that torrent
-		if (m_non_filtered_torrents > 0
+		if (m_non_filtered_torrents == 0
 			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
