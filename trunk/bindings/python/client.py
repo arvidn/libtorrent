@@ -226,9 +226,9 @@ def main():
     ses.set_settings(settings)
 #   ses.set_severity_level(lt.alert.severity_levels.info)
     ses.set_alert_mask(0xfffffff)
-    ses.add_extension(lt.create_ut_pex_plugin)
-    ses.add_extension(lt.create_ut_metadata_plugin)
-    ses.add_extension(lt.create_metadata_plugin)
+#    ses.add_extension(lt.create_ut_pex_plugin)
+#    ses.add_extension(lt.create_ut_metadata_plugin)
+#    ses.add_extension(lt.create_metadata_plugin)
 
     handles = []
     alerts = []
