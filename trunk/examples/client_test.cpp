@@ -1152,7 +1152,7 @@ int main(int argc, char* argv[])
 
 	ses.set_proxy(ps);
 
-	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
+	ses.listen_on(std::make_pair(listen_port, listen_port)
 		, ec, bind_to_interface.c_str());
 	if (ec)
 	{

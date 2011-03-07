@@ -1779,6 +1779,11 @@ namespace aux {
 			return listen_socket_t();
 		}
 
+		// if we asked the system to listen on port 0, which
+		// socket did it end up choosing?
+		if (ep.port() == 0)
+			ep.port(s.sock->local_endpoint().port());
+
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));
 
@@ -4364,12 +4369,6 @@ namespace aux {
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
-
-		if (m_listen_interface.port() != 0)
-		{
-			error_code ec;
-			open_listen_port(0, ec);
-		}
 
 		if (m_dht)
 		{

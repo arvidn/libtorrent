@@ -91,6 +91,8 @@ namespace libtorrent
 		m_sam_router = s;
 		m_sam_router.type = proxy_settings::i2p_proxy;
 
+		if (m_sam_router.hostname.empty()) return;
+
 		m_state = sam_connecting;
 
 		char tmp[20];
