@@ -69,11 +69,15 @@ boost::array<char, 64> generate_key()
 	return ret;
 }
 
+static const std::string no;
+
 void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, lazy_entry* reply, char const* t = "10", char const* info_hash = 0
-	, char const* name = 0, std::string const* token = 0, int port = 0
-	, std::string const* target = 0, entry const* item = 0, std::string const* signature = 0
-	, std::string const* key = 0, std::string const* id = 0)
+	, char const* name = 0, std::string const token = std::string(), int port = 0
+	, std::string const target = std::string(), entry const* item = 0
+	, std::string const signature = std::string()
+	, std::string const key = std::string()
+	, std::string const id = std::string())
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -83,15 +87,15 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	e["t"] = t;
 	e["y"] = "q";
 	entry::dictionary_type& a = e["a"].dict();
-	a["id"] = id == 0 ? generate_next().to_string() : *id;
+	a["id"] = id.empty() ? generate_next().to_string() : id;
 	if (info_hash) a["info_hash"] = info_hash;
 	if (name) a["n"] = name;
-	if (token) a["token"] = *token;
+	if (!token.empty()) a["token"] = token;
 	if (port) a["port"] = port;
-	if (target) a["target"] = *target;
+	if (!target.empty()) a["target"] = target;
 	if (item) a["item"] = *item;
-	if (signature) a["sig"] = *signature;
-	if (key) a["key"] = *key;
+	if (!signature.empty()) a["sig"] = signature;
+	if (!key.empty()) a["key"] = key;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 //	std::cerr << "sending: " <<  e << "\n";
@@ -154,8 +158,8 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			if ((i % items[j].num_peers) == 0) continue;
 			lazy_entry response;
 			send_dht_msg(node, "get_item", eps[i], &response, "10", 0
-				, 0, 0, 0, &items[j].target.to_string(), 0, 0
-				, &std::string(&items[j].key[0], 64), &ids[i].to_string());
+				, 0, no, 0, items[j].target.to_string(), 0, no
+				, std::string(&items[j].key[0], 64), ids[i].to_string());
 			
 			key_desc_t desc[] =
 			{
@@ -191,8 +195,8 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			}
 
 			send_dht_msg(node, "announce_item", eps[i], &response, "10", 0
-				, 0, &tokens[i], 0, &items[j].target.to_string(), &items[j].ent
-				, &std::string("0123456789012345678901234567890123456789012345678901234567890123"));
+				, 0, tokens[i], 0, items[j].target.to_string(), &items[j].ent
+				, std::string("0123456789012345678901234567890123456789012345678901234567890123"));
 			
 
 			key_desc_t desc2[] =
@@ -219,8 +223,8 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 	{
 		lazy_entry response;
 		send_dht_msg(node, "get_item", eps[0], &response, "10", 0
-			, 0, 0, 0, &items[j].target.to_string(), 0, 0
-			, &std::string(&items[j].key[0], 64), &ids[0].to_string());
+			, 0, no, 0, items[j].target.to_string(), 0, no
+			, std::string(&items[j].key[0], 64), ids[0].to_string());
 		
 		key_desc_t desc[] =
 		{
@@ -261,7 +265,7 @@ void nop(address, int, address) {}
 int test_main()
 {
 	io_service ios;
-	alert_manager al(ios);
+	alert_manager al(ios, 100);
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_feed_items = 4;
@@ -356,7 +360,7 @@ int test_main()
 
 	// ====== announce ======
 
-	send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", &token, 8080);
+	send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", token, 8080);
 
 	dht::key_desc_t ann_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
