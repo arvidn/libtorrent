@@ -291,63 +291,58 @@ namespace libtorrent
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	m_impl->m_io_service.post(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
 
+#define TORRENT_WAIT \
+	mutex::scoped_lock l(m_impl->mut); \
+	while (!done) { m_impl->cond.wait(l); };
+
 #define TORRENT_SYNC_CALL(x) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL2(x, a1, a2) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL4(x, a1, a2, a3, a4) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3, a4)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET1(type, x, a1) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 	// this is a dummy function that's exported and named based
 	// on the configuration. The session.hpp file will reference
