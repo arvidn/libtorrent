@@ -136,7 +136,7 @@ namespace libtorrent
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
- 			, send_buffer_watermark(100 * 1024)
+ 			, send_buffer_watermark(700 * 1024)
 			, send_buffer_watermark_factor(1)
 #ifndef TORRENT_NO_DEPRECATE
 			// deprecated in 0.16
