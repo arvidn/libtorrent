@@ -300,6 +300,7 @@ void upnp::resend_request(error_code const& ec)
 			}
 			TORRENT_CATCH (std::exception& exc)
 			{
+				TORRENT_DECLARE_DUMMY(std::exception, exc);
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
@@ -558,6 +559,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				}
 				TORRENT_CATCH (std::exception& exc)
 				{
+					TORRENT_DECLARE_DUMMY(std::exception, exc);
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
 						, d.url.c_str(), exc.what());
