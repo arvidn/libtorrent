@@ -4128,6 +4128,7 @@ namespace libtorrent
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
+			TORRENT_DECLARE_DUMMY(std::exception, e);
 			(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << " ** HOSTNAME LOOKUP FAILED!**: " << e.what() << "\n";
@@ -5067,6 +5068,7 @@ namespace libtorrent
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
+			TORRENT_DECLARE_DUMMY(std::exception, e);
 			(void)e;
 #if defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
@@ -6546,6 +6548,7 @@ namespace libtorrent
 			}
 			TORRENT_CATCH (std::exception& e)
 			{
+				TORRENT_DECLARE_DUMMY(std::exception, e);
 				(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";

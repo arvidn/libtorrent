@@ -1696,9 +1696,8 @@ namespace libtorrent
 				j.cache_min_time = j.cache_min_time == 0 ? m_settings.default_cache_min_age
 					: (std::max)(m_settings.default_cache_min_age, j.cache_min_time);
 
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
+			TORRENT_TRY
+			{
 
 			if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 				j.storage->get_storage_impl()->m_settings = &m_settings;
@@ -2354,6 +2353,7 @@ namespace libtorrent
 			}
 			TORRENT_CATCH(std::exception& e)
 			{
+				TORRENT_DECLARE_DUMMY(std::exception, e);
 				ret = -1;
 				TORRENT_TRY {
 					j.str = e.what();

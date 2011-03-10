@@ -396,9 +396,11 @@ inline char* strdup(char const* str)
 #ifdef BOOST_NO_EXCEPTIONS
 #define TORRENT_TRY if (true)
 #define TORRENT_CATCH(x) else if (false)
+#define TORRENT_DECLARE_DUMMY(x, y) x y
 #else
 #define TORRENT_TRY try
 #define TORRENT_CATCH(x) catch(x)
+#define TORRENT_DECLARE_DUMMY(x, y)
 #endif // BOOST_NO_EXCEPTIONS
 
 
