@@ -169,6 +169,7 @@ namespace libtorrent
 			, total_used_buffers(0)
 			, average_queue_time(0)
 			, average_read_time(0)
+			, average_write_time(0)
 			, job_queue_length(0)
 		{}
 
@@ -202,6 +203,7 @@ namespace libtorrent
 		// times in microseconds
 		int average_queue_time;
 		int average_read_time;
+		int average_write_time;
 		int job_queue_length;
 	};
 	
@@ -431,6 +433,9 @@ namespace libtorrent
 
 		// average read time for cache misses (in microseconds)
 		sliding_average<512> m_read_time;
+
+		// average write time (in microseconds)
+		sliding_average<512> m_write_time;
 
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t m_sorted_read_jobs;

@@ -921,6 +921,13 @@ namespace aux {
 			":% failed payload bytes"
 			":% wasted payload bytes"
 			":% protocol bytes"
+			":disk read time"
+			":disk write time"
+			":disk queue time"
+			":disk queue size"
+			":disk queued bytes"
+			":read cache hits"
+			":disk block read"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2681,6 +2688,7 @@ namespace aux {
 		
 		if (m_stats_logger)
 		{
+			cache_status cs = m_disk_thread.status();
 			fprintf(m_stats_logger
 				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
@@ -2688,7 +2696,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%f\t%f\t%f\n"
+				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(upload_rate)
 				, int(download_rate)
@@ -2752,7 +2760,15 @@ namespace aux {
 				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
 				, (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download())
 				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
+				, int(cs.average_read_time)
+				, int(cs.average_write_time)
+				, int(cs.average_queue_time)
+				, int(cs.job_queue_length)
+				, int(cs.queued_bytes)
+				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
+				, int(cs.blocks_read - m_last_cache_status.blocks_read)
 			);
+			m_last_cache_status = cs;
 		}
 
 		m_error_peers = 0;
