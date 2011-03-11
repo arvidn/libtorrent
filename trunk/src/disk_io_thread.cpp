@@ -341,6 +341,7 @@ namespace libtorrent
 
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
+		ret.average_write_time = m_write_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 
 		return ret;
@@ -671,6 +672,8 @@ namespace libtorrent
 		else iov = TORRENT_ALLOCA(file::iovec_t, blocks_in_piece);
 
 		end = (std::min)(end, blocks_in_piece);
+		int num_write_calls = 0;
+		ptime write_start = time_now_hires();
 		for (int i = start; i <= end; ++i)
 		{
 			if (i == end || p.blocks[i].buf == 0)
@@ -684,6 +687,7 @@ namespace libtorrent
 					p.storage->write_impl(iov, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, iov_counter);
 					iov_counter = 0;
+					++num_write_calls;
 				}
 				else
 				{
@@ -691,6 +695,7 @@ namespace libtorrent
 					file::iovec_t b = { buf.get(), buffer_size };
 					p.storage->write_impl(&b, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, 1);
+					++num_write_calls;
 				}
 				l.lock();
 				++m_cache_stats.writes;
@@ -723,6 +728,8 @@ namespace libtorrent
 			--m_cache_stats.cache_size;
 		}
 
+		ptime done = time_now_hires();
+
 		int ret = 0;
 		disk_io_job j;
 		j.storage = p.storage;
@@ -744,6 +751,11 @@ namespace libtorrent
 			++ret;
 		}
 		if (!buffers.empty()) free_multiple_buffers(&buffers[0], buffers.size());
+
+		if (num_write_calls > 0)
+		{
+			m_write_time.add_sample(total_microseconds(done - write_start) / num_write_calls);
+		}
 
 		TORRENT_ASSERT(buffer_size == 0);
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
@@ -2058,6 +2070,7 @@ namespace libtorrent
 						if (cache_block(j, j.callback, j.cache_min_time, l) < 0)
 						{
 							l.unlock();
+							ptime start = time_now_hires();
 							file::iovec_t iov = {j.buffer, j.buffer_size};
 							ret = j.storage->write_impl(&iov, j.piece, j.offset, 1);
 							l.lock();
@@ -2066,6 +2079,8 @@ namespace libtorrent
 								test_error(j);
 								break;
 							}
+							ptime done = time_now_hires();
+							m_write_time.add_sample(total_microseconds(done - start));
 							// we successfully wrote the block. Ignore previous errors
 							j.storage->clear_error();
 							break;

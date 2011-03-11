@@ -892,6 +892,7 @@ namespace libtorrent
 			int m_connect_timeouts;
 			int m_uninteresting_peers;
 			int m_timeout_peers;
+			cache_status m_last_cache_status;
 #endif
 
 			// each second tick the timer takes a little
