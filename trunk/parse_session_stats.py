@@ -60,6 +60,6 @@ gen_report('piece_picker_end_game', ['end game piece picker blocks', 'strict end
 gen_report('piece_picker', ['piece picks', 'reject piece picks', 'unchoked piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
 gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'])
 gen_report('disk_time', ['disk read time', 'disk write time', 'disk queue time'])
-gen_report('disk_cache', ['disk block read', 'read cache hits'])
+gen_report('disk_cache', ['disk block read', 'read cache hits', 'disk block written'])
 gen_report('disk_queue', ['disk queue size', 'disk queued bytes'])
 
