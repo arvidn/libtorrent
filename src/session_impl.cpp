@@ -928,6 +928,7 @@ namespace aux {
 			":disk queued bytes"
 			":read cache hits"
 			":disk block read"
+			":disk block written"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2696,7 +2697,8 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(upload_rate)
 				, int(download_rate)
@@ -2767,6 +2769,7 @@ namespace aux {
 				, int(cs.queued_bytes)
 				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
 				, int(cs.blocks_read - m_last_cache_status.blocks_read)
+				, int(cs.blocks_written - m_last_cache_status.blocks_written)
 			);
 			m_last_cache_status = cs;
 		}
