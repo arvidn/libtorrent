@@ -2182,8 +2182,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 
 		// we're not receiving any block right now
-		m_receiving_block.piece_index = -1;
-		m_receiving_block.block_index = -1;
+		m_receiving_block = piece_block::invalid;
 
 #ifdef TORRENT_CORRUPT_DATA
 		// corrupt all pieces from certain peers
