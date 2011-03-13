@@ -893,6 +893,10 @@ namespace libtorrent
 			int m_uninteresting_peers;
 			int m_timeout_peers;
 			cache_status m_last_cache_status;
+			size_type m_last_failed;
+			size_type m_last_redundant;
+			size_type m_last_uploaded;
+			size_type m_last_downloaded;
 #endif
 
 			// each second tick the timer takes a little

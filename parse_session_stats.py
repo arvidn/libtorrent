@@ -62,4 +62,5 @@ gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% 
 gen_report('disk_time', ['disk read time', 'disk write time', 'disk queue time'])
 gen_report('disk_cache', ['disk block read', 'read cache hits', 'disk block written'])
 gen_report('disk_queue', ['disk queue size', 'disk queued bytes'])
+gen_report('waste', ['failed bytes', 'redundant bytes', 'download rate'])
 
