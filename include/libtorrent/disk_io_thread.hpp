@@ -429,13 +429,13 @@ namespace libtorrent
 		cache_status m_cache_stats;
 
 		// keeps average queue time for disk jobs (in microseconds)
-		sliding_average<512> m_queue_time;
+		sliding_average<4096> m_queue_time;
 
 		// average read time for cache misses (in microseconds)
-		sliding_average<512> m_read_time;
+		sliding_average<4096> m_read_time;
 
 		// average write time (in microseconds)
-		sliding_average<512> m_write_time;
+		sliding_average<4096> m_write_time;
 
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t m_sorted_read_jobs;
