@@ -184,6 +184,8 @@ namespace libtorrent
 		// plenty of bandwidth
 		set.mixed_mode_algorithm = session_settings::prefer_tcp;
 
+		// we will probably see a high rate of alerts, make it less
+		// likely to loose alerts
 		set.alert_queue_size = 10000;
 
 		// allow 500 files open at a time
@@ -195,6 +197,12 @@ namespace libtorrent
 
 		// connect to 50 peers per second
 		set.connection_speed = 50;
+
+		// allow 8000 peer connections
+		set.connections_limit = 8000;
+
+		// unchoke many peers
+		set.unchoke_slots_limit = 500;
 
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
