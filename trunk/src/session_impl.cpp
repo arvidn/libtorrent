@@ -812,6 +812,10 @@ namespace aux {
 		m_connect_timeouts = 0;
 		m_uninteresting_peers = 0;
 		m_timeout_peers = 0;
+		m_last_failed = 0;
+		m_last_redundant = 0;
+		m_last_uploaded = 0;
+		m_last_downloaded = 0;
 		rotate_stats_log();
 #endif
 #ifdef TORRENT_DISK_STATS
@@ -929,6 +933,8 @@ namespace aux {
 			":read cache hits"
 			":disk block read"
 			":disk block written"
+			":failed bytes"
+			":redundant bytes"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2582,12 +2588,6 @@ namespace aux {
 		int checking_torrents = 0;
 		int stopped_torrents = 0;
 		int upload_only_torrents = 0;
-		static size_type downloaded = 0;
-		static size_type uploaded = 0;
-		size_type download_rate = (m_stat.total_download() - downloaded) * 1000 / tick_interval_ms;
-		size_type upload_rate = (m_stat.total_upload() - uploaded) * 1000 / tick_interval_ms;
-		downloaded = m_stat.total_download();
-		uploaded = m_stat.total_upload();
 		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
 		int peer_ul_rate_buckets[7];
@@ -2698,10 +2698,10 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\n"
+				  "%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
-				, int(upload_rate)
-				, int(download_rate)
+				, int(m_stat.total_upload() - m_last_uploaded)
+				, int(m_stat.total_download() - m_last_downloaded)
 				, downloading_torrents
 				, seeding_torrents
 				, num_complete_connections
@@ -2760,7 +2760,7 @@ namespace aux {
 				, m_uninteresting_peers
 				, m_timeout_peers
 				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
-				, (float(m_total_redundant_bytes)	* 100.f / m_stat.total_payload_download())
+				, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download())
 				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
 				, int(cs.average_read_time)
 				, int(cs.average_write_time)
@@ -2770,8 +2770,14 @@ namespace aux {
 				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
 				, int(cs.blocks_read - m_last_cache_status.blocks_read)
 				, int(cs.blocks_written - m_last_cache_status.blocks_written)
+				, int(m_total_failed_bytes - m_last_failed)
+				, int(m_total_redundant_bytes - m_last_redundant)
 			);
 			m_last_cache_status = cs;
+			m_last_failed = m_total_failed_bytes;
+			m_last_redundant = m_total_redundant_bytes;
+			m_last_uploaded = m_stat.total_upload();
+			m_last_downloaded = m_stat.total_download();
 		}
 
 		m_error_peers = 0;
