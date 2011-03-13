@@ -173,7 +173,7 @@ namespace libtorrent
 
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
-		void clear_error() { m_error = error_code(); m_error_file.resize(0); }
+		virtual void clear_error() { m_error = error_code(); m_error_file.resize(0); }
 
 		mutable error_code m_error;
 		mutable std::string m_error_file;

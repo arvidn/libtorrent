@@ -684,18 +684,18 @@ namespace libtorrent
 				l.unlock();
 				if (iov)
 				{
-					p.storage->write_impl(iov, p.piece, (std::min)(
+					int ret = p.storage->write_impl(iov, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, iov_counter);
 					iov_counter = 0;
-					++num_write_calls;
+					if (ret > 0) ++num_write_calls;
 				}
 				else
 				{
 					TORRENT_ASSERT(buf);
 					file::iovec_t b = { buf.get(), buffer_size };
-					p.storage->write_impl(&b, p.piece, (std::min)(
+					int ret = p.storage->write_impl(&b, p.piece, (std::min)(
 						i * m_block_size, piece_size) - buffer_size, 1);
-					++num_write_calls;
+					if (ret > 0) ++num_write_calls;
 				}
 				l.lock();
 				++m_cache_stats.writes;
