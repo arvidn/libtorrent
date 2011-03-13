@@ -452,6 +452,29 @@ upload and download rate.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">iconv</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">auto</span></tt> - use iconv for string conversions for
+linux and mingw and other posix platforms.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - force use of iconv</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - force not using iconv (disables locale
+awareness except on windows).</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">asserts</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - disable all asserts</li>
+<li><tt class="docutils literal"><span class="pre">peoduction</span></tt> - enable asserts in release
+builds, but don't abort, just log them to
+<tt class="docutils literal"><span class="pre">extern</span> <span class="pre">char</span> <span class="pre">const*</span> <span class="pre">libtorrent_assert_log</span></tt>.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - enable asserts in debug builds (this is
+the default). On GNU systems, print a stack
+trace of the assert and some more information.</li>
+<li><tt class="docutils literal"><span class="pre">system</span></tt> use the libc assert macro</li>
+</ul>
+</td>
+</tr>
 </tbody>
 </table>
 <p>The <tt class="docutils literal"><span class="pre">variant</span></tt> feature is <em>implicit</em>, which means you don't need to specify
@@ -719,6 +742,17 @@ or for running before releases.</td>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt></td>
 <td>This will exclude all deprecated functions from
 the header files and cpp files.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_PRODUCTION_ASSERTS</span></tt></td>
+<td>Define to either 0 or 1. Enables assert logging
+in release builds.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_NO_ASSERTS</span></tt></td>
+<td>Disables all asserts.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">TORRENT_USE_SYSTEM_ASSERTS</span></tt></td>
+<td>Uses the libc assert macro rather then the
+custom one.</td>
 </tr>
 </tbody>
 </table>
