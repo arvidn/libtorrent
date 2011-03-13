@@ -935,6 +935,7 @@ namespace aux {
 			":disk block written"
 			":failed bytes"
 			":redundant bytes"
+			":error torrents"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2587,6 +2588,7 @@ namespace aux {
 		int seeding_torrents = 0;
 		int checking_torrents = 0;
 		int stopped_torrents = 0;
+		int error_torrents = 0;
 		int upload_only_torrents = 0;
 		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
@@ -2618,6 +2620,8 @@ namespace aux {
 				++stopped_torrents;
 			if (i->second->is_upload_only())
 				++upload_only_torrents;
+			if (i->second->has_error())
+				++error_torrents;
 
 			dq.clear();
 			i->second->get_download_queue(dq);
@@ -2698,7 +2702,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2772,6 +2776,7 @@ namespace aux {
 				, int(cs.blocks_written - m_last_cache_status.blocks_written)
 				, int(m_total_failed_bytes - m_last_failed)
 				, int(m_total_redundant_bytes - m_last_redundant)
+				, error_torrents
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
