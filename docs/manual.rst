@@ -6416,7 +6416,7 @@ the information to identify the peer. i.e. ``ip`` and ``peer-id``.
 peer_connect_alert
 ------------------
 
-This alert is posted every time an outgoing  peer connect attempts succeeds.
+This alert is posted every time an outgoing peer connect attempts succeeds.
 
 ::
 
