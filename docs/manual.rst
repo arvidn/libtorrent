@@ -853,6 +853,8 @@ Returns status of the disk cache for this session.
 			int total_used_buffers;
 			int average_queue_time;
 			int average_read_time;
+			int average_write_time;
+			int average_hash_time;
 			int job_queue_length;
 		};
 
@@ -886,9 +888,18 @@ used in peer connections.
 ``average_queue_time`` is the number of microseconds an average disk I/O job
 has to wait in the job queue before it get processed.
 
-``average_read_time`` is the number of microseconds a read job takes to
-wait in the queue and complete, in microseconds. This only includes
-cache misses. 
+``average_read_time`` is the time read jobs takes on average to complete
+(not including the time in the queue), in microseconds. This only measures
+read cache misses. 
+
+``average_write_time`` is the time write jobs takes to complete, on average,
+in microseconds. This does not include the time the job sits in the disk job
+queue or in the write cache, only blocks that are flushed to disk.
+
+``average_hash_time`` is the time hash jobs takes to complete on average, in
+microseconds. Hash jobs include running SHA-1 on the data (which for the most
+part is done incrementally) and sometimes reading back parts of the piece. It
+also includes checking files without valid resume data.
 
 ``job_queue_length`` is the number of jobs in the job queue.
 

@@ -1966,6 +1966,7 @@ namespace libtorrent
 						break;
 					}
 
+					ptime read_start = time_now_hires();
 					disk_buffer_holder read_holder(*this, j.buffer);
 
 					bool hit;
@@ -2006,8 +2007,7 @@ namespace libtorrent
 					}
 					if (!hit)
 					{
-						ptime now = time_now_hires();
-						m_read_time.add_sample(total_microseconds(now - j.start_time));
+						m_read_time.add_sample(total_microseconds(time_now_hires() - read_start));
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
@@ -2133,6 +2133,8 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
+					ptime hash_start = time_now_hires();
+
 					cache_piece_index_t& idx = m_pieces.get<0>();
 					cache_piece_index_t::iterator i = find_cached_piece(m_pieces, j, l);
 					if (i != idx.end())
@@ -2163,6 +2165,8 @@ namespace libtorrent
 
 					ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
 					if (ret == -2) j.storage->mark_failed(j.piece);
+
+					m_hash_time.add_sample(total_microseconds(time_now_hires() - hash_start));
 					break;
 				}
 				case disk_io_job::move_storage:
@@ -2313,9 +2317,12 @@ namespace libtorrent
 						m_last_file_check = time_now_hires();
 #endif
 
+						ptime hash_start = time_now_hires();
 						if (m_waiting_to_shutdown) break;
 
 						ret = j.storage->check_files(j.piece, j.offset, j.error);
+
+						m_hash_time.add_sample(total_microseconds(time_now_hires() - hash_start));
 
 						TORRENT_TRY {
 							TORRENT_ASSERT(j.callback);
