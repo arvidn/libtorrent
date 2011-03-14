@@ -2706,7 +2706,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
