@@ -44,7 +44,7 @@ def gen_report(name, lines):
 	out.close()
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
-gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents'])
+gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents'])
 gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'peers disk-up', 'peers disk-down', 'peers bw-up', 'peers bw-down'])
 gen_report('peers_list', ['num list peers', 'peer storage bytes'])
 gen_report('overall_rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate'])
