@@ -939,6 +939,7 @@ namespace aux {
 			":read disk cache size"
 			":disk cache size"
 			":disk buffer allocations"
+			":disk hash time"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2783,6 +2784,7 @@ namespace aux {
 				, cs.read_cache_size
 				, cs.cache_size
 				, cs.total_used_buffers
+				, int(cs.average_hash_time)
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
