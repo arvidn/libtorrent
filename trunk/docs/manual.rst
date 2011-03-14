@@ -1013,17 +1013,35 @@ Changes the mask of which alerts to receive. By default only errors are reported
 
 See alerts_ for mor information on the alert categories.
 
-pop_alert() wait_for_alert()
-----------------------------
+pop_alerts() pop_alert() wait_for_alert()
+-----------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
+		void pop_alerts(std::deque<alert*>* alerts);
 		alert const* wait_for_alert(time_duration max_wait);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 `set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
 For information about the alert categories, see alerts_.
+
+``pop_alerts()`` pops all pending alerts in a single call. In high performance environments
+with a very high alert churn rate, this can save significant amount of time compared to
+popping alerts one at a time. Each call requires one round-trip to the network thread. If
+alerts are produced in a higher rate than they can be popped (when popped one at a time)
+it's easy to get stuck in an infinite loop, trying to drain the alert queue. Popping the entire
+queue at once avoids this problem.
+
+However, the ``pop_alerts`` function comes with significantly more responsibility. You pass
+in an *empty* ``std::dequeue<alert*>`` to it. If it's not empty, all elements in it will
+be deleted and then cleared. All currently pending alerts are returned by being swapped
+into the passed in container. The responsibility of deleting the alerts is transferred
+to the caller. This means you need to call delete for each item in the returned dequeue.
+It's probably a good idea to delete the alerts as you handle them, to save one extra
+pass over the dequeue.
+
+Alternatively, you can pass in the same container the next time you call ``pop_alerts``.
 
 ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
 time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,

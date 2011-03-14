@@ -134,6 +134,7 @@ namespace libtorrent {
 		void post_alert(const alert& alert_);
 		bool pending() const;
 		std::auto_ptr<alert> get();
+		void get_all(std::deque<alert*>* alerts);
 
 		template <class T>
 		bool should_post() const

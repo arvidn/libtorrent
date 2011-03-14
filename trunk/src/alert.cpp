@@ -446,6 +446,13 @@ namespace libtorrent {
 		return std::auto_ptr<alert>(result);
 	}
 
+	void alert_manager::get_all(std::deque<alert*>* alerts)
+	{
+		mutex::scoped_lock lock(m_mutex);
+		if (m_alerts.empty()) return;
+		m_alerts.swap(*alerts);
+	}
+
 	bool alert_manager::pending() const
 	{
 		mutex::scoped_lock lock(m_mutex);

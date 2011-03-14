@@ -1468,21 +1468,22 @@ int main(int argc, char* argv[])
 #endif
 
 		// loop through the alert queue to see if anything has happened.
-		std::auto_ptr<alert> a;
-		a = ses.pop_alert();
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
 		std::string now = time_now_string();
-		while (a.get())
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
 		{
 			std::string event_string;
 
-			::print_alert(a.get(), event_string);
-			::handle_alert(ses, a.get(), files, non_files);
+			::print_alert(*i, event_string);
+			::handle_alert(ses, *i, files, non_files);
 
 			events.push_back(event_string);
 			if (events.size() >= 20) events.pop_front();
-
-			a = ses.pop_alert();
+			delete *i;
 		}
+		alerts.clear();
 
 		session_status sess_stat = ses.status();
 
@@ -1967,46 +1968,48 @@ int main(int argc, char* argv[])
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == 0) continue;
 
-		std::auto_ptr<alert> holder = ses.pop_alert();
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		std::string now = time_now_string();
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			// make sure to delete each alert
+			std::auto_ptr<alert> a(*i);
 
-		torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(a);
-		if (tp)
-		{
-			++num_paused;
-			printf("\rleft: %d failed: %d pause: %d "
-				, num_resume_data, num_failed, num_paused);
-			continue;
-		}
+			torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(*i);
+			if (tp)
+			{
+				++num_paused;
+				printf("\rleft: %d failed: %d pause: %d "
+						, num_resume_data, num_failed, num_paused);
+				continue;
+			}
 
-		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-/*		if (!rd)
-		{
-			std::string log;
-			::print_alert(a, log);
-			printf("\n%s\n", log.c_str());
-		}
-*/
-		if (alert_cast<save_resume_data_failed_alert>(a))
-		{
-			++num_failed;
+			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(*i);
+			if (alert_cast<save_resume_data_failed_alert>(*i))
+			{
+				++num_failed;
+				--num_resume_data;
+				printf("\rleft: %d failed: %d pause: %d "
+					, num_resume_data, num_failed, num_paused);
+				continue;
+			}
+
+			if (!rd) continue;
 			--num_resume_data;
 			printf("\rleft: %d failed: %d pause: %d "
 				, num_resume_data, num_failed, num_paused);
-			continue;
+
+			if (!rd->resume_data) continue;
+
+			torrent_handle h = rd->handle;
+			std::vector<char> out;
+			bencode(std::back_inserter(out), *rd->resume_data);
+			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 		}
-
-		if (!rd) continue;
-		--num_resume_data;
-		printf("\rleft: %d failed: %d pause: %d "
-			, num_resume_data, num_failed, num_paused);
-
-		if (!rd->resume_data) continue;
-
-		torrent_handle h = rd->handle;
-		std::vector<char> out;
-		bencode(std::back_inserter(out), *rd->resume_data);
-		save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 	}
+
 	if (g_log_file) fclose(g_log_file);
 	printf("\nsaving session state\n");
 	{
