@@ -242,6 +242,7 @@ namespace libtorrent
 			, download_rate_limit(0)
 			, local_upload_rate_limit(0)
 			, local_download_rate_limit(0)
+			, dht_upload_rate_limit(4000)
 			, unchoke_slots_limit(8)
 			, half_open_limit(0)
 			, connections_limit(200)
@@ -952,6 +953,9 @@ namespace libtorrent
 		// max download rate in bytes per second for peers on the local
 		// network, in the session
 		int local_download_rate_limit;
+
+		// max upload rate used by the DHT in bytes per second
+		int dht_upload_rate_limit;
 
 		// the max number of unchoke slots in the session (might be
 		// overridden by unchoke algorithm)

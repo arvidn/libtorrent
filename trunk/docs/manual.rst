@@ -4341,6 +4341,7 @@ session_settings
 		int download_rate_limit;
 		int local_upload_rate_limit;
 		int local_download_rate_limit;
+		int dht_upload_rate_limit;
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
@@ -5102,6 +5103,10 @@ but can be useful in case you want to treat local peers preferentially, but not
 quite unthrottled.
 
 A value of 0 means unlimited.
+
+``dht_upload_rate_limit`` sets the rate limit on the DHT. This is specified in
+bytes per second and defaults to 4000. For busy boxes with lots of torrents
+that requires more DHT traffic, this should be raised.
 
 ``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
 

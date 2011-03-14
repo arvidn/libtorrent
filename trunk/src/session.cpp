@@ -205,6 +205,10 @@ namespace libtorrent
 		// unchoke many peers
 		set.unchoke_slots_limit = 500;
 
+		// we need more DHT capacity to ping more peers
+		// candidates before trying to connect
+		set.dht_upload_rate_limit = 100000;
+
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;

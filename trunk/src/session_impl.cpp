@@ -339,6 +339,7 @@ namespace aux {
 		TORRENT_SETTING(integer, download_rate_limit)
 		TORRENT_SETTING(integer, local_upload_rate_limit)
 		TORRENT_SETTING(integer, local_download_rate_limit)
+		TORRENT_SETTING(integer, dht_upload_rate_limit)
 		TORRENT_SETTING(integer, unchoke_slots_limit)
 		TORRENT_SETTING(integer, half_open_limit)
 		TORRENT_SETTING(integer, connections_limit)
@@ -360,6 +361,8 @@ namespace aux {
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
 		TORRENT_SETTING(integer, smooth_connects)
+		TORRENT_SETTING(boolean, always_send_user_agent)
+		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
 	};
 
 #undef TORRENT_SETTING
@@ -541,6 +544,8 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+		m_udp_socket.set_rate_limit(m_settings.dht_upload_rate_limit);
+
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
 
@@ -1651,6 +1656,9 @@ namespace aux {
 
 		if (m_settings.alert_queue_size != s.alert_queue_size)
 			m_alerts.set_alert_queue_size_limit(s.alert_queue_size);
+
+		if (m_settings.dht_upload_rate_limit != s.dht_upload_rate_limit)
+			m_udp_socket.set_rate_limit(s.dht_upload_rate_limit);
 
 		m_settings = s;
 
