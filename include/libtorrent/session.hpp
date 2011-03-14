@@ -430,7 +430,20 @@ namespace libtorrent
 		int max_uploads() const TORRENT_DEPRECATED;
 #endif
 
+		// pop one alert from the alert queue, or do nothing
+		// and return a NULL pointer if there are no alerts
+		// in the queue
 		std::auto_ptr<alert> pop_alert();
+
+		// pop all alerts in the alert queue and returns them
+		// in the supplied dequeue 'alerts'. The passed in
+		// queue must be empty when passed in.
+		// the responsibility of individual alerts returned
+		// in the dequeue is passed on to the caller of this function.
+		// when you're done with reacting to the alerts, you need to
+		// delete them all.
+		void pop_alerts(std::deque<alert*>* alerts);
+
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;

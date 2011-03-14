@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <set>
+#include <deque>
 #include <cctype>
 #include <algorithm>
 
@@ -976,6 +977,15 @@ namespace libtorrent
 	std::auto_ptr<alert> session::pop_alert()
 	{
 		return m_impl->pop_alert();
+	}
+
+	void session::pop_alerts(std::deque<alert*>* alerts)
+	{
+		for (std::deque<alert*>::iterator i = alerts->begin()
+			, end(alerts->end()); i != end; ++i)
+			delete *i;
+		alerts->clear();
+		m_impl->pop_alerts(alerts);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)

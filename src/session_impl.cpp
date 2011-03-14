@@ -4766,12 +4766,14 @@ namespace aux {
 
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
-// too expensive
-//		INVARIANT_CHECK;
-
 		return m_alerts.get();
 	}
 	
+	void session_impl::pop_alerts(std::deque<alert*>* alerts)
+	{
+		m_alerts.get_all(alerts);
+	}
+
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);

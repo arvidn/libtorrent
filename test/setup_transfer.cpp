@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <fstream>
+#include <deque>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -80,24 +81,24 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
 	if (!handles.empty()) h = handles[0];
-	std::auto_ptr<alert> a;
-	a = ses.pop_alert();
-	while (a.get())
+	std::deque<alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (std::deque<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
 	{
-		if (predicate && predicate(a.get())) ret = true;
-		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(a.get()))
+		if (predicate && predicate(*i)) ret = true;
+		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
 			fprintf(stderr, "%s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if (a->message() != "block downloading"
-			&& a->message() != "block finished"
-			&& a->message() != "piece finished")
+		else if ((*i)->message() != "block downloading"
+			&& (*i)->message() != "block finished"
+			&& (*i)->message() != "piece finished")
 		{
-			fprintf(stderr, "%s: %s\n", name, a->message().c_str());
+			fprintf(stderr, "%s: %s\n", name, (*i)->message().c_str());
 		}
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) == 0 || allow_failed_fastresume);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
-		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
+		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		TEST_CHECK(pea == 0
 			|| (!handles.empty() && h.status().is_seeding)
 			|| pea->error.message() == "connecting to peer"
@@ -109,7 +110,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 			|| (allow_disconnects && pea->error.message() == "Broken pipe")
 			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
 			|| (allow_disconnects && pea->error.message() == "End of file."));
-		a = ses.pop_alert();
+		delete *i;
 	}
 	return ret;
 }
