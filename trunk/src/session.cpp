@@ -231,8 +231,7 @@ namespace libtorrent
 		// flush write cache based on largest contiguous block
 		set.disk_cache_algorithm = session_settings::largest_contiguous;
 
-		// explicitly cache rare pieces
-		set.explicit_read_cache = true;
+		set.explicit_read_cache = false;
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.allowed_fast_set_size = 0;
@@ -260,9 +259,9 @@ namespace libtorrent
 		// in order to be able to deliver very high
 		// upload rates, this should be able to cover
 		// the bandwidth delay product. Assuming an RTT
-		// of 500 ms, and a send rate of 10 MB/s, the upper
-		// limit should be 5 MB
-		set.send_buffer_watermark = 5 * 1024 * 1024;
+		// of 500 ms, and a send rate of 20 MB/s, the upper
+		// limit should be 10 MB
+		set.send_buffer_watermark = 10 * 1024 * 1024;
 
 		// put 10 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
