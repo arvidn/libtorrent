@@ -192,6 +192,9 @@ namespace libtorrent
 		// allow 500 files open at a time
 		set.file_pool_size = 500;
 
+		// don't update access time for each read/write
+		set.no_atime_storage = true;
+
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
 		set.allow_multiple_connections_per_ip = true;

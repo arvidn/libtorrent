@@ -172,6 +172,7 @@ namespace libtorrent
 			, average_write_time(0)
 			, average_hash_time(0)
 			, average_cache_time(0)
+			, average_sort_time(0)
 			, job_queue_length(0)
 		{}
 
@@ -208,6 +209,7 @@ namespace libtorrent
 		int average_write_time;
 		int average_hash_time;
 		int average_cache_time;
+		int average_sort_time;
 		int job_queue_length;
 	};
 	
@@ -447,6 +449,10 @@ namespace libtorrent
 		// average disk cache time (in microseconds)
 		// scanning the cache for pieces to flush
 		sliding_average<512> m_cache_time;
+
+		// average time to ask for physical offset on disk
+		// and insert into queue
+		sliding_average<512> m_sort_time;
 
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t m_sorted_read_jobs;
