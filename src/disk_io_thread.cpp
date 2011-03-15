@@ -496,8 +496,8 @@ namespace libtorrent
 			if (i == idx.end()) return 0;
 		}
 
-		// don't replace an entry that is is too young
-		if (time_now() > i->expire) return 0;
+		// don't replace an entry that hasn't expired yet
+		if (time_now() < i->expire) return 0;
 		int blocks = 0;
 
 		// build a vector of all the buffers we need to free
