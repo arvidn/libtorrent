@@ -342,6 +342,8 @@ namespace libtorrent
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
 		ret.average_write_time = m_write_time.mean();
+		ret.average_hash_time = m_hash_time.mean();
+		ret.average_cache_time = m_cache_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 
 		return ret;
@@ -1693,7 +1695,12 @@ namespace libtorrent
 				m_ios.post(m_queue_callback);
 			}
 
+			ptime now = time_now_hires();
+			m_queue_time.add_sample(total_microseconds(now - j.start_time));
+
 			flush_expired_pieces();
+
+			m_cache_time.add_sample(total_microseconds(time_now_hires() - now));
 
 			int ret = 0;
 
@@ -1713,9 +1720,6 @@ namespace libtorrent
 
 			if (j.storage && j.storage->get_storage_impl()->m_settings == 0)
 				j.storage->get_storage_impl()->m_settings = &m_settings;
-
-			ptime now = time_now_hires();
-			m_queue_time.add_sample(total_microseconds(now - j.start_time));
 
 			switch (j.action)
 			{

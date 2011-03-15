@@ -855,6 +855,7 @@ Returns status of the disk cache for this session.
 			int average_read_time;
 			int average_write_time;
 			int average_hash_time;
+			int average_cache_time;
 			int job_queue_length;
 		};
 
@@ -900,6 +901,9 @@ queue or in the write cache, only blocks that are flushed to disk.
 microseconds. Hash jobs include running SHA-1 on the data (which for the most
 part is done incrementally) and sometimes reading back parts of the piece. It
 also includes checking files without valid resume data.
+
+``average_cache_time`` is the average amuount of time spent evicting cached
+blocks that have expired from the disk cache.
 
 ``job_queue_length`` is the number of jobs in the job queue.
 
