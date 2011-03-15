@@ -946,6 +946,7 @@ namespace aux {
 			":disk buffer allocations"
 			":disk hash time"
 			":disk cache time"
+			":disk sort time"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2715,7 +2716,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2795,6 +2796,7 @@ namespace aux {
 				, cs.total_used_buffers
 				, int(cs.average_hash_time)
 				, int(cs.average_cache_time)
+				, int(cs.average_sort_time)
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;

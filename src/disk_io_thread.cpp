@@ -344,6 +344,7 @@ namespace libtorrent
 		ret.average_write_time = m_write_time.mean();
 		ret.average_hash_time = m_hash_time.mean();
 		ret.average_cache_time = m_cache_time.mean();
+		ret.average_sort_time = m_sort_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 
 		return ret;
@@ -1633,9 +1634,13 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 					m_log << log_time() << " sorting_job" << std::endl;
 #endif
+					ptime sort_start = time_now_hires();
+
 					size_type phys_off = j.storage->physical_offset(j.piece, j.offset);
 					need_update_elevator_pos = need_update_elevator_pos || m_sorted_read_jobs.empty();
 					m_sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
+
+					m_sort_time.add_sample(total_microseconds(time_now_hires() - sort_start));
 					continue;
 				}
 			}
@@ -1700,7 +1705,8 @@ namespace libtorrent
 
 			flush_expired_pieces();
 
-			m_cache_time.add_sample(total_microseconds(time_now_hires() - now));
+			ptime operation_start = time_now_hires();
+			m_cache_time.add_sample(total_microseconds(operation_start - now));
 
 			int ret = 0;
 
@@ -1970,7 +1976,6 @@ namespace libtorrent
 						break;
 					}
 
-					ptime read_start = time_now_hires();
 					disk_buffer_holder read_holder(*this, j.buffer);
 
 					bool hit;
@@ -2011,7 +2016,7 @@ namespace libtorrent
 					}
 					if (!hit)
 					{
-						m_read_time.add_sample(total_microseconds(time_now_hires() - read_start));
+						m_read_time.add_sample(total_microseconds(time_now_hires() - operation_start));
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
