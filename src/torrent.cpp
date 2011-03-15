@@ -6825,6 +6825,8 @@ namespace libtorrent
 		// if we have an explicit cache, it's much more likely to
 		// stick around, so we should suggest all pieces
 		int num_pieces_to_suggest = int(ret.size());
+		if (num_pieces_to_suggest == 0) return;
+
 		if (!settings().explicit_read_cache)
 			num_pieces_to_suggest = (std::max)(1, int(ret.size() / 2));
 		ret.resize(num_pieces_to_suggest);

@@ -3002,7 +3002,10 @@ namespace libtorrent
 			t->get_suggested_pieces(ret);
 			for (std::vector<int>::iterator i = ret.begin()
 				, end(ret.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT(*i >= 0);
 				send_suggest(*i);
+			}
 
 			m_sent_suggests = true;
 		}
