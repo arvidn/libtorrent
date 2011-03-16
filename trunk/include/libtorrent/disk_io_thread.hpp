@@ -344,6 +344,8 @@ namespace libtorrent
 			ptime expire;
 			// the number of blocks in the cache for this piece
 			int num_blocks;
+			// used to determine if this piece should be flushed
+			int num_contiguous_blocks;
 			// the pointers to the block data
 			boost::shared_array<cached_block_entry> blocks;
 			

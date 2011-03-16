@@ -639,8 +639,8 @@ namespace libtorrent
 			{
 				cache_lru_index_t::iterator i =
 				std::max_element(idx.begin(), idx.end()
-					, boost::bind(&contiguous_blocks, _1)
-					< boost::bind(&contiguous_blocks, _2));
+					, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
+					< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				if (i->num_blocks == 0) idx.erase(i);
@@ -758,6 +758,7 @@ namespace libtorrent
 		if (num_write_calls > 0)
 		{
 			m_write_time.add_sample(total_microseconds(done - write_start) / num_write_calls);
+			p.num_contiguous_blocks = contiguous_blocks(p);
 		}
 
 		TORRENT_ASSERT(buffer_size == 0);
@@ -795,6 +796,7 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 1;
+		p.num_contiguous_blocks = 1;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
 		int block = j.offset / m_block_size;
@@ -979,6 +981,7 @@ namespace libtorrent
 		p.storage = j.storage;
 		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 0;
+		p.num_contiguous_blocks = 0;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
 
@@ -1000,6 +1003,7 @@ namespace libtorrent
 		{
 			cached_piece_entry const& p = *i;
 			TORRENT_ASSERT(p.blocks);
+			TORRENT_ASSERT(p.num_contiguous_blocks == contiguous_blocks(p));
 			
 			TORRENT_ASSERT(p.storage);
 			int piece_size = p.storage->info()->piece_size(p.piece);
@@ -1100,6 +1104,7 @@ namespace libtorrent
 			pe.storage = j.storage;
 			pe.expire = time_now() + seconds(j.cache_min_time);
 			pe.num_blocks = 0;
+			pe.num_contiguous_blocks = 0;
 			pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 			if (!pe.blocks) return -1;
 			ret = read_into_piece(pe, 0, options, INT_MAX, l);
@@ -2048,14 +2053,24 @@ namespace libtorrent
 					int block = j.offset / m_block_size;
 					TORRENT_ASSERT(j.buffer);
 					TORRENT_ASSERT(j.buffer_size <= m_block_size);
+					int piece_size = j.storage->info()->piece_size(j.piece);
+					int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 					if (p != idx.end())
 					{
+						bool recalc_contiguous = false;
 						TORRENT_ASSERT(p->blocks[block].buf == 0);
 						if (p->blocks[block].buf)
 						{
 							free_buffer(p->blocks[block].buf);
 							--m_cache_stats.cache_size;
 							--const_cast<cached_piece_entry&>(*p).num_blocks;
+						}
+						else if ((block > 0 && p->blocks[block-1].buf) || (block < blocks_in_piece-1 && p->blocks[block+1].buf))
+						{
+							// update the contiguous blocks counter for this piece. Only if it has
+							// an adjacent block. If it doesn't, we already know it couldn't have
+							// increased the largest contiguous block span in this piece
+							recalc_contiguous = true;
 						}
 						p->blocks[block].buf = j.buffer;
 						p->blocks[block].callback.swap(j.callback);
@@ -2064,6 +2079,10 @@ namespace libtorrent
 #endif
 						++m_cache_stats.cache_size;
 						++const_cast<cached_piece_entry&>(*p).num_blocks;
+						if (recalc_contiguous)
+						{
+							const_cast<cached_piece_entry&>(*p).num_contiguous_blocks = contiguous_blocks(*p);
+						}
 						idx.modify(p, update_last_use(j.cache_min_time));
 						// we might just have created a contiguous range
 						// that meets the requirement to be flushed. try it
