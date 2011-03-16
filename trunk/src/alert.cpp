@@ -116,7 +116,8 @@ namespace libtorrent {
 			"download limit too low (upload rate will suffer)",
 			"send buffer watermark too low (upload rate will suffer)",
 			"too many optimistic unchoke slots",
-			"using bittyrant unchoker with no upload rate limit set"
+			"using bittyrant unchoker with no upload rate limit set",
+			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size"
 		};
 
 		return torrent_alert::message() + ": performance warning: "

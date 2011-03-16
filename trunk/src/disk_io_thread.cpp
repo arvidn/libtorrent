@@ -1362,7 +1362,7 @@ namespace libtorrent
 		return m_queue_buffer_size;
 	}
 
-	void disk_io_thread::add_job(disk_io_job const& j
+	int disk_io_thread::add_job(disk_io_job const& j
 		, mutex::scoped_lock& l
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
@@ -1378,9 +1378,10 @@ namespace libtorrent
 				m_exceeded_write_queue = true;
 		}
 		m_signal.signal(l);
+		return m_queue_buffer_size;
 	}
 
-	void disk_io_thread::add_job(disk_io_job const& j
+	int disk_io_thread::add_job(disk_io_job const& j
 		, boost::function<void(int, disk_io_job const&)> const& f)
 	{
 		TORRENT_ASSERT(!m_abort);
@@ -1389,7 +1390,7 @@ namespace libtorrent
 			|| j.action == disk_io_job::update_settings);
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 		mutex::scoped_lock l(m_queue_mutex);
-		add_job(j, l, f);
+		return add_job(j, l, f);
 	}
 
 	bool disk_io_thread::test_error(disk_io_job& j)

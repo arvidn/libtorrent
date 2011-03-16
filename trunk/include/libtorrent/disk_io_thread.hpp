@@ -300,7 +300,9 @@ namespace libtorrent
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
-		void add_job(disk_io_job const& j
+
+		// returns the disk write queue size
+		int add_job(disk_io_job const& j
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());
 
@@ -367,7 +369,7 @@ namespace libtorrent
 
 	private:
 
-		void add_job(disk_io_job const& j
+		int add_job(disk_io_job const& j
 			, mutex::scoped_lock& l
 			, boost::function<void(int, disk_io_job const&)> const& f
 			= boost::function<void(int, disk_io_job const&)>());

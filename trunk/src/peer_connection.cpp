@@ -2375,11 +2375,20 @@ namespace libtorrent
 			}
 		}
 
-		fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
+		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
+
+		if (write_queue_size > m_ses.m_settings.cache_size / 2
+			&& (now - m_ses.m_last_disk_queue_performance_warning) > seconds(10)
+			&& m_ses.m_alerts.should_post<performance_alert>())
+		{
+			m_ses.m_last_disk_queue_performance_warning = now;
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, performance_alert::too_high_disk_queue_limit));
+		}
 
 		if (!m_ses.can_write_to_disk()
 			&& m_ses.settings().max_queued_disk_bytes

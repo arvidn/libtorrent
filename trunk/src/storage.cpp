@@ -1671,7 +1671,7 @@ ret:
 #endif
 	}
 
-	void piece_manager::async_write(
+	int piece_manager::async_write(
 		peer_request const& r
 		, disk_buffer_holder& buffer
 		, boost::function<void(int, disk_io_job const&)> const& handler)
@@ -1687,8 +1687,10 @@ ret:
 		j.offset = r.start;
 		j.buffer_size = r.length;
 		j.buffer = buffer.get();
-		m_io_thread.add_job(j, handler);
+		int queue_size = m_io_thread.add_job(j, handler);
 		buffer.release();
+
+		return queue_size;
 	}
 
 	void piece_manager::async_hash(int piece
