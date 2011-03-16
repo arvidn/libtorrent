@@ -6753,7 +6753,8 @@ upload or download rate performance.
 			upload_limit_too_low,
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
-			too_many_optimistic_unchoke_slots
+			too_many_optimistic_unchoke_slots,
+			too_high_disk_queue_limit
 		};
 
 		performance_warning_t warning_code;
@@ -6816,6 +6817,12 @@ too_many_optimistic_unchoke_slots
 	If the half (or more) of all upload slots are set as optimistic unchoke slots, this
 	warning is issued. You probably want more regular (rate based) unchoke slots.
 
+too_high_disk_queue_limit
+	If the disk write queue ever grows larger than half of the cache size, this warning
+	is posted. The disk write queue eats into the total disk cache and leaves very little
+	left for the actual cache. This causes the disk cache to oscillate in evicting large
+	portions of the cache before allowing peers to download any more, onto the disk write
+	queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
 
 state_changed_alert
 -------------------

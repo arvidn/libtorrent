@@ -762,6 +762,7 @@ namespace libtorrent
 			ptime m_last_second_tick;
 			// used to limit how often disk warnings are generated
 			ptime m_last_disk_performance_warning;
+			ptime m_last_disk_queue_performance_warning;
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke
