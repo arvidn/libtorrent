@@ -2931,6 +2931,9 @@ namespace libtorrent
 
 				// mark the peer as banned
 				m_policy.ban_peer(p);
+#ifdef TORRENT_STATS
+				++m_ses.m_banned_for_hash_failure;
+#endif
 
 				if (p->connection)
 				{
