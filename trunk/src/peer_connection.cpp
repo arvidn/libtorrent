@@ -2381,7 +2381,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
-		if (write_queue_size > m_ses.m_settings.cache_size / 2
+		if (write_queue_size / 16 / 1024 > m_ses.m_settings.cache_size / 2
+			&& m_ses.m_settings.cache_size > 5
 			&& (now - m_ses.m_last_disk_queue_performance_warning) > seconds(10)
 			&& m_ses.m_alerts.should_post<performance_alert>())
 		{
