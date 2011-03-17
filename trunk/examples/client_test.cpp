@@ -449,7 +449,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source  ";
+	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags            source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
