@@ -899,6 +899,9 @@ namespace libtorrent
 			size_type m_last_redundant;
 			size_type m_last_uploaded;
 			size_type m_last_downloaded;
+			int m_connection_attempts;
+			int m_num_banned_peers;
+			int m_banned_for_hash_failure;
 #endif
 
 			// each second tick the timer takes a little

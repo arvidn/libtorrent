@@ -822,6 +822,9 @@ namespace aux {
 		m_last_redundant = 0;
 		m_last_uploaded = 0;
 		m_last_downloaded = 0;
+		m_connection_attempts = 0;
+		m_num_banned_peers = 0;
+		m_banned_for_hash_failure = 0;
 		rotate_stats_log();
 #endif
 #ifdef TORRENT_DISK_STATS
@@ -909,7 +912,7 @@ namespace aux {
 			":smooth upload rate:smooth download rate:disk write queued bytes"
 			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
 			":peers down 50-100:peers down 100-"
-			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50: peers up 50-100"
+			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50:peers up 50-100"
 			":peers up 100-:error peers"
 			":peers down interesting:peers down unchoked:peers down requests"
 			":peers up interested:peers up unchoked:peers up requests"
@@ -948,6 +951,12 @@ namespace aux {
 			":disk hash time"
 			":disk cache time"
 			":disk sort time"
+			":connection attempts"
+			":banned peers"
+			":banned for hash failure"
+			":cache size"
+			":max connections"
+			":connect candidates"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2599,6 +2608,7 @@ namespace aux {
 		}
 
 #ifdef TORRENT_STATS
+		int connect_candidates = 0;
 		int downloading_torrents = 0;
 		int seeding_torrents = 0;
 		int checking_torrents = 0;
@@ -2623,6 +2633,9 @@ namespace aux {
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
+			int connection_slots = (std::max)(i->second->max_connections() - i->second->num_peers(), 0);
+			int candidates = i->second->get_policy().num_connect_candidates();
+			connect_candidates += (std::min)(candidates, connection_slots);
 			num_peers += i->second->get_policy().num_peers();
 			if (i->second->is_seed())
 				++seeding_torrents;
@@ -2717,7 +2730,8 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2798,6 +2812,12 @@ namespace aux {
 				, int(cs.average_hash_time)
 				, int(cs.average_cache_time)
 				, int(cs.average_sort_time)
+				, m_connection_attempts
+				, m_num_banned_peers
+				, m_banned_for_hash_failure
+				, m_settings.cache_size
+				, m_settings.connections_limit
+				, connect_candidates
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
@@ -2822,6 +2842,9 @@ namespace aux {
 		m_connect_timeouts = 0;
 		m_uninteresting_peers = 0;
 		m_timeout_peers = 0;
+		m_connection_attempts = 0;
+		m_num_banned_peers = 0;
+		m_banned_for_hash_failure = 0;
 #endif
 
 		// --------------------------------------------------------------
@@ -3118,6 +3141,9 @@ namespace aux {
 							--max_connections;
 							--free_slots;
 							steps_since_last_connect = 0;
+#ifdef TORRENT_STATS
+							++m_connection_attempts;
+#endif
 						}
 					}
 					TORRENT_CATCH(std::bad_alloc&)

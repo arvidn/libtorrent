@@ -519,6 +519,11 @@ namespace libtorrent
 		if (is_connect_candidate(*p, m_finished))
 			--m_num_connect_candidates;
 
+#ifdef TORRENT_STATS
+		aux::session_impl& ses = m_torrent->session();
+		++ses.m_num_banned_peers;
+#endif
+
 		p->banned = true;
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 	}
