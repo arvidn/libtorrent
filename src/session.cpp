@@ -227,7 +227,7 @@ namespace libtorrent
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 300 * 1024 * 1024;
+		set.max_queued_disk_bytes = 100 * 1024 * 1024;
 		// flush write cache based on largest contiguous block
 		set.disk_cache_algorithm = session_settings::largest_contiguous;
 
