@@ -343,7 +343,7 @@ namespace libtorrent
 		ret.average_read_time = m_read_time.mean();
 		ret.average_write_time = m_write_time.mean();
 		ret.average_hash_time = m_hash_time.mean();
-		ret.average_cache_time = m_cache_time.mean();
+		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 
@@ -1712,7 +1712,6 @@ namespace libtorrent
 			flush_expired_pieces();
 
 			ptime operation_start = time_now_hires();
-			m_cache_time.add_sample(total_microseconds(operation_start - now));
 
 			int ret = 0;
 
@@ -2412,6 +2411,8 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(!j.storage || !j.storage->error());
+
+			m_job_time.add_sample(total_microseconds(operation_start - now));
 
 //			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;

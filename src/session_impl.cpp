@@ -949,7 +949,7 @@ namespace aux {
 			":disk cache size"
 			":disk buffer allocations"
 			":disk hash time"
-			":disk cache time"
+			":disk job time"
 			":disk sort time"
 			":connection attempts"
 			":banned peers"
@@ -2810,7 +2810,7 @@ namespace aux {
 				, cs.cache_size
 				, cs.total_used_buffers
 				, int(cs.average_hash_time)
-				, int(cs.average_cache_time)
+				, int(cs.average_job_time)
 				, int(cs.average_sort_time)
 				, m_connection_attempts
 				, m_num_banned_peers
