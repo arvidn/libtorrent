@@ -957,6 +957,8 @@ namespace aux {
 			":cache size"
 			":max connections"
 			":connect candidates"
+			":disk queue limit"
+			":disk queue low watermark"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2731,7 +2733,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2818,6 +2820,8 @@ namespace aux {
 				, m_settings.cache_size
 				, m_settings.connections_limit
 				, connect_candidates
+				, int(m_settings.max_queued_disk_bytes)
+				, int(m_settings.max_queued_disk_bytes_low_watermark)
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
