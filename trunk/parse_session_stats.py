@@ -54,7 +54,7 @@ gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-2', 'peers down 2-5',
 gen_report('peer_dl_rates2', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
 gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
 gen_report('peer_ul_rates2', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
-gen_report('disk', ['disk write queued bytes', 'disk block buffers'])
+gen_report('disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark'])
 gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up'])
 gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down'])
 gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure'])
