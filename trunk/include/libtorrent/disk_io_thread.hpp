@@ -171,7 +171,7 @@ namespace libtorrent
 			, average_read_time(0)
 			, average_write_time(0)
 			, average_hash_time(0)
-			, average_cache_time(0)
+			, average_job_time(0)
 			, average_sort_time(0)
 			, job_queue_length(0)
 		{}
@@ -208,7 +208,7 @@ namespace libtorrent
 		int average_read_time;
 		int average_write_time;
 		int average_hash_time;
-		int average_cache_time;
+		int average_job_time;
 		int average_sort_time;
 		int job_queue_length;
 	};
@@ -450,9 +450,8 @@ namespace libtorrent
 		// average hash time (in microseconds)
 		sliding_average<512> m_hash_time;
 
-		// average disk cache time (in microseconds)
-		// scanning the cache for pieces to flush
-		sliding_average<512> m_cache_time;
+		// average time to serve a job (any job) in microseconds
+		sliding_average<512> m_job_time;
 
 		// average time to ask for physical offset on disk
 		// and insert into queue
