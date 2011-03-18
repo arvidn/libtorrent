@@ -1711,7 +1711,7 @@ namespace libtorrent
 
 			flush_expired_pieces();
 
-			ptime operation_start = time_now_hires();
+			ptime operation_start = now;
 
 			int ret = 0;
 
@@ -2412,7 +2412,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(!j.storage || !j.storage->error());
 
-			m_job_time.add_sample(total_microseconds(operation_start - now));
+			m_job_time.add_sample(total_microseconds(time_now_hires() - operation_start));
 
 //			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
