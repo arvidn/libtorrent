@@ -2167,8 +2167,6 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
-					ptime hash_start = time_now_hires();
-
 					cache_piece_index_t& idx = m_pieces.get<0>();
 					cache_piece_index_t::iterator i = find_cached_piece(m_pieces, j, l);
 					if (i != idx.end())
@@ -2189,6 +2187,9 @@ namespace libtorrent
 						ret = 0;
 						break;
 					}
+
+					ptime hash_start = time_now_hires();
+
 					sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
 					if (test_error(j))
 					{
