@@ -174,6 +174,11 @@ namespace libtorrent
 			, average_job_time(0)
 			, average_sort_time(0)
 			, job_queue_length(0)
+			, cumulative_job_time(0)
+			, cumulative_read_time(0)
+			, cumulative_write_time(0)
+			, cumulative_hash_time(0)
+			, cumulative_sort_time(0)
 		{}
 
 		// the number of 16kB blocks written
@@ -211,6 +216,12 @@ namespace libtorrent
 		int average_job_time;
 		int average_sort_time;
 		int job_queue_length;
+
+		boost::uint32_t cumulative_job_time;
+		boost::uint32_t cumulative_read_time;
+		boost::uint32_t cumulative_write_time;
+		boost::uint32_t cumulative_hash_time;
+		boost::uint32_t cumulative_sort_time;
 	};
 	
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
