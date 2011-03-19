@@ -758,6 +758,7 @@ namespace libtorrent
 		if (num_write_calls > 0)
 		{
 			m_write_time.add_sample(total_microseconds(done - write_start) / num_write_calls);
+			m_cache_stats.cumulative_write_time += total_milliseconds(done - write_start);
 			p.num_contiguous_blocks = contiguous_blocks(p);
 		}
 
@@ -1646,7 +1647,9 @@ namespace libtorrent
 					need_update_elevator_pos = need_update_elevator_pos || m_sorted_read_jobs.empty();
 					m_sorted_read_jobs.insert(std::pair<size_type, disk_io_job>(phys_off, j));
 
-					m_sort_time.add_sample(total_microseconds(time_now_hires() - sort_start));
+					ptime now = time_now_hires();
+					m_sort_time.add_sample(total_microseconds(now - sort_start));
+					m_cache_stats.cumulative_sort_time += total_milliseconds(now - sort_start);
 					continue;
 				}
 			}
@@ -2021,7 +2024,9 @@ namespace libtorrent
 					}
 					if (!hit)
 					{
-						m_read_time.add_sample(total_microseconds(time_now_hires() - operation_start));
+						ptime now = time_now_hires();
+						m_read_time.add_sample(total_microseconds(now - operation_start));
+						m_cache_stats.cumulative_read_time += total_milliseconds(now - operation_start);
 					}
 					TORRENT_ASSERT(j.buffer == read_holder.get());
 					read_holder.release();
@@ -2109,6 +2114,7 @@ namespace libtorrent
 							}
 							ptime done = time_now_hires();
 							m_write_time.add_sample(total_microseconds(done - start));
+							m_cache_stats.cumulative_write_time += total_milliseconds(done - start);
 							// we successfully wrote the block. Ignore previous errors
 							j.storage->clear_error();
 							break;
@@ -2194,7 +2200,9 @@ namespace libtorrent
 					ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
 					if (ret == -2) j.storage->mark_failed(j.piece);
 
-					m_hash_time.add_sample(total_microseconds(time_now_hires() - hash_start));
+					ptime done = time_now_hires();
+					m_hash_time.add_sample(total_microseconds(done - hash_start));
+					m_cache_stats.cumulative_hash_time += total_milliseconds(done - hash_start);
 					break;
 				}
 				case disk_io_job::move_storage:
@@ -2350,7 +2358,9 @@ namespace libtorrent
 
 						ret = j.storage->check_files(j.piece, j.offset, j.error);
 
-						m_hash_time.add_sample(total_microseconds(time_now_hires() - hash_start));
+						ptime done = time_now_hires();
+						m_hash_time.add_sample(total_microseconds(done - hash_start));
+						m_cache_stats.cumulative_hash_time += total_milliseconds(done - hash_start);
 
 						TORRENT_TRY {
 							TORRENT_ASSERT(j.callback);
@@ -2412,7 +2422,9 @@ namespace libtorrent
 
 			TORRENT_ASSERT(!j.storage || !j.storage->error());
 
-			m_job_time.add_sample(total_microseconds(time_now_hires() - operation_start));
+			ptime done = time_now_hires();
+			m_job_time.add_sample(total_microseconds(done - operation_start));
+			m_cache_stats.cumulative_job_time += total_milliseconds(done - operation_start);
 
 //			if (!j.callback) std::cerr << "DISK THREAD: no callback specified" << std::endl;
 //			else std::cerr << "DISK THREAD: invoking callback" << std::endl;
