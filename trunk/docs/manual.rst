@@ -4294,7 +4294,7 @@ session_settings
 		int file_checks_delay_per_block;
 
 		enum disk_cache_algo_t
-		{ lru, largest_contiguous };
+		{ lru, largest_contiguous, avoid_readback };
 
 		disk_cache_algo_t disk_cache_algorithm;
 
@@ -4898,7 +4898,10 @@ flushes the entire piece, in the write cache, that was least recently
 written to. This is specified by the ``session_settings::lru`` enum
 value. ``session_settings::largest_contiguous`` will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
-piece's last use time.
+piece's last use time. ``session_settings::avoid_readback`` will prioritize
+flushing blocks that will avoid having to read them back in to verify
+the hash of the piece once it's done. This is especially useful for high
+throughput setups, where reading from the disk is especially expensive.
 
 ``read_cache_line_size`` is the number of blocks to read into the read
 cache when a read cache miss occurs. Setting this to 0 is essentially

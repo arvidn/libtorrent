@@ -228,8 +228,10 @@ namespace libtorrent
 		// the max number of bytes pending write before we throttle
 		// download rate
 		set.max_queued_disk_bytes = 100 * 1024 * 1024;
-		// flush write cache based on largest contiguous block
-		set.disk_cache_algorithm = session_settings::largest_contiguous;
+		// flush write cache in a way to minimize the amount we need to
+		// read back once we want to hash-check the piece. i.e. try to
+		// flush all blocks in-order
+		set.disk_cache_algorithm = session_settings::avoid_readback;
 
 		set.explicit_read_cache = false;
 		// prevent fast pieces to interfere with suggested pieces
