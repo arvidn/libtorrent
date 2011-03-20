@@ -1682,6 +1682,9 @@ namespace aux {
 
 		m_settings = s;
 
+		if (m_settings.cache_buffer_chunk_size <= 0)
+			m_settings.cache_buffer_chunk_size = 1;
+
 		update_rate_settings();
 
 		if (connections_limit_changed) update_connections_limit();
