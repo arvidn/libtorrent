@@ -16,14 +16,14 @@ axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y2']
 
 output_dir = 'session_stats_report'
 
-def gen_report(name, unit, lines):
+def gen_report(name, unit, lines, generation, log_file):
 	try:
 		os.mkdir(output_dir)
 	except: pass
 
 	out = open('session_stats_%s.gnuplot' % name, 'wb')
 	print >>out, "set term png size 1200,700"
-	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s.png' % name))
+	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d.png' % (name, generation)))
 	print >>out, 'set xrange [0:*]'
 	print >>out, 'set xlabel "time (s)"'
 	print >>out, 'set ylabel "%s"' % unit
@@ -45,13 +45,13 @@ def gen_report(name, unit, lines):
 		if not first: print >>out, ', ',
 		axis = 'x1y1'
 		if column-2 < len(axes): axis = axes[column-2]
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (sys.argv[1], column, k, axis),
+		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (log_file, column, k, axis),
 		first = False
 		column = column + 1
 	print >>out, ''
 
 	print >>out, "set term png size 300,150"
-	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_thumb.png' % name))
+	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d_thumb.png' % (name, generation)))
 	print >>out, 'set key off'
 	print >>out, 'unset tics'
 	print >>out, 'set format x ""'
@@ -65,12 +65,14 @@ def gen_report(name, unit, lines):
 	sys.stdout.write('.')
 	sys.stdout.flush()
 
-def gen_html(reports):
+def gen_html(reports, generations):
 	file = open(os.path.join(output_dir, 'index.html'), 'w+')
 	print >>file, '<html><body>',
 
 	for i in reports:
-		print >>file, '<h1>%s</h1><h5>%s</h5><a href="session_stats_%s.png"><img src="session_stats_%s_thumb.png"></a>' % (i[0], i[2], i[0], i[0]),
+		print >>file, '<h1>%s</h1><h5>%s</h5>' % (i[0], i[2])
+		for g in generations:
+			print >>file, '<a href="session_stats_%s_%04d.png"><img src="session_stats_%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g),
 
 	print >>file, '</body></html>',
 	file.close()
@@ -103,8 +105,19 @@ reports = [
 	('piece_picker', 'blocks', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 ]
 
-print 'generating graphs\n[%s]\r[' % (' ' * len(reports)),
-for i in reports: gen_report(i[0], i[1], i[3])
-print ''
+print 'generating graphs'
+log_file_path, log_file = os.path.split(sys.argv[1])
+# count the number of log files (generations)
+log_file_list = log_file.split('.')
+g = int(log_file_list[1])
+generations = []
+while os.path.exists(log_file):
+	print '[%s] %04d\r[' % (' ' * len(reports), g),
+	for i in reports: gen_report(i[0], i[1], i[3], g, os.path.join(log_file_path, log_file))
+	print ''
+	generations.append(g)
+	g += 1
+	log_file_list[1] = '%04d' % g
+	log_file = '.'.join(log_file_list)
 print 'generating html'
-gen_html(reports)
+gen_html(reports, generations)
