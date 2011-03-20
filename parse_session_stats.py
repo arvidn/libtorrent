@@ -3,7 +3,7 @@
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-import os, sys, time
+import os, sys, time, os
 
 stat = open(sys.argv[1])
 line = stat.readline()
@@ -14,13 +14,19 @@ keys = line.strip().split(':')[1:]
 
 axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y2']
 
-def gen_report(name, lines):
+output_dir = 'session_stats_report'
+
+def gen_report(name, unit, lines):
+	try:
+		os.mkdir(output_dir)
+	except: pass
+
 	out = open('session_stats_%s.gnuplot' % name, 'wb')
 	print >>out, "set term png size 1200,700"
-	print >>out, 'set output "session_stats_%s.png"' % name
+	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s.png' % name))
 	print >>out, 'set xrange [0:*]'
 	print >>out, 'set xlabel "time (s)"'
-	print >>out, 'set ylabel "number"'
+	print >>out, 'set ylabel "%s"' % unit
 	print >>out, 'set y2label "Rate (B/s)"'
 	print >>out, 'set y2range [0:*]'
 	print >>out, 'set y2tics auto'
@@ -43,30 +49,62 @@ def gen_report(name, lines):
 		first = False
 		column = column + 1
 	print >>out, ''
+
+	print >>out, "set term png size 300,150"
+	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_thumb.png' % name))
+	print >>out, 'set key off'
+	print >>out, 'unset tics'
+	print >>out, 'set format x ""'
+	print >>out, 'set format y ""'
+	print >>out, 'set xlabel ""'
+	print >>out, 'set ylabel ""'
+	print >>out, 'set y2label ""'
+	print >>out, "replot"
 	out.close()
-	os.system('gnuplot session_stats_%s.gnuplot' % name);
+	os.system('gnuplot session_stats_%s.gnuplot 2>/dev/null' % name);
+	sys.stdout.write('.')
+	sys.stdout.flush()
 
-gen_report('torrents', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents'])
-gen_report('peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections'])
-gen_report('peers_list', ['num list peers', 'peer storage bytes'])
-gen_report('overall_rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate'])
-gen_report('peer_dl_rates', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
-gen_report('peer_dl_rates2', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-'])
-gen_report('peer_ul_rates', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
-gen_report('peer_ul_rates2', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-'])
-gen_report('disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark'])
-gen_report('peers_upload', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up'])
-gen_report('peers_download', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down'])
-gen_report('peer_errors', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure'])
-gen_report('piece_picker_end_game', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
-gen_report('piece_picker', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'])
-gen_report('bandwidth', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'])
-gen_report('disk_time', ['disk read time', 'disk write time', 'disk queue time', 'disk hash time', 'disk job time', 'disk sort time'])
-gen_report('disk_time_proportion', ['% read time', '% write time', '% hash time', '% sort time'])
-gen_report('disk_cache_hits', ['disk block read', 'read cache hits', 'disk block written', 'disk read back'])
-gen_report('disk_cache', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size'])
-gen_report('disk_readback', ['% read back'])
-gen_report('disk_queue', ['disk queue size', 'disk queued bytes'])
-gen_report('waste', ['failed bytes', 'redundant bytes', 'download rate'])
-gen_report('connect_candidates', ['connect candidates'])
+def gen_html(reports):
+	file = open(os.path.join(output_dir, 'index.html'), 'w+')
+	print >>file, '<html><body>',
 
+	for i in reports:
+		print >>file, '<h1>%s</h1><h5>%s</h5><a href="session_stats_%s.png"><img src="session_stats_%s_thumb.png"></a>' % (i[0], i[2], i[0], i[0]),
+
+	print >>file, '</body></html>',
+	file.close()
+
+reports = [
+	('torrents', 'num', '', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
+	('peers', 'num', '', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
+	('peers_list_size', 'num', '', ['num list peers']),
+	('overall_rates', 'Bytes / second', '', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
+	('disk_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
+	('peers_upload', 'num', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up']),
+	('peers_download', 'num', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down']),
+	('peer_errors', 'num', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
+	('waste', '% of all downloaded bytes', 'proportion of bytes wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
+	('average_disk_time_absolute', 'microseconds', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk queue time', 'disk hash time', 'disk job time', 'disk sort time']),
+	('disk_time', '% of total disk job time', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time']),
+	('disk_cache_hits', 'blocks (16kiB)', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
+	('disk_cache', 'blocks (16kiB)', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
+	('disk_readback', '% of written blocks', '', ['% read back']),
+#	('disk_queue', 'num', '', ['disk queue size', 'disk queued bytes']),
+#	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
+	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
+
+#somewhat uninteresting stats
+	('peer_dl_rates', 'num', '', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
+	('peer_dl_rates2', 'num', '', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
+	('peer_ul_rates', 'num', '', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
+	('peer_ul_rates2', 'num', '', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
+	('piece_picker_end_game', '', 'blocks', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
+	('piece_picker', 'blocks', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
+]
+
+print 'generating graphs\n[%s]\r[' % (' ' * len(reports)),
+for i in reports: gen_report(i[0], i[1], i[3])
+print ''
+print 'generating html'
+gen_html(reports)
