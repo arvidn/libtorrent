@@ -426,6 +426,8 @@ namespace libtorrent
 			// number for next_block_to_hash, if we're in avoid_readback mode
 			if (m_settings.disk_cache_algorithm != session_settings::avoid_readback)
 				widx.erase(i++);
+			else
+				++i;
 		}
 
 		if (m_settings.explicit_read_cache) return;
