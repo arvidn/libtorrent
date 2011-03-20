@@ -267,6 +267,7 @@ namespace libtorrent
 			, smooth_connects(true)
 			, always_send_user_agent(false)
 			, apply_ip_filter_to_trackers(true)
+			, read_job_every(10)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1064,6 +1065,11 @@ namespace libtorrent
 		// if true, trackers will also be filtered by the IP
 		// filter, otherwise they are exempt
 		bool apply_ip_filter_to_trackers;
+
+		// to avoid write jobs starving read jobs, if this many
+		// write jobs have been taking priority in a row, service
+		// one read job
+		int read_job_every;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

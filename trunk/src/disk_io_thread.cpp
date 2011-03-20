@@ -1559,6 +1559,7 @@ namespace libtorrent
 		read_jobs_t::iterator elevator_job_pos = m_sorted_read_jobs.begin();
 		size_type last_elevator_pos = 0;
 		bool need_update_elevator_pos = false;
+		int immediate_jobs_in_row = 0;
 
 		for (;;)
 		{
@@ -1618,7 +1619,14 @@ namespace libtorrent
 			m_queue_time.add_sample(total_microseconds(now - j.start_time));
 			ptime operation_start = now;
 
-			if (!m_jobs.empty())
+			// make sure we don't starve out the read queue by just issuing
+			// write jobs constantly, mix in a read job every now and then
+			// with a configurable ratio
+			bool pick_read_job = m_jobs.empty()
+				|| (immediate_jobs_in_row >= m_settings.read_job_every
+					&& !m_sorted_read_jobs.empty());
+
+			if (!pick_read_job)
 			{
 				// we have a job in the job queue. If it's
 				// a read operation and we are allowed to
@@ -1702,6 +1710,8 @@ namespace libtorrent
 					m_cache_stats.cumulative_job_time += total_milliseconds(now - operation_start);
 					continue;
 				}
+
+				++immediate_jobs_in_row;
 			}
 			else
 			{
@@ -1709,6 +1719,8 @@ namespace libtorrent
 				// from the sorted job list. So we don't need the
 				// job queue lock anymore
 				jl.unlock();
+
+				immediate_jobs_in_row = 0;
 
 				TORRENT_ASSERT(!m_sorted_read_jobs.empty());
 

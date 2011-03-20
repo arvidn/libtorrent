@@ -363,6 +363,7 @@ namespace aux {
 		TORRENT_SETTING(integer, smooth_connects)
 		TORRENT_SETTING(boolean, always_send_user_agent)
 		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
+		TORRENT_SETTING(integer, read_job_every)
 	};
 
 #undef TORRENT_SETTING
