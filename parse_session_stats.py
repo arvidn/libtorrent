@@ -27,9 +27,7 @@ def gen_report(name, unit, lines, generation, log_file):
 	print >>out, 'set xrange [0:*]'
 	print >>out, 'set xlabel "time (s)"'
 	print >>out, 'set ylabel "%s"' % unit
-	print >>out, 'set y2label "Rate (B/s)"'
-	print >>out, 'set y2range [0:*]'
-	print >>out, 'set y2tics auto'
+	print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
 	print >>out, "set style data lines"
 	print >>out, "set key box"
