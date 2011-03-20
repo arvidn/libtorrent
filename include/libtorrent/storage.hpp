@@ -348,7 +348,7 @@ namespace libtorrent
 			, int current_slot);
 
 		void switch_to_full_mode();
-		sha1_hash hash_for_piece_impl(int piece);
+		sha1_hash hash_for_piece_impl(int piece, int* readback = 0);
 
 		int release_files_impl() { return m_storage->release_files(); }
 		int delete_files_impl() { return m_storage->delete_files(); }

@@ -964,6 +964,7 @@ namespace aux {
 			":cumulative write time"
 			":cumulative hash time"
 			":cumulative sort time"
+			":disk total read back"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2739,7 +2740,7 @@ namespace aux {
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2833,6 +2834,7 @@ namespace aux {
 				, int(cs.cumulative_write_time)
 				, int(cs.cumulative_hash_time)
 				, int(cs.cumulative_sort_time)
+				, cs.total_read_back
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;

@@ -179,6 +179,7 @@ namespace libtorrent
 			, cumulative_write_time(0)
 			, cumulative_hash_time(0)
 			, cumulative_sort_time(0)
+			, total_read_back(0)
 		{}
 
 		// the number of 16kB blocks written
@@ -222,6 +223,7 @@ namespace libtorrent
 		boost::uint32_t cumulative_write_time;
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
+		int total_read_back;
 	};
 	
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable

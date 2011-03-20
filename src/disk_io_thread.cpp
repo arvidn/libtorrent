@@ -2190,13 +2190,16 @@ namespace libtorrent
 
 					ptime hash_start = time_now_hires();
 
-					sha1_hash h = j.storage->hash_for_piece_impl(j.piece);
+					int readback = 0;
+					sha1_hash h = j.storage->hash_for_piece_impl(j.piece, &readback);
 					if (test_error(j))
 					{
 						ret = -1;
 						j.storage->mark_failed(j.piece);
 						break;
 					}
+
+					m_cache_stats.total_read_back += readback / m_block_size;
 
 					ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
 					if (ret == -2) j.storage->mark_failed(j.piece);
