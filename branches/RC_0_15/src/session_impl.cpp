@@ -1260,6 +1260,10 @@ namespace aux {
 			&& m_auto_manage_time_scaler > 2)
 			m_auto_manage_time_scaler = 2;
 		m_settings = s;
+
+		if (m_settings.cache_buffer_chunk_size <= 0)
+			m_settings.cache_buffer_chunk_size = 1;
+
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 		if (m_settings.broadcast_lsd && m_lsd)
 			m_lsd->use_broadcast(true);
