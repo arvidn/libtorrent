@@ -348,6 +348,7 @@ namespace libtorrent
 		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
+		ret.read_queue_size = m_sorted_read_jobs.size();
 
 		return ret;
 	}

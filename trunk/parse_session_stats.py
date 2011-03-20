@@ -90,7 +90,7 @@ reports = [
 	('disk_cache_hits', 'blocks (16kiB)', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
 	('disk_cache', 'blocks (16kiB)', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
 	('disk_readback', '% of written blocks', '', ['% read back']),
-#	('disk_queue', 'num', '', ['disk queue size', 'disk queued bytes']),
+	('disk_queue', 'num', '', ['disk queue size', 'disk read queue size']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 
