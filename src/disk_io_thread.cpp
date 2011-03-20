@@ -1611,6 +1611,10 @@ namespace libtorrent
 
 			disk_io_job j;
 
+			ptime now = time_now_hires();
+			m_queue_time.add_sample(total_microseconds(now - j.start_time));
+			ptime operation_start = now;
+
 			if (!m_jobs.empty())
 			{
 				// we have a job in the job queue. If it's
@@ -1751,12 +1755,7 @@ namespace libtorrent
 				m_ios.post(m_queue_callback);
 			}
 
-			ptime now = time_now_hires();
-			m_queue_time.add_sample(total_microseconds(now - j.start_time));
-
 			flush_expired_pieces();
-
-			ptime operation_start = now;
 
 			int ret = 0;
 
