@@ -959,12 +959,12 @@ namespace aux {
 			":connect candidates"
 			":disk queue limit"
 			":disk queue low watermark"
-			":cumulative job time"
-			":cumulative read time"
-			":cumulative write time"
-			":cumulative hash time"
-			":cumulative sort time"
-			":disk total read back"
+			":% read time"
+			":% write time"
+			":% hash time"
+			":% sort time"
+			":disk read back"
+			":% read back"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2727,12 +2727,19 @@ namespace aux {
 			++peer_ul_rate_buckets[ul_bucket];
 		}
 
+		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
+			? m_settings.max_queued_disk_bytes / 2
+			: m_settings.max_queued_disk_bytes_low_watermark;
+
 		if (now - m_last_log_rotation > hours(1))
 			rotate_stats_log();
 		
 		if (m_stats_logger)
 		{
 			cache_status cs = m_disk_thread.status();
+
+			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
+
 			fprintf(m_stats_logger
 				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
@@ -2742,8 +2749,8 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
+				  "%f\t%f\t%d\t%f\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -2831,13 +2838,13 @@ namespace aux {
 				, m_settings.connections_limit
 				, connect_candidates
 				, int(m_settings.max_queued_disk_bytes)
-				, int(m_settings.max_queued_disk_bytes_low_watermark)
-				, int(cs.cumulative_job_time)
-				, int(cs.cumulative_read_time)
-				, int(cs.cumulative_write_time)
-				, int(cs.cumulative_hash_time)
-				, int(cs.cumulative_sort_time)
-				, cs.total_read_back
+				, low_watermark
+				, float(cs.cumulative_read_time * 100.f / total_job_time)
+				, float(cs.cumulative_write_time * 100.f / total_job_time)
+				, float(cs.cumulative_hash_time * 100.f / total_job_time)
+				, float(cs.cumulative_sort_time * 100.f / total_job_time)
+				, int(cs.total_read_back - m_last_cache_status.total_read_back)
+				, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written))
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;

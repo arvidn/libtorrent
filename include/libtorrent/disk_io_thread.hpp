@@ -73,6 +73,7 @@ namespace libtorrent
 		int piece;
 		std::vector<bool> blocks;
 		ptime last_use;
+		int next_to_hash;
 		enum kind_t { read_cache = 0, write_cache = 1 };
 		kind_t kind;
 	};
@@ -353,6 +354,8 @@ namespace libtorrent
 			int piece;
 			// storage this piece belongs to
 			boost::intrusive_ptr<piece_manager> storage;
+			// the pointers to the block data
+			boost::shared_array<cached_block_entry> blocks;
 			// the last time a block was writting to this piece
 			// plus the minimum amount of time the block is guaranteed
 			// to stay in the cache
@@ -361,8 +364,11 @@ namespace libtorrent
 			int num_blocks;
 			// used to determine if this piece should be flushed
 			int num_contiguous_blocks;
-			// the pointers to the block data
-			boost::shared_array<cached_block_entry> blocks;
+			// this is the first block that has not yet been hashed
+			// by the partial hasher. When minimizing read-back, this
+			// is used to determine if flushing a range would force us
+			// to read it back later when hashing
+			int next_block_to_hash;
 			
 			std::pair<void*, int> storage_piece_pair() const
 			{ return std::pair<void*, int>(storage.get(), piece); }

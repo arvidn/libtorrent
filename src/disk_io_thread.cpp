@@ -305,6 +305,7 @@ namespace libtorrent
 			torrent_info const& ti = *i->storage->info();
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
+			info.next_to_hash = i->next_block_to_hash;
 			info.piece = i->piece;
 			info.last_use = i->expire;
 			info.kind = cached_piece_info::write_cache;
@@ -320,6 +321,7 @@ namespace libtorrent
 			torrent_info const& ti = *i->storage->info();
 			if (ti.info_hash() != ih) continue;
 			cached_piece_info info;
+			info.next_to_hash = i->next_block_to_hash;
 			info.piece = i->piece;
 			info.last_use = i->expire;
 			info.kind = cached_piece_info::read_cache;
@@ -419,7 +421,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(i->storage);
 			flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
-			widx.erase(i++);
+			// we want to keep the piece in here to have an accurate
+			// number for next_block_to_hash, if we're in avoid_readback mode
+			if (m_settings.disk_cache_algorithm != session_settings::avoid_readback)
+				widx.erase(i++);
 		}
 
 		if (m_settings.explicit_read_cache) return;
@@ -638,12 +643,45 @@ namespace libtorrent
 			while (blocks > 0)
 			{
 				cache_lru_index_t::iterator i =
-				std::max_element(idx.begin(), idx.end()
-					, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
-					< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
+					std::max_element(idx.begin(), idx.end()
+						, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
+						< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				if (i->num_blocks == 0) idx.erase(i);
+				blocks -= tmp;
+				ret += tmp;
+			}
+		}
+		else if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+		{
+			cache_lru_index_t& idx = m_pieces.get<1>();
+			for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end(); ++i)
+			{
+				cached_piece_entry& p = const_cast<cached_piece_entry&>(*i);
+				if (!i->blocks[i->next_block_to_hash].buf) continue;
+				int piece_size = i->storage->info()->piece_size(i->piece);
+				int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+				int start = i->next_block_to_hash;
+				int end = start + 1;
+				while (end < blocks_in_piece && i->blocks[end].buf) ++end;
+				tmp = flush_range(p, start, end, l);
+				p.num_contiguous_blocks = contiguous_blocks(p);
+				blocks -= tmp;
+				ret += tmp;
+				if (blocks <= 0) break;
+			}
+
+			// if we still need to flush blocks, flush the largest contiguous blocks
+			// regardless of if we'll have to read them back later
+			while (blocks > 0)
+			{
+				cache_lru_index_t::iterator i =
+					std::max_element(idx.begin(), idx.end()
+						, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
+						< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
+				if (i == idx.end()) return ret;
+				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				blocks -= tmp;
 				ret += tmp;
 			}
@@ -729,6 +767,7 @@ namespace libtorrent
 			--p.num_blocks;
 			++m_cache_stats.blocks_written;
 			--m_cache_stats.cache_size;
+			if (i == p.next_block_to_hash) ++p.next_block_to_hash;
 		}
 
 		ptime done = time_now_hires();
@@ -798,6 +837,7 @@ namespace libtorrent
 		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 1;
 		p.num_contiguous_blocks = 1;
+		p.next_block_to_hash = 0;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
 		int block = j.offset / m_block_size;
@@ -983,6 +1023,7 @@ namespace libtorrent
 		p.expire = time_now() + seconds(j.cache_min_time);
 		p.num_blocks = 0;
 		p.num_contiguous_blocks = 0;
+		p.next_block_to_hash = 0;
 		p.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!p.blocks) return -1;
 
@@ -1106,6 +1147,7 @@ namespace libtorrent
 			pe.expire = time_now() + seconds(j.cache_min_time);
 			pe.num_blocks = 0;
 			pe.num_contiguous_blocks = 0;
+			pe.next_block_to_hash = 0;
 			pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 			if (!pe.blocks) return -1;
 			ret = read_into_piece(pe, 0, options, INT_MAX, l);
@@ -2070,7 +2112,9 @@ namespace libtorrent
 							--m_cache_stats.cache_size;
 							--const_cast<cached_piece_entry&>(*p).num_blocks;
 						}
-						else if ((block > 0 && p->blocks[block-1].buf) || (block < blocks_in_piece-1 && p->blocks[block+1].buf))
+						else if ((block > 0 && p->blocks[block-1].buf)
+							|| (block < blocks_in_piece-1 && p->blocks[block+1].buf)
+							|| p->num_blocks == 0)
 						{
 							// update the contiguous blocks counter for this piece. Only if it has
 							// an adjacent block. If it doesn't, we already know it couldn't have
@@ -2091,8 +2135,13 @@ namespace libtorrent
 						idx.modify(p, update_last_use(j.cache_min_time));
 						// we might just have created a contiguous range
 						// that meets the requirement to be flushed. try it
-						flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
-							, l, m_settings.write_cache_line_size);
+						// if we're in avoid_readback mode, don't do this. Only flush
+						// pieces when we need more space in the cache (which will avoid
+						// flushing blocks out-of-order) or when we issue a hash job,
+						// wich indicates the piece is completely downloaded
+						if (m_settings.disk_cache_algorithm != session_settings::avoid_readback)
+							flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
+								, l, m_settings.write_cache_line_size);
 						if (p->num_blocks == 0) idx.erase(p);
 						test_error(j);
 						TORRENT_ASSERT(!j.storage->error());

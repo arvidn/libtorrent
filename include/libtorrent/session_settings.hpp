@@ -751,7 +751,7 @@ namespace libtorrent
 		int file_checks_delay_per_block;
 
 		enum disk_cache_algo_t
-		{ lru, largest_contiguous };
+		{ lru, largest_contiguous, avoid_readback };
 
 		disk_cache_algo_t disk_cache_algorithm;
 
