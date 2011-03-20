@@ -21,7 +21,7 @@ def gen_report(name, unit, lines, generation, log_file):
 		os.mkdir(output_dir)
 	except: pass
 
-	out = open('session_stats_%s.gnuplot' % name, 'wb')
+	out = open('session_stats.gnuplot', 'wb')
 	print >>out, "set term png size 1200,700"
 	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d.png' % (name, generation)))
 	print >>out, 'set xrange [0:*]'
@@ -48,7 +48,7 @@ def gen_report(name, unit, lines, generation, log_file):
 		column = column + 1
 	print >>out, ''
 
-	print >>out, "set term png size 300,150"
+	print >>out, "set term png size 150,100"
 	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d_thumb.png' % (name, generation)))
 	print >>out, 'set key off'
 	print >>out, 'unset tics'
@@ -57,9 +57,13 @@ def gen_report(name, unit, lines, generation, log_file):
 	print >>out, 'set xlabel ""'
 	print >>out, 'set ylabel ""'
 	print >>out, 'set y2label ""'
+	print >>out, 'set rmargin 0'
+	print >>out, 'set lmargin 0'
+	print >>out, 'set tmargin 0'
+	print >>out, 'set bmargin 0'
 	print >>out, "replot"
 	out.close()
-	os.system('gnuplot session_stats_%s.gnuplot 2>/dev/null' % name);
+	os.system('gnuplot session_stats.gnuplot 2>/dev/null');
 	sys.stdout.write('.')
 	sys.stdout.flush()
 
@@ -68,15 +72,17 @@ def gen_html(reports, generations):
 
 	css = '''img { margin: 0}
 		#head { display: block }
+		#graphs { white-space:nowrap; }
 		h1 { line-height: 1; display: inline }
 		h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};'''
 
 	print >>file, '<html><head><style type="text/css">%s</style></head><body>' % css
 
 	for i in reports:
-		print >>file, '<div id="head"><h1>%s </h1><h2>%s</h2><div>' % (i[0], i[2])
+		print >>file, '<div id="head"><h1>%s </h1><h2>%s</h2><div><div id="graphs">' % (i[0], i[2])
 		for g in generations:
 			print >>file, '<a href="session_stats_%s_%04d.png"><img src="session_stats_%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g)
+		print >>file, '</div>'
 
 	print >>file, '</body></html>'
 	file.close()
@@ -105,7 +111,7 @@ reports = [
 	('peer_dl_rates2', 'num', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
 	('peer_ul_rates', 'num', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
 	('peer_ul_rates2', 'num', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
-	('piece_picker_end_game', '', 'blocks', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
+	('piece_picker_end_game', 'blocks', '', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 	('piece_picker', 'blocks', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 ]
 
