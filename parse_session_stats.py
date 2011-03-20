@@ -65,40 +65,46 @@ def gen_report(name, unit, lines, generation, log_file):
 
 def gen_html(reports, generations):
 	file = open(os.path.join(output_dir, 'index.html'), 'w+')
-	print >>file, '<html><body>',
+
+	css = '''img { margin: 0}
+		#head { display: block }
+		h1 { line-height: 1; display: inline }
+		h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};'''
+
+	print >>file, '<html><head><style type="text/css">%s</style></head><body>' % css
 
 	for i in reports:
-		print >>file, '<h1>%s</h1><h5>%s</h5>' % (i[0], i[2])
+		print >>file, '<div id="head"><h1>%s </h1><h2>%s</h2><div>' % (i[0], i[2])
 		for g in generations:
-			print >>file, '<a href="session_stats_%s_%04d.png"><img src="session_stats_%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g),
+			print >>file, '<a href="session_stats_%s_%04d.png"><img src="session_stats_%s_%04d_thumb.png"></a>' % (i[0], g, i[0], g)
 
-	print >>file, '</body></html>',
+	print >>file, '</body></html>'
 	file.close()
 
 reports = [
-	('torrents', 'num', '', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
-	('peers', 'num', '', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
-	('peers_list_size', 'num', '', ['num list peers']),
-	('overall_rates', 'Bytes / second', '', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
+	('torrents', 'num', 'number of torrents in different torrent states', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
+	('peers', 'num', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
+	('peers_list_size', 'num', 'number of known peers (not necessarily connected)', ['num list peers']),
+	('overall_rates', 'Bytes / second', 'download and upload rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
 	('disk_write_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
 	('peers_upload', 'num', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up']),
 	('peers_download', 'num', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down']),
 	('peer_errors', 'num', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
-	('waste', '% of all downloaded bytes', 'proportion of bytes wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
+	('waste', '% of all downloaded bytes', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
 	('average_disk_time_absolute', 'microseconds', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk queue time', 'disk hash time', 'disk job time', 'disk sort time']),
 	('disk_time', '% of total disk job time', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time']),
 	('disk_cache_hits', 'blocks (16kiB)', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
 	('disk_cache', 'blocks (16kiB)', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
-	('disk_readback', '% of written blocks', '', ['% read back']),
-	('disk_queue', 'num', '', ['disk queue size', 'disk read queue size']),
+	('disk_readback', '% of written blocks', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
+	('disk_queue', 'number of queued disk jobs', 'queued disk jobs', ['disk queue size', 'disk read queue size']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 
 #somewhat uninteresting stats
-	('peer_dl_rates', 'num', '', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
-	('peer_dl_rates2', 'num', '', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
-	('peer_ul_rates', 'num', '', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
-	('peer_ul_rates2', 'num', '', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
+	('peer_dl_rates', 'num', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
+	('peer_dl_rates2', 'num', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
+	('peer_ul_rates', 'num', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
+	('peer_ul_rates2', 'num', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
 	('piece_picker_end_game', '', 'blocks', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 	('piece_picker', 'blocks', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 ]
