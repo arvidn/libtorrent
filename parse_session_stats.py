@@ -82,7 +82,7 @@ reports = [
 	('peers', 'num', '', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
 	('peers_list_size', 'num', '', ['num list peers']),
 	('overall_rates', 'Bytes / second', '', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
-	('disk_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
+	('disk_write_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
 	('peers_upload', 'num', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up']),
 	('peers_download', 'num', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down']),
 	('peer_errors', 'num', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
