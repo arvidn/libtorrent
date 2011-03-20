@@ -1710,7 +1710,7 @@ ret:
 		return m_save_path;
 	}
 
-	sha1_hash piece_manager::hash_for_piece_impl(int piece)
+	sha1_hash piece_manager::hash_for_piece_impl(int piece, int* readback)
 	{
 		TORRENT_ASSERT(!m_storage->error());
 
@@ -1725,7 +1725,8 @@ ret:
 
 		int slot = slot_for(piece);
 		TORRENT_ASSERT(slot != has_no_slot);
-		hash_for_slot(slot, ph, m_files.piece_size(piece));
+		int read = hash_for_slot(slot, ph, m_files.piece_size(piece));
+		if (readback) *readback = read;
 		if (m_storage->error()) return sha1_hash(0);
 		return ph.h.final();
 	}
