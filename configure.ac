@@ -165,10 +165,6 @@ AC_CHECK_FUNCS([clock_gettime], [],
 )
 
 
-dnl Pass some build options to setup.py and .pc file
-COMPILETIME_OPTIONS="-DBOOST_FILESYSTEM_VERSION=2 "
-
-
 ###############################################################################
 # Setting configure options
 ###############################################################################
@@ -632,6 +628,9 @@ COMPILETIME_OPTIONS+="-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
 COMPILETIME_OPTIONS+="-DBOOST_EXCEPTION_DISABLE "
+
+AC_DEFINE([BOOST_FILESYSTEM_VERSION],[2],[Define to select the boost.filesystem library version 2.])
+COMPILETIME_OPTIONS+="-DBOOST_FILESYSTEM_VERSION=2 "
 
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])
