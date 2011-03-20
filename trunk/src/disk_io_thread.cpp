@@ -1696,6 +1696,7 @@ namespace libtorrent
 					ptime now = time_now_hires();
 					m_sort_time.add_sample(total_microseconds(now - sort_start));
 					m_cache_stats.cumulative_sort_time += total_milliseconds(now - sort_start);
+					m_cache_stats.cumulative_job_time += total_milliseconds(done - operation_start);
 					continue;
 				}
 			}
