@@ -2457,12 +2457,20 @@ namespace aux {
 			conns.push_back(p);
 		}
 
-		for (std::vector<peer_connection*>::iterator i = conns.begin()
-			, end(conns.end()); i != end; ++i)
+		// pick a random peer to start with, to evenly distribute
+		// the disk bandwidth
+		std::vector<peer_connection*>::iterator peer = conns.begin() + (rand() % conns.size());
+		for (int i = 0; i < conns.size(); ++i)
 		{
+			// if we can't write to disk anymore, no need
+			// to keep iterating
+			if (!can_write_to_disk()) break;
+
 			// setup_receive() may disconnect the connection
 			// and clear it out from the m_connections list
-			(*i)->on_disk();
+			(*peer)->on_disk();
+			++peer;
+			if (peer == conns.end()) peer = conns.begin();
 		}
 	}
 
