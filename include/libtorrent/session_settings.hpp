@@ -158,7 +158,7 @@ namespace libtorrent
 			, coalesce_writes(false)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
-			, active_downloads(8)
+			, active_downloads(3)
 			, active_seeds(5)
 			, active_dht_limit(88) // don't announce more than once every 40 seconds
 			, active_tracker_limit(360) // don't announce to trackers more than once every 5 seconds
