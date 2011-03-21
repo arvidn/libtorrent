@@ -293,6 +293,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
+			m_endpoints.clear();
 			tcp::resolver::query query(hostname, port);
 			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
