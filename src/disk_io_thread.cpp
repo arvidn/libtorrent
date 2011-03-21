@@ -611,6 +611,12 @@ namespace libtorrent
 		return len;
 	}
 
+	bool cmp_contiguous(disk_io_thread::cached_piece_entry const& lhs
+		, disk_io_thread::cached_piece_entry const& rhs)
+	{
+		return lhs.num_contiguous_blocks < rhs.num_contiguous_blocks;
+	}
+
 	// flushes 'blocks' blocks from the cache
 	int disk_io_thread::flush_cache_blocks(mutex::scoped_lock& l
 		, int blocks, int ignore, int options)
@@ -645,10 +651,7 @@ namespace libtorrent
 			cache_lru_index_t& idx = m_pieces.get<1>();
 			while (blocks > 0)
 			{
-				cache_lru_index_t::iterator i =
-					std::max_element(idx.begin(), idx.end()
-						, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
-						< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
+				cache_lru_index_t::iterator i = std::max_element(idx.begin(), idx.end(), &cmp_contiguous);
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				if (i->num_blocks == 0) idx.erase(i);
@@ -679,10 +682,7 @@ namespace libtorrent
 			// regardless of if we'll have to read them back later
 			while (blocks > 0)
 			{
-				cache_lru_index_t::iterator i =
-					std::max_element(idx.begin(), idx.end()
-						, boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _1)
-						< boost::bind(&disk_io_thread::cached_piece_entry::num_contiguous_blocks, _2));
+				cache_lru_index_t::iterator i = std::max_element(idx.begin(), idx.end(), &cmp_contiguous);
 				if (i == idx.end()) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
 				blocks -= tmp;
