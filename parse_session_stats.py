@@ -21,9 +21,26 @@ def gen_report(name, unit, lines, generation, log_file):
 		os.mkdir(output_dir)
 	except: pass
 
+	filename = os.path.join(output_dir, 'session_stats_%s_%04d.png' % (name, generation))
+	thumb = os.path.join(output_dir, 'session_stats_%s_%04d_thumb.png' % (name, generation))
+
+	# don't re-render a graph unless the logfile has changed
+	try:
+		dst1 = os.stat(filename)
+		dst2 = os.stat(thumb)
+
+		src = os.stat(log_file)
+
+		if dst1.st_mtime > src.st_mtime and dst2.st_mtime > src.st_mtime:
+			sys.stdout.write('.')
+			return
+
+	except: pass
+		
+
 	out = open('session_stats.gnuplot', 'wb')
 	print >>out, "set term png size 1200,700"
-	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d.png' % (name, generation)))
+	print >>out, 'set output "%s"' % filename
 	print >>out, 'set xrange [0:*]'
 	print >>out, 'set xlabel "time (s)"'
 	print >>out, 'set ylabel "%s"' % unit
@@ -49,7 +66,7 @@ def gen_report(name, unit, lines, generation, log_file):
 	print >>out, ''
 
 	print >>out, "set term png size 150,100"
-	print >>out, 'set output "%s"' % (os.path.join(output_dir, 'session_stats_%s_%04d_thumb.png' % (name, generation)))
+	print >>out, 'set output "%s"' % thumb
 	print >>out, 'set key off'
 	print >>out, 'unset tics'
 	print >>out, 'set format x ""'
