@@ -226,6 +226,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
+		m_endpoints.clear();
 		tcp::resolver::query query(hostname, port);
 		m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
 			, me, _1, _2));
