@@ -1179,8 +1179,10 @@ namespace aux {
 				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
 				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
 				f->load_state(*settings->list_at(i));
+				f->update_feed();
 				m_feeds.push_back(f);
 			}
+			update_rss_feeds();
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
