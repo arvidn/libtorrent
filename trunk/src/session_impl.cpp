@@ -2461,6 +2461,8 @@ namespace aux {
 			conns.push_back(p);
 		}
 
+		if (conns.empty()) return;
+
 		// pick a random peer to start with, to evenly distribute
 		// the disk bandwidth
 		std::vector<peer_connection*>::iterator peer = conns.begin() + (rand() % conns.size());
