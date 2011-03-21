@@ -192,6 +192,7 @@ enum {
 	torrents_queued,
 	torrents_stopped,
 	torrents_checking,
+	torrents_feeds,
 
 	torrents_max
 };
@@ -262,6 +263,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == torrent_status::checking_files
 			|| st.state == torrent_status::queued_for_checking;
+		case torrents_feeds: return false;
 	}
 	return true;
 }
@@ -1450,6 +1452,17 @@ int main(int argc, char* argv[])
 			if (c == '5') print_peer_rate = !print_peer_rate;
 			if (c == '6') print_fails = !print_fails;
 			if (c == '7') print_send_bufs = !print_send_bufs;
+			if (c == 'y')
+			{
+				char url[2048];
+				puts("Enter RSS feed URL:\n");
+				scanf("%2048s", url);
+				feed_settings set;
+				set.url = url;
+				set.add_args.save_path = save_path;
+				feed_handle h = ses.add_feed(set);
+				h.update_feed();
+			}
 		}
 		if (c == 'q') break;
 
@@ -1497,7 +1510,7 @@ int main(int argc, char* argv[])
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
-		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking"};
+		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 		{
 			char filter[200];
@@ -1510,6 +1523,32 @@ int main(int argc, char* argv[])
 		char str[500];
 		int torrent_index = 0;
 		int lines_printed = 3;
+
+		if (torrent_filter == torrents_feeds)
+		{
+			std::vector<feed_handle> feeds;
+			ses.get_feeds(feeds);
+			for (std::vector<feed_handle>::iterator i = feeds.begin()
+				, end(feeds.end()); i != end; ++i)
+			{
+				if (lines_printed >= terminal_height - 15)
+				{
+					out += "...\n";
+					break;
+				}
+
+				feed_status st = i->get_feed_status();
+				if (st.url.size() > 70) st.url.resize(70);
+				snprintf(str, sizeof(str), "%-70s %c %4d (%2d) %s\n", st.url.c_str()
+					, st.updating? 'u' : '-'
+					, st.next_update
+					, int(st.items.size())
+					, st.error ? st.error.message().c_str() : "");
+				out += str;
+				++lines_printed;
+			}
+		}
+
 		for (std::vector<torrent_status>::iterator i = handles.begin();
 			i != handles.end(); ++torrent_index)
 		{
