@@ -465,20 +465,26 @@ namespace libtorrent
 		if (pad_file_limit >= 0 && pad_file_limit < alignment)
 			pad_file_limit = alignment;
 
-		// put the largest file at the front, to make sure
-		// it's aligned
-		std::vector<internal_file_entry>::iterator i = std::max_element(m_files.begin(), m_files.end()
-			, &compare_file_entry_size);
-
-		int index = file_index(*i);
-		reorder_file(index, 0);
-
 		size_type off = 0;
 		int padding_file = 0;
 		for (std::vector<internal_file_entry>::iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if (pad_file_limit >= 0
+			if ((off & (alignment-1)) == 0)
+			{
+				// this file position is aligned, pick the largest
+				// available file to put here
+				std::vector<internal_file_entry>::iterator best_match
+					= std::max_element(i, m_files.end()
+						, &compare_file_entry_size);
+
+				if (best_match != i)
+				{
+					int index = file_index(*best_match);
+					reorder_file(index, file_index(*i));
+				}
+			}
+			else if (pad_file_limit >= 0
 				&& (off & (alignment-1)) != 0
 				&& i->size > pad_file_limit
 				&& i->pad_file == false)
