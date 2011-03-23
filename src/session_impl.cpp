@@ -2165,7 +2165,20 @@ namespace aux {
 				// and lower the number of file descriptors used
 				// elsewere.
 				if (m_settings.connections_limit > 10)
-					--m_settings.connections_limit;
+				{
+					// now, disconnect a random peer
+					torrent_map::iterator i = std::max_element(m_torrents.begin()
+						, m_torrents.end(), boost::bind(&torrent::num_peers
+							, boost::bind(&torrent_map::value_type::second, _1)));
+
+					if (i != m_torrents.end())
+					{
+						error_code ec;
+						i->second->disconnect_peers(1, ec);
+					}
+
+					m_settings.connections_limit = m_connections.size();
+				}
 				// try again, but still alert the user of the problem
 				async_accept(listener);
 			}
