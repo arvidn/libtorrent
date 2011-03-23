@@ -153,10 +153,13 @@ namespace libtorrent
 	
 //	private:
 	
+		void add_item(feed_item const& item);
+
 		feed_handle my_handle();
 
 		error_code m_error;
 		std::vector<feed_item> m_items;
+		std::set<std::string> m_urls;
 		std::string m_title;
    	std::string m_description;
 		time_t m_last_attempt;

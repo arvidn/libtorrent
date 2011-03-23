@@ -701,7 +701,11 @@ namespace libtorrent
 		{ return *m_torrent_file; }
 
 		std::string const& uuid() const { return m_uuid; }
+		void set_uuid(std::string const& s) { m_uuid = s; }
 		std::string const& url() const { return m_url; }
+		void set_url(std::string const& s) { m_url = s; }
+		std::string const& source_feed_url() const { return m_source_feed_url; }
+		void set_source_feed_url(std::string const& s) { m_source_feed_url = s; }
 
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }

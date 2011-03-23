@@ -4034,11 +4034,20 @@ namespace aux {
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
+		// TODO: find by url?
 
 		if (torrent_ptr)
 		{
 			if (!params.duplicate_is_error)
+			{
+				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
+					torrent_ptr->set_uuid(params.uuid);
+				if (!params.url.empty() && torrent_ptr->url().empty())
+					torrent_ptr->set_url(params.url);
+				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
+					torrent_ptr->set_source_feed_url(params.source_feed_url);
 				return torrent_handle(torrent_ptr);
+			}
 
 			ec = errors::duplicate_torrent;
 			return torrent_handle();
@@ -4148,7 +4157,17 @@ namespace aux {
 #else
 			throw_invalid_handle();
 #endif
+		remove_torrent_impl(tptr, options);
 
+		if (m_alerts.should_post<torrent_removed_alert>())
+			m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
+
+		tptr->set_queue_position(-1);
+		tptr->abort();
+	}
+
+	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
+	{
 		INVARIANT_CHECK;
 
 		// remove from uuid list
@@ -4175,10 +4194,6 @@ namespace aux {
 		torrent& t = *i->second;
 		if (options & session::delete_files)
 			t.delete_files();
-		t.abort();
-
-		if (m_alerts.should_post<torrent_removed_alert>())
-			m_alerts.post_alert(torrent_removed_alert(t.get_handle(), t.info_hash()));
 
 #ifdef TORRENT_DEBUG
 		sha1_hash i_hash = t.torrent_file().info_hash();
@@ -4192,7 +4207,6 @@ namespace aux {
 		if (i == m_next_connect_torrent)
 			++m_next_connect_torrent;
 
-		t.set_queue_position(-1);
 		m_torrents.erase(i);
 
 #ifndef TORRENT_DISABLE_DHT
