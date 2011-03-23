@@ -138,7 +138,7 @@ log_file_path, log_file = os.path.split(sys.argv[1])
 log_file_list = log_file.split('.')
 g = int(log_file_list[1])
 generations = []
-while os.path.exists(log_file):
+while os.path.exists(os.path.join(log_file_path, log_file)):
 	print '[%s] %04d\r[' % (' ' * len(reports), g),
 	for i in reports: gen_report(i[0], i[1], i[3], g, os.path.join(log_file_path, log_file))
 	print ''
