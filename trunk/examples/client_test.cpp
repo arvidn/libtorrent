@@ -1273,6 +1273,11 @@ int main(int argc, char* argv[])
 		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
 		if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 
+		std::vector<feed_handle> feeds;
+		ses.get_feeds(feeds);
+
+		counters[torrents_feeds] = feeds.size();
+
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
 		if (loop_limit > 1) --loop_limit;
@@ -1526,8 +1531,6 @@ int main(int argc, char* argv[])
 
 		if (torrent_filter == torrents_feeds)
 		{
-			std::vector<feed_handle> feeds;
-			ses.get_feeds(feeds);
 			for (std::vector<feed_handle>::iterator i = feeds.begin()
 				, end(feeds.end()); i != end; ++i)
 			{

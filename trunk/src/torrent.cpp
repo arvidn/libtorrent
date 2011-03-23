@@ -612,9 +612,38 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		int num_torrents = m_ses.m_torrents.size();
 #endif
-		m_ses.m_torrents.erase(m_torrent_file->info_hash());
+		// we're about to erase the session's reference to this
+		// torrent, create another reference
+		boost::shared_ptr<torrent> me(shared_from_this());
+
+		m_ses.remove_torrent_impl(me, 0);
+
 		m_torrent_file = tf;
-		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), shared_from_this()));
+
+		// now, we might already have this torrent in the session.
+		session_impl::torrent_map::iterator i = m_ses.m_torrents.find(m_torrent_file->info_hash());
+		if (i != m_ses.m_torrents.end())
+		{
+				if (!m_uuid.empty() && i->second->uuid().empty())
+					i->second->set_uuid(m_uuid);
+				if (!m_url.empty() && i->second->url().empty())
+					i->second->set_url(m_url);
+				if (!m_source_feed_url.empty() && i->second->source_feed_url().empty())
+					i->second->set_source_feed_url(m_source_feed_url);
+
+				// insert this torrent in the uuid index
+				if (!m_uuid.empty() || !m_url.empty())
+				{
+					m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
+						? m_url : m_uuid, i->second));
+				}
+				set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
+				abort();
+				return;
+		}
+
+		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), me));
+		if (!m_uuid.empty()) m_ses.m_uuids.insert(std::make_pair(m_uuid, me));
 
 		TORRENT_ASSERT(num_torrents == int(m_ses.m_torrents.size()));
 
@@ -4308,6 +4337,16 @@ namespace libtorrent
 
 		m_url = rd.dict_find_string_value("url");
 		m_uuid = rd.dict_find_string_value("uuid");
+		m_source_feed_url = rd.dict_find_string_value("feed");
+
+		if (!m_uuid.empty() || !m_url.empty())
+		{
+			boost::shared_ptr<torrent> me(shared_from_this());
+
+			// insert this torrent in the uuid index
+			m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
+				? m_url : m_uuid, me));
+		}
 
 		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
 		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
@@ -4470,6 +4509,7 @@ namespace libtorrent
 
 		if (!m_url.empty()) ret["url"] = m_url;
 		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
+		if (!m_source_feed_url.empty()) ret["feed"] = m_source_feed_url;
 		
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());

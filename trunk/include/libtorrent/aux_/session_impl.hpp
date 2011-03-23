@@ -270,6 +270,7 @@ namespace libtorrent
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 
 			void remove_torrent(torrent_handle const& h, int options);
+			void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options);
 
 			void get_torrent_status(std::vector<torrent_status>* ret
 				, boost::function<bool(torrent_status const&)> const& pred

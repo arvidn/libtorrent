@@ -211,7 +211,7 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				f.in_item = false;
 				if (!f.current_item.title.empty()
 					&& !f.current_item.url.empty())
-					f.ret.m_items.push_back(f.current_item);
+					f.ret.add_item(f.current_item);
 				f.current_item = feed_item();
 			}
 			f.current_tag = "";
@@ -453,6 +453,14 @@ void feed::load_state(lazy_entry const& rd)
 			m_items.push_back(feed_item());
 			load_struct(*e->list_at(i), &m_items.back(), feed_item_map
 				, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
+
+			// don't load duplicates
+			if (m_urls.find(m_items.back().url) != m_urls.end())
+			{
+				m_items.pop_back();
+				continue;
+			}
+			m_urls.insert(m_items.back().url);
 		}
 	}
 	load_struct(rd, &m_settings, feed_settings_map
@@ -483,6 +491,16 @@ void feed::save_state(entry& rd) const
 	add_torrent_params add_def;
 	save_struct(add, &m_settings.add_args, add_torrent_map
 		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
+}
+
+void feed::add_item(feed_item const& item)
+{
+	// don't add duplicates
+	if (m_urls.find(item.url) != m_urls.end())
+		return;
+
+	m_urls.insert(item.url);
+	m_items.push_back(item);
 }
 
 void feed::update_feed()
