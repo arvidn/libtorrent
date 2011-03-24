@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
+#ifdef TORRENT_VERBOSE_LOGGING
+#include "libtorrent/lazy_entry.hpp"
+#endif
+
 namespace libtorrent { namespace
 {
 	const char extension_name[] = "ut_pex";
@@ -77,7 +81,9 @@ namespace libtorrent { namespace
 
 	struct ut_pex_plugin: torrent_plugin
 	{
-		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(55), m_peers_in_message(0) {}
+		// randomize when we rebuild the pex message
+		// to evenly spread it out across all torrents
+		ut_pex_plugin(torrent& t): m_torrent(t), m_1_minute(random() % 60), m_peers_in_message(0) {}
 	
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
 
@@ -217,7 +223,7 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
-			, m_1_minute(55)
+			, m_1_minute(60)
 			, m_message_index(0)
 			, m_first_time(true)
 		{
@@ -262,8 +268,8 @@ namespace libtorrent { namespace
  
 			if (body.left() < length) return true;
 
-			ptime now = time_now_hires(); //#error TEMP!
-			if (now - m_last_pex[0]< seconds(60))
+			ptime now = time_now();
+			if (now - m_last_pex[0] < seconds(60))
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
@@ -288,8 +294,9 @@ namespace libtorrent { namespace
 			lazy_entry const* p = pex_msg.dict_find_string("dropped");
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_pc.m_logger) << time_now_string() << " <== PEX ["
-				" dropped:" << (p?p->string_length():0);
+			int num_dropped = 0;
+			int num_added = 0;
+			if (p) num_dropped += p->string_length()/6;
 #endif
 			if (p)
 			{
@@ -309,7 +316,7 @@ namespace libtorrent { namespace
 			lazy_entry const* pf = pex_msg.dict_find_string("added.f");
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_pc.m_logger) << " added:" << (p?p->string_length():0) << " ]\n";
+			if (p) num_added += p->string_length() / 6;
 #endif
 			if (p != 0
 				&& pf != 0
@@ -343,6 +350,9 @@ namespace libtorrent { namespace
 #if TORRENT_USE_IPV6
 
 			lazy_entry const* p6 = pex_msg.dict_find("dropped6");
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (p6) num_dropped += p->string_length() / 18;
+#endif
 			if (p6 != 0 && p6->type() == lazy_entry::string_t)
 			{
 				int num_peers = p6->string_length() / 18;
@@ -358,6 +368,9 @@ namespace libtorrent { namespace
 			}
 
 			p6 = pex_msg.dict_find("added6");
+#ifdef TORRENT_VERBOSE_LOGGING
+			if (p6) num_added += p->string_length() / 18;
+#endif
 			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
 				&& p6f != 0
@@ -387,6 +400,10 @@ namespace libtorrent { namespace
 					p.add_peer(adr, pid, peer_info::pex, flags);
 				} 
 			}
+#endif
+#ifdef TORRENT_VERBOSE_LOGGING
+			m_pc.peer_log("<== PEX [ dropped: %d added: %d ]"
+				, num_dropped, num_added);
 #endif
 			return true;
 		}
@@ -426,6 +443,27 @@ namespace libtorrent { namespace
 			i.begin += pex_msg.size();
 
 			TORRENT_ASSERT(i.begin == i.end);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			lazy_entry m;
+			error_code ec;
+			int ret = lazy_bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
+			TORRENT_ASSERT(ret == 0);
+			TORRENT_ASSERT(!ec);
+			int num_dropped = 0;
+			int num_added = 0;
+			lazy_entry const* e = m.dict_find_string("added");
+			if (e) num_added += e->string_length() / 6;
+			e = m.dict_find_string("dropped");
+			if (e) num_dropped += e->string_length() / 6;
+			e = m.dict_find_string("added6");
+			if (e) num_added += e->string_length() / 18;
+			e = m.dict_find_string("dropped6");
+			if (e) num_dropped += e->string_length() / 18;
+			m_pc.peer_log("==> PEX_DIFF [ dropped: %d added: %d msg_size: %d ]"
+				, num_dropped, num_added, int(pex_msg.size()));
+#endif
+
 			m_pc.setup_send();
 		}
 
@@ -498,6 +536,11 @@ namespace libtorrent { namespace
 			i.begin += pex_msg.size();
 
 			TORRENT_ASSERT(i.begin == i.end);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			m_pc.peer_log("==> PEX_FULL [ added: %d msg_size: %d ]", num_added, int(pex_msg.size()));
+#endif
+
 			m_pc.setup_send();
 		}
 
