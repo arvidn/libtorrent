@@ -60,7 +60,7 @@ namespace libtorrent
 			&& http_status < 400;
 	}
 
-	http_parser::http_parser()
+	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
 		, m_status_code(-1)
 		, m_content_length(-1)
@@ -74,6 +74,7 @@ namespace libtorrent
 		, m_cur_chunk_end(-1)
 		, m_chunk_header_size(0)
 		, m_partial_chunk_header(0)
+		, m_flags(flags)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(
@@ -245,7 +246,7 @@ restart_response:
 		{
 			int incoming = recv_buffer.end - pos;
 
-			if (m_chunked_encoding)
+			if (m_chunked_encoding && (m_flags & dont_parse_chunks) == 0)
 			{
 				if (m_cur_chunk_end == -1)
 					m_cur_chunk_end = m_body_start_pos;
