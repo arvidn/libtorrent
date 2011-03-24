@@ -212,6 +212,13 @@ namespace libtorrent
 		// candidates before trying to connect
 		set.dht_upload_rate_limit = 100000;
 
+		// we're more interested in downloading than seeding
+		// only service a read job every 1000 write job (when
+		// disk is congested). Presumably on a big box, writes
+		// are extremely cheap and reads are relatively expensive
+		// so that's the main reason this ratio should be adjusted
+		set.read_job_every = 1000;
+
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;
