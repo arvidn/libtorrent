@@ -2280,7 +2280,7 @@ namespace libtorrent
 			peer_log("*** The block we just got was not in the request queue ***");
 #endif
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(m_received_in_piece == p.length);
+			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 			m_received_in_piece = 0;
 #endif
 			t->add_redundant_bytes(p.length);
@@ -2341,7 +2341,7 @@ namespace libtorrent
 		TORRENT_ASSERT(*b == pending_b);
 		
 #ifdef TORRENT_DEBUG
-		TORRENT_ASSERT(m_received_in_piece == p.length);
+		TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 		m_received_in_piece = 0;
 #endif
 		// if the block we got is already finished, then ignore it

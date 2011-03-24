@@ -65,7 +65,8 @@ namespace libtorrent
 	class TORRENT_EXPORT http_parser
 	{
 	public:
-		http_parser();
+		enum flags_t { dont_parse_chunks = 1 };
+		http_parser(int flags = 0);
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;
@@ -152,6 +153,9 @@ namespace libtorrent
 		int m_chunk_header_size;
 
 		int m_partial_chunk_header;
+
+		// controls some behaviors of the parser
+		int m_flags;
 	};
 
 }

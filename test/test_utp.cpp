@@ -125,11 +125,11 @@ void test_transfer()
 
 		if (st2.is_finished) break;
 
+		test_sleep(500);
+
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading);
-
-		test_sleep(500);
 	}
 
 	TEST_CHECK(tor1.status().is_finished);

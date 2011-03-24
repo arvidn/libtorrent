@@ -376,6 +376,7 @@ namespace libtorrent
 #endif
 					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
 					bytes_transferred -= header_size - m_partial_chunk_header;
+
 					m_statistics.received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
