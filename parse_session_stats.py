@@ -12,8 +12,6 @@ while not 'second:' in line:
 
 keys = line.strip().split(':')[1:]
 
-axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y2']
-
 output_dir = 'session_stats_report'
 
 def gen_report(name, unit, lines, generation, log_file):
@@ -59,7 +57,6 @@ def gen_report(name, unit, lines, generation, log_file):
 			continue;
 		if not first: print >>out, ', ',
 		axis = 'x1y1'
-		if column-2 < len(axes): axis = axes[column-2]
 		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (log_file, column, k, axis),
 		first = False
 		column = column + 1
@@ -124,6 +121,7 @@ reports = [
 	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 
 #somewhat uninteresting stats
+	('tick_rate', 'milliseconds between ticks', '', ['tick interval', 'tick residual']),
 	('peer_dl_rates', 'num', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
 	('peer_dl_rates2', 'num', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
 	('peer_ul_rates', 'num', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),

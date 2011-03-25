@@ -967,6 +967,8 @@ namespace aux {
 			":disk read back"
 			":% read back"
 			":disk read queue size"
+			":tick interval"
+			":tick residual"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2645,263 +2647,6 @@ namespace aux {
 				break;
 		}
 
-#ifdef TORRENT_STATS
-		int connect_candidates = 0;
-		int downloading_torrents = 0;
-		int seeding_torrents = 0;
-		int checking_torrents = 0;
-		int stopped_torrents = 0;
-		int error_torrents = 0;
-		int upload_only_torrents = 0;
-		int num_peers = 0;
-		int peer_dl_rate_buckets[7];
-		int peer_ul_rate_buckets[7];
-		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
-		memset(peer_ul_rate_buckets, 0, sizeof(peer_ul_rate_buckets));
-		int outstanding_requests = 0;
-		int outstanding_end_game_requests = 0;
-		int outstanding_write_blocks = 0;
-
-		int peers_up_interested = 0;
-		int peers_down_interesting = 0;
-		int peers_up_requests = 0;
-		int peers_down_requests = 0;
-
-		std::vector<partial_piece_info> dq;
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-		{
-			int connection_slots = (std::max)(i->second->max_connections() - i->second->num_peers(), 0);
-			int candidates = i->second->get_policy().num_connect_candidates();
-			connect_candidates += (std::min)(candidates, connection_slots);
-			num_peers += i->second->get_policy().num_peers();
-			if (i->second->is_seed())
-				++seeding_torrents;
-			else
-				++downloading_torrents;
-			if (i->second->state() == torrent_status::checking_files
-				|| i->second->state() == torrent_status::queued_for_checking)
-				++checking_torrents;
-			if (i->second->is_paused())
-				++stopped_torrents;
-			if (i->second->is_upload_only())
-				++upload_only_torrents;
-			if (i->second->has_error())
-				++error_torrents;
-
-			dq.clear();
-			i->second->get_download_queue(dq);
-			for (std::vector<partial_piece_info>::iterator j = dq.begin()
-				, end(dq.end()); j != end; ++j)
-			{
-				for (int k = 0; k < j->blocks_in_piece; ++k)
-				{
-					block_info& bi = j->blocks[k];
-					if (bi.state == block_info::requested)
-					{
-						++outstanding_requests;
-						if (bi.num_peers > 1) ++outstanding_end_game_requests;
-					}
-					else if (bi.state == block_info::writing)
-						++outstanding_write_blocks;
-				}
-			}
-		}
-		int num_complete_connections = 0;
-		int num_half_open = 0;
-		int peers_down_unchoked = 0;
-		int peers_up_unchoked = 0;
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
-		{
-			peer_connection* p = i->get();
-			if (p->is_connecting())
-			{
-				++num_half_open;
-				continue;
-			}
-
-			++num_complete_connections;
-			if (!p->is_choked()) ++peers_up_unchoked;
-			if (!p->has_peer_choked()) ++peers_down_unchoked;
-			if (!p->download_queue().empty()) ++peers_down_requests;
-			if (p->is_peer_interested()) ++peers_up_interested;
-			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
-				++peers_up_requests;
-
-			int dl_bucket = 0;
-			int dl_rate = p->statistics().download_payload_rate();
-			if (dl_rate == 0) dl_bucket = 0;
-			else if (dl_rate < 2000) dl_bucket = 1;
-			else if (dl_rate < 5000) dl_bucket = 2;
-			else if (dl_rate < 10000) dl_bucket = 3;
-			else if (dl_rate < 50000) dl_bucket = 4;
-			else if (dl_rate < 100000) dl_bucket = 5;
-			else dl_bucket = 6;
-
-			int ul_rate = p->statistics().upload_payload_rate();
-			int ul_bucket = 0;
-			if (ul_rate == 0) ul_bucket = 0;
-			else if (ul_rate < 2000) ul_bucket = 1;
-			else if (ul_rate < 5000) ul_bucket = 2;
-			else if (ul_rate < 10000) ul_bucket = 3;
-			else if (ul_rate < 50000) ul_bucket = 4;
-			else if (ul_rate < 100000) ul_bucket = 5;
-			else ul_bucket = 6;
-
-			++peer_dl_rate_buckets[dl_bucket];
-			++peer_ul_rate_buckets[ul_bucket];
-		}
-
-		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
-			? m_settings.max_queued_disk_bytes / 2
-			: m_settings.max_queued_disk_bytes_low_watermark;
-
-		if (now - m_last_log_rotation > hours(1))
-			rotate_stats_log();
-		
-		if (m_stats_logger)
-		{
-			cache_status cs = m_disk_thread.status();
-
-			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
-
-			fprintf(m_stats_logger
-				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
-				  "%f\t%f\t%d\t%f\t%d\n"
-				, total_milliseconds(now - m_last_log_rotation) / 1000.f
-				, int(m_stat.total_upload() - m_last_uploaded)
-				, int(m_stat.total_download() - m_last_downloaded)
-				, downloading_torrents
-				, seeding_torrents
-				, num_complete_connections
-				, num_half_open
-				, m_disk_thread.disk_allocations()
-				, num_peers
-				, logging_allocator::allocations
-				, logging_allocator::allocated_bytes
-				, checking_torrents
-				, stopped_torrents
-				, upload_only_torrents
-				, m_upload_rate.queue_size()
-				, m_download_rate.queue_size()
-				, m_disk_queues[peer_connection::upload_channel]
-				, m_disk_queues[peer_connection::download_channel]
-				, m_stat.upload_rate()
-				, m_stat.download_rate()
-				, int(m_disk_thread.queue_buffer_size())
-				, peer_dl_rate_buckets[0]
-				, peer_dl_rate_buckets[1]
-				, peer_dl_rate_buckets[2]
-				, peer_dl_rate_buckets[3]
-				, peer_dl_rate_buckets[4]
-				, peer_dl_rate_buckets[5]
-				, peer_dl_rate_buckets[6]
-				, peer_ul_rate_buckets[0]
-				, peer_ul_rate_buckets[1]
-				, peer_ul_rate_buckets[2]
-				, peer_ul_rate_buckets[3]
-				, peer_ul_rate_buckets[4]
-				, peer_ul_rate_buckets[5]
-				, peer_ul_rate_buckets[6]
-				, m_error_peers
-				, peers_down_interesting
-				, peers_down_unchoked
-				, peers_down_requests
-				, peers_up_interested
-				, peers_up_unchoked
-				, peers_up_requests
-				, m_disconnected_peers
-				, m_eof_peers
-				, m_connreset_peers
-				, outstanding_requests
-				, outstanding_end_game_requests
-				, outstanding_write_blocks
-				, m_end_game_piece_picker_blocks
-				, m_piece_picker_blocks
-				, m_piece_picks
-				, m_reject_piece_picks
-				, m_unchoke_piece_picks
-				, m_incoming_redundant_piece_picks
-				, m_incoming_piece_picks
-				, m_end_game_piece_picks
-				, m_snubbed_piece_picks
-				, m_connect_timeouts
-				, m_uninteresting_peers
-				, m_timeout_peers
-				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
-				, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download())
-				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
-				, int(cs.average_read_time)
-				, int(cs.average_write_time)
-				, int(cs.average_queue_time)
-				, int(cs.job_queue_length)
-				, int(cs.queued_bytes)
-				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
-				, int(cs.blocks_read - m_last_cache_status.blocks_read)
-				, int(cs.blocks_written - m_last_cache_status.blocks_written)
-				, int(m_total_failed_bytes - m_last_failed)
-				, int(m_total_redundant_bytes - m_last_redundant)
-				, error_torrents
-				, cs.read_cache_size
-				, cs.cache_size
-				, cs.total_used_buffers
-				, int(cs.average_hash_time)
-				, int(cs.average_job_time)
-				, int(cs.average_sort_time)
-				, m_connection_attempts
-				, m_num_banned_peers
-				, m_banned_for_hash_failure
-				, m_settings.cache_size
-				, m_settings.connections_limit
-				, connect_candidates
-				, int(m_settings.max_queued_disk_bytes)
-				, low_watermark
-				, float(cs.cumulative_read_time * 100.f / total_job_time)
-				, float(cs.cumulative_write_time * 100.f / total_job_time)
-				, float(cs.cumulative_hash_time * 100.f / total_job_time)
-				, float(cs.cumulative_sort_time * 100.f / total_job_time)
-				, int(cs.total_read_back - m_last_cache_status.total_read_back)
-				, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written))
-				, cs.read_queue_size
-			);
-			m_last_cache_status = cs;
-			m_last_failed = m_total_failed_bytes;
-			m_last_redundant = m_total_redundant_bytes;
-			m_last_uploaded = m_stat.total_upload();
-			m_last_downloaded = m_stat.total_download();
-		}
-
-		m_error_peers = 0;
-		m_disconnected_peers = 0;
-		m_eof_peers = 0;
-		m_connreset_peers = 0;
-		m_end_game_piece_picker_blocks = 0;
-		m_piece_picker_blocks = 0;
-		m_piece_picks = 0;
-		m_reject_piece_picks = 0;
-		m_unchoke_piece_picks = 0;
-		m_incoming_redundant_piece_picks = 0;
-		m_incoming_piece_picks = 0;
-		m_end_game_piece_picks = 0;
-		m_snubbed_piece_picks = 0;
-		m_connect_timeouts = 0;
-		m_uninteresting_peers = 0;
-		m_timeout_peers = 0;
-		m_connection_attempts = 0;
-		m_num_banned_peers = 0;
-		m_banned_for_hash_failure = 0;
-#endif
-
 		// --------------------------------------------------------------
 		// auto managed torrent
 		// --------------------------------------------------------------
@@ -3056,6 +2801,265 @@ namespace aux {
 		TORRENT_ASSERT(least_recently_scraped == m_torrents.end()
 			|| (least_recently_scraped->second->is_paused()
 			&& least_recently_scraped->second->is_auto_managed()));
+
+#ifdef TORRENT_STATS
+		int connect_candidates = 0;
+		int downloading_torrents = 0;
+		int seeding_torrents = 0;
+		int checking_torrents = 0;
+		int stopped_torrents = 0;
+		int error_torrents = 0;
+		int upload_only_torrents = 0;
+		int num_peers = 0;
+		int peer_dl_rate_buckets[7];
+		int peer_ul_rate_buckets[7];
+		memset(peer_dl_rate_buckets, 0, sizeof(peer_dl_rate_buckets));
+		memset(peer_ul_rate_buckets, 0, sizeof(peer_ul_rate_buckets));
+		int outstanding_requests = 0;
+		int outstanding_end_game_requests = 0;
+		int outstanding_write_blocks = 0;
+
+		int peers_up_interested = 0;
+		int peers_down_interesting = 0;
+		int peers_up_requests = 0;
+		int peers_down_requests = 0;
+
+		std::vector<partial_piece_info> dq;
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			int connection_slots = (std::max)(i->second->max_connections() - i->second->num_peers(), 0);
+			int candidates = i->second->get_policy().num_connect_candidates();
+			connect_candidates += (std::min)(candidates, connection_slots);
+			num_peers += i->second->get_policy().num_peers();
+			if (i->second->is_seed())
+				++seeding_torrents;
+			else
+				++downloading_torrents;
+			if (i->second->state() == torrent_status::checking_files
+				|| i->second->state() == torrent_status::queued_for_checking)
+				++checking_torrents;
+			if (i->second->is_paused())
+				++stopped_torrents;
+			if (i->second->is_upload_only())
+				++upload_only_torrents;
+			if (i->second->has_error())
+				++error_torrents;
+
+			dq.clear();
+			i->second->get_download_queue(dq);
+			for (std::vector<partial_piece_info>::iterator j = dq.begin()
+				, end(dq.end()); j != end; ++j)
+			{
+				for (int k = 0; k < j->blocks_in_piece; ++k)
+				{
+					block_info& bi = j->blocks[k];
+					if (bi.state == block_info::requested)
+					{
+						++outstanding_requests;
+						if (bi.num_peers > 1) ++outstanding_end_game_requests;
+					}
+					else if (bi.state == block_info::writing)
+						++outstanding_write_blocks;
+				}
+			}
+		}
+		int num_complete_connections = 0;
+		int num_half_open = 0;
+		int peers_down_unchoked = 0;
+		int peers_up_unchoked = 0;
+		for (connection_map::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_connection* p = i->get();
+			if (p->is_connecting())
+			{
+				++num_half_open;
+				continue;
+			}
+
+			++num_complete_connections;
+			if (!p->is_choked()) ++peers_up_unchoked;
+			if (!p->has_peer_choked()) ++peers_down_unchoked;
+			if (!p->download_queue().empty()) ++peers_down_requests;
+			if (p->is_peer_interested()) ++peers_up_interested;
+			if (p->is_interesting()) ++peers_down_interesting;
+			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
+				++peers_up_requests;
+
+			int dl_bucket = 0;
+			int dl_rate = p->statistics().download_payload_rate();
+			if (dl_rate == 0) dl_bucket = 0;
+			else if (dl_rate < 2000) dl_bucket = 1;
+			else if (dl_rate < 5000) dl_bucket = 2;
+			else if (dl_rate < 10000) dl_bucket = 3;
+			else if (dl_rate < 50000) dl_bucket = 4;
+			else if (dl_rate < 100000) dl_bucket = 5;
+			else dl_bucket = 6;
+
+			int ul_rate = p->statistics().upload_payload_rate();
+			int ul_bucket = 0;
+			if (ul_rate == 0) ul_bucket = 0;
+			else if (ul_rate < 2000) ul_bucket = 1;
+			else if (ul_rate < 5000) ul_bucket = 2;
+			else if (ul_rate < 10000) ul_bucket = 3;
+			else if (ul_rate < 50000) ul_bucket = 4;
+			else if (ul_rate < 100000) ul_bucket = 5;
+			else ul_bucket = 6;
+
+			++peer_dl_rate_buckets[dl_bucket];
+			++peer_ul_rate_buckets[ul_bucket];
+		}
+
+		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
+			? m_settings.max_queued_disk_bytes / 2
+			: m_settings.max_queued_disk_bytes_low_watermark;
+
+		if (now - m_last_log_rotation > hours(1))
+			rotate_stats_log();
+		
+		if (m_stats_logger)
+		{
+			cache_status cs = m_disk_thread.status();
+
+			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
+
+			fprintf(m_stats_logger
+				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
+				  "%f\t%f\t%d\t%f\t%d\t%d\t%d\n"
+				, total_milliseconds(now - m_last_log_rotation) / 1000.f
+				, int(m_stat.total_upload() - m_last_uploaded)
+				, int(m_stat.total_download() - m_last_downloaded)
+				, downloading_torrents
+				, seeding_torrents
+				, num_complete_connections
+				, num_half_open
+				, m_disk_thread.disk_allocations()
+				, num_peers
+				, logging_allocator::allocations
+				, logging_allocator::allocated_bytes
+				, checking_torrents
+				, stopped_torrents
+				, upload_only_torrents
+				, m_upload_rate.queue_size()
+				, m_download_rate.queue_size()
+				, m_disk_queues[peer_connection::upload_channel]
+				, m_disk_queues[peer_connection::download_channel]
+				, m_stat.upload_rate()
+				, m_stat.download_rate()
+				, int(m_disk_thread.queue_buffer_size())
+				, peer_dl_rate_buckets[0]
+				, peer_dl_rate_buckets[1]
+				, peer_dl_rate_buckets[2]
+				, peer_dl_rate_buckets[3]
+				, peer_dl_rate_buckets[4]
+				, peer_dl_rate_buckets[5]
+				, peer_dl_rate_buckets[6]
+				, peer_ul_rate_buckets[0]
+				, peer_ul_rate_buckets[1]
+				, peer_ul_rate_buckets[2]
+				, peer_ul_rate_buckets[3]
+				, peer_ul_rate_buckets[4]
+				, peer_ul_rate_buckets[5]
+				, peer_ul_rate_buckets[6]
+				, m_error_peers
+				, peers_down_interesting
+				, peers_down_unchoked
+				, peers_down_requests
+				, peers_up_interested
+				, peers_up_unchoked
+				, peers_up_requests
+				, m_disconnected_peers
+				, m_eof_peers
+				, m_connreset_peers
+				, outstanding_requests
+				, outstanding_end_game_requests
+				, outstanding_write_blocks
+				, m_end_game_piece_picker_blocks
+				, m_piece_picker_blocks
+				, m_piece_picks
+				, m_reject_piece_picks
+				, m_unchoke_piece_picks
+				, m_incoming_redundant_piece_picks
+				, m_incoming_piece_picks
+				, m_end_game_piece_picks
+				, m_snubbed_piece_picks
+				, m_connect_timeouts
+				, m_uninteresting_peers
+				, m_timeout_peers
+				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
+				, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download())
+				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
+				, int(cs.average_read_time)
+				, int(cs.average_write_time)
+				, int(cs.average_queue_time)
+				, int(cs.job_queue_length)
+				, int(cs.queued_bytes)
+				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
+				, int(cs.blocks_read - m_last_cache_status.blocks_read)
+				, int(cs.blocks_written - m_last_cache_status.blocks_written)
+				, int(m_total_failed_bytes - m_last_failed)
+				, int(m_total_redundant_bytes - m_last_redundant)
+				, error_torrents
+				, cs.read_cache_size
+				, cs.cache_size
+				, cs.total_used_buffers
+				, int(cs.average_hash_time)
+				, int(cs.average_job_time)
+				, int(cs.average_sort_time)
+				, m_connection_attempts
+				, m_num_banned_peers
+				, m_banned_for_hash_failure
+				, m_settings.cache_size
+				, m_settings.connections_limit
+				, connect_candidates
+				, int(m_settings.max_queued_disk_bytes)
+				, low_watermark
+				, float(cs.cumulative_read_time * 100.f / total_job_time)
+				, float(cs.cumulative_write_time * 100.f / total_job_time)
+				, float(cs.cumulative_hash_time * 100.f / total_job_time)
+				, float(cs.cumulative_sort_time * 100.f / total_job_time)
+				, int(cs.total_read_back - m_last_cache_status.total_read_back)
+				, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written))
+				, cs.read_queue_size
+				, tick_interval_ms
+				, m_tick_residual
+			);
+			m_last_cache_status = cs;
+			m_last_failed = m_total_failed_bytes;
+			m_last_redundant = m_total_redundant_bytes;
+			m_last_uploaded = m_stat.total_upload();
+			m_last_downloaded = m_stat.total_download();
+		}
+
+		m_error_peers = 0;
+		m_disconnected_peers = 0;
+		m_eof_peers = 0;
+		m_connreset_peers = 0;
+		m_end_game_piece_picker_blocks = 0;
+		m_piece_picker_blocks = 0;
+		m_piece_picks = 0;
+		m_reject_piece_picks = 0;
+		m_unchoke_piece_picks = 0;
+		m_incoming_redundant_piece_picks = 0;
+		m_incoming_piece_picks = 0;
+		m_end_game_piece_picks = 0;
+		m_snubbed_piece_picks = 0;
+		m_connect_timeouts = 0;
+		m_uninteresting_peers = 0;
+		m_timeout_peers = 0;
+		m_connection_attempts = 0;
+		m_num_banned_peers = 0;
+		m_banned_for_hash_failure = 0;
+#endif
 
 		// --------------------------------------------------------------
 		// scrape paused torrents that are auto managed
