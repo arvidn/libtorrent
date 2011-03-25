@@ -1868,7 +1868,7 @@ namespace libtorrent
 		// don't close connections in share mode, we don't know if we need them
 		if (t->share_mode()) return;
 
-		if (m_upload_only && t->is_finished())
+		if (m_upload_only && t->is_upload_only())
 		{
 			disconnect(errors::upload_upload_connection);
 			return;
