@@ -1651,7 +1651,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
-		if (m_upload_only && t->is_finished())
+		if (m_upload_only && t->is_upload_only())
 		{
 			disconnect(errors::upload_upload_connection);
 			return;
