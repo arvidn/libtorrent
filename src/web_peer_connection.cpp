@@ -612,8 +612,11 @@ namespace libtorrent
 			peer_request in_range = info.orig_files().map_file(file_index, range_start
 				, int(range_end - range_start));
 
+			// request start
 			size_type rs = size_type(in_range.piece) * info.piece_length() + in_range.start;
+			// request end
 			size_type re = rs + in_range.length;
+			// file start
 			size_type fs = size_type(front_request.piece) * info.piece_length() + front_request.start;
 #if 0
 			size_type fe = fs + front_request.length;
