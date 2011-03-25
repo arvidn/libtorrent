@@ -238,6 +238,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].rate()
 				+ m_stat[upload_dht_protocol].rate()
+				+ m_stat[upload_tracker_protocol].rate()
 #endif
 				;
 		}
@@ -249,6 +250,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].rate()
 				+ m_stat[download_dht_protocol].rate()
+				+ m_stat[download_tracker_protocol].rate()
 #endif
 				;
 		}
