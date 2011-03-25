@@ -986,6 +986,13 @@ namespace libtorrent
 		}
 		else
 		{
+			// reset last_connected, to force fast reconnect after leaving upload mode
+			for (policy::iterator i = m_policy.begin_peer()
+				, end(m_policy.end_peer()); i != end; ++i)
+			{
+				(*i)->last_connected = 0;
+			}
+
 			// send_block_requests on all peers
 			for (std::set<peer_connection*>::iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
@@ -5591,6 +5598,11 @@ namespace libtorrent
 			TORRENT_ASSERT(found_active >= 1);
 			TORRENT_ASSERT(found_active <= 2);
 			TORRENT_ASSERT(found >= 1);
+		}
+
+		if (is_finished())
+		{
+			TORRENT_ASSERT(is_upload_only());
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
