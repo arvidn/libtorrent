@@ -422,12 +422,23 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(i->storage);
 			flush_range(const_cast<cached_piece_entry&>(*i), 0, INT_MAX, l);
+			TORRENT_ASSERT(i->num_blocks == 0);
+
 			// we want to keep the piece in here to have an accurate
 			// number for next_block_to_hash, if we're in avoid_readback mode
-			if (m_settings.disk_cache_algorithm != session_settings::avoid_readback)
-				widx.erase(i++);
-			else
-				++i;
+
+			bool erase = m_settings.disk_cache_algorithm != session_settings::avoid_readback;
+			if (!erase)
+			{
+				// however, if we've already hashed the whole piece, in-order
+				// there's no need to keep it around
+				int piece_size = i->storage->info()->piece_size(i->piece);
+				int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+				erase = i->next_block_to_hash == blocks_in_piece;
+			}
+
+			if (erase) widx.erase(i++);
+			else ++i;
 		}
 
 		if (m_settings.explicit_read_cache) return;
@@ -633,6 +644,9 @@ namespace libtorrent
 
 		if (options & dont_flush_write_blocks) return ret;
 
+		// if we don't have any blocks in the cache, no need to go look for any
+		if (m_cache_stats.cache_size == 0) return ret;
+
 		if (m_settings.disk_cache_algorithm == session_settings::lru)
 		{
 			cache_lru_index_t& idx = m_pieces.get<1>();
@@ -673,6 +687,8 @@ namespace libtorrent
 				while (end < blocks_in_piece && i->blocks[end].buf) ++end;
 				tmp = flush_range(p, start, end, l);
 				p.num_contiguous_blocks = contiguous_blocks(p);
+				if (i->num_blocks == 0 && i->next_block_to_hash == blocks_in_piece)
+					idx.erase(i);
 				blocks -= tmp;
 				ret += tmp;
 				if (blocks <= 0) break;
@@ -683,8 +699,12 @@ namespace libtorrent
 			while (blocks > 0)
 			{
 				cache_lru_index_t::iterator i = std::max_element(idx.begin(), idx.end(), &cmp_contiguous);
-				if (i == idx.end()) return ret;
+				if (i == idx.end() || i->num_blocks == 0) return ret;
 				tmp = flush_contiguous_blocks(const_cast<cached_piece_entry&>(*i), l);
+				// at this point, we will for sure need a read-back for
+				// this piece anyway. We might as well save some time looping
+				// over the disk cache by deleting the entry
+				if (i->num_blocks == 0) idx.erase(i);
 				blocks -= tmp;
 				ret += tmp;
 			}
