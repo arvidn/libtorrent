@@ -141,7 +141,9 @@ retry:
 	ret = select(1, &set, 0, 0, &tv);
 	if (ret > 0)
 	{
-		*c = getc(stdin);
+		int r = getc(stdin);
+		if (r == EOF) return false;
+		*c = r;
 		return true;
 	}
 	if (errno == EINTR)
