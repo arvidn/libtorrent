@@ -851,6 +851,11 @@ namespace libtorrent
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
 			torrent_map::iterator m_next_connect_torrent;
+
+			// this is the round-robin cursor for peers that
+			// get to download again after the disk has been
+			// blocked
+			connection_map::iterator m_next_disk_peer;
 #ifdef TORRENT_DEBUG
 			void check_invariant() const;
 #endif
