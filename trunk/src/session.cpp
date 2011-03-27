@@ -217,7 +217,7 @@ namespace libtorrent
 		// disk is congested). Presumably on a big box, writes
 		// are extremely cheap and reads are relatively expensive
 		// so that's the main reason this ratio should be adjusted
-		set.read_job_every = 1000;
+		set.read_job_every = 100;
 
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
