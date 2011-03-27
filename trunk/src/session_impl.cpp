@@ -906,12 +906,12 @@ namespace aux {
 		}
 		m_last_log_rotation = time_now();
 			
-		fputs("second:upload rate:download rate:downloading torrents:seeding torrents"
+		fputs("second:uploaded bytes:downloaded bytes:downloading torrents:seeding torrents"
 			":peers:connecting peers:disk block buffers:num list peers"
 			":peer allocations:peer storage bytes"
 			":checking torrents:stopped torrents:upload-only torrents"
 			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
-			":smooth upload rate:smooth download rate:disk write queued bytes"
+			":upload rate:download rate:disk write queued bytes"
 			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
 			":peers down 50-100:peers down 100-"
 			":peers up 0:peers up 0-2:peers up 2-5:peers up 5-10:peers up 10-50:peers up 50-100"
@@ -972,6 +972,8 @@ namespace aux {
 			":tick residual"
 			":max unchoked"
 			":read job queue size limit"
+			":smooth upload rate"
+			":smooth download rate"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2933,7 +2935,8 @@ namespace aux {
 				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
-				  "%f\t%f\t%d\t%f\t%d\t%d\t%d\t%d\t%d\n"
+				  "%f\t%f\t%d\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -3033,6 +3036,8 @@ namespace aux {
 				, m_tick_residual
 				, m_allowed_upload_slots
 				, m_settings.unchoke_slots_limit * 2
+				, m_stat.low_pass_upload_rate()
+				, m_stat.low_pass_download_rate()
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
