@@ -518,10 +518,9 @@ The density of the disk seeks tells you how hard the drive has to work.
 session stats
 -------------
 
-By defining ``TORRENT_STATS`` libtorrent will write a log file called ``session_stats.log`` which
+By defining ``TORRENT_STATS`` libtorrent will write a log file called ``session_stats/<pid>.<sequence>.log`` which
 is in a format ready to be passed directly into gnuplot. The parser script ``parse_session_stats.py``
-will however parse out the field names and generate 3 different views of the data. This script
-is easy to modify to generate the particular view you're interested in.
+generates a report in ``session_stats_report/index.html``.
 
 The first line in the log contains all the field names, separated by colon::
 
@@ -557,6 +556,22 @@ there are a lot of half-open connections, which tapers off as the total number o
 peers approaches the limit (50). It also shows how the total peer list slowly but steadily
 grows over time. This list is plotted against the right axis, as it has a different scale
 as the other fields.
+
+understanding the disk thread
+=============================
+
+All disk operations are funneled through a separate thread, referred to as the disk thread.
+The main interface to the disk thread is a queue where disk jobs are posted, and the results
+of these jobs are then posted back on the main thread's io_service.
+
+A disk job is essentially one of:
+
+1. write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.
+
+2. read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.
+
+Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.
+
 
 contributions
 =============
