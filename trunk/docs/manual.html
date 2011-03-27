@@ -78,7 +78,7 @@
 <li><a class="reference internal" href="#get-cache-info" id="id32">get_cache_info()</a></li>
 <li><a class="reference internal" href="#is-listening-listen-port-listen-on" id="id33">is_listening() listen_port() listen_on()</a></li>
 <li><a class="reference internal" href="#set-alert-mask" id="id34">set_alert_mask()</a></li>
-<li><a class="reference internal" href="#pop-alert-wait-for-alert" id="id35">pop_alert() wait_for_alert()</a></li>
+<li><a class="reference internal" href="#pop-alerts-pop-alert-wait-for-alert" id="id35">pop_alerts() pop_alert() wait_for_alert()</a></li>
 <li><a class="reference internal" href="#add-feed" id="id36">add_feed()</a></li>
 <li><a class="reference internal" href="#remove-feed" id="id37">remove_feed()</a></li>
 <li><a class="reference internal" href="#get-feeds" id="id38">get_feeds()</a></li>
@@ -1101,6 +1101,9 @@ struct cache_status
         int total_used_buffers;
         int average_queue_time;
         int average_read_time;
+        int average_write_time;
+        int average_hash_time;
+        int average_cache_time;
         int job_queue_length;
 };
 </pre>
@@ -1125,9 +1128,18 @@ This includes the read/write disk cache as well as send and receive buffers
 used in peer connections.</p>
 <p><tt class="docutils literal"><span class="pre">average_queue_time</span></tt> is the number of microseconds an average disk I/O job
 has to wait in the job queue before it get processed.</p>
-<p><tt class="docutils literal"><span class="pre">average_read_time</span></tt> is the number of microseconds a read job takes to
-wait in the queue and complete, in microseconds. This only includes
-cache misses.</p>
+<p><tt class="docutils literal"><span class="pre">average_read_time</span></tt> is the time read jobs takes on average to complete
+(not including the time in the queue), in microseconds. This only measures
+read cache misses.</p>
+<p><tt class="docutils literal"><span class="pre">average_write_time</span></tt> is the time write jobs takes to complete, on average,
+in microseconds. This does not include the time the job sits in the disk job
+queue or in the write cache, only blocks that are flushed to disk.</p>
+<p><tt class="docutils literal"><span class="pre">average_hash_time</span></tt> is the time hash jobs takes to complete on average, in
+microseconds. Hash jobs include running SHA-1 on the data (which for the most
+part is done incrementally) and sometimes reading back parts of the piece. It
+also includes checking files without valid resume data.</p>
+<p><tt class="docutils literal"><span class="pre">average_cache_time</span></tt> is the average amuount of time spent evicting cached
+blocks that have expired from the disk cache.</p>
 <p><tt class="docutils literal"><span class="pre">job_queue_length</span></tt> is the number of jobs in the job queue.</p>
 </div>
 <div class="section" id="get-cache-info">
@@ -1238,17 +1250,32 @@ void set_alert_mask(int m);
 <tt class="docutils literal"><span class="pre">m</span></tt> is a bitmask where each bit represents a category of alerts.</p>
 <p>See <a class="reference internal" href="#alerts">alerts</a> for mor information on the alert categories.</p>
 </div>
-<div class="section" id="pop-alert-wait-for-alert">
-<h2>pop_alert() wait_for_alert()</h2>
+<div class="section" id="pop-alerts-pop-alert-wait-for-alert">
+<h2>pop_alerts() pop_alert() wait_for_alert()</h2>
 <blockquote>
 <pre class="literal-block">
 std::auto_ptr&lt;alert&gt; pop_alert();
+void pop_alerts(std::deque&lt;alert*&gt;* alerts);
 alert const* wait_for_alert(time_duration max_wait);
 </pre>
 </blockquote>
 <p><tt class="docutils literal"><span class="pre">pop_alert()</span></tt> is used to ask the session if any errors or events has occurred. With
 <a class="reference internal" href="#set-alert-mask">set_alert_mask()</a> you can filter which alerts to receive through <tt class="docutils literal"><span class="pre">pop_alert()</span></tt>.
 For information about the alert categories, see <a class="reference internal" href="#alerts">alerts</a>.</p>
+<p><tt class="docutils literal"><span class="pre">pop_alerts()</span></tt> pops all pending alerts in a single call. In high performance environments
+with a very high alert churn rate, this can save significant amount of time compared to
+popping alerts one at a time. Each call requires one round-trip to the network thread. If
+alerts are produced in a higher rate than they can be popped (when popped one at a time)
+it's easy to get stuck in an infinite loop, trying to drain the alert queue. Popping the entire
+queue at once avoids this problem.</p>
+<p>However, the <tt class="docutils literal"><span class="pre">pop_alerts</span></tt> function comes with significantly more responsibility. You pass
+in an <em>empty</em> <tt class="docutils literal"><span class="pre">std::dequeue&lt;alert*&gt;</span></tt> to it. If it's not empty, all elements in it will
+be deleted and then cleared. All currently pending alerts are returned by being swapped
+into the passed in container. The responsibility of deleting the alerts is transferred
+to the caller. This means you need to call delete for each item in the returned dequeue.
+It's probably a good idea to delete the alerts as you handle them, to save one extra
+pass over the dequeue.</p>
+<p>Alternatively, you can pass in the same container the next time you call <tt class="docutils literal"><span class="pre">pop_alerts</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> blocks until an alert is available, or for no more than <tt class="docutils literal"><span class="pre">max_wait</span></tt>
 time. If <tt class="docutils literal"><span class="pre">wait_for_alert</span></tt> returns because of the time-out, and no alerts are available,
 it returns 0. If at least one alert was generated, a pointer to that alert is returned.
@@ -4258,7 +4285,7 @@ struct session_settings
         int file_checks_delay_per_block;
 
         enum disk_cache_algo_t
-        { lru, largest_contiguous };
+        { lru, largest_contiguous, avoid_readback };
 
         disk_cache_algo_t disk_cache_algorithm;
 
@@ -4309,6 +4336,7 @@ struct session_settings
         int download_rate_limit;
         int local_upload_rate_limit;
         int local_download_rate_limit;
+        int dht_upload_rate_limit;
         int unchoke_slots_limit;
         int half_open_limit;
         int connections_limit;
@@ -4344,6 +4372,7 @@ struct session_settings
         bool smooth_connects;
         bool always_send_user_agent;
         bool apply_ip_filter_to_trackers;
+        int read_job_every;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -4779,7 +4808,10 @@ flushes the entire piece, in the write cache, that was least recently
 written to. This is specified by the <tt class="docutils literal"><span class="pre">session_settings::lru</span></tt> enum
 value. <tt class="docutils literal"><span class="pre">session_settings::largest_contiguous</span></tt> will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
-piece's last use time.</p>
+piece's last use time. <tt class="docutils literal"><span class="pre">session_settings::avoid_readback</span></tt> will prioritize
+flushing blocks that will avoid having to read them back in to verify
+the hash of the piece once it's done. This is especially useful for high
+throughput setups, where reading from the disk is especially expensive.</p>
 <p><tt class="docutils literal"><span class="pre">read_cache_line_size</span></tt> is the number of blocks to read into the read
 cache when a read cache miss occurs. Setting this to 0 is essentially
 the same thing as disabling read cache. The number of blocks read
@@ -4952,6 +4984,9 @@ is set to true (which it is by default). These rate limits default to unthrottle
 but can be useful in case you want to treat local peers preferentially, but not
 quite unthrottled.</p>
 <p>A value of 0 means unlimited.</p>
+<p><tt class="docutils literal"><span class="pre">dht_upload_rate_limit</span></tt> sets the rate limit on the DHT. This is specified in
+bytes per second and defaults to 4000. For busy boxes with lots of torrents
+that requires more DHT traffic, this should be raised.</p>
 <p><tt class="docutils literal"><span class="pre">unchoke_slots_limit</span></tt> is the mac number of unchoked peers in the session.</p>
 <p>The number of unchoke slots may be ignored depending on what
 <tt class="docutils literal"><span class="pre">choking_algorithm</span></tt> is set to.</p>
@@ -5050,6 +5085,12 @@ request in a connection.</p>
 IP filter applies to trackers as well as peers. If this is set to false,
 trackers are exempt from the IP filter (if there is one). If no IP filter
 is set, this setting is irrelevant.</p>
+<p><tt class="docutils literal"><span class="pre">read_job_every</span></tt> is used to avoid starvation of read jobs in the disk I/O
+thread. By default, read jobs are deferred, sorted by physical disk location
+and serviced once all write jobs have been issued. In scenarios where the
+download rate is enough to saturate the disk, there's a risk the read jobs will
+never be serviced. With this setting, every <em>x</em> write job, issued in a row, will
+instead pick one read job off of the sorted queue, where <em>x</em> is <tt class="docutils literal"><span class="pre">read_job_every</span></tt>.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -6233,7 +6274,7 @@ struct peer_disconnected_alert: peer_alert
 <div class="section" id="invalid-request-alert">
 <h2>invalid_request_alert</h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request.
-<tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
+<tt class="docutils literal"><span class="pre">Ïp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
 struct invalid_request_alert: peer_alert
@@ -6392,7 +6433,8 @@ struct performance_alert: torrent_alert
                 upload_limit_too_low,
                 download_limit_too_low,
                 send_buffer_watermark_too_low,
-                too_many_optimistic_unchoke_slots
+                too_many_optimistic_unchoke_slots,
+                too_high_disk_queue_limit
         };
 
         performance_warning_t warning_code;
@@ -6451,6 +6493,12 @@ or <tt class="docutils literal"><span class="pre">send_buffer_watermark_factor</
 <dt>too_many_optimistic_unchoke_slots</dt>
 <dd>If the half (or more) of all upload slots are set as optimistic unchoke slots, this
 warning is issued. You probably want more regular (rate based) unchoke slots.</dd>
+<dt>too_high_disk_queue_limit</dt>
+<dd>If the disk write queue ever grows larger than half of the cache size, this warning
+is posted. The disk write queue eats into the total disk cache and leaves very little
+left for the actual cache. This causes the disk cache to oscillate in evicting large
+portions of the cache before allowing peers to download any more, onto the disk write
+queue. Either lower <tt class="docutils literal"><span class="pre">max_queued_disk_bytes</span></tt> or increase <tt class="docutils literal"><span class="pre">cache_size</span></tt>.</dd>
 </dl>
 </div>
 <div class="section" id="state-changed-alert">
@@ -7675,13 +7723,13 @@ std::string error_code_to_string(boost::system::error_code const&amp; ec)
         static const char const* swedish[] =
         {
                 &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil från en annan torrent&quot;,
+                &quot;en fil i torrenten kolliderar med en fil frÂn en annan torrent&quot;,
                 &quot;hash check misslyckades&quot;,
-                &quot;torrent filen är inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller är korrupt i torrentfilen&quot;,
-                &quot;'info'-fältet är inte en dictionary&quot;,
-                &quot;'piece length' fältet saknas eller är korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnfältet&quot;,
+                &quot;torrent filen ‰r inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;'info'-f‰ltet ‰r inte en dictionary&quot;,
+                &quot;'piece length' f‰ltet saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnf‰ltet&quot;,
                 &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
                 // ... more strings here
         };
