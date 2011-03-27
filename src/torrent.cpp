@@ -4885,20 +4885,19 @@ namespace libtorrent
 
 		peerinfo->last_connected = m_ses.session_time();
 #ifdef TORRENT_DEBUG
-		// this asserts that we don't have duplicates in the policy's peer list
-		peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::remote, _1) == peerinfo->ip());
+		if (!settings().allow_multiple_connections_per_ip)
+		{
+			// this asserts that we don't have duplicates in the policy's peer list
+			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
+				, boost::bind(&peer_connection::remote, _1) == peerinfo->ip());
+			TORRENT_ASSERT(i_ == m_connections.end()
+				|| (*i_)->type() != peer_connection::bittorrent_connection
 #if TORRENT_USE_I2P
-		TORRENT_ASSERT(i_ == m_connections.end()
-			|| (*i_)->type() != peer_connection::bittorrent_connection
-			|| peerinfo->is_i2p_addr
-			);
-#else
-		TORRENT_ASSERT(i_ == m_connections.end()
-			|| (*i_)->type() != peer_connection::bittorrent_connection
-			);
+				|| peerinfo->is_i2p_addr
 #endif
+				);
 #endif
+		}
 
 		TORRENT_ASSERT(want_more_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
