@@ -4896,8 +4896,8 @@ namespace libtorrent
 				|| peerinfo->is_i2p_addr
 #endif
 				);
-#endif
 		}
+#endif
 
 		TORRENT_ASSERT(want_more_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
