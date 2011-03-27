@@ -107,7 +107,7 @@ reports = [
 	('peers_list_size', 'num', 'number of known peers (not necessarily connected)', ['num list peers']),
 	('overall_rates', 'Bytes / second', 'download and upload rates', ['upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
 	('disk_write_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
-	('peers_upload', 'num', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up']),
+	('peers_upload', 'num', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up', 'max unchoked']),
 	('peers_download', 'num', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down']),
 	('peer_errors', 'num', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
 	('waste', '% of all downloaded bytes', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
@@ -116,7 +116,7 @@ reports = [
 	('disk_cache_hits', 'blocks (16kiB)', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
 	('disk_cache', 'blocks (16kiB)', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
 	('disk_readback', '% of written blocks', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
-	('disk_queue', 'number of queued disk jobs', 'queued disk jobs', ['disk queue size', 'disk read queue size']),
+	('disk_queue', 'number of queued disk jobs', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 

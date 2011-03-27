@@ -1642,8 +1642,20 @@ namespace libtorrent
 			// make sure we don't starve out the read queue by just issuing
 			// write jobs constantly, mix in a read job every now and then
 			// with a configurable ratio
+			// this rate must increase to every other jobs if the queued
+			// up read jobs increases too far.
+			int read_job_every = m_settings.read_job_every;
+
+			if (m_sorted_read_jobs.size() > m_settings.unchoke_slots_limit * 2)
+			{
+				int range = m_settings.unchoke_slots_limit;
+				int exceed = m_sorted_read_jobs.size() - range * 2;
+				read_job_every = (exceed * 1 + (range - exceed) * read_job_every) / 2;
+				if (read_job_every < 1) read_job_every = 1;
+			}
+
 			bool pick_read_job = m_jobs.empty()
-				|| (immediate_jobs_in_row >= m_settings.read_job_every
+				|| (immediate_jobs_in_row >= read_job_every
 					&& !m_sorted_read_jobs.empty());
 
 			if (!pick_read_job)
