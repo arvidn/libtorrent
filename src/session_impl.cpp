@@ -566,6 +566,7 @@ namespace aux {
 #endif
 		m_next_lsd_torrent = m_torrents.begin();
 		m_next_connect_torrent = m_torrents.begin();
+		m_next_disk_peer = m_connections.begin();
 
 		if (!listen_interface) listen_interface = "0.0.0.0";
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
@@ -2345,6 +2346,8 @@ namespace aux {
 				c->set_upload_limit(m_settings.default_peer_upload_rate);
 			if (m_settings.default_peer_download_rate)
 				c->set_download_limit(m_settings.default_peer_download_rate);
+			// update the next disk peer round-robin cursor
+			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 		}
 	}
 
@@ -2410,7 +2413,10 @@ namespace aux {
 
 		boost::intrusive_ptr<peer_connection> sp((peer_connection*)p);
 		connection_map::iterator i = m_connections.find(sp);
+		// make sure the next disk peer round-robin cursor stays valid
+		if (m_next_disk_peer == i) ++m_next_disk_peer;
 		if (i != m_connections.end()) m_connections.erase(i);
+		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
@@ -2466,35 +2472,26 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
-		std::vector<peer_connection*> conns;
-		conns.reserve(m_connections.size() / 2);
-		for (connection_map::iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		// just to play it safe
+		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
+
+		// never loop more times than there are connections
+		// keep in mind that connections may disconnect
+		// while we're looping, that's why this is a reliable
+		// way of limiting it
+		int limit = m_connections.size();
+
+		do
 		{
-			peer_connection* p = i->get();
+			--limit;
+			peer_connection* p = m_next_disk_peer->get();
+			++m_next_disk_peer;
+			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 			if (p->m_channel_state[peer_connection::download_channel]
 				!= peer_info::bw_disk) continue;
+			p->on_disk();
 
-			conns.push_back(p);
-		}
-
-		if (conns.empty()) return;
-
-		// pick a random peer to start with, to evenly distribute
-		// the disk bandwidth
-		std::vector<peer_connection*>::iterator peer = conns.begin() + (rand() % conns.size());
-		for (int i = 0; i < conns.size(); ++i)
-		{
-			// if we can't write to disk anymore, no need
-			// to keep iterating
-			if (!can_write_to_disk()) break;
-
-			// setup_receive() may disconnect the connection
-			// and clear it out from the m_connections list
-			(*peer)->on_disk();
-			++peer;
-			if (peer == conns.end()) peer = conns.begin();
-		}
+		} while (m_next_disk_peer != m_connections.end() && limit > 0 && can_write_to_disk());
 	}
 
 	// used to cache the current time
@@ -2914,7 +2911,7 @@ namespace aux {
 		}
 
 		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
-			? m_settings.max_queued_disk_bytes / 2
+			? m_settings.max_queued_disk_bytes * 7 / 8
 			: m_settings.max_queued_disk_bytes_low_watermark;
 
 		if (now - m_last_log_rotation > hours(1))
