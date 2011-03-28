@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function2.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
-#include <list>
+#include <deque>
 #include "libtorrent/config.hpp"
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
@@ -441,7 +441,7 @@ namespace libtorrent
 		event m_signal;
 		bool m_abort;
 		bool m_waiting_to_shutdown;
-		std::list<disk_io_job> m_jobs;
+		std::deque<disk_io_job> m_jobs;
 		size_type m_queue_buffer_size;
 
 		ptime m_last_file_check;
