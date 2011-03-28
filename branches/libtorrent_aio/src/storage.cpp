@@ -480,7 +480,7 @@ namespace libtorrent
 						ph.h.update((char const*)bufs[i].iov_base, small_piece_size);
 						*small_hash = hasher(ph.h).final();
 						small_hash = 0; // avoid this case again
-						if (bufs[i].iov_len > small_piece_size)
+						if (int(bufs[i].iov_len) > small_piece_size)
 							ph.h.update((char const*)bufs[i].iov_base + small_piece_size
 								, bufs[i].iov_len - small_piece_size);
 					}
@@ -511,7 +511,7 @@ namespace libtorrent
 						if (small_piece_size > 0) ph.h.update((char const*)buf.iov_base, small_piece_size);
 						*small_hash = hasher(ph.h).final();
 						small_hash = 0; // avoid this case again
-						if (buf.iov_len > small_piece_size)
+						if (int(buf.iov_len) > small_piece_size)
 							ph.h.update((char const*)buf.iov_base + small_piece_size
 								, buf.iov_len - small_piece_size);
 					}
@@ -721,7 +721,7 @@ namespace libtorrent
 		if (!file_handle || ec) return slot;
 
 		size_type data_start = file_handle->sparse_end(file_offset);
-		return (data_start + m_files.piece_length() - 1) / m_files.piece_length();
+		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
 	}
 
 	bool storage::verify_resume_data(lazy_entry const& rd, error_code& error)
@@ -747,7 +747,7 @@ namespace libtorrent
 		{
 			m_file_priority.resize(file_priority->list_size());
 			for (int i = 0; i < file_priority->list_size(); ++i)
-				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+				m_file_priority[i] = boost::uint8_t(file_priority->list_int_value_at(i, 1));
 		}
 
 		std::vector<std::pair<size_type, std::time_t> > file_sizes;
@@ -1280,7 +1280,7 @@ ret:
 				&& ((adjusted_offset & (file_handle->pos_alignment()-1)) != 0
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
-				bytes_transferred = (this->*op.unaligned_op)(file_handle, adjusted_offset
+				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
 			}
 			else
@@ -1313,35 +1313,82 @@ ret:
 	{
 		const int pos_align = file_handle->pos_alignment()-1;
 		const int size_align = file_handle->size_alignment()-1;
-		const int block_size = disk_pool()->block_size();
 
 		const int size = bufs_size(bufs, num_bufs);
 		const int start_adjust = file_offset & pos_align;
-		const int aligned_start = file_offset - start_adjust;
+		TORRENT_ASSERT(start_adjust == (file_offset % file_handle->pos_alignment()));
+		const size_type aligned_start = file_offset - start_adjust;
 		const int aligned_size = ((size+start_adjust) & size_align)
 			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
-		const int num_blocks = (aligned_size + block_size - 1) / block_size;
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
-		disk_buffer_holder tmp_buf(*disk_pool(), disk_pool()->allocate_buffers(num_blocks, "read scratch"), num_blocks);
-		file::iovec_t b = {tmp_buf.get(), aligned_size};
+		// allocate a temporary, aligned, buffer
+		aligned_holder aligned_buf(aligned_size);
+		file::iovec_t b = {aligned_buf.get(), aligned_size};
 		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-		if (ret < 0) return ret;
-		char* read_buf = tmp_buf.get() + start_adjust;
+		if (ret < 0)
+		{
+			TORRENT_ASSERT(ec);
+			return ret;
+		}
+		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
+
+		char* read_buf = aligned_buf.get() + start_adjust;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
 		{
 			memcpy(i->iov_base, read_buf, i->iov_len);
 			read_buf += i->iov_len;
 		}
-		if (ret < size + start_adjust) return ret - start_adjust;
+
 		return size;
 	}
 
+	// this is the really expensive one. To write unaligned, we need to read
+	// an aligned block, overlay the unaligned buffer, and then write it back
 	size_type storage::write_unaligned(boost::intrusive_ptr<file> const& file_handle
 		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
-		TORRENT_ASSERT(false); // not implemented
-		return 0;
+		const int pos_align = file_handle->pos_alignment()-1;
+		const int size_align = file_handle->size_alignment()-1;
+
+		const int size = bufs_size(bufs, num_bufs);
+		const int start_adjust = file_offset & pos_align;
+		TORRENT_ASSERT(start_adjust == (file_offset % file_handle->pos_alignment()));
+		const size_type aligned_start = file_offset - start_adjust;
+		const int aligned_size = ((size+start_adjust) & size_align)
+			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
+		TORRENT_ASSERT((aligned_size & size_align) == 0);
+
+		// allocate a temporary, aligned, buffer
+		aligned_holder aligned_buf(aligned_size);
+		file::iovec_t b = {aligned_buf.get(), aligned_size};
+		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
+		if (ret < 0)
+		{
+			TORRENT_ASSERT(ec);
+			return ret;
+		}
+		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
+
+		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
+
+		char* write_buf = aligned_buf.get() + start_adjust;
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
+		{
+			memcpy(write_buf, i->iov_base, i->iov_len);
+			write_buf += i->iov_len;
+		}
+
+		// write the buffer back to disk
+		ret = file_handle->writev(aligned_start, &b, 1, ec);
+
+		if (ret < 0)
+		{
+			TORRENT_ASSERT(ec);
+			return ret;
+		}
+		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
+		return size;
 	}
 
 	int storage::write(
@@ -1513,8 +1560,6 @@ ret:
 		, m_state(state_none)
 		, m_current_slot(0)
 		, m_out_of_place(false)
-		, m_scratch_buffer(io, 0)
-		, m_scratch_buffer2(io, 0)
 		, m_scratch_piece(-1)
 		, m_last_piece(-1)
 		, m_storage_constructor(sc)
@@ -1711,7 +1756,7 @@ ret:
 #endif
 	}
 
-	void piece_manager::async_write(
+	int piece_manager::async_write(
 		peer_request const& r
 		, disk_buffer_holder& buffer
 		, boost::function<void(int, disk_io_job const&)> const& handler)
@@ -1728,8 +1773,10 @@ ret:
 		j.buffer_size = r.length;
 		j.buffer = buffer.get();
 		j.callback = handler;
-		m_io_thread.add_job(j);
+		int queue_size = m_io_thread.add_job(j);
 		buffer.release();
+
+		return queue_size;
 	}
 
 	void piece_manager::async_hash(int piece
@@ -1830,8 +1877,6 @@ ret:
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_files.num_pieces());
-
-		int size = bufs_size(bufs, num_bufs);
 
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		std::copy(bufs, bufs + num_bufs, iov);
@@ -2058,7 +2103,7 @@ ret:
 		}
 
 		int block_size = (std::min)(16 * 1024, m_files.piece_length());
-		int blocks_per_piece = rd.dict_find_int_value("blocks per piece", -1);
+		int blocks_per_piece = int(rd.dict_find_int_value("blocks per piece", -1));
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
@@ -2264,13 +2309,8 @@ ret:
 
 				if (other_piece >= 0)
 				{
-					if (!m_scratch_buffer2)
-					{
-						int blocks_per_piece = (std::max)(m_files.piece_length()
-							/ m_io_thread.block_size(), 1);
-						m_scratch_buffer2.reset(m_io_thread.allocate_buffers(
-							blocks_per_piece, "check scratch"), blocks_per_piece);
-					}
+					if (!m_scratch_buffer2.get())
+						m_scratch_buffer2.reset(page_aligned_allocator::malloc(m_files.piece_length()));
 
 					int piece_size = m_files.piece_size(other_piece);
 					if (m_storage->read(m_scratch_buffer2.get(), piece, 0, piece_size, error)
@@ -2289,8 +2329,7 @@ ret:
 				m_piece_to_slot[piece] = piece;
 				m_slot_to_piece[piece] = piece;
 
-				if (other_piece >= 0)
-					m_scratch_buffer.swap(m_scratch_buffer2);
+				if (other_piece >= 0) m_scratch_buffer.swap(m_scratch_buffer2);
 		
 				TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 				return need_full_check;
@@ -2318,12 +2357,8 @@ ret:
 				// there is another piece in the slot
 				// where this one goes. Store it in the scratch
 				// buffer until next iteration.
-				if (!m_scratch_buffer)
-				{
-					int blocks_per_piece = (std::max)(m_files.piece_length() / m_io_thread.block_size(), 1);
-					m_scratch_buffer.reset(m_io_thread.allocate_buffers(
-						blocks_per_piece, "check scratch"), blocks_per_piece);
-				}
+				if (!m_scratch_buffer.get())
+					m_scratch_buffer.reset(page_aligned_allocator::malloc(m_files.piece_length()));
 			
 				int piece_size = m_files.piece_size(other_piece);
 				if (m_storage->read(m_scratch_buffer.get(), piece, 0, piece_size, error) != piece_size)

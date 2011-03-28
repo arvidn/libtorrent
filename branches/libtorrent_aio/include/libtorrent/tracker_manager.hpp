@@ -84,10 +84,12 @@ namespace libtorrent
 			, left(-1)
 			, corrupt(0)
 			, redundant(0)
+			, listen_port(0)
 			, event(none)
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
+			, apply_ip_filter(true)
 		{}
 
 		enum
@@ -122,6 +124,7 @@ namespace libtorrent
 		std::string ipv4;
 		address bind_ip;
 		bool send_stats;
+		bool apply_ip_filter;
 	};
 
 	struct TORRENT_EXPORT request_callback

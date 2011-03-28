@@ -285,7 +285,7 @@ void bind_torrent_handle()
 
     class_<torrent_handle>("torrent_handle")
         .def("get_peer_info", get_peer_info)
-        .def("status", _(&torrent_handle::status))
+        .def("status", _(&torrent_handle::status), arg("flags") = 0xffffffff)
         .def("get_download_queue", get_download_queue)
         .def("file_progress", file_progress)
         .def("trackers", trackers)

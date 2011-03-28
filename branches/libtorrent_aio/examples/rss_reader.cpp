@@ -49,7 +49,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
 	size_type written = f.writev(0, &b, 1, ec);
-	if (written != v.size()) return -3;
+	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;
 }

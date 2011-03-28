@@ -54,7 +54,6 @@ namespace libtorrent
 			, offset(0)
 			, max_cache_line(0)
 			, cache_min_time(0)
-			, outstanding_writes(0)
 		{}
 
 		enum action_t
@@ -123,10 +122,6 @@ namespace libtorrent
 		// the time when this job was queued. This is used to
 		// keep track of disk I/O congestion
 		ptime start_time;
-
-		// this is set by the disk I/O thread to the number
-		// of bytes we're waiting for to be written
-		int outstanding_writes;
 	};
 
 }

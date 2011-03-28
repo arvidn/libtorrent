@@ -175,7 +175,7 @@ namespace libtorrent
 #endif
 			void main_thread();
 
-			void open_listen_port(bool reuse_address);
+			void open_listen_port(int flags, error_code& ec);
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
@@ -261,8 +261,9 @@ namespace libtorrent
 			
 			void set_port_filter(port_filter const& f);
 
-			bool listen_on(
+			void  listen_on(
 				std::pair<int, int> const& port_range
+				, error_code& ec
 				, const char* net_interface = 0
 				, int flags = 0);
 			bool is_listening() const;
@@ -270,6 +271,7 @@ namespace libtorrent
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 
 			void remove_torrent(torrent_handle const& h, int options);
+			void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options);
 
 			void get_torrent_status(std::vector<torrent_status>* ret
 				, boost::function<bool(torrent_status const&)> const& pred
@@ -285,6 +287,7 @@ namespace libtorrent
 			void set_alert_mask(int m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
+			void pop_alerts(std::deque<alert*>* alerts);
 			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
 			void post_alert(const alert& alert_);
 
@@ -329,7 +332,7 @@ namespace libtorrent
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
-			void announce_lsd(sha1_hash const& ih);
+			void announce_lsd(sha1_hash const& ih, bool broadcast = false);
 
 			void save_state(entry* e, boost::uint32_t flags) const;
 			void load_state(lazy_entry const* e);
@@ -440,7 +443,8 @@ namespace libtorrent
 //					m_exceeded_write_queue = true;
 			}
 
-			int can_write_to_disk() const { return !m_exceeded_write_queue; }
+			bool can_write_to_disk() const
+			{ return m_disk_thread.can_write(); }
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -471,6 +475,9 @@ namespace libtorrent
 			void update_disk_thread_settings();
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
+
+			// the settings for the client
+			session_settings m_settings;
 
 			// this is a shared pool where policy_peer objects
 			// are allocated. It's a pool since we're likely
@@ -677,10 +684,7 @@ namespace libtorrent
 #endif
 
 			listen_socket_t setup_listener(tcp::endpoint ep, int retries
-				, bool v6_only, bool reuse_address);
-
-			// the settings for the client
-			session_settings m_settings;
+				, bool v6_only, int flags, error_code& ec);
 
 			// the proxy used for bittorrent
 			proxy_settings m_proxy;
@@ -752,7 +756,7 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void check_disk_queue(int outstanding_writes);
+			void on_disk_queue();
 			void on_tick(error_code const& e);
 
 			void auto_manage_torrents(std::vector<torrent*>& list
@@ -770,6 +774,7 @@ namespace libtorrent
 			ptime m_last_second_tick;
 			// used to limit how often disk warnings are generated
 			ptime m_last_disk_performance_warning;
+			ptime m_last_disk_queue_performance_warning;
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke
@@ -857,6 +862,11 @@ namespace libtorrent
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
 			torrent_map::iterator m_next_connect_torrent;
+
+			// this is the round-robin cursor for peers that
+			// get to download again after the disk has been
+			// blocked
+			connection_map::iterator m_next_disk_peer;
 #ifdef TORRENT_DEBUG
 			void check_invariant() const;
 #endif
@@ -898,6 +908,17 @@ namespace libtorrent
 			int m_incoming_piece_picks;
 			int m_end_game_piece_picks;
 			int m_snubbed_piece_picks;
+			int m_connect_timeouts;
+			int m_uninteresting_peers;
+			int m_timeout_peers;
+			cache_status m_last_cache_status;
+			size_type m_last_failed;
+			size_type m_last_redundant;
+			size_type m_last_uploaded;
+			size_type m_last_downloaded;
+			int m_connection_attempts;
+			int m_num_banned_peers;
+			int m_banned_for_hash_failure;
 #endif
 
 			// each second tick the timer takes a little
@@ -909,6 +930,10 @@ namespace libtorrent
 			// as a kind of "leap second" to adjust for the
 			// accumulated error
 			boost::uint16_t m_tick_residual;
+
+			// the number of torrents that have apply_ip_filter
+			// set to false. This is typically 0
+			int m_non_filtered_torrents;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
@@ -993,10 +1018,6 @@ namespace libtorrent
 			// bytes just hanging out in the cache)
 			int m_writing_bytes;
 			
-			// this is true if we exceeded the write queue limit,
-			// and we haven't yet gone below the low watermark
-			bool m_exceeded_write_queue;
-
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
 			// the main working thread

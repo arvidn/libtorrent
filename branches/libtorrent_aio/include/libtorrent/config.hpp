@@ -97,6 +97,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable: 4258)
 #pragma warning(disable: 4251)
 
+// class X needs to have dll-interface to be used by clients of class Y
+#pragma warning(disable:4251)
+// '_vsnprintf': This function or variable may be unsafe
+#pragma warning(disable:4996)
+// 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
+#pragma warning(disable: 4996)
+
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
 # elif defined(TORRENT_LINKING_SHARED)
@@ -139,6 +146,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __APPLE__
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 0
 #endif
 #define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
@@ -147,6 +155,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_AIO 1
 #define TORRENT_AIO_SIGNAL SIGIO
+#define TORRENT_USE_IFADDRS 1
 
 // ==== LINUX ===
 #elif defined __linux__
@@ -157,13 +166,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define TORRENT_AIO_SIGNAL SIGRTMIN
 #define TORRENT_USE_POSIX_SEMAPHORE 1
+#define TORRENT_USE_IFADDRS 1
 
 // ==== MINGW ===
 #elif defined __MINGW32__
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 1
+#define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_USE_AIO 0
@@ -176,6 +187,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // is necessary
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
+#define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
@@ -241,11 +253,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
-// class X needs to have dll-interface to be used by clients of class Y
-#pragma warning(disable:4251)
-// '_vsnprintf': This function or variable may be unsafe
-#pragma warning(disable:4996)
-
 #include <stdarg.h>
 
 inline int snprintf(char* buf, int len, char const* fmt, ...)
@@ -271,6 +278,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // libiconv presence, not implemented yet
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
+#endif
+
+#ifndef TORRENT_USE_LOCALE
+#define TORRENT_USE_LOCALE 0
 #endif
 
 #ifndef TORRENT_BROKEN_UNIONS
@@ -331,6 +342,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_RLIMIT 1
 #endif
 
+#ifndef TORRENT_USE_IFADDRS
+#define TORRENT_USE_IFADDRS 0
+#endif
+
 #ifndef TORRENT_USE_IPV6
 #define TORRENT_USE_IPV6 1
 #endif
@@ -359,6 +374,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
+#endif
+
+#ifndef TORRENT_HAS_STRDUP
+#define TORRENT_HAS_STRDUP 1
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
@@ -405,6 +424,29 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #endif
+
+#if !TORRENT_HAS_STRDUP
+inline char* strdup(char const* str)
+{
+	if (str == 0) return 0;
+	char* tmp = (char*)malloc(strlen(str) + 1);
+	if (tmp == 0) return 0;
+	strcpy(tmp, str);
+	return tmp;
+}
+#endif
+
+// for non-exception builds
+#ifdef BOOST_NO_EXCEPTIONS
+#define TORRENT_TRY if (true)
+#define TORRENT_CATCH(x) else if (false)
+#define TORRENT_DECLARE_DUMMY(x, y) x y
+#else
+#define TORRENT_TRY try
+#define TORRENT_CATCH(x) catch(x)
+#define TORRENT_DECLARE_DUMMY(x, y)
+#endif // BOOST_NO_EXCEPTIONS
+
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 

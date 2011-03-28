@@ -65,6 +65,7 @@ namespace libtorrent
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
 		: peer_connection(ses, t, s, remote, peerinfo)
+		, m_parser(http_parser::dont_parse_chunks)
 		, m_external_auth(auth)
 		, m_extra_headers(extra_headers)
 		, m_first_request(true)
@@ -126,7 +127,7 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request) {
+		if (m_first_request || m_ses.settings().always_send_user_agent) {
 			request += "\r\nUser-Agent: ";
 			request += m_ses.settings().user_agent;
 		}

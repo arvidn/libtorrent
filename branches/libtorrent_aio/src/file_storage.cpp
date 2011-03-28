@@ -235,7 +235,8 @@ namespace libtorrent
 				f.file_index = file_iter - begin();
 				f.offset = file_offset + file_base(*file_iter);
 				f.size = (std::min)(file_iter->size - file_offset, (size_type)size);
-				size -= f.size;
+				TORRENT_ASSERT(f.size <= size);
+				size -= int(f.size);
 				file_offset += f.size;
 				ret.push_back(f);
 			}
@@ -374,7 +375,7 @@ namespace libtorrent
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_file_hashes.size()) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
 	
@@ -387,29 +388,29 @@ namespace libtorrent
 	time_t file_storage::mtime(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_mtime.size()) return 0;
+		if (index >= int(m_mtime.size())) return 0;
 		return m_mtime[index];
 	}
 
 	int file_storage::file_index(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		TORRENT_ASSERT(index >= 0 && index < m_files.size());
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		return index;
 	}
 
 	void file_storage::set_file_base(internal_file_entry const& fe, size_type off)
 	{
 		int index = &fe - &m_files[0];
-		TORRENT_ASSERT(index >= 0 && index < m_files.size());
-		if (m_file_base.size() <= index) m_file_base.resize(index);
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index);
 		m_file_base[index] = off;
 	}
 
 	size_type file_storage::file_base(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= m_file_base.size()) return 0;
+		if (index >= int(m_file_base.size())) return 0;
 		return m_file_base[index];
 	}
 
@@ -424,7 +425,7 @@ namespace libtorrent
 		if (!m_mtime.empty())
 		{
 			time_t mtime = 0;
-			if (m_mtime.size() > index)
+			if (int(m_mtime.size()) > index)
 			{
 				mtime = m_mtime[index];
 				m_mtime.erase(m_mtime.begin() + index);
@@ -434,7 +435,7 @@ namespace libtorrent
 		if (!m_file_hashes.empty())
 		{
 			char const* fh = 0;
-			if (m_file_hashes.size() > index)
+			if (int(m_file_hashes.size()) > index)
 			{
 				fh = m_file_hashes[index];
 				m_file_hashes.erase(m_file_hashes.begin() + index);
@@ -444,7 +445,7 @@ namespace libtorrent
 		if (!m_file_base.empty())
 		{
 			size_type base = 0;
-			if (m_file_base.size() > index)
+			if (int(m_file_base.size()) > index)
 			{
 				base = m_file_base[index];
 				m_file_base.erase(m_file_base.begin() + index);
@@ -464,20 +465,26 @@ namespace libtorrent
 		if (pad_file_limit >= 0 && pad_file_limit < alignment)
 			pad_file_limit = alignment;
 
-		// put the largest file at the front, to make sure
-		// it's aligned
-		std::vector<internal_file_entry>::iterator i = std::max_element(m_files.begin(), m_files.end()
-			, &compare_file_entry_size);
-
-		int index = file_index(*i);
-		reorder_file(index, 0);
-
 		size_type off = 0;
 		int padding_file = 0;
 		for (std::vector<internal_file_entry>::iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if (pad_file_limit >= 0
+			if ((off & (alignment-1)) == 0)
+			{
+				// this file position is aligned, pick the largest
+				// available file to put here
+				std::vector<internal_file_entry>::iterator best_match
+					= std::max_element(i, m_files.end()
+						, &compare_file_entry_size);
+
+				if (best_match != i)
+				{
+					int index = file_index(*best_match);
+					reorder_file(index, file_index(*i));
+				}
+			}
+			else if (pad_file_limit >= 0
 				&& (off & (alignment-1)) != 0
 				&& i->size > pad_file_limit
 				&& i->pad_file == false)
@@ -500,6 +507,11 @@ namespace libtorrent
 				if (best_match != m_files.end())
 				{
 					// we found one
+					// We cannot have found i, because i->size > pad_file_limit
+					// which is forced to be no less than alignment. We only
+					// look for files <= pad_size, which never is greater than
+					// alignment
+					TORRENT_ASSERT(best_match != i);
 					int index = file_index(*best_match);
 					reorder_file(index, file_index(*i));
 
@@ -510,7 +522,9 @@ namespace libtorrent
 
 				// we could not find a file that fits in pad_size
 				// add a padding file
-
+				// note that i will be set to point to the
+				// new pad file. Once we're done adding it, we need
+				// to increment i to point to the current file again
 				internal_file_entry e;
 				i = m_files.insert(i, e);
 				i->size = pad_size;
@@ -521,6 +535,8 @@ namespace libtorrent
 				i->pad_file = true;
 				off += pad_size;
 				++padding_file;
+				// skip the pad file we just added and point
+				// at the current file again
 				++i;
 			}
 			i->offset = off;

@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -125,6 +126,7 @@ namespace libtorrent
 		m_in_constructor = false;
 		m_encrypted_bytes = 0;
 #endif
+		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
 
 	bt_peer_connection::bt_peer_connection(
@@ -176,6 +178,7 @@ namespace libtorrent
 		m_in_constructor = false;
 		m_encrypted_bytes = 0;
 #endif
+		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
 
 	void bt_peer_connection::start()
@@ -425,7 +428,7 @@ namespace libtorrent
 			return;
 		}
 
-		int pad_size = std::rand() % 512;
+		int pad_size = random() % 512;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(" pad size: %d", pad_size);
@@ -470,7 +473,7 @@ namespace libtorrent
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		char const* const secret = m_dh_key_exchange->get_secret();
 
-		int pad_size = rand() % 512;
+		int pad_size = random() % 512;
 
 		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
@@ -547,7 +550,7 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int pad_size = rand() % 512;
+		int pad_size = random() % 512;
 
 		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
 
@@ -1578,6 +1581,7 @@ namespace libtorrent
 					, ((error >= 0 && error < 4)?err_msg[error]:"unknown message id"));
 #endif
 				// #error deal with holepunch errors
+				(void)error;
 			} break;
 #if defined TORRENT_VERBOSE_LOGGING
 			default:
@@ -1664,7 +1668,7 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
-			bool ul = detail::read_uint8(recv_buffer.begin);
+			bool ul = detail::read_uint8(recv_buffer.begin) != 0;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<== UPLOAD_ONLY [ %s ]", (ul?"true":"false"));
 #endif
@@ -1672,9 +1676,23 @@ namespace libtorrent
 			return;
 		}
 
+		if (extended_id == share_mode_msg)
+		{
+			if (!packet_finished()) return;
+			bool sm = detail::read_uint8(recv_buffer.begin) != 0;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== SHARE_MODE [ %s ]", (sm?"true":"false"));
+#endif
+			set_share_mode(sm);
+			return;
+		}
+
 		if (extended_id == holepunch_msg)
 		{
 			if (!packet_finished()) return;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== HOLEPUNCH");
+#endif
 			on_holepunch();
 			return;
 		}
@@ -1695,20 +1713,6 @@ namespace libtorrent
 		}
 #endif
 
-		if (extended_id == upload_only_msg)
-		{
-			if (!packet_finished()) return;
-			set_upload_only(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
-		if (extended_id == share_mode_msg)
-		{
-			if (!packet_finished()) return;
-			set_share_mode(detail::read_uint8(recv_buffer.begin));
-			return;
-		}
-
 		disconnect(errors::invalid_message, 2);
 		return;
 	}
@@ -1725,8 +1729,8 @@ namespace libtorrent
 		lazy_entry root;
 		error_code ec;
 		int pos;
-		lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
-		if (root.type() != lazy_entry::dict_t)
+		int ret = lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
+		if (ret != 0 || ec || root.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** invalid extended handshake: %s pos: %d"
@@ -1755,13 +1759,13 @@ namespace libtorrent
 		// upload_only
 		if (lazy_entry const* m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = m->dict_find_int_value("upload_only", 0);
-			m_holepunch_id = m->dict_find_int_value("ut_holepunch", 0);
+			m_upload_only_id = boost::uint8_t(m->dict_find_int_value("upload_only", 0));
+			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
 		}
 #endif
 
 		// there is supposed to be a remote listen port
-		int listen_port = root.dict_find_int_value("p");
+		int listen_port = int(root.dict_find_int_value("p"));
 		if (listen_port > 0 && peer_info_struct() != 0)
 		{
 			t->get_policy().update_peer_port(listen_port
@@ -1771,13 +1775,13 @@ namespace libtorrent
 		// there should be a version too
 		// but where do we put that info?
 
-		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
+		int last_seen_complete = boost::uint8_t(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 		
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
 
-		int reqq = root.dict_find_int_value("reqq");
+		int reqq = int(root.dict_find_int_value("reqq"));
 		if (reqq > 0) m_max_out_request_queue = reqq;
 
 		if (root.dict_find_int_value("upload_only", 0))
@@ -2029,7 +2033,7 @@ namespace libtorrent
 			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
 			for (int i = 0; i < num_pieces; ++i)
 			{
-				if (rand() % (num_pieces - i) >= num_lazy_pieces - lazy_piece) continue;
+				if (int(random() % (num_pieces - i)) >= num_lazy_pieces - lazy_piece) continue;
 				lazy_pieces[lazy_piece++] = i;
 			}
 			TORRENT_ASSERT(lazy_piece == num_lazy_pieces);
@@ -2183,7 +2187,7 @@ namespace libtorrent
 			, end(m.end()); i != end; ++i)
 		{
 			if (i->second.type() != entry::int_t) continue;
-			int val = i->second.integer();
+			int val = int(i->second.integer());
 			TORRENT_ASSERT(ext.find(val) == ext.end());
 			ext.insert(val);
 		}
@@ -3280,7 +3284,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == bytes_transferred);
+			TORRENT_ASSERT(stats_diff == size_type(bytes_transferred));
 #endif
 			TORRENT_ASSERT(!packet_finished());
 			return;

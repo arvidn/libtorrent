@@ -228,7 +228,7 @@ void test_reject_fast()
 		int len = read_message(s, recv_buffer);
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
-		if (recv_buffer[0] != 0x6) continue;
+		if (msg != 0x6) continue;
 
 		using namespace libtorrent::detail;
 		char* ptr = recv_buffer + 1;
@@ -292,7 +292,7 @@ void test_respect_suggest()
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
 		fail_counter--;
-		if (recv_buffer[0] != 0x6) continue;
+		if (msg != 0x6) continue;
 
 		using namespace libtorrent::detail;
 		char* ptr = recv_buffer + 1;

@@ -60,11 +60,11 @@ namespace libtorrent
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
-	torrent_handle add_feed_item(session& s, feed_item const& fi
+	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p);
 #endif
 
-	torrent_handle add_feed_item(session& s, feed_item const& fi
+	torrent_handle TORRENT_EXPORT add_feed_item(session& s, feed_item const& fi
 		, add_torrent_params const& p, error_code& ec);
 
 	// the feed_settings object is all the information
@@ -91,6 +91,8 @@ namespace libtorrent
 
 	struct feed_status
 	{
+		feed_status(): last_update(0), next_update(0)
+			, updating(false), ttl(0) {}
 		std::string url;
 		std::string title;
 		std::string description;
@@ -104,7 +106,7 @@ namespace libtorrent
 
 	struct feed;
 
-	struct feed_handle
+	struct TORRENT_EXPORT feed_handle
 	{
 		feed_handle() {}
 		void update_feed();
@@ -119,7 +121,7 @@ namespace libtorrent
 	};
 
 	struct feed_state;
-	struct http_parser;
+	class http_parser;
 
 	boost::shared_ptr<feed> new_feed(aux::session_impl& ses, feed_settings const& sett);
 
@@ -127,7 +129,7 @@ namespace libtorrent
 	// RSS feed. All user interaction with this object
 	// goes through the feed_handle, which makes sure all calls
 	// are posted to the network thread
-	struct feed : boost::enable_shared_from_this<feed>
+	struct TORRENT_EXPORT feed : boost::enable_shared_from_this<feed>
 	{
 		friend void parse_feed(feed_state& f, int token, char const* name, char const* val);
 
@@ -151,10 +153,13 @@ namespace libtorrent
 	
 //	private:
 	
+		void add_item(feed_item const& item);
+
 		feed_handle my_handle();
 
 		error_code m_error;
 		std::vector<feed_item> m_items;
+		std::set<std::string> m_urls;
 		std::string m_title;
    	std::string m_description;
 		time_t m_last_attempt;

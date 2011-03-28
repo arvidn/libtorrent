@@ -97,6 +97,8 @@ namespace
 
 	dict session_get_settings(session const& ses)
 	{
+		allow_threading_guard guard;
+		 
 		session_settings sett = ses.settings();
 		dict sett_dict;
 		bencode_map_entry* map;
@@ -196,6 +198,8 @@ namespace
         add_torrent_params p;
         dict_to_add_torrent_params(params, p);
 
+        allow_threading_guard guard;
+
 #ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
 #else
@@ -218,6 +222,8 @@ namespace
 
     feed_handle add_feed(session& s, dict params)
     {
+        allow_threading_guard guard;
+
         feed_settings feed;
         dict_to_feed_settings(params, feed);
 
@@ -226,6 +232,8 @@ namespace
 
     dict get_feed_status(feed_handle const& h)
     {
+        allow_threading_guard guard;
+
         feed_status s = h.get_feed_status();
         dict ret;
         ret["url"] = s.url;
@@ -259,6 +267,8 @@ namespace
 
     void set_feed_settings(feed_handle& h, dict sett)
     {
+        allow_threading_guard guard;
+
         feed_settings feed;
         dict_to_feed_settings(sett, feed);
         h.set_settings(feed);
@@ -266,6 +276,8 @@ namespace
 
     dict get_feed_settings(feed_handle& h)
     {
+        allow_threading_guard guard;
+
         feed_settings s = h.settings();
         dict ret;
         ret["url"] = s.url;
@@ -294,6 +306,7 @@ namespace
 
     list get_torrents(session& s)
     {
+        allow_threading_guard guard;
         list ret;
         std::vector<torrent_handle> torrents = s.get_torrents();
 
@@ -327,6 +340,7 @@ namespace
 
     entry save_state(session const& s, boost::uint32_t flags)
     {
+        allow_threading_guard guard;
         entry e;
         s.save_state(e, flags);
         return e;

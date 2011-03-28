@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io_service.hpp"
@@ -116,6 +117,7 @@ namespace libtorrent {
 			"send buffer watermark too low (upload rate will suffer)",
 			"too many optimistic unchoke slots",
 			"using bittyrant unchoker with no upload rate limit set",
+			"the disk queue limit is too high compared to the cache size. The disk queue eats into the cache size",
 			"outstanding AIO operations limit reached"
 		};
 
@@ -180,7 +182,7 @@ namespace libtorrent {
 	std::string tracker_announce_alert::message() const
 	{
 		const static char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
-		TORRENT_ASSERT_VAL(event < sizeof(event_str)/sizeof(event_str[0]), event);
+		TORRENT_ASSERT_VAL(event < int(sizeof(event_str)/sizeof(event_str[0])), event);
 		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 	}
 
@@ -328,9 +330,9 @@ namespace libtorrent {
 
 
 
-	alert_manager::alert_manager(io_service& ios)
+	alert_manager::alert_manager(io_service& ios, int queue_limit)
 		: m_alert_mask(alert::error_notification)
-		, m_queue_size_limit(queue_size_limit_default)
+		, m_queue_size_limit(queue_limit)
 		, m_ios(ios)
 	{}
 
@@ -382,7 +384,9 @@ namespace libtorrent {
 
 		while (!alerts.empty())
 		{
-			m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			} TORRENT_CATCH(std::exception&) {}
 			alerts.pop_front();
 		}
 	}
@@ -402,7 +406,9 @@ namespace libtorrent {
 		if (m_dispatch)
 		{
 			TORRENT_ASSERT(m_alerts.empty());
-			m_dispatch(std::auto_ptr<alert>(alert_.clone()));
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alert_.clone()));
+			} TORRENT_CATCH(std::exception&) {}
 		}
 		else if (m_alerts.size() < m_queue_size_limit || !alert_.discardable())
 		{
@@ -415,13 +421,9 @@ namespace libtorrent {
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-			(*i)->on_alert(&alert_);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (std::exception&) {}
-#endif
+			TORRENT_TRY {
+				(*i)->on_alert(&alert_);
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 
@@ -444,6 +446,13 @@ namespace libtorrent {
 		alert* result = m_alerts.front();
 		m_alerts.pop_front();
 		return std::auto_ptr<alert>(result);
+	}
+
+	void alert_manager::get_all(std::deque<alert*>* alerts)
+	{
+		mutex::scoped_lock lock(m_mutex);
+		if (m_alerts.empty()) return;
+		m_alerts.swap(*alerts);
 	}
 
 	bool alert_manager::pending() const

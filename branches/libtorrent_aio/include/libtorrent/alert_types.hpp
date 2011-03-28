@@ -220,6 +220,7 @@ namespace libtorrent
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
 			bittyrant_with_no_uplimit,
+			too_high_disk_queue_limit,
 			aio_limit_reached,
 
 

@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
@@ -228,7 +229,7 @@ namespace libtorrent
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
 		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
-			&& p.num_have() + p.get_download_queue().size()
+			&& p.num_have() + int(p.get_download_queue().size())
 				< t.torrent_file().num_pieces())
 			|| dq.size() + rq.size() > 0;
 
@@ -325,6 +326,8 @@ namespace libtorrent
 			== p.blocks_in_piece(busy_block.piece_index));
 #endif
 		TORRENT_ASSERT(p.is_requested(busy_block));
+		TORRENT_ASSERT(!p.is_downloaded(busy_block));
+		TORRENT_ASSERT(!p.is_finished(busy_block));
 		TORRENT_ASSERT(p.num_peers(busy_block) > 0);
 
 		c.add_request(busy_block, peer_connection::req_busy);
@@ -344,8 +347,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		aux::session_impl& ses = m_torrent->session();
-		piece_picker* p = 0;
-		if (m_torrent->has_picker()) p = &m_torrent->picker();
+		if (!m_torrent->apply_ip_filter()) return;
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
@@ -468,7 +470,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
-		int round_robin = rand() % m_peers.size();
+		int round_robin = random() % m_peers.size();
 
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
@@ -517,6 +519,11 @@ namespace libtorrent
 		if (is_connect_candidate(*p, m_finished))
 			--m_num_connect_candidates;
 
+#ifdef TORRENT_STATS
+		aux::session_impl& ses = m_torrent->session();
+		++ses.m_num_banned_peers;
+#endif
+
 		p->banned = true;
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 	}
@@ -551,7 +558,7 @@ namespace libtorrent
 			|| p.banned
 			|| !p.connectable
 			|| (p.seed && finished)
-			|| p.failcount >= m_torrent->settings().max_failcount)
+			|| int(p.failcount) >= m_torrent->settings().max_failcount)
 			return false;
 		
 		aux::session_impl const& ses = m_torrent->session();
@@ -586,7 +593,7 @@ namespace libtorrent
 			// set external_ip to a random value, to
 			// radomize which peers we prefer
 			address_v4::bytes_type bytes;
-			std::generate(bytes.begin(), bytes.end(), &std::rand);
+			std::generate(bytes.begin(), bytes.end(), &random);
 			external_ip = address_v4(bytes);
 		}
 
@@ -1115,7 +1122,6 @@ namespace libtorrent
 	policy::peer* policy::add_i2p_peer(char const* destination, int src, char flags)
 	{
 		INVARIANT_CHECK;
-		aux::session_impl& ses = m_torrent->session();
 	
 		bool found = false;
 		iterator iter = std::lower_bound(
@@ -1196,7 +1202,8 @@ namespace libtorrent
 		}
 
 		// if the IP is blocked, don't add it
-		if (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked)
+		if (m_torrent->apply_ip_filter()
+			&& (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked))
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
@@ -1205,10 +1212,6 @@ namespace libtorrent
 
 		iterator iter;
 		peer* p = 0;
-
-		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
 
 		bool found = false;
 		if (m_torrent->settings().allow_multiple_connections_per_ip)
@@ -1537,9 +1540,6 @@ namespace libtorrent
 	}
 #endif // TORRENT_DEBUG
 
-	policy::peer::peer()
-	{}
-
 	policy::peer::peer(boost::uint16_t port, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
@@ -1577,6 +1577,9 @@ namespace libtorrent
 		, supports_utp(true) // assume peers support utp
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
+#ifdef TORRENT_DEBUG
+		, in_use(false)
+#endif
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
 	}

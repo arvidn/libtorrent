@@ -252,7 +252,7 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(iterator p, int begin, int end
-			, io_service& ios, int queue_buffer_size, error_code const& ec);
+			, io_service& ios, error_code const& ec);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
@@ -304,6 +304,10 @@ namespace libtorrent
 
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;
+
+		// the number of blocks read because we needed to
+		// hash the piece
+		int m_total_read_back;
 
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;

@@ -83,12 +83,12 @@ int main()
 		return 1;
 	}
 
-	printf("%-35s%-18s%-40s%-8sflags\n", "address", "netmask", "name", "mtu");
+	printf("%-30s%-45s%-20s%-8sflags\n", "address", "netmask", "name", "mtu");
 
 	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		printf("%-35s%-18s%-40s%-8d%s%s%s\n"
+		printf("%-30s%-45s%-20s%-8d%s%s%s\n"
 			, i->interface_address.to_string(ec).c_str()
 			, i->netmask.to_string(ec).c_str()
 			, i->name

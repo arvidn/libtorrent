@@ -52,11 +52,11 @@ namespace libtorrent {
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;
-		for (int i = 0; i < m_capacity; ++i)
+		for (int i = 0; i < int(m_capacity); ++i)
 		{
 			count += m_storage[i] ? 1 : 0;
 		}
-		TORRENT_ASSERT(count == m_size);
+		TORRENT_ASSERT(count == int(m_size));
 	}
 #endif
 
@@ -193,7 +193,7 @@ namespace libtorrent {
 		if (idx == m_first && m_size != 0)
 		{
 			++m_first;
-			for (int i = 0; i < m_capacity; ++i, ++m_first)
+			for (boost::uint32_t i = 0; i < m_capacity; ++i, ++m_first)
 				if (m_storage[m_first & mask]) break;
 			m_first &= 0xffff;
 		}
@@ -201,7 +201,7 @@ namespace libtorrent {
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
 			--m_last;
-			for (int i = 0; i < m_capacity; ++i, --m_last)
+			for (boost::uint32_t i = 0; i < m_capacity; ++i, --m_last)
 				if (m_storage[m_last & mask]) break;
 			++m_last;
 			m_last &= 0xffff;

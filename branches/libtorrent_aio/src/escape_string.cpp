@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/random.hpp"
 
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -101,7 +102,7 @@ namespace libtorrent
 	bool is_space(char c)
 	{
 		const static char* ws = " \t\n\r\f\v";
-		return bool(std::strchr(ws, c));
+		return std::strchr(ws, c) != 0;
 	}
 
 	// generate a url-safe random string
@@ -114,7 +115,7 @@ namespace libtorrent
 
 		// the random number
 		while (begin != end)
-			*begin++ = printable[rand() % (sizeof(printable)-1)];
+			*begin++ = printable[random() % (sizeof(printable)-1)];
 	}
 
 	char to_lower(char c)
@@ -242,7 +243,7 @@ namespace libtorrent
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(offset < sizeof(unreserved_chars)-1);
+		TORRENT_ASSERT(offset < int(sizeof(unreserved_chars))-1);
 
 		std::string ret;
 		for (int i = 0; i < len; ++i)
@@ -657,7 +658,9 @@ namespace libtorrent
 		if (iconv_handle == iconv_t(-1)) return s;
 		return iconv_convert_impl(s, iconv_handle);
 	}
-#elif defined TORRENT_WINDOWS
+
+#elif TORRENT_USE_LOCALE
+
 	std::string convert_to_native(std::string const& s)
 	{
 		std::wstring ws;
@@ -682,6 +685,7 @@ namespace libtorrent
 		libtorrent::wchar_utf8(ws, ret);
 		return ret;
 	}
+
 #endif
 
 }

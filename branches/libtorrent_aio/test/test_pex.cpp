@@ -49,28 +49,44 @@ void test_pex()
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49200, 50000), "0.0.0.0", 0);
 	session ses3(fingerprint("LT", 0, 1, 0, 0), std::make_pair(50200, 51000), "0.0.0.0", 0);
 
+	ses1.add_extension(create_ut_pex_plugin);
+	ses2.add_extension(create_ut_pex_plugin);
+
+	torrent_handle tor1;
+	torrent_handle tor2;
+	torrent_handle tor3;
+
+	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
+
+	int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+	ses1.set_alert_mask(mask);
+	ses2.set_alert_mask(mask);
+	ses3.set_alert_mask(mask);
+
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 1000;
 	session_settings set = ses1.settings();
-	set.upload_rate_limit = rate_limit;
+	set.download_rate_limit = 0;
+	set.upload_rate_limit = 0;
 	ses1.set_settings(set);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	set = ses2.settings();
-	set.download_rate_limit = rate_limit;
+	set.download_rate_limit = 2000;
 	set.upload_rate_limit = 2000;
+	set.ignore_limits_on_local_network = false;
+	set.rate_limit_utp = true;
 	ses2.set_settings(set);
 
 	set = ses3.settings();
-	set.download_rate_limit = rate_limit;
-	set.upload_rate_limit = rate_limit / 2;
+	set.download_rate_limit = 0;
+	set.upload_rate_limit = 0;
 	ses3.set_settings(set);
-
-	ses1.add_extension(&create_ut_pex_plugin);
-	ses2.add_extension(&create_ut_pex_plugin);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -81,18 +97,7 @@ void test_pex()
 	ses3.set_pe_settings(pes);
 #endif
 
-	torrent_handle tor1;
-	torrent_handle tor2;
-	torrent_handle tor3;
-
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, false, "_pex");
-
-	int mask = alert::all_categories & ~(alert::progress_notification | alert::performance_warning);
-	ses1.set_alert_mask(mask);
-	ses2.set_alert_mask(mask);
-	ses3.set_alert_mask(mask);
-
-	test_sleep(1000);
+	test_sleep(100);
 
 	// in this test, ses1 is a seed, ses2 is connected to ses1 and ses3.
 	// the expected behavior is that ses2 will introduce ses1 and ses3 to each other
@@ -103,7 +108,7 @@ void test_pex()
 	torrent_status st1;
 	torrent_status st2;
 	torrent_status st3;
-	for (int i = 0; i < 90; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -126,10 +131,15 @@ void test_pex()
 			<< st3.num_peers
 			<< std::endl;
 
+		// this is the success condition
 		if (st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)
 			break;
 
+		// this suggests that we failed. If session 3 completes without
+		// actually connecting to session 1, everything was transferred
+		// through session 2
 		if (st3.state == torrent_status::seeding) break;
+
 		test_sleep(1000);
 	}
 

@@ -82,6 +82,7 @@ namespace libtorrent
 			, blocks_read(0)
 			, blocks_read_hit(0)
 			, reads(0)
+			, queued_bytes(0)
 			, cache_size(0)
 			, read_cache_size(0)
 			, elevator_turns(0)
@@ -89,6 +90,16 @@ namespace libtorrent
 			, average_queue_time(0)
 			, average_read_time(0)
 			, average_write_time(0)
+			, average_hash_time(0)
+			, average_job_time(0)
+			, average_sort_time(0)
+			, cumulative_job_time(0)
+			, cumulative_read_time(0)
+			, cumulative_write_time(0)
+			, cumulative_hash_time(0)
+			, cumulative_sort_time(0)
+			, total_read_back(0)
+			, read_queue_size(0)
 			, blocked_jobs(0)
 			, queued_jobs(0)
 			, pending_jobs(0)
@@ -134,7 +145,18 @@ namespace libtorrent
 		int average_queue_time;
 		int average_read_time;
 		int average_write_time;
+		int average_hash_time;
+		int average_job_time;
+		int average_sort_time;
 
+		boost::uint32_t cumulative_job_time;
+		boost::uint32_t cumulative_read_time;
+		boost::uint32_t cumulative_write_time;
+		boost::uint32_t cumulative_hash_time;
+		boost::uint32_t cumulative_sort_time;
+		int total_read_back;
+		int read_queue_size;
+	
 		// number of jobs blocked because of a fence
 		int blocked_jobs;
 
@@ -168,7 +190,11 @@ namespace libtorrent
 		friend void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped);
 #endif
 
+		friend void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios
+			, int elevator_direction, disk_io_thread* io);
+
 		disk_io_thread(io_service& ios
+			, boost::function<void()> const& queue_callback
 			, boost::function<void(alert*)> const& post_alert
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
@@ -178,10 +204,11 @@ namespace libtorrent
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
-		void add_job(disk_io_job const& j);
+		int add_job(disk_io_job const& j);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		void thread_fun();
+		bool can_write() const;
 
 		file_pool& files() { return m_file_pool; }
 
@@ -213,11 +240,15 @@ namespace libtorrent
 		int do_finalize_file(disk_io_job& j);
 		int do_get_cache_info(disk_io_job& j);
 
+		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
 	private:
+
+		void added_to_write_queue();
+		void deducted_from_write_queue();
 
 		void perform_async_job(disk_io_job j);
 
@@ -249,6 +280,9 @@ namespace libtorrent
 		bool m_abort;
 
 		// this is the number of bytes we're waiting for to be written
+		size_type m_pending_buffer_size;
+
+		// the number of bytes waiting in write jobs in m_jobs
 		size_type m_queue_buffer_size;
 
 		ptime m_last_file_check;
@@ -268,11 +302,27 @@ namespace libtorrent
 		// average write time (in microseconds)
 		sliding_average<512> m_write_time;
 
+		// average hash time (in microseconds)
+		sliding_average<512> m_hash_time;
+
+		// average time to serve a job (any job) in microseconds
+		sliding_average<512> m_job_time;
+
+		// average time to ask for physical offset on disk
+		// and insert into queue
+		sliding_average<512> m_sort_time;
+
 		// number of write operations issued
 		boost::uint64_t m_write_calls;
 		boost::uint64_t m_read_calls;
 		boost::uint64_t m_write_blocks;
 		boost::uint64_t m_read_blocks;
+
+		size_type m_cumulative_job_time;
+		size_type m_cumulative_read_time;
+		size_type m_cumulative_write_time;
+		size_type m_cumulative_hash_time;
+		size_type m_cumulative_sort_time;
 
 		// these are async I/O operations that have been issued
 		// and we are waiting to complete
@@ -311,10 +361,17 @@ namespace libtorrent
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;
 
+		// if we exceeded the max queue disk write size
+		// this is set to true. It remains true until the
+		// queue is smaller than the low watermark
+		bool m_exceeded_write_queue;
+
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
+
+		boost::function<void()> m_queue_callback;
 
 		// Jobs that are blocked by the fence are put in this
 		// list. Each time a storage is taken out of the fence,

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <set>
+#include <deque>
 #include <cctype>
 #include <algorithm>
 
@@ -85,6 +86,15 @@ void stop_malloc_debug();
 
 namespace libtorrent
 {
+#ifdef _MSC_VER
+	namespace aux
+	{
+		eh_initializer::eh_initializer()
+		{
+			::_set_se_translator(straight_to_debugger);
+		}
+	}
+#endif
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
@@ -175,10 +185,15 @@ namespace libtorrent
 		// plenty of bandwidth
 		set.mixed_mode_algorithm = session_settings::prefer_tcp;
 
+		// we will probably see a high rate of alerts, make it less
+		// likely to loose alerts
 		set.alert_queue_size = 10000;
 
 		// allow 500 files open at a time
 		set.file_pool_size = 500;
+
+		// don't update access time for each read/write
+		set.no_atime_storage = true;
 
 		// as a seed box, we must accept multiple peers behind
 		// the same NAT
@@ -186,6 +201,23 @@ namespace libtorrent
 
 		// connect to 50 peers per second
 		set.connection_speed = 50;
+
+		// allow 8000 peer connections
+		set.connections_limit = 8000;
+
+		// unchoke many peers
+		set.unchoke_slots_limit = 500;
+
+		// we need more DHT capacity to ping more peers
+		// candidates before trying to connect
+		set.dht_upload_rate_limit = 100000;
+
+		// we're more interested in downloading than seeding
+		// only service a read job every 1000 write job (when
+		// disk is congested). Presumably on a big box, writes
+		// are extremely cheap and reads are relatively expensive
+		// so that's the main reason this ratio should be adjusted
+		set.read_job_every = 100;
 
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
@@ -202,12 +234,13 @@ namespace libtorrent
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 300 * 1024 * 1024;
-		// flush write cache based on largest contiguous block
-		set.disk_cache_algorithm = session_settings::largest_contiguous;
+		set.max_queued_disk_bytes = 10 * 1024 * 1024;
+		// flush write cache in a way to minimize the amount we need to
+		// read back once we want to hash-check the piece. i.e. try to
+		// flush all blocks in-order
+		set.disk_cache_algorithm = session_settings::avoid_readback;
 
-		// explicitly cache rare pieces
-		set.explicit_read_cache = true;
+		set.explicit_read_cache = false;
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.allowed_fast_set_size = 0;
@@ -235,9 +268,9 @@ namespace libtorrent
 		// in order to be able to deliver very high
 		// upload rates, this should be able to cover
 		// the bandwidth delay product. Assuming an RTT
-		// of 500 ms, and a send rate of 10 MB/s, the upper
-		// limit should be 5 MB
-		set.send_buffer_watermark = 5 * 1024 * 1024;
+		// of 500 ms, and a send rate of 20 MB/s, the upper
+		// limit should be 10 MB
+		set.send_buffer_watermark = 10 * 1024 * 1024;
 
 		// put 10 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
@@ -282,57 +315,58 @@ namespace libtorrent
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	m_impl->m_io_service.post(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
 
+#define TORRENT_WAIT \
+	mutex::scoped_lock l(m_impl->mut); \
+	while (!done) { m_impl->cond.wait(l); };
+
 #define TORRENT_SYNC_CALL(x) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL2(x, a1, a2) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
 	bool done = false; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
+
+#define TORRENT_SYNC_CALL4(x, a1, a2, a3, a4) \
+	bool done = false; \
+	m_impl->m_io_service.post(boost::bind(&fun_wrap, &done, &m_impl->cond, &m_impl->mut, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3, a4)))); \
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET(type, x) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get())))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET1(type, x, a1) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	bool done = false; \
 	type r; \
-	mutex::scoped_lock l(m_impl->mut); \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
-	do { m_impl->cond.wait(l); } while(!done)
+	TORRENT_WAIT
 
 	// this is a dummy function that's exported and named based
 	// on the configuration. The session.hpp file will reference
@@ -466,7 +500,8 @@ namespace libtorrent
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
 		error_code ec;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		TORRENT_ASSERT(ret == 0);
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
@@ -648,12 +683,23 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(remove_torrent, h, options);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	bool session::listen_on(
 		std::pair<int, int> const& port_range
 		, const char* net_interface, int flags)
 	{
-		TORRENT_SYNC_CALL_RET3(bool, listen_on, port_range, net_interface, flags);
-		return r;
+		error_code ec;
+		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
+		return !!ec;
+	}
+#endif
+
+	void session::listen_on(
+		std::pair<int, int> const& port_range
+		, error_code& ec
+		, const char* net_interface, int flags)
+	{
+		TORRENT_SYNC_CALL4(listen_on, port_range, boost::ref(ec), net_interface, flags);
 	}
 
 	unsigned short session::listen_port() const
@@ -944,6 +990,15 @@ namespace libtorrent
 	std::auto_ptr<alert> session::pop_alert()
 	{
 		return m_impl->pop_alert();
+	}
+
+	void session::pop_alerts(std::deque<alert*>* alerts)
+	{
+		for (std::deque<alert*>::iterator i = alerts->begin()
+			, end(alerts->end()); i != end; ++i)
+			delete *i;
+		alerts->clear();
+		m_impl->pop_alerts(alerts);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)

@@ -136,7 +136,7 @@ namespace libtorrent
 #endif
 			, free_torrent_hashes(true)
 			, upnp_ignore_nonrouters(false)
- 			, send_buffer_watermark(100 * 1024)
+ 			, send_buffer_watermark(700 * 1024)
 			, send_buffer_watermark_factor(1)
 #ifndef TORRENT_NO_DEPRECATE
 			// deprecated in 0.16
@@ -159,7 +159,7 @@ namespace libtorrent
 			, coalesce_writes(false)
 			, outgoing_ports(0,0)
 			, peer_tos(0)
-			, active_downloads(8)
+			, active_downloads(3)
 			, active_seeds(5)
 			, active_dht_limit(88) // don't announce more than once every 40 seconds
 			, active_tracker_limit(360) // don't announce to trackers more than once every 5 seconds
@@ -231,7 +231,7 @@ namespace libtorrent
 			, strict_end_game_mode(true)
 			, default_peer_upload_rate(0)
 			, default_peer_download_rate(0)
-			, broadcast_lsd(false)
+			, broadcast_lsd(true)
 			, enable_outgoing_utp(true)
 			, enable_incoming_utp(true)
 			, enable_outgoing_tcp(true)
@@ -247,6 +247,7 @@ namespace libtorrent
 			, download_rate_limit(0)
 			, local_upload_rate_limit(0)
 			, local_download_rate_limit(0)
+			, dht_upload_rate_limit(4000)
 			, unchoke_slots_limit(8)
 			, half_open_limit(0)
 			, connections_limit(200)
@@ -268,6 +269,10 @@ namespace libtorrent
 			, no_connect_privileged_ports(true)
 			, alert_queue_size(1000)
 			, max_metadata_size(1024*1024)
+			, smooth_connects(true)
+			, always_send_user_agent(false)
+			, apply_ip_filter_to_trackers(true)
+			, read_job_every(10)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -757,7 +762,7 @@ namespace libtorrent
 		int file_checks_delay_per_block;
 
 		enum disk_cache_algo_t
-		{ lru, largest_contiguous };
+		{ lru, largest_contiguous, avoid_readback };
 
 		disk_cache_algo_t disk_cache_algorithm;
 
@@ -964,6 +969,9 @@ namespace libtorrent
 		// network, in the session
 		int local_download_rate_limit;
 
+		// max upload rate used by the DHT in bytes per second
+		int dht_upload_rate_limit;
+
 		// the max number of unchoke slots in the session (might be
 		// overridden by unchoke algorithm)
 		int unchoke_slots_limit;
@@ -1060,6 +1068,22 @@ namespace libtorrent
 		// the max allowed size for metadata received by the
 		// ut_metadata extension (i.e. magnet links)
 		int max_metadata_size;
+
+		// attempt to smooth out connects to avoid getting spikes in
+		// opening connections and timing out connections
+		bool smooth_connects;
+
+		// always send user-agent
+		bool always_send_user_agent;
+
+		// if true, trackers will also be filtered by the IP
+		// filter, otherwise they are exempt
+		bool apply_ip_filter_to_trackers;
+
+		// to avoid write jobs starving read jobs, if this many
+		// write jobs have been taking priority in a row, service
+		// one read job
+		int read_job_every;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

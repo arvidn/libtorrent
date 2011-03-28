@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <fstream>
+#include <deque>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -60,7 +61,7 @@ bool tests_failure = false;
 
 void report_failure(char const* err, char const* file, int line)
 {
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && defined TORRENT_MINGW
 	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
 	SetConsoleTextAttribute(console, FOREGROUND_RED);
 	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
@@ -80,24 +81,24 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
 	if (!handles.empty()) h = handles[0];
-	std::auto_ptr<alert> a;
-	a = ses.pop_alert();
-	while (a.get())
+	std::deque<alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (std::deque<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
 	{
-		if (predicate && predicate(a.get())) ret = true;
-		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(a.get()))
+		if (predicate && predicate(*i)) ret = true;
+		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
 			fprintf(stderr, "%s(%s): %s\n", name, print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if (a->message() != "block downloading"
-			&& a->message() != "block finished"
-			&& a->message() != "piece finished")
+		else if ((*i)->message() != "block downloading"
+			&& (*i)->message() != "block finished"
+			&& (*i)->message() != "piece finished")
 		{
-			fprintf(stderr, "%s: %s\n", name, a->message().c_str());
+			fprintf(stderr, "%s: %s\n", name, (*i)->message().c_str());
 		}
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) == 0 || allow_failed_fastresume);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
-		peer_error_alert* pea = alert_cast<peer_error_alert>(a.get());
+		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		TEST_CHECK(pea == 0
 			|| (!handles.empty() && h.status().is_seeding)
 			|| pea->error.message() == "connecting to peer"
@@ -109,7 +110,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 			|| (allow_disconnects && pea->error.message() == "Broken pipe")
 			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
 			|| (allow_disconnects && pea->error.message() == "End of file."));
-		a = ses.pop_alert();
+		delete *i;
 	}
 	return ret;
 }
@@ -251,14 +252,17 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p)
+	, add_torrent_params const* p, bool stop_lsd)
 {
 	assert(ses1);
 	assert(ses2);
 
-	ses1->stop_lsd();
-	ses2->stop_lsd();
-	if (ses3) ses3->stop_lsd();
+	if (stop_lsd)
+	{
+		ses1->stop_lsd();
+		ses2->stop_lsd();
+		if (ses3) ses3->stop_lsd();
+	}
 
 	session_settings sess_set = ses1->settings();
 	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
@@ -272,7 +276,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 
-	std::srand(time(0));
+	std::srand((unsigned int)time(0));
 	peer_id pid;
 	std::generate(&pid[0], &pid[0] + 20, std::rand);
 	ses1->set_peer_id(pid);
@@ -837,7 +841,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				break;
 			}
 
-			offset += p.body_start() + p.content_length();
+			offset += int(p.body_start() + p.content_length());
 //			fprintf(stderr, "offset: %d len: %d\n", offset, len);
 
 			if (p.method() != "get" && p.method() != "post")

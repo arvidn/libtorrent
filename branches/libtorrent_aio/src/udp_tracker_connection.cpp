@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_any
+#include "libtorrent/random.hpp"
 
 namespace libtorrent
 {
@@ -162,21 +163,25 @@ namespace libtorrent
 		std::transform(i, tcp::resolver::iterator(), std::back_inserter(m_endpoints)
 			, boost::bind(&tcp::resolver::iterator::value_type::endpoint, _1));
 
-		// remove endpoints that are filtered by the IP filter
-		for (std::list<tcp::endpoint>::iterator i = m_endpoints.begin();
-			i != m_endpoints.end();)
+		if (tracker_req().apply_ip_filter)
 		{
-			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
+			// remove endpoints that are filtered by the IP filter
+			for (std::list<tcp::endpoint>::iterator k = m_endpoints.begin();
+				k != m_endpoints.end();)
 			{
+				if (m_ses.m_ip_filter.access(k->address()) == ip_filter::blocked) 
+				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(i->address()) + " ]");
+					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(k->address()) + " ]");
 #endif
-				i = m_endpoints.erase(i);
+					k = m_endpoints.erase(k);
+				}
+				else
+					++k;
 			}
-			else
-				++i;
 		}
 
+		// if all endpoints were filtered by the IP filter, we can't connect
 		if (m_endpoints.empty())
 		{
 			fail(error_code(errors::banned_by_ip_filter));
@@ -402,7 +407,7 @@ namespace libtorrent
 		char* ptr = buf;
 
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		detail::write_uint32(0x417, ptr);
 		detail::write_uint32(0x27101980, ptr); // connection_id
@@ -432,7 +437,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_scrape()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		if (m_abort) return;
 
@@ -590,7 +595,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_announce()
 	{
 		if (m_transaction_id == 0)
-			m_transaction_id = std::rand() ^ (std::rand() << 16);
+			m_transaction_id = random() ^ (random() << 16);
 
 		if (m_abort) return;
 

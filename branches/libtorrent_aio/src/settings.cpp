@@ -66,12 +66,12 @@ namespace libtorrent
 					size_type val = key->int_value();
 					switch (m[i].type)
 					{
-						case character: *((char*)dest) = val; break;
-						case integer: *((int*)dest) = val; break;
-						case size_integer: *((size_type*)dest) = val; break;
-						case time_integer: *((time_t*)dest) = val; break;
+						case character: *((char*)dest) = char(val); break;
+						case integer: *((int*)dest) = int(val); break;
+						case size_integer: *((size_type*)dest) = size_type(val); break;
+						case time_integer: *((time_t*)dest) = time_t(val); break;
 						case floating_point: *((float*)dest) = float(val) / 1000.f; break;
-						case boolean: *((bool*)dest) = val; break;
+						case boolean: *((bool*)dest) = (val != 0); break;
 					}
 				}
 			}

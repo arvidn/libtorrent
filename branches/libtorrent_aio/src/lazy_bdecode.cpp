@@ -464,6 +464,9 @@ namespace libtorrent
 			line_len += 2;
 		}
 		break;
+		case lazy_entry::none_t:
+			line_len += 4;
+			break;
 		}
 	
 		if (line_len > limit) return -1;

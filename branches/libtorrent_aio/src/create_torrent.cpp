@@ -124,7 +124,7 @@ namespace libtorrent
 		if (piece_size == 0 && !m_merkle_torrent)
 		{
 			const int target_size = 40 * 1024;
-			piece_size = fs.total_size() / (target_size / 20);
+			piece_size = int(fs.total_size() / (target_size / 20));
 	
 			int i = 16*1024;
 			for (; i < 2*1024*1024; i *= 2)

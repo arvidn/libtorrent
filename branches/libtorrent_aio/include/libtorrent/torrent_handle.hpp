@@ -229,9 +229,11 @@ namespace libtorrent
 		void set_share_mode(bool b) const;
 		void flush_cache() const;
 
+		void apply_ip_filter(bool b) const;
+
 		void force_recheck() const;
 
-		enum save_resume_flags_t { flush_disk_cache = 1 };
+		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 
@@ -440,10 +442,13 @@ namespace libtorrent
 			, num_incomplete(-1)
 			, list_seeds(0)
 			, list_peers(0)
+			, connect_candidates(0)
 			, num_pieces(0)
 			, total_done(0)
 			, total_wanted_done(0)
 			, total_wanted(0)
+			, distributed_full_copies(0)
+			, distributed_fraction(0)
 			, distributed_copies(0.f)
 			, block_size(0)
 			, num_uploads(0)
@@ -472,6 +477,8 @@ namespace libtorrent
 			, time_since_upload(0)
 			, time_since_download(0)
 			, queue_position(0)
+			, need_save_resume(false)
+			, ip_filter_applies(true)
 		{}
 
 		// handle to the torrent
@@ -680,6 +687,10 @@ namespace libtorrent
 		// true if this torrent has had changes since the last
 		// time resume data was saved
 		bool need_save_resume;
+
+		// defaults to true. Determines whether the session
+		// IP filter applies to this torrent or not
+		bool ip_filter_applies;
 	};
 
 }

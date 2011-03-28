@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/random.hpp"
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
 #endif
@@ -390,7 +391,7 @@ namespace libtorrent { namespace
 
 		void failed_hash_check(ptime const& now)
 		{
-			m_request_limit = now + seconds(20 + (rand() * 50) / RAND_MAX);
+			m_request_limit = now + seconds(20 + (boost::int64_t(random()) * 50) / UINT_MAX);
 		}
 
 	private:
@@ -507,7 +508,7 @@ namespace libtorrent { namespace
 				// if we only have one block, and thus requested it from a single
 				// peer, we bump up the retry time a lot more to try other peers
 				bool single_peer = m_requested_metadata.size() == 1;
-				for (int i = 0; i < m_requested_metadata.size(); ++i)
+				for (int i = 0; i < int(m_requested_metadata.size()); ++i)
 				{
 					m_requested_metadata[i].num_requests = 0;
 					boost::shared_ptr<ut_metadata_peer_plugin> peer

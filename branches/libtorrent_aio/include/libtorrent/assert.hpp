@@ -49,7 +49,7 @@ extern char const* libtorrent_assert_log;
 std::string demangle(char const* name);
 #endif
 
-#if (defined __linux__ || defined __MACH__) && defined __GNUC__
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 
 #if TORRENT_USE_IOSTREAM
 #include <sstream>

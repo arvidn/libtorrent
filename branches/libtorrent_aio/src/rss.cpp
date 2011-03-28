@@ -211,7 +211,7 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				f.in_item = false;
 				if (!f.current_item.title.empty()
 					&& !f.current_item.url.empty())
-					f.ret.m_items.push_back(f.current_item);
+					f.ret.add_item(f.current_item);
 				f.current_item = feed_item();
 			}
 			f.current_tag = "";
@@ -368,11 +368,12 @@ void feed::on_feed(error_code const& ec
 		p.ti.reset();
 		p.info_hash.clear();
 		p.name = i->title.c_str();
-		error_code ec;
+
+		error_code e;
 		// #error session_impl::add_torrent doesn't support magnet links via url
-		m_ses.add_torrent(p, ec);
+		m_ses.add_torrent(p, e);
 		
-		if (ec)
+		if (e)
 		{
 // #error alert!
 		}
@@ -452,6 +453,14 @@ void feed::load_state(lazy_entry const& rd)
 			m_items.push_back(feed_item());
 			load_struct(*e->list_at(i), &m_items.back(), feed_item_map
 				, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
+
+			// don't load duplicates
+			if (m_urls.find(m_items.back().url) != m_urls.end())
+			{
+				m_items.pop_back();
+				continue;
+			}
+			m_urls.insert(m_items.back().url);
 		}
 	}
 	load_struct(rd, &m_settings, feed_settings_map
@@ -482,6 +491,16 @@ void feed::save_state(entry& rd) const
 	add_torrent_params add_def;
 	save_struct(add, &m_settings.add_args, add_torrent_map
 		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
+}
+
+void feed::add_item(feed_item const& item)
+{
+	// don't add duplicates
+	if (m_urls.find(item.url) != m_urls.end())
+		return;
+
+	m_urls.insert(item.url);
+	m_items.push_back(item);
 }
 
 void feed::update_feed()
@@ -520,8 +539,10 @@ void feed::get_feed_status(feed_status* ret) const
 
 int feed::next_update(time_t now) const
 {
+	if (m_last_update == 0) return INT_MAX;
 	int ttl = m_ttl == -1 ? m_settings.default_ttl : m_ttl;
-	return (m_last_update + ttl * 60) - now;
+	TORRENT_ASSERT((m_last_update + ttl * 60) - now < INT_MAX);
+	return int((m_last_update + ttl * 60) - now);
 }
 
 // defined in session.cpp

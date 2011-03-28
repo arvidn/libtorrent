@@ -80,7 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct http_parser;
+	class http_parser;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
@@ -93,7 +93,7 @@ namespace libtorrent
 	struct tracker_request;
 	struct add_torrent_params;
 	struct storage_interface;
-	struct bt_peer_connection;
+	class bt_peer_connection;
 
 	namespace aux
 	{
@@ -237,7 +237,7 @@ namespace libtorrent
 		void handle_disk_error(disk_io_job const& j, peer_connection* c = 0);
 		void clear_error();
 		void set_error(error_code const& ec, std::string const& file);
-		bool has_error() const { return m_error; }
+		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
 		void flush_cache();
@@ -701,7 +701,11 @@ namespace libtorrent
 		{ return *m_torrent_file; }
 
 		std::string const& uuid() const { return m_uuid; }
+		void set_uuid(std::string const& s) { m_uuid = s; }
 		std::string const& url() const { return m_url; }
+		void set_url(std::string const& s) { m_url = s; }
+		std::string const& source_feed_url() const { return m_source_feed_url; }
+		void set_source_feed_url(std::string const& s) { m_source_feed_url = s; }
 
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
@@ -731,7 +735,14 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		void add_free_upload(int diff) { m_available_free_upload += diff; }
+		void add_free_upload(size_type diff)
+		{
+			TORRENT_ASSERT(diff >= 0);
+			if (UINT_MAX - m_available_free_upload > diff)
+				m_available_free_upload += boost::uint32_t(diff);
+			else
+				m_available_free_upload = UINT_MAX;
+		}
 
 		int get_peer_upload_limit(tcp::endpoint ip) const;
 		int get_peer_download_limit(tcp::endpoint ip) const;
@@ -815,6 +826,9 @@ namespace libtorrent
 #endif
 
 		void update_last_upload() { m_last_upload = 0; }
+
+		void set_apply_ip_filter(bool b);
+		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
 	private:
 
@@ -1270,6 +1284,10 @@ namespace libtorrent
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
 
+		// these are the flags sent in on a call to save_resume_data
+		// we need to save them to check them in write_resume_data
+		boost::uint8_t	m_save_resume_flags;
+
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
 		// before actually closing all connections
@@ -1281,6 +1299,20 @@ namespace libtorrent
 		// and set this to false. We only do this once to get
 		// the torrent kick-started
 		bool m_need_connect_boost:1;
+
+		// rotating sequence number for LSD announces sent out.
+		// used to only use IP broadcast for every 8th lsd announce
+		boost::uint8_t m_lsd_seq:3;
+
+		// this is set to true if the torrent was started without
+		// metadata. It is used to save metadata in the resume file
+		// by default for such torrents. It does not necessarily
+		// have to be a magnet link.
+		bool m_magnet_link:1;
+
+		// set to true if the session IP filter applies to this
+		// torrent or not. Defaults to true.
+		bool m_apply_ip_filter:1;
 	};
 }
 

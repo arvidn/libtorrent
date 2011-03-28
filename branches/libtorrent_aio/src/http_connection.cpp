@@ -252,7 +252,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl) userdata = &m_ssl_ctx;
 #endif
-		bool ret = instantiate_connection(m_resolver.get_io_service()
+		instantiate_connection(m_resolver.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata);
 
 		if (m_bind_addr != address_v4::any())
@@ -293,6 +293,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
+			m_endpoints.clear();
 			tcp::resolver::query query(hostname, port);
 			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
@@ -549,8 +550,9 @@ void http_connection::callback(error_code e, char const* data, int size)
 			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
 				, end(chunks.end()); i != end; ++i)
 			{
-				int len = i->second - i->first;
-				if (i->first - offset + len > size) len = size - i->first + offset;
+				TORRENT_ASSERT(i->second - i->first < INT_MAX);
+				int len = int(i->second - i->first);
+				if (i->first - offset + len > size) len = size - int(i->first) + offset;
 				memmove(write_ptr, data + i->first - offset, len);
 				write_ptr += len;
 			}

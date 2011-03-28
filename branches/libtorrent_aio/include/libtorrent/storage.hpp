@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/allocator.hpp"
 
 // #error remove this once file checking is async
 #include "libtorrent/block_cache.hpp"
@@ -245,7 +246,8 @@ namespace libtorrent
 			, boost::function<void(int, disk_io_job const&)> const& handler
 			, int cache_expiry = 0);
 
-		void async_write(
+		// returns the write queue size
+		int async_write(
 			peer_request const& r
 			, disk_buffer_holder& buffer
 			, boost::function<void(int, disk_io_job const&)> const& f);
@@ -296,7 +298,6 @@ namespace libtorrent
 		void mark_failed(int index);
 
 		int last_piece() const { return m_last_piece; }
-		int last_operation() const { return m_last_op; }
 
 		int slot_for(int piece) const;
 		int piece_for(int slot) const;
@@ -358,7 +359,7 @@ namespace libtorrent
 			, int current_slot);
 
 		void switch_to_full_mode();
-		sha1_hash hash_for_piece_impl(int piece, error_code& ec);
+		sha1_hash hash_for_piece_impl(int piece, error_code& ec, int* readback = 0);
 
 		void release_files_impl(error_code& ec) { m_storage->release_files(ec); }
 		void delete_files_impl(error_code& ec) { m_storage->delete_files(ec); }
@@ -431,16 +432,13 @@ namespace libtorrent
 		// used to move pieces while expanding
 		// the storage from compact allocation
 		// to full allocation
-		disk_buffer_holder m_scratch_buffer;
-		disk_buffer_holder m_scratch_buffer2;
+		aligned_holder m_scratch_buffer;
+		aligned_holder m_scratch_buffer2;
 		// the piece that is in the scratch buffer
 		int m_scratch_piece;
 
 		// the last piece we wrote to or read from
 		int m_last_piece;
-
-		// the last operation we did (read or write)
-		int m_last_op;
 
 		// this is saved in case we need to instantiate a new
 		// storage (osed when remapping files)

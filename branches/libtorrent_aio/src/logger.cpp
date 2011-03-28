@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct peer_connection;
+	class peer_connection;
 
 namespace
 {

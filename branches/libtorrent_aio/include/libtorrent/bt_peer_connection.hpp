@@ -204,7 +204,7 @@ namespace libtorrent
 		void on_have_none(int received);
 		void on_reject_request(int received);
 		void on_allowed_fast(int received);
-#ifndef TORRENT_DISABLE_ENCRYPTION
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		void on_holepunch();
 #endif
 
@@ -389,14 +389,14 @@ private:
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
-		int m_upload_only_id;
+		boost::uint8_t m_upload_only_id;
 
 		// the message ID for holepunch messages
-		int m_holepunch_id;
+		boost::uint8_t m_holepunch_id;
 
 		// the message ID for share mode message
 		// 0 if not supported
-		int m_share_mode_id;
+		boost::uint8_t m_share_mode_id;
 
 		char m_reserved_bits[8];
 #endif

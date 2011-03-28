@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
@@ -440,7 +441,7 @@ time_duration node_impl::connection_timeout()
 			++i;
 			continue;
 		}
-		m_feeds.erase(i);
+		m_feeds.erase(i++);
 	}
 
 	// look through all peers and see if any have timed out
@@ -555,7 +556,7 @@ bool node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 
 	while (m < num)
 	{
-		if ((std::rand() / (RAND_MAX + 1.f)) * (num - t) >= num - m)
+		if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m)
 		{
 			++iter;
 			++t;
@@ -678,7 +679,7 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 			if (ret[i])
 			{
 				++stack_ptr;
-				TORRENT_ASSERT(stack_ptr < sizeof(stack)/sizeof(stack[0]));
+				TORRENT_ASSERT(stack_ptr < int(sizeof(stack)/sizeof(stack[0])));
 				msg = ret[i];
 				stack[stack_ptr] = msg;
 			}
@@ -778,11 +779,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(reply, n);
 
-		int prefix = msg_keys[1] ? msg_keys[1]->int_value() : 20;
+		int prefix = msg_keys[1] ? int(msg_keys[1]->int_value()) : 20;
 		if (prefix > 20) prefix = 20;
 		else if (prefix < 4) prefix = 4;
 
 		bool ret = lookup_peers(info_hash, prefix, reply);
+		(void)ret;
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (ret) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
 #endif
@@ -829,7 +831,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		int port = msg_keys[1]->int_value();
+		int port = int(msg_keys[1]->int_value());
 		if (port < 0 || port >= 65536)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -859,7 +861,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr);
 
-		if (!m_map.empty() && m_map.size() >= m_settings.max_torrents)
+		if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
 		{
 			// we need to remove some. Remove the ones with the
 			// fewest peers
@@ -868,7 +870,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			for (table_t::iterator i = m_map.begin()
 				, end(m_map.end()); i != end; ++i)
 			{
-				if (i->second.peers.size() > num_peers) continue;
+				if (int(i->second.peers.size()) > num_peers) continue;
 				if (i->first == info_hash) continue;
 				num_peers = i->second.peers.size();
 				candidate = i;
@@ -1016,16 +1018,16 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (i == m_feeds.end())
 		{
 			// make sure we don't add too many items
-			if (m_feeds.size() >= m_settings.max_feed_items)
+			if (int(m_feeds.size()) >= m_settings.max_feed_items)
 			{
 				// delete the least important one (i.e. the one
 				// the fewest peers are announcing)
-				i = std::min_element(m_feeds.begin(), m_feeds.end()
+				feed_table_t::iterator j = std::min_element(m_feeds.begin(), m_feeds.end()
 					, boost::bind(&feed_item::num_announcers
 						, boost::bind(&feed_table_t::value_type::second, _1)));
-				TORRENT_ASSERT(i != m_feeds.end());
+				TORRENT_ASSERT(j != m_feeds.end());
 //				std::cerr << " removing: " << i->second.item << std::endl;
-				m_feeds.erase(i);
+				m_feeds.erase(j);
 			}
 			boost::tie(i, boost::tuples::ignore) = m_feeds.insert(std::make_pair(target, add_item));
 		}

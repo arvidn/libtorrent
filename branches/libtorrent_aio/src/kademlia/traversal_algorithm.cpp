@@ -280,14 +280,6 @@ void traversal_algorithm::done()
 	m_results.clear();
 }
 
-namespace
-{
-	bool bitwise_nand(unsigned char lhs, unsigned char rhs)
-	{
-		return (lhs & rhs) == 0;
-	}
-}
-
 void traversal_algorithm::add_requests()
 {
 	int results_target = m_num_target_nodes;

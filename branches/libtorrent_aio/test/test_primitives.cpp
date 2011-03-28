@@ -379,7 +379,8 @@ namespace libtorrent
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
 
-	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction);
+	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios
+		, int elevator_direction, disk_io_thread* io = 0);
 }
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
@@ -696,7 +697,7 @@ int test_main()
 
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved109 == 109);
+	TEST_CHECK(errors::reserved110 == 110);
 
 	{
 	// test session state load/restore

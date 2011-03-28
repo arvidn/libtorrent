@@ -59,10 +59,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/random.hpp"
 
 namespace libtorrent {
 
-	struct torrent;
+	class torrent;
 
 namespace
 {
@@ -71,7 +72,7 @@ namespace
 	{
 		smart_ban_plugin(torrent& t)
 			: m_torrent(t)
-			, m_salt(rand())
+			, m_salt(random())
 		{
 		}
 
@@ -85,7 +86,7 @@ namespace
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
 			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(piece_block(p, 0));
-			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
+			if (i == m_block_hashes.end() || int(i->first.piece_index) != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, (std::min)(16*1024, size)};
@@ -103,7 +104,7 @@ namespace
 					TORRENT_ASSERT(i->first.block_index > pb.block_index);
 				}
 
-				if (i == m_block_hashes.end() || i->first.piece_index != p)
+				if (i == m_block_hashes.end() || int(i->first.piece_index) != p)
 					break;
 
 				r.start += 16*1024;
@@ -115,7 +116,7 @@ namespace
 #ifndef NDEBUG
 			// make sure we actually removed all the entries for piece 'p'
 			i = m_block_hashes.lower_bound(piece_block(p, 0));
-			TORRENT_ASSERT(i == m_block_hashes.end() || i->first.piece_index != p);
+			TORRENT_ASSERT(i == m_block_hashes.end() || int(i->first.piece_index) != p);
 #endif
 
 			if (m_torrent.is_seed())

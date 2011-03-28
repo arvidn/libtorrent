@@ -60,7 +60,7 @@ namespace libtorrent
 			&& http_status < 400;
 	}
 
-	http_parser::http_parser()
+	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
 		, m_status_code(-1)
 		, m_content_length(-1)
@@ -74,6 +74,7 @@ namespace libtorrent
 		, m_cur_chunk_end(-1)
 		, m_chunk_header_size(0)
 		, m_partial_chunk_header(0)
+		, m_flags(flags)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(
@@ -180,7 +181,9 @@ restart_response:
 					// if this is a request (not a response)
 					// we're done once we reach the end of the headers
 //					if (!m_method.empty()) m_finished = true;
-					m_body_start_pos = m_recv_pos;
+					// the HTTP header should always be < 2 GB
+					TORRENT_ASSERT(m_recv_pos < INT_MAX);
+					m_body_start_pos = int(m_recv_pos);
 					break;
 				}
 
@@ -243,19 +246,20 @@ restart_response:
 		{
 			int incoming = recv_buffer.end - pos;
 
-			if (m_chunked_encoding)
+			if (m_chunked_encoding && (m_flags & dont_parse_chunks) == 0)
 			{
 				if (m_cur_chunk_end == -1)
 					m_cur_chunk_end = m_body_start_pos;
 
 				while (m_cur_chunk_end <= m_recv_pos + incoming && !m_finished && incoming > 0)
 				{
-					int payload = m_cur_chunk_end - m_recv_pos;
+					size_type payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
+						TORRENT_ASSERT(payload < INT_MAX);
 						m_recv_pos += payload;
-						boost::get<0>(ret) += payload;
-						incoming -= payload;
+						boost::get<0>(ret) += int(payload);
+						incoming -= int(payload);
 					}
 					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
 					size_type chunk_size;
@@ -264,7 +268,7 @@ restart_response:
 					{
 						if (chunk_size > 0)
 						{
-							std::pair<int, int> chunk_range(m_cur_chunk_end + header_size
+							std::pair<size_type, size_type> chunk_range(m_cur_chunk_end + header_size
 								, m_cur_chunk_end + header_size + chunk_size);
 							m_chunked_ranges.push_back(chunk_range);
 						}
@@ -308,10 +312,13 @@ restart_response:
 			}
 			else
 			{
-				int payload_received = m_recv_pos - m_body_start_pos + incoming;
+				size_type payload_received = m_recv_pos - m_body_start_pos + incoming;
 				if (payload_received > m_content_length
 					&& m_content_length >= 0)
-					incoming = m_content_length - m_recv_pos + m_body_start_pos;
+				{
+					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos < INT_MAX);
+					incoming = int(m_content_length - m_recv_pos + m_body_start_pos);
+				}
 
 				TORRENT_ASSERT(incoming >= 0);
 				m_recv_pos += incoming;
@@ -392,7 +399,7 @@ restart_response:
 				// add them to the headers in the parser
 				for (std::map<std::string, std::string>::const_iterator i = tail_headers.begin();
 					i != tail_headers.end(); ++i)
-					m_header[i->first] = i->second;
+					m_header.insert(std::make_pair(i->first, i->second));
 
 				return true;
 			}

@@ -38,6 +38,7 @@ set(sources
 	piece_picker
 	policy
 	puff
+	random
 	rss
 	session
 	session_impl

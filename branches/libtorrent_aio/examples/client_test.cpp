@@ -143,7 +143,9 @@ retry:
 	ret = select(1, &set, 0, 0, &tv);
 	if (ret > 0)
 	{
-		*c = getc(stdin);
+		int r = getc(stdin);
+		if (r == EOF) return false;
+		*c = r;
 		return true;
 	}
 	if (errno == EINTR)
@@ -195,6 +197,7 @@ enum {
 	torrents_queued,
 	torrents_stopped,
 	torrents_checking,
+	torrents_feeds,
 
 	torrents_max
 };
@@ -265,6 +268,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == torrent_status::checking_files
 			|| st.state == torrent_status::queued_for_checking;
+		case torrents_feeds: return false;
 	}
 	return true;
 }
@@ -452,7 +456,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags         source  ";
+	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags            source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -509,9 +513,11 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			, (i->flags & peer_info::on_parole)?'p':'.'
 			, (i->flags & peer_info::optimistic_unchoke)?'O':'.'
 			, (i->read_state == peer_info::bw_limit)?'r':
-				(i->read_state == peer_info::bw_network)?'R':'.'
+				(i->read_state == peer_info::bw_network)?'R':
+				(i->read_state == peer_info::bw_disk)?'D':'.'
 			, (i->write_state == peer_info::bw_limit)?'w':
-				(i->write_state == peer_info::bw_network)?'W':'.'
+				(i->write_state == peer_info::bw_network)?'W':
+				(i->write_state == peer_info::bw_disk)?'D':'.'
 			, (i->flags & peer_info::snubbed)?'S':'.'
 			, (i->flags & peer_info::upload_only)?'U':'D'
 			, (i->flags & peer_info::endgame_mode)?'-':'.'
@@ -672,7 +678,7 @@ void add_torrent(libtorrent::session& ses
 	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, ".resume/" + t->name() + ".resume");
+	std::string filename = combine_path(save_path, ".resume/" + to_hex(t->info_hash().to_string()) + ".resume");
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
@@ -775,7 +781,7 @@ void scan_dir(std::string const& dir_path
 
 torrent_status const& get_active_torrent(std::vector<torrent_status> const& torrents)
 {
-	if (active_torrent >= torrents.size()
+	if (active_torrent >= int(torrents.size())
 		|| active_torrent < 0) active_torrent = 0;
 	std::vector<torrent_status>::const_iterator i = torrents.begin();
 	std::advance(i, active_torrent);
@@ -818,7 +824,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
 	size_type written = f.writev(0, &b, 1, ec);
-	if (written != v.size()) return -3;
+	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;
 }
@@ -846,7 +852,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
+			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 			if (non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
 					, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
@@ -914,12 +920,12 @@ int main(int argc, char* argv[])
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  -Y                    Rate limit local peers\n"
-			"  -v <limit>            Set the max number of active torrents\n"
+			"  -v <limit>            Set the max number of active downloads\n"
+			"  -^ <limit>            Set the max number of active seeds\n"
 			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
 			"                        incoming TCP connections)\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
 			"                        this is useful for scripting tests\n"
-			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet link\n"
@@ -1130,10 +1136,12 @@ int main(int argc, char* argv[])
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
-			case 'v':
-				settings.active_limit = atoi(arg);
-				settings.active_downloads = atoi(arg) / 2;
-				settings.active_seeds = atoi(arg) / 2;
+			case 'v': settings.active_downloads = atoi(arg);
+				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
+				break;
+			case '^':
+				settings.active_seeds = atoi(arg);
+				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
 			case 'q': loop_limit = atoi(arg); break;
 		}
@@ -1154,8 +1162,13 @@ int main(int argc, char* argv[])
 
 	ses.set_proxy(ps);
 
-	ses.listen_on(std::make_pair(listen_port, listen_port + 10)
-		, bind_to_interface.c_str());
+	ses.listen_on(std::make_pair(listen_port, listen_port)
+		, ec, bind_to_interface.c_str());
+	if (ec)
+	{
+		fprintf(stderr, "failed to listen on %s on ports %d-%d: %s\n"
+			, bind_to_interface.c_str(), listen_port, listen_port+1, ec.message().c_str());
+	}
 
 #ifndef TORRENT_DISABLE_DHT
 	if (start_dht)
@@ -1208,6 +1221,26 @@ int main(int argc, char* argv[])
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			p.url = *i;
 
+			std::vector<char> buf;
+			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+			{
+				std::string btih = url_has_argument(*i, "xt");
+				if (btih.empty()) continue;
+
+				if (btih.compare(0, 9, "urn:btih:") != 0)
+					continue;
+
+				sha1_hash info_hash;
+				if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
+				else info_hash.assign(base32decode(btih.substr(9)));
+
+				std::string filename = combine_path(save_path, ".resume/"
+					+ to_hex(info_hash.to_string()) + ".resume");
+
+				if (load_file(filename.c_str(), buf, ec) == 0)
+					p.resume_data = &buf;
+			}
+
 			printf("adding URL: %s\n", i->c_str());
 			error_code ec;
 			torrent_handle h = ses.add_torrent(p, ec);
@@ -1243,7 +1276,12 @@ int main(int argc, char* argv[])
 		handles.clear();
 		memset(counters, 0, sizeof(counters));
 		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-		if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+		if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
+
+		std::vector<feed_handle> feeds;
+		ses.get_feeds(feeds);
+
+		counters[torrents_feeds] = feeds.size();
 
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
@@ -1274,7 +1312,7 @@ int main(int argc, char* argv[])
 						handles.clear();
 						memset(counters, 0, sizeof(counters));
 						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
 				}
@@ -1287,7 +1325,7 @@ int main(int argc, char* argv[])
 						handles.clear();
 						memset(counters, 0, sizeof(counters));
 						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 						std::sort(handles.begin(), handles.end(), &compare_torrent);
 					}
 				}
@@ -1301,7 +1339,7 @@ int main(int argc, char* argv[])
 				{
 					// arrow down
 					++active_torrent;
-					if (active_torrent >= handles.size()) active_torrent = handles.size() - 1;
+					if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
 				}
 			}
 
@@ -1429,6 +1467,17 @@ int main(int argc, char* argv[])
 			if (c == '5') print_peer_rate = !print_peer_rate;
 			if (c == '6') print_fails = !print_fails;
 			if (c == '7') print_send_bufs = !print_send_bufs;
+			if (c == 'y')
+			{
+				char url[2048];
+				puts("Enter RSS feed URL:\n");
+				scanf("%2048s", url);
+				feed_settings set;
+				set.url = url;
+				set.add_args.save_path = save_path;
+				feed_handle h = ses.add_feed(set);
+				h.update_feed();
+			}
 		}
 		if (c == 'q') break;
 
@@ -1450,21 +1499,22 @@ int main(int argc, char* argv[])
 #endif
 
 		// loop through the alert queue to see if anything has happened.
-		std::auto_ptr<alert> a;
-		a = ses.pop_alert();
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
 		std::string now = time_now_string();
-		while (a.get())
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
 		{
 			std::string event_string;
 
-			::print_alert(a.get(), event_string);
-			::handle_alert(ses, a.get(), files, non_files);
+			::print_alert(*i, event_string);
+			::handle_alert(ses, *i, files, non_files);
 
 			events.push_back(event_string);
 			if (events.size() >= 20) events.pop_front();
-
-			a = ses.pop_alert();
+			delete *i;
 		}
+		alerts.clear();
 
 		session_status sess_stat = ses.status();
 
@@ -1475,8 +1525,8 @@ int main(int argc, char* argv[])
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
 
-		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking"};
-		for (int i = 0; i < sizeof(filter_names)/sizeof(filter_names[0]); ++i)
+		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "RSS"};
+		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 		{
 			char filter[200];
 			snprintf(filter, sizeof(filter), "%s[%s (%d)]%s", torrent_filter == i?esc("7"):""
@@ -1488,6 +1538,30 @@ int main(int argc, char* argv[])
 		char str[500];
 		int torrent_index = 0;
 		int lines_printed = 3;
+
+		if (torrent_filter == torrents_feeds)
+		{
+			for (std::vector<feed_handle>::iterator i = feeds.begin()
+				, end(feeds.end()); i != end; ++i)
+			{
+				if (lines_printed >= terminal_height - 15)
+				{
+					out += "...\n";
+					break;
+				}
+
+				feed_status st = i->get_feed_status();
+				if (st.url.size() > 70) st.url.resize(70);
+				snprintf(str, sizeof(str), "%-70s %c %4d (%2d) %s\n", st.url.c_str()
+					, st.updating? 'u' : '-'
+					, st.next_update
+					, int(st.items.size())
+					, st.error ? st.error.message().c_str() : "");
+				out += str;
+				++lines_printed;
+			}
+		}
+
 		for (std::vector<torrent_status>::iterator i = handles.begin();
 			i != handles.end(); ++torrent_index)
 		{
@@ -1674,9 +1748,9 @@ int main(int argc, char* argv[])
 			, sess_stat.disk_read_queue
 			, (cs.blocks_written - cs.writes) * 100 / cs.blocks_written
 			, cs.blocks_read_hit * 100 / cs.blocks_read
-			, add_suffix(cs.cache_size * 16 * 1024).c_str()
-			, add_suffix(cs.read_cache_size * 16 * 1024).c_str()
-			, add_suffix(cs.total_used_buffers * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.cache_size) * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str()
 			, cs.queued_bytes);
 		out += str;
 
@@ -1842,7 +1916,8 @@ int main(int argc, char* argv[])
 					out += esc("0");
 #endif
 					char const* piece_state[4] = {"", " slow", " medium", " fast"};
-					snprintf(str, sizeof(str), "]%s", piece_state[i->piece_state]);
+					snprintf(str, sizeof(str), "] %s "
+						, piece_state[i->piece_state]);
 					out += str;
 					if (cp)
 					{
@@ -1968,46 +2043,49 @@ int main(int argc, char* argv[])
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == 0) continue;
 
-		std::auto_ptr<alert> holder = ses.pop_alert();
+		std::deque<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		std::string now = time_now_string();
+		for (std::deque<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			// make sure to delete each alert
+			std::auto_ptr<alert> a(*i);
 
-		torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(a);
-		if (tp)
-		{
-			++num_paused;
-			printf("\rleft: %d failed: %d pause: %d "
-				, num_resume_data, num_failed, num_paused);
-			continue;
-		}
+			torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(*i);
+			if (tp)
+			{
+				++num_paused;
+				printf("\rleft: %d failed: %d pause: %d "
+						, num_resume_data, num_failed, num_paused);
+				continue;
+			}
 
-		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-/*		if (!rd)
-		{
-			std::string log;
-			::print_alert(a, log);
-			printf("\n%s\n", log.c_str());
-		}
-*/
-		if (alert_cast<save_resume_data_failed_alert>(a))
-		{
-			++num_failed;
+			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(*i);
+			if (alert_cast<save_resume_data_failed_alert>(*i))
+			{
+				++num_failed;
+				--num_resume_data;
+				printf("\rleft: %d failed: %d pause: %d "
+					, num_resume_data, num_failed, num_paused);
+				continue;
+			}
+
+			if (!rd) continue;
 			--num_resume_data;
 			printf("\rleft: %d failed: %d pause: %d "
 				, num_resume_data, num_failed, num_paused);
-			continue;
+
+			if (!rd->resume_data) continue;
+
+			torrent_handle h = rd->handle;
+			std::vector<char> out;
+			bencode(std::back_inserter(out), *rd->resume_data);
+			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
 		}
-
-		if (!rd) continue;
-		--num_resume_data;
-		printf("\rleft: %d failed: %d pause: %d "
-			, num_resume_data, num_failed, num_paused);
-
-		if (!rd->resume_data) continue;
-
-		torrent_handle h = rd->handle;
-		std::vector<char> out;
-		bencode(std::back_inserter(out), *rd->resume_data);
-		save_file(combine_path(h.save_path(), ".resume/" + h.name() + ".resume"), out);
 	}
+
+	if (g_log_file) fclose(g_log_file);
 	printf("\nsaving session state\n");
 	{
 		entry session_state;

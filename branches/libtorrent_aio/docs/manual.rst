@@ -206,9 +206,14 @@ The ``session`` class has the following synopsis::
 		bool is_listening() const;
 		unsigned short listen_port() const;
 
-		enum { listen_reuse_address = 1 };
-		bool listen_on(
+		enum { 
+			listen_reuse_address = 1,
+			listen_no_system_port = 2
+		};
+
+		void listen_on(
 			std::pair<int, int> const& port_range
+			, error_code& ec
 			, char const* interface = 0
 			, int flags = 0);
 
@@ -869,6 +874,9 @@ a piece is, the more likely it is to be flushed to disk.
 			int total_used_buffers;
 			int average_queue_time;
 			int average_read_time;
+			int average_write_time;
+			int average_hash_time;
+			int average_cache_time;
 			int job_queue_length;
 		};
 
@@ -902,9 +910,21 @@ used in peer connections.
 ``average_queue_time`` is the number of microseconds an average disk I/O job
 has to wait in the job queue before it get processed.
 
-``average_read_time`` is the number of microseconds a read job takes to
-wait in the queue and complete, in microseconds. This only includes
-cache misses. 
+``average_read_time`` is the time read jobs takes on average to complete
+(not including the time in the queue), in microseconds. This only measures
+read cache misses. 
+
+``average_write_time`` is the time write jobs takes to complete, on average,
+in microseconds. This does not include the time the job sits in the disk job
+queue or in the write cache, only blocks that are flushed to disk.
+
+``average_hash_time`` is the time hash jobs takes to complete on average, in
+microseconds. Hash jobs include running SHA-1 on the data (which for the most
+part is done incrementally) and sometimes reading back parts of the piece. It
+also includes checking files without valid resume data.
+
+``average_cache_time`` is the average amuount of time spent evicting cached
+blocks that have expired from the disk cache.
 
 ``job_queue_length`` is the number of jobs in the job queue.
 
@@ -916,8 +936,15 @@ is_listening() listen_port() listen_on()
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
-		bool listen_on(
+
+		enum { 
+			listen_reuse_address = 1,
+			listen_no_system_port = 2
+		};
+
+		void listen_on(
 			std::pair<int, int> const& port_range
+			, error_code& ec
 			, char const* interface = 0
 			, int flags = 0);
 
@@ -935,12 +962,18 @@ will be opened with these new settings. The port range is the ports it will try
 to listen on, if the first port fails, it will continue trying the next port within
 the range and so on. The interface parameter can be left as 0, in that case the
 os will decide which interface to listen on, otherwise it should be the ip-address
-of the interface you want the listener socket bound to. ``listen_on()`` returns true
-if it managed to open the socket, and false if it failed. If it fails, it will also
-generate an appropriate alert (listen_failed_alert_). If all ports in the specified
-range fails to be opened for listening, libtorrent will try to use port 0 (which
-tells the operating system to pick a port that's free). If that still fails you
-may see a listen_failed_alert_ with port 0 even if you didn't ask to listen on it.
+of the interface you want the listener socket bound to. ``listen_on()`` returns the
+error code of the operation in ``ec``. If this indicates success, the session is
+listening on a port within the specified range. If it fails, it will also
+generate an appropriate alert (listen_failed_alert_).
+
+If all ports in the specified range fails to be opened for listening, libtorrent will
+try to use port 0 (which tells the operating system to pick a port that's free). If
+that still fails you may see a listen_failed_alert_ with port 0 even if you didn't
+ask to listen on it.
+
+It is possible to prevent libtorrent from binding to port 0 by passing in the flag
+``session::no_system_port`` in the ``flags`` argument.
 
 The interface parameter can also be a hostname that will resolve to the device you
 want to listen on. If you don't specify an interface, libtorrent may attempt to
@@ -984,17 +1017,35 @@ Changes the mask of which alerts to receive. By default only errors are reported
 
 See alerts_ for mor information on the alert categories.
 
-pop_alert() wait_for_alert()
-----------------------------
+pop_alerts() pop_alert() wait_for_alert()
+-----------------------------------------
 
 	::
 
 		std::auto_ptr<alert> pop_alert();
+		void pop_alerts(std::deque<alert*>* alerts);
 		alert const* wait_for_alert(time_duration max_wait);
 
 ``pop_alert()`` is used to ask the session if any errors or events has occurred. With
 `set_alert_mask()`_ you can filter which alerts to receive through ``pop_alert()``.
 For information about the alert categories, see alerts_.
+
+``pop_alerts()`` pops all pending alerts in a single call. In high performance environments
+with a very high alert churn rate, this can save significant amount of time compared to
+popping alerts one at a time. Each call requires one round-trip to the network thread. If
+alerts are produced in a higher rate than they can be popped (when popped one at a time)
+it's easy to get stuck in an infinite loop, trying to drain the alert queue. Popping the entire
+queue at once avoids this problem.
+
+However, the ``pop_alerts`` function comes with significantly more responsibility. You pass
+in an *empty* ``std::dequeue<alert*>`` to it. If it's not empty, all elements in it will
+be deleted and then cleared. All currently pending alerts are returned by being swapped
+into the passed in container. The responsibility of deleting the alerts is transferred
+to the caller. This means you need to call delete for each item in the returned dequeue.
+It's probably a good idea to delete the alerts as you handle them, to save one extra
+pass over the dequeue.
+
+Alternatively, you can pass in the same container the next time you call ``pop_alerts``.
 
 ``wait_for_alert`` blocks until an alert is available, or for no more than ``max_wait``
 time. If ``wait_for_alert`` returns because of the time-out, and no alerts are available,
@@ -2105,6 +2156,7 @@ Its declaration looks like this::
 
 		std::string name() const;
 
+		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 		bool need_save_resume_data() const;
 		void force_reannounce() const;
@@ -2163,6 +2215,8 @@ Its declaration looks like this::
 		void clear_error() const;
 		void set_upload_mode(bool m) const;
 		void set_share_mode(bool m) const;
+
+		void apply_ip_filter(bool b) const;
 
 		void flush_cache() const;
 
@@ -2675,6 +2729,16 @@ not necessarily be downloaded, especially not the whole of it. Only parts that a
 to be distributed to more than 2 other peers are downloaded, and only if the previous
 prediction was correct.
 
+apply_ip_filter()
+-----------------
+
+::
+
+		void apply_ip_filter(bool b) const;
+
+Set to true to apply the session global IP filter to this torrent (which is the
+default). Set to false to make this torrent ignore the IP filter.
+
 resolve_countries()
 -------------------
 
@@ -2904,14 +2968,19 @@ save_resume_data()
 
 	::
 
+		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
 		void save_resume_data(int flags = 0) const;
 
 ``save_resume_data()`` generates fast-resume data and returns it as an entry_. This entry_
 is suitable for being bencoded. For more information about how fast-resume works, see `fast resume`_.
 
-The ``flags`` argument may be set to ``torrent_handle::flush_cache``. Doing so will flush the disk
-cache before creating the resume data. This avoids a problem with file timestamps in the resume
-data in case the cache hasn't been flushed yet.
+The ``flags`` argument is a bitmask of flags ORed together. If the flag ``torrent_handle::flush_cache``
+is set, the disk cache will be flushed before creating the resume data. This avoids a problem with
+file timestamps in the resume data in case the cache hasn't been flushed yet.
+
+If the flag ``torrent_handle::save_info_dict`` is set, the resume data will contain the metadata
+from the torrent file as well. This is default for any torrent that's added without a torrent
+file (such as a magnet link or a URL).
 
 This operation is asynchronous, ``save_resume_data`` will return immediately. The resume data
 is delivered when it's done through an `save_resume_data_alert`_.
@@ -3269,6 +3338,7 @@ It contains the following fields::
 
 		int queue_position;
 		bool need_save_resume;
+		bool ip_filter_applies;
 	};
 
 ``handle`` is a handle to the torrent whose status the object represents.
@@ -3538,6 +3608,9 @@ queue. If the torrent is a seed or finished, this is -1.
 ``need_save_resume`` is true if this torrent has unsaved changes
 to its download state and statistics since the last resume data
 was saved.
+
+``ip_filter_applies`` is true if the session global IP filter applies
+to this torrent. This defaults to true.
 
 peer_info
 =========
@@ -4210,7 +4283,7 @@ session_settings
 		int file_checks_delay_per_block;
 
 		enum disk_cache_algo_t
-		{ lru, largest_contiguous };
+		{ lru, largest_contiguous, avoid_readback };
 
 		disk_cache_algo_t disk_cache_algorithm;
 
@@ -4261,6 +4334,7 @@ session_settings
 		int download_rate_limit;
 		int local_upload_rate_limit;
 		int local_download_rate_limit;
+		int dht_upload_rate_limit;
 		int unchoke_slots_limit;
 		int half_open_limit;
 		int connections_limit;
@@ -4293,6 +4367,10 @@ session_settings
 		bool no_connect_privileged_ports;
 		int alert_queue_size;
 		int max_metadata_size;
+		bool smooth_connects;
+		bool always_send_user_agent;
+		bool apply_ip_filter_to_trackers;
+		int read_job_every;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -4810,7 +4888,10 @@ flushes the entire piece, in the write cache, that was least recently
 written to. This is specified by the ``session_settings::lru`` enum
 value. ``session_settings::largest_contiguous`` will flush the largest
 sequences of contiguous blocks from the write cache, regarless of the
-piece's last use time.
+piece's last use time. ``session_settings::avoid_readback`` will prioritize
+flushing blocks that will avoid having to read them back in to verify
+the hash of the piece once it's done. This is especially useful for high
+throughput setups, where reading from the disk is especially expensive.
 
 ``read_cache_line_size`` is the number of blocks to read into the read
 cache when a read cache miss occurs. Setting this to 0 is essentially
@@ -4955,7 +5036,9 @@ be changed individually later using
 if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
 broadcast its messages. This can be useful when running on networks
-that don't support multicast. It's off by default since it's inefficient.
+that don't support multicast. Since broadcast messages might be
+expensive and disruptive on networks, only every 8th announce uses
+broadcast.
 
 ``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
 ``enable_incoming_tcp`` all determines if libtorrent should attempt to make
@@ -5017,6 +5100,10 @@ but can be useful in case you want to treat local peers preferentially, but not
 quite unthrottled.
 
 A value of 0 means unlimited.
+
+``dht_upload_rate_limit`` sets the rate limit on the DHT. This is specified in
+bytes per second and defaults to 4000. For busy boxes with lots of torrents
+that requires more DHT traffic, this should be raised.
 
 ``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
 
@@ -5125,6 +5212,28 @@ defaults to 1000.
 
 ``max_metadata_size`` is the maximum allowed size (in bytes) to be received
 by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
+
+``smooth_connects`` is true by default, which means the number of connection
+attempts per second may be limited to below the ``connection_speed``, in case
+we're close to bump up against the limit of number of connections. The intention
+of this setting is to more evenly distribute our connection attempts over time,
+instead of attempting to connectin in batches, and timing them out in batches.
+
+``always_send_user_agent`` defaults to false. When set to true, web connections
+will include a user-agent with every request, as opposed to just the first
+request in a connection.
+
+``apply_ip_filter_to_trackers`` defaults to true. It determines whether the
+IP filter applies to trackers as well as peers. If this is set to false,
+trackers are exempt from the IP filter (if there is one). If no IP filter
+is set, this setting is irrelevant.
+
+``read_job_every`` is used to avoid starvation of read jobs in the disk I/O
+thread. By default, read jobs are deferred, sorted by physical disk location
+and serviced once all write jobs have been issued. In scenarios where the
+download rate is enough to saturate the disk, there's a risk the read jobs will
+never be serviced. With this setting, every *x* write job, issued in a row, will
+instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
 
 pe_settings
 ===========
@@ -6345,7 +6454,7 @@ the information to identify the peer. i.e. ``ip`` and ``peer-id``.
 peer_connect_alert
 ------------------
 
-This alert is posted every time an outgoing  peer connect attempts succeeds.
+This alert is posted every time an outgoing peer connect attempts succeeds.
 
 ::
 
@@ -6644,7 +6753,8 @@ upload or download rate performance.
 			upload_limit_too_low,
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
-			too_many_optimistic_unchoke_slots
+			too_many_optimistic_unchoke_slots,
+			too_high_disk_queue_limit
 		};
 
 		performance_warning_t warning_code;
@@ -6707,6 +6817,12 @@ too_many_optimistic_unchoke_slots
 	If the half (or more) of all upload slots are set as optimistic unchoke slots, this
 	warning is issued. You probably want more regular (rate based) unchoke slots.
 
+too_high_disk_queue_limit
+	If the disk write queue ever grows larger than half of the cache size, this warning
+	is posted. The disk write queue eats into the total disk cache and leaves very little
+	left for the actual cache. This causes the disk cache to oscillate in evicting large
+	portions of the cache before allowing peers to download any more, onto the disk write
+	queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
 
 state_changed_alert
 -------------------
@@ -7374,6 +7490,11 @@ code   symbol                                    description
 ------ ----------------------------------------- -----------------------------------------------------------------
 108    too_frequent_pex                          The peer sent an pex messages too often. This is a possible
                                                  attempt of and attack
+------ ----------------------------------------- -----------------------------------------------------------------
+109    no_metadata                               The operation failed because it requires the torrent to have
+                                                 the metadata (.torrent file) and it doesn't have it yet.
+                                                 This happens for magnet links before they have downloaded the
+                                                 metadata, and also torrents added by URL.
 ====== ========================================= =================================================================
 
 NAT-PMP errors:

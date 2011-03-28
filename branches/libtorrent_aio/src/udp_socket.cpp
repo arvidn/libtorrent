@@ -223,9 +223,11 @@ void udp_socket::maybe_realloc_buffers(int which)
 	if (no_mem)
 	{
 		free(m_v4_buf);
+		m_v4_buf = 0;
 		m_v4_buf_size = 0;
 #if TORRENT_USE_IPV6
 		free(m_v6_buf);
+		m_v6_buf = 0;
 		m_v6_buf_size = 0;
 #endif
 		if (m_callback) m_callback(error::no_memory, m_v4_ep, 0, 0);
@@ -271,20 +273,16 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 	if (e)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
+		TORRENT_TRY {
 
 #if TORRENT_USE_IPV6
-		if (s == &m_ipv6_sock)
-			m_callback(e, m_v6_ep, 0, 0);
-		else
+			if (s == &m_ipv6_sock)
+				m_callback(e, m_v6_ep, 0, 0);
+			else
 #endif
-			m_callback(e, m_v4_ep, 0, 0);
+				m_callback(e, m_v4_ep, 0, 0);
 
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
+		} TORRENT_CATCH (std::exception&) {}
 
 		// don't stop listening on recoverable errors
 		if (e != asio::error::host_unreachable
@@ -313,6 +311,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		if (s == &m_ipv6_sock && num_outstanding() == 0)
 		{
 			maybe_realloc_buffers(2);
+			if (m_abort) return;
 			++m_v6_outstanding;
 			s->async_receive_from(asio::buffer(m_v6_buf, m_v6_buf_size)
 				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
@@ -322,6 +321,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		if (m_v4_outstanding == 0)
 		{
 			maybe_realloc_buffers(1);
+			if (m_abort) return;
 			++m_v4_outstanding;
 			s->async_receive_from(asio::buffer(m_v4_buf, m_v4_buf_size)
 				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
@@ -336,30 +336,27 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #if TORRENT_USE_IPV6
 	if (s == &m_ipv6_sock)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
+		TORRENT_TRY {
 
-		if (m_tunnel_packets)
-		{
-			// if the source IP doesn't match the proxy's, ignore the packet
-			if (m_v6_ep == m_proxy_addr)
-				unwrap(e, m_v6_buf, bytes_transferred);
-		}
-		else
-		{
-			m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
-		}
+			if (m_tunnel_packets)
+			{
+				// if the source IP doesn't match the proxy's, ignore the packet
+				if (m_v6_ep == m_proxy_addr)
+					unwrap(e, m_v6_buf, bytes_transferred);
+			}
+			else
+			{
+				m_callback(e, m_v6_ep, m_v6_buf, bytes_transferred);
+			}
 
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
+		} TORRENT_CATCH (std::exception&) {}
 
 		if (m_abort) return;
 
 		if (num_outstanding() == 0)
 		{
 			maybe_realloc_buffers(2);
+			if (m_abort) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
@@ -373,30 +370,27 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 #endif // TORRENT_USE_IPV6
 	{
 
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
+		TORRENT_TRY {
 
-		if (m_tunnel_packets)
-		{
-			// if the source IP doesn't match the proxy's, ignore the packet
-			if (m_v4_ep == m_proxy_addr)
-				unwrap(e, m_v4_buf, bytes_transferred);
-		}
-		else
-		{
-			m_callback(e, m_v4_ep, m_v4_buf, bytes_transferred);
-		}
+			if (m_tunnel_packets)
+			{
+				// if the source IP doesn't match the proxy's, ignore the packet
+				if (m_v4_ep == m_proxy_addr)
+					unwrap(e, m_v4_buf, bytes_transferred);
+			}
+			else
+			{
+				m_callback(e, m_v4_ep, m_v4_buf, bytes_transferred);
+			}
 
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
+		} TORRENT_CATCH (std::exception&) {}
 
 		if (m_abort) return;
 
 		if (m_v4_outstanding == 0)
 		{
 			maybe_realloc_buffers(1);
+			if (m_abort) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
@@ -597,6 +591,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (m_v4_outstanding == 0)
 		{
 			maybe_realloc_buffers(1);
+			if (m_abort) return;
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
 #endif
@@ -616,6 +611,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (m_v6_outstanding == 0)
 		{
 			maybe_realloc_buffers(2);
+			if (m_abort) return;
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("udp_socket::on_read");
 #endif
@@ -648,6 +644,7 @@ void udp_socket::bind(int port)
 #endif
 
 	maybe_realloc_buffers();
+	if (m_abort) return;
 
 	m_ipv4_sock.open(udp::v4(), ec);
 	if (!ec)
@@ -723,13 +720,9 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	if (e)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
+		TORRENT_TRY {
 			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
+		} TORRENT_CATCH (std::exception&) {}
 		return;
 	}
 
@@ -783,13 +776,9 @@ void udp_socket::on_connected(error_code const& e)
 	m_connection_ticket = -1;
 	if (e)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
-		try {
-#endif
+		TORRENT_TRY {
 			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
-#ifndef BOOST_NO_EXCEPTIONS
-		} catch(std::exception&) {}
-#endif
+		} TORRENT_CATCH (std::exception&) {}
 		return;
 	}
 
@@ -810,7 +799,7 @@ void udp_socket::on_connected(error_code const& e)
 		write_uint8(0, p); // no authentication
 		write_uint8(2, p); // username/password
 	}
-	TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
+	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_handshake1");
 #endif
@@ -873,7 +862,7 @@ void udp_socket::handshake2(error_code const& e)
 		write_string(m_proxy_settings.username, p);
 		write_uint8(m_proxy_settings.password.size(), p);
 		write_string(m_proxy_settings.password, p);
-		TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
+		TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_handshake3");
 #endif
@@ -951,7 +940,7 @@ void udp_socket::socks_forward_udp()
 		port = m_ipv6_sock.local_endpoint(ec).port();
 #endif
 	detail::write_uint16(port , p);
-	TORRENT_ASSERT_VAL(p - m_tmp_buf < sizeof(m_tmp_buf), (p - m_tmp_buf));
+	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::connect1");
 #endif
@@ -991,7 +980,7 @@ void udp_socket::connect2(error_code const& e)
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p); // VERSION
 	int status = read_uint8(p); // STATUS
-	read_uint8(p); // RESERVED
+	++p; // RESERVED
 	int atyp = read_uint8(p); // address type
 
 	if (version != 5) return;
@@ -1113,7 +1102,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 	while (!m_queue.empty() && int(m_queue.front().buf.size()) <= m_quota)
 	{
 		queued_packet const& p = m_queue.front();
-		TORRENT_ASSERT(m_quota >= p.buf.size());
+		TORRENT_ASSERT(m_quota >= int(p.buf.size()));
 		m_quota -= p.buf.size();
 		error_code ec;
 		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);

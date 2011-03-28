@@ -103,7 +103,7 @@ static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
 #endif
 }
 
-#elif defined __APPLE__ && defined __MACH__
+#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 // mac specifics
 
 #include <copyfile.h>
@@ -308,13 +308,18 @@ namespace libtorrent
 		{
 			int num_read = read(infd, buffer, sizeof(buffer));
 			if (num_read == 0) break;
+			if (num_read < 0)
+			{
+				ec.assign(errno, boost::system::get_generic_category());
+				break;
+			}
 			int num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
 				ec.assign(errno, boost::system::get_generic_category());
 				break;
 			}
-			if (num_read < sizeof(buffer)) break;
+			if (num_read < int(sizeof(buffer))) break;
 		}
 		close(infd);
 		close(outfd);
@@ -446,7 +451,7 @@ namespace libtorrent
 #endif
 		if (sep == 0) return f;
 
-		if (sep - first == f.size() - 1)
+		if (sep - first == int(f.size()) - 1)
 		{
 			// if the last character is a / (or \)
 			// ignore it
@@ -644,6 +649,10 @@ namespace libtorrent
 			return;
 		}
 #else
+
+		memset(&m_dirent, 0, sizeof(dirent));
+		m_name[0] = 0;
+
 		// the path passed to opendir() may not
 		// end with a /
 		std::string p = path;
@@ -731,6 +740,8 @@ namespace libtorrent
 		, m_sector_size(0)
 #endif
 	{
+		// the return value is not important, since the
+		// error code contains the same information
 		open(path, mode, ec);
 	}
 
@@ -803,6 +814,7 @@ namespace libtorrent
 		if (handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), get_system_category());
+			TORRENT_ASSERT(ec);
 			return false;
 		}
 
@@ -1747,7 +1759,10 @@ namespace libtorrent
 			}
 #endif // F_PREALLOCATE
 
+#if defined TORRENT_LINUX || TORRENT_HAS_FALLOCATE
 			int ret;
+#endif
+
 #if defined TORRENT_LINUX
 			ret = my_fallocate(native_handle(), 0, 0, s);
 			// if we return 0, everything went fine

@@ -39,11 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <gcrypt.h>
 #elif defined TORRENT_USE_OPENSSL
 #include <openssl/bn.h>
-#include <openssl/rand.h>
+#include "libtorrent/random.hpp"
 #elif defined TORRENT_USE_TOMMATH
 extern "C" {
 #include "libtorrent/tommath.h"
 }
+#include "libtorrent/random.hpp"
 #endif
 
 #include "libtorrent/pe_crypto.hpp"
@@ -110,7 +111,7 @@ get_out:
 #elif defined TORRENT_USE_OPENSSL
 		// create local key
 		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
-			m_dh_local_secret[i] = rand();
+			m_dh_local_secret[i] = random();
 
 		BIGNUM* prime = 0;
 		BIGNUM* secret = 0;
@@ -144,8 +145,8 @@ get_out:
 		if (prime) BN_free(prime);
 #elif defined TORRENT_USE_TOMMATH
 		// create local key
-		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
-			m_dh_local_secret[i] = rand();
+		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
+			m_dh_local_secret[i] = random();
 
 		mp_int prime;
 		mp_int secret;
@@ -312,7 +313,6 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	unsigned char key[256], tmp, *s;
 	int keylen, x, y, j;
 
-	TORRENT_ASSERT(key != 0);
 	TORRENT_ASSERT(state != 0);
 	TORRENT_ASSERT(len <= 256);
 

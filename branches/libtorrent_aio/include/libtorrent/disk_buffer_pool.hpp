@@ -62,9 +62,6 @@ namespace libtorrent
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
 
-		char* allocate_buffers(int blocks, char const* category);
-		void free_buffers(char* buf, int blocks);
-
 		int block_size() const { return m_block_size; }
 
 #ifdef TORRENT_STATS

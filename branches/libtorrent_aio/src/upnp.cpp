@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/random.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -251,12 +252,12 @@ bool upnp::get_mapping(int index, int& local_port, int& external_port, int& prot
 	return true;
 }
 
-void upnp::resend_request(error_code const& e)
+void upnp::resend_request(error_code const& ec)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("upnp::resend_request");
 #endif
-	if (e) return;
+	if (ec) return;
 
 	boost::intrusive_ptr<upnp> me(self());
 
@@ -286,10 +287,8 @@ void upnp::resend_request(error_code const& e)
 			// ask for it
 			rootdevice& d = const_cast<rootdevice&>(*i);
 			TORRENT_ASSERT(d.magic == 1337);
-#ifndef BOOST_NO_EXCEPTIONS
-			try
+			TORRENT_TRY
 			{
-#endif
 				char msg[200];
 				snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
 				log(msg, l);
@@ -298,17 +297,15 @@ void upnp::resend_request(error_code const& e)
 					, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 					, boost::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
-#ifndef BOOST_NO_EXCEPTIONS
 			}
-			catch (std::exception& e)
+			TORRENT_CATCH (std::exception& exc)
 			{
-				(void)e;
+				TORRENT_DECLARE_DUMMY(std::exception, exc);
 				char msg[200];
-				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), e.what());
+				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
 			}
-#endif
 		}
 	}
 }
@@ -401,7 +398,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end; ++i)
 				{
-					if (num_chars >= sizeof(msg)-1) break;
+					if (num_chars >= int(sizeof(msg)-1)) break;
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
@@ -547,10 +544,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				// ask for it
 				rootdevice& d = const_cast<rootdevice&>(*i);
 				TORRENT_ASSERT(d.magic == 1337);
-#ifndef BOOST_NO_EXCEPTIONS
-				try
+				TORRENT_TRY
 				{
-#endif
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connecting to: %s"
 						, d.url.c_str());
@@ -561,19 +556,16 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 						, m_cc, boost::bind(&upnp::on_upnp_xml, self(), _1, _2
 						, boost::ref(d), _5)));
 					d.upnp_connection->get(d.url, seconds(30), 1);
-#ifndef BOOST_NO_EXCEPTIONS
 				}
-				catch (std::exception& e)
+				TORRENT_CATCH (std::exception& exc)
 				{
-					(void)e;
-
+					TORRENT_DECLARE_DUMMY(std::exception, exc);
 					char msg[200];
 					snprintf(msg, sizeof(msg), "connection failed to: %s %s"
-						, d.url.c_str(), e.what());
+						, d.url.c_str(), exc.what());
 					log(msg, l);
 					d.disabled = true;
 				}
-#endif
 			}
 		}
 	}
@@ -655,12 +647,12 @@ void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
 	}
 	else
 	{
-		std::vector<mapping_t>::iterator i
+		std::vector<mapping_t>::iterator j
 			= std::find_if(d.mapping.begin(), d.mapping.end()
 			, boost::bind(&mapping_t::action, _1) != int(mapping_t::action_none));
-		if (i == d.mapping.end()) return;
+		if (j == d.mapping.end()) return;
 
-		update_map(d, i - d.mapping.begin(), l);
+		update_map(d, j - d.mapping.begin(), l);
 	}
 }
 
@@ -772,7 +764,7 @@ namespace
 
 struct parse_state
 {
-	parse_state(): in_service(false) {}
+	parse_state(): in_service(false), service_type(0) {}
 	void reset(char const* st)
 	{
 		in_service = false;
@@ -1307,7 +1299,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		// The external port cannot be wildcarder
 		// pick a random port
-		m.external_port = 40000 + (std::rand() % 10000);
+		m.external_port = 40000 + (random() % 10000);
 		m.action = mapping_t::action_add;
 		++m.failcount;
 		update_map(d, mapping, l);
@@ -1417,12 +1409,12 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	next(d, mapping, l);
 }
 
-void upnp::on_expire(error_code const& e)
+void upnp::on_expire(error_code const& ec)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("upnp::on_expire");
 #endif
-	if (e) return;
+	if (ec) return;
 
 	ptime now = time_now();
 	ptime next_expire = max_time();

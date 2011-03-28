@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
+//#include "libtorrent/random.hpp"
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
@@ -297,7 +298,7 @@ void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
 
 void natpmp::update_mapping(int i, mutex::scoped_lock& l)
 {
-	if (i == m_mappings.size())
+	if (i == int(m_mappings.size()))
 	{
 		if (m_abort)
 		{
@@ -434,7 +435,7 @@ void natpmp::on_reply(error_code const& e
 
 	// simulate packet loss
 /*
-	if ((rand() % 2) == 0)
+	if ((random() % 2) == 0)
 	{
 		log(" simulating drop", l);
 		return;

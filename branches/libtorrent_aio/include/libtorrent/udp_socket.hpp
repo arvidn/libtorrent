@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <list>
+#include <deque>
 #include <boost/function/function4.hpp>
 
 namespace libtorrent
@@ -217,7 +217,7 @@ namespace libtorrent
 		// while we're connecting to the proxy
 		// we have to queue the packets, we'll flush
 		// them once we're connected
-		std::list<queued_packet> m_queue;
+		std::deque<queued_packet> m_queue;
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;
@@ -241,7 +241,7 @@ namespace libtorrent
 		int m_rate_limit;
 		int m_quota;
 		ptime m_last_tick;
-		std::list<queued_packet> m_queue;
+		std::deque<queued_packet> m_queue;
 	};
 }
 

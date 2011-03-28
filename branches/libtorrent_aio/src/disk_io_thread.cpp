@@ -113,7 +113,8 @@ namespace libtorrent
 	// it's inserted close to the end where the elevator has turned back.
 	// if it's lower it's inserted early, as the offset would pass it.
 	// a positive elevator direction has the same semantics but oposite order
-	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios, int elevator_direction)
+	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios
+		, int elevator_direction, disk_io_thread* io)
 	{
 		if (aios == 0) return;
 		if (elevator_direction == 0)
@@ -135,6 +136,9 @@ namespace libtorrent
 
 		// insert each aio ordered by phys_offset
 		// according to elevator_direction
+
+		ptime start_sort = time_now_hires();
+
 		while (aios)
 		{
 			// pop the first element from aios into i
@@ -151,8 +155,8 @@ namespace libtorrent
 			//     /      or like this:      ^
 			//    /     (depending on the   /
 			// \         elevator          /
-			//  \        direction)           \
-			//   V                             \
+			//  \        direction)           \ 
+			//   V                             \ 
 			//
 
 			/* for this to work, we need a tail pointer
@@ -201,6 +205,13 @@ namespace libtorrent
 			i->next = j;
 			if (j) j->prev = i;
 		}
+
+		if (io)
+		{
+			ptime done = time_now_hires();
+			io->m_sort_time.add_sample(total_microseconds(done - start_sort));
+			io->m_cumulative_sort_time += total_milliseconds(done - start_sort);
+		}
 	}
 
 #if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
@@ -223,10 +234,12 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
+		, boost::function<void()> const& queue_callback
 		, boost::function<void(alert*)> const& post_alert
 		, int block_size)
 		: disk_buffer_pool(block_size)
 		, m_abort(false)
+		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
 		, m_file_pool(40)
@@ -235,14 +248,21 @@ namespace libtorrent
 		, m_read_calls(0)
 		, m_write_blocks(0)
 		, m_read_blocks(0)
+		, m_cumulative_job_time(0)
+		, m_cumulative_read_time(0)
+		, m_cumulative_write_time(0)
+		, m_cumulative_hash_time(0)
+		, m_cumulative_sort_time(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_outstanding_jobs(0)
 		, m_elevator_direction(1)
-		, m_last_phys_off(0)
 		, m_elevator_turns(0)
+		, m_last_phys_off(0)
 		, m_physical_ram(0)
+		, m_exceeded_write_queue(false)
 		, m_ios(ios)
+		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
 		, m_post_alert(post_alert)
 #if TORRENT_USE_OVERLAPPED
@@ -297,6 +317,12 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_abort == true);
+	}
+
+	bool disk_io_thread::can_write() const
+	{
+		// make this atomic
+		return !m_exceeded_write_queue;
 	}
 
 	void disk_io_thread::abort()
@@ -416,7 +442,7 @@ namespace libtorrent
 				{
 					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
 						, this, int(pe.piece), range_start, i);
-					m_queue_buffer_size += to_write;
+					m_pending_buffer_size += to_write;
 
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
 						, pe.piece, to_write, iov_counter
@@ -429,7 +455,7 @@ namespace libtorrent
 						, aios, m_to_issue, m_elevator_direction);
 
 					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-						? m_elevator_direction : 0);
+						? m_elevator_direction : 0, this);
 
 					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 						DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -450,7 +476,7 @@ namespace libtorrent
 						, aios, m_to_issue);
 
 					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-						? m_elevator_direction : 0);
+						? m_elevator_direction : 0, this);
 
 					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 					{
@@ -488,6 +514,11 @@ namespace libtorrent
 			++ret;
 			buffer_size += block_size;
 		}
+
+		// did m_queue_buffer_size + m_pending_buffer_size
+		// just exceed the disk queue size limit?
+		added_to_write_queue();
+
 		return ret;
 	}
 
@@ -495,24 +526,34 @@ namespace libtorrent
 		, int end, int to_write, async_handler* handler)
 	{
 		if (!handler->error)
-			m_write_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+		{
+			ptime done = time_now_hires();
+			m_write_time.add_sample(total_microseconds(done - handler->started));
+			m_cumulative_write_time += total_milliseconds(done - handler->started);
+		}
 
-		TORRENT_ASSERT(m_queue_buffer_size >= to_write);
-		m_queue_buffer_size -= to_write;
+		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
+		m_pending_buffer_size -= to_write;
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
+		m_disk_cache.mark_as_done(p, begin, end, m_ios
+			, handler->error);
 	}
 
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
 		, int end, async_handler* handler)
 	{
 		if (!handler->error)
-			m_read_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+		{
+			ptime done = time_now_hires();
+			m_read_time.add_sample(total_microseconds(done - handler->started));
+			m_cumulative_read_time += total_milliseconds(done - handler->started);
+		}
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, m_queue_buffer_size, handler->error);
+		m_disk_cache.mark_as_done(p, begin, end, m_ios
+			, handler->error);
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
@@ -648,6 +689,17 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(job_functions)/sizeof(job_functions[0]));
 
+		if (j.action == disk_io_job::write)
+		{
+			TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+			m_queue_buffer_size -= j.buffer_size;
+
+			// did m_queue_buffer_size + m_pending_buffer_size
+			// just drop below the disk queue low watermark limit?
+			deducted_from_write_queue();
+
+		}
+	
 		// is the fence up for this storage?
 		if (j.storage && j.storage->has_fence())
 		{
@@ -658,7 +710,9 @@ namespace libtorrent
 			return;
 		}
 
-		m_queue_time.add_sample(total_microseconds(time_now_hires() - j.start_time));
+		ptime now = time_now_hires();
+		m_queue_time.add_sample(total_microseconds(now - j.start_time));
+		j.start_time = now;
 
 		// call disk function
 		int ret = (this->*(job_functions[j.action]))(j);
@@ -666,7 +720,6 @@ namespace libtorrent
 		DLOG(stderr, "[%p]   return: %d error: %s\n"
 			, this, ret, j.error ? j.error.message().c_str() : "");
 
-		j.outstanding_writes = m_queue_buffer_size;
 		if (ret != defer_handler && j.callback)
 		{
 			DLOG(stderr, "[%p]   posting callback j.buffer: %p\n", this, j.buffer);
@@ -790,7 +843,7 @@ namespace libtorrent
 			, aios, m_to_issue);
 
 		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-			? m_elevator_direction : 0);
+			? m_elevator_direction : 0, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -847,7 +900,7 @@ namespace libtorrent
 
 		file::iovec_t b = { j.buffer, j.buffer_size };
 
-		m_queue_buffer_size += j.buffer_size;
+		m_pending_buffer_size += j.buffer_size;
 
 		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
@@ -855,7 +908,7 @@ namespace libtorrent
 			, aios, m_to_issue);
 
 		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-			? m_elevator_direction : 0);
+			? m_elevator_direction : 0, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -1408,29 +1461,42 @@ namespace libtorrent
 		return ret;
 	}
 
+	void disk_io_thread::get_disk_metrics(cache_status& ret) const
+	{
+		ret.total_used_buffers = in_use();
+		ret.elevator_turns = m_elevator_turns;
+		ret.queued_bytes = m_pending_buffer_size + m_queue_buffer_size;
+
+		ret.average_queue_time = m_queue_time.mean();
+		ret.average_read_time = m_read_time.mean();
+		ret.average_write_time = m_write_time.mean();
+		ret.average_hash_time = m_hash_time.mean();
+		ret.average_job_time = m_job_time.mean();
+		ret.average_sort_time = m_sort_time.mean();
+		ret.blocked_jobs = m_blocked_jobs.size();
+		ret.queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
+		ret.pending_jobs = count_aios(m_in_progress);
+		ret.blocks_written = m_write_blocks;
+		ret.blocks_read = m_read_blocks;
+		ret.writes = m_write_calls;
+		ret.reads = m_read_calls;
+		ret.num_aiocb = m_aiocb_pool.in_use();
+		ret.peak_aiocb = m_aiocb_pool.peak_in_use();
+
+		ret.cumulative_job_time = m_cumulative_job_time;
+		ret.cumulative_read_time = m_cumulative_read_time;
+		ret.cumulative_write_time = m_cumulative_write_time;
+		ret.cumulative_hash_time = m_cumulative_hash_time;
+		ret.cumulative_sort_time = m_cumulative_sort_time;
+	}
+
 	int disk_io_thread::do_get_cache_info(disk_io_job& j)
 	{
 		std::pair<block_cache::iterator, block_cache::iterator> range
 			= m_disk_cache.pieces_for_storage(j.storage.get());
 
 		cache_status* ret = (cache_status*)j.buffer;
-
-		ret->total_used_buffers = in_use();
-		ret->elevator_turns = m_elevator_turns;
-		ret->queued_bytes = m_queue_buffer_size;
-
-		ret->average_queue_time = m_queue_time.mean();
-		ret->average_read_time = m_read_time.mean();
-		ret->average_write_time = m_write_time.mean();
-		ret->blocked_jobs = m_blocked_jobs.size();
-		ret->queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
-		ret->pending_jobs = count_aios(m_in_progress);
-		ret->blocks_written = m_write_blocks;
-		ret->blocks_read = m_read_blocks;
-		ret->writes = m_write_calls;
-		ret->reads = m_read_calls;
-		ret->num_aiocb = m_aiocb_pool.in_use();
-		ret->peak_aiocb = m_aiocb_pool.peak_in_use();
+		get_disk_metrics(*ret);
 
 		m_disk_cache.get_stats(ret);
 
@@ -1457,8 +1523,12 @@ namespace libtorrent
 		int ret = j.buffer_size;
 		TORRENT_ASSERT(handler->error || handler->transferred == j.buffer_size);
 
-		TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
-		m_queue_buffer_size -= j.buffer_size;
+		TORRENT_ASSERT(m_pending_buffer_size >= j.buffer_size);
+		m_pending_buffer_size -= j.buffer_size;
+
+		// did m_queue_buffer_size + m_pending_buffer_size
+		// just drop below the disk queue low watermark limit?
+		deducted_from_write_queue();
 
 		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n"
 			, this, j.piece, j.offset, handler->error.message().c_str());
@@ -1473,7 +1543,9 @@ namespace libtorrent
 		}
 		else
 		{
-			m_write_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+			ptime done = time_now_hires();
+			m_write_time.add_sample(total_microseconds(done - handler->started));
+			m_cumulative_write_time += total_milliseconds(done - handler->started);
 		}
 
 		++m_write_blocks;
@@ -1501,7 +1573,9 @@ namespace libtorrent
 		}
 		else
 		{
-			m_read_time.add_sample(total_microseconds(time_now_hires() - handler->started));
+			ptime done = time_now_hires();
+			m_read_time.add_sample(total_microseconds(done - handler->started));
+			m_cumulative_read_time += total_milliseconds(done - handler->started);
 		}
 
 		++m_read_blocks;
@@ -1510,7 +1584,7 @@ namespace libtorrent
 	}
 
 	// This is sometimes called from an outside thread!
-	void disk_io_thread::add_job(disk_io_job const& j)
+	int disk_io_thread::add_job(disk_io_job const& j)
 	{
 		TORRENT_ASSERT(!m_abort);
 
@@ -1518,6 +1592,15 @@ namespace libtorrent
 
 		mutex::scoped_lock l (m_job_mutex);
 		m_queued_jobs.push_back(j);
+
+		if (j.action == disk_io_job::write)
+		{
+			m_queue_buffer_size += j.buffer_size;
+ 			// did m_queue_buffer_size + m_pending_buffer_size
+			// just exceed the disk queue size limit?
+			added_to_write_queue();
+		}
+
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
@@ -1529,6 +1612,40 @@ namespace libtorrent
 #else
 		g_job_sem.signal();
 #endif
+		return m_queue_buffer_size;
+	}
+
+	void disk_io_thread::added_to_write_queue()
+	{
+		if (m_exceeded_write_queue) return;
+
+		if (m_pending_buffer_size + m_queue_buffer_size > m_settings.max_queued_disk_bytes
+			&& m_settings.max_queued_disk_bytes > 0)
+		{
+			m_exceeded_write_queue = true;
+		}
+	}
+
+	void disk_io_thread::deducted_from_write_queue()
+	{
+		if (m_exceeded_write_queue)
+		{
+			int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
+				? m_settings.max_queued_disk_bytes * 7 / 8
+				: m_settings.max_queued_disk_bytes_low_watermark;
+			if (low_watermark >= m_settings.max_queued_disk_bytes)
+				low_watermark = m_settings.max_queued_disk_bytes * 7 / 8;
+
+			if (m_pending_buffer_size + m_queue_buffer_size < low_watermark
+				|| m_settings.max_queued_disk_bytes == 0)
+			{
+				m_exceeded_write_queue = false;
+				// we just dropped below the high watermark of number of bytes
+				// queued for writing to the disk. Notify the session so that it
+				// can trigger all the connections waiting for this event
+				if (m_queue_callback) m_ios.post(m_queue_callback);
+			}
+		}
 	}
 
 #if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
@@ -1833,7 +1950,7 @@ namespace libtorrent
 					, num_issued);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
-				prepend_aios(m_in_progress, pending, 0);
+				prepend_aios(m_in_progress, pending, 0, this);
 
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 				if (m_to_issue)

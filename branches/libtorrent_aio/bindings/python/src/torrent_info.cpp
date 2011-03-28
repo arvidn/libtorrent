@@ -103,9 +103,9 @@ namespace
     { return ae.send_stats; }
 
 
-    bool get_size(file_entry const& fe)
+    size_type get_size(file_entry const& fe)
     { return fe.size; }
-    bool get_offset(file_entry const& fe)
+    size_type get_offset(file_entry const& fe)
     { return fe.offset; }
     bool get_pad_file(file_entry const& fe)
     { return fe.pad_file; }

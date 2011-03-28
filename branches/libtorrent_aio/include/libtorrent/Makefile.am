@@ -67,6 +67,7 @@ nobase_include_HEADERS = \
   magnet_uri.hpp               \
   max.hpp                      \
   natpmp.hpp                   \
+  packet_buffer.hpp            \
   parse_url.hpp                \
   pch.hpp                      \
   pe_crypto.hpp                \
@@ -81,6 +82,7 @@ nobase_include_HEADERS = \
   proxy_base.hpp               \
   ptime.hpp                    \
   puff.hpp                     \
+  random.hpp                   \
   rss.hpp                      \
   session.hpp                  \
   session_settings.hpp         \
@@ -112,6 +114,7 @@ nobase_include_HEADERS = \
   utp_stream.hpp               \
   utf8.hpp                     \
   version.hpp                  \
+  web_connection_base.hpp      \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
