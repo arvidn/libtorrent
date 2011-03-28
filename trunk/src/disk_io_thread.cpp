@@ -358,7 +358,7 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_queue_mutex);
 		// read jobs are aborted, write and move jobs are syncronized
-		for (std::list<disk_io_job>::iterator i = m_jobs.begin();
+		for (std::deque<disk_io_job>::iterator i = m_jobs.begin();
 			i != m_jobs.end();)
 		{
 			if (i->storage != s)
@@ -1862,7 +1862,7 @@ namespace libtorrent
 					m_log << log_time() << " abort_torrent " << std::endl;
 #endif
 					mutex::scoped_lock jl(m_queue_mutex);
-					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
+					for (std::deque<disk_io_job>::iterator i = m_jobs.begin();
 						i != m_jobs.end();)
 					{
 						if (i->storage != j.storage)
@@ -1929,7 +1929,7 @@ namespace libtorrent
 					// clear all read jobs
 					mutex::scoped_lock jl(m_queue_mutex);
 
-					for (std::list<disk_io_job>::iterator i = m_jobs.begin();
+					for (std::deque<disk_io_job>::iterator i = m_jobs.begin();
 						i != m_jobs.end();)
 					{
 						if (should_cancel_on_abort(*i))
