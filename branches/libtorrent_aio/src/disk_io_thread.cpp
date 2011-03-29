@@ -534,6 +534,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
 		m_pending_buffer_size -= to_write;
+
+		// did m_queue_buffer_size + m_pending_buffer_size
+		// just drop below the disk queue low watermark limit?
+		deducted_from_write_queue();
+
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios
@@ -901,6 +906,10 @@ namespace libtorrent
 		file::iovec_t b = { j.buffer, j.buffer_size };
 
 		m_pending_buffer_size += j.buffer_size;
+
+		// did m_queue_buffer_size + m_pending_buffer_size
+		// just exceed the disk queue size limit?
+		added_to_write_queue();
 
 		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
@@ -1488,6 +1497,8 @@ namespace libtorrent
 		ret.cumulative_write_time = m_cumulative_write_time;
 		ret.cumulative_hash_time = m_cumulative_hash_time;
 		ret.cumulative_sort_time = m_cumulative_sort_time;
+
+		m_disk_cache.get_stats(&ret);
 	}
 
 	int disk_io_thread::do_get_cache_info(disk_io_job& j)
@@ -1497,8 +1508,6 @@ namespace libtorrent
 
 		cache_status* ret = (cache_status*)j.buffer;
 		get_disk_metrics(*ret);
-
-		m_disk_cache.get_stats(ret);
 
 		time_t now_time_t = time(0);
 		ptime now = time_now();
@@ -1628,23 +1637,22 @@ namespace libtorrent
 
 	void disk_io_thread::deducted_from_write_queue()
 	{
-		if (m_exceeded_write_queue)
-		{
-			int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
-				? m_settings.max_queued_disk_bytes * 7 / 8
-				: m_settings.max_queued_disk_bytes_low_watermark;
-			if (low_watermark >= m_settings.max_queued_disk_bytes)
-				low_watermark = m_settings.max_queued_disk_bytes * 7 / 8;
+		if (!m_exceeded_write_queue) return;
 
-			if (m_pending_buffer_size + m_queue_buffer_size < low_watermark
-				|| m_settings.max_queued_disk_bytes == 0)
-			{
-				m_exceeded_write_queue = false;
-				// we just dropped below the high watermark of number of bytes
-				// queued for writing to the disk. Notify the session so that it
-				// can trigger all the connections waiting for this event
-				if (m_queue_callback) m_ios.post(m_queue_callback);
-			}
+		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
+			? m_settings.max_queued_disk_bytes * 7 / 8
+			: m_settings.max_queued_disk_bytes_low_watermark;
+		if (low_watermark >= m_settings.max_queued_disk_bytes)
+			low_watermark = m_settings.max_queued_disk_bytes * 7 / 8;
+
+		if (m_pending_buffer_size + m_queue_buffer_size < low_watermark
+			|| m_settings.max_queued_disk_bytes == 0)
+		{
+			m_exceeded_write_queue = false;
+			// we just dropped below the high watermark of number of bytes
+			// queued for writing to the disk. Notify the session so that it
+			// can trigger all the connections waiting for this event
+			if (m_queue_callback) m_ios.post(m_queue_callback);
 		}
 	}
 
