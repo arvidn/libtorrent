@@ -1638,7 +1638,9 @@ int main(int argc, char* argv[])
 			{
 				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (s.paused && !s.auto_managed)?"paused":(s.paused && s.auto_managed)?"queued":state_str[s.state]
+					, (s.paused && !s.auto_managed)?"paused"
+					: (s.paused && s.auto_managed)?"queued"
+					: (s.upload_mode)?"upload mode":state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
 					, esc("31"), add_suffix(s.total_upload).c_str(), term
@@ -1898,8 +1900,7 @@ int main(int argc, char* argv[])
 							chr = '0' + (i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10);
 						}
 						else if (i->blocks[j].state == block_info::finished) color = esc("32;7");
-						else if (cp && cp->blocks[j]) color = esc("36;7");
-						else if (i->blocks[j].state == block_info::writing) color = esc("35;7");
+						else if (i->blocks[j].state == block_info::writing) color = esc("36;7");
 						else if (i->blocks[j].state == block_info::requested) color = esc("0");
 						else { color = esc("0"); chr = ' '; }
 #else
