@@ -523,7 +523,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			if (bl.pending || bl.buf == 0) break;
 
 			DLOG(stderr, " %d", i);
-			int piece_size = pe->storage.get()->info()->piece_length();
+			int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
 			int size = (std::min)(block_size, piece_size - ph.offset);
 			ph.h.update(bl.buf, size);
 			ph.offset += size;
