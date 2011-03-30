@@ -380,11 +380,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 				--m_read_cache_size;
 				TORRENT_ASSERT(m_cache_size > 0);
 				--m_cache_size;
-				TORRENT_ASSERT(bl.refcount == 1);
-				TORRENT_ASSERT(bl.refcount > 0);
-				--bl.refcount;
-				TORRENT_ASSERT(pe->refcount > 0);
-				--pe->refcount;
 				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
 			}
@@ -449,7 +444,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		for (int i = begin; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			TORRENT_ASSERT(bl.refcount == 1);
 			TORRENT_ASSERT(bl.refcount > 0);
 			--bl.refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
@@ -490,7 +484,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	{
 		for (int i = begin; i < end; ++i)
 		{
-			TORRENT_ASSERT(pe->blocks[i].refcount == 1);
 			TORRENT_ASSERT(pe->blocks[i].refcount > 0);
 			--pe->blocks[i].refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
@@ -514,11 +507,15 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		}
 	}
 
+	int hash_start = 0;
+	int hash_end = 0;
+
 	// if hash is set, we're trying to calculate the hash of this piece
 	if (pe->hash)
 	{
 		partial_hash& ph = *pe->hash;
 		int cursor = ph.offset / block_size;
+		hash_start = cursor;
 		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
@@ -532,6 +529,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			ph.offset += size;
 		}
 		DLOG(stderr, " ]\n");
+		hash_end = ph.offset / block_size;
 	}
 
 	for (std::list<disk_io_job>::iterator i = pe->jobs.begin();
@@ -546,6 +544,22 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			{
 				TORRENT_ASSERT(pe->hash);
 				partial_hash& ph = *pe->hash;
+
+				// every hash job increases the refcount of all
+				// blocks that it needs to complete when it's
+				// issued to make sure they're not evicted before
+				// they're hashed. As soon as they are hashed, the
+				// refcount is decreased
+				for (int b = hash_start; b < hash_end; ++b)
+				{
+					cached_block_entry& bl = pe->blocks[b];
+					TORRENT_ASSERT(!bl.pending && bl.buf != 0);
+					TORRENT_ASSERT(bl.refcount > 0);
+					--bl.refcount;
+					TORRENT_ASSERT(pe->refcount > 0);
+					--pe->refcount;
+				}
+
 				if (ph.offset < i->storage->info()->piece_size(i->piece))
 				{
 					DLOG(stderr, "%p block_cache mark_done leaving job (incomplete hash) "

@@ -444,7 +444,7 @@ namespace libtorrent
 
 		// the termination condition is deliberately <= end here
 		// so that we get one extra loop where we can issue the last
-		// async write operation
+		// async operation
 		for (int i = start; i <= end; ++i)
 		{
 			// don't flush blocks that are empty (buf == 0), not dirty
@@ -539,7 +539,6 @@ namespace libtorrent
 #endif
 			TORRENT_ASSERT(pe.blocks[i].pending == false);
 			pe.blocks[i].uninitialized = false;
-			TORRENT_ASSERT(!pe.blocks[i].pending);
 			if (!pe.blocks[i].pending)
 			{
 				pe.blocks[i].pending = true;
@@ -759,17 +758,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j.action >= 0 && j.action < sizeof(job_functions)/sizeof(job_functions[0]));
 
-		if (j.action == disk_io_job::write)
-		{
-			TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
-			m_queue_buffer_size -= j.buffer_size;
-
-			// did m_queue_buffer_size + m_pending_buffer_size
-			// just drop below the disk queue low watermark limit?
-			deducted_from_write_queue();
-
-		}
-	
 		// is the fence up for this storage?
 		if (j.storage && j.storage->has_fence())
 		{
@@ -808,6 +796,8 @@ namespace libtorrent
 			// have a fence up anymore
 			TORRENT_ASSERT(!j.storage->has_fence());
 
+			// TODO: maybe we could splice this list into the m_jobs queue
+			// and avoid the recursion
 			while (!jobs.empty())
 			{
 				perform_async_job(jobs.front());
@@ -1090,6 +1080,16 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
 			pe->hash = new partial_hash;
+		}
+
+		// increase the refcount for all blocks the hash job needs in
+		// order to complete. These are decremented in block_cache::mark_as_done
+		// for hash jobs
+		int hash_start = pe->hash->offset / m_block_size;
+		for (int i = hash_start; i < pe->blocks_in_piece; ++i)
+		{
+			++pe->blocks[i].refcount;
+			++pe->refcount;
 		}
 
 #if DEBUG_STORAGE
@@ -2011,7 +2011,20 @@ namespace libtorrent
 			// and perform the appropriate action
 			while (!jobs.empty())
 			{
-				perform_async_job(jobs.front());
+				disk_io_job& j = jobs.front();
+				if (j.action == disk_io_job::write)
+				{
+					mutex::scoped_lock l(m_job_mutex);
+					TORRENT_ASSERT(m_queue_buffer_size >= j.buffer_size);
+					m_queue_buffer_size -= j.buffer_size;
+
+					// did m_queue_buffer_size + m_pending_buffer_size
+					// just drop below the disk queue low watermark limit?
+					deducted_from_write_queue();
+					l.unlock();
+				}
+	
+				perform_async_job(j);
 				jobs.pop_front();
 			}
 
