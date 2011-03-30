@@ -437,6 +437,11 @@ namespace libtorrent
 
 		end = (std::min)(end, int(pe.blocks_in_piece));
 
+#ifdef DEBUG_STORAGE
+		DLOG(stderr, "[%p] io_range: [", this);
+		for (int i = 0; i < start; ++i) DLOG(stderr, ".");
+#endif
+
 		// the termination condition is deliberately <= end here
 		// so that we get one extra loop where we can issue the last
 		// async write operation
@@ -452,7 +457,7 @@ namespace libtorrent
 				|| (!pe.blocks[i].dirty && readwrite == op_write)
 				|| (!pe.blocks[i].uninitialized && readwrite == op_read))
 			{
-				if (i == end)
+/*				if (i == end)
 				{
 					DLOG(stderr, "[%p] io_range: skipping block=%d end: %d\n", this, i, end);
 				}
@@ -461,15 +466,19 @@ namespace libtorrent
 					DLOG(stderr, "[%p] io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
 						, this, i, end, pe.blocks[i].buf, pe.blocks[i].pending, pe.blocks[i].dirty);
 				}
-				if (buffer_size == 0) continue;
+*/				if (buffer_size == 0)
+				{
+					if (i != end) DLOG(stderr, ".");
+					continue;
+				}
 
 				TORRENT_ASSERT(buffer_size <= i * m_block_size);
 				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
 				if (readwrite == op_write)
 				{
-					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
-						, this, int(pe.piece), range_start, i);
+//					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
+//						, this, int(pe.piece), range_start, i);
 					m_pending_buffer_size += to_write;
 
 					file::aiocb_t* aios = p->storage->write_async_impl(iov
@@ -478,21 +487,21 @@ namespace libtorrent
 							, range_start, i, to_write, _1));
 					m_write_blocks += i - range_start;
 					++m_write_calls;
-					DLOG(stderr, "prepending aios (%p) from write_async_impl to "
-						"m_to_issue (%p) elevator=%d\n"
-						, aios, m_to_issue, m_elevator_direction);
+//					DLOG(stderr, "prepending aios (%p) from write_async_impl to "
+//						"m_to_issue (%p) elevator=%d\n"
+//						, aios, m_to_issue, m_elevator_direction);
 
 					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
 						? m_elevator_direction : 0, this);
 
-					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
-						DLOG(stderr, "  %"PRId64, j->phys_offset);
-					DLOG(stderr, "\n");
+//					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+//						DLOG(stderr, "  %"PRId64, j->phys_offset);
+//					DLOG(stderr, "\n");
 				}
 				else
 				{
-					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
-						, this, int(pe.piece), range_start, i);
+//					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
+//						, this, int(pe.piece), range_start, i);
 					++m_outstanding_jobs;
 					file::aiocb_t* aios = pe.storage->read_async_impl(iov, pe.piece
 						, range_start * m_block_size, iov_counter
@@ -500,23 +509,24 @@ namespace libtorrent
 							, range_start, i, _1));
 					m_read_blocks += i - range_start;
 					++m_read_calls;
-					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
-						, aios, m_to_issue);
+//					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
+//						, aios, m_to_issue);
 
 					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
 						? m_elevator_direction : 0, this);
 
-					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+/*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 					{
 						TORRENT_ASSERT(j->next == 0 || j->next->prev == j);
 						DLOG(stderr, "  %"PRId64, j->phys_offset);
 					}
 					DLOG(stderr, "\n");
-				}
+*/				}
 				iov_counter = 0;
 				buffer_size = 0;
 				continue;
 			}
+			DLOG(stderr, "x");
 			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
 			TORRENT_ASSERT_VAL(i < end, i);
 			iov[iov_counter].iov_base = pe.blocks[i].buf;
@@ -542,6 +552,7 @@ namespace libtorrent
 			++ret;
 			buffer_size += block_size;
 		}
+		DLOG(stderr, "]\n");
 
 		// did m_queue_buffer_size + m_pending_buffer_size
 		// just exceed the disk queue size limit?
@@ -1074,9 +1085,22 @@ namespace libtorrent
 			pe->jobs.push_back(j);
 		}
 
-		DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
 		// we need the partial hash object
-		if (pe->hash == 0) pe->hash = new partial_hash;
+		if (pe->hash == 0)
+		{
+			DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
+			pe->hash = new partial_hash;
+		}
+
+#if DEBUG_STORAGE
+		DLOG(stderr, "[%p] do_hash: jobs [", this);
+		for (std::list<disk_io_job>::const_iterator i = pe->jobs.begin();
+			i != pe->jobs.end(); ++i)
+		{
+			DLOG(stderr, " %s", job_action_name[i->action]);
+		}
+		DLOG(stderr, " ]\n");
+#endif
 
 		return defer_handler;
 	}

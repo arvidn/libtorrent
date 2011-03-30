@@ -232,6 +232,8 @@ void block_cache::mark_for_deletion(iterator p)
 	}
 	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 	pe->marked_for_deletion = true;
+	DLOG(stderr, "%p block_cache mark-for-deletion "
+		"piece: %d\n", &m_buffer_pool, int(pe->piece));
 
 	if (pe->refcount == 0)
 	{
@@ -410,6 +412,8 @@ int block_cache::allocate_pending(block_cache::iterator p
 	TORRENT_ASSERT(j.piece == pe->piece);
 	if (ret > 0)
 	{
+		DLOG(stderr, "%p block_cache allocate-pending unmark-for-deletion "
+			"piece: %d\n", &m_buffer_pool, int(pe->piece));
 		// in case this was marked for deletion
 		// don't do that anymore
 		pe->marked_for_deletion = false;
@@ -515,16 +519,19 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	{
 		partial_hash& ph = *pe->hash;
 		int cursor = ph.offset / block_size;
+		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
 			if (bl.pending || bl.buf == 0) break;
 
+			DLOG(stderr, " %d", i);
 			int piece_size = pe->storage.get()->info()->piece_length();
 			int size = (std::min)(block_size, piece_size - ph.offset);
 			ph.h.update(bl.buf, size);
 			ph.offset += size;
 		}
+		DLOG(stderr, " ]\n");
 	}
 
 	for (std::list<disk_io_job>::iterator i = pe->jobs.begin();
@@ -556,10 +563,12 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				{
 					i->storage->mark_failed(i->piece);
 					pe->marked_for_deletion = true;
+					DLOG(stderr, "%p block_cache mark_done mark-for-deletion "
+						"piece: %d\n", &m_buffer_pool, int(pe->piece));
 				}
 
 				TORRENT_ASSERT(i->piece == pe->piece);
-				DLOG(stderr, "%p block_cache mark_done post job (hash)"
+				DLOG(stderr, "%p block_cache mark_done post job (hash) "
 					"piece: %d ret: %d\n", &m_buffer_pool, i->piece, ret);
 				if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 				i = pe->jobs.erase(i);
@@ -596,7 +605,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			{
 				DLOG(stderr, "%p block_cache mark_done leaving job (hash) "
 					"piece: %d num_dirty: %d\n"
-					, &m_buffer_pool, int(pe->piece), int(p->num_dirty));
+					, &m_buffer_pool, int(p->piece), int(p->num_dirty));
 				// this job is waiting for some all blocks to be written
 				++i;
 				continue;
@@ -646,6 +655,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				{
 					i->storage->mark_failed(i->piece);
 					pe->marked_for_deletion = true;
+					DLOG(stderr, "%p block_cache mark_done mark-for-deletion "
+						"piece: %d\n", &m_buffer_pool, int(pe->piece));
 				}
 			}
 		}
@@ -690,6 +701,9 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		}
 	}
 
+	DLOG(stderr, "%p block_cache mark_done mark-for-deletion: %d "
+		"piece: %d refcount: %d\n", &m_buffer_pool, pe->marked_for_deletion
+		, int(pe->piece), int(pe->refcount));
 	if (pe->marked_for_deletion && pe->refcount == 0)
 	{
 		cache_piece_index_t& idx = m_pieces.get<0>();
