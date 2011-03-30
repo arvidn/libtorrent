@@ -530,7 +530,7 @@ namespace libtorrent
 				i->size = pad_size;
 				i->offset = off;
 				char name[30];
-				std::sprintf(name, ".____padding_file/%d", padding_file);
+				snprintf(name, sizeof(name), ".____padding_file/%d", padding_file);
 				i->set_name(name);
 				i->pad_file = true;
 				off += pad_size;
