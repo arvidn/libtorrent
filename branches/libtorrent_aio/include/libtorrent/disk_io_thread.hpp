@@ -274,7 +274,8 @@ namespace libtorrent
 		void on_write_one_buffer(async_handler* handler, disk_io_job j);
 		void on_read_one_buffer(async_handler* handler, disk_io_job j);
 
-		int try_flush(block_cache::iterator p, int limit);
+		int try_flush_contiguous(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
+		int try_flush_hashed(block_cache::iterator p, int num);
 		void try_flush_write_blocks(int num);
 
 		bool m_abort;

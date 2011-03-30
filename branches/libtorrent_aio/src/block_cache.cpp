@@ -245,6 +245,8 @@ void block_cache::mark_for_deletion(iterator p)
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
+// this only evicts read blocks. For write blocks, see
+// try_flush_write_blocks in disk_io_thread.cpp
 int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 {
 	INVARIANT_CHECK;

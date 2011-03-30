@@ -349,21 +349,23 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	int disk_io_thread::try_flush(block_cache::iterator p, int limit)
+	// flush blocks of 'cont_block' contiguous blocks, and if at least 'num'
+	// blocks are flushed, stop.
+	int disk_io_thread::try_flush_contiguous(block_cache::iterator p, int cont_block, int num)
 	{
 		int start_of_run = 0;
 		int i = 0;
-		limit = (std::min)(limit, int(p->blocks_in_piece));
+		cont_block = (std::min)(cont_block, int(p->blocks_in_piece));
 		int ret = 0;
-		DLOG(stderr, "[%p] try_flush: %d blocks: %d limit: %d\n"
-			, this, int(p->piece), int(p->blocks_in_piece), int(limit));
+		DLOG(stderr, "[%p] try_flush_contiguous: %d blocks: %d cont_block: %d num: %d\n"
+			, this, int(p->piece), int(p->blocks_in_piece), int(cont_block), num);
 
 		for (; i < p->blocks_in_piece; ++i)
 		{
 			if (p->blocks[i].dirty && !p->blocks[i].pending) continue;
 
 			if (start_of_run == i
-				|| i - start_of_run < limit)
+				|| i - start_of_run < cont_block)
 			{
 				start_of_run = i + 1;
 				continue;
@@ -372,9 +374,10 @@ namespace libtorrent
 			// we should flush start_of_run - i.
 			ret += io_range(p, start_of_run, i, op_write);
 			start_of_run = i + 1;
+			if (ret >= num) return ret;
 		}
 
-		if (i - start_of_run >= limit)
+		if (i - start_of_run >= cont_block)
 		{
 			// we should flush start_of_run - i.
 			ret += io_range(p, start_of_run, i, op_write);
@@ -383,6 +386,30 @@ namespace libtorrent
 		return ret;
 	}
 
+	// flush all blocks that are below p->hash.offset, since we've
+	// already hashed those blocks, they won't cause any read-back
+	int disk_io_thread::try_flush_hashed(block_cache::iterator p, int num)
+	{
+		int i = 0;
+		int ret = 0;
+
+		if (p->hash == 0)
+		{
+			DLOG(stderr, "[%p] no hash\n", this);
+			return 0;
+		}
+
+		int end = (std::min)(p->hash->offset / m_block_size, int(p->blocks_in_piece));
+
+		DLOG(stderr, "[%p] try_flush_hashed: %d blocks: %d end: %d num: %d\n"
+			, this, int(p->piece), int(p->blocks_in_piece), end, num);
+
+		return io_range(p, 0, end, op_write);
+	}
+
+	// issues read or write operations for blocks in the given
+	// range on the given piece. Returns the number of blocks operations
+	// were actually issued for
 	int disk_io_thread::io_range(block_cache::iterator p, int start, int end, int readwrite)
 	{
 		INVARIANT_CHECK;
@@ -628,13 +655,39 @@ namespace libtorrent
 		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
 			= m_disk_cache.all_lru_pieces();
 
-		// flush write cache in LRU order
-		for (block_cache::lru_iterator p = range.first;
-			p != range.second && num > 0; ++p)
+		if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
 		{
-			if (p->num_dirty == 0) continue;
+			for (block_cache::lru_iterator p = range.first;
+				p != range.second && num > 0; ++p)
+			{
+				if (p->num_dirty == 0) continue;
 
-			try_flush(m_disk_cache.map_iterator(p), 1);
+				num -= try_flush_contiguous(m_disk_cache.map_iterator(p)
+					, m_settings.write_cache_line_size, num);
+			}
+		}
+		else if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+		{
+			for (block_cache::lru_iterator p = range.first;
+				p != range.second && num > 0; ++p)
+			{
+				if (p->num_dirty == 0) continue;
+
+				num -= try_flush_hashed(m_disk_cache.map_iterator(p), num);
+			}
+		}
+
+		if (num > 0)
+		{
+			// if we still need to flush blocks, start over and flush
+			// everything in LRU order (degrade to lru cache eviction)
+			for (block_cache::lru_iterator p = range.first;
+				p != range.second && num > 0; ++p)
+			{
+				if (p->num_dirty == 0) continue;
+
+				num -= try_flush_contiguous(m_disk_cache.map_iterator(p), 1, num);
+			}
 		}
 	}
 
@@ -877,7 +930,7 @@ namespace libtorrent
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
 				// piece to be flushed
-				try_flush(p, m_settings.write_cache_line_size);
+				try_flush_contiguous(p, m_settings.write_cache_line_size);
 
 				// if we have more blocks in the cache than allowed by
 				// the cache size limit, flush some dirty blocks
