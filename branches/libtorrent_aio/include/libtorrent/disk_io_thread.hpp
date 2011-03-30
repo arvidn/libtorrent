@@ -325,6 +325,10 @@ namespace libtorrent
 		size_type m_cumulative_hash_time;
 		size_type m_cumulative_sort_time;
 
+		// the number of blocks read because we needed to
+		// hash the piece
+		int m_total_read_back;
+
 		// these are async I/O operations that have been issued
 		// and we are waiting to complete
 		file::aiocb_t* m_in_progress;

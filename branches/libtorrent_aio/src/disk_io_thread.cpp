@@ -253,6 +253,7 @@ namespace libtorrent
 		, m_cumulative_write_time(0)
 		, m_cumulative_hash_time(0)
 		, m_cumulative_sort_time(0)
+		, m_total_read_back(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_outstanding_jobs(0)
@@ -1016,6 +1017,7 @@ namespace libtorrent
 			if (ret != 0 && ret != defer_handler) return ret;
 			job_added = true;
 			ret = defer_handler;
+			m_total_read_back += p->blocks_in_piece;
 		}
 		else
 		{
@@ -1049,7 +1051,7 @@ namespace libtorrent
 					// if allocate_pending succeeds, it adds the job as well
 					job_added = true;
 					// some blocks were allocated
-					io_range(p, 0, p->blocks_in_piece, op_read);
+					m_total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
 					ret = defer_handler;
 				}
 				else if (ret == -1)
@@ -1544,6 +1546,7 @@ namespace libtorrent
 		ret.reads = m_read_calls;
 		ret.num_aiocb = m_aiocb_pool.in_use();
 		ret.peak_aiocb = m_aiocb_pool.peak_in_use();
+		ret.total_read_back = m_total_read_back;
 
 		ret.cumulative_job_time = m_cumulative_job_time;
 		ret.cumulative_read_time = m_cumulative_read_time;

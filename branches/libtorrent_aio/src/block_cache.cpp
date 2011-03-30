@@ -86,7 +86,6 @@ block_cache::block_cache(disk_buffer_pool& p)
 	, m_write_cache_size(0)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
-	, m_total_read_back(0)
 	, m_buffer_pool(p)
 {}
 
@@ -564,7 +563,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					"piece: %d ret: %d\n", &m_buffer_pool, i->piece, ret);
 				if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 				i = pe->jobs.erase(i);
-				m_total_read_back += (end - begin);
 				continue;
 			}
 			// if the job overlaps any blocks that are still pending,
@@ -802,7 +800,6 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->blocks_read_hit = m_blocks_read_hit;
 	ret->cache_size = m_cache_size;
 	ret->read_cache_size = m_read_cache_size;
-	ret->total_read_back = m_total_read_back;
 }
 
 #ifdef TORRENT_DEBUG

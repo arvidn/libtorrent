@@ -305,10 +305,6 @@ namespace libtorrent
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;
 
-		// the number of blocks read because we needed to
-		// hash the piece
-		int m_total_read_back;
-
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;
 	};
