@@ -1447,8 +1447,8 @@ void upnp::on_expire(error_code const& ec)
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("upnp::on_expire");
 #endif
-		error_code ec;
-		m_refresh_timer.expires_at(next_expire, ec);
+		error_code e;
+		m_refresh_timer.expires_at(next_expire, e);
 		m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
 	}
 }

@@ -1601,13 +1601,13 @@ namespace libtorrent
 
 						const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
 						if ((int)bitmask.size() != num_bitmask_bytes) continue;
-						for (int j = 0; j < num_bitmask_bytes; ++j)
+						for (int k = 0; k < num_bitmask_bytes; ++k)
 						{
-							unsigned char bits = bitmask[j];
-							int num_bits = (std::min)(num_blocks_per_piece - j*8, 8);
+							unsigned char bits = bitmask[k];
+							int num_bits = (std::min)(num_blocks_per_piece - k*8, 8);
 							for (int k = 0; k < num_bits; ++k)
 							{
-								const int bit = j * 8 + k;
+								const int bit = k * 8 + k;
 								if (bits & (1 << k))
 								{
 									m_picker->mark_as_finished(piece_block(piece, bit), 0);
@@ -4300,11 +4300,11 @@ namespace libtorrent
 			// look up the country code in the map
 			const int size = sizeof(country_map)/sizeof(country_map[0]);
 			country_entry tmp = {country, ""};
-			country_entry const* i =
+			country_entry const* j =
 				std::lower_bound(country_map, country_map + size, tmp
 					, boost::bind(&country_entry::code, _1) < boost::bind(&country_entry::code, _2));
-			if (i == country_map + size
-				|| i->code != country)
+			if (j == country_map + size
+				|| j->code != country)
 			{
 				// unknown country!
 				p->set_country("!!");
@@ -4314,7 +4314,7 @@ namespace libtorrent
 				return;
 			}
 			
-			p->set_country(i->name);
+			p->set_country(j->name);
 		}
 	}
 #endif
