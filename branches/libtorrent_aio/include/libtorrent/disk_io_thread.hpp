@@ -401,6 +401,9 @@ namespace libtorrent
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
 
+		// used to rate limit disk performance warnings
+		ptime m_last_disk_aio_performance_warning;
+
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)
 		boost::function<void(alert*)> m_post_alert;

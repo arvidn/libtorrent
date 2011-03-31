@@ -265,6 +265,7 @@ namespace libtorrent
 		, m_ios(ios)
 		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
+		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(post_alert)
 #if TORRENT_USE_OVERLAPPED
 		, m_completion_port(CreateIoCompletionPort(INVALID_HANDLE_VALUE
@@ -2056,11 +2057,16 @@ namespace libtorrent
 #if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
 				if (m_to_issue)
 				{
-					// there were some jobs that couldn't be posted
-					// the the kernel. This limits the performance of
-					// the disk throughput, issue a performance warning
-					m_ios.post(boost::bind(m_post_alert, new performance_alert(
-						torrent_handle(), performance_alert::aio_limit_reached)));
+					ptime now = time_now();
+					if (now - m_last_disk_aio_performance_warning > seconds(10))
+					{
+						// there were some jobs that couldn't be posted
+						// the the kernel. This limits the performance of
+						// the disk throughput, issue a performance warning
+						m_ios.post(boost::bind(m_post_alert, new performance_alert(
+							torrent_handle(), performance_alert::aio_limit_reached)));
+						m_last_disk_aio_performance_warning = now;
+					}
 				}
 #endif
 				if (num_issued == 0)
