@@ -1983,7 +1983,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0);
 				pool.destroy(del);
 				continue;
 			}
