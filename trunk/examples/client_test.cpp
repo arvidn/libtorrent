@@ -73,7 +73,7 @@ using boost::bind;
 #include <windows.h>
 #include <conio.h>
 
-bool sleep_and_input(char* c, int sleep)
+bool sleep_and_input(int* c, int sleep)
 {
 	for (int i = 0; i < sleep * 2; ++i)
 	{
@@ -126,7 +126,7 @@ struct set_keypress
 	termios stored_settings;
 };
 
-bool sleep_and_input(char* c, int sleep)
+bool sleep_and_input(int* c, int sleep)
 {
 	// sets the terminal to single-character mode
 	// and resets when destructed
@@ -141,9 +141,7 @@ retry:
 	ret = select(1, &set, 0, 0, &tv);
 	if (ret > 0)
 	{
-		int r = getc(stdin);
-		if (r == EOF) return false;
-		*c = r;
+		*c = getc(stdin);
 		return true;
 	}
 	if (errno == EINTR)
@@ -1283,23 +1281,27 @@ int main(int argc, char* argv[])
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
 		if (loop_limit > 1) --loop_limit;
-		char c = 0;
+		int c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
+			if (c == EOF) { c = 'q'; break; }
 			if (c == 27)
 			{
 				// escape code, read another character
 #ifdef _WIN32
 				c = _getch();
 #else
-				c = getc(stdin);
+				int c = getc(stdin);
 #endif
-				if (c != '[') break;
+				if (c == EOF) { c = 'q'; break; }
+				if (c != '[') continue;
 #ifdef _WIN32
 				c = _getch();
 #else
 				c = getc(stdin);
 #endif
+				if (c == EOF) break;
+
 				if (c == 68)
 				{
 					// arrow left
