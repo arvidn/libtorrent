@@ -101,7 +101,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
-		storage_interface(): m_disk_pool(0), m_settings(0) {}
+		storage_interface(): m_disk_pool(0), m_aiocb_pool(0), m_settings(0) {}
 		// create directories and set file sizes
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
