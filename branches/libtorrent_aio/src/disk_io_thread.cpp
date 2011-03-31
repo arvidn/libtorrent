@@ -791,7 +791,7 @@ namespace libtorrent
 		if (ret != defer_handler && (j.flags & disk_io_job::need_uncork))
 		{
 			DLOG(stderr, "[%p]   uncorking\n", this);
-			std::list<disk_io_job> jobs;
+			std::deque<disk_io_job> jobs;
 			m_blocked_jobs.swap(jobs);
 			// we should only uncork if the storage doesn't
 			// have a fence up anymore
@@ -1326,7 +1326,7 @@ namespace libtorrent
 		to_free.reserve(m_blocked_jobs.size());
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
-		for (std::list<disk_io_job>::iterator i = m_blocked_jobs.begin();
+		for (std::deque<disk_io_job>::iterator i = m_blocked_jobs.begin();
 			i != m_blocked_jobs.end();)
 		{
 			if (i->storage != j.storage)
@@ -2002,7 +2002,7 @@ namespace libtorrent
 			// while we swap out all the jobs in the queue
 			// we can then go through the queue without having
 			// to block the mutex
-			std::list<disk_io_job> jobs;
+			std::deque<disk_io_job> jobs;
 			mutex::scoped_lock l(m_job_mutex);
 			jobs.swap(m_queued_jobs);
 			l.unlock();

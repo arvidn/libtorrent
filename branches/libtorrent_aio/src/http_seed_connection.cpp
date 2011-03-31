@@ -236,15 +236,15 @@ namespace libtorrent
 			bool header_finished = m_parser.header_finished();
 			if (!header_finished)
 			{
-				bool error = false;
+				bool parse_error = false;
 				int protocol = 0;
 				int payload = 0;
-				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, error);
+				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
 				m_statistics.received_bytes(0, protocol);
 				bytes_transferred -= protocol;
 				if (payload > front_request.length) payload = front_request.length;
 
-				if (error)
+				if (parse_error)
 				{
 					m_statistics.received_bytes(0, bytes_transferred);
 					disconnect(errors::http_parse_error, 2);

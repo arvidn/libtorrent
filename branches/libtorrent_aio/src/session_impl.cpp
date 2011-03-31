@@ -1925,7 +1925,6 @@ namespace aux {
 
 			// set our main IPv4 and IPv6 interfaces
 			// used to send to the tracker
-			error_code ec;
 			std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = ifs.begin()
 					, end(ifs.end()); i != end; ++i)

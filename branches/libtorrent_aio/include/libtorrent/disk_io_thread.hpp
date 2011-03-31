@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
-#include <list>
+#include <deque>
 #include "libtorrent/config.hpp"
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
@@ -382,7 +382,7 @@ namespace libtorrent
 		// list. Each time a storage is taken out of the fence,
 		// this list is gone through and jobs belonging to the
 		// storage are issued.
-		std::list<disk_io_job> m_blocked_jobs;
+		std::deque<disk_io_job> m_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that
@@ -396,7 +396,7 @@ namespace libtorrent
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
 
-		std::list<disk_io_job> m_queued_jobs;
+		std::deque<disk_io_job> m_queued_jobs;
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
