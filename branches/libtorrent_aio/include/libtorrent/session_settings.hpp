@@ -941,9 +941,6 @@ namespace libtorrent
 		// traffic. With this option, your true IP address will not be exposed
 		bool anonymous_mode;
 
-		// the max number of concurrent async jobs passed to the OS
-		int max_async_disk_jobs;
-
 		// the number of milliseconds between internal ticks. Should be no
 		// more than one second (i.e. 1000).
 		int tick_interval;
