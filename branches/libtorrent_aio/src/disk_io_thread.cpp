@@ -392,9 +392,6 @@ namespace libtorrent
 	// already hashed those blocks, they won't cause any read-back
 	int disk_io_thread::try_flush_hashed(block_cache::iterator p, int num)
 	{
-		int i = 0;
-		int ret = 0;
-
 		if (p->hash == 0)
 		{
 			DLOG(stderr, "[%p] no hash\n", this);
