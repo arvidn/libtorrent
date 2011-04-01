@@ -533,8 +533,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			ph.offset += size;
 			++num_blocks;
 		}
-		ptime done = time_now_hires();
-		add_hash_time(done - start_hash, num_blocks);
+		if (num_blocks > 0)
+		{
+			ptime done = time_now_hires();
+			add_hash_time(done - start_hash, num_blocks);
+		}
 		DLOG(stderr, " ]\n");
 		hash_end = ph.offset / block_size;
 	}

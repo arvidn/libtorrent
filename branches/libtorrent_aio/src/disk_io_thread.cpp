@@ -1493,8 +1493,11 @@ namespace libtorrent
 			size -= m_block_size;
 		}
 		sha1_hash h = sha1.final();
-		ptime done = time_now_hires();
-		m_disk_cache.add_hash_time(done - start_hash, p->blocks_in_piece);
+		if (p->blocks_in_piece > 0)
+		{
+			ptime done = time_now_hires();
+			m_disk_cache.add_hash_time(done - start_hash, p->blocks_in_piece);
+		}
 
 		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
 

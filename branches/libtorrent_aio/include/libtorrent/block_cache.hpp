@@ -283,6 +283,7 @@ namespace libtorrent
 
 		void add_hash_time(time_duration dt, int num_blocks)
 		{
+			TORRENT_ASSERT(num_blocks > 0);
 			m_hash_time.add_sample(total_microseconds(dt / num_blocks));
 			m_cumulative_hash_time += total_microseconds(dt);
 		}
