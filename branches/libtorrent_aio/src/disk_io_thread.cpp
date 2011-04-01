@@ -250,6 +250,7 @@ namespace libtorrent
 		, m_read_blocks(0)
 		, m_cumulative_read_time(0)
 		, m_cumulative_write_time(0)
+		, m_cumulative_job_time(0)
 		, m_cumulative_sort_time(0)
 		, m_total_read_back(0)
 		, m_in_progress(0)
@@ -561,9 +562,9 @@ namespace libtorrent
 	{
 		if (!handler->error)
 		{
-			ptime done = time_now_hires();
-			m_write_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_write_time += total_microseconds(done - handler->started);
+			boost::uint32_t write_time = total_microseconds(time_now_hires() - handler->started);
+			m_write_time.add_sample(write_time);
+			m_cumulative_write_time += write_time;
 		}
 
 		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
@@ -577,6 +578,13 @@ namespace libtorrent
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios
 			, handler->error);
+
+		if (!handler->error)
+		{
+			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
+			m_job_time.add_sample(job_time);
+			m_cumulative_job_time += job_time;
+		}
 	}
 
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
@@ -584,15 +592,22 @@ namespace libtorrent
 	{
 		if (!handler->error)
 		{
-			ptime done = time_now_hires();
-			m_read_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_read_time += total_microseconds(done - handler->started);
+			boost::uint32_t read_time = total_microseconds(time_now_hires() - handler->started);
+			m_read_time.add_sample(read_time);
+			m_cumulative_read_time += read_time;
 		}
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios
 			, handler->error);
+
+		if (!handler->error)
+		{
+			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
+			m_job_time.add_sample(job_time);
+			m_cumulative_job_time += job_time;
+		}
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
@@ -778,8 +793,6 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p]   posting callback j.buffer: %p\n", this, j.buffer);
 			m_ios.post(boost::bind(j.callback, ret, j));
-			ptime done = time_now_hires();
-			m_disk_cache.add_job_time(done - j.start_time);
 		}
 
 		// if this job actually completed (as opposed to deferred the handler)
@@ -1208,11 +1221,7 @@ namespace libtorrent
 			if (j.error) return disk_operation_failed;
 
 			if (ret == piece_manager::need_full_check && j.callback)
-			{
 				m_ios.post(boost::bind(j.callback, ret, j));
-				ptime done = time_now_hires();
-				m_disk_cache.add_job_time(done - j.start_time);
-			}
 			if (ret != piece_manager::need_full_check)
 				return ret;
 		}
@@ -1567,6 +1576,7 @@ namespace libtorrent
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
 		ret.average_write_time = m_write_time.mean();
+		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
 		ret.queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
@@ -1581,6 +1591,7 @@ namespace libtorrent
 
 		ret.cumulative_read_time = m_cumulative_read_time;
 		ret.cumulative_write_time = m_cumulative_write_time;
+		ret.cumulative_job_time = m_cumulative_job_time;
 		ret.cumulative_sort_time = m_cumulative_sort_time;
 
 		m_disk_cache.get_stats(&ret);
@@ -1637,19 +1648,16 @@ namespace libtorrent
 		}
 		else
 		{
-			ptime done = time_now_hires();
-			m_write_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_write_time += total_microseconds(done - handler->started);
+			boost::uint32_t write_time = total_microseconds(time_now_hires() - handler->started);
+			m_write_time.add_sample(write_time);
+			m_job_time.add_sample(write_time);
+			m_cumulative_write_time += write_time;
+			m_cumulative_job_time += write_time;
 		}
 
 		++m_write_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
-		ptime done = time_now_hires();
-		m_disk_cache.add_job_time(done - j.start_time);
-
-		// TODO: it might be interesting to measure handler->started - j.start_time as well
-		// it would say how long a job was waiting for the OS to accept it
 	}
 
 	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job j)
@@ -1672,16 +1680,16 @@ namespace libtorrent
 		}
 		else
 		{
-			ptime done = time_now_hires();
-			m_read_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_read_time += total_microseconds(done - handler->started);
+			boost::uint32_t read_time = total_microseconds(time_now_hires() - handler->started);
+			m_read_time.add_sample(read_time);
+			m_job_time.add_sample(read_time);
+			m_cumulative_read_time += read_time;
+			m_cumulative_job_time += read_time;
 		}
 
 		++m_read_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
-		ptime done = time_now_hires();
-		m_disk_cache.add_job_time(done - j.start_time);
 	}
 
 	// This is sometimes called from an outside thread!
