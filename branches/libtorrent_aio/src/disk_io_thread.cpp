@@ -248,7 +248,6 @@ namespace libtorrent
 		, m_read_calls(0)
 		, m_write_blocks(0)
 		, m_read_blocks(0)
-		, m_cumulative_job_time(0)
 		, m_cumulative_read_time(0)
 		, m_cumulative_write_time(0)
 		, m_cumulative_sort_time(0)
@@ -779,6 +778,8 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p]   posting callback j.buffer: %p\n", this, j.buffer);
 			m_ios.post(boost::bind(j.callback, ret, j));
+			ptime done = time_now_hires();
+			m_disk_cache.add_job_time(done - j.start_time);
 		}
 
 		// if this job actually completed (as opposed to deferred the handler)
@@ -1207,7 +1208,11 @@ namespace libtorrent
 			if (j.error) return disk_operation_failed;
 
 			if (ret == piece_manager::need_full_check && j.callback)
+			{
 				m_ios.post(boost::bind(j.callback, ret, j));
+				ptime done = time_now_hires();
+				m_disk_cache.add_job_time(done - j.start_time);
+			}
 			if (ret != piece_manager::need_full_check)
 				return ret;
 		}
@@ -1559,7 +1564,6 @@ namespace libtorrent
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
 		ret.average_write_time = m_write_time.mean();
-		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
 		ret.queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
@@ -1572,7 +1576,6 @@ namespace libtorrent
 		ret.peak_aiocb = m_aiocb_pool.peak_in_use();
 		ret.total_read_back = m_total_read_back;
 
-		ret.cumulative_job_time = m_cumulative_job_time;
 		ret.cumulative_read_time = m_cumulative_read_time;
 		ret.cumulative_write_time = m_cumulative_write_time;
 		ret.cumulative_sort_time = m_cumulative_sort_time;
@@ -1639,6 +1642,11 @@ namespace libtorrent
 		++m_write_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
+		ptime done = time_now_hires();
+		m_disk_cache.add_job_time(done - j.start_time);
+
+		// TODO: it might be interesting to measure handler->started - j.start_time as well
+		// it would say how long a job was waiting for the OS to accept it
 	}
 
 	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job j)
@@ -1669,6 +1677,8 @@ namespace libtorrent
 		++m_read_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
+		ptime done = time_now_hires();
+		m_disk_cache.add_job_time(done - j.start_time);
 	}
 
 	// This is sometimes called from an outside thread!

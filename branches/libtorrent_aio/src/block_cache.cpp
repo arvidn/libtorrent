@@ -87,6 +87,7 @@ block_cache::block_cache(disk_buffer_pool& p)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
 	, m_cumulative_hash_time(0)
+	, m_cumulative_job_time(0)
 	, m_buffer_pool(p)
 {}
 
@@ -591,6 +592,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				DLOG(stderr, "%p block_cache mark_done post job (hash) "
 					"piece: %d ret: %d\n", &m_buffer_pool, i->piece, ret);
 				if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
+				ptime done = time_now_hires();
+				add_job_time(done - i->start_time);
 				i = pe->jobs.erase(i);
 				continue;
 			}
@@ -832,6 +835,8 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->read_cache_size = m_read_cache_size;
 	ret->average_hash_time = m_hash_time.mean();
 	ret->cumulative_hash_time = m_cumulative_hash_time;
+	ret->average_job_time = m_job_time.mean();
+	ret->cumulative_job_time = m_cumulative_job_time;
 }
 
 #ifdef TORRENT_DEBUG

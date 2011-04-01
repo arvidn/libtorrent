@@ -287,6 +287,12 @@ namespace libtorrent
 			m_cumulative_hash_time += total_microseconds(dt);
 		}
 
+		void add_job_time(time_duration dt)
+		{
+			m_job_time.add_sample(total_microseconds(dt));
+			m_cumulative_job_time += total_microseconds(dt);
+		}
+
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss
@@ -316,8 +322,12 @@ namespace libtorrent
 		// average hash time (in microseconds)
 		sliding_average<512> m_hash_time;
 
+		// average time to serve a job (any job) in microseconds
+		sliding_average<512> m_job_time;
+
 		// microseconds
 		size_type m_cumulative_hash_time;
+		size_type m_cumulative_job_time;
 
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;

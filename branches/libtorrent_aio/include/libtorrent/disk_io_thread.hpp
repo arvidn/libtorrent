@@ -303,9 +303,6 @@ namespace libtorrent
 		// average write time (in microseconds)
 		sliding_average<512> m_write_time;
 
-		// average time to serve a job (any job) in microseconds
-		sliding_average<512> m_job_time;
-
 		// average time to ask for physical offset on disk
 		// and insert into queue
 		sliding_average<512> m_sort_time;
@@ -316,7 +313,6 @@ namespace libtorrent
 		boost::uint64_t m_write_blocks;
 		boost::uint64_t m_read_blocks;
 
-		size_type m_cumulative_job_time;
 		size_type m_cumulative_read_time;
 		size_type m_cumulative_write_time;
 		size_type m_cumulative_sort_time;
