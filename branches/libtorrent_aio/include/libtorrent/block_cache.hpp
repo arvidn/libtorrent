@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/sliding_average.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -279,6 +281,12 @@ namespace libtorrent
 
 		void set_max_size(int s) { m_max_size = s; }
 
+		void add_hash_time(time_duration dt, int num_blocks)
+		{
+			m_hash_time.add_sample(total_microseconds(dt / num_blocks));
+			m_cumulative_hash_time += total_microseconds(dt);
+		}
+
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss
@@ -304,6 +312,12 @@ namespace libtorrent
 
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;
+
+		// average hash time (in microseconds)
+		sliding_average<512> m_hash_time;
+
+		// microseconds
+		size_type m_cumulative_hash_time;
 
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;

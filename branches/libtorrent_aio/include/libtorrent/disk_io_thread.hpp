@@ -303,9 +303,6 @@ namespace libtorrent
 		// average write time (in microseconds)
 		sliding_average<512> m_write_time;
 
-		// average hash time (in microseconds)
-		sliding_average<512> m_hash_time;
-
 		// average time to serve a job (any job) in microseconds
 		sliding_average<512> m_job_time;
 
@@ -322,7 +319,6 @@ namespace libtorrent
 		size_type m_cumulative_job_time;
 		size_type m_cumulative_read_time;
 		size_type m_cumulative_write_time;
-		size_type m_cumulative_hash_time;
 		size_type m_cumulative_sort_time;
 
 		// the number of blocks read because we needed to

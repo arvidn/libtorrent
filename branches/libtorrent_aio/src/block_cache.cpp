@@ -86,6 +86,7 @@ block_cache::block_cache(disk_buffer_pool& p)
 	, m_write_cache_size(0)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
+	, m_cumulative_hash_time(0)
 	, m_buffer_pool(p)
 {}
 
@@ -517,6 +518,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		int cursor = ph.offset / block_size;
 		hash_start = cursor;
 		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+		int num_blocks = 0;
+		ptime start_hash = time_now_hires();
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
@@ -527,7 +530,10 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			int size = (std::min)(block_size, piece_size - ph.offset);
 			ph.h.update(bl.buf, size);
 			ph.offset += size;
+			++num_blocks;
 		}
+		ptime done = time_now_hires();
+		add_hash_time(done - start_hash, num_blocks);
 		DLOG(stderr, " ]\n");
 		hash_end = ph.offset / block_size;
 	}
@@ -654,16 +660,12 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				&& i->action == disk_io_job::read_and_hash
 				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
 			{
-				// #error do hashing in a separate thread!
-				hasher sha1;
-				int size = i->storage->info()->piece_size(p->piece);
-				for (int k = 0; k < p->blocks_in_piece; ++k)
-				{
-					TORRENT_ASSERT(size > 0);
-					sha1.update(p->blocks[k].buf, (std::min)(block_size, size));
-					size -= block_size;
-				}
-				sha1_hash h = sha1.final();
+				TORRENT_ASSERT(p->hash);
+				TORRENT_ASSERT(p->hash->offset == i->storage->info()->piece_size(p->piece));
+				partial_hash& ph = *p->hash;
+
+				// #error save the actual hash in the ph state as well
+				sha1_hash h = ph.h.final();
 				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-3;
 				if (ret == -3)
 				{
@@ -828,6 +830,8 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->blocks_read_hit = m_blocks_read_hit;
 	ret->cache_size = m_cache_size;
 	ret->read_cache_size = m_read_cache_size;
+	ret->average_hash_time = m_hash_time.mean();
+	ret->cumulative_hash_time = m_cumulative_hash_time;
 }
 
 #ifdef TORRENT_DEBUG

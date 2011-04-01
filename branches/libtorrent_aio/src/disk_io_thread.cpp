@@ -210,7 +210,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			io->m_sort_time.add_sample(total_microseconds(done - start_sort));
-			io->m_cumulative_sort_time += total_milliseconds(done - start_sort);
+			io->m_cumulative_sort_time += total_microseconds(done - start_sort);
 		}
 	}
 
@@ -251,7 +251,6 @@ namespace libtorrent
 		, m_cumulative_job_time(0)
 		, m_cumulative_read_time(0)
 		, m_cumulative_write_time(0)
-		, m_cumulative_hash_time(0)
 		, m_cumulative_sort_time(0)
 		, m_total_read_back(0)
 		, m_in_progress(0)
@@ -565,7 +564,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			m_write_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_write_time += total_milliseconds(done - handler->started);
+			m_cumulative_write_time += total_microseconds(done - handler->started);
 		}
 
 		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
@@ -588,7 +587,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			m_read_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_read_time += total_milliseconds(done - handler->started);
+			m_cumulative_read_time += total_microseconds(done - handler->started);
 		}
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
@@ -1479,6 +1478,7 @@ namespace libtorrent
 		if (m_settings.disable_hash_checks) return ret;
 
 		// #error do this in a hasher thread!
+		ptime start_hash = time_now_hires();
 		hasher sha1;
 		int size = j.storage->info()->piece_size(p->piece);
 		for (int i = 0; i < p->blocks_in_piece; ++i)
@@ -1488,6 +1488,9 @@ namespace libtorrent
 			size -= m_block_size;
 		}
 		sha1_hash h = sha1.final();
+		ptime done = time_now_hires();
+		m_disk_cache.add_hash_time(done - start_hash, p->blocks_in_piece);
+
 		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
 
 		if (ret == -3)
@@ -1556,7 +1559,6 @@ namespace libtorrent
 		ret.average_queue_time = m_queue_time.mean();
 		ret.average_read_time = m_read_time.mean();
 		ret.average_write_time = m_write_time.mean();
-		ret.average_hash_time = m_hash_time.mean();
 		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
@@ -1573,7 +1575,6 @@ namespace libtorrent
 		ret.cumulative_job_time = m_cumulative_job_time;
 		ret.cumulative_read_time = m_cumulative_read_time;
 		ret.cumulative_write_time = m_cumulative_write_time;
-		ret.cumulative_hash_time = m_cumulative_hash_time;
 		ret.cumulative_sort_time = m_cumulative_sort_time;
 
 		m_disk_cache.get_stats(&ret);
@@ -1632,7 +1633,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			m_write_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_write_time += total_milliseconds(done - handler->started);
+			m_cumulative_write_time += total_microseconds(done - handler->started);
 		}
 
 		++m_write_blocks;
@@ -1662,7 +1663,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			m_read_time.add_sample(total_microseconds(done - handler->started));
-			m_cumulative_read_time += total_milliseconds(done - handler->started);
+			m_cumulative_read_time += total_microseconds(done - handler->started);
 		}
 
 		++m_read_blocks;
