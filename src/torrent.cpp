@@ -1605,12 +1605,12 @@ namespace libtorrent
 						{
 							unsigned char bits = bitmask[k];
 							int num_bits = (std::min)(num_blocks_per_piece - k*8, 8);
-							for (int k = 0; k < num_bits; ++k)
+							for (int b = 0; b < num_bits; ++b)
 							{
-								const int bit = k * 8 + k;
-								if (bits & (1 << k))
+								const int block = k * 8 + b;
+								if (bits & (1 << b))
 								{
-									m_picker->mark_as_finished(piece_block(piece, bit), 0);
+									m_picker->mark_as_finished(piece_block(piece, block), 0);
 									if (m_picker->is_piece_finished(piece))
 										async_verify_piece(piece, boost::bind(&torrent::piece_finished
 											, shared_from_this(), piece, _1));
