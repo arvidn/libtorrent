@@ -105,7 +105,7 @@ namespace libtorrent { namespace
 				+ m_metadata_size);
 		}
 
-		bool received_metadata(boost::weak_ptr<ut_metadata_peer_plugin> const& source
+		bool received_metadata(ut_metadata_peer_plugin& source
 			, char const* buf, int size, int piece, int total_size);
 
 		// returns a piece of the metadata that
@@ -169,6 +169,8 @@ namespace libtorrent { namespace
 
 	struct ut_metadata_peer_plugin : peer_plugin, boost::enable_shared_from_this<ut_metadata_peer_plugin>
 	{
+		friend struct ut_metadata_plugin;
+
 		ut_metadata_peer_plugin(torrent& t, bt_peer_connection& pc
 			, ut_metadata_plugin& tp)
 			: m_message_index(0)
@@ -334,11 +336,17 @@ namespace libtorrent { namespace
 						, m_sent_requests.end(), piece);
 
 					// unwanted piece?
-					if (i == m_sent_requests.end()) return true;
+					if (i == m_sent_requests.end())
+					{
+#ifdef TORRENT_VERBOSE_LOGGING
+						m_pc.peer_log("*** UT_METADATA [ UNWANTED / TIMED OUT ]");				
+#endif
+						return true;
+					}
 
 					m_sent_requests.erase(i);
 					entry const* total_size = msg.find_key("total_size");
-					m_tp.received_metadata(shared_from_this(), body.begin + len, body.left() - len, piece
+					m_tp.received_metadata(*this, body.begin + len, body.left() - len, piece
 						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
 					maybe_send_request();
 				}
@@ -450,11 +458,14 @@ namespace libtorrent { namespace
 	}
 
 	inline bool ut_metadata_plugin::received_metadata(
-		boost::weak_ptr<ut_metadata_peer_plugin> const& source
+		ut_metadata_peer_plugin& source
 		, char const* buf, int size, int piece, int total_size)
 	{
 		if (m_torrent.valid_metadata())
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			source.m_pc.peer_log("*** UT_METADATA [ ALREADY HAVE METADATA ]");				
+#endif
 			m_torrent.add_redundant_bytes(size);
 			return false;
 		}
@@ -463,7 +474,13 @@ namespace libtorrent { namespace
 		{
 			// verify the total_size
 			if (total_size <= 0 || total_size > m_torrent.session().settings().max_metadata_size)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				source.m_pc.peer_log("*** UT_METADATA [ metadata size too big: %d ]", total_size);				
+#endif
+// #error post alert
 				return false;
+			}
 
 			m_metadata.reset(new char[total_size]);
 			m_requested_metadata.resize(div_round_up(total_size, 16 * 1024));
@@ -471,10 +488,19 @@ namespace libtorrent { namespace
 		}
 
 		if (piece < 0 || piece >= int(m_requested_metadata.size()))
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			source.m_pc.peer_log("*** UT_METADATA [ piece: %d INVALID ]", piece);				
+#endif
 			return false;
+		}
 
 		if (total_size != m_metadata_size)
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			source.m_pc.peer_log("*** UT_METADATA [ total_size: %d INCONSISTENT WITH: %d ]"
+				, total_size, m_metadata_size);				
+#endif
 			// they disagree about the size!
 			return false;
 		}
@@ -488,7 +514,7 @@ namespace libtorrent { namespace
 		std::memcpy(&m_metadata[piece * 16 * 1024], buf, size);
 		// mark this piece has 'have'
 		m_requested_metadata[piece].num_requests = (std::numeric_limits<int>::max)();
-		m_requested_metadata[piece].source = source;
+		m_requested_metadata[piece].source = source.shared_from_this();
 
 		bool have_all = std::count_if(m_requested_metadata.begin()
 			, m_requested_metadata.end(), boost::bind(&metadata_piece::num_requests, _1)
