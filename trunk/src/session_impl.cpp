@@ -4184,8 +4184,8 @@ namespace aux {
 		if (m_alerts.should_post<torrent_removed_alert>())
 			m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
 
-		tptr->set_queue_position(-1);
 		tptr->abort();
+		tptr->set_queue_position(-1);
 	}
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
