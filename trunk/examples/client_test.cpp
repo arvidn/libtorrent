@@ -857,8 +857,9 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		if (std::find_if(files.begin(), files.end()
-			, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
+		if (non_files.find(h) == non_files.end()
+			&& std::find_if(files.begin(), files.end()
+				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 			ses.remove_torrent(h);
 	}
 }
