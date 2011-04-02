@@ -104,6 +104,7 @@ def gen_html(reports, generations):
 reports = [
 	('torrents', 'num', 'number of torrents in different torrent states', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
 	('peers', 'num', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
+	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 	('peers_list_size', 'num', 'number of known peers (not necessarily connected)', ['num list peers']),
 	('overall_rates', 'Bytes / second', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
 	('disk_write_queue', 'Bytes', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
@@ -118,7 +119,6 @@ reports = [
 	('disk_readback', '% of written blocks', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
-	('connect_candidates', 'num', 'number of peers we know of that we can connect to', ['connect candidates']),
 
 #somewhat uninteresting stats
 	('tick_rate', 'milliseconds between ticks', '', ['tick interval', 'tick residual']),
