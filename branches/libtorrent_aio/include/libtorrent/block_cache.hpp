@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct disk_io_job;
-	struct piece_manager;
+	class piece_manager;
 	struct disk_buffer_pool;
 	struct cache_status;
 
@@ -284,7 +284,7 @@ namespace libtorrent
 		void add_hash_time(time_duration dt, int num_blocks)
 		{
 			TORRENT_ASSERT(num_blocks > 0);
-			m_hash_time.add_sample(total_microseconds(dt / num_blocks));
+			m_hash_time.add_sample(int(total_microseconds(dt / num_blocks)));
 			m_cumulative_hash_time += total_microseconds(dt);
 		}
 

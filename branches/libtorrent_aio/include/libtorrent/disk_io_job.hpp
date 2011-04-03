@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct entry;
+	class entry;
 
 	struct disk_io_job
 	{
