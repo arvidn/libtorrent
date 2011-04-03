@@ -942,6 +942,7 @@ int main(int argc, char* argv[])
 	settings.optimize_hashing_for_speed = false;
 	settings.disk_cache_algorithm = session_settings::largest_contiguous;
 	settings.volatile_read_cache = false;
+	settings.file_pool_size = 1;
 
 	proxy_settings ps;
 

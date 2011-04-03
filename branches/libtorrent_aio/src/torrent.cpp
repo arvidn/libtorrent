@@ -4908,12 +4908,14 @@ namespace libtorrent
 			// this asserts that we don't have duplicates in the policy's peer list
 			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
 				, boost::bind(&peer_connection::remote, _1) == peerinfo->ip());
+#if TORRENT_USE_I2P
 			TORRENT_ASSERT(i_ == m_connections.end()
 				|| (*i_)->type() != peer_connection::bittorrent_connection
-#if TORRENT_USE_I2P
-				|| peerinfo->is_i2p_addr
+				|| peerinfo->is_i2p_addr);
+#else
+			TORRENT_ASSERT(i_ == m_connections.end()
+				|| (*i_)->type() != peer_connection::bittorrent_connection);
 #endif
-				);
 		}
 #endif
 

@@ -252,6 +252,9 @@ namespace libtorrent
 			aiocb_t* next;
 			async_handler* handler;
 			size_type phys_offset;
+			// used to keep the file alive while
+			// waiting for the async operation
+			boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return cb.aio_nbytes; }
 		};
 
@@ -271,7 +274,9 @@ namespace libtorrent
 			int op;
 			size_t size;
 			void* buf;
-			HANDLE file;
+			// used to keep the file alive while
+			// waiting for the async operation
+			mutable boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return size; }
 		};
 
@@ -295,7 +300,9 @@ namespace libtorrent
 			size_type offset;
 			size_type size;
 			void* buf;
-			file* file_ptr;
+			// used to keep the file alive while
+			// waiting for the async operation
+			mutable boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return size; }
 		};
 

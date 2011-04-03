@@ -1029,12 +1029,14 @@ namespace libtorrent
 			aiocb_t* aio = pool.construct();
 			memset(aio, 0, sizeof(aiocb_t));
 #if TORRENT_USE_AIO
+			aio->file_ptr = this;
 			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_buf = bufs[i].iov_base;
 			aio->cb.aio_nbytes = bufs[i].iov_len;
 			aio->cb.aio_offset = offset;
 			aio->cb.aio_lio_opcode = op;
 #elif TORRENT_USE_OVERLAPPED
+			aio->file_ptr = this;
 			aio->ov.Internal = 0;
 			aio->ov.InternalHigh = 0;
 			aio->ov.OffsetHigh = DWORD(offset >> 32);
@@ -1044,7 +1046,6 @@ namespace libtorrent
 			aio->buf = bufs[i].iov_base;
 			aio->phys_offset = phys_offset(offset);
 			aio->op = op;
-			aio->file = native_handle();
 #else
 			aio->file_ptr = this;
 			aio->buf = bufs[i].iov_base;
@@ -1921,7 +1922,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (ret == FALSE) return false;
 
 		DWORD transferred = 0;
-		ret = GetOverlappedResult(aio->file, &aio->ov, &transferred, TRUE);
+		ret = GetOverlappedResult(aio->file_ptr->native_handle(), &aio->ov, &transferred, TRUE);
 		DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &aio->ov, int(ret));
 		int error = ERROR_SUCCESS;
 		if (ret == FALSE)
@@ -1996,11 +1997,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			switch (aios->op)
 			{
 				case file::read_op:
-					ret = ReadFile(aios->file, aios->buf
+					ret = ReadFile(aios->file_ptr->native_handle(), aios->buf
 						, aios->size, NULL, &aios->ov);
 					break;
 				case file::write_op:
-					ret = WriteFile(aios->file, aios->buf
+					ret = WriteFile(aios->file_ptr->native_handle(), aios->buf
 						, aios->size, NULL, &aios->ov);
 					break;
 				default: TORRENT_ASSERT(false);
@@ -2264,12 +2265,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			switch (aios->op)
 			{
 				case file::read_op:
-					ret = ReadFileEx(aios->file, aios->buf
+					ret = ReadFileEx(aios->file_ptr->native_handle(), aios->buf
 						, aios->size, &aios->ov
 						, &signal_handler);
 					break;
 				case file::write_op:
-					ret = WriteFileEx(aios->file, aios->buf
+					ret = WriteFileEx(aios->file_ptr->native_handle(), aios->buf
 						, aios->size, &aios->ov
 						, &signal_handler);
 					break;

@@ -99,9 +99,12 @@ namespace libtorrent
 				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
 			{
 				// close the file before we open it with
-				// the new read/write privilages
-				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
-				e.file_ptr->close();
+				// the new read/write privilages, since windows may
+				// file opening a file twice. However, since there may
+				// be outstanding operations on it, we can't close the
+				// file, we can only delete our reference to it.
+				// if this is the only reference to the file, it will be closed
+				e.file_ptr.reset(new (std::nothrow)file);
 				std::string full_path = combine_path(p, fs.file_path(*fe));
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
