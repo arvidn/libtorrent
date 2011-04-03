@@ -268,7 +268,7 @@ namespace libtorrent
 			, seeding_outgoing_connections(true)
 			, no_connect_privileged_ports(true)
 			, alert_queue_size(1000)
-			, max_metadata_size(1024*1024)
+			, max_metadata_size(3*1024*1024)
 			, smooth_connects(true)
 			, always_send_user_agent(false)
 			, apply_ip_filter_to_trackers(true)

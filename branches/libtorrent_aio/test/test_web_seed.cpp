@@ -56,7 +56,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	session_settings settings;
 	settings.max_queued_disk_bytes = 256 * 1024;
 	ses.set_settings(settings);
-	ses.set_alert_mask(~alert::progress_notification);
+	ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	ses.listen_on(std::make_pair(51000, 52000));
 	error_code ec;
 	remove_all("./tmp2_web_seed", ec);
