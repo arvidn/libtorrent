@@ -4368,6 +4368,11 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
 	{
+		// return value:
+		// 0: success, piece passed hash check
+		// -1: disk failure
+		// -2: hash check failed
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4398,7 +4403,7 @@ namespace libtorrent
 				return;
 			}
 		
-			if (ret == -3)
+			if (ret == -2)
 			{
 				if (t->seed_mode()) t->leave_seed_mode(false);
 #if defined TORRENT_VERBOSE_LOGGING

@@ -1463,13 +1463,35 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j.buffer == 0);
 
+		if (m_settings.disable_hash_checks)
+		{
+			DLOG(stderr, "[%p] do_read_and_hash: hash checking turned off, redirecting to normal read\n", this);
+			j.action = disk_io_job::read;
+			do_read(j);
+			return 0;
+		}
+
 		block_cache::iterator p;
 		int ret = allocate_read_piece(j, p);
 
 		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
 		if (pe->hash == 0) pe->hash = new partial_hash;
 
-		if (ret != 0) return ret;
+		// 0 means all blocks are already in the cache
+		if (ret != 0)
+		{
+			// increase the refcount for all blocks the hash job needs in
+			// order to complete. These are decremented in block_cache::mark_as_done
+			// for hash jobs
+			int hash_start = pe->hash->offset / m_block_size;
+			for (int i = hash_start; i < pe->blocks_in_piece; ++i)
+			{
+				++pe->blocks[i].refcount;
+				++pe->refcount;
+			}
+
+			return ret;
+		}
 
 		// we get here if all the blocks we want are already
 		// in the cache
@@ -1489,7 +1511,6 @@ namespace libtorrent
 #if TORRENT_DISK_STATS
 		rename_buffer(j.buffer, "released send buffer");
 #endif
-		if (m_settings.disable_hash_checks) return ret;
 
 		// #error do this in a hasher thread!
 		ptime start_hash = time_now_hires();
@@ -1508,9 +1529,9 @@ namespace libtorrent
 			m_disk_cache.add_hash_time(done - start_hash, p->blocks_in_piece);
 		}
 
-		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-3;
+		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-2;
 
-		if (ret == -3)
+		if (ret == -2)
 		{
 			j.storage->mark_failed(j.piece);
 			m_disk_cache.mark_for_deletion(p);

@@ -514,31 +514,34 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	// if hash is set, we're trying to calculate the hash of this piece
 	if (pe->hash)
 	{
+		int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
 		partial_hash& ph = *pe->hash;
-		int cursor = ph.offset / block_size;
-		hash_start = cursor;
-		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
-		int num_blocks = 0;
-		ptime start_hash = time_now_hires();
-		for (int i = cursor; i < pe->blocks_in_piece; ++i)
+		if (ph.offset < piece_size)
 		{
-			cached_block_entry& bl = pe->blocks[i];
-			if (bl.pending || bl.buf == 0) break;
-
-			DLOG(stderr, " %d", i);
-			int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
-			int size = (std::min)(block_size, piece_size - ph.offset);
-			ph.h.update(bl.buf, size);
-			ph.offset += size;
-			++num_blocks;
+			int cursor = ph.offset / block_size;
+			hash_start = hash_end = cursor;
+			DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+			int num_blocks = 0;
+			ptime start_hash = time_now_hires();
+			for (int i = cursor; i < pe->blocks_in_piece; ++i)
+			{
+				cached_block_entry& bl = pe->blocks[i];
+				if (bl.pending || bl.buf == 0) break;
+   
+				DLOG(stderr, " %d", i);
+				int size = (std::min)(block_size, piece_size - ph.offset);
+				ph.h.update(bl.buf, size);
+				ph.offset += size;
+				++num_blocks;
+				++hash_end;
+			}
+			if (num_blocks > 0)
+			{
+				ptime done = time_now_hires();
+				add_hash_time(done - start_hash, num_blocks);
+			}
+			DLOG(stderr, " ]\n");
 		}
-		if (num_blocks > 0)
-		{
-			ptime done = time_now_hires();
-			add_hash_time(done - start_hash, num_blocks);
-		}
-		DLOG(stderr, " ]\n");
-		hash_end = ph.offset / block_size;
 	}
 
 	for (std::list<disk_io_job>::iterator i = pe->jobs.begin();
@@ -549,7 +552,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		int ret = i->buffer_size;
 		if (!ec)
 		{
-			if (i->action == disk_io_job::hash)
+			if (i->action == disk_io_job::hash
+				|| i->action == disk_io_job::read_and_hash)
 			{
 				TORRENT_ASSERT(pe->hash);
 				partial_hash& ph = *pe->hash;
@@ -578,25 +582,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					++i;
 					continue;
 				}
-
-				// #error save the actual hash in the ph state as well
-				sha1_hash h = ph.h.final();
-				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?0:-2;
-				if (ret == -2)
-				{
-					i->storage->mark_failed(i->piece);
-					pe->marked_for_deletion = true;
-					DLOG(stderr, "%p block_cache mark_done mark-for-deletion "
-						"piece: %d\n", &m_buffer_pool, int(pe->piece));
-				}
-
-				TORRENT_ASSERT(i->piece == pe->piece);
-				DLOG(stderr, "%p block_cache mark_done post job (hash) "
-					"piece: %d ret: %d\n", &m_buffer_pool, i->piece, ret);
-				if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
-				i = pe->jobs.erase(i);
-				continue;
 			}
+
 			// if the job overlaps any blocks that are still pending,
 			// leave it in the list
 			int first_block = i->offset / block_size;
@@ -612,18 +599,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				continue;
 			}
 
-			if (i->action == disk_io_job::read_and_hash
-				&& p->num_blocks != p->blocks_in_piece)
-			{
-				DLOG(stderr, "%p block_cache mark_done leaving job (read_and_hash) "
-					"piece: %d num_blocks: %d blocks_in_piece: %d\n"
-					, &m_buffer_pool, int(pe->piece), int(p->num_blocks), int(p->blocks_in_piece));
-				// this job is waiting for some all blocks to be read
-				++i;
-				continue;
-			}
-
-			if (i->action == disk_io_job::hash
+			if ((i->action == disk_io_job::hash)
 				&& p->num_dirty > 0)
 			{
 				DLOG(stderr, "%p block_cache mark_done leaving job (hash) "
@@ -659,18 +635,19 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				}
 			}
 
-			if (ret >= 0
-				&& i->action == disk_io_job::read_and_hash
-				&& !i->storage->get_storage_impl()->settings().disable_hash_checks)
+			if ((ret >= 0
+				&& i->action == disk_io_job::read_and_hash)
+				|| i->action == disk_io_job::hash)
 			{
+				TORRENT_ASSERT(i->piece == pe->piece);
 				TORRENT_ASSERT(p->hash);
 				TORRENT_ASSERT(p->hash->offset == i->storage->info()->piece_size(p->piece));
 				partial_hash& ph = *p->hash;
 
 				// #error save the actual hash in the ph state as well
 				sha1_hash h = ph.h.final();
-				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-3;
-				if (ret == -3)
+				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-2;
+				if (ret == -2)
 				{
 					i->storage->mark_failed(i->piece);
 					pe->marked_for_deletion = true;
