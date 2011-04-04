@@ -374,7 +374,7 @@ namespace libtorrent
 					m_queue_buffer_size -= i->buffer_size;
 				}
 				post_callback(i->callback, *i, -3);
-				m_jobs.erase(i++);
+				i = m_jobs.erase(i);
 				continue;
 			}
 			++i;
@@ -1878,7 +1878,7 @@ namespace libtorrent
 								m_queue_buffer_size -= i->buffer_size;
 							}
 							post_callback(i->callback, *i, -3);
-							m_jobs.erase(i++);
+							i = m_jobs.erase(i);
 							continue;
 						}
 						++i;
@@ -1940,7 +1940,7 @@ namespace libtorrent
 								m_queue_buffer_size -= i->buffer_size;
 							}
 							post_callback(i->callback, *i, -3);
-							m_jobs.erase(i++);
+							i = m_jobs.erase(i);
 							continue;
 						}
 						++i;
