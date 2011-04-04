@@ -591,7 +591,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(first_block >= 0);
 			TORRENT_ASSERT(last_block < pe->blocks_in_piece);
 			TORRENT_ASSERT(first_block <= last_block);
-			if (pe->blocks[first_block].pending || pe->blocks[last_block].pending)
+			if (pe->blocks[first_block].pending || pe->blocks[last_block].pending
+				|| pe->blocks[first_block].dirty || pe->blocks[last_block].dirty)
 			{
 				DLOG(stderr, "%p block_cache mark_done leaving job (overlap) "
 					"piece: %d start: %d end: %d\n", &m_buffer_pool, int(pe->piece), begin, end);
@@ -666,7 +667,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 		TORRENT_ASSERT(i->piece == pe->piece);
 		DLOG(stderr, "%p block_cache mark_done post job "
-			"piece: %d offset: %d\n", &m_buffer_pool, i->piece, i->offset);
+			"piece: %d offset: %d block: %d\n", &m_buffer_pool
+			, i->piece, i->offset, int(i->offset / block_size));
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 		i = pe->jobs.erase(i);
 	}

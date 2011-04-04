@@ -389,20 +389,45 @@ namespace libtorrent
 
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
-	int disk_io_thread::try_flush_hashed(block_cache::iterator p, int num)
+	int disk_io_thread::try_flush_hashed(block_cache::iterator p, int cont_block, int num)
 	{
+		TORRENT_ASSERT(cont_block > 0);
 		if (p->hash == 0)
 		{
 			DLOG(stderr, "[%p] no hash\n", this);
 			return 0;
 		}
 
-		int end = (std::min)(p->hash->offset / m_block_size, int(p->blocks_in_piece));
+		// round offset up to include the last block, which might
+		// have an odd size
+		int start = (p->hash->offset + m_block_size - 1) / m_block_size;
+
+		// everything has been flushed
+		if (start == int(p->blocks_in_piece)) return 0;
+
+		// the number of contiguous blocks we need to be allowed to flush
+		cont_block = (std::min)(cont_block, int(p->blocks_in_piece));
+
+		// skip blocks that are pending (i.e. they've already been flushed)
+		for (; start < int(p->blocks_in_piece) && p->blocks[start].pending; ++start)
+			if (!p->blocks[start].dirty) break;
+
+		// everything has been flushed
+		if (start == int(p->blocks_in_piece)) return 0;
+
+		// count number of blocks that would be flushed
+		int end = start;
+		for (int i = start; i != int(p->blocks_in_piece); ++i, --cont_block, ++end)
+			if (!p->blocks[i].dirty) break;
+
+		// we did not satisfy the cont_block requirement
+		// i.e. too few blocks would be flushed at this point, put it off
+		if (cont_block > 0 || end == start) return 0;
 
 		DLOG(stderr, "[%p] try_flush_hashed: %d blocks: %d end: %d num: %d\n"
 			, this, int(p->piece), int(p->blocks_in_piece), end, num);
 
-		return io_range(p, 0, end, op_write);
+		return io_range(p, start, end, op_write);
 	}
 
 	// issues read or write operations for blocks in the given
@@ -548,7 +573,10 @@ namespace libtorrent
 			++ret;
 			buffer_size += block_size;
 		}
-		DLOG(stderr, "]\n");
+#ifdef DEBUG_STORAGE
+		for (int i = end; i < int(pe.blocks_in_piece); ++i) DLOG(stderr, ".");
+		DLOG(stderr, "] ret = %d\n", ret);
+#endif
 
 		// did m_queue_buffer_size + m_pending_buffer_size
 		// just exceed the disk queue size limit?
@@ -670,12 +698,18 @@ namespace libtorrent
 	{
 	}
 
+	// this is called if we're exceeding (or about to exceed) the cache
+	// size limit. This means we should not restrict ourselves to contiguous
+	// blocks of write cache line size, but try to flush all old blocks
+	// this is why we pass in 1 as cont_block to the flushing functions
 	void disk_io_thread::try_flush_write_blocks(int num)
 	{
 		DLOG(stderr, "[%p] try_flush_write_blocks: %d\n", this, num);
 
 		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
 			= m_disk_cache.all_lru_pieces();
+
+		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
 
 		if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
 		{
@@ -684,6 +718,8 @@ namespace libtorrent
 			{
 				if (p->num_dirty == 0) continue;
 
+				// prefer contiguous blocks. If we won't find any, we'll
+				// start over but actually flushing single blocks
 				num -= try_flush_contiguous(m_disk_cache.map_iterator(p)
 					, m_settings.write_cache_line_size, num);
 			}
@@ -695,14 +731,14 @@ namespace libtorrent
 			{
 				if (p->num_dirty == 0) continue;
 
-				num -= try_flush_hashed(m_disk_cache.map_iterator(p), num);
+				num -= try_flush_hashed(m_disk_cache.map_iterator(p), 1, num);
 			}
 		}
 
+		// if we still need to flush blocks, start over and flush
+		// everything in LRU order (degrade to lru cache eviction)
 		if (num > 0)
 		{
-			// if we still need to flush blocks, start over and flush
-			// everything in LRU order (degrade to lru cache eviction)
 			for (block_cache::lru_iterator p = range.first;
 				p != range.second && num > 0; ++p)
 			{
@@ -943,11 +979,22 @@ namespace libtorrent
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
 				// piece to be flushed
-				try_flush_contiguous(p, m_settings.write_cache_line_size);
+				if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+				{
+					try_flush_hashed(p, m_settings.write_cache_line_size);
+				}
+				else
+				{
+					try_flush_contiguous(p, m_settings.write_cache_line_size);
+				}
 
 				// if we have more blocks in the cache than allowed by
 				// the cache size limit, flush some dirty blocks
-				if (m_settings.cache_size <= m_disk_cache.size())
+				// deduct the writing blocks from the cache size, otherwise we'll flush the
+				// entire cache as soon as we exceed the limit, since all flush operations are
+				// async.
+				int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
+				if (m_settings.cache_size <= m_disk_cache.size() - num_pending_write_blocks)
 				{
 					int left = m_disk_cache.size() - m_settings.cache_size;
 					left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
@@ -1404,7 +1451,11 @@ namespace libtorrent
 		}
 
 		m_disk_cache.set_max_size(m_settings.cache_size);
-		if (m_disk_cache.size() > m_settings.cache_size)
+		// deduct the writing blocks from the cache size, otherwise we'll flush the
+		// entire cache as soon as we exceed the limit, since all flush operations are
+		// async.
+		int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
+		if (m_disk_cache.size() - num_pending_write_blocks > m_settings.cache_size)
 			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0, m_disk_cache.end());
 
 		return 0;
