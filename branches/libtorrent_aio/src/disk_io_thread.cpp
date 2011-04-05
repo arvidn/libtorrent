@@ -398,36 +398,34 @@ namespace libtorrent
 			return 0;
 		}
 
+		// end is one past the end
 		// round offset up to include the last block, which might
 		// have an odd size
-		int start = (p->hash->offset + m_block_size - 1) / m_block_size;
+		int end = (p->hash->offset + m_block_size - 1) / m_block_size;
 
-		// everything has been flushed
-		if (start == int(p->blocks_in_piece)) return 0;
+		// nothing has been hashed yet, don't flush anything
+		if (end == 0) return 0;
 
 		// the number of contiguous blocks we need to be allowed to flush
 		cont_block = (std::min)(cont_block, int(p->blocks_in_piece));
 
-		// skip blocks that are pending (i.e. they've already been flushed)
-		for (; start < int(p->blocks_in_piece) && p->blocks[start].pending; ++start)
-			if (!p->blocks[start].dirty) break;
-
-		// everything has been flushed
-		if (start == int(p->blocks_in_piece)) return 0;
+		// if everything has been hashed, we might as well flush everythin
+		// regardless of the contiguous block restriction
+		if (end == int(p->blocks_in_piece)) cont_block = 1;
 
 		// count number of blocks that would be flushed
-		int end = start;
-		for (int i = start; i != int(p->blocks_in_piece); ++i, --cont_block, ++end)
-			if (!p->blocks[i].dirty) break;
+		int num_blocks = 0;
+		for (int i = end; i >= 0; --i, --cont_block)
+			num_blocks += (p->blocks[i].dirty && !p->blocks[i].pending);
 
 		// we did not satisfy the cont_block requirement
 		// i.e. too few blocks would be flushed at this point, put it off
-		if (cont_block > 0 || end == start) return 0;
+		if (cont_block > num_blocks) return 0;
 
 		DLOG(stderr, "[%p] try_flush_hashed: %d blocks: %d end: %d num: %d\n"
 			, this, int(p->piece), int(p->blocks_in_piece), end, num);
 
-		return io_range(p, start, end, op_write);
+		return io_range(p, 0, end, op_write);
 	}
 
 	// issues read or write operations for blocks in the given
@@ -1086,7 +1084,7 @@ namespace libtorrent
 			// all the blocks we need in the cache
 			// issue read commands to read those blocks in
 			int start_block = 0;
-			if (p->hash) start_block = p->hash->offset / m_block_size;
+			if (p->hash) start_block = (p->hash->offset + m_block_size - 1) / m_block_size;
 
 			if (p->num_dirty == 0 && start_block == p->blocks_in_piece && p->hash)
 			{
@@ -1679,8 +1677,11 @@ namespace libtorrent
 
 	int disk_io_thread::do_get_cache_info(disk_io_job& j)
 	{
-		std::pair<block_cache::iterator, block_cache::iterator> range
-			= m_disk_cache.pieces_for_storage(j.storage.get());
+		std::pair<block_cache::iterator, block_cache::iterator> range;
+		if (j.storage)
+			range = m_disk_cache.pieces_for_storage(j.storage.get());
+		else
+			range = m_disk_cache.all_pieces();
 
 		cache_status* ret = (cache_status*)j.buffer;
 		get_disk_metrics(*ret);
@@ -1694,6 +1695,7 @@ namespace libtorrent
 			cached_piece_info& info = ret->pieces.back();
 			info.piece = i->piece;
 			info.last_use = now - seconds(now_time_t - i->expire);
+			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + m_block_size - 1) / m_block_size;
 			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
 			int blocks_in_piece = i->blocks_in_piece;
 			info.blocks.resize(blocks_in_piece);

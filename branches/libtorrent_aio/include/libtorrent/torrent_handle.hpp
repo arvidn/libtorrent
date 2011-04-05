@@ -159,6 +159,9 @@ namespace libtorrent
 
 		torrent_handle() {}
 
+		torrent_handle(torrent_handle const& t)
+		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
+
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
 		void read_piece(int piece) const;
@@ -403,8 +406,7 @@ namespace libtorrent
 	private:
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)
-			: m_torrent(t)
-		{}
+		{ if (!t.expired()) m_torrent = t; }
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;

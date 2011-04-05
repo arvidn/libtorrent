@@ -155,6 +155,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	int block = j.offset / block_size;
 	TORRENT_ASSERT((j.offset % block_size) == 0);
 
+	// this only evicts read blocks
 	if (m_cache_size + 1 > m_max_size)
 		try_evict_blocks(m_cache_size + 1 - m_max_size, 1, p);
 
@@ -176,6 +177,33 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	pe->jobs.push_back(j);
 	pe->jobs.back().buffer = 0;
 	pe->expire = (std::max)(pe->expire, time(0) + j.cache_min_time);
+
+	if (pe->hash)
+	{
+		partial_hash& ph = *pe->hash;
+		int cursor = ph.offset / block_size;
+		int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
+		int num_blocks = 0;
+		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+		ptime start_hash = time_now_hires();
+		for (int i = cursor; i < pe->blocks_in_piece; ++i)
+		{
+			cached_block_entry& bl = pe->blocks[i];
+			if (bl.pending || bl.buf == 0) break;
+   
+			DLOG(stderr, " %d", i);
+			int size = (std::min)(block_size, piece_size - ph.offset);
+			ph.h.update(bl.buf, size);
+			ph.offset += size;
+			++num_blocks;
+		}
+		if (num_blocks > 0)
+		{
+			ptime done = time_now_hires();
+			add_hash_time(done - start_hash, num_blocks);
+		}
+		DLOG(stderr, " ]\n");
+	}
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
@@ -274,7 +302,7 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
 
-		if (pe->num_blocks == 0)
+		if (pe->num_blocks == 0 && !pe->hash)
 		{
 			idx.erase(i++);
 			continue;
@@ -302,7 +330,7 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 			--num;
 		}
 
-		if (pe->num_blocks == 0) idx.erase(i++);
+		if (pe->num_blocks == 0 && !pe->hash) idx.erase(i++);
 		else ++i;
 	}
 

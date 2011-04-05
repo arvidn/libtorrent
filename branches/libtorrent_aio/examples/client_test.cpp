@@ -940,7 +940,7 @@ int main(int argc, char* argv[])
 	settings.choking_algorithm = session_settings::auto_expand_choker;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
-	settings.disk_cache_algorithm = session_settings::largest_contiguous;
+	settings.disk_cache_algorithm = session_settings::avoid_readback;
 	settings.volatile_read_cache = false;
 
 	proxy_settings ps;
@@ -1715,8 +1715,9 @@ int main(int argc, char* argv[])
 		}
 
 		sha1_hash ih(0);
-//		torrent_handle h = get_active_torrent(handles).handle;
-//		if (h.is_valid()) ih = h.info_hash();
+		torrent_handle h;
+		if (!handles.empty()) h = get_active_torrent(handles).handle;
+		if (h.is_valid()) ih = h.info_hash();
 
 		cache_status cs;
 		ses.get_cache_info(ih, &cs);
@@ -1833,9 +1834,8 @@ int main(int argc, char* argv[])
 
 		torrent_status const* st = 0;
 		if (!handles.empty()) st = &get_active_torrent(handles);
-		if (st && st->handle.is_valid())
+		if (h.is_valid())
 		{
-			torrent_handle h = st->handle;
 			torrent_status const& s = *st;
 
 			if ((print_downloads && s.state != torrent_status::seeding)
@@ -1920,7 +1920,7 @@ int main(int argc, char* argv[])
 					out += esc("0");
 #endif
 					char const* piece_state[4] = {"", " slow", " medium", " fast"};
-					snprintf(str, sizeof(str), "] %s "
+					snprintf(str, sizeof(str), "] %3d%s ", cp ? cp->next_to_hash : -1
 						, piece_state[i->piece_state]);
 					out += str;
 					if (cp)
