@@ -655,6 +655,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 					DLOG(stderr, "%p block_cache mark_done mark-for-deletion "
 						"piece: %d\n", &m_buffer_pool, int(pe->piece));
 				}
+				delete pe->hash;
+				pe->hash = 0;
 			}
 		}
 		else

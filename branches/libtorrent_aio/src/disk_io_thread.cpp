@@ -1065,6 +1065,8 @@ namespace libtorrent
 			return 0;
 		}
 
+		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
 		if (p == m_disk_cache.end())
@@ -1095,6 +1097,9 @@ namespace libtorrent
 					j.storage->mark_failed(j.piece);
 					m_disk_cache.mark_for_deletion(p);
 				}
+				// we're done with the hash
+				delete pe->hash;
+				pe->hash = 0;
 				return ret;
 			}
 
@@ -1126,7 +1131,6 @@ namespace libtorrent
 			}
 		}
 
-		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
 		if (!job_added)
 		{
 			DLOG(stderr, "[%p] do_hash: adding job\n", this);
@@ -1143,7 +1147,7 @@ namespace libtorrent
 		// increase the refcount for all blocks the hash job needs in
 		// order to complete. These are decremented in block_cache::mark_as_done
 		// for hash jobs
-		int hash_start = pe->hash->offset / m_block_size;
+		int hash_start = (pe->hash->offset + m_block_size - 1) / m_block_size;
 		for (int i = hash_start; i < pe->blocks_in_piece; ++i)
 		{
 			++pe->blocks[i].refcount;
@@ -1558,6 +1562,10 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(ret == j.buffer_size);
 		j.flags |= disk_io_job::cache_hit;
+
+		// we're done with the hash
+		delete pe->hash;
+		pe->hash = 0;
 
 #if TORRENT_DISK_STATS
 		rename_buffer(j.buffer, "released send buffer");
