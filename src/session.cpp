@@ -893,6 +893,13 @@ namespace libtorrent
 	}
 #endif
 
+#ifdef TORRENT_STATS
+	void session::enable_stats_logging(bool s)
+	{
+		TORRENT_ASYNC_CALL1(enable_stats_logging, s);
+	}
+#endif
+
 #ifndef TORRENT_NO_DEPRECATE
 	int session::max_uploads() const
 	{
