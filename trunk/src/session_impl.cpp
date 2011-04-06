@@ -3038,6 +3038,14 @@ namespace aux {
 		m_stats_logging_enabled = s;
 
 		reset_stat_counters();
+		if (!s)
+		{
+			if (m_stats_logger) fclose(m_stats_logger);
+		}
+		else
+		{
+			rotate_stats_log();
+		}
 	}
 
 	void session_impl::reset_stat_counters()
