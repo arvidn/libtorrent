@@ -3041,6 +3041,7 @@ namespace aux {
 		if (!s)
 		{
 			if (m_stats_logger) fclose(m_stats_logger);
+			m_stats_logger = 0;
 		}
 		else
 		{
