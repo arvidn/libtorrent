@@ -189,7 +189,7 @@ node_impl::node_impl(libtorrent::alert_manager& alerts
 	, m_send(f)
 	, m_userdata(userdata)
 {
-	m_secret[0] = std::rand();
+	m_secret[0] = random();
 	m_secret[1] = std::rand();
 }
 
@@ -888,12 +888,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			v.name = name;
 		}
 
-		peer_entry e;
-		e.addr = tcp::endpoint(m.addr.address(), port);
-		e.added = time_now();
-		std::set<peer_entry>::iterator i = v.peers.find(e);
+		peer_entry peer;
+		peer.addr = tcp::endpoint(m.addr.address(), port);
+		peer.added = time_now();
+		std::set<peer_entry>::iterator i = v.peers.find(peer);
 		if (i != v.peers.end()) v.peers.erase(i++);
-		v.peers.insert(i, e);
+		v.peers.insert(i, peer);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		extern int g_announces;
 		++g_announces;
