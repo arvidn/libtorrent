@@ -147,11 +147,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_IFADDRS 1
+#define TORRENT_USE_SYSCTL 1
+#define TORRENT_USE_IFCONF 1
+
 
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
 #define TORRENT_USE_IFADDRS 1
+#define TORRENT_USE_NETLINK 1
+#define TORRENT_USE_IFCONF 1
+#define TORRENT_HAS_SALEN 0
 
 // ==== MINGW ===
 #elif defined __MINGW32__
@@ -162,10 +168,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
+#define TORRENT_USE_NETLINK 1
+#define TORRENT_USE_GETADAPTERSADDRESSES 1
+#define TORRENT_HAS_SALEN 0
+#define TORRENT_USE_GETIPFORWARDTABLE 0
 
 // ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
+#ifndef TORRENT_USE_GETIPFORWARDTABLE
+#define TORRENT_USE_GETIPFORWARDTABLE 1
+#endif
+#define TORRENT_USE_GETADAPTERSADDRESSES 1
+#define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
 // apple uses utf-8 as its locale, so no conversion
 // is necessary
@@ -180,6 +195,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#define TORRENT_USE_IFCONF 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -258,6 +274,26 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // libiconv presence, not implemented yet
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
+#endif
+
+#ifndef TORRENT_HAS_SALEN
+#define TORRENT_HAS_SALEN 1
+#endif
+
+#ifndef TORRENT_USE_GETADAPTERSADDRESSES
+#define TORRENT_USE_GETADAPTERSADDRESSES 0
+#endif
+
+#ifndef TORRENT_USE_NETLINK
+#define TORRENT_USE_NETLINK 0
+#endif
+
+#ifndef TORRENT_USE_SYSCTL
+#define TORRENT_USE_SYSCTL 0
+#endif
+
+#ifndef TORRENT_USE_GETIPFORWARDTABLE
+#define TORRENT_USE_GETIPFORWARDTABLE 0
 #endif
 
 #ifndef TORRENT_USE_LOCALE
