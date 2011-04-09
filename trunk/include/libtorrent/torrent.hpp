@@ -170,8 +170,7 @@ namespace libtorrent
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }
-		bool is_upload_only() const
-		{ return (is_finished() || upload_mode()) && !super_seeding(); }
+		bool is_upload_only() const { return is_finished() || upload_mode(); }
 
 		int seed_rank(session_settings const& s) const;
 
