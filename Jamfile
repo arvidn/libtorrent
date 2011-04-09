@@ -13,6 +13,8 @@ CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
 LDFLAGS = [ modules.peek : LDFLAGS ] ;
 
 ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
+ECHO "CXXFLAGS =" $(CXXFLAGS) ;
+ECHO "LDFLAGS =" $(LDFLAGS) ;
 ECHO "OS =" [ os.name ] ;
 
 if $(BOOST_ROOT)

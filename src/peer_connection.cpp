@@ -574,7 +574,7 @@ namespace libtorrent
 		if (!t->ready_for_connections()) return;
 
 		bool interested = false;
-		if (!t->is_finished())
+		if (!t->is_upload_only())
 		{
 			piece_picker const& p = t->picker();
 			int num_pieces = p.num_pieces();
@@ -768,7 +768,7 @@ namespace libtorrent
 			on_metadata();
 			if (m_disconnecting) return;
 
-			if (!t->is_finished())
+			if (!t->is_upload_only())
 				t->get_policy().peer_is_interesting(*this);
 
 			return;
@@ -830,7 +830,7 @@ namespace libtorrent
 			m_upload_only = true;
 
 			t->peer_has_all();
-			if (t->is_finished()) send_not_interested();
+			if (t->is_upload_only()) send_not_interested();
 			else t->get_policy().peer_is_interesting(*this);
 			return;
 		}
@@ -1817,7 +1817,7 @@ namespace libtorrent
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
 			t->peer_has_all();
-			if (!t->is_finished())
+			if (!t->is_upload_only())
 				t->get_policy().peer_is_interesting(*this);
 
 			disconnect_if_redundant();
@@ -2626,7 +2626,7 @@ namespace libtorrent
 		t->peer_has_all();
 
 		// if we're finished, we're not interested
-		if (t->is_finished()) send_not_interested();
+		if (t->is_upload_only()) send_not_interested();
 		else t->get_policy().peer_is_interesting(*this);
 
 		disconnect_if_redundant();
@@ -3945,7 +3945,7 @@ namespace libtorrent
 			&& m_reading_bytes == 0
 			&& !m_choked
 			&& m_peer_interested
-			&& t && t->is_finished()
+			&& t && t->is_upload_only()
 			&& d > seconds(20))
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -4072,7 +4072,7 @@ namespace libtorrent
 		// maintain the share ratio given by m_ratio
 		// with all peers.
 
-		if (t->is_finished() || is_choked() || t->ratio() == 0.0f)
+		if (t->is_upload_only() || is_choked() || t->ratio() == 0.0f)
 		{
 			// if we have downloaded more than one piece more
 			// than we have uploaded OR if we are a seed
@@ -4225,7 +4225,7 @@ namespace libtorrent
 			// assume half of the cache is write cache if we're downloading
 			// this torrent as well
 			int cache_size = m_ses.m_settings.cache_size / num_uploads;
-			if (!t->is_finished()) cache_size /= 2;
+			if (!t->is_upload_only()) cache_size /= 2;
 			// cache_size is the amount of cache we have per peer. The
 			// cache line should not be greater than this
 
@@ -4386,7 +4386,7 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 		int priority;
 		if (m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
-			&& !t->is_upload_only())
+			&& !t->upload_mode() && !t->is_upload_only())
 		{
 			// when we use the bittyrant choker, the priority of a peer
 			// is decided based on the estimated reciprocation rate and
@@ -5451,7 +5451,7 @@ namespace libtorrent
 		if (m_ses.settings().close_redundant_connections && !t->share_mode())
 		{
 			// make sure upload only peers are disconnected
-			if (t->is_finished() && m_upload_only)
+			if (t->is_upload_only() && m_upload_only)
 				TORRENT_ASSERT(m_disconnect_started);
 			if (m_upload_only
 				&& !m_interesting
@@ -5463,7 +5463,7 @@ namespace libtorrent
 		if (!m_disconnect_started && m_initialized)
 		{
 			// none of this matters if we're disconnecting anyway
-			if (t->is_finished())
+			if (t->is_upload_only())
 				TORRENT_ASSERT(!m_interesting);
 			if (is_seed())
 				TORRENT_ASSERT(m_upload_only);
