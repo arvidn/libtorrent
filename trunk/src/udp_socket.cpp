@@ -80,6 +80,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_abort(false)
+	, m_outstanding_ops(0)
 {
 #ifdef TORRENT_DEBUG
 	m_magic = 0x1337;
@@ -111,6 +112,7 @@ udp_socket::~udp_socket()
 #ifdef TORRENT_DEBUG
 	m_magic = 0;
 #endif
+	TORRENT_ASSERT(m_outstanding_ops == 0);
 }
 
 #ifdef TORRENT_DEBUG
@@ -153,6 +155,21 @@ void udp_socket::send_hostname(char const* hostname, int port
 	qp.hostname = strdup(hostname);
 	qp.buf.insert(qp.buf.begin(), p, p + len);
 	qp.flags = 0;
+}
+
+bool udp_socket::maybe_clear_callback()
+{
+	if (m_outstanding_ops + m_v4_outstanding
+#if TORRENT_USE_IPV6
+	 	+ m_v6_outstanding
+#endif
+		== 0)
+	{
+		// "this" may be destructed in the callback
+		m_callback.clear();
+		return true;
+	}
+	return false;
 }
 
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len
@@ -259,12 +276,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 
 	if (m_abort)
 	{
-		if (num_outstanding() == 0)
-		{
-			// "this" may be destructed in the callback
-			callback_t tmp = m_callback;
-			m_callback.clear();
-		}
+		maybe_clear_callback();
 		return;
 	}
 
@@ -293,12 +305,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::operation_aborted
 			&& e != asio::error::message_size)
 		{
-			if (num_outstanding() == 0)
-			{
-				// "this" may be destructed in the callback
-				callback_t tmp = m_callback;
-				m_callback.clear();
-			}
+			maybe_clear_callback();
 			return;
 		}
 
@@ -547,12 +554,7 @@ void udp_socket::close()
 		m_connection_ticket = -1;
 	}
 
-	if (num_outstanding() == 0)
-	{
-		// "this" may be destructed in the callback
-		callback_t tmp = m_callback;
-		m_callback.clear();
-	}
+	maybe_clear_callback();
 }
 
 void udp_socket::set_buf_size(int s)
@@ -706,6 +708,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
+		++m_outstanding_ops;
 		m_resolver.async_resolve(q, boost::bind(
 			&udp_socket::on_name_lookup, this, _1, _2));
 	}
@@ -713,8 +716,17 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
-	if (e == asio::error::operation_aborted) return;
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
 	CHECK_MAGIC;
+
+	if (e == asio::error::operation_aborted) return;
 
 	TORRENT_ASSERT(is_single_thread());
 
@@ -729,6 +741,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
 	// on_connect may be called from within this thread
+	++m_outstanding_ops;
 	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
 		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
 }
@@ -745,8 +758,15 @@ void udp_socket::on_timeout()
 
 void udp_socket::on_connect(int ticket)
 {
-	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+	CHECK_MAGIC;
 
 	if (m_abort) return;
 	if (is_closed()) return;
@@ -757,6 +777,7 @@ void udp_socket::on_connect(int ticket)
 	m_connection_ticket = ticket;
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
+	++m_outstanding_ops;
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
 		, boost::bind(&udp_socket::on_connected, this, _1));
 }
@@ -766,10 +787,17 @@ void udp_socket::on_connected(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_connected");
 #endif
-
-	if (e == asio::error::operation_aborted) return;
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
 
 	CHECK_MAGIC;
+
+	if (e == asio::error::operation_aborted) return;
 
 	TORRENT_ASSERT(is_single_thread());
 	m_cc.done(m_connection_ticket);
@@ -803,6 +831,7 @@ void udp_socket::on_connected(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_handshake1");
 #endif
+	++m_outstanding_ops;
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::handshake1, this, _1));
 }
@@ -812,6 +841,14 @@ void udp_socket::handshake1(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_handshake1");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -820,6 +857,7 @@ void udp_socket::handshake1(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_handshake2");
 #endif
+	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
 		, boost::bind(&udp_socket::handshake2, this, _1));
 }
@@ -829,7 +867,15 @@ void udp_socket::handshake2(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_handshake2");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
 	CHECK_MAGIC;
+
 	if (e) return;
 
 	using namespace libtorrent::detail;
@@ -866,6 +912,7 @@ void udp_socket::handshake2(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_handshake3");
 #endif
+		++m_outstanding_ops;
 		asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 			, boost::bind(&udp_socket::handshake3, this, _1));
 	}
@@ -882,6 +929,14 @@ void udp_socket::handshake3(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_handshake3");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -890,6 +945,7 @@ void udp_socket::handshake3(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_handshake4");
 #endif
+	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
 		, boost::bind(&udp_socket::handshake4, this, _1));
 }
@@ -899,6 +955,14 @@ void udp_socket::handshake4(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_handshake4");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -944,6 +1008,7 @@ void udp_socket::socks_forward_udp()
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::connect1");
 #endif
+	++m_outstanding_ops;
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
 		, boost::bind(&udp_socket::connect1, this, _1));
 }
@@ -953,6 +1018,14 @@ void udp_socket::connect1(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::connect1");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -961,6 +1034,7 @@ void udp_socket::connect1(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::connect2");
 #endif
+	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
 		, boost::bind(&udp_socket::connect2, this, _1));
 }
@@ -970,6 +1044,14 @@ void udp_socket::connect2(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::connect2");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -1020,6 +1102,7 @@ void udp_socket::connect2(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::hung_up");
 #endif
+	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
 		, boost::bind(&udp_socket::hung_up, this, _1));
 }
@@ -1029,6 +1112,14 @@ void udp_socket::hung_up(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::hung_up");
 #endif
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+  
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
