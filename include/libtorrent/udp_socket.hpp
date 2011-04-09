@@ -110,6 +110,8 @@ namespace libtorrent
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
+		bool maybe_clear_callback(mutex_t::scoped_lock& l);
+
 		mutable mutex_t m_mutex;
 
 		udp::socket m_ipv4_sock;
@@ -142,6 +144,11 @@ namespace libtorrent
 		// we have to queue the packets, we'll flush
 		// them once we're connected
 		std::deque<queued_packet> m_queue;
+
+		// counts the number of outstanding async
+		// operations hanging on this socket
+		int m_outstanding_ops;
+
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;

@@ -1,3 +1,4 @@
+	* fixed crash in udp trackers when using SOCKS5 proxy
 	* fixed reconnect delay when leaving upload only mode
 	* fixed default values being set incorrectly in add_torrent_params through add_magnet_uri in python bindings
 	* implemented unaligned write (for unbuffered I/O)
