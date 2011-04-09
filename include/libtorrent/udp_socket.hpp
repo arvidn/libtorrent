@@ -119,6 +119,8 @@ namespace libtorrent
 			int flags;
 		};
 
+		// number of outstanding UDP socket operations
+		// using the UDP socket buffer
 		int num_outstanding() const
 		{
 			return m_v4_outstanding
@@ -160,6 +162,7 @@ namespace libtorrent
 		void unwrap(error_code const& e, char const* buf, int size);
 
 		void maybe_realloc_buffers(int which = 3);
+		bool maybe_clear_callback();
 
 #ifdef TORRENT_DEBUG
 #if defined BOOST_HAS_PTHREADS
@@ -218,6 +221,11 @@ namespace libtorrent
 		// we have to queue the packets, we'll flush
 		// them once we're connected
 		std::deque<queued_packet> m_queue;
+
+		// counts the number of outstanding async
+		// operations hanging on this socket
+		int m_outstanding_ops;
+
 #ifdef TORRENT_DEBUG
 		bool m_started;
 		int m_magic;
