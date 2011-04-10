@@ -1377,6 +1377,32 @@ int main(int argc, char* argv[])
 
 			if (c == 'q') break;
 
+			if (c == 'D')
+			{
+				torrent_handle h = get_active_torrent(handles).handle;
+				if (h.is_valid())
+				{
+					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
+						, h.name().c_str());
+					char response = 'n';
+					scanf("%c", &response);
+					if (response == 'y')
+					{
+						// also delete the .torrent file from the torrent directory
+						handles_t::iterator i = std::find_if(files.begin(), files.end()
+							, boost::bind(&handles_t::value_type::second, _1) == h);
+						if (i != files.end())
+						{
+							files.erase(i);
+							error_code ec;
+							remove(combine_path(monitor_dir, i->first), ec);
+							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+						}
+						ses.remove_torrent(h, session::delete_files);
+					}
+				}
+			}
+
 			if (c == 'j' && !handles.empty())
 			{
 				get_active_torrent(handles).handle.force_recheck();

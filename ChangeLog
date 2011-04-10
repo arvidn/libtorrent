@@ -85,6 +85,8 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed bug in session::delete_files option to remove_torrent
+
 0.15.6 release
 
 	* fixed crash in udp trackers when using SOCKS5 proxy

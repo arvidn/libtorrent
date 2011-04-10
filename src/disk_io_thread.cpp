@@ -2377,6 +2377,7 @@ namespace libtorrent
 					mutex::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
+ 					// delete all write cache entries for this storage
 					cache_piece_index_t& idx = m_pieces.get<0>();
 					cache_piece_index_t::iterator start = idx.lower_bound(std::pair<void*, int>(j.storage.get(), 0));
 					cache_piece_index_t::iterator end = idx.upper_bound(std::pair<void*, int>(j.storage.get(), INT_MAX));
@@ -2384,17 +2385,21 @@ namespace libtorrent
 					// build a vector of all the buffers we need to free
 					// and free them all in one go
 					std::vector<char*> buffers;
+					torrent_info const& ti = *j.storage->info();
 					for (cache_piece_index_t::iterator i = start; i != end; ++i)
 					{
-						torrent_info const& ti = *i->storage->info();
 						int blocks_in_piece = (ti.piece_size(i->piece) + m_block_size - 1) / m_block_size;
+						cached_piece_entry& e = const_cast<cached_piece_entry&>(*i);
 						for (int j = 0; j < blocks_in_piece; ++j)
 						{
 							if (i->blocks[j].buf == 0) continue;
 							buffers.push_back(i->blocks[j].buf);
 							i->blocks[j].buf = 0;
 							--m_cache_stats.cache_size;
+							TORRENT_ASSERT(e.num_blocks > 0);
+							--e.num_blocks;
 						}
+						TORRENT_ASSERT(i->num_blocks == 0);
 					}
 					idx.erase(start, end);
 					l.unlock();
