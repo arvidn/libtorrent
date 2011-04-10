@@ -70,7 +70,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT create_torrent
 	{
-		enum {
+		enum flags_t
+		{
 			optimize = 1
 			, merkle = 2
 			, modification_time = 4

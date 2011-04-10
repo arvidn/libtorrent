@@ -70,7 +70,8 @@ void bind_create_torrent()
 
     class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())
-        .def(init<file_storage&, int>())
+        .def(init<file_storage&, int, int, int>((arg("storage"), arg("piece_size") = 0
+            , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize))))
 
         .def("generate", &create_torrent::generate)
 
@@ -80,13 +81,20 @@ void bind_create_torrent()
         .def("set_hash", &set_hash)
         .def("add_url_seed", &create_torrent::add_url_seed)
         .def("add_node", &add_node)
-        .def("add_tracker", &create_torrent::add_tracker)
+        .def("add_tracker", &create_torrent::add_tracker, (arg("announce_url"), arg("tier") = 0))
         .def("set_priv", &create_torrent::set_priv)
         .def("num_pieces", &create_torrent::num_pieces)
         .def("piece_length", &create_torrent::piece_length)
         .def("piece_size", &create_torrent::piece_size)
         .def("priv", &create_torrent::priv)
         ;
+
+    enum_<create_torrent::flags_t>("create_torrent_flags_t")
+        .value("optimize", create_torrent::optimize)
+        .value("merkle", create_torrent::merkle)
+        .value("modification_time", create_torrent::modification_time)
+        .value("symlinks", create_torrent::symlinks)
+    ;
 
     def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));
     def("set_piece_hashes", set_piece_hashes0);
