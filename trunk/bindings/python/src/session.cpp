@@ -191,6 +191,8 @@ namespace
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
             p.url = extract<std::string>(params["url"]);
+        if (params.has_key("merge_resume_trackers"))
+            p.merge_resume_trackers = params["merge_resume_trackers"];
     }
 
     torrent_handle add_torrent(session& s, dict params)

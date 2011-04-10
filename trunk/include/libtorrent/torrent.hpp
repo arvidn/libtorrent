@@ -1310,6 +1310,10 @@ namespace libtorrent
 		// set to true if the session IP filter applies to this
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
+		
+		// if set to true, add tracker URLs loaded from resume
+		// data into this torrent instead of replacing them
+		bool m_merge_resume_trackers:1;
 	};
 }
 

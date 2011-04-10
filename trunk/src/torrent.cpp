@@ -407,6 +407,7 @@ namespace libtorrent
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.apply_ip_filter)
+		, m_merge_resume_trackers(p.merge_resume_trackers)
 	{
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
@@ -4417,7 +4418,7 @@ namespace libtorrent
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
-			m_trackers.clear();
+			if (!m_merge_resume_trackers) m_trackers.clear();
 			int tier = 0;
 			for (int i = 0; i < trackers->list_size(); ++i)
 			{
