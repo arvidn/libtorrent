@@ -418,7 +418,7 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_cod
 	CHECK_MAGIC;
 	using namespace libtorrent::detail;
 
-	char header[20];
+	char header[25];
 	char* h = header;
 
 	write_uint16(0, h); // reserved
