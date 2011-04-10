@@ -43,21 +43,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #endif
 
-#if defined TORRENT_BSD || defined TORRENT_SOLARIS
+#if TORREN_USE_IFCONF
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <net/route.h>
 #include <string.h>
-#include <boost/scoped_array.hpp>
 #endif
 
 #if TORRENT_USE_SYSCTL
 #include <sys/sysctl.h>
+#include <net/route.h>
+#include <boost/scoped_array.hpp>
 #endif
 
-#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
+#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -65,7 +65,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iphlpapi.h>
 #endif
 
-#if defined TORRENT_LINUX
+#if TORRENT_USE_NETLINK
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 #include <asm/types.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
@@ -73,8 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -866,6 +866,14 @@ namespace libtorrent
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
+		{
+			ec = asio::error::operation_not_supported;
+			return std::vector<ip_route>();
+		}
+
+		typedef DWORD (WINAPI *GetIfEntry_t)(PMIB_IFROW pIfRow);
+		GetIfEntry_t GetIfEntry = (GetIfEntry_t)GetProcAddress(iphlp, "GetIfEntry");
+		if (!GetIfEntry)
 		{
 			ec = asio::error::operation_not_supported;
 			return std::vector<ip_route>();
