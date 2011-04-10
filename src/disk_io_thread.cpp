@@ -2035,22 +2035,30 @@ namespace libtorrent
 					mutex_t::scoped_lock l(m_piece_mutex);
 					INVARIANT_CHECK;
 
-					cache_t::iterator i = std::remove_if(
-						m_pieces.begin(), m_pieces.end(), boost::bind(&cached_piece_entry::storage, _1) == j.storage);
-
-					for (cache_t::iterator k = i; k != m_pieces.end(); ++k)
+					// delete all write cache entries for this storage
+					torrent_info const& ti = *j.storage->info();
+					for (cache_t::iterator i = m_pieces.begin(); i != m_pieces.end();)
 					{
-						torrent_info const& ti = *k->storage->info();
-						int blocks_in_piece = (ti.piece_size(k->piece) + m_block_size - 1) / m_block_size;
+						cached_piece_entry& e = *i;
+						if (e.storage != j.storage)
+						{
+							++i;
+							continue;
+						}
+
+						int blocks_in_piece = (ti.piece_size(e.piece) + m_block_size - 1) / m_block_size;
 						for (int j = 0; j < blocks_in_piece; ++j)
 						{
-							if (k->blocks[j].buf == 0) continue;
-							free_buffer(k->blocks[j].buf);
-							k->blocks[j].buf = 0;
+							if (e.blocks[j].buf == 0) continue;
+							free_buffer(e.blocks[j].buf);
+							e.blocks[j].buf = 0;
 							--m_cache_stats.cache_size;
+							TORRENT_ASSERT(e.num_blocks > 0);
+							--e.num_blocks;
 						}
+						TORRENT_ASSERT(e.num_blocks == 0);
+						m_pieces.erase(i++);
 					}
-					m_pieces.erase(i, m_pieces.end());
 					l.unlock();
 					release_memory();
 
