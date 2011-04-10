@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.0
+:Version: 0.15.6
 
 .. contents:: Table of contents
   :depth: 2
@@ -168,30 +168,6 @@ support, you need to patch parts of boost.
 
 Also make sure to optimize for size when compiling.
 
-Another way of reducing the executable size is to disable code that isn't used.
-There are a number of ``TORRENT_*`` macros that control which features are included
-in libtorrent. If these macros are used to strip down libtorrent, make sure the same
-macros are defined when building libtorrent as when linking against it. If these
-are different the structures will look different from the libtorrent side and from
-the client side and memory corruption will follow.
-
-One, probably, safe macro to define is ``TORRENT_NO_DEPRECATE`` which removes all
-deprecated functions and struct members. As long as no deprecated functions are
-relied upon, this should be a simple way to eliminate a little bit of code.
-
-For all available options, see the `building libtorrent`_ secion.
-
-.. _`building libtorrent`: building.html
-
-reduce statistics
------------------
-
-You can save some memory for each connection and each torrent by reducing the
-number of separate rates kept track of by libtorrent. If you build with ``full-stats=off``
-(or ``-DTORRENT_DISABLE_FULL_STATS``) you will save a few hundred bytes for each
-connection and torrent. It might make a difference if you have a very large number
-of peers or torrents.
-
 play nice with the disk
 =======================
 
@@ -245,62 +221,6 @@ In order to increase the possibility of read cache hits, set the
 ``session_settings::cache_expiry`` to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.
 
-In order to increase the disk cache hit rate, you can enable suggest messages based on
-what's in the read cache. To do this, set ``session_settings::suggest_mode`` to
-``session_settings::suggest_read_cache``. This will send suggest messages to peers
-for the most recently used pieces in the read cache. This is especially useful if you
-also enable explicit read cache, by settings ``session_settings::explicit_read_cache``
-to the number of pieces to keep in the cache. The explicit read cache will make the
-disk read cache stick, and not be evicted by cache misses. The explicit read cache
-will automatically pull in the rarest pieces in the read cache.
-
-Assuming that you seed much more data than you can keep in the cache, to a large
-numbers of peers (so that the read cache wouldn't be useful anyway), this may be a
-good idea.
-
-When peers first connect, libtorrent will send them a number of allow-fast messages,
-which lets the peers download certain pieces even when they are choked, since peers
-are choked by default, this often triggers immediate requests for those pieces. In the
-case of using explicit read cache and suggesting those pieces, allowing fast pieces
-should be disabled, to not systematically trigger requests for pieces that are not cached
-for all peers. You can turn off allow-fast by settings ``session_settings::allowed_fast_set_size``
-to 0.
-
-As an alternative to the explicit cache and suggest messages, there's a *guided cache*
-mode. This means the size of the read cache line that's stored in the cache is determined
-based on the upload rate to the peer that triggered the read operation. The idea being
-that slow peers don't use up a disproportional amount of space in the cache. This
-is enabled through ``session_settings::guided_read_cache``.
-
-In cases where the assumption is that the cache is only used as a read-ahead, and that no
-other peer will ever request the same block while it's still in the cache, the read
-cache can be set to be *volatile*. This means that every block that is requested out of
-the read cache is removed immediately. This saves a significant amount of cache space
-which can be used as read-ahead for other peers. This mode should **never** be combined
-with either ``explicit_read_cache`` or ``suggest_read_cache``, since those uses opposite
-strategies for the read cache. You don't want to on one hand attract peers to request
-the same pieces, and on the other hand assume that they won't request the same pieces
-and drop them when the first peer requests it. To enable volatile read cache, set
-``session_settings::volatile_read_cache`` to true.
-
-uTP-TCP mixed mode
-------------------
-
-libtorrent supports uTP_, which has a delay based congestion controller. In order to
-avoid having a single TCP bittorrent connection completely starve out any uTP connection,
-there is a mixed mode algorithm. This attempts to detect congestion on the uTP peers and
-throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth resources
-between the two protocols. When running on a network where the bandwidth is in such an
-abundance that it's virtually infinite, this algorithm is no longer necessary, and might
-even be harmful to throughput. It is adviced to experiment with the
-``session_setting::mixed_mode_algorithm``, setting it to ``session_settings::prefer_tcp``.
-This setting entirely disables the balancing and unthrottles all connections. On a typical
-home connection, this would mean that none of the benefits of uTP would be preserved
-(the modem's send buffer would be full at all times) and uTP connections would for the most
-part be squashed by the TCP traffic.
-
-.. _`uTP`: utp.html
-
 send buffer low watermark
 -------------------------
 
@@ -343,41 +263,10 @@ torrent limits
 To seed thousands of torrents, you need to increase the ``session_settings::active_limit``
 and ``session_settings::active_seeds``.
 
-scalability
-===========
-
-In order to make more efficient use of the libtorrent interface when running a large
-number of torrents simultaneously, one can use the ``session::get_torrent_status()`` call
-together with ``session::refresh_torrent_status()``. Keep in mind that every call into
-libtorrent that return some value have to block your thread while posting a message to
-the main network thread and then wait for a response (calls that don't return any data
-will simply post the message and then immediately return). The time this takes might
-become significant once you reach a few hundred torrents (depending on how many calls
-you make to each torrent and how often). ``get_torrent_status`` lets you query the
-status of all torrents in a single call. This will actually loop through all torrents
-and run a provided predicate function to determine whether or not to include it in
-the returned vector. If you have a lot of torrents, you might want to update the status
-of only certain torrents. For instance, you might only be interested in torrents that
-are being downloaded.
-
-The intended use of these functions is to start off by calling ``get_torrent_status``
-to get a list of all torrents that match your criteria. Then call ``refresh_torrent_status``
-on that list. This will only refresh the status for the torrents in your list, and thus
-ignore all other torrents you might be running. This may save a significant amount of
-time, especially if the number of torrents you're interested in is small. In order to
-keep your list of interested torrents up to date, you can either call ``get_torrent_status``
-from time to time, to include torrents you might have become interested in since the last
-time. In order to stop refreshing a certain torrent, simply remove it from the list.
-
-A more efficient way however, would be to subscribe to status alert notifications, and
-update your list based on these alerts. There are alerts for when torrents are added, removed,
-paused, resumed, completed etc. Doing this ensures that you only query status for the
-minimal set of torrents you are actually interested in.
-
 benchmarking
 ============
 
-There is a bunch of built-in instrumentation of libtorrent that can be used to get an insight
+There are a bunch of built-in instrumentation of libtorrent that can be used to get an insight
 into what it's doing and how well it performs. This instrumentation is enabled by defining
 preprocessor symbols when building.
 
@@ -518,9 +407,10 @@ The density of the disk seeks tells you how hard the drive has to work.
 session stats
 -------------
 
-By defining ``TORRENT_STATS`` libtorrent will write a log file called ``session_stats/<pid>.<sequence>.log`` which
+By defining ``TORRENT_STATS`` libtorrent will write a log file called ``session_stats.log`` which
 is in a format ready to be passed directly into gnuplot. The parser script ``parse_session_stats.py``
-generates a report in ``session_stats_report/index.html``.
+will however parse out the field names and generate 3 different views of the data. This script
+is easy to modify to generate the particular view you're interested in.
 
 The first line in the log contains all the field names, separated by colon::
 
@@ -556,22 +446,6 @@ there are a lot of half-open connections, which tapers off as the total number o
 peers approaches the limit (50). It also shows how the total peer list slowly but steadily
 grows over time. This list is plotted against the right axis, as it has a different scale
 as the other fields.
-
-understanding the disk thread
-=============================
-
-All disk operations are funneled through a separate thread, referred to as the disk thread.
-The main interface to the disk thread is a queue where disk jobs are posted, and the results
-of these jobs are then posted back on the main thread's io_service.
-
-A disk job is essentially one of:
-
-1. write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.
-
-2. read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.
-
-Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.
-
 
 contributions
 =============

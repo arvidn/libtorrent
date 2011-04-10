@@ -37,11 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function/function2.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 #include <fstream>
@@ -61,8 +62,10 @@ public:
 
 //	void rebind(address const& listen_interface);
 
-	void announce(sha1_hash const& ih, int listen_port, bool broadcast = false);
+	void announce(sha1_hash const& ih, int listen_port);
 	void close();
+
+	void use_broadcast(bool b);
 
 private:
 

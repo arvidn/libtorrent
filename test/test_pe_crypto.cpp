@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
+#include <boost/filesystem/convenience.hpp>
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -112,23 +113,23 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 
 	for (int i = 0; i < 50; ++i)
 	{
-		torrent_status s = tor2.status();
+		tor2.status();
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 
-		if (s.is_seeding) break;
+		if (tor2.is_seed()) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.status().is_seeding);
- 	if (tor2.status().is_seeding) std::cerr << "done\n";
+	TEST_CHECK(tor2.is_seed());
+ 	if (tor2.is_seed()) std::cerr << "done\n";
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
-	error_code ec;
-	remove_all("./tmp1_pe", ec);
-	remove_all("./tmp2_pe", ec);
-	remove_all("./tmp3_pe", ec);
+	using boost::filesystem::remove_all;
+	remove_all("./tmp1_pe");
+	remove_all("./tmp2_pe");
+	remove_all("./tmp3_pe");
 }
 
 

@@ -55,10 +55,10 @@ namespace
     list files(torrent_info const& ti, bool storage) {
         list result;
 
-        typedef torrent_info::file_iterator iter;
+        typedef std::vector<file_entry> list_type;
 
-        for (iter i = ti.begin_files(); i != ti.end_files(); ++i)
-            result.append(ti.files().at(i));
+        for (list_type::const_iterator i = ti.begin_files(); i != ti.end_files(); ++i)
+            result.append(*i);
 
         return result;
     }
@@ -69,7 +69,7 @@ namespace
     }
 
     torrent_info construct0(std::string path) {
-        return torrent_info(path);
+        return torrent_info(fs::path(path));
     }
 
     list map_block(torrent_info& ti, int piece, size_type offset, int size)
@@ -83,14 +83,6 @@ namespace
        return result;
     }
 
-    bool get_tier(announce_entry const& ae)
-    { return ae.tier; }
-    bool get_fail_limit(announce_entry const& ae)
-    { return ae.fail_limit; }
-    bool get_fails(announce_entry const& ae)
-    { return ae.fails; }
-    bool get_source(announce_entry const& ae)
-    { return ae.source; }
     bool get_verified(announce_entry const& ae)
     { return ae.verified; }
     bool get_updating(announce_entry const& ae)
@@ -102,20 +94,6 @@ namespace
     bool get_send_stats(announce_entry const& ae)
     { return ae.send_stats; }
 
-
-    size_type get_size(file_entry const& fe)
-    { return fe.size; }
-    size_type get_offset(file_entry const& fe)
-    { return fe.offset; }
-    bool get_pad_file(file_entry const& fe)
-    { return fe.pad_file; }
-    bool get_executable_attribute(file_entry const& fe)
-    { return fe.executable_attribute; }
-    bool get_hidden_attribute(file_entry const& fe)
-    { return fe.hidden_attribute; }
-    bool get_symlink_attribute(file_entry const& fe)
-    { return fe.symlink_attribute; }
-
 } // namespace unnamed
 
 void bind_torrent_info()
@@ -123,7 +101,7 @@ void bind_torrent_info()
     return_value_policy<copy_const_reference> copy;
 
     void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
-#if TORRENT_USE_WSTRING
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
     void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
 #endif
 
@@ -139,10 +117,8 @@ void bind_torrent_info()
 #endif
         .def(init<sha1_hash const&>())
         .def(init<char const*, int>())
-        .def(init<std::string>())
-#if TORRENT_USE_WSTRING
-        .def(init<std::wstring>())
-#endif
+        .def(init<boost::filesystem::path>())
+        .def(init<boost::filesystem::wpath>())
 
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
@@ -160,11 +136,11 @@ void bind_torrent_info()
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
-        .def("file_at", &torrent_info::file_at) 
+        .def("file_at", &torrent_info::file_at, return_internal_reference<>())
         .def("file_at_offset", &torrent_info::file_at_offset)
         .def("files", &files, (arg("storage")=false))
         .def("rename_file", rename_file0)
-#if TORRENT_USE_WSTRING
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
         .def("rename_file", rename_file1)
 #endif
 
@@ -182,24 +158,23 @@ void bind_torrent_info()
         ;
 
     class_<file_entry>("file_entry")
-        .def_readwrite("path", &file_entry::path)
-        .def_readwrite("symlink_path", &file_entry::symlink_path)
-        .def_readwrite("filehash", &file_entry::filehash)
-        .def_readwrite("mtime", &file_entry::mtime)
-        .add_property("pad_file", &get_pad_file)
-        .add_property("executable_attribute", &get_executable_attribute)
-        .add_property("hidden_attribute", &get_hidden_attribute)
-        .add_property("symlink_attribute", &get_symlink_attribute)
-        .add_property("offset", &get_offset)
-        .add_property("size", &get_size)
+       .add_property(
+            "path"
+          , make_getter(
+                &file_entry::path, return_value_policy<copy_non_const_reference>()
+            )
+        )
+        .def_readonly("offset", &file_entry::offset)
+        .def_readonly("size", &file_entry::size)
+        .def_readonly("file_base", &file_entry::file_base)
         ;
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
-        .add_property("tier", &get_tier)
-        .add_property("fail_limit", &get_fail_limit)
-        .add_property("fails", &get_fails)
-        .add_property("source", &get_source)
+        .def_readwrite("tier", &announce_entry::tier)
+        .add_property("fail_limit", &announce_entry::fail_limit)
+        .add_property("fails", &announce_entry::fails)
+        .add_property("source", &announce_entry::source)
         .add_property("verified", &get_verified)
         .add_property("updating", &get_updating)
         .add_property("start_sent", &get_start_sent)
@@ -212,12 +187,4 @@ void bind_torrent_info()
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
         ;
-
-    enum_<announce_entry::tracker_source>("tracker_source")
-        .value("source_torrent", announce_entry::source_torrent)
-        .value("source_client", announce_entry::source_client)
-        .value("source_magnet_link", announce_entry::source_magnet_link)
-        .value("source_tex", announce_entry::source_tex)
-    ;
 }
-

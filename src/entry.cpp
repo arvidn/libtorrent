@@ -348,8 +348,10 @@ namespace libtorrent
 				break;
 			}
 			case lazy_entry::none_t:
+			{
 				destruct();
 				break;
+			}
 		}
 	}
 

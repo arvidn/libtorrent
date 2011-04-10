@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/connection_queue.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -40,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <iostream>
 
 using namespace libtorrent;
 
@@ -148,8 +146,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	p.incoming(buffer::const_interval(buffer, buffer + size), error);
 	if (error || !p.header_finished())
 	{
-		std::cerr << "*** malformed HTTP from "
-			<< print_endpoint(from) << std::endl;
+		std::cerr << "*** malformed HTTP from " << from << std::endl;
 		return;
 	}
 
@@ -193,11 +190,11 @@ struct callback_info
 
 std::list<callback_info> callbacks;
 
-void callback(int mapping, address const& ip, int port, error_code const& err)
+void callback(int mapping, int port, error_code const& err)
 {
 	callback_info info = {mapping, port, err};
 	callbacks.push_back(info);
-	std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
+	std::cerr << "mapping: " << mapping << ", port: " << port
 		<< ", error: \"" << err.message() << "\"\n";
 	//TODO: store the callbacks and verify that the ports were successful
 }

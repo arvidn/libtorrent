@@ -33,17 +33,46 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <algorithm>
+#include <iomanip>
 #include <ctime>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/broadcast_socket.hpp" // for is_local et.al
-#include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/broadcast_socket.hpp"
 
 namespace libtorrent { namespace dht
 {
 
+void hash_address(address const& ip, sha1_hash& h)
+{
+#if TORRENT_USE_IPV6
+	if (ip.is_v6())
+	{
+		address_v6::bytes_type b = ip.to_v6().to_bytes();
+		h = hasher((char*)&b[0], b.size()).final();
+	}
+	else
+#endif
+	{
+		address_v4::bytes_type b = ip.to_v4().to_bytes();
+		h = hasher((char*)&b[0], b.size()).final();
+	}
+}
+
+// verifies whether a node-id matches the IP it's used from
+// returns true if the node-id is OK coming from this source
+// and false otherwise.
+bool verify_id(node_id const& nid, address const& source_ip)
+{
+	// no need to verify local IPs, they would be incorrect anyway
+	if (is_local(source_ip)) return true;
+
+	node_id h;
+	hash_address(source_ip, h);
+	return memcmp(&nid[0], &h[0], 4) == 0;
+}
+	
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
 node_id distance(node_id const& n1, node_id const& n2)
@@ -95,39 +124,20 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	return 0;
 }
 
-struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
-
-// verifies whether a node-id matches the IP it's used from
-// returns true if the node-id is OK coming from this source
-// and false otherwise.
-bool verify_id(node_id const& nid, address const& source_ip)
-{
-	// no need to verify local IPs, they would be incorrect anyway
-	if (is_local(source_ip)) return true;
-
-	node_id h;
-	hash_address(source_ip, h);
-	return memcmp(&nid[0], &h[0], 4) == 0;
-}
+struct static_ { static_() { std::srand(std::time(0)); } } static__;
 	
-node_id generate_id(address const& external_ip)
+node_id generate_id()
 {
-	node_id h;
 	char random[20];
 #ifdef _MSC_VER
 	std::generate(random, random + 20, &rand);
 #else
 	std::generate(random, random + 20, &std::rand);
 #endif
-	h = hasher(random, 20).final();
 
-	if (!is_local(external_ip))
-	{
-		node_id ph;
-		hash_address(external_ip, ph);
-		memcpy(&h[0], &ph[0], 4);
-	}
-	return h;
+	hasher h;
+	h.update(random, 20);
+	return h.final();
 }
 
 } }  // namespace libtorrent::dht

@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <map>
-#include <iostream>
 
 #include "test.hpp"
 
@@ -697,7 +695,7 @@ int test_main()
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	// don't pick both busy pieces, just one
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
@@ -705,14 +703,14 @@ int test_main()
 		| piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 // ========================================================
 	

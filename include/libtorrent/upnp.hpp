@@ -34,18 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UPNP_HPP
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function3.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 #include <set>
 
 
@@ -90,13 +88,12 @@ namespace libtorrent
 #endif
 
 // int: port-mapping index
-// address: external address as queried from router
 // int: external port
 // std::string: error message
 // an empty string as error means success
 // a port-mapping index of -1 means it's
 // an informational log message
-typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(int, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
 class TORRENT_EXPORT upnp : public intrusive_ptr_base<upnp>
@@ -120,13 +117,15 @@ public:
 
 	std::string router_model()
 	{
-		mutex::scoped_lock l(m_mutex);
+		mutex_t::scoped_lock l(m_mutex);
 		return m_model;
 	}
 
 private:
 
-	void discover_device_impl(mutex::scoped_lock& l);
+	typedef boost::mutex mutex_t;
+
+	void discover_device_impl(mutex_t::scoped_lock& l);
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
 
@@ -141,14 +140,11 @@ private:
 		, std::size_t bytes_transferred);
 
 	struct rootdevice;
-	void next(rootdevice& d, int i, mutex::scoped_lock& l);
-	void update_map(rootdevice& d, int i, mutex::scoped_lock& l);
+	void next(rootdevice& d, int i, mutex_t::scoped_lock& l);
+	void update_map(rootdevice& d, int i, mutex_t::scoped_lock& l);
 
 	
 	void on_upnp_xml(error_code const& e
-		, libtorrent::http_parser const& p, rootdevice& d
-		, http_connection& c);
-	void on_upnp_get_ip_address_response(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, http_connection& c);
 	void on_upnp_map_response(error_code const& e
@@ -159,15 +155,14 @@ private:
 		, int mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
-	void disable(error_code const& ec, mutex::scoped_lock& l);
-	void return_error(int mapping, int code, mutex::scoped_lock& l);
-	void log(char const* msg, mutex::scoped_lock& l);
+	void disable(error_code const& ec, mutex_t::scoped_lock& l);
+	void return_error(int mapping, int code, mutex_t::scoped_lock& l);
+	void log(char const* msg, mutex_t::scoped_lock& l);
 
-	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
 	void post(upnp::rootdevice const& d, char const* soap
-		, char const* soap_action, mutex::scoped_lock& l);
+		, char const* soap_action, mutex_t::scoped_lock& l);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 
@@ -253,7 +248,6 @@ private:
 		std::string hostname;
 		int port;
 		std::string path;
-		address external_ip;
 
 		int lease_duration;
 		// true if the device supports specifying a
@@ -317,7 +311,7 @@ private:
 
 	connection_queue& m_cc;
 
-	mutex m_mutex;
+	mutex_t m_mutex;
 
 	std::string m_model;
 };
