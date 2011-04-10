@@ -74,7 +74,7 @@ void report_failure(char const* err, char const* file, int line)
 
 bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
-	, bool (*predicate)(libtorrent::alert*))
+	, bool (*predicate)(libtorrent::alert*), bool no_output)
 {
 	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();
@@ -92,10 +92,12 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
-			&& (*i)->message() != "piece finished")
+			&& (*i)->message() != "piece finished"
+			&& !no_output)
 		{
 			fprintf(stderr, "%s: %s\n", name, (*i)->message().c_str());
 		}
+
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
@@ -130,7 +132,7 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 	alert const* a = 0;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &listen_alert);
+		print_alerts(ses, name, true, true, true, &listen_alert, false);
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);

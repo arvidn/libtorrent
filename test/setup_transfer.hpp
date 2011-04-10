@@ -46,7 +46,8 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
-	, bool (*)(libtorrent::alert*) = 0);
+	, bool (*)(libtorrent::alert*) = 0
+	, bool no_output = false);
 
 void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
