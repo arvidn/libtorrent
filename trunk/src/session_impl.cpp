@@ -4166,7 +4166,12 @@ namespace aux {
 		for (check_queue_t::iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(*i == t || (*i)->should_check_files());
+			// the reason m_paused is in there is because when the session
+			// is paused, all torrents  that are queued ar all of a sudden
+			// not supposed to be queued anymore. The first torrent that gets
+			// removed from the queue will hence trigger this assert, without
+			// the m_paused exception
+			TORRENT_ASSERT(*i == t || (*i)->should_check_files() || m_paused);
 			if (*i == t) done = i;
 			else if (next_check == t || next_check->queue_position() > (*i)->queue_position())
 				next_check = *i;
