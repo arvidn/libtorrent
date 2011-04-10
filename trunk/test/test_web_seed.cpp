@@ -118,7 +118,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 			<< " buffers: " << cs.total_used_buffers
 			<< std::endl;
 */
-		print_alerts(ses, "  >>  ses");
+		print_alerts(ses, "  >>  ses", false, false, false, 0, true);
 
 		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
