@@ -4696,11 +4696,6 @@ namespace libtorrent
 			TORRENT_ASSERT(found >= 1);
 		}
 
-		if (is_finished())
-		{
-			TORRENT_ASSERT(is_upload_only());
-		}
-
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
 			|| m_resume_entry.type() == lazy_entry::none_t);
 
