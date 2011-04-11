@@ -5452,7 +5452,7 @@ namespace libtorrent
 		{
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only() && m_upload_only)
-				TORRENT_ASSERT(m_disconnect_started);
+				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause());
 			if (m_upload_only
 				&& !m_interesting
 				&& m_bitfield_received
@@ -5464,7 +5464,7 @@ namespace libtorrent
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_upload_only())
-				TORRENT_ASSERT(!m_interesting);
+				TORRENT_ASSERT(!m_interesting || t->graceful_pause());
 			if (is_seed())
 				TORRENT_ASSERT(m_upload_only);
 		}
