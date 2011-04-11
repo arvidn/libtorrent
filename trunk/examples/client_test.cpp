@@ -937,7 +937,7 @@ int main(int argc, char* argv[])
 	settings.choking_algorithm = session_settings::auto_expand_choker;
 	//settings.announce_to_all_trackers = true;
 	settings.optimize_hashing_for_speed = false;
-	settings.disk_cache_algorithm = session_settings::largest_contiguous;
+	settings.disk_cache_algorithm = session_settings::avoid_readback;
 	settings.volatile_read_cache = false;
 
 	proxy_settings ps;
