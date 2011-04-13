@@ -1,3 +1,4 @@
+	* fixed BSD file allocation issue
 	* fixed bug in session::delete_files option to remove_torrent
 
 0.15.6 release
