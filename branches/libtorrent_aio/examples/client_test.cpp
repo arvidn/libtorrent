@@ -1920,8 +1920,8 @@ int main(int argc, char* argv[])
 					out += esc("0");
 #endif
 					char const* piece_state[4] = {"", " slow", " medium", " fast"};
-					snprintf(str, sizeof(str), "] %3d%s ", cp ? cp->next_to_hash : -1
-						, piece_state[i->piece_state]);
+					snprintf(str, sizeof(str), "] %3d %c %s ", cp ? cp->next_to_hash : -1
+						, cp && cp->need_readback ? 'R' : ' ', piece_state[i->piece_state]);
 					out += str;
 					if (cp)
 					{

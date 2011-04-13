@@ -361,6 +361,9 @@ namespace libtorrent
 		DLOG(stderr, "[%p] try_flush_contiguous: %d blocks: %d cont_block: %d num: %d\n"
 			, this, int(p->piece), int(p->blocks_in_piece), int(cont_block), num);
 
+		int hash_pos = p->hash == 0 ? 0 : (p->hash->offset + m_block_size - 1) / m_block_size;
+		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+
 		for (; i < p->blocks_in_piece; ++i)
 		{
 			if (p->blocks[i].dirty && !p->blocks[i].pending) continue;
@@ -373,6 +376,9 @@ namespace libtorrent
 			}
 
 			// we should flush start_of_run - i.
+			// we're flushing a block which we will need
+			// to read back later, when we hash this piece
+			if (start_of_run > hash_pos) pe->need_readback = true;
 			ret += io_range(p, start_of_run, i, op_write);
 			start_of_run = i + 1;
 			if (ret >= num) return ret;
@@ -380,6 +386,9 @@ namespace libtorrent
 
 		if (i - start_of_run >= cont_block)
 		{
+			// we're flushing a block which we will need
+			// to read back later, when we hash this piece
+			if (start_of_run > hash_pos) pe->need_readback = true;
 			// we should flush start_of_run - i.
 			ret += io_range(p, start_of_run, i, op_write);
 			start_of_run = i + 1;
@@ -404,7 +413,7 @@ namespace libtorrent
 		int end = (p->hash->offset + m_block_size - 1) / m_block_size;
 
 		// nothing has been hashed yet, don't flush anything
-		if (end == 0) return 0;
+		if (end == 0 && !p->need_readback) return 0;
 
 		// the number of contiguous blocks we need to be allowed to flush
 		cont_block = (std::min)(cont_block, int(p->blocks_in_piece));
@@ -413,9 +422,19 @@ namespace libtorrent
 		// regardless of the contiguous block restriction
 		if (end == int(p->blocks_in_piece)) cont_block = 1;
 
+		if (p->need_readback)
+		{
+			// if this piece needs a read-back already, don't
+			// try to keep it from being flushed, since we'll
+			// need to read it back regardless. Flushing will
+			// save blocks that can be used to "save" other
+			// pieces from being fllushed prematurely
+			end = int(p->blocks_in_piece);
+		}
+
 		// count number of blocks that would be flushed
 		int num_blocks = 0;
-		for (int i = end; i >= 0; --i, --cont_block)
+		for (int i = end; i >= 0; --i)
 			num_blocks += (p->blocks[i].dirty && !p->blocks[i].pending);
 
 		// we did not satisfy the cont_block requirement
@@ -1695,6 +1714,7 @@ namespace libtorrent
 			cached_piece_info& info = ret->pieces.back();
 			info.piece = i->piece;
 			info.last_use = now - seconds(now_time_t - i->expire);
+			info.need_readback = i->need_readback;
 			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + m_block_size - 1) / m_block_size;
 			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
 			int blocks_in_piece = i->blocks_in_piece;

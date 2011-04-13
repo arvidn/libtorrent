@@ -152,11 +152,17 @@ namespace libtorrent
 			boost::uint64_t blocks_in_piece:11;
 
 			// the sum of all refcounts in all blocks
-			boost::uint64_t refcount:12;
+			boost::uint64_t refcount:11;
 			
 			// if this is true, whenever refcount hits 0, 
 			// this piece should be deleted
 			bool marked_for_deletion:1;
+
+			// this is set to true once we flush blocks past
+			// the hash cursor. Once this happens, there's
+			// no point in keeping cache blocks around for
+			// it in avoid_readback mode
+			bool need_readback:1;
 			
 			// if this is set, we'll be calculating the hash
 			// for this piece. This member stores the interim
