@@ -1046,13 +1046,15 @@ namespace libtorrent
 			aio->buf = bufs[i].iov_base;
 			aio->phys_offset = phys_offset(offset);
 			aio->op = op;
-#else
+#elif TORRENT_USE_SYNCIO
 			aio->file_ptr = this;
 			aio->buf = bufs[i].iov_base;
 			aio->size = bufs[i].iov_len;
 			aio->offset = offset;
 			aio->op = op;
 			aio->phys_offset = phys_offset(offset);
+#else
+#error what I/O API are we using?
 #endif
 			// link in to the double linked list
 			aio->prev = prev;
@@ -1932,12 +1934,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 		aio->handler->done(error_code(error, boost::system::get_system_category()), transferred);
 		CloseHandle(aio->ov.hEvent);
-#else
+#elif TORRENT_USE_SYNCIO
 		// since we don't have AIO, all operations should have
 		// been performed as they were issued, and no operation
 		// should ever be outstanding
-		TORRENT_ASSERT(aios == 0);
+		TORRENT_ASSERT(aio == 0);
 		return false;
+#else
+#error what I/O API are we using?
 #endif
 
 		// unlink
@@ -2023,7 +2027,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				pool.destroy(del);
 				continue;
 			}
-#else
+#elif TORRENT_USE_SYNCIO
 			error_code ec;
 			int ret;
 			// #error merge adjacent operations into a vector call
@@ -2042,6 +2046,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			pool.destroy(del);
 			++num_issued;
 			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
+#else
+#error what I/O API are we using?
 #endif
 		
 			++num_issued;

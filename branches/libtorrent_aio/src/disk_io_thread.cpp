@@ -214,7 +214,8 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
+#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
+	|| TORRENT_USE_SYNCIO
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
 	// that if there are more than one instances of libtorrent
@@ -1974,6 +1975,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
+#endif
+
+#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
+	|| TORRENT_USE_SYNCIO
 		int last_completed_aios = 0;
 #endif
 

@@ -334,6 +334,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_OVERLAPPED 0
 #endif
 
+#ifndef TORRENT_USE_SYNCIO
+#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED)
+#endif
+
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
