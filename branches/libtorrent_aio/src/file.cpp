@@ -1031,10 +1031,17 @@ namespace libtorrent
 #if TORRENT_USE_AIO
 			aio->file_ptr = this;
 			aio->cb.aio_fildes = m_file_handle;
+			aio->cb.aio_lio_opcode = op;
 			aio->cb.aio_buf = bufs[i].iov_base;
 			aio->cb.aio_nbytes = bufs[i].iov_len;
 			aio->cb.aio_offset = offset;
+#elif TORRENT_USE_IOSUBMIT
+			aio->file_ptr = this;
+			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_lio_opcode = op;
+			aio->cb.u.c.buf = bufs[i].iov_base;
+			aio->cb.u.c.nbytes = bufs[i].iov_len;
+			aio->cb.u.c.offset = offset;
 #elif TORRENT_USE_OVERLAPPED
 			aio->file_ptr = this;
 			aio->ov.Internal = 0;
@@ -1919,6 +1926,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
 		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
+#elif TORRENT_USE_IOSUBMIT
+		int ret = aio->ret;
+		int e = aio->error;
+		DLOG(stderr, "  aio->ret = %d\n", ret);
+		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(e));
+		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
 #elif TORRENT_USE_OVERLAPPED
 		BOOL ret = HasOverlappedIoCompleted(&aio->ov);
 		if (ret == FALSE) return false;
@@ -1976,6 +1989,29 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				case file::write_op: ret = aio_write(&aios->cb); break;
 				default: TORRENT_ASSERT(false);
 			}
+			DLOG(stderr, "  = %d\n", ret);
+
+			if (ret == -1)
+			{
+				DLOG(stderr, "  error = %s\n", strerror(errno));
+				if (errno == EAGAIN) break;
+			
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0);
+				pool.destroy(del);
+				continue;
+			}
+#elif TORRENT_USE_IOSUBMIT
+			int ret;
+			DLOG(stderr, "io_submit(): %s\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write");
+			iocb* p = &aios->cb;
+			// this can be optimized by submitting more than one job at a time
+			ret = io_submit(pool.io_queue, 1, &p);
 			DLOG(stderr, "  = %d\n", ret);
 
 			if (ret == -1)

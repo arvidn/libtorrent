@@ -160,11 +160,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#define TORRENT_USE_IOSUBMIT 1
+#else
 #define TORRENT_USE_AIO 1
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-#define TORRENT_USE_SIGNALFD 1
-#endif
 #define TORRENT_AIO_SIGNAL SIGRTMIN
+#endif
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
 
@@ -322,6 +323,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_AIO 0
 #endif
 
+#ifndef TORRENT_USE_IOSUBMIT
+#define TORRENT_USE_IOSUBMIT 0
+#endif
+
 #ifndef TORRENT_USE_SIGNALFD
 #define TORRENT_USE_SIGNALFD 0
 #endif
@@ -335,7 +340,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_USE_SYNCIO
-#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED)
+#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED && !TORRENT_USE_IOSUBMIT)
 #endif
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED

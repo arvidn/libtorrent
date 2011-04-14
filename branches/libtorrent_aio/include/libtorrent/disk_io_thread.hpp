@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/intrusive_ptr.hpp> // atomic_count
 
+#if TORRENT_USE_IOSUBMIT
+#include <libaio.h>
+#endif
+
 namespace libtorrent
 {
 	class alert;
@@ -435,6 +439,17 @@ namespace libtorrent
 		// there are new jobs in its in-queue
 		int m_event_fd;
 #endif
+
+#if TORRENT_USE_IOSUBMIT
+		// this is used to feed events of completed disk I/O
+		// operations to the disk thread
+		io_context_t m_io_queue;
+
+		// this is an eventfd used to signal the disk thread that
+		// there are new jobs in its in-queue
+		int m_event_pipe[2];
+#endif
+
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
 	};

@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_AIOCB_POOL
 #define TORRENT_AIOCB_POOL
 
+#include "libtorrent/config.hpp"
+
 #include <boost/pool/object_pool.hpp>
 #include "libtorrent/file.hpp"
 
@@ -70,6 +72,10 @@ namespace libtorrent
 
 		int in_use() const { return m_in_use; }
 		int peak_in_use() const { return m_peak_in_use; }
+
+#if TORRENT_USE_IOSUBMIT
+		io_context_t io_queue;
+#endif
 
 	private:
 

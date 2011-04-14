@@ -91,6 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <aio.h>
 #endif
 
+#if TORRENT_USE_IOSUBMIT
+#include <libaio.h>
+#endif
+
 namespace libtorrent
 {
 #ifdef TORRENT_WINDOWS
@@ -262,6 +266,30 @@ namespace libtorrent
 		{
 			read_op = LIO_READ,
 			write_op = LIO_WRITE
+		};
+#elif TORRENT_USE_IOSUBMIT
+		struct aiocb_t
+		{
+			iocb cb;
+			aiocb_t* prev;
+			aiocb_t* next;
+			async_handler* handler;
+			size_type phys_offset;
+			// used to keep the file alive while
+			// waiting for the async operation
+			boost::intrusive_ptr<file> file_ptr;
+			// return value of the async. operation
+			int ret;
+			// if ret < 0, this is the errno value the
+			// operation failed with
+			int error;
+			size_t nbytes() const { return cb.u.c.nbytes; }
+		};
+
+		enum
+		{
+			read_op = IO_CMD_PREAD,
+			write_op = IO_CMD_PWRITE
 		};
 #elif TORRENT_USE_OVERLAPPED
 		struct aiocb_t

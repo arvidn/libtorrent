@@ -69,7 +69,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 #endif
 
-#define DEBUG_STORAGE 0
+#if TORRENT_USE_IOSUBMIT
+#include <libaio.h>
+#endif
+
+
+#define DEBUG_STORAGE 1
 
 #define DLOG if (DEBUG_STORAGE) fprintf
 
@@ -277,6 +282,21 @@ namespace libtorrent
 #endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
+#if TORRENT_USE_IOSUBMIT
+		int ret = io_setup(1000, &m_io_queue);
+		if (ret != 0)
+		{
+			// error handling!
+			TORRENT_ASSERT(false);
+		}
+		ret = pipe(m_event_pipe);
+		if (ret < 0)
+		{
+			// error handling!
+			TORRENT_ASSERT(false);
+		}
+		m_aiocb_pool.io_queue = m_io_queue;
+#endif
 		// don't do anything in here. Essentially all members
 		// of this object are owned by the newly created thread.
 		// initialize stuff in thread_fun().
@@ -316,6 +336,12 @@ namespace libtorrent
 
 #elif TORRENT_USE_OVERLAPPED
 		CloseHandle(m_completion_port);
+#endif
+
+#if TORRENT_USE_IOSUBMIT
+		io_destroy(m_io_queue);
+		close(m_event_pipe[0]);
+		close(m_event_pipe[1]);
 #endif
 
 		TORRENT_ASSERT(m_abort == true);
@@ -1821,6 +1847,11 @@ namespace libtorrent
 		int len = write(m_event_fd, &dummy, sizeof(dummy));
 		DLOG(stderr, "write(m_event_fd) = %d [%p]\n", len, this);
 		TORRENT_ASSERT(len == sizeof(dummy));
+#elif TORRENT_USE_IOSUBMIT
+		boost::uint64_t dummy = 1;
+		int len = write(m_event_pipe[1], &dummy, sizeof(dummy));
+		DLOG(stderr, "write(m_event_pipe[1]) = %d [%p]\n", len, this);
+		TORRENT_ASSERT(len == sizeof(dummy));
 #else
 		g_job_sem.signal();
 #endif
@@ -1982,6 +2013,16 @@ namespace libtorrent
 		int last_completed_aios = 0;
 #endif
 
+#if TORRENT_USE_IOSUBMIT
+		int64_t dummy_buf;
+		iocb event_fd_cb;
+		io_prep_pread(&event_fd_cb, m_event_pipe[0], &dummy_buf, sizeof(dummy_buf), 0);
+
+		iocb* p = &event_fd_cb;
+		int ret = io_submit(m_io_queue, 1, &p);
+		if (ret != 1) DLOG(stderr, "io_submit() = %d %s\n", ret, strerror(-ret));
+#endif
+
 		do
 		{
 #if TORRENT_USE_OVERLAPPED
@@ -2028,6 +2069,49 @@ namespace libtorrent
 			// this should only happen for our own posted
 			// events from add_job()
 //			TORRENT_ASSERT(key == 1);
+#elif TORRENT_USE_IOSUBMIT
+			io_event events[100];
+			int num_events = io_getevents(m_io_queue, 1, 100, events, NULL);
+			bool new_job = false;
+
+			for (int i = 0; i < num_events; ++i)
+			{
+				if (events[i].obj == &event_fd_cb)
+				{
+					boost::uint64_t dummy;
+					new_job = true;
+					// TODO: read from m_event_fd in a loop here,
+					// to drain its buffer
+					iocb* p = &event_fd_cb;
+					io_submit(m_io_queue, 1, &p);
+					continue;
+				}
+				file::aiocb_t* aio = (file::aiocb_t*)events[i].obj;
+#ifdef TORRENT_DEBUG
+				// make sure we only get pointers that
+				// actually point to our structures, and nothing else
+				bool found = false;
+				for (file::aiocb_t* j = m_in_progress; j; j = j->next)
+				{
+					if (j != aio) continue;
+					found = true;
+					break;
+				}
+				TORRENT_ASSERT(found);
+#endif // TORRENT_DEBUG
+				file::aiocb_t* next = aio->next;
+				// copy the return codes from the io_event
+				aio->ret = events[i].res;
+				aio->error = events[i].res2;
+				bool removed = reap_aio(aio, m_aiocb_pool);
+				if (removed && m_in_progress == aio) m_in_progress = next;
+				DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+			}
+
+			// if didn't receive a message waking us up because we have new jobs
+			// go back to sleep waiting for more io completion events
+			if (!new_job) continue;
+
 #elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
 			// wait either for a signal coming in through the 
 			// signalfd or an add-job even coming in through
