@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef PRId64
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define PRId64 "I64d"
 #else
 #define PRId64 "lld"
