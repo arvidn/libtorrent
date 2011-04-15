@@ -695,7 +695,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			ret = -1;
 		}
 
-		if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 		TORRENT_ASSERT(i->piece == pe->piece);
 		DLOG(stderr, "%p block_cache mark_done post job "
 			"piece: %d offset: %d block: %d\n", &m_buffer_pool
@@ -703,6 +702,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
 		i = pe->jobs.erase(i);
 	}
+
+	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 
 	bool lower_fence = false;
 	boost::intrusive_ptr<piece_manager> storage = pe->storage;
