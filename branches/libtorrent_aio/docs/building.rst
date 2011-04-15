@@ -377,6 +377,11 @@ Build features:
 |                          | * ``iosubmit`` - use linux io_submit()             |
 |                          | * ``aio`` - use posix AIO                          |
 |                          | * ``sync`` - use synchronous disk I/O (portable)   |
+|                          | * ``iosubmit-vec`` - use io_submit() with the      |
+|                          |   vector read and write operations. This is not    |
+|                          |   supported by the mainline linux kernel, but      |
+|                          |   in Red Hat Enterprise Linux and as kernel        |
+|                          |   patches.                                         |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api

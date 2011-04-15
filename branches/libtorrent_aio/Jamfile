@@ -232,9 +232,10 @@ feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
 feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
 feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
 
-feature io : auto overlapped iosubmit aio sync : composite propagated ;
+feature io : auto overlapped iosubmit aio sync iosubmit-vec : composite propagated ;
 feature.compose <io>overlapped : <define>TORRENT_USE_OVERLAPPED=1 ;
 feature.compose <io>iosubmit : <define>TORRENT_USE_IOSUBMIT=1 ;
+feature.compose <io>iosubmit-vec : <define>TORRENT_USE_IOSUBMIT=1 <define>TORRENT_USE_IOSUBMIT_VEC=1 ;
 feature.compose <io>aio : <define>TORRENT_USE_AIO=1 ;
 feature.compose <io>sync : <define>TORRENT_USE_SYNCIO=1 ;
 
