@@ -1024,6 +1024,57 @@ namespace libtorrent
 	{
 		aiocb_t* ret = 0;
 		aiocb_t* prev = 0;
+
+#if TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC
+
+		aiocb_t* aio = pool.construct();
+		memset(&aio->cb, 0, sizeof(iocb));
+		aio->file_ptr = this;
+		aio->num_bytes = 0;
+		aio->cb.aio_fildes = m_file_handle;
+		aio->cb.aio_reqprio = 0;
+		aio->cb.aio_lio_opcode = op;
+		aio->cb.u.v.offset = offset;
+		aio->cb.u.v.vec = aio->vec;
+
+		// loop to +1 so that we get a chance to hook up
+		// the last aiocb_t to the list before we return
+		for (int i = 0; i < num_bufs + 1; ++i)
+		{
+			if (aio->cb.u.v.nr == 64 || i == num_bufs)
+			{
+				// link in to the double linked list
+				aio->prev = prev;
+				aio->next = 0;
+				if (prev) prev->next = aio;
+				if (ret == 0) ret = aio;
+
+				prev = aio;
+
+				// if this was the last one, we're done
+				if (i == num_bufs) break;
+
+				// if we have more buffers, allocate another
+				// aiocb to start filling up
+				aio = pool.construct();
+				memset(&aio->cb, 0, sizeof(iocb));
+				aio->file_ptr = this;
+				aio->num_bytes = 0;
+				aio->cb.aio_fildes = m_file_handle;
+				aio->cb.aio_lio_opcode = op;
+				aio->cb.aio_reqprio = 0;
+				aio->cb.u.v.offset = offset;
+				aio->cb.u.v.vec = aio->vec;
+			}
+
+			offset += bufs[i].iov_len;
+			aio->vec[aio->cb.u.v.nr] = bufs[i];
+			++aio->cb.u.v.nr;
+			aio->num_bytes += bufs[i].iov_len;
+		}
+
+#else
+
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			aiocb_t* aio = pool.construct();
@@ -1076,6 +1127,7 @@ namespace libtorrent
 			offset += bufs[i].iov_len;
 			prev = aio;
 		}
+#endif
 		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
 		return ret;
 	}
@@ -1969,6 +2021,106 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return true;
 	}
 
+#if TORRENT_USE_IOSUBMIT
+
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool, int& num_issued)
+	{
+		const int submit_batch_size = 128;
+		iocb* to_submit[submit_batch_size];
+
+		// this is the first aio in the array
+		// we're currently submitting
+		file::aiocb_t* list_start = aios;
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = 0;
+		// this is the pointer to the last
+		// chain link of the ret chain, for
+		// easy appending to it
+		file::aiocb_t** ret_last = &ret;
+		int i = 0;
+		for (;;)
+		{
+			if (i == submit_batch_size || aios == 0)
+			{
+				int ret = io_submit(pool.io_queue, i, to_submit);
+				DLOG(stderr, "io_submit(%d) = %d\n", i, ret);
+				if (ret < 0) DLOG(stderr, "  error: %s\n", strerror(-ret));
+				if (ret != i)
+				{
+					// the number of jobs that were submitted
+					int num_submitted = ret < 0 ? 0 : ret;
+					DLOG(stderr, " partial submit (%d succeeded)\n", num_submitted);
+
+					// we need to iterate over all aiocb's to know which
+					// ones were actually started
+					file::aiocb_t** prev_link = 0;
+					// loop until k reaches num_submitted, that's where
+					// the first failed job is
+					int k = 0;
+					for (file::aiocb_t* j = list_start; j != aios; j = j->next, ++k)
+					{
+						if (k < num_submitted)
+						{
+							++num_issued;
+							// yes, this one was actually added. unlink it from
+							// the chain and stick it in the return chain
+
+							// unlink
+							if (prev_link) *prev_link = j->next;
+
+							// if this is the first element in the remaining
+							// list, push the start link out one step
+							if (j == list_start) list_start = j->next;
+
+							// link in to return list
+							*ret_last = j;
+							ret_last = &j->next;
+						}
+						else
+						{
+							// nope, this was not added
+							if (prev_link) *prev_link = j;
+
+							// update the last entry in the remaining list
+							prev_link = &j->next;
+						}
+					}
+					if (prev_link) *prev_link = aios;
+					*ret_last = 0;
+					i = 0;
+					break;
+				}
+				// move the aiocb_t entries over to the ret chain
+				while (list_start != aios)
+				{
+					++num_issued;
+					*ret_last = list_start;
+					ret_last = &list_start->next;
+					list_start = list_start->next;
+				}
+				// terminate the ret chain
+				*ret_last = 0;
+
+				i = 0;
+			}
+			if (aios == 0) break;
+
+			to_submit[i] = &aios->cb;
+			aios = aios->next;
+			++i;
+		}
+
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
+
+	}
+
+#else
+
+	// for anything not using io_submit (even though there is
+	// an io_submit implementation too, but less efficient)
+
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
@@ -2116,263 +2268,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
 	}
 
-#if 0
-	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
-		, aiocb_pool& pool, int& num_issued)
-	{
-#if TORRENT_USE_AIO
-		// this code uses lio_listio() to save system calls
-#if 0
-		// figure out how many requests we can issue at a time
-		int sc = sysconf(_SC_AIO_LISTIO_MAX);
-		if (sc == -1 && errno == 0)
-		{
-			// unlimited
-			sc = INT_MAX;
-		}
-		else if (sc == -1)
-		{
-			// something wrong, fall back to constant
-#ifdef AIO_LISTIO_MAX
-			sc = AIO_LISTIO_MAX;
-#else
-			// we are guaranteed that we can at least issue 2 requests
-			sc = 2;
-#endif
-		}
-#ifdef AIO_LISTIO_MAX
-		// apparently Mac OS will fail if we pass in more
-		// than the constant, and the sysconf() returns
-		// the current limit of outstanding requests (which
-		// seems to contradict the documentation for the sysconf
-		// variable).
-		sc = (std::min)(AIO_LISTIO_MAX, sc);
-#endif
-		const int array_size = sc < 100 ? sc : 100;
-		aiocb** array = TORRENT_ALLOCA(aiocb*, array_size);
-		if (array == 0)
-		{
-			TORRENT_ASSERT(false);
-			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
-		}
-		sigevent sig;
-		memset(&sig, 0, sizeof(sig));
-		sig.sigev_notify = SIGEV_SIGNAL;
-		sig.sigev_signo = TORRENT_AIO_SIGNAL;
-
-		// this is the first aio in the array
-		// we're currently submitting
-		file::aiocb_t* list_start = aios;
-		// this is the chain of aios that were
-		// successfully submitted
-		file::aiocb_t* ret = 0;
-		// this is the pointer to the last
-		// chain link of the ret chain, for
-		// easy appending to it
-		file::aiocb_t** ret_last = &ret;
-		int i = 0;
-		for (;;)
-		{
-			if (i == array_size || aios == 0)
-			{
-				int ret = lio_listio(LIO_NOWAIT, array, i, &sig);
-				DLOG(stderr, "lio_listio(%d) = %d\n", i, ret);
-				if (ret == -1) DLOG(stderr, "  error: %s\n", strerror(errno));
-				if (ret == -1)
-				{
-					// we need to iterate over all aiocb's to know which
-					// ones were actually started
-					file::aiocb_t** prev_link = 0;
-					for (file::aiocb_t* j = list_start; j != aios; j = j->next)
-					{
-						ret = aio_error(&j->cb);
-						DLOG(stderr, "aio_error(%p) = %s\n", &j->cb, strerror(ret));
-						if (ret == -1) DLOG(stderr, "  error: %s\n", strerror(errno));
-						if (ret != -1)
-						{
-							++num_issued;
-							// yes, this one was actually added. unlink it from
-							// the chain and stick it in the return chain
-
-							// unlink
-							if (prev_link) *prev_link = j->next;
-
-							// if this is the first element in the remaining
-							// list, push the start link out one step
-							if (j == list_start) list_start = j->next;
-
-							// link in to return list
-							*ret_last = j;
-							ret_last = &j->next;
-						}
-						else
-						{
-							// nope, this was not added
-							if (prev_link) *prev_link = j;
-
-							// update the last entry in the remaining list
-							prev_link = &j->next;
-						}
-					}
-					if (prev_link) *prev_link = aios;
-					*ret_last = 0;
-					i = 0;
-					break;
-				}
-				// move the aiocb_t entries over to the ret chain
-				while (list_start != aios)
-				{
-					++num_issued;
-					*ret_last = list_start;
-					ret_last = &list_start->next;
-					list_start = list_start->next;
-				}
-				// terminate the ret chain
-				*ret_last = 0;
-
-				i = 0;
-			}
-			if (aios == 0) break;
-
-			aios->cb.aio_sigevent = sig;
-			array[i] = &aios->cb;
-			aios = aios->next;
-			++i;
-		}
-
-		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
-#else
-
-		// this is the chain of aios that were
-		// successfully submitted
-		file::aiocb_t* ret = aios;
-		// this is the pointer to the last
-		// chain link of the ret chain, for
-		// easy appending to it
-		file::aiocb_t** last = &ret;
-
-		while (aios)
-		{
-			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
-			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
-			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
-			int ret;
-			switch (aios->cb.aio_lio_opcode)
-			{
-				case file::read_op: ret = aio_read(&aios->cb); break;
-				case file::write_op: ret = aio_write(&aios->cb); break;
-				default: TORRENT_ASSERT(false);
-			}
-			DLOG(stderr, " aio_%s() = %d\n", aios->cb.aio_lio_opcode == file::read_op
-				? "read" : "write", ret);
-
-			if (ret == -1)
-			{
-				DLOG(stderr, "  error = %s\n", strerror(errno));
-				if (errno == EAGAIN) break;
-			
-				// report this error immediately and unlink this job
-				aios->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
-				*last = aios->next;
-				file::aiocb_t* del = aios;
-				aios = aios->next;
-				pool.destroy(del);
-				continue;
-			}
-		
-			++num_issued;
-			last = &aios->next;
-			aios = aios->next;
-		}
-
-		// cut the chain in two. One for successfully
-		// submitted jobs, and one with remaining jobs
-		*last = 0;
-
-		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
-#endif
-
-#elif TORRENT_USE_OVERLAPPED
-
-		// this is the chain of aios that were
-		// successfully submitted
-		file::aiocb_t* ret = aios;
-		// this is the pointer to the last
-		// chain link of the ret chain, for
-		// easy appending to it
-		file::aiocb_t** last = &ret;
-
-		extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
-
-		while (aios)
-		{
-			int ret;
-			switch (aios->op)
-			{
-				case file::read_op:
-					ret = ReadFileEx(aios->file_ptr->native_handle(), aios->buf
-						, aios->size, &aios->ov
-						, &signal_handler);
-					break;
-				case file::write_op:
-					ret = WriteFileEx(aios->file_ptr->native_handle(), aios->buf
-						, aios->size, &aios->ov
-						, &signal_handler);
-					break;
-				default: TORRENT_ASSERT(false);
-			}
-			DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
-				? "Read" : "Write", ret);
-
-			if (ret == FALSE && GetLastError() != ERROR_IO_PENDING)
-			{
-				DWORD error = GetLastError();
-				DLOG(stderr, "  error = %d\n", error);
-				// report immediately and unlink this job
-				aios->handler->done(error_code(error, boost::system::get_system_category()), -1);
-				*last = aios->next;
-				file::aiocb_t* del = aios;
-				aios = aios->next;
-				pool.destroy(del);
-				continue;
-			}
-		
-			++num_issued;
-			last = &aios->next;
-			aios = aios->next;
-		}
-
-		// cut the chain in two. One for successfully
-		// submitted jobs, and one with remaining jobs
-		*last = 0;
-
-		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
-#else
-
-		error_code ec;
-		int ret;
-		// #error merge adjacent operations into a vector call
-		if (aios)
-		{
-			file::iovec_t b = {aios->buf, aios->size};
-			switch (aios->op)
-			{
-				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
-				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
-				default: TORRENT_ASSERT(false);
-			}
-			aios->handler->done(ec, ret);
-			file::aiocb_t* del = aios;
-			aios = aios->next;
-			pool.destroy(del);
-			++num_issued;
-		}
-		return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
-#endif
-	}
-
-#endif
+#endif // TORRENT_USE_IOSUBMIT
 
 }
 

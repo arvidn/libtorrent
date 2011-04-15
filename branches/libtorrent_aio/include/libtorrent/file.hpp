@@ -283,14 +283,24 @@ namespace libtorrent
 			// if ret < 0, this is the errno value the
 			// operation failed with
 			int error;
+#if TORRENT_USE_IOSUBMIT_VEC
+			int num_bytes;
+			size_t nbytes() const { return num_bytes; }
+			iovec vec[64];
+#else
 			size_t nbytes() const { return cb.u.c.nbytes; }
-			// TODO: include a vector of, say, 64 elements here and use vector I/O
+#endif
 		};
 
 		enum
 		{
+#if TORRENT_USE_IOSUBMIT_VEC
+			read_op = IO_CMD_PREADV,
+			write_op = IO_CMD_PWRITEV
+#else
 			read_op = IO_CMD_PREAD,
 			write_op = IO_CMD_PWRITE
+#endif
 		};
 #elif TORRENT_USE_OVERLAPPED
 		struct aiocb_t

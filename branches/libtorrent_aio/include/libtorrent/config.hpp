@@ -336,26 +336,38 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_POSIX_SEMAPHORE 0
 #endif
 
+// use POSIX AIO for asynchronous disk I/O (aio_read()/aio_write() etc.)
 #ifndef TORRENT_USE_AIO
 #define TORRENT_USE_AIO 0
 #endif
 
+// use io_submit for asynchronous disk I/O
 #ifndef TORRENT_USE_IOSUBMIT
 #define TORRENT_USE_IOSUBMIT 0
 #endif
 
+// use io_prep_pwritev and io_prep_preadv. These were never implemented
+// in mainline linux, but in Red Hat Enterprise 3. It defaults to off
+#ifndef TORRENT_USE_IOSUBMIT_VEC
+#define TORRENT_USE_IOSUBMIT_VEC 0
+#endif
+
+// use signalfd for event notification for POSIX AIO
 #ifndef TORRENT_USE_SIGNALFD
 #define TORRENT_USE_SIGNALFD 0
 #endif
 
+// use this signal number for event notifications in POSIX AIO
 #ifndef TORRENT_AIO_SIGNAL
 #define TORRENT_AIO_SIGNAL SIGUSR1
 #endif
 
+// use windows overlapped I/O for asynchronous disk I/O
 #ifndef TORRENT_USE_OVERLAPPED
 #define TORRENT_USE_OVERLAPPED 0
 #endif
 
+// use portable synchronous disk I/O
 #ifndef TORRENT_USE_SYNCIO
 #define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED && !TORRENT_USE_IOSUBMIT)
 #endif
