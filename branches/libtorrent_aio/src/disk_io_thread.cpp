@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#define DEBUG_STORAGE 1
+#define DEBUG_STORAGE 0
 
 #define DLOG if (DEBUG_STORAGE) fprintf
 
@@ -538,6 +538,11 @@ namespace libtorrent
 					continue;
 				}
 
+				int elevator_direction = 0;
+#if TORRENT_USE_SYNCIO
+				elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+#endif
+
 				TORRENT_ASSERT(buffer_size <= i * m_block_size);
 				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
@@ -557,8 +562,7 @@ namespace libtorrent
 //						"m_to_issue (%p) elevator=%d\n"
 //						, aios, m_to_issue, m_elevator_direction);
 
-					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-						? m_elevator_direction : 0, this);
+					prepend_aios(m_to_issue, aios, elevator_direction, this);
 
 //					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 //						DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -578,8 +582,7 @@ namespace libtorrent
 //					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 //						, aios, m_to_issue);
 
-					prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-						? m_elevator_direction : 0, this);
+					prepend_aios(m_to_issue, aios, elevator_direction, this);
 
 /*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 					{
@@ -993,8 +996,11 @@ namespace libtorrent
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
-		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-			? m_elevator_direction : 0, this);
+		int elevator_direction = 0;
+#if TORRENT_USE_SYNCIO
+		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+#endif
+		prepend_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -1073,8 +1079,11 @@ namespace libtorrent
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
-		prepend_aios(m_to_issue, aios, m_settings.allow_reordered_disk_operations
-			? m_elevator_direction : 0, this);
+		int elevator_direction = 0;
+#if TORRENT_USE_SYNCIO
+		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+#endif
+		prepend_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
