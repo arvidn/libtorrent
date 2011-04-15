@@ -56,12 +56,18 @@ struct alloc_header
 {
 	libtorrent::size_type size;
 	int magic;
+	char stack[3072];
 };
 
 #endif
 
+#if defined TORRENT_DEBUG_BUFFERS && (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
+	void print_backtrace(char* out, int len);
+#endif
+
 namespace libtorrent
 {
+
 	int page_size()
 	{
 		static int s = 0;
@@ -82,18 +88,21 @@ namespace libtorrent
 		return s;
 	}
 
-	char* page_aligned_allocator::malloc(const size_type bytes)
+	char* page_aligned_allocator::malloc(size_type bytes)
 	{
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
-		char* ret = (char*)valloc(bytes + 2 * page);
+		int num_pages = (bytes + (page-1)) + 2;
+		char* ret = (char*)valloc(num_pages * page);
 		// make the two surrounding pages non-readable and -writable
-		TORRENT_ASSERT((bytes & (page-1)) == 0);
 		alloc_header* h = (alloc_header*)ret;
 		h->size = bytes;
 		h->magic = 0x1337;
+#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
+		print_backtrace(h->stack, sizeof(h->stack));
+#endif
 		mprotect(ret, page, PROT_READ);
-		mprotect(ret + page + bytes, page, PROT_READ);
+		mprotect(ret + (num_pages-1) * page, page, PROT_READ);
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return ret + page;
@@ -126,12 +135,15 @@ namespace libtorrent
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
 		alloc_header* h = (alloc_header*)(block - page);
-		TORRENT_ASSERT((h->size & (page-1)) == 0);
+		int num_pages = (h->size + (page-1)) + 2;
 		TORRENT_ASSERT(h->magic == 0x1337);
-		mprotect(block + h->size, page, PROT_READ | PROT_WRITE);
+		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
 
+#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
+		print_backtrace(h->stack, sizeof(h->stack));
+#endif
 		::free(block - page);
 		return;
 #endif
