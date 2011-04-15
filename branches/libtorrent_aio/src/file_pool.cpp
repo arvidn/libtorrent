@@ -59,7 +59,7 @@ namespace libtorrent
 	}
 	void file_pool::clear_thread_owner()
 	{
-		m_owning_thread = NULL;
+		m_owning_thread = 0;
 	}
 #endif
 
@@ -71,7 +71,7 @@ namespace libtorrent
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(*fe)));
 		if (i != m_files.end())
@@ -172,7 +172,7 @@ namespace libtorrent
 	void file_pool::remove_oldest()
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
@@ -184,7 +184,7 @@ namespace libtorrent
 	void file_pool::release(void* st, int file_index)
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end()) m_files.erase(i);
@@ -195,7 +195,7 @@ namespace libtorrent
 	void file_pool::release(void* st)
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		if (st == 0)
 		{
@@ -216,7 +216,7 @@ namespace libtorrent
 	void file_pool::resize(int size)
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		TORRENT_ASSERT(m_owning_thread == NULL || m_owning_thread == pthread_self());
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
