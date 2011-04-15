@@ -1027,22 +1027,26 @@ namespace libtorrent
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			aiocb_t* aio = pool.construct();
-			memset(aio, 0, sizeof(aiocb_t));
 #if TORRENT_USE_AIO
+			memset(&aio->cb, 0, sizeof(aiocb));
 			aio->file_ptr = this;
 			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_lio_opcode = op;
+			aio->cb.aio_reqprio = 0;
 			aio->cb.aio_buf = bufs[i].iov_base;
 			aio->cb.aio_nbytes = bufs[i].iov_len;
 			aio->cb.aio_offset = offset;
 #elif TORRENT_USE_IOSUBMIT
+			memset(&aio->cb, 0, sizeof(iocb));
 			aio->file_ptr = this;
 			aio->cb.aio_fildes = m_file_handle;
 			aio->cb.aio_lio_opcode = op;
+			aio->cb.aio_reqprio = 0;
 			aio->cb.u.c.buf = bufs[i].iov_base;
 			aio->cb.u.c.nbytes = bufs[i].iov_len;
 			aio->cb.u.c.offset = offset;
 #elif TORRENT_USE_OVERLAPPED
+			memset(&aio->oc, 0, sizeof(OVERLAPPED));
 			aio->file_ptr = this;
 			aio->ov.Internal = 0;
 			aio->ov.InternalHigh = 0;

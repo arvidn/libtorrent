@@ -284,6 +284,7 @@ namespace libtorrent
 			// operation failed with
 			int error;
 			size_t nbytes() const { return cb.u.c.nbytes; }
+			// TODO: include a vector of, say, 64 elements here and use vector I/O
 		};
 
 		enum

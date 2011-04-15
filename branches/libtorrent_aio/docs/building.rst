@@ -364,13 +364,19 @@ Build features:
 |                          |   awareness except on windows).                    |
 +--------------------------+----------------------------------------------------+
 | ``asserts``              | * ``off`` - disable all asserts                    |
-|                          | * ``peoduction`` - enable asserts in release       |
+|                          | * ``production`` - enable asserts in release       |
 |                          |   builds, but don't abort, just log them to        |
 |                          |   ``extern char const* libtorrent_assert_log``.    |
 |                          | * ``on`` - enable asserts in debug builds (this is |
 |                          |   the default). On GNU systems, print a stack      |
 |                          |   trace of the assert and some more information.   |
 |                          | * ``system`` use the libc assert macro             |
++--------------------------+----------------------------------------------------+
+| ``io``                   | * ``auto`` - auto detect the disk I/O API to use   |
+|                          | * ``overlapped`` - use windows overlapped I/O      |
+|                          | * ``iosubmit`` - use linux io_submit()             |
+|                          | * ``aio`` - use posix AIO                          |
+|                          | * ``sync`` - use synchronous disk I/O (portable)   |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
