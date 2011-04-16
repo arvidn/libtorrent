@@ -1897,7 +1897,12 @@ namespace libtorrent
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		detail::write_uint8(m_upload_only_id, ptr);
-		detail::write_uint8(t->is_upload_only(), ptr);
+		// if we're super seeding, we don't want to make peers
+		// think that we only have a single piece and is upload
+		// only, since they might disconnect immediately when
+		// they have downloaded a single piece, although we'll
+		// make another piece available
+		detail::write_uint8(t->is_upload_only() && !t->super_seeding(), ptr);
 		send_buffer(msg, sizeof(msg));
 	}
 
@@ -2150,7 +2155,15 @@ namespace libtorrent
 		// we're upload only, since it might make peers disconnect
 		// don't tell anyone we're upload only when in share mode
 		// we want to stay connected to seeds
-		if (t->is_upload_only() && !t->share_mode() && (!m_ses.settings().lazy_bitfields
+		// if we're super seeding, we don't want to make peers
+		// think that we only have a single piece and is upload
+		// only, since they might disconnect immediately when
+		// they have downloaded a single piece, although we'll
+		// make another piece available
+		if (t->is_upload_only()
+			&& !t->share_mode()
+			&& !t->super_seeding()
+			&& (!m_ses.settings().lazy_bitfields
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			|| m_encrypted
 #endif

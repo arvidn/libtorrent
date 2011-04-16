@@ -43,21 +43,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/host_name.hpp>
 #endif
 
-#if defined TORRENT_BSD || defined TORRENT_SOLARIS
+#if TORREN_USE_IFCONF
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <net/route.h>
 #include <string.h>
+#endif
+
+#if TORRENT_USE_SYSCTL
+#include <sys/sysctl.h>
+#include <net/route.h>
 #include <boost/scoped_array.hpp>
 #endif
 
-#if defined TORRENT_BSD
-#include <sys/sysctl.h>
-#endif
-
-#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
+#if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -65,7 +65,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iphlpapi.h>
 #endif
 
-#if defined TORRENT_LINUX
+#if TORRENT_USE_NETLINK
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 #include <asm/types.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
@@ -73,8 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -112,10 +112,10 @@ namespace libtorrent { namespace
 
 	int sockaddr_len(sockaddr const* sin)
 	{
-#if defined TORRENT_WINDOWS || defined TORRENT_MINGW || defined TORRENT_LINUX
-		return sin->sa_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
-#else
+#if TORRENT_HAS_SALEN
 		return sin->sa_len;
+#else
+		return sin->sa_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
 #endif
 	}
 
@@ -132,7 +132,7 @@ namespace libtorrent { namespace
 		return address();
 	}
 
-#if defined TORRENT_LINUX
+#if TORRENT_USE_NETLINK
 
 	int read_nl_sock(int sock, char *buf, int bufsize, int seq, int pid)
 	{
@@ -220,7 +220,7 @@ namespace libtorrent { namespace
 	}
 #endif
 
-#if defined TORRENT_BSD
+#if TORRENT_USE_SYSCTL
 
 	bool parse_route(int s, rt_msghdr* rtm, ip_route* rt_info)
 	{
@@ -267,20 +267,6 @@ namespace libtorrent { namespace
 		rt_info->mtu = req.ifr_mtu;
 
 		return true;
-	}
-#endif
-
-
-#ifdef TORRENT_BSD
-	bool verify_sockaddr(sockaddr_in* sin)
-	{
-		return (sin->sin_len == sizeof(sockaddr_in)
-			&& sin->sin_family == AF_INET)
-#if TORRENT_USE_IPV6
-			|| (sin->sin_len == sizeof(sockaddr_in6)
-				&& sin->sin_family == AF_INET6)
-#endif
-			;
 	}
 #endif
 
@@ -354,7 +340,7 @@ namespace libtorrent
 		return false;
 	}
 
-#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
+#if TORRENT_USE_GETIPFORWARDTABLE
 	address build_netmask(int bits, int family)
 	{
 		if (family == AF_INET)
@@ -450,7 +436,7 @@ namespace libtorrent
 		close(s);
 		freeifaddrs(ifaddr);
 // MacOS X, BSD and solaris
-#elif defined TORRENT_LINUX || defined TORRENT_BSD || defined TORRENT_SOLARIS
+#elif TORRENT_USE_IFCONF
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -532,7 +518,7 @@ namespace libtorrent
 		}
 		close(s);
 
-#elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
+#elif TORRENT_USE_GETADAPTERSADDRESSES
 
 #if _WIN32_WINNT >= 0x0501
 		// Load Iphlpapi library
@@ -665,7 +651,7 @@ namespace libtorrent
 	{
 		std::vector<ip_route> ret;
 	
-#if defined TORRENT_BSD
+#if TORRENT_USE_SYSCTL
 /*
 		struct rt_msg
 		{
@@ -813,7 +799,7 @@ namespace libtorrent
 	}
 	close(s);
 	
-#elif defined TORRENT_WINDOWS || defined TORRENT_MINGW
+#elif TORRENT_USE_GETIPFORWARDTABLE
 /*
 	move this to enum_net_interfaces
 		// Load Iphlpapi library
@@ -880,6 +866,14 @@ namespace libtorrent
 		// Load Iphlpapi library
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
+		{
+			ec = asio::error::operation_not_supported;
+			return std::vector<ip_route>();
+		}
+
+		typedef DWORD (WINAPI *GetIfEntry_t)(PMIB_IFROW pIfRow);
+		GetIfEntry_t GetIfEntry = (GetIfEntry_t)GetProcAddress(iphlp, "GetIfEntry");
+		if (!GetIfEntry)
 		{
 			ec = asio::error::operation_not_supported;
 			return std::vector<ip_route>();
@@ -976,8 +970,7 @@ namespace libtorrent
 		// Free memory
 		free(routes);
 		FreeLibrary(iphlp);
-#elif defined TORRENT_LINUX
-
+#elif TORRENT_USE_NETLINK
 		enum { BUFSIZE = 8192 };
 
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);

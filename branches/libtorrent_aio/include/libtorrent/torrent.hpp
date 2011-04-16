@@ -170,8 +170,7 @@ namespace libtorrent
 
 		void set_upload_mode(bool b);
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }
-		bool is_upload_only() const
-		{ return (is_finished() || upload_mode()) && !super_seeding(); }
+		bool is_upload_only() const { return is_finished() || upload_mode(); }
 
 		int seed_rank(session_settings const& s) const;
 
@@ -1313,6 +1312,10 @@ namespace libtorrent
 		// set to true if the session IP filter applies to this
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
+		
+		// if set to true, add tracker URLs loaded from resume
+		// data into this torrent instead of replacing them
+		bool m_merge_resume_trackers:1;
 	};
 }
 

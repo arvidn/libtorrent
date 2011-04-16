@@ -401,6 +401,10 @@ add_torrent()
 			bool share_mode;
 			std::string trackerid;
 			std::string url;
+			std::string uuid;
+			std::string source_feed_url;
+			bool apply_ip_filter;
+			bool merge_resume_trackers;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -542,6 +546,20 @@ is used for forward binary compatibility.
 ``trackerid`` is the default tracker id to be used when announcing to trackers. By default
 this is empty, and no tracker ID is used, since this is an optional argument. If
 a tracker returns a tracker ID, that ID is used instead of this.
+
+if ``uuid`` is specified, it is used to find duplicates. If another torrent is already
+running with the same UUID as the one being added, it will be considered a duplicate. This
+is mainly useful for RSS feed items which has UUIDs specified.
+
+``source_feed_url`` should point to the URL of the RSS feed this torrent comes from,
+if it comes from an RSS feed.
+
+``apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
+default all torrents are subject to filtering by the IP filter. This is useful if certain
+torrents needs to be excempt for some reason, being an auto-update torrent for instance.
+
+``merge_resume_trackers`` defaults to false and specifies whether tracker URLs loaded from
+resume data should be added to the trackers in the torrent or replace the trackers.
 
 remove_torrent()
 ----------------

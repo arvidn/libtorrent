@@ -407,6 +407,7 @@ namespace libtorrent
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.apply_ip_filter)
+		, m_merge_resume_trackers(p.merge_resume_trackers)
 	{
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
@@ -943,12 +944,20 @@ namespace libtorrent
 	void torrent::send_upload_only()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (std::set<peer_connection*>::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		if (share_mode()) return;
+		if (super_seeding()) return;
+
+		for (std::set<peer_connection*>::iterator i = m_connections.begin();
+			i != m_connections.end();)
 		{
-			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			// since the call to disconnect_if_redundant() may
+			// delete the entry from this container, make sure
+			// to increment the iterator early
 			bt_peer_connection* p = (bt_peer_connection*)*i;
-			p->write_upload_only();
+			++i;
+			if (p->type() == peer_connection::bittorrent_connection)
+				p->write_upload_only();
+			p->disconnect_if_redundant();
 		}
 #endif
 	}
@@ -4427,7 +4436,7 @@ namespace libtorrent
 		lazy_entry const* trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
-			m_trackers.clear();
+			if (!m_merge_resume_trackers) m_trackers.clear();
 			int tier = 0;
 			for (int i = 0; i < trackers->list_size(); ++i)
 			{
@@ -5617,11 +5626,6 @@ namespace libtorrent
 			TORRENT_ASSERT(found_active >= 1);
 			TORRENT_ASSERT(found_active <= 2);
 			TORRENT_ASSERT(found >= 1);
-		}
-
-		if (is_finished())
-		{
-			TORRENT_ASSERT(is_upload_only());
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t

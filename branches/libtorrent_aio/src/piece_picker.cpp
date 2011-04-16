@@ -2120,8 +2120,9 @@ namespace libtorrent
 			int prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			TORRENT_ASSERT(prio >= 0);
 			p.downloading = 1;
+			// prio being -1 can happen if a block is requested before
+			// the piece priority was set to 0
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			downloading_piece& dp = add_download_piece();

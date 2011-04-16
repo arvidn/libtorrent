@@ -879,8 +879,13 @@ namespace libtorrent
 			int m_buffer_allocations;
 #endif
 
-#if defined TORRENT_STATS
+#ifdef TORRENT_STATS
 			void rotate_stats_log();
+			void print_log_line(int tick_interval_ms, ptime now);
+			void reset_stat_counters();
+			void enable_stats_logging(bool s);
+
+			bool m_stats_logging_enabled;
 
 			// the last time we rotated the log file
 			ptime m_last_log_rotation;

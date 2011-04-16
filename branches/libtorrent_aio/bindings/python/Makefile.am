@@ -5,6 +5,7 @@ EXTRA_DIST = \
   client.py                 \
   rss_reader.py             \
   simple_client.py          \
+  make_torrent.py           \
   src/alert.cpp             \
   src/big_number.cpp        \
   src/converters.cpp        \

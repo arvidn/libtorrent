@@ -356,6 +356,10 @@ namespace libtorrent
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;
 
+#ifdef TORRENT_STATS
+		void enable_stats_logging(bool s);
+#endif
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
 		// Get the number of uploads.

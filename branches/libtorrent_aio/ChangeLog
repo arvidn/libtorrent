@@ -85,6 +85,12 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed BSD file allocation issue
+	* fixed bug in session::delete_files option to remove_torrent
+
+0.15.6 release
+
+	* fixed crash in udp trackers when using SOCKS5 proxy
 	* fixed reconnect delay when leaving upload only mode
 	* fixed default values being set incorrectly in add_torrent_params through add_magnet_uri in python bindings
 	* implemented unaligned write (for unbuffered I/O)

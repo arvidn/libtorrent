@@ -107,7 +107,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		ses.get_cache_info(ih, &cs);
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
-
+/*
 		std::cerr << (s.progress * 100.f) << " %"
 			<< " torrent rate: " << (s.download_rate / 1000.f) << " kB/s"
 			<< " session rate: " << (ss.download_rate / 1000.f) << " kB/s"
@@ -118,8 +118,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 			<< " rcache: " << cs.read_cache_size
 			<< " buffers: " << cs.total_used_buffers
 			<< std::endl;
-
-		print_alerts(ses, "  >>  ses");
+*/
+		print_alerts(ses, "  >>  ses", false, false, false, 0, true);
 
 		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
@@ -262,9 +262,9 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 		sha1_hash h1 = torrent_file->file_at(i).filehash;
 		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed"
 			, torrent_file->file_at(i).path));
-		fprintf(stderr, "%s: %s == %s\n"
-			, torrent_file->file_at(i).path.c_str()
-			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
+//		fprintf(stderr, "%s: %s == %s\n"
+//			, torrent_file->file_at(i).path.c_str()
+//			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
 		TEST_EQUAL(h1, h2);
 	}
 
