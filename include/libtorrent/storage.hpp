@@ -184,6 +184,107 @@ namespace libtorrent
 		session_settings* m_settings;
 	};
 
+	class default_storage : public storage_interface, boost::noncopyable
+	{
+	public:
+		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
+			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
+		~default_storage();
+
+		void finalize_file(int file);
+		bool has_any_file();
+		bool rename_file(int index, std::string const& new_filename);
+		bool release_files();
+		bool delete_files();
+		bool initialize(bool allocate_files);
+		bool move_storage(std::string const& save_path);
+		int read(char* buf, int slot, int offset, int size);
+		int write(char const* buf, int slot, int offset, int size);
+		int sparse_end(int start) const;
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
+		size_type physical_offset(int slot, int offset);
+		bool move_slot(int src_slot, int dst_slot);
+		bool swap_slots(int slot1, int slot2);
+		bool swap_slots3(int slot1, int slot2, int slot3);
+		bool verify_resume_data(lazy_entry const& rd, error_code& error);
+		bool write_resume_data(entry& rd) const;
+
+		// this identifies a read or write operation
+		// so that default_storage::readwritev() knows what to
+		// do when it's actually touching the file
+		struct fileop
+		{
+			size_type (file::*regular_op)(size_type file_offset
+				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+			size_type (default_storage::*unaligned_op)(boost::intrusive_ptr<file> const& f
+				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
+				, error_code& ec);
+			int cache_setting;
+			int mode;
+		};
+
+		void delete_one_file(std::string const& p);
+		int readwritev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, fileop const&);
+
+		size_type read_unaligned(boost::intrusive_ptr<file> const& file_handle
+			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
+			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
+		boost::scoped_ptr<file_storage> m_mapped_files;
+		file_storage const& m_files;
+
+		// helper function to open a file in the file pool with the right mode
+		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
+			, error_code& ec) const;
+
+		std::vector<boost::uint8_t> m_file_priority;
+		std::string m_save_path;
+		// the file pool is typically stored in
+		// the session, to make all storage
+		// instances use the same pool
+		file_pool& m_pool;
+
+		int m_page_size;
+		bool m_allocate_files;
+	};
+
+	// this storage implementation does not write anything to disk
+	// and it pretends to read, and just leaves garbage in the buffers
+	// this is useful when simulating many clients on the same machine
+	// or when running stress tests and want to take the cost of the
+	// disk I/O out of the picture. This cannot be used for any kind
+	// of normal bittorrent operation, since it will just send garbage
+	// to peers and throw away all the data it downloads. It would end
+	// up being banned immediately
+	class disabled_storage : public storage_interface, boost::noncopyable
+	{
+	public:
+		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
+		bool has_any_file() { return false; }
+		bool rename_file(int index, std::string const& new_filename) { return false; }
+		bool release_files() { return false; }
+		bool delete_files() { return false; }
+		bool initialize(bool allocate_files) { return false; }
+		bool move_storage(std::string const& save_path) { return true; }
+		int read(char* buf, int slot, int offset, int size) { return size; }
+		int write(char const* buf, int slot, int offset, int size) { return size; }
+		size_type physical_offset(int slot, int offset) { return 0; }
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		bool move_slot(int src_slot, int dst_slot) { return false; }
+		bool swap_slots(int slot1, int slot2) { return false; }
+		bool swap_slots3(int slot1, int slot2, int slot3) { return false; }
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		bool write_resume_data(entry& rd) const { return false; }
+
+		int m_piece_size;
+	};
+
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager
