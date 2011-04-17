@@ -111,6 +111,25 @@ namespace libtorrent
 	}
 
 	// free function to prepend a chain of aios to a list
+	void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios)
+	{
+		if (aios == 0) return;
+		if (list)
+		{
+			file::aiocb_t* last = aios;
+			while (last->next)
+			{
+				TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
+				last = last->next;
+			}
+			last->next = list;
+			list->prev = last;
+		}
+		list = aios;
+		return;
+	}
+
+	// free function to append a chain of aios to a list
 	// elevator direction determines how the new items are sorted
 	// if it's 0, they are just prepended without any insertion sort
 	// if it's -1, the direction from the first element is going down
@@ -118,24 +137,24 @@ namespace libtorrent
 	// it's inserted close to the end where the elevator has turned back.
 	// if it's lower it's inserted early, as the offset would pass it.
 	// a positive elevator direction has the same semantics but oposite order
-	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios
+	TORRENT_EXPORT void append_aios(file::aiocb_t*& list, file::aiocb_t* aios
 		, int elevator_direction, disk_io_thread* io)
 	{
 		if (aios == 0) return;
+		if (list == 0) { list = aios; return; }
 		if (elevator_direction == 0)
 		{
-			if (list)
+			// find the last item in the list chain
+			file::aiocb_t* last = list;
+			while (last->next)
 			{
-				file::aiocb_t* last = aios;
-				while (last->next)
-				{
-					TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
-					last = last->next;
-				}
-				last->next = list;
-				list->prev = last;
+				TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
+				last = last->next;
 			}
-			list = aios;
+			// now, hang the aios chain on the
+			// last item in the list chain
+			last->next = aios;
+			aios->prev = last;
 			return;
 		}
 
@@ -562,7 +581,7 @@ namespace libtorrent
 //						"m_to_issue (%p) elevator=%d\n"
 //						, aios, m_to_issue, m_elevator_direction);
 
-					prepend_aios(m_to_issue, aios, elevator_direction, this);
+					append_aios(m_to_issue, aios, elevator_direction, this);
 
 //					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 //						DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -582,7 +601,7 @@ namespace libtorrent
 //					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 //						, aios, m_to_issue);
 
-					prepend_aios(m_to_issue, aios, elevator_direction, this);
+					append_aios(m_to_issue, aios, elevator_direction, this);
 
 /*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 					{
@@ -1000,7 +1019,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
-		prepend_aios(m_to_issue, aios, elevator_direction, this);
+		append_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -1081,7 +1100,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
-		prepend_aios(m_to_issue, aios, elevator_direction, this);
+		append_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -2271,9 +2290,9 @@ namespace libtorrent
 					, num_issued);
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
-				prepend_aios(m_in_progress, pending, 0, this);
+				prepend_aios(m_in_progress, pending);
 
-#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
+#if !TORRENT_USE_SYNCIO
 				if (m_to_issue)
 				{
 					ptime now = time_now();
