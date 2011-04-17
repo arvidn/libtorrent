@@ -59,8 +59,6 @@ rule linking ( properties * )
 		{
 			# linker library on linux, required when using openssl
 			result += <library>dl ;
-			# for libaio support on linux
-			result += <library>aio ;
 		}
 
 	}
@@ -173,6 +171,12 @@ rule linking ( properties * )
 		result += <include>/opt/local/include/boost-1_35
 			<include>/opt/local/include
 			;
+	}
+
+	if <target-os>linux in $(properties)
+	{
+		# for libaio support on linux
+		result += <library>aio ;
 	}
 
 	return $(result) ;
