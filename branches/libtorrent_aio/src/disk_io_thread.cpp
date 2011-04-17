@@ -308,13 +308,22 @@ namespace libtorrent
 			// error handling!
 			TORRENT_ASSERT(false);
 		}
+		// it appears aio_submit() doesn't support eventfd,
+		// so we use a pipe to interrupt the io_getevents() call
 		ret = pipe(m_event_pipe);
 		if (ret < 0)
 		{
 			// error handling!
 			TORRENT_ASSERT(false);
 		}
+		// set the read end of the pipe to be non-blocking
+		// to make it easy to drain it every time we get an
+		// event on it
+		int pipe_flags = fcntl(m_event_pipe[0], F_GETFL, 0);
+		if (pipe_flags < 0) pipe_flags = 0;
+		fcntl(m_event_pipe[0], F_SETFL, pipe_flags | O_NONBLOCK);
 		m_aiocb_pool.io_queue = m_io_queue;
+		
 #endif
 		// don't do anything in here. Essentially all members
 		// of this object are owned by the newly created thread.
@@ -1866,6 +1875,11 @@ namespace libtorrent
 			// just exceed the disk queue size limit?
 			added_to_write_queue();
 		}
+		// we need to unlock here because writing to the
+		// event_pipe may block, if the pipe is full. If it does
+		// and we hold the lock, we may get a dead lock with the
+		// disk thread
+		l.unlock();
 
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
@@ -1876,7 +1890,7 @@ namespace libtorrent
 		DLOG(stderr, "write(m_event_fd) = %d [%p]\n", len, this);
 		TORRENT_ASSERT(len == sizeof(dummy));
 #elif TORRENT_USE_IOSUBMIT
-		boost::uint64_t dummy = 1;
+		boost::uint8_t dummy = 1;
 		int len = write(m_event_pipe[1], &dummy, sizeof(dummy));
 		DLOG(stderr, "write(m_event_pipe[1]) = %d [%p]\n", len, this);
 		TORRENT_ASSERT(len == sizeof(dummy));
@@ -2042,7 +2056,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_IOSUBMIT
-		int64_t dummy_buf;
+		uint8_t dummy_buf;
 		iocb event_fd_cb;
 		io_prep_pread(&event_fd_cb, m_event_pipe[0], &dummy_buf, sizeof(dummy_buf), 0);
 
@@ -2106,10 +2120,11 @@ namespace libtorrent
 			{
 				if (events[i].obj == &event_fd_cb)
 				{
-					boost::uint64_t dummy;
 					new_job = true;
-					// TODO: read from m_event_fd in a loop here,
-					// to drain its buffer
+					boost::uint8_t dummy;
+					// drain the pipe buffer. The pipe is supposed
+					// to be non-blocking
+					while (read(m_event_pipe[0], &dummy, 1) == 1);
 					iocb* p = &event_fd_cb;
 					io_submit(m_io_queue, 1, &p);
 					continue;
