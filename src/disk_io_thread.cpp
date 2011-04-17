@@ -642,6 +642,8 @@ namespace libtorrent
 			ret += tmp;
 		} while (tmp > 0 && blocks > 0);
 
+		if (blocks == 0) return ret;
+
 		if (options & dont_flush_write_blocks) return ret;
 
 		// if we don't have any blocks in the cache, no need to go look for any
