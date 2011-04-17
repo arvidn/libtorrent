@@ -1399,7 +1399,8 @@ namespace libtorrent
 			j.buffer = 0;
 			if (j.storage->has_fence()) fences.insert(j.storage.get());
 			j.error = error::operation_aborted;
-			m_ios.post(boost::bind(j.callback, -1, j));
+			if (j.callback)
+				m_ios.post(boost::bind(j.callback, -1, j));
 			m_blocked_jobs.pop_back();
 		}
 		if (!to_free.empty()) free_multiple_buffers(&to_free[0], to_free.size());
@@ -1451,6 +1452,7 @@ namespace libtorrent
 			if (j.buffer) to_free.push_back(j.buffer);
 			j.buffer = 0;
 			j.error = error::operation_aborted;
+			TORRENT_ASSERT(j.callback);
 			m_ios.post(boost::bind(j.callback, -1, j));
 			i = m_blocked_jobs.erase(i);
 		}
