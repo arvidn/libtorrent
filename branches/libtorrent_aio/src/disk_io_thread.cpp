@@ -302,7 +302,7 @@ namespace libtorrent
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
 #if TORRENT_USE_IOSUBMIT
-		int ret = io_setup(1000, &m_io_queue);
+		int ret = io_setup(4000, &m_io_queue);
 		if (ret != 0)
 		{
 			// error handling!
