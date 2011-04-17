@@ -521,7 +521,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			pe->blocks[i].pending = false;
 
 #if TORRENT_DISK_STATS
-			rename_buffer(pe->blocks[i].buf, "read cache");
+			m_buffer_pool.rename_buffer(pe->blocks[i].buf, "read cache");
 #endif
 
 			if (!pe->blocks[i].dirty) continue;
@@ -904,8 +904,8 @@ void block_cache::check_invariant() const
 	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);
 
 #ifdef TORRENT_DISK_STATS
-	int read_allocs = m_categories.find(std::string("read cache"))->second;
-	int write_allocs = m_categories.find(std::string("write cache"))->second;
+	int read_allocs = m_buffer_pool.m_categories.find(std::string("read cache"))->second;
+	int write_allocs = m_buffer_pool.m_categories.find(std::string("write cache"))->second;
 	TORRENT_ASSERT(cached_read_blocks == read_allocs);
 	TORRENT_ASSERT(cached_write_blocks == write_allocs);
 #endif

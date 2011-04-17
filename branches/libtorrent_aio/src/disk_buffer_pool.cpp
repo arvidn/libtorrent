@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #endif
 
+#ifdef TORRENT_DISK_STATS
+#include "libtorrent/time.hpp"
+#endif
+
 namespace libtorrent
 {
 

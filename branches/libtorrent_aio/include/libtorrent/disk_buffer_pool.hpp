@@ -42,6 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #endif
 
+#ifdef TORRENT_DISK_STATS
+#include <map>
+#include <fstream>
+#endif
+
 namespace libtorrent
 {
 
@@ -106,8 +111,8 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 	public:
 		void rename_buffer(char* buf, char const* category);
-	protected:
 		std::map<std::string, int> m_categories;
+	protected:
 		std::map<char*, std::string> m_buf_to_category;
 		std::ofstream m_log;
 	private:
