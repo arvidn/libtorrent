@@ -456,9 +456,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags            source  ";
 	if (print_fails) out += "fail hshf ";
-	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
+	if (print_send_bufs) out += "rq sndb            quota rcvb          q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
-	out += "disk   rtt ";
+	out += "  v disk ^    rtt ";
 	if (print_block) out += "block-progress ";
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	out += "country ";
@@ -491,7 +491,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d|%-3d %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
@@ -543,10 +543,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 		if (print_send_bufs)
 		{
-			snprintf(str, sizeof(str), "%2d %6d (%s) %5d %6d (%s) %6d "
+			snprintf(str, sizeof(str), "%2d %6d (%s) %s %6d (%s) %6d "
 				, i->requests_in_buffer, i->used_send_buffer, add_suffix(i->send_buffer_size).c_str()
-				, i->send_quota, i->used_receive_buffer, add_suffix(i->receive_buffer_size).c_str()
-				, i->queue_bytes);
+				, add_suffix(i->send_quota).c_str(), i->used_receive_buffer
+				, add_suffix(i->receive_buffer_size).c_str(), i->queue_bytes);
 			out += str;
 		}
 		if (print_timers)
@@ -558,8 +558,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				, total_seconds(i->download_queue_time));
 			out += str;
 		}
-		snprintf(str, sizeof(str), "%s %4d "
+		snprintf(str, sizeof(str), "%s|%s %4d "
 			, add_suffix(i->pending_disk_bytes).c_str()
+			, add_suffix(i->pending_disk_read_bytes).c_str()
 			, i->rtt);
 		out += str;
 
@@ -1839,9 +1840,10 @@ int main(int argc, char* argv[])
 				, cs.average_queue_time / 1000, cs.average_read_time / 1000, cs.average_write_time / 1000);
 			out += str;
 
-			snprintf(str, sizeof(str), "  jobs   - queued: %4d pending: %4d aiocbs: %4d"
-				" aiocb-peak: %4d queued-bytes: %5"PRId64" kB\n"
-				, cs.queued_jobs, cs.pending_jobs, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
+			snprintf(str, sizeof(str), "  jobs   - queued: %4d pending: %4d blocked: %4d "
+				"aiocbs: %4d aiocb-peak: %4d queued-bytes: %5"PRId64" kB\n"
+				, cs.queued_jobs, cs.pending_jobs, cs.blocked_jobs
+				, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d\n"

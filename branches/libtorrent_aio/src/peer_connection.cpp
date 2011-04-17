@@ -3596,6 +3596,7 @@ namespace libtorrent
 		p.pid = pid();
 		p.ip = remote();
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
+		p.pending_disk_read_bytes = m_reading_bytes;
 		p.send_quota = m_quota[upload_channel];
 		p.receive_quota = m_quota[download_channel];
 		p.num_pieces = m_num_pieces;
