@@ -1064,8 +1064,6 @@ namespace libtorrent
 			return disk_operation_failed;
 		}
 
-		// #error this won't work with the hash operation, since it can't synchronize with when the blocks are written
-
 		file::iovec_t b = { j.buffer, j.buffer_size };
 
 		m_pending_buffer_size += j.buffer_size;
