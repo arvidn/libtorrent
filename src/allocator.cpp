@@ -92,7 +92,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
-		int num_pages = (bytes + (page-1)) + 2;
+		int num_pages = (bytes + (page-1)) / page + 2;
 		char* ret = (char*)valloc(num_pages * page);
 		// make the two surrounding pages non-readable and -writable
 		alloc_header* h = (alloc_header*)ret;
@@ -135,7 +135,7 @@ namespace libtorrent
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
 		alloc_header* h = (alloc_header*)(block - page);
-		int num_pages = (h->size + (page-1)) + 2;
+		int num_pages = (h->size + (page-1)) / page + 2;
 		TORRENT_ASSERT(h->magic == 0x1337);
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
