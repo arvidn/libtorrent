@@ -3218,7 +3218,8 @@ namespace aux {
 		
 		if (m_stats_logger)
 		{
-			cache_status cs = m_disk_thread.status();
+			cache_status cs;
+			m_disk_thread.get_disk_metrics(cs);
 
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
