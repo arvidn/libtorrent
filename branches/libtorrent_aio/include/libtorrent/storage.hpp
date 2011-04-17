@@ -179,6 +179,132 @@ namespace libtorrent
 		session_settings* m_settings;
 	};
 
+	class default_storage : public storage_interface, boost::noncopyable
+	{
+	public:
+		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
+			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
+		~default_storage();
+
+		void finalize_file(int file, error_code& ec);
+		bool has_any_file(error_code& ec);
+		void rename_file(int index, std::string const& new_filename, error_code& ec);
+		void release_files(error_code& ec);
+		void delete_files(error_code& ec);
+		void initialize(bool allocate_files, error_code& ec);
+		void move_storage(std::string const& save_path, error_code& ec);
+		int read(char* buf, int slot, int offset, int size, error_code& ec);
+		int write(char const* buf, int slot, int offset, int size, error_code& ec);
+		int sparse_end(int start) const;
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
+		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs, error_code& ec);
+		size_type physical_offset(int slot, int offset);
+		void move_slot(int src_slot, int dst_slot, error_code& ec);
+		void swap_slots(int slot1, int slot2, error_code& ec);
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec);
+		bool verify_resume_data(lazy_entry const& rd, error_code& error);
+		void write_resume_data(entry& rd, error_code& ec) const;
+
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(async_handler*)> const& handler);
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(async_handler*)> const& handler);
+
+		// this identifies a read or write operation
+		// so that default_storage::readwritev() knows what to
+		// do when it's actually touching the file
+		struct fileop
+		{
+			// this is the function to be called on the file object, for
+			// regular, aligned, operations
+			size_type (file::*regular_op)(size_type file_offset
+				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+			// this is the function to be called on the file object, for
+			// unaligned operations
+			size_type (default_storage::*unaligned_op)(boost::intrusive_ptr<file> const& f
+				, size_type file_offset, file::iovec_t const* bufs, int num_bufs
+				, error_code& ec);
+			// this is the function to be called on the file object, for
+			// async operations
+			file::aiocb_t* (file::*async_op)(size_type offset
+				, file::iovec_t const* bufs, int num_bufs
+				, aiocb_pool&);
+			// for async operations, this is the handler that will be added
+			// to every aiocb_t in the returned chain
+			async_handler* handler;
+			// for async operations, this is the returned aiocb_t chain
+			file::aiocb_t* ret;
+			int cache_setting;
+			int mode;
+		};
+
+		void delete_one_file(std::string const& p, error_code& ec);
+		int readwritev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, fileop& op, error_code& ec);
+
+		size_type read_unaligned(boost::intrusive_ptr<file> const& file_handle
+			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type write_unaligned(boost::intrusive_ptr<file> const& file_handle
+			, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+
+		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+
+		boost::scoped_ptr<file_storage> m_mapped_files;
+		file_storage const& m_files;
+
+		// helper function to open a file in the file pool with the right mode
+		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
+			, error_code& ec) const;
+
+		std::vector<boost::uint8_t> m_file_priority;
+		std::string m_save_path;
+		// the file pool is typically stored in
+		// the session, to make all storage
+		// instances use the same pool
+		file_pool& m_pool;
+
+		int m_page_size;
+		bool m_allocate_files;
+	};
+
+	// this storage implementation does not write anything to disk
+	// and it pretends to read, and just leaves garbage in the buffers
+	// this is useful when simulating many clients on the same machine
+	// or when running stress tests and want to take the cost of the
+	// disk I/O out of the picture. This cannot be used for any kind
+	// of normal bittorrent operation, since it will just send garbage
+	// to peers and throw away all the data it downloads. It would end
+	// up being banned immediately
+	class disabled_storage : public storage_interface, boost::noncopyable
+	{
+	public:
+		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
+		bool has_any_file(error_code& ec) { return false; }
+		void rename_file(int index, std::string const& new_filename, error_code& ec) {}
+		void release_files(error_code& ec) {}
+		void delete_files(error_code& ec) {}
+		void initialize(bool allocate_files, error_code& ec) {}
+		void move_storage(std::string const& save_path, error_code& ec) {}
+		int read(char* buf, int slot, int offset, int size, error_code& ec) { return size; }
+		int write(char const* buf, int slot, int offset, int size, error_code& ec) { return size; }
+		size_type physical_offset(int slot, int offset) { return 0; }
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
+		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
+	
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(async_handler*)> const& handler);
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(async_handler*)> const& handler);
+
+		void move_slot(int src_slot, int dst_slot, error_code& ec) {}
+		void swap_slots(int slot1, int slot2, error_code& ec) {}
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) {}
+		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		void write_resume_data(entry& rd, error_code& ec) const {}
+
+		int m_piece_size;
+	};
+
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager
