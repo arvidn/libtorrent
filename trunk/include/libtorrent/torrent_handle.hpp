@@ -478,6 +478,7 @@ namespace libtorrent
 			, queue_position(0)
 			, need_save_resume(false)
 			, ip_filter_applies(true)
+			, info_hash(0)
 		{}
 
 		// handle to the torrent
@@ -690,6 +691,9 @@ namespace libtorrent
 		// defaults to true. Determines whether the session
 		// IP filter applies to this torrent or not
 		bool ip_filter_applies;
+
+		// the info-hash for this torrent
+		sha1_hash info_hash;
 	};
 
 }
