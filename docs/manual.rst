@@ -3368,6 +3368,8 @@ It contains the following fields::
 		int queue_position;
 		bool need_save_resume;
 		bool ip_filter_applies;
+
+		sha1_hash info_hash;
 	};
 
 ``handle`` is a handle to the torrent whose status the object represents.
@@ -3640,6 +3642,8 @@ was saved.
 
 ``ip_filter_applies`` is true if the session global IP filter applies
 to this torrent. This defaults to true.
+
+``info_hash`` is the info-hash of the torrent.
 
 peer_info
 =========
@@ -7046,6 +7050,8 @@ cache_flushed_alert
 This alert is posted when the disk cache has been flushed for a specific torrent
 as a result of a call to `flush_cache()`_. This alert belongs to the
 ``storage_notification`` category, which must be enabled to let this alert through.
+The alert is also posted when removing a torrent from the session, once the outstanding
+cache flush is complete and the torrent does no longer have any files open.
 
 ::
 
