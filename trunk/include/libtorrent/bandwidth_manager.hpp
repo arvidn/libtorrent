@@ -74,7 +74,9 @@ struct TORRENT_EXPORT bandwidth_manager
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
-	void request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
+	// returns the number of bytes to assign to the peer, or 0
+	// if the peer's 'assign_bandwidth' callback will be called later
+	int request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
 		, int blk, int priority
 		, bandwidth_channel* chan1 = 0
 		, bandwidth_channel* chan2 = 0
