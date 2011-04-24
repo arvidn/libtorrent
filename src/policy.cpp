@@ -1367,6 +1367,17 @@ namespace libtorrent
 		// to still exist when we get back there, to assign the new
 		// peer connection pointer to it. The peer list must
 		// be left intact.
+
+		// if we allow multiple connections per IP, and this peer
+		// was incoming and it never advertised its listen
+		// port, we don't really know which peer it was. In order
+		// to avoid adding one entry for every single connection
+		// the peer makes to us, don't save this entry
+		if (m_torrent->settings().allow_multiple_connections_per_ip
+			&& !p->connectable)
+		{
+			erase_peer(p);
+		}
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
