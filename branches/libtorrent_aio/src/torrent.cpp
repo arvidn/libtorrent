@@ -3097,7 +3097,7 @@ namespace libtorrent
 		{
 			m_storage->abort_disk_io();
 			m_storage->async_release_files(
-				boost::bind(&torrent::on_torrent_aborted, shared_from_this(), _1, _2));
+				boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 		}
 		
 		dequeue_torrent_check();
@@ -3203,12 +3203,6 @@ namespace libtorrent
 			alerts().post_alert(torrent_paused_alert(get_handle()));
 		}
 */
-	}
-
-	void torrent::on_torrent_aborted(int ret, disk_io_job const& j)
-	{
-		// the torrent should be completely shut down now, and the
-		// destructor has to be called from the main thread
 	}
 
 	void torrent::on_save_resume_data(int ret, disk_io_job const& j)
@@ -6158,6 +6152,9 @@ namespace libtorrent
 	void torrent::on_cache_flushed(int ret, disk_io_job const& j)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		if (m_ses.is_aborted()) return;
+
 		if (alerts().should_post<cache_flushed_alert>())
 			alerts().post_alert(cache_flushed_alert(get_handle()));
 	}
@@ -7352,6 +7349,7 @@ namespace libtorrent
 		ptime now = time_now();
 
 		st->handle = get_handle();
+		st->info_hash = info_hash();
 
 		st->has_incoming = m_has_incoming;
 		if (m_error) st->error = m_error.message() + ": " + m_error_file;

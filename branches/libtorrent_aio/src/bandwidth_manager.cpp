@@ -84,7 +84,7 @@ namespace libtorrent
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
-	void bandwidth_manager::request_bandwidth(boost::intrusive_ptr<bandwidth_socket> const& peer
+	int bandwidth_manager::request_bandwidth(boost::intrusive_ptr<bandwidth_socket> const& peer
 		, int blk, int priority
 		, bandwidth_channel* chan1
 		, bandwidth_channel* chan2
@@ -94,7 +94,7 @@ namespace libtorrent
 		)
 	{
 		INVARIANT_CHECK;
-		if (m_abort) return;
+		if (m_abort) return 0;
 
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(priority > 0);
@@ -113,11 +113,11 @@ namespace libtorrent
 			// bandwidth channels, or it doesn't belong to any
 			// channels. There's no point in adding it to
 			// the queue, just satisfy the request immediately
-			bwr.peer->assign_bandwidth(m_channel, blk);
-			return;
+			return blk;
 		}
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);
+		return 0;
 	}
 
 #ifdef TORRENT_DEBUG

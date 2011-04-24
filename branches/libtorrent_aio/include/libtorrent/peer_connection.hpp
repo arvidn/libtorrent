@@ -732,12 +732,12 @@ namespace libtorrent
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
 		void on_disk_write_complete(int ret, disk_io_job const& j
 			, peer_request r, boost::shared_ptr<torrent> t);
-		void request_upload_bandwidth(
+		int request_upload_bandwidth(
 			bandwidth_channel* bwc1
 			, bandwidth_channel* bwc2 = 0
 			, bandwidth_channel* bwc3 = 0
 			, bandwidth_channel* bwc4 = 0);
-		void request_download_bandwidth(
+		int request_download_bandwidth(
 			bandwidth_channel* bwc1
 			, bandwidth_channel* bwc2 = 0
 			, bandwidth_channel* bwc3 = 0
