@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
