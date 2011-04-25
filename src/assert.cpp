@@ -114,7 +114,7 @@ void print_backtrace(char* out, int len)
 }
 #else
 
-void print_backtrace(FILE* out, char const* label) {}
+void print_backtrace(char* out, int len) {}
 
 #endif
 
