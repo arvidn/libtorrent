@@ -1631,6 +1631,9 @@ namespace libtorrent
 		if (lhs_resume_data_source != rhs_resume_data_source)
 			return lhs_resume_data_source > rhs_resume_data_source;
 
+		if (lhs.connectable != rhs.connectable)
+			return lhs.connectable < rhs.connectable;
+
 		// prefer peers with higher failcount
 		return lhs.failcount > rhs.failcount;
 	}
