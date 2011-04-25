@@ -71,7 +71,8 @@ namespace libtorrent
 			// write mode, re-open it
 			if ((((e.mode & file::rw_mask) != file::read_write)
 				&& ((m & file::rw_mask) == file::read_write))
-				|| (e.mode & file::no_buffer) != (m & file::no_buffer))
+				|| (e.mode & file::no_buffer) != (m & file::no_buffer)
+				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
 				// close the file before we open it with
 				// the new read/write privilages
