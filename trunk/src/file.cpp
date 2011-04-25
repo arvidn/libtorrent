@@ -763,19 +763,19 @@ namespace libtorrent
 		const static open_mode_t mode_array[] =
 		{
 			// read_only
-			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS},
+			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, 0},
 			// write_only
-			{GENERIC_WRITE, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
+			{GENERIC_WRITE, FILE_SHARE_READ, OPEN_ALWAYS, 0},
 			// read_write
-			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
+			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, 0},
 			// invalid option
 			{0,0,0,0},
 			// read_only no_buffer
-			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 			// write_only no_buffer
-			{GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			{GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 			// read_write no_buffer
-			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
+			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 			// invalid option
 			{0,0,0,0}
 		};
@@ -800,8 +800,11 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & mode_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
+		DWORD extra_flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
+			| (a ? a : FILE_ATTRIBUTE_NORMAL);
+
 		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
-			, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
+			, m.create_mode, m.flags | extra_flags, 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -885,8 +888,11 @@ namespace libtorrent
 #endif
 
 #ifdef POSIX_FADV_RANDOM
-		// disable read-ahead
-		posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+		if (mode & random_access)
+		{
+			// disable read-ahead
+			posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+		}
 #endif
 
 #endif
