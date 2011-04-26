@@ -7804,6 +7804,7 @@ The interface looks like this::
 	{
 		virtual bool initialize(bool allocate_files) = 0;
 		virtual bool has_any_file() = 0;
+		virtual void hint_read(int slot, int offset, int len);
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual int sparse_end(int start) const;
@@ -7852,6 +7853,17 @@ has_any_file()
 This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.
+
+hint_read()
+-----------
+
+	::
+
+		void hint_read(int slot, int offset, int len);
+
+This function is called when a read job is queued. It gives the storage wrapper an
+opportunity to hint the operating system about this coming read. For instance, the
+storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
 
 readv() writev()
 ----------------
