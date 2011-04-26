@@ -3625,7 +3625,6 @@ namespace aux {
 				{
 					torrent* t = pi->connection->associated_torrent().lock().get();
 					bool ret = t->unchoke_peer(*pi->connection, true);
-					TORRENT_ASSERT(ret);
 					if (ret)
 					{
 						pi->optimistically_unchoked = true;
