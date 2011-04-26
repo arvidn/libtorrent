@@ -3081,6 +3081,11 @@ namespace libtorrent
 			m_storage->async_release_files(
 				boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 		}
+		else
+		{
+			if (alerts().should_post<cache_flushed_alert>())
+				alerts().post_alert(cache_flushed_alert(get_handle()));
+		}
 		
 		dequeue_torrent_check();
 
