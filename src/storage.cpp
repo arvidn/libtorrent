@@ -1756,6 +1756,7 @@ ret:
 	{
 		m_last_piece = piece_index;
 		int slot = slot_for(piece_index);
+		if (slot <= 0) return;
 		m_storage->hint_read(slot, offset, size);
 	}
 
