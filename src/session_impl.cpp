@@ -803,6 +803,7 @@ namespace aux {
 
 #ifdef TORRENT_STATS
 
+		m_stats_logger = 0;
 		m_stats_logging_enabled = true;
 		reset_stat_counters();
 		rotate_stats_log();
