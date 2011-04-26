@@ -268,6 +268,7 @@ namespace libtorrent
 			, always_send_user_agent(false)
 			, apply_ip_filter_to_trackers(true)
 			, read_job_every(10)
+			, use_disk_read_ahead(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1070,6 +1071,10 @@ namespace libtorrent
 		// write jobs have been taking priority in a row, service
 		// one read job
 		int read_job_every;
+
+		// issue posix_fadvise() or fcntl(F_RDADVISE) for disk reads
+		// ahead of time
+		bool use_disk_read_ahead;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

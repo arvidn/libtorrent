@@ -1014,6 +1014,20 @@ namespace libtorrent
 
 #endif
 
+	void file::hint_read(size_type file_offset, int len)
+	{
+#if defined POSIX_FADV_WILLNEED
+		posix_fadvise(m_fd, file_offset, len, POSIX_FADV_WILLNEED);
+#elif defined F_RDADVISE
+		radvisory r;
+		r.ra_offset = file_offset;
+		r.ra_count = len;
+		fcntl(m_fd, F_RDADVISE, &r);
+#else
+		// TODO: is there any way to pre-fetch data from a file on windows?
+#endif
+	}
+
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);

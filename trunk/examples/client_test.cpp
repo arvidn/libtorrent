@@ -933,6 +933,7 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 	session_settings settings;
 
+	settings.use_disk_read_ahead = false;
 	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
 	settings.choking_algorithm = session_settings::auto_expand_choker;
 	//settings.announce_to_all_trackers = true;

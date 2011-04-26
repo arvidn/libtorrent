@@ -1722,6 +1722,11 @@ namespace libtorrent
 					}
 				}
 
+				if (m_settings.use_disk_read_ahead && defer)
+				{
+					j.storage->hint_read_impl(j.piece, j.offset, j.buffer_size);
+				}
+
 				TORRENT_ASSERT(j.offset >= 0);
 				if (m_settings.allow_reordered_disk_operations && defer)
 				{
