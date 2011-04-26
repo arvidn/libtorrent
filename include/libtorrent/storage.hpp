@@ -115,6 +115,7 @@ namespace libtorrent
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 
+		virtual void hint_read(int slot, int offset, int len) {}
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
@@ -201,6 +202,7 @@ namespace libtorrent
 		int read(char* buf, int slot, int offset, int size);
 		int write(char const* buf, int slot, int offset, int size);
 		int sparse_end(int start) const;
+		void hint_read(int slot, int offset, int len);
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
 		size_type physical_offset(int slot, int offset);
@@ -421,6 +423,8 @@ namespace libtorrent
 		// the partial slot. Returns the number of bytes read
 		int hash_for_slot(int slot, partial_hash& h, int piece_size
 			, int small_piece_size = 0, sha1_hash* small_hash = 0);
+
+		void hint_read_impl(int piece_index, int offset, int size);
 
 		int read_impl(
 			file::iovec_t* bufs

@@ -4404,6 +4404,7 @@ session_settings
 		bool always_send_user_agent;
 		bool apply_ip_filter_to_trackers;
 		int read_job_every;
+		use_disk_read_ahead;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5267,6 +5268,10 @@ and serviced once all write jobs have been issued. In scenarios where the
 download rate is enough to saturate the disk, there's a risk the read jobs will
 never be serviced. With this setting, every *x* write job, issued in a row, will
 instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
+
+``use_disk_read_ahead`` defaults to true and will attempt to optimize disk reads
+by giving the operating system heads up of disk read requests as they are queued
+in the disk job queue. This gives a significant performance boost for seeding.
 
 pe_settings
 ===========

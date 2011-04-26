@@ -149,6 +149,7 @@ namespace libtorrent
 		set.cache_size = 0;
 		set.cache_buffer_chunk_size = 1;
 		set.use_read_cache = false;
+		set.use_disk_read_ahead = false;
 
 		set.close_redundant_connections = true;
 

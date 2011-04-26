@@ -1,3 +1,4 @@
+	* added support for fadvise/F_RDADVISE for improved disk read performance
 	* introduced pop_alerts() which pops the entire alert queue in a single call
 	* support saving metadata in resume file, enable it by default for magnet links
 	* support for receiving multi announce messages for local peer discovery

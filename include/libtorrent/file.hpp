@@ -241,6 +241,7 @@ namespace libtorrent
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		void hint_read(size_type file_offset, int len);
 
 		size_type get_size(error_code& ec) const;
 
