@@ -206,6 +206,9 @@ namespace libtorrent
 		// allow 8000 peer connections
 		set.connections_limit = 8000;
 
+		// allow lots of peers to try to connect simultaneously
+		set.listen_queue_size = 200;
+
 		// unchoke many peers
 		set.unchoke_slots_limit = 500;
 
