@@ -50,7 +50,7 @@ using namespace libtorrent::detail; // for write_* and read_*
 
 void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
 {
-	boost::uint32_t fill = (piece << 16) | (start / 0x4000);
+	boost::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
 	for (int i = 0; i < length / 4; ++i)
 	{
 		buffer[i] = fill;
@@ -379,12 +379,13 @@ void generate_torrent(std::vector<char>& buf)
 	file_storage fs;
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
-	// 50 GiB should be enough to not fit in physical RAM
-	const int num_pieces = 1 * 1024;
+	// 30 GiB should be enough to not fit in physical RAM
+	const int num_pieces = 30 * 1024;
 	const size_type total_size = size_type(piece_size) * num_pieces;
 	fs.add_file("stress_test_file", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 
+	fprintf(stderr, "\n");
 	boost::uint32_t piece[0x4000 / 4];
 	for (int i = 0; i < num_pieces; ++i)
 	{
@@ -395,7 +396,9 @@ void generate_torrent(std::vector<char>& buf)
 			ph.update((char*)piece, 0x4000);
 		}
 		t.set_hash(i, ph.final());
+		if (i & 1) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(num_pieces));
 	}
+	fprintf(stderr, "\n");
 
 	std::back_insert_iterator<std::vector<char> > out(buf);
 
