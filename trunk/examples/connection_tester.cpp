@@ -70,7 +70,9 @@ struct peer_conn
 		, outstanding_requests(0)
 		, seed(seed_)
 		, blocks_received(0)
+		, blocks_sent(0)
 		, num_pieces(num_pieces)
+		, start_time(time_now_hires())
 	{
 		pieces.reserve(num_pieces);
 		s.async_connect(ep, boost::bind(&peer_conn::on_connect, this, _1));
@@ -96,13 +98,16 @@ struct peer_conn
 	// if this is true, this connection is a seed
 	bool seed;
 	int blocks_received;
+	int blocks_sent;
 	int num_pieces;
+	ptime start_time;
+	ptime end_time;
 
 	void on_connect(error_code const& ec)
 	{
 		if (ec)
 		{
-			fprintf(stderr, "ERROR CONNECT: %s\n", ec.message().c_str());
+			close("ERROR CONNECT: %s", ec);
 			return;
 		}
 
@@ -124,7 +129,7 @@ struct peer_conn
 		free(h);
 		if (ec)
 		{
-			fprintf(stderr, "ERROR SEND HANDSHAKE: %s\n", ec.message().c_str());
+			close("ERROR SEND HANDSHAKE: %s", ec);
 			return;
 		}
 
@@ -137,7 +142,7 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			fprintf(stderr, "ERROR READ HANDSHAKE: %s\n", ec.message().c_str());
+			close("ERROR READ HANDSHAKE: %s", ec);
 			return;
 		}
 
@@ -165,7 +170,7 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			fprintf(stderr, "ERROR SEND HAVE ALL: %s\n", ec.message().c_str());
+			close("ERROR SEND HAVE ALL: %s", ec);
 			return;
 		}
 
@@ -207,7 +212,7 @@ struct peer_conn
 		free(m);
 		if (ec)
 		{
-			fprintf(stderr, "ERROR SEND REQUEST: %s\n", ec.message().c_str());
+			close("ERROR SEND REQUEST: %s", ec);
 			return;
 		}
 
@@ -216,13 +221,25 @@ struct peer_conn
 		work_download();
 	}
 
+	void close(char const* fmt, error_code const& ec)
+	{
+		end_time = time_now_hires();
+		char tmp[1024];
+		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+		int time = total_milliseconds(end_time - start_time);
+		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
+		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
+		printf("%s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
+			, tmp, blocks_sent, blocks_received, time, up, down);
+	}
+
 	void work_download()
 	{
 		if (pieces.empty()
 			&& outstanding_requests == 0
 			&& blocks_received >= num_pieces * blocks_per_piece)
 		{
-			fprintf(stderr, "COMPLETED DOWNLOAD\n");
+			close("COMPLETED DOWNLOAD", error_code());
 			return;
 		}
 
@@ -242,14 +259,14 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE PREFIX: %s\n", ec.message().c_str());
+			close("ERROR RECEIVE MESSAGE PREFIX: %s", ec);
 			return;
 		}
 		char* ptr = (char*)buffer;
 		unsigned int length = read_uint32(ptr);
 		if (length > sizeof(buffer))
 		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE PREFIX: packet too big\n");
+			close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 			return;
 		}
 		boost::asio::async_read(s, asio::buffer((char*)buffer, length)
@@ -260,7 +277,7 @@ struct peer_conn
 	{
 		if (ec)
 		{
-			fprintf(stderr, "ERROR RECEIVE MESSAGE: %s\n", ec.message().c_str());
+			close("ERROR RECEIVE MESSAGE: %s", ec);
 			return;
 		}
 		char* ptr = (char*)buffer;
@@ -330,6 +347,7 @@ struct peer_conn
 		vec[0] = libtorrent::asio::buffer(msg, sizeof(msg)-1);
 		vec[1] = libtorrent::asio::buffer(write_buffer, length);
 		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		++blocks_sent;
 	}
 };
 
@@ -461,7 +479,25 @@ int main(int argc, char* argv[])
 	}
 
 	ios.run(ec);
-	if (ec) fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+	if (ec)
+	{
+		fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+		return 1;
+	}
+
+	float up = 0.f;
+	float down = 0.f;
+	for (std::list<peer_conn*>::iterator i = conns.begin()
+		, end(conns.end()); i != end; ++i)
+	{
+		peer_conn* p = *i;
+		int time = total_milliseconds(p->end_time - p->start_time);
+		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
+		down += (boost::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
+		delete p;
+	}
+
+	printf("=========================\nup: %.1fMB/s\ndown: %.1fMB/s\n", up, down);
 
 	return 0;
 }
