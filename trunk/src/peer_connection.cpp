@@ -3906,7 +3906,7 @@ namespace libtorrent
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
 		time_duration d;
-		d = now - m_last_receive;
+		d = (std::min)(now - m_last_receive, now - m_last_sent);
 
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
