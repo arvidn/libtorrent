@@ -104,7 +104,7 @@ def gen_html(reports, generations):
 
 reports = [
 	('torrents', 'num', '', 'number of torrents in different torrent states', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
-	('peers', 'num', 'num connected peers', '', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
+	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
 	('connect_candidates', 'num', '', 'number of peers we know of that we can connect to', ['connect candidates']),
 	('peers_list_size', 'num', '', 'number of known peers (not necessarily connected)', ['num list peers']),
 	('overall_rates', 'Bytes / second', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
@@ -117,7 +117,7 @@ reports = [
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time']),
 	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
 	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
-	('disk_readback', '% of written blocks', '%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
+	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
