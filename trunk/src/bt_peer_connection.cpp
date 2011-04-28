@@ -1155,6 +1155,12 @@ namespace libtorrent
 					return;
 				}
 
+				if (packet_size() - 13 - list_size > t->block_size())
+				{
+					disconnect(errors::packet_too_large, 2);
+					return;
+				}
+
 				TORRENT_ASSERT(!has_disk_receive_buffer());
 				if (!allocate_disk_receive_buffer(packet_size() - 13 - list_size))
 				{
@@ -1168,6 +1174,13 @@ namespace libtorrent
 			if (recv_pos == 1)
 			{
 				TORRENT_ASSERT(!has_disk_receive_buffer());
+
+				if (packet_size() - 9 > t->block_size())
+				{
+					disconnect(errors::packet_too_large, 2);
+					return;
+				}
+
 				if (!allocate_disk_receive_buffer(packet_size() - 9))
 				{
 					m_statistics.received_bytes(0, received);
