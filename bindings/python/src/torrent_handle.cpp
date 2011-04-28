@@ -338,7 +338,9 @@ void bind_torrent_handle()
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0))
         .def("force_reannounce", &force_reannounce)
+#ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
+#endif
         .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
         .def("name", _(&torrent_handle::name))
         .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
