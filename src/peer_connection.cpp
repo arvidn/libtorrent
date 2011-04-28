@@ -4324,12 +4324,12 @@ namespace libtorrent
 		{
 			if (ret == -3)
 			{
-				if (t->seed_mode()) t->leave_seed_mode(false);
 #if defined TORRENT_VERBOSE_LOGGING
 				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
 					, r.piece , r.start , r.length);
 #endif
 				write_reject_request(r);
+				if (t->seed_mode()) t->leave_seed_mode(false);
 			}
 			else
 			{
