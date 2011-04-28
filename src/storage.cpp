@@ -1245,10 +1245,7 @@ ret:
 			}
 
 			if (file_bytes_left != bytes_transferred)
-			{
-				set_error(combine_path(m_save_path, files().file_path(*file_iter)), errors::file_too_short);
-				return -1;
-			}
+				return bytes_transferred;
 
 			advance_bufs(current_buf, bytes_transferred);
 			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
