@@ -2470,20 +2470,21 @@ namespace libtorrent
 //		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
 //			<< p.piece << " o: " << p.start << " ]\n";
 #endif
+
+		if (!t)
+		{
+			disconnect(j.error);
+			return;
+		}
+
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
 		setup_receive(read_async);
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 
-		if (ret == -1 || !t)
+		if (ret == -1)
 		{
-			if (!t)
-			{
-				disconnect(j.error);
-				return;
-			}
-
 			// handle_disk_error may disconnect us
 			t->handle_disk_error(j, this);
 			return;
@@ -4313,14 +4314,14 @@ namespace libtorrent
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (ret != r.length || m_torrent.expired())
+		if (!t)
 		{
-			if (!t)
-			{
-				disconnect(j.error);
-				return;
-			}
+			disconnect(j.error);
+			return;
+		}
 		
+		if (ret != r.length)
+		{
 			if (ret == -3)
 			{
 				if (t->seed_mode()) t->leave_seed_mode(false);
