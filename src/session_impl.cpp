@@ -4181,8 +4181,12 @@ namespace aux {
 		TORRENT_ASSERT(done != m_queued_for_checking.end());
 		if (done == m_queued_for_checking.end()) return;
 
-		if (next_check != t && t->state() == torrent_status::checking_files)
+		if (next_check != t
+			&& t->state() == torrent_status::checking_files
+			&& !m_paused)
+		{
 			next_check->start_checking();
+		}
 
 		m_queued_for_checking.erase(done);
 	}
