@@ -357,20 +357,32 @@ namespace libtorrent
 				continue;
 			}
 		
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+
+			int current = i - m_peers.begin();
+			TORRENT_ASSERT(current >= 0);
+			TORRENT_ASSERT(m_peers.size() > 0);
+			TORRENT_ASSERT(i != m_peers.end());
+
 			if ((*i)->connection)
 			{
-				(*i)->connection->disconnect(errors::banned_by_ip_filter);
-				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+				// disconnecting the peer here may also delete the
+				// peer_info_struct. If that is the case, just continue
+				int count = m_peers.size();
+				peer_connection* p = (*i)->connection;
+				
+				p->disconnect(errors::banned_by_ip_filter);
+				// what *i refers to has changed, i.e. cur was deleted
+				if (m_peers.size() < count)
+				{
+					i = m_peers.begin() + current;
+					continue;
+				}
 				TORRENT_ASSERT((*i)->connection == 0
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
-			else
-			{
-				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
-			}
-			int current = i - m_peers.begin();
+
 			erase_peer(i);
 			i = m_peers.begin() + current;
 		}
