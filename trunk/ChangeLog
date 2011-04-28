@@ -86,6 +86,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed python bindings build with disabled DHT support
 	* fixed BSD file allocation issue
 	* fixed bug in session::delete_files option to remove_torrent
 

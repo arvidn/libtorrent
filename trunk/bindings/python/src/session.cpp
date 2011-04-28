@@ -411,6 +411,7 @@ void bind_session()
 #endif
         ;
 
+#ifndef TORRENT_DISABLE_DHT
     class_<dht_lookup>("dht_lookup")
         .def_readonly("type", &dht_lookup::type)
         .def_readonly("outstanding_requests", &dht_lookup::outstanding_requests)
@@ -418,6 +419,7 @@ void bind_session()
         .def_readonly("response", &dht_lookup::responses)
         .def_readonly("branch_factor", &dht_lookup::branch_factor)
     ;
+#endif
 
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
