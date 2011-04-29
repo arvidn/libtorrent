@@ -1429,7 +1429,7 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
-		if (!t->valid_metadata() && index > int(m_have_piece.size()))
+		if (!t->valid_metadata() && index >= int(m_have_piece.size()))
 		{
 			if (index < 65536)
 			{
