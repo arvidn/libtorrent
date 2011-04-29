@@ -366,7 +366,7 @@ namespace libtorrent
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 				, (boost::bind(&web_seed_entry::url, _1)
 					== url && boost::bind(&web_seed_entry::type, _1) == type));
-			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
+			if (i != m_web_seeds.end()) remove_web_seed(i);
 		}
 
 		void disconnect_web_seed(peer_connection* p)
@@ -629,6 +629,10 @@ namespace libtorrent
 		// lookup for a proxy for a web seed is completed.
 		void on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::list<web_seed_entry>::iterator url);
+
+		// remove a web seed, or schedule it for removal in case there
+		// are outstanding operations on it
+		void remove_web_seed(std::list<web_seed_entry>::iterator web);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.

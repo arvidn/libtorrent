@@ -3843,6 +3843,16 @@ namespace libtorrent
 		m_connections.erase(i);
 	}
 
+	void torrent::remove_web_seed(std::list<web_seed_entry>::iterator web)
+	{
+		if (web->resolving)
+		{
+			web->removed = true;
+			return;
+		}
+		m_web_seeds.erase(web);
+	}
+
 	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -3875,7 +3885,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, ec));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 		
@@ -3891,7 +3901,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::unsupported_url_protocol));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3903,7 +3913,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::invalid_hostname));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3915,7 +3925,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::invalid_port));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3927,7 +3937,7 @@ namespace libtorrent
 				url_seed_alert(get_handle(), web->url, errors::port_blocked));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3987,7 +3997,7 @@ namespace libtorrent
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -4009,7 +4019,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), web->url, ec));
 			}
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -4039,6 +4049,14 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << web->url << "\n";
 #endif
 		web->resolving = false;
+		if (web->removed)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " removed web seed\n";
+#endif
+			remove_web_seed(web);
+			return;
+		}
 
 		if (m_abort) return;
 
