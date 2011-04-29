@@ -1,3 +1,4 @@
+	* fixed bug when receiving a have message before having the metadata
 	* fixed python bindings build with disabled DHT support
 	* fixed BSD file allocation issue
 	* fixed bug in session::delete_files option to remove_torrent
