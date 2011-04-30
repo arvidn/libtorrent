@@ -422,24 +422,23 @@ namespace libtorrent
 		TORRENT_ASSERT(p);
 		peer_connection const& rhs = *p;
 
-		size_type c1;
-		size_type c2;
-
-		// first compare how many bytes they've sent us
-		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
-		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
-
+		// if one peer belongs to a higher priority torrent than the other one
+		// that one should be unchoked.
 		boost::shared_ptr<torrent> t1 = m_torrent.lock();
 		TORRENT_ASSERT(t1);
 		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
-		// take torrent priority into account
-		c1 *= 1 + t1->priority();
-		c2 *= 1 + t2->priority();
+		if (t1->priority() != t2->priority())
+			return t1->priority() > t2->priority();
 
-		if (c1 > c2) return true;
-		if (c1 < c2) return false;
+		// compare how many bytes they've sent us
+		size_type c1;
+		size_type c2;
+		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
+		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+
+		if (c1 != c2) return c1 > c2;
 
 		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
 		{
