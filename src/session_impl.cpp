@@ -3662,7 +3662,7 @@ namespace aux {
 		m_last_choke = now;
 
 		// build list of all peers that are
-		// unchoke:able.
+		// unchokable.
 		std::vector<peer_connection*> peers;
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)

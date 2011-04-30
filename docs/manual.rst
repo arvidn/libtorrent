@@ -2934,8 +2934,9 @@ consume, even if there's is more quota. Other peers will still be weighed in whe
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.
 
-Torrents with higher priority are also more likely to have its peers unchoked, to
-distribute more upload capacity to them.
+Peers whose Torrent has a higher priority will take precedence when distributing unchoke slots.
+This is a strict prioritization where every interested peer on a high priority torrent will
+be unchoked before any other, lower priority, torrents have any peers unchoked.
 
 use_interface()
 ---------------
