@@ -3117,6 +3117,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.max_connections())
+			return;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << web.url << "\n";
 #endif
@@ -3242,6 +3246,10 @@ namespace libtorrent
 
 		if (m_ses.is_aborted()) return;
 
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.max_connections())
+			return;
+
 		tcp::endpoint a(host->endpoint());
 
 		using boost::tuples::ignore;
@@ -3313,6 +3321,10 @@ namespace libtorrent
 		}
 
 		if (m_ses.is_aborted()) return;
+
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.max_connections())
+			return;
 
 		tcp::endpoint a(host->endpoint());
 
@@ -5483,7 +5495,11 @@ namespace libtorrent
 		}
 
 		// if we have everything we want we don't need to connect to any web-seed
-		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
+		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
+			&& int(m_connections.size()) < m_max_connections
+			&& int(m_ses.m_connections.size()) < m_ses.max_connections())
+			return;
+
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
