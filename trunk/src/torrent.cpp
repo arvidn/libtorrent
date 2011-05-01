@@ -3882,7 +3882,7 @@ namespace libtorrent
 		if (web->resolving) return;
 
 		if (int(m_connections.size()) >= m_max_connections
-			|| m_ses.num_connections() >= m_ses.max_connections())
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -4028,7 +4028,7 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		if (int(m_connections.size()) >= m_max_connections
-			|| m_ses.num_connections() >= m_ses.max_connections())
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
 
 		tcp::endpoint a(host->endpoint());
@@ -4103,7 +4103,7 @@ namespace libtorrent
 		}
 
 		if (int(m_connections.size()) >= m_max_connections
-			|| m_ses.num_connections() >= m_ses.max_connections())
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
 
 		tcp::endpoint a(host->endpoint());
@@ -6636,7 +6636,7 @@ namespace libtorrent
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
 			&& int(m_connections.size()) < m_max_connections
-			&& int(m_ses.m_connections.size()) < m_ses.max_connections())
+			&& m_ses.num_connections() < m_ses.settings().connections_limit)
 			return;
 
 		{
