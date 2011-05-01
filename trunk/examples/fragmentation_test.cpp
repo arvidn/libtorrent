@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
 		"set key box\n"
 		"set title \"fragmentation for '%s'\"\n"
 		"set tics nomirror\n"
-		"plot \"fragmentation.log\" using 1:2 with dots lt rgb \"#e07070\" notitle axis x1y1, x=0\n"
+		"plot \"fragmentation.log\" using 1:2 with dots lt rgb \"#e07070\" notitle axis x1y1\n"
 		, ti->name().c_str());
 
 	fclose(f);
