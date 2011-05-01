@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
+#include <stdarg.h> // for va_start, va_end
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -4646,7 +4647,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
-				"can-write-to-disk: %d queue-limit: %d disconnecting: %s ]"
+				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
 				, (m_ignore_bandwidth_limits?"yes":"no")
 				, (m_ses.can_write_to_disk()?"yes":"no")
