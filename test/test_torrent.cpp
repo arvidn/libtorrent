@@ -67,6 +67,9 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 	std::vector<int> prio(3, 1);
 	prio[0] = 0;
 	h.prioritize_files(prio);
+	std::cout << "prio: " << prio.size() << std::endl;
+	std::cout << "ret prio: " << h.file_priorities().size() << std::endl;
+	TEST_CHECK(h.file_priorities().size() == info->num_files());
 
 	test_sleep(500);
 	st = h.status();
