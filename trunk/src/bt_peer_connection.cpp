@@ -843,7 +843,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log("<<< EXTENSION_BITS [ %s ]", bitmask.c_str());
+		peer_log(">>> EXTENSION_BITS [ %s ]", bitmask.c_str());
 #endif
 		i.begin += 8;
 
@@ -861,7 +861,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i.begin == i.end);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> HANDSHAKE");
+		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
 		setup_send();
 	}
