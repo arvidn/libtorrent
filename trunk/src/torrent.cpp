@@ -3418,7 +3418,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::piece_priorities(std::vector<int>& pieces) const
+	void torrent::piece_priorities(std::vector<int>* pieces) const
 	{
 		INVARIANT_CHECK;
 
@@ -3426,13 +3426,13 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed())
 		{
-			pieces.clear();
-			pieces.resize(m_torrent_file->num_pieces(), 1);
+			pieces->clear();
+			pieces->resize(m_torrent_file->num_pieces(), 1);
 			return;
 		}
 
 		TORRENT_ASSERT(m_picker.get());
-		m_picker->piece_priorities(pieces);
+		m_picker->piece_priorities(*pieces);
 	}
 
 	namespace
@@ -3456,7 +3456,18 @@ namespace libtorrent
 		
 		if (m_torrent_file->num_pieces() == 0) return;
 
-		std::copy(files.begin(), files.end(), m_file_priority.begin());
+		int limit = int(files.size());
+		if (valid_metadata() && limit > m_torrent_file->num_files())
+			limit = m_torrent_file->num_files();
+
+		if (m_file_priority.size() < limit)
+			m_file_priority.resize(limit);
+
+		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
+
+		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
+			m_file_priority.resize(m_torrent_file->num_files(), 1);
+
 		update_piece_priorities();
 	}
 
@@ -3486,11 +3497,20 @@ namespace libtorrent
 		return m_file_priority[index];
 	}
 
-	void torrent::file_priorities(std::vector<int>& files) const
+	void torrent::file_priorities(std::vector<int>* files) const
 	{
 		INVARIANT_CHECK;
-		files.resize(m_file_priority.size());
-		std::copy(m_file_priority.begin(), m_file_priority.end(), files.begin());
+		if (!valid_metadata())
+		{
+			files->resize(m_file_priority.size());
+			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
+			return;
+		}
+
+		files->resize(m_torrent_file->num_files());
+		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
+		if (m_file_priority.size() < m_torrent_file->num_files())
+			std::fill(files->begin() + m_file_priority.size(), files->end(), 1);
 	}
 
 	void torrent::update_piece_priorities()
