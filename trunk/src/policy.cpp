@@ -847,8 +847,12 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
-				c.disconnect(errors::too_many_connections);
-				return false;
+				erase_peers();
+				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+				{
+					c.disconnect(errors::too_many_connections);
+					return false;
+				}
 			}
 
 #if TORRENT_USE_IPV6

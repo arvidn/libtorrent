@@ -5173,7 +5173,13 @@ namespace libtorrent
 			}
 #endif
 			if (!m_policy.new_connection(*p, m_ses.session_time()))
+			{
+#if defined TORRENT_LOGGING
+				(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
+					<< p->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
+#endif
 				return false;
+			}
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
