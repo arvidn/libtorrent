@@ -38,16 +38,16 @@ filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
 # idea is to stress test the filesystem by using a lot
 # of peers, since each peer essentially is a separate
 # read location on the platter
-filesystem_peers = 1000
+filesystem_peers = 200
 
 # the amount of cache for the filesystem test
-filesystem_cache = 8192
+filesystem_cache = 2096
 
 # the number of seconds to run each test. It's important that
 # this is shorter than what it takes to finish downloading
 # the test torrent, since then the average rate will not
 # be representative of the peak anymore
-test_duration = 400
+test_duration = 300
 
 
 
@@ -90,8 +90,8 @@ def build_commandline(config, port):
 		
 	global test_duration
 
-	return './client_test -k -z -N -h -H -M -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -l session_stats/alerts_log.txt test.torrent' \
-		% (num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
+	return './client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt test.torrent' \
+		% (test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
 			, no_disk_reorder, no_read_ahead, test_duration, port)
 
 def delete_files(files):
@@ -120,7 +120,7 @@ def run_test(config):
 		return
 
 	# make sure any previous test file is removed
-	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', '.resume', '.dht_state', 'session_stats'])
+	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state', 'session_stats'])
 
 	try: os.mkdir('session_stats')
 	except: pass
@@ -149,11 +149,11 @@ def run_test(config):
 	f.close()
 
 	# run fragmentation test
-	print 'analyzing fragmentation'
-	os.system('./fragmentation_test test.torrent %s' % config['save-path'])
-	shutil.copy('fragmentation.log', 'session_stats/')
-	shutil.copy('fragmentation.png', 'session_stats/')
-	shutil.copy('fragmentation.gnuplot', 'session_stats/')
+#	print 'analyzing fragmentation'
+#	os.system('./fragmentation_test test.torrent %s' % config['save-path'])
+#	shutil.copy('fragmentation.log', 'session_stats/')
+#	shutil.copy('fragmentation.png', 'session_stats/')
+#	shutil.copy('fragmentation.gnuplot', 'session_stats/')
 
 	os.chdir('session_stats')
 
@@ -169,7 +169,7 @@ def run_test(config):
 
 	# clean up
 	print 'cleaning up'
-	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', '.resume', '.dht_state'])
+	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
 
 	port += 1
 
@@ -181,6 +181,6 @@ for c in cache_sizes:
 	for p in peers:
 		for rdahead in [True, False]:
 			for reorder in [True, False]:
-				config = build_test_config(fs, filesystem_peers, filesystem_cache, rdahead, reorder)
+				config = build_test_config(filesystem[0], p, c, rdahead, reorder)
 				run_test(config)
 
