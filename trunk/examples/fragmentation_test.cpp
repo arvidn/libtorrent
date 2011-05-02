@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 	std::vector<std::pair<int, size_type> > pieces;
 
 	// make sure all the files are there
-	std::vector<std::pair<size_type, std::time_t> > files = get_filesizes(ti->files(), argv[2]);
+/*	std::vector<std::pair<size_type, std::time_t> > files = get_filesizes(ti->files(), argv[2]);
 	for (int i = 0; i < ti->num_files(); ++i)
 	{
 		if (ti->file_at(i).size == files[i].first) continue;
@@ -87,18 +87,28 @@ int main(int argc, char* argv[])
 			, ti->files().file_path(ti->file_at(i)).c_str(), files[i].first, ti->file_at(i).size);
 		return 1;
 	}
-
+*/
+	bool warned = false;
 	for (int i = 0; i < ti->num_pieces(); ++i)
 	{
 		pieces.push_back(std::make_pair(i, st->physical_offset(i, 0)));
 		if (pieces.back().second == size_type(i) * ti->piece_length())
 		{
 			// this suggests that the OS doesn't support physical offset
-			// or that the file doesn't exist, or some other file error
-			fprintf(stderr, "Your operating system or filesystem "
-				"does not appear to support querying physical disk offset\n");
-			return 1;
+			// or that the file doesn't exist or is incomplete
+			if (!warned)
+			{
+				fprintf(stderr, "The files are incomplete\n");
+				warned = true;
+			}
+			pieces.pop_back();
 		}
+	}
+
+	if (pieces.empty())
+	{
+		fprintf(stderr, "Your operating system or filesystem "
+			"does not appear to support querying physical disk offset\n");
 	}
 
 	FILE* f = fopen("fragmentation.log", "w+");
@@ -108,7 +118,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	for (int i = 0; i < ti->num_pieces(); ++i)
+	for (int i = 0; i < pieces.size(); ++i)
 	{
 		fprintf(f, "%d %"PRId64"\n", pieces[i].first, pieces[i].second);
 	}
@@ -131,7 +141,7 @@ int main(int argc, char* argv[])
 		"set key box\n"
 		"set title \"fragmentation for '%s'\"\n"
 		"set tics nomirror\n"
-		"plot \"fragmentation.log\" using 1:2 with dots lt rgb \"#e07070\" notitle axis x1y1\n"
+		"plot \"fragmentation.log\" using 1:2 with points lt rgb \"#e07070\" notitle axis x1y1\n"
 		, ti->name().c_str());
 
 	fclose(f);
