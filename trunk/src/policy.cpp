@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/extensions.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
@@ -1207,6 +1208,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1214,6 +1218,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1223,6 +1230,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1290,11 +1300,17 @@ namespace libtorrent
 				m_torrent->session().m_ipv4_peer_pool.free((ipv4_peer*)p);
 				return 0;
 			}
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::first_time);
+#endif
 		}
 		else
 		{
 			p = *iter;
 			update_peer(p, src, flags, remote, 0);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, 0);
+#endif
 		}
 
 		return p;
