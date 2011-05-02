@@ -898,6 +898,9 @@ int main(int argc, char* argv[])
 			"  -n                    announce to trackers in all tiers\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -r <ratio>            sets the preferred share ratio\n"
+			"  -B <seconds>          sets the peer timeout\n"
+			"  -Q                    enables share mode. Share mode attempts to maximize\n"
+			"                        share ratio rather than downloading\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
@@ -924,6 +927,7 @@ int main(int argc, char* argv[])
 #if TORRENT_USE_I2P
 			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
 #endif
+			"  -l <limit>            sets the listen socket queue size\n"
 			"\n DISK OPTIONS\n"
 			"  -a <mode>             sets the allocation mode. [compact|full]\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
@@ -937,7 +941,7 @@ int main(int argc, char* argv[])
 			"URL is a url to a torrent file\n"
 			"\n"
 			"Example for running benchmark:\n\n"
-			"  client_test -k -N -h -H -M -S 1000 -T 1000 -c 1000 test.torrent\n");
+			"  client_test -k -z -N -h -H -M -l 2000 -S 1000 -T 1000 -c 1000 test.torrent\n");
 			;
 		return 0;
 	}
@@ -1039,6 +1043,7 @@ int main(int argc, char* argv[])
 				preferred_ratio = atoi(arg);
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 				break;
+			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
 			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
@@ -1057,6 +1062,7 @@ int main(int argc, char* argv[])
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
+			case 'l': settings.listen_queue_size = atoi(arg); break;
 			case 'W':
 				settings.max_peerlist_size = atoi(arg);
 				settings.max_paused_peerlist_size = atoi(arg) / 2;
