@@ -94,8 +94,6 @@ int main(int argc, char* argv[])
 		pieces.push_back(std::make_pair(i, st->physical_offset(i, 0)));
 		if (pieces.back().second == size_type(i) * ti->piece_length())
 		{
-			// this suggests that the OS doesn't support physical offset
-			// or that the file doesn't exist or is incomplete
 			if (!warned)
 			{
 				fprintf(stderr, "The files are incomplete\n");
@@ -105,6 +103,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// this suggests that the OS doesn't support physical offset
+	// or that the file doesn't exist or is incomplete
 	if (pieces.empty())
 	{
 		fprintf(stderr, "Your operating system or filesystem "
