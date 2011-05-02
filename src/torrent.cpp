@@ -7375,6 +7375,20 @@ namespace libtorrent
 #endif
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void torrent::notify_extension_add_peer(tcp::endpoint const& ip
+		, int src, int flags)
+	{
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_add_peer(ip, src, flags);
+			} TORRENT_CATCH (std::exception&) {}
+		}
+	}
+#endif
+
 	void torrent::status(torrent_status* st, boost::uint32_t flags)
 	{
 		INVARIANT_CHECK;

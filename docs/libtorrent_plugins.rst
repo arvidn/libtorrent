@@ -119,6 +119,16 @@ The synopsis for ``torrent_plugin`` follows::
 		virtual bool on_resume();
 
 		virtual void on_files_checked();
+
+		virtual void on_state(int s);
+
+		enum flags_t {
+			first_time = 1,
+			filtered = 2
+		};
+
+		virtual void on_add_peer(tcp::endpoint const& ip
+			, int src, int flags);
 	};
 
 This is the base class for a torrent_plugin. Your derived class is (if added
@@ -205,6 +215,44 @@ checked. If there are no files to check, this function is called immediately.
 
 i.e. This function is always called when the torrent is in a state where it
 can start downloading.
+
+on_files_checked()
+------------------
+
+::
+
+		enum flags_t {
+			first_time = 1,
+			filtered = 2
+		};
+
+		virtual void on_add_peer(tcp::endpoint const& ip
+			, int src, int flags);
+
+This function is called whenever we hear about a peer from any peer source,
+such as the tracker, PEX, DHT or Local peer discovery.
+
+``src`` is a bitmask of ``peer_info::peer_source_flags``::
+
+	enum peer_source_flags
+	{
+		tracker = 0x1,
+		dht = 0x2,
+		pex = 0x4,
+		lsd = 0x8,
+		resume_data = 0x10,
+		incoming = 0x20
+	};
+
+``flags`` is a bitmask of::
+
+		enum flags_t {
+			first_time = 1,
+			filtered = 2
+		};
+
+If the ``filtered`` flag is set, it means the peer wasn't added to the
+peer list because of and IP filter, port filter, reserved ports filter.
 
 
 peer_plugin
