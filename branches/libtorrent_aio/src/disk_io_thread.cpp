@@ -938,10 +938,14 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 
+		// there's no point in hinting that we will read something
+		// when using async I/O anyway
+#if TORRENT_USE_SYNCIO
 		if (m_settings.use_disk_read_ahead)
 		{
 			j.storage->hint_read_impl(j.piece, j.offset, j.buffer_size);
 		}
+#endif
 
 		if (m_settings.use_read_cache && !m_settings.explicit_read_cache)
 		{

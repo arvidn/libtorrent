@@ -387,7 +387,7 @@ void hash_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, 
 			ph.update((char*)piece, 0x4000);
 		}
 		t->set_hash(i, ph.final());
-		if (print && (i & 1)) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(end_piece-start_piece));
+		if (print && (i & 1)) fprintf(stderr, "\r%.1f %% ", float((i-start_piece) * 100) / float(end_piece-start_piece));
 	}
 	if (print) fprintf(stderr, "\n");
 }
