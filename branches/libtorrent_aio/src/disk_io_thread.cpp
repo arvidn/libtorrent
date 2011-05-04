@@ -295,12 +295,15 @@ namespace libtorrent
 		, m_completion_port(CreateIoCompletionPort(INVALID_HANDLE_VALUE
 			, NULL, 0, 1))
 #endif
-#if TORRENT_USE_SIGNALFD
-		, m_event_fd(eventfd(0, 0))
-		// #error do error handling of this fd
-#endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
+#if TORRENT_USE_SIGNALFD
+		m_job_event_fd = eventfd(0, 0);
+		if (m_job_event_fd < 0)
+		{
+			TORRENT_ASSERT(false);
+		}
+#endif
 #if TORRENT_USE_IOSUBMIT
 		int ret = io_setup(4000, &m_io_queue);
 		if (ret != 0)
@@ -308,21 +311,18 @@ namespace libtorrent
 			// error handling!
 			TORRENT_ASSERT(false);
 		}
-		// it appears aio_submit() doesn't support eventfd,
-		// so we use a pipe to interrupt the io_getevents() call
-		ret = pipe(m_event_pipe);
-		if (ret < 0)
+		m_disk_event_fd = eventfd(0, 0);
+		if (m_disk_event_fd < 0)
 		{
-			// error handling!
 			TORRENT_ASSERT(false);
 		}
-		// set the read end of the pipe to be non-blocking
-		// to make it easy to drain it every time we get an
-		// event on it
-		int pipe_flags = fcntl(m_event_pipe[0], F_GETFL, 0);
-		if (pipe_flags < 0) pipe_flags = 0;
-		fcntl(m_event_pipe[0], F_SETFL, pipe_flags | O_NONBLOCK);
+		m_job_event_fd = eventfd(0, 0);
+		if (m_job_event_fd < 0)
+		{
+			TORRENT_ASSERT(false);
+		}
 		m_aiocb_pool.io_queue = m_io_queue;
+		m_aiocb_pool.event = m_disk_event_fd;
 		
 #endif
 		// don't do anything in here. Essentially all members
@@ -368,8 +368,8 @@ namespace libtorrent
 
 #if TORRENT_USE_IOSUBMIT
 		io_destroy(m_io_queue);
-		close(m_event_pipe[0]);
-		close(m_event_pipe[1]);
+		close(m_disk_event_fd);
+		close(m_job_event_fd);
 #endif
 
 		TORRENT_ASSERT(m_abort == true);
@@ -1884,15 +1884,10 @@ namespace libtorrent
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
-#elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
+#elif (TORRENT_USE_AIO && TORRENT_USE_SIGNALFD) || TORRENT_USE_IOSUBMIT
 		boost::uint64_t dummy = 1;
-		int len = write(m_event_fd, &dummy, sizeof(dummy));
-		DLOG(stderr, "write(m_event_fd) = %d [%p]\n", len, this);
-		TORRENT_ASSERT(len == sizeof(dummy));
-#elif TORRENT_USE_IOSUBMIT
-		boost::uint8_t dummy = 1;
-		int len = write(m_event_pipe[1], &dummy, sizeof(dummy));
-		DLOG(stderr, "write(m_event_pipe[1]) = %d [%p]\n", len, this);
+		int len = write(m_job_event_fd, &dummy, sizeof(dummy));
+		DLOG(stderr, "write(m_job_event_fd) = %d [%p]\n", len, this);
 		TORRENT_ASSERT(len == sizeof(dummy));
 #else
 		g_job_sem.signal();
@@ -2055,16 +2050,6 @@ namespace libtorrent
 		int last_completed_aios = 0;
 #endif
 
-#if TORRENT_USE_IOSUBMIT
-		uint8_t dummy_buf;
-		iocb event_fd_cb;
-		io_prep_pread(&event_fd_cb, m_event_pipe[0], &dummy_buf, sizeof(dummy_buf), 0);
-
-		iocb* p = &event_fd_cb;
-		int ret = io_submit(m_io_queue, 1, &p);
-		if (ret != 1) DLOG(stderr, "io_submit() = %d %s\n", ret, strerror(-ret));
-#endif
-
 		do
 		{
 #if TORRENT_USE_OVERLAPPED
@@ -2112,43 +2097,76 @@ namespace libtorrent
 			// events from add_job()
 //			TORRENT_ASSERT(key == 1);
 #elif TORRENT_USE_IOSUBMIT
-			io_event events[100];
-			int num_events = io_getevents(m_io_queue, 1, 100, events, NULL);
+			fd_set set;
+			FD_ZERO(&set);
+			FD_SET(m_disk_event_fd, &set);
+			FD_SET(m_job_event_fd, &set);
+			DLOG(stderr, "[%p] select(m_disk_event_fd, m_job_event_fd)\n", this);
+			int ret = select((std::max)(m_disk_event_fd, m_job_event_fd) + 1, &set, 0, 0, 0);
+			DLOG(stderr, "[%p]  = %d\n", this, ret);
+
 			bool new_job = false;
 
-			for (int i = 0; i < num_events; ++i)
+			if (FD_ISSET(m_job_event_fd, &set))
 			{
-				if (events[i].obj == &event_fd_cb)
+				boost::uint64_t n = 0;
+				ret = read(m_job_event_fd, &n, sizeof(n));
+				if (ret != sizeof(n)) DLOG(stderr, "[%p] read(m_job_event_fd) = %d %s\n"
+					, this, ret, strerror(errno));
+				new_job = true;
+			}
+
+			if (FD_ISSET(m_disk_event_fd, &set))
+			{
+				// at least one disk event finished, maybe more.
+				// reading from the event fd will reset the event
+				// and tell us how many times it was fired. i.e.
+				// how many disk events are ready to be reaped
+				const int max_events = 300;
+				io_event events[max_events];
+				boost::int64_t n = 0;
+				ret = read(m_disk_event_fd, &n, sizeof(n));
+				if (ret != sizeof(n)) DLOG(stderr, "[%p] read(m_disk_event_fd) = %d %s\n"
+					, this, ret, strerror(errno));
+
+				DLOG(stderr, "[%p] %"PRId64" completed disk jobs\n", this, n);
+
+				int num_events = 0;
+				do
 				{
-					new_job = true;
-					boost::uint8_t dummy;
-					// drain the pipe buffer. The pipe is supposed
-					// to be non-blocking
-					while (read(m_event_pipe[0], &dummy, 1) == 1);
-					iocb* p = &event_fd_cb;
-					io_submit(m_io_queue, 1, &p);
-					continue;
-				}
-				file::aiocb_t* aio = (file::aiocb_t*)events[i].obj;
+					// if we allow reading more than n jobs here, there is a race condition
+					// since there might have been more jobs completed since we read the
+					// event fd, we could end up reaping more events than were signalled by the
+					// event fd, resulting in trying to reap them again later, getting stuck
+					num_events = io_getevents(m_io_queue, 1, (std::min)(max_events, int(n)), events, NULL);
+					if (num_events < 0) DLOG(stderr, "io_getevents() = %d %s\n"
+						, num_events, strerror(-num_events));
+
+					for (int i = 0; i < num_events; ++i)
+					{
+						file::aiocb_t* aio = (file::aiocb_t*)events[i].obj;
 #ifdef TORRENT_DEBUG
-				// make sure we only get pointers that
-				// actually point to our structures, and nothing else
-				bool found = false;
-				for (file::aiocb_t* j = m_in_progress; j; j = j->next)
-				{
-					if (j != aio) continue;
-					found = true;
-					break;
-				}
-				TORRENT_ASSERT(found);
+						// make sure we only get pointers that
+						// actually point to our structures, and nothing else
+						bool found = false;
+						for (file::aiocb_t* j = m_in_progress; j; j = j->next)
+						{
+							if (j != aio) continue;
+							found = true;
+							break;
+						}
+						TORRENT_ASSERT(found);
 #endif // TORRENT_DEBUG
-				file::aiocb_t* next = aio->next;
-				// copy the return codes from the io_event
-				aio->ret = events[i].res;
-				aio->error = events[i].res2;
-				bool removed = reap_aio(aio, m_aiocb_pool);
-				if (removed && m_in_progress == aio) m_in_progress = next;
-				DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+						file::aiocb_t* next = aio->next;
+						// copy the return codes from the io_event
+						aio->ret = events[i].res;
+						aio->error = events[i].res2;
+						bool removed = reap_aio(aio, m_aiocb_pool);
+						if (removed && m_in_progress == aio) m_in_progress = next;
+						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+					}
+					if (num_events > 0) n -= num_events;
+				} while (num_events == max_events);
 			}
 
 			// if didn't receive a message waking us up because we have new jobs
@@ -2163,16 +2181,16 @@ namespace libtorrent
 			FD_ZERO(&set);
 			FD_SET(m_signal_fd[0], &set);
 			FD_SET(m_signal_fd[1], &set);
-			FD_SET(m_event_fd, &set);
-			DLOG(stderr, "[%p] select(m_signal_fd, m_event_fd)\n", this);
-			int ret = select((std::max)((std::max)(m_signal_fd[0], m_signal_fd[1]), m_event_fd) + 1, &set, 0, 0, 0);
+			FD_SET(m_job_event_fd, &set);
+			DLOG(stderr, "[%p] select(m_signal_fd, m_job_event_fd)\n", this);
+			int ret = select((std::max)((std::max)(m_signal_fd[0], m_signal_fd[1]), m_job_event_fd) + 1, &set, 0, 0, 0);
 			DLOG(stderr, "[%p]  = %d\n", this, ret);
 			bool new_job = false;
-			if (FD_ISSET(m_event_fd, &set))
+			if (FD_ISSET(m_job_event_fd, &set))
 			{
 				// yes, there's a new job available
 				boost::uint64_t dummy;
-				int len = read(m_event_fd, &dummy, sizeof(dummy));
+				int len = read(m_job_event_fd, &dummy, sizeof(dummy));
 				TORRENT_ASSERT(len == sizeof(dummy));
 				new_job = true;
 			}

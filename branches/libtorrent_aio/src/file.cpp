@@ -1036,6 +1036,7 @@ namespace libtorrent
 		aio->cb.aio_lio_opcode = op;
 		aio->cb.u.v.offset = offset;
 		aio->cb.u.v.vec = aio->vec;
+		io_set_eventfd(&aio->cb, pool.event);
 
 		// loop to +1 so that we get a chance to hook up
 		// the last aiocb_t to the list before we return
@@ -1096,6 +1097,7 @@ namespace libtorrent
 			aio->cb.u.c.buf = bufs[i].iov_base;
 			aio->cb.u.c.nbytes = bufs[i].iov_len;
 			aio->cb.u.c.offset = offset;
+			io_set_eventfd(&aio->cb, pool.event);
 #elif TORRENT_USE_OVERLAPPED
 			memset(&aio->oc, 0, sizeof(OVERLAPPED));
 			aio->file_ptr = this;

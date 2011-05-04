@@ -75,6 +75,7 @@ namespace libtorrent
 
 #if TORRENT_USE_IOSUBMIT
 		io_context_t io_queue;
+		int event;
 #endif
 
 	private:

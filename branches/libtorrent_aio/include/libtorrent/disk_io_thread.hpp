@@ -437,7 +437,7 @@ namespace libtorrent
 
 		// this is an eventfd used to signal the disk thread that
 		// there are new jobs in its in-queue
-		int m_event_fd;
+		int m_job_event_fd;
 #endif
 
 #if TORRENT_USE_IOSUBMIT
@@ -445,9 +445,11 @@ namespace libtorrent
 		// operations to the disk thread
 		io_context_t m_io_queue;
 
-		// this is an eventfd used to signal the disk thread that
-		// there are new jobs in its in-queue
-		int m_event_pipe[2];
+		// these two event fds are used to signal
+		// each disk job that completes and each disk
+		// job that's queued
+		int m_disk_event_fd;
+		int m_job_event_fd;
 #endif
 
 		// thread for performing blocking disk io operations

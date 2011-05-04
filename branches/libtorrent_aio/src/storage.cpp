@@ -1333,9 +1333,13 @@ ret:
 		, error_code& ec) const
 	{
 		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
+		// io_submit only works on files opened with O_DIRECT, so this
+		// is not optional if we're using io_submit
+#if USE_IOSUBMIT
 		if (cache_setting == session_settings::disable_os_cache
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
 			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
+#endif
 			mode |= file::no_buffer;
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
