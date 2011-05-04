@@ -1,3 +1,4 @@
+	* added support for fadvise/F_RDADVISE for improved disk read performance
 	* introduced pop_alerts() which pops the entire alert queue in a single call
 	* support saving metadata in resume file, enable it by default for magnet links
 	* support for receiving multi announce messages for local peer discovery
@@ -85,6 +86,9 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed connection limit to take web seeds into account as well
+	* fixed bug when receiving a have message before having the metadata
+	* fixed python bindings build with disabled DHT support
 	* fixed BSD file allocation issue
 	* fixed bug in session::delete_files option to remove_torrent
 

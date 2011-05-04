@@ -2923,8 +2923,9 @@ consume, even if there's is more quota. Other peers will still be weighed in whe
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.
 
-Torrents with higher priority are also more likely to have its peers unchoked, to
-distribute more upload capacity to them.
+Peers whose Torrent has a higher priority will take precedence when distributing unchoke slots.
+This is a strict prioritization where every interested peer on a high priority torrent will
+be unchoked before any other, lower priority, torrents have any peers unchoked.
 
 use_interface()
 ---------------
@@ -4393,6 +4394,7 @@ session_settings
 		bool always_send_user_agent;
 		bool apply_ip_filter_to_trackers;
 		int read_job_every;
+		use_disk_read_ahead;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5256,6 +5258,10 @@ and serviced once all write jobs have been issued. In scenarios where the
 download rate is enough to saturate the disk, there's a risk the read jobs will
 never be serviced. With this setting, every *x* write job, issued in a row, will
 instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
+
+``use_disk_read_ahead`` defaults to true and will attempt to optimize disk reads
+by giving the operating system heads up of disk read requests as they are queued
+in the disk job queue. This gives a significant performance boost for seeding.
 
 pe_settings
 ===========
@@ -7788,6 +7794,7 @@ The interface looks like this::
 	{
 		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 		virtual bool has_any_file(error_code& ec) = 0;
+		virtual void hint_read(int slot, int offset, int len);
 		virtual int sparse_end(int start) const;
 		virtual void move_storage(std::string const& save_path, error_code& ec) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
@@ -7846,6 +7853,17 @@ It should return true if any of the files that is used in this storage exists on
 If so, the storage will be checked for existing pieces before starting the download.
 
 If an error occurs, ``error_code`` should be set to reflect it.
+
+hint_read()
+-----------
+
+	::
+
+		void hint_read(int slot, int offset, int len);
+
+This function is called when a read job is queued. It gives the storage wrapper an
+opportunity to hint the operating system about this coming read. For instance, the
+storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
 
 readv() writev()
 ----------------

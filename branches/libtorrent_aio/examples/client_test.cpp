@@ -878,71 +878,80 @@ int main(int argc, char* argv[])
 	{
 		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"
 			"OPTIONS:\n"
+			"\n CLIENT OPTIONS\n"
 			"  -f <log file>         logs all events to the given file\n"
-			"  -o <limit>            limits the number of simultaneous\n"
-			"                        half-open TCP connections to the\n"
-			"                        given number.\n"
-			"  -p <port>             sets the listen port\n"
-			"  -r <ratio>            sets the preferred share ratio\n"
+			"  -s <path>             sets the save path for downloads\n"
+			"  -m <path>             sets the .torrent monitor directory\n"
+			"  -t <seconds>          sets the scan interval of the monitor dir\n"
+			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
+			"                        seconds between screen refreshes.\n"
+			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
+			"                        this is useful for scripting tests\n"
+			"  -k                    enable high performance settings. This overwrites any other\n"
+			"                        previous command line options, so be sure to specify this first\n"
+			"\n BITTORRENT OPTIONS\n"
+			"  -c <limit>            sets the max number of connections\n"
+			"  -T <limit>            sets the max number of connections per torrent\n"
+			"  -U <rate>             sets per-torrent upload rate\n"
+			"  -D <rate>             sets per-torrent download rate\n"
 			"  -d <rate>             limits the download rate\n"
 			"  -u <rate>             limits the upload rate\n"
 			"  -S <limit>            limits the upload slots\n"
-			"  -a <mode>             sets the allocation mode. [compact|full]\n"
-			"  -s <path>             sets the save path for downloads\n"
-			"  -U <rate>             sets per-torrent upload rate\n"
-			"  -D <rate>             sets per-torrent download rate\n"
-			"  -m <path>             sets the .torrent monitor directory\n"
+			"  -A <num pieces>       allowed pieces set size\n"
+			"  -H                    Don't start DHT\n"
+			"  -n                    announce to trackers in all tiers\n"
+			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
+			"  -r <ratio>            sets the preferred share ratio\n"
+			"  -B <seconds>          sets the peer timeout\n"
+			"  -Q                    enables share mode. Share mode attempts to maximize\n"
+			"                        share ratio rather than downloading\n"
+			"\n QUEING OPTIONS\n"
+			"  -v <limit>            Set the max number of active downloads\n"
+			"  -^ <limit>            Set the max number of active seeds\n"
+			"\n NETWORK OPTIONS\n"
+			"  -p <port>             sets the listen port\n"
+			"  -o <limit>            limits the number of simultaneous\n"
+			"                        half-open TCP connections to the\n"
+			"                        given number.\n"
+			"  -w <seconds>          sets the retry time for failed web seeds\n"
+			"  -x <file>             loads an emule IP-filter file\n"
+			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
+			"  -L <user:passwd>      Use the specified username and password for the\n"
+			"                        proxy specified by -P\n"
+			"  -h                    allow multiple connections from the same IP\n"
+			"  -M                    Disable TCP/uTP bandwidth balancing\n"
+			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
+			"  -Y                    Rate limit local peers\n"
+			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
+			"                        incoming TCP connections)\n"
 			"  -b <IP>               sets IP of the interface to bind the\n"
 			"                        listen socket to\n"
 			"  -I <IP>               sets the IP of the interface to bind\n"
 			"                        outgoing peer connections to\n"
-			"  -w <seconds>          sets the retry time for failed web seeds\n"
-			"  -t <seconds>          sets the scan interval of the monitor dir\n"
-			"  -x <file>             loads an emule IP-filter file\n"
-			"  -c <limit>            sets the max number of connections\n"
-			"  -T <limit>            sets the max number of connections per torrent\n"
 #if TORRENT_USE_I2P
 			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
 #endif
-			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
-			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
-			"                        seconds between screen refreshes.\n"
-			"  -n                    announce to trackers in all tiers\n"
-			"  -h                    allow multiple connections from the same IP\n"
-			"  -A <num pieces>       allowed pieces set size\n"
+			"  -l <limit>            sets the listen socket queue size\n"
+			"\n DISK OPTIONS\n"
+			"  -a <mode>             sets the allocation mode. [compact|full]\n"
 			"  -R <num blocks>       number of blocks per read cache line\n"
+			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -O                    Disallow disk job reordering\n"
-			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
-			"  -L <user:passwd>      Use the specified username and password for the\n"
-			"                        proxy specified by -P\n"
-			"  -H                    Don't start DHT\n"
-			"  -M                    Disable TCP/uTP bandwidth balancing\n"
-			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
-			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
-			"  -Y                    Rate limit local peers\n"
-			"  -v <limit>            Set the max number of active downloads\n"
-			"  -^ <limit>            Set the max number of active seeds\n"
-			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
-			"                        incoming TCP connections)\n"
-			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
-			"                        this is useful for scripting tests\n"
+			"  -j                    disable disk read-ahead\n"
+			"  -z                    disable piece hash checks (used for benchmarking)\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet link\n"
-			"URL is a url to a torrent file\n")
+			"URL is a url to a torrent file\n"
+			"\n"
+			"Example for running benchmark:\n\n"
+			"  client_test -k -z -N -h -H -M -l 2000 -S 1000 -T 1000 -c 1000 test.torrent\n");
 			;
 		return 0;
 	}
 
 	using namespace libtorrent;
 	session_settings settings;
-
-	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
-	//settings.announce_to_all_trackers = true;
-	settings.optimize_hashing_for_speed = false;
-	settings.disk_cache_algorithm = session_settings::avoid_readback;
-	settings.volatile_read_cache = false;
 
 	proxy_settings ps;
 
@@ -1031,10 +1040,14 @@ int main(int argc, char* argv[])
 			case 'o': settings.half_open_limit = atoi(arg); break;
 			case 'h': settings.allow_multiple_connections_per_ip = true; --i; break;
 			case 'p': listen_port = atoi(arg); break;
+			case 'k': settings = high_performance_seed(); --i; break;
+			case 'j': settings.use_disk_read_ahead = false; --i; break;
+			case 'z': settings.disable_hash_checks = true; --i; break;
 			case 'r':
 				preferred_ratio = atoi(arg);
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 				break;
+			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
 			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
@@ -1053,6 +1066,7 @@ int main(int argc, char* argv[])
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
+			case 'l': settings.listen_queue_size = atoi(arg); break;
 			case 'W':
 				settings.max_peerlist_size = atoi(arg);
 				settings.max_paused_peerlist_size = atoi(arg) / 2;
@@ -1185,6 +1199,11 @@ int main(int argc, char* argv[])
 		ses.start_dht();
 	}
 #endif
+
+	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
+	settings.choking_algorithm = session_settings::auto_expand_choker;
+	settings.disk_cache_algorithm = session_settings::avoid_readback;
+	settings.volatile_read_cache = false;
 
 	ses.set_settings(settings);
 

@@ -938,6 +938,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j.buffer_size <= m_block_size);
 
+		if (m_settings.use_disk_read_ahead)
+		{
+			j.storage->hint_read_impl(j.piece, j.offset, j.buffer_size);
+		}
+
 		if (m_settings.use_read_cache && !m_settings.explicit_read_cache)
 		{
 			int ret = m_disk_cache.try_read(j);

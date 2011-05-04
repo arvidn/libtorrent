@@ -2025,7 +2025,6 @@ namespace libtorrent
 			int prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			TORRENT_ASSERT(prio >= 0);
 			p.downloading = 1;
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 

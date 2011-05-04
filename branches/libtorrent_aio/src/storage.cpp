@@ -974,6 +974,59 @@ ret:
 		return ret;
 	}
 
+	void default_storage::hint_read(int slot, int offset, int size)
+	{
+		size_type start = slot * (size_type)m_files.piece_length() + offset;
+		TORRENT_ASSERT(start + size <= m_files.total_size());
+
+		size_type file_offset = start;
+		file_storage::iterator file_iter;
+
+		// TODO: use binary search!
+		for (file_iter = files().begin();;)
+		{
+			if (file_offset < file_iter->size)
+				break;
+
+			file_offset -= file_iter->size;
+			++file_iter;
+			TORRENT_ASSERT(file_iter != files().end());
+		}
+
+		boost::intrusive_ptr<file> file_handle;
+		int bytes_left = size;
+		int slot_size = static_cast<int>(m_files.piece_size(slot));
+
+		if (offset + bytes_left > slot_size)
+			bytes_left = slot_size - offset;
+
+		TORRENT_ASSERT(bytes_left >= 0);
+
+		int file_bytes_left;
+		for (;bytes_left > 0; ++file_iter, bytes_left -= file_bytes_left)
+		{
+			TORRENT_ASSERT(file_iter != files().end());
+
+			file_bytes_left = bytes_left;
+			if (file_offset + file_bytes_left > file_iter->size)
+				file_bytes_left = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
+
+			if (file_bytes_left == 0) continue;
+
+			if (file_iter->pad_file) continue;
+
+			error_code ec;
+			file_handle = open_file(file_iter, file::read_only, ec);
+
+			// failing to hint that we want to read is not a big deal
+			// just swollow the error and keep going
+			if (!file_handle || ec) continue;
+
+			file_handle->hint_read(file_offset, file_bytes_left);
+			file_offset = 0;
+		}
+	}
+
 	int default_storage::readv(file::iovec_t const* bufs, int slot, int offset
 		, int num_bufs, error_code& ec)
 	{
@@ -1079,6 +1132,7 @@ ret:
 		size_type file_offset = start;
 		file_storage::iterator file_iter;
 
+		// TODO: use binary search!
 		for (file_iter = files().begin();;)
 		{
 			if (file_offset < file_iter->size)
@@ -1740,6 +1794,14 @@ ret:
 		m_slot_to_piece[slot_index] = unassigned;
 		m_piece_to_slot[piece_index] = has_no_slot;
 		m_free_slots.push_back(slot_index);
+	}
+
+	void piece_manager::hint_read_impl(int piece_index, int offset, int size)
+	{
+		m_last_piece = piece_index;
+		int slot = slot_for(piece_index);
+		if (slot <= 0) return;
+		m_storage->hint_read(slot, offset, size);
 	}
 
 	file::aiocb_t* piece_manager::read_async_impl(

@@ -115,6 +115,7 @@ namespace libtorrent
 			, boost::function<void(async_handler*)> const& handler) = 0;
 
 		virtual bool has_any_file(error_code& ec) = 0;
+		virtual void hint_read(int slot, int offset, int len) {}
 
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
@@ -196,8 +197,11 @@ namespace libtorrent
 		int read(char* buf, int slot, int offset, int size, error_code& ec);
 		int write(char const* buf, int slot, int offset, int size, error_code& ec);
 		int sparse_end(int start) const;
+		void hint_read(int slot, int offset, int len);
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec);
 		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs, error_code& ec);
+		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
+		int writev(file::iovec_t const* buf, int slot, int offset, int num_bufs);
 		size_type physical_offset(int slot, int offset);
 		void move_slot(int src_slot, int dst_slot, error_code& ec);
 		void swap_slots(int slot1, int slot2, error_code& ec);
@@ -456,6 +460,7 @@ namespace libtorrent
 		int hash_for_slot(int slot, partial_hash& h, int piece_size, error_code& ec
 			, int small_piece_size = 0, sha1_hash* small_hash = 0);
 
+		void hint_read_impl(int piece_index, int offset, int size);
 		file::aiocb_t* read_async_impl(
 			file::iovec_t* bufs
 			, int piece_index

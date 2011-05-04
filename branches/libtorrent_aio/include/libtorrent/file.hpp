@@ -228,6 +228,7 @@ namespace libtorrent
 			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
 			no_atime = 16,
+			random_access = 32,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
@@ -391,6 +392,7 @@ namespace libtorrent
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
 		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		void hint_read(size_type file_offset, int len);
 
 		// returns a chain of aiocb_t structures
 		aiocb_t* async_writev(size_type offset, iovec_t const* bufs

@@ -806,6 +806,7 @@ namespace aux {
 
 #ifdef TORRENT_STATS
 
+		m_stats_logger = 0;
 		m_stats_logging_enabled = true;
 		reset_stat_counters();
 		rotate_stats_log();
@@ -3652,7 +3653,6 @@ namespace aux {
 				{
 					torrent* t = pi->connection->associated_torrent().lock().get();
 					bool ret = t->unchoke_peer(*pi->connection, true);
-					TORRENT_ASSERT(ret);
 					if (ret)
 					{
 						pi->optimistically_unchoked = true;
@@ -3690,7 +3690,7 @@ namespace aux {
 		m_last_choke = now;
 
 		// build list of all peers that are
-		// unchoke:able.
+		// unchokable.
 		std::vector<peer_connection*> peers;
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
@@ -4209,8 +4209,12 @@ namespace aux {
 		TORRENT_ASSERT(done != m_queued_for_checking.end());
 		if (done == m_queued_for_checking.end()) return;
 
-		if (next_check != t && t->state() == torrent_status::checking_files)
+		if (next_check != t
+			&& t->state() == torrent_status::checking_files
+			&& !m_paused)
+		{
 			next_check->start_checking();
+		}
 
 		m_queued_for_checking.erase(done);
 	}

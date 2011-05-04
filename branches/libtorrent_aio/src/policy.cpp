@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/extensions.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
@@ -357,20 +358,32 @@ namespace libtorrent
 				continue;
 			}
 		
+			if (ses.m_alerts.should_post<peer_blocked_alert>())
+				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+
+			int current = i - m_peers.begin();
+			TORRENT_ASSERT(current >= 0);
+			TORRENT_ASSERT(m_peers.size() > 0);
+			TORRENT_ASSERT(i != m_peers.end());
+
 			if ((*i)->connection)
 			{
-				(*i)->connection->disconnect(errors::banned_by_ip_filter);
-				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+				// disconnecting the peer here may also delete the
+				// peer_info_struct. If that is the case, just continue
+				int count = m_peers.size();
+				peer_connection* p = (*i)->connection;
+				
+				p->disconnect(errors::banned_by_ip_filter);
+				// what *i refers to has changed, i.e. cur was deleted
+				if (m_peers.size() < count)
+				{
+					i = m_peers.begin() + current;
+					continue;
+				}
 				TORRENT_ASSERT((*i)->connection == 0
 					|| (*i)->connection->peer_info_struct() == 0);
 			}
-			else
-			{
-				if (ses.m_alerts.should_post<peer_blocked_alert>())
-					ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
-			}
-			int current = i - m_peers.begin();
+
 			erase_peer(i);
 			i = m_peers.begin() + current;
 		}
@@ -835,8 +848,12 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
-				c.disconnect(errors::too_many_connections);
-				return false;
+				erase_peers();
+				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+				{
+					c.disconnect(errors::too_many_connections);
+					return false;
+				}
 			}
 
 #if TORRENT_USE_IPV6
@@ -1191,6 +1208,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1198,6 +1218,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1207,6 +1230,9 @@ namespace libtorrent
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
+#endif
 			return 0;
 		}
 
@@ -1274,11 +1300,17 @@ namespace libtorrent
 				m_torrent->session().m_ipv4_peer_pool.free((ipv4_peer*)p);
 				return 0;
 			}
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::first_time);
+#endif
 		}
 		else
 		{
 			p = *iter;
 			update_peer(p, src, flags, remote, 0);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			m_torrent->notify_extension_add_peer(remote, src, 0);
+#endif
 		}
 
 		return p;
@@ -1367,6 +1399,17 @@ namespace libtorrent
 		// to still exist when we get back there, to assign the new
 		// peer connection pointer to it. The peer list must
 		// be left intact.
+
+		// if we allow multiple connections per IP, and this peer
+		// was incoming and it never advertised its listen
+		// port, we don't really know which peer it was. In order
+		// to avoid adding one entry for every single connection
+		// the peer makes to us, don't save this entry
+		if (m_torrent->settings().allow_multiple_connections_per_ip
+			&& !p->connectable)
+		{
+			erase_peer(p);
+		}
 	}
 
 	void policy::peer_is_interesting(peer_connection& c)
@@ -1619,6 +1662,9 @@ namespace libtorrent
 		// prefer to drop peers whose only source is resume data
 		if (lhs_resume_data_source != rhs_resume_data_source)
 			return lhs_resume_data_source > rhs_resume_data_source;
+
+		if (lhs.connectable != rhs.connectable)
+			return lhs.connectable < rhs.connectable;
 
 		// prefer peers with higher failcount
 		return lhs.failcount > rhs.failcount;

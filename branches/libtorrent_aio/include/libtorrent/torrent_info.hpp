@@ -186,7 +186,8 @@ namespace libtorrent
 			, headers_t const& extra_headers_ = headers_t())
 			: url(url_), type(type_)
 			, auth(auth_), extra_headers(extra_headers_)
-			, retry(time_now()), resolving(false), connection(0)
+			, retry(time_now()), resolving(false), removed(false)
+			, connection(0)
 		{}
 
 		bool operator==(web_seed_entry const& e) const
@@ -210,6 +211,12 @@ namespace libtorrent
 		// this indicates whether or not we're resolving the
 		// hostname of this URL
 		bool resolving;
+
+		// if the user wanted to remove this while
+		// we were resolving it. In this case, we set
+		// the removed flag to true, to make the resolver
+		// callback remove it
+		bool removed;
 
 		tcp::endpoint endpoint;
 

@@ -101,7 +101,10 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 //	std::cerr << "sending: " <<  e << "\n";
 
 	lazy_entry decoded;
-	lazy_bdecode(msg_buf, msg_buf + size, decoded);
+	error_code ec;
+	lazy_bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) fprintf(stderr, "lazy_bdecode failed: %s\n", ec.message().c_str());
+
 	dht::msg m(decoded, ep);
 	node.incoming(m);
 
@@ -120,7 +123,6 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	static char inbuf[1500];
 	int len = bencode(inbuf, i->second);
 	g_responses.erase(i);
-	error_code ec;
 	int ret = lazy_bdecode(inbuf, inbuf + len, *reply, ec);
 	TEST_CHECK(ret == 0);
 }

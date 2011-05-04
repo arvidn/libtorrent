@@ -3099,6 +3099,11 @@ namespace libtorrent
 			m_storage->async_release_files(
 				boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 		}
+		else
+		{
+			if (alerts().should_post<cache_flushed_alert>())
+				alerts().post_alert(cache_flushed_alert(get_handle()));
+		}
 		
 		dequeue_torrent_check();
 
@@ -3431,7 +3436,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::piece_priorities(std::vector<int>& pieces) const
+	void torrent::piece_priorities(std::vector<int>* pieces) const
 	{
 		INVARIANT_CHECK;
 
@@ -3439,13 +3444,13 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed())
 		{
-			pieces.clear();
-			pieces.resize(m_torrent_file->num_pieces(), 1);
+			pieces->clear();
+			pieces->resize(m_torrent_file->num_pieces(), 1);
 			return;
 		}
 
 		TORRENT_ASSERT(m_picker.get());
-		m_picker->piece_priorities(pieces);
+		m_picker->piece_priorities(*pieces);
 	}
 
 	namespace
@@ -3469,7 +3474,18 @@ namespace libtorrent
 		
 		if (m_torrent_file->num_pieces() == 0) return;
 
-		std::copy(files.begin(), files.end(), m_file_priority.begin());
+		int limit = int(files.size());
+		if (valid_metadata() && limit > m_torrent_file->num_files())
+			limit = m_torrent_file->num_files();
+
+		if (m_file_priority.size() < limit)
+			m_file_priority.resize(limit);
+
+		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
+
+		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
+			m_file_priority.resize(m_torrent_file->num_files(), 1);
+
 		update_piece_priorities();
 	}
 
@@ -3499,11 +3515,20 @@ namespace libtorrent
 		return m_file_priority[index];
 	}
 
-	void torrent::file_priorities(std::vector<int>& files) const
+	void torrent::file_priorities(std::vector<int>* files) const
 	{
 		INVARIANT_CHECK;
-		files.resize(m_file_priority.size());
-		std::copy(m_file_priority.begin(), m_file_priority.end(), files.begin());
+		if (!valid_metadata())
+		{
+			files->resize(m_file_priority.size());
+			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
+			return;
+		}
+
+		files->resize(m_torrent_file->num_files());
+		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
+		if (m_file_priority.size() < m_torrent_file->num_files())
+			std::fill(files->begin() + m_file_priority.size(), files->end(), 1);
 	}
 
 	void torrent::update_piece_priorities()
@@ -3856,6 +3881,16 @@ namespace libtorrent
 		m_connections.erase(i);
 	}
 
+	void torrent::remove_web_seed(std::list<web_seed_entry>::iterator web)
+	{
+		if (web->resolving)
+		{
+			web->removed = true;
+			return;
+		}
+		m_web_seeds.erase(web);
+	}
+
 	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -3863,6 +3898,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!web->resolving);
 		if (web->resolving) return;
+
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
+			return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " resolving web seed: " << web->url << "\n";
@@ -3888,7 +3927,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, ec));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 		
@@ -3904,7 +3943,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::unsupported_url_protocol));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3916,7 +3955,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::invalid_hostname));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3928,7 +3967,7 @@ namespace libtorrent
 					url_seed_alert(get_handle(), web->url, errors::invalid_port));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -3940,7 +3979,7 @@ namespace libtorrent
 				url_seed_alert(get_handle(), web->url, errors::port_blocked));
 			}
 			// never try it again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -4000,11 +4039,15 @@ namespace libtorrent
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
 		if (m_ses.is_aborted()) return;
+
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
+			return;
 
 		tcp::endpoint a(host->endpoint());
 
@@ -4022,7 +4065,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(
 					url_seed_alert(get_handle(), web->url, ec));
 			}
-			m_web_seeds.erase(web);
+			remove_web_seed(web);
 			return;
 		}
 
@@ -4052,6 +4095,14 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " completed resolve: " << web->url << "\n";
 #endif
 		web->resolving = false;
+		if (web->removed)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " removed web seed\n";
+#endif
+			remove_web_seed(web);
+			return;
+		}
 
 		if (m_abort) return;
 
@@ -4068,6 +4119,10 @@ namespace libtorrent
 			web->retry = time_now() + minutes(30);
 			return;
 		}
+
+		if (int(m_connections.size()) >= m_max_connections
+			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
+			return;
 
 		tcp::endpoint a(host->endpoint());
 		connect_web_seed(web, a);
@@ -5136,7 +5191,13 @@ namespace libtorrent
 			}
 #endif
 			if (!m_policy.new_connection(*p, m_ses.session_time()))
+			{
+#if defined TORRENT_LOGGING
+				(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
+					<< p->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
+#endif
 				return false;
+			}
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
@@ -6591,7 +6652,11 @@ namespace libtorrent
 		// ---- WEB SEEDS ----
 
 		// if we have everything we want we don't need to connect to any web-seed
-		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
+		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
+			&& int(m_connections.size()) < m_max_connections
+			&& m_ses.num_connections() < m_ses.settings().connections_limit)
+			return;
+
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
@@ -7341,6 +7406,20 @@ namespace libtorrent
 		}
 #endif
 	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void torrent::notify_extension_add_peer(tcp::endpoint const& ip
+		, int src, int flags)
+	{
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_add_peer(ip, src, flags);
+			} TORRENT_CATCH (std::exception&) {}
+		}
+	}
+#endif
 
 	void torrent::status(torrent_status* st, boost::uint32_t flags)
 	{

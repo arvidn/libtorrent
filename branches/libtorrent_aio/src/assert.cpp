@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -114,7 +114,7 @@ void print_backtrace(char* out, int len)
 }
 #else
 
-void print_backtrace(FILE* out, char const* label) {}
+void print_backtrace(char* out, int len) {}
 
 #endif
 

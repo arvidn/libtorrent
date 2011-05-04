@@ -522,7 +522,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		std::vector<int> ret;
-		TORRENT_SYNC_CALL1(piece_priorities, boost::ref(ret));
+		TORRENT_SYNC_CALL1(piece_priorities, &ret);
 		return ret;
 	}
 
@@ -549,7 +549,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		std::vector<int> ret;
-		TORRENT_SYNC_CALL1(file_priorities, ret);
+		TORRENT_SYNC_CALL1(file_priorities, &ret);
 		return ret;
 	}
 

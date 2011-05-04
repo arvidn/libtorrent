@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -119,6 +120,21 @@ namespace libtorrent
 		// the state is one of torrent_status::state_t
 		// enum members
 		virtual void on_state(int s) {}
+
+		// called every time policy::add_peer is called
+		// src is a bitmask of which sources this peer
+		// has been seen from. flags is a bitmask of:
+
+		enum flags_t {
+			// this is the first time we see this peer
+			first_time = 1,
+			// this peer was not added because it was
+			// filtered by the IP filter
+			filtered = 2
+		};
+
+		virtual void on_add_peer(tcp::endpoint const& ip
+			, int src, int flags) {}
 	};
 
 	struct TORRENT_EXPORT peer_plugin

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
+#include <stdarg.h> // for va_start, va_end
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -426,24 +427,23 @@ namespace libtorrent
 		TORRENT_ASSERT(p);
 		peer_connection const& rhs = *p;
 
-		size_type c1;
-		size_type c2;
-
-		// first compare how many bytes they've sent us
-		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
-		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
-
+		// if one peer belongs to a higher priority torrent than the other one
+		// that one should be unchoked.
 		boost::shared_ptr<torrent> t1 = m_torrent.lock();
 		TORRENT_ASSERT(t1);
 		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
-		// take torrent priority into account
-		c1 *= 1 + t1->priority();
-		c2 *= 1 + t2->priority();
+		if (t1->priority() != t2->priority())
+			return t1->priority() > t2->priority();
 
-		if (c1 > c2) return true;
-		if (c1 < c2) return false;
+		// compare how many bytes they've sent us
+		size_type c1;
+		size_type c2;
+		c1 = m_statistics.total_payload_download() - m_downloaded_at_last_unchoke;
+		c2 = rhs.m_statistics.total_payload_download() - rhs.m_downloaded_at_last_unchoke;
+
+		if (c1 != c2) return c1 > c2;
 
 		if (m_ses.settings().seed_choking_algorithm == session_settings::round_robin)
 		{
@@ -1642,7 +1642,7 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
-		if (!t->valid_metadata() && index > int(m_have_piece.size()))
+		if (!t->valid_metadata() && index >= int(m_have_piece.size()))
 		{
 			if (index < 65536)
 			{
@@ -2502,20 +2502,21 @@ namespace libtorrent
 				" | e: " << j.error.message() <<
 				" ]\n";
 #endif
+
+		if (!t)
+		{
+			disconnect(j.error);
+			return;
+		}
+
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
 		setup_receive(read_async);
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 
-		if (ret == -1 || !t)
+		if (ret == -1)
 		{
-			if (!t)
-			{
-				disconnect(j.error);
-				return;
-			}
-
 			// handle_disk_error may disconnect us
 			t->handle_disk_error(j, this);
 			return;
@@ -3956,7 +3957,7 @@ namespace libtorrent
 		// if the peer hasn't said a thing for a certain
 		// time, it is considered to have timed out
 		time_duration d;
-		d = now - m_last_receive;
+		d = (std::min)(now - m_last_receive, now - m_last_sent);
 
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
@@ -4396,22 +4397,22 @@ namespace libtorrent
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (ret != r.length || m_torrent.expired())
+		if (!t)
 		{
-			if (!t)
-			{
-				disconnect(j.error);
-				return;
-			}
+			disconnect(j.error);
+			return;
+		}
 		
-			if (ret == -2)
+		if (ret != r.length)
+		{
+			if (ret == -3)
 			{
-				if (t->seed_mode()) t->leave_seed_mode(false);
 #if defined TORRENT_VERBOSE_LOGGING
 				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
 					, r.piece , r.start , r.length);
 #endif
 				write_reject_request(r);
+				if (t->seed_mode()) t->leave_seed_mode(false);
 			}
 			else
 			{
@@ -4729,7 +4730,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
-				"can-write-to-disk: %d queue-limit: %d disconnecting: %s ]"
+				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
 				, (m_ignore_bandwidth_limits?"yes":"no")
 				, (m_ses.can_write_to_disk()?"yes":"no")

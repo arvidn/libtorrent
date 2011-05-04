@@ -149,6 +149,7 @@ namespace libtorrent
 		set.cache_size = 0;
 		set.cache_buffer_chunk_size = 1;
 		set.use_read_cache = false;
+		set.use_disk_read_ahead = false;
 
 		set.close_redundant_connections = true;
 
@@ -204,6 +205,9 @@ namespace libtorrent
 
 		// allow 8000 peer connections
 		set.connections_limit = 8000;
+
+		// allow lots of peers to try to connect simultaneously
+		set.listen_queue_size = 200;
 
 		// unchoke many peers
 		set.unchoke_slots_limit = 500;

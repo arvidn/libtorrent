@@ -131,6 +131,7 @@ namespace libtorrent
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
 			, void* userdata);
+		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
 #ifdef TORRENT_DEBUG
@@ -288,13 +289,13 @@ namespace libtorrent
 		int piece_priority(int index) const;
 
 		void prioritize_pieces(std::vector<int> const& pieces);
-		void piece_priorities(std::vector<int>&) const;
+		void piece_priorities(std::vector<int>*) const;
 
 		void set_file_priority(int index, int priority);
 		int file_priority(int index) const;
 
 		void prioritize_files(std::vector<int> const& files);
-		void file_priorities(std::vector<int>&) const;
+		void file_priorities(std::vector<int>*) const;
 
 		void set_piece_deadline(int piece, int t, int flags);
 		void update_piece_priorities();
@@ -366,7 +367,7 @@ namespace libtorrent
 			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 				, (boost::bind(&web_seed_entry::url, _1)
 					== url && boost::bind(&web_seed_entry::type, _1) == type));
-			if (i != m_web_seeds.end()) m_web_seeds.erase(i);
+			if (i != m_web_seeds.end()) remove_web_seed(i);
 		}
 
 		void disconnect_web_seed(peer_connection* p)
@@ -629,6 +630,10 @@ namespace libtorrent
 		// lookup for a proxy for a web seed is completed.
 		void on_proxy_name_lookup(error_code const& e, tcp::resolver::iterator i
 			, std::list<web_seed_entry>::iterator url);
+
+		// remove a web seed, or schedule it for removal in case there
+		// are outstanding operations on it
+		void remove_web_seed(std::list<web_seed_entry>::iterator web);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
