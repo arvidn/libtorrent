@@ -356,19 +356,10 @@ void print_usage()
 	exit(1);
 }
 
-void generate_torrent(std::vector<char>& buf)
+void hash_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size)
 {
-	file_storage fs;
-	// 1 MiB piece size
-	const int piece_size = 1024 * 1024;
-	// 50 GiB should be enough to not fit in physical RAM
-	const int num_pieces = 1 * 1024;
-	const size_type total_size = size_type(piece_size) * num_pieces;
-	fs.add_file("stress_test_file", total_size);
-	libtorrent::create_torrent t(fs, piece_size);
-
 	boost::uint32_t piece[0x4000 / 4];
-	for (int i = 0; i < num_pieces; ++i)
+	for (int i = start_piece; i < end_piece; ++i)
 	{
 		hasher ph;
 		for (int j = 0; j < piece_size; j += 0x4000)
@@ -376,8 +367,31 @@ void generate_torrent(std::vector<char>& buf)
 			generate_block(piece, i, j, 0x4000);
 			ph.update((char*)piece, 0x4000);
 		}
-		t.set_hash(i, ph.final());
+		t->set_hash(i, ph.final());
 	}
+}
+
+void generate_torrent(std::vector<char>& buf)
+{
+	file_storage fs;
+	// 1 MiB piece size
+	const int piece_size = 1024 * 1024;
+	// 20 GiB should be enough to not fit in physical RAM
+	const int num_pieces = 20 * 1024;
+	const size_type total_size = size_type(piece_size) * num_pieces;
+	fs.add_file("stress_test_file", total_size);
+	libtorrent::create_torrent t(fs, piece_size);
+
+	// generate the hashes in 4 threads
+	thread t1(boost::bind(&hash_thread, &t, 0, 1 * num_pieces / 4, piece_size));
+	thread t2(boost::bind(&hash_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size));
+	thread t3(boost::bind(&hash_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size));
+	thread t4(boost::bind(&hash_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size));
+
+	t1.join();
+	t2.join();
+	t3.join();
+	t4.join();
 
 	std::back_insert_iterator<std::vector<char> > out(buf);
 
