@@ -1792,6 +1792,8 @@ ret:
 		// only save the partial hash if the write succeeds
 		if (ret != size) return ret;
 
+		if (m_storage->settings().disable_hash_checks) return ret;
+
 #if defined TORRENT_PARTIAL_HASH_LOG && TORRENT_USE_IOSTREAM
 		std::ofstream out("partial_hash.log", std::ios::app);
 #endif
