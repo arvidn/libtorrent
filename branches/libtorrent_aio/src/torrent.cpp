@@ -6960,6 +6960,7 @@ namespace libtorrent
 
 		bool done = false;
 		mutex::scoped_lock l(m_ses.mut);
+// #error this doesn't work! The callback is posted to this thread, which is blocked
 		m_ses.get_cache_info(m_torrent_file->info_hash(), &ret, &done, &m_ses.cond, &m_ses.mut);
 		do { m_ses.cond.wait(l); } while(!done);
 

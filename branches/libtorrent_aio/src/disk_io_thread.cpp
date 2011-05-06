@@ -280,6 +280,7 @@ namespace libtorrent
 		, m_total_read_back(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
+		, m_num_to_issue(0)
 		, m_outstanding_jobs(0)
 		, m_elevator_direction(1)
 		, m_elevator_turns(0)
@@ -502,6 +503,13 @@ namespace libtorrent
 		return io_range(p, 0, end, op_write);
 	}
 
+	int count_aios(file::aiocb_t* a)
+	{
+		int ret = 0;
+		while (a) { ++ret; a = a->next; }
+		return ret;
+	}
+
 	// issues read or write operations for blocks in the given
 	// range on the given piece. Returns the number of blocks operations
 	// were actually issued for
@@ -590,6 +598,7 @@ namespace libtorrent
 //						"m_to_issue (%p) elevator=%d\n"
 //						, aios, m_to_issue, m_elevator_direction);
 
+					m_num_to_issue += count_aios(aios);
 					append_aios(m_to_issue, aios, elevator_direction, this);
 
 //					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -610,6 +619,7 @@ namespace libtorrent
 //					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 //						, aios, m_to_issue);
 
+					m_num_to_issue += count_aios(aios);
 					append_aios(m_to_issue, aios, elevator_direction, this);
 
 /*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -1037,6 +1047,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
+		m_num_to_issue += count_aios(aios);
 		append_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -1118,6 +1129,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
+		m_num_to_issue += count_aios(aios);
 		append_aios(m_to_issue, aios, elevator_direction, this);
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -1147,13 +1159,17 @@ namespace libtorrent
 			io_range(p, 0, INT_MAX, op_write);
 		}
 
+		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+
 		if (m_settings.disable_hash_checks)
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning\n", this);
-			return 0;
+			if (p == m_disk_cache.end()) return 0;
+			// if we have a piece, we might still be writing blocks
+			// defer completing the job until we finish writing them
+			pe->jobs.push_back(j);
+			return defer_handler;
 		}
-
-		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
@@ -1730,13 +1746,6 @@ namespace libtorrent
 		return j.error ? disk_operation_failed : 0;
 	}
 
-	int count_aios(file::aiocb_t* a)
-	{
-		int ret = 0;
-		while (a) { ++ret; a = a->next; }
-		return ret;
-	}
-
 	void disk_io_thread::get_disk_metrics(cache_status& ret) const
 	{
 		ret.total_used_buffers = in_use();
@@ -1749,8 +1758,8 @@ namespace libtorrent
 		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
-		ret.queued_jobs = m_blocked_jobs.size() + count_aios(m_to_issue);
-		ret.pending_jobs = count_aios(m_in_progress);
+		ret.queued_jobs = m_blocked_jobs.size() + m_num_to_issue;
+		ret.pending_jobs = m_outstanding_jobs;
 		ret.blocks_written = m_write_blocks;
 		ret.blocks_read = m_read_blocks;
 		ret.writes = m_write_calls;
@@ -2330,6 +2339,8 @@ namespace libtorrent
 				int num_issued = 0;
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
 					, num_issued);
+				TORRENT_ASSERT(m_num_to_issue >= num_issued);
+				m_num_to_issue -= num_issued;
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
 				prepend_aios(m_in_progress, pending);

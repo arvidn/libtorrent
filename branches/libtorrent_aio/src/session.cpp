@@ -238,7 +238,7 @@ namespace libtorrent
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 10 * 1024 * 1024;
+		set.max_queued_disk_bytes = 100 * 1024 * 1024;
 		// flush write cache in a way to minimize the amount we need to
 		// read back once we want to hash-check the piece. i.e. try to
 		// flush all blocks in-order
@@ -249,7 +249,7 @@ namespace libtorrent
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.allowed_fast_set_size = 0;
 		// suggest pieces in the read cache for higher cache hit rate
-		set.suggest_mode = session_settings::suggest_read_cache;
+//		set.suggest_mode = session_settings::suggest_read_cache;
 
 		set.close_redundant_connections = true;
 

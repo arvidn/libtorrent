@@ -1031,7 +1031,7 @@ namespace libtorrent
 		radvisory r;
 		r.ra_offset = file_offset;
 		r.ra_count = len;
-		fcntl(m_fd, F_RDADVISE, &r);
+		fcntl(native_handle(), F_RDADVISE, &r);
 #else
 		// TODO: is there any way to pre-fetch data from a file on windows?
 #endif
@@ -2057,7 +2057,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
-		const int submit_batch_size = 128;
+		const int submit_batch_size = 512;
 		iocb* to_submit[submit_batch_size];
 
 		// this is the first aio in the array

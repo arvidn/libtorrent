@@ -339,6 +339,9 @@ namespace libtorrent
 		// during this round and will be issued
 		file::aiocb_t* m_to_issue;
 
+		// the number of jobs waiting to be issued in m_to_issue
+		int m_num_to_issue;
+
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
 #endif
