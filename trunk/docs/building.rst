@@ -266,7 +266,8 @@ Build features:
 |                          |   requires you to link against librt.a. This is    |
 |                          |   typically the case on x86 64 bit systems.        |
 +--------------------------+----------------------------------------------------+
-| ``asserts``              | * ``on`` - asserts are on if in debug mode         |
+| ``asserts``              | * ``auto`` - asserts are on if in debug mode       |
+|                          | * ``on`` - asserts are on, even in release mode    |
 |                          | * ``off`` - asserts are disabled                   |
 |                          | * ``production`` - assertion failures are logged   |
 |                          |   to ``asserts.log`` in the current working        |
