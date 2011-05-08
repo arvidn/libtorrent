@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
-#include "libtorrent/disk_io_job.hpp"
 
 #include <boost/intrusive_ptr.hpp> // atomic_count
 
