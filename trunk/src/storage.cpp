@@ -326,7 +326,7 @@ namespace libtorrent
 			std::memset(i->iov_base, 0, i->iov_len);
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	int count_bufs(file::iovec_t const* bufs, int bytes)
 	{
 		int size = 0;
@@ -1112,7 +1112,7 @@ ret:
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		std::vector<file_slice> slices
 			= files().map_block(slot, offset, size);
 		TORRENT_ASSERT(!slices.empty());
@@ -1148,7 +1148,7 @@ ret:
 
 		TORRENT_ASSERT(bytes_left >= 0);
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int counter = 0;
 #endif
 
@@ -1169,7 +1169,7 @@ ret:
 
 			if (file_bytes_left == 0) continue;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT(slice_size == file_bytes_left);

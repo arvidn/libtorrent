@@ -1476,7 +1476,7 @@ namespace aux {
 		// abort all connections
 		while (!m_connections.empty())
 		{
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			int conn = m_connections.size();
 #endif
 			(*m_connections.begin())->disconnect(errors::stopping_torrent);
@@ -4238,7 +4238,7 @@ namespace aux {
 		if (options & session::delete_files)
 			t.delete_files();
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
 #endif
 #ifndef TORRENT_DISABLE_DHT

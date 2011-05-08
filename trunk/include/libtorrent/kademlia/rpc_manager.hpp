@@ -88,8 +88,10 @@ public:
 
 	void add_our_id(entry& e);
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	size_t allocation_size() const;
+#endif
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
