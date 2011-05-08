@@ -44,17 +44,24 @@ namespace libtorrent
 	{
 		aiocb_pool(): m_in_use(0), m_peak_in_use(0) {}
 
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+		bool is_from(file::aiocb_t* p) const { return true; }
+#else
 		bool is_from(file::aiocb_t* p) const { return m_pool.is_from(p); }
+#endif
 
 		file::aiocb_t* construct()
 		{
 			++m_in_use;
 			if (m_in_use > m_peak_in_use) m_peak_in_use = m_in_use;
-#ifdef TORRENT_DISABLE_POOL_ALLOCATORS
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			file::aiocb_t* ret = new file::aiocb_t;
 #else
 			file::aiocb_t* ret = m_pool.construct();
 			m_pool.set_next_size(64);
+#endif
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			ret->in_use = true;
 #endif
 			return ret;
 		}
@@ -62,7 +69,11 @@ namespace libtorrent
 		void destroy(file::aiocb_t* a)
 		{
 			--m_in_use;
-#ifdef TORRENT_DISABLE_POOL_ALLOCATORS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(a->in_use);
+			a->in_use = false;
+#endif
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			delete a;
 #else
 			TORRENT_ASSERT(m_pool.is_from(a));
@@ -82,7 +93,7 @@ namespace libtorrent
 
 		int m_in_use;
 		int m_peak_in_use;
-#ifndef TORRENT_DISABLE_POOL_ALLOCATORS
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		boost::object_pool<file::aiocb_t> m_pool;
 #endif
 	};
