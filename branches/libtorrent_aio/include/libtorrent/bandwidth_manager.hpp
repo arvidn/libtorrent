@@ -64,7 +64,7 @@ struct TORRENT_EXPORT bandwidth_manager
 
 	void close();
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool is_queued(bandwidth_socket const* peer) const;
 #endif
 

@@ -78,7 +78,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection const& c) : m_conn(c) {}
@@ -1444,7 +1444,7 @@ namespace libtorrent
 		}
 	}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool policy::has_connection(const peer_connection* c)
 	{
 		INVARIANT_CHECK;
@@ -1464,7 +1464,9 @@ namespace libtorrent
 			, m_peers.end()
 			, match_peer_connection_or_endpoint(*c)) != m_peers.end();
 	}
+#endif
 
+#ifdef TORRENT_DEBUG
 	void policy::check_invariant() const
 	{
 		TORRENT_ASSERT(m_num_connect_candidates >= 0);

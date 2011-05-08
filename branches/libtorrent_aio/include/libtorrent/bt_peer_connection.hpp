@@ -302,7 +302,7 @@ public:
 			{
 				TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
 				m_RC4_handler->encrypt(buffer, size);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				m_encrypted_bytes += size;
 				TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size() + size);
 #endif
@@ -445,7 +445,7 @@ private:
 		boost::scoped_ptr<sha1_hash> m_sync_hash;
 #endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// this is set to true when the client's
 		// bitfield is sent to this peer
 		bool m_sent_bitfield;

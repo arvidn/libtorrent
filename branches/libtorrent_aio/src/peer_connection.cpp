@@ -2302,7 +2302,7 @@ namespace libtorrent
 			return;
 		}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pending_block pending_b = *b;
 #endif
 
