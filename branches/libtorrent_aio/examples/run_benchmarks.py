@@ -149,11 +149,11 @@ def run_test(config):
 	f.close()
 
 	# run fragmentation test
-#	print 'analyzing fragmentation'
-#	os.system('./fragmentation_test test.torrent %s' % config['save-path'])
-#	shutil.copy('fragmentation.log', 'session_stats/')
-#	shutil.copy('fragmentation.png', 'session_stats/')
-#	shutil.copy('fragmentation.gnuplot', 'session_stats/')
+	print 'analyzing fragmentation'
+	os.system('./fragmentation_test test.torrent %s' % config['save-path'])
+	shutil.copy('fragmentation.log', 'session_stats/')
+	shutil.copy('fragmentation.png', 'session_stats/')
+	shutil.copy('fragmentation.gnuplot', 'session_stats/')
 
 	os.chdir('session_stats')
 
