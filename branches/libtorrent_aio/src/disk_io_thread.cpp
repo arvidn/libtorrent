@@ -149,6 +149,7 @@ namespace libtorrent
 			while (last->next)
 			{
 				TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
+				TORRENT_ASSERT(last->prev == 0 || last->prev->next == last);
 				last = last->next;
 			}
 			// now, hang the aios chain on the
@@ -506,7 +507,13 @@ namespace libtorrent
 	int count_aios(file::aiocb_t* a)
 	{
 		int ret = 0;
-		while (a) { ++ret; a = a->next; }
+		while (a)
+		{
+			TORRENT_ASSERT(a->prev == 0 || a->prev->next == a);
+			TORRENT_ASSERT(a->next == 0 || a->next->prev == a);
+			++ret;
+			a = a->next;
+		}
 		return ret;
 	}
 
@@ -600,6 +607,7 @@ namespace libtorrent
 
 					m_num_to_issue += count_aios(aios);
 					append_aios(m_to_issue, aios, elevator_direction, this);
+					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 //					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 //						DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -621,6 +629,7 @@ namespace libtorrent
 
 					m_num_to_issue += count_aios(aios);
 					append_aios(m_to_issue, aios, elevator_direction, this);
+					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 /*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 					{
@@ -1049,6 +1058,7 @@ namespace libtorrent
 #endif
 		m_num_to_issue += count_aios(aios);
 		append_aios(m_to_issue, aios, elevator_direction, this);
+		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -1131,6 +1141,8 @@ namespace libtorrent
 #endif
 		m_num_to_issue += count_aios(aios);
 		append_aios(m_to_issue, aios, elevator_direction, this);
+		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
+
 
 		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 			DLOG(stderr, "  %"PRId64, j->phys_offset);
@@ -1168,6 +1180,15 @@ namespace libtorrent
 			// if we have a piece, we might still be writing blocks
 			// defer completing the job until we finish writing them
 			pe->jobs.push_back(j);
+			if (pe->hash == 0)
+			{
+				DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
+				pe->hash = new partial_hash;
+			}
+			// fake the hash offset as to be done, do avoid any actual
+			// hashing and to avoid the individual jobs' refcounters
+			// being decremented in the mark_as_done
+			pe->hash->offset = pe->blocks_in_piece * m_block_size;
 			return defer_handler;
 		}
 
@@ -1893,6 +1914,7 @@ namespace libtorrent
 			// just exceed the disk queue size limit?
 			added_to_write_queue();
 		}
+		int ret = m_queue_buffer_size;
 		// we need to unlock here because writing to the
 		// event_pipe may block, if the pipe is full. If it does
 		// and we hold the lock, we may get a dead lock with the
@@ -1910,7 +1932,7 @@ namespace libtorrent
 #else
 		g_job_sem.signal();
 #endif
-		return m_queue_buffer_size;
+		return ret;
 	}
 
 	void disk_io_thread::added_to_write_queue()
@@ -2128,7 +2150,7 @@ namespace libtorrent
 			if (FD_ISSET(m_job_event_fd, &set))
 			{
 				boost::uint64_t n = 0;
-				ret = read(m_job_event_fd, &n, sizeof(n));
+				int ret = read(m_job_event_fd, &n, sizeof(n));
 				if (ret != sizeof(n)) DLOG(stderr, "[%p] read(m_job_event_fd) = %d %s\n"
 					, this, ret, strerror(errno));
 				new_job = true;
@@ -2143,7 +2165,7 @@ namespace libtorrent
 				const int max_events = 300;
 				io_event events[max_events];
 				boost::int64_t n = 0;
-				ret = read(m_disk_event_fd, &n, sizeof(n));
+				int ret = read(m_disk_event_fd, &n, sizeof(n));
 				if (ret != sizeof(n)) DLOG(stderr, "[%p] read(m_disk_event_fd) = %d %s\n"
 					, this, ret, strerror(errno));
 
@@ -2341,6 +2363,7 @@ namespace libtorrent
 					, num_issued);
 				TORRENT_ASSERT(m_num_to_issue >= num_issued);
 				m_num_to_issue -= num_issued;
+				TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
 				prepend_aios(m_in_progress, pending);
