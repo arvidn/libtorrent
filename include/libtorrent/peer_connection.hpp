@@ -1215,7 +1215,7 @@ namespace libtorrent
 			);
 		}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;

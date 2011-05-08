@@ -164,7 +164,7 @@ namespace libtorrent
 		void maybe_realloc_buffers(int which = 3);
 		bool maybe_clear_callback();
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
 #endif
@@ -226,7 +226,7 @@ namespace libtorrent
 		// operations hanging on this socket
 		int m_outstanding_ops;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_started;
 		int m_magic;
 		int m_outstanding_when_aborted;

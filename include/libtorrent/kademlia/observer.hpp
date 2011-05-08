@@ -78,7 +78,7 @@ struct observer : boost::noncopyable
 		, flags(0)
 	{
 		TORRENT_ASSERT(a);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_constructor = true;
 		m_was_sent = false;
 #endif
@@ -162,7 +162,7 @@ protected:
 public:
 	unsigned char flags;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool m_in_constructor:1;
 	bool m_was_sent:1;
 #endif

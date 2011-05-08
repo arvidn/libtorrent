@@ -82,7 +82,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_abort(false)
 	, m_outstanding_ops(0)
 {
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
@@ -109,13 +109,13 @@ udp_socket::~udp_socket()
 	TORRENT_ASSERT_VAL(m_v4_outstanding == 0, m_v4_outstanding);
 	TORRENT_ASSERT(m_magic == 0x1337);
 	TORRENT_ASSERT(!m_callback || !m_started);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	m_magic = 0;
 #endif
 	TORRENT_ASSERT(m_outstanding_ops == 0);
 }
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	#define CHECK_MAGIC check_magic_ cm_(m_magic)
 	struct check_magic_
 	{

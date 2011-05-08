@@ -190,7 +190,7 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool is_network_thread() const
 			{
 #if defined BOOST_HAS_PTHREADS
@@ -1008,7 +1008,7 @@ namespace libtorrent
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;
 
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 			pthread_t m_network_thread;
 #endif
 		};

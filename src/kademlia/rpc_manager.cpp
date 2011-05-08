@@ -230,12 +230,13 @@ void rpc_manager::free_observer(void* ptr)
 	m_pool_allocator.free(ptr);
 }
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 size_t rpc_manager::allocation_size() const
 {
 	return observer_size;
 }
-
+#endif
+#ifdef TORRENT_DEBUG
 void rpc_manager::check_invariant() const
 {
 	for (transactions_t::const_iterator i = m_transactions.begin()
@@ -470,7 +471,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	if (m_send(m_userdata, e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		o->m_was_sent = true;
 #endif
 	}
