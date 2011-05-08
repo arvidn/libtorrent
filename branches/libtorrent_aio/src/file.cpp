@@ -2045,8 +2045,21 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 		// unlink
-		if (aio->prev) aio->prev->next = aio->next;
-		if (aio->next) aio->next->prev = aio->prev;
+		if (aio->prev)
+		{
+			TORRENT_ASSERT(aio->prev->next == aio);
+			aio->prev->next = aio->next;
+		}
+		if (aio->next)
+		{
+			TORRENT_ASSERT(aio->next->prev == aio);
+			aio->next->prev = aio->prev;
+		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		aio->next = 0;
+		aio->prev = 0;
+		aio->handler = 0;
+#endif
 
 		pool.destroy(aio);
 		return true;
@@ -2062,78 +2075,44 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		// this is the first aio in the array
 		// we're currently submitting
+		// this also points to the first aio
+		// that has not yet been submitted. In the event
+		// of a failure, we use this as the cursor for
+		// where to cut the return chain and the remaining
+		// chain
 		file::aiocb_t* list_start = aios;
 		// this is the chain of aios that were
 		// successfully submitted
 		file::aiocb_t* ret = 0;
-		// this is the pointer to the last
-		// chain link of the ret chain, for
-		// easy appending to it
-		file::aiocb_t** ret_last = &ret;
 		int i = 0;
 		for (;;)
 		{
 			if (i == submit_batch_size || aios == 0)
 			{
-				int ret = io_submit(pool.io_queue, i, to_submit);
-				DLOG(stderr, "io_submit(%d) = %d\n", i, ret);
-				if (ret < 0) DLOG(stderr, "  error: %s\n", strerror(-ret));
-				if (ret != i)
+				int r = io_submit(pool.io_queue, i, to_submit);
+				DLOG(stderr, "io_submit(%d) = %d\n", i, r);
+				if (r < 0) DLOG(stderr, "  error: %s\n", strerror(-r));
+				int num_submitted = ret < 0 ? 0 : r;
+				if (r != i)
 				{
 					// the number of jobs that were submitted
-					int num_submitted = ret < 0 ? 0 : ret;
 					DLOG(stderr, " partial submit (%d succeeded)\n", num_submitted);
-
-					// we need to iterate over all aiocb's to know which
-					// ones were actually started
-					file::aiocb_t** prev_link = 0;
-					// loop until k reaches num_submitted, that's where
-					// the first failed job is
-					int k = 0;
-					for (file::aiocb_t* j = list_start; j != aios; j = j->next, ++k)
-					{
-						if (k < num_submitted)
-						{
-							++num_issued;
-							// yes, this one was actually added. unlink it from
-							// the chain and stick it in the return chain
-
-							// unlink
-							if (prev_link) *prev_link = j->next;
-
-							// if this is the first element in the remaining
-							// list, push the start link out one step
-							if (j == list_start) list_start = j->next;
-
-							// link in to return list
-							*ret_last = j;
-							ret_last = &j->next;
-						}
-						else
-						{
-							// nope, this was not added
-							if (prev_link) *prev_link = j;
-
-							// update the last entry in the remaining list
-							prev_link = &j->next;
-						}
-					}
-					if (prev_link) *prev_link = aios;
-					*ret_last = 0;
-					i = 0;
-					break;
+				}
+				// append the newly submitted aios to the ret-chain
+				if (ret == 0 && num_submitted > 0)
+				{
+					ret = list_start;
+					TORRENT_ASSERT(ret->prev == 0);
 				}
 				// move the aiocb_t entries over to the ret chain
-				while (list_start != aios)
+				while (num_submitted > 0)
 				{
 					++num_issued;
-					*ret_last = list_start;
-					ret_last = &list_start->next;
+					--num_submitted;
+					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
 					list_start = list_start->next;
 				}
-				// terminate the ret chain
-				*ret_last = 0;
-
+				if (r != i) goto finish;
 				i = 0;
 			}
 			if (aios == 0) break;
@@ -2141,6 +2120,16 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			to_submit[i] = &aios->cb;
 			aios = aios->next;
 			++i;
+		}
+
+finish:
+
+		// cut the return chain in two parts, the submitted part
+		// and the remaining part
+		if (list_start && list_start->prev)
+		{
+			list_start->prev->next = 0;
+			list_start->prev = 0;
 		}
 
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
