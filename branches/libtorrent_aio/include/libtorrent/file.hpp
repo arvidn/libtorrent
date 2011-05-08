@@ -201,6 +201,7 @@ namespace libtorrent
 
 		void done(error_code const& ec, size_t bytes_transferred)
 		{
+			TORRENT_ASSERT(references > 0);
 			if (ec) error = ec;
 			else transferred += bytes_transferred;
 			--references;
@@ -209,6 +210,13 @@ namespace libtorrent
 			handler(this);
 			delete this;
 		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		~async_handler()
+		{
+			TORRENT_ASSERT(references == 0);
+			references = 0xf0f0f0f0;
+		}
+#endif
 	};
 
 	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
@@ -261,6 +269,9 @@ namespace libtorrent
 			// waiting for the async operation
 			boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return cb.aio_nbytes; }
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_use;
+#endif
 		};
 
 		enum
@@ -291,6 +302,9 @@ namespace libtorrent
 #else
 			size_t nbytes() const { return cb.u.c.nbytes; }
 #endif
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_use;
+#endif
 		};
 
 		enum
@@ -318,6 +332,9 @@ namespace libtorrent
 			// waiting for the async operation
 			mutable boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return size; }
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_use;
+#endif
 		};
 
 		enum
@@ -344,6 +361,9 @@ namespace libtorrent
 			// waiting for the async operation
 			mutable boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return size; }
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_use;
+#endif
 		};
 
 		enum
