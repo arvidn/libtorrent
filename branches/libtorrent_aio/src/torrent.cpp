@@ -2810,8 +2810,7 @@ namespace libtorrent
 		piece_picker::downloading_piece dp;
 		m_picker->piece_info(index, dp);
 		int blocks_in_piece = m_picker->blocks_in_piece(index);
-		TORRENT_ASSERT(dp.finished == blocks_in_piece);
-		TORRENT_ASSERT(dp.writing == 0);
+		TORRENT_ASSERT(dp.finished + dp.writing == blocks_in_piece);
 		TORRENT_ASSERT(dp.requested == 0);
 		TORRENT_ASSERT(dp.index == index);
 #endif

@@ -307,7 +307,7 @@ namespace libtorrent
 		}
 #endif
 #if TORRENT_USE_IOSUBMIT
-		int ret = io_setup(4000, &m_io_queue);
+		int ret = io_setup(5000, &m_io_queue);
 		if (ret != 0)
 		{
 			// error handling!
@@ -1176,20 +1176,7 @@ namespace libtorrent
 		if (m_settings.disable_hash_checks)
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning\n", this);
-			if (p == m_disk_cache.end()) return 0;
-			// if we have a piece, we might still be writing blocks
-			// defer completing the job until we finish writing them
-			pe->jobs.push_back(j);
-			if (pe->hash == 0)
-			{
-				DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
-				pe->hash = new partial_hash;
-			}
-			// fake the hash offset as to be done, do avoid any actual
-			// hashing and to avoid the individual jobs' refcounters
-			// being decremented in the mark_as_done
-			pe->hash->offset = pe->blocks_in_piece * m_block_size;
-			return defer_handler;
+			return 0;
 		}
 
 		// potentially allocate and issue read commands for blocks we don't have, but
@@ -1213,18 +1200,20 @@ namespace libtorrent
 			int start_block = 0;
 			if (p->hash) start_block = (p->hash->offset + m_block_size - 1) / m_block_size;
 
-			if (p->num_dirty == 0 && start_block == p->blocks_in_piece && p->hash)
+			if (/* p->num_dirty == 0 && */ start_block == p->blocks_in_piece && p->hash)
 			{
 				sha1_hash h = p->hash->h.final();
 				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+
+				// we're done with the hash
+				delete pe->hash;
+				pe->hash = 0;
+
 				if (ret == -2)
 				{
 					j.storage->mark_failed(j.piece);
 					m_disk_cache.mark_for_deletion(p);
 				}
-				// we're done with the hash
-				delete pe->hash;
-				pe->hash = 0;
 				return ret;
 			}
 

@@ -635,7 +635,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				DLOG(stderr, "%p block_cache mark_done leaving job (hash) "
 					"piece: %d num_dirty: %d\n"
 					, &m_buffer_pool, int(p->piece), int(p->num_dirty));
-				// this job is waiting for some all blocks to be written
+				// this job is waiting for some blocks to be written
 				++i;
 				continue;
 			}
