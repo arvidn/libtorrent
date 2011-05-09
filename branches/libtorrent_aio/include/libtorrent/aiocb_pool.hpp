@@ -34,15 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_AIOCB_POOL
 
 #include "libtorrent/config.hpp"
-
-#include <boost/pool/object_pool.hpp>
 #include "libtorrent/file.hpp"
+
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#include <boost/pool/object_pool.hpp>
+#endif
 
 namespace libtorrent
 {
 	struct aiocb_pool
 	{
-		aiocb_pool(): m_in_use(0), m_peak_in_use(0) {}
+		aiocb_pool(): m_in_use(0), m_peak_in_use(0)
+#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+		, m_pool(sizeof(file::aiocb_t), 128)
+#endif
+		{}
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		bool is_from(file::aiocb_t* p) const { return true; }
@@ -57,8 +63,9 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 			file::aiocb_t* ret = new file::aiocb_t;
 #else
-			file::aiocb_t* ret = m_pool.construct();
-			m_pool.set_next_size(64);
+			file::aiocb_t* ret = (file::aiocb_t*)m_pool.malloc();
+			new (ret) file::aiocb_t;
+			m_pool.set_next_size(256);
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			ret->in_use = true;
@@ -77,7 +84,8 @@ namespace libtorrent
 			delete a;
 #else
 			TORRENT_ASSERT(m_pool.is_from(a));
-			m_pool.destroy(a);
+			a->~aiocb_t();
+			m_pool.free(a);
 #endif
 		}
 
@@ -94,7 +102,7 @@ namespace libtorrent
 		int m_in_use;
 		int m_peak_in_use;
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		boost::object_pool<file::aiocb_t> m_pool;
+		boost::pool<> m_pool;
 #endif
 	};
 }
