@@ -18,9 +18,10 @@ import random
 # for the AIO branch to measure improvements over the
 # classic thread based disk I/O
 
-# to set up the test, build the example directoryin release
+# to set up the test, build the example directory in release
 # with statistics=on and copy fragmentation_test, client_test
-# and connection_tester to the current directory.
+# and connection_tester to a directory called 'stage' (or make
+# a symbolic link to the bjam output directory).
 # make sure gnuplot is installed.
 
 # the following lists define the space tests will be run in
@@ -57,7 +58,7 @@ if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
 	sys.exit(1)
 
 # make sure we have all the binaries available
-binaries = ['client_test', 'connection_tester', 'fragmentation_test']
+binaries = ['stage/client_test', 'stage/connection_tester', 'stage/fragmentation_test']
 for i in binaries:
 	if not os.path.exists(i):
 		print 'make sure "%s" is available in current working directory' % i
@@ -73,7 +74,7 @@ for i in filesystem:
 # make sure we have a test torrent
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
-	os.system('./connection_tester gen-torrent test.torrent')
+	os.system('./stage/connection_tester gen-torrent test.torrent')
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -90,7 +91,7 @@ def build_commandline(config, port):
 		
 	global test_duration
 
-	return './client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt test.torrent' \
+	return './stage/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt test.torrent' \
 		% (test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
 			, no_disk_reorder, no_read_ahead, test_duration, port)
 
@@ -144,13 +145,13 @@ def run_test(config):
 	print '*          RUNNING TEST         *'
 	print '*********************************\n\n'
 	print 'launching connection tester'
-	os.system('./connection_tester %s %d 127.0.0.1 %d test.torrent >session_stats/tester.output' % (config['test'], config['num-peers'], port))
+	os.system('./stage/connection_tester %s %d 127.0.0.1 %d test.torrent >session_stats/tester.output' % (config['test'], config['num-peers'], port))
 	
 	f.close()
 
 	# run fragmentation test
 	print 'analyzing fragmentation'
-	os.system('./fragmentation_test test.torrent %s' % config['save-path'])
+	os.system('./stage/fragmentation_test test.torrent %s' % config['save-path'])
 	shutil.copy('fragmentation.log', 'session_stats/')
 	shutil.copy('fragmentation.png', 'session_stats/')
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
