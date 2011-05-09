@@ -112,7 +112,7 @@ namespace libtorrent
 		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
@@ -150,7 +150,7 @@ namespace libtorrent
 		, m_sync_bytes_read(0)
 		, m_enc_send_buffer(0, 0)
 #endif		
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_sent_bitfield(false)
 		, m_in_constructor(true)
 		, m_sent_handshake(false)
@@ -289,7 +289,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -303,7 +303,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -790,7 +790,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_sent_handshake);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_handshake = true;
 #endif
 
@@ -2002,7 +2002,7 @@ namespace libtorrent
 
 			// if we are super seeding, pretend to not have any piece
 			// and don't send a bitfield
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_sent_bitfield = true;
 #endif
 
@@ -2029,7 +2029,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log(" *** NOT SENDING BITFIELD");
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_sent_bitfield = true;
 #endif
 			return;
@@ -2106,7 +2106,7 @@ namespace libtorrent
 		}
 		peer_log("==> BITFIELD [ %s ]", bitfield_string.c_str());
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
 #endif
 
@@ -3095,6 +3095,7 @@ namespace libtorrent
 			if (!is_local()) write_handshake();
 //			if (t->valid_metadata())
 //				write_bitfield();
+			TORRENT_ASSERT(m_sent_handshake);
 
 			if (is_disconnecting()) return;
 
@@ -3107,6 +3108,7 @@ namespace libtorrent
 		// fall through
 		if (m_state == read_peer_id)
 		{
+			TORRENT_ASSERT(m_sent_handshake);
 			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
   			if (!t)
