@@ -185,7 +185,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 		int cursor = ph.offset / block_size;
 		int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
 		int num_blocks = 0;
-		DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+		DLOG(stderr, "[%p] hashing piece: %d [", &m_buffer_pool, int(pe->piece));
 		ptime start_hash = time_now_hires();
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
@@ -262,7 +262,7 @@ void block_cache::mark_for_deletion(iterator p)
 	}
 	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
 	pe->marked_for_deletion = true;
-	DLOG(stderr, "%p block_cache mark-for-deletion "
+	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", &m_buffer_pool, int(pe->piece));
 
 	if (pe->refcount == 0)
@@ -437,7 +437,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 	TORRENT_ASSERT(j.piece == pe->piece);
 	if (ret > 0)
 	{
-		DLOG(stderr, "%p block_cache allocate-pending unmark-for-deletion "
+		DLOG(stderr, "[%p] block_cache allocate-pending unmark-for-deletion "
 			"piece: %d\n", &m_buffer_pool, int(pe->piece));
 		// in case this was marked for deletion
 		// don't do that anymore
@@ -462,7 +462,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	DLOG(stderr, "%p block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
+	DLOG(stderr, "[%p] block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
 
 	std::vector<char*> to_delete;
 	to_delete.reserve(pe->blocks_in_piece);
@@ -549,7 +549,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		{
 			int cursor = ph.offset / block_size;
 			hash_start = hash_end = cursor;
-			DLOG(stderr, "%p hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+			DLOG(stderr, "[%p] hashing piece: %d [", &m_buffer_pool, int(pe->piece));
 			int num_blocks = 0;
 			ptime start_hash = time_now_hires();
 			for (int i = cursor; i < pe->blocks_in_piece; ++i)
@@ -604,7 +604,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 				if (ph.offset < i->storage->info()->piece_size(i->piece))
 				{
-					DLOG(stderr, "%p block_cache mark_done leaving job (incomplete hash) "
+					DLOG(stderr, "[%p] block_cache mark_done leaving job (incomplete hash) "
 							"piece: %d start: %d end: %d offset: %d piece_size: %d\n"
 							, &m_buffer_pool, int(pe->piece)
 							, int(begin), int(end), ph.offset, i->storage->info()->piece_size(i->piece));
@@ -623,7 +623,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			if (pe->blocks[first_block].pending || pe->blocks[last_block].pending
 				|| pe->blocks[first_block].dirty || pe->blocks[last_block].dirty)
 			{
-				DLOG(stderr, "%p block_cache mark_done leaving job (overlap) "
+				DLOG(stderr, "[%p] block_cache mark_done leaving job (overlap) "
 					"piece: %d start: %d end: %d\n", &m_buffer_pool, int(pe->piece), begin, end);
 				++i;
 				continue;
@@ -632,7 +632,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			if ((i->action == disk_io_job::hash)
 				&& p->num_dirty > 0)
 			{
-				DLOG(stderr, "%p block_cache mark_done leaving job (hash) "
+				DLOG(stderr, "[%p] block_cache mark_done leaving job (hash) "
 					"piece: %d num_dirty: %d\n"
 					, &m_buffer_pool, int(p->piece), int(p->num_dirty));
 				// this job is waiting for some blocks to be written
@@ -681,7 +681,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				{
 					i->storage->mark_failed(i->piece);
 					pe->marked_for_deletion = true;
-					DLOG(stderr, "%p block_cache mark_done mark-for-deletion "
+					DLOG(stderr, "[%p] block_cache mark_done mark-for-deletion "
 						"piece: %d\n", &m_buffer_pool, int(pe->piece));
 				}
 				delete pe->hash;
@@ -696,7 +696,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		}
 
 		TORRENT_ASSERT(i->piece == pe->piece);
-		DLOG(stderr, "%p block_cache mark_done post job "
+		DLOG(stderr, "[%p] block_cache mark_done post job "
 			"piece: %d offset: %d block: %d\n", &m_buffer_pool
 			, i->piece, i->offset, int(i->offset / block_size));
 		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
@@ -710,7 +710,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	if (pe->jobs.empty() && pe->storage->has_fence())
 	{
-		DLOG(stderr, "%p piece out of jobs. Count total jobs\n", &m_buffer_pool);
+		DLOG(stderr, "[%p] piece out of jobs. Count total jobs\n", &m_buffer_pool);
 		// this piece doesn't have any outstanding jobs anymore
 		// and we have a fence on the storage. Are all outstanding
 		// jobs complete for this storage?
@@ -719,19 +719,21 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		for (iterator i = range.first; i != range.second; ++i)
 		{
 			if (i->jobs.empty()) continue;
+			DLOG(stderr, "[%p] Found %d jobs on piece %d\n", &m_buffer_pool
+				, int(i->jobs.size()), int(i->piece));
 			has_jobs = true;
 			break;
 		}
 
 		if (!has_jobs)
 		{
-			DLOG(stderr, "%p no more jobs. lower fence\n", &m_buffer_pool);
+			DLOG(stderr, "[%p] no more jobs. lower fence\n", &m_buffer_pool);
 			// yes, all outstanding jobs are done, lower the fence
 			lower_fence = true;
 		}
 	}
 
-	DLOG(stderr, "%p block_cache mark_done mark-for-deletion: %d "
+	DLOG(stderr, "[%p] block_cache mark_done mark-for-deletion: %d "
 		"piece: %d refcount: %d\n", &m_buffer_pool, pe->marked_for_deletion
 		, int(pe->piece), int(pe->refcount));
 	if (pe->marked_for_deletion && pe->refcount == 0)

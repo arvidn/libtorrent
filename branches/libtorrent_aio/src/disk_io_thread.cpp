@@ -1060,9 +1060,9 @@ namespace libtorrent
 		append_aios(m_to_issue, aios, elevator_direction, this);
 		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
-		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
-			DLOG(stderr, "  %"PRId64, j->phys_offset);
-		DLOG(stderr, "\n");
+//		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+//			DLOG(stderr, "  %"PRId64, j->phys_offset);
+//		DLOG(stderr, "\n");
 		return defer_handler;
 	}
 
@@ -1144,9 +1144,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 
-		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
-			DLOG(stderr, "  %"PRId64, j->phys_offset);
-		DLOG(stderr, "\n");
+//		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
+//			DLOG(stderr, "  %"PRId64, j->phys_offset);
+//		DLOG(stderr, "\n");
 		return defer_handler;
 	}
 
@@ -1969,6 +1969,22 @@ namespace libtorrent
 	}
 #endif
 
+#ifdef TORRENT_DEBUG
+#define TORRENT_ASSERT_VALID_AIOCB(x) \
+	do { \
+		TORRENT_ASSERT(m_aiocb_pool.is_from(a)); \
+		bool found = false; \
+		for (file::aiocb_t* i = m_in_progress; i; i = i->next) { \
+			if (i != x) continue; \
+			found = true; \
+			break; \
+		} \
+		TORRENT_ASSERT(found); \
+	} while(false)
+#else
+#define TORRENT_ASSERT_VALID_AIOCB(x) do {} while(false)
+#endif // TORRENT_DEBUG
+
 	void disk_io_thread::thread_fun()
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
@@ -2081,6 +2097,9 @@ namespace libtorrent
 
 		do
 		{
+			bool new_job = false;
+			bool iocbs_reaped = false;
+
 #if TORRENT_USE_OVERLAPPED
 			TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
 			file::aiocb_t* aio = 0;
@@ -2104,27 +2123,20 @@ namespace libtorrent
 				// as well. Once everything is moved over to async.
 				// operations, hopefully this won't be needed anymore
 				if (!m_aiocb_pool.is_from(aio)) continue;
-#ifdef TORRENT_DEBUG
-				// make sure we only get OVERLAPPED pointers that
-				// actually point to our structures, and nothing else
-				bool found = false;
-				for (file::aiocb_t* i = m_in_progress; i; i = i->next)
-				{
-					if (i != aio) continue;
-					found = true;
-					break;
-				}
-				TORRENT_ASSERT(found);
-#endif // TORRENT_DEBUG
+				TORRENT_ASSERT_VALID_AIOCB(aio);
 				file::aiocb_t* next = aio->next;
 				bool removed = reap_aio(aio, m_aiocb_pool);
+				iocbs_reaped = removed;
 				if (removed && m_in_progress == aio) m_in_progress = next;
 				DLOG(stderr, "[%p] overlapped = %p removed = %d\n", this, ol, removed);
-				continue;
 			}
-			// this should only happen for our own posted
-			// events from add_job()
-//			TORRENT_ASSERT(key == 1);
+			else
+			{
+				// this should only happen for our own posted
+				// events from add_job()
+//				TORRENT_ASSERT(key == 1);
+				new_jobs = true;
+			}
 #elif TORRENT_USE_IOSUBMIT
 			fd_set set;
 			FD_ZERO(&set);
@@ -2133,8 +2145,6 @@ namespace libtorrent
 			DLOG(stderr, "[%p] select(m_disk_event_fd, m_job_event_fd)\n", this);
 			int ret = select((std::max)(m_disk_event_fd, m_job_event_fd) + 1, &set, 0, 0, 0);
 			DLOG(stderr, "[%p]  = %d\n", this, ret);
-
-			bool new_job = false;
 
 			if (FD_ISSET(m_job_event_fd, &set))
 			{
@@ -2174,33 +2184,19 @@ namespace libtorrent
 					for (int i = 0; i < num_events; ++i)
 					{
 						file::aiocb_t* aio = (file::aiocb_t*)events[i].obj;
-#ifdef TORRENT_DEBUG
-						// make sure we only get pointers that
-						// actually point to our structures, and nothing else
-						bool found = false;
-						for (file::aiocb_t* j = m_in_progress; j; j = j->next)
-						{
-							if (j != aio) continue;
-							found = true;
-							break;
-						}
-						TORRENT_ASSERT(found);
-#endif // TORRENT_DEBUG
+						TORRENT_ASSERT_VALID_AIOCB(aio);
 						file::aiocb_t* next = aio->next;
 						// copy the return codes from the io_event
 						aio->ret = events[i].res;
 						aio->error = events[i].res2;
 						bool removed = reap_aio(aio, m_aiocb_pool);
+						iocbs_reaped = removed;
 						if (removed && m_in_progress == aio) m_in_progress = next;
 						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
 					}
 					if (num_events > 0) n -= num_events;
 				} while (num_events == max_events);
 			}
-
-			// if didn't receive a message waking us up because we have new jobs
-			// go back to sleep waiting for more io completion events
-			if (!new_job) continue;
 
 #elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
 			// wait either for a signal coming in through the 
@@ -2214,7 +2210,6 @@ namespace libtorrent
 			DLOG(stderr, "[%p] select(m_signal_fd, m_job_event_fd)\n", this);
 			int ret = select((std::max)((std::max)(m_signal_fd[0], m_signal_fd[1]), m_job_event_fd) + 1, &set, 0, 0, 0);
 			DLOG(stderr, "[%p]  = %d\n", this, ret);
-			bool new_job = false;
 			if (FD_ISSET(m_job_event_fd, &set))
 			{
 				// yes, there's a new job available
@@ -2247,21 +2242,10 @@ namespace libtorrent
 						// the userdata pointer in our iocb requests is the pointer
 						// to our aiocb_t link
 						file::aiocb_t* aio = (file::aiocb_t*)siginfo->ssi_ptr;
-						TORRENT_ASSERT(m_aiocb_pool.is_from(aio));
-#ifdef TORRENT_DEBUG
-						// make sure we only get pointers that
-						// actually point to our structures, and nothing else
-						bool found = false;
-						for (file::aiocb_t* i = m_in_progress; i; i = i->next)
-						{
-							if (i != aio) continue;
-							found = true;
-							break;
-						}
-						TORRENT_ASSERT(found);
-#endif // TORRENT_DEBUG
+						TORRENT_ASSERT_VALID_AIOCB(aio);
 						file::aiocb_t* next = aio->next;
 						bool removed = reap_aio(aio, m_aiocb_pool);
+						iocbs_reaped = removed;
 						if (removed && m_in_progress == aio) m_in_progress = next;
 						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
 					}
@@ -2270,9 +2254,6 @@ namespace libtorrent
 				} while (len == sizeof(sigbuf));
 			}
 			}
-			// if didn't receive a message waking us up because we have new jobs
-			// go back to sleep waiting for more signals
-			if (!new_job) continue;
 #else
 			DLOG(stderr, "sem_wait() [%p]\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
@@ -2296,7 +2277,16 @@ namespace libtorrent
 				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
 				complete_aios = g_completed_aios;
 			}
+			new_job = true;
+			iocbs_reaped = true;
 #endif
+
+			// if didn't receive a message waking us up because we have new jobs
+			// another reason to keep going is if we just reaped some aiocbs and
+			// we have outstanding iocbs waiting to be submitted
+			// go back to sleep waiting for more io completion events
+			if (!new_job && (!iocbs_reaped || m_to_issue == 0))
+				continue;
 
 			// keep the mutex locked for as short as possible
 			// while we swap out all the jobs in the queue
