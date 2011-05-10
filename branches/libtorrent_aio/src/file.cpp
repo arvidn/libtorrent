@@ -2105,9 +2105,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 					TORRENT_ASSERT(ret->prev == 0);
 				}
 				// move the aiocb_t entries over to the ret chain
+				num_issued += num_submitted;
 				while (num_submitted > 0)
 				{
-					++num_issued;
 					--num_submitted;
 					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
 					list_start = list_start->next;

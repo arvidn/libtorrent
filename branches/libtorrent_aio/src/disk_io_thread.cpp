@@ -137,26 +137,48 @@ namespace libtorrent
 	// it's inserted close to the end where the elevator has turned back.
 	// if it's lower it's inserted early, as the offset would pass it.
 	// a positive elevator direction has the same semantics but oposite order
-	TORRENT_EXPORT void append_aios(file::aiocb_t*& list, file::aiocb_t* aios
-		, int elevator_direction, disk_io_thread* io)
+	// returns the number of items in the aios chain
+	TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
+		, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io)
 	{
-		if (aios == 0) return;
-		if (list == 0) { list = aios; return; }
-		if (elevator_direction == 0)
+		int ret = 0;
+		if (aios == 0) return 0;
+		if (list_start == 0)
 		{
+			TORRENT_ASSERT(list_end == 0);
+			list_start = aios;
 			// find the last item in the list chain
-			file::aiocb_t* last = list;
+			file::aiocb_t* last = list_start;
 			while (last->next)
 			{
+				++ret;
 				TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
 				TORRENT_ASSERT(last->prev == 0 || last->prev->next == last);
 				last = last->next;
 			}
-			// now, hang the aios chain on the
-			// last item in the list chain
-			last->next = aios;
-			aios->prev = last;
-			return;
+			list_end = last;
+			return ret;
+		}
+
+		TORRENT_ASSERT(list_end->next == 0);
+
+		if (elevator_direction == 0)
+		{
+			// append the aios chain at the end of the list
+			list_end->next = aios;
+			aios->prev = list_end;
+
+			file::aiocb_t* last = list_end;
+			while (last->next)
+			{
+				++ret;
+				TORRENT_ASSERT(last->next == 0 || last->next->prev == last);
+				TORRENT_ASSERT(last->prev == 0 || last->prev->next == last);
+				last = last->next;
+			}
+			// update the end-of-list pointer
+			list_end = last;
+			return ret;
 		}
 
 		// insert each aio ordered by phys_offset
@@ -166,6 +188,7 @@ namespace libtorrent
 
 		while (aios)
 		{
+			++ret;
 			// pop the first element from aios into i
 			file::aiocb_t* i = aios;
 			aios = aios->next;
@@ -205,7 +228,7 @@ namespace libtorrent
 			// might make the drive head move backwards
 			int elevator = elevator_direction;
 			file::aiocb_t* last = 0;
-			file::aiocb_t* j = list;
+			file::aiocb_t* j = list_start;
 			size_type last_offset = j ? j->phys_offset : 0;
 			// this will keep iterating as long as j->phys_offset < i->phys_offset
 			// for negative elevator dir, and as long as j->phys_offset > i->phys_offset
@@ -214,7 +237,7 @@ namespace libtorrent
 			// that's the one that determines where the current head is
 			while (j
 				&& (!elevator_ordered(i->phys_offset, j->phys_offset, last_offset, elevator)
-					|| j == list))
+					|| j == list_start))
 			{
 				if (!same_sign(j->phys_offset - last_offset, elevator))
 				{
@@ -237,6 +260,8 @@ namespace libtorrent
 			io->m_sort_time.add_sample(total_microseconds(done - start_sort));
 			io->m_cumulative_sort_time += total_microseconds(done - start_sort);
 		}
+
+		return ret;
 	}
 
 #if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
@@ -281,8 +306,11 @@ namespace libtorrent
 		, m_total_read_back(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
+		, m_to_issue_end(0)
 		, m_num_to_issue(0)
+		, m_peak_num_to_issue(0)
 		, m_outstanding_jobs(0)
+		, m_peak_outstanding(0)
 		, m_elevator_direction(1)
 		, m_elevator_turns(0)
 		, m_last_phys_off(0)
@@ -307,6 +335,7 @@ namespace libtorrent
 		}
 #endif
 #if TORRENT_USE_IOSUBMIT
+		m_io_queue = 0;
 		int ret = io_setup(5000, &m_io_queue);
 		if (ret != 0)
 		{
@@ -605,8 +634,8 @@ namespace libtorrent
 //						"m_to_issue (%p) elevator=%d\n"
 //						, aios, m_to_issue, m_elevator_direction);
 
-					m_num_to_issue += count_aios(aios);
-					append_aios(m_to_issue, aios, elevator_direction, this);
+					m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
+					if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
 					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 //					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -627,8 +656,8 @@ namespace libtorrent
 //					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 //						, aios, m_to_issue);
 
-					m_num_to_issue += count_aios(aios);
-					append_aios(m_to_issue, aios, elevator_direction, this);
+					m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
+					if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
 					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 /*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -667,6 +696,9 @@ namespace libtorrent
 			++ret;
 			buffer_size += block_size;
 		}
+
+		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
+
 #ifdef DEBUG_STORAGE
 		for (int i = end; i < int(pe.blocks_in_piece); ++i) DLOG(stderr, ".");
 		DLOG(stderr, "] ret = %d\n", ret);
@@ -1046,6 +1078,7 @@ namespace libtorrent
 
 		DLOG(stderr, "[%p] do_read: async\n", this);
 		++m_outstanding_jobs;
+		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
 		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1
 			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j));
@@ -1056,8 +1089,8 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
-		m_num_to_issue += count_aios(aios);
-		append_aios(m_to_issue, aios, elevator_direction, this);
+		m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
+		if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
 		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 //		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
@@ -1082,7 +1115,7 @@ namespace libtorrent
 			if (p != m_disk_cache.end())
 			{
 				block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
-				if (pe->hash == 0) pe->hash = new partial_hash;
+				if (pe->hash == 0 && !m_settings.disable_hash_checks) pe->hash = new partial_hash;
 
 				// flushes the piece to disk in case
 				// it satisfies the condition for a write
@@ -1139,8 +1172,8 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
-		m_num_to_issue += count_aios(aios);
-		append_aios(m_to_issue, aios, elevator_direction, this);
+		m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
+		if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
 		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
 
 
@@ -1768,8 +1801,10 @@ namespace libtorrent
 		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
-		ret.queued_jobs = m_blocked_jobs.size() + m_num_to_issue;
+		ret.queued_jobs = m_num_to_issue;
+		ret.peak_queued = m_peak_num_to_issue;
 		ret.pending_jobs = m_outstanding_jobs;
+		ret.peak_pending = m_peak_outstanding;
 		ret.blocks_written = m_write_blocks;
 		ret.blocks_read = m_read_blocks;
 		ret.writes = m_write_calls;
@@ -2340,6 +2375,7 @@ namespace libtorrent
 				int num_issued = 0;
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
 					, num_issued);
+				if (m_to_issue == 0) m_to_issue_end = 0;
 				TORRENT_ASSERT(m_num_to_issue >= num_issued);
 				m_num_to_issue -= num_issued;
 				TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));

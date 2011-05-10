@@ -1859,9 +1859,9 @@ int main(int argc, char* argv[])
 				, cs.average_queue_time / 1000, cs.average_read_time / 1000, cs.average_write_time / 1000);
 			out += str;
 
-			snprintf(str, sizeof(str), "  jobs   - queued: %4d pending: %4d blocked: %4d "
-				"aiocbs: %4d aiocb-peak: %4d queued-bytes: %5"PRId64" kB\n"
-				, cs.queued_jobs, cs.pending_jobs, cs.blocked_jobs
+			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d (%4d) blocked: %4d "
+				"aiocbs: %4d (%4d) queued-bytes: %5"PRId64" kB\n"
+				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.peak_pending, cs.blocked_jobs
 				, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
 			out += str;
 

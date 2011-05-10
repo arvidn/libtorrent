@@ -168,9 +168,13 @@ namespace libtorrent
 		// number of jobs waiting to be issued (m_to_issue)
 		// average over 30 seconds
 		int queued_jobs;
+		// largest ever seen number of queued jobs
+		int peak_queued;
 		// number of jobs waiting to complete (m_pending)
 		// average over 30 seconds
 		int pending_jobs;
+		// largest ever seen number of pending jobs
+		int peak_pending;
 
 		// the number of aiocb_t structures that are in use
 		// right now
@@ -195,8 +199,8 @@ namespace libtorrent
 		friend void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped);
 #endif
 
-		friend TORRENT_EXPORT void append_aios(file::aiocb_t*& list, file::aiocb_t* aios
-			, int elevator_direction, disk_io_thread* io);
+		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
+			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 
 		disk_io_thread(io_service& ios
 			, boost::function<void()> const& queue_callback
@@ -337,9 +341,12 @@ namespace libtorrent
 		// these are async operations that we've accumulated
 		// during this round and will be issued
 		file::aiocb_t* m_to_issue;
+		// the last element in the to-issue chain
+		file::aiocb_t* m_to_issue_end;
 
 		// the number of jobs waiting to be issued in m_to_issue
 		int m_num_to_issue;
+		int m_peak_num_to_issue;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
@@ -354,6 +361,7 @@ namespace libtorrent
 		// an opportunity to sort the jobs by physical offset before
 		// issued to the AIO subsystem
 		int m_outstanding_jobs;
+		int m_peak_outstanding;
 
 		// the direction of the elevator. -1 means down and
 		// 1 means up
