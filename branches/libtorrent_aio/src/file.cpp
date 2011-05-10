@@ -2246,6 +2246,7 @@ finish:
 			file::iovec_t b = {aios->buf, aios->size};
 			switch (aios->op)
 			{
+#error use the full iovecs here!
 				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
 				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
 				default: TORRENT_ASSERT(false);

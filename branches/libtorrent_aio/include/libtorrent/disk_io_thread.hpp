@@ -98,20 +98,22 @@ namespace libtorrent
 			, average_hash_time(0)
 			, average_job_time(0)
 			, average_sort_time(0)
+			, average_issue_time(0)
 			, cumulative_job_time(0)
 			, cumulative_read_time(0)
 			, cumulative_write_time(0)
 			, cumulative_hash_time(0)
 			, cumulative_sort_time(0)
+			, cumulative_issue_time(0)
 			, total_read_back(0)
 			, read_queue_size(0)
 			, blocked_jobs(0)
 			, queued_jobs(0)
+			, peak_queued(0)
 			, pending_jobs(0)
+			, peak_pending(0)
 			, num_aiocb(0)
 			, peak_aiocb(0)
-			, hash_jobs(0)
-			, hash_hit_jobs(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -131,6 +133,8 @@ namespace libtorrent
 		// the number of read operations used
 		size_type reads;
 
+		// the number of bytes queued for writing, including bytes
+		// submitted to the OS for writing, but not yet complete
 		mutable size_type queued_bytes;
 
 		// the number of blocks in the cache (both read and write)
@@ -153,12 +157,17 @@ namespace libtorrent
 		int average_hash_time;
 		int average_job_time;
 		int average_sort_time;
+		int average_issue_time;
 
 		boost::uint32_t cumulative_job_time;
 		boost::uint32_t cumulative_read_time;
 		boost::uint32_t cumulative_write_time;
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
+		boost::uint32_t cumulative_issue_time;
+
+		// number of blocks we've read back from disk
+		// because they were evicted before
 		int total_read_back;
 		int read_queue_size;
 	
@@ -182,13 +191,6 @@ namespace libtorrent
 
 		// the peak number of aiocb_t structures in use
 		int peak_aiocb;
-
-		// the number of hash jobs that we have completed
-		int hash_jobs;
-
-		// the number of hash job we have completed that did
-		// not require us to read back any blocks from disk
-		int hash_hit_jobs;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
@@ -319,6 +321,9 @@ namespace libtorrent
 		// and insert into queue
 		sliding_average<512> m_sort_time;
 
+		// average time to issue jobs
+		sliding_average<512> m_issue_time;
+
 		// number of write operations issued
 		boost::uint64_t m_write_calls;
 		boost::uint64_t m_read_calls;
@@ -329,6 +334,7 @@ namespace libtorrent
 		size_type m_cumulative_write_time;
 		size_type m_cumulative_job_time;
 		size_type m_cumulative_sort_time;
+		size_type m_cumulative_issue_time;
 
 		// the number of blocks read because we needed to
 		// hash the piece

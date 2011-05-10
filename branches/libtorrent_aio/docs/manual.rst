@@ -887,6 +887,7 @@ a piece is, the more likely it is to be flushed to disk.
 			size_type blocks_read;
 			size_type blocks_read_hit;
 			size_type reads;
+			size_type queued_bytes;
 			int cache_size;
 			int read_cache_size;
 			int total_used_buffers;
@@ -895,7 +896,20 @@ a piece is, the more likely it is to be flushed to disk.
 			int average_write_time;
 			int average_hash_time;
 			int average_cache_time;
-			int job_queue_length;
+			int average_job_time;
+			int average_sort_time;
+			int average_issue_time;
+			int total_read_back;
+			int read_queue_size;
+			int blocked_jobs;
+			int queued_jobs;
+			int peak_queued;
+			int pending_jobs;
+			int peak_pending;
+			int num_aiocb;
+			int peak_aiocb;
+			int hash_jobs;
+			int hash_hit_jobs;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -915,6 +929,11 @@ bittorrent engine (from peers), that were served from disk or cache.
 
 The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
 for the read cache.
+
+``reads`` is the total number of read operations called this session.
+
+``queued_bytes`` is the total number of bytes queued for writing, including
+bytes passed on to the operating system but have not yet completed.
 
 ``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
 This includes both read and write cache.
@@ -941,10 +960,37 @@ microseconds. Hash jobs include running SHA-1 on the data (which for the most
 part is done incrementally) and sometimes reading back parts of the piece. It
 also includes checking files without valid resume data.
 
-``average_cache_time`` is the average amuount of time spent evicting cached
-blocks that have expired from the disk cache.
+``average_job_time`` is the average time it takes for any disk job to complete,
+in microseconds.
 
-``job_queue_length`` is the number of jobs in the job queue.
+``average_sort_time`` is the time spent sorting disk jobs, when using synchronous
+I/O.
+
+``average_issue_time`` is the time spent actually issuing the jobs to the OS. If
+this is high, it might indicate a problem with the asynchronous disk API, not being
+very asynchronous.
+
+``cumulative_job_time``, ``cumulative_read_time``, ``cumulative_write_time``,
+``cumulative_hash_time``, ``cumulative_sort_time``, ``cumulative_issue_time``
+are the cumulative time, in microseconds, spent in each category of disk I/O
+function.
+
+``total_read_back`` is the total number of (16 kiB) blocks read this session.
+
+``read_queue_size`` is the number of read jobs in the disk job queue.
+
+``blocked_jobs`` is the number of jobs blocked because of one or more jobs that
+need exclusive access to the file storage. For instance renaming files or closing
+files.
+
+``queued_jobs`` is the total number of jobs in the queue.
+
+``pending_jobs`` is the number of jobs that have been issued to the OS, but have not
+yet completed.
+
+``num_aiocb`` is the number of async. disk I/O request objects currently in use.
+
+``peak_aiocb`` is the peak number of aiocb's that's ever been in use this session.
 
 
 is_listening() listen_port() listen_on()

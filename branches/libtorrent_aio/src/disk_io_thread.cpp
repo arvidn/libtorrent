@@ -303,6 +303,7 @@ namespace libtorrent
 		, m_cumulative_write_time(0)
 		, m_cumulative_job_time(0)
 		, m_cumulative_sort_time(0)
+		, m_cumulative_issue_time(0)
 		, m_total_read_back(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
@@ -1800,6 +1801,7 @@ namespace libtorrent
 		ret.average_write_time = m_write_time.mean();
 		ret.average_job_time = m_job_time.mean();
 		ret.average_sort_time = m_sort_time.mean();
+		ret.average_issue_time = m_issue_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
 		ret.queued_jobs = m_num_to_issue;
 		ret.peak_queued = m_peak_num_to_issue;
@@ -1817,6 +1819,7 @@ namespace libtorrent
 		ret.cumulative_write_time = m_cumulative_write_time;
 		ret.cumulative_job_time = m_cumulative_job_time;
 		ret.cumulative_sort_time = m_cumulative_sort_time;
+		ret.cumulative_issue_time = m_cumulative_issue_time;
 
 		m_disk_cache.get_stats(&ret);
 	}
@@ -2367,6 +2370,8 @@ namespace libtorrent
 					++m_elevator_turns;
 				}
 
+				ptime start = time_now_hires();
+
 				m_last_phys_off = m_to_issue->phys_offset;
 
 				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
@@ -2382,6 +2387,10 @@ namespace libtorrent
 				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
 
 				prepend_aios(m_in_progress, pending);
+
+				int issue_time = total_microseconds(time_now_hires() - start);
+				if (num_issued > 0) m_issue_time.add_sample(issue_time / num_issued);
+				m_cumulative_issue_time += issue_time;
 
 #if !TORRENT_USE_SYNCIO
 				if (m_to_issue)

@@ -1855,8 +1855,9 @@ int main(int argc, char* argv[])
 		if (print_disk_stats)
 		{
 			snprintf(str, sizeof(str), "Disk stats:\n  timing - queue: %6d ms |"
-				" read: %6d ms | write: %6d ms\n"
-				, cs.average_queue_time / 1000, cs.average_read_time / 1000, cs.average_write_time / 1000);
+				" read: %6d ms | write: %6d ms | issue: %6d\n"
+				, cs.average_queue_time / 1000, cs.average_read_time / 1000
+				, cs.average_write_time / 1000, cs.average_issue_time / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d (%4d) blocked: %4d "
