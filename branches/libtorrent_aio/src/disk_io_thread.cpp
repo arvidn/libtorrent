@@ -1235,7 +1235,12 @@ namespace libtorrent
 			int start_block = 0;
 			if (p->hash) start_block = (p->hash->offset + m_block_size - 1) / m_block_size;
 
-			if (/* p->num_dirty == 0 && */ start_block == p->blocks_in_piece && p->hash)
+			// if we report a piece as failed before all its blocks are written,
+			// we'll run into race conditions with the state of the piece picker
+			// when we mark a block as written, after it has been restored for
+			// failing the hash check. That's why we only can take this short-cut
+			// if there are 0 dirty blocks in the piece
+			if (p->num_dirty == 0 && start_block == p->blocks_in_piece && p->hash)
 			{
 				sha1_hash h = p->hash->h.final();
 				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
