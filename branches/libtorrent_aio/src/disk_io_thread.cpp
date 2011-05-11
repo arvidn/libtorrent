@@ -147,6 +147,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(list_end == 0);
 			list_start = aios;
+			++ret;
 			// find the last item in the list chain
 			file::aiocb_t* last = list_start;
 			while (last->next)
