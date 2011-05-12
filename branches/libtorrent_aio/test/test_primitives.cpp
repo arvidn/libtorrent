@@ -379,8 +379,8 @@ namespace libtorrent
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
 
-	TORRENT_EXPORT void prepend_aios(file::aiocb_t*& list, file::aiocb_t* aios
-		, int elevator_direction, disk_io_thread* io = 0);
+	TORRENT_EXPORT int append_aios(file::aiocb_t*& list, file::aiocb_t*& list_end
+		, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 }
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
@@ -418,9 +418,10 @@ int test_main()
 		}
 
 		file::aiocb_t* sorted_list = new file::aiocb_t;
+		file::aiocb_t* sorted_list_end = sorted_list;
 		sorted_list->next = 0;
 		sorted_list->phys_offset = 50;
-		prepend_aios(sorted_list, list, elevator);
+		append_aios(sorted_list, sorted_list_end, list, elevator, 0);
 
 		int elevator_dir = elevator;
 		int last = sorted_list->phys_offset;
