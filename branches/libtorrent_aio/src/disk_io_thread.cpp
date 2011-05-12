@@ -169,6 +169,7 @@ namespace libtorrent
 			list_end->next = aios;
 			aios->prev = list_end;
 
+			++ret;
 			file::aiocb_t* last = list_end;
 			while (last->next)
 			{
