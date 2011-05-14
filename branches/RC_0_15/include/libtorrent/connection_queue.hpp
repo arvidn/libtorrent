@@ -81,8 +81,14 @@ private:
 	{
 		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
 		// called when the connection is initiated
+		// this is when the timeout countdown starts
 		boost::function<void(int)> on_connect;
 		// called if done hasn't been called within the timeout
+		// or if the connection queue aborts. This means there
+		// are 3 different interleaves of these function calls:
+		// 1. on_connect
+		// 2. on_connect, on_timeout
+		// 3. on_timeout
 		boost::function<void()> on_timeout;
 		bool connecting;
 		int ticket;

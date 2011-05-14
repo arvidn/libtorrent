@@ -292,6 +292,8 @@ namespace libtorrent
 		for (std::list<entry>::iterator i = timed_out.begin()
 			, end(timed_out.end()); i != end; ++i)
 		{
+			TORRENT_ASSERT(i->connecting);
+			TORRENT_ASSERT(i->ticket != -1);
 			TORRENT_TRY {
 				i->on_timeout();
 			} TORRENT_CATCH(std::exception&) {}

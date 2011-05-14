@@ -552,6 +552,17 @@ void udp_socket::close()
 	{
 		m_cc.done(m_connection_ticket);
 		m_connection_ticket = -1;
+
+		// we just called done, which means on_timeout
+		// won't be called. Decrement the outstanding
+		// ops counter for that
+		TORRENT_ASSERT(m_outstanding_ops > 0);
+		--m_outstanding_ops;
+		if (m_abort)
+		{
+			maybe_clear_callback();
+			return;
+		}
 	}
 
 	maybe_clear_callback();
@@ -741,6 +752,12 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
 	// on_connect may be called from within this thread
+	// the semantics for on_connect and on_timeout is 
+	// a bit complicated. See comments in connection_queue.hpp
+	// for more details. This semantic determines how and
+	// when m_outstanding_ops may be decremented
+	// To simplyfy this, it's probably a good idea to
+	// merge on_connect and on_timeout to a single function
 	++m_outstanding_ops;
 	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
 		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
@@ -748,6 +765,13 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 void udp_socket::on_timeout()
 {
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
@@ -775,6 +799,13 @@ void udp_socket::on_connect(int ticket)
 	add_outstanding_async("udp_socket::on_connected");
 #endif
 	m_connection_ticket = ticket;
+	// at this point on_timeout may be called before on_connected
+	// so increment the outstanding ops
+	// it may also not be called in case we call
+	// connection_queue::done first, so be sure to
+	// decrement if that happens
+	++m_outstanding_ops;
+
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
 	++m_outstanding_ops;
@@ -802,6 +833,18 @@ void udp_socket::on_connected(error_code const& e)
 	TORRENT_ASSERT(is_single_thread());
 	m_cc.done(m_connection_ticket);
 	m_connection_ticket = -1;
+
+	// we just called done, which means on_timeout
+	// won't be called. Decrement the outstanding
+	// ops counter for that
+	TORRENT_ASSERT(m_outstanding_ops > 0);
+	--m_outstanding_ops;
+	if (m_abort)
+	{
+		maybe_clear_callback();
+		return;
+	}
+
 	if (e)
 	{
 		TORRENT_TRY {
