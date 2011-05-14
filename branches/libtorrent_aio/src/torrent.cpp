@@ -6654,8 +6654,6 @@ namespace libtorrent
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
 			&& int(m_connections.size()) < m_max_connections
 			&& m_ses.num_connections() < m_ses.settings().connections_limit)
-			return;
-
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
