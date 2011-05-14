@@ -135,8 +135,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		test_sleep(500);
 	}
 
-	TEST_EQUAL(cs.cache_size, 0);
-	TEST_EQUAL(cs.total_used_buffers, 0);
+	TEST_EQUAL(cs.cache_size, torrent_file->total_size() / 0x4000);
+	TEST_EQUAL(cs.total_used_buffers, torrent_file->total_size() / 0x4000);
 
 	std::cerr << "total_size: " << total_size
 		<< " rate_sum: " << rate_sum

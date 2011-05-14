@@ -398,6 +398,7 @@ int test_main()
 	int ret = 0;
 
 	// test aio operation sorting
+#if TORRENT_USE_SYNCIO
 	for (int elevator = -1; elevator <= 1; elevator += 2)
 	{
 		fprintf(stderr, "=== ELEVATOR TEST %d === \n", elevator);
@@ -445,6 +446,7 @@ int test_main()
 		}
 		fprintf(stderr, "\n");
 	}
+#endif
 
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
