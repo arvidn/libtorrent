@@ -574,6 +574,9 @@ namespace libtorrent
 		int disk_io_write_mode;
 		int disk_io_read_mode;
 
+		// allocate separate, contiguous, buffers for read and
+		// write calls. Only used where writev/readv cannot be used
+		// will use more RAM but may improve performance
 		bool coalesce_reads;
 		bool coalesce_writes;
 

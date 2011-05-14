@@ -151,6 +151,9 @@ namespace libtorrent
 		set.use_read_cache = false;
 		set.use_disk_read_ahead = false;
 
+		set.coalesce_reads = false
+		set.coalesce_writes = false;
+
 		set.close_redundant_connections = true;
 
 		set.max_peerlist_size = 500;
@@ -235,6 +238,12 @@ namespace libtorrent
 		// this is expensive and could add significant
 		// delays when freeing a large number of buffers
 		set.lock_disk_cache = false;
+
+		// in case the OS we're running on doesn't support
+		// readv/writev, allocate contiguous buffers for
+		// reads and writes
+		set.coalesce_reads = true;
+		set.coalesce_writes = true;
 
 		// the max number of bytes pending write before we throttle
 		// download rate
