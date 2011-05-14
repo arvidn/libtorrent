@@ -327,7 +327,7 @@ namespace libtorrent
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
-			address_v4 addr;
+			const address_v4 addr;
 		};
 
 #if TORRENT_USE_I2P
@@ -345,7 +345,7 @@ namespace libtorrent
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 
-			address_v6::bytes_type addr;
+			const address_v6::bytes_type addr;
 		};
 #endif
 
