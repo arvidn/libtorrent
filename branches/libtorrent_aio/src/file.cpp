@@ -1158,7 +1158,7 @@ namespace libtorrent
 #endif
 
 #elif TORRENT_USE_OVERLAPPED
-		memset(&aio->oc, 0, sizeof(OVERLAPPED));
+		memset(&aio->ov, 0, sizeof(OVERLAPPED));
 		aio->ov.Internal = 0;
 		aio->ov.InternalHigh = 0;
 		aio->ov.OffsetHigh = DWORD(offset >> 32);

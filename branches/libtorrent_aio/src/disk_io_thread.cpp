@@ -2197,7 +2197,7 @@ namespace libtorrent
 				// this should only happen for our own posted
 				// events from add_job()
 //				TORRENT_ASSERT(key == 1);
-				new_jobs = true;
+				new_job = true;
 			}
 #elif TORRENT_USE_IOSUBMIT
 			fd_set set;
