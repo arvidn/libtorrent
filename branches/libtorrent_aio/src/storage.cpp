@@ -444,7 +444,12 @@ namespace libtorrent
 		m_save_path = complete(path);
 	}
 
-	default_storage::~default_storage() { m_pool.release(this); }
+	default_storage::~default_storage()
+	{
+		// this may be called from a different
+		// thread than the disk thread
+//		m_pool.release(this);
+	}
 
 	void default_storage::initialize(bool allocate_files, error_code& ec)
 	{
@@ -926,9 +931,15 @@ ret:
 				<< physical_offset(slot, offset) << std::endl;
 		}
 #endif
+
+		int flags = 0;
+		if (m_settings)
+			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
+
 		fileop op = { &file::writev, &default_storage::write_unaligned
 			, 0, 0, 0
-			, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
+			, m_settings ? settings().disk_io_write_mode : 0, file::read_write
+			, flags };
 #ifdef TORRENT_DISK_STATS
 		int ret = readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (pool)
@@ -1038,9 +1049,15 @@ ret:
 				<< physical_offset(slot, offset) << std::endl;
 		}
 #endif
+
+		int flags = 0;
+		if (m_settings)
+			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
+
 		fileop op = { &file::readv, &default_storage::read_unaligned
 			, 0, 0, 0
-			, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+			, m_settings ? settings().disk_io_read_mode : 0, file::read_only
+			, flags};
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
@@ -1064,8 +1081,16 @@ ret:
 		async_handler* a = new async_handler(time_now_hires());
 		a->handler = handler;
 
+		int flags = 0;
+		if (m_settings)
+		{
+			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
+			flags |= settings().allow_reordered_disk_operations ? file::resolve_phys_offset : 0;
+		}
+
 		fileop op = { &file::readv, &default_storage::read_unaligned, &file::async_readv
-			, a, 0, m_settings ? settings().disk_io_read_mode : 0, file::read_only };
+			, a, 0, m_settings ? settings().disk_io_read_mode : 0, file::read_only
+			, flags };
 		error_code ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
@@ -1077,14 +1102,21 @@ ret:
 		return op.ret;
 	}
 
+	// TODO: error maybe the async_handler should be passed in here, so that a single job
+	// could use a single handler
 	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
 		, boost::function<void(async_handler*)> const& handler)
 	{
 		async_handler* a = new async_handler(time_now_hires());
 		a->handler = handler;
 
+		int flags = 0;
+		if (m_settings)
+			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
+
 		fileop op = { &file::writev, &default_storage::write_unaligned, &file::async_writev
-			, a, 0, m_settings ? settings().disk_io_write_mode : 0, file::read_write };
+			, a, 0, m_settings ? settings().disk_io_write_mode : 0, file::read_write
+			, flags };
 		error_code ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
@@ -1230,9 +1262,10 @@ ret:
 			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
 			if (op.async_op)
 			{
+				int flags = 0;
 				TORRENT_ASSERT(op.handler);
 				file::aiocb_t* aio = ((*file_handle).*op.async_op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, *aiocbs());
+					, tmp_bufs, num_tmp_bufs, *aiocbs(), op.flags);
 				if (op.ret == 0) op.ret = aio;
 				// add this to the chain
 				while (aio)
@@ -1256,7 +1289,7 @@ ret:
 			else
 			{
 				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, ec);
+					, tmp_bufs, num_tmp_bufs, ec, op.flags);
 			}
 			file_offset = 0;
 

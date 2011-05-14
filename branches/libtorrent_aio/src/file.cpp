@@ -721,6 +721,21 @@ namespace libtorrent
 		if (dummy == 0) m_done = true;
 #endif
 	}
+
+	file::aiocb_base::aiocb_base()
+		: prev(0)
+		, next(0)
+		, handler(0)
+		, buffer(0)
+		, vec(0)
+		, flags(0)
+	{}
+
+	file::aiocb_base::~aiocb_base()
+	{
+		page_aligned_allocator::free(buffer);
+	}
+
 #ifndef INVALID_HANDLE_VALUE
 #define INVALID_HANDLE_VALUE -1
 #endif
@@ -1037,108 +1052,213 @@ namespace libtorrent
 #endif
 	}
 
+	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
+	{
+		int offset = 0;
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
+			offset += bufs[i].iov_len;
+		}
+	}
+
+	void scatter_copy(file::iovec_t const* bufs, int num_bufs, char const* src)
+	{
+		int offset = 0;
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
+			offset += bufs[i].iov_len;
+		}
+	}
+
+	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	{
+		int buf_size = bufs_size(bufs, num_bufs);
+		// this is page aligned since it's used in APIs which
+		// are likely to require that (depending on OS)
+		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		if (!buf) return false;
+		tmp->iov_base = buf;
+		tmp->iov_len = buf_size;
+		bufs = tmp;
+		num_bufs = 1;
+		return true;
+	}
+
+	void coalesce_read_buffers_end(file::iovec_t const* bufs, int num_bufs, char* buf, bool copy)
+	{
+		if (copy) scatter_copy(bufs, num_bufs, buf);
+		page_aligned_allocator::free(buf);
+	}
+
+	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	{
+		// coalesce buffers means allocate a temporary buffer and
+		// issue a single write operation instead of using a vector
+		// operation
+		int buf_size = 0;
+		for (int i = 0; i < num_bufs; ++i) buf_size += bufs[i].iov_len;
+		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		if (!buf) return false;
+		gather_copy(bufs, num_bufs, buf);
+		tmp->iov_base = buf;
+		tmp->iov_len = buf_size;
+		bufs = tmp;
+		num_bufs = 1;
+		return true;
+	}
+
+	void init_aiocb(file::aiocb_t* aio, file* f, size_type offset, int op
+		, file::iovec_t* vec, int num_vec, char* buffer, int num_bytes
+		, int flags, aiocb_pool& pool)
+	{
+		aio->file_ptr = f;
+		aio->flags = flags;
+		aio->vec = vec;
+		aio->num_vec = num_vec;
+
+		if (flags & file::coalesce_buffers)
+		{
+			// save this off so that we can free it
+			// or multiplex it later
+			aio->buffer = buffer;
+		}
+
+#if TORRENT_USE_AIO
+
+		memset(&aio->cb, 0, sizeof(aiocb));
+		aio->cb.aio_fildes = f->native_handle();
+		aio->cb.aio_reqprio = 0;
+		aio->cb.aio_lio_opcode = op;
+		aio->cb.aio_buf = buffer;
+		aio->cb.aio_nbytes = num_bytes;
+		aio->cb.aio_offset = offset;
+
+#elif TORRENT_USE_IOSUBMIT
+
+		memset(&aio->cb, 0, sizeof(iocb));
+		aio->cb.aio_fildes = f->native_handle();
+		aio->cb.aio_reqprio = 0;
+		aio->cb.aio_lio_opcode = op;
+		io_set_eventfd(&aio->cb, pool.event);
+
+#if TORRENT_USE_IOSUBMIT_VEC
+		aio->num_bytes = num_bytes;
+		TORRENT_ASSERT(aio->vec);
+		aio->cb.u.v.offset = offset;
+		aio->cb.u.v.vec = aio->vec;
+		aio->cb.u.v.nr = num_vec;
+		// we should always use vector operations in this build configuration
+		TORRENT_ASSERT(buffer == 0);
+#else
+		aio->cb.u.c.buf = buffer;
+		aio->cb.u.c.nbytes = num_bytes;
+		aio->cb.u.c.offset = offset;
+#endif
+
+#elif TORRENT_USE_OVERLAPPED
+		memset(&aio->oc, 0, sizeof(OVERLAPPED));
+		aio->ov.Internal = 0;
+		aio->ov.InternalHigh = 0;
+		aio->ov.OffsetHigh = DWORD(offset >> 32);
+		aio->ov.Offset = DWORD(offset & 0xffffffff);
+		aio->ov.hEvent = CreateEvent(0, true, false, 0);
+		aio->size = num_bytes;
+		aio->buf = buffer;
+		aio->op = op;
+
+#elif TORRENT_USE_SYNCIO
+
+		aio->buf = buffer;
+		aio->size = num_bytes;
+		aio->offset = offset;
+		aio->op = op;
+		if (flags & file::resolve_phys_offset)
+			aio->phys_offset = f->phys_offset(offset);
+		else
+			aio->phys_offset = 0;
+
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
 	file::aiocb_t* file::async_io(size_type offset
 		, iovec_t const* bufs, int num_bufs, int op
-		, aiocb_pool& pool)
+		, aiocb_pool& pool, int flags)
 	{
 		aiocb_t* ret = 0;
 		aiocb_t* prev = 0;
 
-#if TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC
+		bool submit_vec = (flags & file::coalesce_buffers);
+#if (TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC) || TORRENT_USE_OVERLAPPED
+		// if we're using an AIO API that supports vector operations
+		// there's no need to coalesce the buffers
+		submit_vec = true;
+		flags &= ~file::coalesce_buffers;
+#endif
 
-		aiocb_t* aio = pool.construct();
-		memset(&aio->cb, 0, sizeof(iocb));
-		aio->file_ptr = this;
-		aio->num_bytes = 0;
-		aio->cb.aio_fildes = m_file_handle;
-		aio->cb.aio_reqprio = 0;
-		aio->cb.aio_lio_opcode = op;
-		aio->cb.u.v.offset = offset;
-		aio->cb.u.v.vec = aio->vec;
-		io_set_eventfd(&aio->cb, pool.event);
-
-		// loop to +1 so that we get a chance to hook up
-		// the last aiocb_t to the list before we return
-		for (int i = 0; i < num_bufs + 1; ++i)
+		if (submit_vec)
 		{
-			if (aio->cb.u.v.nr == 64 || i == num_bufs)
+			file::iovec_t* vec = pool.alloc_vec();
+
+			int num_vec = 0;
+			int num_bytes = 0;
+
+			// loop to +1 so that we get a chance to hook up
+			// the last aiocb_t to the list before we return
+			for (int i = 0; i < num_bufs + 1; ++i)
 			{
-				// link in to the double linked list
-				aio->prev = prev;
-				aio->next = 0;
-				if (prev) prev->next = aio;
-				if (ret == 0) ret = aio;
+				if (num_vec == aiocb_pool::max_iovec || i == num_bufs)
+				{
+					char* buffer = 0;
+					if (flags & coalesce_buffers)
+					{
+						buffer = (char*)page_aligned_allocator::malloc(num_bytes);
+						// TODO: error handling?
+						// if we're writing these buffers, and coalescing them
+						// we need to copy the bytes into the coalesced buffer
+						if (op == write_op) gather_copy(vec, num_vec, buffer);
+					}
+					file::aiocb_t* aio = pool.construct();
+					init_aiocb(aio, this, offset, op, vec, num_vec
+						, buffer, num_bytes, flags, pool);
+					// link in to the double linked list
+					aio->prev = prev;
+					aio->next = 0;
+					if (prev) prev->next = aio;
+					if (ret == 0) ret = aio;
+   
+					prev = aio;
+   
+					offset += num_bytes;
 
-				prev = aio;
-
-				// if this was the last one, we're done
-				if (i == num_bufs) break;
-
-				// if we have more buffers, allocate another
-				// aiocb to start filling up
-				aio = pool.construct();
-				memset(&aio->cb, 0, sizeof(iocb));
-				aio->file_ptr = this;
-				aio->num_bytes = 0;
-				aio->cb.aio_fildes = m_file_handle;
-				aio->cb.aio_lio_opcode = op;
-				aio->cb.aio_reqprio = 0;
-				aio->cb.u.v.offset = offset;
-				aio->cb.u.v.vec = aio->vec;
+					// if this was the last one, we're done
+					if (i == num_bufs) break;
+   
+					// if we have more buffers, allocate another
+					// vec to start filling up
+					vec = pool.alloc_vec();
+					num_bytes = 0;
+					num_vec = 0;
+				}
+   
+				vec[num_vec] = bufs[i];
+				++num_vec;
+				num_bytes += bufs[i].iov_len;
 			}
-
-			offset += bufs[i].iov_len;
-			aio->vec[aio->cb.u.v.nr] = bufs[i];
-			++aio->cb.u.v.nr;
-			aio->num_bytes += bufs[i].iov_len;
+			return ret;
 		}
-
-#else
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			aiocb_t* aio = pool.construct();
-#if TORRENT_USE_AIO
-			memset(&aio->cb, 0, sizeof(aiocb));
 			aio->file_ptr = this;
-			aio->cb.aio_fildes = m_file_handle;
-			aio->cb.aio_lio_opcode = op;
-			aio->cb.aio_reqprio = 0;
-			aio->cb.aio_buf = bufs[i].iov_base;
-			aio->cb.aio_nbytes = bufs[i].iov_len;
-			aio->cb.aio_offset = offset;
-#elif TORRENT_USE_IOSUBMIT
-			memset(&aio->cb, 0, sizeof(iocb));
-			aio->file_ptr = this;
-			aio->cb.aio_fildes = m_file_handle;
-			aio->cb.aio_lio_opcode = op;
-			aio->cb.aio_reqprio = 0;
-			aio->cb.u.c.buf = bufs[i].iov_base;
-			aio->cb.u.c.nbytes = bufs[i].iov_len;
-			aio->cb.u.c.offset = offset;
-			io_set_eventfd(&aio->cb, pool.event);
-#elif TORRENT_USE_OVERLAPPED
-			memset(&aio->oc, 0, sizeof(OVERLAPPED));
-			aio->file_ptr = this;
-			aio->ov.Internal = 0;
-			aio->ov.InternalHigh = 0;
-			aio->ov.OffsetHigh = DWORD(offset >> 32);
-			aio->ov.Offset = DWORD(offset & 0xffffffff);
-			aio->ov.hEvent = CreateEvent(0, true, false, 0);
-			aio->size = bufs[i].iov_len;
-			aio->buf = bufs[i].iov_base;
-			aio->phys_offset = phys_offset(offset);
-			aio->op = op;
-#elif TORRENT_USE_SYNCIO
-			aio->file_ptr = this;
-			aio->buf = bufs[i].iov_base;
-			aio->size = bufs[i].iov_len;
-			aio->offset = offset;
-			aio->op = op;
-			aio->phys_offset = phys_offset(offset);
-#else
-#error what I/O API are we using?
-#endif
+			// don't save the coalesce buffers flag for writes
+			// since we don't need to do anything with it
+			init_aiocb(aio, this, offset, op, 0, 0, (char*)bufs[i].iov_base, bufs[i].iov_len
+				, op == write_op ? flags & ~file::coalesce_buffers : flags, pool);
 			// link in to the double linked list
 			aio->prev = prev;
 			aio->next = 0;
@@ -1148,35 +1268,40 @@ namespace libtorrent
 			offset += bufs[i].iov_len;
 			prev = aio;
 		}
-#endif
+
 		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+
 		return ret;
 	}
 
 	file::aiocb_t* file::async_writev(size_type offset
-		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool)
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool, int flags)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 		
-		return async_io(offset, bufs, num_bufs, write_op, pool);
+		return async_io(offset, bufs, num_bufs, write_op, pool, flags);
 	}
 
 	file::aiocb_t* file::async_readv(size_type offset
-		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool)
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool, int flags)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
 
-		return async_io(offset, bufs, num_bufs, read_op, pool);
+		return async_io(offset, bufs, num_bufs, read_op, pool, flags);
 	}
 
-	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
+	size_type file::readv(size_type file_offset, iovec_t const* bufs_in, int num_bufs_in
+		, error_code& ec, int flags)
 	{
+		iovec_t const* bufs = bufs_in;
+		int num_bufs = num_bufs_in;
+
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
@@ -1224,17 +1349,25 @@ namespace libtorrent
 			// this means the buffer base or the buffer size is not aligned
 			// to the page size. Use a regular file for this operation.
 
+			file::iovec_t tmp;
 #if !TORRENT_USE_OVERLAPPED
 
 			// If we're not using overlapped I/O, we can't use ReadFileScatter
 			// anyway. Just loop over the buffers and write them one at a time
    
+			if (flags & file::coalesce_buffers)
+			{
+				if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce this read
+					flags &= ~file::coalesce_buffers;
+			}
+
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
-				return -1;
+				goto done;
 			}
    
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -1244,13 +1377,26 @@ namespace libtorrent
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
-					return -1;
+					break;
 				}
 				ret += intermediate;
 			}
-			return ret;
+
+done:
+
+			if (flags & file::coalesce_buffers)
+				coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
+			return ec ? -1 : ret;
 
 #endif // TORRENT_USE_OVERLAPPED
+
+			if (flags & file::coalesce_buffers)
+			{
+				if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce this read
+					flags &= ~file::coalesce_buffers;
+			}
 
 			OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 			memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -1289,6 +1435,10 @@ namespace libtorrent
 				CloseHandle(ol[i].hEvent);
 				if (ret != -1) ret += intermediate;
 			}
+
+			if (flags & file::coalesce_buffers)
+				coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
 			return ret;
 		}
 
@@ -1386,6 +1536,14 @@ namespace libtorrent
 
 #else // TORRENT_USE_READV
 
+		file::iovec_t tmp;
+		if (flags & file::coalesce_buffers)
+		{
+			if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+				// ok, that failed, don't coalesce this read
+				flags &= ~file::coalesce_buffers;
+		}
+
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
@@ -1398,6 +1556,10 @@ namespace libtorrent
 			ret += tmp;
 			if (tmp < i->iov_len) break;
 		}
+
+		if (flags & file::coalesce_buffers)
+			coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
 		return ret;
 
 #endif // TORRENT_USE_READV
@@ -1405,12 +1567,15 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
-	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
+	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs
+		, error_code& ec, int flags)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
+
+		ec.clear();
 
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		// make sure m_page_size is initialized
@@ -1460,12 +1625,20 @@ namespace libtorrent
 			// WriteFileGather anyway. Just loop over the buffers and
 			// write them one at a time
    
+			file::iovec_t tmp;
+			if (flags & file::coalesce_buffers)
+			{
+				if (!coalesce_write_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce writes
+					flags &= ~file::coalesce_buffers;
+			}
+
 			LARGE_INTEGER offs;
 			offs.QuadPart = file_offset;
 			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
-				return -1;
+				goto done;
 			}
    
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -1475,11 +1648,17 @@ namespace libtorrent
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
-					return -1;
+					break;
 				}
 				ret += intermediate;
 			}
-			return ret;
+
+done:
+
+			if (flags & file::coalesce_buffers)
+				free(tmp.iov_base);
+
+			return ec ? -1 : ret;
 
 #endif // TORRENT_USE_OVERLAPPED
 
@@ -1669,6 +1848,16 @@ namespace libtorrent
 
 #else // TORRENT_USE_WRITEV
 
+		// it doesn't make any sense to coalesce if we have support
+		// for vector operations
+		iovec_t tmp;
+		if (flags & file::coalesce_buffers)
+		{
+			if (!coalesce_write_buffers(bufs, num_bufs, &tmp))
+				// ok, that failed, don't coalesce writes
+				flags &= ~file::coalesce_buffers;
+		}
+
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
@@ -1676,12 +1865,16 @@ namespace libtorrent
 			if (tmp < 0)
 			{
 				ec.assign(errno, get_posix_category());
-				return -1;
+				break;
 			}
 			ret += tmp;
 			if (tmp < i->iov_len) break;
 		}
-		return ret;
+
+		if (flags & file::coalesce_buffers)
+			free(bufs[0].iov_base);
+
+		return ec ? -1 : ret;
 
 #endif // TORRENT_USE_WRITEV
 
@@ -2005,34 +2198,37 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	bool reap_aio(file::aiocb_t* aio, aiocb_pool& pool)
 	{
+		error_code ec;
+
 #if TORRENT_USE_AIO
 		int e = aio_error(&aio->cb);
 		if (e == EINPROGRESS) return false;
-
 		size_t ret = aio_return(&aio->cb);
 		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
-		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
+		ec = error_code(e, boost::system::get_posix_category());
 #elif TORRENT_USE_IOSUBMIT
-		int ret = aio->ret;
+		size_t ret = aio->ret;
 		int e = aio->error;
 		DLOG(stderr, "  aio->ret = %d\n", ret);
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(e));
 		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
 #elif TORRENT_USE_OVERLAPPED
-		BOOL ret = HasOverlappedIoCompleted(&aio->ov);
-		if (ret == FALSE) return false;
+		BOOL is_complete = HasOverlappedIoCompleted(&aio->ov);
+		if (is_complete == FALSE) return false;
 
 		DWORD transferred = 0;
-		ret = GetOverlappedResult(aio->file_ptr->native_handle(), &aio->ov, &transferred, TRUE);
-		DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &aio->ov, int(ret));
+		BOOL has_result = GetOverlappedResult(aio->file_ptr->native_handle()
+			, &aio->ov, &transferred, TRUE);
+		DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &aio->ov, int(has_result));
 		int error = ERROR_SUCCESS;
-		if (ret == FALSE)
+		if (has_result == FALSE)
 		{
 			error = GetLastError();
 			DLOG(stderr, " error: %d\n", error);
 		}
-		aio->handler->done(error_code(error, boost::system::get_system_category()), transferred);
+		ec = error_code(error, boost::system::get_system_category());
+		size_t ret = transferred;
 		CloseHandle(aio->ov.hEvent);
 #elif TORRENT_USE_SYNCIO
 		// since we don't have AIO, all operations should have
@@ -2040,9 +2236,20 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// should ever be outstanding
 		TORRENT_ASSERT(aio == 0);
 		return false;
+		size_t ret = 0;
 #else
-#error what I/O API are we using?
+#error what disk I/O API are we using?
 #endif
+
+		if (aio->flags & file::coalesce_buffers)
+		{
+			TORRENT_ASSERT(aio->buffer && aio->vec);
+			scatter_copy(aio->vec, aio->num_vec, aio->buffer);
+		}
+
+		aio->handler->done(ec, ret);
+
+		pool.free_vec(aio->vec);
 
 		// unlink
 		if (aio->prev)
@@ -2242,11 +2449,11 @@ finish:
 #elif TORRENT_USE_SYNCIO
 			error_code ec;
 			int ret;
-			// #error merge adjacent operations into a vector call
 			file::iovec_t b = {aios->buf, aios->size};
 			switch (aios->op)
 			{
-#error use the full iovecs here!
+// TODO: use the full iovecs here!
+// TODO: pass on coalesce_write/read into the flags here!
 				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
 				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
 				default: TORRENT_ASSERT(false);
@@ -2260,7 +2467,7 @@ finish:
 			++num_issued;
 			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
 #else
-#error what I/O API are we using?
+#error what disk I/O API are we using?
 #endif
 		
 			++num_issued;

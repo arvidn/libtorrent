@@ -257,21 +257,47 @@ namespace libtorrent
 		// posix AIOs aiocb and window's OVERLAPPED
 		// structure. There's also a platform independent
 		// version that doesn't use aynch. I/O
-#if TORRENT_USE_AIO
-		struct aiocb_t
+		struct aiocb_t;
+
+		struct aiocb_base
 		{
-			aiocb cb;
 			aiocb_t* prev;
 			aiocb_t* next;
 			async_handler* handler;
-			size_type phys_offset;
 			// used to keep the file alive while
 			// waiting for the async operation
 			boost::intrusive_ptr<file> file_ptr;
-			size_t nbytes() const { return cb.aio_nbytes; }
+
+			// when coalescing reads/writes, this is the buffer
+			// used. It's heap allocated
+			char* buffer;
+
+			// when coalescing reads, we need to save the iovecs
+			// so that we can copy the resulting buffer into the
+			// original buffers when we're done. In that case
+			// this will point to aiocb_pool::max_iovec elements.
+			// it's also used for AIO APIs that actually support
+			// iovecs.
+			file::iovec_t* vec;
+
+			// the number of buffers specified in vec that are
+			// used for this I/O
+			int num_vec;
+
+			// the flags passed to the read or write operation
+			int flags;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use;
 #endif
+			aiocb_base();
+			~aiocb_base();
+		};
+
+#if TORRENT_USE_AIO
+		struct aiocb_t : aiocb_base
+		{
+			aiocb cb;
+			size_t nbytes() const { return cb.aio_nbytes; }
 		};
 
 		enum
@@ -280,16 +306,9 @@ namespace libtorrent
 			write_op = LIO_WRITE
 		};
 #elif TORRENT_USE_IOSUBMIT
-		struct aiocb_t
+		struct aiocb_t : aiocb_base
 		{
 			iocb cb;
-			aiocb_t* prev;
-			aiocb_t* next;
-			async_handler* handler;
-			size_type phys_offset;
-			// used to keep the file alive while
-			// waiting for the async operation
-			boost::intrusive_ptr<file> file_ptr;
 			// return value of the async. operation
 			int ret;
 			// if ret < 0, this is the errno value the
@@ -298,12 +317,8 @@ namespace libtorrent
 #if TORRENT_USE_IOSUBMIT_VEC
 			int num_bytes;
 			size_t nbytes() const { return num_bytes; }
-			iovec vec[64];
 #else
 			size_t nbytes() const { return cb.u.c.nbytes; }
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			bool in_use;
 #endif
 		};
 
@@ -318,23 +333,33 @@ namespace libtorrent
 #endif
 		};
 #elif TORRENT_USE_OVERLAPPED
-		struct aiocb_t
+		struct aiocb_t : aiocb_base
 		{
 			OVERLAPPED ov;
-			aiocb_t* prev;
-			aiocb_t* next;
-			async_handler* handler;
-			size_type phys_offset;
 			int op;
 			size_t size;
 			void* buf;
-			// used to keep the file alive while
-			// waiting for the async operation
-			mutable boost::intrusive_ptr<file> file_ptr;
 			size_t nbytes() const { return size; }
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			bool in_use;
-#endif
+		};
+
+		enum
+		{
+			read_op = 1,
+			write_op = 2
+		};
+#elif TORRENT_USE_SYNCIO
+		// if there is no aio support on this platform
+		// fall back to an operation that's sortable
+		// by physical disk offset
+		struct aiocb_t : aiocb_base
+		{
+			// used to insert jobs ordered
+			size_type phys_offset;
+			int op;
+			size_type offset;
+			size_type size;
+			void* buf;
+			size_t nbytes() const { return size; }
 		};
 
 		enum
@@ -343,34 +368,7 @@ namespace libtorrent
 			write_op = 2
 		};
 #else
-		// if there is no aio support on this platform
-		// fall back to an operation that's sortable
-		// by physical disk offset
-		struct aiocb_t
-		{
-			aiocb_t* prev;
-			aiocb_t* next;
-			async_handler* handler;
-			// used to insert jobs ordered
-			size_type phys_offset;
-			int op;
-			size_type offset;
-			size_type size;
-			void* buf;
-			// used to keep the file alive while
-			// waiting for the async operation
-			mutable boost::intrusive_ptr<file> file_ptr;
-			size_t nbytes() const { return size; }
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			bool in_use;
-#endif
-		};
-
-		enum
-		{
-			read_op = 1,
-			write_op = 2
-		};
+#error which disk I/O API are we using?
 #endif
 
 		// use a typedef for the type of iovec_t::iov_base
@@ -410,15 +408,24 @@ namespace libtorrent
 		// this when in unbuffered mode
 		int size_alignment() const;
 
-		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		// flags for writev, readv, async_writev and async_readv
+		enum
+		{
+			coalesce_buffers = 1,
+			resolve_phys_offset = 2
+		};
+
+		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs
+			, error_code& ec, int flags = 0);
+		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs
+			, error_code& ec, int flags = 0);
 		void hint_read(size_type file_offset, int len);
 
 		// returns a chain of aiocb_t structures
 		aiocb_t* async_writev(size_type offset, iovec_t const* bufs
-			, int num_bufs, aiocb_pool& pool);
+			, int num_bufs, aiocb_pool& pool, int flags = 0);
 		aiocb_t* async_readv(size_type offset, iovec_t const* bufs
-			, int num_bufs, aiocb_pool& pool);
+			, int num_bufs, aiocb_pool& pool, int flags = 0);
 
 		size_type get_size(error_code& ec) const;
 
@@ -437,7 +444,7 @@ namespace libtorrent
 		// element in the (doubly) linked list
 		aiocb_t* async_io(size_type offset
 			, iovec_t const* bufs, int num_bufs, int op
-			, aiocb_pool& pool);
+			, aiocb_pool& pool, int flags);
 
 		handle_type m_file_handle;
 

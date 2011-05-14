@@ -369,6 +369,7 @@ namespace libtorrent
 		int m_outstanding_jobs;
 		int m_peak_outstanding;
 
+#if TORRENT_USE_SYNCIO
 		// the direction of the elevator. -1 means down and
 		// 1 means up
 		int m_elevator_direction;
@@ -380,6 +381,7 @@ namespace libtorrent
 		// the physical offset of the last job consumed out
 		// of the deferred jobs list
 		size_type m_last_phys_off;
+#endif
 
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;

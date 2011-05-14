@@ -44,11 +44,35 @@ namespace libtorrent
 {
 	struct aiocb_pool
 	{
+		enum { max_iovec = 64 };
+
 		aiocb_pool(): m_in_use(0), m_peak_in_use(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(sizeof(file::aiocb_t), 128)
+			, m_pool(sizeof(file::aiocb_t), 128)
+			, m_vec_pool(sizeof(file::iovec_t) * max_iovec)
 #endif
 		{}
+
+		file::iovec_t* alloc_vec()
+		{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+			file::iovec_t* ret = new file::iovec_t[max_iovec];
+#else
+			file::iovec_t* ret = (file::iovec_t*)m_vec_pool.malloc();
+			m_pool.set_next_size(256);
+#endif
+			return ret;
+		}
+
+		void free_vec(file::iovec_t* vec)
+		{
+			if (vec == 0) return;
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+			delete[] vec;
+#else
+			m_vec_pool.free(vec);
+#endif
+		}
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		bool is_from(file::aiocb_t* p) const { return true; }
@@ -103,6 +127,7 @@ namespace libtorrent
 		int m_peak_in_use;
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		boost::pool<> m_pool;
+		boost::pool<> m_vec_pool;
 #endif
 	};
 }

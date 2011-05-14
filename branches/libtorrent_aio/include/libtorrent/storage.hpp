@@ -222,7 +222,7 @@ namespace libtorrent
 			// this is the function to be called on the file object, for
 			// regular, aligned, operations
 			size_type (file::*regular_op)(size_type file_offset
-				, file::iovec_t const* bufs, int num_bufs, error_code& ec);
+				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int);
 			// this is the function to be called on the file object, for
 			// unaligned operations
 			size_type (default_storage::*unaligned_op)(boost::intrusive_ptr<file> const& f
@@ -232,7 +232,7 @@ namespace libtorrent
 			// async operations
 			file::aiocb_t* (file::*async_op)(size_type offset
 				, file::iovec_t const* bufs, int num_bufs
-				, aiocb_pool&);
+				, aiocb_pool&, int);
 			// for async operations, this is the handler that will be added
 			// to every aiocb_t in the returned chain
 			async_handler* handler;
@@ -240,6 +240,7 @@ namespace libtorrent
 			file::aiocb_t* ret;
 			int cache_setting;
 			int mode;
+			int flags;
 		};
 
 		void delete_one_file(std::string const& p, error_code& ec);

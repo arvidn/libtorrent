@@ -158,18 +158,22 @@ namespace libtorrent
 				last = last->next;
 			}
 			list_end = last;
+			TORRENT_ASSERT(list_end->next == 0);
 			return ret;
 		}
 
 		TORRENT_ASSERT(list_end->next == 0);
 
+#if TORRENT_USE_SYNCIO
+		// this is only optional when we have a phys_offset member
+		// and we can sort by it, i.e. only when we're doing sync I/O
 		if (elevator_direction == 0)
+#endif
 		{
 			// append the aios chain at the end of the list
 			list_end->next = aios;
 			aios->prev = list_end;
 
-			++ret;
 			file::aiocb_t* last = list_end;
 			while (last->next)
 			{
@@ -180,9 +184,11 @@ namespace libtorrent
 			}
 			// update the end-of-list pointer
 			list_end = last;
+			TORRENT_ASSERT(list_end->next == 0);
 			return ret;
 		}
 
+#if TORRENT_USE_SYNCIO
 		// insert each aio ordered by phys_offset
 		// according to elevator_direction
 
@@ -253,8 +259,12 @@ namespace libtorrent
 			}
 			last->next = i;
 			i->next = j;
+			i->prev = last;
 			if (j) j->prev = i;
+			else list_end = i;
 		}
+		
+		TORRENT_ASSERT(list_end->next == 0);
 
 		if (io)
 		{
@@ -264,6 +274,7 @@ namespace libtorrent
 		}
 
 		return ret;
+#endif // TORRENT_USE_SYNCIO
 	}
 
 #if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
@@ -314,9 +325,11 @@ namespace libtorrent
 		, m_peak_num_to_issue(0)
 		, m_outstanding_jobs(0)
 		, m_peak_outstanding(0)
+#if TORRENT_USE_SYNCIO
 		, m_elevator_direction(1)
 		, m_elevator_turns(0)
 		, m_last_phys_off(0)
+#endif
 		, m_physical_ram(0)
 		, m_exceeded_write_queue(false)
 		, m_ios(ios)
@@ -1800,7 +1813,11 @@ namespace libtorrent
 	void disk_io_thread::get_disk_metrics(cache_status& ret) const
 	{
 		ret.total_used_buffers = in_use();
+#if TORRENT_USE_SYNCIO
 		ret.elevator_turns = m_elevator_turns;
+#else
+		ret.elevator_turns = 0;
+#endif
 		ret.queued_bytes = m_pending_buffer_size + m_queue_buffer_size;
 
 		ret.average_queue_time = m_queue_time.mean();
@@ -2017,7 +2034,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 #define TORRENT_ASSERT_VALID_AIOCB(x) \
 	do { \
-		TORRENT_ASSERT(m_aiocb_pool.is_from(a)); \
+		TORRENT_ASSERT(m_aiocb_pool.is_from(x)); \
 		bool found = false; \
 		for (file::aiocb_t* i = m_in_progress; i; i = i->next) { \
 			if (i != x) continue; \
@@ -2371,18 +2388,23 @@ namespace libtorrent
 			// as asking for stats)
 			if (m_to_issue)
 			{
+				ptime start = time_now_hires();
+#if TORRENT_USE_SYNCIO
 				if (!same_sign(m_to_issue->phys_offset - m_last_phys_off, m_elevator_direction))
 				{
 					m_elevator_direction *= -1;
 					++m_elevator_turns;
 				}
 
-				ptime start = time_now_hires();
-
 				m_last_phys_off = m_to_issue->phys_offset;
 
 				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
 					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
+#else
+				DLOG(stderr, "issue aios (%p)\n", m_to_issue);
+#endif
+
+
 				file::aiocb_t* pending;
 				int num_issued = 0;
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
