@@ -3338,7 +3338,6 @@ namespace aux {
 				, int(cs.average_read_time)
 				, int(cs.average_write_time)
 				, int(cs.average_queue_time)
-				, int(cs.average_issue_time)
 				, int(cs.pending_jobs + cs.queued_jobs)
 				, int(cs.queued_bytes)
 				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
