@@ -3353,6 +3353,7 @@ namespace aux {
 				, int(cs.average_hash_time)
 				, int(cs.average_job_time)
 				, int(cs.average_sort_time)
+				, int(cs.average_issue_time)
 				, m_connection_attempts
 				, m_num_banned_peers
 				, m_banned_for_hash_failure
