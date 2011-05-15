@@ -2210,9 +2210,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #elif TORRENT_USE_IOSUBMIT
 		size_t ret = aio->ret;
 		int e = aio->error;
-		DLOG(stderr, "  aio->ret = %d\n", ret);
+		DLOG(stderr, "  aio->ret = %d\n", aio->ret);
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(e));
-		aio->handler->done(error_code(e, boost::system::get_posix_category()), ret);
+		ec = error_code(e, boost::system::get_posix_category());
 #elif TORRENT_USE_OVERLAPPED
 		BOOL is_complete = HasOverlappedIoCompleted(&aio->ov);
 		if (is_complete == FALSE) return false;
@@ -2277,6 +2277,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
+		if (aios == 0) return std::pair<file::aiocb_t*, file::aiocb_t*>(0, 0);
+
 		const int submit_batch_size = 512;
 		iocb* to_submit[submit_batch_size];
 
@@ -2296,6 +2298,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		{
 			if (i == submit_batch_size || aios == 0)
 			{
+				DLOG(stderr, "io_submit [");
+				for (file::aiocb_t* j = list_start; j; j = j->next)
+					DLOG(stderr, " %p", j);
+				DLOG(stderr, " ]\n");
 				int r = io_submit(pool.io_queue, i, to_submit);
 				DLOG(stderr, "io_submit(%d) = %d\n", i, r);
 				if (r < 0) DLOG(stderr, "  error: %s\n", strerror(-r));

@@ -352,7 +352,7 @@ namespace libtorrent
 #endif
 #if TORRENT_USE_IOSUBMIT
 		m_io_queue = 0;
-		int ret = io_setup(5000, &m_io_queue);
+		int ret = io_setup(20000, &m_io_queue);
 		if (ret != 0)
 		{
 			// error handling!
@@ -2245,7 +2245,12 @@ namespace libtorrent
 
 					for (int i = 0; i < num_events; ++i)
 					{
-						file::aiocb_t* aio = (file::aiocb_t*)events[i].obj;
+						// since aiocb_t derives from aiocb_base, the platforma specific
+						// type (in this case cb) is not at the top of the aiocb_t type
+						// that's why we need to adjust the pointer from the platform specific
+						// pointer into the wrapper, aiocb_t
+						file::aiocb_t* aio = (file::aiocb_t*)(((char*)events[i].obj) - offsetof(file::aiocb_t, cb));
+						TORRENT_ASSERT(aio->in_use);
 						TORRENT_ASSERT_VALID_AIOCB(aio);
 						file::aiocb_t* next = aio->next;
 						// copy the return codes from the io_event
