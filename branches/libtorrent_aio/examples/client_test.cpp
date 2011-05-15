@@ -1296,6 +1296,14 @@ int main(int argc, char* argv[])
 		memset(counters, 0, sizeof(counters));
 		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
 		if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
+		else if (active_torrent >= 0)
+		{
+			// ask for distributed copies for the selected torrent. Since this
+			// is a somewhat expensive operation, don't do it by default for
+			// all torrents
+			handles[active_torrent] = handles[active_torrent].handle.status(
+				torrent_handle::query_distributed_copies);
+		}
 
 		std::vector<feed_handle> feeds;
 		ses.get_feeds(feeds);
