@@ -1149,9 +1149,8 @@ namespace libtorrent
 			return;
 		}
 
-		if ((t->is_paused() && (!t->is_auto_managed()
+		if (t->is_paused() && (!t->is_auto_managed()
 			|| !m_ses.m_settings.incoming_starts_queued_torrents))
-			|| t->has_error())
 		{
 			// paused torrents will not accept
 			// incoming connections unless they are auto managed
