@@ -952,7 +952,6 @@ namespace aux {
 			":disk read time"
 			":disk write time"
 			":disk queue time"
-			":disk issue time"
 			":disk queue size"
 			":disk queued bytes"
 			":read cache hits"
