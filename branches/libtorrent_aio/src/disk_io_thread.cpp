@@ -1891,12 +1891,13 @@ namespace libtorrent
 		// just drop below the disk queue low watermark limit?
 		deducted_from_write_queue();
 
+		free_buffer(j.buffer);
+		j.buffer = 0;
+
 		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n"
 			, this, j.piece, j.offset, handler->error.message().c_str());
 		if (handler->error)
 		{
-			free_buffer(j.buffer);
-			j.buffer = 0;
 			j.error = handler->error;
 			j.error_file.clear();
 			j.str.clear();
@@ -1946,6 +1947,8 @@ namespace libtorrent
 		++m_read_blocks;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
+		else if (j.buffer)
+			free_buffer(j.buffer);
 	}
 
 	// This is sometimes called from an outside thread!
