@@ -1054,6 +1054,9 @@ namespace libtorrent
 		if (alerts().should_post<file_error_alert>())
 			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 
+		// put the torrent in an error-state
+		set_error(j.error, j.error_file);
+
 		if (j.action == disk_io_job::write)
 		{
 			// if we failed to write, stop downloading and just
@@ -1067,8 +1070,7 @@ namespace libtorrent
 			return;
 		}
 
-		// put the torrent in an error-state
-		set_error(j.error, j.error_file);
+		// if the error appears to be more serious than a full disk, just pause the torrent
 		pause();
 	}
 
