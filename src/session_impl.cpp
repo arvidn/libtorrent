@@ -5159,25 +5159,21 @@ namespace aux {
 		return m_disk_thread.allocate_buffer(category);
 	}
 	
-	std::pair<char*, int> session_impl::allocate_buffer(int size)
+	char* session_impl::allocate_buffer()
 	{
-		TORRENT_ASSERT(size > 0);
-		int num_buffers = (size + send_buffer_size - 1) / send_buffer_size;
-		TORRENT_ASSERT(num_buffers > 0);
+		TORRENT_ASSERT(is_network_thread());
 
-		mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_DISK_STATS
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
-		m_buffer_allocations += num_buffers;
+		m_buffer_allocations++;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
 			<< (m_buffer_allocations * send_buffer_size) << std::endl;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		int num_bytes = num_buffers * send_buffer_size;
-		return std::make_pair((char*)malloc(num_bytes), num_bytes);
+		int num_bytes = send_buffer_size;
+		return (char*)malloc(num_bytes);
 #else
-		return std::make_pair((char*)m_send_buffers.ordered_malloc(num_buffers)
-			, num_buffers * send_buffer_size);
+		return (char*)m_send_buffers.malloc();
 #endif
 	}
 
@@ -5202,16 +5198,12 @@ namespace aux {
 	}
 #endif
 
-	void session_impl::free_buffer(char* buf, int size)
+	void session_impl::free_buffer(char* buf)
 	{
-		TORRENT_ASSERT(size > 0);
-		TORRENT_ASSERT(size % send_buffer_size == 0);
-		int num_buffers = size / send_buffer_size;
-		TORRENT_ASSERT(num_buffers > 0);
+		TORRENT_ASSERT(is_network_thread());
 
-		mutex::scoped_lock l(m_send_buffer_mutex);
 #ifdef TORRENT_DISK_STATS
-		m_buffer_allocations -= num_buffers;
+		m_buffer_allocations--;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
 			<< (m_buffer_allocations * send_buffer_size) << std::endl;
@@ -5219,7 +5211,7 @@ namespace aux {
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		free(buf);
 #else
-		m_send_buffers.ordered_free(buf, num_buffers);
+		m_send_buffers.free(buf);
 #endif
 	}	
 

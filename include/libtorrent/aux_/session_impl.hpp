@@ -408,8 +408,8 @@ namespace libtorrent
 				m_total_failed_bytes += b;
 			}
 
-			std::pair<char*, int> allocate_buffer(int size);
-			void free_buffer(char* buf, int size);
+			char* allocate_buffer();
+			void free_buffer(char* buf);
 
 			char* allocate_disk_buffer(char const* category);
 			void free_disk_buffer(char* buf);
@@ -516,7 +516,6 @@ namespace libtorrent
 			// buffers from.
 			boost::pool<> m_send_buffers;
 #endif
-			mutex m_send_buffer_mutex;
 
 			// the file pool that all storages in this session's
 			// torrents uses. It sets a limit on the number of
