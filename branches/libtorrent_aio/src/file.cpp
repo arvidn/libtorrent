@@ -1192,7 +1192,9 @@ namespace libtorrent
 		aiocb_t* prev = 0;
 
 		bool submit_vec = (flags & file::coalesce_buffers);
-#if (TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC) || TORRENT_USE_OVERLAPPED
+#if (TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC) \
+	|| TORRENT_USE_OVERLAPPED \
+	|| TORRENT_USE_SYNCIO
 		// if we're using an AIO API that supports vector operations
 		// there's no need to coalesce the buffers
 		submit_vec = true;
@@ -2456,12 +2458,20 @@ finish:
 			error_code ec;
 			int ret;
 			file::iovec_t b = {aios->buf, aios->size};
+			file::iovec_t* vec = &b;
+			int num_vec = 1;
+			if (aios->vec)
+			{
+				TORRENT_ASSERT(aios->num_vec > 0);
+				num_vec = aios->num_vec;
+				vec = aios->vec;
+			}
 			switch (aios->op)
 			{
-// TODO: use the full iovecs here!
-// TODO: pass on coalesce_write/read into the flags here!
-				case file::read_op: ret = aios->file_ptr->readv(aios->offset, &b, 1, ec); break;
-				case file::write_op: ret = aios->file_ptr->writev(aios->offset, &b, 1, ec); break;
+				case file::read_op: ret = aios->file_ptr->readv(aios->offset
+					, vec, num_vec, ec, aios->flags); break;
+				case file::write_op: ret = aios->file_ptr->writev(aios->offset
+					, vec, num_vec, ec, aios->flags); break;
 				default: TORRENT_ASSERT(false);
 			}
 			file::aiocb_t* del = aios;
