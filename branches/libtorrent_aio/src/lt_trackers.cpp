@@ -263,15 +263,14 @@ namespace libtorrent { namespace
 
 			std::vector<char> const& tex_msg = m_tp.get_lt_tex_msg();
 
-			buffer::interval i = m_pc.allocate_send_buffer(6 + tex_msg.size());
+			char msg[6];
+			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), i.begin);
-			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-			detail::write_uint8(m_message_index, i.begin);
-			std::copy(tex_msg.begin(), tex_msg.end(), i.begin);
-			i.begin += tex_msg.size();
-
-			TORRENT_ASSERT(i.begin == i.end);
+			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
+			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+			detail::write_uint8(m_message_index, ptr);
+			m_pc.send_buffer(msg, sizeof(msg));
+			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
 			m_pc.setup_send();
 		}
 
@@ -303,15 +302,14 @@ namespace libtorrent { namespace
 			(*m_pc.m_logger) << log_line.str();
 #endif
 
-			buffer::interval i = m_pc.allocate_send_buffer(6 + tex_msg.size());
+			char msg[6];
+			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), i.begin);
-			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-			detail::write_uint8(m_message_index, i.begin);
-			std::copy(tex_msg.begin(), tex_msg.end(), i.begin);
-			i.begin += tex_msg.size();
-
-			TORRENT_ASSERT(i.begin == i.end);
+			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
+			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+			detail::write_uint8(m_message_index, ptr);
+			m_pc.send_buffer(msg, sizeof(msg));
+			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
 			m_pc.setup_send();
 		}
 

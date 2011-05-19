@@ -28,7 +28,7 @@ import random
 
 # variables to test. All these are run on the first
 # entry in the filesystem list.
-cache_sizes = [0, 256, 512, 1024, 2048, 4096, 8192]
+cache_sizes = [0, 512, 1024, 2048, 4096, 8192, 16384]
 peers = [10, 100, 500, 1000, 2000]
 
 # the drives are assumed to be mounted under ./<name>
@@ -42,13 +42,13 @@ filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
 filesystem_peers = 200
 
 # the amount of cache for the filesystem test
-filesystem_cache = 2096
+filesystem_cache = 8192
 
 # the number of seconds to run each test. It's important that
 # this is shorter than what it takes to finish downloading
 # the test torrent, since then the average rate will not
 # be representative of the peak anymore
-test_duration = 300
+test_duration = 100
 
 
 
@@ -88,12 +88,13 @@ def build_commandline(config, port):
 	no_read_ahead = ''
 	if config['read-ahead'] == False:
 		no_read_ahead = '-j'
+	allocation_mode = config['allocation-mode']
 		
 	global test_duration
 
-	return './stage/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt test.torrent' \
+	return './stage/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt -a %s test.torrent' \
 		% (test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
-			, no_disk_reorder, no_read_ahead, test_duration, port)
+			, no_disk_reorder, no_read_ahead, test_duration, port, config['allocation-mode'])
 
 def delete_files(files):
 	for i in files:
@@ -102,8 +103,11 @@ def delete_files(files):
 			try: shutil.rmtree(i)
 			except: pass
 
-def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True):
+def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True, preallocate=False):
 	config = {'test': 'dual', 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'allow-disk-reorder': reorder, 'cache-size': cache_size, 'read-ahead': readahead}
+	if preallocate: config['allocation-mode'] = 'allocate'
+	else: config['allocation-mode'] = 'sparse'
+
 	return config
 
 def build_target_folder(config):
@@ -112,7 +116,7 @@ def build_target_folder(config):
 	readahead = 'readahead'
 	if config['read-ahead'] == False: readahead = 'no-readahead'
 
-	return 'results_%d_%d_%s_%s_%s_%s' % (config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], config['test'], reorder, readahead)
+	return 'results_%d_%d_%s_%s_%s_%s_%s' % (config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], config['test'], reorder, readahead, config['allocation-mode'])
 
 def run_test(config):
 
@@ -137,17 +141,26 @@ def run_test(config):
 	print >>f, config
 	f.close()
 
-	f = open('session_stats/client.output', 'w+')
-	print 'launching: %s' % cmdline
-	client = subprocess.Popen(shlex.split(cmdline), stdout=f)
-	time.sleep(1)
 	print '\n\n*********************************'
 	print '*          RUNNING TEST         *'
 	print '*********************************\n\n'
-	print 'launching connection tester'
-	os.system('./stage/connection_tester %s %d 127.0.0.1 %d test.torrent >session_stats/tester.output' % (config['test'], config['num-peers'], port))
+	client_output = open('session_stats/client.output', 'w+')
+	print 'launching: %s' % cmdline
+	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE)
+	# enable disk stats printing
+	print >>client.stdin, 'x',
+	time.sleep(1)
+	cmdline = './stage/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['test'], config['num-peers'], port)
+	print 'launching: %s' % cmdline
+	tester_output = open('session_stats/tester.output', 'w+')
+	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
 	
-	f.close()
+	tester.wait()
+	client.wait()
+	tester_output.close()
+	client_output.close()
+	if tester.returncode != 0: sys.exit(tester.returncode)
+	if client.returncode != 0: sys.exit(client.returncode)
 
 	# run fragmentation test
 	print 'analyzing fragmentation'
@@ -175,13 +188,16 @@ def run_test(config):
 	port += 1
 
 for fs in filesystem:
-	config = build_test_config(fs, filesystem_peers, filesystem_cache)
-	run_test(config)
+	for preallocate in [True, False]:
+		config = build_test_config(fs, filesystem_peers, filesystem_cache, preallocate)
+		run_test(config)
 
 for c in cache_sizes:
 	for p in peers:
 		for rdahead in [True, False]:
-			for reorder in [True, False]:
-				config = build_test_config(filesystem[0], p, c, rdahead, reorder)
+#			for reorder in [True, False]:
+			reorder = True
+			for preallocate in [True, False]:
+				config = build_test_config(filesystem[0], p, c, rdahead, reorder, preallocate)
 				run_test(config)
 

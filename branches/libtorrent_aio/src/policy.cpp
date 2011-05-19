@@ -769,6 +769,13 @@ namespace libtorrent
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
 		}
 
+		// make sure the iterator we got is properly sorted relative
+		// to the connection's address
+//		TORRENT_ASSERT(m_peers.empty()
+//			|| (iter == m_peers.end() && (*(iter-1))->address() < c.remote().address())
+//			|| (iter != m_peers.end() && c.remote().address() < (*iter)->address())
+//			|| (iter != m_peers.end() && iter != m_peers.begin() && (*(iter-1))->address() < c.remote().address()));
+
 		if (found)
 		{
 			i = *iter;
@@ -848,12 +855,18 @@ namespace libtorrent
 
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
+				// this may invalidate our iterator!
 				erase_peers();
 				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 				{
 					c.disconnect(errors::too_many_connections);
 					return false;
 				}
+				// restore it
+				iter = std::lower_bound(
+					m_peers.begin(), m_peers.end()
+					, c.remote().address(), peer_address_compare()
+				);
 			}
 
 #if TORRENT_USE_IPV6

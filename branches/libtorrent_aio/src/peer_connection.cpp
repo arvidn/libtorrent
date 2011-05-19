@@ -1153,9 +1153,8 @@ namespace libtorrent
 			return;
 		}
 
-		if ((t->is_paused() && (!t->is_auto_managed()
+		if (t->is_paused() && (!t->is_auto_managed()
 			|| !m_ses.m_settings.incoming_starts_queued_torrents))
-			|| t->has_error())
 		{
 			// paused torrents will not accept
 			// incoming connections unless they are auto managed
@@ -4938,7 +4937,8 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::send_buffer(char const* buf, int size, int flags)
+	void peer_connection::send_buffer(char const* buf, int size, int flags
+		, void (*fun)(char*, int, void*), void* userdata)
 	{
 		if (flags == message_type_request)
 			m_requests_in_buffer.push_back(m_send_buffer.size() + size);
@@ -4947,7 +4947,9 @@ namespace libtorrent
 		if (free_space > size) free_space = size;
 		if (free_space > 0)
 		{
-			m_send_buffer.append(buf, free_space);
+			char* dst = m_send_buffer.append(buf, free_space);
+			TORRENT_ASSERT(dst != 0);
+			if (fun) fun(dst, free_space, userdata);
 			size -= free_space;
 			buf += free_space;
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
@@ -4958,56 +4960,30 @@ namespace libtorrent
 		}
 		if (size <= 0) return;
 
-		std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
-		if (buffer.first == 0)
-		{
-			disconnect(errors::no_memory);
-			return;
-		}
-		TORRENT_ASSERT(buffer.second >= size);
-		std::memcpy(buffer.first, buf, size);
-		m_send_buffer.append_buffer(buffer.first, buffer.second, size
-			, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
 #if defined TORRENT_STATS && defined TORRENT_DISK_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
-		setup_send();
-	}
-
-// TODO: change this interface to automatically call setup_send() when the
-// return value is destructed
-	buffer::interval peer_connection::allocate_send_buffer(int size)
-	{
-		TORRENT_ASSERT(size > 0);
-		char* insert = m_send_buffer.allocate_appendix(size);
-		if (insert == 0)
+		int i = 0;
+		while (size > 0)
 		{
-			std::pair<char*, int> buffer = m_ses.allocate_buffer(size);
-			if (buffer.first == 0)
+			char* chain_buf = m_ses.allocate_buffer();
+			if (chain_buf == 0)
 			{
 				disconnect(errors::no_memory);
-				return buffer::interval(0, 0);
+				return;
 			}
-			TORRENT_ASSERT(buffer.second >= size);
-			m_send_buffer.append_buffer(buffer.first, buffer.second, size
-				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1, buffer.second));
-			buffer::interval ret(buffer.first, buffer.first + size);
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
-			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer_alloc: " << size << std::endl;
-			m_ses.log_buffer_usage();
-#endif
-			return ret;
+
+			int buf_size = (std::min)(int(aux::session_impl::send_buffer_size), size);
+			memcpy(chain_buf, buf, buf_size);
+			if (fun) fun(chain_buf, buf_size, userdata);
+			buf += buf_size;
+			size -= buf_size;
+			m_send_buffer.append_buffer(chain_buf, aux::session_impl::send_buffer_size, buf_size
+				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1));
+			++i;
 		}
-		else
-		{
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
-			m_ses.m_buffer_usage_logger << log_time() << " allocate_buffer: " << size << std::endl;
-			m_ses.log_buffer_usage();
-#endif
-			buffer::interval ret(insert, insert + size);
-			return ret;
-		}
+		setup_send();
 	}
 
 	template<class T>

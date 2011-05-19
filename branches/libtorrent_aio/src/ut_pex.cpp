@@ -435,15 +435,14 @@ namespace libtorrent { namespace
 
 			std::vector<char> const& pex_msg = m_tp.get_ut_pex_msg();
 
-			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());
+			char msg[6];
+			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + pex_msg.size(), i.begin);
-			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-			detail::write_uint8(m_message_index, i.begin);
-			std::copy(pex_msg.begin(), pex_msg.end(), i.begin);
-			i.begin += pex_msg.size();
-
-			TORRENT_ASSERT(i.begin == i.end);
+			detail::write_uint32(1 + 1 + pex_msg.size(), ptr);
+			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+			detail::write_uint8(m_message_index, ptr);
+			m_pc.send_buffer(msg, sizeof(msg));
+			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			lazy_entry m;
@@ -464,8 +463,6 @@ namespace libtorrent { namespace
 			m_pc.peer_log("==> PEX_DIFF [ dropped: %d added: %d msg_size: %d ]"
 				, num_dropped, num_added, int(pex_msg.size()));
 #endif
-
-			m_pc.setup_send();
 		}
 
 		void send_ut_peer_list()
@@ -528,21 +525,18 @@ namespace libtorrent { namespace
 			std::vector<char> pex_msg;
 			bencode(std::back_inserter(pex_msg), pex);
 
-			buffer::interval i = m_pc.allocate_send_buffer(6 + pex_msg.size());
+			char msg[6];
+			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + pex_msg.size(), i.begin);
-			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-			detail::write_uint8(m_message_index, i.begin);
-			std::copy(pex_msg.begin(), pex_msg.end(), i.begin);
-			i.begin += pex_msg.size();
-
-			TORRENT_ASSERT(i.begin == i.end);
+			detail::write_uint32(1 + 1 + pex_msg.size(), ptr);
+			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+			detail::write_uint8(m_message_index, ptr);
+			m_pc.send_buffer(msg, sizeof(msg));
+			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			m_pc.peer_log("==> PEX_FULL [ added: %d msg_size: %d ]", num_added, int(pex_msg.size()));
 #endif
-
-			m_pc.setup_send();
 		}
 
 		torrent& m_torrent;

@@ -1057,6 +1057,9 @@ namespace libtorrent
 		if (alerts().should_post<file_error_alert>())
 			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
 
+		// put the torrent in an error-state
+		set_error(j.error, j.error_file);
+
 		// #error adding hash here is a bit of a hack. Since there's no way
 		// of telling if it was a write or read operation that actually failed
 		// when the hash-job fails. In order to preventing pausing the torrent
@@ -1075,8 +1078,7 @@ namespace libtorrent
 			return;
 		}
 
-		// put the torrent in an error-state
-		set_error(j.error, j.error_file);
+		// if the error appears to be more serious than a full disk, just pause the torrent
 		pause();
 	}
 

@@ -278,7 +278,7 @@ namespace libtorrent
 		void write_pe3_sync();
 		void write_pe4_sync(int crypto_select);
 
-		void write_pe_vc_cryptofield(buffer::interval& write_buf
+		void write_pe_vc_cryptofield(char* write_buf, int len
 			, int crypto_field, int pad_size);
 
 		// stream key (info hash of attached torrent)
@@ -293,28 +293,17 @@ public:
 		// peer_connection functions of the same names
 		virtual void append_const_send_buffer(char const* buffer, int size);
 		void send_buffer(char const* buf, int size, int flags = 0);
-		buffer::interval allocate_send_buffer(int size);
 		template <class Destructor>
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (m_rc4_encrypted)
-			{
-				TORRENT_ASSERT(send_buffer_size() == m_encrypted_bytes);
 				m_RC4_handler->encrypt(buffer, size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-				m_encrypted_bytes += size;
-				TORRENT_ASSERT(m_encrypted_bytes == send_buffer_size() + size);
-#endif
-			}
 #endif
 			peer_connection::append_send_buffer(buffer, size, destructor, true);
 		}
-		void setup_send();
 
 private:
-
-		void encrypt_pending_buffer();
 
 		// Returns offset at which bytestream (src, src + src_size)
 		// matches bytestream(target, target + target_size).
@@ -420,10 +409,6 @@ private:
 		// the maximum number of bytes
 		int m_sync_bytes_read;
 
-		// hold information about latest allocated send buffer
-		// need to check for non zero (begin, end) for operations with this
-		buffer::interval m_enc_send_buffer;
-		
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_RC4_handler. Cannot reinitialize once
 		// initialized.
@@ -453,12 +438,6 @@ private:
 		bool m_in_constructor;
 		
 		bool m_sent_handshake;
-
-		// the number of bytes in the send buffer
-		// that have been encrypted (only used for
-		// encrypted connections)
-public:
-		int m_encrypted_bytes;
 #endif
 
 	};
