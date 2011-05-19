@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/alloca.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -110,7 +111,6 @@ namespace libtorrent
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
 		, m_sync_bytes_read(0)
-		, m_enc_send_buffer(0, 0)
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_sent_bitfield(false)
@@ -124,7 +124,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_constructor = false;
-		m_encrypted_bytes = 0;
 #endif
 		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
@@ -148,7 +147,6 @@ namespace libtorrent
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
 		, m_sync_bytes_read(0)
-		, m_enc_send_buffer(0, 0)
 #endif		
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_sent_bitfield(false)
@@ -176,7 +174,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_constructor = false;
-		m_encrypted_bytes = 0;
 #endif
 		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
 	}
@@ -434,23 +431,15 @@ namespace libtorrent
 		peer_log(" pad size: %d", pad_size);
 #endif
 
-		buffer::interval send_buf = allocate_send_buffer(dh_key_len + pad_size);
-		if (send_buf.begin == 0)
-		{
-			disconnect(errors::no_memory);
-			return;
-		}
+		char msg[dh_key_len + 512];
+		char* ptr = msg;
+		int buf_size = dh_key_len + pad_size;
 
-		std::copy(m_dh_key_exchange->get_local_key(),
-			m_dh_key_exchange->get_local_key() + dh_key_len,
-			send_buf.begin);
+		memcpy(ptr, m_dh_key_exchange->get_local_key(), dh_key_len);
+		ptr += dh_key_len;
 
-		std::generate(send_buf.begin + dh_key_len, send_buf.end, std::rand);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_encrypted_bytes += send_buf.left();
-		TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size());
-#endif
-		setup_send();
+		std::generate(ptr, ptr + pad_size, random);
+		send_buffer(msg, buf_size);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(" sent DH key");
@@ -475,12 +464,9 @@ namespace libtorrent
 
 		int pad_size = random() % 512;
 
-		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
-
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
-		buffer::interval send_buf = 
-			allocate_send_buffer(20 + 20 + 8 + 4 + 2 + pad_size + 2);
-		if (send_buf.begin == 0) return; // out of memory
+		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
+		char* ptr = msg;
 
 		// sync hash (hash('req1',S))
 		h.reset();
@@ -488,8 +474,8 @@ namespace libtorrent
 		h.update(secret, dh_key_len);
 		sha1_hash sync_hash = h.final();
 
-		std::copy(sync_hash.begin(), sync_hash.end(), send_buf.begin);
-		send_buf.begin += 20;
+		memcpy(ptr, &sync_hash[0], 20);
+		ptr += 20;
 
 		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
 		h.reset();
@@ -503,16 +489,15 @@ namespace libtorrent
 		sha1_hash obfsc_hash = h.final();
 		obfsc_hash ^= streamkey_hash;
 
-		std::copy(obfsc_hash.begin(), obfsc_hash.end(), send_buf.begin);
-		send_buf.begin += 20;
+		memcpy(ptr, &obfsc_hash[0], 20);
+		ptr += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
 		init_pe_RC4_handler(secret, info_hash);
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 	
 		// write the verification constant and crypto field
-		TORRENT_ASSERT(send_buf.left() == 8 + 4 + 2 + pad_size + 2);
-		int encrypt_size = send_buf.left();
+		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
 		int crypto_provide = 0;
 		pe_settings::enc_level const& allowed_enc_level = m_ses.get_pe_settings().allowed_enc_level;
@@ -530,14 +515,9 @@ namespace libtorrent
 			, level[allowed_enc_level]);
 #endif
 
-		write_pe_vc_cryptofield(send_buf, crypto_provide, pad_size);
-		m_RC4_handler->encrypt(send_buf.end - encrypt_size, encrypt_size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_encrypted_bytes = send_buffer_size();
-#endif
-
-		TORRENT_ASSERT(send_buf.begin == send_buf.end);
-		setup_send();
+		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
+		m_RC4_handler->encrypt(ptr, encrypt_size);
+		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
 
 	void bt_peer_connection::write_pe4_sync(int crypto_select)
@@ -552,20 +532,12 @@ namespace libtorrent
 
 		int pad_size = random() % 512;
 
-		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
-
 		const int buf_size = 8 + 4 + 2 + pad_size;
-		buffer::interval send_buf = allocate_send_buffer(buf_size);
-		if (send_buf.begin == 0) return; // out of memory
-		write_pe_vc_cryptofield(send_buf, crypto_select, pad_size);
+		char msg[512 + 8 + 4 + 2];
+		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		m_RC4_handler->encrypt(send_buf.end - buf_size, buf_size);
-		TORRENT_ASSERT(send_buffer_size() - buf_size == m_encrypted_bytes);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_encrypted_bytes += buf_size;
-		TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size());
-#endif
-		setup_send();
+		m_RC4_handler->encrypt(msg, buf_size);
+		send_buffer(msg, buf_size);
 
 		// encryption method has been negotiated
 		if (crypto_select == 0x02) 
@@ -579,36 +551,34 @@ namespace libtorrent
 #endif
 	}
 
- 	void bt_peer_connection::write_pe_vc_cryptofield(buffer::interval& write_buf
+ 	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf, int len
 		, int crypto_field, int pad_size)
  	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
 		// vc,crypto_field,len(pad),pad, (len(ia))
-		TORRENT_ASSERT( (write_buf.left() == 8+4+2+pad_size+2 && is_local()) ||
-				(write_buf.left() == 8+4+2+pad_size   && !is_local()) );
+		TORRENT_ASSERT((len >= 8+4+2+pad_size+2 && is_local())
+			|| (len >= 8+4+2+pad_size && !is_local()));
 		TORRENT_ASSERT(!m_sent_handshake);
 
 		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
 		// len(pad) is zero for now, len(IA) only for outgoing connections
 		
 		// vc
-		std::fill(write_buf.begin, write_buf.begin + 8, 0);
-		write_buf.begin += 8;
+		memset(write_buf, 0, 8);
+		write_buf += 8;
 
-		detail::write_uint32(crypto_field, write_buf.begin);
-		detail::write_uint16(pad_size, write_buf.begin); // len (pad)
+		detail::write_uint32(crypto_field, write_buf);
+		detail::write_uint16(pad_size, write_buf); // len (pad)
 
 		// fill pad with zeroes
-		std::generate(write_buf.begin, write_buf.begin + pad_size, &std::rand);
-		write_buf.begin += pad_size;
+		std::generate(write_buf, write_buf + pad_size, &random);
+		write_buf += pad_size;
 
 		// append len(ia) if we are initiating
 		if (is_local())
-			detail::write_uint16(handshake_len, write_buf.begin); // len(IA)
-		
-		TORRENT_ASSERT(write_buf.begin == write_buf.end);
+			detail::write_uint16(handshake_len, write_buf); // len(IA)
  	}
 
 	void bt_peer_connection::init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key)
@@ -656,13 +626,14 @@ namespace libtorrent
 
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
-		TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
-		// if we're encrypting this buffer, we need to make a copy
-		// since we'll mutate it
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
 		{
-			send_buffer(buffer, size);
+			// if we're encrypting this buffer, we need to make a copy
+			// since we'll mutate it
+			char* buf = (char*)malloc(size);
+			memcpy(buf, buffer, size);
+			bt_peer_connection::append_send_buffer(buf, size, boost::bind(&::free, _1));
 		}
 		else
 #endif
@@ -671,72 +642,28 @@ namespace libtorrent
 		}
 	}
 
+	void encrypt(char* buf, int len, void* userdata)
+	{
+		RC4_handler* rc4 = (RC4_handler*)userdata;
+		rc4->encrypt(buf, len);
+	}
+
 	void bt_peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
 		
+		void* userdata = 0;
+		void (*fun)(char*, int, void*) = 0;
 #ifndef TORRENT_DISABLE_ENCRYPTION
-		encrypt_pending_buffer();
-
 		if (m_encrypted && m_rc4_encrypted)
 		{
-			TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
-			m_RC4_handler->encrypt(const_cast<char*>(buf), size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			m_encrypted_bytes += size;
-#endif
+			fun = encrypt;
+			userdata = m_RC4_handler.get();
 		}
 #endif
 		
-		peer_connection::send_buffer(buf, size, flags);
-	}
-
-	buffer::interval bt_peer_connection::allocate_send_buffer(int size)
-	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		encrypt_pending_buffer();
-		if (m_encrypted && m_rc4_encrypted)
-		{
-			TORRENT_ASSERT(m_enc_send_buffer.left() == 0);
-			m_enc_send_buffer = peer_connection::allocate_send_buffer(size);
-			return m_enc_send_buffer;
-		}
-		else
-#endif
-		{
-			buffer::interval i = peer_connection::allocate_send_buffer(size);
-			return i;
-		}
-	}
-	
-#ifndef TORRENT_DISABLE_ENCRYPTION
-	void bt_peer_connection::encrypt_pending_buffer()
-	{
- 		if (m_encrypted && m_rc4_encrypted && m_enc_send_buffer.left())
-		{
-			TORRENT_ASSERT(m_enc_send_buffer.begin);
-			TORRENT_ASSERT(m_enc_send_buffer.end);
-			TORRENT_ASSERT(m_RC4_handler);
-			TORRENT_ASSERT(send_buffer_size() - m_enc_send_buffer.left() == m_encrypted_bytes);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			m_encrypted_bytes += m_enc_send_buffer.left();
-			TORRENT_ASSERT(m_encrypted_bytes <= send_buffer_size());
-#endif
-			
- 			m_RC4_handler->encrypt(m_enc_send_buffer.begin, m_enc_send_buffer.left());
-			m_enc_send_buffer.end = m_enc_send_buffer.begin;
-		}
-	}
-#endif
-
-	void bt_peer_connection::setup_send()
-	{
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		encrypt_pending_buffer();
-		TORRENT_ASSERT(!m_encrypted || !m_rc4_encrypted || m_encrypted_bytes == send_buffer_size());
-#endif
-		peer_connection::setup_send();
+		peer_connection::send_buffer(buf, size, flags, fun, userdata);
 	}
 
 	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
@@ -801,37 +728,31 @@ namespace libtorrent
 		const char version_string[] = "BitTorrent protocol";
 		const int string_len = sizeof(version_string)-1;
 
-		buffer::interval i = allocate_send_buffer(1 + string_len + 8 + 20 + 20);
-		if (i.begin == 0) return; // out of memory
+		char handshake[1 + string_len + 8 + 20 + 20];
+		char* ptr = handshake;
 		// length of version string
-		*i.begin = string_len;
-		++i.begin;
-
-		// version string itself
-		std::copy(
-			version_string
-			, version_string + string_len
-			, i.begin);
-		i.begin += string_len;
-
+		detail::write_uint8(string_len, ptr);
+		// protocol identifier
+		memcpy(ptr, version_string, string_len);
+		ptr += string_len;
 		// 8 zeroes
-		std::fill(i.begin, i.begin + 8, 0);
+		memset(ptr, 0, 8);
 
 #ifndef TORRENT_DISABLE_DHT
 		// indicate that we support the DHT messages
-		*(i.begin + 7) |= 0x01;
+		*(ptr + 7) |= 0x01;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// we support extensions
-		*(i.begin + 5) |= 0x10;
+		*(ptr + 5) |= 0x10;
 #endif
 
 		// we support merkle torrents
-		*(i.begin + 5) |= 0x08;
+		*(ptr + 5) |= 0x08;
 
 		// we support FAST extension
-		*(i.begin + 7) |= 0x04;
+		*(ptr + 7) |= 0x04;
 
 #ifdef TORRENT_VERBOSE_LOGGING	
 		std::string bitmask;
@@ -839,31 +760,27 @@ namespace libtorrent
 		{
 			for (int j = 0; j < 8; ++j)
 			{
-				if (i.begin[k] & (0x80 >> j)) bitmask += '1';
+				if (ptr[k] & (0x80 >> j)) bitmask += '1';
 				else bitmask += '0';
 			}
 		}
 		peer_log(">>> EXTENSION_BITS [ %s ]", bitmask.c_str());
 #endif
-		i.begin += 8;
+		ptr += 8;
 
 		// info hash
 		sha1_hash const& ih = t->torrent_file().info_hash();
-		std::copy(ih.begin(), ih.end(), i.begin);
-		i.begin += 20;
+		memcpy(ptr, &ih[0], 20);
+		ptr += 20;
 
 		// peer id
-		std::copy(
-			m_ses.get_peer_id().begin()
-			, m_ses.get_peer_id().end()
-			, i.begin);
-		i.begin += 20;
-		TORRENT_ASSERT(i.begin == i.end);
+		memcpy(ptr, &m_ses.get_peer_id()[0], 20);
+		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
-		setup_send();
+		send_buffer(handshake, sizeof(handshake));
 	}
 
 	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
@@ -2060,40 +1977,39 @@ namespace libtorrent
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 	
-		buffer::interval i = allocate_send_buffer(packet_size);	
-		if (i.begin == 0) return; // out of memory
+		char* msg = TORRENT_ALLOCA(char, packet_size);
+		if (msg == 0) return; // out of memory
+		unsigned char* ptr = (unsigned char*)msg;
 
-		detail::write_int32(packet_size - 4, i.begin);
-		detail::write_uint8(msg_bitfield, i.begin);
+		detail::write_int32(packet_size - 4, ptr);
+		detail::write_uint8(msg_bitfield, ptr);
 
 		if (t->is_seed())
 		{
-			memset(i.begin, 0xff, packet_size - 6);
+			memset(ptr, 0xff, packet_size - 6);
 
 			// Clear trailing bits
-			unsigned char *p = ((unsigned char *)i.begin) + packet_size - 6;
+			unsigned char *p = ((unsigned char *)msg) + packet_size - 1;
 			*p = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
 		}
 		else
 		{
-			memset(i.begin, 0, packet_size - 5);
+			memset(ptr, 0, packet_size - 5);
 			piece_picker const& p = t->picker();
 			int mask = 0x80;
-			unsigned char* byte = (unsigned char*)i.begin;
 			for (int i = 0; i < num_pieces; ++i)
 			{
-				if (p.have_piece(i)) *byte |= mask;
+				if (p.have_piece(i)) *ptr |= mask;
 				mask >>= 1;
 				if (mask == 0)
 				{
 					mask = 0x80;
-					++byte;
+					++ptr;
 				}
 			}
 		}
 		for (int c = 0; c < num_lazy_pieces; ++c)
-			i.begin[lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
-		TORRENT_ASSERT(i.end - i.begin == (num_pieces + 7) / 8);
+			msg[5 + lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 
 #ifdef TORRENT_VERBOSE_LOGGING
 
@@ -2101,7 +2017,7 @@ namespace libtorrent
 		bitfield_string.resize(num_pieces);
 		for (int k = 0; k < num_pieces; ++k)
 		{
-			if (i.begin[k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
+			if (msg[5 + k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
 		peer_log("==> BITFIELD [ %s ]", bitfield_string.c_str());
@@ -2110,7 +2026,7 @@ namespace libtorrent
 		m_sent_bitfield = true;
 #endif
 
-		setup_send();
+		send_buffer(msg, packet_size);
 
 		if (num_lazy_pieces > 0)
 		{
@@ -2219,30 +2135,25 @@ namespace libtorrent
 		}
 #endif
 
-		std::vector<char> msg;
-		bencode(std::back_inserter(msg), handshake);
+		std::vector<char> dict_msg;
+		bencode(std::back_inserter(dict_msg), handshake);
 
-		// make room for message
-		buffer::interval i = allocate_send_buffer(6 + msg.size());
-		if (i.begin == 0) return; // out of memory
+		char msg[6];
+		char* ptr = msg;
 		
 		// write the length of the message
-		detail::write_int32((int)msg.size() + 2, i.begin);
-		detail::write_uint8(msg_extended, i.begin);
+		detail::write_int32((int)dict_msg.size() + 2, ptr);
+		detail::write_uint8(msg_extended, ptr);
 		// signal handshake message
-		detail::write_uint8(0, i.begin);
-
-		std::copy(msg.begin(), msg.end(), i.begin);
-		i.begin += msg.size();
-		TORRENT_ASSERT(i.begin == i.end);
+		detail::write_uint8(0, ptr);
+		send_buffer(msg, sizeof(msg));
+		send_buffer(&dict_msg[0], dict_msg.size());
 
 #if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
 		std::stringstream handshake_str;
 		handshake.print(handshake_str);
 		peer_log("==> EXTENDED HANDSHAKE: %s", handshake_str.str().c_str());
 #endif
-
-		setup_send();
 	}
 #endif
 
@@ -2449,8 +2360,6 @@ namespace libtorrent
 			peer_log("*** received DH key");
 #endif
 						
-			TORRENT_ASSERT(!m_rc4_encrypted || send_buffer_size() == m_encrypted_bytes);
-
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
 			// the sync hash (if incoming), or 8 bytes more for the
 			// encrypted verification constant (if outgoing). Instead
@@ -2791,9 +2700,6 @@ namespace libtorrent
 						return;
 					}
 					m_rc4_encrypted = true;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-					m_encrypted_bytes = send_buffer_size();
-#endif
 				}
 				else if (crypto_field == 0x01)
 				{
@@ -3365,22 +3271,6 @@ namespace libtorrent
 		m_payloads.erase(
 			std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
 			, m_payloads.end());
-
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && !defined TORRENT_DISABLE_ENCRYPTION
-		if (m_encrypted_bytes > 0)
-		{
-			if (m_rc4_encrypted)
-			{
-				m_encrypted_bytes -= bytes_transferred;
-				TORRENT_ASSERT(m_encrypted_bytes >= 0);
-			}
-			else
-			{
-				m_encrypted_bytes -= (std::min)(int(bytes_transferred), m_encrypted_bytes);
-			}
-			TORRENT_ASSERT(m_encrypted_bytes >= 0);
-		}
-#endif
 
 		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);

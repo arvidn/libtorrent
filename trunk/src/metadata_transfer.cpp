@@ -293,16 +293,17 @@ namespace libtorrent { namespace
 				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
 #endif
 
-			buffer::interval i = m_pc.allocate_send_buffer(9);
+			char msg[9];
+			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + 3, i.begin);
-			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-			detail::write_uint8(m_message_index, i.begin);
+			detail::write_uint32(1 + 1 + 3, ptr);
+			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+			detail::write_uint8(m_message_index, ptr);
 			// means 'request data'
-			detail::write_uint8(0, i.begin);
-			detail::write_uint8(start, i.begin);
-			detail::write_uint8(size - 1, i.begin);
-			TORRENT_ASSERT(i.begin == i.end);
+			detail::write_uint8(0, ptr);
+			detail::write_uint8(start, ptr);
+			detail::write_uint8(size - 1, ptr);
+			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.setup_send();
 		}
 
@@ -322,9 +323,8 @@ namespace libtorrent { namespace
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
 
-				// TODO: don't allocate send buffer for the metadata part
-				// just tag it on as a separate buffer like ut_metadata
-				buffer::interval i = m_pc.allocate_send_buffer(15 + offset.second);
+				char msg[15];
+				char* ptr = msg;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_pc.m_logger) << time_now_string()
@@ -335,18 +335,16 @@ namespace libtorrent { namespace
 					<< " ]\n";
 #endif
 				// yes, we have metadata, send it
-				detail::write_uint32(11 + offset.second, i.begin);
-				detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-				detail::write_uint8(m_message_index, i.begin);
+				detail::write_uint32(11 + offset.second, ptr);
+				detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+				detail::write_uint8(m_message_index, ptr);
 				// means 'data packet'
-				detail::write_uint8(1, i.begin);
-				detail::write_uint32((int)m_tp.metadata().left(), i.begin);
-				detail::write_uint32(offset.first, i.begin);
+				detail::write_uint8(1, ptr);
+				detail::write_uint32((int)m_tp.metadata().left(), ptr);
+				detail::write_uint32(offset.first, ptr);
+				m_pc.send_buffer(msg, sizeof(msg));
 				char const* metadata = m_tp.metadata().begin;
-				std::copy(metadata + offset.first
-					, metadata + offset.first + offset.second, i.begin);
-				i.begin += offset.second;
-				TORRENT_ASSERT(i.begin == i.end);
+				m_pc.append_const_send_buffer(metadata + offset.first, offset.second);
 			}
 			else
 			{
@@ -354,15 +352,17 @@ namespace libtorrent { namespace
 				(*m_pc.m_logger) << time_now_string()
 					<< " ==> DONT HAVE METADATA\n";
 #endif
-				buffer::interval i = m_pc.allocate_send_buffer(4 + 3);
+				char msg[4+3];
+				char* ptr = msg;
+
 				// we don't have the metadata, reply with
 				// don't have-message
-				detail::write_uint32(1 + 2, i.begin);
-				detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
-				detail::write_uint8(m_message_index, i.begin);
+				detail::write_uint32(1 + 2, ptr);
+				detail::write_uint8(bt_peer_connection::msg_extended, ptr);
+				detail::write_uint8(m_message_index, ptr);
 				// means 'have no data'
-				detail::write_uint8(2, i.begin);
-				TORRENT_ASSERT(i.begin == i.end);
+				detail::write_uint8(2, ptr);
+				m_pc.send_buffer(msg, sizeof(msg));
 			}
 			m_pc.setup_send();
 		}

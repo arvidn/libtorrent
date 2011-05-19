@@ -123,12 +123,12 @@ namespace libtorrent
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
 		// it returns false
-		bool append(char const* buf, int s)
+		char* append(char const* buf, int s)
 		{
 			char* insert = allocate_appendix(s);
-			if (insert == 0) return false;
+			if (insert == 0) return 0;
 			memcpy(insert, buf, s);
-			return true;
+			return insert;
 		}
 
 		// tries to allocate memory from the end
