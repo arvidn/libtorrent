@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/rsa.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -393,6 +394,30 @@ int test_main()
 	using namespace libtorrent::dht;
 	error_code ec;
 	int ret = 0;
+
+#if defined TORRENT_USE_OPENSSL
+	// test sign_rsa and verify_rsa
+	char private_key[256];
+	int private_len = sizeof(private_key);
+	char public_key[512];
+	int public_len = sizeof(public_key);
+
+	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
+
+	TEST_CHECK(ret);
+
+	char test_message[1024];
+	std::generate(test_message, test_message + 1024, &std::rand);
+
+	char signature[256];
+	int sig_len = sign_rsa(test_message, sizeof(test_message)
+		, private_key, private_len, signature, sizeof(signature));
+
+	TEST_CHECK(sig_len == 256);
+
+	ret = verify_rsa(test_message, sizeof(test_message), public_key, public_len, signature, sig_len);
+	TEST_CHECK(ret == 1);
+#endif
 
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
@@ -816,30 +841,6 @@ int test_main()
 	TEST_EQUAL(is_complete("foo/bar"), false);
 	TEST_EQUAL(is_complete("/"), true);
 	TEST_EQUAL(is_complete(""), false);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-	// test search_torrent_entry
-
-	dht::search_torrent_entry ste1;
-	dht::search_torrent_entry ste2;
-	char const* ste1_tags[] = {"tag1", "tag2", "tag3", "tag4"};
-	ste1.publish("ste1", ste1_tags, 4);
-	char const* ste11_tags[] = {"tag2", "tag3"};
-	ste1.publish("ste1", ste11_tags, 2);
-	char const* ste2_tags[] = {"tag1", "tag2", "tag5", "tag6"};
-	ste2.publish("ste2", ste2_tags, 4);
-	char const* ste21_tags[] = {"tag1", "tag5"};
-	ste2.publish("ste2", ste21_tags, 2);
-
-	char const* test_tags1[] = {"tag1", "tag2"};
-	char const* test_tags2[] = {"tag3", "tag2"};
-	int m1 = ste1.match(test_tags1, 2);
-	int m2 = ste2.match(test_tags1, 2);
-	TEST_CHECK(m1 == m2);
-	m1 = ste1.match(test_tags2, 2);
-	m2 = ste2.match(test_tags2, 2);
-	TEST_CHECK(m1 > m2);
 #endif
 
 	// test split_string
@@ -1576,7 +1577,7 @@ int test_main()
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
+	TEST_EQUAL(int(temp.size()), (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 		, boost::bind(&node_entry::id, _1)
