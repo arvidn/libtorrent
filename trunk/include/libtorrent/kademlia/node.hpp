@@ -93,8 +93,8 @@ struct key_desc_t
 	}; 
 };
 
-bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
-	, int size , char* error, int error_size);
+bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
+	, lazy_entry const* ret[], int size , char* error, int error_size);
 
 // this is the entry for every peer
 // the timestamp is there to make it possible
@@ -113,64 +113,21 @@ struct torrent_entry
 	std::set<peer_entry> peers;
 };
 
-struct feed_item
+struct dht_immutable_item
 {
-	feed_item() : sequence_number(0), num_announcers(0) {}
-	enum { list_head, list_item } type;
-	size_type sequence_number;
-	std::string name;
-	unsigned char signature[64];
-	entry item;
-	ptime last_seen;
+	dht_immutable_item() : value(0), num_announcers(0) {}
+	// malloced space for the actual value
+	char* value;
 	// this counts the number of IPs we have seen
 	// announcing this item, this is used to determine
 	// popularity if we reach the limit of items to store
-	bloom_filter<8> ips;
+	bloom_filter<128> ips;
+	// the last time we heard about this
+	ptime last_seen;
+	// number of IPs in the bloom filter
 	int num_announcers;
-};
-
-// this is the entry for a torrent that has been published
-// in the DHT.
-struct TORRENT_EXPORT search_torrent_entry
-{
-	search_torrent_entry(): total_tag_points(0), total_name_points(0) {}
-
-	// the tags of the torrent. The key of
-	// this entry is the sha-1 hash of one of
-	// these tags. The counter is the number of
-	// times a tag has been included in a publish
-	// call. The counters are periodically
-	// decremented by a factor, so that the
-	// popularity ratio between the tags is
-	// maintained. The decrement is rounded down.
-	std::map<std::string, int> tags;
-
-	// this is the sum of all values in the tags
-	// map. It is only an optimization to avoid
-	// recalculating it constantly
-	int total_tag_points;
-	
-	// the name of the torrent
-	std::map<std::string, int> name;
-	int total_name_points;
-
-	// increase the popularity counters for this torrent
-	void publish(std::string const& name, char const* in_tags[], int num_tags);
-
-	// return a score of how well this torrent matches
-	// the given set of tags. Each word in the string
-	// (separated by a space) is considered a tag.
-	// tags with 2 letters or fewer are ignored
-	int match(char const* tags[], int num_tags) const;
-
-	// this is called once every hour, and will
-	// decrement the popularity counters of the
-	// tags. Returns true if this entry should
-	// be deleted
-	bool tick();
-	
-	void get_name(std::string& t) const;
-	void get_tags(std::string& t) const;
+	// size of malloced space pointed to by value
+	int size;
 };
 
 inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
@@ -207,8 +164,7 @@ struct count_peers
 class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
-typedef std::map<node_id, feed_item> feed_table_t;
-typedef std::map<std::pair<node_id, sha1_hash>, search_torrent_entry> search_table_t;
+typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
 
 public:
 	typedef boost::function3<void, address, int, address> external_ip_fun;
@@ -320,8 +276,7 @@ public:
 
 private:
 	table_t m_map;
-	feed_table_t m_feeds;
-	search_table_t m_search_map;
+	dht_immutable_table_t m_immutable_table;
 	
 	ptime m_last_tracker_tick;
 
