@@ -75,7 +75,7 @@ static const std::string no;
 void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, lazy_entry* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
-	, std::string const target = std::string(), entry const* item = 0
+	, std::string const target = std::string(), entry const* value = 0
 	, std::string const id = std::string()
 	, bool scrape = false, bool seed = false)
 {
@@ -93,7 +93,7 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (!token.empty()) a["token"] = token;
 	if (port) a["port"] = port;
 	if (!target.empty()) a["target"] = target;
-	if (item) a["item"] = *item;
+	if (value) a["v"] = *value;
 	if (scrape) a["scrape"] = 1;
 	if (seed) a["seed"] = 1;
 	char msg_buf[1500];
@@ -157,7 +157,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 		{
 			if ((i % items[j].num_peers) == 0) continue;
 			lazy_entry response;
-			send_dht_msg(node, "get_item", eps[i], &response, "10", 0
+			send_dht_msg(node, "get", eps[i], &response, "10", 0
 				, 0, no, 0, items[j].target.to_string());
 			
 			key_desc_t desc[] =
@@ -181,7 +181,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			}
 			else
 			{
-				fprintf(stderr, "   invalid get_item response: %s\n", error_string);
+				fprintf(stderr, "   invalid get response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
 
@@ -193,10 +193,9 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 				TEST_EQUAL(addr, eps[i].address());
 			}
 
-			send_dht_msg(node, "announce_item", eps[i], &response, "10", 0
+			send_dht_msg(node, "put", eps[i], &response, "10", 0
 				, 0, tokens[i], 0, items[j].target.to_string(), &items[j].ent
-				, std::string("0123456789012345678901234567890123456789012345678901234567890123"));
-			
+				, ids[i].to_string());
 
 			key_desc_t desc2[] =
 			{
@@ -211,7 +210,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			}
 			else
 			{
-				fprintf(stderr, "   invalid announce_item response: %s\n", error_string);
+				fprintf(stderr, "   invalid put response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
 		}
@@ -221,13 +220,14 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 	for (int j = 0; j < num_items; ++j)
 	{
 		lazy_entry response;
-		send_dht_msg(node, "get_item", eps[0], &response, "10", 0
-			, 0, no, 0, items[j].target.to_string());
+		send_dht_msg(node, "get", eps[0], &response, "10", 0
+			, 0, no, 0, items[j].target.to_string(), 0
+			, ids[0].to_string());
 		
 		key_desc_t desc[] =
 		{
 			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
-				{ "item", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+				{ "v", lazy_entry::dict_t, 0, key_desc_t::parse_children},
 					{ "A", lazy_entry::string_t, 1, 0},
 					{ "B", lazy_entry::string_t, 1, 0},
 					{ "num_peers", lazy_entry::int_t, 0, key_desc_t::last_child},
@@ -238,7 +238,6 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 		lazy_entry const* parsed[7];
 		char error_string[200];
 
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		int ret = verify_message(&response, desc, parsed, 7, error_string, sizeof(error_string));
 		if (ret)
 		{
@@ -246,6 +245,10 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			TEST_EQUAL(parsed[2]->string_value(), "a");
 			TEST_EQUAL(parsed[3]->string_value(), "b");
 			items_num.insert(items_num.begin(), parsed[4]->int_value());
+		}
+		else
+		{
+			fprintf(stderr, "unexpected msg: %s\n", print_entry(response).c_str());
 		}
 	}
 
@@ -266,7 +269,7 @@ int test_main()
 	alert_manager al(ios, 100);
 	dht_settings sett;
 	sett.max_torrents = 4;
-	sett.max_feed_items = 4;
+	sett.max_dht_items = 4;
 	address ext = address::from_string("236.0.0.1");
 	dht::node_impl node(al, &our_send, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3), 0);
 
@@ -467,8 +470,8 @@ int test_main()
 
 	response.clear();
 
-	// ====== announce_item ======
-/*
+	// ====== put ======
+
 	udp::endpoint eps[1000];
 	node_id ids[1000];
 
@@ -494,7 +497,7 @@ int test_main()
 		items[i].gen();
 
 	announce_items(node, eps, ids, items, sizeof(items)/sizeof(items[0]));
-*/
+
 	return 0;
 }
 

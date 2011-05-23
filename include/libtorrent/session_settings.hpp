@@ -1087,8 +1087,8 @@ namespace libtorrent
 			, service_port(0)
 #endif
 			, max_fail_count(20)
-			, max_torrents(3000)
-			, max_feed_items(3000)
+			, max_torrents(2000)
+			, max_dht_items(700)
 			, max_torrent_search_reply(20)
 			, restrict_routing_ips(true)
 			, restrict_search_ips(true)
@@ -1115,8 +1115,8 @@ namespace libtorrent
 		// this is the max number of torrents the DHT will track
 		int max_torrents;
 
-		// max number of feed items the DHT will store
-		int max_feed_items;
+		// max number of items the DHT will store
+		int max_dht_items;
 
 		// the max number of torrents to return in a
 		// torrent search query to the DHT
