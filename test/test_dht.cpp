@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/socket_io.hpp" // for hash_address
 #include <iostream>
 
 #include "test.hpp"
@@ -75,9 +76,8 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, lazy_entry* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
 	, std::string const target = std::string(), entry const* item = 0
-	, std::string const signature = std::string()
-	, std::string const key = std::string()
-	, std::string const id = std::string())
+	, std::string const id = std::string()
+	, bool scrape = false, bool seed = false)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -94,8 +94,8 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	if (port) a["port"] = port;
 	if (!target.empty()) a["target"] = target;
 	if (item) a["item"] = *item;
-	if (!signature.empty()) a["sig"] = signature;
-	if (!key.empty()) a["key"] = key;
+	if (scrape) a["scrape"] = 1;
+	if (seed) a["seed"] = 1;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 //	std::cerr << "sending: " <<  e << "\n";
@@ -130,14 +130,12 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 struct announce_item
 {
 	sha1_hash next;
-	boost::array<char, 64> key;
 	int num_peers;
 	entry ent;
 	sha1_hash target;
 	void gen()
 	{
 		ent["next"] = next.to_string();
-		ent["key"] = std::string(&key[0], 64);
 		ent["A"] = "a";
 		ent["B"] = "b";
 		ent["num_peers"] = num_peers;
@@ -160,8 +158,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			if ((i % items[j].num_peers) == 0) continue;
 			lazy_entry response;
 			send_dht_msg(node, "get_item", eps[i], &response, "10", 0
-				, 0, no, 0, items[j].target.to_string(), 0, no
-				, std::string(&items[j].key[0], 64), ids[i].to_string());
+				, 0, no, 0, items[j].target.to_string());
 			
 			key_desc_t desc[] =
 			{
@@ -175,7 +172,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			lazy_entry const* parsed[5];
 			char error_string[200];
 
-//			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			int ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
 			if (ret)
 			{
@@ -225,8 +222,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 	{
 		lazy_entry response;
 		send_dht_msg(node, "get_item", eps[0], &response, "10", 0
-			, 0, no, 0, items[j].target.to_string(), 0, no
-			, std::string(&items[j].key[0], 64), ids[0].to_string());
+			, 0, no, 0, items[j].target.to_string());
 		
 		key_desc_t desc[] =
 		{
@@ -343,17 +339,18 @@ int test_main()
 	dht::key_desc_t peer1_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
 		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"token", lazy_entry::string_t, 0, 0},
 			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	std::string token;
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(&response, peer1_desc, parsed, 3, error_string, sizeof(error_string));
+	ret = dht::verify_message(&response, peer1_desc, parsed, 4, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
-		token = parsed[1]->dict_find_string_value("token");
+		token = parsed[2]->string_value();
 	}
 	else
 	{
@@ -382,33 +379,96 @@ int test_main()
 		fprintf(stderr, "   invalid announce response: %s\n", error_string);
 	}
 
+	// announce from 100 random IPs and make sure scrape works
+	// 50 downloaders and 50 seeds
+	for (int i = 0; i < 100; ++i)
+	{
+		source = udp::endpoint(rand_v4(), 6000);
+		send_dht_msg(node, "get_peers", source, &response, "10", "01010101010101010101");
+		ret = dht::verify_message(&response, peer1_desc, parsed, 4, error_string, sizeof(error_string));
+
+		if (ret)
+		{
+			TEST_CHECK(parsed[0]->string_value() == "r");
+			token = parsed[2]->string_value();
+		}
+		else
+		{
+			fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
+		}
+		response.clear();
+		send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101"
+			, "test", token, 8080, std::string(), 0, std::string(), false, i >= 50);
+		response.clear();
+	}
+
 	// ====== get_peers ======
 
-	send_dht_msg(node, "get_peers", source, &response, "10", "01010101010101010101");
+	send_dht_msg(node, "get_peers", source, &response, "10", "01010101010101010101"
+		, 0, std::string(), 0, std::string(), 0, std::string(), true);
 
 	dht::key_desc_t peer2_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
 		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"BFpe", lazy_entry::string_t, 256, 0},
+			{"BFse", lazy_entry::string_t, 256, 0},
 			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(&response, peer2_desc, parsed, 3, error_string, sizeof(error_string));
+	ret = dht::verify_message(&response, peer2_desc, parsed, 5, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
 		TEST_CHECK(parsed[0]->string_value() == "r");
 		TEST_EQUAL(parsed[1]->dict_find_string_value("n"), "test");
+
+		bloom_filter<256> downloaders;
+		bloom_filter<256> seeds;
+		downloaders.from_string(parsed[2]->string_ptr());
+		seeds.from_string(parsed[3]->string_ptr());
+
+		fprintf(stderr, "seeds: %f\n", seeds.size());
+		fprintf(stderr, "downloaders: %f\n", downloaders.size());
+
+		TEST_CHECK(fabs(seeds.size() - 50.f) <= 2.f);
+		TEST_CHECK(fabs(downloaders.size() - 50.f) <= 2.f);
 	}
 	else
 	{
 		fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 	}
 
+	bloom_filter<256> test;
+	for (int i = 0; i < 256; ++i)
+	{
+		char adr[50];
+		snprintf(adr, 50, "192.0.2.%d", i);
+		address a = address::from_string(adr);
+		sha1_hash iphash;
+		hash_address(a, iphash);
+		test.set(iphash);
+	}
+
+	for (int i = 0; i < 0x3E8; ++i)
+	{
+		char adr[50];
+		snprintf(adr, 50, "2001:db8::%x", i);
+		address a = address::from_string(adr);
+		sha1_hash iphash;
+		hash_address(a, iphash);
+		test.set(iphash);
+	}
+
+	fprintf(stderr, "test.size: %f\n", test.size());
+	TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
+	fprintf(stderr, "%s\n", to_hex(test.to_string()).c_str());
+	TEST_CHECK(to_hex(test.to_string()) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
+
 	response.clear();
 
 	// ====== announce_item ======
-
+/*
 	udp::endpoint eps[1000];
 	node_id ids[1000];
 
@@ -420,21 +480,21 @@ int test_main()
 
 	announce_item items[] =
 	{
-		{ generate_next(), generate_key(), 1 },
-		{ generate_next(), generate_key(), 2 },
-		{ generate_next(), generate_key(), 3 },
-		{ generate_next(), generate_key(), 4 },
-		{ generate_next(), generate_key(), 5 },
-		{ generate_next(), generate_key(), 6 },
-		{ generate_next(), generate_key(), 7 },
-		{ generate_next(), generate_key(), 8 }
+		{ generate_next(), 1 },
+		{ generate_next(), 2 },
+		{ generate_next(), 3 },
+		{ generate_next(), 4 },
+		{ generate_next(), 5 },
+		{ generate_next(), 6 },
+		{ generate_next(), 7 },
+		{ generate_next(), 8 }
 	};
 
 	for (int i = 0; i < sizeof(items)/sizeof(items[0]); ++i)
 		items[i].gen();
 
 	announce_items(node, eps, ids, items, sizeof(items)/sizeof(items[0]));
-
+*/
 	return 0;
 }
 

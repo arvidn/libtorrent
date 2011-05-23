@@ -179,13 +179,15 @@ find_data::find_data(
 	node_impl& node
 	, node_id target
 	, data_callback const& dcallback
-	, nodes_callback const& ncallback)
+	, nodes_callback const& ncallback
+	, bool noseeds)
 	: traversal_algorithm(node, target)
 	, m_data_callback(dcallback)
 	, m_nodes_callback(ncallback)
 	, m_target(target)
 	, m_done(false)
 	, m_got_peers(false)
+	, m_noseeds(noseeds)
 {
 	node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
 }
@@ -213,6 +215,7 @@ bool find_data::invoke(observer_ptr o)
 	e["q"] = "get_peers";
 	entry& a = e["a"];
 	a["info_hash"] = m_target.to_string();
+	if (m_noseeds) a["noseed"] = 1;
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 

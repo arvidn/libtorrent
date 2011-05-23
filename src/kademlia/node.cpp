@@ -338,7 +338,7 @@ void node_impl::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
-		, node_impl& node, int listen_port, sha1_hash const& ih)
+		, node_impl& node, int listen_port, sha1_hash const& ih, bool seed)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
@@ -371,6 +371,7 @@ namespace
 			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
 			a["token"] = i->second;
+			a["seed"] = int(seed);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
@@ -406,7 +407,7 @@ void node_impl::add_node(udp::endpoint node)
 	m_rpc.invoke(e, node, o);
 }
 
-void node_impl::announce(sha1_hash const& info_hash, int listen_port
+void node_impl::announce(sha1_hash const& info_hash, int listen_port, bool seed
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -416,7 +417,7 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port
 	// for info-hash id. then send announce_peer to them.
 	boost::intrusive_ptr<find_data> ta(new find_data(*this, info_hash, f
 		, boost::bind(&announce_fun, _1, boost::ref(*this)
-		, listen_port, info_hash)));
+		, listen_port, info_hash, seed), seed));
 	ta->start();
 }
 
@@ -527,54 +528,64 @@ bool node_impl::lookup_torrents(sha1_hash const& target
 	return true;
 }
 
-bool node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply) const
+void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
+	, bool noseed, bool scrape) const
 {
 	if (m_alerts.should_post<dht_get_peers_alert>())
 		m_alerts.post_alert(dht_get_peers_alert(info_hash));
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
-	if (i == m_map.end()) return false;
-	if (i->first != info_hash && prefix == 20) return false;
+	if (i == m_map.end()) return;
+	if (i->first != info_hash && prefix == 20) return;
 	if (prefix != 20)
 	{
 		sha1_hash mask = sha1_hash::max();
 		mask <<= (20 - prefix) * 8;
-		if ((i->first & mask) != (info_hash & mask)) return false;
+		if ((i->first & mask) != (info_hash & mask)) return;
 	}
 
 	torrent_entry const& v = i->second;
-	if (v.peers.empty()) return false;
 
 	if (!v.name.empty()) reply["n"] = v.name;
 
-	int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
-	int t = 0;
-	int m = 0;
-	std::set<peer_entry>::const_iterator iter = v.peers.begin();
-	entry::list_type& pe = reply["values"].list();
-	std::string endpoint;
-
-	while (m < num)
+	if (scrape)
 	{
-		if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m)
+		bloom_filter<256> downloaders;
+		bloom_filter<256> seeds;
+
+		for (std::set<peer_entry>::const_iterator i = v.peers.begin()
+			, end(v.peers.end()); i != end; ++i)
 		{
-			++iter;
-			++t;
+			sha1_hash iphash;
+			hash_address(i->addr.address(), iphash);
+			if (i->seed) seeds.set(iphash);
+			else downloaders.set(iphash);
 		}
-		else
+
+		reply["BFpe"] = downloaders.to_string();
+		reply["BFse"] = seeds.to_string();
+	}
+	else
+	{
+		int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
+		std::set<peer_entry>::const_iterator iter = v.peers.begin();
+		entry::list_type& pe = reply["values"].list();
+		std::string endpoint;
+
+		for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
 		{
+			if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m) continue;
+			if (noseed && iter->seed) continue;
 			endpoint.resize(18);
 			std::string::iterator out = endpoint.begin();
 			write_endpoint(iter->addr, out);
 			endpoint.resize(out - endpoint.begin());
 			pe.push_back(entry(endpoint));
 
-			++iter;
-			++t;
 			++m;
 		}
 	}
-	return true;
+	return;
 }
 
 namespace
@@ -762,10 +773,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		key_desc_t msg_desc[] = {
 			{"info_hash", lazy_entry::string_t, 20, 0},
 			{"ifhpfxl", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"noseed", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"scrape", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[4];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -783,8 +796,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (prefix > 20) prefix = 20;
 		else if (prefix < 4) prefix = 4;
 
-		bool ret = lookup_peers(info_hash, prefix, reply);
-		(void)ret;
+		bool noseed = false;
+		bool scrape = false;
+		if (msg_keys[2] && msg_keys[2]->int_value() != 0) noseed = true;
+		if (msg_keys[3] && msg_keys[3]->int_value() != 0) scrape = true;
+		lookup_peers(info_hash, prefix, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (ret) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
 #endif
@@ -819,10 +835,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{"port", lazy_entry::int_t, 0, 0},
 			{"token", lazy_entry::string_t, 0, 0},
 			{"n", lazy_entry::string_t, 0, key_desc_t::optional},
+			{"seed", lazy_entry::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[4];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 4, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[5];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			++g_failed_announces;
@@ -891,6 +908,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		peer_entry peer;
 		peer.addr = tcp::endpoint(m.addr.address(), port);
 		peer.added = time_now();
+		peer.seed = msg_keys[4] && msg_keys[4]->int_value();
 		std::set<peer_entry>::iterator i = v.peers.find(peer);
 		if (i != v.peers.end()) v.peers.erase(i++);
 		v.peers.insert(i, peer);
