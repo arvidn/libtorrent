@@ -34,10 +34,43 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	bool has_bit(boost::uint32_t b, boost::uint8_t const* bits, int len)
-	{ b %= len * 8; return (bits[b/8] & (1 << (b & 7))) != 0; }
+	bool has_bits(boost::uint8_t const* k, boost::uint8_t const* bits, int len)
+	{
+		boost::uint32_t idx1 = boost::uint32_t(k[0]) | (boost::uint32_t(k[1]) << 8);
+		boost::uint32_t idx2 = boost::uint32_t(k[2]) | (boost::uint32_t(k[3]) << 8);
+		idx1 %= len * 8;
+		idx2 %= len * 8;
+		return (bits[idx1/8] & (1 << (idx1 & 7))) != 0
+			&& (bits[idx2/8] & (1 << (idx2 & 7))) != 0;
+	}
 
-	void set_bit(boost::uint32_t b, boost::uint8_t* bits, int len)
-	{ b %= len * 8; bits[b/8] |= (1 << (b & 7)); }
+	void set_bits(boost::uint8_t const* k, boost::uint8_t* bits, int len)
+	{
+		boost::uint32_t idx1 = boost::uint32_t(k[0]) | (boost::uint32_t(k[1]) << 8);
+		boost::uint32_t idx2 = boost::uint32_t(k[2]) | (boost::uint32_t(k[3]) << 8);
+		idx1 %= len * 8;
+		idx2 %= len * 8;
+		bits[idx1/8] |= (1 << (idx1 & 7));
+		bits[idx2/8] |= (1 << (idx2 & 7));
+	}
+
+	int count_zero_bits(boost::uint8_t const* bits, int len)
+	{
+		// number of bits _not_ set in a nibble
+		boost::uint8_t bitcount[16] =
+		{
+			// 0000, 0001, 0010, 0011, 0100, 0101, 0110, 0111,
+			// 1000, 1001, 1010, 1011, 1100, 1101, 1110, 1111
+			4, 3, 3, 2, 3, 2, 2, 1,
+			3, 2, 2, 1, 2, 1, 1, 0
+		};
+		int ret = 0;
+		for (int i = 0; i < len; ++i)
+		{
+			ret += bitcount[bits[i] & 0xf];
+			ret += bitcount[(bits[i] >> 4) & 0xf];
+		}
+		return ret;
+	}
 }
 

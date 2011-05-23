@@ -103,6 +103,7 @@ struct peer_entry
 {
 	tcp::endpoint addr;
 	ptime added;
+	bool seed;
 };
 
 // this is a group. It contains a set of group members
@@ -251,7 +252,7 @@ public:
 	{ m_table.print_state(os); }
 #endif
 
-	void announce(sha1_hash const& info_hash, int listen_port
+	void announce(sha1_hash const& info_hash, int listen_port, bool seed
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	bool verify_token(std::string const& token, char const* info_hash
@@ -293,10 +294,9 @@ public:
 	dht_settings const& settings() const { return m_settings; }
 
 protected:
-	// is called when a find data request is received. Should
-	// return false if the data is not stored on this node. If
-	// the data is stored, it should be serialized into 'data'.
-	bool lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply) const;
+
+	void lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
+		, bool noseed, bool scrape) const;
 	bool lookup_torrents(sha1_hash const& target, entry& reply
 		, char* tags) const;
 

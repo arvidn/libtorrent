@@ -1862,7 +1862,7 @@ namespace libtorrent
 
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
-			, m_ses.listen_port()
+			, m_ses.listen_port(), is_seed()
 			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
