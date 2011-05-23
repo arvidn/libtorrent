@@ -288,43 +288,45 @@
 <li><a class="reference internal" href="#storage-interface" id="id218">storage_interface</a><ul>
 <li><a class="reference internal" href="#initialize" id="id219">initialize()</a></li>
 <li><a class="reference internal" href="#has-any-file" id="id220">has_any_file()</a></li>
-<li><a class="reference internal" href="#readv-writev" id="id221">readv() writev()</a></li>
-<li><a class="reference internal" href="#sparse-end" id="id222">sparse_end()</a></li>
-<li><a class="reference internal" href="#id10" id="id223">move_storage()</a></li>
-<li><a class="reference internal" href="#verify-resume-data" id="id224">verify_resume_data()</a></li>
-<li><a class="reference internal" href="#write-resume-data" id="id225">write_resume_data()</a></li>
-<li><a class="reference internal" href="#move-slot" id="id226">move_slot()</a></li>
-<li><a class="reference internal" href="#swap-slots" id="id227">swap_slots()</a></li>
-<li><a class="reference internal" href="#swap-slots3" id="id228">swap_slots3()</a></li>
-<li><a class="reference internal" href="#id11" id="id229">rename_file()</a></li>
-<li><a class="reference internal" href="#release-files" id="id230">release_files()</a></li>
-<li><a class="reference internal" href="#delete-files" id="id231">delete_files()</a></li>
-<li><a class="reference internal" href="#finalize-file" id="id232">finalize_file()</a></li>
+<li><a class="reference internal" href="#hint-read" id="id221">hint_read()</a></li>
+<li><a class="reference internal" href="#readv-writev" id="id222">readv() writev()</a></li>
+<li><a class="reference internal" href="#sparse-end" id="id223">sparse_end()</a></li>
+<li><a class="reference internal" href="#id10" id="id224">move_storage()</a></li>
+<li><a class="reference internal" href="#verify-resume-data" id="id225">verify_resume_data()</a></li>
+<li><a class="reference internal" href="#write-resume-data" id="id226">write_resume_data()</a></li>
+<li><a class="reference internal" href="#move-slot" id="id227">move_slot()</a></li>
+<li><a class="reference internal" href="#swap-slots" id="id228">swap_slots()</a></li>
+<li><a class="reference internal" href="#swap-slots3" id="id229">swap_slots3()</a></li>
+<li><a class="reference internal" href="#id11" id="id230">rename_file()</a></li>
+<li><a class="reference internal" href="#release-files" id="id231">release_files()</a></li>
+<li><a class="reference internal" href="#delete-files" id="id232">delete_files()</a></li>
+<li><a class="reference internal" href="#finalize-file" id="id233">finalize_file()</a></li>
+<li><a class="reference internal" href="#example" id="id234">example</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#magnet-links" id="id233">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id234">queuing</a><ul>
-<li><a class="reference internal" href="#downloading" id="id235">downloading</a></li>
-<li><a class="reference internal" href="#seeding" id="id236">seeding</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id235">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id236">queuing</a><ul>
+<li><a class="reference internal" href="#downloading" id="id237">downloading</a></li>
+<li><a class="reference internal" href="#seeding" id="id238">seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#fast-resume" id="id237">fast resume</a><ul>
-<li><a class="reference internal" href="#file-format" id="id238">file format</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id239">fast resume</a><ul>
+<li><a class="reference internal" href="#file-format" id="id240">file format</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#threads" id="id239">threads</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id240">storage allocation</a><ul>
-<li><a class="reference internal" href="#sparse-allocation" id="id241">sparse allocation</a></li>
-<li><a class="reference internal" href="#full-allocation" id="id242">full allocation</a></li>
-<li><a class="reference internal" href="#compact-allocation" id="id243">compact allocation</a></li>
+<li><a class="reference internal" href="#threads" id="id241">threads</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id242">storage allocation</a><ul>
+<li><a class="reference internal" href="#sparse-allocation" id="id243">sparse allocation</a></li>
+<li><a class="reference internal" href="#full-allocation" id="id244">full allocation</a></li>
+<li><a class="reference internal" href="#compact-allocation" id="id245">compact allocation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#extensions" id="id244">extensions</a><ul>
-<li><a class="reference internal" href="#metadata-from-peers" id="id245">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id246">HTTP seeding</a></li>
+<li><a class="reference internal" href="#extensions" id="id246">extensions</a><ul>
+<li><a class="reference internal" href="#metadata-from-peers" id="id247">metadata from peers</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id248">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id247">filename checks</a></li>
+<li><a class="reference internal" href="#filename-checks" id="id249">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -708,6 +710,10 @@ struct add_torrent_params
         bool share_mode;
         std::string trackerid;
         std::string url;
+        std::string uuid;
+        std::string source_feed_url;
+        bool apply_ip_filter;
+        bool merge_resume_trackers;
 };
 
 torrent_handle add_torrent(add_torrent_params const&amp; params);
@@ -823,6 +829,16 @@ is used for forward binary compatibility.</p>
 <p><tt class="docutils literal"><span class="pre">trackerid</span></tt> is the default tracker id to be used when announcing to trackers. By default
 this is empty, and no tracker ID is used, since this is an optional argument. If
 a tracker returns a tracker ID, that ID is used instead of this.</p>
+<p>if <tt class="docutils literal"><span class="pre">uuid</span></tt> is specified, it is used to find duplicates. If another torrent is already
+running with the same UUID as the one being added, it will be considered a duplicate. This
+is mainly useful for RSS feed items which has UUIDs specified.</p>
+<p><tt class="docutils literal"><span class="pre">source_feed_url</span></tt> should point to the URL of the RSS feed this torrent comes from,
+if it comes from an RSS feed.</p>
+<p><tt class="docutils literal"><span class="pre">apply_ip_filter</span></tt> determines if the IP filter should apply to this torrent or not. By
+default all torrents are subject to filtering by the IP filter. This is useful if certain
+torrents needs to be excempt for some reason, being an auto-update torrent for instance.</p>
+<p><tt class="docutils literal"><span class="pre">merge_resume_trackers</span></tt> defaults to false and specifies whether tracker URLs loaded from
+resume data should be added to the trackers in the torrent or replace the trackers.</p>
 </div>
 <div class="section" id="remove-torrent">
 <h2>remove_torrent()</h2>
@@ -2967,8 +2983,9 @@ A high number gives more bandwidth. The priority must be within the range [0, 25
 consume, even if there's is more quota. Other peers will still be weighed in when
 bandwidth is being distributed. With other words, bandwidth is not distributed strictly
 in order of priority, but the priority is used as a weight.</p>
-<p>Torrents with higher priority are also more likely to have its peers unchoked, to
-distribute more upload capacity to them.</p>
+<p>Peers whose Torrent has a higher priority will take precedence when distributing unchoke slots.
+This is a strict prioritization where every interested peer on a high priority torrent will
+be unchoked before any other, lower priority, torrents have any peers unchoked.</p>
 </div>
 <div class="section" id="use-interface">
 <h2>use_interface()</h2>
@@ -3396,6 +3413,8 @@ struct torrent_status
         int queue_position;
         bool need_save_resume;
         bool ip_filter_applies;
+
+        sha1_hash info_hash;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">handle</span></tt> is a handle to the torrent whose status the object represents.</p>
@@ -3625,6 +3644,7 @@ to its download state and statistics since the last resume data
 was saved.</p>
 <p><tt class="docutils literal"><span class="pre">ip_filter_applies</span></tt> is true if the session global IP filter applies
 to this torrent. This defaults to true.</p>
+<p><tt class="docutils literal"><span class="pre">info_hash</span></tt> is the info-hash of the torrent.</p>
 </div>
 <div class="section" id="peer-info">
 <h1>peer_info</h1>
@@ -4373,6 +4393,7 @@ struct session_settings
         bool always_send_user_agent;
         bool apply_ip_filter_to_trackers;
         int read_job_every;
+        use_disk_read_ahead;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -5091,6 +5112,9 @@ and serviced once all write jobs have been issued. In scenarios where the
 download rate is enough to saturate the disk, there's a risk the read jobs will
 never be serviced. With this setting, every <em>x</em> write job, issued in a row, will
 instead pick one read job off of the sorted queue, where <em>x</em> is <tt class="docutils literal"><span class="pre">read_job_every</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">use_disk_read_ahead</span></tt> defaults to true and will attempt to optimize disk reads
+by giving the operating system heads up of disk read requests as they are queued
+in the disk job queue. This gives a significant performance boost for seeding.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -6274,7 +6298,7 @@ struct peer_disconnected_alert: peer_alert
 <div class="section" id="invalid-request-alert">
 <h2>invalid_request_alert</h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request.
-<tt class="docutils literal"><span class="pre">Ïp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
+<tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
 struct invalid_request_alert: peer_alert
@@ -6657,7 +6681,9 @@ limited, it may be higher than that.</p>
 <h2>cache_flushed_alert</h2>
 <p>This alert is posted when the disk cache has been flushed for a specific torrent
 as a result of a call to <a class="reference internal" href="#flush-cache">flush_cache()</a>. This alert belongs to the
-<tt class="docutils literal"><span class="pre">storage_notification</span></tt> category, which must be enabled to let this alert through.</p>
+<tt class="docutils literal"><span class="pre">storage_notification</span></tt> category, which must be enabled to let this alert through.
+The alert is also posted when removing a torrent from the session, once the outstanding
+cache flush is complete and the torrent does no longer have any files open.</p>
 <pre class="literal-block">
 struct flush_cached_alert: torrent_alert
 {
@@ -7723,13 +7749,13 @@ std::string error_code_to_string(boost::system::error_code const&amp; ec)
         static const char const* swedish[] =
         {
                 &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil frÂn en annan torrent&quot;,
+                &quot;en fil i torrenten kolliderar med en fil från en annan torrent&quot;,
                 &quot;hash check misslyckades&quot;,
-                &quot;torrent filen ‰r inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller ‰r korrupt i torrentfilen&quot;,
-                &quot;'info'-f‰ltet ‰r inte en dictionary&quot;,
-                &quot;'piece length' f‰ltet saknas eller ‰r korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnf‰ltet&quot;,
+                &quot;torrent filen är inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller är korrupt i torrentfilen&quot;,
+                &quot;'info'-fältet är inte en dictionary&quot;,
+                &quot;'piece length' fältet saknas eller är korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnfältet&quot;,
                 &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
                 // ... more strings here
         };
@@ -7768,6 +7794,7 @@ struct storage_interface
 {
         virtual bool initialize(bool allocate_files) = 0;
         virtual bool has_any_file() = 0;
+        virtual void hint_read(int slot, int offset, int len);
         virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
         virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
         virtual int sparse_end(int start) const;
@@ -7814,6 +7841,17 @@ virtual bool has_any_file() = 0;
 <p>This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.</p>
+</div>
+<div class="section" id="hint-read">
+<h2>hint_read()</h2>
+<blockquote>
+<pre class="literal-block">
+void hint_read(int slot, int offset, int len);
+</pre>
+</blockquote>
+<p>This function is called when a read job is queued. It gives the storage wrapper an
+opportunity to hint the operating system about this coming read. For instance, the
+storage may call <tt class="docutils literal"><span class="pre">posix_fadvise(POSIX_FADV_WILLNEED)</span></tt> or <tt class="docutils literal"><span class="pre">fcntl(F_RDADVISE)</span></tt>.</p>
 </div>
 <div class="section" id="readv-writev">
 <h2>readv() writev()</h2>
@@ -7994,6 +8032,76 @@ not be opened for writing after this.</p>
 <p><tt class="docutils literal"><span class="pre">index</span></tt> is the index of the file that completed.</p>
 <p>On windows the default storage implementation clears the sparse file flag
 on the specified file.</p>
+</div>
+<div class="section" id="example">
+<h2>example</h2>
+<p>This is an example storage implementation that stores all pieces in a <tt class="docutils literal"><span class="pre">std::map</span></tt>,
+i.e. in RAM. It's not necessarily very useful in practice, but illustrates the
+basics of implementing a custom storage.</p>
+<pre class="literal-block">
+struct temp_storage : storage_interface
+{
+        temp_storage(file_storage const&amp; fs) : m_files(fs) {}
+        virtual bool initialize(bool allocate_files) { return false; }
+        virtual bool has_any_file() { return false; }
+        virtual int read(char* buf, int slot, int offset, int size)
+        {
+                std::map&lt;int, std::vector&lt;char&gt; &gt;::const_iterator i = m_file_data.find(slot);
+                if (i == m_file_data.end()) return 0;
+                int available = i-&gt;second.size() - offset;
+                if (available &lt;= 0) return 0;
+                if (available &gt; size) available = size;
+                memcpy(buf, &amp;i-&gt;second[offset], available);
+                return available;
+        }
+        virtual int write(const char* buf, int slot, int offset, int size)
+        {
+                std::vector&lt;char&gt;&amp; data = m_file_data[slot];
+                if (data.size() &lt; offset + size) data.resize(offset + size);
+                std::memcpy(&amp;data[offset], buf, size);
+                return size;
+        }
+        virtual bool rename_file(int file, std::string const&amp; new_name)
+        { assert(false); return false; }
+        virtual bool move_storage(std::string const&amp; save_path) { return false; }
+        virtual bool verify_resume_data(lazy_entry const&amp; rd, error_code&amp; error) { return false; }
+        virtual bool write_resume_data(entry&amp; rd) const { return false; }
+        virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
+        virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
+        virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
+        virtual size_type physical_offset(int slot, int offset)
+        { return slot * m_files.piece_length() + offset; };
+        virtual sha1_hash hash_for_slot(int slot, partial_hash&amp; ph, int piece_size)
+        {
+                int left = piece_size - ph.offset;
+                assert(left &gt;= 0);
+                if (left &gt; 0)
+                {
+                        std::vector&lt;char&gt;&amp; data = m_file_data[slot];
+                        // if there are padding files, those blocks will be considered
+                        // completed even though they haven't been written to the storage.
+                        // in this case, just extend the piece buffer to its full size
+                        // and fill it with zeroes.
+                        if (data.size() &lt; piece_size) data.resize(piece_size, 0);
+                        ph.h.update(&amp;data[ph.offset], left);
+                }
+                return ph.h.final();
+        }
+        virtual bool release_files() { return false; }
+        virtual bool delete_files() { return false; }
+
+        std::map&lt;int, std::vector&lt;char&gt; &gt; m_file_data;
+        file_storage m_files;
+};
+
+storage_interface* temp_storage_constructor(
+        file_storage const&amp; fs, file_storage const* mapped
+        , std::string const&amp; path, file_pool&amp; fp
+        , std::vector&lt;boost::uint8_t&gt; const&amp; prio)
+{
+        return new temp_storage(fs);
+}
+</pre>
 </div>
 </div>
 <div class="section" id="magnet-links">
