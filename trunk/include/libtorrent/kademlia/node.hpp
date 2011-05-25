@@ -130,6 +130,19 @@ struct dht_immutable_item
 	int size;
 };
 
+struct dht_mutable_item : dht_immutable_item
+{
+	char sig[256];
+	int seq;
+};
+
+struct rsa_key { char bytes[268]; };
+
+inline bool operator<(rsa_key const& lhs, rsa_key const& rhs)
+{
+	return memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) < 0;
+}
+
 inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
 {
 	return lhs.addr.address() == rhs.addr.address()
@@ -165,6 +178,7 @@ class node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
+typedef std::map<rsa_key, dht_mutable_item> dht_mutable_table_t;
 
 public:
 	typedef boost::function3<void, address, int, address> external_ip_fun;
@@ -277,6 +291,7 @@ public:
 private:
 	table_t m_map;
 	dht_immutable_table_t m_immutable_table;
+	dht_mutable_table_t m_mutable_table;
 	
 	ptime m_last_tracker_tick;
 

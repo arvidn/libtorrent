@@ -397,12 +397,13 @@ int test_main()
 
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
-	char private_key[256];
+	char private_key[1192];
 	int private_len = sizeof(private_key);
-	char public_key[512];
+	char public_key[268];
 	int public_len = sizeof(public_key);
 
 	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
+	fprintf(stderr, "keysizes: pub: %d priv: %d\n", public_len, private_len);
 
 	TEST_CHECK(ret);
 
@@ -410,12 +411,13 @@ int test_main()
 	std::generate(test_message, test_message + 1024, &std::rand);
 
 	char signature[256];
-	int sig_len = sign_rsa(test_message, sizeof(test_message)
+	int sig_len = sign_rsa(hasher(test_message, sizeof(test_message)).final()
 		, private_key, private_len, signature, sizeof(signature));
 
 	TEST_CHECK(sig_len == 256);
 
-	ret = verify_rsa(test_message, sizeof(test_message), public_key, public_len, signature, sig_len);
+	ret = verify_rsa(hasher(test_message, sizeof(test_message)).final()
+		, public_key, public_len, signature, sig_len);
 	TEST_CHECK(ret == 1);
 #endif
 

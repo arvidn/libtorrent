@@ -45,7 +45,7 @@ namespace libtorrent
 {
 
 // returns the size of the resulting signature
-int sign_rsa(char const* data, int data_len
+int sign_rsa(sha1_hash const& digest
 	, char const* private_key, int private_len
 	, char* signature, int sig_len)
 {
@@ -54,15 +54,13 @@ int sign_rsa(char const* data, int data_len
 	RSA* priv = 0;
 	unsigned char const* key = (unsigned char const*)private_key;
 	priv = d2i_RSAPrivateKey(&priv, &key, private_len);
+	if (priv == 0) return -1;
 
 	if (RSA_size(priv) > sig_len)
 	{
 		RSA_free(priv);
 		return -1;
 	}
-
-	// hash the data
-	sha1_hash digest = hasher(data, data_len).final();
 
 	RSA_sign(NID_sha1, &digest[0], 20, (unsigned char*)signature, (unsigned int*)&sig_len, priv);
 
@@ -72,7 +70,7 @@ int sign_rsa(char const* data, int data_len
 }
 
 // returns true if the signature is valid
-bool verify_rsa(char const* data, int data_len
+bool verify_rsa(sha1_hash const& digest
 	, char const* public_key, int public_len
 	, char const* signature, int sig_len)
 {
@@ -81,9 +79,7 @@ bool verify_rsa(char const* data, int data_len
 	RSA* pub = 0;
 	unsigned char const* key = (unsigned char const*)public_key;
 	pub = d2i_RSAPublicKey(&pub, &key, public_len);
-
-	// hash the data
-	sha1_hash digest = hasher(data, data_len).final();
+	if (pub == 0) return false;
 
 	int ret = RSA_verify(NID_sha1, &digest[0], 20, (unsigned char*)signature, sig_len, pub);
 
