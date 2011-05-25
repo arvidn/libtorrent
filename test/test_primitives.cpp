@@ -717,6 +717,22 @@ int test_main()
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
+	const char* magnet_uri2 = "magnet:"
+		"?tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
+	torrent_handle t2 = add_magnet_uri(*s, magnet_uri2, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	const char* magnet_uri3 = "magnet:"
+		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
+		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07&dn=Ubuntu+11.04+%28Final%29";
+	torrent_handle t3 = add_magnet_uri(*s, magnet_uri3, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
 	std::vector<announce_entry> trackers = t.trackers();
 	TEST_EQUAL(trackers.size(), 3);
 	if (trackers.size() > 0)
