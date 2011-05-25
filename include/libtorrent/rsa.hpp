@@ -34,18 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SIGN_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent
 {
 	// both of these use SHA-1 as the message digest to be signed/verified
 
 	// returns the size of the resulting signature
-	TORRENT_EXPORT int sign_rsa(char const* data, int data_len
+	TORRENT_EXPORT int sign_rsa(sha1_hash const& digest
 		, char const* private_key, int private_len
 		, char* signature, int sig_len);
 
 	// returns true if the signature is valid
-	TORRENT_EXPORT bool verify_rsa(char const* data, int data_len
+	TORRENT_EXPORT bool verify_rsa(sha1_hash const& digest
 		, char const* public_key, int public_len
 		, char const* signature, int sig_len);
 

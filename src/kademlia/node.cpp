@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/find_data.hpp"
+#include "libtorrent/rsa.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -786,18 +787,30 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	}
 	else if (strcmp(query, "put") == 0)
 	{
+		// the first 2 entries are for both mutable and
+		// immutable puts
 		const static key_desc_t msg_desc[] = {
 			{"token", lazy_entry::string_t, 0, 0},
 			{"v", lazy_entry::none_t, 0, 0},
+			{"seq", lazy_entry::int_t, 0, 0},
+			// public key
+			{"k", lazy_entry::string_t, 268, 0},
+			{"sig", lazy_entry::string_t, 256, 0},
 		};
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[2];
+		lazy_entry const* msg_keys[5];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
 		}
+
+		bool mutable_put = false;
+
+		// is this a mutable put?
+		if (verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
+			mutable_put = true;
 
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
@@ -807,7 +820,15 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash target = hasher(buf.first, buf.second).final();
+		sha1_hash target;
+		if (!mutable_put)
+			target = hasher(buf.first, buf.second).final();
+		else
+			target = sha1_hash(msg_keys[3]->string_ptr());
+
+//		fprintf(stderr, "%s PUT target: %s\n"
+//			, mutable_put ? "mutable":"immutable"
+//			, to_hex(target.to_string()).c_str());
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
@@ -817,50 +838,134 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		dht_immutable_table_t::iterator i = m_immutable_table.find(target);
-		if (i == m_immutable_table.end())
-		{
-			// make sure we don't add too many items
-			if (int(m_immutable_table.size()) >= m_settings.max_dht_items)
-			{
-				// delete the least important one (i.e. the one
-				// the fewest peers are announcing)
-				dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
-					, m_immutable_table.end()
-					, boost::bind(&dht_immutable_item::num_announcers
-						, boost::bind(&dht_immutable_table_t::value_type::second, _1)));
-				TORRENT_ASSERT(j != m_immutable_table.end());
-				m_immutable_table.erase(j);
-			}
-			dht_immutable_item to_add;
-			to_add.value = (char*)malloc(buf.second);
-			to_add.size = buf.second;
-			memcpy(to_add.value, buf.first, buf.second);
-		
-			boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
-				std::make_pair(target, to_add));
-		}
+		dht_immutable_item* f = 0;
 
-		dht_immutable_item& f = i->second;
+		if (!mutable_put)
+		{
+			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
+			if (i == m_immutable_table.end())
+			{
+				// make sure we don't add too many items
+				if (int(m_immutable_table.size()) >= m_settings.max_dht_items)
+				{
+					// delete the least important one (i.e. the one
+					// the fewest peers are announcing)
+					dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
+						, m_immutable_table.end()
+						, boost::bind(&dht_immutable_item::num_announcers
+							, boost::bind(&dht_immutable_table_t::value_type::second, _1)));
+					TORRENT_ASSERT(j != m_immutable_table.end());
+					free(j->second.value);
+					m_immutable_table.erase(j);
+				}
+				dht_immutable_item to_add;
+				to_add.value = (char*)malloc(buf.second);
+				to_add.size = buf.second;
+				memcpy(to_add.value, buf.first, buf.second);
+		
+				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
+					std::make_pair(target, to_add));
+			}
+
+//			fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
+
+			f = &i->second;
+		}
+		else
+		{
+			// mutable put, we must verify the signature
+			// generate the message digest by merging the sequence number and the
+			hasher digest;
+			char seq[20];
+			int len = snprintf(seq, sizeof(seq), "3:seqi%"PRId64"e1:v", msg_keys[2]->int_value());
+			digest.update(seq, len);
+			std::pair<char const*, int> buf = msg_keys[1]->data_section();
+			digest.update(buf.first, buf.second);
+
+			if (!verify_rsa(digest.final(), msg_keys[3]->string_ptr(), msg_keys[3]->string_length()
+				, msg_keys[4]->string_ptr(), msg_keys[4]->string_length()))
+			{
+				incoming_error(e, "invalid signature");
+				return;
+			}
+
+			rsa_key target;
+			memcpy(target.bytes, msg_keys[3]->string_ptr(), sizeof(target.bytes));
+			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
+			if (i == m_mutable_table.end())
+			{
+				// make sure we don't add too many items
+				if (int(m_mutable_table.size()) >= m_settings.max_dht_items)
+				{
+					// delete the least important one (i.e. the one
+					// the fewest peers are announcing)
+					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
+						, m_mutable_table.end()
+						, boost::bind(&dht_immutable_item::num_announcers
+							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
+					TORRENT_ASSERT(j != m_mutable_table.end());
+					free(j->second.value);
+					m_mutable_table.erase(j);
+				}
+				dht_mutable_item to_add;
+				to_add.value = (char*)malloc(buf.second);
+				to_add.size = buf.second;
+				to_add.seq = msg_keys[2]->int_value();
+				memcpy(to_add.sig, msg_keys[4]->string_ptr(), sizeof(to_add.sig));
+				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4]->string_length());
+				memcpy(to_add.value, buf.first, buf.second);
+		
+				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
+					std::make_pair(target, to_add));
+
+//				fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
+			}
+			else
+			{
+				dht_mutable_item* item = &i->second;
+
+				if (item->seq > msg_keys[2]->int_value())
+				{
+					incoming_error(e, "old sequence number");
+					return;
+				}
+
+				if (item->seq < msg_keys[2]->int_value())
+				{
+					if (item->size != buf.second)
+					{
+						free(item->value);
+						item->value = (char*)malloc(buf.second);
+						item->size = buf.second;
+					}
+					item->seq = msg_keys[2]->int_value();
+					memcpy(item->sig, msg_keys[4]->string_ptr(), sizeof(item->sig));
+					TORRENT_ASSERT(sizeof(item->sig) == msg_keys[4]->string_length());
+					memcpy(item->value, buf.first, buf.second);
+				}
+			}
+
+			f = &i->second;
+		}
 
 		m_table.node_seen(id, m.addr);
 
-		f.last_seen = time_now();
+		f->last_seen = time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash iphash;
 		hash_address(m.addr.address(), iphash);
-		if (!f.ips.find(iphash))
+		if (!f->ips.find(iphash))
 		{
-			f.ips.set(iphash);
-			++f.num_announcers;
+			f->ips.set(iphash);
+			++f->num_announcers;
 		}
 	}
 	else if (strcmp(query, "get") == 0)
 	{
 		key_desc_t msg_desc[] = {
 			{"target", lazy_entry::string_t, 20, 0},
-			{"k", lazy_entry::string_t, 0, key_desc_t::optional},
+			{"k", lazy_entry::string_t, 268-20, key_desc_t::optional},
 		};
 
 		// k is not used for now
@@ -875,6 +980,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash target(msg_keys[0]->string_ptr());
 
+//		fprintf(stderr, "%s GET target: %s\n"
+//			, msg_keys[1] ? "mutable":"immutable"
+//			, to_hex(target.to_string()).c_str());
+
 		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
 		
 		nodes_t n;
@@ -882,11 +991,28 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 
-		dht_immutable_table_t::iterator i = m_immutable_table.find(target);
-		if (i != m_immutable_table.end())
+		if (msg_keys[1])
 		{
-			dht_immutable_item const& f = i->second;
-			reply["v"] = bdecode(f.value, f.value + f.size);
+			rsa_key key;
+			memcpy(key.bytes, msg_keys[0]->string_ptr(), 20);
+			memcpy(key.bytes + 20, msg_keys[1]->string_ptr(), 268-20);
+			dht_mutable_table_t::iterator i = m_mutable_table.find(key);
+			if (i != m_mutable_table.end())
+			{
+				dht_mutable_item const& f = i->second;
+				reply["v"] = bdecode(f.value, f.value + f.size);
+				reply["seq"] = f.seq;
+				reply["sig"] = std::string(f.sig, f.sig + 256);
+			}
+		}
+		else
+		{
+			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
+			if (i != m_immutable_table.end())
+			{
+				dht_immutable_item const& f = i->second;
+				reply["v"] = bdecode(f.value, f.value + f.size);
+			}
 		}
 	}
 	else

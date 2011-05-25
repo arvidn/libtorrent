@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include <iostream>
 
 #include "test.hpp"
@@ -75,9 +76,10 @@ static const std::string no;
 void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	, lazy_entry* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
-	, std::string const target = std::string(), entry const* value = 0
-	, std::string const id = std::string()
-	, bool scrape = false, bool seed = false)
+	, char const* target = 0, entry const* value = 0
+	, bool scrape = false, bool seed = false
+	, std::string const key = std::string(), std::string const sig = std::string()
+	, int seq = -1)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -87,15 +89,18 @@ void send_dht_msg(node_impl& node, char const* msg, udp::endpoint const& ep
 	e["t"] = t;
 	e["y"] = "q";
 	entry::dictionary_type& a = e["a"].dict();
-	a["id"] = id.empty() ? generate_next().to_string() : id;
-	if (info_hash) a["info_hash"] = info_hash;
+	a["id"] = generate_next().to_string();
+	if (info_hash) a["info_hash"] = std::string(info_hash, 20);
 	if (name) a["n"] = name;
 	if (!token.empty()) a["token"] = token;
 	if (port) a["port"] = port;
-	if (!target.empty()) a["target"] = target;
+	if (target) a["target"] = std::string(target, 20);
 	if (value) a["v"] = *value;
+	if (!sig.empty()) a["sig"] = sig;
+	if (!key.empty()) a["k"] = key;
 	if (scrape) a["scrape"] = 1;
 	if (seed) a["seed"] = 1;
+	if (seq >= 0) a["seq"] = seq;
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 //	std::cerr << "sending: " <<  e << "\n";
@@ -135,6 +140,7 @@ struct announce_item
 	sha1_hash target;
 	void gen()
 	{
+		num_peers = (rand() % 5) + 1;
 		ent["next"] = next.to_string();
 		ent["A"] = "a";
 		ent["B"] = "b";
@@ -147,10 +153,10 @@ struct announce_item
 	}
 };
 
-void announce_items(node_impl& node, udp::endpoint const* eps
-	, node_id const* ids, announce_item const* items, int num_items)
+void announce_immutable_items(node_impl& node, udp::endpoint const* eps
+	, announce_item const* items, int num_items)
 {
-	std::string tokens[1000];
+	std::string token;
 	for (int i = 0; i < 1000; ++i)
 	{
 		for (int j = 0; j < num_items; ++j)
@@ -158,7 +164,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			if ((i % items[j].num_peers) == 0) continue;
 			lazy_entry response;
 			send_dht_msg(node, "get", eps[i], &response, "10", 0
-				, 0, no, 0, items[j].target.to_string());
+				, 0, no, 0, (char const*)&items[j].target[0]);
 			
 			key_desc_t desc[] =
 			{
@@ -172,12 +178,12 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			lazy_entry const* parsed[5];
 			char error_string[200];
 
-			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+//			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			int ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
 			if (ret)
 			{
 				TEST_EQUAL(parsed[4]->string_value(), "r");
-				tokens[i] = parsed[2]->string_value();
+				token = parsed[2]->string_value();
 			}
 			else
 			{
@@ -194,8 +200,7 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 			}
 
 			send_dht_msg(node, "put", eps[i], &response, "10", 0
-				, 0, tokens[i], 0, items[j].target.to_string(), &items[j].ent
-				, ids[i].to_string());
+				, 0, token, 0, (char const*)&items[j].target[0], &items[j].ent);
 
 			key_desc_t desc2[] =
 			{
@@ -220,35 +225,24 @@ void announce_items(node_impl& node, udp::endpoint const* eps
 	for (int j = 0; j < num_items; ++j)
 	{
 		lazy_entry response;
-		send_dht_msg(node, "get", eps[0], &response, "10", 0
-			, 0, no, 0, items[j].target.to_string(), 0
-			, ids[0].to_string());
+		send_dht_msg(node, "get", eps[j], &response, "10", 0
+			, 0, no, 0, (char const*)&items[j].target[0]);
 		
 		key_desc_t desc[] =
 		{
 			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
-				{ "v", lazy_entry::dict_t, 0, key_desc_t::parse_children},
-					{ "A", lazy_entry::string_t, 1, 0},
-					{ "B", lazy_entry::string_t, 1, 0},
-					{ "num_peers", lazy_entry::int_t, 0, key_desc_t::last_child},
+				{ "v", lazy_entry::dict_t, 0, 0},
 				{ "id", lazy_entry::string_t, 20, key_desc_t::last_child},
 			{ "y", lazy_entry::string_t, 1, 0},
 		};
 
-		lazy_entry const* parsed[7];
+		lazy_entry const* parsed[4];
 		char error_string[200];
 
-		int ret = verify_message(&response, desc, parsed, 7, error_string, sizeof(error_string));
+		int ret = verify_message(&response, desc, parsed, 4, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[6]->string_value(), "r");
-			TEST_EQUAL(parsed[2]->string_value(), "a");
-			TEST_EQUAL(parsed[3]->string_value(), "b");
-			items_num.insert(items_num.begin(), parsed[4]->int_value());
-		}
-		else
-		{
-			fprintf(stderr, "unexpected msg: %s\n", print_entry(response).c_str());
+			items_num.insert(items_num.begin(), j);
 		}
 	}
 
@@ -401,14 +395,14 @@ int test_main()
 		}
 		response.clear();
 		send_dht_msg(node, "announce_peer", source, &response, "10", "01010101010101010101"
-			, "test", token, 8080, std::string(), 0, std::string(), false, i >= 50);
+			, "test", token, 8080, 0, 0, false, i >= 50);
 		response.clear();
 	}
 
 	// ====== get_peers ======
 
 	send_dht_msg(node, "get_peers", source, &response, "10", "01010101010101010101"
-		, 0, std::string(), 0, std::string(), 0, std::string(), true);
+		, 0, no, 0, 0, 0, true);
 
 	dht::key_desc_t peer2_desc[] = {
 		{"y", lazy_entry::string_t, 1, 0},
@@ -463,6 +457,8 @@ int test_main()
 		test.set(iphash);
 	}
 
+	// these are test vectors from BEP 33
+	// http://www.bittorrent.org/beps/bep_0033.html
 	fprintf(stderr, "test.size: %f\n", test.size());
 	TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
 	fprintf(stderr, "%s\n", to_hex(test.to_string()).c_str());
@@ -473,13 +469,9 @@ int test_main()
 	// ====== put ======
 
 	udp::endpoint eps[1000];
-	node_id ids[1000];
 
  	for (int i = 0; i < 1000; ++i)
-	{
 		eps[i] = udp::endpoint(rand_v4(), (rand() % 16534) + 1);
-		ids[i] = generate_next();
-	}
 
 	announce_item items[] =
 	{
@@ -496,7 +488,80 @@ int test_main()
 	for (int i = 0; i < sizeof(items)/sizeof(items[0]); ++i)
 		items[i].gen();
 
-	announce_items(node, eps, ids, items, sizeof(items)/sizeof(items[0]));
+	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
+
+	// ==== get / put mutable items ===
+
+	char private_key[1192];
+	int private_len = sizeof(private_key);
+	char public_key[268];
+	int public_len = sizeof(public_key);
+
+	fprintf(stderr, "generating RSA keys\n");
+	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
+	fprintf(stderr, "pub: %d priv:%d\n", public_len, private_len);
+
+	TEST_CHECK(ret);
+
+	send_dht_msg(node, "get", source, &response, "10", 0
+		, 0, no, 0, public_key, 0, false, false, std::string(public_key + 20, public_len-20));
+			
+	key_desc_t desc[] =
+	{
+		{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "token", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+		{ "y", lazy_entry::string_t, 1, 0},
+	};
+
+	ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
+	if (ret)
+	{
+		TEST_EQUAL(parsed[4]->string_value(), "r");
+		token = parsed[2]->string_value();
+	}
+	else
+	{
+		fprintf(stderr, "   invalid get response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
+
+	char signature[256];
+	int sig_len = sizeof(signature);
+	char buffer[1024];
+	int seq = 4;
+	int pos = snprintf(buffer, sizeof(buffer), "3:seqi%de1:v", seq);
+	hasher h(buffer, pos);
+	char* ptr = buffer;
+	int len = bencode(ptr, items[0].ent);
+	h.update(buffer, len);
+	sign_rsa(h.final(), private_key, private_len, signature, sig_len);
+
+	send_dht_msg(node, "put", source, &response, "10", 0
+		, 0, token, 0, 0, &items[0].ent, false, false
+		, std::string(public_key, public_len)
+		, std::string(signature, sig_len), seq);
+
+	key_desc_t desc2[] =
+	{
+		{ "y", lazy_entry::string_t, 1, 0 }
+	};
+
+	ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
+	if (ret)
+	{
+		fprintf(stderr, "put response: %s\n"
+			, print_entry(response).c_str());
+		TEST_EQUAL(parsed[0]->string_value(), "r");
+	}
+	else
+	{
+		fprintf(stderr, "   invalid put response: %s\n%s\n"
+			, error_string, print_entry(response).c_str());
+		TEST_ERROR(error_string);
+	}
 
 	return 0;
 }
