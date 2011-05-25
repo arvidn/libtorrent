@@ -792,25 +792,22 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		const static key_desc_t msg_desc[] = {
 			{"token", lazy_entry::string_t, 0, 0},
 			{"v", lazy_entry::none_t, 0, 0},
-			{"seq", lazy_entry::int_t, 0, 0},
+			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", lazy_entry::string_t, 268, 0},
-			{"sig", lazy_entry::string_t, 256, 0},
+			{"k", lazy_entry::string_t, 268, key_desc_t::optional},
+			{"sig", lazy_entry::string_t, 256, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
 		lazy_entry const* msg_keys[5];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
 		}
 
-		bool mutable_put = false;
-
 		// is this a mutable put?
-		if (verify_message(arg_ent, msg_desc, msg_keys, 5, error_string, sizeof(error_string)))
-			mutable_put = true;
+		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
@@ -882,12 +879,17 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			std::pair<char const*, int> buf = msg_keys[1]->data_section();
 			digest.update(buf.first, buf.second);
 
+#ifdef TORRENT_USE_OPENSSL
 			if (!verify_rsa(digest.final(), msg_keys[3]->string_ptr(), msg_keys[3]->string_length()
 				, msg_keys[4]->string_ptr(), msg_keys[4]->string_length()))
 			{
 				incoming_error(e, "invalid signature");
 				return;
 			}
+#else
+			incoming_error(e, "unsupported");
+			return;
+#endif
 
 			rsa_key target;
 			memcpy(target.bytes, msg_keys[3]->string_ptr(), sizeof(target.bytes));

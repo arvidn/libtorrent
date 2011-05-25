@@ -428,8 +428,8 @@ int test_main()
 		fprintf(stderr, "seeds: %f\n", seeds.size());
 		fprintf(stderr, "downloaders: %f\n", downloaders.size());
 
-		TEST_CHECK(fabs(seeds.size() - 50.f) <= 2.f);
-		TEST_CHECK(fabs(downloaders.size() - 50.f) <= 2.f);
+		TEST_CHECK(fabs(seeds.size() - 50.f) <= 3.f);
+		TEST_CHECK(fabs(downloaders.size() - 50.f) <= 3.f);
 	}
 	else
 	{
@@ -489,6 +489,9 @@ int test_main()
 		items[i].gen();
 
 	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
+
+#ifdef TORRENT_USE_OPENSSL
+	// RSA functions are only implemented with openssl for now
 
 	// ==== get / put mutable items ===
 
@@ -562,6 +565,7 @@ int test_main()
 			, error_string, print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}
+#endif // TORRENT_USE_OPENSSL
 
 	return 0;
 }
