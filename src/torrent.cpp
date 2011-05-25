@@ -2825,7 +2825,7 @@ namespace libtorrent
 
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
 		{
-			peer_connection* p = *i;
+			intrusive_ptr<peer_connection> p = *i;
 			++i;
 			p->announce_piece(index);
 		}
