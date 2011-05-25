@@ -2359,6 +2359,9 @@ finish:
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
+#ifdef SIGEV_THREAD_ID
+		pthread_t self = pthread_self();
+#endif
 		// this is the chain of aios that were
 		// successfully submitted
 		file::aiocb_t* ret = aios;
@@ -2368,7 +2371,12 @@ finish:
 			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
 #if TORRENT_USE_AIO
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
+#ifdef SIGEV_THREAD_ID
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
+			aios->cb.aio_sigevent._tid = self;
+#else
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+#endif
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
 			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 			int ret;
