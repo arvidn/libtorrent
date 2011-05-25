@@ -119,7 +119,7 @@ namespace libtorrent
 {
 
 // returns the size of the resulting signature
-int sign_rsa(char const* data, int data_len
+int sign_rsa(sha1_hash const& digest
 	, char const* private_key, int private_len
 	, char* signature, int sig_len)
 {
@@ -127,7 +127,7 @@ int sign_rsa(char const* data, int data_len
 }
 
 // returns true if the signature is valid
-bool verify_rsa(char const* data, int data_len
+bool verify_rsa(sha1_hash const& digest
 	, char const* public_key, int public_len
 	, char const* signature, int sig_len)
 {
