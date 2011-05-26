@@ -107,7 +107,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	observer_ptr o = new_observer(ptr, addr, id);
 	if (id.is_all_zeros())
 	{
-		o->set_id(generate_id());
+		o->set_id(generate_random_id());
 		o->flags |= observer::flag_no_id;
 	}
 
