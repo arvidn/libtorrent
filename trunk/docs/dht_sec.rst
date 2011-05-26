@@ -95,8 +95,7 @@ Example code code for calculating a valid node ID::
 	int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
 	while (num_octets)
 	{
-		seed *= ip[num_octets];
-		seed &= (modulus-1);
+		seed = (uint64_t(seed) * ip[num_octets]) & (modulus-1);
 		modulus <<= mod_shift;
 		--num_octets;
 	}
@@ -120,8 +119,7 @@ Example code to verify a node ID::
 	int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
 	while (num_octets)
 	{
-		seed *= ip[num_octets];
-		seed &= (modulus-1);
+		seed = (uint64_t(seed) * ip[num_octets]) & (modulus-1);
 		modulus <<= mod_shift;
 		--num_octets;
 	}
