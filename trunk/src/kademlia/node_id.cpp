@@ -97,6 +97,60 @@ int distance_exp(node_id const& n1, node_id const& n2)
 
 struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
 
+node_id generate_id_impl(address const& ip, boost::uint32_t r)
+{
+	boost::uint32_t seed = r & 0x7;
+	uint32_t modulus = 0x100;
+
+	boost::uint8_t* p = 0;
+	int num_octets = 0;
+	int mod_shift = 0;
+	
+	address_v4::bytes_type b4;
+#if TORRENT_USE_IPV6
+	address_v6::bytes_type b6;
+	if (ip.is_v6())
+	{
+		b6 = ip.to_v6().to_bytes();
+		p = &b6[0];
+		num_octets = 8;
+		mod_shift = 3;
+	}
+	else
+#endif
+	{
+		b4 = ip.to_v4().to_bytes();
+		p = &b4[0];
+		num_octets = 4;
+		mod_shift = 6;
+	}
+
+	while (num_octets)
+	{
+		seed *= p[num_octets];
+		seed &= (modulus-1);
+		modulus <<= mod_shift;
+		--num_octets;
+	}
+
+	seed = htonl(seed);
+
+	node_id id = hasher((const char*)&seed, sizeof(seed)).final();
+
+	for (int i = 4; i < 19; ++i) id[i] = rand();
+
+	id[19] = r;
+
+	return id;
+}
+
+node_id generate_random_id()
+{
+	char random[20];
+	for (int i = 0; i < 20; ++i) random[i] = rand();
+	return hasher(random, 20).final();
+}
+
 // verifies whether a node-id matches the IP it's used from
 // returns true if the node-id is OK coming from this source
 // and false otherwise.
@@ -105,29 +159,13 @@ bool verify_id(node_id const& nid, address const& source_ip)
 	// no need to verify local IPs, they would be incorrect anyway
 	if (is_local(source_ip)) return true;
 
-	node_id h;
-	hash_address(source_ip, h);
+	node_id h = generate_id_impl(source_ip, nid[19]);
 	return memcmp(&nid[0], &h[0], 4) == 0;
 }
-	
-node_id generate_id(address const& external_ip)
-{
-	node_id h;
-	char random[20];
-#ifdef _MSC_VER
-	std::generate(random, random + 20, &rand);
-#else
-	std::generate(random, random + 20, &std::rand);
-#endif
-	h = hasher(random, 20).final();
 
-	if (!is_local(external_ip))
-	{
-		node_id ph;
-		hash_address(external_ip, ph);
-		memcpy(&h[0], &ph[0], 4);
-	}
-	return h;
+node_id generate_id(address const& ip)
+{
+	return generate_id_impl(ip, rand());
 }
 
 } }  // namespace libtorrent::dht
