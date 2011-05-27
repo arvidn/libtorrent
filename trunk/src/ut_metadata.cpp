@@ -196,8 +196,8 @@ namespace libtorrent { namespace
 		{
 			m_message_index = 0;
 			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			lazy_entry const* messages = h.dict_find_dict("m");
+			if (!messages) return false;
 
 			int index = messages->dict_find_int_value("ut_metadata", -1);
 			if (index == -1) return false;
@@ -216,8 +216,7 @@ namespace libtorrent { namespace
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_pc.m_logger) << time_now_string() << " ==> UT_METADATA [ "
-				"type: " << type << " | piece: " << piece << " ]\n";
+			m_pc.peer_log("<== UT_METADATA [ type: %d | piece: %d ]", type, piece);
 #endif
 
 			// abort if the peer doesn't support the metadata extension
@@ -236,8 +235,8 @@ namespace libtorrent { namespace
 				if (piece < 0 || piece >= int(m_tp.metadata().left() + 16 * 1024 - 1)/(16*1024))
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
-					(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ invalid piece "
-						<< piece << " metadata size: " << m_tp.metadata().left() << " ]\n";
+					m_pc.peer_log("<== UT_METADATA [ invalid piece %d metadata size: %d ]"
+						, piece, int(m_tp.metadata().left()));
 #endif
 					m_pc.disconnect(errors::invalid_metadata_message, 2);
 					return;
@@ -278,8 +277,7 @@ namespace libtorrent { namespace
 			if (length > 17 * 1024)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ packet too big "
-					<< length << " ]\n";
+				m_pc.peer_log("<== UT_METADATA [ packet too big %d ]", length);
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, 2);
 				return true;
@@ -292,7 +290,7 @@ namespace libtorrent { namespace
 			if (msg.type() == entry::undefined_t)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ not a dictionary ]\n";
+				m_pc.peer_log("<== UT_METADATA [ not a dictionary ]");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, 2);
 				return true;
@@ -304,7 +302,7 @@ namespace libtorrent { namespace
 				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ missing or invalid keys ]\n";
+				m_pc.peer_log("<== UT_METADATA [ missing or invalid keys ]");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, 2);
 				return true;
@@ -313,8 +311,7 @@ namespace libtorrent { namespace
 			int piece = piece_ent->integer();
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			(*m_pc.m_logger) << time_now_string() << " <== UT_METADATA [ "
-				"type: " << type << " | piece: " << piece << " ]\n";
+			m_pc.peer_log("<== UT_METADATA [ type: %d | piece: %d ]", type, piece);
 #endif
 
 			switch (type)
