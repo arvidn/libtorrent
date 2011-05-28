@@ -95,11 +95,12 @@ bool generate_rsa_keys(char* public_key, int* public_len
 	if (keypair == 0) return false;
 
 	bool ret = false;
+	unsigned char* pub = (unsigned char*)public_key;
+	unsigned char* priv = (unsigned char*)private_key;
+
 	if (RSA_size(keypair) > *public_len) goto getout;
 	if (RSA_size(keypair) > *private_len) goto getout;
 
-	unsigned char* pub = (unsigned char*)public_key;
-	unsigned char* priv = (unsigned char*)private_key;
 	*public_len = i2d_RSAPublicKey(keypair, &pub);
 	*private_len = i2d_RSAPrivateKey(keypair, &priv);
 
