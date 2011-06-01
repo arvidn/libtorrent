@@ -3855,8 +3855,8 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
-			pp->prev_amount_download += p->statistics().total_payload_download();
-			pp->prev_amount_upload += p->statistics().total_payload_upload();
+			pp->prev_amount_download += p->statistics().total_payload_download() >> 10;
+			pp->prev_amount_upload += p->statistics().total_payload_upload() >> 10;
 		}
 
 		m_policy.connection_closed(*p, m_ses.session_time());
@@ -5017,7 +5017,8 @@ namespace libtorrent
 		if (settings().default_peer_download_rate)
 			c->set_download_limit(settings().default_peer_download_rate);
 
- 		c->add_stat(peerinfo->prev_amount_download, peerinfo->prev_amount_upload);
+ 		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
+			, size_type(peerinfo->prev_amount_upload) << 10);
  		peerinfo->prev_amount_download = 0;
  		peerinfo->prev_amount_upload = 0;
 

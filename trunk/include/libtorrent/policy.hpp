@@ -153,25 +153,24 @@ namespace libtorrent
 
 // intended struct layout (on 32 bit architectures)
 // offset size  alignment field
-// 0      12    1         prev_amount_upload, prev_amount_download
-// 12     4     4         connection
-// 16     2     2         last_optimistically_unchoked
-// 18     2     2         last_connected
-// 20     16    1         addr
-// 36     2     2         port
-// 38     2     2         upload_rate_limit
-// 40     2     2         download_rate_limit
-// 42     1     1         hashfails
-// 43     1     1         failcount, connectable, optimistically_unchoked, seed
-// 44     1     1         fast_reconnects, trust_points
-// 45     1     1         source, pe_support, is_v6_addr
-// 46     1     1         on_parole, banned, added_to_dht, supports_utp,
+// 0      8     4         prev_amount_upload, prev_amount_download
+// 8      4     4         connection
+// 12     2     2         last_optimistically_unchoked
+// 14     2     2         last_connected
+// 16     16    1         addr
+// 32     2     2         port
+// 34     2     2         upload_rate_limit
+// 36     2     2         download_rate_limit
+// 38     1     1         hashfails
+// 39     1     1         failcount, connectable, optimistically_unchoked, seed
+// 40     1     1         fast_reconnects, trust_points
+// 41     1     1         source, pe_support, is_v6_addr
+// 42     1     1         on_parole, banned, added_to_dht, supports_utp,
 //                        supports_holepunch
-// 47     1     1         <padding>
-// 48
+// 43     1     1         <padding>
+// 44
 		struct TORRENT_EXPORT peer
 		{
-//			peer();
 			peer(boost::uint16_t port, bool connectable, int src);
 
 			size_type total_download() const;
@@ -191,14 +190,12 @@ namespace libtorrent
 			// total amount of upload and download
 			// we'll have to add thes figures with the
 			// statistics from the peer_connection.
-			// 48 bits can fit 256 Terabytes
-#ifdef __SUNPRO_CC
-			unsigned prev_amount_upload:48;
-			unsigned prev_amount_download:48;
-#else
-			boost::uint64_t prev_amount_upload:48;
-			boost::uint64_t prev_amount_download:48;
-#endif
+			// since these values don't need to be stored
+			// with byte-precision, they specify the number
+			// of kiB. i.e. shift left 10 bits to compare to
+			// byte counters.
+			boost::uint32_t prev_amount_upload;
+			boost::uint32_t prev_amount_download;
 
 			// if the peer is connected now, this
 			// will refer to a valid peer_connection
