@@ -527,9 +527,11 @@ namespace libtorrent { namespace dht
 			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: not a dictionary: "
 				<< print_entry(e, true);
 #endif
-			entry r;
-			libtorrent::dht::incoming_error(r, "message is not a dictionary");
-			send_packet(r, ep, 0);
+			// it's not a good idea to send invalid messages
+			// especially not in response to an invalid message
+//			entry r;
+//			libtorrent::dht::incoming_error(r, "message is not a dictionary");
+//			send_packet(r, ep, 0);
 			return;
 		}
 
