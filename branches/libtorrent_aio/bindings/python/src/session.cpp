@@ -142,7 +142,7 @@ namespace
 #endif
 #endif
 
-    void dict_to_add_torrent_params(dict params, add_torrent_params& p)
+    void dict_to_add_torrent_params(dict params, add_torrent_params& p, std::vector<char>& rd)
     {
         if (params.has_key("ti"))
             p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
@@ -163,13 +163,12 @@ namespace
         }
         p.save_path = extract<std::string>(params["save_path"]);
 
-        std::vector<char> resume_buf;
         if (params.has_key("resume_data"))
         {
             std::string resume = extract<std::string>(params["resume_data"]);
-            resume_buf.resize(resume.size());
-            std::memcpy(&resume_buf[0], &resume[0], resume.size());
-            p.resume_data = &resume_buf;
+            rd.resize(resume.size());
+            std::memcpy(&rd[0], &rd[0], rd.size());
+            p.resume_data = &rd;
         }
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
@@ -198,7 +197,8 @@ namespace
     torrent_handle add_torrent(session& s, dict params)
     {
         add_torrent_params p;
-        dict_to_add_torrent_params(params, p);
+        std::vector<char> resume_buf;
+        dict_to_add_torrent_params(params, p, resume_buf);
 
         allow_threading_guard guard;
 
@@ -210,7 +210,7 @@ namespace
 #endif
     }
 
-    void dict_to_feed_settings(dict params, feed_settings& feed)
+    void dict_to_feed_settings(dict params, feed_settings& feed, std::vector<char>& resume_buf)
     {
         if (params.has_key("auto_download"))
             feed.auto_download = extract<bool>(params["auto_download"]);
@@ -219,7 +219,7 @@ namespace
         if (params.has_key("url"))
             feed.url = extract<std::string>(params["url"]);
         if (params.has_key("add_args"))
-            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args);
+            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args, resume_buf);
     }
 
     feed_handle add_feed(session& s, dict params)
@@ -227,7 +227,10 @@ namespace
         allow_threading_guard guard;
 
         feed_settings feed;
-        dict_to_feed_settings(params, feed);
+        // this static here is a bit of a hack. It will
+        // probably work for the most part
+        static std::vector<char> resume_buf;
+        dict_to_feed_settings(params, feed, resume_buf);
 
         return s.add_feed(feed);
     }
@@ -272,7 +275,8 @@ namespace
         allow_threading_guard guard;
 
         feed_settings feed;
-        dict_to_feed_settings(sett, feed);
+        static std::vector<char> resume_buf;
+        dict_to_feed_settings(sett, feed, resume_buf);
         h.set_settings(feed);
     }
 

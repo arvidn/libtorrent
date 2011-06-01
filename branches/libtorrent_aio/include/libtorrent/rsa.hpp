@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,52 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BLOOM_FILTER_HPP_INCLUDED
-#define TORRENT_BLOOM_FILTER_HPP_INCLUDED
+#ifndef TORRENT_SIGN_HPP_INCLUDED
+#define TORRENT_SIGN_HPP_INCLUDED
 
-#include <boost/cstdint.hpp>
-#include "libtorrent/peer_id.hpp" // for sha1_hash
-#include "libtorrent/config.hpp" // for sha1_hash
-
-#include <math.h> // for log()
+#include "libtorrent/config.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent
 {
-	TORRENT_EXPORT void set_bits(boost::uint8_t const* b, boost::uint8_t* bits, int len);
-	TORRENT_EXPORT bool has_bits(boost::uint8_t const* b, boost::uint8_t const* bits, int len);
-	TORRENT_EXPORT int count_zero_bits(boost::uint8_t const* bits, int len);
+	// both of these use SHA-1 as the message digest to be signed/verified
 
-	template <int N>
-	struct bloom_filter
-	{
-		bool find(sha1_hash const& k) const
-		{ return has_bits(&k[0], bits, N); }
+	// returns the size of the resulting signature
+	TORRENT_EXPORT int sign_rsa(sha1_hash const& digest
+		, char const* private_key, int private_len
+		, char* signature, int sig_len);
 
-		void set(sha1_hash const& k)
-		{ set_bits(&k[0], bits, N); }
+	// returns true if the signature is valid
+	TORRENT_EXPORT bool verify_rsa(sha1_hash const& digest
+		, char const* public_key, int public_len
+		, char const* signature, int sig_len);
 
-		std::string to_string() const
-		{ return std::string((char const*)&bits[0], N); }
-
-		void from_string(char const* str)
-		{ memcpy(bits, str, N); }
-
-		void clear() { memset(bits, 0, N); }
-
-		float size() const
-		{
-			const int c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
-			const int m = N * 8;
-			return log(c / float(m)) / (2.f * log(1.f - 1.f/m));
-		}
-
-		bloom_filter() { clear(); }
-
-	private:
-		boost::uint8_t bits[N];
-	};
-
+	// returns false if it fails, for instance if the key
+	// buffers are too small. public_len and private_len
+	// are in-out values, set to the actual sizes
+	TORRENT_EXPORT bool generate_rsa_keys(char* public_key, int* public_len
+		, char* private_key, int* private_len, int key_size);
 }
 
-#endif
-
+#endif // TORRENT_SIGN_HPP_INCLUDED

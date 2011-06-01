@@ -219,7 +219,7 @@ bool routing_table::need_refresh(node_id& target) const
 	if (now - m_last_refresh < seconds(45)) return false;
 
 	// generate a random node_id within the given bucket
-	target = generate_id(address());
+	target = generate_random_id();
 	int num_bits = std::distance(m_buckets.begin(), i) + 1;
 	node_id mask(0);
 	for (int i = 0; i < num_bits; ++i) mask[i/8] |= 0x80 >> (i&7);

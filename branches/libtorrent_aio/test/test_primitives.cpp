@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/rsa.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -448,6 +449,32 @@ int test_main()
 	}
 #endif
 
+#if defined TORRENT_USE_OPENSSL
+	// test sign_rsa and verify_rsa
+	char private_key[1192];
+	int private_len = sizeof(private_key);
+	char public_key[268];
+	int public_len = sizeof(public_key);
+
+	ret = generate_rsa_keys(public_key, &public_len, private_key, &private_len, 2048);
+	fprintf(stderr, "keysizes: pub: %d priv: %d\n", public_len, private_len);
+
+	TEST_CHECK(ret);
+
+	char test_message[1024];
+	std::generate(test_message, test_message + 1024, &std::rand);
+
+	char signature[256];
+	int sig_len = sign_rsa(hasher(test_message, sizeof(test_message)).final()
+		, private_key, private_len, signature, sizeof(signature));
+
+	TEST_CHECK(sig_len == 256);
+
+	ret = verify_rsa(hasher(test_message, sizeof(test_message)).final()
+		, public_key, public_len, signature, sig_len);
+	TEST_CHECK(ret == 1);
+#endif
+
 	// test verify_message
 	const static key_desc_t msg_desc[] = {
 		{"A", lazy_entry::string_t, 4, 0},
@@ -745,6 +772,22 @@ int test_main()
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
+	const char* magnet_uri2 = "magnet:"
+		"?tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
+	torrent_handle t2 = add_magnet_uri(*s, magnet_uri2, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	const char* magnet_uri3 = "magnet:"
+		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
+		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07&dn=Ubuntu+11.04+%28Final%29";
+	torrent_handle t3 = add_magnet_uri(*s, magnet_uri3, p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
 	std::vector<announce_entry> trackers = t.trackers();
 	TEST_EQUAL(trackers.size(), 3);
 	if (trackers.size() > 0)
@@ -871,30 +914,6 @@ int test_main()
 	TEST_EQUAL(is_complete("foo/bar"), false);
 	TEST_EQUAL(is_complete("/"), true);
 	TEST_EQUAL(is_complete(""), false);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-	// test search_torrent_entry
-
-	dht::search_torrent_entry ste1;
-	dht::search_torrent_entry ste2;
-	char const* ste1_tags[] = {"tag1", "tag2", "tag3", "tag4"};
-	ste1.publish("ste1", ste1_tags, 4);
-	char const* ste11_tags[] = {"tag2", "tag3"};
-	ste1.publish("ste1", ste11_tags, 2);
-	char const* ste2_tags[] = {"tag1", "tag2", "tag5", "tag6"};
-	ste2.publish("ste2", ste2_tags, 4);
-	char const* ste21_tags[] = {"tag1", "tag5"};
-	ste2.publish("ste2", ste21_tags, 2);
-
-	char const* test_tags1[] = {"tag1", "tag2"};
-	char const* test_tags2[] = {"tag3", "tag2"};
-	int m1 = ste1.match(test_tags1, 2);
-	int m2 = ste2.match(test_tags1, 2);
-	TEST_CHECK(m1 == m2);
-	m1 = ste1.match(test_tags2, 2);
-	m2 = ste2.match(test_tags2, 2);
-	TEST_CHECK(m1 > m2);
 #endif
 
 	// test split_string
@@ -1631,7 +1650,7 @@ int test_main()
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
 	std::cout << "returned: " << temp.size() << std::endl;
-	TEST_EQUAL(temp.size(), (std::min)(15, int(nodes.size())));
+	TEST_EQUAL(int(temp.size()), (std::min)(15, int(nodes.size())));
 
 	std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
 		, boost::bind(&node_entry::id, _1)

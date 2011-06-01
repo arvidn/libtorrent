@@ -5,6 +5,7 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
+	dht_store \
 	client_test \
 	manual \
 	building \

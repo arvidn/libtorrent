@@ -58,10 +58,12 @@
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
 <li><a class="reference internal" href="#id1" id="id2">BitTorrent DHT security extension</a></li>
-<li><a class="reference internal" href="#node-ids" id="id3">node IDs</a></li>
-<li><a class="reference internal" href="#bootstrapping" id="id4">bootstrapping</a></li>
-<li><a class="reference internal" href="#enforcement" id="id5">enforcement</a></li>
-<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id6">backwards compatibility and transition</a></li>
+<li><a class="reference internal" href="#considerations" id="id3">considerations</a></li>
+<li><a class="reference internal" href="#node-id-restriction" id="id4">Node ID restriction</a></li>
+<li><a class="reference internal" href="#bootstrapping" id="id5">bootstrapping</a></li>
+<li><a class="reference internal" href="#enforcement" id="id6">enforcement</a></li>
+<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id7">backwards compatibility and transition</a></li>
+<li><a class="reference internal" href="#forward-compatibility" id="id8">forward compatibility</a></li>
 </ul>
 </div>
 <div class="section" id="id1">
@@ -78,18 +80,104 @@ peers.</p>
 <p>The proposed guard against this is to enforce restrictions on which node-ID
 a node can choose, based on its external IP address.</p>
 </div>
-<div class="section" id="node-ids">
-<h1>node IDs</h1>
-<p>The proposed formula for restricting node IDs is that the 4 first bytes of
-the node ID MUST match the 4 first bytes of <tt class="docutils literal"><span class="pre">SHA-1(IP_address)</span></tt>. That is,
-the raw, big endian, storage of the address, either IPv4 or IPv6, hashed
-with SHA-1.</p>
-<p>Example:</p>
+<div class="section" id="considerations">
+<h1>considerations</h1>
+<p>One straight forward scheme to tie the node ID to an IP would be to hash
+the IP and force the node ID to share the prefix of that hash. One main
+draw back of this approach is that an entities control over the DHT key
+space grows linearly with its control over the IP address space.</p>
+<p>In order to successfully launch an attack, you just need to find 8 IPs
+whose hash will be <em>closest</em> to the target info-hash. Given the current
+size of the DHT, that is quite likely to be possible by anyone in control
+of a /8 IP block.</p>
+<p>The size of the DHT is approximately 8.4 million nodes. This is estmiated
+by observing that a typical routing table typically has about 20 of its
+top routing table buckets full. That means the key space is dense enough
+to contain 8 nodes for every combination of the 20 top bits of node IDs.</p>
 <blockquote>
-An IP address 89.5.5.5 has a big endian byte representation of
-<tt class="docutils literal"><span class="pre">0x59</span> <span class="pre">0x05</span> <span class="pre">0x05</span> <span class="pre">0x05</span></tt>. The SHA-1 hash of this byte sequence is
-<tt class="docutils literal"><span class="pre">656d41da810a0a6d92fd2f6a8ba3b466e35ab368</span></tt>. The DHT node must choose
-a node ID which starts with <tt class="docutils literal"><span class="pre">656d41da</span></tt>.</blockquote>
+<tt class="docutils literal"><span class="pre">2^20</span> <span class="pre">*</span> <span class="pre">8</span> <span class="pre">=</span> <span class="pre">8388608</span></tt></blockquote>
+<p>By controlling that many IP addresses, an attacker could snoop any info-hash.
+By controlling 8 times that many IP addresses, an attacker could actually
+take over any info-hash.</p>
+<p>With IPv4, snooping would require a /8 IP block, giving access to 16.7 million
+Ips.</p>
+<p>Another problem with hashing the IP is that multiple users behind a NAT are
+forced to run their DHT nodes on the same node ID.</p>
+</div>
+<div class="section" id="node-id-restriction">
+<h1>Node ID restriction</h1>
+<p>In order to avoid the number node IDs controlled to grow linearly by the number
+of IPs, as well as allowing more than one node ID per external IP, the node
+ID can be restricted at each class level of the IP.</p>
+<p>The expression to calculate a valid ID prefix (from an IPv4 address) is:</p>
+<pre class="literal-block">
+sha1((A * (B * (C * (D * (rand() % 8) % 0x100) % 0x4000) % 0x100000)) % 0x4000000)
+</pre>
+<p>Where <tt class="docutils literal"><span class="pre">A</span></tt>, <tt class="docutils literal"><span class="pre">B</span></tt>, <tt class="docutils literal"><span class="pre">C</span></tt> and <tt class="docutils literal"><span class="pre">D</span></tt> are the four octets of an IPv4 address.</p>
+<p>The pattern is that the modulus constant is shifted left by 6 for each octet.
+It generalizes to IPv6 by only considering the first 64 bit of the IP (since
+the low 64 bits are controlled by the host) and shifting the modulus by 3 for
+each octet instead.</p>
+<p>The details of implementing this is to evaluate the expression, store the
+result in a big endian 32 bit integer and hash those 4 bytes with SHA-1.
+The first 4 bytes of the node ID used in the DHT MUST match the first 4
+bytes in the resulting hash. The last byte of the hash MUST match the
+random number used to generate the hash.</p>
+<img alt="ip_id_v4.png" src="ip_id_v4.png" />
+<img alt="ip_id_v6.png" src="ip_id_v6.png" />
+<p>Example code code for calculating a valid node ID:</p>
+<pre class="literal-block">
+uint8_t* ip; // our external IPv4 or IPv6 address (network byte order)
+int num_octets; // the number of octets to consider in ip (4 or 8)
+uint8_t node_id[20]; // resulting node ID
+
+uint32_t rand = rand() &amp; 0xff;
+uint32_t modulus = 0x100;
+uint32_t seed = rand &amp; 0x7;
+int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
+while (num_octets)
+{
+        seed = (uint64_t(seed) * ip[num_octets]) &amp; (modulus-1);
+        modulus &lt;&lt;= mod_shift;
+        --num_octets;
+}
+
+seed = htonl(seed);
+SHA_CTX ctx;
+SHA1_Init(&amp;ctx);
+SHA1_Update(&amp;ctx, (unsigned char*)&amp;seed, sizeof(seed));
+SHA1_Final(&amp;ctx, node_id);
+for (int i = 4; i &lt; 19; ++i) node_id[i] = rand();
+node_id[19] = rand;
+</pre>
+<p>Example code to verify a node ID:</p>
+<pre class="literal-block">
+uint8_t* ip; // incoming IPv4 or IPv6 address (network byte order)
+int num_octets; // the number of octets to consider in ip (4 or 8)
+uint8_t node_id[20]; // incoming node ID
+
+uint32_t modulus = 0x100;
+uint32_t seed = node_id[19] &amp; 0x7;
+int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
+while (num_octets)
+{
+        seed = (uint64_t(seed) * ip[num_octets]) &amp; (modulus-1);
+        modulus &lt;&lt;= mod_shift;
+        --num_octets;
+}
+
+seed = htonl(seed);
+SHA_CTX ctx;
+SHA1_Init(&amp;ctx);
+SHA1_Update(&amp;ctx, (unsigned char*)&amp;seed, sizeof(seed));
+uint8_t digest[20];
+SHA1_Final(&amp;ctx, digest);
+if (memcmp(digest, node_id, 4) != 0)
+        return false; // failed verification
+else
+        return true; // verification passed
+</pre>
+<p>test vectors:</p>
 </div>
 <div class="section" id="bootstrapping">
 <h1>bootstrapping</h1>
@@ -108,9 +196,9 @@ nodes, from separate searches, tells you your node ID is incorrect.</p>
 </div>
 <div class="section" id="enforcement">
 <h1>enforcement</h1>
-<p>Write tokens from peers whose node ID does not match its external IP should be
-considered dropped. In other words, a peer that uses a non-matching ID MUST
-never be used to store information on, regardless of which request. In the
+<p>Once enforced, write tokens from peers whose node ID does not match its external
+IP should be considered dropped. In other words, a peer that uses a non-matching
+ID MUST never be used to store information on, regardless of which request. In the
 original DHT specification only <tt class="docutils literal"><span class="pre">announce_peer</span></tt> stores data in the network,
 but any future extension which stores data in the network SHOULD use the same
 restriction.</p>
@@ -137,6 +225,13 @@ should not be blocked.</p>
 <p>Requests from peers whose node ID does not match their external IP should
 always be serviced, even after the transition period. The attack this protects
 from is storing data on an attacker's node, not servicing an attackers request.</p>
+</div>
+<div class="section" id="forward-compatibility">
+<h1>forward compatibility</h1>
+<p>If the total size of the DHT grows to the point where the inherent size limit
+in this proposal is too small, the modulus constants can be updated in a new
+proposal, and another transition period where both sets of modulus constants
+are accepted.</p>
 </div>
     </div>
     <div id="footer">

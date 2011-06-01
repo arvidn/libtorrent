@@ -39,6 +39,7 @@ set(sources
 	policy
 	puff
 	random
+	rsa
 	rss
 	session
 	session_impl

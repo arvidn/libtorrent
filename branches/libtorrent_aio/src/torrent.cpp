@@ -1873,7 +1873,7 @@ namespace libtorrent
 
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
-			, m_ses.listen_port()
+			, m_ses.listen_port(), is_seed()
 			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
@@ -2842,7 +2842,7 @@ namespace libtorrent
 
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
 		{
-			peer_connection* p = *i;
+			intrusive_ptr<peer_connection> p = *i;
 			++i;
 			p->announce_piece(index);
 		}
@@ -3872,8 +3872,8 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
-			pp->prev_amount_download += p->statistics().total_payload_download();
-			pp->prev_amount_upload += p->statistics().total_payload_upload();
+			pp->prev_amount_download += p->statistics().total_payload_download() >> 10;
+			pp->prev_amount_upload += p->statistics().total_payload_upload() >> 10;
 		}
 
 		m_policy.connection_closed(*p, m_ses.session_time());
@@ -5034,7 +5034,8 @@ namespace libtorrent
 		if (settings().default_peer_download_rate)
 			c->set_download_limit(settings().default_peer_download_rate);
 
- 		c->add_stat(peerinfo->prev_amount_download, peerinfo->prev_amount_upload);
+ 		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
+			, size_type(peerinfo->prev_amount_upload) << 10);
  		peerinfo->prev_amount_download = 0;
  		peerinfo->prev_amount_upload = 0;
 

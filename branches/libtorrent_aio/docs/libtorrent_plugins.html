@@ -57,22 +57,23 @@
 <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#libtorrent-plugins" id="id1">libtorrent plugins</a><ul>
-<li><a class="reference internal" href="#a-word-of-caution" id="id2">a word of caution</a></li>
+<li><a class="reference internal" href="#libtorrent-plugins" id="id2">libtorrent plugins</a><ul>
+<li><a class="reference internal" href="#a-word-of-caution" id="id3">a word of caution</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#plugin-interface" id="id3">plugin interface</a></li>
-<li><a class="reference internal" href="#plugin" id="id4">plugin</a></li>
-<li><a class="reference internal" href="#torrent-plugin" id="id5">torrent_plugin</a><ul>
-<li><a class="reference internal" href="#new-connection" id="id6">new_connection()</a></li>
-<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id7">on_piece_pass() on_piece_fail()</a></li>
-<li><a class="reference internal" href="#tick" id="id8">tick()</a></li>
-<li><a class="reference internal" href="#on-pause-on-resume" id="id9">on_pause() on_resume()</a></li>
-<li><a class="reference internal" href="#on-files-checked" id="id10">on_files_checked()</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id4">plugin interface</a></li>
+<li><a class="reference internal" href="#plugin" id="id5">plugin</a></li>
+<li><a class="reference internal" href="#torrent-plugin" id="id6">torrent_plugin</a><ul>
+<li><a class="reference internal" href="#new-connection" id="id7">new_connection()</a></li>
+<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id8">on_piece_pass() on_piece_fail()</a></li>
+<li><a class="reference internal" href="#tick" id="id9">tick()</a></li>
+<li><a class="reference internal" href="#on-pause-on-resume" id="id10">on_pause() on_resume()</a></li>
+<li><a class="reference internal" href="#on-files-checked" id="id11">on_files_checked()</a></li>
+<li><a class="reference internal" href="#id1" id="id12">on_files_checked()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#peer-plugin" id="id11">peer_plugin</a></li>
-<li><a class="reference internal" href="#disk-buffer-holder" id="id12">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-plugin" id="id13">peer_plugin</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id14">disk_buffer_holder</a></li>
 </ul>
 </div>
 <p>libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -172,6 +173,16 @@ struct torrent_plugin
         virtual bool on_resume();
 
         virtual void on_files_checked();
+
+        virtual void on_state(int s);
+
+        enum flags_t {
+                first_time = 1,
+                filtered = 2
+        };
+
+        virtual void on_add_peer(tcp::endpoint const&amp; ip
+                , int src, int flags);
 };
 </pre>
 <p>This is the base class for a torrent_plugin. Your derived class is (if added
@@ -240,6 +251,41 @@ void on_files_checked();
 checked. If there are no files to check, this function is called immediately.</p>
 <p>i.e. This function is always called when the torrent is in a state where it
 can start downloading.</p>
+</div>
+<div class="section" id="id1">
+<h2>on_files_checked()</h2>
+<pre class="literal-block">
+enum flags_t {
+        first_time = 1,
+        filtered = 2
+};
+
+virtual void on_add_peer(tcp::endpoint const&amp; ip
+        , int src, int flags);
+</pre>
+<p>This function is called whenever we hear about a peer from any peer source,
+such as the tracker, PEX, DHT or Local peer discovery.</p>
+<p><tt class="docutils literal"><span class="pre">src</span></tt> is a bitmask of <tt class="docutils literal"><span class="pre">peer_info::peer_source_flags</span></tt>:</p>
+<pre class="literal-block">
+enum peer_source_flags
+{
+        tracker = 0x1,
+        dht = 0x2,
+        pex = 0x4,
+        lsd = 0x8,
+        resume_data = 0x10,
+        incoming = 0x20
+};
+</pre>
+<p><tt class="docutils literal"><span class="pre">flags</span></tt> is a bitmask of:</p>
+<pre class="literal-block">
+enum flags_t {
+        first_time = 1,
+        filtered = 2
+};
+</pre>
+<p>If the <tt class="docutils literal"><span class="pre">filtered</span></tt> flag is set, it means the peer wasn't added to the
+peer list because of and IP filter, port filter, reserved ports filter.</p>
 </div>
 </div>
 <div class="section" id="peer-plugin">

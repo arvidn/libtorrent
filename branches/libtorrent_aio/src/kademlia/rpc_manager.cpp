@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/invariant_check.hpp>
-#include <libtorrent/kademlia/node_id.hpp> // for generate_id
+#include <libtorrent/kademlia/node_id.hpp> // for generate_random_id
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -169,7 +169,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_our_id(our_id)
 	, m_table(table)
 	, m_timer(time_now())
-	, m_random_number(generate_id())
+	, m_random_number(generate_random_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
 	, m_ext_ip(ext_ip)
