@@ -1248,6 +1248,7 @@ namespace libtorrent
 		peer_log("<== CHOKE");
 #endif
 		m_peer_choked = true;
+		set_endgame(false);
 
 		clear_request_queue();
 	}
