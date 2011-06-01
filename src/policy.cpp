@@ -917,7 +917,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i);
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == 0);
-		c.add_stat(i->prev_amount_download, i->prev_amount_upload);
+		c.add_stat(size_type(i->prev_amount_download) << 10, size_type(i->prev_amount_upload) << 10);
 
 		// restore transfer rate limits
 		int rate_limit;
@@ -1651,7 +1651,7 @@ namespace libtorrent
 		}
 		else
 		{
-			return prev_amount_download;
+			return size_type(prev_amount_download) << 10;
 		}
 	}
 
@@ -1664,7 +1664,7 @@ namespace libtorrent
 		}
 		else
 		{
-			return prev_amount_upload;
+			return size_type(prev_amount_upload) << 10;
 		}
 	}
 
