@@ -225,7 +225,7 @@ namespace libtorrent { namespace dht
 		reply.error_code = 203; // Protocol error
 		reply.error_msg = message;
 		reply.addr = ep;
-		reply.transaction_id = "";
+		reply.transaction_id = e.dict_find_string_value("t");
 		send_packet(reply);
 	}
 
@@ -492,7 +492,9 @@ namespace libtorrent { namespace dht
 		int ret = lazy_bdecode(buf, buf + bytes_transferred, e);
 		if (ret != 0)
 		{
-			incoming_error("invalid bencoding", e, ep);
+			// it's not a good idea to send invalid messages
+			// especially not in response to an invalid message
+			//incoming_error("invalid bencoding", e, ep);
 			return;
 		}
 
@@ -504,7 +506,9 @@ namespace libtorrent { namespace dht
 
 		if (e.type() != lazy_entry::dict_t)
 		{
-			incoming_error("message is not a dictionary", e, ep);
+			// it's not a good idea to send invalid messages
+			// especially not in response to an invalid message
+			//incoming_error("message is not a dictionary", e, ep);
 			return;
 		}
 
@@ -515,7 +519,9 @@ namespace libtorrent { namespace dht
 		lazy_entry const* transaction = e.dict_find_string("t");
 		if (!transaction)
 		{
-			incoming_error("missing or invalid transaction id", e, ep);
+			// it's not a good idea to send invalid messages
+			// especially not in response to an invalid message
+			//incoming_error("missing or invalid transaction id", e, ep);
 			return;
 		}
 
