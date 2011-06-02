@@ -305,7 +305,10 @@ namespace libtorrent
 		// there aren't enough. This means we're in end-game mode
 		// as long as we have at least one request outstanding,
 		// we shouldn't pick another piece
-		c.set_endgame(true);
+		// if we are attempting to download 'allowed' pieces
+		// and can't find any, that doesn't count as end-game
+		if (!c.has_peer_choked())
+			c.set_endgame(true);
 	
 		// if we don't have any potential busy blocks to request
 		// or if we already have outstanding requests, don't
