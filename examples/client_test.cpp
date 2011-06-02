@@ -1684,9 +1684,12 @@ int main(int argc, char* argv[])
 
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
 			{
-				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
+				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (s.paused && !s.auto_managed)?"paused":(s.paused && s.auto_managed)?"queued":state_str[s.state]
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+					  state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
 					, esc("31"), add_suffix(s.total_upload).c_str(), term
@@ -2031,6 +2034,7 @@ int main(int argc, char* argv[])
 
 		clear_home();
 		puts(out.c_str());
+		fflush(stdout);
 
 		if (!monitor_dir.empty()
 			&& next_dir_scan < time_now())
