@@ -779,14 +779,15 @@ namespace libtorrent
 		m_files.set_piece_length(piece_length);
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
-		std::string name = info.dict_find_string_value("name.utf-8");
-		if (name.empty()) name = info.dict_find_string_value("name");
-		if (name.empty())
+		lazy_entry const* name_ent = info.dict_find_string("name.utf-8");
+		if (name_ent == 0) name_ent = info.dict_find_string("name");
+		if (name_ent == 0)
 		{
 			ec = errors::torrent_missing_name;
 			return false;
 		}
 
+		std::string name = name_ent->string_value();
 		name = sanitize_path(name);
 	
 		if (!valid_path_element(name))
