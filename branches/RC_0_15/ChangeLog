@@ -1,3 +1,4 @@
+	* support torrents whose name is empty
 	* fixed connection limit to take web seeds into account as well
 	* fixed bug when receiving a have message before having the metadata
 	* fixed python bindings build with disabled DHT support
