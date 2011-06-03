@@ -788,6 +788,7 @@ namespace libtorrent
 		}
 
 		std::string name = name_ent->string_value();
+		if (name.empty()) name = to_hex(m_info_hash.to_string());
 		name = sanitize_path(name);
 	
 		if (!valid_path_element(name))
