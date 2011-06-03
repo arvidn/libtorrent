@@ -1535,14 +1535,17 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 		{
 			winsize size;
-			ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
-			terminal_width = size.ws_col;
-			terminal_height = size.ws_row;
+			int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
+			if (ret == 0)
+			{
+				terminal_width = size.ws_col;
+				terminal_height = size.ws_row;
 
-			if (terminal_width < 64)
-				terminal_width = 64;
-			if (terminal_height < 25)
-				terminal_height = 25;
+				if (terminal_width < 64)
+					terminal_width = 64;
+				if (terminal_height < 25)
+					terminal_height = 25;
+			}
 		}
 #endif
 
