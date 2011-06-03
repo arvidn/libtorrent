@@ -1382,7 +1382,7 @@ namespace aux {
 			, end(m_torrents.end()); i != end; ++i)
 		{
 			torrent& t = *i->second;
-			if (!t.is_torrent_paused()) t.do_pause();
+			t.do_pause();
 		}
 	}
 
@@ -1398,6 +1398,7 @@ namespace aux {
 			torrent& t = *i->second;
 			t.do_resume();
 		}
+		if (!m_queued_for_checking.empty()) m_queued_for_checking.front()->start_checking();
 	}
 	
 	void session_impl::abort()
@@ -5229,7 +5230,7 @@ namespace aux {
 		}
 
 		// the queue is either empty, or it has exactly one checking torrent in it
-		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1);
+		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1 || (m_paused && num_checking == 0));
 
 		std::set<int> unique;
 		int total_downloaders = 0;
