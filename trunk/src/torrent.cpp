@@ -5661,11 +5661,21 @@ namespace libtorrent
 					++found;
 					if (i->second->should_check_files()) ++found_active;
 				}
-			// the case of 2 is in the special case where one switches over from
-			// checking to complete.
-			TORRENT_ASSERT(found_active >= 1);
-			TORRENT_ASSERT(found_active <= 2);
-			TORRENT_ASSERT(found >= 1);
+
+			// if the session is paused, there might still be some torrents
+			// in the checking_files state that haven't been dequeued yet
+			if (m_ses.is_paused())
+			{
+				TORRENT_ASSERT(found_active == 0);
+			}
+			else
+			{
+				// the case of 2 is in the special case where one switches over from
+				// checking to complete.
+				TORRENT_ASSERT(found_active >= 1);
+				TORRENT_ASSERT(found_active <= 2);
+				TORRENT_ASSERT(found >= 1);
+			}
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
@@ -6309,6 +6319,7 @@ namespace libtorrent
 			m_storage->abort_disk_io();
 			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
+			TORRENT_ASSERT(!m_queued_for_checking);
 		}
 
 		// if this torrent was just paused
