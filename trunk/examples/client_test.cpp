@@ -1546,6 +1546,11 @@ int main(int argc, char* argv[])
 				if (terminal_height < 25)
 					terminal_height = 25;
 			}
+			else
+			{
+				terminal_width = 190;
+				terminal_height = 100;
+			}
 		}
 #endif
 
