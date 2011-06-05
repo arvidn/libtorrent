@@ -1318,6 +1318,12 @@ namespace libtorrent
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
+
+#ifdef TORRENT_DEBUG
+	public:
+		// set to false until we've loaded resume data
+		bool m_resume_data_loaded;
+#endif
 	};
 }
 

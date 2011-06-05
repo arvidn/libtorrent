@@ -3507,6 +3507,7 @@ namespace aux {
 			if (t->state() == torrent_status::checking_files
 				|| t->state() == torrent_status::queued_for_checking)
 				continue;
+			TORRENT_ASSERT(t->m_resume_data_loaded);
 			if (t->is_auto_managed() && !t->has_error())
 			{
 				// this torrent is auto managed, add it to
