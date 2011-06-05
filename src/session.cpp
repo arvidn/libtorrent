@@ -500,6 +500,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
 	{
+		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
