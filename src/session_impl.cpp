@@ -673,6 +673,8 @@ namespace aux {
 #define PRINT_OFFSETOF(x, y) snprintf(tmp, sizeof(tmp), "  offsetof(" #x "," #y "): %d\n", int(offsetof(x, y))); \
 		(*m_logger) << tmp;
 
+		PRINT_SIZEOF(internal_file_entry)
+
 		PRINT_SIZEOF(announce_entry)
 		PRINT_OFFSETOF(announce_entry, url)
 		PRINT_OFFSETOF(announce_entry, message)
