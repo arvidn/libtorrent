@@ -409,6 +409,9 @@ namespace libtorrent
 		, m_apply_ip_filter(p.apply_ip_filter)
 		, m_merge_resume_trackers(p.merge_resume_trackers)
 	{
+#ifdef TORRENT_DEBUG
+		m_resume_data_loaded = false;
+#endif
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
 		if (!p.ti || !p.ti->is_valid())
@@ -1352,6 +1355,10 @@ namespace libtorrent
 			}
 		}
 	
+#ifdef TORRENT_DEBUG
+		m_resume_data_loaded = true;
+#endif
+
 		TORRENT_ASSERT(block_size() > 0);
 		int file = 0;
 		for (file_storage::iterator i = m_torrent_file->files().begin()
@@ -3415,6 +3422,9 @@ namespace libtorrent
 		}
 		if (filter_updated)
 		{
+			// we need to save this new state
+			m_need_save_resume_data = true;
+
 			update_peer_interest(was_finished);
 			remove_time_critical_pieces(pieces);
 		}
@@ -4789,7 +4799,7 @@ namespace libtorrent
 		ret["download_rate_limit"] = download_limit();
 		ret["max_connections"] = max_connections();
 		ret["max_uploads"] = max_uploads();
-		ret["paused"] = !m_allow_peers;
+		ret["paused"] = is_torrent_paused();
 		ret["announce_to_dht"] = m_announce_to_dht;
 		ret["announce_to_trackers"] = m_announce_to_trackers;
 		ret["announce_to_lsd"] = m_announce_to_lsd;
@@ -6055,6 +6065,10 @@ namespace libtorrent
 		if (m_auto_managed == a) return;
 		bool checking_files = should_check_files();
 		m_auto_managed = a;
+
+		// we need to save this new state as well
+		m_need_save_resume_data = true;
+
 		// recalculate which torrents should be
 		// paused
 		m_ses.m_auto_manage_time_scaler = 0;
@@ -6232,6 +6246,9 @@ namespace libtorrent
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
 
+		// we need to save this new state
+		m_need_save_resume_data = true;
+
 		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
 
@@ -6382,6 +6399,10 @@ namespace libtorrent
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
+
+		// we need to save this new state
+		m_need_save_resume_data = true;
+
 		do_resume();
 	}
 

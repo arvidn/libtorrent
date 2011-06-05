@@ -862,6 +862,14 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 			ses.remove_torrent(h);
 	}
+	else if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
+	{
+		// write resume data for the finished torrent
+		// the alert handler for save_resume_data_alert
+		// will save it to disk
+		torrent_handle h = p->handle;
+		h.save_resume_data();
+	}
 }
 
 static char const* state_str[] =
@@ -1486,9 +1494,6 @@ int main(int argc, char* argv[])
 					ts.handle.auto_managed(false);
 					ts.handle.pause(torrent_handle::graceful_pause);
 				}
-				// the alert handler for save_resume_data_alert
-				// will save it to disk
-				if (ts.need_save_resume) ts.handle.save_resume_data();
 			}
 
 			if (c == 'c' && !handles.empty())
