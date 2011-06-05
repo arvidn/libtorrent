@@ -1397,8 +1397,8 @@ namespace aux {
 		{
 			torrent& t = *i->second;
 			t.do_resume();
+			if (t.should_check_files()) t.queue_torrent_check();
 		}
-		if (!m_queued_for_checking.empty()) m_queued_for_checking.front()->start_checking();
 	}
 	
 	void session_impl::abort()
@@ -2717,7 +2717,7 @@ namespace aux {
 		// waiting to be checked. I have never seen this, and I can't 
 		// see a way for it to happen. But, if it does, start one of
 		// the queued torrents
-		if (num_checking == 0 && num_queued > 0)
+		if (num_checking == 0 && num_queued > 0 && !m_paused)
 		{
 			TORRENT_ASSERT(false);
 			check_queue_t::iterator i = std::min_element(m_queued_for_checking.begin()
