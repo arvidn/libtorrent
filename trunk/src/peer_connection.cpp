@@ -3582,9 +3582,17 @@ namespace libtorrent
 		p.load_balancing = total_free_upload();
 
 		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
-		p.requests_in_buffer = int(m_requests_in_buffer.size());
+		p.requests_in_buffer = int(m_requests_in_buffer.size() + m_request_queue.size());
 		p.target_dl_queue_length = int(desired_queue_size());
 		p.upload_queue_length = int(upload_queue().size());
+		p.timed_out_requests = 0;
+		p.busy_requests = 0;
+		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
+			, end(m_download_queue.end()); i != end; ++i)
+		{
+			if (i->timed_out) ++p.timed_out_requests;
+			if (i->busy) ++p.busy_requests;
+		}
 
 		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
 		{
