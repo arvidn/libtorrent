@@ -109,7 +109,7 @@ namespace libtorrent
 		, symlink_attribute(fe.symlink_attribute)
 		, path_index(fe.path_index)
 	{
-		set_name(fe.name, fe.name_len);
+		set_name(fe.filename().c_str());
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe)
@@ -122,7 +122,7 @@ namespace libtorrent
 		hidden_attribute = fe.hidden_attribute;
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
-		set_name(fe.name, fe.name_len);
+		set_name(fe.filename().c_str());
 		return *this;
 	}
 
@@ -131,7 +131,7 @@ namespace libtorrent
 		TORRENT_ASSERT(borrow_chars >= 0);
 		if (borrow_chars > 1023) borrow_chars = 1023;
 		if (name_len == 0) free((void*)name);
-		if (n == 0)
+		if (n == 0 || *n == 0)
 		{
 			TORRENT_ASSERT(borrow_chars == 0);
 			name = 0;
