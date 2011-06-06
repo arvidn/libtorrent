@@ -75,14 +75,14 @@ using boost::bind;
 
 bool sleep_and_input(int* c, int sleep)
 {
-	for (int i = 0; i < sleep * 2; ++i)
+	for (int i = 0; i < 2; ++i)
 	{
 		if (_kbhit())
 		{
 			*c = _getch();
 			return true;
 		}
-		Sleep(500);
+		Sleep(sleep / 2);
 	}
 	return false;
 };
@@ -137,7 +137,7 @@ retry:
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {sleep, 0};
+	timeval tv = {sleep/ 1000, (sleep % 1000) * 1000 };
 	ret = select(1, &set, 0, 0, &tv);
 	if (ret > 0)
 	{
@@ -146,15 +146,17 @@ retry:
 	}
 	if (errno == EINTR)
 	{
-		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep * 1000)
+		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep)
 			goto retry;
 		return false;
 	}
 
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
+	{
 		fprintf(stderr, "select failed: %s\n", strerror(errno));
+		libtorrent::sleep(500);
+	}
 
-	libtorrent::sleep(500);
 	return false;
 }
 
@@ -451,7 +453,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags            source  ";
+	out += "down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags            source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -487,15 +489,22 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 #endif
 
+		char temp[10];
+		snprintf(temp, sizeof(temp), "%d/%d"
+			, i->download_queue_length
+			, i->target_dl_queue_length);
+		temp[7] = 0;
+
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d (%3d) %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
 			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0")
 
-			, i->download_queue_length
-			, i->target_dl_queue_length
+			, temp // sent requests and target number of outstanding reqs.
+			, i->timed_out_requests
+			, i->busy_requests
 			, i->upload_queue_length
 
 			, (i->flags & peer_info::interesting)?'I':'.'
@@ -959,7 +968,7 @@ int main(int argc, char* argv[])
 
 	proxy_settings ps;
 
-	int refresh_delay = 1;
+	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
 	int loop_limit = 0;
