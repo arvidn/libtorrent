@@ -823,8 +823,9 @@ namespace libtorrent
 		{
 			m_write_time.add_sample(total_microseconds(done - write_start) / num_write_calls);
 			m_cache_stats.cumulative_write_time += total_milliseconds(done - write_start);
-			p.num_contiguous_blocks = contiguous_blocks(p);
 		}
+		if (ret > 0)
+			p.num_contiguous_blocks = contiguous_blocks(p);
 
 		TORRENT_ASSERT(buffer_size == 0);
 //		std::cerr << " flushing p: " << p.piece << " cached_blocks: " << m_cache_stats.cache_size << std::endl;
