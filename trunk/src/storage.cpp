@@ -1230,6 +1230,18 @@ ret:
 			{
 				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
+				if (op.mode == file::read_write
+					&& adjusted_offset + bytes_transferred == file_iter->size
+					&& file_handle->pos_alignment() > 0)
+				{
+					// we were writing, and we just wrote the last block of the file
+					// we likely wrote a bit too much, since we're restricted to
+					// a specific alignment for writes. Make sure to truncate the size
+
+					// TODO: what if file_base is used to merge several virtual files
+					// into a single physical file?
+					file_handle->set_size(file_iter->size, ec);
+				}
 			}
 			else
 			{
@@ -1283,7 +1295,7 @@ ret:
 			TORRENT_ASSERT(ec);
 			return ret;
 		}
-		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
+		if (ret - start_adjust < size) return (std::max)(ret - start_adjust, size_type(0));
 
 		char* read_buf = aligned_buf.get() + start_adjust;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
@@ -1320,7 +1332,6 @@ ret:
 			TORRENT_ASSERT(ec);
 			return ret;
 		}
-		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
 
 		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
 
@@ -1339,7 +1350,7 @@ ret:
 			TORRENT_ASSERT(ec);
 			return ret;
 		}
-		if (ret < aligned_size) return (std::max)(size - (start_adjust - ret), size_type(0));
+		if (ret - start_adjust < size) return (std::max)(ret - start_adjust, size_type(0));
 		return size;
 	}
 
