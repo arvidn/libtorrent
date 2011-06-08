@@ -799,12 +799,12 @@ namespace libtorrent
 		}
 		else if (m_torrent_file->is_valid())
 		{
-			// we need to start announcing since we don't have any
-			// metadata. To receive peers to ask for it.
 			init();
 		}
 		else
 		{
+			// we need to start announcing since we don't have any
+			// metadata. To receive peers to ask for it.
 			set_state(torrent_status::downloading_metadata);
 			start_announcing();
 		}
