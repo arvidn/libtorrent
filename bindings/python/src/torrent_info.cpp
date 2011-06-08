@@ -135,10 +135,10 @@ void bind_torrent_info()
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
-        .def(init<entry const&, int>((arg("e"), arg("flags") = 0)))
+        .def(init<entry const&>(arg("e")))
 #endif
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
-        .def(init<char const*, int>((arg("file"), arg("flags") = 0)))
+        .def(init<char const*, int, int>((arg("buffer"), arg("length"), arg("flags") = 0)))
         .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
         .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 #if TORRENT_USE_WSTRING
