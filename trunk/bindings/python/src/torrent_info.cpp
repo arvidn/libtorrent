@@ -135,13 +135,14 @@ void bind_torrent_info()
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
-        .def(init<entry const&>())
+        .def(init<entry const&, int>((arg("e"), arg("flags") = 0)))
 #endif
-        .def(init<sha1_hash const&>())
-        .def(init<char const*, int>())
-        .def(init<std::string>())
+        .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
+        .def(init<char const*, int>((arg("file"), arg("flags") = 0)))
+        .def(init<std::string, int>((arg("file"), arg("flags") = 0)))
+        .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 #if TORRENT_USE_WSTRING
-        .def(init<std::wstring>())
+        .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
 
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))
