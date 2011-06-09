@@ -1382,6 +1382,8 @@ ret:
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
 			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
 			mode |= file::no_buffer;
+		bool lock_files = m_settings ? settings().lock_files : false;
+		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
 

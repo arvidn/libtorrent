@@ -269,6 +269,7 @@ namespace libtorrent
 			, apply_ip_filter_to_trackers(true)
 			, read_job_every(10)
 			, use_disk_read_ahead(true)
+			, lock_files(false)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1075,6 +1076,10 @@ namespace libtorrent
 		// issue posix_fadvise() or fcntl(F_RDADVISE) for disk reads
 		// ahead of time
 		bool use_disk_read_ahead;
+
+		// if set to true, files will be locked when opened.
+		// preventing any other process from modifying them
+		bool lock_files;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
