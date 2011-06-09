@@ -3507,9 +3507,9 @@ namespace aux {
 			if (t->state() == torrent_status::checking_files
 				|| t->state() == torrent_status::queued_for_checking)
 				continue;
-			TORRENT_ASSERT(t->m_resume_data_loaded);
 			if (t->is_auto_managed() && !t->has_error())
 			{
+				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)
 				if (t->is_finished())
@@ -3519,6 +3519,7 @@ namespace aux {
 			}
 			else if (!t->is_paused())
 			{
+				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				--hard_limit;
 			  	if (is_active(t, settings()))
 				{

@@ -628,22 +628,22 @@ namespace libtorrent
 		session_impl::torrent_map::iterator i = m_ses.m_torrents.find(m_torrent_file->info_hash());
 		if (i != m_ses.m_torrents.end())
 		{
-				if (!m_uuid.empty() && i->second->uuid().empty())
-					i->second->set_uuid(m_uuid);
-				if (!m_url.empty() && i->second->url().empty())
-					i->second->set_url(m_url);
-				if (!m_source_feed_url.empty() && i->second->source_feed_url().empty())
-					i->second->set_source_feed_url(m_source_feed_url);
+			if (!m_uuid.empty() && i->second->uuid().empty())
+				i->second->set_uuid(m_uuid);
+			if (!m_url.empty() && i->second->url().empty())
+				i->second->set_url(m_url);
+			if (!m_source_feed_url.empty() && i->second->source_feed_url().empty())
+				i->second->set_source_feed_url(m_source_feed_url);
 
-				// insert this torrent in the uuid index
-				if (!m_uuid.empty() || !m_url.empty())
-				{
-					m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
-						? m_url : m_uuid, i->second));
-				}
-				set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
-				abort();
-				return;
+			// insert this torrent in the uuid index
+			if (!m_uuid.empty() || !m_url.empty())
+			{
+				m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
+					? m_url : m_uuid, i->second));
+			}
+			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
+			abort();
+			return;
 		}
 
 		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), me));
@@ -1315,6 +1315,9 @@ namespace libtorrent
 			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
+#ifdef TORRENT_DEBUG
+			m_resume_data_loaded = true;
+#endif
 			return;
 		}
 
