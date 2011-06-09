@@ -755,29 +755,17 @@ namespace libtorrent
 		struct open_mode_t
 		{
 			DWORD rw_mode;
-			DWORD share_mode;
 			DWORD create_mode;
-			DWORD flags;
 		};
 
 		const static open_mode_t mode_array[] =
 		{
 			// read_only
-			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, 0},
+			{GENERIC_READ, OPEN_EXISTING},
 			// write_only
-			{GENERIC_WRITE, FILE_SHARE_READ, OPEN_ALWAYS, 0},
+			{GENERIC_WRITE, OPEN_ALWAYS},
 			// read_write
-			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, 0},
-			// invalid option
-			{0,0,0,0},
-			// read_only no_buffer
-			{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
-			// write_only no_buffer
-			{GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
-			// read_write no_buffer
-			{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
-			// invalid option
-			{0,0,0,0}
+			{GENERIC_WRITE | GENERIC_READ, OPEN_ALWAYS},
 		};
 
 		const static DWORD attrib_array[] =
@@ -786,6 +774,16 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden
 			FILE_ATTRIBUTE_NORMAL, // executable
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
+		};
+
+		const static DWORD share_array[] =
+		{
+			// read only (no locking)
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			// write only (no locking)
+			FILE_SHARE_READ,
+			// read/write (no locking)
+			FILE_SHARE_READ,
 		};
 
 #if TORRENT_USE_WSTRING
@@ -797,14 +795,17 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
-		open_mode_t const& m = mode_array[mode & mode_mask];
+		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		DWORD extra_flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
-			| (a ? a : FILE_ATTRIBUTE_NORMAL);
+		DWORD flags
+			= ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
+			| (a ? a : FILE_ATTRIBUTE_NORMAL)
+			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0);
 
-		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode, m.share_mode, 0
-			, m.create_mode, m.flags | extra_flags, 0);
+		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode
+			, (mode & lock_file) ? 0 : share_array[mode & rw_mask]
+			, 0, m.create_mode, flags, 0);
 
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -868,6 +869,25 @@ namespace libtorrent
 			TORRENT_ASSERT(ec);
 			return false;
 		}
+
+#ifdef F_SETLK
+		if (mode & lock_file)
+		{
+			struct flock l =
+			{
+				0, // start offset
+				0, // length (0 = until EOF)
+				getpid(), // owner
+				(mode & write_only) ? F_WRLCK : F_RDLCK, // lock type
+				SEEK_SET // whence
+			};
+			if (fcntl(m_fd, F_SETLK, &l) != 0)
+			{
+				ec.assign(errno, get_posix_category());
+				return false;
+			}
+		}
+#endif
 
 #ifdef DIRECTIO_ON
 		// for solaris
