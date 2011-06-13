@@ -127,7 +127,7 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
+			, boost::uint32_t alert_mask = alert::error_notification
 			TORRENT_LOGPATH_ARG_DEFAULT)
 		{
 			TORRENT_CFG();
@@ -455,7 +455,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
 #endif
-		void set_alert_mask(int m);
+		void set_alert_mask(boost::uint32_t m);
 
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
@@ -475,7 +475,7 @@ namespace libtorrent
 	private:
 
 		void init(std::pair<int, int> listen_range, char const* listen_interface
-			, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG);
+			, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG);
 
 		// data shared between the main thread
 		// and the working thread

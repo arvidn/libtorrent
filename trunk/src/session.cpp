@@ -379,7 +379,7 @@ namespace libtorrent
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
-		, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG)
+		, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG)
 	{
 		m_impl.reset(new session_impl(listen_range, id, listen_interface TORRENT_LOGPATH));
 
@@ -1020,7 +1020,7 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
-	void session::set_alert_mask(int m)
+	void session::set_alert_mask(boost::uint32_t m)
 	{
 		TORRENT_ASYNC_CALL1(set_alert_mask, m);
 	}
