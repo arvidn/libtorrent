@@ -132,7 +132,7 @@ namespace libtorrent { namespace
 
 		void metadata_size(int size)
 		{
-			if (m_metadata_size > 0 || size <= 0 || size > 500 * 1024) return;
+			if (m_metadata_size > 0 || size <= 0 || size > 2 * 1024 * 1024) return;
 			m_metadata_size = size;
 			m_metadata.reset(new char[size]);
 			m_requested_metadata.resize(div_round_up(size, 16 * 1024));
