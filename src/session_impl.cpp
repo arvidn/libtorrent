@@ -3164,7 +3164,7 @@ namespace aux {
 			if (p->is_interesting()) ++peers_down_interesting;
 			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
 				++peers_up_requests;
-			if (p->endgame()) ++num_endgame_peers;
+			if (p->endgame()) ++num_end_game_peers;
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
