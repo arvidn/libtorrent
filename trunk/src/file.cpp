@@ -794,7 +794,7 @@ namespace libtorrent
 		m_path = convert_to_native(path);
 #endif
 
-		TORRENT_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
+		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
 		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
