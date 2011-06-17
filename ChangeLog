@@ -1,3 +1,4 @@
+	* fixed sign issue in set_alert_mask signature
 	* fixed unaligned disk access for unbuffered I/O in windows
 	* support torrents whose name is empty
 	* fixed connection limit to take web seeds into account as well
