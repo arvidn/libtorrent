@@ -1149,7 +1149,7 @@ namespace libtorrent
 		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
-			if (last_error != ERROR_IO_PENDING)
+			if (last_error != ERROR_IO_PENDING && last_error != ERROR_HANDLE_EOF)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
@@ -1157,9 +1157,12 @@ namespace libtorrent
 			}
 			if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
 			{
-				ec.assign(GetLastError(), get_system_category());
-				CloseHandle(ol.hEvent);
-				return -1;
+				if (GetLastError() != ERROR_HANDLE_EOF)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					CloseHandle(ol.hEvent);
+					return -1;
+				}
 			}
 		}
 		CloseHandle(ol.hEvent);
