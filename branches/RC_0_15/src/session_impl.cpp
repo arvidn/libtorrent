@@ -3468,7 +3468,7 @@ namespace aux {
 		return m_alerts.wait_for_alert(max_wait);
 	}
 
-	void session_impl::set_alert_mask(int m)
+	void session_impl::set_alert_mask(boost::uint32_t m)
 	{
 		m_alerts.set_alert_mask(m);
 	}

@@ -201,7 +201,7 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
+			, boost::uint32_t alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -211,7 +211,7 @@ namespace libtorrent
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
+			, boost::uint32_t alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -448,7 +448,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
 #endif
-		void set_alert_mask(int m);
+		void set_alert_mask(boost::uint32_t m);
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		alert const* wait_for_alert(time_duration max_wait);
