@@ -83,38 +83,25 @@ namespace
        return result;
     }
 
-    bool get_tier(announce_entry const& ae)
-    { return ae.tier; }
-    bool get_fail_limit(announce_entry const& ae)
-    { return ae.fail_limit; }
-    bool get_fails(announce_entry const& ae)
-    { return ae.fails; }
-    bool get_source(announce_entry const& ae)
-    { return ae.source; }
-    bool get_verified(announce_entry const& ae)
-    { return ae.verified; }
-    bool get_updating(announce_entry const& ae)
-    { return ae.updating; }
-    bool get_start_sent(announce_entry const& ae)
-    { return ae.start_sent; }
-    bool get_complete_sent(announce_entry const& ae)
-    { return ae.complete_sent; }
-    bool get_send_stats(announce_entry const& ae)
-    { return ae.send_stats; }
+    bool get_tier(announce_entry const& ae) { return ae.tier; }
+    void set_tier(announce_entry& ae, bool v) { ae.tier = v; }
+    bool get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
+    void set_fail_limit(announce_entry& ae, int l) { ae.fail_limit = l; }
+    bool get_fails(announce_entry const& ae) { return ae.fails; }
+    bool get_source(announce_entry const& ae) { return ae.source; }
+    bool get_verified(announce_entry const& ae) { return ae.verified; }
+    bool get_updating(announce_entry const& ae) { return ae.updating; }
+    bool get_start_sent(announce_entry const& ae) { return ae.start_sent; }
+    bool get_complete_sent(announce_entry const& ae) { return ae.complete_sent; }
+    bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
 
 
-    size_type get_size(file_entry const& fe)
-    { return fe.size; }
-    size_type get_offset(file_entry const& fe)
-    { return fe.offset; }
-    bool get_pad_file(file_entry const& fe)
-    { return fe.pad_file; }
-    bool get_executable_attribute(file_entry const& fe)
-    { return fe.executable_attribute; }
-    bool get_hidden_attribute(file_entry const& fe)
-    { return fe.hidden_attribute; }
-    bool get_symlink_attribute(file_entry const& fe)
-    { return fe.symlink_attribute; }
+    size_type get_size(file_entry const& fe) { return fe.size; }
+    size_type get_offset(file_entry const& fe) { return fe.offset; }
+    bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
+    bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
+    bool get_hidden_attribute(file_entry const& fe) { return fe.hidden_attribute; }
+    bool get_symlink_attribute(file_entry const& fe) { return fe.symlink_attribute; }
 
 } // namespace unnamed
 
@@ -197,8 +184,8 @@ void bind_torrent_info()
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
-        .add_property("tier", &get_tier)
-        .add_property("fail_limit", &get_fail_limit)
+        .add_property("tier", &get_tier, &set_tier)
+        .add_property("fail_limit", &get_fail_limit, &set_fail_limit)
         .add_property("fails", &get_fails)
         .add_property("source", &get_source)
         .add_property("verified", &get_verified)
