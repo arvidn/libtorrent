@@ -6,6 +6,7 @@ TARGETS = index \
 	udp_tracker_protocol \
 	dht_rss \
 	dht_store \
+	auth \
 	client_test \
 	manual \
 	building \
