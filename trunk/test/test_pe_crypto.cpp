@@ -156,8 +156,12 @@ int test_main()
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	RC4_handler RC41(test2_key, test1_key);
-	RC4_handler RC42(test1_key, test2_key);
+	rc4_handler rc41;
+	rc41.set_incoming_key(&test2_key[0], 20);
+	rc41.set_outgoing_key(&test1_key[0], 20);
+	rc4_handler rc42;
+	rc42.set_incoming_key(&test1_key[0], 20);
+	rc42.set_outgoing_key(&test2_key[0], 20);
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
@@ -168,12 +172,12 @@ int test_main()
 		std::fill(buf, buf + buf_len, 0);
 		std::fill(zero_buf, zero_buf + buf_len, 0);
 		
-		RC41.encrypt(buf, buf_len);
-		RC42.decrypt(buf, buf_len);
+		rc41.encrypt(buf, buf_len);
+		rc42.decrypt(buf, buf_len);
 		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
 		
-		RC42.encrypt(buf, buf_len);
-		RC41.decrypt(buf, buf_len);
+		rc42.encrypt(buf, buf_len);
+		rc41.decrypt(buf, buf_len);
 		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
 		
 		delete[] buf;

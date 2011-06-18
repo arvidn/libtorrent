@@ -85,33 +85,55 @@ namespace libtorrent
 		sha1_hash m_xor_mask;
 	};
 
-	class RC4_handler // Non copyable
+	class rc4_handler // Non copyable
 	{
 	public:
 		// Input longkeys must be 20 bytes
-		RC4_handler(sha1_hash const& rc4_local_longkey,
-			sha1_hash const& rc4_remote_longkey)
+		rc4_handler()
+			: m_encrypt(false)
+			, m_decrypt(false)
 		{
 #ifdef TORRENT_USE_GCRYPT
 			gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
 			gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
-			gcry_cipher_setkey(m_rc4_incoming, &rc4_remote_longkey[0], 20);
-			gcry_cipher_setkey(m_rc4_outgoing, &rc4_local_longkey[0], 20);
-#elif defined TORRENT_USE_OPENSSL
-			RC4_set_key(&m_local_key, 20, &rc4_local_longkey[0]);
-			RC4_set_key(&m_remote_key, 20, &rc4_remote_longkey[0]);
-#else
-			rc4_init(&rc4_remote_longkey[0], 20, &m_rc4_incoming);
-			rc4_init(&rc4_local_longkey[0], 20, &m_rc4_outgoing);
 #endif
+		};
 
+		void set_incoming_key(unsigned char const* key, int len)
+		{
+			m_decrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_close(m_rc4_incoming);
+			gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_setkey(m_rc4_incoming, key, len);
+#elif defined TORRENT_USE_OPENSSL
+			RC4_set_key(&m_remote_key, len, key);
+#else
+			rc4_init(key, len, &m_rc4_incoming);
+#endif
+			// Discard first 1024 bytes
+			char buf[1024];
+			decrypt(buf, 1024);
+		}
+		
+		void set_outgoing_key(unsigned char const* key, int len)
+		{
+			m_encrypt = true;
+#ifdef TORRENT_USE_GCRYPT
+			gcry_cipher_close(m_rc4_outgoing);
+			gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
+			gcry_cipher_setkey(m_rc4_outgoing, key, len);
+#elif defined TORRENT_USE_OPENSSL
+			RC4_set_key(&m_local_key, len, key);
+#else
+			rc4_init(key, len, &m_rc4_outgoing);
+#endif
 			// Discard first 1024 bytes
 			char buf[1024];
 			encrypt(buf, 1024);
-			decrypt(buf, 1024);
-		};
+		}
 		
-		~RC4_handler()
+		~rc4_handler()
 		{
 #ifdef TORRENT_USE_GCRYPT
 			gcry_cipher_close(m_rc4_incoming);
@@ -121,6 +143,8 @@ namespace libtorrent
 
 		void encrypt(char* pos, int len)
 		{
+			if (!m_encrypt) return;
+
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
@@ -135,6 +159,8 @@ namespace libtorrent
 
 		void decrypt(char* pos, int len)
 		{
+			if (!m_decrypt) return;
+
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
@@ -158,6 +184,9 @@ namespace libtorrent
 		rc4 m_rc4_incoming;
 		rc4 m_rc4_outgoing;
 #endif
+		// determines whether or not encryption and decryption is enabled
+		bool m_encrypt;
+		bool m_decrypt;
 	};
 
 } // namespace libtorrent

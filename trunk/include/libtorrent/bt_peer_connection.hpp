@@ -283,8 +283,8 @@ namespace libtorrent
 
 		// stream key (info hash of attached torrent)
 		// secret is the DH shared secret
-		// initializes m_RC4_handler
-		void init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key);
+		// initializes m_rc4_handler
+		void init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key);
 
 public:
 
@@ -298,7 +298,7 @@ public:
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			if (m_rc4_encrypted)
-				m_RC4_handler->encrypt(buffer, size);
+				m_rc4_handler->encrypt(buffer, size);
 #endif
 			peer_connection::append_send_buffer(buffer, size, destructor, true);
 		}
@@ -410,17 +410,17 @@ private:
 		int m_sync_bytes_read;
 
 		// initialized during write_pe1_2_dhkey, and destroyed on
-		// creation of m_RC4_handler. Cannot reinitialize once
+		// creation of m_rc4_handler. Cannot reinitialize once
 		// initialized.
 		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
 		
 		// if RC4 is negotiated, this is used for
 		// encryption/decryption during the entire session. Destroyed
 		// if plaintext is selected
-		boost::scoped_ptr<RC4_handler> m_RC4_handler;
+		boost::scoped_ptr<rc4_handler> m_rc4_handler;
 		
 		// (outgoing only) synchronize verification constant with
-		// remote peer, this will hold RC4_decrypt(vc). Destroyed
+		// remote peer, this will hold rc4_decrypt(vc). Destroyed
 		// after the sync step.
 		boost::scoped_array<char> m_sync_vc;
 
