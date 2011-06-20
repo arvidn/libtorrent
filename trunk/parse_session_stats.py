@@ -119,6 +119,7 @@ reports = [
 	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
 	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
+	('mixed mode', 'rate', '', 'rates by transport protocol', ['tcp up rate','tcp down rate','utp up rate','utp down rate','tcp up limit','tcp down limit']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
