@@ -957,6 +957,12 @@ namespace aux {
 			":smooth upload rate"
 			":smooth download rate"
 			":num end-game peers"
+			":TCP up rate"
+			":TCP down rate"
+			":TCP down limit"
+			":TCP up limit"
+			":uTP up rate"
+			":uTP down rate"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3141,6 +3147,10 @@ namespace aux {
 				}
 			}
 		}
+		int tcp_up_rate = 0;
+		int tcp_down_rate = 0;
+		int utp_up_rate = 0;
+		int utp_down_rate = 0;
 		int num_complete_connections = 0;
 		int num_half_open = 0;
 		int peers_down_unchoked = 0;
@@ -3188,6 +3198,18 @@ namespace aux {
 
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
+
+			if (p->get_socket()->get<utp_stream>())
+			{
+				utp_up_rate += ul_rate;
+				utp_down_rate += ul_rate;
+			}
+			else
+			{
+				tcp_up_rate += ul_rate;
+				tcp_down_rate += dl_rate;
+			}
+
 		}
 
 		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
@@ -3214,7 +3236,7 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
 				  "%f\t%f\t%d\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\n"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -3317,6 +3339,12 @@ namespace aux {
 				, m_stat.low_pass_upload_rate()
 				, m_stat.low_pass_download_rate()
 				, num_end_game_peers
+				, tcp_up_rate
+				, tcp_down_rate
+				, int(m_tcp_upload_channel.throttle())
+				, int(m_tcp_download_channel.throttle())
+				, utp_up_rate
+				, utp_down_rate
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
