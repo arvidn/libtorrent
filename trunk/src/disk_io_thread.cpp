@@ -1081,7 +1081,7 @@ namespace libtorrent
 			{
 				if (p.blocks[k].buf)
 				{
-#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
@@ -1105,7 +1105,7 @@ namespace libtorrent
 			{
 				if (p.blocks[k].buf)
 				{
-#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
@@ -1742,6 +1742,7 @@ namespace libtorrent
 
 					ptime now = time_now_hires();
 					m_sort_time.add_sample(total_microseconds(now - sort_start));
+					m_job_time.add_sample(total_microseconds(now - operation_start));
 					m_cache_stats.cumulative_sort_time += total_milliseconds(now - sort_start);
 					m_cache_stats.cumulative_job_time += total_milliseconds(now - operation_start);
 					continue;
