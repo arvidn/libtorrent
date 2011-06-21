@@ -46,7 +46,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file):
 	print >>out, "set tics nomirror"
 	print >>out, "set style data lines"
 	print >>out, "set key box"
-	print >>out, "set format y \"%%.0s%%c%s\";" % short_unit
+	print >>out, "set format y \"%%.1s%%c%s\";" % short_unit
 	print >>out, 'plot',
 	column = 2
 	first = True
@@ -107,23 +107,24 @@ reports = [
 	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
 	('connect_candidates', 'num', '', 'number of peers we know of that we can connect to', ['connect candidates']),
 	('peers_list_size', 'num', '', 'number of known peers (not necessarily connected)', ['num list peers']),
-	('overall_rates', 'Bytes / second', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
+	('overall_rates', 'rate', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
 	('disk_write_queue', 'Bytes', 'B', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes', 'disk queue limit', 'disk queue low watermark']),
 	('peers_upload', 'num', '', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up', 'max unchoked']),
 	('peers_download', 'num', '', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down','num end-game peers']),
 	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
-	('average_disk_time_absolute', 'microseconds', 'us', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk queue time', 'disk hash time', 'disk job time', 'disk sort time']),
+	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk queue time', 'disk hash time', 'disk job time', 'disk sort time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time']),
 	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
 	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
 	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
-	('mixed mode', 'rate', '', 'rates by transport protocol', ['tcp up rate','tcp down rate','utp up rate','utp down rate','tcp up limit','tcp down limit']),
+	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
+	('uTP delay', 'buffer delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
-	('tick_rate', 'milliseconds between ticks', 'ms', '', ['tick interval', 'tick residual']),
+	('tick_rate', 'time between ticks', 's', '', ['tick interval', 'tick residual']),
 	('peer_dl_rates', 'num', '', 'peers split into download rate buckets', ['peers down 0', 'peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
 	('peer_dl_rates2', 'num', '', 'peers split into download rate buckets (only downloading peers)', ['peers down 0-2', 'peers down 2-5', 'peers down 5-10', 'peers down 50-100', 'peers down 100-']),
 	('peer_ul_rates', 'num', '', 'peers split into upload rate buckets', ['peers up 0', 'peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),

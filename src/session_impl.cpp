@@ -961,10 +961,12 @@ namespace aux {
 			":num end-game peers"
 			":TCP up rate"
 			":TCP down rate"
-			":TCP down limit"
 			":TCP up limit"
+			":TCP down limit"
 			":uTP up rate"
 			":uTP down rate"
+			":uTP peak send delay"
+			":uTP avg send delay"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3153,6 +3155,9 @@ namespace aux {
 		int tcp_down_rate = 0;
 		int utp_up_rate = 0;
 		int utp_down_rate = 0;
+		int utp_peak_send_delay = 0;
+		boost::uint64_t utp_send_delay_sum = 0;
+		int utp_num_delay_sockets = 0;
 		int num_complete_connections = 0;
 		int num_half_open = 0;
 		int peers_down_unchoked = 0;
@@ -3201,10 +3206,18 @@ namespace aux {
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
 
-			if (p->get_socket()->get<utp_stream>())
+			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
+			if (utp_socket)
 			{
 				utp_up_rate += ul_rate;
-				utp_down_rate += ul_rate;
+				utp_down_rate += dl_rate;
+				int send_delay = utp_socket->send_delay();
+				utp_peak_send_delay = (std::max)(utp_peak_send_delay, send_delay);
+				if (send_delay > 0)
+				{
+					utp_send_delay_sum += send_delay;
+					++utp_num_delay_sockets;
+				}
 			}
 			else
 			{
@@ -3234,11 +3247,11 @@ namespace aux {
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+				  "%f\t%f\t%f\t%f\t%f\t%f\t%d\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t"
 				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\t"
-				  "%f\t%f\t%d\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"
+				  "%f\t%f\t%d\t%f\t%d\t%f\t%f\t%d\t%d\t%d\t"
+				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n"
 				, total_milliseconds(now - m_last_log_rotation) / 1000.f
 				, int(m_stat.total_upload() - m_last_uploaded)
 				, int(m_stat.total_download() - m_last_downloaded)
@@ -3302,9 +3315,9 @@ namespace aux {
 				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
 				, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download())
 				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
-				, int(cs.average_read_time)
-				, int(cs.average_write_time)
-				, int(cs.average_queue_time)
+				, float(cs.average_read_time) / 1000000.f
+				, float(cs.average_write_time) / 1000000.f
+				, float(cs.average_queue_time) / 1000000.f
 				, int(cs.job_queue_length)
 				, int(cs.queued_bytes)
 				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
@@ -3316,9 +3329,9 @@ namespace aux {
 				, cs.read_cache_size
 				, cs.cache_size
 				, cs.total_used_buffers
-				, int(cs.average_hash_time)
-				, int(cs.average_job_time)
-				, int(cs.average_sort_time)
+				, float(cs.average_hash_time) / 1000000.f
+				, float(cs.average_job_time) / 1000000.f
+				, float(cs.average_sort_time) / 1000000.f
 				, m_connection_attempts
 				, m_num_banned_peers
 				, m_banned_for_hash_failure
@@ -3334,8 +3347,8 @@ namespace aux {
 				, int(cs.total_read_back - m_last_cache_status.total_read_back)
 				, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written))
 				, cs.read_queue_size
-				, tick_interval_ms
-				, m_tick_residual
+				, float(tick_interval_ms) / 1000.f
+				, float(m_tick_residual) / 1000.f
 				, m_allowed_upload_slots
 				, m_settings.unchoke_slots_limit * 2
 				, m_stat.low_pass_upload_rate()
@@ -3347,6 +3360,8 @@ namespace aux {
 				, int(m_tcp_download_channel.throttle())
 				, utp_up_rate
 				, utp_down_rate
+				, float(utp_peak_send_delay) / 1000000.f
+				, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f
 			);
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
