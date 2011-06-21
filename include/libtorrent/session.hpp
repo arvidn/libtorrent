@@ -201,7 +201,7 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, boost::uint32_t alert_mask = alert::error_notification
+			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
@@ -211,7 +211,7 @@ namespace libtorrent
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
-			, boost::uint32_t alert_mask = alert::error_notification
+			, int alert_mask = alert::error_notification
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			, fs::path logpath = "."
 #endif
