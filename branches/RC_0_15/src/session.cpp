@@ -236,7 +236,7 @@ namespace libtorrent
 		, std::pair<int, int> listen_port_range
 		, char const* listen_interface
 		, int flags
-		, boost::uint32_t alert_mask
+		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
@@ -283,7 +283,7 @@ namespace libtorrent
 
 	session::session(fingerprint const& id
 		, int flags
-		, boost::uint32_t alert_mask
+		, int alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, fs::path logpath
 #endif
