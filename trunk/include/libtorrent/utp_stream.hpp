@@ -216,6 +216,8 @@ public:
 	void set_write_handler(handler_t h);
 	size_t read_some(bool clear_buffers);
 	
+	int send_delay() const;
+
 	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
 	endpoint_type local_endpoint() const
