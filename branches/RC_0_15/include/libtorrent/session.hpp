@@ -447,6 +447,8 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_alert_mask(int m) TORRENT_DEPRECATED;
 #endif
 		void set_alert_mask(boost::uint32_t m);
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);

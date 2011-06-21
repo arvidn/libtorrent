@@ -275,6 +275,8 @@ void bind_session()
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
     ;
 
+    typedef void (session::*set_alert_mask_t)(boost::uint32_t);
+
     class_<session, boost::noncopyable>("session", no_init)
         .def(
             init<fingerprint, int>((
@@ -356,7 +358,7 @@ void bind_session()
         .def("tracker_proxy", allow_threads(&session::tracker_proxy), return_value_policy<copy_const_reference>())
         .def("web_seed_proxy", allow_threads(&session::web_seed_proxy), return_value_policy<copy_const_reference>())
 #endif
-        .def("set_alert_mask", allow_threads(&session::set_alert_mask))
+        .def("set_alert_mask", allow_threads((set_alert_mask_t)&session::set_alert_mask))
         .def("set_alert_queue_size_limit", allow_threads(&session::set_alert_queue_size_limit))
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())

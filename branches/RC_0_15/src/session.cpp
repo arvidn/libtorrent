@@ -892,6 +892,9 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	void session::set_alert_mask(int m)
+	{ set_alert_mask(boost::uint32_t(m)); }
+
 	void session::set_severity_level(alert::severity_t s)
 	{
 		session_impl::mutex_t::scoped_lock l(m_impl->m_mutex);
