@@ -685,6 +685,12 @@ namespace libtorrent
 
 	void session::remove_torrent(const torrent_handle& h, int options)
 	{
+		if (!h.is_valid())
+#ifdef BOOST_NO_EXCEPTIONS
+			return;
+#else
+			throw_invalid_handle();
+#endif
 		TORRENT_ASYNC_CALL2(remove_torrent, h, options);
 	}
 

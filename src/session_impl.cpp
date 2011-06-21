@@ -4232,12 +4232,8 @@ namespace aux {
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
-		if (!tptr)
-#ifdef BOOST_NO_EXCEPTIONS
-			return;
-#else
-			throw_invalid_handle();
-#endif
+		if (!tptr) return;
+
 		remove_torrent_impl(tptr, options);
 
 		if (m_alerts.should_post<torrent_removed_alert>())

@@ -1578,7 +1578,10 @@ int main(int argc, char* argv[])
 			std::string event_string;
 
 			::print_alert(*i, event_string);
-			::handle_alert(ses, *i, files, non_files);
+			TORRENT_TRY
+			{
+				::handle_alert(ses, *i, files, non_files);
+			} TORRENT_CATCH(std::exception& e) {}
 
 			events.push_back(event_string);
 			if (events.size() >= 20) events.pop_front();
