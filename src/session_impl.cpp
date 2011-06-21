@@ -364,6 +364,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, always_send_user_agent)
 		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
 		TORRENT_SETTING(integer, read_job_every)
+		TORRENT_SETTING(boolean, use_disk_read_ahead)
+		TORRENT_SETTING(boolean, lock_files)
 	};
 
 #undef TORRENT_SETTING
