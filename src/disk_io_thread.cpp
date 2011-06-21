@@ -1081,7 +1081,7 @@ namespace libtorrent
 			{
 				if (p.blocks[k].buf)
 				{
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
 					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
@@ -1105,7 +1105,7 @@ namespace libtorrent
 			{
 				if (p.blocks[k].buf)
 				{
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR && !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
 					TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
 #endif
 					++blocks;
