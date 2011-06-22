@@ -106,7 +106,7 @@ namespace libtorrent
 			}
 
 			// parse the name of the tag.
-			for (start = p; p != end && *p != '>' && !isspace(*p); ++p);
+			for (start = p; p != end && *p != '>' && !is_space(*p); ++p);
 
 			char* tag_name_end = p;
 
