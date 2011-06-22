@@ -380,9 +380,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
 		{
-			m_rc4_encrypted ? 
-				p.flags |= peer_info::rc4_encrypted :
-				p.flags |= peer_info::plaintext_encrypted;
+			p.flags |= m_rc4_encrypted
+				? peer_info::rc4_encrypted
+				: peer_info::plaintext_encrypted;
 		}
 #endif
 
@@ -493,7 +493,7 @@ namespace libtorrent
 		ptr += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
-		init_pe_RC4_handler(secret, info_hash);
+		init_pe_rc4_handler(secret, info_hash);
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 	
 		// write the verification constant and crypto field
@@ -516,7 +516,7 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		m_RC4_handler->encrypt(ptr, encrypt_size);
+		m_rc4_handler->encrypt(ptr, encrypt_size);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
 
@@ -536,7 +536,7 @@ namespace libtorrent
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		m_RC4_handler->encrypt(msg, buf_size);
+		m_rc4_handler->encrypt(msg, buf_size);
 		send_buffer(msg, buf_size);
 
 		// encryption method has been negotiated
@@ -581,7 +581,7 @@ namespace libtorrent
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
  	}
 
-	void bt_peer_connection::init_pe_RC4_handler(char const* secret, sha1_hash const& stream_key)
+	void bt_peer_connection::init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key)
 	{
 		INVARIANT_CHECK;
 
@@ -595,7 +595,7 @@ namespace libtorrent
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
 		
-		is_local() ? h.update(keyA, 4) : h.update(keyB, 4);
+		if (is_local()) h.update(keyA, 4); else h.update(keyB, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash local_key = h.final();
@@ -606,14 +606,16 @@ namespace libtorrent
 		// outgoing connection : hash ('keyB',S,SKEY)
 		// incoming connection : hash ('keyA',S,SKEY)
 		
-		is_local() ? h.update(keyB, 4) : h.update(keyA, 4);
+		if (is_local()) h.update(keyB, 4); else h.update(keyA, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
 		
-		TORRENT_ASSERT(!m_RC4_handler.get());
-		m_RC4_handler.reset(new (std::nothrow) RC4_handler(local_key, remote_key));
-		if (!m_RC4_handler)
+		TORRENT_ASSERT(!m_rc4_handler.get());
+		m_rc4_handler.reset(new (std::nothrow) rc4_handler);
+		m_rc4_handler->set_incoming_key(&remote_key[0], 20);
+		m_rc4_handler->set_outgoing_key(&local_key[0], 20);
+		if (!m_rc4_handler)
 		{
 			disconnect(errors::no_memory);
 			return;
@@ -644,7 +646,7 @@ namespace libtorrent
 
 	void encrypt(char* buf, int len, void* userdata)
 	{
-		RC4_handler* rc4 = (RC4_handler*)userdata;
+		rc4_handler* rc4 = (rc4_handler*)userdata;
 		rc4->encrypt(buf, len);
 	}
 
@@ -659,7 +661,7 @@ namespace libtorrent
 		if (m_encrypted && m_rc4_encrypted)
 		{
 			fun = encrypt;
-			userdata = m_RC4_handler.get();
+			userdata = m_rc4_handler.get();
 		}
 #endif
 		
@@ -2322,8 +2324,8 @@ namespace libtorrent
 		if (m_rc4_encrypted && m_encrypted)
 		{
 			std::pair<buffer::interval, buffer::interval> wr_buf = wr_recv_buffers(bytes_transferred);
-			m_RC4_handler->decrypt(wr_buf.first.begin, wr_buf.first.left());
-			if (wr_buf.second.left()) m_RC4_handler->decrypt(wr_buf.second.begin, wr_buf.second.left());
+			m_rc4_handler->decrypt(wr_buf.first.begin, wr_buf.first.left());
+			if (wr_buf.second.left()) m_rc4_handler->decrypt(wr_buf.second.begin, wr_buf.second.left());
 		}
 #endif
 
@@ -2507,7 +2509,7 @@ namespace libtorrent
 						TORRENT_ASSERT(t);
 					}
 
-					init_pe_RC4_handler(m_dh_key_exchange->get_secret(), ti.info_hash());
+					init_pe_rc4_handler(m_dh_key_exchange->get_secret(), ti.info_hash());
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** stream key found, torrent located");
 #endif
@@ -2515,7 +2517,7 @@ namespace libtorrent
 				}
 			}
 
-			if (!m_RC4_handler.get())
+			if (!m_rc4_handler.get())
 			{
 				disconnect(errors::invalid_info_hash, 1);
 				return;
@@ -2523,7 +2525,7 @@ namespace libtorrent
 
 			// verify constant
 			buffer::interval wr_recv_buf = wr_recv_buffer();
-			m_RC4_handler->decrypt(wr_recv_buf.begin + 20, 8);
+			m_rc4_handler->decrypt(wr_recv_buf.begin + 20, 8);
 			wr_recv_buf.begin += 28;
 
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
@@ -2568,7 +2570,7 @@ namespace libtorrent
 					return;
 				}
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
-				m_RC4_handler->decrypt(m_sync_vc.get(), 8);
+				m_rc4_handler->decrypt(m_sync_vc.get(), 8);
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
@@ -2626,7 +2628,7 @@ namespace libtorrent
 			if (!packet_finished()) return;
 
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
 
 			recv_buffer = receive_buffer();
 			
@@ -2749,7 +2751,7 @@ namespace libtorrent
 			int pad_size = is_local() ? packet_size() : packet_size() - 2;
 
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
 
 			recv_buffer = receive_buffer();
 				
@@ -2798,7 +2800,7 @@ namespace libtorrent
 
 			// ia is always rc4, so decrypt it
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_RC4_handler->decrypt(wr_buf.begin, packet_size());
+			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** decrypted ia : %d bytes", packet_size());
@@ -2806,7 +2808,7 @@ namespace libtorrent
 
 			if (!m_rc4_encrypted)
 			{
-				m_RC4_handler.reset();
+				m_rc4_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** destroyed rc4 keys");
 #endif
@@ -2830,14 +2832,14 @@ namespace libtorrent
 			{
 				buffer::interval wr_buf = wr_recv_buffer();
 				wr_buf.begin += packet_size();
-				m_RC4_handler->decrypt(wr_buf.begin, wr_buf.left());
+				m_rc4_handler->decrypt(wr_buf.begin, wr_buf.left());
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** decrypted remaining %d bytes", wr_buf.left());
 #endif
 			}
 			else // !m_rc4_encrypted
 			{
-				m_RC4_handler.reset();
+				m_rc4_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** destroyed rc4 keys");
 #endif
@@ -3301,7 +3303,7 @@ namespace libtorrent
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_local());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || m_RC4_handler.get());
+		TORRENT_ASSERT(!m_rc4_encrypted || m_rc4_handler.get());
 #endif
 		if (!in_handshake())
 		{

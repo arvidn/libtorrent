@@ -77,6 +77,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT internal_file_entry
 	{
 		friend class file_storage;
+#ifdef TORRENT_DEBUG
+		// for torrent_info::invariant_check
+		friend class torrent_info;
+#endif
 		internal_file_entry()
 			: name(0)
 			, offset(0)

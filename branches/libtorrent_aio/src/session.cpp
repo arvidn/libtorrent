@@ -388,7 +388,7 @@ namespace libtorrent
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
-		, fingerprint const& id, int flags, int alert_mask TORRENT_LOGPATH_ARG)
+		, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG)
 	{
 		m_impl.reset(new session_impl(listen_range, id, listen_interface TORRENT_LOGPATH));
 
@@ -509,6 +509,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	void session::load_state(entry const& ses_state)
 	{
+		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
 		lazy_entry e;
@@ -693,6 +694,12 @@ namespace libtorrent
 
 	void session::remove_torrent(const torrent_handle& h, int options)
 	{
+		if (!h.is_valid())
+#ifdef BOOST_NO_EXCEPTIONS
+			return;
+#else
+			throw_invalid_handle();
+#endif
 		TORRENT_ASYNC_CALL2(remove_torrent, h, options);
 	}
 
@@ -1026,7 +1033,7 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
-	void session::set_alert_mask(int m)
+	void session::set_alert_mask(boost::uint32_t m)
 	{
 		TORRENT_ASYNC_CALL1(set_alert_mask, m);
 	}

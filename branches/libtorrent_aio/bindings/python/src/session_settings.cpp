@@ -169,6 +169,11 @@ void bind_session_settings()
         .value("disable_os_cache", session_settings::disable_os_cache)
     ;
 
+    enum_<session_settings::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
+        .value("prefer_tcp", session_settings::prefer_tcp)
+        .value("peer_proportional", session_settings::peer_proportional)
+    ;
+
     class_<proxy_settings>("proxy_settings")
         .def_readwrite("hostname", &proxy_settings::hostname)
         .def_readwrite("port", &proxy_settings::port)

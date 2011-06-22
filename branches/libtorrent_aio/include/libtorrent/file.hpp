@@ -233,10 +233,10 @@ namespace libtorrent
 			read_write = 2,
 			rw_mask = read_only | write_only | read_write,
 			no_buffer = 4,
-			mode_mask = rw_mask | no_buffer,
 			sparse = 8,
 			no_atime = 16,
 			random_access = 32,
+			lock_file = 64,
 
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,

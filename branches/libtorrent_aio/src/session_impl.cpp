@@ -364,6 +364,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, always_send_user_agent)
 		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
 		TORRENT_SETTING(integer, read_job_every)
+		TORRENT_SETTING(boolean, use_disk_read_ahead)
+		TORRENT_SETTING(boolean, lock_files)
 	};
 
 #undef TORRENT_SETTING
@@ -675,6 +677,8 @@ namespace aux {
 #define PRINT_SIZEOF(x) snprintf(tmp, sizeof(tmp), "sizeof(" #x ") = %d\n", int(sizeof(x))); (*m_logger) << tmp;
 #define PRINT_OFFSETOF(x, y) snprintf(tmp, sizeof(tmp), "  offsetof(" #x "," #y "): %d\n", int(offsetof(x, y))); \
 		(*m_logger) << tmp;
+
+		PRINT_SIZEOF(internal_file_entry)
 
 		PRINT_SIZEOF(announce_entry)
 		PRINT_OFFSETOF(announce_entry, url)
@@ -990,6 +994,15 @@ namespace aux {
 			":read job queue size limit"
 			":smooth upload rate"
 			":smooth download rate"
+			":num end-game peers"
+			":TCP up rate"
+			":TCP down rate"
+			":TCP up limit"
+			":TCP down limit"
+			":uTP up rate"
+			":uTP down rate"
+			":uTP peak send delay"
+			":uTP avg send delay"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -1418,7 +1431,7 @@ namespace aux {
 			, end(m_torrents.end()); i != end; ++i)
 		{
 			torrent& t = *i->second;
-			if (!t.is_torrent_paused()) t.do_pause();
+			t.do_pause();
 		}
 	}
 
@@ -1433,6 +1446,7 @@ namespace aux {
 		{
 			torrent& t = *i->second;
 			t.do_resume();
+			if (t.should_check_files()) t.queue_torrent_check();
 		}
 	}
 	
@@ -2779,7 +2793,7 @@ namespace aux {
 		// waiting to be checked. I have never seen this, and I can't 
 		// see a way for it to happen. But, if it does, start one of
 		// the queued torrents
-		if (num_checking == 0 && num_queued > 0)
+		if (num_checking == 0 && num_queued > 0 && !m_paused)
 		{
 			TORRENT_ASSERT(false);
 			check_queue_t::iterator i = std::min_element(m_queued_for_checking.begin()
@@ -3199,10 +3213,18 @@ namespace aux {
 				}
 			}
 		}
+		int tcp_up_rate = 0;
+		int tcp_down_rate = 0;
+		int utp_up_rate = 0;
+		int utp_down_rate = 0;
+		int utp_peak_send_delay = 0;
+		boost::uint64_t utp_send_delay_sum = 0;
+		int utp_num_delay_sockets = 0;
 		int num_complete_connections = 0;
 		int num_half_open = 0;
 		int peers_down_unchoked = 0;
 		int peers_up_unchoked = 0;
+		int num_end_game_peers = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3221,6 +3243,7 @@ namespace aux {
 			if (p->is_interesting()) ++peers_down_interesting;
 			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
 				++peers_up_requests;
+			if (p->endgame()) ++num_end_game_peers;
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -3244,6 +3267,26 @@ namespace aux {
 
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
+
+			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
+			if (utp_socket)
+			{
+				utp_up_rate += ul_rate;
+				utp_down_rate += dl_rate;
+				int send_delay = utp_socket->send_delay();
+				utp_peak_send_delay = (std::max)(utp_peak_send_delay, send_delay);
+				if (send_delay > 0)
+				{
+					utp_send_delay_sum += send_delay;
+					++utp_num_delay_sockets;
+				}
+			}
+			else
+			{
+				tcp_up_rate += ul_rate;
+				tcp_down_rate += dl_rate;
+			}
+
 		}
 
 		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
@@ -3260,122 +3303,124 @@ namespace aux {
 
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
-			fprintf(m_stats_logger
-				, "%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%f\t%f\t%f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t"
-				  "%f\t%f\t%f\t%f\t%d\t%f\t%d\t%d\t%d\t%d\t"
-				  "%d\t%d\t%d\n"
-				, total_milliseconds(now - m_last_log_rotation) / 1000.f
-				, int(m_stat.total_upload() - m_last_uploaded)
-				, int(m_stat.total_download() - m_last_downloaded)
-				, downloading_torrents
-				, seeding_torrents
-				, num_complete_connections
-				, num_half_open
-				, m_disk_thread.disk_allocations()
-				, num_peers
-				, logging_allocator::allocations
-				, logging_allocator::allocated_bytes
-				, checking_torrents
-				, stopped_torrents
-				, upload_only_torrents
-				, m_upload_rate.queue_size()
-				, m_download_rate.queue_size()
-				, m_disk_queues[peer_connection::upload_channel]
-				, m_disk_queues[peer_connection::download_channel]
-				, m_stat.upload_rate()
-				, m_stat.download_rate()
-				, int(m_writing_bytes)
-				, peer_dl_rate_buckets[0]
-				, peer_dl_rate_buckets[1]
-				, peer_dl_rate_buckets[2]
-				, peer_dl_rate_buckets[3]
-				, peer_dl_rate_buckets[4]
-				, peer_dl_rate_buckets[5]
-				, peer_dl_rate_buckets[6]
-				, peer_ul_rate_buckets[0]
-				, peer_ul_rate_buckets[1]
-				, peer_ul_rate_buckets[2]
-				, peer_ul_rate_buckets[3]
-				, peer_ul_rate_buckets[4]
-				, peer_ul_rate_buckets[5]
-				, peer_ul_rate_buckets[6]
-				, m_error_peers
-				, peers_down_interesting
-				, peers_down_unchoked
-				, peers_down_requests
-				, peers_up_interested
-				, peers_up_unchoked
-				, peers_up_requests
-				, m_disconnected_peers
-				, m_eof_peers
-				, m_connreset_peers
-				, outstanding_requests
-				, outstanding_end_game_requests
-				, outstanding_write_blocks
-				, m_end_game_piece_picker_blocks
-				, m_piece_picker_blocks
-				, m_piece_picks
-				, m_reject_piece_picks
-				, m_unchoke_piece_picks
-				, m_incoming_redundant_piece_picks
-				, m_incoming_piece_picks
-				, m_end_game_piece_picks
-				, m_snubbed_piece_picks
-				, m_connect_timeouts
-				, m_uninteresting_peers
-				, m_timeout_peers
-				, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download())
-				, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download())
-				, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download())
-				, int(cs.average_read_time)
-				, int(cs.average_write_time)
-				, int(cs.average_queue_time)
-				, int(cs.pending_jobs + cs.queued_jobs)
-				, int(cs.queued_bytes)
-				, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit)
-				, int(cs.blocks_read - m_last_cache_status.blocks_read)
-				, int(cs.blocks_written - m_last_cache_status.blocks_written)
-				, int(m_total_failed_bytes - m_last_failed)
-				, int(m_total_redundant_bytes - m_last_redundant)
-				, error_torrents
-				, cs.read_cache_size
-				, cs.cache_size
-				, cs.total_used_buffers
-				, int(cs.average_hash_time)
-				, int(cs.average_job_time)
-				, int(cs.average_sort_time)
-				, int(cs.average_issue_time)
-				, m_connection_attempts
-				, m_num_banned_peers
-				, m_banned_for_hash_failure
-				, m_settings.cache_size
-				, m_settings.connections_limit
-				, connect_candidates
-				, int(m_settings.max_queued_disk_bytes)
-				, low_watermark
-				, float(cs.cumulative_read_time * 100.f / total_job_time)
-				, float(cs.cumulative_write_time * 100.f / total_job_time)
-				, float(cs.cumulative_hash_time * 100.f / total_job_time)
-				, float(cs.cumulative_sort_time * 100.f / total_job_time)
-				, float(cs.cumulative_issue_time * 100.f / total_job_time)
-				, int(cs.total_read_back - m_last_cache_status.total_read_back)
-				, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written))
-				, cs.read_queue_size
-				, tick_interval_ms
-				, m_tick_residual
-				, m_allowed_upload_slots
-				, m_settings.unchoke_slots_limit * 2
-				, m_stat.low_pass_upload_rate()
-				, m_stat.low_pass_download_rate()
-			);
+#define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
+
+			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
+			STAT_LOG(d, int(m_stat.total_upload() - m_last_uploaded));
+			STAT_LOG(d, int(m_stat.total_download() - m_last_downloaded));
+			STAT_LOG(d, downloading_torrents);
+			STAT_LOG(d, seeding_torrents);
+			STAT_LOG(d, num_complete_connections);
+			STAT_LOG(d, num_half_open);
+			STAT_LOG(d, m_disk_thread.disk_allocations());
+			STAT_LOG(d, num_peers);
+			STAT_LOG(d, logging_allocator::allocations);
+			STAT_LOG(d, logging_allocator::allocated_bytes);
+			STAT_LOG(d, checking_torrents);
+			STAT_LOG(d, stopped_torrents);
+			STAT_LOG(d, upload_only_torrents);
+			STAT_LOG(d, m_upload_rate.queue_size());
+			STAT_LOG(d, m_download_rate.queue_size());
+			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
+			STAT_LOG(d, m_disk_queues[peer_connection::download_channel]);
+			STAT_LOG(d, m_stat.upload_rate());
+			STAT_LOG(d, m_stat.download_rate());
+			STAT_LOG(d, int(m_writing_bytes));
+			STAT_LOG(d, peer_dl_rate_buckets[0]);
+			STAT_LOG(d, peer_dl_rate_buckets[1]);
+			STAT_LOG(d, peer_dl_rate_buckets[2]);
+			STAT_LOG(d, peer_dl_rate_buckets[3]);
+			STAT_LOG(d, peer_dl_rate_buckets[4]);
+			STAT_LOG(d, peer_dl_rate_buckets[5]);
+			STAT_LOG(d, peer_dl_rate_buckets[6]);
+			STAT_LOG(d, peer_ul_rate_buckets[0]);
+			STAT_LOG(d, peer_ul_rate_buckets[1]);
+			STAT_LOG(d, peer_ul_rate_buckets[2]);
+			STAT_LOG(d, peer_ul_rate_buckets[3]);
+			STAT_LOG(d, peer_ul_rate_buckets[4]);
+			STAT_LOG(d, peer_ul_rate_buckets[5]);
+			STAT_LOG(d, peer_ul_rate_buckets[6]);
+			STAT_LOG(d, m_error_peers);
+			STAT_LOG(d, peers_down_interesting);
+			STAT_LOG(d, peers_down_unchoked);
+			STAT_LOG(d, peers_down_requests);
+			STAT_LOG(d, peers_up_interested);
+			STAT_LOG(d, peers_up_unchoked);
+			STAT_LOG(d, peers_up_requests);
+			STAT_LOG(d, m_disconnected_peers);
+			STAT_LOG(d, m_eof_peers);
+			STAT_LOG(d, m_connreset_peers);
+			STAT_LOG(d, outstanding_requests);
+			STAT_LOG(d, outstanding_end_game_requests);
+			STAT_LOG(d, outstanding_write_blocks);
+			STAT_LOG(d, m_end_game_piece_picker_blocks);
+			STAT_LOG(d, m_piece_picker_blocks);
+			STAT_LOG(d, m_piece_picks);
+			STAT_LOG(d, m_reject_piece_picks);
+			STAT_LOG(d, m_unchoke_piece_picks);
+			STAT_LOG(d, m_incoming_redundant_piece_picks);
+			STAT_LOG(d, m_incoming_piece_picks);
+			STAT_LOG(d, m_end_game_piece_picks);
+			STAT_LOG(d, m_snubbed_piece_picks);
+			STAT_LOG(d, m_connect_timeouts);
+			STAT_LOG(d, m_uninteresting_peers);
+			STAT_LOG(d, m_timeout_peers);
+			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()));
+			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download()));
+			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()));
+			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
+			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
+			STAT_LOG(f, float(cs.average_queue_time) / 1000000.f);
+			STAT_LOG(d, int(cs.pending_jobs + cs.queued_jobs));
+			STAT_LOG(d, int(cs.queued_bytes));
+			STAT_LOG(d, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit));
+			STAT_LOG(d, int(cs.blocks_read - m_last_cache_status.blocks_read));
+			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
+			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
+			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
+			STAT_LOG(d, error_torrents);
+			STAT_LOG(d, cs.read_cache_size);
+			STAT_LOG(d, cs.cache_size);
+			STAT_LOG(d, cs.total_used_buffers);
+			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
+			STAT_LOG(f, float(cs.average_job_time) / 1000000.f);
+			STAT_LOG(f, float(cs.average_sort_time) / 1000000.f);
+			STAT_LOG(d, int(cs.average_issue_time));
+			STAT_LOG(d, m_connection_attempts);
+			STAT_LOG(d, m_num_banned_peers);
+			STAT_LOG(d, m_banned_for_hash_failure);
+			STAT_LOG(d, m_settings.cache_size);
+			STAT_LOG(d, m_settings.connections_limit);
+			STAT_LOG(d, connect_candidates);
+			STAT_LOG(d, int(m_settings.max_queued_disk_bytes));
+			STAT_LOG(d, low_watermark);
+			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
+			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
+			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
+			STAT_LOG(f, float(cs.cumulative_sort_time * 100.f / total_job_time));
+			STAT_LOG(f, float(cs.cumulative_issue_time * 100.f / total_job_time));
+			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
+			STAT_LOG(f, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written)));
+			STAT_LOG(d, cs.read_queue_size);
+			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
+			STAT_LOG(f, float(m_tick_residual) / 1000.f);
+			STAT_LOG(d, m_allowed_upload_slots);
+			STAT_LOG(d, m_settings.unchoke_slots_limit * 2);
+			STAT_LOG(d, m_stat.low_pass_upload_rate());
+			STAT_LOG(d, m_stat.low_pass_download_rate());
+			STAT_LOG(d, num_end_game_peers);
+			STAT_LOG(d, tcp_up_rate);
+			STAT_LOG(d, tcp_down_rate);
+			STAT_LOG(d, int(m_tcp_upload_channel.throttle()));
+			STAT_LOG(d, int(m_tcp_download_channel.throttle()));
+			STAT_LOG(d, utp_up_rate);
+			STAT_LOG(d, utp_down_rate);
+			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
+			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
+			fprintf(m_stats_logger, "\n");
+
+#undef STAT_LOG
+
 			m_last_cache_status = cs;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
@@ -3571,6 +3616,7 @@ namespace aux {
 				continue;
 			if (t->is_auto_managed() && !t->has_error())
 			{
+				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)
 				if (t->is_finished())
@@ -3580,6 +3626,7 @@ namespace aux {
 			}
 			else if (!t->is_paused())
 			{
+				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				--hard_limit;
 			  	if (is_active(t, settings()))
 				{
@@ -4260,12 +4307,8 @@ namespace aux {
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
-		if (!tptr)
-#ifdef BOOST_NO_EXCEPTIONS
-			return;
-#else
-			throw_invalid_handle();
-#endif
+		if (!tptr) return;
+
 		remove_torrent_impl(tptr, options);
 
 		if (m_alerts.should_post<torrent_removed_alert>())
@@ -4994,7 +5037,7 @@ namespace aux {
 		return m_alerts.wait_for_alert(max_wait);
 	}
 
-	void session_impl::set_alert_mask(int m)
+	void session_impl::set_alert_mask(boost::uint32_t m)
 	{
 		m_alerts.set_alert_mask(m);
 	}
@@ -5297,7 +5340,7 @@ namespace aux {
 		}
 
 		// the queue is either empty, or it has exactly one checking torrent in it
-		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1);
+		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1 || (m_paused && num_checking == 0));
 
 		std::set<int> unique;
 		int total_downloaders = 0;

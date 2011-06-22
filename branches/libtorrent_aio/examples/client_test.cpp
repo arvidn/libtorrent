@@ -77,14 +77,14 @@ using boost::bind;
 
 bool sleep_and_input(int* c, int sleep)
 {
-	for (int i = 0; i < sleep * 2; ++i)
+	for (int i = 0; i < 2; ++i)
 	{
 		if (_kbhit())
 		{
 			*c = _getch();
 			return true;
 		}
-		Sleep(500);
+		Sleep(sleep / 2);
 	}
 	return false;
 };
@@ -139,7 +139,7 @@ retry:
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {sleep, 0};
+	timeval tv = {sleep/ 1000, (sleep % 1000) * 1000 };
 	ret = select(1, &set, 0, 0, &tv);
 	if (ret > 0)
 	{
@@ -148,15 +148,17 @@ retry:
 	}
 	if (errno == EINTR)
 	{
-		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep * 1000)
+		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep)
 			goto retry;
 		return false;
 	}
 
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
+	{
 		fprintf(stderr, "select failed: %s\n", strerror(errno));
+		libtorrent::sleep(500);
+	}
 
-	libtorrent::sleep(500);
 	return false;
 }
 
@@ -454,7 +456,7 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #ifndef TORRENT_DISABLE_GEO_IP
 	if (print_as) out += "AS                                         ";
 #endif
-	out += "down     (total | peak   )  up      (total | peak   ) sent-req recv flags            source  ";
+	out += "down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags            source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb            quota rcvb          q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -490,15 +492,22 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 #endif
 
+		char temp[10];
+		snprintf(temp, sizeof(temp), "%d/%d"
+			, i->download_queue_length
+			, i->target_dl_queue_length);
+		temp[7] = 0;
+
 		snprintf(str, sizeof(str)
-			, "%s%s (%s|%s) %s%s (%s|%s) %s%3d|%-3d %3d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
+			, "%s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c %c%c%c%c%c%c "
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
 			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
 			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0")
 
-			, i->download_queue_length
-			, i->target_dl_queue_length
+			, temp // sent requests and target number of outstanding reqs.
+			, i->timed_out_requests
+			, i->busy_requests
 			, i->upload_queue_length
 
 			, (i->flags & peer_info::interesting)?'I':'.'
@@ -866,6 +875,14 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 			ses.remove_torrent(h);
 	}
+	else if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
+	{
+		// write resume data for the finished torrent
+		// the alert handler for save_resume_data_alert
+		// will save it to disk
+		torrent_handle h = p->handle;
+		h.save_resume_data();
+	}
 }
 
 static char const* state_str[] =
@@ -955,7 +972,7 @@ int main(int argc, char* argv[])
 
 	proxy_settings ps;
 
-	int refresh_delay = 1;
+	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
 	int loop_limit = 0;
@@ -1495,9 +1512,6 @@ int main(int argc, char* argv[])
 					ts.handle.auto_managed(false);
 					ts.handle.pause(torrent_handle::graceful_pause);
 				}
-				// the alert handler for save_resume_data_alert
-				// will save it to disk
-				if (ts.need_save_resume) ts.handle.save_resume_data();
 			}
 
 			if (c == 'c' && !handles.empty())
@@ -1544,14 +1558,22 @@ int main(int argc, char* argv[])
 #ifndef _WIN32
 		{
 			winsize size;
-			ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
-			terminal_width = size.ws_col;
-			terminal_height = size.ws_row;
+			int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
+			if (ret == 0)
+			{
+				terminal_width = size.ws_col;
+				terminal_height = size.ws_row;
 
-			if (terminal_width < 64)
-				terminal_width = 64;
-			if (terminal_height < 25)
-				terminal_height = 25;
+				if (terminal_width < 64)
+					terminal_width = 64;
+				if (terminal_height < 25)
+					terminal_height = 25;
+			}
+			else
+			{
+				terminal_width = 190;
+				terminal_height = 100;
+			}
 		}
 #endif
 
@@ -1565,7 +1587,10 @@ int main(int argc, char* argv[])
 			std::string event_string;
 
 			::print_alert(*i, event_string);
-			::handle_alert(ses, *i, files, non_files);
+			TORRENT_TRY
+			{
+				::handle_alert(ses, *i, files, non_files);
+			} TORRENT_CATCH(std::exception& e) {}
 
 			events.push_back(event_string);
 			if (events.size() >= 20) events.pop_front();
@@ -1693,11 +1718,13 @@ int main(int argc, char* argv[])
 
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
 			{
-				snprintf(str, sizeof(str), "%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
+				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
 					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (s.paused && !s.auto_managed)?"paused"
-					: (s.paused && s.auto_managed)?"queued"
-					: (s.upload_mode)?"upload mode":state_str[s.state]
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
+					  state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
 					, esc("31"), add_suffix(s.total_upload).c_str(), term
@@ -2063,6 +2090,7 @@ int main(int argc, char* argv[])
 
 		clear_home();
 		puts(out.c_str());
+		fflush(stdout);
 
 		if (!monitor_dir.empty()
 			&& next_dir_scan < time_now())

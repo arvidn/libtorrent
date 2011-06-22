@@ -100,7 +100,7 @@ struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static_
 node_id generate_id_impl(address const& ip, boost::uint32_t r)
 {
 	boost::uint32_t seed = r & 0x7;
-	uint32_t modulus = 0x100;
+	boost::uint32_t modulus = 0x100;
 
 	boost::uint8_t* p = 0;
 	int num_octets = 0;

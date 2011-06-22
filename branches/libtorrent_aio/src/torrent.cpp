@@ -409,6 +409,9 @@ namespace libtorrent
 		, m_apply_ip_filter(p.apply_ip_filter)
 		, m_merge_resume_trackers(p.merge_resume_trackers)
 	{
+#ifdef TORRENT_DEBUG
+		m_resume_data_loaded = false;
+#endif
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
 		if (!p.ti || !p.ti->is_valid())
@@ -625,22 +628,22 @@ namespace libtorrent
 		session_impl::torrent_map::iterator i = m_ses.m_torrents.find(m_torrent_file->info_hash());
 		if (i != m_ses.m_torrents.end())
 		{
-				if (!m_uuid.empty() && i->second->uuid().empty())
-					i->second->set_uuid(m_uuid);
-				if (!m_url.empty() && i->second->url().empty())
-					i->second->set_url(m_url);
-				if (!m_source_feed_url.empty() && i->second->source_feed_url().empty())
-					i->second->set_source_feed_url(m_source_feed_url);
+			if (!m_uuid.empty() && i->second->uuid().empty())
+				i->second->set_uuid(m_uuid);
+			if (!m_url.empty() && i->second->url().empty())
+				i->second->set_url(m_url);
+			if (!m_source_feed_url.empty() && i->second->source_feed_url().empty())
+				i->second->set_source_feed_url(m_source_feed_url);
 
-				// insert this torrent in the uuid index
-				if (!m_uuid.empty() || !m_url.empty())
-				{
-					m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
-						? m_url : m_uuid, i->second));
-				}
-				set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
-				abort();
-				return;
+			// insert this torrent in the uuid index
+			if (!m_uuid.empty() || !m_url.empty())
+			{
+				m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
+					? m_url : m_uuid, i->second));
+			}
+			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
+			abort();
+			return;
 		}
 
 		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), me));
@@ -796,12 +799,12 @@ namespace libtorrent
 		}
 		else if (m_torrent_file->is_valid())
 		{
-			// we need to start announcing since we don't have any
-			// metadata. To receive peers to ask for it.
 			init();
 		}
 		else
 		{
+			// we need to start announcing since we don't have any
+			// metadata. To receive peers to ask for it.
 			set_state(torrent_status::downloading_metadata);
 			start_announcing();
 		}
@@ -1323,6 +1326,9 @@ namespace libtorrent
 			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
+#ifdef TORRENT_DEBUG
+			m_resume_data_loaded = true;
+#endif
 			return;
 		}
 
@@ -1363,6 +1369,10 @@ namespace libtorrent
 			}
 		}
 	
+#ifdef TORRENT_DEBUG
+		m_resume_data_loaded = true;
+#endif
+
 		TORRENT_ASSERT(block_size() > 0);
 		int file = 0;
 		for (file_storage::iterator i = m_torrent_file->files().begin()
@@ -3432,6 +3442,9 @@ namespace libtorrent
 		}
 		if (filter_updated)
 		{
+			// we need to save this new state
+			m_need_save_resume_data = true;
+
 			update_peer_interest(was_finished);
 			remove_time_critical_pieces(pieces);
 		}
@@ -4806,7 +4819,7 @@ namespace libtorrent
 		ret["download_rate_limit"] = download_limit();
 		ret["max_connections"] = max_connections();
 		ret["max_uploads"] = max_uploads();
-		ret["paused"] = !m_allow_peers;
+		ret["paused"] = is_torrent_paused();
 		ret["announce_to_dht"] = m_announce_to_dht;
 		ret["announce_to_trackers"] = m_announce_to_trackers;
 		ret["announce_to_lsd"] = m_announce_to_lsd;
@@ -5678,11 +5691,21 @@ namespace libtorrent
 					++found;
 					if (i->second->should_check_files()) ++found_active;
 				}
-			// the case of 2 is in the special case where one switches over from
-			// checking to complete.
-			TORRENT_ASSERT(found_active >= 1);
-			TORRENT_ASSERT(found_active <= 2);
-			TORRENT_ASSERT(found >= 1);
+
+			// if the session is paused, there might still be some torrents
+			// in the checking_files state that haven't been dequeued yet
+			if (m_ses.is_paused())
+			{
+				TORRENT_ASSERT(found_active == 0);
+			}
+			else
+			{
+				// the case of 2 is in the special case where one switches over from
+				// checking to complete.
+				TORRENT_ASSERT(found_active >= 1);
+				TORRENT_ASSERT(found_active <= 2);
+				TORRENT_ASSERT(found >= 1);
+			}
 		}
 
 		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
@@ -6062,6 +6085,10 @@ namespace libtorrent
 		if (m_auto_managed == a) return;
 		bool checking_files = should_check_files();
 		m_auto_managed = a;
+
+		// we need to save this new state as well
+		m_need_save_resume_data = true;
+
 		// recalculate which torrents should be
 		// paused
 		m_ses.m_auto_manage_time_scaler = 0;
@@ -6239,6 +6266,9 @@ namespace libtorrent
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
 
+		// we need to save this new state
+		m_need_save_resume_data = true;
+
 		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
 
@@ -6326,6 +6356,7 @@ namespace libtorrent
 			m_storage->abort_disk_io();
 			dequeue_torrent_check();
 			set_state(torrent_status::queued_for_checking);
+			TORRENT_ASSERT(!m_queued_for_checking);
 		}
 
 		// if this torrent was just paused
@@ -6388,6 +6419,10 @@ namespace libtorrent
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
+
+		// we need to save this new state
+		m_need_save_resume_data = true;
+
 		do_resume();
 	}
 

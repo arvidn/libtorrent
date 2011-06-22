@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#include <string>
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"

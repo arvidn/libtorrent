@@ -144,8 +144,9 @@ namespace
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p, std::vector<char>& rd)
     {
+        // torrent_info objects are always held by an intrusive_ptr in the python binding
         if (params.has_key("ti"))
-            p.ti = new torrent_info(extract<torrent_info const&>(params["ti"]));
+            p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
 
         std::string url;
         if (params.has_key("tracker_url"))

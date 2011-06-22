@@ -155,6 +155,16 @@ namespace libtorrent
 		// that we haven't got a response
 		// for yet
 		int download_queue_length;
+		
+		// the number of block requests that have
+		// timed out, and are still in the download
+		// queue
+		int timed_out_requests;
+
+		// the number of busy requests in the download
+		// queue. A budy request is a request for a block
+		// we've also requested from a different peer
+		int busy_requests;
 
 		// the number of request messages
 		// waiting to be sent inside the send buffer

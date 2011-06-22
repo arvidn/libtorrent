@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
@@ -474,6 +475,9 @@ namespace libtorrent
 		, m_private(t.m_private)
 		, m_i2p(t.m_i2p)
 	{
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		t.check_invariant();
+#endif
 		if (m_info_section_size > 0)
 		{
 			error_code ec;
@@ -483,18 +487,19 @@ namespace libtorrent
 				+ m_info_section_size, m_info_dict, ec);
 			TORRENT_ASSERT(ret == 0);
 
-			lazy_entry const* pieces = m_info_dict.dict_find_string("pieces");
-			if (pieces && pieces->string_length() == m_files.num_pieces() * 20)
-			{
-				m_piece_hashes = m_info_section.get() + (pieces->string_ptr() - m_info_section.get());
-				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-			}
+			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
+
+			m_piece_hashes += offset;
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 		}
+		INVARIANT_CHECK;
 	}
 
 	void torrent_info::remap_files(file_storage const& f)
 	{
+		INVARIANT_CHECK;
+
 		// the new specified file storage must have the exact
 		// same size as the current file storage
 		TORRENT_ASSERT(m_files.total_size() == f.total_size());
@@ -536,6 +541,7 @@ namespace libtorrent
 #else
 		parse_torrent_file(e, ec, 0);
 #endif
+		INVARIANT_CHECK;
 	}
 #endif
 
@@ -552,6 +558,8 @@ namespace libtorrent
 		error_code ec;
 		if (!parse_torrent_file(torrent_file, ec, flags))
 			throw invalid_torrent_file(ec);
+
+		INVARIANT_CHECK;
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size, int flags)
@@ -570,6 +578,8 @@ namespace libtorrent
 
 		if (!parse_torrent_file(e, ec, flags))
 			throw invalid_torrent_file(ec);
+
+		INVARIANT_CHECK;
 	}
 
 	torrent_info::torrent_info(std::string const& filename, int flags)
@@ -591,6 +601,8 @@ namespace libtorrent
 
 		if (!parse_torrent_file(e, ec, flags))
 			throw invalid_torrent_file(ec);
+
+		INVARIANT_CHECK;
 	}
 
 #if TORRENT_USE_WSTRING
@@ -616,6 +628,8 @@ namespace libtorrent
 
 		if (!parse_torrent_file(e, ec, flags))
 			throw invalid_torrent_file(ec);
+
+		INVARIANT_CHECK;
 	}
 #endif
 #endif
@@ -629,6 +643,8 @@ namespace libtorrent
 		, m_i2p(false)
 	{
 		parse_torrent_file(torrent_file, ec, flags);
+
+		INVARIANT_CHECK;
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size, error_code& ec, int flags)
@@ -644,6 +660,8 @@ namespace libtorrent
 		if (lazy_bdecode(buffer, buffer + size, e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
+
+		INVARIANT_CHECK;
 	}
 
 	torrent_info::torrent_info(std::string const& filename, error_code& ec, int flags)
@@ -663,6 +681,8 @@ namespace libtorrent
 		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
+
+		INVARIANT_CHECK;
 	}
 
 #if TORRENT_USE_WSTRING
@@ -685,6 +705,8 @@ namespace libtorrent
 		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
+
+		INVARIANT_CHECK;
 	}
 #endif
 
@@ -708,6 +730,8 @@ namespace libtorrent
 
 	void torrent_info::copy_on_write()
 	{
+		INVARIANT_CHECK;
+
 		if (m_orig_files) return;
 		m_orig_files.reset(new file_storage(m_files));
 	}
@@ -719,6 +743,8 @@ namespace libtorrent
 
 	void torrent_info::swap(torrent_info& ti)
 	{
+		INVARIANT_CHECK;
+
 		using std::swap;
 		m_urls.swap(ti.m_urls);
 		m_web_seeds.swap(ti.m_web_seeds);
@@ -779,14 +805,16 @@ namespace libtorrent
 		m_files.set_piece_length(piece_length);
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
-		std::string name = info.dict_find_string_value("name.utf-8");
-		if (name.empty()) name = info.dict_find_string_value("name");
-		if (name.empty())
+		lazy_entry const* name_ent = info.dict_find_string("name.utf-8");
+		if (name_ent == 0) name_ent = info.dict_find_string("name");
+		if (name_ent == 0)
 		{
 			ec = errors::torrent_missing_name;
 			return false;
 		}
 
+		std::string name = name_ent->string_value();
+		if (name.empty()) name = to_hex(m_info_hash.to_string());
 		name = sanitize_path(name);
 	
 		if (!valid_path_element(name))
@@ -910,6 +938,8 @@ namespace libtorrent
 	bool torrent_info::add_merkle_nodes(std::map<int, sha1_hash> const& subtree
 		, int piece)
 	{
+		INVARIANT_CHECK;
+
 		int n = m_merkle_first_leaf + piece;
 		typedef std::map<int, sha1_hash>::const_iterator iter;
 		iter i = subtree.find(n);
@@ -960,6 +990,8 @@ namespace libtorrent
 	// the given piece
 	std::map<int, sha1_hash> torrent_info::build_merkle_list(int piece) const
 	{
+		INVARIANT_CHECK;
+
 		std::map<int, sha1_hash> ret;
 		int n = m_merkle_first_leaf + piece;
 		ret[n] = m_merkle_tree[n];
@@ -1201,6 +1233,8 @@ namespace libtorrent
 
 	void torrent_info::print(std::ostream& os) const
 	{
+		INVARIANT_CHECK;
+
 		os << "trackers:\n";
 		for (std::vector<announce_entry>::const_iterator i = trackers().begin();
 			i != trackers().end(); ++i)
@@ -1218,6 +1252,32 @@ namespace libtorrent
 	}
 
 // ------- end deprecation -------
+#endif
+
+#ifdef TORRENT_DEBUG
+	void torrent_info::check_invariant() const
+	{
+		for (file_storage::iterator i = m_files.begin()
+			, end(m_files.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(i->name != 0);
+			if (i->name_len > 0)
+			{
+				// name needs to point into the allocated info section buffer
+				TORRENT_ASSERT(i->name >= m_info_section.get());
+				TORRENT_ASSERT(i->name < m_info_section.get() + m_info_section_size);
+			}
+			else
+			{
+				// name must be a valid string
+				TORRENT_ASSERT(strlen(i->name) < 2048);
+			}
+		}
+
+		TORRENT_ASSERT(m_piece_hashes);
+		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+	}
 #endif
 
 }

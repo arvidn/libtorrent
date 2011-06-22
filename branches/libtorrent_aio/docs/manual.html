@@ -4393,7 +4393,8 @@ struct session_settings
         bool always_send_user_agent;
         bool apply_ip_filter_to_trackers;
         int read_job_every;
-        use_disk_read_ahead;
+        bool use_disk_read_ahead;
+        bool lock_files;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -5115,6 +5116,10 @@ instead pick one read job off of the sorted queue, where <em>x</em> is <tt class
 <p><tt class="docutils literal"><span class="pre">use_disk_read_ahead</span></tt> defaults to true and will attempt to optimize disk reads
 by giving the operating system heads up of disk read requests as they are queued
 in the disk job queue. This gives a significant performance boost for seeding.</p>
+<p><tt class="docutils literal"><span class="pre">lock_files</span></tt> determines whether or not to lock files which libtorrent is downloading
+to or seeding from. This is implemented using <tt class="docutils literal"><span class="pre">fcntl(F_SETLK)</span></tt> on unix systems and
+by not passing in <tt class="docutils literal"><span class="pre">SHARE_READ</span></tt> and <tt class="docutils literal"><span class="pre">SHARE_WRITE</span></tt> on windows. This might prevent
+3rd party processes from corrupting the files under libtorrent's feet.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">

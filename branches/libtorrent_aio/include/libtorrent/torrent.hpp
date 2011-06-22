@@ -834,6 +834,9 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
+		void queue_torrent_check();
+		void dequeue_torrent_check();
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -858,9 +861,6 @@ namespace libtorrent
 
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
-
-		void queue_torrent_check();
-		void dequeue_torrent_check();
 
 		void parse_response(const entry& e, std::vector<peer_entry>& peer_list);
 
@@ -1320,6 +1320,12 @@ namespace libtorrent
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
+
+#ifdef TORRENT_DEBUG
+	public:
+		// set to false until we've loaded resume data
+		bool m_resume_data_loaded;
+#endif
 	};
 }
 

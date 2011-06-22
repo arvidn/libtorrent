@@ -235,6 +235,10 @@ namespace libtorrent
 	{
 	public:
 
+#ifdef TORRENT_DEBUG
+		void check_invariant() const;
+#endif
+
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
@@ -405,7 +409,7 @@ namespace libtorrent
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
 		// if we're logging member offsets, we need access to them
-#if !defined NDEBUG \
+#if defined TORRENT_DEBUG \
 		&& !defined TORRENT_LOGGING \
 		&& !defined TORRENT_VERBOSE_LOGGING \
 		&& !defined TORRENT_ERROR_LOGGING

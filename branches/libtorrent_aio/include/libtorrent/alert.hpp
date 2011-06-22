@@ -146,7 +146,7 @@ namespace libtorrent {
 
 		alert const* wait_for_alert(time_duration max_wait);
 
-		void set_alert_mask(int m)
+		void set_alert_mask(boost::uint32_t m)
 		{
 			mutex::scoped_lock lock(m_mutex);
 			m_alert_mask = m;
@@ -167,7 +167,7 @@ namespace libtorrent {
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
 //		event m_condition;
-		int m_alert_mask;
+		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
 		io_service& m_ios;

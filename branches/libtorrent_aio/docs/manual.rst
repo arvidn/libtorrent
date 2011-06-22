@@ -4440,7 +4440,8 @@ session_settings
 		bool always_send_user_agent;
 		bool apply_ip_filter_to_trackers;
 		int read_job_every;
-		use_disk_read_ahead;
+		bool use_disk_read_ahead;
+		bool lock_files;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5308,6 +5309,11 @@ instead pick one read job off of the sorted queue, where *x* is ``read_job_every
 ``use_disk_read_ahead`` defaults to true and will attempt to optimize disk reads
 by giving the operating system heads up of disk read requests as they are queued
 in the disk job queue. This gives a significant performance boost for seeding.
+
+``lock_files`` determines whether or not to lock files which libtorrent is downloading
+to or seeding from. This is implemented using ``fcntl(F_SETLK)`` on unix systems and
+by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
+3rd party processes from corrupting the files under libtorrent's feet.
 
 pe_settings
 ===========
