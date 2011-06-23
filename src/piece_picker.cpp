@@ -1591,7 +1591,6 @@ namespace libtorrent
 				if (info.state != block_info::state_requested
 					|| info.peer == peer)
 					continue;
-				if (info.num_peers >= 2) continue;
 				temp.push_back(piece_block(i->index, j));
 				done = true;
 			}
