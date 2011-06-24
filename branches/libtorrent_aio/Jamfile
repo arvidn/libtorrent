@@ -173,7 +173,8 @@ rule linking ( properties * )
 			;
 	}
 
-	if <target-os>linux in $(properties)
+	if (<target-os>linux in $(properties) && <io>auto in $(properties))
+		|| <io>iosubmit in $(properties)
 	{
 		# for libaio support on linux
 		result += <library>aio ;
