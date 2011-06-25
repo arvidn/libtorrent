@@ -73,13 +73,13 @@ int main(int argc, char* argv[])
 	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
 		, depth_limit, item_limit);
 
+	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
+
 	if (ret != 0)
 	{
 		fprintf(stderr, "failed to decode: '%s' at character: %d\n", ec.message().c_str(), pos);
 		return 1;
 	}
-
-	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	torrent_info t(e, ec);
 	if (ec)

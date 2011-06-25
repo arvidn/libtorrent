@@ -52,7 +52,6 @@ namespace libtorrent
 	{ \
 		ec = code; \
 		if (error_pos) *error_pos = start - orig_start; \
-		ret.clear(); \
 		return -1; \
 	}
 	// fills in 'val' with what the string between start and the
