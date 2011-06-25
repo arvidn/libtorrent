@@ -55,6 +55,7 @@ python-extension libtorrent
     src/peer_info.cpp
     src/ip_filter.cpp
     src/magnet_uri.cpp
+    src/error_code.cpp
   : <include>src
     <library>/torrent//torrent/<link>static
     <boost>system:<library>boost_python

@@ -25,12 +25,14 @@ void bind_ip_filter();
 void bind_magnet_uri();
 void bind_converters();
 void bind_create_torrent();
+void bind_error_code();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
     Py_Initialize();
     PyEval_InitThreads();
 
+    bind_error_code();
     bind_utility();
     bind_fingerprint();
     bind_big_number();

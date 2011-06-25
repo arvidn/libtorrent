@@ -116,6 +116,7 @@ void bind_alert()
         .def_readonly("msg", &tracker_error_alert::msg)
         .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
         .def_readonly("status_code", &tracker_error_alert::status_code)
+        .def_readonly("error", &tracker_error_alert::error)
         ;
 
     class_<tracker_warning_alert, bases<tracker_alert>, noncopyable>(
@@ -140,7 +141,9 @@ void bind_alert()
         "peer_ban_alert", no_init);
 
     class_<peer_error_alert, bases<peer_alert>, noncopyable>(
-        "peer_error_alert", no_init);
+        "peer_error_alert", no_init)
+        .def_readonly("error", &peer_error_alert::error)
+        ;
 
     class_<invalid_request_alert, bases<peer_alert>, noncopyable>(
         "invalid_request_alert", no_init)
@@ -205,6 +208,7 @@ void bind_alert()
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
         "file_error_alert", no_init)
         .def_readonly("file", &file_error_alert::file)
+        .def_readonly("error", &file_error_alert::error)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &file_error_alert::msg)
 #endif
@@ -231,6 +235,7 @@ void bind_alert()
         "portmap_error_alert", no_init)
         .def_readonly("mapping", &portmap_error_alert::mapping)
         .def_readonly("map_type", &portmap_error_alert::map_type)
+        .def_readonly("error", &portmap_error_alert::error)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("type", &portmap_error_alert::map_type)
         .def_readonly("msg", &portmap_error_alert::msg)
@@ -258,6 +263,7 @@ void bind_alert()
 
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init)
+        .def_readonly("error", &fastresume_rejected_alert::error)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &fastresume_rejected_alert::msg)
 #endif
@@ -275,7 +281,8 @@ void bind_alert()
         ;
 
     class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
-        "scrape_failed_alert", no_init);
+        "scrape_failed_alert", no_init)
+        ;
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
         "udp_error_alert", no_init)
@@ -352,6 +359,7 @@ void bind_alert()
 
     class_<peer_disconnected_alert, bases<peer_alert>, noncopyable>(
         "peer_disconnected_alert", no_init)
+        .def_readonly("error", &peer_disconnected_alert::error)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &peer_disconnected_alert::msg)
 #endif
@@ -380,6 +388,7 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
 #endif
+        .def_readonly("error", &torrent_delete_failed_alert::error)
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -387,6 +396,7 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &save_resume_data_failed_alert::msg)
 #endif
+        .def_readonly("error", &save_resume_data_failed_alert::error)
         ;
 
     class_<performance_alert, bases<torrent_alert>, noncopyable>(
