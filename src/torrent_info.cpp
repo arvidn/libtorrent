@@ -390,10 +390,10 @@ namespace libtorrent
 	}
 
 	int announce_entry::next_announce_in() const
-	{ return total_seconds(time_now() - next_announce); }
+	{ return total_seconds(next_announce - time_now()); }
 
 	int announce_entry::min_announce_in() const
-	{ return total_seconds(time_now() - min_announce); }
+	{ return total_seconds(min_announce - time_now()); }
 
 	bool announce_entry::can_announce(ptime now, bool is_seed) const
 	{
