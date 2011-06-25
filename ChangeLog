@@ -1,3 +1,4 @@
+	* fixed bug in announce_entry::next_announce_in and min_announce_in
 	* fixed sign issue in set_alert_mask signature
 	* fixed unaligned disk access for unbuffered I/O in windows
 	* support torrents whose name is empty
