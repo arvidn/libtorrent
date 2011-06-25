@@ -1274,9 +1274,11 @@ namespace libtorrent
 			}
 		}
 
-		TORRENT_ASSERT(m_piece_hashes);
-		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+		if (m_piece_hashes != 0)
+		{
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+		}
 	}
 #endif
 
