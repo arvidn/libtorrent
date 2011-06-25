@@ -168,6 +168,17 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	TORRENT_ASSERT(j.piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
+	if (pe->blocks[block].buf != 0)
+	{
+		m_buffer_pool.free_buffer(pe->blocks[block].buf);
+		--pe->num_blocks;
+		TORRENT_ASSERT(m_cache_size > 0);
+		--m_cache_size;
+		TORRENT_ASSERT(m_read_cache_size > 0);
+		--m_read_cache_size;
+		pe->blocks[block].buf = 0;
+	}
+
 	pe->blocks[block].buf = j.buffer;
 
 	pe->blocks[block].dirty = true;
