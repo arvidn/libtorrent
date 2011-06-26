@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
 
+#ifdef TORRENT_DISK_STATS
+#include "libtorrent/io.hpp"
+#endif
+
 #define DEBUG_AIO 0
 
 #define DLOG if (DEBUG_AIO) fprintf
@@ -144,6 +148,30 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
+#ifdef TORRENT_DISK_STATS
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete)
+	{
+		// the event format in the log is:
+		// uint64_t timestamp (microseconds)
+		// uint64_t file offset
+		// uint32_t file-id
+		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
+		char event[21];
+		char* ptr = event;
+		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
+		detail::write_uint64(aio_offset(aio), ptr);
+		detail::write_uint32(aio->file_ptr->file_id(), ptr);
+		detail::write_uint8((int(complete) << 1) | (aio_op(aio) == file::write_op), ptr);
+
+		int ret = fwrite(event, 1, sizeof(event), f);
+		if (ret != sizeof(event))
+		{
+			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
+				, errno, strerror(errno));
+		}
+	}
+#endif
+
 	void stat_file(std::string inf, file_status* s
 		, error_code& ec, int flags)
 	{
@@ -746,7 +774,11 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		, m_sector_size(0)
 #endif
-	{}
+	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
+	}
 
 	file::file(std::string const& path, int mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
@@ -755,6 +787,9 @@ namespace libtorrent
 		, m_sector_size(0)
 #endif
 	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
 		// the return value is not important, since the
 		// error code contains the same information
 		open(path, mode, ec);
@@ -765,9 +800,26 @@ namespace libtorrent
 		close();
 	}
 
+#ifdef TORRENT_DISK_STATS
+	boost::uint32_t silly_hash(std::string const& str)
+	{
+		boost::uint32_t ret = 1;
+		for (int i = 0; i < str.size(); ++i)
+		{
+			ret *= int(str[i]);
+		}
+		return ret;
+	}
+#endif
+
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
+
+#ifdef TORRENT_DISK_STATS
+		m_file_id = silly_hash(path);
+#endif
+
 #ifdef TORRENT_WINDOWS
 
 		struct open_mode_t
@@ -1022,6 +1074,10 @@ namespace libtorrent
 
 	void file::close()
 	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
+
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		m_sector_size = 0;
 #endif
@@ -2271,7 +2327,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			scatter_copy(aio->vec, aio->num_vec, aio->buffer);
 		}
 
-		aio->handler->done(ec, ret);
+		aio->handler->done(ec, ret, aio);
 
 		pool.free_vec(aio->vec);
 
@@ -2303,6 +2359,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 		if (aios == 0) return std::pair<file::aiocb_t*, file::aiocb_t*>(0, 0);
 
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log = pool.file_access_log;
+#endif
+
 		const int submit_batch_size = 512;
 		iocb* to_submit[submit_batch_size];
 
@@ -2320,6 +2380,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int i = 0;
 		for (;;)
 		{
+#ifdef TORRENT_DISK_STATS
+			if (aios) aios->handler->file_access_log = file_access_log;
+			if (file_access_log && aios) write_disk_log(file_access_log, list_start, false);
+#endif
 			if (i == submit_batch_size || aios == 0)
 			{
 				DLOG(stderr, "io_submit [");
@@ -2381,6 +2445,10 @@ finish:
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
 		, aiocb_pool& pool, int& num_issued)
 	{
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log = pool.file_access_log;
+#endif
+
 #ifdef SIGEV_THREAD_ID
 		pthread_t self = pthread_self();
 #endif
@@ -2390,6 +2458,11 @@ finish:
 
 		while (aios)
 		{
+#ifdef TORRENT_DISK_STATS
+			aios->handler->file_access_log = file_access_log;
+			if (file_access_log) write_disk_log(file_access_log, aios, false);
+#endif
+
 			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
 #if TORRENT_USE_AIO
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
@@ -2422,7 +2495,7 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0);
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0, del);
 				pool.destroy(del);
 				continue;
 			}
@@ -2445,7 +2518,7 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0);
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0, del);
 				pool.destroy(del);
 				continue;
 			}
@@ -2480,7 +2553,7 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret);
+				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret, del);
 				pool.destroy(del);
 				continue;
 			}
@@ -2508,7 +2581,7 @@ finish:
 			if (aios->next) aios->next->prev = aios->prev;
 			if (aios->prev) aios->prev->next = aios->next;
 			aios = aios->next;
-			del->handler->done(ec, ret);
+			del->handler->done(ec, ret, del);
 			pool.destroy(del);
 			++num_issued;
 			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);

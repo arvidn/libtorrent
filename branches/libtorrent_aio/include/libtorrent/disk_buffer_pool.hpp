@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #endif
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 #include <map>
 #include <fstream>
 #endif
@@ -57,7 +57,7 @@ namespace libtorrent
 		~disk_buffer_pool();
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
@@ -72,10 +72,6 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		int disk_allocations() const
 		{ return m_allocations; }
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_disk_access_log;
 #endif
 
 		void release_memory();
@@ -105,10 +101,10 @@ namespace libtorrent
 		boost::pool<page_aligned_allocator> m_pool;
 #endif
 
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
+#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;
 #endif
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 	public:
 		void rename_buffer(char* buf, char const* category);
 		std::map<std::string, int> m_categories;

@@ -816,7 +816,7 @@ namespace aux {
 		reset_stat_counters();
 		rotate_stats_log();
 #endif
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_buffer_allocations = 0;
 #endif
@@ -5275,7 +5275,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_allocations++;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
@@ -5289,7 +5289,7 @@ namespace aux {
 #endif
 	}
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 	void session_impl::log_buffer_usage()
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -5314,7 +5314,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		m_buffer_allocations--;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "

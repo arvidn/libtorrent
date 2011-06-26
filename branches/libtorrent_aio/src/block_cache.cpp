@@ -531,7 +531,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			--pe->refcount;
 			pe->blocks[i].pending = false;
 
-#if TORRENT_DISK_STATS
+#if TORRENT_BUFFER_STATS
 			m_buffer_pool.rename_buffer(pe->blocks[i].buf, "read cache");
 #endif
 
@@ -916,7 +916,7 @@ void block_cache::check_invariant() const
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 	int read_allocs = m_buffer_pool.m_categories.find(std::string("read cache"))->second;
 	int write_allocs = m_buffer_pool.m_categories.find(std::string("write cache"))->second;
 	TORRENT_ASSERT(cached_read_blocks == read_allocs);

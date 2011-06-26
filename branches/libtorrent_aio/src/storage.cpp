@@ -923,15 +923,6 @@ ret:
 	int default_storage::writev(file::iovec_t const* bufs, int slot, int offset
 		, int num_bufs, error_code& ec)
 	{
-#ifdef TORRENT_DISK_STATS
-		disk_buffer_pool* pool = disk_pool();
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " write "
-				<< physical_offset(slot, offset) << std::endl;
-		}
-#endif
-
 		int flags = 0;
 		if (m_settings)
 			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
@@ -940,17 +931,7 @@ ret:
 			, 0, 0, 0
 			, m_settings ? settings().disk_io_write_mode : 0, file::read_write
 			, flags };
-#ifdef TORRENT_DISK_STATS
-		int ret = readwritev(bufs, slot, offset, num_bufs, op, ec);
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " write_end "
-				<< (physical_offset(slot, offset) + ret) << std::endl;
-		}
-		return ret;
-#else
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
-#endif
 	}
 
 	size_type default_storage::physical_offset(int slot, int offset)
@@ -1041,15 +1022,6 @@ ret:
 	int default_storage::readv(file::iovec_t const* bufs, int slot, int offset
 		, int num_bufs, error_code& ec)
 	{
-#ifdef TORRENT_DISK_STATS
-		disk_buffer_pool* pool = disk_pool();
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " read "
-				<< physical_offset(slot, offset) << std::endl;
-		}
-#endif
-
 		int flags = 0;
 		if (m_settings)
 			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
@@ -1062,17 +1034,7 @@ ret:
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
 #endif
-#ifdef TORRENT_DISK_STATS
-		int ret = readwritev(bufs, slot, offset, num_bufs, op, ec);
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " read_end "
-				<< (physical_offset(slot, offset) + ret) << std::endl;
-		}
-		return ret;
-#else
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
-#endif
 	}
 
 	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
@@ -1456,47 +1418,17 @@ ret:
 
 	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
 	{
-#ifdef TORRENT_DISK_STATS
-		disk_buffer_pool* pool = disk_pool();
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " read "
-				<< physical_offset(slot, offset) << std::endl;
-		}
-#endif
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
 			ret += bufs[i].iov_len;
-#ifdef TORRENT_DISK_STATS
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " read_end "
-				<< (physical_offset(slot, offset) + ret) << std::endl;
-		}
-#endif
 		return ret;
 	}
 
 	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
 	{
-#ifdef TORRENT_DISK_STATS
-		disk_buffer_pool* pool = disk_pool();
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " write "
-				<< physical_offset(slot, offset) << std::endl;
-		}
-#endif
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
 			ret += bufs[i].iov_len;
-#ifdef TORRENT_DISK_STATS
-		if (pool)
-		{
-			pool->m_disk_access_log << log_time() << " write_end "
-				<< (physical_offset(slot, offset) + ret) << std::endl;
-		}
-#endif
 		return ret;
 	}
 

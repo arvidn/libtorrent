@@ -51,7 +51,11 @@ namespace libtorrent
 			, m_pool(sizeof(file::aiocb_t), 128)
 			, m_vec_pool(sizeof(file::iovec_t) * max_iovec)
 #endif
-		{}
+		{
+#ifdef TORRENT_DISK_STATS
+			file_access_log = 0;
+#endif
+		}
 
 		file::iovec_t* alloc_vec()
 		{
@@ -119,6 +123,10 @@ namespace libtorrent
 #if TORRENT_USE_IOSUBMIT
 		io_context_t io_queue;
 		int event;
+#endif
+
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log;
 #endif
 
 	private:

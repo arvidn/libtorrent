@@ -870,7 +870,7 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 			void log_buffer_usage();
 			// used to log send buffer usage statistics
 			std::ofstream m_buffer_usage_logger;

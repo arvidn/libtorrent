@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/mman.h>
 #endif
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 #include "libtorrent/time.hpp"
 #endif
 
@@ -55,10 +55,10 @@ namespace libtorrent
 		, m_pool(block_size, m_settings.cache_buffer_chunk_size)
 #endif
 	{
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
+#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		m_allocations = 0;
 #endif
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		m_log.open("disk_buffers.log", std::ios::trunc);
 		m_categories["read cache"] = 0;
 		m_categories["write cache"] = 0;
@@ -78,12 +78,12 @@ namespace libtorrent
 	}
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
 		, mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
 #endif
@@ -123,10 +123,10 @@ namespace libtorrent
 		}
 #endif
 
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
+#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		++m_allocations;
 #endif
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		++m_categories[category];
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
@@ -135,7 +135,7 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 	void disk_buffer_pool::rename_buffer(char* buf, char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
@@ -180,10 +180,10 @@ namespace libtorrent
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
+#if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		--m_allocations;
 #endif
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
 			!= m_categories.end());
 		std::string const& category = m_buf_to_category[buf];

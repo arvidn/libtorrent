@@ -297,6 +297,9 @@ feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHE
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
+feature buffer-stats : off on : composite propagated link-incompatible ;
+feature.compose <buffer-stats>on : <define>TORRENT_BUFFER_STATS ;
+
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 

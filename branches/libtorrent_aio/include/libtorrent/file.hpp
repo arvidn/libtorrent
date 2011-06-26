@@ -104,6 +104,7 @@ namespace libtorrent
 #endif
 
 	struct aiocb_pool;
+	struct async_handler;
 
 	struct file_status
 	{
@@ -186,37 +187,6 @@ namespace libtorrent
 		char m_name[TORRENT_MAX_PATH + 1]; // +1 to make room for null
 #endif
 		bool m_done;
-	};
-
-	// this struct is used to hold the handler while
-	// waiting for all async operations to complete
-	struct async_handler
-	{
-		async_handler(ptime now) : transferred(0), references(0), started(now) {}
-		boost::function<void(async_handler*)> handler;
-		error_code error;
-		size_t transferred;
-		int references;
-		ptime started;
-
-		void done(error_code const& ec, size_t bytes_transferred)
-		{
-			TORRENT_ASSERT(references > 0);
-			if (ec) error = ec;
-			else transferred += bytes_transferred;
-			--references;
-			TORRENT_ASSERT(references >= 0);
-			if (references > 0) return;
-			handler(this);
-			delete this;
-		}
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		~async_handler()
-		{
-			TORRENT_ASSERT(references == 0);
-			references = 0xf0f0f0f0;
-		}
-#endif
 	};
 
 	struct TORRENT_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
@@ -437,6 +407,10 @@ namespace libtorrent
 
 		handle_type native_handle() const { return m_file_handle; }
 
+#ifdef TORRENT_DISK_STATS
+		boost::uint32_t file_id() const { return m_file_id; }
+#endif
+
 	private:
 
 		// allocates aiocb structures and links them
@@ -447,6 +421,9 @@ namespace libtorrent
 			, aiocb_pool& pool, int flags);
 
 		handle_type m_file_handle;
+#ifdef TORRENT_DISK_STATS
+		boost::uint32_t m_file_id;
+#endif
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		std::wstring m_path;
@@ -468,6 +445,54 @@ namespace libtorrent
 
 	};
 
+#ifdef TORRENT_DISK_STATS
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete);
+#endif
+
+	// this struct is used to hold the handler while
+	// waiting for all async operations to complete
+	struct async_handler
+	{
+		async_handler(ptime now) : transferred(0), references(0), started(now)
+		{
+#ifdef TORRENT_DISK_STATS
+			file_access_log = 0;
+#endif
+		}
+		boost::function<void(async_handler*)> handler;
+		error_code error;
+		size_t transferred;
+		int references;
+		ptime started;
+
+		void done(error_code const& ec, size_t bytes_transferred
+			, file::aiocb_t const* aio)
+		{
+			TORRENT_ASSERT(references > 0);
+			if (ec) error = ec;
+			else transferred += bytes_transferred;
+#ifdef TORRENT_DISK_STATS
+			if (file_access_log) write_disk_log(file_access_log, aio, true);
+#endif
+			--references;
+			TORRENT_ASSERT(references >= 0);
+			if (references > 0) return;
+			handler(this);
+			delete this;
+		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		~async_handler()
+		{
+			TORRENT_ASSERT(references == 0);
+			references = 0xf0f0f0f0;
+		}
+#endif
+
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log;
+#endif
+	};
+
 	// returns two chains, one with jobs that were issued and
 	// one with jobs that couldn't be issued
 	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
@@ -482,6 +507,39 @@ namespace libtorrent
 	// and returns true.
 	bool reap_aio(file::aiocb_t* aio
 		, aiocb_pool& pool);
+
+	// return file::read_op or file::write_op
+	inline int aio_op(file::aiocb_t const* aio)
+	{
+#if TORRENT_USE_SYNCIO \
+	|| TORRENT_USE_OVERLAPPED
+		return aio->op;
+#elif TORRENT_USE_AIO \
+	|| TORRENT_USE_IOSUBMIT \
+	|| TORRENT_USE_IOSUBMIT_VEC
+		return aio->cb.aio_lio_opcode;
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
+	inline boost::uint64_t aio_offset(file::aiocb_t const* aio)
+	{
+#if TORRENT_USE_SYNCIO
+		return aio->offset;
+#elif TORRENT_USE_OVERLAPPED
+		return boost::uint64_t(aio->cb.Offset) | (boost::uint64_t(aio->cb.OffsetHigh) << 32);
+#elif TORRENT_USE_AIO
+		return aio->cb.aio_offset;
+#elif TORRENT_USE_IOSUBMIT
+		return aio->cb.u.c.offset;
+#elif TORRENT_USE_IOSUBMIT_VEC
+		return aio->cb.u.v.offset;
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED
