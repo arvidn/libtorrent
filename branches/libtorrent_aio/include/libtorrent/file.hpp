@@ -528,7 +528,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		return aio->offset;
 #elif TORRENT_USE_OVERLAPPED
-		return boost::uint64_t(aio->cb.Offset) | (boost::uint64_t(aio->cb.OffsetHigh) << 32);
+		return boost::uint64_t(aio->ov.Offset) | (boost::uint64_t(aio->ov.OffsetHigh) << 32);
 #elif TORRENT_USE_AIO
 		return aio->cb.aio_offset;
 #elif TORRENT_USE_IOSUBMIT

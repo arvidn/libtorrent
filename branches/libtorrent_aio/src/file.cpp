@@ -870,7 +870,7 @@ namespace libtorrent
 
 		DWORD flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
-			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0);
+			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0)
 #if TORRENT_USE_OVERLAPPED
 			| FILE_FLAG_OVERLAPPED
 #endif
