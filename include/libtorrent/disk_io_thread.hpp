@@ -454,29 +454,35 @@ namespace libtorrent
 		// read cache
 		cache_t m_read_pieces;
 
+		void flip_stats();
+
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
 		// exceed m_cache_size
 		cache_status m_cache_stats;
 
 		// keeps average queue time for disk jobs (in microseconds)
-		sliding_average<512> m_queue_time;
+		average_accumulator m_queue_time;
 
 		// average read time for cache misses (in microseconds)
-		sliding_average<512> m_read_time;
+		average_accumulator m_read_time;
 
 		// average write time (in microseconds)
-		sliding_average<512> m_write_time;
+		average_accumulator m_write_time;
 
 		// average hash time (in microseconds)
-		sliding_average<512> m_hash_time;
+		average_accumulator m_hash_time;
 
 		// average time to serve a job (any job) in microseconds
-		sliding_average<512> m_job_time;
+		average_accumulator m_job_time;
 
 		// average time to ask for physical offset on disk
 		// and insert into queue
-		sliding_average<512> m_sort_time;
+		average_accumulator m_sort_time;
+
+		// the last time we reset the average time and store the
+		// latest value in m_cache_stats
+		ptime m_last_stats_flip;
 
 		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
 		read_jobs_t m_sorted_read_jobs;

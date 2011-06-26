@@ -251,6 +251,7 @@ namespace libtorrent
 		, m_waiting_to_shutdown(false)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
+		, m_last_stats_flip(time_now())
 		, m_physical_ram(0)
 		, m_exceeded_write_queue(false)
 		, m_ios(ios)
@@ -292,6 +293,18 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_queue_mutex);
 		return !m_exceeded_write_queue;
+	}
+
+	void disk_io_thread::flip_stats()
+	{
+		// calling mean() will actually reset the accumulators
+		m_cache_stats.average_queue_time = m_queue_time.mean();
+		m_cache_stats.average_read_time = m_read_time.mean();
+		m_cache_stats.average_write_time = m_write_time.mean();
+		m_cache_stats.average_hash_time = m_hash_time.mean();
+		m_cache_stats.average_job_time = m_job_time.mean();
+		m_cache_stats.average_sort_time = m_sort_time.mean();
+		m_last_stats_flip = time_now();
 	}
 
 	void disk_io_thread::get_cache_info(sha1_hash const& ih, std::vector<cached_piece_info>& ret) const
@@ -341,12 +354,6 @@ namespace libtorrent
 
 		cache_status ret = m_cache_stats;
 
-		ret.average_queue_time = m_queue_time.mean();
-		ret.average_read_time = m_read_time.mean();
-		ret.average_write_time = m_write_time.mean();
-		ret.average_hash_time = m_hash_time.mean();
-		ret.average_job_time = m_job_time.mean();
-		ret.average_sort_time = m_sort_time.mean();
 		ret.job_queue_length = m_jobs.size() + m_sorted_read_jobs.size();
 		ret.read_queue_size = m_sorted_read_jobs.size();
 
@@ -1599,6 +1606,8 @@ namespace libtorrent
 //					flush_expired_pieces();
 				m_signal.wait(jl);
 				m_signal.clear(jl);
+
+				if (time_now() > m_last_stats_flip + seconds(1)) flip_stats();
 			}
 
 			if (m_abort && m_jobs.empty())

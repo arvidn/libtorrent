@@ -120,6 +120,7 @@ reports = [
 	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
 	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
+	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('uTP delay', 'buffer delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
