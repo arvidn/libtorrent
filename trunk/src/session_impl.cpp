@@ -3244,7 +3244,7 @@ namespace aux {
 
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
-			STAT_LOG(d, total_milliseconds(now - m_last_log_rotation) / 1000.f);
+			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
 			STAT_LOG(d, int(m_stat.total_upload() - m_last_uploaded));
 			STAT_LOG(d, int(m_stat.total_download() - m_last_downloaded));
 			STAT_LOG(d, downloading_torrents);
@@ -3354,8 +3354,8 @@ namespace aux {
 			STAT_LOG(d, utp_down_rate);
 			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
-			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) / float(tick_interval_ms));
-			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) / float(tick_interval_ms));
+			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
+			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG

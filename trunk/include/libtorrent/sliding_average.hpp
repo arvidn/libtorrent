@@ -71,6 +71,33 @@ private:
 	int m_average_deviation;
 };
 
+struct average_accumulator
+{
+	average_accumulator()
+		: m_num_samples(0)
+		, m_sample_sum(0)
+	{}
+
+	void add_sample(int s)
+	{
+		++m_num_samples;
+		m_sample_sum += s;
+	}
+
+	int mean()
+	{
+		int ret;
+		if (m_num_samples == 0) ret = 0;
+		else ret = m_sample_sum / m_num_samples;
+		m_num_samples = 0;
+		m_sample_sum = 0;
+		return ret;
+	}
+
+	int m_num_samples;
+	size_type m_sample_sum;
+};
+
 }
 
 #endif
