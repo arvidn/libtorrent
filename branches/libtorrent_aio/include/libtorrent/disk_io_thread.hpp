@@ -305,40 +305,38 @@ namespace libtorrent
 		// disk cache
 		block_cache m_disk_cache;
 
+		void flip_stats();
+
+		// total number of blocks in use by both the read
+		// and the write cache. This is not supposed to
+		// exceed m_cache_size
+		cache_status m_cache_stats;
+
 		// keeps average queue time for disk jobs (in microseconds)
-		sliding_average<512> m_queue_time;
+		average_accumulator m_queue_time;
 
 		// average read time for cache misses (in microseconds)
-		sliding_average<512> m_read_time;
+		average_accumulator m_read_time;
 
 		// average write time (in microseconds)
-		sliding_average<512> m_write_time;
+		average_accumulator m_write_time;
+
+		// average hash time (in microseconds)
+		average_accumulator m_hash_time;
 
 		// average time to serve a job (any job) in microseconds
-		sliding_average<512> m_job_time;
+		average_accumulator m_job_time;
 
 		// average time to ask for physical offset on disk
 		// and insert into queue
-		sliding_average<512> m_sort_time;
+		average_accumulator m_sort_time;
 
 		// average time to issue jobs
-		sliding_average<512> m_issue_time;
+		average_accumulator m_issue_time;
 
-		// number of write operations issued
-		boost::uint64_t m_write_calls;
-		boost::uint64_t m_read_calls;
-		boost::uint64_t m_write_blocks;
-		boost::uint64_t m_read_blocks;
-
-		size_type m_cumulative_read_time;
-		size_type m_cumulative_write_time;
-		size_type m_cumulative_job_time;
-		size_type m_cumulative_sort_time;
-		size_type m_cumulative_issue_time;
-
-		// the number of blocks read because we needed to
-		// hash the piece
-		int m_total_read_back;
+		// the last time we reset the average time and store the
+		// latest value in m_cache_stats
+		ptime m_last_stats_flip;
 
 		// these are async I/O operations that have been issued
 		// and we are waiting to complete

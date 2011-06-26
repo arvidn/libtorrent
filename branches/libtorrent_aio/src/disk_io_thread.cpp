@@ -270,7 +270,7 @@ namespace libtorrent
 		{
 			ptime done = time_now_hires();
 			io->m_sort_time.add_sample(total_microseconds(done - start_sort));
-			io->m_cumulative_sort_time += total_microseconds(done - start_sort);
+			io->m_cache_stats.cumulative_sort_time += total_microseconds(done - start_sort);
 		}
 
 		return ret;
@@ -306,18 +306,9 @@ namespace libtorrent
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
+		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
 		, m_disk_cache(*this)
-		, m_write_calls(0)
-		, m_read_calls(0)
-		, m_write_blocks(0)
-		, m_read_blocks(0)
-		, m_cumulative_read_time(0)
-		, m_cumulative_write_time(0)
-		, m_cumulative_job_time(0)
-		, m_cumulative_sort_time(0)
-		, m_cumulative_issue_time(0)
-		, m_total_read_back(0)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -641,8 +632,8 @@ namespace libtorrent
 						, pe.piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
 							, range_start, i, to_write, _1));
-					m_write_blocks += i - range_start;
-					++m_write_calls;
+					m_cache_stats.blocks_written += i - range_start;
+					++m_cache_stats.writes;
 //					DLOG(stderr, "prepending aios (%p) from write_async_impl to "
 //						"m_to_issue (%p) elevator=%d\n"
 //						, aios, m_to_issue, m_elevator_direction);
@@ -664,8 +655,8 @@ namespace libtorrent
 						, range_start * m_block_size, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_read, this, p
 							, range_start, i, _1));
-					m_read_blocks += i - range_start;
-					++m_read_calls;
+					m_cache_stats.blocks_read += i - range_start;
+					++m_cache_stats.reads;
 //					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 //						, aios, m_to_issue);
 
@@ -731,7 +722,7 @@ namespace libtorrent
 		{
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - handler->started);
 			m_write_time.add_sample(write_time);
-			m_cumulative_write_time += write_time;
+			m_cache_stats.cumulative_write_time += write_time;
 		}
 
 		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
@@ -750,7 +741,7 @@ namespace libtorrent
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
-			m_cumulative_job_time += job_time;
+			m_cache_stats.cumulative_job_time += job_time;
 		}
 	}
 
@@ -761,7 +752,7 @@ namespace libtorrent
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - handler->started);
 			m_read_time.add_sample(read_time);
-			m_cumulative_read_time += read_time;
+			m_cache_stats.cumulative_read_time += read_time;
 		}
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
@@ -773,7 +764,7 @@ namespace libtorrent
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
-			m_cumulative_job_time += job_time;
+			m_cache_stats.cumulative_job_time += job_time;
 		}
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
@@ -953,6 +944,8 @@ namespace libtorrent
 			m_blocked_jobs.push_back(j);
 			return;
 		}
+
+		if (time_now() > m_last_stats_flip + seconds(1)) flip_stats();
 
 		ptime now = time_now_hires();
 		m_queue_time.add_sample(total_microseconds(now - j.start_time));
@@ -1214,7 +1207,7 @@ namespace libtorrent
 			if (ret != 0 && ret != defer_handler) return ret;
 			job_added = true;
 			ret = defer_handler;
-			m_total_read_back += p->blocks_in_piece;
+			m_cache_stats.total_read_back += p->blocks_in_piece;
 		}
 		else
 		{
@@ -1258,7 +1251,7 @@ namespace libtorrent
 					// if allocate_pending succeeds, it adds the job as well
 					job_added = true;
 					// some blocks were allocated
-					m_total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
+					m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
 					ret = defer_handler;
 				}
 				else if (ret == -1)
@@ -1754,6 +1747,8 @@ namespace libtorrent
 
 	void disk_io_thread::get_disk_metrics(cache_status& ret) const
 	{
+		ret = m_cache_stats;
+
 		ret.total_used_buffers = in_use();
 #if TORRENT_USE_SYNCIO
 		ret.elevator_turns = m_elevator_turns;
@@ -1762,32 +1757,28 @@ namespace libtorrent
 #endif
 		ret.queued_bytes = m_pending_buffer_size + m_queue_buffer_size;
 
-		ret.average_queue_time = m_queue_time.mean();
-		ret.average_read_time = m_read_time.mean();
-		ret.average_write_time = m_write_time.mean();
-		ret.average_job_time = m_job_time.mean();
-		ret.average_sort_time = m_sort_time.mean();
-		ret.average_issue_time = m_issue_time.mean();
 		ret.blocked_jobs = m_blocked_jobs.size();
 		ret.queued_jobs = m_num_to_issue;
 		ret.peak_queued = m_peak_num_to_issue;
 		ret.pending_jobs = m_outstanding_jobs;
 		ret.peak_pending = m_peak_outstanding;
-		ret.blocks_written = m_write_blocks;
-		ret.blocks_read = m_read_blocks;
-		ret.writes = m_write_calls;
-		ret.reads = m_read_calls;
 		ret.num_aiocb = m_aiocb_pool.in_use();
 		ret.peak_aiocb = m_aiocb_pool.peak_in_use();
-		ret.total_read_back = m_total_read_back;
-
-		ret.cumulative_read_time = m_cumulative_read_time;
-		ret.cumulative_write_time = m_cumulative_write_time;
-		ret.cumulative_job_time = m_cumulative_job_time;
-		ret.cumulative_sort_time = m_cumulative_sort_time;
-		ret.cumulative_issue_time = m_cumulative_issue_time;
 
 		m_disk_cache.get_stats(&ret);
+	}
+
+	void disk_io_thread::flip_stats()
+	{
+		// calling mean() will actually reset the accumulators
+		m_cache_stats.average_queue_time = m_queue_time.mean();
+		m_cache_stats.average_read_time = m_read_time.mean();
+		m_cache_stats.average_write_time = m_write_time.mean();
+		m_cache_stats.average_hash_time = m_hash_time.mean();
+		m_cache_stats.average_job_time = m_job_time.mean();
+		m_cache_stats.average_sort_time = m_sort_time.mean();
+		m_cache_stats.average_issue_time = m_issue_time.mean();
+		m_last_stats_flip = time_now();
 	}
 
 	int disk_io_thread::do_get_cache_info(disk_io_job& j)
@@ -1850,11 +1841,11 @@ namespace libtorrent
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - handler->started);
 			m_write_time.add_sample(write_time);
 			m_job_time.add_sample(write_time);
-			m_cumulative_write_time += write_time;
-			m_cumulative_job_time += write_time;
+			m_cache_stats.cumulative_write_time += write_time;
+			m_cache_stats.cumulative_job_time += write_time;
 		}
 
-		++m_write_blocks;
+		++m_cache_stats.blocks_written;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
 	}
@@ -1882,11 +1873,11 @@ namespace libtorrent
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - handler->started);
 			m_read_time.add_sample(read_time);
 			m_job_time.add_sample(read_time);
-			m_cumulative_read_time += read_time;
-			m_cumulative_job_time += read_time;
+			m_cache_stats.cumulative_read_time += read_time;
+			m_cache_stats.cumulative_job_time += read_time;
 		}
 
-		++m_read_blocks;
+		++m_cache_stats.blocks_read;
 		if (j.callback)
 			m_ios.post(boost::bind(j.callback, ret, j));
 		else if (j.buffer)
@@ -2370,7 +2361,7 @@ namespace libtorrent
 
 				int issue_time = total_microseconds(time_now_hires() - start);
 				if (num_issued > 0) m_issue_time.add_sample(issue_time / num_issued);
-				m_cumulative_issue_time += issue_time;
+				m_cache_stats.cumulative_issue_time += issue_time;
 
 #if !TORRENT_USE_SYNCIO
 				if (m_to_issue)

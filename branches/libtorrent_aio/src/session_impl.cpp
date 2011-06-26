@@ -1003,6 +1003,8 @@ namespace aux {
 			":uTP down rate"
 			":uTP peak send delay"
 			":uTP avg send delay"
+			":read ops/s"
+			":write ops/s"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3417,6 +3419,8 @@ namespace aux {
 			STAT_LOG(d, utp_down_rate);
 			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
+			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
+			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG

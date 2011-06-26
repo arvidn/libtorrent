@@ -424,10 +424,10 @@ namespace libtorrent
 	}
 
 	int announce_entry::next_announce_in() const
-	{ return total_seconds(time_now() - next_announce); }
+	{ return total_seconds(next_announce - time_now()); }
 
 	int announce_entry::min_announce_in() const
-	{ return total_seconds(time_now() - min_announce); }
+	{ return total_seconds(min_announce - time_now()); }
 
 	void announce_entry::failed(int retry_interval)
 	{
@@ -1274,9 +1274,11 @@ namespace libtorrent
 			}
 		}
 
-		TORRENT_ASSERT(m_piece_hashes);
-		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+		if (m_piece_hashes != 0)
+		{
+			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
+		}
 	}
 #endif
 
