@@ -12,6 +12,7 @@ EXTRA_DIST = \
   src/create_torrent.cpp    \
   src/datetime.cpp          \
   src/entry.cpp             \
+  src/error_code.cpp        \
   src/extensions.cpp        \
   src/fingerprint.cpp       \
   src/gil.hpp               \
