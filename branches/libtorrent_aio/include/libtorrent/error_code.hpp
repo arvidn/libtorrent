@@ -401,7 +401,7 @@ namespace libtorrent
 	{
 		storage_error(): operation(0) {}
 
-		operator bool() const { return (bool)ec; }
+		operator bool() const { return ec.value() != 0; }
 		// the error that occurred
 		error_code ec;
 		// the file the error occurred on

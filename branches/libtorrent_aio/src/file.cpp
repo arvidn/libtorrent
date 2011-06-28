@@ -1259,6 +1259,23 @@ namespace libtorrent
 #endif
 	}
 
+#if TORRENT_USE_OVERLAPPED
+	void iovec_to_file_segment(file::iovec_t const* bufs, int num_bufs
+		, FILE_SEGMENT_ELEMENT* seg)
+	{
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		{
+			for (int k = 0; k < int(i->iov_len); k += file::m_page_size)
+			{
+				seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
+				++seg;
+			}
+		}
+		// terminate the array
+		seg->Buffer = 0;
+	}
+#endif
+
 	file::aiocb_t* file::async_io(size_type offset
 		, iovec_t const* bufs, int num_bufs, int op
 		, aiocb_pool& pool, int flags)
@@ -1321,9 +1338,6 @@ namespace libtorrent
 					num_vec = 0;
 				}
    
-#if TORRENT_USE_OVERLAPPED
-#error we need to make sure the vec member is properly set up to point to pages when using overlapped I/O
-#endif
 				vec[num_vec] = bufs[i];
 				++num_vec;
 				num_bytes += bufs[i].iov_len;
@@ -1522,23 +1536,17 @@ done:
 			return ret;
 		}
 
+		// this is the case where we have opened the file
+		// in unbuffered mode. We can use the Scatter/Gather
+		// functions.
+
 		int size = bufs_size(bufs, num_bufs);
 		// number of pages for the read. round up
 		int num_pages = (size + m_page_size - 1) / m_page_size;
 		// allocate array of FILE_SEGMENT_ELEMENT for ReadFileScatter
 		FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
-		FILE_SEGMENT_ELEMENT* cur_seg = segment_array;
 
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-		{
-			for (int k = 0; k < int(i->iov_len); k += m_page_size)
-			{
-				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
-				++cur_seg;
-			}
-		}
-		// terminate the array
-		cur_seg->Buffer = 0;
+		iovec_to_file_segment(bufs, num_bufs, segment_array);
 
 		OVERLAPPED ol;
 		ol.Internal = 0;
@@ -2540,16 +2548,26 @@ finish:
 			int ret;
 			if (aios->vec)
 			{
+
+				int size = bufs_size(aios->vec, aios->num_vec);
+				// number of pages for the read. round up
+				int num_pages = (size + file::m_page_size - 1) / file::m_page_size;
+				// allocate array of FILE_SEGMENT_ELEMENT for ReadFileScatter/WriteFileGather
+				// The assumption is that windows will copy the array (but not the buffers
+				// themselves). The segment array is allocated on the stack here, even
+				// though the operation is asynchronous
+				FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
+
+				iovec_to_file_segment(aios->vec, aios->num_vec, segment_array);
+
 				switch (aios->op)
 				{
 					case file::read_op:
-						TORRENT_ASSERT(aios->buf != 0);
-						ret = ReadFileScatter(aios->file_ptr->native_handle(), aios->vec
+						ret = ReadFileScatter(aios->file_ptr->native_handle(), segment_array
 							, aios->size, NULL, &aios->ov);
 						break;
 					case file::write_op:
-						TORRENT_ASSERT(aios->buf != 0);
-						ret = WriteFileGather(aios->file_ptr->native_handle(), aios->vec
+						ret = WriteFileGather(aios->file_ptr->native_handle(), segment_array
 							, aios->size, NULL, &aios->ov);
 						break;
 					default: TORRENT_ASSERT(false);

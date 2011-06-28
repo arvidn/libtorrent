@@ -2115,7 +2115,7 @@ namespace libtorrent
 			}
 			if (key == NULL && ol != 0)
 			{
-				aio = (file::aiocb_t*)ol;
+				file::aiocb_t* aio = to_aiocb(ol);
 				// since synchronous calls also use overlapped
 				// we'll get some stack allocated overlapped structures
 				// as well. Once everything is moved over to async.
@@ -2181,11 +2181,7 @@ namespace libtorrent
 
 					for (int i = 0; i < num_events; ++i)
 					{
-						// since aiocb_t derives from aiocb_base, the platforma specific
-						// type (in this case cb) is not at the top of the aiocb_t type
-						// that's why we need to adjust the pointer from the platform specific
-						// pointer into the wrapper, aiocb_t
-						file::aiocb_t* aio = (file::aiocb_t*)(((char*)events[i].obj) - offsetof(file::aiocb_t, cb));
+						file::aiocb_t* aio = to_aiocb(events[i].obj);
 						TORRENT_ASSERT(aio->in_use);
 						TORRENT_ASSERT_VALID_AIOCB(aio);
 						file::aiocb_t* next = aio->next;

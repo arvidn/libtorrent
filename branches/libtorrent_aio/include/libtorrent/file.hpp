@@ -433,7 +433,9 @@ namespace libtorrent
 
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		static void init_file();
+	public:
 		static int m_page_size;
+	private:
 #endif
 		int m_open_mode;
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -508,6 +510,11 @@ namespace libtorrent
 	bool reap_aio(file::aiocb_t* aio
 		, aiocb_pool& pool);
 
+#if TORRENT_USE_OVERLAPPED
+	void iovec_to_file_segment(file::iovec_t const* bufs, int num_bufs
+		, FILE_SEGMENT_ELEMENT* seg);
+#endif
+
 	// return file::read_op or file::write_op
 	inline int aio_op(file::aiocb_t const* aio)
 	{
@@ -539,6 +546,22 @@ namespace libtorrent
 #error which disk I/O API are we using?
 #endif
 	}
+
+	// since aiocb_t derives from aiocb_base, the platforma specific
+	// type is not at the top of the aiocb_t type
+	// that's why we need to adjust the pointer from the platform specific
+	// pointer into the wrapper, aiocb_t
+#if TORRENT_USE_OVERLAPPED
+	inline file::aiocb_t* to_aiocb(OVERLAPPED* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, ov)); }
+#elif TORRENT_USE_AIO
+	inline file::aiocb_t* to_aiocb(aiocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#elif TORRENT_USE_IOSUBMIT \
+	|| TORRENT_USE_IOSUBMIT_VEC
+	inline file::aiocb_t* to_aiocb(iocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#endif
 
 }
 
