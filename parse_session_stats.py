@@ -122,7 +122,10 @@ reports = [
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
-	('uTP delay', 'buffer delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
+	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
+	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages']),
+	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
+	('page faults', '', '', '', ['page faults']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
