@@ -810,6 +810,11 @@ namespace aux {
 		m_stats_logger = 0;
 		m_log_seq = 0;
 		m_stats_logging_enabled = true;
+
+		memset(&m_last_cache_status, 0, sizeof(m_last_cache_status));
+		extern void get_vm_stats(vm_statistics_data_t* vm_stat);
+		get_vm_stats(&m_last_vm_stat);
+
 		reset_stat_counters();
 		rotate_stats_log();
 #endif
@@ -969,6 +974,13 @@ namespace aux {
 			":uTP avg send delay"
 			":read ops/s"
 			":write ops/s"
+			":active resident pages"
+			":inactive resident pages"
+			":pinned resident pages"
+			":free pages"
+			":pageins"
+			":pageouts"
+			":page faults"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3049,6 +3061,21 @@ namespace aux {
 	}
 
 #ifdef TORRENT_STATS
+
+	void get_vm_stats(vm_statistics_data_t* vm_stat)
+	{
+		memset(vm_stat, 0, sizeof(*vm_stat));
+#if defined __MACH__
+		mach_port_t host_port = mach_host_self();
+		mach_msg_type_number_t host_count = HOST_VM_INFO_COUNT;
+		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
+			(host_info_t)vm_stat, &host_count);
+#elif defined TORRENT_LINUX
+		// TODO: read straight from /proc/meminfo ?
+#endif
+	}
+
+		
 	void session_impl::enable_stats_logging(bool s)
 	{
 		if (m_stats_logging_enabled == s) return;
@@ -3235,7 +3262,11 @@ namespace aux {
 
 		if (now - m_last_log_rotation > hours(1))
 			rotate_stats_log();
-		
+
+		// system memory stats
+		vm_statistics_data_t vm_stat;
+		get_vm_stats(&vm_stat);
+
 		if (m_stats_logger)
 		{
 			cache_status cs = m_disk_thread.status();
@@ -3356,11 +3387,21 @@ namespace aux {
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
 			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
 			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
+
+			STAT_LOG(d, int(vm_stat.active_count));
+			STAT_LOG(d, int(vm_stat.inactive_count));
+			STAT_LOG(d, int(vm_stat.wire_count));
+			STAT_LOG(d, int(vm_stat.free_count));
+			STAT_LOG(d, int(vm_stat.pageins - m_last_vm_stat.pageins));
+			STAT_LOG(d, int(vm_stat.pageouts - m_last_vm_stat.pageouts));
+			STAT_LOG(d, int(vm_stat.faults - m_last_vm_stat.faults));
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
 
 			m_last_cache_status = cs;
+			m_last_vm_stat = vm_stat;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
 			m_last_uploaded = m_stat.total_upload();
