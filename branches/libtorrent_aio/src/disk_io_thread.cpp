@@ -718,7 +718,7 @@ namespace libtorrent
 	void disk_io_thread::on_disk_write(block_cache::iterator p, int begin
 		, int end, int to_write, async_handler* handler)
 	{
-		if (!handler->error)
+		if (!handler->error.ec)
 		{
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - handler->started);
 			m_write_time.add_sample(write_time);
@@ -735,9 +735,9 @@ namespace libtorrent
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios
-			, handler->error);
+			, handler->error.ec);
 
-		if (!handler->error)
+		if (!handler->error.ec)
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
@@ -748,7 +748,7 @@ namespace libtorrent
 	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
 		, int end, async_handler* handler)
 	{
-		if (!handler->error)
+		if (!handler->error.ec)
 		{
 			boost::uint32_t read_time = total_microseconds(time_now_hires() - handler->started);
 			m_read_time.add_sample(read_time);
@@ -758,9 +758,9 @@ namespace libtorrent
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios
-			, handler->error);
+			, handler->error.ec);
 
-		if (!handler->error)
+		if (!handler->error.ec)
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
@@ -955,7 +955,7 @@ namespace libtorrent
 		int ret = (this->*(job_functions[j.action]))(j);
 
 		DLOG(stderr, "[%p]   return: %d error: %s\n"
-			, this, ret, j.error ? j.error.message().c_str() : "");
+			, this, ret, j.error ? j.error.ec.message().c_str() : "");
 
 		if (ret != defer_handler && j.callback)
 		{
@@ -1012,7 +1012,7 @@ namespace libtorrent
 			}
 			else if (ret == -2)
 			{
-				j.error = error::no_memory;
+				j.error.ec = error::no_memory;
 				return disk_operation_failed;
 			}
 
@@ -1044,7 +1044,7 @@ namespace libtorrent
 						// allocation failed
 						m_disk_cache.mark_for_deletion(p);
 						j.buffer = 0;
-						j.error = error::no_memory;
+						j.error.ec = error::no_memory;
 						j.str.clear();
 						return disk_operation_failed;
 					}
@@ -1062,7 +1062,7 @@ namespace libtorrent
 		j.buffer = allocate_buffer("send buffer");
 		if (j.buffer == 0)
 		{
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			return disk_operation_failed;
 		}
 
@@ -1137,7 +1137,7 @@ namespace libtorrent
 
 			free_buffer(j.buffer);
 			j.buffer = 0;
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
 		}
@@ -1259,7 +1259,7 @@ namespace libtorrent
 					// allocation failed
 					m_disk_cache.mark_for_deletion(p);
 					TORRENT_ASSERT(j.buffer == 0);
-					j.error = error::no_memory;
+					j.error.ec = error::no_memory;
 					j.str.clear();
 					return disk_operation_failed;
 				}
@@ -1308,7 +1308,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j.buffer == 0);
 //#error do we have to close all files on windows?
 		j.storage->move_storage_impl(j.str, j.error);
-		if (!j.error) j.str = j.storage->save_path();
+		if (!j.error.ec) j.str = j.storage->save_path();
 		return j.error ? disk_operation_failed : 0;
 	}
 
@@ -1365,6 +1365,7 @@ namespace libtorrent
 	{
 		lazy_entry const* rd = (lazy_entry const*)j.buffer;
 		TORRENT_ASSERT(rd != 0);
+
 		return j.storage->check_fastresume(*rd, j.error);
 	}
 
@@ -1390,14 +1391,14 @@ namespace libtorrent
 
 			if (m_abort)
 			{
-				j.error = error::operation_aborted;
+				j.error.ec = error::operation_aborted;
 				return disk_operation_failed;
 			}
 
 			// #error it would be nice to check files with async operations too
 			ret = j.storage->check_files(j.piece, j.offset, j.error);
 			DLOG(stderr, "check_files() ret=%d j.piece=%d j.offset=%d j.error=%s\n"
-				, ret, j.piece, j.offset, j.error.message().c_str());
+				, ret, j.piece, j.offset, j.error.ec.message().c_str());
 
 			if (j.error) return disk_operation_failed;
 
@@ -1473,7 +1474,7 @@ namespace libtorrent
 			if (j.buffer) to_free.push_back(j.buffer);
 			j.buffer = 0;
 			if (j.storage->has_fence()) fences.insert(j.storage.get());
-			j.error = error::operation_aborted;
+			j.error.ec = error::operation_aborted;
 			if (j.callback)
 				m_ios.post(boost::bind(j.callback, -1, j));
 			m_blocked_jobs.pop_back();
@@ -1519,7 +1520,7 @@ namespace libtorrent
 			disk_io_job& j = *i;
 			if (j.buffer) to_free.push_back(j.buffer);
 			j.buffer = 0;
-			j.error = error::operation_aborted;
+			j.error.ec = error::operation_aborted;
 			TORRENT_ASSERT(j.callback);
 			m_ios.post(boost::bind(j.callback, -1, j));
 			i = m_blocked_jobs.erase(i);
@@ -1593,7 +1594,7 @@ namespace libtorrent
 		if (p == m_disk_cache.end())
 		{
 			TORRENT_ASSERT(j.buffer == 0);
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
 		}
@@ -1612,7 +1613,7 @@ namespace libtorrent
 			// allocation failed
 			m_disk_cache.mark_for_deletion(p);
 			TORRENT_ASSERT(j.buffer == 0);
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
 		}
@@ -1668,7 +1669,7 @@ namespace libtorrent
 		{
 			// allocation failed
 			TORRENT_ASSERT(j.buffer == 0);
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
 		}
@@ -1702,7 +1703,7 @@ namespace libtorrent
 		{
 			j.storage->mark_failed(j.piece);
 			m_disk_cache.mark_for_deletion(p);
-			j.error = errors::failed_hash_check;
+			j.error.ec = errors::failed_hash_check;
 			j.str.clear();
 			free_buffer(j.buffer);
 			j.buffer = 0;
@@ -1718,7 +1719,7 @@ namespace libtorrent
 		block_cache::iterator p = m_disk_cache.allocate_piece(j);
 		if (p == m_disk_cache.end())
 		{
-			j.error = errors::no_memory;
+			j.error.ec = errors::no_memory;
 			return disk_operation_failed;
 		}
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j);
@@ -1731,7 +1732,7 @@ namespace libtorrent
 		else if (ret == -1)
 		{
 			TORRENT_ASSERT(j.buffer == 0);
-			j.error = error::no_memory;
+			j.error.ec = error::no_memory;
 			j.str.clear();
 			return disk_operation_failed;
 		}
@@ -1815,7 +1816,7 @@ namespace libtorrent
 	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job j)
 	{
 		int ret = j.buffer_size;
-		TORRENT_ASSERT(handler->error || handler->transferred == j.buffer_size);
+		TORRENT_ASSERT(handler->error.ec || handler->transferred == j.buffer_size);
 
 		TORRENT_ASSERT(m_pending_buffer_size >= j.buffer_size);
 		m_pending_buffer_size -= j.buffer_size;
@@ -1828,11 +1829,10 @@ namespace libtorrent
 		j.buffer = 0;
 
 		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n"
-			, this, j.piece, j.offset, handler->error.message().c_str());
-		if (handler->error)
+			, this, j.piece, j.offset, handler->error.ec.message().c_str());
+		if (handler->error.ec)
 		{
 			j.error = handler->error;
-			j.error_file.clear();
 			j.str.clear();
 			ret = -1;
 		}
@@ -1855,16 +1855,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
 		DLOG(stderr, "[%p] on_read_one_buffer piece=%d offset=%d error=%s\n"
-			, this, j.piece, j.offset, handler->error.message().c_str());
+			, this, j.piece, j.offset, handler->error.ec.message().c_str());
 		int ret = j.buffer_size;
 		j.error = handler->error;
 		if (!j.error && handler->transferred != j.buffer_size)
-			j.error = errors::file_too_short;
+			j.error.ec = errors::file_too_short;
 
 		if (j.error)
 		{
 			TORRENT_ASSERT(j.buffer == 0);
-			j.error_file.clear();
 			j.str.clear();
 			ret = -1;
 		}

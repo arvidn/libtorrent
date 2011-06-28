@@ -98,10 +98,6 @@ namespace libtorrent
 		// to the error message
 		std::string str;
 
-		// on error, this is set to the path of the
-		// file the disk operation failed on
-		std::string error_file;
-
 		// if this is > 0, it specifies the max number of blocks to read
 		// ahead in the read cache for this access. This is only valid
 		// for 'read' actions
@@ -114,7 +110,9 @@ namespace libtorrent
 		boost::shared_ptr<entry> resume_data;
 
 		// the error code from the file operation
-		error_code error;
+		// on error, this also contains the path of the
+		// file the disk operation failed on
+		storage_error error;
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;

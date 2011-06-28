@@ -2499,13 +2499,13 @@ namespace libtorrent
 				" | piece: " << p.piece <<
 				" | s: " << p.start <<
 				" | l: " << p.length <<
-				" | e: " << j.error.message() <<
+				" | e: " << j.error.ec.message() <<
 				" ]\n";
 #endif
 
 		if (!t)
 		{
-			disconnect(j.error);
+			disconnect(j.error.ec);
 			return;
 		}
 
@@ -4394,7 +4394,7 @@ namespace libtorrent
 			" | l: " << r.length <<
 			" | b: " << (void*)j.buffer <<
 			" | c: " << (j.flags & disk_io_job::cache_hit ? "cache hit" : "cache miss") <<
-			" | e: " << j.error.message() <<
+			" | e: " << j.error.ec.message() <<
 			" ]\n";
 #endif
 		m_reading_bytes -= r.length;
@@ -4407,7 +4407,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			disconnect(j.error);
+			disconnect(j.error.ec);
 			return;
 		}
 		

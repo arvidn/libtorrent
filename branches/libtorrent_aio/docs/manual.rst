@@ -6313,6 +6313,9 @@ generated and the torrent is paused.
 
 ``error`` is the error code describing the error.
 
+``operation`` is a NULL-terminated string of the low-level operation that failed, or NULL if
+there was no low level disk operation.
+
 ::
 
 	struct file_error_alert: torrent_alert
@@ -6320,6 +6323,7 @@ generated and the torrent is paused.
 		// ...
 		std::string file;
 		error_code error;
+		char const* operation;
 	};
 
 torrent_error_alert
@@ -6950,12 +6954,18 @@ This alert is generated when a fastresume file has been passed to ``add_torrent`
 files on disk did not match the fastresume file. The ``error_code`` explains the reason why the
 resume file was rejected.
 
+If the error happend to a specific file, ``file`` is the path to it. If the error happened
+in a disk operation, ``operation`` is a NULL-terminated string of the name of that operation.
+``operation`` is NULL otherwise.
+
 ::
 
 	struct fastresume_rejected_alert: torrent_alert
 	{
 		// ...
 		error_code error;
+		std::string file;
+		char const* operation;
 	};
 
 
@@ -6997,12 +7007,18 @@ storage_moved_failed_alert
 The ``storage_moved_failed_alert`` is generated when an attempt to move the storage
 (via torrent_handle::move_storage()) fails.
 
+If the error happened for a speific file, ``file`` is its path. If the error
+happened in a specific disk operation, ``operation`` is a NULL terminated string
+naming which one, otherwise it's NULL.
+
 ::
 
 	struct storage_moved_failed_alert: torrent_alert
 	{
 		// ...
 		error_code error;
+		std::string file;
+		char const* operation;
 	};
 
 

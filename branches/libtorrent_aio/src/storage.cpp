@@ -199,11 +199,13 @@ namespace libtorrent
 		, std::string p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, int flags
-		, error_code& error)
+		, storage_error& ec)
 	{
 		if ((int)sizes.size() != fs.num_files())
 		{
-			error = errors::mismatching_number_of_files;
+			ec.ec = errors::mismatching_number_of_files;
+			ec.file.clear();
+			ec.operation = 0;
 			return false;
 		}
 		p = complete(p);
@@ -218,10 +220,21 @@ namespace libtorrent
 			if (i->pad_file) continue;
 
 			file_status s;
-			error_code ec;
-			stat_file(combine_path(p, fs.file_path(*i)), &s, ec);
+			error_code error;
+			std::string file_path = combine_path(p, fs.file_path(*i));
+			stat_file(file_path, &s, error);
 
-			if (!ec)
+			if (error)
+			{
+				if (error != boost::system::errc::no_such_file_or_directory)
+				{
+					ec.ec = error;
+					ec.file = file_path;
+					ec.operation = "stat";
+					return false;
+				}
+			}
+			else
 			{
 				size = s.file_size;
 				time = s.mtime;
@@ -230,7 +243,9 @@ namespace libtorrent
 			if (((flags & compact_mode) && size != size_iter->first)
 				|| (!(flags & compact_mode) && size < size_iter->first))
 			{
-				error = errors::mismatching_file_size;
+				ec.ec = errors::mismatching_file_size;
+				ec.file = file_path;
+				ec.operation = 0;
 				return false;
 			}
 
@@ -242,7 +257,9 @@ namespace libtorrent
 			if (((flags & compact_mode) && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
 				(!(flags & compact_mode) && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
 			{
-				error = errors::mismatching_file_timestamp;
+				ec.ec = errors::mismatching_file_timestamp;
+				ec.file = file_path;
+				ec.operation = 0;
 				return false;
 			}
 		}
@@ -253,7 +270,7 @@ namespace libtorrent
 	// writev implementations be implemented in terms of the
 	// old read and write
 	int storage_interface::readv(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, error_code& ec)
+		, int slot, int offset, int num_bufs, storage_error& ec)
 	{
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -267,7 +284,7 @@ namespace libtorrent
 	}
 
 	int storage_interface::writev(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, error_code& ec)
+		, int offset, int num_bufs, storage_error& ec)
 	{
 		int ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -344,7 +361,7 @@ namespace libtorrent
 	}
 #endif
 
-	int piece_manager::hash_for_slot(int slot, partial_hash& ph, int piece_size, error_code& ec
+	int piece_manager::hash_for_slot(int slot, partial_hash& ph, int piece_size, storage_error& ec
 		, int small_piece_size, sha1_hash* small_hash)
 	{
 		int num_read = 0;
@@ -430,8 +447,8 @@ namespace libtorrent
 		return num_read;
 	}
 
-	default_storage::default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
-		, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
+	default_storage::default_storage(file_storage const& fs, file_storage const* mapped
+		, std::string const& path, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
 		: m_files(fs)
 		, m_file_priority(file_prio)
 		, m_pool(fp)
@@ -451,7 +468,7 @@ namespace libtorrent
 //		m_pool.release(this);
 	}
 
-	void default_storage::initialize(bool allocate_files, error_code& ec)
+	void default_storage::initialize(bool allocate_files, storage_error& ec)
 	{
 		m_allocate_files = allocate_files;
 		// first, create all missing directories
@@ -466,8 +483,9 @@ namespace libtorrent
 			{
 				last_path = dir;
 
-				if (!is_directory(last_path, ec))
-					create_directories(last_path, ec);
+				error_code tmp;
+				if (!is_directory(last_path, tmp))
+					create_directories(last_path, tmp);
 			}
 
 			int file_index = files().file_index(*file_iter);
@@ -480,24 +498,35 @@ namespace libtorrent
 			if (file_iter->pad_file) continue;
 
 			file_status s;
-			stat_file(file_path, &s, ec);
-			if (ec && ec != boost::system::errc::no_such_file_or_directory
-				&& ec != boost::system::errc::not_a_directory)
+			stat_file(file_path, &s, ec.ec);
+			if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
+				&& ec.ec != boost::system::errc::not_a_directory)
+			{
+				ec.file = file_path;
+				ec.operation = "stat";
 				break;
+			}
 
 			// ec is either ENOENT or the file existed and s is valid
 			// allocate file only if it is not exist and (allocate_files == true)
 			// if the file already exists, but is larger than what
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && allocate_files) || (!ec && s.file_size > file_iter->size) || file_iter->size == 0)
+			if ((ec && allocate_files)
+				|| (!ec && s.file_size > file_iter->size)
+				|| file_iter->size == 0)
 			{
-				ec.clear();
-				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec);
-				if (!ec && f) f->set_size(file_iter->size, ec);
-				if (ec) break;
+				ec.ec.clear();
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, ec.ec);
+				if (!ec.ec && f) f->set_size(file_iter->size, ec.ec);
+				if (ec)
+				{
+					ec.file = file_path;
+					ec.operation = "open";
+					break;
+				}
 			}
-			ec.clear();
+			ec.ec.clear();
 		}
 
 		std::vector<boost::uint8_t>().swap(m_file_priority);
@@ -505,46 +534,70 @@ namespace libtorrent
 		m_pool.release(this);
 	}
 
-	void default_storage::finalize_file(int index, error_code& ec)
+	void default_storage::finalize_file(int index, storage_error& ec)
 	{
 		TORRENT_ASSERT(index >= 0 && index < files().num_files());
 		if (index < 0 || index >= files().num_files()) return;
 	
-		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, ec);
-		if (ec || !f) return;
+		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, ec.ec);
+		if (ec || !f)
+		{
+			ec.file = combine_path(m_save_path
+				, files().file_path(*(files().begin() + index)));
+			ec.operation = "open";
+			return;
+		}
 
 		f->finalize();
 	}
 
-	bool default_storage::has_any_file(error_code& ec)
+	bool default_storage::has_any_file(storage_error& ec)
 	{
 		file_storage::iterator i = files().begin();
 		file_storage::iterator end = files().end();
 
 		for (; i != end; ++i)
 		{
-			error_code ec;
 			file_status s;
-			stat_file(combine_path(m_save_path, files().file_path(*i)), &s, ec);
-			if (ec) return false;
+			std::string file_path = combine_path(m_save_path, files().file_path(*i));
+			stat_file(file_path, &s, ec.ec);
+	
+			// if we didn't find the file, check the next one
+			if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
+			{
+				ec.ec.clear();
+				continue;
+			}
+
+			if (ec)
+			{
+				ec.file = file_path;
+				ec.operation = "stat";
+				return false;
+			}
 			if (s.mode & file_status::regular_file && i->size > 0)
 				return true;
 		}
 		return false;
 	}
 
-	void default_storage::rename_file(int index, std::string const& new_filename, error_code& ec)
+	void default_storage::rename_file(int index, std::string const& new_filename, storage_error& ec)
 	{
 		if (index < 0 || index >= files().num_files()) return;
 		std::string old_name = combine_path(m_save_path, files().file_path(files().at(index)));
 		m_pool.release(this, index);
 
-		rename(old_name, combine_path(m_save_path, new_filename), ec);
+		rename(old_name, combine_path(m_save_path, new_filename), ec.ec);
 		
-		if (ec == boost::system::errc::no_such_file_or_directory)
-			ec.clear();
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
+			ec.ec.clear();
 
-		if (ec) return;
+		if (ec)
+		{
+			ec.file = old_name;
+			ec.operation = "rename";
+			return;
+		}
 
 		// if old path doesn't exist, just rename the file
 		// in our file_storage, so that when it is created
@@ -554,7 +607,7 @@ namespace libtorrent
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void default_storage::release_files(error_code& ec)
+	void default_storage::release_files(storage_error& ec)
 	{
 		m_pool.release(this);
 	}
@@ -567,7 +620,7 @@ namespace libtorrent
 			ec.clear();
 	}
 
-	void default_storage::delete_files(error_code& ec)
+	void default_storage::delete_files(storage_error& ec)
 	{
 		// make sure we don't have the files open
 		m_pool.release(this);
@@ -588,7 +641,8 @@ namespace libtorrent
 				ret = directories.insert(combine_path(m_save_path, bp));
 				bp = parent_path(bp);
 			}
-			delete_one_file(p, ec);
+			delete_one_file(p, ec.ec);
+			if (ec) { ec.file = p; ec.operation = "remove"; }
 		}
 
 		// remove the directories. Reverse order to delete
@@ -597,11 +651,12 @@ namespace libtorrent
 		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
 			, end(directories.rend()); i != end; ++i)
 		{
-			delete_one_file(*i, ec);
+			delete_one_file(*i, ec.ec);
+			if (ec) { ec.file = *i; ec.operation = "remove"; }
 		}
 	}
 
-	void default_storage::write_resume_data(entry& rd, error_code& ec) const
+	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
 	{
 		TORRENT_ASSERT(rd.type() == entry::dictionary_t);
 
@@ -645,7 +700,7 @@ namespace libtorrent
 		return int((data_start + m_files.piece_length() - 1) / m_files.piece_length());
 	}
 
-	bool default_storage::verify_resume_data(lazy_entry const& rd, error_code& error)
+	bool default_storage::verify_resume_data(lazy_entry const& rd, storage_error& ec)
 	{
 		// TODO: make this more generic to not just work if files have been
 		// renamed, but also if they have been merged into a single file for instance
@@ -675,7 +730,7 @@ namespace libtorrent
 		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
-			error = errors::missing_file_sizes;
+			ec.ec = errors::missing_file_sizes;
 			return false;
 		}
 		
@@ -693,7 +748,7 @@ namespace libtorrent
 
 		if (file_sizes.empty())
 		{
-			error = errors::no_files_in_resume_data;
+			ec.ec = errors::no_files_in_resume_data;
 			return false;
 		}
 		
@@ -729,7 +784,7 @@ namespace libtorrent
 		}
 		else
 		{
-			error = errors::missing_pieces;
+			ec.ec = errors::missing_pieces;
 			return false;
 		}
 
@@ -741,7 +796,7 @@ namespace libtorrent
 		{
 			if (files().num_files() != (int)file_sizes.size())
 			{
-				error = errors::mismatching_number_of_files;
+				ec.ec = errors::mismatching_number_of_files;
 				return false;
 			}
 
@@ -754,7 +809,7 @@ namespace libtorrent
 			{
 				if (!i->pad_file && i->size != fs->first)
 				{
-					error = errors::mismatching_file_size;
+					ec.ec = errors::mismatching_file_size;
 					return false;
 				}
 			}
@@ -762,21 +817,34 @@ namespace libtorrent
 		int flags = (full_allocation_mode ? 0 : compact_mode)
 			| (settings().ignore_resume_timestamps ? ignore_timestamps : 0);
 
-		return match_filesizes(files(), m_save_path, file_sizes, flags, error);
+		return match_filesizes(files(), m_save_path, file_sizes, flags, ec);
 
 	}
 
 	// returns true on success
-	void default_storage::move_storage(std::string const& sp, error_code& ec)
+	void default_storage::move_storage(std::string const& sp, storage_error& ec)
 	{
 		std::string save_path = complete(sp);
 
 		file_status s;
-		stat_file(save_path, &s, ec);
-		if (ec == boost::system::errc::no_such_file_or_directory)
-			create_directories(save_path, ec);
-		else if (ec) return;
-		ec.clear();
+		stat_file(save_path, &s, ec.ec);
+		if (ec.ec == boost::system::errc::no_such_file_or_directory)
+		{
+			create_directories(save_path, ec.ec);
+			if (ec)
+			{
+				ec.file = save_path;
+				ec.operation = "mkdir";
+				return;
+			}
+		}
+		else if (ec)
+		{
+			ec.file = save_path;
+			ec.operation = "stat";
+			return;
+		}
+		ec.ec.clear();
 
 		m_pool.release(this);
 
@@ -796,15 +864,16 @@ namespace libtorrent
 			std::string old_path = combine_path(m_save_path, *i);
 			std::string new_path = combine_path(save_path, *i);
 
-			rename(old_path, new_path, ec);
-			if (ec == boost::system::errc::no_such_file_or_directory)
-				ec.clear();
+			rename(old_path, new_path, ec.ec);
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+				ec.ec.clear();
 
 			if (ec)
 			{
-				ec.clear();
-				recursive_copy(old_path, new_path, ec);
+				ec.ec.clear();
+				recursive_copy(old_path, new_path, ec.ec);
 				if (!ec) recursive_remove(old_path);
+				else { ec.file = old_path; ec.operation = "copy"; }
 				break;
 			}
 		}
@@ -861,7 +930,7 @@ namespace libtorrent
 		bufs[num_bufs].iov_len = (std::min)(disk_pool()->block_size(), size)
 	
 
-	void default_storage::move_slot(int src_slot, int dst_slot, error_code& ec)
+	void default_storage::move_slot(int src_slot, int dst_slot, storage_error& ec)
 	{
 		int piece_size = m_files.piece_size(dst_slot);
 
@@ -874,7 +943,7 @@ ret:
 		TORRENT_FREE_BLOCKS(bufs, num_blocks)
 	}
 
-	void default_storage::swap_slots(int slot1, int slot2, error_code& ec)
+	void default_storage::swap_slots(int slot1, int slot2, storage_error& ec)
 	{
 		// the size of the target slot is the size of the piece
 		int piece1_size = m_files.piece_size(slot2);
@@ -893,7 +962,7 @@ ret:
 		TORRENT_FREE_BLOCKS(bufs2, num_blocks2)
 	}
 
-	void default_storage::swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
+	void default_storage::swap_slots3(int slot1, int slot2, int slot3, storage_error& ec)
 	{
 		// the size of the target slot is the size of the piece
 		int piece_size = m_files.piece_length();
@@ -921,7 +990,7 @@ ret:
 	}
 
 	int default_storage::writev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, error_code& ec)
+		, int num_bufs, storage_error& ec)
 	{
 		int flags = 0;
 		if (m_settings)
@@ -930,7 +999,7 @@ ret:
 		fileop op = { &file::writev, &default_storage::write_unaligned
 			, 0, 0, 0
 			, m_settings ? settings().disk_io_write_mode : 0, file::read_write
-			, flags };
+			, flags, "writev" };
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
@@ -1020,7 +1089,7 @@ ret:
 	}
 
 	int default_storage::readv(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, error_code& ec)
+		, int num_bufs, storage_error& ec)
 	{
 		int flags = 0;
 		if (m_settings)
@@ -1029,7 +1098,7 @@ ret:
 		fileop op = { &file::readv, &default_storage::read_unaligned
 			, 0, 0, 0
 			, m_settings ? settings().disk_io_read_mode : 0, file::read_only
-			, flags};
+			, flags, "readv"};
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
@@ -1052,8 +1121,8 @@ ret:
 
 		fileop op = { &file::readv, &default_storage::read_unaligned, &file::async_readv
 			, a, 0, m_settings ? settings().disk_io_read_mode : 0, file::read_only
-			, flags };
-		error_code ec;
+			, flags, "async_readv"};
+		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
@@ -1078,8 +1147,8 @@ ret:
 
 		fileop op = { &file::writev, &default_storage::write_unaligned, &file::async_writev
 			, a, 0, m_settings ? settings().disk_io_write_mode : 0, file::read_write
-			, flags };
-		error_code ec;
+			, flags, "async_writev"};
+		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
 		{
@@ -1096,7 +1165,7 @@ ret:
 	// is a template, and the fileop decides what to do with the
 	// file and the buffers.
 	int default_storage::readwritev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, fileop& op, error_code& ec)
+		, int num_bufs, fileop& op, storage_error& ec)
 	{
 		TORRENT_ASSERT(bufs != 0);
 		TORRENT_ASSERT(slot >= 0);
@@ -1193,22 +1262,22 @@ ret:
 				continue;
 			}
 
-			file_handle = open_file(file_iter, op.mode, ec);
-			if ((op.mode == file::read_write) && ec == boost::system::errc::no_such_file_or_directory)
+			file_handle = open_file(file_iter, op.mode, ec.ec);
+			if ((op.mode == file::read_write) && ec.ec == boost::system::errc::no_such_file_or_directory)
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
-				ec.clear();
+				ec.ec.clear();
 				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
-				create_directories(parent_path(path), ec);
+				create_directories(parent_path(path), ec.ec);
 				// if the directory creation failed, don't try to open the file again
 				// but actually just fail
-				if (!ec) file_handle = open_file(file_iter, op.mode, ec);
+				if (!ec) file_handle = open_file(file_iter, op.mode, ec.ec);
 			}
 
 			if (!file_handle || ec)
 			{
-				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+				ec.file = combine_path(m_save_path, files().file_path(*file_iter));
 				TORRENT_ASSERT(ec);
 				return -1;
 			}
@@ -1246,7 +1315,7 @@ ret:
 				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
 			{
 				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
-					, tmp_bufs, num_tmp_bufs, ec);
+					, tmp_bufs, num_tmp_bufs, ec.ec);
 				if (op.mode == file::read_write
 					&& adjusted_offset + bytes_transferred == file_iter->size
 					&& file_handle->pos_alignment() > 0)
@@ -1257,18 +1326,30 @@ ret:
 
 					// TODO: what if file_base is used to merge several virtual files
 					// into a single physical file?
-					file_handle->set_size(file_iter->size, ec);
+					file_handle->set_size(file_iter->size, ec.ec);
+					if (ec)
+					{
+						ec.file = combine_path(m_save_path, files().file_path(*file_iter));
+						ec.operation = op.operation_name;
+						return -1;
+					}
 				}
 			}
 			else
 			{
 				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, ec, op.flags);
+					, tmp_bufs, num_tmp_bufs, ec.ec, op.flags);
 			}
 			file_offset = 0;
 
-			if (ec) return -1;
+			if (ec)
+			{
+				ec.file = combine_path(m_save_path, files().file_path(*file_iter));
+				ec.operation = op.operation_name;
+				return -1;
+			}
 
+			TORRENT_ASSERT(file_bytes_left >= bytes_transferred);
 			if (file_bytes_left != bytes_transferred)
 				return bytes_transferred;
 
@@ -1372,7 +1453,7 @@ ret:
 		, int slot
 		, int offset
 		, int size
-		, error_code& ec)
+		, storage_error& ec)
 	{
 		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return writev(&b, slot, offset, 1, ec);
@@ -1383,7 +1464,7 @@ ret:
 		, int slot
 		, int offset
 		, int size
-		, error_code& ec)
+		, storage_error& ec)
 	{
 		file::iovec_t b = { (file::iovec_base_t)buf, size };
 		return readv(&b, slot, offset, 1, ec);
@@ -1416,7 +1497,8 @@ ret:
 		return new default_storage(fs, mapped, path, fp, file_prio);
 	}
 
-	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset
+		, int num_bufs, storage_error& ec)
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
@@ -1424,7 +1506,8 @@ ret:
 		return ret;
 	}
 
-	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset
+		, int num_bufs, storage_error& ec)
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
@@ -1432,8 +1515,8 @@ ret:
 		return ret;
 	}
 
-	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
+	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot
+		, int offset, int num_bufs, boost::function<void(async_handler*)> const& handler)
 	{
 		// #error figure this out
 /*
@@ -1445,8 +1528,8 @@ ret:
 		return 0;
 	}
 
-	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
+	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs, int slot
+		, int offset, int num_bufs, boost::function<void(async_handler*)> const& handler)
 	{
 		// #error figure this out
 /*		error_code ec;
@@ -1493,12 +1576,10 @@ ret:
 		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
 
-	void piece_manager::finalize_file(int index, error_code& ec)
+	void piece_manager::finalize_file(int index, storage_error& ec)
 	{ m_storage->finalize_file(index, ec); }
 
-	piece_manager::~piece_manager()
-	{
-	}
+	piece_manager::~piece_manager() {}
 
 	void piece_manager::async_finalize_file(int file)
 	{
@@ -1719,14 +1800,14 @@ ret:
 		return m_save_path;
 	}
 
-	void piece_manager::move_storage_impl(std::string const& save_path, error_code& ec)
+	void piece_manager::move_storage_impl(std::string const& save_path, storage_error& ec)
 	{
 		m_storage->move_storage(save_path, ec);
 		if (ec) return;
 		m_save_path = complete(save_path);
 	}
 
-	void piece_manager::write_resume_data(entry& rd, error_code& ec) const
+	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
 	{
 		mutex::scoped_lock lock(m_mutex);
 
@@ -1937,19 +2018,14 @@ ret:
 		}
 	}
 
-	int piece_manager::check_no_fastresume(error_code& error)
+	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
 		bool has_files = false;
 		if (!m_storage->settings().no_recheck_incomplete_resume)
 		{
-			error_code ec;
 			has_files = m_storage->has_any_file(ec);
 
-			if (ec)
-			{
-				error = ec;
-				return fatal_disk_error; 
-			}
+			if (ec) return fatal_disk_error; 
 
 			if (has_files)
 			{
@@ -1981,18 +2057,13 @@ ret:
 			m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
 		}
 	
-		return check_init_storage(error);
+		return check_init_storage(ec);
 	}
 	
-	int piece_manager::check_init_storage(error_code& error)
+	int piece_manager::check_init_storage(storage_error& ec)
 	{
-		error_code ec;
 		m_storage->initialize(m_storage_mode == storage_mode_allocate, ec);
-		if (ec)
-		{
-			error = ec;
-			return fatal_disk_error;
-		}
+		if (ec) return fatal_disk_error;
 		m_state = state_finished;
 		m_scratch_buffer.reset();
 		m_scratch_buffer2.reset();
@@ -2014,7 +2085,7 @@ ret:
 	// isn't return false and the full check
 	// will be run
 	int piece_manager::check_fastresume(
-		lazy_entry const& rd, error_code& error)
+		lazy_entry const& rd, storage_error& ec)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
@@ -2025,12 +2096,12 @@ ret:
 		m_current_slot = 0;
 
 		// if we don't have any resume data, return
-		if (rd.type() == lazy_entry::none_t) return check_no_fastresume(error);
+		if (rd.type() == lazy_entry::none_t) return check_no_fastresume(ec);
 
 		if (rd.type() != lazy_entry::dict_t)
 		{
-			error = errors::not_a_dictionary;
-			return check_no_fastresume(error);
+			ec.ec = errors::not_a_dictionary;
+			return check_no_fastresume(ec);
 		}
 
 		int block_size = (std::min)(16 * 1024, m_files.piece_length());
@@ -2038,16 +2109,16 @@ ret:
 		if (blocks_per_piece != -1
 			&& blocks_per_piece != m_files.piece_length() / block_size)
 		{
-			error = errors::invalid_blocks_per_piece;
-			return check_no_fastresume(error);
+			ec.ec = errors::invalid_blocks_per_piece;
+			return check_no_fastresume(ec);
 		}
 
 		storage_mode_t storage_mode = storage_mode_compact;
 		if (rd.dict_find_string_value("allocation") != "compact")
 			storage_mode = storage_mode_sparse;
 
-		if (!m_storage->verify_resume_data(rd, error))
-			return check_no_fastresume(error);
+		if (!m_storage->verify_resume_data(rd, ec))
+			return check_no_fastresume(ec);
 
 		// assume no piece is out of place (i.e. in a slot
 		// other than the one it should be in)
@@ -2061,14 +2132,14 @@ ret:
 			lazy_entry const* slots = rd.dict_find_list("slots");
 			if (slots == 0)
 			{
-				error = errors::missing_slots;
-				return check_no_fastresume(error);
+				ec.ec = errors::missing_slots;
+				return check_no_fastresume(ec);
 			}
 
 			if ((int)slots->list_size() > m_files.num_pieces())
 			{
-				error = errors::too_many_slots;
-				return check_no_fastresume(error);
+				ec.ec = errors::too_many_slots;
+				return check_no_fastresume(ec);
 			}
 
 			if (m_storage_mode == storage_mode_compact)
@@ -2081,15 +2152,15 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = errors::invalid_slot_list;
-						return check_no_fastresume(error);
+						ec.ec = errors::invalid_slot_list;
+						return check_no_fastresume(ec);
 					}
 
 					int index = int(e->int_value());
 					if (index >= num_pieces || index < -2)
 					{
-						error = errors::invalid_piece_index;
-						return check_no_fastresume(error);
+						ec.ec = errors::invalid_piece_index;
+						return check_no_fastresume(ec);
 					}
 					if (index >= 0)
 					{
@@ -2117,15 +2188,15 @@ ret:
 					lazy_entry const* e = slots->list_at(i);
 					if (e->type() != lazy_entry::int_t)
 					{
-						error = errors::invalid_slot_list;
-						return check_no_fastresume(error);
+						ec.ec = errors::invalid_slot_list;
+						return check_no_fastresume(ec);
 					}
 
 					int index = int(e->int_value());
 					if (index != i && index >= 0)
 					{
-						error = errors::invalid_piece_index;
-						return check_no_fastresume(error);
+						ec.ec = errors::invalid_piece_index;
+						return check_no_fastresume(ec);
 					}
 				}
 			}
@@ -2151,7 +2222,7 @@ ret:
 					// we're resuming a compact allocated storage
 					m_state = state_expand_pieces;
 					m_current_slot = 0;
-					error = errors::pieces_need_reorder;
+					ec.ec = errors::pieces_need_reorder;
 					TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
 					return need_full_check;
 				}
@@ -2164,14 +2235,14 @@ ret:
 			lazy_entry const* pieces = rd.dict_find("pieces");
 			if (pieces == 0 || pieces->type() != lazy_entry::string_t)
 			{
-				error = errors::missing_pieces;
-				return check_no_fastresume(error);
+				ec.ec = errors::missing_pieces;
+				return check_no_fastresume(ec);
 			}
 
 			if ((int)pieces->string_length() != m_files.num_pieces())
 			{
-				error = errors::too_many_slots;
-				return check_no_fastresume(error);
+				ec.ec = errors::too_many_slots;
+				return check_no_fastresume(ec);
 			}
 
 			int num_pieces = int(m_files.num_pieces());
@@ -2193,7 +2264,7 @@ ret:
 			if (m_unallocated_slots.empty()) switch_to_full_mode();
 		}
 
-		return check_init_storage(error);
+		return check_init_storage(ec);
 	}
 
 /*
@@ -2220,7 +2291,7 @@ ret:
 	// the second return value is the progress the
 	// file check is at. 0 is nothing done, and 1
 	// is finished
-	int piece_manager::check_files(int& current_slot, int& have_piece, error_code& error)
+	int piece_manager::check_files(int& current_slot, int& have_piece, storage_error& error)
 	{
 		if (m_state == state_none) return check_no_fastresume(error);
 
@@ -2303,7 +2374,7 @@ ret:
 			// free. Just move the piece there.
 			m_last_piece = piece;
 			m_storage->move_slot(m_current_slot, piece, error);
-			if (error) return -1;
+			if (error.ec) return -1;
 
 			m_piece_to_slot[piece] = piece;
 			m_slot_to_piece[m_current_slot] = unassigned;
@@ -2321,7 +2392,7 @@ ret:
 
 		if (skip == -1)
 		{
-			TORRENT_ASSERT(error);
+			TORRENT_ASSERT(error.ec);
 			return fatal_disk_error;
 		}
 
@@ -2410,7 +2481,7 @@ ret:
 	}
 
 	// -1 = error, 0 = ok, >0 = skip this many pieces
-	int piece_manager::check_one_piece(int& have_piece, error_code& ec)
+	int piece_manager::check_one_piece(int& have_piece, storage_error& ec)
 	{
 		// ------------------------
 		//    DO THE FULL CHECK
@@ -2448,17 +2519,17 @@ ret:
 		{
 			if (ec
 #ifdef TORRENT_WINDOWS
-				&& ec != error_code(ERROR_PATH_NOT_FOUND, get_system_category())
-				&& ec != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
-				&& ec != error_code(ERROR_HANDLE_EOF, get_system_category())
-				&& ec != error_code(ERROR_INVALID_HANDLE, get_system_category()))
+				&& ec.ec != error_code(ERROR_PATH_NOT_FOUND, get_system_category())
+				&& ec.ec != error_code(ERROR_FILE_NOT_FOUND, get_system_category())
+				&& ec.ec != error_code(ERROR_HANDLE_EOF, get_system_category())
+				&& ec.ec != error_code(ERROR_INVALID_HANDLE, get_system_category()))
 #else
-				&& ec != error_code(ENOENT, get_posix_category()))
+				&& ec.ec != error_code(ENOENT, get_posix_category()))
 #endif
 			{
 				return -1;
 			}
-			ec.clear();
+			ec.ec.clear();
 			// if the file is incomplete, skip the rest of it
 			return skip_file();
 		}
@@ -2530,7 +2601,7 @@ ret:
 			}
 
 			m_last_piece = piece_index;
-			error_code ec;
+			storage_error ec;
 			if (other_piece >= 0)
 				m_storage->swap_slots(other_slot, m_current_slot, ec);
 			else
@@ -2558,7 +2629,7 @@ ret:
 				&& m_storage_mode == storage_mode_compact)
 				m_free_slots.push_back(other_slot);
 
-			error_code ec;
+			storage_error ec;
 			if (piece_index >= 0)
 			{
 				m_piece_to_slot[piece_index] = other_slot;
@@ -2609,8 +2680,9 @@ ret:
 				TORRENT_ASSERT(piece_index == slot1);
 
 				m_last_piece = piece_index;
-				error_code ec;
+				storage_error ec;
 				m_storage->swap_slots(m_current_slot, slot1, ec);
+				// #error report errors here!
 
 				TORRENT_ASSERT(m_slot_to_piece[m_current_slot] == unassigned
 					|| m_piece_to_slot[m_slot_to_piece[m_current_slot]] == m_current_slot);
@@ -2644,7 +2716,7 @@ ret:
 					}
 				}
 
-				error_code ec;
+				storage_error ec;
 				if (piece1 >= 0)
 				{
 					m_piece_to_slot[piece1] = slot2;
@@ -2803,8 +2875,9 @@ ret:
 				, m_piece_to_slot[piece_at_our_slot]);
 
 			m_last_piece = piece_index;
-			error_code ec;
+			storage_error ec;
 			m_storage->move_slot(piece_index, slot_index, ec);
+			// #error report errors here!
 
 			TORRENT_ASSERT(m_slot_to_piece[piece_index] == piece_index);
 			TORRENT_ASSERT(m_piece_to_slot[piece_index] == piece_index);
@@ -2849,8 +2922,9 @@ ret:
 			{
 				m_last_piece = pos;
 				new_free_slot = m_piece_to_slot[pos];
-				error_code ec;
+				storage_error ec;
 				m_storage->move_slot(new_free_slot, pos, ec);
+				// #error report errors here!
 				m_slot_to_piece[pos] = pos;
 				m_piece_to_slot[pos] = pos;
 				written = true;

@@ -786,7 +786,9 @@ namespace libtorrent
 #endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
+						storage_error se;
+						se.ec = ec;
+						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
 					}
 				}
 			}
@@ -1024,8 +1026,8 @@ namespace libtorrent
 		if (!j.error) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "disk error: '" << j.error.message()
-			<< " in file " << j.error_file
+		(*m_ses.m_logger) << "disk error: '" << j.error.ec.message()
+			<< " in file " << j.error.file
 			<< " in torrent " << torrent_file().name()
 			<< "\n";
 #endif
@@ -1040,7 +1042,7 @@ namespace libtorrent
 			if (has_picker() && j.piece >= 0) picker().write_failed(block_finished);
 		}
 
-		if (j.error ==
+		if (j.error.ec ==
 #if BOOST_VERSION == 103500
 			error_code(boost::system::posix_error::not_enough_memory, get_posix_category())
 #elif BOOST_VERSION > 103500
@@ -1051,17 +1053,17 @@ namespace libtorrent
 			)
 		{
 			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
+				alerts().post_alert(file_error_alert(j.error, get_handle()));
 			if (c) c->disconnect(errors::no_memory);
 			return;
 		}
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
-			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
+			alerts().post_alert(file_error_alert(j.error, get_handle()));
 
 		// put the torrent in an error-state
-		set_error(j.error, j.error_file);
+		set_error(j.error.ec, j.error.file);
 
 		// #error adding hash here is a bit of a hack. Since there's no way
 		// of telling if it was a write or read operation that actually failed
@@ -1349,8 +1351,9 @@ namespace libtorrent
 
 			if (ev && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
-				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle()
-					, error_code(ev, get_libtorrent_category())));
+				storage_error se;
+				se.ec = error_code(ev, get_libtorrent_category());
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
 			}
 
 			if (ev)
@@ -1573,7 +1576,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 			<< torrent_file().name() << " rejected: "
-			<< j.error.message() << " ret:" << ret << "\n";
+			<< j.error.ec.message() << " ret:" << ret << "\n";
 #endif
 
 		// if ret != 0, it means we need a full check. We don't necessarily need
@@ -1770,17 +1773,16 @@ namespace libtorrent
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			if (m_ses.m_alerts.should_post<file_error_alert>())
-			{
-				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.error));
-			}
+				m_ses.m_alerts.post_alert(file_error_alert(j.error, get_handle()));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.error.message() <<
+				" error: " << j.error.ec.message() <<
 				" torrent: " << torrent_file().name() <<
 				" ]\n";
 #endif
 			pause();
-			set_error(j.error, j.error_file);
+			set_error(j.error.ec, j.error.file);
 			return;
 		}
 
@@ -3200,7 +3202,7 @@ namespace libtorrent
 		if (ret != 0)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
-				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
+				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error.ec));
 		}
 		else
 		{
@@ -3227,7 +3229,7 @@ namespace libtorrent
 
 		if (!j.resume_data)
 		{
-			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error));
+			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error.ec));
 		}
 		else
 		{
@@ -3253,7 +3255,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
 				alerts().post_alert(file_rename_failed_alert(get_handle()
-					, j.piece, j.error));
+					, j.piece, j.error.ec));
 		}
 	}
 

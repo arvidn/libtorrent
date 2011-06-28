@@ -1321,6 +1321,9 @@ namespace libtorrent
 					num_vec = 0;
 				}
    
+#if TORRENT_USE_OVERLAPPED
+#error we need to make sure the vec member is properly set up to point to pages when using overlapped I/O
+#endif
 				vec[num_vec] = bufs[i];
 				++num_vec;
 				num_bytes += bufs[i].iov_len;
@@ -2278,7 +2281,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	bool reap_aio(file::aiocb_t* aio, aiocb_pool& pool)
 	{
-		error_code ec;
+		storage_error se;
 
 #if TORRENT_USE_AIO
 		int e = aio_error(&aio->cb);
@@ -2286,13 +2289,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		size_t ret = aio_return(&aio->cb);
 		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
-		ec = error_code(e, boost::system::get_posix_category());
+		se.ec = error_code(e, boost::system::get_posix_category());
 #elif TORRENT_USE_IOSUBMIT
 		size_t ret = aio->ret;
 		int e = aio->error;
 		DLOG(stderr, "  aio->ret = %d\n", aio->ret);
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(e));
-		ec = error_code(e, boost::system::get_posix_category());
+		se.ec = error_code(e, boost::system::get_posix_category());
 #elif TORRENT_USE_OVERLAPPED
 		BOOL is_complete = HasOverlappedIoCompleted(&aio->ov);
 		if (is_complete == FALSE) return false;
@@ -2307,7 +2310,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			error = GetLastError();
 			DLOG(stderr, " error: %d\n", error);
 		}
-		ec = error_code(error, boost::system::get_system_category());
+		se.ec = error_code(error, boost::system::get_system_category());
 		size_t ret = transferred;
 		CloseHandle(aio->ov.hEvent);
 #elif TORRENT_USE_SYNCIO
@@ -2327,7 +2330,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			scatter_copy(aio->vec, aio->num_vec, aio->buffer);
 		}
 
-		aio->handler->done(ec, ret, aio);
+		// #error if there's an error, figure out which file it's in!
+		aio->handler->done(se, ret, aio);
 
 		pool.free_vec(aio->vec);
 
@@ -2495,7 +2499,11 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0, del);
+				storage_error se;
+				se.ec = error_code(errno, boost::system::get_posix_category());
+				se.operation = aios->op == file::read_op ? "read" : "write";
+				// #error figure out which file the error happened in
+				del->handler->done(se, 0, del);
 				pool.destroy(del);
 				continue;
 			}
@@ -2518,30 +2526,59 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), 0, del);
+				storage_error se;
+				se.ec = error_code(errno, boost::system::get_posix_category());
+				se.operation = aios->op == file::read_op ? "read" : "write";
+				// #error figure out which file the error happened in
+				del->handler->done(se, 0, del);
 				pool.destroy(del);
 				continue;
 			}
 #elif TORRENT_USE_OVERLAPPED
-			extern void WINAPI signal_handler(DWORD, DWORD, OVERLAPPED*);
-
 			// TODO: make the aiocb_t contain the vector of buffers
 			// on windows, to allow for issuing a single async operation
 			int ret;
-			switch (aios->op)
+			if (aios->vec)
 			{
-				case file::read_op:
-					ret = ReadFile(aios->file_ptr->native_handle(), aios->buf
-						, aios->size, NULL, &aios->ov);
-					break;
-				case file::write_op:
-					ret = WriteFile(aios->file_ptr->native_handle(), aios->buf
-						, aios->size, NULL, &aios->ov);
-					break;
-				default: TORRENT_ASSERT(false);
+				switch (aios->op)
+				{
+					case file::read_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = ReadFileScatter(aios->file_ptr->native_handle(), aios->vec
+							, aios->size, NULL, &aios->ov);
+						break;
+					case file::write_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = WriteFileGather(aios->file_ptr->native_handle(), aios->vec
+							, aios->size, NULL, &aios->ov);
+						break;
+					default: TORRENT_ASSERT(false);
+				}
+				DLOG(stderr, " %sFile%s() = %d\n"
+					, aios->op == file::read_op ? "Read" : "Write"
+					, aios->op == file::read_op ? "Scatter" : "Gather"
+					, ret);
+			
 			}
-			DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
-				? "Read" : "Write", ret);
+			else
+			{
+				switch (aios->op)
+				{
+					case file::read_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = ReadFile(aios->file_ptr->native_handle(), aios->buf
+							, aios->size, NULL, &aios->ov);
+						break;
+					case file::write_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = WriteFile(aios->file_ptr->native_handle(), aios->buf
+							, aios->size, NULL, &aios->ov);
+						break;
+					default: TORRENT_ASSERT(false);
+				}
+				DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
+					? "Read" : "Write", ret);
+			}
 
 			if (ret == FALSE && GetLastError() != ERROR_IO_PENDING)
 			{
@@ -2553,7 +2590,12 @@ finish:
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
 				aios = aios->next;
-				del->handler->done(error_code(errno, boost::system::get_posix_category()), ret, del);
+				storage_error se;
+				se.ec = error_code(GetLastError(), boost::system::get_system_category());
+				se.operation = aios->op == file::read_op ? "read" : "write";
+
+				// #error figure out which file the error happened in
+				del->handler->done(se, ret, del);
 				pool.destroy(del);
 				continue;
 			}
@@ -2581,7 +2623,11 @@ finish:
 			if (aios->next) aios->next->prev = aios->prev;
 			if (aios->prev) aios->prev->next = aios->next;
 			aios = aios->next;
-			del->handler->done(ec, ret, del);
+			storage_error se;
+			se.ec = ec;
+			se.operation = aios->op == file::read_op ? "read" : "write";
+			// #error figure out which file the error happened on (if any)
+			del->handler->done(se, ret, del);
 			pool.destroy(del);
 			++num_issued;
 			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);

@@ -588,7 +588,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		i != pe->jobs.end();)
 	{
 		TORRENT_ASSERT(i->piece == p->piece);
-		i->error = ec;
+		i->error.ec = ec;
 		int ret = i->buffer_size;
 		if (!ec)
 		{
@@ -668,7 +668,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				else if (ret == -2)
 				{
 					ret = disk_io_thread::disk_operation_failed;
-					i->error = error::no_memory;
+					i->error.ec = error::no_memory;
 				}
 				else
 				{
@@ -786,7 +786,7 @@ void block_cache::abort_dirty(iterator p, io_service& ios)
 		i != pe->jobs.end();)
 	{
 		if (i->action != disk_io_job::write) { ++i; continue; }
-		i->error.assign(libtorrent::error::operation_aborted, get_system_category());
+		i->error.ec.assign(libtorrent::error::operation_aborted, get_system_category());
 		if (i->callback) ios.post(boost::bind(i->callback, -1, *i));
 		i = pe->jobs.erase(i);
 	}

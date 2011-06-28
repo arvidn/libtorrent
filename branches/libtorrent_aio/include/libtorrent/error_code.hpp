@@ -393,6 +393,25 @@ namespace libtorrent
 		mutable char* m_msg;
 	};
 #endif
+
+	// used by storage to return errors
+	// also includes which underlying file the
+	// error happened on
+	struct TORRENT_EXPORT storage_error
+	{
+		storage_error(): operation(0) {}
+
+		operator bool() const { return (bool)ec; }
+		// the error that occurred
+		error_code ec;
+		// the file the error occurred on
+		std::string file;
+		// the operation that failed
+		// this must be a string literal, it
+		// should never be freed
+		char const* operation;
+	};
+
 }
 
 #endif

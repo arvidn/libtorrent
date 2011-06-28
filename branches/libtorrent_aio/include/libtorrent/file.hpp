@@ -460,16 +460,16 @@ namespace libtorrent
 #endif
 		}
 		boost::function<void(async_handler*)> handler;
-		error_code error;
+		storage_error error;
 		size_t transferred;
 		int references;
 		ptime started;
 
-		void done(error_code const& ec, size_t bytes_transferred
+		void done(storage_error const& ec, size_t bytes_transferred
 			, file::aiocb_t const* aio)
 		{
 			TORRENT_ASSERT(references > 0);
-			if (ec) error = ec;
+			if (ec.ec) error = ec;
 			else transferred += bytes_transferred;
 #ifdef TORRENT_DISK_STATS
 			if (file_access_log) write_disk_log(file_access_log, aio, true);

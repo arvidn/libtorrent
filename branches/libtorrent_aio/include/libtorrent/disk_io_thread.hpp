@@ -197,10 +197,6 @@ namespace libtorrent
 	// of disk io jobs
 	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
 	{
-#if TORRENT_USE_OVERLAPPED
-		friend void WINAPI signal_handler(DWORD error, DWORD transferred, OVERLAPPED* overlapped);
-#endif
-
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 
