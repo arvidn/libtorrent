@@ -2610,10 +2610,10 @@ finish:
 				if (aios->prev) aios->prev->next = aios->next;
 				if (aios->next) aios->next->prev = aios->prev;
 				file::aiocb_t* del = aios;
-				aios = aios->next;
 				storage_error se;
 				se.ec = error_code(GetLastError(), boost::system::get_system_category());
 				se.operation = aios->op == file::read_op ? "read" : "write";
+				aios = aios->next;
 
 				// #error figure out which file the error happened in
 				del->handler->done(se, ret, del);
@@ -2643,10 +2643,10 @@ finish:
 			file::aiocb_t* del = aios;
 			if (aios->next) aios->next->prev = aios->prev;
 			if (aios->prev) aios->prev->next = aios->next;
-			aios = aios->next;
 			storage_error se;
 			se.ec = ec;
 			se.operation = aios->op == file::read_op ? "read" : "write";
+			aios = aios->next;
 			// #error figure out which file the error happened on (if any)
 			del->handler->done(se, ret, del);
 			pool.destroy(del);
