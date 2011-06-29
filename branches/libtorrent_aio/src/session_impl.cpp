@@ -3387,7 +3387,7 @@ namespace aux {
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_job_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_sort_time) / 1000000.f);
-			STAT_LOG(d, int(cs.average_issue_time));
+			STAT_LOG(f, float(cs.average_issue_time) / 1000000.f);
 			STAT_LOG(d, m_connection_attempts);
 			STAT_LOG(d, m_num_banned_peers);
 			STAT_LOG(d, m_banned_for_hash_failure);

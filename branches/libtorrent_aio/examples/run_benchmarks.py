@@ -58,7 +58,7 @@ if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
 	sys.exit(1)
 
 # make sure we have all the binaries available
-binaries = ['stage/client_test', 'stage/connection_tester', 'stage/fragmentation_test']
+binaries = ['stage/client_test', 'stage/connection_tester', 'stage/fragmentation_test', 'stage/parse_access_log']
 for i in binaries:
 	if not os.path.exists(i):
 		print 'make sure "%s" is available in current working directory' % i
@@ -89,6 +89,8 @@ def build_commandline(config, port):
 	if config['read-ahead'] == False:
 		no_read_ahead = '-j'
 	allocation_mode = config['allocation-mode']
+
+	#TODO: take config['coalesce'] into account
 		
 	global test_duration
 
@@ -103,11 +105,12 @@ def delete_files(files):
 			try: shutil.rmtree(i)
 			except: pass
 
-def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True, preallocate=False):
+def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True, preallocate=False, coalesce=True):
 	config = {'test': 'dual', 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'allow-disk-reorder': reorder, 'cache-size': cache_size, 'read-ahead': readahead}
 	if preallocate: config['allocation-mode'] = 'allocate'
 	else: config['allocation-mode'] = 'sparse'
-
+	if coalesce: config['coalesce'] = True
+	else: config['coalesce'] = False
 	return config
 
 def build_target_folder(config):
@@ -115,8 +118,10 @@ def build_target_folder(config):
 	if config['allow-disk-reorder'] == False: reorder = 'no-reorder'
 	readahead = 'readahead'
 	if config['read-ahead'] == False: readahead = 'no-readahead'
+	coalesce = 'coalesce'
+	if config['coalesce'] == False: coalesce = 'no-coalesce'
 
-	return 'results_%d_%d_%s_%s_%s_%s_%s' % (config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], config['test'], reorder, readahead, config['allocation-mode'])
+	return 'results_%d_%d_%s_%s_%s_%s_%s_%s' % (config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], config['test'], reorder, readahead, config['allocation-mode'], coalesce)
 
 def run_test(config):
 
@@ -168,12 +173,14 @@ def run_test(config):
 	shutil.copy('fragmentation.log', 'session_stats/')
 	shutil.copy('fragmentation.png', 'session_stats/')
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
+	shutil.copy('file_access.log', 'session_stats/')
 
 	os.chdir('session_stats')
 
 	# parse session stats
 	print 'parsing session log'
 	os.system('python ../../parse_session_stats.py *.0000.log')
+	os.system('../stage/parse_access_log file_access.log %s' % os.path.join('..', config['save-path'], 'stress_test_file'))
 
 	os.chdir('..')
 
@@ -182,22 +189,27 @@ def run_test(config):
 	os.rename('session_stats', build_target_folder(config))
 
 	# clean up
-	print 'cleaning up'
-	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
+#	print 'cleaning up'
+#	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
 
 	port += 1
 
+#config = build_test_config('ext4', filesystem_peers, filesystem_cache, True, True, False)
+#run_test(config)
+#sys.exit(0)
+
 for fs in filesystem:
 	for preallocate in [True, False]:
-		config = build_test_config(fs, filesystem_peers, filesystem_cache, preallocate)
+		config = build_test_config(fs, filesystem_peers, filesystem_cache, True, True, preallocate)
 		run_test(config)
 
 for c in cache_sizes:
 	for p in peers:
-		for rdahead in [True, False]:
-#			for reorder in [True, False]:
-			reorder = True
-			for preallocate in [True, False]:
-				config = build_test_config(filesystem[0], p, c, rdahead, reorder, preallocate)
-				run_test(config)
+#		for rdahead in [True, False]:
+		rdahead = False
+#		for reorder in [True, False]:
+		reorder = True
+		for preallocate in [True, False]:
+			config = build_test_config(filesystem[0], p, c, rdahead, reorder, preallocate)
+			run_test(config)
 

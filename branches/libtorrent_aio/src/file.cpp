@@ -156,10 +156,11 @@ namespace libtorrent
 		// uint64_t file offset
 		// uint32_t file-id
 		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
-		char event[21];
+		char event[29];
 		char* ptr = event;
 		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
 		detail::write_uint64(aio_offset(aio), ptr);
+		detail::write_uint64((boost::uint64_t)aio, ptr);
 		detail::write_uint32(aio->file_ptr->file_id(), ptr);
 		detail::write_uint8((int(complete) << 1) | (aio_op(aio) == file::write_op), ptr);
 
@@ -806,6 +807,7 @@ namespace libtorrent
 		boost::uint32_t ret = 1;
 		for (int i = 0; i < str.size(); ++i)
 		{
+			if (str[i] == 0) continue;
 			ret *= int(str[i]);
 		}
 		return ret;
@@ -1348,7 +1350,6 @@ namespace libtorrent
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			aiocb_t* aio = pool.construct();
-			aio->file_ptr = this;
 			// don't save the coalesce buffers flag for writes
 			// since we don't need to do anything with it
 			init_aiocb(aio, this, offset, op, 0, 0, (char*)bufs[i].iov_base, bufs[i].iov_len
@@ -2373,6 +2374,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #ifdef TORRENT_DISK_STATS
 		FILE* file_access_log = pool.file_access_log;
+		TORRENT_ASSERT(file_access_log);
 #endif
 
 		const int submit_batch_size = 512;
@@ -2392,10 +2394,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int i = 0;
 		for (;;)
 		{
-#ifdef TORRENT_DISK_STATS
-			if (aios) aios->handler->file_access_log = file_access_log;
-			if (file_access_log && aios) write_disk_log(file_access_log, list_start, false);
-#endif
 			if (i == submit_batch_size || aios == 0)
 			{
 				DLOG(stderr, "io_submit [");
@@ -2421,6 +2419,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				num_issued += num_submitted;
 				while (num_submitted > 0)
 				{
+#ifdef TORRENT_DISK_STATS
+					list_start->handler->file_access_log = file_access_log;
+					if (file_access_log) write_disk_log(file_access_log, list_start, false);
+#endif
 					--num_submitted;
 					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
 					list_start = list_start->next;
@@ -2459,6 +2461,7 @@ finish:
 	{
 #ifdef TORRENT_DISK_STATS
 		FILE* file_access_log = pool.file_access_log;
+		TORRENT_ASSERT(file_access_log);
 #endif
 
 #ifdef SIGEV_THREAD_ID
