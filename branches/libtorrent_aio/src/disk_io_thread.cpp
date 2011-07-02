@@ -129,6 +129,23 @@ namespace libtorrent
 		return;
 	}
 
+#ifdef TORRENT_DEBUG
+	file::aiocb_t* find_aiocb(file::aiocb_t* haystack, file::aiocb_t const* needle)
+	{
+		while (haystack)
+		{
+			if (haystack->file_ptr == needle->file_ptr
+				&& aio_offset(haystack) == aio_offset(needle))
+			{
+				TORRENT_ASSERT(aio_op(haystack) == aio_op(needle));
+				return haystack;
+			}
+			haystack = haystack->next;
+		}
+		return 0;
+	}
+#endif
+
 	// free function to append a chain of aios to a list
 	// elevator direction determines how the new items are sorted
 	// if it's 0, they are just prepended without any insertion sort
@@ -622,55 +639,50 @@ namespace libtorrent
 				TORRENT_ASSERT(buffer_size <= i * m_block_size);
 				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
+				file::aiocb_t* aios = 0;
 				if (readwrite == op_write)
 				{
 //					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					m_pending_buffer_size += to_write;
 
-					file::aiocb_t* aios = p->storage->write_async_impl(iov
+					aios = p->storage->write_async_impl(iov
 						, pe.piece, to_write, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_write, this, p
 							, range_start, i, to_write, _1));
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
-//					DLOG(stderr, "prepending aios (%p) from write_async_impl to "
-//						"m_to_issue (%p) elevator=%d\n"
-//						, aios, m_to_issue, m_elevator_direction);
-
-					m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
-					if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
-					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
-
-//					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
-//						DLOG(stderr, "  %"PRId64, j->phys_offset);
-//					DLOG(stderr, "\n");
 				}
 				else
 				{
 //					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					++m_outstanding_jobs;
-					file::aiocb_t* aios = pe.storage->read_async_impl(iov, pe.piece
+					aios = pe.storage->read_async_impl(iov, pe.piece
 						, range_start * m_block_size, iov_counter
 						, boost::bind(&disk_io_thread::on_disk_read, this, p
 							, range_start, i, _1));
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
-//					DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
-//						, aios, m_to_issue);
+				}
 
-					m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
-					if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
-					TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
+#ifdef TORRENT_DEBUG
+				// make sure we're not already requesting this same block
+				file::aiocb_t* k = aios;
+				while (k)
+				{
+					file::aiocb_t* found = find_aiocb(m_to_issue, k);
+					TORRENT_ASSERT(found == 0);
+					found = find_aiocb(m_in_progress, k);
+					TORRENT_ASSERT(found == 0);
+					k = k->next;
+				}
+#endif
 
-/*					for (file::aiocb_t* j = m_to_issue; j; j = j->next)
-					{
-						TORRENT_ASSERT(j->next == 0 || j->next->prev == j);
-						DLOG(stderr, "  %"PRId64, j->phys_offset);
-					}
-					DLOG(stderr, "\n");
-*/				}
+				m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
+				if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
+				TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
+
 				iov_counter = 0;
 				buffer_size = 0;
 				continue;
@@ -1075,6 +1087,19 @@ namespace libtorrent
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
+#ifdef TORRENT_DEBUG
+		// make sure we're not already requesting this same block
+		file::aiocb_t* k = aios;
+		while (k)
+		{
+			file::aiocb_t* found = find_aiocb(m_to_issue, k);
+			TORRENT_ASSERT(found == 0);
+			found = find_aiocb(m_in_progress, k);
+			TORRENT_ASSERT(found == 0);
+			k = k->next;
+		}
+#endif
+
 		int elevator_direction = 0;
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
@@ -1155,6 +1180,19 @@ namespace libtorrent
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
+#ifdef TORRENT_DEBUG
+		// make sure we're not already requesting this same block
+		file::aiocb_t* i = aios;
+		while (i)
+		{
+			file::aiocb_t* found = find_aiocb(m_to_issue, i);
+			TORRENT_ASSERT(found == 0);
+			found = find_aiocb(m_in_progress, i);
+			TORRENT_ASSERT(found == 0);
+			i = i->next;
+		}
+#endif
+
 		int elevator_direction = 0;
 #if TORRENT_USE_SYNCIO
 		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
@@ -1162,7 +1200,6 @@ namespace libtorrent
 		m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
 		if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
 		TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
-
 
 //		for (file::aiocb_t* j = m_to_issue; j; j = j->next)
 //			DLOG(stderr, "  %"PRId64, j->phys_offset);

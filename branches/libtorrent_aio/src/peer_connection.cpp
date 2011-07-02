@@ -870,6 +870,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
 
+		TORRENT_ASSERT(m_ses.is_network_thread());
+
 		m_disk_recv_buffer_size = 0;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3358,6 +3360,8 @@ namespace libtorrent
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(error_code const& ec, int error)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_disconnect_started = true;
 #endif
