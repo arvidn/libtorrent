@@ -3073,8 +3073,27 @@ namespace aux {
 		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
 			(host_info_t)vm_stat, &host_count);
 #elif defined TORRENT_LINUX
-		// TODO: read straight from /proc/meminfo ?
+		char buffer[4096];
+		char string[1024];
+		boost::uint32_t value;
+		FILE* f = fopen("/proc/vmstat");
+		int ret = 0;
+		while ((ret = fscanf(f, "%s %u\n", string, &value)) != EOF)
+		{
+			if (ret != 2) continue;
+			if (strcmp(string, "nr_active_anon") == 0) vm_stat->active_count += value;
+			else if (strcmp(string, "nr_active_file") == 0) vm_stat->active_count += value;
+			else if (strcmp(string, "nr_inactive_anon") == 0) vm_stat->inactive_count += value;
+			else if (strcmp(string, "nr_inactive_file") == 0) vm_stat->inactive_count += value;
+			else if (strcmp(string, "nr_free_pages") == 0) vm_stat->free_count = value;
+			else if (strcmp(string, "nr_unevictable") == 0) vm_stat->wire_count = value;
+			else if (strcmp(string, "pswpin") == 0) vm_stat->pageins = value;
+			else if (strcmp(string, "pswpout") == 0) vm_stat->pageouts = value;
+			else if (strcmp(string, "pgfault") == 0) vm_stat->faults = value;
+		}
+		fclose(f);
 #endif
+// TOOD: windows?
 	}
 
 		
