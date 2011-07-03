@@ -992,7 +992,7 @@ ret:
 		while (file_iter->pad_file)
 		{
 			++file_iter;
-			if (file_iter == m_files.end())
+			if (file_iter == files().end())
 				return size_type(slot) * files().piece_length() + offset;
 		}
 		TORRENT_ASSERT(!file_iter->pad_file);
