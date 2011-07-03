@@ -1039,14 +1039,17 @@ namespace libtorrent
 							, start_block + m_settings.read_cache_line_size);
 					// this will also add the job to the pending job list in this piece
 					// unless it fails and returns -1
-					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j);
+					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j, 0, true);
 					DLOG(stderr, "[%p] do_read: allocate_pending ret=%d start_block=%d end_block=%d\n"
 							, this, ret, start_block, end_block);
 
-					if (ret > 0)
+					// a return value of 0 means these same blocks are already
+					// scheduled to be read, and we just tacked on this new jobs
+					// to be notified of the buffers being complete
+					if (ret >= 0)
 					{
 						// some blocks were allocated
-						io_range(p, start_block, end_block, op_read);
+						if (ret > 0) io_range(p, start_block, end_block, op_read);
 
 						DLOG(stderr, "[%p] do_read: cache miss\n", this);
 						return defer_handler;
@@ -1283,12 +1286,15 @@ namespace libtorrent
 			{
 				ret = m_disk_cache.allocate_pending(p, start_block, p->blocks_in_piece, j, 2);
 				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d\n", this, ret);
-				if (ret > 0)
+				if (ret >= 0)
 				{
 					// if allocate_pending succeeds, it adds the job as well
 					job_added = true;
 					// some blocks were allocated
-					m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
+					if (ret > 0)
+					{
+						m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
+					}
 					ret = defer_handler;
 				}
 				else if (ret == -1)
@@ -1639,10 +1645,10 @@ namespace libtorrent
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
 		DLOG(stderr, "[%p] allocate_read_piece: allocate_pending ret=%d\n", this, ret);
 
-		if (ret > 0)
+		if (ret >= 0)
 		{
 			// some blocks were allocated
-			io_range(p, 0, p->blocks_in_piece, op_read);
+			if (ret > 0) io_range(p, 0, p->blocks_in_piece, op_read);
 			return defer_handler;
 		}
 		else if (ret == -1)
@@ -1761,9 +1767,9 @@ namespace libtorrent
 		}
 		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j);
 
-		if (ret > 0)
+		if (ret >= 0)
 		{
-			io_range(p, 0, INT_MAX, op_read);
+			if (ret > 0) io_range(p, 0, INT_MAX, op_read);
 			return defer_handler;
 		}
 		else if (ret == -1)

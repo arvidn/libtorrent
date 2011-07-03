@@ -372,7 +372,8 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 // -2 = out of cache space
 
 int block_cache::allocate_pending(block_cache::iterator p
-	, int begin, int end, disk_io_job const& j, int prio)
+	, int begin, int end, disk_io_job const& j, int prio
+	, bool force)
 {
 	INVARIANT_CHECK;
 
@@ -386,7 +387,15 @@ int block_cache::allocate_pending(block_cache::iterator p
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	int blocks_to_allocate = end - begin;
+	int blocks_to_allocate = 0;
+
+	for (int i = begin; i < end; ++i)
+	{
+		if (pe->blocks[i].buf) continue;
+		if (pe->blocks[i].pending) continue;
+		++blocks_to_allocate;
+	}
+
 	if (m_cache_size + blocks_to_allocate > m_max_size)
 	{
 		if (try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio, p) > 0
@@ -396,7 +405,8 @@ int block_cache::allocate_pending(block_cache::iterator p
 			// we cannot return -1 here, since that means we're out of
 			// memory. We're just out of cache space. -2 will tell the caller
 			// to read the piece directly instead of going through the cache
-			return -2;
+			if (force) end = (std::min)(begin + 1, end);
+			else return -2;
 		}
 	}
 
@@ -446,7 +456,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 	}
 	
 	TORRENT_ASSERT(j.piece == pe->piece);
-	if (ret > 0)
+	if (ret >= 0)
 	{
 		DLOG(stderr, "[%p] block_cache allocate-pending unmark-for-deletion "
 			"piece: %d\n", &m_buffer_pool, int(pe->piece));

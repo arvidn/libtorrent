@@ -249,7 +249,8 @@ namespace libtorrent
 		// it's less than the requested, it means the cache is
 		// full and there's no space left
 		int allocate_pending(iterator p
-			, int start, int end, disk_io_job const& j, int prio = 0);
+			, int start, int end, disk_io_job const& j
+			, int prio = 0, bool force = false);
 
 		// clear the pending flags of the specified block range.
 		// these blocks must be completely filled with valid
