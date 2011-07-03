@@ -981,6 +981,8 @@ namespace aux {
 			":pageins"
 			":pageouts"
 			":page faults"
+			":smooth read ops/s"
+			":smooth write ops/s"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3271,6 +3273,9 @@ namespace aux {
 		{
 			cache_status cs = m_disk_thread.status();
 
+			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
+			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
+
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
@@ -3395,6 +3400,9 @@ namespace aux {
 			STAT_LOG(d, int(vm_stat.pageins - m_last_vm_stat.pageins));
 			STAT_LOG(d, int(vm_stat.pageouts - m_last_vm_stat.pageouts));
 			STAT_LOG(d, int(vm_stat.faults - m_last_vm_stat.faults));
+
+			STAT_LOG(d, m_read_ops.mean());
+			STAT_LOG(d, m_write_ops.mean());
 
 			fprintf(m_stats_logger, "\n");
 
