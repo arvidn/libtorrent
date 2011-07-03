@@ -94,6 +94,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
+#if TORRENT_STATS && defined __MACH__
+#include <mach/vm_statistics.h>
+#include <mach/mach_init.h>
+#include <mach/host_info.h>
+#include <mach/mach_host.h>
+#endif
+
 namespace libtorrent
 {
 
@@ -116,6 +123,19 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_impl;
+
+#if defined TORRENT_STATS && !defined __MACH__
+	struct vm_statistics_data_t
+	{
+		boost::uint64_t active_count;
+		boost::uint64_t inactive_count;
+		boost::uint64_t wire_count;
+		boost::uint64_t free_count;
+		boost::uint64_t pageins;
+		boost::uint64_t pageouts;
+		boost::uint64_t faults;
+	};
+#endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
@@ -923,6 +943,9 @@ namespace libtorrent
 			int m_connection_attempts;
 			int m_num_banned_peers;
 			int m_banned_for_hash_failure;
+			vm_statistics_data_t m_last_vm_stat;
+			sliding_average<5> m_read_ops;
+			sliding_average<5> m_write_ops;;
 #endif
 
 			// each second tick the timer takes a little

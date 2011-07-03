@@ -813,6 +813,11 @@ namespace aux {
 		m_stats_logger = 0;
 		m_log_seq = 0;
 		m_stats_logging_enabled = true;
+
+		memset(&m_last_cache_status, 0, sizeof(m_last_cache_status));
+		extern void get_vm_stats(vm_statistics_data_t* vm_stat);
+		get_vm_stats(&m_last_vm_stat);
+
 		reset_stat_counters();
 		rotate_stats_log();
 #endif
@@ -1005,6 +1010,15 @@ namespace aux {
 			":uTP avg send delay"
 			":read ops/s"
 			":write ops/s"
+			":active resident pages"
+			":inactive resident pages"
+			":pinned resident pages"
+			":free pages"
+			":pageins"
+			":pageouts"
+			":page faults"
+			":smooth read ops/s"
+			":smooth write ops/s"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3111,6 +3125,40 @@ namespace aux {
 	}
 
 #ifdef TORRENT_STATS
+
+	void get_vm_stats(vm_statistics_data_t* vm_stat)
+	{
+		memset(vm_stat, 0, sizeof(*vm_stat));
+#if defined __MACH__
+		mach_port_t host_port = mach_host_self();
+		mach_msg_type_number_t host_count = HOST_VM_INFO_COUNT;
+		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
+			(host_info_t)vm_stat, &host_count);
+#elif defined TORRENT_LINUX
+		char buffer[4096];
+		char string[1024];
+		boost::uint32_t value;
+		FILE* f = fopen("/proc/vmstat", "r");
+		int ret = 0;
+		while ((ret = fscanf(f, "%s %u\n", string, &value)) != EOF)
+		{
+			if (ret != 2) continue;
+			if (strcmp(string, "nr_active_anon") == 0) vm_stat->active_count += value;
+			else if (strcmp(string, "nr_active_file") == 0) vm_stat->active_count += value;
+			else if (strcmp(string, "nr_inactive_anon") == 0) vm_stat->inactive_count += value;
+			else if (strcmp(string, "nr_inactive_file") == 0) vm_stat->inactive_count += value;
+			else if (strcmp(string, "nr_free_pages") == 0) vm_stat->free_count = value;
+			else if (strcmp(string, "nr_unevictable") == 0) vm_stat->wire_count = value;
+			else if (strcmp(string, "pswpin") == 0) vm_stat->pageins = value;
+			else if (strcmp(string, "pswpout") == 0) vm_stat->pageouts = value;
+			else if (strcmp(string, "pgfault") == 0) vm_stat->faults = value;
+		}
+		fclose(f);
+#endif
+// TOOD: windows?
+	}
+
+		
 	void session_impl::enable_stats_logging(bool s)
 	{
 		if (m_stats_logging_enabled == s) return;
@@ -3297,11 +3345,18 @@ namespace aux {
 
 		if (now - m_last_log_rotation > hours(1))
 			rotate_stats_log();
-		
+
+		// system memory stats
+		vm_statistics_data_t vm_stat;
+		get_vm_stats(&vm_stat);
+
 		if (m_stats_logger)
 		{
 			cache_status cs;
 			m_disk_thread.get_disk_metrics(cs);
+
+			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
+			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
 
 			int total_job_time = cs.cumulative_job_time == 0 ? 1 : cs.cumulative_job_time;
 
@@ -3421,11 +3476,24 @@ namespace aux {
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
 			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
 			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
+
+			STAT_LOG(d, int(vm_stat.active_count));
+			STAT_LOG(d, int(vm_stat.inactive_count));
+			STAT_LOG(d, int(vm_stat.wire_count));
+			STAT_LOG(d, int(vm_stat.free_count));
+			STAT_LOG(d, int(vm_stat.pageins - m_last_vm_stat.pageins));
+			STAT_LOG(d, int(vm_stat.pageouts - m_last_vm_stat.pageouts));
+			STAT_LOG(d, int(vm_stat.faults - m_last_vm_stat.faults));
+
+			STAT_LOG(d, m_read_ops.mean());
+			STAT_LOG(d, m_write_ops.mean());
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
 
 			m_last_cache_status = cs;
+			m_last_vm_stat = vm_stat;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
 			m_last_uploaded = m_stat.total_upload();
