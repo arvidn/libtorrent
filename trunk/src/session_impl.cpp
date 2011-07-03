@@ -3076,7 +3076,7 @@ namespace aux {
 		char buffer[4096];
 		char string[1024];
 		boost::uint32_t value;
-		FILE* f = fopen("/proc/vmstat");
+		FILE* f = fopen("/proc/vmstat", "r");
 		int ret = 0;
 		while ((ret = fscanf(f, "%s %u\n", string, &value)) != EOF)
 		{
