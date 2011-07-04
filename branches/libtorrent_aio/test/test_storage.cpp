@@ -80,7 +80,7 @@ void on_check_resume_data(int ret, disk_io_job const& j, bool* done)
 			break;
 		case piece_manager::fatal_disk_error:
 			std::cerr << " disk error: " << j.str
-				<< " file: " << j.error_file << std::endl;
+				<< " file: " << j.error.file << std::endl;
 			break;
 		case piece_manager::need_full_check:
 			std::cerr << " need full check" << std::endl;
@@ -104,7 +104,7 @@ void on_check_files(int ret, disk_io_job const& j, bool* done)
 			break;
 		case piece_manager::fatal_disk_error:
 			std::cerr << " disk error: " << j.str
-				<< " file: " << j.error_file << std::endl;
+				<< " file: " << j.error.file << std::endl;
 			*done = true;
 			break;
 		case piece_manager::need_full_check:
@@ -125,8 +125,8 @@ void on_read(int ret, disk_io_job const& j, bool* done)
 
 	if (ret < 0)
 	{
-		std::cerr << j.error.message() << std::endl;
-		std::cerr << j.error_file << std::endl;
+		std::cerr << j.error.ec.message() << std::endl;
+		std::cerr << j.error.file << std::endl;
 
 	}
 }
@@ -139,10 +139,12 @@ void on_move_storage(int ret, bool* done, disk_io_job const& j, std::string path
 	*done = true;
 }
 
-void print_error(int ret, error_code const& ec)
+void print_error(int ret, storage_error const& ec)
 {
 	std::cerr << "returned: " << ret
-		<< " error: " << ec.message()
+		<< " error: " << ec.ec.message()
+		<< " in file: " << ec.file
+		<< " operation: " << (ec.operation?ec.operation:"")
 		<< std::endl;
 }
 
@@ -156,8 +158,8 @@ struct test_storage : storage_interface
 {
 	test_storage(): m_started(false), m_ready(false) {}
 
-	virtual void initialize(bool allocate_files, error_code& ec) {}
-	virtual bool has_any_file(error_code& ec) { return true; }
+	virtual void initialize(bool allocate_files, storage_error& ec) {}
+	virtual bool has_any_file(storage_error& ec) { return true; }
 
 
 	int write(
@@ -165,7 +167,7 @@ struct test_storage : storage_interface
 		, int slot
 		, int offset
 		, int size
-		, error_code& ec)
+		, storage_error& ec)
 	{
 		return size;
 	}
@@ -175,7 +177,7 @@ struct test_storage : storage_interface
 		, int slot
 		, int offset
 		, int size
-		, error_code& ec)
+		, storage_error& ec)
 	{
 		if (slot == 0 || slot == 5999)
 		{
@@ -229,18 +231,18 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return start; }
 
-	virtual void move_storage(std::string const& save_path, error_code& ec) {}
+	virtual void move_storage(std::string const& save_path, storage_error& ec) {}
 
-	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
+	virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error)
 	{ return false; }
 
-	virtual void write_resume_data(entry& rd, error_code& ec) const {}
-	virtual void move_slot(int src_slot, int dst_slot, error_code& ec) {}
-	virtual void swap_slots(int slot1, int slot2, error_code& ec) {}
-	virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) {}
-	virtual void release_files(error_code& ec) {}
-	virtual void rename_file(int index, std::string const& new_filename, error_code& ec) {}
-	virtual void delete_files(error_code& ec) {}
+	virtual void write_resume_data(entry& rd, storage_error& ec) const {}
+	virtual void move_slot(int src_slot, int dst_slot, storage_error& ec) {}
+	virtual void swap_slots(int slot1, int slot2, storage_error& ec) {}
+	virtual void swap_slots3(int slot1, int slot2, int slot3, storage_error& ec) {}
+	virtual void release_files(storage_error& ec) {}
+	virtual void rename_file(int index, std::string const& new_filename, storage_error& ec) {}
+	virtual void delete_files(storage_error& ec) {}
 	virtual ~test_storage() {}
 
 	void wait_for_ready()
@@ -491,7 +493,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	int ret = 0;
 
 	// write piece 1 (in slot 0)
-	error_code ec;
+	storage_error ec;
 	ret = s->write(piece1, 0, 0, half, ec);
 	if (ret != half) print_error(ret, ec);
 	ret = s->write(piece1 + half, 0, half, half, ec);
@@ -664,14 +666,15 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	s->m_disk_pool = &dp;
 
 	// allocate the files and create the directories
-	s->initialize(true, ec);
-	if (ec) std::cerr << "initialize: " << ec.message() << std::endl;
+	storage_error se;
+	s->initialize(true, se);
+	if (se) std::cerr << "initialize: " << se.ec.message() << std::endl;
 
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage/_folder3/subfolder/test5.tmp")));	
 	TEST_CHECK(exists(combine_path(test_path, "temp_storage/folder2/test3.tmp")));	
 
-	s->delete_files(ec);
-	if (ec) std::cerr << "delete_files: " << ec.message() << std::endl;
+	s->delete_files(se);
+	if (se) std::cerr << "delete_files: " << se.ec.message() << std::endl;
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
 }
@@ -684,7 +687,7 @@ namespace
 			<< " piece: " << j.piece
 			<< " have: " << j.offset
 			<< " str: " << j.str
-			<< " e: " << j.error.message()
+			<< " e: " << j.error.ec.message()
 			<< std::endl;
 
 		if (j.offset >= 0) array[j.offset] = true;

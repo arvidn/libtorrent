@@ -130,13 +130,13 @@ struct test_storage : storage_interface
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual void initialize(bool allocate_files, error_code& ec)
+	virtual void initialize(bool allocate_files, storage_error& ec)
 	{ m_lower_layer->initialize(allocate_files, ec); }
 
-	virtual bool has_any_file(error_code& ec)
+	virtual bool has_any_file(storage_error& ec)
 	{ return m_lower_layer->has_any_file(ec); }
 
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
 	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs, ec); }
 
 	void set_limit(int lim)
@@ -145,18 +145,18 @@ struct test_storage : storage_interface
 		m_limit = lim;
 	}
 
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, error_code& ec)
+	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
 	{
 		mutex::scoped_lock l(m_mutex);
 		if (m_written > m_limit)
 		{
 			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
+			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
+			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			ec = error_code(ENOSPC, get_posix_category());
+			ec.ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
@@ -169,21 +169,21 @@ struct test_storage : storage_interface
 	virtual size_type physical_offset(int piece_index, int offset)
 	{ return m_lower_layer->physical_offset(piece_index, offset); }
 
-	virtual int read(char* buf, int slot, int offset, int size, error_code& ec)
+	virtual int read(char* buf, int slot, int offset, int size, storage_error& ec)
 	{ return m_lower_layer->read(buf, slot, offset, size, ec); }
 
-	virtual int write(const char* buf, int slot, int offset, int size, error_code& ec)
+	virtual int write(const char* buf, int slot, int offset, int size, storage_error& ec)
 	{
 		mutex::scoped_lock l(m_mutex);
 		if (m_written >= m_limit)
 		{
 			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
+			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
+			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			ec = error_code(ENOSPC, get_posix_category());
+			ec.ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
@@ -196,30 +196,30 @@ struct test_storage : storage_interface
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual void move_storage(std::string const& save_path, error_code& ec)
+	virtual void move_storage(std::string const& save_path, storage_error& ec)
 	{ m_lower_layer->move_storage(save_path, ec); }
 
-	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
+	virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
 
-	virtual void write_resume_data(entry& rd, error_code& ec) const
+	virtual void write_resume_data(entry& rd, storage_error& ec) const
 	{ m_lower_layer->write_resume_data(rd, ec); }
 
-	virtual void move_slot(int src_slot, int dst_slot, error_code& ec)
+	virtual void move_slot(int src_slot, int dst_slot, storage_error& ec)
 	{ m_lower_layer->move_slot(src_slot, dst_slot, ec); }
 
-	virtual void swap_slots(int slot1, int slot2, error_code& ec)
+	virtual void swap_slots(int slot1, int slot2, storage_error& ec)
 	{ m_lower_layer->swap_slots(slot1, slot2, ec); }
 
-	virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec)
+	virtual void swap_slots3(int slot1, int slot2, int slot3, storage_error& ec)
 	{ m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
 
-	virtual void release_files(error_code& ec) { return m_lower_layer->release_files(ec); }
+	virtual void release_files(storage_error& ec) { return m_lower_layer->release_files(ec); }
 
-	virtual void rename_file(int index, std::string const& new_filename, error_code& ec)
+	virtual void rename_file(int index, std::string const& new_filename, storage_error& ec)
 	{ m_lower_layer->rename_file(index, new_filename, ec); }
 
-	virtual void delete_files(error_code& ec) { m_lower_layer->delete_files(ec); }
+	virtual void delete_files(storage_error& ec) { m_lower_layer->delete_files(ec); }
 
 	file::aiocb_t* async_readv(
 		file::iovec_t const* bufs
