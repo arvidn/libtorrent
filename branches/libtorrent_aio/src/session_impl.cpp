@@ -2454,10 +2454,16 @@ namespace aux {
 		incoming_connection(s);
 	}
 
-	void session_impl::close_connection(peer_connection const* p
+	void session_impl::close_connection(peer_connection* p
 		, error_code const& ec)
 	{
 		TORRENT_ASSERT(is_network_thread());
+
+		// someone else is holding a reference, it's important that
+		// it's destructed from the network thread. Make sure the
+		// last reference is held by the network thread.
+		if (p->refcount() > 1)
+			m_undead_peers.push_back(boost::intrusive_ptr<peer_connection>(p));
 
 // too expensive
 //		INVARIANT_CHECK;
@@ -2624,6 +2630,14 @@ namespace aux {
 
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
+
+		for (std::vector<intrusive_ptr<peer_connection> >::iterator i = m_undead_peers.begin();
+			i != m_undead_peers.end(); ++i)
+		{
+			if ((*i)->refcount() > 1) continue;
+			m_undead_peers.erase(i);
+			--i;
+		}
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
 		m_last_second_tick = now;

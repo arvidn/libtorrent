@@ -231,7 +231,7 @@ namespace libtorrent
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection const* p, error_code const& ec);
+			void close_connection(peer_connection* p, error_code const& ec);
 
 			void set_settings(session_settings const& s);
 			session_settings const& settings() const { return m_settings; }
@@ -623,6 +623,14 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+
+			// peer connections are put here when disconnected to avoid
+			// race conditions with the disk thread. It's important that
+			// peer connections are destructed from the network thread,
+			// once a peer is disconnected, it's put in this list and
+			// every second their refcount is checked, and if it's 1,
+			// they are deleted (from the network thread)
+			std::vector<intrusive_ptr<peer_connection> > m_undead_peers;
 
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
