@@ -933,8 +933,8 @@ namespace libtorrent
 			int m_num_banned_peers;
 			int m_banned_for_hash_failure;
 			vm_statistics_data_t m_last_vm_stat;
-			sliding_average<5> m_read_ops;
-			sliding_average<5> m_write_ops;;
+			sliding_average<20> m_read_ops;
+			sliding_average<20> m_write_ops;;
 #endif
 
 			// each second tick the timer takes a little
