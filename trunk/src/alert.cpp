@@ -341,6 +341,10 @@ namespace libtorrent {
 	{
 		while (!m_alerts.empty())
 		{
+			TORRENT_ASSERT(alert_cast<save_resume_data_alert>(m_alerts.front()) == 0
+				&& "shutting down session with remaining resume data alerts in the alert queue. "
+				"You proabably wany to make sure you always wait for all resume data "
+				"alerts before shutting down");
 			delete m_alerts.front();
 			m_alerts.pop_front();
 		}
