@@ -282,6 +282,9 @@ void bind_torrent_handle()
 #define _ allow_threads
 
     class_<torrent_handle>("torrent_handle")
+        .def(self == self)
+        .def(self != self)
+        .def(self < self)
         .def("get_peer_info", get_peer_info)
         .def("status", _(&torrent_handle::status))
         .def("get_download_queue", get_download_queue)
