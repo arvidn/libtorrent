@@ -3092,7 +3092,7 @@ closing down.
 
 Example code to pause and save resume data for all torrents and wait for the alerts::
 
-	int num_resume_data = 0;
+	extern int outstanding_resume_data; // global counter of outstanding resume data
 	std::vector<torrent_handle> handles = ses.get_torrents();
 	ses.pause();
 	for (std::vector<torrent_handle>::iterator i = handles.begin();
@@ -3102,12 +3102,13 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		if (!h.is_valid()) continue;
 		torrent_status s = h.status();
 		if (!s.has_metadata) continue;
+		if (!s.need_save_resume_data()) continue;
 
 		h.save_resume_data();
-		++num_resume_data;
+		++outstanding_resume_data;
 	}
 
-	while (num_resume_data > 0)
+	while (outstanding_resume_data > 0)
 	{
 		alert const* a = ses.wait_for_alert(seconds(10));
 
@@ -3119,7 +3120,7 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		if (alert_cast<save_resume_data_failed_alert>(a))
 		{
 			process_alert(a);
-			--num_resume_data;
+			--outstanding_resume_data;
 			continue;
 		}
 
@@ -3135,8 +3136,15 @@ Example code to pause and save resume data for all torrents and wait for the ale
 			/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
-		--num_resume_data;
+		--outstanding_resume_data;
 	}
+
+.. note:: Note how ``outstanding_resume_data`` is a global counter in this example.
+	This is deliberate, otherwise there is a race condition for torrents that
+	was just asked to save their resume data, they posted the alert, but it has
+	not been received yet. Those torrents would report that they don't need to
+	save resume data again, and skipped by the initial loop, and thwart the counter
+	otherwise.
 	
 
 need_save_resume_data()
@@ -3150,6 +3158,11 @@ This function returns true if any whole chunk has been downloaded since the
 torrent was first loaded or since the last time the resume data was saved. When
 saving resume data periodically, it makes sense to skip any torrent which hasn't
 downloaded anything since the last time.
+
+.. note:: A torrent's resume data is considered saved as soon as the alert
+	is posted. It is important to make sure this alert is received and handled
+	in order for this function to be meaningful.
+
 
 status()
 --------

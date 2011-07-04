@@ -189,6 +189,10 @@ bool print_fails = false;
 bool print_send_bufs = true;
 bool print_disk_stats = false;
 
+// the number of times we've asked to save resume data
+// without having received a response (successful or failure)
+int num_outstanding_resume_data = 0;
+
 enum {
 	torrents_all,
 	torrents_downloading,
@@ -781,7 +785,11 @@ void scan_dir(std::string const& dir_path
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
-		if (h.need_save_resume_data()) h.save_resume_data();
+		if (h.need_save_resume_data())
+		{
+			h.save_resume_data();
+			++num_outstanding_resume_data;
+		}
 
 		files.erase(i++);
 	}
@@ -851,9 +859,11 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// will save it to disk
 		torrent_handle h = p->handle;
 		h.save_resume_data();
+		++num_outstanding_resume_data;
 	}
 	else if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
 	{
+		--num_outstanding_resume_data;
 		torrent_handle h = p->handle;
 		TORRENT_ASSERT(p->resume_data);
 		if (p->resume_data)
@@ -869,6 +879,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
+		--num_outstanding_resume_data;
 		torrent_handle h = p->handle;
 		if (non_files.find(h) == non_files.end()
 			&& std::find_if(files.begin(), files.end()
@@ -882,6 +893,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// will save it to disk
 		torrent_handle h = p->handle;
 		h.save_resume_data();
+		++num_outstanding_resume_data;
 	}
 }
 
@@ -1306,9 +1318,11 @@ int main(int argc, char* argv[])
 	std::vector<peer_info> peers;
 	std::vector<partial_piece_info> queue;
 
+	int tick = 0;
+
 	while (loop_limit > 1 || loop_limit == 0)
 	{
-
+		++tick;
 		handles.clear();
 		memset(counters, 0, sizeof(counters));
 		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
@@ -1479,7 +1493,10 @@ int main(int argc, char* argv[])
 					, end(handles.end()); i != end; ++i)
 				{
 					if (i->need_save_resume)
+					{
 						i->handle.save_resume_data();
+						++num_outstanding_resume_data;
+					}
 				}
 			}
 
@@ -1599,6 +1616,9 @@ int main(int argc, char* argv[])
 		alerts.clear();
 
 		session_status sess_stat = ses.status();
+
+		// in test mode, also quit when we loose the last peer
+		if (loop_limit > 1 && sess_stat.num_peers == 0 && tick > 30) break;
 
 		std::string out;
 		out = "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
@@ -2104,7 +2124,6 @@ int main(int argc, char* argv[])
 
 	// keep track of the number of resume data
 	// alerts to wait for
-	int num_resume_data = 0;
 	int num_paused = 0;
 	int num_failed = 0;
 
@@ -2116,18 +2135,30 @@ int main(int argc, char* argv[])
 		i != temp.end(); ++i)
 	{
 		torrent_status& st = *i;
-		if (!st.handle.is_valid()) continue;
-		if (!st.has_metadata) continue;
-		if (!st.need_save_resume) continue;
+		if (!st.handle.is_valid())
+		{
+			printf("  skipping, invalid handle\n");
+			continue;
+		}
+		if (!st.has_metadata)
+		{
+			printf("  skipping %s, no metadata\n", st.handle.name().c_str());
+			continue;
+		}
+		if (!st.need_save_resume)
+		{
+			printf("  skipping %s, resume file up-to-date\n", st.handle.name().c_str());
+			continue;
+		}
 
 		// save_resume_data will generate an alert when it's done
 		st.handle.save_resume_data();
-		++num_resume_data;
-		printf("\r%d  ", num_resume_data);
+		++num_outstanding_resume_data;
+		printf("\r%d  ", num_outstanding_resume_data);
 	}
-	printf("\nwaiting for resume data\n");
+	printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
 
-	while (num_resume_data > 0)
+	while (num_outstanding_resume_data > 0)
 	{
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == 0) continue;
@@ -2146,24 +2177,24 @@ int main(int argc, char* argv[])
 			{
 				++num_paused;
 				printf("\rleft: %d failed: %d pause: %d "
-						, num_resume_data, num_failed, num_paused);
+					, num_outstanding_resume_data, num_failed, num_paused);
+				continue;
+			}
+
+			if (alert_cast<save_resume_data_failed_alert>(*i))
+			{
+				++num_failed;
+				--num_outstanding_resume_data;
+				printf("\rleft: %d failed: %d pause: %d "
+					, num_outstanding_resume_data, num_failed, num_paused);
 				continue;
 			}
 
 			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(*i);
-			if (alert_cast<save_resume_data_failed_alert>(*i))
-			{
-				++num_failed;
-				--num_resume_data;
-				printf("\rleft: %d failed: %d pause: %d "
-					, num_resume_data, num_failed, num_paused);
-				continue;
-			}
-
 			if (!rd) continue;
-			--num_resume_data;
+			--num_outstanding_resume_data;
 			printf("\rleft: %d failed: %d pause: %d "
-				, num_resume_data, num_failed, num_paused);
+				, num_outstanding_resume_data, num_failed, num_paused);
 
 			if (!rd->resume_data) continue;
 

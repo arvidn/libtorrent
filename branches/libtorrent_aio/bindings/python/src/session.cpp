@@ -168,7 +168,7 @@ namespace
         {
             std::string resume = extract<std::string>(params["resume_data"]);
             rd.resize(resume.size());
-            std::memcpy(&rd[0], &rd[0], rd.size());
+            std::memcpy(&rd[0], &resume[0], rd.size());
             p.resume_data = &rd;
         }
         if (params.has_key("storage_mode"))
