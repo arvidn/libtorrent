@@ -20,20 +20,23 @@ import random
 
 # to set up the test, build the example directory in release
 # with statistics=on and copy fragmentation_test, client_test
-# and connection_tester to a directory called 'stage' (or make
-# a symbolic link to the bjam output directory).
+# and connection_tester to a directory called 'stage_aio'
+# and 'stage_syncio' (or make a symbolic link to the bjam
+# output directory).
 # make sure gnuplot is installed.
 
 # the following lists define the space tests will be run in
 
 # variables to test. All these are run on the first
 # entry in the filesystem list.
-cache_sizes = [0, 512, 1024, 2048, 4096, 8192, 16384]
-peers = [10, 100, 500, 1000, 2000]
+cache_sizes = [0, 32768, 393216]
+peers = [200, 1000, 2000]
+builds = ['syncio']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
-filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
+#filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
+filesystem = ['ext3']
 
 # the number of peers for the filesystem test. The
 # idea is to stress test the filesystem by using a lot
@@ -42,13 +45,16 @@ filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
 filesystem_peers = 200
 
 # the amount of cache for the filesystem test
-filesystem_cache = 8192
+# 6 GiB of cache
+filesystem_cache = 393216
 
 # the number of seconds to run each test. It's important that
 # this is shorter than what it takes to finish downloading
 # the test torrent, since then the average rate will not
 # be representative of the peak anymore
-test_duration = 100
+# this has to be long enough to download a full copy
+# of the test torrent
+test_duration = 1000
 
 
 
@@ -57,12 +63,20 @@ if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
 	print 'please set ulimit -n to at least 4000'
 	sys.exit(1)
 
+def build_stage_dirs():
+	ret = []
+	for i in builds:
+		ret.append('stage_%s' % i)
+	return ret
+
 # make sure we have all the binaries available
-binaries = ['stage/client_test', 'stage/connection_tester', 'stage/fragmentation_test']
-for i in binaries:
-	if not os.path.exists(i):
-		print 'make sure "%s" is available in current working directory' % i
-		sys.exit(1)
+binaries = ['client_test', 'connection_tester', 'fragmentation_test', 'parse_access_log']
+for b in build_stage_dirs():
+	for i in binaries:
+		p = os.path.join(b, i)
+		if not os.path.exists(p):
+			print 'make sure "%s" is available in ./%s' % (i, b)
+			sys.exit(1)
 
 for i in filesystem:
 	if not os.path.exists(i):
@@ -74,7 +88,7 @@ for i in filesystem:
 # make sure we have a test torrent
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
-	os.system('./stage/connection_tester gen-torrent test.torrent')
+	os.system('./stage_%s/connection_tester gen-torrent test.torrent' % builds[0])
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -89,11 +103,13 @@ def build_commandline(config, port):
 	if config['read-ahead'] == False:
 		no_read_ahead = '-j'
 	allocation_mode = config['allocation-mode']
+
+	#TODO: take config['coalesce'] into account
 		
 	global test_duration
 
-	return './stage/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt -a %s test.torrent' \
-		% (test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
+	return './stage_%s/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt -a %s test.torrent' \
+		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
 			, no_disk_reorder, no_read_ahead, test_duration, port, config['allocation-mode'])
 
 def delete_files(files):
@@ -101,13 +117,18 @@ def delete_files(files):
 		try: os.remove(i)
 		except:
 			try: shutil.rmtree(i)
-			except: pass
+			except:
+				try:
+					if os.exists(i): print 'failed to delete %s' % i
+				except: pass
 
-def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True, preallocate=False):
-	config = {'test': 'dual', 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'allow-disk-reorder': reorder, 'cache-size': cache_size, 'read-ahead': readahead}
+def build_test_config(fs, num_peers, cache_size, readahead=True, reorder=True, preallocate=False, coalesce=True, test='upload', build='aio'):
+	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'allow-disk-reorder': reorder, 'cache-size': cache_size, 'read-ahead': readahead}
 	if preallocate: config['allocation-mode'] = 'allocate'
 	else: config['allocation-mode'] = 'sparse'
-
+	if coalesce: config['coalesce'] = True
+	else: config['coalesce'] = False
+	config['build'] = build
 	return config
 
 def build_target_folder(config):
@@ -115,17 +136,26 @@ def build_target_folder(config):
 	if config['allow-disk-reorder'] == False: reorder = 'no-reorder'
 	readahead = 'readahead'
 	if config['read-ahead'] == False: readahead = 'no-readahead'
+	coalesce = 'coalesce'
+	if config['coalesce'] == False: coalesce = 'no-coalesce'
+	test = 'seed'
+	if config['test'] == 'upload': test = 'download'
 
-	return 'results_%d_%d_%s_%s_%s_%s_%s' % (config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], config['test'], reorder, readahead, config['allocation-mode'])
+	return 'results_%s_%s_%d_%d_%s_%s_%s_%s_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], reorder, readahead, config['allocation-mode'], coalesce)
 
 def run_test(config):
 
-	if os.path.exists(build_target_folder(config)):
-		print 'results already exists, skipping test'
+	target_folder = build_target_folder(config)
+	if os.path.exists(target_folder):
+		print 'results already exists, skipping test (%s)' % target_folder
 		return
 
 	# make sure any previous test file is removed
-	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state', 'session_stats'])
+	# don't clean up unless we're running a download-test, so that we leave the test file
+	# complete for a seed test.
+	if config['test'] == 'upload':
+		print 'deleting files'
+		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state', 'session_stats'])
 
 	try: os.mkdir('session_stats')
 	except: pass
@@ -149,8 +179,9 @@ def run_test(config):
 	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE)
 	# enable disk stats printing
 	print >>client.stdin, 'x',
+	# when allocating storage, we have to wait for it to complete before we can connect
 	time.sleep(1)
-	cmdline = './stage/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['test'], config['num-peers'], port)
+	cmdline = './stage_%s/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['build'], config['test'], config['num-peers'], port)
 	print 'launching: %s' % cmdline
 	tester_output = open('session_stats/tester.output', 'w+')
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
@@ -164,16 +195,18 @@ def run_test(config):
 
 	# run fragmentation test
 	print 'analyzing fragmentation'
-	os.system('./stage/fragmentation_test test.torrent %s' % config['save-path'])
+	os.system('./stage_%s/fragmentation_test test.torrent %s' % (config['build'], config['save-path']))
 	shutil.copy('fragmentation.log', 'session_stats/')
 	shutil.copy('fragmentation.png', 'session_stats/')
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
+	shutil.copy('file_access.log', 'session_stats/')
 
 	os.chdir('session_stats')
 
 	# parse session stats
 	print 'parsing session log'
 	os.system('python ../../parse_session_stats.py *.0000.log')
+	os.system('../stage_%s/parse_access_log file_access.log %s' % (config['build'], os.path.join('..', config['save-path'], 'stress_test_file')))
 
 	os.chdir('..')
 
@@ -182,22 +215,38 @@ def run_test(config):
 	os.rename('session_stats', build_target_folder(config))
 
 	# clean up
-	print 'cleaning up'
-	delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
+	# don't clean up unless we ran a seed-test, so that we leave the test file
+	# complete for the seed test. i.e. we don't clean up if we ran a download test
+#	if config['test'] == 'download':
+#		print 'cleaning up'
+#		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
 
 	port += 1
 
+#config = build_test_config('ext4', filesystem_peers, filesystem_cache, True, True, False)
+#run_test(config)
+#sys.exit(0)
+
 for fs in filesystem:
-	for preallocate in [True, False]:
-		config = build_test_config(fs, filesystem_peers, filesystem_cache, preallocate)
-		run_test(config)
+#	for preallocate in [True, False]:
+	rdahead = True
+	reorder = True
+	preallocate = False
+	for b in builds:
+		for test in ['upload', 'download']:
+			config = build_test_config(fs, filesystem_peers, filesystem_cache, rdahead, reorder, preallocate, test=test, build=b)
+			run_test(config)
 
 for c in cache_sizes:
 	for p in peers:
-		for rdahead in [True, False]:
-#			for reorder in [True, False]:
-			reorder = True
-			for preallocate in [True, False]:
-				config = build_test_config(filesystem[0], p, c, rdahead, reorder, preallocate)
+#		for rdahead in [True, False]:
+		rdahead = False
+#		for reorder in [True, False]:
+		reorder = True
+#		for preallocate in [True, False]:
+		preallocate = False
+		for b in builds:
+			for test in ['upload', 'download']:
+				config = build_test_config(filesystem[0], p, c, rdahead, reorder, preallocate, test=test, build=b)
 				run_test(config)
 
