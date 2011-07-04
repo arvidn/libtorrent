@@ -2154,7 +2154,7 @@ namespace libtorrent
 			{
 				error_code ec(GetLastError(), get_system_category());
 				DLOG(stderr, "GetQueuedCompletionStatus() = FALSE %s [%p]\n", ec.message().c_str(), this);
-				sleep(100);
+				sleep(10);
 			}
 			if (key == NULL && ol != 0)
 			{
@@ -2420,6 +2420,7 @@ namespace libtorrent
 				{
 					// we did not issue a single job! avoid spinning
 					// and pegging the CPU
+					TORRENT_ASSERT(iocbs_reaped);
 					sleep(10);
 				}
 			}
