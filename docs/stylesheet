@@ -72,7 +72,7 @@
     ["normal" , {
       "parent": "base"
     }],
-    ["title_reference" , {
+    ["title-reference" , {
       "parent": "normal",
       "fontName": "stdItalic"
     }],
@@ -98,14 +98,14 @@
       "parent": "bodytext",
       "alignment": "TA_CENTER"
     }],
-    ["definition_list_term" , {
+    ["definition-list-term" , {
       "parent": "normal",
       "fontName": "stdBold",
       "spaceBefore": 4,
       "spaceAfter": 0,
       "keepWithNext": true
     }],
-    ["definition_list_classifier" , {
+    ["definition-list-classifier" , {
       "parent": "normal",
       "fontName": "stdItalic"
     }],
