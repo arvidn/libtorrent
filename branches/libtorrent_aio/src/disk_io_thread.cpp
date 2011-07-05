@@ -1238,13 +1238,13 @@ namespace libtorrent
 			io_range(p, 0, INT_MAX, op_write);
 		}
 
-		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
-
 		if (m_settings.disable_hash_checks)
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning\n", this);
 			return 0;
 		}
+
+		block_cache::cached_piece_entry* pe = 0;
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
@@ -1252,15 +1252,19 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p] do_hash: allocating a new piece\n", this);
 			// allocate_read_piece will add the job to the piece
+			// and allocate a piece and fill in p
 			ret = allocate_read_piece(j, p);
 			// if allocation failed, fail the disk operation
 			if (ret != 0 && ret != defer_handler) return ret;
 			job_added = true;
 			ret = defer_handler;
 			m_cache_stats.total_read_back += p->blocks_in_piece;
+			pe = const_cast<block_cache::cached_piece_entry*>(&*p);
 		}
 		else
 		{
+			pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+
 			// we already had a piece allocated, but we might not have
 			// all the blocks we need in the cache
 			// issue read commands to read those blocks in
