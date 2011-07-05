@@ -409,7 +409,7 @@ namespace libtorrent
 		, m_apply_ip_filter(p.apply_ip_filter)
 		, m_merge_resume_trackers(p.merge_resume_trackers)
 	{
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 #endif
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
@@ -1328,7 +1328,7 @@ namespace libtorrent
 			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_resume_data_loaded = true;
 #endif
 			return;
@@ -1372,7 +1372,7 @@ namespace libtorrent
 			}
 		}
 	
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = true;
 #endif
 
