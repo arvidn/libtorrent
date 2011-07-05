@@ -4883,13 +4883,6 @@ namespace aux {
 		// we know it's safe to destruct the disk thread.
 		m_disk_thread.join();
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		for (std::vector<intrusive_ptr<peer_connection> >::iterator i = m_undead_peers.begin();
-			i != m_undead_peers.end(); ++i)
-		{
-			TORRENT_ASSERT((*i)->refcount() == 1);
-		}
-#endif
 		m_undead_peers.clear();
 
 #if defined TORRENT_ASIO_DEBUGGING
