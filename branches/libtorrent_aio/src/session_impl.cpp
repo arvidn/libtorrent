@@ -3149,8 +3149,7 @@ namespace aux {
 		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
 			(host_info_t)vm_stat, &host_count);
 #elif defined TORRENT_LINUX
-		char buffer[4096];
-		char string[1024];
+		char string[4096];
 		boost::uint32_t value;
 		FILE* f = fopen("/proc/vmstat", "r");
 		int ret = 0;
@@ -4883,6 +4882,15 @@ namespace aux {
 		// the main thread has handled all the outstanding requests
 		// we know it's safe to destruct the disk thread.
 		m_disk_thread.join();
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		for (std::vector<intrusive_ptr<peer_connection> >::iterator i = m_undead_peers.begin();
+			i != m_undead_peers.end(); ++i)
+		{
+			TORRENT_ASSERT((*i)->refcount() == 1);
+		}
+#endif
+		m_undead_peers.clear();
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;
