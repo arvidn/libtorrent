@@ -139,7 +139,9 @@ rule linking ( properties * )
 
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
-		&& <variant>debug in $(properties)
+		&& (<variant>debug in $(properties)
+			|| <asserts>release in $(properties)
+			|| <asserts>production in $(properties))
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
