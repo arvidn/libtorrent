@@ -240,6 +240,20 @@ std::pair<block_cache::lru_iterator, block_cache::lru_iterator> block_cache::all
 	return std::make_pair(idx.begin(), idx.end());
 }
 
+void block_cache::clear()
+{
+	cache_piece_index_t& idx = m_pieces.get<0>();
+	std::vector<char*> buffers;
+	for (iterator i = idx.begin(); i != idx.end(); ++i)
+	{
+		TORRENT_ASSERT(i->jobs.empty());
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+		drain_piece_bufs(*pe, buffers);
+	}
+	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
+	idx.clear();
+}
+
 std::pair<block_cache::iterator, block_cache::iterator> block_cache::pieces_for_storage(void* st)
 {
 	cache_piece_index_t& idx = m_pieces.get<0>();

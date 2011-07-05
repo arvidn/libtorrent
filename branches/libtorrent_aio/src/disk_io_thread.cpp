@@ -401,6 +401,18 @@ namespace libtorrent
 	disk_io_thread::~disk_io_thread()
 	{
 		DLOG(stderr, "destructing disk_io_thread [%p]\n", this);
+
+		TORRENT_ASSERT(m_abort == true);
+		TORRENT_ASSERT(m_in_progress == 0);
+		TORRENT_ASSERT(m_to_issue == 0);
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// by now, all pieces should have been evicted
+		std::pair<block_cache::iterator, block_cache::iterator> pieces
+			= m_disk_cache.all_pieces();
+		TORRENT_ASSERT(pieces.first == pieces.second);
+#endif
+
 #if TORRENT_USE_AIO
 		sigset_t mask;
 		sigemptyset(&mask);
@@ -426,8 +438,6 @@ namespace libtorrent
 		close(m_disk_event_fd);
 		close(m_job_event_fd);
 #endif
-
-		TORRENT_ASSERT(m_abort == true);
 	}
 
 	bool disk_io_thread::can_write() const
@@ -2431,9 +2441,9 @@ namespace libtorrent
 			// jobs, that's why we'll keep looping while m_in_progress
 			// is has jobs in it as well
 		
-		} while (!m_abort || m_in_progress);
+		} while (!m_abort || m_in_progress || m_to_issue);
 
-// #error assert there are no outstanding jobs in the cache
+		m_disk_cache.clear();
 
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.

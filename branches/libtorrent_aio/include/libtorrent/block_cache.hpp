@@ -223,6 +223,10 @@ namespace libtorrent
 			return m_pieces.project<0>(it);
 		}
 
+		// deletes all pieces in the cache. asserts that there
+		// are no outstanding jobs
+		void clear();
+
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
