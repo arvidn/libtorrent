@@ -1343,7 +1343,12 @@ int main(int argc, char* argv[])
 
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
-		if (loop_limit > 1) --loop_limit;
+		if (loop_limit > 1)
+		{
+			// in test mode, don't quit until we're seeding
+			if (loop_limit > 2 || active_torrent == -1 || handles[active_torrent].is_seeding)
+				--loop_limit;
+		}
 		int c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
