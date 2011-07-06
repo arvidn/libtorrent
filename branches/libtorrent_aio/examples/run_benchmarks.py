@@ -31,12 +31,12 @@ import random
 # entry in the filesystem list.
 cache_sizes = [0, 32768, 393216]
 peers = [200, 1000, 2000]
-builds = ['aio', 'syncio']
+builds = ['syncio', 'aio']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
 #filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
-filesystem = ['ext3']
+filesystem = ['ext4']
 
 # the number of peers for the filesystem test. The
 # idea is to stress test the filesystem by using a lot
@@ -54,7 +54,7 @@ filesystem_cache = 393216
 # be representative of the peak anymore
 # this has to be long enough to download a full copy
 # of the test torrent
-test_duration = 1000
+test_duration = 300
 
 
 
@@ -175,8 +175,9 @@ def run_test(config):
 	print '*          RUNNING TEST         *'
 	print '*********************************\n\n'
 	client_output = open('session_stats/client.output', 'w+')
+	client_error = open('session_stats/client.error', 'w+')
 	print 'launching: %s' % cmdline
-	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE)
+	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
 	# enable disk stats printing
 	print >>client.stdin, 'x',
 	# when allocating storage, we have to wait for it to complete before we can connect

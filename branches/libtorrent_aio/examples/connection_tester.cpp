@@ -397,8 +397,8 @@ void generate_torrent(std::vector<char>& buf)
 	file_storage fs;
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
-	// 20 GiB should be enough to not fit in physical RAM
-	const int num_pieces = 20 * 1024;
+	// 10 GiB should be enough to not fit in physical RAM
+	const int num_pieces = 10 * 1024;
 	const size_type total_size = size_type(piece_size) * num_pieces;
 	fs.add_file("stress_test_file", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
