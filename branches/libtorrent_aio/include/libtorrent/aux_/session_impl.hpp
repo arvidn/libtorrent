@@ -632,6 +632,10 @@ namespace libtorrent
 			// they are deleted (from the network thread)
 			std::vector<intrusive_ptr<peer_connection> > m_undead_peers;
 
+			// keep the io_service alive until we have posted the job
+			// to clear the undead peers
+			boost::optional<io_service::work> m_work;
+
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this has all torrents that wants to be checked in it

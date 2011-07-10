@@ -457,7 +457,7 @@ namespace libtorrent
 
 	void disk_io_thread::join()
 	{
-		DLOG(stderr, "waiting for disk_io_thread [%p]\n", this);
+		DLOG(stderr, "[%p] waiting for disk_io_thread\n", this);
 		m_disk_io_thread.join();
 		TORRENT_ASSERT(m_abort == true);
 	}
@@ -945,7 +945,8 @@ namespace libtorrent
 		"read_and_hash",
 		"cache_piece",
 		"finalize_file",
-		"get_cache_info"
+		"get_cache_info",
+		"hashing_done"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job j)
@@ -1951,6 +1952,8 @@ namespace libtorrent
 		mutex::scoped_lock l (m_job_mutex);
 		m_queued_jobs.push_back(j);
 
+		DLOG(stderr, "[%p] add_job job: %s\n", this, job_action_name[j.action]);
+
 		if (j.action == disk_io_job::write)
 		{
 			m_queue_buffer_size += j.buffer_size;
@@ -1971,10 +1974,10 @@ namespace libtorrent
 #elif (TORRENT_USE_AIO && TORRENT_USE_SIGNALFD) || TORRENT_USE_IOSUBMIT
 		boost::uint64_t dummy = 1;
 		int len = write(m_job_event_fd, &dummy, sizeof(dummy));
-		DLOG(stderr, "write(m_job_event_fd) = %d [%p]\n", len, this);
+		DLOG(stderr, "[%p] write(m_job_event_fd) = %d\n", this, len);
 		TORRENT_ASSERT(len == sizeof(dummy));
 #else
-		g_job_sem.signal();
+		g_job_sem.signal_all();
 #endif
 		return ret;
 	}
@@ -2020,7 +2023,7 @@ namespace libtorrent
 		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs
-		g_job_sem.signal();
+		g_job_sem.signal_all();
 	}
 #endif
 
@@ -2162,13 +2165,14 @@ namespace libtorrent
 			DWORD bytes_transferred;
 			ULONG_PTR key;
 			OVERLAPPED* ol = 0;
-			DLOG(stderr, "GetQueuedCompletionStatus() [%p]\n", this);
+			DLOG(stderr, "[%p] GetQueuedCompletionStatus()\n", this);
 			bool ret = GetQueuedCompletionStatus(m_completion_port
 				, &bytes_transferred, &key, &ol, INFINITE);
 			if (ret == false)
 			{
 				error_code ec(GetLastError(), get_system_category());
-				DLOG(stderr, "GetQueuedCompletionStatus() = FALSE %s [%p]\n", ec.message().c_str(), this);
+				DLOG(stderr, "[%p] GetQueuedCompletionStatus() = FALSE %s\n"
+					, this, ec.message().c_str());
 				sleep(10);
 			}
 			if (key == NULL && ol != 0)
@@ -2234,8 +2238,8 @@ namespace libtorrent
 					// event fd, we could end up reaping more events than were signalled by the
 					// event fd, resulting in trying to reap them again later, getting stuck
 					num_events = io_getevents(m_io_queue, 1, (std::min)(max_events, int(n)), events, NULL);
-					if (num_events < 0) DLOG(stderr, "io_getevents() = %d %s\n"
-						, num_events, strerror(-num_events));
+					if (num_events < 0) DLOG(stderr, "[%p] io_getevents() = %d %s\n"
+						, this, num_events, strerror(-num_events));
 
 					for (int i = 0; i < num_events; ++i)
 					{
@@ -2312,10 +2316,13 @@ namespace libtorrent
 			}
 			}
 #else
-			DLOG(stderr, "sem_wait() [%p]\n", this);
+			DLOG(stderr, "[%p] sem_wait()\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
-			g_job_sem.wait();
-			DLOG(stderr, "sem_wait() returned [%p]\n", this);
+			// always time out after one second, since the global nature of the semaphore
+			// makes it unreliable when there are multiple instances of the disk_io_thread
+			// object.
+			g_job_sem.timed_wait(1000);
+			DLOG(stderr, "[%p] sem_wait() returned\n", this);
 
 			// more jobs might complete as we go through
 			// the list. In which case m_completed_aios
@@ -2329,9 +2336,9 @@ namespace libtorrent
 				last_completed_aios = complete_aios;
 				// go through all outstanding disk operations
 				// and potentially dispatch ones that are complete
-				DLOG(stderr, "reap in progress aios (%p)\n", m_in_progress);
+				DLOG(stderr, "[%p] reap in progress aios (%p)\n", this, m_in_progress);
 				m_in_progress = reap_aios(m_in_progress, m_aiocb_pool);
-				DLOG(stderr, "new in progress aios (%p)\n", m_in_progress);
+				DLOG(stderr, "[%p] new in progress aios (%p)\n", this, m_in_progress);
 				complete_aios = g_completed_aios;
 			}
 			new_job = true;
@@ -2353,7 +2360,7 @@ namespace libtorrent
 			mutex::scoped_lock l(m_job_mutex);
 			jobs.swap(m_queued_jobs);
 			l.unlock();
-			DLOG(stderr, "%d new jobs\n", int(jobs.size()));
+			DLOG(stderr, "[%p] %d new jobs\n", this, int(jobs.size()));
 
 			// go through list of newly submitted jobs
 			// and perform the appropriate action
@@ -2393,10 +2400,10 @@ namespace libtorrent
 
 				m_last_phys_off = m_to_issue->phys_offset;
 
-				DLOG(stderr, "issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
-					, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
+				DLOG(stderr, "[%p] issue aios (%p) phys_offset=%"PRId64" elevator=%d\n"
+					, this, m_to_issue, m_to_issue->phys_offset, m_elevator_direction);
 #else
-				DLOG(stderr, "issue aios (%p)\n", m_to_issue);
+				DLOG(stderr, "[%p] issue aios (%p)\n", this, m_to_issue);
 #endif
 
 
@@ -2408,7 +2415,8 @@ namespace libtorrent
 				TORRENT_ASSERT(m_num_to_issue >= num_issued);
 				m_num_to_issue -= num_issued;
 				TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
-				DLOG(stderr, "prepend aios (%p) to m_in_progress (%p)\n", pending, m_in_progress);
+				DLOG(stderr, "[%p] prepend aios (%p) to m_in_progress (%p)\n"
+					, this, pending, m_in_progress);
 
 				prepend_aios(m_in_progress, pending);
 

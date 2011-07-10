@@ -495,6 +495,7 @@ namespace aux {
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
 		, m_tracker_manager(*this, m_proxy)
+		, m_work(io_service::work(m_io_service))
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -2634,13 +2635,9 @@ namespace aux {
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
-		for (std::vector<intrusive_ptr<peer_connection> >::iterator i = m_undead_peers.begin();
-			i != m_undead_peers.end(); ++i)
-		{
-			if ((*i)->refcount() > 1) continue;
-			m_undead_peers.erase(i);
-			--i;
-		}
+		std::vector<intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
+			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) > 1);
+		m_undead_peers.erase(i, m_undead_peers.end());
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
 		m_last_second_tick = now;
@@ -4886,7 +4883,12 @@ namespace aux {
 		// we know it's safe to destruct the disk thread.
 		m_disk_thread.join();
 
-		m_undead_peers.clear();
+		// clear the undead peer list in the network thread
+		m_io_service.post(boost::bind(&std::vector<intrusive_ptr<peer_connection> >::clear
+			, &m_undead_peers));
+
+		// now it's OK for the network thread to exit
+		m_work.reset();
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;
