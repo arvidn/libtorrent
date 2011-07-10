@@ -690,10 +690,6 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 			// to the disk io thread which will call hashing_done
 			if (end > cursor)
 			{
-				DLOG(stderr, "[%p] block_cache async_hash "
-					"piece: %d begin: %d end: %d\n", &m_buffer_pool
-					, int(pe->piece), cursor, end);
-
 				ptime start_hash = time_now_hires();
 
 				submitted = m_hash_thread.async_hash(pe, cursor, end);
@@ -703,6 +699,10 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 					ptime done = time_now_hires();
 					add_hash_time(done - start_hash, num_blocks);
 				}
+
+				DLOG(stderr, "[%p] block_cache async_hash "
+					"piece: %d begin: %d end: %d submitted: %d\n", &m_buffer_pool
+					, int(pe->piece), cursor, end, submitted);
 			}
 			if (!submitted)
 			{

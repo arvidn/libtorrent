@@ -1524,25 +1524,12 @@ ret:
 	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot
 		, int offset, int num_bufs, boost::function<void(async_handler*)> const& handler)
 	{
-		// #error figure this out
-/*
-		error_code ec;
-		int ret = bufs_size(bufs, num_bufs);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-*/
 		return 0;
 	}
 
 	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs, int slot
 		, int offset, int num_bufs, boost::function<void(async_handler*)> const& handler)
 	{
-		// #error figure this out
-/*		error_code ec;
-		int ret = bufs_size(bufs, num_bufs);
-		TORRENT_ASSERT(m_disk_io_service);
-		m_disk_io_service->post(boost::bind(handler, ec, ret));
-*/
 		return 0;
 	}
 

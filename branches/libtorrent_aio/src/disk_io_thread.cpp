@@ -651,16 +651,17 @@ namespace libtorrent
 				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
 				file::aiocb_t* aios = 0;
+				boost::function<void(async_handler*)> handler;
 				if (readwrite == op_write)
 				{
 //					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					m_pending_buffer_size += to_write;
+					handler = boost::bind(&disk_io_thread::on_disk_write, this, p
+						, range_start, i, to_write, _1);
 
 					aios = p->storage->write_async_impl(iov
-						, pe.piece, to_write, iov_counter
-						, boost::bind(&disk_io_thread::on_disk_write, this, p
-							, range_start, i, to_write, _1));
+						, pe.piece, to_write, iov_counter, handler);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
 				}
@@ -669,12 +670,23 @@ namespace libtorrent
 //					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					++m_outstanding_jobs;
+					handler = boost::bind(&disk_io_thread::on_disk_read, this, p
+						, range_start, i, _1);
 					aios = pe.storage->read_async_impl(iov, pe.piece
-						, range_start * m_block_size, iov_counter
-						, boost::bind(&disk_io_thread::on_disk_read, this, p
-							, range_start, i, _1));
+						, range_start * m_block_size, iov_counter, handler);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
+				}
+
+				// this is a special case for when the storage doesn't want to produce
+				// any actual async. file operations, but just filled in the buffers
+				if (aios == 0)
+				{
+					async_handler tmp(time_now());
+					tmp.handler = handler;
+					tmp.transferred = bufs_size(iov, iov_counter);
+					tmp.references = 0;
+					handler(&tmp);
 				}
 
 #ifdef TORRENT_DEBUG
@@ -1305,6 +1317,31 @@ namespace libtorrent
 					return disk_operation_failed;
 				}
 				ret = defer_handler;
+			}
+			else
+			{
+				// we get here if the hashing is already complete
+				// in the pe->hash object. We just need to finalize
+				// it and compare to the actual hash
+
+				TORRENT_ASSERT(pe->hash->offset == j.storage->info()->piece_size(pe->piece));
+				partial_hash& ph = *pe->hash;
+				sha1_hash h = ph.h.final();
+				// return value:
+				// 0: success, piece passed hash check
+				// -1: disk failure
+				// -2: hash check failed
+				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
+				if (ret == -2)
+				{
+					j.storage->mark_failed(j.piece);
+					pe->marked_for_deletion = true;
+					DLOG(stderr, "[%p] do_hash: hash complete, returning immediately. "
+						"ret: %d piece: %d\n", this, ret, int(pe->piece));
+				}
+				delete pe->hash;
+				pe->hash = 0;
+				return ret;
 			}
 		}
 
