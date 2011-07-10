@@ -651,6 +651,7 @@ int poll_interval = 5;
 int max_connections_per_torrent = 50;
 
 bool share_mode = false;
+bool disable_storage = false;
 
 using boost::bind;
 
@@ -683,6 +684,7 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
+	if (disable_storage) p.storage = disabled_storage_constructor;
 	p.share_mode = share_mode;
 	lazy_entry resume_data;
 
@@ -1034,6 +1036,7 @@ int main(int argc, char* argv[])
 			"  -O                    Disallow disk job reordering\n"
 			"  -j                    disable disk read-ahead\n"
 			"  -z                    disable piece hash checks (used for benchmarking)\n"
+			"  -0                    disable disk I/O, read garbage and don't flush to disk\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet link\n"
@@ -1110,6 +1113,7 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
+				if (disable_storage) p.storage = disabled_storage_constructor;
 				p.share_mode = share_mode;
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
@@ -1253,6 +1257,7 @@ int main(int argc, char* argv[])
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
 			case 'q': loop_limit = atoi(arg); break;
+			case '0': disable_storage = true; --i;
 		}
 		++i; // skip the argument
 	}
@@ -1330,6 +1335,7 @@ int main(int argc, char* argv[])
 			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
+			if (disable_storage) p.storage = disabled_storage_constructor;
 			p.share_mode = share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
