@@ -1797,6 +1797,7 @@ ret:
 		j.action = disk_io_job::hash;
 		j.piece = piece;
 		j.callback = handler;
+		j.buffer_size = 0;
 		m_io_thread.add_job(j);
 	}
 

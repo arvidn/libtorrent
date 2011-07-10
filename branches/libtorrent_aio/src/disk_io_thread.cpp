@@ -325,7 +325,8 @@ namespace libtorrent
 		, m_last_file_check(time_now_hires())
 		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
-		, m_disk_cache(*this)
+		, m_hash_thread(this)
+		, m_disk_cache(*this, m_hash_thread)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -482,7 +483,7 @@ namespace libtorrent
 			, this, int(p->piece), int(p->blocks_in_piece), int(cont_block), num);
 
 		int hash_pos = p->hash == 0 ? 0 : (p->hash->offset + m_block_size - 1) / m_block_size;
-		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
 		for (; i < p->blocks_in_piece; ++i)
 		{
@@ -594,7 +595,7 @@ namespace libtorrent
 		TORRENT_ASSERT(start < end);
 		end = (std::min)(end, int(p->blocks_in_piece));
 
-		block_cache::cached_piece_entry const& pe = *p;
+		cached_piece_entry const& pe = *p;
 		int piece_size = pe.storage->info()->piece_size(pe.piece);
 		TORRENT_ASSERT(piece_size > 0);
 		
@@ -713,10 +714,8 @@ namespace libtorrent
 			if (!pe.blocks[i].pending)
 			{
 				pe.blocks[i].pending = true;
-				TORRENT_ASSERT(pe.blocks[i].refcount == 0);
 				++pe.blocks[i].refcount;
-				TORRENT_ASSERT(pe.blocks[i].refcount == 1);
-				++const_cast<block_cache::cached_piece_entry&>(pe).refcount;
+				++const_cast<cached_piece_entry&>(pe).refcount;
 			}
 			++iov_counter;
 			++ret;
@@ -924,6 +923,7 @@ namespace libtorrent
 		&disk_io_thread::do_cache_piece,
 		&disk_io_thread::do_finalize_file,
 		&disk_io_thread::do_get_cache_info,
+		&disk_io_thread::do_hashing_done,
 	};
 
 	static const char* job_action_name[] =
@@ -1139,7 +1139,7 @@ namespace libtorrent
 
 			if (p != m_disk_cache.end())
 			{
-				block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 				if (pe->hash == 0 && !m_settings.disable_hash_checks) pe->hash = new partial_hash;
 
 				// flushes the piece to disk in case
@@ -1244,7 +1244,9 @@ namespace libtorrent
 			return 0;
 		}
 
-		block_cache::cached_piece_entry* pe = 0;
+		cached_piece_entry* pe = 0;
+
+		int start_block = 0;
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
@@ -1259,38 +1261,19 @@ namespace libtorrent
 			job_added = true;
 			ret = defer_handler;
 			m_cache_stats.total_read_back += p->blocks_in_piece;
-			pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+			pe = const_cast<cached_piece_entry*>(&*p);
 		}
 		else
 		{
-			pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+			pe = const_cast<cached_piece_entry*>(&*p);
 
 			// we already had a piece allocated, but we might not have
 			// all the blocks we need in the cache
 			// issue read commands to read those blocks in
-			int start_block = 0;
-			if (p->hash) start_block = (p->hash->offset + m_block_size - 1) / m_block_size;
-
-			// if we report a piece as failed before all its blocks are written,
-			// we'll run into race conditions with the state of the piece picker
-			// when we mark a block as written, after it has been restored for
-			// failing the hash check. That's why we only can take this short-cut
-			// if there are 0 dirty blocks in the piece
-			if (p->num_dirty == 0 && start_block == p->blocks_in_piece && p->hash)
+			if (pe->hash)
 			{
-				sha1_hash h = p->hash->h.final();
-				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
-
-				// we're done with the hash
-				delete pe->hash;
-				pe->hash = 0;
-
-				if (ret == -2)
-				{
-					j.storage->mark_failed(j.piece);
-					m_disk_cache.mark_for_deletion(p);
-				}
-				return ret;
+				if (pe->hashing != -1) start_block = pe->hashing;
+				else start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
 			}
 
 			DLOG(stderr, "[%p] do_hash: reading missing blocks %d-%d\n", this
@@ -1331,22 +1314,29 @@ namespace libtorrent
 		}
 
 		// we need the partial hash object
+		bool submitted = true;
 		if (pe->hash == 0)
 		{
 			DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
 			pe->hash = new partial_hash;
+			submitted = m_hash_thread.async_hash(pe, start_block, pe->blocks_in_piece);
 		}
 
 		// increase the refcount for all blocks the hash job needs in
-		// order to complete. These are decremented in block_cache::mark_as_done
+		// order to complete. These are decremented in block_cache::reap_piece_jobs
 		// for hash jobs
-		int hash_start = (pe->hash->offset + m_block_size - 1) / m_block_size;
-		for (int i = hash_start; i < pe->blocks_in_piece; ++i)
+		for (int i = start_block; i < pe->blocks_in_piece; ++i)
 		{
 			++pe->blocks[i].refcount;
 			++pe->refcount;
 		}
 
+		if (!submitted)
+		{
+			// if the job wasn't submitted, but processed immediately
+			// we need to call the completion notification ourselves
+			m_disk_cache.hashing_done(pe, start_block, pe->blocks_in_piece, m_ios);
+		}
 #if DEBUG_STORAGE
 		DLOG(stderr, "[%p] do_hash: jobs [", this);
 		for (std::list<disk_io_job>::const_iterator i = pe->jobs.begin();
@@ -1610,6 +1600,9 @@ namespace libtorrent
 			m_file_pool.release(0);
 		}
 #endif
+		if (m_settings.hashing_threads != s.hashing_threads)
+			m_hash_thread.set_num_threads(s.hashing_threads);
+
 		m_settings = s;
 		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
@@ -1699,7 +1692,7 @@ namespace libtorrent
 		block_cache::iterator p;
 		int ret = allocate_read_piece(j, p);
 
-		block_cache::cached_piece_entry* pe = const_cast<block_cache::cached_piece_entry*>(&*p);
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 		if (pe->hash == 0) pe->hash = new partial_hash;
 
 		// 0 means all blocks are already in the cache
@@ -1721,6 +1714,8 @@ namespace libtorrent
 		// we get here if all the blocks we want are already
 		// in the cache
 
+		// #error issue an async hash job
+
 		ret = m_disk_cache.try_read(j);
 		if (ret == -2)
 		{
@@ -1737,7 +1732,7 @@ namespace libtorrent
 		delete pe->hash;
 		pe->hash = 0;
 
-		// #error do this in a hasher thread!
+//#error run this in separate threads!
 		ptime start_hash = time_now_hires();
 		hasher sha1;
 		int size = j.storage->info()->piece_size(p->piece);
@@ -1867,6 +1862,12 @@ namespace libtorrent
 			for (int b = 0; b < blocks_in_piece; ++b)
 				info.blocks[b] = i->blocks[b].buf != 0;
 		}
+		return 0;
+	}
+
+	int disk_io_thread::do_hashing_done(disk_io_job& j)
+	{
+		m_disk_cache.hashing_done((cached_piece_entry*)j.buffer, j.piece, j.offset, m_ios);
 		return 0;
 	}
 
@@ -2446,6 +2447,8 @@ namespace libtorrent
 			// is has jobs in it as well
 		
 		} while (!m_abort || m_in_progress || m_to_issue);
+
+		m_hash_thread.stop();
 
 		m_disk_cache.clear();
 

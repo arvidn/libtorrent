@@ -366,6 +366,7 @@ namespace aux {
 		TORRENT_SETTING(integer, read_job_every)
 		TORRENT_SETTING(boolean, use_disk_read_ahead)
 		TORRENT_SETTING(boolean, lock_files)
+		TORRENT_SETTING(integer, hashing_threads)
 	};
 
 #undef TORRENT_SETTING
@@ -1664,7 +1665,9 @@ namespace aux {
 			|| m_settings.no_atime_storage!= s.no_atime_storage
 			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
 			|| m_settings.no_recheck_incomplete_resume != s.no_recheck_incomplete_resume
-			|| m_settings.low_prio_disk != s.low_prio_disk)
+			|| m_settings.low_prio_disk != s.low_prio_disk
+			|| m_settings.hashing_threads != s.hashing_threads)
+	
 			update_disk_io_thread = true;
 
 		bool connections_limit_changed = m_settings.connections_limit != s.connections_limit;

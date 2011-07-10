@@ -57,6 +57,7 @@ namespace libtorrent
 	class piece_manager;
 	struct disk_buffer_pool;
 	struct cache_status;
+	struct hash_thread;
 
 	using boost::multi_index::multi_index_container;
 	using boost::multi_index::ordered_non_unique;
@@ -75,112 +76,119 @@ namespace libtorrent
 		hasher h;
 	};
 
+	struct cached_block_entry
+	{
+		cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
+			, dirty(false), pending(false), uninitialized(false) {}
+
+		char* buf;
+
+		// the number of references to this buffer. These references
+		// might be in outstanding asyncronous requests or in peer
+		// connection send buffers. We can't free the buffer until
+		// all references are gone and refcount reaches 0. The buf
+		// pointer in this struct doesn't count as a reference and
+		// is always the last to be cleared
+		boost::uint32_t refcount:15;
+
+		// this block has been written to disk
+		bool written:1;
+
+		// the number of times this block has been copied out of
+		// the cache, serving a request.
+		boost::uint32_t hitcount:13;
+
+		// if this is true, this block needs to be written to
+		// disk before it's freed. Typically all blocks in a piece
+		// would either be dirty (write coalesce cache) or not dirty
+		// (read-ahead cache). Once blocks are written to disk, the
+		// dirty flag is cleared and effectively turns the block
+		// into a read cache block
+		bool dirty:1;
+
+		// pending means that this buffer has not yet been filled in
+		// with valid data. There's an outstanding read job for this.
+		// If the dirty flag is set, it means there's an outstanding
+		// write job to write this block.
+		bool pending:1;
+
+		// this is used for freshly allocated read buffers. For read
+		// operations, the disk-I/O thread will look for this flag
+		// when issueing read jobs.
+		// it is not valid for this flag to be set for blocks where
+		// the dirty flag is set.
+		bool uninitialized:1;
+	};
+
+	struct cached_piece_entry
+	{
+		cached_piece_entry();
+		~cached_piece_entry();
+
+		// storage this piece belongs to
+		boost::intrusive_ptr<piece_manager> storage;
+
+		int get_piece() const { return piece; }
+		void* get_storage() const { return storage.get(); }
+
+		// the last time a block was writting to this piece
+		// plus the minimum amount of time the block is guaranteed
+		// to stay in the cache
+		time_t expire;
+
+		boost::uint64_t piece:18;
+
+		// the number of dirty blocks in this piece
+		boost::uint64_t num_dirty:11;
+		
+		// the number of blocks in the cache for this piece
+		boost::uint64_t num_blocks:11;
+
+		// the total number of blocks in this piece (and the number
+		// of elements in the blocks array)
+		boost::uint64_t blocks_in_piece:11;
+
+		// the sum of all refcounts in all blocks
+		boost::uint64_t refcount:11;
+		
+		// if this is true, whenever refcount hits 0, 
+		// this piece should be deleted
+		bool marked_for_deletion:1;
+
+		// this is set to true once we flush blocks past
+		// the hash cursor. Once this happens, there's
+		// no point in keeping cache blocks around for
+		// it in avoid_readback mode
+		bool need_readback:1;
+
+		// while we have an outstanding async hash operation
+		// working on this piece, 'hashing' is set to the first block
+		// in the range that is being hashed. When the operation
+		// returns, this is set to -1. -1 means there's no
+		// outstanding hash operation running
+		int hashing;
+
+		// if this is set, we'll be calculating the hash
+		// for this piece. This member stores the interim
+		// state while we're calulcating the hash.
+		partial_hash* hash;
+
+		// the pointers to the block data
+		boost::shared_array<cached_block_entry> blocks;
+		
+		// these are outstanding jobs, waiting to be
+		// handled for this piece. For read pieces, these
+		// are the write jobs that will be dispatched back
+		// to the writing peer once their data hits disk.
+		// for read jobs, these are outstanding read jobs
+		// for this piece that are waiting for data to become
+		// avaialable. Read jobs may be overlapping.
+		std::list<disk_io_job> jobs;
+	};
+
 	struct block_cache
 	{
-		block_cache(disk_buffer_pool& p);
-
-		struct cached_block_entry
-		{
-			cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
-				, dirty(false), pending(false), uninitialized(false) {}
-
-			char* buf;
-
-			// the number of references to this buffer. These references
-			// might be in outstanding asyncronous requests or in peer
-			// connection send buffers. We can't free the buffer until
-			// all references are gone and refcount reaches 0. The buf
-			// pointer in this struct doesn't count as a reference and
-			// is always the last to be cleared
-			boost::uint32_t refcount:15;
-
-			// this block has been written to disk
-			bool written:1;
-
-			// the number of times this block has been copied out of
-			// the cache, serving a request.
-			boost::uint32_t hitcount:13;
-
-			// if this is true, this block needs to be written to
-			// disk before it's freed. Typically all blocks in a piece
-			// would either be dirty (write coalesce cache) or not dirty
-			// (read-ahead cache). Once blocks are written to disk, the
-			// dirty flag is cleared and effectively turns the block
-			// into a read cache block
-			bool dirty:1;
-
-			// pending means that this buffer has not yet been filled in
-			// with valid data. There's an outstanding read job for this.
-			// If the dirty flag is set, it means there's an outstanding
-			// write job to write this block.
-			bool pending:1;
-
-			// this is used for freshly allocated read buffers. For read
-			// operations, the disk-I/O thread will look for this flag
-			// when issueing read jobs.
-			// it is not valid for this flag to be set for blocks where
-			// the dirty flag is set.
-			bool uninitialized:1;
-		};
-
-		struct cached_piece_entry
-		{
-			cached_piece_entry();
-			~cached_piece_entry();
-
-			// storage this piece belongs to
-			boost::intrusive_ptr<piece_manager> storage;
-
-			int get_piece() const { return piece; }
-			void* get_storage() const { return storage.get(); }
-
-			// the last time a block was writting to this piece
-			// plus the minimum amount of time the block is guaranteed
-			// to stay in the cache
-			time_t expire;
-
-			boost::uint64_t piece:18;
-
-			// the number of dirty blocks in this piece
-			boost::uint64_t num_dirty:11;
-			
-			// the number of blocks in the cache for this piece
-			boost::uint64_t num_blocks:11;
-
-			// the total number of blocks in this piece (and the number
-			// of elements in the blocks array)
-			boost::uint64_t blocks_in_piece:11;
-
-			// the sum of all refcounts in all blocks
-			boost::uint64_t refcount:11;
-			
-			// if this is true, whenever refcount hits 0, 
-			// this piece should be deleted
-			bool marked_for_deletion:1;
-
-			// this is set to true once we flush blocks past
-			// the hash cursor. Once this happens, there's
-			// no point in keeping cache blocks around for
-			// it in avoid_readback mode
-			bool need_readback:1;
-			
-			// if this is set, we'll be calculating the hash
-			// for this piece. This member stores the interim
-			// state while we're calulcating the hash.
-			partial_hash* hash;
-
-			// the pointers to the block data
-			boost::shared_array<cached_block_entry> blocks;
-			
-			// these are outstanding jobs, waiting to be
-			// handled for this piece. For read pieces, these
-			// are the write jobs that will be dispatched back
-			// to the writing peer once their data hits disk.
-			// for read jobs, these are outstanding read jobs
-			// for this piece that are waiting for data to become
-			// avaialable. Read jobs may be overlapping.
-			std::list<disk_io_job> jobs;
-		};
+		block_cache(disk_buffer_pool& p, hash_thread& h);
 
 	private:
 
@@ -243,6 +251,7 @@ namespace libtorrent
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
 		block_cache::iterator find_piece(disk_io_job const& j);
+		block_cache::iterator find_piece(cached_piece_entry const* pe);
 
 		block_cache::iterator end();
 
@@ -266,6 +275,10 @@ namespace libtorrent
 		// dispatched
 		void mark_as_done(iterator p, int begin, int end
 			, io_service& ios, error_code const& ec);
+
+		// this is called by the hasher thread when hashing of
+		// a range of block is complete.
+		void hashing_done(cached_piece_entry* p, int begin, int end, io_service& ios);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
@@ -301,6 +314,11 @@ namespace libtorrent
 
 	private:
 
+		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
+
+		void reap_piece_jobs(iterator p, error_code const& ec
+			, int hash_start, int hash_end, io_service& ios, bool reap_hash_jobs);
+
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
@@ -333,6 +351,8 @@ namespace libtorrent
 
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;
+
+		hash_thread& m_hash_thread;
 	};
 
 }

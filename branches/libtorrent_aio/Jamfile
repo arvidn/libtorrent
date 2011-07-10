@@ -419,6 +419,7 @@ SOURCES =
 	escape_string
 	file
 	gzip
+	hash_thread
 	http_connection
 	http_stream
 	http_parser

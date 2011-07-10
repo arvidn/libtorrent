@@ -4455,6 +4455,7 @@ session_settings
 		int read_job_every;
 		bool use_disk_read_ahead;
 		bool lock_files;
+		int hashing_threads;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5327,6 +5328,12 @@ in the disk job queue. This gives a significant performance boost for seeding.
 to or seeding from. This is implemented using ``fcntl(F_SETLK)`` on unix systems and
 by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
 3rd party processes from corrupting the files under libtorrent's feet.
+
+``hashing_threads`` is the number of threads to use for piece hash verification. It
+defaults to 1. For very high download rates, on machines with multiple cores, this
+could be incremented. Setting it higher than the number of CPU cores would presumably
+not provide any benefit of setting it to the number of cores. If it's set to 0,
+hashing is done in the disk thread.
 
 pe_settings
 ===========

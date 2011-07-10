@@ -76,6 +76,7 @@ namespace libtorrent
 			, cache_piece
 			, finalize_file
 			, get_cache_info
+			, hash_complete
 		};
 
 		enum flags_t

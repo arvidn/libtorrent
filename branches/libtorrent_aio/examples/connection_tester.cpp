@@ -374,7 +374,7 @@ void print_usage()
 	exit(1);
 }
 
-void hash_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size, bool print)
+void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size, bool print)
 {
 	if (print) fprintf(stderr, "\n");
 	boost::uint32_t piece[0x4000 / 4];
@@ -404,10 +404,10 @@ void generate_torrent(std::vector<char>& buf)
 	libtorrent::create_torrent t(fs, piece_size);
 
 	// generate the hashes in 4 threads
-	thread t1(boost::bind(&hash_thread, &t, 0, 1 * num_pieces / 4, piece_size, false));
-	thread t2(boost::bind(&hash_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size, false));
-	thread t3(boost::bind(&hash_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size, false));
-	thread t4(boost::bind(&hash_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size, true));
+	thread t1(boost::bind(&hasher_thread, &t, 0, 1 * num_pieces / 4, piece_size, false));
+	thread t2(boost::bind(&hasher_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size, false));
+	thread t3(boost::bind(&hasher_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size, false));
+	thread t4(boost::bind(&hasher_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size, true));
 
 	t1.join();
 	t2.join();

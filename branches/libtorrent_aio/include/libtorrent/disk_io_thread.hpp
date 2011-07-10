@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/aiocb_pool.hpp"
+#include "libtorrent/hash_thread.hpp"
 
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
@@ -246,6 +247,7 @@ namespace libtorrent
 		int do_cache_piece(disk_io_job& j);
 		int do_finalize_file(disk_io_job& j);
 		int do_get_cache_info(disk_io_job& j);
+		int do_hashing_done(disk_io_job& j);
 
 		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG
@@ -297,6 +299,9 @@ namespace libtorrent
 
 		// LRU cache of open files
 		file_pool m_file_pool;
+
+		// this is a thread pool for doing SHA-1 hashing
+		hash_thread m_hash_thread;
 
 		// disk cache
 		block_cache m_disk_cache;

@@ -275,6 +275,7 @@ namespace libtorrent
 			, read_job_every(10)
 			, use_disk_read_ahead(true)
 			, lock_files(false)
+			, hashing_threads(1)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1094,6 +1095,10 @@ namespace libtorrent
 		// if set to true, files will be locked when opened.
 		// preventing any other process from modifying them
 		bool lock_files;
+
+		// the number of threads to use for hash checking of pieces
+		// defaults to 1. If set to 0, the disk thread is used for hashing
+		int hashing_threads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

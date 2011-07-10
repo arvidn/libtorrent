@@ -175,6 +175,8 @@ namespace libtorrent
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
 
+		set.hashing_threads = 0;
+
 		return set;
 	}
 
@@ -295,6 +297,11 @@ namespace libtorrent
 
 		// allow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = true;
+
+		// we're likely to have at least 4 cores on a high
+		// performance machine, but not very likely to peg
+		// 3 cores doing SHA-1
+		set.hashing_threads = 3;
 
 		return set;
 	}
