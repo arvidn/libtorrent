@@ -1669,7 +1669,6 @@ namespace aux {
 			|| m_settings.low_prio_disk != s.low_prio_disk
 			|| m_settings.lock_files != s.lock_files
 			|| m_settings.hashing_threads != s.hashing_threads)
-	
 			update_disk_io_thread = true;
 
 		bool connections_limit_changed = m_settings.connections_limit != s.connections_limit;
