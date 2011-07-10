@@ -77,16 +77,17 @@
 <li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
 <li><a class="reference internal" href="#peers" id="id17">peers</a></li>
 <li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
+<li><a class="reference internal" href="#sha-1-hashing" id="id19">SHA-1 hashing</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#scalability" id="id19">scalability</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id20">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id21">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id22">session stats</a></li>
+<li><a class="reference internal" href="#scalability" id="id20">scalability</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id21">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id22">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id23">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#understanding-the-disk-thread" id="id23">understanding the disk thread</a></li>
-<li><a class="reference internal" href="#contributions" id="id24">contributions</a></li>
+<li><a class="reference internal" href="#understanding-the-disk-thread" id="id24">understanding the disk thread</a></li>
+<li><a class="reference internal" href="#contributions" id="id25">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -364,6 +365,15 @@ number via <tt class="docutils literal"><span class="pre">session::set_max_uploa
 <p>To seed thousands of torrents, you need to increase the <tt class="docutils literal"><span class="pre">session_settings::active_limit</span></tt>
 and <tt class="docutils literal"><span class="pre">session_settings::active_seeds</span></tt>.</p>
 </div>
+<div class="section" id="sha-1-hashing">
+<h2>SHA-1 hashing</h2>
+<p>When downloading at very high rates, it is possible to have the CPU be the bottleneck
+for passing every downloaded byte through SHA-1. In order to enable calculating SHA-1
+hashes in parallel, on multi-core systems, set <tt class="docutils literal"><span class="pre">session_settings::hashing_threads</span></tt>
+to the number of threads libtorrent should start to do SHA-1 hashing. This defaults
+to 1, and only if that thread is close to saturating one core does it make sense to
+increase the number of threads.</p>
+</div>
 </div>
 <div class="section" id="scalability">
 <h1>scalability</h1>
@@ -600,7 +610,7 @@ of these jobs are then posted back on the main thread's io_service.</p>
 <p>A disk job is essentially one of:</p>
 <ol class="arabic simple">
 <li>write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.</li>
-<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.</li>
+<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordered queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks. If the system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for instance), jobs will be issued immediately to the OS. This especially increases read throughput, since the OS has a much greater flexibility to reorder the read jobs.</li>
 </ol>
 <p>Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.</p>
 </div>
