@@ -893,6 +893,76 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 }
 
+void print_piece(libtorrent::partial_piece_info* pp
+	, libtorrent::cached_piece_info* cs
+	, std::vector<libtorrent::peer_info> const& peers
+	, std::string& out)
+{
+	using namespace libtorrent;
+
+	char str[1024];
+	assert(pp == 0 || cs == 0 || cs->piece == pp->piece_index);
+	int piece = pp ? pp->piece_index : cs->piece;
+	int num_blocks = pp ? pp->blocks_in_piece : cs->blocks.size();
+
+	snprintf(str, sizeof(str), "%5d: [", piece);
+	out += str;
+	char const* last_color = 0;
+	for (int j = 0; j < num_blocks; ++j)
+	{
+		int index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
+		char chr = '+';
+		if (index >= 0)
+			chr = (index < 10)?'0' + index:'A' + index - 10;
+
+		char const* color = "";
+
+		if (pp == 0)
+		{
+			color = cs->blocks[j] ? esc("34;7") : esc("0");
+			chr = ' ';
+		}
+		else
+		{
+#ifdef ANSI_TERMINAL_COLORS
+			if (cs && cs->blocks[j]) color = esc("36;7");
+			else if (pp->blocks[j].bytes_progress > 0
+					&& pp->blocks[j].state == block_info::requested)
+			{
+				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
+				else color = esc("33;7");
+				chr = '0' + (pp->blocks[j].bytes_progress / float(pp->blocks[j].block_size) * 10);
+			}
+			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
+			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
+			else if (pp->blocks[j].state == block_info::requested) color = esc("0");
+			else { color = esc("0"); chr = ' '; }
+#else
+			if (cs && cs->blocks[j]) chr = 'c';
+			else if (pp->blocks[j].state == block_info::finished) chr = '#';
+			else if (pp->blocks[j].state == block_info::writing) chr = '+';
+			else if (pp->blocks[j].state == block_info::requested) chr = '-';
+			else chr = ' ';
+#endif
+		}
+		if (last_color == 0 || strcmp(last_color, color) != 0)
+			snprintf(str, sizeof(str), "%s%c", color, chr);
+		else
+			out += chr;
+
+		out += str;
+	}
+#ifdef ANSI_TERMINAL_COLORS
+	out += esc("0");
+#endif
+	char const* piece_state[4] = {"", " slow", " medium", " fast"};
+	snprintf(str, sizeof(str), "] %3d cache age: %-.1f %s\n"
+		, cs ? cs->next_to_hash : 0
+		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
+		, pp ? piece_state[pp->piece_state] : "");
+	out += str;
+}
+
 static char const* state_str[] =
 	{"checking (q)", "checking", "dl metadata"
 	, "downloading", "finished", "seeding", "allocating", "checking (r)"};
@@ -1939,99 +2009,44 @@ int main(int argc, char* argv[])
 
 			if (print_downloads)
 			{
-
-				h.get_download_queue(queue);
-				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
-					< boost::bind(&partial_piece_info::piece_index, _2));
-
 				std::vector<cached_piece_info> pieces;
 				ses.get_cache_info(h.info_hash(), pieces);
 
-				for (std::vector<partial_piece_info>::iterator i = queue.begin();
-					i != queue.end(); ++i)
+				h.get_download_queue(queue);
+
+				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
+					< boost::bind(&partial_piece_info::piece_index, _2));
+
+				std::sort(pieces.begin(), pieces.end(), boost::bind(&cached_piece_info::last_use, _1)
+					> boost::bind(&cached_piece_info::last_use, _2));
+
+				for (std::vector<cached_piece_info>::iterator i = pieces.begin();
+					i != pieces.end(); ++i)
 				{
-					cached_piece_info* cp = 0;
-					std::vector<cached_piece_info>::iterator cpi = std::find_if(pieces.begin(), pieces.end()
-						, boost::bind(&cached_piece_info::piece, _1) == i->piece_index);
-					if (cpi != pieces.end()) cp = &*cpi;
+					partial_piece_info* pp = 0;
+					partial_piece_info tmp;
+					tmp.piece_index = i->piece;
+					std::vector<partial_piece_info>::iterator ppi
+						= std::lower_bound(queue.begin(), queue.end(), tmp
+						, boost::bind(&partial_piece_info::piece_index, _1)
+						< boost::bind(&partial_piece_info::piece_index, _2));
+					if (ppi != queue.end() && ppi->piece_index == i->piece) pp = &*ppi;
 
-					snprintf(str, sizeof(str), "%5d: [", i->piece_index);
-					out += str;
-					for (int j = 0; j < i->blocks_in_piece; ++j)
-					{
-						int index = peer_index(i->blocks[j].peer(), peers) % 36;
-						char chr = '+';
-						if (index >= 0)
-							chr = (index < 10)?'0' + index:'A' + index - 10;
+					print_piece(pp, &*i, peers, out);
 
-						char const* color = "";
-
-#ifdef ANSI_TERMINAL_COLORS
-						if (cp && cp->blocks[j]) color = esc("36;7");
-						else if (i->blocks[j].bytes_progress > 0
-							&& i->blocks[j].state == block_info::requested)
-						{
-							if (i->blocks[j].num_peers > 1) color = esc("1;7");
-							else color = esc("33;7");
-							chr = '0' + (i->blocks[j].bytes_progress / float(i->blocks[j].block_size) * 10);
-						}
-						else if (i->blocks[j].state == block_info::finished) color = esc("32;7");
-						else if (i->blocks[j].state == block_info::writing) color = esc("35;7");
-						else if (i->blocks[j].state == block_info::requested) color = esc("0");
-						else { color = esc("0"); chr = ' '; }
-#else
-						if (cp && cp->blocks[j]) chr = 'c';
-						else if (i->blocks[j].state == block_info::finished) chr = '#';
-						else if (i->blocks[j].state == block_info::writing) chr = '+';
-						else if (i->blocks[j].state == block_info::requested) chr = '-';
-						else chr = ' ';
-#endif
-						snprintf(str, sizeof(str), "%s%c", color, chr);
-						out += str;
-					}
-#ifdef ANSI_TERMINAL_COLORS
-					out += esc("0");
-#endif
-					char const* piece_state[4] = {"", " slow", " medium", " fast"};
-					snprintf(str, sizeof(str), "] %2d%s ", cp ? cp->next_to_hash : -1
-						, piece_state[i->piece_state]);
-					out += str;
-					if (cp)
-					{
-						snprintf(str, sizeof(str), " %scache age: %-.1f"
-							, i->piece_state > 0?"| ":""
-							, total_milliseconds(time_now() - cp->last_use) / 1000.f);
-						out += str;
-					}
-					out += "\n";
+					if (pp) queue.erase(ppi);
 				}
 
-				for (std::vector<cached_piece_info>::iterator i = pieces.begin()
-					, end(pieces.end()); i != end; ++i)
+				for (std::vector<partial_piece_info>::iterator i = queue.begin()
+					, end(queue.end()); i != end; ++i)
 				{
-					if (i->kind != cached_piece_info::read_cache) continue;
-					snprintf(str, sizeof(str), "%5d: [", i->piece);
-					out += str;
-					for (std::vector<bool>::iterator k = i->blocks.begin()
-						, end(i->blocks.end()); k != end; ++k)
-					{
-						char const* color = "";
-						char chr = ' ';
-#ifdef ANSI_TERMINAL_COLORS
-						color = *k?esc("33;7"):esc("0");
-#else
-						chr = *k?'#':' ';
-#endif
-						snprintf(str, sizeof(str), "%s%c", color, chr);
-						out += str;
-					}
-#ifdef ANSI_TERMINAL_COLORS
-					out += esc("0");
-#endif
-					snprintf(str, sizeof(str), "] cache age: %-.1f\n"
-						, total_milliseconds(time_now() - i->last_use) / 1000.f);
-					out += str;
+					print_piece(&*i, 0, peers, out);
 				}
+				snprintf(str, sizeof(str), "%s %s: read cache %s %s: downloading %s %s: cached %s %s: flushed\n"
+					, esc("34;7"), esc("0") // read cache
+					, esc("33;7"), esc("0") // downloading
+					, esc("36;7"), esc("0") // cached
+					, esc("32;7"), esc("0")); // flushed
 				out += "___________________________________\n";
 			}
 
