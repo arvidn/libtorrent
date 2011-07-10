@@ -1667,6 +1667,7 @@ namespace aux {
 			|| m_settings.ignore_resume_timestamps != s.ignore_resume_timestamps
 			|| m_settings.no_recheck_incomplete_resume != s.no_recheck_incomplete_resume
 			|| m_settings.low_prio_disk != s.low_prio_disk
+			|| m_settings.lock_files != s.lock_files
 			|| m_settings.hashing_threads != s.hashing_threads)
 	
 			update_disk_io_thread = true;
