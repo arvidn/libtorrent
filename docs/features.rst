@@ -79,7 +79,7 @@ disk management
 network
 -------
 
-* a high quality uTP implementation (BEP29_). A transport protocol with
+* a high quality uTP implementation (`BEP 29`_). A transport protocol with
   delay based congestion control. See separate article_.
 * adjusts the length of the request queue depending on download rate.
 * serves multiple torrents on a single port and in a single thread
