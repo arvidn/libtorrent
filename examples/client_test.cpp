@@ -2047,6 +2047,7 @@ int main(int argc, char* argv[])
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
 					, esc("32;7"), esc("0")); // flushed
+				out += str;
 				out += "___________________________________\n";
 			}
 
