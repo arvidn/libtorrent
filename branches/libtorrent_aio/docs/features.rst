@@ -61,6 +61,10 @@ disk management
 
 * uses a separate disk I/O thread to not have the disk ever block on network or
   client interaction. (see threads_).
+* uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
+  to make optimal use of disk bandwidth capacity
+* supports verifying the SHA-1 hash of pieces in multiple threads, to take full
+  advantage of multi core machines.
 * supports files > 2 gigabytes.
 * fast resume support, a way to get rid of the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state
@@ -79,7 +83,7 @@ disk management
 network
 -------
 
-* a high quality uTP implementation (BEP29_). A transport protocol with
+* a high quality uTP implementation (`BEP 29`_). A transport protocol with
   delay based congestion control. See separate article_.
 * adjusts the length of the request queue depending on download rate.
 * serves multiple torrents on a single port and in a single thread

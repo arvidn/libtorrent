@@ -8481,18 +8481,25 @@ The file format is a bencoded dictionary containing the following fields:
 threads
 =======
 
-libtorrent starts 2 or 3 threads.
+libtorrent starts 3 to 5 threads.
 
  * The first thread is the main thread that will sit
    idle in a ``select()`` call most of the time. This thread runs the main loop
-   that will send and receive data on all connections.
+   that will send and receive data on all connections. In reality it's typically
+   not actually in ``select()``, but in ``kqueue()``, ``epoll_wait()`` or ``poll``,
+   depending on operating system.
 
  * The second thread is the disk I/O thread. All disk read and write operations
    are passed to this thread and messages are passed back to the main thread when
-   the operation completes. The disk thread also verifies the piece hashes.
+   the operation completes.
 
- * The third and forth threads are spawned by asio on systems that don't support
-   non-blocking host name resolution to simulate non-blocking getaddrinfo().
+ * The third thread is the SHA-1 hash thread. By default there's only one hash thread,
+   but on multi-core machines downloading at very high rates, libtorrent can be configured
+   to start any number of hashing threads, to take full use of multi core systems.
+   (see ``session_settings::hashing_threads``).
+
+ * The fourth and fifth threads are spawned by asio on systems that don't support
+   asynchronous host name resolution, in order to simulate non-blocking ``getaddrinfo()``.
 
 
 storage allocation
