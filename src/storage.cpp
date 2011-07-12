@@ -994,6 +994,8 @@ ret:
 			++file_iter;
 			if (file_iter == files().end())
 				return size_type(slot) * files().piece_length() + offset;
+			// update offset as well, since we're moving it up ahead
+			tor_off = file_iter->offset;
 		}
 		TORRENT_ASSERT(!file_iter->pad_file);
 
