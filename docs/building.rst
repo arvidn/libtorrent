@@ -42,22 +42,11 @@ building from svn
 -----------------
 
 To build libtorrent from svn you need to check out the libtorrent sources from
-sourceforge and also check out the asio sources from its sourceforge cvs.
-If you downloaded a release tarball, you can skip this section.
+sourceforge. If you downloaded a release tarball, you can skip this section.
 
-To prepare the directory structure for building, follow these steps:
-
-* Check out libtorrent (instructions__).
-* Check out asio (instructions__).
-* Copy the ``asio/include/asio/`` directory into the ``libtorrent/include/libtorrent/``
-  directory. Alternatively you can make a symbolic link.
-* Copy ``asio/include/asio.hpp`` into ``libtorrent/include/libtorrent``.
+To check out libtorrent follow these instructions__.
 
 __ http://sourceforge.net/svn/?group_id=79942
-__ http://sourceforge.net/cvs/?group_id=122478
-
-Now the libtorrent directory is ready for building. Follow the steps in one
-of the following sections depending on which build system you prefer to use.
 
 building with BBv2
 ------------------
