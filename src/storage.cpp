@@ -1224,6 +1224,15 @@ ret:
 		size_type tor_off = size_type(slot)
 			* files().piece_length() + offset;
 		file_storage::iterator file_iter = files().file_at_offset(tor_off);
+		while (file_iter->pad_file)
+		{
+			++file_iter;
+			if (file_iter == files().end())
+				return size_type(slot) * files().piece_length() + offset;
+			// update offset as well, since we're moving it up ahead
+			tor_off = file_iter->offset;
+		}
+		TORRENT_ASSERT(!file_iter->pad_file);
 
 		size_type file_offset = tor_off - file_iter->offset;
 		TORRENT_ASSERT(file_offset >= 0);
