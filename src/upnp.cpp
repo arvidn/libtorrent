@@ -1157,8 +1157,9 @@ void upnp::on_upnp_map_response(error_code const& e
 		}
 		return_error(mapping, s.error_code, l);
 	}
-	else if (s.error_code == 716)
+	else if (s.error_code == 716 || (s.error_code == 501 && m.failcount < 4 && m.external_port == 0))
 	{
+		// some routers return 501 action failed, instead of 716
 		// The external port cannot be wildcarder
 		// pick a random port
 		m.external_port = 40000 + (std::rand() % 10000);
