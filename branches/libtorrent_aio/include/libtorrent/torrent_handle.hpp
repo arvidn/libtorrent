@@ -455,6 +455,7 @@ namespace libtorrent
 			, block_size(0)
 			, num_uploads(0)
 			, num_connections(0)
+			, num_undead_peers(0)
 			, uploads_limit(0)
 			, connections_limit(0)
 			, storage_mode(storage_mode_sparse)
@@ -624,6 +625,7 @@ namespace libtorrent
 
 		int num_uploads;
 		int num_connections;
+		int num_undead_peers;
 		int uploads_limit;
 		int connections_limit;
 

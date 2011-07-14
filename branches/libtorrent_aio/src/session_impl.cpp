@@ -2642,7 +2642,7 @@ namespace aux {
 		if (now - m_last_second_tick < seconds(1)) return;
 
 		std::vector<intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
-			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) > 1);
+			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) < 2);
 		m_undead_peers.erase(i, m_undead_peers.end());
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
@@ -4638,7 +4638,8 @@ namespace aux {
 		s.optimistic_unchoke_counter = m_optimistic_unchoke_time_scaler;
 		s.unchoke_counter = m_unchoke_time_scaler;
 
-		s.num_peers = (int)m_connections.size();
+		s.num_peers = int(m_connections.size());
+		s.num_dead_peers = int(m_undead_peers.size());
 		s.num_unchoked = m_num_unchoked;
 		s.allowed_upload_slots = m_allowed_upload_slots;
 

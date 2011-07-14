@@ -1910,9 +1910,9 @@ int main(int argc, char* argv[])
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
-		snprintf(str, sizeof(str), "==== conns: %d down: %s%s%s (%s%s%s) up: %s%s%s (%s%s%s) "
+		snprintf(str, sizeof(str), "==== conns: %d (%d) down: %s%s%s (%s%s%s) up: %s%s%s (%s%s%s) "
 			"tcp/ip: %s%s%s %s%s%s DHT: %s%s%s %s%s%s tracker: %s%s%s %s%s%s ====\n"
-			, sess_stat.num_peers
+			, sess_stat.num_peers, sess_stat.num_dead_peers
 			, esc("32"), add_suffix(sess_stat.download_rate, "/s").c_str(), esc("0")
 			, esc("32"), add_suffix(sess_stat.total_download).c_str(), esc("0")
 			, esc("31"), add_suffix(sess_stat.upload_rate, "/s").c_str(), esc("0")

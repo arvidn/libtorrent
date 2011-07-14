@@ -327,6 +327,7 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 
 		if (pe->num_blocks == 0 && !pe->hash)
 		{
+			TORRENT_ASSERT(pe->refcount == 0);
 			idx.erase(i++);
 			continue;
 		}
