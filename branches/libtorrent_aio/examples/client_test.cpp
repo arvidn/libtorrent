@@ -873,7 +873,8 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
 			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
-			if (non_files.find(h) == non_files.end()
+			if (h.is_valid()
+				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
 					, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 				ses.remove_torrent(h);
@@ -883,7 +884,8 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		--num_outstanding_resume_data;
 		torrent_handle h = p->handle;
-		if (non_files.find(h) == non_files.end()
+		if (h.is_valid()
+			&& non_files.find(h) == non_files.end()
 			&& std::find_if(files.begin(), files.end()
 				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
 			ses.remove_torrent(h);
@@ -1541,7 +1543,8 @@ int main(int argc, char* argv[])
 							remove(combine_path(monitor_dir, i->first), ec);
 							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
 						}
-						ses.remove_torrent(h, session::delete_files);
+						if (h.is_valid())
+							ses.remove_torrent(h, session::delete_files);
 					}
 				}
 			}

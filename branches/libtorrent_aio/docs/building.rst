@@ -182,7 +182,7 @@ the runtime, but on windows you can do both. Example::
   and in the client application. It will result in crashes and possibly link
   errors.
 
-.. warning::
+.. note::
 
   With boost-build V2 (Milestone 11), the darwin toolset uses the ``-s`` linker
   option to strip debug symbols. This option is buggy in Apple's GCC, and
@@ -190,7 +190,7 @@ the runtime, but on windows you can do both. Example::
   your release executables with the ``debug-symbols=on`` option, and
   later strip your executable with ``strip``.
 
-.. warning::
+.. note::
 
   Some linux systems requires linking against ``librt`` in order to access
   the POSIX clock functions. If you get an error complaining about a missing
@@ -216,6 +216,11 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 (``BOOST_BUILD_PATH`` and ``BOOST_ROOT``) should be in the typical unix-format (e.g.
 ``/cygdrive/c/boost_1_34_0``). In the windows environment, they should have the typical
 windows format (``c:/boost_1_34_0``).
+
+.. note::
+	In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
+	in path names. If you want spaces in your paths, make sure to quote them
+	with double quotes (").
 
 The ``Jamfile`` will define ``NDEBUG`` when it's building a release build.
 For more build configuration flags see `Build configurations`_.
