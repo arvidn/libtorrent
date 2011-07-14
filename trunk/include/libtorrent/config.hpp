@@ -213,6 +213,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT __declspec(dllimport)
 # endif
 #endif
+
+// ==== GNU/Hurd ===
+#elif defined __GNU__
+#define TORRENT_HURD
+#define TORRENT_USE_IFADDRS 1
+#define TORRENT_USE_IFCONF 1
+
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
@@ -401,7 +408,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 	&& !defined TORRENT_USE_ECLOCK \
 	&& !defined TORRENT_USE_SYSTEM_TIME
 
-#if defined(__MACH__)
+#if defined __APPLE__ && defined __MACH__
 #define TORRENT_USE_ABSOLUTE_TIME 1
 #elif defined(_WIN32) || defined TORRENT_MINGW
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
