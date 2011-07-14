@@ -290,7 +290,9 @@ struct utp_socket_impl
 		return tcp::endpoint(m_remote_address, m_port);
 	}
 	std::size_t available() const;
-	void destroy();
+	// returns true if there were handlers cancelled
+	// if it returns false, we can detach immediately
+	bool destroy();
 	void detach();
 	void send_syn();
 	void send_fin();
@@ -706,7 +708,11 @@ utp_socket_impl* utp_stream::get_impl()
 void utp_stream::close()
 {
 	if (!m_impl) return;
-	m_impl->destroy();
+	if (!m_impl->destroy())
+	{
+		detach_utp_impl(m_impl);
+		m_impl = 0;
+	}
 }
 
 std::size_t utp_stream::available() const
@@ -1089,19 +1095,16 @@ void utp_socket_impl::maybe_trigger_send_callback(ptime now)
 	}
 }
 
-void utp_socket_impl::destroy()
+bool utp_socket_impl::destroy()
 {
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: destroy state:%s\n", this, socket_state_names[m_state]);
 #endif
 
-	if (m_userdata == 0) return;
+	if (m_userdata == 0) return false;
 
 	if (m_state == UTP_STATE_CONNECTED)
-	{
 		send_fin();
-		if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
-	}
 
 	bool cancelled = cancel_handlers(asio::error::operation_aborted, true);
 
@@ -1120,8 +1123,9 @@ void utp_socket_impl::destroy()
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
-		return;
 	}
+
+	return cancelled;
 
 	// #error our end is closing. Wait for everything to be acked
 }
@@ -1533,7 +1537,7 @@ bool utp_socket_impl::send_pkt(bool ack)
 			"ret:%d adv_wnd:%d in-flight:%d mtu:%d\n"
 			, this, int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-			, header_size, ec.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+			, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 			, int(ret), m_adv_wnd, m_bytes_in_flight, m_mtu);
 #endif
 		return false;
