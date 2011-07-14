@@ -778,6 +778,8 @@ namespace libtorrent
 		{ return m_torrent_file->is_valid(); }
 		bool are_files_checked() const
 		{ return m_files_checked; }
+		bool valid_storage() const
+		{ return m_owning_storage.get(); }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent

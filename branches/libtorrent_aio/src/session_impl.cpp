@@ -1589,8 +1589,14 @@ namespace aux {
 	{
 		piece_manager* st = 0;
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
-		if (t) st = &t->filesystem();
 		disk_io_job j;
+		if (!t || !t->valid_storage())
+		{
+			*ret = cache_status();
+			get_cache_info_done(0, j, m, e, done);
+			return;
+		}
+		st = &t->filesystem();
 		j.storage = st;
 		j.action = disk_io_job::get_cache_info;
 		j.buffer = (char*)ret;
