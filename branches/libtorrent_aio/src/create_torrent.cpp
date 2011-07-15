@@ -127,6 +127,7 @@ namespace libtorrent
 	void set_piece_hashes(create_torrent& t, std::string const& p
 		, boost::function<void(int i)> const& f, error_code& ec)
 	{
+/*
 		if (t.should_add_file_hashes())
 		{
 			// slow path, where we hash filenames as well as pieces
@@ -181,6 +182,7 @@ namespace libtorrent
 			}
 		}
 		else
+*/
 		{
 			// optimized path
 			io_service ios;

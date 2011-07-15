@@ -43,6 +43,7 @@ namespace libtorrent
 {
 	class entry;
 
+	// #error turn this into a union to make it smaller
 	struct disk_io_job
 	{
 		disk_io_job()

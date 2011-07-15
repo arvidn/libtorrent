@@ -7887,28 +7887,18 @@ The interface looks like this::
 		virtual void move_storage(std::string const& save_path, error_code& ec) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
 		virtual bool write_resume_data(entry& rd, error_code& ec) const = 0;
-		virtual void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
-		virtual void swap_slots(int slot1, int slot2, error_code& ec) = 0;
-		virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
 		virtual void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
 		virtual void release_files(error_code& ec) = 0;
 		virtual void delete_files(error_code& ec) = 0;
 		virtual void finalize_file(int index, error_code& ec) {}
 		virtual ~storage_interface() {}
 
-		virtual int readv(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, error_code& ec) = 0;
-		virtual int writev(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, error_code& ec) = 0;
-
-	#if TORRENT_USE_AIO
-
-		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
-		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-			, boost::function<void(error_code const&, size_t)> const& handler);
-
-	#endif
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
+			, int slot, int offset, int num_bufs, int flags
+			, boost::function<void(async_handler*)> const& handler) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
+			, int slot, int offset, int num_bufs, int flags
+			, boost::function<void(async_handler*)> const& handler) = 0;
 
 		// non virtual functions
 
@@ -7953,19 +7943,22 @@ This function is called when a read job is queued. It gives the storage wrapper 
 opportunity to hint the operating system about this coming read. For instance, the
 storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
 
-readv() writev()
-----------------
+async_readv() async_writev()
+----------------------------
 
 	::
 
-		virtual int readv(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, error_code& ec) = 0;
-		virtual int writev(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, error_code& ec) = 0;
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
+			, int piece, int offset, int num_bufs, int flags
+			, boost::function<void(async_handler*)> const& handler) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
+			, int piece, int offset, int num_bufs, int flags
+			, boost::function<void(async_handler*)> const& handler) = 0;
 
-These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
-It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
-is specified in the buffer array ``bufs``. The file::iovec_t type has the following members::
+These functions should produce I/O jobs (``aiocb_t``) to read or write the data in
+or to the given ``piece`` at the given ``offset``. It should read or write ``num_bufs``
+buffers sequentially, where the size of each buffer is specified in the buffer array
+``bufs``. The file::iovec_t type has the following members::
 
 	struct iovec_t
 	{
@@ -7973,8 +7966,25 @@ is specified in the buffer array ``bufs``. The file::iovec_t type has the follow
 		size_t iov_len;
 	};
 
-The return value is the number of bytes actually read or written, or -1 on failure. If
-it returns -1, the ``error_code`` must be set to reflect the appropriate error that occurred.
+The return value is a *chain* (linked list) of ``aiocb_t`` objects representing all jobs
+required to satisfy the read or write request. The ``aiocb_t`` objects are produced by
+the async. operations of the ``file`` class.
+
+The functions must also allocate an ``file::async_handler`` object. It has the following
+definition::
+
+	struct async_handler
+	{
+		async_handler(ptime now);
+		boost::function<void(async_handler*)> handler;
+		storage_error error;
+		size_t transferred;
+		int references;
+		ptime started;
+
+		void done(storage_error const& ec, size_t bytes_transferred
+			, file::aiocb_t const* aio);
+	};
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
 except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
@@ -7983,8 +7993,7 @@ last piece of a file in unbuffered mode.
 
 The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
 exceptions when it's not. Specifically if the read cache is disabled/or full and a
-client requests unaligned data, or the file itself is not aligned in the torrent.
-Most clients request aligned data.
+client requests unaligned data. Most clients request aligned data.
 
 sparse_end()
 ------------
@@ -8042,54 +8051,6 @@ storage, in ``rd``. The default storage adds file timestamps and
 sizes.
 
 Returning ``true`` indicates an error occurred.
-
-If an error occurs, ``error_code`` should be set to reflect it.
-
-
-move_slot()
------------
-
-	::
-
-		void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
-
-This function should copy or move the data in slot ``src_slot`` to
-the slot ``dst_slot``. This is only used in compact mode.
-
-If the storage caches slots, this could be implemented more
-efficient than reading and writing the data.
-
-If an error occurs, ``error_code`` should be set to reflect it.
-
-
-swap_slots()
-------------
-
-	::
-
-		void swap_slots(int slot1, int slot2, error_code& ec) = 0;
-
-This function should swap the data in ``slot1`` and ``slot2``. The default
-storage uses a scratch buffer to read the data into, then moving the other
-slot and finally writing back the temporary slot's data
-
-This is only used in compact mode.
-
-If an error occurs, ``error_code`` should be set to reflect it.
-
-
-swap_slots3()
--------------
-
-	::
-
-		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
-
-This function should do a 3-way swap, or shift of the slots. ``slot1``
-should move to ``slot2``, which should be moved to ``slot3`` which in turn
-should be moved to ``slot1``.
-
-This is only used in compact mode.
 
 If an error occurs, ``error_code`` should be set to reflect it.
 

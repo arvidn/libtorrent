@@ -661,7 +661,7 @@ namespace libtorrent
 					handler = boost::bind(&disk_io_thread::on_disk_write, this, p
 						, range_start, i, to_write, _1);
 
-					aios = p->storage->write_async_impl(iov
+					aios = p->storage->get_storage_impl()->async_writev(iov
 						, pe.piece, to_write, iov_counter, flags, handler);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
@@ -673,7 +673,7 @@ namespace libtorrent
 					++m_outstanding_jobs;
 					handler = boost::bind(&disk_io_thread::on_disk_read, this, p
 						, range_start, i, _1);
-					aios = pe.storage->read_async_impl(iov, pe.piece
+					aios = pe.storage->get_storage_impl()->async_readv(iov, pe.piece
 						, range_start * m_block_size, iov_counter, flags, handler);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
@@ -1029,7 +1029,7 @@ namespace libtorrent
 #if TORRENT_USE_SYNCIO
 		if (m_settings.use_disk_read_ahead)
 		{
-			j.storage->hint_read_impl(j.piece, j.offset, j.buffer_size);
+			j.storage->get_storage_impl()->hint_read(j.piece, j.offset, j.buffer_size);
 		}
 #endif
 
@@ -1105,7 +1105,7 @@ namespace libtorrent
 		++m_outstanding_jobs;
 		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
-		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1, j.flags
+		file::aiocb_t* aios = j.storage->get_storage_impl()->async_readv(&b, j.piece, j.offset, 1, j.flags
 			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
@@ -1198,7 +1198,7 @@ namespace libtorrent
 		// just exceed the disk queue size limit?
 		added_to_write_queue();
 
-		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1, j.flags
+		file::aiocb_t* aios = j.storage->get_storage_impl()->async_writev(&b, j.piece, j.offset, 1, j.flags
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
@@ -1393,8 +1393,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j.buffer == 0);
 //#error do we have to close all files on windows?
-		j.storage->move_storage_impl(j.str, j.error);
-		if (!j.error.ec) j.str = j.storage->save_path();
+		j.storage->get_storage_impl()->move_storage(j.str, j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
 
@@ -1410,7 +1409,7 @@ namespace libtorrent
 			// to this piece. We can go ahead and close the
 			// files immediately without interfering with
 			// any async operations
-			j.storage->release_files_impl(j.error);
+			j.storage->get_storage_impl()->release_files(j.error);
 			return j.error ? disk_operation_failed : 0;
 		}
 
@@ -1436,7 +1435,7 @@ namespace libtorrent
 			// to this piece. We can go ahead and delete the
 			// files immediately without interfering with
 			// any async operations
-			j.storage->delete_files_impl(j.error);
+			j.storage->get_storage_impl()->delete_files(j.error);
 			return j.error ? disk_operation_failed : 0;
 		}
 
@@ -1465,7 +1464,7 @@ namespace libtorrent
 			// files immediately without interfering with
 			// any async operations
 			j.resume_data.reset(new entry(entry::dictionary_t));
-			j.storage->write_resume_data(*j.resume_data, j.error);
+			j.storage->get_storage_impl()->write_resume_data(*j.resume_data, j.error);
 			return j.error ? disk_operation_failed : 0;
 		}
 
@@ -1482,7 +1481,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j.buffer == 0);
 //#error do we have to close the file on windows?
-		j.storage->rename_file_impl(j.piece, j.str, j.error);
+		j.storage->get_storage_impl()->rename_file(j.piece, j.str, j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
 
@@ -1689,7 +1688,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_finalize_file(disk_io_job& j)
 	{
-		j.storage->finalize_file(j.piece, j.error);
+		j.storage->get_storage_impl()->finalize_file(j.piece, j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
 

@@ -67,9 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
 
-// #error get rid of this when regular piece checking is async as well
-#include "libtorrent/block_cache.hpp" // for partial_hash
-
 #include <cstdio>
 
 //#define TORRENT_PARTIAL_HASH_LOG
@@ -244,37 +241,6 @@ namespace libtorrent
 			}
 		}
 		return true;
-	}
-
-	// for backwards compatibility, let the default readv and
-	// writev implementations be implemented in terms of the
-	// old read and write
-	int storage_interface::readv(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, int flags, storage_error& ec)
-	{
-		int ret = 0;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-		{
-			int r = read((char*)i->iov_base, slot, offset, i->iov_len, flags, ec);
-			offset += i->iov_len;
-			if (r == -1) return -1;
-			ret += r;
-		}
-		return ret;
-	}
-
-	int storage_interface::writev(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, int flags, storage_error& ec)
-	{
-		int ret = 0;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-		{
-			int r = write((char const*)i->iov_base, slot, offset, i->iov_len, flags, ec);
-			offset += i->iov_len;
-			if (r == -1) return -1;
-			ret += r;
-		}
-		return ret;
 	}
 
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
@@ -775,19 +741,6 @@ namespace libtorrent
 		if (!ec) m_save_path = save_path;
 	}
 
-	int default_storage::writev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, int flags, storage_error& ec)
-	{
-		if (m_settings)
-			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
-
-		fileop op = { &file::writev, &default_storage::write_unaligned
-			, 0, 0, 0
-			, m_settings ? settings().disk_io_write_mode : 0, file::read_write
-			, flags, "writev" };
-		return readwritev(bufs, slot, offset, num_bufs, op, ec);
-	}
-
 	size_type default_storage::physical_offset(int slot, int offset)
 	{
 		TORRENT_ASSERT(slot >= 0);
@@ -881,23 +834,6 @@ namespace libtorrent
 		}
 	}
 
-	int default_storage::readv(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, int flags, storage_error& ec)
-	{
-		if (m_settings)
-			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
-
-		fileop op = { &file::readv, &default_storage::read_unaligned
-			, 0, 0, 0
-			, m_settings ? settings().disk_io_read_mode : 0, file::read_only
-			, flags, "readv"};
-#ifdef TORRENT_SIMULATE_SLOW_READ
-		boost::thread::sleep(boost::get_system_time()
-			+ boost::posix_time::milliseconds(1000));
-#endif
-		return readwritev(bufs, slot, offset, num_bufs, op, ec);
-	}
-
 	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs
 		, int slot, int offset, int num_bufs, int flags
 		, boost::function<void(async_handler*)> const& handler)
@@ -911,9 +847,8 @@ namespace libtorrent
 			flags |= settings().allow_reordered_disk_operations ? file::resolve_phys_offset : 0;
 		}
 
-		fileop op = { &file::readv, &default_storage::read_unaligned, &file::async_readv
-			, a, 0, m_settings ? settings().disk_io_read_mode : 0, file::read_only
-			, flags, "async_readv"};
+		fileop op = { &file::async_readv, a, 0, m_settings ? settings().disk_io_read_mode : 0
+			, file::read_only, flags, "async_readv"};
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
@@ -925,8 +860,7 @@ namespace libtorrent
 		return op.ret;
 	}
 
-	// TODO: error maybe the async_handler should be passed in here, so that a single job
-	// could use a single handler
+	// #error the async_handler should be passed in here, so that a single job could use a single handler
 	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs
 		, int slot, int offset, int num_bufs, int flags
 		, boost::function<void(async_handler*)> const& handler)
@@ -937,9 +871,8 @@ namespace libtorrent
 		if (m_settings)
 			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
 
-		fileop op = { &file::writev, &default_storage::write_unaligned, &file::async_writev
-			, a, 0, m_settings ? settings().disk_io_write_mode : 0, file::read_write
-			, flags, "async_writev"};
+		fileop op = { &file::async_writev, a, 0, m_settings ? settings().disk_io_write_mode : 0
+			, file::read_write, flags, "async_writev"};
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		if (a->references == 0)
@@ -1083,54 +1016,26 @@ namespace libtorrent
 			// special read that reads aligned buffers and copies
 			// it into the one supplied
 			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
-			if (op.async_op)
-			{
-				TORRENT_ASSERT(op.handler);
-				file::aiocb_t* aio = ((*file_handle).*op.async_op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, *aiocbs(), op.flags);
-				if (op.ret == 0) op.ret = aio;
-				// add this to the chain
-				while (aio)
-				{
-					bytes_transferred += aio->nbytes();
-					aio->handler = op.handler;
-					++op.handler->references;
-					if (last) last->next = aio;
-					aio->prev = last;
-					last = aio;
-					aio = aio->next;
-				}
-			}
-			else if ((file_handle->open_mode() & file::no_buffer)
-				&& ((adjusted_offset & (file_handle->pos_alignment()-1)) != 0
-				|| (uintptr_t(tmp_bufs->iov_base) & (file_handle->buf_alignment()-1)) != 0))
-			{
-				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
-					, tmp_bufs, num_tmp_bufs, ec.ec);
-				if (op.mode == file::read_write
-					&& adjusted_offset + bytes_transferred == file_iter->size
-					&& file_handle->pos_alignment() > 0)
-				{
-					// we were writing, and we just wrote the last block of the file
-					// we likely wrote a bit too much, since we're restricted to
-					// a specific alignment for writes. Make sure to truncate the size
+			TORRENT_ASSERT(op.op);
+			TORRENT_ASSERT(op.handler);
 
-					// TODO: what if file_base is used to merge several virtual files
-					// into a single physical file?
-					file_handle->set_size(file_iter->size, ec.ec);
-					if (ec)
-					{
-						ec.file = combine_path(m_save_path, files().file_path(*file_iter));
-						ec.operation = op.operation_name;
-						return -1;
-					}
-				}
-			}
-			else
+			file::aiocb_t* aio = ((*file_handle).*op.op)(adjusted_offset
+				, tmp_bufs, num_tmp_bufs, *aiocbs(), op.flags);
+
+			if (op.ret == 0) op.ret = aio;
+
+			// add this to the chain
+			while (aio)
 			{
-				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, ec.ec, op.flags);
+				bytes_transferred += aio->nbytes();
+				aio->handler = op.handler;
+				++op.handler->references;
+				if (last) last->next = aio;
+				aio->prev = last;
+				last = aio;
+				aio = aio->next;
 			}
+
 			file_offset = 0;
 
 			if (ec)
@@ -1148,119 +1053,6 @@ namespace libtorrent
 			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
 		}
 		return size;
-	}
-
-	// these functions are inefficient, but should be fairly uncommon. The read
-	// case happens if unaligned files are opened in no_buffer mode or if clients
-	// makes unaligned requests (and the disk cache is disabled or fully utilized
-	// for write cache).
-
-	// they read an unaligned buffer from a file that requires aligned access
-
-	size_type default_storage::read_unaligned(boost::intrusive_ptr<file> const& file_handle
-		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
-	{
-		const int pos_align = file_handle->pos_alignment()-1;
-		const int size_align = file_handle->size_alignment()-1;
-
-		const int size = bufs_size(bufs, num_bufs);
-		const int start_adjust = file_offset & pos_align;
-		TORRENT_ASSERT(start_adjust == (file_offset % file_handle->pos_alignment()));
-		const size_type aligned_start = file_offset - start_adjust;
-		const int aligned_size = ((size+start_adjust) & size_align)
-			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
-		TORRENT_ASSERT((aligned_size & size_align) == 0);
-
-		// allocate a temporary, aligned, buffer
-		aligned_holder aligned_buf(aligned_size);
-		file::iovec_t b = {aligned_buf.get(), aligned_size};
-		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-		if (ret < 0)
-		{
-			TORRENT_ASSERT(ec);
-			return ret;
-		}
-		if (ret - start_adjust < size) return (std::max)(ret - start_adjust, size_type(0));
-
-		char* read_buf = aligned_buf.get() + start_adjust;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
-		{
-			memcpy(i->iov_base, read_buf, i->iov_len);
-			read_buf += i->iov_len;
-		}
-
-		return size;
-	}
-
-	// this is the really expensive one. To write unaligned, we need to read
-	// an aligned block, overlay the unaligned buffer, and then write it back
-	size_type default_storage::write_unaligned(boost::intrusive_ptr<file> const& file_handle
-		, size_type file_offset, file::iovec_t const* bufs, int num_bufs, error_code& ec)
-	{
-		const int pos_align = file_handle->pos_alignment()-1;
-		const int size_align = file_handle->size_alignment()-1;
-
-		const int size = bufs_size(bufs, num_bufs);
-		const int start_adjust = file_offset & pos_align;
-		TORRENT_ASSERT(start_adjust == (file_offset % file_handle->pos_alignment()));
-		const size_type aligned_start = file_offset - start_adjust;
-		const int aligned_size = ((size+start_adjust) & size_align)
-			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
-		TORRENT_ASSERT((aligned_size & size_align) == 0);
-
-		// allocate a temporary, aligned, buffer
-		aligned_holder aligned_buf(aligned_size);
-		file::iovec_t b = {aligned_buf.get(), aligned_size};
-		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-		if (ret < 0)
-		{
-			TORRENT_ASSERT(ec);
-			return ret;
-		}
-
-		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
-
-		char* write_buf = aligned_buf.get() + start_adjust;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i != end; ++i)
-		{
-			memcpy(write_buf, i->iov_base, i->iov_len);
-			write_buf += i->iov_len;
-		}
-
-		// write the buffer back to disk
-		ret = file_handle->writev(aligned_start, &b, 1, ec);
-
-		if (ret < 0)
-		{
-			TORRENT_ASSERT(ec);
-			return ret;
-		}
-		if (ret - start_adjust < size) return (std::max)(ret - start_adjust, size_type(0));
-		return size;
-	}
-
-	int default_storage::write(
-		const char* buf
-		, int slot
-		, int offset
-		, int size
-		, int flags
-		, storage_error& ec)
-	{
-		file::iovec_t b = { (file::iovec_base_t)buf, size };
-		return writev(&b, slot, offset, 1, flags, ec);
-	}
-
-	int default_storage::read(
-		char* buf
-		, int slot
-		, int offset
-		, int size
-		, int flags
-		, storage_error& ec)
-	{
-		file::iovec_t b = { (file::iovec_base_t)buf, size };
-		return readv(&b, slot, offset, 1, flags, ec);
 	}
 
 	boost::intrusive_ptr<file> default_storage::open_file(file_storage::iterator fe, int mode
@@ -1291,24 +1083,6 @@ namespace libtorrent
 		, std::vector<boost::uint8_t> const& file_prio)
 	{
 		return new default_storage(fs, mapped, path, fp, file_prio);
-	}
-
-	int disabled_storage::readv(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, int flags, storage_error& ec)
-	{
-		int ret = 0;
-		for (int i = 0; i < num_bufs; ++i)
-			ret += bufs[i].iov_len;
-		return ret;
-	}
-
-	int disabled_storage::writev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, int flags, storage_error& ec)
-	{
-		int ret = 0;
-		for (int i = 0; i < num_bufs; ++i)
-			ret += bufs[i].iov_len;
-		return ret;
 	}
 
 	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot
@@ -1344,7 +1118,6 @@ namespace libtorrent
 		: m_files(*files)
 		, m_storage(sc(*files, orig_files, save_path, io.files(), file_prio))
 		, m_storage_mode(sm)
-		, m_save_path(complete(save_path))
 		, m_storage_constructor(sc)
 		, m_io_thread(io)
 		, m_torrent(torrent)
@@ -1352,9 +1125,6 @@ namespace libtorrent
 		m_storage->m_disk_pool = &m_io_thread;
 		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
-
-	void piece_manager::finalize_file(int index, storage_error& ec)
-	{ m_storage->finalize_file(index, ec); }
 
 	piece_manager::~piece_manager() {}
 
@@ -1533,73 +1303,11 @@ namespace libtorrent
 		m_io_thread.add_job(j);
 	}
 
-	std::string piece_manager::save_path() const
-	{
-		mutex::scoped_lock l(m_mutex);
-		return m_save_path;
-	}
-
-	void piece_manager::move_storage_impl(std::string const& save_path, storage_error& ec)
-	{
-		m_storage->move_storage(save_path, ec);
-		if (ec) return;
-		m_save_path = complete(save_path);
-	}
-
+	// used in torrent_handle.cpp
 	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
 	{
 		INVARIANT_CHECK;
-
 		m_storage->write_resume_data(rd, ec);
-	}
-
-	void piece_manager::hint_read_impl(int piece_index, int offset, int size)
-	{
-		m_storage->hint_read(piece_index, offset, size);
-	}
-
-	file::aiocb_t* piece_manager::read_async_impl(
-		file::iovec_t* bufs
-		, int piece_index
-		, int offset
-		, int num_bufs
-		, int flags
-		, boost::function<void(async_handler*)> const& handler)
-	{
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(num_bufs > 0);
-		return m_storage->async_readv(bufs, piece_index
-			, offset, num_bufs, flags, handler);
-	}
-
-	file::aiocb_t* piece_manager::write_async_impl(
-		file::iovec_t* bufs
-		, int piece_index
-		, int offset
-		, int num_bufs
-		, int flags
-		, boost::function<void(async_handler*)> const& handler)
-	{
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(num_bufs > 0);
-		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_files.num_pieces());
-
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, num_bufs);
-		std::copy(bufs, bufs + num_bufs, iov);
-		file::aiocb_t* ret = m_storage->async_writev(bufs, piece_index
-			, offset, num_bufs, flags, handler);
-		return ret;
-	}
-
-	size_type piece_manager::physical_offset(
-		int piece_index
-		, int offset)
-	{
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(piece_index >= 0 && piece_index < m_files.num_pieces());
-		return m_storage->physical_offset(piece_index, offset);
 	}
 
 	int piece_manager::check_no_fastresume(storage_error& ec)
@@ -1631,8 +1339,6 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		lazy_entry const& rd, storage_error& ec)
 	{
-		mutex::scoped_lock lock(m_mutex);
-
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_files.piece_length() > 0);
