@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include <memory>
+
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
 #include <winsock2.h>
@@ -45,6 +47,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
+
+#if TORRENT_USE_POSIX_SEMAPHORE
+#include <semaphore.h>      // sem_*
+#endif
+
+#if TORRENT_USE_MACH_SEMAPHORE
+#include <mach/semaphore.h> // semaphore_signal, semaphore_wait
+#include <mach/task.h>      // semaphore_create, semaphore_destroy
+#include <mach/mach_init.h> // current_task
+#endif
 
 namespace libtorrent
 {
@@ -71,6 +83,66 @@ namespace libtorrent
 #error not implemented
 #endif
 	};
+
+	// #error these semaphores needs to release all threads that are waiting for the semaphore when signalled
+#if TORRENT_USE_POSIX_SEMAPHORE
+	struct TORRENT_EXPORT semaphore
+	{
+		semaphore() { sem_init(&m_sem, 0, 0); }
+		~semaphore() { sem_destroy(&m_sem); }
+		void signal() { sem_post(&m_sem); }
+		void signal_all()
+		{
+			int waiters = 0;
+			do
+			{
+				// when anyone is waiting, waiters will be
+				// 0 or negative. 0 means one might be waiting
+				// -1 means 2 are waiting. Keep posting as long
+				// we see negative values or 0
+				sem_getvalue(&m_sem, &waiters);
+				sem_post(&m_sem);
+			} while (waiters < 0)
+		}
+		void wait() { sem_wait(&m_sem); }
+		void timed_wait(int ms)
+		{
+			timespec sp = { ms / 1000, (ms % 1000) * 1000000 };
+			sem_timedwait(&m_sem, &sp);
+		}
+		sem_t m_sem;
+	};
+#elif TORRENT_USE_MACH_SEMAPHORE
+	struct TORRENT_EXPORT semaphore
+	{
+		semaphore() { semaphore_create(current_task(), &m_sem, SYNC_POLICY_FIFO, 0); }
+		~semaphore() { semaphore_destroy(current_task(), m_sem); }
+		void signal() { semaphore_signal(m_sem); }
+		void signal_all() { semaphore_signal_all(m_sem); }
+		void wait() { semaphore_wait(m_sem); }
+		void timed_wait(int ms)
+		{
+			mach_timespec_t sp = { ms / 1000, (ms % 1000) * 100000};
+			semaphore_timedwait(m_sem, sp);
+		}
+		semaphore_t m_sem;
+	};
+#elif defined TORRENT_WINDOWS
+	struct TORRENT_EXPORT semaphore
+	{
+		semaphore() { m_sem = CreateSemaphore(0, 0, 100, 0); }
+		~semaphore() { CloseHandle(m_sem); }
+		void signal() { ReleaseSemaphore(m_sem, 1, 0); }
+		void signal_all()
+		{
+			LONG prev = 0;
+			do { ReleaseSemaphore(m_sem, 1, &prev); } while (prev > 1);
+		}
+		void wait() { WaitForSingleObject(m_sem, INFINITE); }
+		void timed_wait(int ms) { WaitForSingleObject(m_sem, ms); }
+		HANDLE m_sem;
+	};
+#endif
 }
 
 #endif

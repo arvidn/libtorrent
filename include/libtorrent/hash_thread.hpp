@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,75 +30,60 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
-#define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
+#ifndef TORRENT_HASH_THREAD
+#define TORRENT_HASH_THREAD
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/thread.hpp"
+#include <deque>
+#include <vector>
+#include <boost/detail/atomic_count.hpp>
 
 namespace libtorrent
 {
-// a sliding average accumulator. Add samples to it and it
-// keeps track of a sliding mean value and an average deviation
-// from that average.
-template <int history_size>
-struct sliding_average
-{
-	sliding_average(): m_mean(-1), m_average_deviation(-1) {}
+	struct cached_piece_entry;
+	struct disk_io_thread;
 
-	void add_sample(int s)
+	struct hash_thread
 	{
-		if (m_mean == -1)
+		hash_thread(disk_io_thread* d);
+		void stop();
+		bool async_hash(cached_piece_entry* p, int start, int end);
+		void set_num_threads(int i, bool wait = true);
+
+	private:
+
+		void thread_fun();
+
+		struct hash_queue_entry
 		{
-			m_mean = s;
-			return;
-		}
-		int deviation = abs(m_mean - s);
+			cached_piece_entry const* piece;
+			int start;
+			int end;
+		};
 
-		m_mean = m_mean - m_mean / history_size + s / history_size;
+		void process_piece(hash_queue_entry const& e);
 
-		if (m_average_deviation == -1)
-		{
-			m_average_deviation = deviation;
-			return;
-		}
-		m_average_deviation = m_average_deviation - m_average_deviation
-			/ history_size + deviation / history_size;
-	}
+		// the mutex only protects m_cond and m_queue
+		// all other members are only used from a single
+		// thread (the user of this class, i.e. the disk
+		// thread).
+		mutex m_mutex;
+		condition m_cond;
+		std::deque<hash_queue_entry> m_queue;
 
-	int mean() const { return m_mean != -1 ? m_mean : 0; }
-	int avg_deviation() const { return m_average_deviation != -1 ? m_average_deviation : 0; }
+		std::vector<boost::shared_ptr<thread> > m_threads;
+		// this is a counter which is atomically incremented
+		// by each thread as it's started up, in order to
+		// assign a unique id to each thread
+		boost::detail::atomic_count m_num_threads;
 
-private:
-	int m_mean;
-	int m_average_deviation;
-};
-
-struct average_accumulator
-{
-	average_accumulator()
-		: m_num_samples(0)
-		, m_sample_sum(0)
-	{}
-
-	void add_sample(int s)
-	{
-		++m_num_samples;
-		m_sample_sum += s;
-	}
-
-	int mean()
-	{
-		int ret;
-		if (m_num_samples == 0) ret = 0;
-		else ret = int(m_sample_sum / m_num_samples);
-		m_num_samples = 0;
-		m_sample_sum = 0;
-		return ret;
-	}
-
-	int m_num_samples;
-	size_type m_sample_sum;
-};
+		// used for posting completion notifications back
+		// to the disk thread
+		disk_io_thread* m_disk_thread;
+	};
 
 }
 
-#endif
+#endif // TORRENT_HASH_THREAD
 

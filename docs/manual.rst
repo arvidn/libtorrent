@@ -202,7 +202,6 @@ The ``session`` class has the following synopsis::
 		ip_filter get_ip_filter() const;
 
 		session_status status() const;
-		cache_status get_cache_status() const;
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -848,24 +847,47 @@ by the DHT.
 
 ``utp_stats`` contains statistics on the uTP sockets.
 
-get_cache_status()
-------------------
+get_cache_info()
+----------------
 
 	::
 
-		cache_status get_cache_status() const;
+		void get_cache_info(sha1_hash const& ih, cache_status* ret) const;
 
-Returns status of the disk cache for this session.
+Fills in the cache_status struct with information about the given info-hash (``ih``).
+
+	::
+
+		struct cached_piece_info
+		{
+			int piece;
+			std::vector<bool> blocks;
+			ptime last_use;
+			enum kind_t { read_cache = 0, write_cache = 1 };
+			kind_t kind;
+		};
+
+``piece`` is the piece index for this cache entry.
+
+``blocks`` has one entry for each block in this piece. ``true`` represents
+the data for that block being in the disk cache and ``false`` means it's not.
+
+``last_use`` is the time when a block was last written to this piece. The older
+a piece is, the more likely it is to be flushed to disk.
+		
+``kind`` specifies if this piece is part of the read cache or the write cache.
 
 	::
 
 		struct cache_status
 		{
+			std::vector<cached_piece_info> pieces;
 			size_type blocks_written;
 			size_type writes;
 			size_type blocks_read;
 			size_type blocks_read_hit;
 			size_type reads;
+			size_type queued_bytes;
 			int cache_size;
 			int read_cache_size;
 			int total_used_buffers;
@@ -874,7 +896,20 @@ Returns status of the disk cache for this session.
 			int average_write_time;
 			int average_hash_time;
 			int average_cache_time;
-			int job_queue_length;
+			int average_job_time;
+			int average_sort_time;
+			int average_issue_time;
+			int total_read_back;
+			int read_queue_size;
+			int blocked_jobs;
+			int queued_jobs;
+			int peak_queued;
+			int pending_jobs;
+			int peak_pending;
+			int num_aiocb;
+			int peak_aiocb;
+			int hash_jobs;
+			int hash_hit_jobs;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -894,6 +929,11 @@ bittorrent engine (from peers), that were served from disk or cache.
 
 The ratio ``blocks_read_hit`` / ``blocks_read`` is the cache hit ratio
 for the read cache.
+
+``reads`` is the total number of read operations called this session.
+
+``queued_bytes`` is the total number of bytes queued for writing, including
+bytes passed on to the operating system but have not yet completed.
 
 ``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
 This includes both read and write cache.
@@ -920,43 +960,38 @@ microseconds. Hash jobs include running SHA-1 on the data (which for the most
 part is done incrementally) and sometimes reading back parts of the piece. It
 also includes checking files without valid resume data.
 
-``average_cache_time`` is the average amuount of time spent evicting cached
-blocks that have expired from the disk cache.
+``average_job_time`` is the average time it takes for any disk job to complete,
+in microseconds.
 
-``job_queue_length`` is the number of jobs in the job queue.
+``average_sort_time`` is the time spent sorting disk jobs, when using synchronous
+I/O.
 
-get_cache_info()
-----------------
+``average_issue_time`` is the time spent actually issuing the jobs to the OS. If
+this is high, it might indicate a problem with the asynchronous disk API, not being
+very asynchronous.
 
-	::
+``cumulative_job_time``, ``cumulative_read_time``, ``cumulative_write_time``,
+``cumulative_hash_time``, ``cumulative_sort_time``, ``cumulative_issue_time``
+are the cumulative time, in microseconds, spent in each category of disk I/O
+function.
 
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
+``total_read_back`` is the total number of (16 kiB) blocks read this session.
 
-``get_cache_info()`` fills out the supplied vector with information for
-each piece that is currently in the disk cache for the torrent with the
-specified info-hash (``ih``).
+``read_queue_size`` is the number of read jobs in the disk job queue.
 
-	::
+``blocked_jobs`` is the number of jobs blocked because of one or more jobs that
+need exclusive access to the file storage. For instance renaming files or closing
+files.
 
-		struct cached_piece_info
-		{
-			int piece;
-			std::vector<bool> blocks;
-			ptime last_use;
-			enum kind_t { read_cache = 0, write_cache = 1 };
-			kind_t kind;
-		};
+``queued_jobs`` is the total number of jobs in the queue.
 
-``piece`` is the piece index for this cache entry.
+``pending_jobs`` is the number of jobs that have been issued to the OS, but have not
+yet completed.
 
-``blocks`` has one entry for each block in this piece. ``true`` represents
-the data for that block being in the disk cache and ``false`` means it's not.
+``num_aiocb`` is the number of async. disk I/O request objects currently in use.
 
-``last_use`` is the time when a block was last written to this piece. The older
-a piece is, the more likely it is to be flushed to disk.
-		
-``kind`` specifies if this piece is part of the read cache or the write cache.
+``peak_aiocb`` is the peak number of aiocb's that's ever been in use this session.
+
 
 is_listening() listen_port() listen_on()
 ----------------------------------------
@@ -4420,6 +4455,7 @@ session_settings
 		int read_job_every;
 		bool use_disk_read_ahead;
 		bool lock_files;
+		int hashing_threads;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5292,6 +5328,12 @@ in the disk job queue. This gives a significant performance boost for seeding.
 to or seeding from. This is implemented using ``fcntl(F_SETLK)`` on unix systems and
 by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
 3rd party processes from corrupting the files under libtorrent's feet.
+
+``hashing_threads`` is the number of threads to use for piece hash verification. It
+defaults to 1. For very high download rates, on machines with multiple cores, this
+could be incremented. Setting it higher than the number of CPU cores would presumably
+not provide any benefit of setting it to the number of cores. If it's set to 0,
+hashing is done in the disk thread.
 
 pe_settings
 ===========
@@ -6291,6 +6333,9 @@ generated and the torrent is paused.
 
 ``error`` is the error code describing the error.
 
+``operation`` is a NULL-terminated string of the low-level operation that failed, or NULL if
+there was no low level disk operation.
+
 ::
 
 	struct file_error_alert: torrent_alert
@@ -6298,6 +6343,7 @@ generated and the torrent is paused.
 		// ...
 		std::string file;
 		error_code error;
+		char const* operation;
 	};
 
 torrent_error_alert
@@ -6928,12 +6974,18 @@ This alert is generated when a fastresume file has been passed to ``add_torrent`
 files on disk did not match the fastresume file. The ``error_code`` explains the reason why the
 resume file was rejected.
 
+If the error happend to a specific file, ``file`` is the path to it. If the error happened
+in a disk operation, ``operation`` is a NULL-terminated string of the name of that operation.
+``operation`` is NULL otherwise.
+
 ::
 
 	struct fastresume_rejected_alert: torrent_alert
 	{
 		// ...
 		error_code error;
+		std::string file;
+		char const* operation;
 	};
 
 
@@ -6975,12 +7027,18 @@ storage_moved_failed_alert
 The ``storage_moved_failed_alert`` is generated when an attempt to move the storage
 (via torrent_handle::move_storage()) fails.
 
+If the error happened for a speific file, ``file`` is its path. If the error
+happened in a specific disk operation, ``operation`` is a NULL terminated string
+naming which one, otherwise it's NULL.
+
 ::
 
 	struct storage_moved_failed_alert: torrent_alert
 	{
 		// ...
 		error_code error;
+		std::string file;
+		char const* operation;
 	};
 
 
@@ -7822,31 +7880,39 @@ The interface looks like this::
 
 	struct storage_interface
 	{
-		virtual bool initialize(bool allocate_files) = 0;
-		virtual bool has_any_file() = 0;
+		virtual void initialize(bool allocate_files, error_code& ec) = 0;
+		virtual bool has_any_file(error_code& ec) = 0;
 		virtual void hint_read(int slot, int offset, int len);
-		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
-		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs) = 0;
 		virtual int sparse_end(int start) const;
-		virtual bool move_storage(fs::path save_path) = 0;
+		virtual void move_storage(std::string const& save_path, error_code& ec) = 0;
 		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
-		virtual bool write_resume_data(entry& rd) const = 0;
-		virtual bool move_slot(int src_slot, int dst_slot) = 0;
-		virtual bool swap_slots(int slot1, int slot2) = 0;
-		virtual bool swap_slots3(int slot1, int slot2, int slot3) = 0;
-		virtual bool rename_file(int file, std::string const& new_name) = 0;
-		virtual bool release_files() = 0;
-		virtual bool delete_files() = 0;
-		virtual void finalize_file(int index) {}
+		virtual bool write_resume_data(entry& rd, error_code& ec) const = 0;
+		virtual void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
+		virtual void swap_slots(int slot1, int slot2, error_code& ec) = 0;
+		virtual void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
+		virtual void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
+		virtual void release_files(error_code& ec) = 0;
+		virtual void delete_files(error_code& ec) = 0;
+		virtual void finalize_file(int index, error_code& ec) {}
 		virtual ~storage_interface() {}
+
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+
+	#if TORRENT_USE_AIO
+
+		virtual void async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+		virtual void async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
+			, boost::function<void(error_code const&, size_t)> const& handler);
+
+	#endif
 
 		// non virtual functions
 
 		disk_buffer_pool* disk_pool();
-		void set_error(boost::filesystem::path const& file, error_code const& ec) const;
-		error_code const& error() const;
-		std::string const& error_file() const;
-		void clear_error();
 	};
 
 
@@ -7855,24 +7921,26 @@ initialize()
 
 	::
 
-		bool initialize(bool allocate_files) = 0;
+		virtual void initialize(bool allocate_files, error_code& ec) = 0;
 
 This function is called when the storage is to be initialized. The default storage
 will create directories and empty files at this point. If ``allocate_files`` is true,
 it will also ``ftruncate`` all files to their target size.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 has_any_file()
 --------------
 
 	::
 
-		virtual bool has_any_file() = 0;
+		virtual bool has_any_file(error_code& ec) = 0;
 
 This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.
+
+If an error occurs, ``error_code`` should be set to reflect it.
 
 hint_read()
 -----------
@@ -7890,8 +7958,10 @@ readv() writev()
 
 	::
 
-		int readv(file::iovec_t const* buf, int slot, int offset, int num_bufs) = 0;
-		int write(const char* buf, int slot, int offset, int size) = 0;
+		virtual int readv(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int slot, int offset
+			, int num_bufs, error_code& ec) = 0;
 
 These functions should read or write the data in or to the given ``slot`` at the given ``offset``.
 It should read or write ``num_bufs`` buffers sequentially, where the size of each buffer
@@ -7904,7 +7974,7 @@ is specified in the buffer array ``bufs``. The file::iovec_t type has the follow
 	};
 
 The return value is the number of bytes actually read or written, or -1 on failure. If
-it returns -1, the error code is expected to be set to
+it returns -1, the ``error_code`` must be set to reflect the appropriate error that occurred.
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
 except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
@@ -7933,7 +8003,7 @@ move_storage()
 
 	::
 
-		bool move_storage(fs::path save_path) = 0;
+		void move_storage(fs::path save_path, error_code& ec) = 0;
 
 This function should move all the files belonging to the storage to the new save_path.
 The default storage moves the single file or the directory of the torrent.
@@ -7941,7 +8011,7 @@ The default storage moves the single file or the directory of the torrent.
 Before moving the files, any open file handles may have to be closed, like
 ``release_files()``.
 
-Returning ``false`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 verify_resume_data()
@@ -7957,7 +8027,7 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
-Returning ``false`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 write_resume_data()
@@ -7965,7 +8035,7 @@ write_resume_data()
 
 	::
 
-		bool write_resume_data(entry& rd) const = 0;
+		bool write_resume_data(entry& rd, error_code& ec) const = 0;
 
 This function should fill in resume data, the current state of the
 storage, in ``rd``. The default storage adds file timestamps and
@@ -7973,13 +8043,15 @@ sizes.
 
 Returning ``true`` indicates an error occurred.
 
+If an error occurs, ``error_code`` should be set to reflect it.
+
 
 move_slot()
 -----------
 
 	::
 
-		bool move_slot(int src_slot, int dst_slot) = 0;
+		void move_slot(int src_slot, int dst_slot, error_code& ec) = 0;
 
 This function should copy or move the data in slot ``src_slot`` to
 the slot ``dst_slot``. This is only used in compact mode.
@@ -7987,7 +8059,7 @@ the slot ``dst_slot``. This is only used in compact mode.
 If the storage caches slots, this could be implemented more
 efficient than reading and writing the data.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 swap_slots()
@@ -7995,7 +8067,7 @@ swap_slots()
 
 	::
 
-		bool swap_slots(int slot1, int slot2) = 0;
+		void swap_slots(int slot1, int slot2, error_code& ec) = 0;
 
 This function should swap the data in ``slot1`` and ``slot2``. The default
 storage uses a scratch buffer to read the data into, then moving the other
@@ -8003,7 +8075,7 @@ slot and finally writing back the temporary slot's data
 
 This is only used in compact mode.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 swap_slots3()
@@ -8011,7 +8083,7 @@ swap_slots3()
 
 	::
 
-		bool swap_slots3(int slot1, int slot2, int slot3) = 0;
+		void swap_slots3(int slot1, int slot2, int slot3, error_code& ec) = 0;
 
 This function should do a 3-way swap, or shift of the slots. ``slot1``
 should move to ``slot2``, which should be moved to ``slot3`` which in turn
@@ -8019,7 +8091,7 @@ should be moved to ``slot1``.
 
 This is only used in compact mode.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 rename_file()
@@ -8027,24 +8099,24 @@ rename_file()
 
 	::
 
-		bool rename_file(int file, std::string const& new_name) = 0;
+		void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
 
-Rename file with index ``file`` to the thame ``new_name``. If there is an error,
-``true`` should be returned.
+Rename file with index ``file`` to the thame ``new_name``.
 
+If an error occurs, ``error_code`` should be set to reflect it.
 
 release_files()
 ---------------
 
 	::
 
-		bool release_files() = 0;
+		void release_files(error_code& ec) = 0;
 
 This function should release all the file handles that it keeps open to files
 belonging to this storage. The default implementation just calls
 ``file_pool::release_files(this)``.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 
 delete_files()
@@ -8052,11 +8124,11 @@ delete_files()
 
 	::
 
-		bool delete_files() = 0;
+		void delete_files(error_code& ec) = 0;
 
 This function should delete all files and directories belonging to this storage.
 
-Returning ``true`` indicates an error occurred.
+If an error occurs, ``error_code`` should be set to reflect it.
 
 The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
 following members::
@@ -8079,7 +8151,7 @@ finalize_file()
 
 	::
 
-		virtual void finalize_file(int index);
+		virtual void finalize_file(int index, error_code& ec);
 
 This function is called each time a file is completely downloaded. The
 storage implementation can perform last operations on a file. The file will
@@ -8089,6 +8161,8 @@ not be opened for writing after this.
 
 On windows the default storage implementation clears the sparse file flag
 on the specified file.
+
+If an error occurs, ``error_code`` should be set to reflect it.
 
 example
 -------
@@ -8407,18 +8481,25 @@ The file format is a bencoded dictionary containing the following fields:
 threads
 =======
 
-libtorrent starts 2 or 3 threads.
+libtorrent starts 3 to 5 threads.
 
  * The first thread is the main thread that will sit
    idle in a ``select()`` call most of the time. This thread runs the main loop
-   that will send and receive data on all connections.
+   that will send and receive data on all connections. In reality it's typically
+   not actually in ``select()``, but in ``kqueue()``, ``epoll_wait()`` or ``poll``,
+   depending on operating system.
 
  * The second thread is the disk I/O thread. All disk read and write operations
    are passed to this thread and messages are passed back to the main thread when
-   the operation completes. The disk thread also verifies the piece hashes.
+   the operation completes.
 
- * The third and forth threads are spawned by asio on systems that don't support
-   non-blocking host name resolution to simulate non-blocking getaddrinfo().
+ * The third thread is the SHA-1 hash thread. By default there's only one hash thread,
+   but on multi-core machines downloading at very high rates, libtorrent can be configured
+   to start any number of hashing threads, to take full use of multi core systems.
+   (see ``session_settings::hashing_threads``).
+
+ * The fourth and fifth threads are spawned by asio on systems that don't support
+   asynchronous host name resolution, in order to simulate non-blocking ``getaddrinfo()``.
 
 
 storage allocation

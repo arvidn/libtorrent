@@ -111,6 +111,7 @@ namespace libtorrent
 	struct fingerprint;
 	class torrent;
 	class alert;
+	struct cache_info;
 
 	namespace dht
 	{
@@ -230,7 +231,7 @@ namespace libtorrent
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection const* p, error_code const& ec);
+			void close_connection(peer_connection* p, error_code const& ec);
 
 			void set_settings(session_settings const& s);
 			session_settings const& settings() const { return m_settings; }
@@ -311,6 +312,8 @@ namespace libtorrent
 			void post_alert(const alert& alert_);
 
 			alert const* wait_for_alert(time_duration max_wait);
+
+			void get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m);
 
 #ifndef TORRENT_NO_DEPRECATE
 			int upload_rate_limit() const;
@@ -446,6 +449,20 @@ namespace libtorrent
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
+			void add_pending_write_bytes(int num)
+			{
+				TORRENT_ASSERT(num >= 0);
+				// #error we need a separate number for the number of bytes we've sent
+				// to the disk thread without having heard anything from yet
+				// this number also needs to decrease every time the job is
+				// received (popped) by the disk thread. Probably an atomic
+				// counter is the most appropriate
+//				m_writing_bytes += num;
+//				if (m_writing_bytes >= m_settings.max_queued_disk_bytes
+//					&& m_settings.max_queued_disk_bytes > 0)
+//					m_exceeded_write_queue = true;
+			}
+
 			bool can_write_to_disk() const
 			{ return m_disk_thread.can_write(); }
 
@@ -468,6 +485,8 @@ namespace libtorrent
 			}
 
 //		private:
+
+			void disk_performance_warning(alert* a);
 
 			void update_connections_limit();
 			void update_unchoke_limit();
@@ -537,14 +556,6 @@ namespace libtorrent
 			boost::pool<> m_send_buffers;
 #endif
 
-			// the file pool that all storages in this session's
-			// torrents uses. It sets a limit on the number of
-			// open files by this session.
-			// file pool must be destructed after the torrents
-			// since they will still have references to it
-			// when they are destructed.
-			file_pool m_files;
-
 			// this is where all active sockets are stored.
 			// the selector can sleep while there's no activity on
 			// them
@@ -612,6 +623,18 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+
+			// peer connections are put here when disconnected to avoid
+			// race conditions with the disk thread. It's important that
+			// peer connections are destructed from the network thread,
+			// once a peer is disconnected, it's put in this list and
+			// every second their refcount is checked, and if it's 1,
+			// they are deleted (from the network thread)
+			std::vector<intrusive_ptr<peer_connection> > m_undead_peers;
+
+			// keep the io_service alive until we have posted the job
+			// to clear the undead peers
+			boost::optional<io_service::work> m_work;
 
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
@@ -879,7 +902,7 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 			void log_buffer_usage();
 			// used to log send buffer usage statistics
 			std::ofstream m_buffer_usage_logger;
@@ -963,6 +986,7 @@ namespace libtorrent
 			std::string m_logpath;
 		public:
 			boost::shared_ptr<logger> m_logger;
+			FILE* m_request_logger;
 
 		private:
 
@@ -1024,7 +1048,15 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
-
+			
+			// the number of bytes we have sent to the disk I/O
+			// thread for writing. Every time we hear back from
+			// the disk I/O thread with a completed write job, this
+			// is updated to the number of bytes the disk I/O thread
+			// is actually waiting for to be written (as opposed to
+			// bytes just hanging out in the cache)
+			int m_writing_bytes;
+			
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
 			// the main working thread

@@ -150,6 +150,7 @@ namespace libtorrent
 		SHA_CTX m_context;
 #endif
 	};
+
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED

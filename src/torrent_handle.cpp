@@ -756,9 +756,10 @@ namespace libtorrent
 			bool done = false;
 			session_impl& ses = t->session();
 			mutex::scoped_lock l(ses.mut);
+			storage_error ec;
 			ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond
 				, &ses.mut, boost::function<void(void)>(boost::bind(
-					&piece_manager::write_resume_data, &t->filesystem(), boost::ref(ret)))));
+					&piece_manager::write_resume_data, &t->filesystem(), boost::ref(ret), boost::ref(ec)))));
 			t.reset();
 			do { ses.cond.wait(l); } while(!done);
 		}

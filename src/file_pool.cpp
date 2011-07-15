@@ -40,6 +40,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	file_pool::file_pool(int size)
+		: m_size(size), m_low_prio_io(true)
+	{
+#if TORRENT_USE_OVERLAPPED
+		m_iocp = INVALID_HANDLE_VALUE;
+#endif
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		m_owning_thread = pthread_self();
+#endif
+	}
+
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+	void file_pool::set_thread_owner()
+	{
+		m_owning_thread = pthread_self();
+	}
+	void file_pool::clear_thread_owner()
+	{
+		m_owning_thread = 0;
+	}
+#endif
+
 	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
 		, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec)
 	{
@@ -47,7 +70,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		mutex::scoped_lock l(m_mutex);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
+#endif
 		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(*fe)));
 		if (i != m_files.end())
 		{
@@ -75,9 +100,12 @@ namespace libtorrent
 				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
 				// close the file before we open it with
-				// the new read/write privilages
-				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
-				e.file_ptr->close();
+				// the new read/write privilages, since windows may
+				// file opening a file twice. However, since there may
+				// be outstanding operations on it, we can't close the
+				// file, we can only delete our reference to it.
+				// if this is the only reference to the file, it will be closed
+				e.file_ptr.reset(new (std::nothrow)file);
 				std::string full_path = combine_path(p, fs.file_path(*fe));
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
@@ -97,6 +125,14 @@ namespace libtorrent
 				}
 #endif
 #endif
+
+#if TORRENT_USE_OVERLAPPED
+				// when we're using overlapped I/O, register this file with
+				// the I/O completion port
+				if (m_iocp != INVALID_HANDLE_VALUE)
+					CreateIoCompletionPort(e.file_ptr->native_handle(), m_iocp, 0, 1);
+#endif
+
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
@@ -124,11 +160,21 @@ namespace libtorrent
 		e.key = st;
 		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(*fe)), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
+
+#if TORRENT_USE_OVERLAPPED
+		// when we're using overlapped I/O, register this file with
+		// the I/O completion port
+		if (m_iocp != INVALID_HANDLE_VALUE)
+			CreateIoCompletionPort(e.file_ptr->native_handle(), m_iocp, 0, 1);
+#endif
 		return e.file_ptr;
 	}
 
 	void file_pool::remove_oldest()
 	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
+#endif
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
@@ -138,7 +184,9 @@ namespace libtorrent
 
 	void file_pool::release(void* st, int file_index)
 	{
-		mutex::scoped_lock l(m_mutex);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
+#endif
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end()) m_files.erase(i);
 	}
@@ -147,7 +195,9 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
+#endif
 		if (st == 0)
 		{
 			m_files.clear();
@@ -166,9 +216,11 @@ namespace libtorrent
 
 	void file_pool::resize(int size)
 	{
+#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
+#endif
 		TORRENT_ASSERT(size > 0);
 		if (size == m_size) return;
-		mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 

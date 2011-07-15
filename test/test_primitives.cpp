@@ -379,6 +379,9 @@ namespace libtorrent
 {
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
+
+	TORRENT_EXPORT int append_aios(file::aiocb_t*& list, file::aiocb_t*& list_end
+		, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 }
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
@@ -394,6 +397,57 @@ int test_main()
 	using namespace libtorrent::dht;
 	error_code ec;
 	int ret = 0;
+
+	// test aio operation sorting
+#if TORRENT_USE_SYNCIO
+	for (int elevator = -1; elevator <= 1; elevator += 2)
+	{
+		fprintf(stderr, "=== ELEVATOR TEST %d === \n", elevator);
+
+		// build a list of 100 operations with different physical offsets
+		file::aiocb_t* list = 0;
+		std::vector<int> ids;
+		for (int i = 0; i < 100; ++i) ids.push_back(i);
+		std::random_shuffle(ids.begin(), ids.end());
+
+		for (int i = 0; i < 100; ++i)
+		{
+			if (ids[i] == 50) continue;
+			file::aiocb_t* item = new file::aiocb_t;
+			item->phys_offset = ids[i];
+			item->next = list;
+			list = item;
+		}
+
+		file::aiocb_t* sorted_list = new file::aiocb_t;
+		file::aiocb_t* sorted_list_end = sorted_list;
+		sorted_list->next = 0;
+		sorted_list->phys_offset = 50;
+		append_aios(sorted_list, sorted_list_end, list, elevator, 0);
+
+		int elevator_dir = elevator;
+		int last = sorted_list->phys_offset;
+		for (file::aiocb_t* i = sorted_list; i;)
+		{
+			if (elevator_dir == 1)
+			{
+				TEST_CHECK(last <= i->phys_offset);
+			}
+			else
+			{
+				TEST_CHECK(last >= i->phys_offset);
+			}
+			last = i->phys_offset;
+			fprintf(stderr, "%d ", int(i->phys_offset));
+			if (last == 99) elevator_dir = -1;
+			else if (last == 0) elevator_dir = 1;
+			file::aiocb_t* del = i;
+			i = i->next;
+			delete del;
+		}
+		fprintf(stderr, "\n");
+	}
+#endif
 
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
@@ -663,6 +717,7 @@ int test_main()
 		TEST_CHECK(pb.at(2) == (void*)2);
 	}
 
+	// make sure the error codes and error strings are aligned
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
 	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");

@@ -175,6 +175,8 @@ namespace libtorrent
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
 
+		set.hashing_threads = 0;
+
 		return set;
 	}
 
@@ -236,9 +238,17 @@ namespace libtorrent
 		// delays when freeing a large number of buffers
 		set.lock_disk_cache = false;
 
+		// in case the OS we're running on doesn't support
+		// readv/writev, allocate contiguous buffers for
+		// reads and writes
+		// disable, since it uses a lot more RAM and a significant
+		// amount of CPU to copy it around
+		set.coalesce_reads = false;
+		set.coalesce_writes = false;
+
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 10 * 1024 * 1024;
+		set.max_queued_disk_bytes = 100 * 1024 * 1024;
 		// flush write cache in a way to minimize the amount we need to
 		// read back once we want to hash-check the piece. i.e. try to
 		// flush all blocks in-order
@@ -249,7 +259,7 @@ namespace libtorrent
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.allowed_fast_set_size = 0;
 		// suggest pieces in the read cache for higher cache hit rate
-		set.suggest_mode = session_settings::suggest_read_cache;
+//		set.suggest_mode = session_settings::suggest_read_cache;
 
 		set.close_redundant_connections = true;
 
@@ -287,6 +297,11 @@ namespace libtorrent
 
 		// allow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = true;
+
+		// we're likely to have at least 4 cores on a high
+		// performance machine, but not very likely to peg
+		// 3 cores doing SHA-1
+		set.hashing_threads = 3;
 
 		return set;
 	}
@@ -742,14 +757,12 @@ namespace libtorrent
 	}
 
 	void session::get_cache_info(sha1_hash const& ih
-		, std::vector<cached_piece_info>& ret) const
+		, cache_status* ret) const
 	{
-		m_impl->m_disk_thread.get_cache_info(ih, ret);
-	}
-
-	cache_status session::get_cache_status() const
-	{
-		return m_impl->m_disk_thread.status();
+		bool done = false;
+		mutex::scoped_lock l(m_impl->mut);
+		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info, m_impl.get(), ih, ret, &done, &m_impl->cond, &m_impl->mut));
+		do { m_impl->cond.wait(l); } while(!done);
 	}
 
 #ifndef TORRENT_DISABLE_DHT

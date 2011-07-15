@@ -23,6 +23,7 @@ exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe enum_if : enum_if.cpp ;
 exe connection_tester : connection_tester.cpp ;
+exe parse_access_log : parse_access_log.cpp ;
 exe fragmentation_test : fragmentation_test.cpp ;
 exe rss_reader : rss_reader.cpp ;
 exe upnp_test : upnp_test.cpp ;

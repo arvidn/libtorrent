@@ -26,11 +26,13 @@ libtorrent_rasterbar_la_SOURCES = \
   bandwidth_queue_entry.cpp       \
   bloom_filter.cpp                \
   broadcast_socket.cpp            \
+  block_cache.cpp                 \
   bt_peer_connection.cpp          \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
+  disk_buffer_pool.cpp            \
   disk_io_thread.cpp              \
   entry.cpp                       \
   enum_net.cpp                    \
@@ -40,6 +42,7 @@ libtorrent_rasterbar_la_SOURCES = \
   file_pool.cpp                   \
   file_storage.cpp                \
   gzip.cpp                        \
+  hash_thread.cpp                 \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_seed_connection.cpp        \

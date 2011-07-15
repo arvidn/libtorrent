@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2007-2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,9 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/block_cache.hpp"
+#include "libtorrent/file_pool.hpp"
+#include "libtorrent/aiocb_pool.hpp"
+#include "libtorrent/hash_thread.hpp"
 
 #include <boost/function/function0.hpp>
-#include <boost/function/function2.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
 #include <deque>
@@ -53,109 +57,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/disk_buffer_pool.hpp"
 
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/mem_fun.hpp>
+#include <boost/intrusive_ptr.hpp> // atomic_count
+
+#if TORRENT_USE_IOSUBMIT
+#include <libaio.h>
+#endif
 
 namespace libtorrent
 {
-	using boost::multi_index::multi_index_container;
-	using boost::multi_index::ordered_non_unique;
-	using boost::multi_index::ordered_unique;
-	using boost::multi_index::indexed_by;
-	using boost::multi_index::member;
-	using boost::multi_index::const_mem_fun;
+	class alert;
 
 	struct cached_piece_info
 	{
 		int piece;
 		std::vector<bool> blocks;
 		ptime last_use;
+		bool need_readback;
 		int next_to_hash;
 		enum kind_t { read_cache = 0, write_cache = 1 };
 		kind_t kind;
 	};
 	
-	struct disk_io_job
-	{
-		disk_io_job()
-			: action(read)
-			, buffer(0)
-			, buffer_size(0)
-			, piece(0)
-			, offset(0)
-			, max_cache_line(0)
-			, cache_min_time(0)
-		{}
-
-		enum action_t
-		{
-			read
-			, write
-			, hash
-			, move_storage
-			, release_files
-			, delete_files
-			, check_fastresume
-			, check_files
-			, save_resume_data
-			, rename_file
-			, abort_thread
-			, clear_read_cache
-			, abort_torrent
-			, update_settings
-			, read_and_hash
-			, cache_piece
-			, finalize_file
-		};
-
-		action_t action;
-
-		char* buffer;
-		int buffer_size;
-		boost::intrusive_ptr<piece_manager> storage;
-		// arguments used for read and write
-		int piece, offset;
-		// used for move_storage and rename_file. On errors, this is set
-		// to the error message
-		std::string str;
-
-		// on error, this is set to the path of the
-		// file the disk operation failed on
-		std::string error_file;
-
-		// if this is > 0, it specifies the max number of blocks to read
-		// ahead in the read cache for this access. This is only valid
-		// for 'read' actions
-		int max_cache_line;
-
-		// if this is > 0, it may increase the minimum time the cache
-		// line caused by this operation stays in the cache
-		int cache_min_time;
-
-		boost::shared_ptr<entry> resume_data;
-
-		// the error code from the file operation
-		error_code error;
-
-		// this is called when operation completes
-		boost::function<void(int, disk_io_job const&)> callback;
-
-		// the time when this job was issued. This is used to
-		// keep track of disk I/O congestion
-		ptime start_time;
-	};
-
-	// returns true if the fundamental operation
-	// of the given disk job is a read operation
-	bool is_read_operation(disk_io_job const& j);
-
-	// this is true if the buffer field in the disk_io_job
-	// points to a disk buffer
-	bool operation_has_buffer(disk_io_job const& j);
-
 	struct cache_status
 	{
 		cache_status()
@@ -167,6 +91,7 @@ namespace libtorrent
 			, queued_bytes(0)
 			, cache_size(0)
 			, read_cache_size(0)
+			, elevator_turns(0)
 			, total_used_buffers(0)
 			, average_queue_time(0)
 			, average_read_time(0)
@@ -174,15 +99,25 @@ namespace libtorrent
 			, average_hash_time(0)
 			, average_job_time(0)
 			, average_sort_time(0)
-			, job_queue_length(0)
+			, average_issue_time(0)
 			, cumulative_job_time(0)
 			, cumulative_read_time(0)
 			, cumulative_write_time(0)
 			, cumulative_hash_time(0)
 			, cumulative_sort_time(0)
+			, cumulative_issue_time(0)
 			, total_read_back(0)
 			, read_queue_size(0)
+			, blocked_jobs(0)
+			, queued_jobs(0)
+			, peak_queued(0)
+			, pending_jobs(0)
+			, peak_pending(0)
+			, num_aiocb(0)
+			, peak_aiocb(0)
 		{}
+
+		std::vector<cached_piece_info> pieces;
 
 		// the number of 16kB blocks written
 		size_type blocks_written;
@@ -199,6 +134,8 @@ namespace libtorrent
 		// the number of read operations used
 		size_type reads;
 
+		// the number of bytes queued for writing, including bytes
+		// submitted to the OS for writing, but not yet complete
 		mutable size_type queued_bytes;
 
 		// the number of blocks in the cache (both read and write)
@@ -206,6 +143,9 @@ namespace libtorrent
 
 		// the number of blocks in the cache used for read cache
 		int read_cache_size;
+
+		// the number of times we've changed elevator direction
+		int elevator_turns;
 
 		// the total number of blocks that are currently in use
 		// this includes send and receive buffers
@@ -218,96 +158,52 @@ namespace libtorrent
 		int average_hash_time;
 		int average_job_time;
 		int average_sort_time;
-		int job_queue_length;
+		int average_issue_time;
 
 		boost::uint32_t cumulative_job_time;
 		boost::uint32_t cumulative_read_time;
 		boost::uint32_t cumulative_write_time;
 		boost::uint32_t cumulative_hash_time;
 		boost::uint32_t cumulative_sort_time;
+		boost::uint32_t cumulative_issue_time;
+
+		// number of blocks we've read back from disk
+		// because they were evicted before
 		int total_read_back;
 		int read_queue_size;
+	
+		// number of jobs blocked because of a fence
+		int blocked_jobs;
+
+		// number of jobs waiting to be issued (m_to_issue)
+		// average over 30 seconds
+		int queued_jobs;
+		// largest ever seen number of queued jobs
+		int peak_queued;
+		// number of jobs waiting to complete (m_pending)
+		// average over 30 seconds
+		int pending_jobs;
+		// largest ever seen number of pending jobs
+		int peak_pending;
+
+		// the number of aiocb_t structures that are in use
+		// right now
+		int num_aiocb;
+
+		// the peak number of aiocb_t structures in use
+		int peak_aiocb;
 	};
 	
-	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
-	{
-		disk_buffer_pool(int block_size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		~disk_buffer_pool();
-#endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
-		bool is_disk_buffer(char* buffer
-			, mutex::scoped_lock& l) const;
-		bool is_disk_buffer(char* buffer) const;
-#endif
-
-		char* allocate_buffer(char const* category);
-		void free_buffer(char* buf);
-		void free_multiple_buffers(char** bufvec, int numbufs);
-
-		int block_size() const { return m_block_size; }
-
-#ifdef TORRENT_STATS
-		int disk_allocations() const
-		{ return m_allocations; }
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_disk_access_log;
-#endif
-
-		void release_memory();
-
-		int in_use() const { return m_in_use; }
-
-	protected:
-
-		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		const int m_block_size;
-
-		// number of disk buffers currently allocated
-		int m_in_use;
-
-		session_settings m_settings;
-
-	private:
-
-		mutable mutex m_pool_mutex;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
-		int m_allocations;
-#endif
-#ifdef TORRENT_DISK_STATS
-	public:
-		void rename_buffer(char* buf, char const* category);
-	protected:
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
-		std::ofstream m_log;
-	private:
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		int m_magic;
-#endif
-	};
-
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
 	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
 	{
+		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
+			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
+
 		disk_io_thread(io_service& ios
 			, boost::function<void()> const& queue_callback
-			, file_pool& fp
+			, boost::function<void(alert*)> const& post_alert
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
@@ -316,143 +212,99 @@ namespace libtorrent
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
+		int add_job(disk_io_job const& j);
 
-		// returns the disk write queue size
-		int add_job(disk_io_job const& j
-			, boost::function<void(int, disk_io_job const&)> const& f
-			= boost::function<void(int, disk_io_job const&)>());
-
-		// keep track of the number of bytes in the job queue
-		// at any given time. i.e. the sum of all buffer_size.
-		// this is used to slow down the download global download
-		// speed when the queue buffer size is too big.
-		size_type queue_buffer_size() const;
+		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
+		void thread_fun();
 		bool can_write() const;
 
-		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
+		file_pool& files() { return m_file_pool; }
 
-		cache_status status() const;
+		enum return_code_t
+		{
+			// the error is stored in disk_io_job::error
+			disk_operation_failed = -1,
+			// don't post the handler yet, this operation
+			// is async and will be completed later
+			defer_handler = -100
+		};
 
-		void thread_fun();
+		int do_read(disk_io_job& j);
+		int do_write(disk_io_job& j);
+		int do_hash(disk_io_job& j);
+		int do_move_storage(disk_io_job& j);
+		int do_release_files(disk_io_job& j);
+		int do_delete_files(disk_io_job& j);
+		int do_check_fastresume(disk_io_job& j);
+		int do_check_files(disk_io_job& j);
+		int do_save_resume_data(disk_io_job& j);
+		int do_rename_file(disk_io_job& j);
+		int do_abort_thread(disk_io_job& j);
+		int do_clear_read_cache(disk_io_job& j);
+		int do_abort_torrent(disk_io_job& j);
+		int do_update_settings(disk_io_job& j);
+		int do_read_and_hash(disk_io_job& j);
+		int do_cache_piece(disk_io_job& j);
+		int do_finalize_file(disk_io_job& j);
+		int do_get_cache_info(disk_io_job& j);
+		int do_hashing_done(disk_io_job& j);
 
+		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
 		
-		struct cached_block_entry
-		{
-			cached_block_entry(): buf(0) {}
-			// the buffer pointer (this is a disk_pool buffer)
-			// or 0
-			char* buf;
-
-			// callback for when this block is flushed to disk
-			boost::function<void(int, disk_io_job const&)> callback;
-		};
-
-		struct cached_piece_entry
-		{
-			int piece;
-			// storage this piece belongs to
-			boost::intrusive_ptr<piece_manager> storage;
-			// the pointers to the block data
-			boost::shared_array<cached_block_entry> blocks;
-			// the last time a block was writting to this piece
-			// plus the minimum amount of time the block is guaranteed
-			// to stay in the cache
-			ptime expire;
-			// the number of blocks in the cache for this piece
-			int num_blocks;
-			// used to determine if this piece should be flushed
-			int num_contiguous_blocks;
-			// this is the first block that has not yet been hashed
-			// by the partial hasher. When minimizing read-back, this
-			// is used to determine if flushing a range would force us
-			// to read it back later when hashing
-			int next_block_to_hash;
-			
-			std::pair<void*, int> storage_piece_pair() const
-			{ return std::pair<void*, int>(storage.get(), piece); }
-		};
-
-		typedef multi_index_container<
-			cached_piece_entry, indexed_by<
-				ordered_unique<const_mem_fun<cached_piece_entry, std::pair<void*, int>
-				, &cached_piece_entry::storage_piece_pair> >
-				, ordered_non_unique<member<cached_piece_entry, ptime
-					, &cached_piece_entry::expire> >
-				> 
-			> cache_t;
-
-		typedef cache_t::nth_index<0>::type cache_piece_index_t;
-		typedef cache_t::nth_index<1>::type cache_lru_index_t;
-
 	private:
 
-		int add_job(disk_io_job const& j
-			, mutex::scoped_lock& l
-			, boost::function<void(int, disk_io_job const&)> const& f
-			= boost::function<void(int, disk_io_job const&)>());
+		void added_to_write_queue();
+		void deducted_from_write_queue();
 
-		bool test_error(disk_io_job& j);
-		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
-			, disk_io_job const& j, int ret);
+		void perform_async_job(disk_io_job j);
 
-		// cache operations
-		cache_piece_index_t::iterator find_cached_piece(
-			cache_t& cache, disk_io_job const& j
-			, mutex::scoped_lock& l);
-		bool is_cache_hit(cached_piece_entry& p
-			, disk_io_job const& j, mutex::scoped_lock& l);
-		int copy_from_piece(cached_piece_entry& p, bool& hit
-			, disk_io_job const& j, mutex::scoped_lock& l);
+		void uncork_jobs();
+		void on_disk_write(block_cache::iterator p, int begin
+			, int end, int to_write, async_handler* handler);
+		void on_disk_read(block_cache::iterator p, int begin
+			, int end, async_handler* handler);
 
-		// write cache operations
-		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
-		int flush_cache_blocks(mutex::scoped_lock& l
-			, int blocks, int ignore = -1, int options = 0);
-		void flush_expired_pieces();
-		int flush_contiguous_blocks(cached_piece_entry& p
-			, mutex::scoped_lock& l, int lower_limit = 0);
-		int flush_range(cached_piece_entry& p, int start, int end, mutex::scoped_lock& l);
-		int cache_block(disk_io_job& j
-			, boost::function<void(int,disk_io_job const&)>& handler
-			, int cache_expire
-			, mutex::scoped_lock& l);
+		enum op_t
+		{
+			op_read = 0,
+			op_write = 1
+		};
 
-		// read cache operations
-		int clear_oldest_read_piece(int num_blocks, int ignore
-			, mutex::scoped_lock& l);
-		int read_into_piece(cached_piece_entry& p, int start_block
-			, int options, int num_blocks, mutex::scoped_lock& l);
-		int cache_read_block(disk_io_job const& j, mutex::scoped_lock& l);
-		int free_piece(cached_piece_entry& p, mutex::scoped_lock& l);
-		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
-			, mutex::scoped_lock& l);
-		int try_read_from_cache(disk_io_job const& j, bool& hit);
-		int read_piece_from_cache_and_hash(disk_io_job const& j, sha1_hash& h);
-		int cache_piece(disk_io_job const& j, cache_piece_index_t::iterator& p
-			, bool& hit, int options, mutex::scoped_lock& l);
+		int io_range(block_cache::iterator p, int start, int end, int readwrite);
 
-		// this mutex only protects m_jobs, m_queue_buffer_size,
-		// m_exceeded_write_queue and m_abort
-		mutable mutex m_queue_mutex;
-		event m_signal;
+		int allocate_read_piece(disk_io_job& j, block_cache::iterator& p);
+
+		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
+		int flush_cache(disk_io_job const& j, boost::uint32_t flags);
+
+		void on_write_one_buffer(async_handler* handler, disk_io_job j);
+		void on_read_one_buffer(async_handler* handler, disk_io_job j);
+
+		int try_flush_contiguous(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
+		int try_flush_hashed(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
+		void try_flush_write_blocks(int num);
+
 		bool m_abort;
-		bool m_waiting_to_shutdown;
-		std::deque<disk_io_job> m_jobs;
+
+		// this is the number of bytes we're waiting for to be written
+		size_type m_pending_buffer_size;
+
+		// the number of bytes waiting in write jobs in m_jobs
 		size_type m_queue_buffer_size;
 
 		ptime m_last_file_check;
 
-		// this protects the piece cache and related members
-		mutable mutex m_piece_mutex;
-		// write cache
-		cache_t m_pieces;
-		
-		// read cache
-		cache_t m_read_pieces;
+		// LRU cache of open files
+		file_pool m_file_pool;
+
+		// this is a thread pool for doing SHA-1 hashing
+		hash_thread m_hash_thread;
+
+		// disk cache
+		block_cache m_disk_cache;
 
 		void flip_stats();
 
@@ -480,15 +332,54 @@ namespace libtorrent
 		// and insert into queue
 		average_accumulator m_sort_time;
 
+		// average time to issue jobs
+		average_accumulator m_issue_time;
+
 		// the last time we reset the average time and store the
 		// latest value in m_cache_stats
 		ptime m_last_stats_flip;
 
-		typedef std::multimap<size_type, disk_io_job> read_jobs_t;
-		read_jobs_t m_sorted_read_jobs;
+		// these are async I/O operations that have been issued
+		// and we are waiting to complete
+		file::aiocb_t* m_in_progress;
+
+		// these are async operations that we've accumulated
+		// during this round and will be issued
+		file::aiocb_t* m_to_issue;
+		// the last element in the to-issue chain
+		file::aiocb_t* m_to_issue_end;
+
+		// the number of jobs waiting to be issued in m_to_issue
+		int m_num_to_issue;
+		int m_peak_num_to_issue;
 
 #ifdef TORRENT_DISK_STATS
 		std::ofstream m_log;
+#endif
+
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
+		static void signal_handler(int signal, siginfo_t* si, void*);
+#endif
+
+		// the total number of outstanding jobs. This is used to
+		// limit the number of jobs issued in parallel. It also creates
+		// an opportunity to sort the jobs by physical offset before
+		// issued to the AIO subsystem
+		int m_outstanding_jobs;
+		int m_peak_outstanding;
+
+#if TORRENT_USE_SYNCIO
+		// the direction of the elevator. -1 means down and
+		// 1 means up
+		int m_elevator_direction;
+
+		// the number of times we've switched elevator direction
+		// (only useful for non-aio builds with physical disk offset support)
+		boost::uint64_t m_elevator_turns;
+
+		// the physical offset of the last job consumed out
+		// of the deferred jobs list
+		size_type m_last_phys_off;
 #endif
 
 		// the amount of physical ram in the machine
@@ -499,9 +390,18 @@ namespace libtorrent
 		// queue is smaller than the low watermark
 		bool m_exceeded_write_queue;
 
+		// this is the main thread io_service. Callbacks are
+		// posted on this in order to have them execute in
+		// the main thread.
 		io_service& m_ios;
 
 		boost::function<void()> m_queue_callback;
+
+		// Jobs that are blocked by the fence are put in this
+		// list. Each time a storage is taken out of the fence,
+		// this list is gone through and jobs belonging to the
+		// storage are issued.
+		std::deque<disk_io_job> m_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that
@@ -515,9 +415,59 @@ namespace libtorrent
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
 
-		// reference to the file_pool which is a member of
-		// the session_impl object
-		file_pool& m_file_pool;
+		std::deque<disk_io_job> m_queued_jobs;
+
+		// mutex to protect the m_queued_jobs list
+		mutex m_job_mutex;
+
+		// used to rate limit disk performance warnings
+		ptime m_last_disk_aio_performance_warning;
+
+		// function to be posted to the network thread to post
+		// an alert (used for performance warnings)
+		boost::function<void(alert*)> m_post_alert;
+
+		// pool used to allocate the aiocb_t elements
+		// used by the async operations on files
+		aiocb_pool m_aiocb_pool;
+
+#if TORRENT_USE_OVERLAPPED
+		// this is used to feed events of completed disk I/O
+		// operations to the disk thread
+		HANDLE m_completion_port;
+#endif
+
+#if TORRENT_USE_SIGNALFD
+		// if we're using a signalfd instead of a signal handler
+		// this is its file descriptor
+		// this is fucked up. If we only have a single signalfd, in
+		// the disk thread itself, it will only catch signals specifically
+		// posted to that thread, and for some reason the aio implementation
+		// sometimes send signals to other threads. Now we have two signalfds,
+		// one created from the network thread and one from the disk thread.
+		// this seems to work, but there are other threads not covered by a
+		// signalfd. So it seems this is still broken.
+		// the symptom of lost signals is block writes being issued but
+		// never completed, so pieces will get stuck flushing and the usable
+		// portion of the disk cache will be smaller and smaller over time
+		int m_signal_fd[2];
+
+		// this is an eventfd used to signal the disk thread that
+		// there are new jobs in its in-queue
+		int m_job_event_fd;
+#endif
+
+#if TORRENT_USE_IOSUBMIT
+		// this is used to feed events of completed disk I/O
+		// operations to the disk thread
+		io_context_t m_io_queue;
+
+		// these two event fds are used to signal
+		// each disk job that completes and each disk
+		// job that's queued
+		int m_disk_event_fd;
+		int m_job_event_fd;
+#endif
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;

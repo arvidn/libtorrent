@@ -735,6 +735,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			s.close(ec);
 			connection_close = false;
 		}
+      ec.clear();
 
 		if (!s.is_open())
 		{
@@ -790,7 +791,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			while (!p.finished())
 			{
-				TORRENT_ASSERT(len < int(sizeof(buf)));
+				if (ec)
+				{
+					fprintf(stderr, "?: %s\n", ec.message().c_str());
+               libtorrent::sleep(500);
+					failed = true;
+					break;
+				}
+				TORRENT_ASSERT(len < sizeof(buf));
 				size_t received = s.read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), ec);
 //				fprintf(stderr, "read: %d\n", int(received));
@@ -798,6 +806,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				if (ec || received <= 0)
 				{
 					fprintf(stderr, "read failed: %s received: %d\n", ec.message().c_str(), int(received));
+               libtorrent::sleep(500);
 					failed = true;
 					break;
 				}

@@ -9,10 +9,12 @@ set(sources
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
+	block_cache
 	bloom_filter
 	connection_queue
 	create_torrent
 	disk_buffer_holder
+	disk_buffer_pool
 	entry
 	error_code
 	file_storage

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/assert.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -157,6 +158,9 @@ namespace libtorrent
 		friend class torrent;
 
 		torrent_handle() {}
+
+		torrent_handle(torrent_handle const& t)
+		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
 
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
@@ -402,8 +406,7 @@ namespace libtorrent
 	private:
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)
-			: m_torrent(t)
-		{}
+		{ if (!t.expired()) m_torrent = t; }
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -452,6 +455,7 @@ namespace libtorrent
 			, block_size(0)
 			, num_uploads(0)
 			, num_connections(0)
+			, num_undead_peers(0)
 			, uploads_limit(0)
 			, connections_limit(0)
 			, storage_mode(storage_mode_sparse)
@@ -621,6 +625,7 @@ namespace libtorrent
 
 		int num_uploads;
 		int num_connections;
+		int num_undead_peers;
 		int uploads_limit;
 		int connections_limit;
 

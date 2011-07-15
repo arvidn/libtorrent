@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/escape_string.hpp"
+#endif
+
 //#define TORRENT_CORRUPT_DATA
 
 using boost::shared_ptr;
@@ -361,7 +365,7 @@ namespace libtorrent
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
 	}
 
-#ifdef TORRENT_DISK_STATS
+#ifdef TORRENT_BUFFER_STATS
 	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
 	{
 		if (m_ses.m_disk_thread.is_disk_buffer(buffer))
@@ -865,6 +869,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
+
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		m_disk_recv_buffer_size = 0;
 
@@ -2008,6 +2014,17 @@ namespace libtorrent
 			}
 			else
 			{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				static ptime start = time_now_hires();
+				// time-ms info-hash peer-id piece-index piece-offset size upload-rate-bytes-per-second
+				char ih[5];
+				to_hex((char const*)&t->info_hash()[0], 4, ih);
+				char pid[5];
+				to_hex((char const*)&m_peer_id[10], 4, pid);
+				fprintf(m_ses.m_request_logger, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n"
+					, total_milliseconds(time_now_hires() - start), ih, pid
+					, r.piece, r.start, r.length, m_statistics.upload_rate());
+#endif
 				m_choke_rejects = 0;
 				m_requests.push_back(r);
 				m_last_incoming_request = time_now();
@@ -2375,9 +2392,18 @@ namespace libtorrent
 			}
 		}
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC WRITE ["
+			" piece: " << p.piece <<
+			" | s: " << p.start <<
+			" | l: " << p.length <<
+			" ]\n";
+#endif
 		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
+		m_ses.add_pending_write_bytes(p.length);
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
@@ -2416,6 +2442,8 @@ namespace libtorrent
 		bool was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
 		bool multi = picker.num_peers(block_finished) > 1;
+//		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
+//			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
@@ -2466,14 +2494,20 @@ namespace libtorrent
 		m_outstanding_writing_bytes -= p.length;
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-//		(*m_ses.m_logger) << time_now_string() << " *** DISK_WRITE_COMPLETE [ p: "
-//			<< p.piece << " o: " << p.start << " ]\n";
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC WRITE COMPLETE ["
+				" ret: " << ret <<
+				" | piece: " << p.piece <<
+				" | s: " << p.start <<
+				" | l: " << p.length <<
+				" | e: " << j.error.ec.message() <<
+				" ]\n";
 #endif
 
 		if (!t)
 		{
-			disconnect(j.error);
+			disconnect(j.error.ec);
 			return;
 		}
 
@@ -2497,7 +2531,24 @@ namespace libtorrent
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
+//		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
+//			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());
+		TORRENT_ASSERT(picker.is_finished(block_finished));
+#ifndef NDBEUG
+
+		const std::vector<piece_picker::downloading_piece>& q
+			= picker.get_download_queue();
+
+		for (std::vector<piece_picker::downloading_piece>::const_iterator
+			i = q.begin(), end(q.end()); i != end; ++i)
+		{
+			if (i->index != block_finished.piece_index) continue;
+			piece_picker::downloading_piece const& p = *i;
+			TORRENT_ASSERT(p.info[block_finished.block_index].state == piece_picker::block_info::state_finished);
+		}
+
+#endif
 		if (t->alerts().should_post<block_finished_alert>())
 		{
 			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
@@ -3309,6 +3360,8 @@ namespace libtorrent
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(error_code const& ec, int error)
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_disconnect_started = true;
 #endif
@@ -3548,6 +3601,7 @@ namespace libtorrent
 		p.pid = pid();
 		p.ip = remote();
 		p.pending_disk_bytes = m_outstanding_writing_bytes;
+		p.pending_disk_read_bytes = m_reading_bytes;
 		p.send_quota = m_quota[upload_channel];
 		p.receive_quota = m_quota[download_channel];
 		p.num_pieces = m_num_pieces;
@@ -4288,11 +4342,27 @@ namespace libtorrent
 
 			if (!t->seed_mode() || t->verified_piece(r.piece))
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** FILE ASYNC READ ["
+					" piece: " << r.piece <<
+					" | s: " << r.start <<
+					" | l: " << r.length <<
+					" ]\n";
+#endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.first, cache.second);
 			}
 			else
 			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** FILE ASYNC READ_AND_HASH ["
+					" piece: " << r.piece <<
+					" | s: " << r.start <<
+					" | l: " << r.length <<
+					" ]\n";
+#endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t->filesystem().async_read_and_hash(r, boost::bind(&peer_connection::on_disk_read_complete
@@ -4312,19 +4382,36 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
 	{
+		// return value:
+		// 0: success, piece passed hash check
+		// -1: disk failure
+		// -2: hash check failed
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		(*m_logger) << time_now_string()
+			<< " *** FILE ASYNC READ COMPLETE ["
+			" ret: " << ret <<
+			" | piece: " << r.piece <<
+			" | s: " << r.start <<
+			" | l: " << r.length <<
+			" | b: " << (void*)j.buffer <<
+			" | c: " << (j.flags & disk_io_job::cache_hit ? "cache hit" : "cache miss") <<
+			" | e: " << j.error.ec.message() <<
+			" ]\n";
+#endif
 		m_reading_bytes -= r.length;
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
-#if TORRENT_DISK_STATS
+#if TORRENT_BUFFER_STATS
 		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			disconnect(j.error);
+			disconnect(j.error.ec);
 			return;
 		}
 		
@@ -4358,7 +4445,7 @@ namespace libtorrent
 			, r.piece, r.start, r.length);
 #endif
 
-#if TORRENT_DISK_STATS
+#if TORRENT_BUFFER_STATS
 		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
 		write_piece(r, buffer);
@@ -4857,7 +4944,7 @@ namespace libtorrent
 	void peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
 		m_send_buffer.append_buffer((char*)buffer, size, size, &nop);
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " append_const_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
@@ -4878,7 +4965,7 @@ namespace libtorrent
 			if (fun) fun(dst, free_space, userdata);
 			size -= free_space;
 			buf += free_space;
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
 			m_ses.m_buffer_usage_logger << log_time() << " send_buffer: "
 				<< free_space << std::endl;
 			m_ses.log_buffer_usage();
@@ -4886,7 +4973,7 @@ namespace libtorrent
 		}
 		if (size <= 0) return;
 
-#if defined TORRENT_STATS && defined TORRENT_DISK_STATS
+#if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif

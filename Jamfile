@@ -175,6 +175,14 @@ rule linking ( properties * )
 			;
 	}
 
+	if <target-os>linux in $(properties)
+		|| <io>iosubmit in $(properties)
+		|| <io>iosubmit-vec in $(properties)
+	{
+		# for libaio support on linux
+		result += <library>aio ;
+	}
+
 	return $(result) ;
 }
 
@@ -234,6 +242,13 @@ feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
 feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
 feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
 
+feature io : auto overlapped iosubmit aio sync iosubmit-vec : composite propagated ;
+feature.compose <io>overlapped : <define>TORRENT_USE_OVERLAPPED=1 ;
+feature.compose <io>iosubmit : <define>TORRENT_USE_IOSUBMIT=1 ;
+feature.compose <io>iosubmit-vec : <define>TORRENT_USE_IOSUBMIT=1 <define>TORRENT_USE_IOSUBMIT_VEC=1 ;
+feature.compose <io>aio : <define>TORRENT_USE_AIO=1 ;
+feature.compose <io>sync : <define>TORRENT_USE_SYNCIO=1 ;
+
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
@@ -283,6 +298,9 @@ feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHE
 
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
+
+feature buffer-stats : off on : composite propagated link-incompatible ;
+feature.compose <buffer-stats>on : <define>TORRENT_BUFFER_STATS ;
 
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
@@ -363,6 +381,7 @@ lib z : : <link>shared <name>z <search>/lib ;
 lib crypto : : <name>crypto <search>/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto ;
 lib dl : : <link>shared <name>dl ;
+lib aio : : <name>aio ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -387,10 +406,12 @@ SOURCES =
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
+	block_cache
 	bloom_filter
 	connection_queue
 	create_torrent
 	disk_buffer_holder
+	disk_buffer_pool
 	entry
 	error_code
 	file_storage
@@ -398,6 +419,7 @@ SOURCES =
 	escape_string
 	file
 	gzip
+	hash_thread
 	http_connection
 	http_stream
 	http_parser

@@ -48,7 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
@@ -83,8 +85,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+#include <boost/function.hpp>
+
+#if TORRENT_USE_AIO
+#include <aio.h>
+#endif
+
+#if TORRENT_USE_IOSUBMIT
+#include <libaio.h>
+#endif
+
 namespace libtorrent
 {
+#ifdef TORRENT_WINDOWS
+	typedef HANDLE handle_type;
+#else
+	typedef int handle_type;
+#endif
+
+	struct aiocb_pool;
+	struct async_handler;
+
 	struct file_status
 	{
 		size_type file_size;
@@ -202,6 +223,124 @@ namespace libtorrent
 		typedef iovec iovec_t;
 #endif
 
+		// aiocb_t is a very thin wrapper around
+		// posix AIOs aiocb and window's OVERLAPPED
+		// structure. There's also a platform independent
+		// version that doesn't use aynch. I/O
+		struct aiocb_t;
+
+		struct aiocb_base
+		{
+			aiocb_t* prev;
+			aiocb_t* next;
+			async_handler* handler;
+			// used to keep the file alive while
+			// waiting for the async operation
+			boost::intrusive_ptr<file> file_ptr;
+
+			// when coalescing reads/writes, this is the buffer
+			// used. It's heap allocated
+			char* buffer;
+
+			// when coalescing reads, we need to save the iovecs
+			// so that we can copy the resulting buffer into the
+			// original buffers when we're done. In that case
+			// this will point to aiocb_pool::max_iovec elements.
+			// it's also used for AIO APIs that actually support
+			// iovecs.
+			file::iovec_t* vec;
+
+			// the number of buffers specified in vec that are
+			// used for this I/O
+			int num_vec;
+
+			// the flags passed to the read or write operation
+			int flags;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_use;
+#endif
+			aiocb_base();
+			~aiocb_base();
+		};
+
+#if TORRENT_USE_AIO
+		struct aiocb_t : aiocb_base
+		{
+			aiocb cb;
+			size_t nbytes() const { return cb.aio_nbytes; }
+		};
+
+		enum
+		{
+			read_op = LIO_READ,
+			write_op = LIO_WRITE
+		};
+#elif TORRENT_USE_IOSUBMIT
+		struct aiocb_t : aiocb_base
+		{
+			iocb cb;
+			// return value of the async. operation
+			int ret;
+			// if ret < 0, this is the errno value the
+			// operation failed with
+			int error;
+#if TORRENT_USE_IOSUBMIT_VEC
+			int num_bytes;
+			size_t nbytes() const { return num_bytes; }
+#else
+			size_t nbytes() const { return cb.u.c.nbytes; }
+#endif
+		};
+
+		enum
+		{
+#if TORRENT_USE_IOSUBMIT_VEC
+			read_op = IO_CMD_PREADV,
+			write_op = IO_CMD_PWRITEV
+#else
+			read_op = IO_CMD_PREAD,
+			write_op = IO_CMD_PWRITE
+#endif
+		};
+#elif TORRENT_USE_OVERLAPPED
+		struct aiocb_t : aiocb_base
+		{
+			OVERLAPPED ov;
+			int op;
+			size_t size;
+			void* buf;
+			size_t nbytes() const { return size; }
+		};
+
+		enum
+		{
+			read_op = 1,
+			write_op = 2
+		};
+#elif TORRENT_USE_SYNCIO
+		// if there is no aio support on this platform
+		// fall back to an operation that's sortable
+		// by physical disk offset
+		struct aiocb_t : aiocb_base
+		{
+			// used to insert jobs ordered
+			size_type phys_offset;
+			int op;
+			size_type offset;
+			size_type size;
+			void* buf;
+			size_t nbytes() const { return size; }
+		};
+
+		enum
+		{
+			read_op = 1,
+			write_op = 2
+		};
+#else
+#error which disk I/O API are we using?
+#endif
+
 		// use a typedef for the type of iovec_t::iov_base
 		// since it may differ
 #ifdef TORRENT_SOLARIS
@@ -239,9 +378,24 @@ namespace libtorrent
 		// this when in unbuffered mode
 		int size_alignment() const;
 
-		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
-		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		// flags for writev, readv, async_writev and async_readv
+		enum
+		{
+			coalesce_buffers = 1,
+			resolve_phys_offset = 2
+		};
+
+		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs
+			, error_code& ec, int flags = 0);
+		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs
+			, error_code& ec, int flags = 0);
 		void hint_read(size_type file_offset, int len);
+
+		// returns a chain of aiocb_t structures
+		aiocb_t* async_writev(size_type offset, iovec_t const* bufs
+			, int num_bufs, aiocb_pool& pool, int flags = 0);
+		aiocb_t* async_readv(size_type offset, iovec_t const* bufs
+			, int num_bufs, aiocb_pool& pool, int flags = 0);
 
 		size_type get_size(error_code& ec) const;
 
@@ -251,28 +405,37 @@ namespace libtorrent
 
 		size_type phys_offset(size_type offset);
 
-#ifdef TORRENT_WINDOWS
-		HANDLE native_handle() const { return m_file_handle; }
-#else
-		int native_handle() const { return m_fd; }
+		handle_type native_handle() const { return m_file_handle; }
+
+#ifdef TORRENT_DISK_STATS
+		boost::uint32_t file_id() const { return m_file_id; }
 #endif
 
 	private:
 
-#ifdef TORRENT_WINDOWS
-		HANDLE m_file_handle;
-#if TORRENT_USE_WSTRING
+		// allocates aiocb structures and links them
+		// together and returns the pointer to the first
+		// element in the (doubly) linked list
+		aiocb_t* async_io(size_type offset
+			, iovec_t const* bufs, int num_bufs, int op
+			, aiocb_pool& pool, int flags);
+
+		handle_type m_file_handle;
+#ifdef TORRENT_DISK_STATS
+		boost::uint32_t m_file_id;
+#endif
+
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 		std::wstring m_path;
-#else
+#elif defined TORRENT_WINDOWS
 		std::string m_path;
-#endif // TORRENT_USE_WSTRING
-#else // TORRENT_WINDOWS
-		int m_fd;
 #endif // TORRENT_WINDOWS
 
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		static void init_file();
+	public:
 		static int m_page_size;
+	private:
 #endif
 		int m_open_mode;
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
@@ -281,7 +444,124 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS
 		mutable int m_cluster_size;
 #endif
+
 	};
+
+#ifdef TORRENT_DISK_STATS
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp);
+#endif
+
+	// this struct is used to hold the handler while
+	// waiting for all async operations to complete
+	struct async_handler
+	{
+		async_handler(ptime now) : transferred(0), references(0), started(now)
+		{
+#ifdef TORRENT_DISK_STATS
+			file_access_log = 0;
+#endif
+		}
+		boost::function<void(async_handler*)> handler;
+		storage_error error;
+		size_t transferred;
+		int references;
+		ptime started;
+
+		void done(storage_error const& ec, size_t bytes_transferred
+			, file::aiocb_t const* aio)
+		{
+			TORRENT_ASSERT(references > 0);
+			if (ec.ec) error = ec;
+			else transferred += bytes_transferred;
+#ifdef TORRENT_DISK_STATS
+			if (file_access_log) write_disk_log(file_access_log, aio, true, time_now_hires());
+#endif
+			--references;
+			TORRENT_ASSERT(references >= 0);
+			if (references > 0) return;
+			handler(this);
+			delete this;
+		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		~async_handler()
+		{
+			TORRENT_ASSERT(references == 0);
+			references = 0xf0f0f0f0;
+		}
+#endif
+
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log;
+#endif
+	};
+
+	// returns two chains, one with jobs that were issued and
+	// one with jobs that couldn't be issued
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool, int& num_issued);
+
+	file::aiocb_t* reap_aios(file::aiocb_t* aios
+		, aiocb_pool& pool);
+
+	// reaps one aiocb element. If the operation is
+	// not complete, it just returns false. If it is
+	// complete, processes it, unlinks it, frees it
+	// and returns true.
+	bool reap_aio(file::aiocb_t* aio
+		, aiocb_pool& pool);
+
+#if TORRENT_USE_OVERLAPPED
+	void iovec_to_file_segment(file::iovec_t const* bufs, int num_bufs
+		, FILE_SEGMENT_ELEMENT* seg);
+#endif
+
+	// return file::read_op or file::write_op
+	inline int aio_op(file::aiocb_t const* aio)
+	{
+#if TORRENT_USE_SYNCIO \
+	|| TORRENT_USE_OVERLAPPED
+		return aio->op;
+#elif TORRENT_USE_AIO \
+	|| TORRENT_USE_IOSUBMIT \
+	|| TORRENT_USE_IOSUBMIT_VEC
+		return aio->cb.aio_lio_opcode;
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
+	inline boost::uint64_t aio_offset(file::aiocb_t const* aio)
+	{
+#if TORRENT_USE_SYNCIO
+		return aio->offset;
+#elif TORRENT_USE_OVERLAPPED
+		return boost::uint64_t(aio->ov.Offset) | (boost::uint64_t(aio->ov.OffsetHigh) << 32);
+#elif TORRENT_USE_AIO
+		return aio->cb.aio_offset;
+#elif TORRENT_USE_IOSUBMIT
+		return aio->cb.u.c.offset;
+#elif TORRENT_USE_IOSUBMIT_VEC
+		return aio->cb.u.v.offset;
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
+	// since aiocb_t derives from aiocb_base, the platforma specific
+	// type is not at the top of the aiocb_t type
+	// that's why we need to adjust the pointer from the platform specific
+	// pointer into the wrapper, aiocb_t
+#if TORRENT_USE_OVERLAPPED
+	inline file::aiocb_t* to_aiocb(OVERLAPPED* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, ov)); }
+#elif TORRENT_USE_AIO
+	inline file::aiocb_t* to_aiocb(aiocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#elif TORRENT_USE_IOSUBMIT \
+	|| TORRENT_USE_IOSUBMIT_VEC
+	inline file::aiocb_t* to_aiocb(iocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#endif
 
 }
 

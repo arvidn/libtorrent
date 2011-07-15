@@ -39,9 +39,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/escape_string.hpp" // for string conversion
+#include "libtorrent/aiocb_pool.hpp"
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
+
+#ifdef TORRENT_DISK_STATS
+#include "libtorrent/io.hpp"
+#endif
+
+#define DEBUG_AIO 0
+
+#define DLOG if (DEBUG_AIO) fprintf
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -139,6 +148,31 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
+#ifdef TORRENT_DISK_STATS
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp)
+	{
+		// the event format in the log is:
+		// uint64_t timestamp (microseconds)
+		// uint64_t file offset
+		// uint32_t file-id
+		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
+		char event[29];
+		char* ptr = event;
+		detail::write_uint64(total_microseconds((timestamp - min_time())), ptr);
+		detail::write_uint64(aio_offset(aio), ptr);
+		detail::write_uint64((boost::uint64_t)aio, ptr);
+		detail::write_uint32(aio->file_ptr->file_id(), ptr);
+		detail::write_uint8((int(complete) << 1) | (aio_op(aio) == file::write_op), ptr);
+
+		int ret = fwrite(event, 1, sizeof(event), f);
+		if (ret != sizeof(event))
+		{
+			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
+				, errno, strerror(errno));
+		}
+	}
+#endif
+
 	void stat_file(std::string inf, file_status* s
 		, error_code& ec, int flags)
 	{
@@ -717,26 +751,46 @@ namespace libtorrent
 #endif
 	}
 
-	file::file()
-#ifdef TORRENT_WINDOWS
-		: m_file_handle(INVALID_HANDLE_VALUE)
-#else
-		: m_fd(-1)
+	file::aiocb_base::aiocb_base()
+		: prev(0)
+		, next(0)
+		, handler(0)
+		, buffer(0)
+		, vec(0)
+		, flags(0)
+	{}
+
+	file::aiocb_base::~aiocb_base()
+	{
+		page_aligned_allocator::free(buffer);
+	}
+
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
 #endif
+
+	file::file()
+		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		, m_sector_size(0)
 #endif
-	{}
+	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
+	}
 
 	file::file(std::string const& path, int mode, error_code& ec)
-#ifdef TORRENT_WINDOWS
 		: m_file_handle(INVALID_HANDLE_VALUE)
-#else
-		: m_fd(-1)
-#endif
 		, m_open_mode(0)
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
+		, m_sector_size(0)
+#endif
 	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
 		// the return value is not important, since the
 		// error code contains the same information
 		open(path, mode, ec);
@@ -747,9 +801,27 @@ namespace libtorrent
 		close();
 	}
 
+#ifdef TORRENT_DISK_STATS
+	boost::uint32_t silly_hash(std::string const& str)
+	{
+		boost::uint32_t ret = 1;
+		for (int i = 0; i < str.size(); ++i)
+		{
+			if (str[i] == 0) continue;
+			ret *= int(str[i]);
+		}
+		return ret;
+	}
+#endif
+
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
+
+#ifdef TORRENT_DISK_STATS
+		m_file_id = silly_hash(path);
+#endif
+
 #ifdef TORRENT_WINDOWS
 
 		struct open_mode_t
@@ -798,28 +870,33 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		DWORD flags
-			= ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
+		DWORD flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
-			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0);
+			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0)
+#if TORRENT_USE_OVERLAPPED
+			| FILE_FLAG_OVERLAPPED
+#endif
+			;
 
-		m_file_handle = CreateFile_(m_path.c_str(), m.rw_mode
+		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? 0 : share_array[mode & rw_mask]
 			, 0, m.create_mode, flags, 0);
 
-		if (m_file_handle == INVALID_HANDLE_VALUE)
+		if (handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
 
+		m_file_handle = handle;
+
 		// try to make the file sparse if supported
 		// only set this flag if the file is opened for writing
 		if ((mode & file::sparse) && (mode & rw_mask) != read_only)
 		{
 			DWORD temp;
-			::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, 0, 0
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
 				, 0, 0, &temp, 0);
 		}
 #else // TORRENT_WINDOWS
@@ -844,7 +921,7 @@ namespace libtorrent
 		static const int no_atime_flag[] = {0, O_NOATIME};
 #endif
 
- 		m_fd = ::open(convert_to_native(path).c_str()
+ 		handle_type handle = ::open(convert_to_native(path).c_str()
  			, mode_array[mode & rw_mask]
 			| no_buffer_flag[(mode & no_buffer) >> 2]
 #ifdef O_NOATIME
@@ -855,20 +932,22 @@ namespace libtorrent
 #ifdef TORRENT_LINUX
 		// workaround for linux bug
 		// https://bugs.launchpad.net/ubuntu/+source/linux/+bug/269946
-		if (m_fd == -1 && (mode & no_buffer) && errno == EINVAL)
+		if (handle == -1 && (mode & no_buffer) && errno == EINVAL)
 		{
 			mode &= ~no_buffer;
-			m_fd = ::open(path.c_str()
+			handle = ::open(path.c_str()
 				, mode & (rw_mask | no_buffer), permissions);
 		}
 
 #endif
-		if (m_fd == -1)
+		if (handle == -1)
 		{
 			ec.assign(errno, get_posix_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
+
+		m_file_handle = handle;
 
 #ifdef F_SETLK
 		if (mode & lock_file)
@@ -881,7 +960,7 @@ namespace libtorrent
 				(mode & write_only) ? F_WRLCK : F_RDLCK, // lock type
 				SEEK_SET // whence
 			};
-			if (fcntl(m_fd, F_SETLK, &l) != 0)
+			if (fcntl(m_file_handle, F_SETLK, &l) != 0)
 			{
 				ec.assign(errno, get_posix_category());
 				return false;
@@ -894,7 +973,7 @@ namespace libtorrent
 		if (mode & no_buffer)
 		{
 			int yes = 1;
-			directio(m_fd, DIRECTIO_ON);
+			directio(native_handle(), DIRECTIO_ON);
 		}
 #endif
 
@@ -903,7 +982,7 @@ namespace libtorrent
 		if (mode & no_buffer)
 		{
 			int yes = 1;
-			fcntl(m_fd, F_NOCACHE, &yes);
+			fcntl(native_handle(), F_NOCACHE, &yes);
 		}
 #endif
 
@@ -911,7 +990,7 @@ namespace libtorrent
 		if (mode & random_access)
 		{
 			// disable read-ahead
-			posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+			posix_fadvise(native_handle(), 0, 0, POSIX_FADV_RANDOM);
 		}
 #endif
 
@@ -924,11 +1003,7 @@ namespace libtorrent
 
 	bool file::is_open() const
 	{
-#ifdef TORRENT_WINDOWS
 		return m_file_handle != INVALID_HANDLE_VALUE;
-#else
-		return m_fd != -1;
-#endif
 	}
 
 	int file::pos_alignment() const
@@ -939,7 +1014,7 @@ namespace libtorrent
 		if (m_sector_size == 0)
 		{
 			struct statvfs fs;
-			if (fstatvfs(m_fd, &fs) == 0)
+			if (fstatvfs(native_handle(), &fs) == 0)
 				m_sector_size = fs.f_bsize;
 			else
 				m_sector_size = 4096;
@@ -1001,20 +1076,26 @@ namespace libtorrent
 
 	void file::close()
 	{
+#ifdef TORRENT_DISK_STATS
+		m_file_id = 0;
+#endif
+
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		m_sector_size = 0;
 #endif
 
+		if (!is_open()) return;
+
 #ifdef TORRENT_WINDOWS
-		if (m_file_handle == INVALID_HANDLE_VALUE) return;
 		CloseHandle(m_file_handle);
-		m_file_handle = INVALID_HANDLE_VALUE;
 		m_path.clear();
 #else
-		if (m_fd == -1) return;
-		::close(m_fd);
-		m_fd = -1;
+		if (m_file_handle != INVALID_HANDLE_VALUE)
+			::close(m_file_handle);
 #endif
+
+		m_file_handle = INVALID_HANDLE_VALUE;
+
 		m_open_mode = 0;
 	}
 
@@ -1037,19 +1118,285 @@ namespace libtorrent
 	void file::hint_read(size_type file_offset, int len)
 	{
 #if defined POSIX_FADV_WILLNEED
-		posix_fadvise(m_fd, file_offset, len, POSIX_FADV_WILLNEED);
+		posix_fadvise(native_handle(), file_offset, len, POSIX_FADV_WILLNEED);
 #elif defined F_RDADVISE
 		radvisory r;
 		r.ra_offset = file_offset;
 		r.ra_count = len;
-		fcntl(m_fd, F_RDADVISE, &r);
+		fcntl(native_handle(), F_RDADVISE, &r);
 #else
 		// TODO: is there any way to pre-fetch data from a file on windows?
 #endif
 	}
 
-	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
+	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
+		int offset = 0;
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
+			offset += bufs[i].iov_len;
+		}
+	}
+
+	void scatter_copy(file::iovec_t const* bufs, int num_bufs, char const* src)
+	{
+		int offset = 0;
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
+			offset += bufs[i].iov_len;
+		}
+	}
+
+	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	{
+		int buf_size = bufs_size(bufs, num_bufs);
+		// this is page aligned since it's used in APIs which
+		// are likely to require that (depending on OS)
+		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		if (!buf) return false;
+		tmp->iov_base = buf;
+		tmp->iov_len = buf_size;
+		bufs = tmp;
+		num_bufs = 1;
+		return true;
+	}
+
+	void coalesce_read_buffers_end(file::iovec_t const* bufs, int num_bufs, char* buf, bool copy)
+	{
+		if (copy) scatter_copy(bufs, num_bufs, buf);
+		page_aligned_allocator::free(buf);
+	}
+
+	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	{
+		// coalesce buffers means allocate a temporary buffer and
+		// issue a single write operation instead of using a vector
+		// operation
+		int buf_size = 0;
+		for (int i = 0; i < num_bufs; ++i) buf_size += bufs[i].iov_len;
+		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		if (!buf) return false;
+		gather_copy(bufs, num_bufs, buf);
+		tmp->iov_base = buf;
+		tmp->iov_len = buf_size;
+		bufs = tmp;
+		num_bufs = 1;
+		return true;
+	}
+
+	void init_aiocb(file::aiocb_t* aio, file* f, size_type offset, int op
+		, file::iovec_t* vec, int num_vec, char* buffer, int num_bytes
+		, int flags, aiocb_pool& pool)
+	{
+		aio->file_ptr = f;
+		aio->flags = flags;
+		aio->vec = vec;
+		aio->num_vec = num_vec;
+
+		if (flags & file::coalesce_buffers)
+		{
+			// save this off so that we can free it
+			// or multiplex it later
+			aio->buffer = buffer;
+		}
+
+#if TORRENT_USE_AIO
+
+		memset(&aio->cb, 0, sizeof(aiocb));
+		aio->cb.aio_fildes = f->native_handle();
+		aio->cb.aio_reqprio = 0;
+		aio->cb.aio_lio_opcode = op;
+		aio->cb.aio_buf = buffer;
+		aio->cb.aio_nbytes = num_bytes;
+		aio->cb.aio_offset = offset;
+
+#elif TORRENT_USE_IOSUBMIT
+
+		memset(&aio->cb, 0, sizeof(iocb));
+		aio->cb.aio_fildes = f->native_handle();
+		aio->cb.aio_reqprio = 0;
+		aio->cb.aio_lio_opcode = op;
+		io_set_eventfd(&aio->cb, pool.event);
+
+#if TORRENT_USE_IOSUBMIT_VEC
+		aio->num_bytes = num_bytes;
+		TORRENT_ASSERT(aio->vec);
+		aio->cb.u.v.offset = offset;
+		aio->cb.u.v.vec = aio->vec;
+		aio->cb.u.v.nr = num_vec;
+		// we should always use vector operations in this build configuration
+		TORRENT_ASSERT(buffer == 0);
+#else
+		aio->cb.u.c.buf = buffer;
+		aio->cb.u.c.nbytes = num_bytes;
+		aio->cb.u.c.offset = offset;
+#endif
+
+#elif TORRENT_USE_OVERLAPPED
+		memset(&aio->ov, 0, sizeof(OVERLAPPED));
+		aio->ov.Internal = 0;
+		aio->ov.InternalHigh = 0;
+		aio->ov.OffsetHigh = DWORD(offset >> 32);
+		aio->ov.Offset = DWORD(offset & 0xffffffff);
+		aio->ov.hEvent = CreateEvent(0, true, false, 0);
+		aio->size = num_bytes;
+		aio->buf = buffer;
+		aio->op = op;
+
+#elif TORRENT_USE_SYNCIO
+
+		aio->buf = buffer;
+		aio->size = num_bytes;
+		aio->offset = offset;
+		aio->op = op;
+		if (flags & file::resolve_phys_offset)
+			aio->phys_offset = f->phys_offset(offset);
+		else
+			aio->phys_offset = 0;
+
+#else
+#error which disk I/O API are we using?
+#endif
+	}
+
+#if TORRENT_USE_OVERLAPPED
+	void iovec_to_file_segment(file::iovec_t const* bufs, int num_bufs
+		, FILE_SEGMENT_ELEMENT* seg)
+	{
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		{
+			for (int k = 0; k < int(i->iov_len); k += file::m_page_size)
+			{
+				seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
+				++seg;
+			}
+		}
+		// terminate the array
+		seg->Buffer = 0;
+	}
+#endif
+
+	file::aiocb_t* file::async_io(size_type offset
+		, iovec_t const* bufs, int num_bufs, int op
+		, aiocb_pool& pool, int flags)
+	{
+		aiocb_t* ret = 0;
+		aiocb_t* prev = 0;
+
+		bool submit_vec = (flags & file::coalesce_buffers);
+#if (TORRENT_USE_IOSUBMIT && TORRENT_USE_IOSUBMIT_VEC) \
+	|| TORRENT_USE_OVERLAPPED \
+	|| TORRENT_USE_SYNCIO
+		// if we're using an AIO API that supports vector operations
+		// there's no need to coalesce the buffers
+		submit_vec = true;
+		flags &= ~file::coalesce_buffers;
+#endif
+
+		if (submit_vec)
+		{
+			file::iovec_t* vec = pool.alloc_vec();
+
+			int num_vec = 0;
+			int num_bytes = 0;
+
+			// loop to +1 so that we get a chance to hook up
+			// the last aiocb_t to the list before we return
+			for (int i = 0; i < num_bufs + 1; ++i)
+			{
+				if (num_vec == aiocb_pool::max_iovec || i == num_bufs)
+				{
+					char* buffer = 0;
+					if (flags & coalesce_buffers)
+					{
+						buffer = (char*)page_aligned_allocator::malloc(num_bytes);
+						// TODO: error handling?
+						// if we're writing these buffers, and coalescing them
+						// we need to copy the bytes into the coalesced buffer
+						if (op == write_op) gather_copy(vec, num_vec, buffer);
+					}
+					file::aiocb_t* aio = pool.construct();
+					init_aiocb(aio, this, offset, op, vec, num_vec
+						, buffer, num_bytes, flags, pool);
+					// link in to the double linked list
+					aio->prev = prev;
+					aio->next = 0;
+					if (prev) prev->next = aio;
+					if (ret == 0) ret = aio;
+   
+					prev = aio;
+   
+					offset += num_bytes;
+
+					// if this was the last one, we're done
+					if (i == num_bufs) break;
+   
+					// if we have more buffers, allocate another
+					// vec to start filling up
+					vec = pool.alloc_vec();
+					num_bytes = 0;
+					num_vec = 0;
+				}
+   
+				vec[num_vec] = bufs[i];
+				++num_vec;
+				num_bytes += bufs[i].iov_len;
+			}
+			return ret;
+		}
+
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			aiocb_t* aio = pool.construct();
+			// don't save the coalesce buffers flag for writes
+			// since we don't need to do anything with it
+			init_aiocb(aio, this, offset, op, 0, 0, (char*)bufs[i].iov_base, bufs[i].iov_len
+				, op == write_op ? flags & ~file::coalesce_buffers : flags, pool);
+			// link in to the double linked list
+			aio->prev = prev;
+			aio->next = 0;
+			if (prev) prev->next = aio;
+			if (ret == 0) ret = aio;
+
+			offset += bufs[i].iov_len;
+			prev = aio;
+		}
+
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+
+		return ret;
+	}
+
+	file::aiocb_t* file::async_writev(size_type offset
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool, int flags)
+	{
+		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(is_open());
+		
+		return async_io(offset, bufs, num_bufs, write_op, pool, flags);
+	}
+
+	file::aiocb_t* file::async_readv(size_type offset
+		, iovec_t const* bufs, int num_bufs, aiocb_pool& pool, int flags)
+	{
+		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
+		TORRENT_ASSERT(bufs);
+		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(is_open());
+
+		return async_io(offset, bufs, num_bufs, read_op, pool, flags);
+	}
+
+	size_type file::readv(size_type file_offset, iovec_t const* bufs_in, int num_bufs_in
+		, error_code& ec, int flags)
+	{
+		iovec_t const* bufs = bufs_in;
+		int num_bufs = num_bufs_in;
+
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
@@ -1097,45 +1444,110 @@ namespace libtorrent
 			// this means the buffer base or the buffer size is not aligned
 			// to the page size. Use a regular file for this operation.
 
-			LARGE_INTEGER offs;
-			offs.QuadPart = file_offset;
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			file::iovec_t tmp;
+#if !TORRENT_USE_OVERLAPPED
+
+			// If we're not using overlapped I/O, we can't use ReadFileScatter
+			// anyway. Just loop over the buffers and write them one at a time
+   
+			if (flags & file::coalesce_buffers)
 			{
-				ec.assign(GetLastError(), get_system_category());
-				return -1;
+				if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce this read
+					flags &= ~file::coalesce_buffers;
 			}
 
+			LARGE_INTEGER offs;
+			offs.QuadPart = file_offset;
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				goto done;
+			}
+   
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (ReadFile(m_file_handle, (char*)i->iov_base
+				if (ReadFile(native_handle(), (char*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
-					return -1;
+					break;
 				}
 				ret += intermediate;
 			}
+
+done:
+
+			if (flags & file::coalesce_buffers)
+				coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
+			return ec ? -1 : ret;
+
+#endif // TORRENT_USE_OVERLAPPED
+
+			if (flags & file::coalesce_buffers)
+			{
+				if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce this read
+					flags &= ~file::coalesce_buffers;
+			}
+
+			OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+			memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+
+			int c = 0;
+			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i, ++c)
+			{
+				ol[c].Internal = 0;
+				ol[c].InternalHigh = 0;
+				ol[c].OffsetHigh = file_offset >> 32;
+				ol[c].Offset = file_offset & 0xffffffff;
+				ol[c].hEvent = CreateEvent(0, true, false, 0);
+
+				if (ReadFile(native_handle(), (char*)i->iov_base
+					, (DWORD)i->iov_len, NULL, &ol[c]) == FALSE)
+				{
+					if (GetLastError() != ERROR_IO_PENDING)
+					{
+						TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
+						ec.assign(GetLastError(), get_system_category());
+						ret = -1;
+						break;
+					}
+				}
+				file_offset += i->iov_len;
+			}
+
+			for (int i = 0; i < c; ++i)
+			{
+				DWORD intermediate = 0;
+				if (GetOverlappedResult(native_handle(), &ol[i], &intermediate, true) == 0)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					ret = -1;
+				}
+				CloseHandle(ol[i].hEvent);
+				if (ret != -1) ret += intermediate;
+			}
+
+			if (flags & file::coalesce_buffers)
+				coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
 			return ret;
 		}
+
+		// this is the case where we have opened the file
+		// in unbuffered mode. We can use the Scatter/Gather
+		// functions.
 
 		int size = bufs_size(bufs, num_bufs);
 		// number of pages for the read. round up
 		int num_pages = (size + m_page_size - 1) / m_page_size;
 		// allocate array of FILE_SEGMENT_ELEMENT for ReadFileScatter
 		FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
-		FILE_SEGMENT_ELEMENT* cur_seg = segment_array;
 
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-		{
-			for (int k = 0; k < int(i->iov_len); k += m_page_size)
-			{
-				cur_seg->Buffer = PtrToPtr64((((char*)i->iov_base) + k));
-				++cur_seg;
-			}
-		}
-		// terminate the array
-		cur_seg->Buffer = 0;
+		iovec_to_file_segment(bufs, num_bufs, segment_array);
 
 		OVERLAPPED ol;
 		ol.Internal = 0;
@@ -1146,16 +1558,17 @@ namespace libtorrent
 
 		ret += size;
 		size = num_pages * m_page_size;
-		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
+		if (ReadFileScatter(native_handle(), segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING && last_error != ERROR_HANDLE_EOF)
 			{
+				TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
+			if (GetOverlappedResult(native_handle(), &ol, &ret, true) == 0)
 			{
 				if (GetLastError() != ERROR_HANDLE_EOF)
 				{
@@ -1170,7 +1583,7 @@ namespace libtorrent
 
 #else // TORRENT_WINDOWS
 
-		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), file_offset, SEEK_SET);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1191,7 +1604,7 @@ namespace libtorrent
 		if (aligned)
 #endif // TORRENT_LINUX
 		{
-			ret = ::readv(m_fd, bufs, num_bufs);
+			ret = ::readv(native_handle(), bufs, num_bufs);
 			if (ret < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1204,7 +1617,7 @@ namespace libtorrent
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
 		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + m_page_size;
-		ret = ::readv(m_fd, temp_bufs, num_bufs);
+		ret = ::readv(native_handle(), temp_bufs, num_bufs);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1215,10 +1628,18 @@ namespace libtorrent
 
 #else // TORRENT_USE_READV
 
+		file::iovec_t tmp;
+		if (flags & file::coalesce_buffers)
+		{
+			if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+				// ok, that failed, don't coalesce this read
+				flags &= ~file::coalesce_buffers;
+		}
+
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int tmp = read(m_fd, i->iov_base, i->iov_len);
+			int tmp = read(native_handle(), i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1227,6 +1648,10 @@ namespace libtorrent
 			ret += tmp;
 			if (tmp < i->iov_len) break;
 		}
+
+		if (flags & file::coalesce_buffers)
+			coalesce_read_buffers_end(bufs_in, num_bufs_in, (char*)tmp.iov_base, !ec);
+
 		return ret;
 
 #endif // TORRENT_USE_READV
@@ -1234,12 +1659,15 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
-	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec)
+	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs
+		, error_code& ec, int flags)
 	{
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
 		TORRENT_ASSERT(is_open());
+
+		ec.clear();
 
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
 		// make sure m_page_size is initialized
@@ -1283,24 +1711,85 @@ namespace libtorrent
 			// this means the buffer base or the buffer size is not aligned
 			// to the page size. Use a regular file for this operation.
 
-			LARGE_INTEGER offs;
-			offs.QuadPart = file_offset;
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+#if !TORRENT_USE_OVERLAPPED
+
+			// If we're not using overlapped I/O at all. We can't use
+			// WriteFileGather anyway. Just loop over the buffers and
+			// write them one at a time
+   
+			file::iovec_t tmp;
+			if (flags & file::coalesce_buffers)
 			{
-				ec.assign(GetLastError(), get_system_category());
-				return -1;
+				if (!coalesce_write_buffers(bufs, num_bufs, &tmp))
+					// ok, that failed, don't coalesce writes
+					flags &= ~file::coalesce_buffers;
 			}
 
+			LARGE_INTEGER offs;
+			offs.QuadPart = file_offset;
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
+			{
+				ec.assign(GetLastError(), get_system_category());
+				goto done;
+			}
+   
 			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			{
 				DWORD intermediate = 0;
-				if (WriteFile(m_file_handle, (char const*)i->iov_base
+				if (WriteFile(native_handle(), (char const*)i->iov_base
 					, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 				{
 					ec.assign(GetLastError(), get_system_category());
-					return -1;
+					break;
 				}
 				ret += intermediate;
+			}
+
+done:
+
+			if (flags & file::coalesce_buffers)
+				free(tmp.iov_base);
+
+			return ec ? -1 : ret;
+
+#endif // TORRENT_USE_OVERLAPPED
+
+			OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+			memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+
+			int c = 0;
+			for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i, ++c)
+			{
+				ol[c].Internal = 0;
+				ol[c].InternalHigh = 0;
+				ol[c].OffsetHigh = file_offset >> 32;
+				ol[c].Offset = file_offset & 0xffffffff;
+				ol[c].hEvent = CreateEvent(0, true, false, 0);
+
+				if (WriteFile(native_handle(), (char const*)i->iov_base
+					, (DWORD)i->iov_len, NULL, &ol[c]) == FALSE)
+				{
+					if (GetLastError() != ERROR_IO_PENDING)
+					{
+						TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
+						ec.assign(GetLastError(), get_system_category());
+						ret = -1;
+						break;
+					}
+				}
+				file_offset += i->iov_len;
+			}
+
+			for (int i = 0; i < c; ++i)
+			{
+				DWORD intermediate = 0;
+				if (GetOverlappedResult(native_handle(), &ol[i], &intermediate, true) == 0)
+				{
+					ec.assign(GetLastError(), get_system_category());
+					ret = -1;
+				}
+				CloseHandle(ol[i].hEvent);
+				if (ret != -1) ret += intermediate;
 			}
 			return ret;
 		}
@@ -1323,6 +1812,7 @@ namespace libtorrent
 		// terminate the array
 		cur_seg->Buffer = 0;
 
+		TORRENT_ASSERT((file_offset % pos_alignment()) == 0);
 		OVERLAPPED ol;
 		ol.Internal = 0;
 		ol.InternalHigh = 0;
@@ -1347,18 +1837,18 @@ namespace libtorrent
 			size = num_pages * m_page_size;
 		}
 
-		if (WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
+		if (WriteFileGather(native_handle(), segment_array, size, NULL, &ol) == 0)
 		{
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
-				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
+				TORRENT_ASSERT(GetLastError() != ERROR_INVALID_PARAMETER);
 				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
 			DWORD tmp;
-			if (GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
+			if (GetOverlappedResult(native_handle(), &ol, &tmp, true) == 0)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
@@ -1399,7 +1889,7 @@ namespace libtorrent
 
 		return ret;
 #else
-		size_type ret = lseek(m_fd, file_offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), file_offset, SEEK_SET);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
@@ -1421,7 +1911,7 @@ namespace libtorrent
 		if (aligned)
 #endif
 		{
-			ret = ::writev(m_fd, bufs, num_bufs);
+			ret = ::writev(native_handle(), bufs, num_bufs);
 			if (ret < 0)
 			{
 				ec.assign(errno, get_posix_category());
@@ -1434,13 +1924,13 @@ namespace libtorrent
 		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
 		iovec_t& last = temp_bufs[num_bufs-1];
 		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + size_alignment();
-		ret = ::writev(m_fd, temp_bufs, num_bufs);
+		ret = ::writev(native_handle(), temp_bufs, num_bufs);
 		if (ret < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
 		}
-		if (ftruncate(m_fd, file_offset + size) < 0)
+		if (ftruncate(native_handle(), file_offset + size) < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
@@ -1450,19 +1940,33 @@ namespace libtorrent
 
 #else // TORRENT_USE_WRITEV
 
+		// it doesn't make any sense to coalesce if we have support
+		// for vector operations
+		iovec_t tmp;
+		if (flags & file::coalesce_buffers)
+		{
+			if (!coalesce_write_buffers(bufs, num_bufs, &tmp))
+				// ok, that failed, don't coalesce writes
+				flags &= ~file::coalesce_buffers;
+		}
+
 		ret = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
-			int tmp = write(m_fd, i->iov_base, i->iov_len);
+			int tmp = write(native_handle(), i->iov_base, i->iov_len);
 			if (tmp < 0)
 			{
 				ec.assign(errno, get_posix_category());
-				return -1;
+				break;
 			}
 			ret += tmp;
 			if (tmp < i->iov_len) break;
 		}
-		return ret;
+
+		if (flags & file::coalesce_buffers)
+			free(bufs[0].iov_base);
+
+		return ec ? -1 : ret;
 
 #endif // TORRENT_USE_WRITEV
 
@@ -1487,7 +1991,7 @@ namespace libtorrent
 		fm.fiemap.fm_flags = FIEMAP_FLAG_SYNC;
 		fm.fiemap.fm_extent_count = 1;
 
-		if (ioctl(m_fd, FS_IOC_FIEMAP, &fm) == -1)
+		if (ioctl(native_handle(), FS_IOC_FIEMAP, &fm) == -1)
 			return 0;
 
 		if (fm.fiemap.fm_extents[0].fe_flags & FIEMAP_EXTENT_UNKNOWN)
@@ -1504,9 +2008,9 @@ namespace libtorrent
 		// http://developer.apple.com/mac/library/documentation/Darwin/Reference/ManPages/man2/fcntl.2.html
 
 		log2phys l;
-		size_type ret = lseek(m_fd, offset, SEEK_SET);
+		size_type ret = lseek(native_handle(), offset, SEEK_SET);
 		if (ret < 0) return 0;
-		if (fcntl(m_fd, F_LOG2PHYS, &l) == -1) return 0;
+		if (fcntl(native_handle(), F_LOG2PHYS, &l) == -1) return 0;
 		return l.l2p_devoffset;
 #elif defined TORRENT_WINDOWS
 		// for documentation of this feature
@@ -1520,7 +2024,7 @@ namespace libtorrent
 		in.StartingVcn.QuadPart = offset / m_cluster_size;
 		int cluster_offset = int(in.StartingVcn.QuadPart % m_cluster_size);
 
-		if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
+		if (DeviceIoControl(native_handle(), FSCTL_GET_RETRIEVAL_POINTERS, &in
 			, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
 		{
 			DWORD error = GetLastError();
@@ -1549,7 +2053,7 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER offs;
 		LARGE_INTEGER cur_size;
-		if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
+		if (GetFileSizeEx(native_handle(), &cur_size) == FALSE)
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return false;
@@ -1560,12 +2064,12 @@ namespace libtorrent
 		// modification time if we don't have to
 		if (cur_size.QuadPart != s)
 		{
-			if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+			if (SetFilePointerEx(native_handle(), offs, &offs, FILE_BEGIN) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return false;
 			}
-			if (::SetEndOfFile(m_file_handle) == FALSE)
+			if (::SetEndOfFile(native_handle()) == FALSE)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				return false;
@@ -1586,13 +2090,13 @@ namespace libtorrent
 				// if the user has permissions, avoid filling
 				// the file with zeroes, but just fill it with
 				// garbage instead
-				SetFileValidData(m_file_handle, offs.QuadPart);
+				SetFileValidData(native_handle(), offs.QuadPart);
 			}
 		}
 #endif // _WIN32_WINNT >= 0x501
 #else // NON-WINDOWS
 		struct stat st;
-		if (fstat(m_fd, &st) != 0)
+		if (fstat(native_handle(), &st) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
@@ -1600,7 +2104,7 @@ namespace libtorrent
 
 		// only truncate the file if it doesn't already
 		// have the right size. We don't want to update
-		if (st.st_size != s && ftruncate(m_fd, s) < 0)
+		if (st.st_size != s && ftruncate(native_handle(), s) < 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return false;
@@ -1620,7 +2124,7 @@ namespace libtorrent
 			// but if we don't do anything if the file size is
 #ifdef F_PREALLOCATE
 			fstore_t f = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, s, 0};
-			if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+			if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 			{
 				if (errno != ENOSPC)
 				{
@@ -1629,7 +2133,7 @@ namespace libtorrent
 				}
 				// ok, let's try to allocate non contiguous space then
 				fstore_t f = {F_ALLOCATEALL, F_PEOFPOSMODE, 0, s, 0};
-				if (fcntl(m_fd, F_PREALLOCATE, &f) < 0)
+				if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 				{
 					ec.assign(errno, get_posix_category());
 					return false;
@@ -1642,7 +2146,7 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_LINUX
-			ret = my_fallocate(m_fd, 0, 0, s);
+			ret = my_fallocate(native_handle(), 0, 0, s);
 			// if we return 0, everything went fine
 			// the fallocate call succeeded
 			if (ret == 0) return true;
@@ -1663,7 +2167,7 @@ namespace libtorrent
 			// which can be painfully slow
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
-			ret = posix_fallocate(m_fd, 0, s);
+			ret = posix_fallocate(native_handle(), 0, s);
 			// posix_allocate fails with EINVAL in case the underlying
 			// filesystem does bot support this operation
 			if (ret != 0 && ret != EINVAL)
@@ -1690,7 +2194,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 		DWORD temp;
 		FILE_SET_SPARSE_BUFFER b;
 		b.SetSparse = FALSE;
-		::DeviceIoControl(m_file_handle, FSCTL_SET_SPARSE, &b, sizeof(b)
+		::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
 			, 0, 0, &temp, 0);
 #endif
 	}
@@ -1699,7 +2203,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 	{
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER file_size;
-		if (!GetFileSizeEx(m_file_handle, &file_size))
+		if (!GetFileSizeEx(native_handle(), &file_size))
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return -1;
@@ -1707,7 +2211,7 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 		return file_size.QuadPart;
 #else
 		struct stat fs;
-		if (fstat(m_fd, &fs) != 0)
+		if (fstat(native_handle(), &fs) != 0)
 		{
 			ec.assign(errno, get_posix_category());
 			return -1;
@@ -1719,13 +2223,15 @@ typedef struct _FILE_SET_SPARSE_BUFFER {
 	size_type file::sparse_end(size_type start) const
 	{
 #ifdef TORRENT_WINDOWS
+
 #ifdef TORRENT_MINGW
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
 	LARGE_INTEGER Length;
 } FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
 #define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
-#endif
+#endif // TORRENT_MINGW
+
 		FILE_ALLOCATED_RANGE_BUFFER buffer;
 		DWORD bytes_returned = 0;
 		FILE_ALLOCATED_RANGE_BUFFER in;
@@ -1734,7 +2240,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		if (ec) return start;
 		in.FileOffset.QuadPart = start;
 		in.Length.QuadPart = file_size - start;
-		if (!DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
+		if (!DeviceIoControl(native_handle(), FSCTL_QUERY_ALLOCATED_RANGES
 			, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 			, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 		{
@@ -1756,12 +2262,435 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		
 #elif defined SEEK_DATA
 		// this is supported on solaris
-		size_type ret = lseek(m_fd, start, SEEK_DATA);
+		size_type ret = lseek(native_handle(), start, SEEK_DATA);
 		if (ret < 0) return start;
 #else
 		return start;
 #endif
 	}
+
+	file::aiocb_t* reap_aios(file::aiocb_t* aios, aiocb_pool& pool)
+	{
+		file::aiocb_t* ret = aios;
+		// loop through all aiocb structures, for operations
+		// that are still in progress, add them to a new chain
+		// which is returned. For operations that are complete,
+		// call the handler and delete aiocb entry.
+		while (aios)
+		{
+			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
+			file::aiocb_t* a = aios;
+			aios = aios->next;
+			bool removed = reap_aio(a, pool);
+			if (removed && ret == a) ret = aios;
+		}
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+		return ret;
+	}
+
+	bool reap_aio(file::aiocb_t* aio, aiocb_pool& pool)
+	{
+		storage_error se;
+
+#if TORRENT_USE_AIO
+		int e = aio_error(&aio->cb);
+		if (e == EINPROGRESS) return false;
+		size_t ret = aio_return(&aio->cb);
+		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
+		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
+		se.ec = error_code(e, boost::system::get_posix_category());
+#elif TORRENT_USE_IOSUBMIT
+		size_t ret = aio->ret;
+		int e = aio->error;
+		DLOG(stderr, "  aio->ret = %d\n", aio->ret);
+		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(e));
+		se.ec = error_code(e, boost::system::get_posix_category());
+#elif TORRENT_USE_OVERLAPPED
+		BOOL is_complete = HasOverlappedIoCompleted(&aio->ov);
+		if (is_complete == FALSE) return false;
+
+		DWORD transferred = 0;
+		BOOL has_result = GetOverlappedResult(aio->file_ptr->native_handle()
+			, &aio->ov, &transferred, TRUE);
+		DLOG(stderr, "GetOverlappedResul(%p) = %d\n", &aio->ov, int(has_result));
+		int error = ERROR_SUCCESS;
+		if (has_result == FALSE)
+		{
+			error = GetLastError();
+			DLOG(stderr, " error: %d\n", error);
+		}
+		se.ec = error_code(error, boost::system::get_system_category());
+		size_t ret = transferred;
+		CloseHandle(aio->ov.hEvent);
+#elif TORRENT_USE_SYNCIO
+		// since we don't have AIO, all operations should have
+		// been performed as they were issued, and no operation
+		// should ever be outstanding
+		TORRENT_ASSERT(aio == 0);
+		return false;
+		size_t ret = 0;
+#else
+#error what disk I/O API are we using?
+#endif
+
+		if (aio->flags & file::coalesce_buffers)
+		{
+			TORRENT_ASSERT(aio->buffer && aio->vec);
+			scatter_copy(aio->vec, aio->num_vec, aio->buffer);
+		}
+
+		// #error if there's an error, figure out which file it's in!
+		aio->handler->done(se, ret, aio);
+
+		pool.free_vec(aio->vec);
+
+		// unlink
+		if (aio->prev)
+		{
+			TORRENT_ASSERT(aio->prev->next == aio);
+			aio->prev->next = aio->next;
+		}
+		if (aio->next)
+		{
+			TORRENT_ASSERT(aio->next->prev == aio);
+			aio->next->prev = aio->prev;
+		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		aio->next = 0;
+		aio->prev = 0;
+		aio->handler = 0;
+#endif
+
+		pool.destroy(aio);
+		return true;
+	}
+
+#if TORRENT_USE_IOSUBMIT
+
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool, int& num_issued)
+	{
+		if (aios == 0) return std::pair<file::aiocb_t*, file::aiocb_t*>(0, 0);
+
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log = pool.file_access_log;
+		TORRENT_ASSERT(file_access_log);
+#endif
+
+		const int submit_batch_size = 512;
+		iocb* to_submit[submit_batch_size];
+
+		// this is the first aio in the array
+		// we're currently submitting
+		// this also points to the first aio
+		// that has not yet been submitted. In the event
+		// of a failure, we use this as the cursor for
+		// where to cut the return chain and the remaining
+		// chain
+		file::aiocb_t* list_start = aios;
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = 0;
+		int i = 0;
+		for (;;)
+		{
+			if (i == submit_batch_size || aios == 0)
+			{
+				DLOG(stderr, "io_submit [");
+				for (file::aiocb_t* j = list_start; j; j = j->next)
+					DLOG(stderr, " %p", j);
+				DLOG(stderr, " ]\n");
+				int r = io_submit(pool.io_queue, i, to_submit);
+				DLOG(stderr, "io_submit(%d) = %d\n", i, r);
+				if (r < 0) DLOG(stderr, "  error: %s\n", strerror(-r));
+				int num_submitted = ret < 0 ? 0 : r;
+				if (r != i)
+				{
+					// the number of jobs that were submitted
+					DLOG(stderr, " partial submit (%d succeeded)\n", num_submitted);
+				}
+				// append the newly submitted aios to the ret-chain
+				if (ret == 0 && num_submitted > 0)
+				{
+					ret = list_start;
+					TORRENT_ASSERT(ret->prev == 0);
+				}
+				// move the aiocb_t entries over to the ret chain
+				num_issued += num_submitted;
+#ifdef TORRENT_DISK_STATS
+				ptime now = time_now_hires();
+#endif
+				while (num_submitted > 0)
+				{
+#ifdef TORRENT_DISK_STATS
+					list_start->handler->file_access_log = file_access_log;
+					if (file_access_log) write_disk_log(file_access_log, list_start, false, now);
+#endif
+					--num_submitted;
+					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
+					list_start = list_start->next;
+				}
+				if (r != i) goto finish;
+				i = 0;
+			}
+			if (aios == 0) break;
+
+			to_submit[i] = &aios->cb;
+			aios = aios->next;
+			++i;
+		}
+
+finish:
+
+		// cut the return chain in two parts, the submitted part
+		// and the remaining part
+		if (list_start && list_start->prev)
+		{
+			list_start->prev->next = 0;
+			list_start->prev = 0;
+		}
+
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, list_start);
+
+	}
+
+#else
+
+	// for anything not using io_submit (even though there is
+	// an io_submit implementation too, but less efficient)
+
+	std::pair<file::aiocb_t*, file::aiocb_t*> issue_aios(file::aiocb_t* aios
+		, aiocb_pool& pool, int& num_issued)
+	{
+#ifdef TORRENT_DISK_STATS
+		FILE* file_access_log = pool.file_access_log;
+		TORRENT_ASSERT(file_access_log);
+#endif
+
+#ifdef SIGEV_THREAD_ID
+		pthread_t self = pthread_self();
+#endif
+		// this is the chain of aios that were
+		// successfully submitted
+		file::aiocb_t* ret = aios;
+
+		while (aios)
+		{
+#ifdef TORRENT_DISK_STATS
+			aios->handler->file_access_log = file_access_log;
+			ptime start_time = time_now_hires();
+#endif
+
+			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
+#if TORRENT_USE_AIO
+			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
+#ifdef SIGEV_THREAD_ID
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
+			aios->cb.aio_sigevent._tid = self;
+#else
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+#endif
+			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
+			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
+			int ret;
+			DLOG(stderr, "aio_%s()\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write");
+			switch (aios->cb.aio_lio_opcode)
+			{
+				case file::read_op: ret = aio_read(&aios->cb); break;
+				case file::write_op: ret = aio_write(&aios->cb); break;
+				default: TORRENT_ASSERT(false);
+			}
+			DLOG(stderr, "  = %d\n", ret);
+
+			if (ret == -1)
+			{
+				DLOG(stderr, "  error = %s\n", strerror(errno));
+				if (errno == EAGAIN) break;
+			
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				storage_error se;
+				se.ec = error_code(errno, boost::system::get_posix_category());
+				se.operation = aios->cb.aio_lio_opcode == file::read_op ? "read" : "write";
+				// #error figure out which file the error happened in
+				del->handler->done(se, 0, del);
+				pool.destroy(del);
+				continue;
+			}
+#elif TORRENT_USE_IOSUBMIT
+			int ret;
+			DLOG(stderr, "io_submit(): %s\n", aios->cb.aio_lio_opcode == file::read_op
+				? "read" : "write");
+			iocb* p = &aios->cb;
+			// this can be optimized by submitting more than one job at a time
+			ret = io_submit(pool.io_queue, 1, &p);
+			DLOG(stderr, "  = %d\n", ret);
+
+			if (ret == -1)
+			{
+				DLOG(stderr, "  error = %s\n", strerror(errno));
+				if (errno == EAGAIN) break;
+			
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				aios = aios->next;
+				storage_error se;
+				se.ec = error_code(errno, boost::system::get_posix_category());
+				se.operation = aios->cb.aio_lio_opcode == file::read_op ? "read" : "write";
+				// #error figure out which file the error happened in
+				del->handler->done(se, 0, del);
+				pool.destroy(del);
+				continue;
+			}
+#elif TORRENT_USE_OVERLAPPED
+			// TODO: make the aiocb_t contain the vector of buffers
+			// on windows, to allow for issuing a single async operation
+			int ret;
+			if (aios->vec)
+			{
+
+				int size = bufs_size(aios->vec, aios->num_vec);
+				// number of pages for the read. round up
+				int num_pages = (size + file::m_page_size - 1) / file::m_page_size;
+				// allocate array of FILE_SEGMENT_ELEMENT for ReadFileScatter/WriteFileGather
+				// The assumption is that windows will copy the array (but not the buffers
+				// themselves). The segment array is allocated on the stack here, even
+				// though the operation is asynchronous
+				FILE_SEGMENT_ELEMENT* segment_array = TORRENT_ALLOCA(FILE_SEGMENT_ELEMENT, num_pages + 1);
+
+				iovec_to_file_segment(aios->vec, aios->num_vec, segment_array);
+
+				switch (aios->op)
+				{
+					case file::read_op:
+						ret = ReadFileScatter(aios->file_ptr->native_handle(), segment_array
+							, aios->size, NULL, &aios->ov);
+						break;
+					case file::write_op:
+						ret = WriteFileGather(aios->file_ptr->native_handle(), segment_array
+							, aios->size, NULL, &aios->ov);
+						break;
+					default: TORRENT_ASSERT(false);
+				}
+				DLOG(stderr, " %sFile%s() = %d\n"
+					, aios->op == file::read_op ? "Read" : "Write"
+					, aios->op == file::read_op ? "Scatter" : "Gather"
+					, ret);
+			
+			}
+			else
+			{
+				switch (aios->op)
+				{
+					case file::read_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = ReadFile(aios->file_ptr->native_handle(), aios->buf
+							, aios->size, NULL, &aios->ov);
+						break;
+					case file::write_op:
+						TORRENT_ASSERT(aios->buf != 0);
+						ret = WriteFile(aios->file_ptr->native_handle(), aios->buf
+							, aios->size, NULL, &aios->ov);
+						break;
+					default: TORRENT_ASSERT(false);
+				}
+				DLOG(stderr, " %sFile() = %d\n", aios->op == file::read_op
+					? "Read" : "Write", ret);
+			}
+
+			if (ret == FALSE && GetLastError() != ERROR_IO_PENDING)
+			{
+				DWORD error = GetLastError();
+				DLOG(stderr, "  error = %d\n", error);
+
+				// report this error immediately and unlink this job
+				if (aios->prev) aios->prev->next = aios->next;
+				if (aios->next) aios->next->prev = aios->prev;
+				file::aiocb_t* del = aios;
+				storage_error se;
+				se.ec = error_code(GetLastError(), boost::system::get_system_category());
+				se.operation = aios->op == file::read_op ? "read" : "write";
+				aios = aios->next;
+
+				// #error figure out which file the error happened in
+				del->handler->done(se, ret, del);
+				pool.destroy(del);
+				continue;
+			}
+#elif TORRENT_USE_SYNCIO
+			error_code ec;
+			int ret;
+			file::iovec_t b = {aios->buf, aios->size};
+			file::iovec_t* vec = &b;
+			int num_vec = 1;
+			if (aios->vec)
+			{
+				TORRENT_ASSERT(aios->num_vec > 0);
+				num_vec = aios->num_vec;
+				vec = aios->vec;
+			}
+			switch (aios->op)
+			{
+				case file::read_op: ret = aios->file_ptr->readv(aios->offset
+					, vec, num_vec, ec, aios->flags); break;
+				case file::write_op: ret = aios->file_ptr->writev(aios->offset
+					, vec, num_vec, ec, aios->flags); break;
+				default: TORRENT_ASSERT(false);
+			}
+			file::aiocb_t* del = aios;
+			if (aios->next) aios->next->prev = aios->prev;
+			if (aios->prev) aios->prev->next = aios->next;
+			storage_error se;
+			se.ec = ec;
+			se.operation = aios->op == file::read_op ? "read" : "write";
+			aios = aios->next;
+			// #error figure out which file the error happened on (if any)
+			del->handler->done(se, ret, del);
+			pool.destroy(del);
+			++num_issued;
+			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
+#else
+#error what disk I/O API are we using?
+#endif
+		
+#ifdef TORRENT_DISK_STATS
+			// we cannot write to the log until we know the operation
+			// succeeded. But we back-date it with the actual start time
+			if (file_access_log) write_disk_log(file_access_log, aios, false, start_time);
+#endif
+			++num_issued;
+			aios = aios->next;
+		}
+
+		if (aios)
+		{
+			// this job, and all following it, could not be submitted
+			// cut the chain in two, one for the ones that were submitted
+			// and one for the ones that are left
+			if (aios->prev)
+			{
+				aios->prev->next = 0;
+			}
+			else
+			{
+				TORRENT_ASSERT(ret == aios);
+				ret = 0;
+			}
+			aios->prev = 0;
+		}
+
+		TORRENT_ASSERT(ret == 0 || ret->prev == 0);
+		TORRENT_ASSERT(aios == 0 || aios->prev == 0);
+		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
+	}
+
+#endif // TORRENT_USE_IOSUBMIT
 
 }
 

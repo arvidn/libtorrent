@@ -2103,6 +2103,8 @@ namespace libtorrent
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		// this is not valid for web peers
+		// TORRENT_ASSERT(peer != 0);
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.downloading == 0)

@@ -49,9 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using boost::tuples::ignore;
 
-int const alert_mask = alert::all_categories
-& ~alert::progress_notification
-& ~alert::stats_notification;
+const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
 // test the maximum transfer rate
 void test_rate()
@@ -63,8 +61,8 @@ void test_rate()
 	remove_all("./tmp1_transfer_moved", ec);
 	remove_all("./tmp2_transfer_moved", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -79,6 +77,9 @@ void test_rate()
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 0, &t);
+
+	ses1.set_alert_mask(mask);
+	ses2.set_alert_mask(mask);
 
 	ptime start = time_now();
 
@@ -129,90 +130,123 @@ struct test_storage : storage_interface
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual bool initialize(bool allocate_files)
-	{ return m_lower_layer->initialize(allocate_files); }
+	virtual void initialize(bool allocate_files, storage_error& ec)
+	{ m_lower_layer->initialize(allocate_files, ec); }
 
-	virtual bool has_any_file()
-	{ return m_lower_layer->has_any_file(); }
+	virtual bool has_any_file(storage_error& ec)
+	{ return m_lower_layer->has_any_file(ec); }
 
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
-	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs); }
+	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
+	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs, ec); }
 
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs)
+	void set_limit(int lim)
 	{
-		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs);
-		if (ret > 0) m_written += ret;
+		mutex::scoped_lock l(m_mutex);
+		m_limit = lim;
+	}
+
+	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
+	{
+		mutex::scoped_lock l(m_mutex);
 		if (m_written > m_limit)
 		{
+			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			set_error("", error_code(ENOSPC, get_posix_category()));
+			ec.ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
+
+		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs, ec);
+		if (ret > 0) m_written += ret;
 		return ret;
 	}
 
 	virtual size_type physical_offset(int piece_index, int offset)
 	{ return m_lower_layer->physical_offset(piece_index, offset); }
 
-	virtual int read(char* buf, int slot, int offset, int size)
-	{ return m_lower_layer->read(buf, slot, offset, size); }
+	virtual int read(char* buf, int slot, int offset, int size, storage_error& ec)
+	{ return m_lower_layer->read(buf, slot, offset, size, ec); }
 
-	virtual int write(const char* buf, int slot, int offset, int size)
+	virtual int write(const char* buf, int slot, int offset, int size, storage_error& ec)
 	{
-		int ret = m_lower_layer->write(buf, slot, offset, size);
-		if (ret > 0) m_written += ret;
-		if (m_written > m_limit)
+		mutex::scoped_lock l(m_mutex);
+		if (m_written >= m_limit)
 		{
+			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 #if BOOST_VERSION == 103500
-			set_error("", error_code(boost::system::posix_error::no_space_on_device, get_posix_category()));
+			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
 #elif BOOST_VERSION > 103500
-			set_error("", error_code(boost::system::errc::no_space_on_device, get_posix_category()));
+			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
 #else
-			set_error("", error_code(ENOSPC, get_posix_category()));
+			ec.ec = error_code(ENOSPC, get_posix_category());
 #endif
 			return -1;
 		}
+
+		int ret = m_lower_layer->write(buf, slot, offset, size, ec);
+		if (ret > 0) m_written += ret;
 		return ret;
 	}
 
 	virtual int sparse_end(int start) const
 	{ return m_lower_layer->sparse_end(start); }
 
-	virtual bool move_storage(std::string const& save_path)
-	{ return m_lower_layer->move_storage(save_path); }
+	virtual void move_storage(std::string const& save_path, storage_error& ec)
+	{ m_lower_layer->move_storage(save_path, ec); }
 
-	virtual bool verify_resume_data(lazy_entry const& rd, error_code& error)
+	virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error)
 	{ return m_lower_layer->verify_resume_data(rd, error); }
 
-	virtual bool write_resume_data(entry& rd) const
-	{ return m_lower_layer->write_resume_data(rd); }
+	virtual void write_resume_data(entry& rd, storage_error& ec) const
+	{ m_lower_layer->write_resume_data(rd, ec); }
 
-	virtual bool move_slot(int src_slot, int dst_slot)
-	{ return m_lower_layer->move_slot(src_slot, dst_slot); }
+	virtual void move_slot(int src_slot, int dst_slot, storage_error& ec)
+	{ m_lower_layer->move_slot(src_slot, dst_slot, ec); }
 
-	virtual bool swap_slots(int slot1, int slot2)
-	{ return m_lower_layer->swap_slots(slot1, slot2); }
+	virtual void swap_slots(int slot1, int slot2, storage_error& ec)
+	{ m_lower_layer->swap_slots(slot1, slot2, ec); }
 
-	virtual bool swap_slots3(int slot1, int slot2, int slot3)
-	{ return m_lower_layer->swap_slots3(slot1, slot2, slot3); }
+	virtual void swap_slots3(int slot1, int slot2, int slot3, storage_error& ec)
+	{ m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
 
-	virtual bool release_files() { return m_lower_layer->release_files(); }
+	virtual void release_files(storage_error& ec) { return m_lower_layer->release_files(ec); }
 
-	virtual bool rename_file(int index, std::string const& new_filename)
-	{ return m_lower_layer->rename_file(index, new_filename); }
+	virtual void rename_file(int index, std::string const& new_filename, storage_error& ec)
+	{ m_lower_layer->rename_file(index, new_filename, ec); }
 
-	virtual bool delete_files() { return m_lower_layer->delete_files(); }
+	virtual void delete_files(storage_error& ec) { m_lower_layer->delete_files(ec); }
+
+	file::aiocb_t* async_readv(
+		file::iovec_t const* bufs
+		, int piece_index
+		, int offset
+		, int num_bufs
+		, boost::function<void(async_handler*)> const& handler)
+	{
+		return m_lower_layer->async_readv(bufs, piece_index, offset, num_bufs, handler);
+	}
+
+	file::aiocb_t* async_writev(
+		file::iovec_t const* bufs
+		, int piece_index
+		, int offset
+		, int num_bufs
+		, boost::function<void(async_handler*)> const& handler)
+	{
+		return m_lower_layer->async_writev(bufs, piece_index, offset, num_bufs, handler);
+	}
 
 	virtual ~test_storage() {}
 
 	boost::scoped_ptr<storage_interface> m_lower_layer;
 	int m_written;
 	int m_limit;
+	mutex m_mutex;
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
@@ -244,8 +278,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	remove_all("./tmp1_transfer_moved", ec);
 	remove_all("./tmp2_transfer_moved", ec);
 
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
-	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
 	int proxy_port = (rand() % 30000) + 10000;
 	if (proxy_type)
@@ -339,6 +373,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		std::cerr << std::endl;
 	}
 
+	ses1.set_alert_mask(mask);
+	ses2.set_alert_mask(mask);
 //	ses1.set_alert_dispatch(&print_alert);
 
 //	sett = ses2.settings();
@@ -350,6 +386,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	bool test_move_storage = false;
 
 	tracker_responses = 0;
+	int upload_mode_timer = 0;
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -383,11 +420,21 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			std::cerr << "moving storage" << std::endl;
 		}
 
-		if (test_disk_full && st2.upload_mode)
+		// wait 10 loops before we restart the torrent. This lets
+		// us catch all events that failed (and would put the torrent
+		// back into upload mode) before we restart it.
+		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;
-			((test_storage*)tor2.get_storage_impl())->m_limit = 16 * 1024 * 1024;
+			std::cerr << "lifting write limit in storage" << std::endl;
+			((test_storage*)tor2.get_storage_impl())->set_limit(16 * 1024 * 1024);
 			tor2.set_upload_mode(false);
+			// at this point we probably disconnected the seed
+			// so we need to reconnect as well
+			fprintf(stderr, "reconnecting peer\n");
+			error_code ec;
+			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
+				, ses1.listen_port()));
 			continue;
 		}
 
@@ -501,9 +548,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		p.save_path = "./tmp2_transfer_moved";
 		p.resume_data = &resume_data;
 		tor2 = ses2.add_torrent(p, ec);
-		ses2.set_alert_mask(alert::all_categories
-			& ~alert::progress_notification
-			& ~alert::stats_notification);
+		ses2.set_alert_mask(mask);
 		tor2.prioritize_pieces(priorities);
 		std::cout << "resetting priorities" << std::endl;
 		tor2.resume();

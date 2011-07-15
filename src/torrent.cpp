@@ -786,7 +786,9 @@ namespace libtorrent
 #endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec));
+						storage_error se;
+						se.ec = ec;
+						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
 					}
 				}
 			}
@@ -888,10 +890,13 @@ namespace libtorrent
 		// been closed by the time the torrent is destructed. And they are
 		// supposed to be closed. So we can still do the invariant check.
 
+		// however, the torrent object may be destructed from the main
+		// thread when shutting down, if the disk cache has references to it.
+		// this means that the invariant check that this is called from the
+		// network thread cannot be maintained
+
 		TORRENT_ASSERT(m_connections.empty());
 		
-		INVARIANT_CHECK;
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		log_to_all_peers("DESTRUCTING TORRENT");
 #endif
@@ -1021,8 +1026,8 @@ namespace libtorrent
 		if (!j.error) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "disk error: '" << j.error.message()
-			<< " in file " << j.error_file
+		(*m_ses.m_logger) << "disk error: '" << j.error.ec.message()
+			<< " in file " << j.error.file
 			<< " in torrent " << torrent_file().name()
 			<< "\n";
 #endif
@@ -1037,7 +1042,7 @@ namespace libtorrent
 			if (has_picker() && j.piece >= 0) picker().write_failed(block_finished);
 		}
 
-		if (j.error ==
+		if (j.error.ec ==
 #if BOOST_VERSION == 103500
 			error_code(boost::system::posix_error::not_enough_memory, get_posix_category())
 #elif BOOST_VERSION > 103500
@@ -1048,19 +1053,24 @@ namespace libtorrent
 			)
 		{
 			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
+				alerts().post_alert(file_error_alert(j.error, get_handle()));
 			if (c) c->disconnect(errors::no_memory);
 			return;
 		}
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
-			alerts().post_alert(file_error_alert(j.error_file, get_handle(), j.error));
+			alerts().post_alert(file_error_alert(j.error, get_handle()));
 
 		// put the torrent in an error-state
-		set_error(j.error, j.error_file);
+		set_error(j.error.ec, j.error.file);
 
-		if (j.action == disk_io_job::write)
+		// #error adding hash here is a bit of a hack. Since there's no way
+		// of telling if it was a write or read operation that actually failed
+		// when the hash-job fails. In order to preventing pausing the torrent
+		// when it was a write operation, assume it's a write
+		if (j.action == disk_io_job::write
+			|| j.action == disk_io_job::hash)
 		{
 			// if we failed to write, stop downloading and just
 			// keep seeding.
@@ -1161,6 +1171,9 @@ namespace libtorrent
 		, peer_request p)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+//		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
+//			, ret, j.piece, j.offset/0x4000);
 
 		INVARIANT_CHECK;
 
@@ -1285,7 +1298,7 @@ namespace libtorrent
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
-			, m_save_path, m_ses.m_files, m_ses.m_disk_thread, m_storage_constructor
+			, m_save_path, m_ses.m_disk_thread, m_storage_constructor
 			, (storage_mode_t)m_storage_mode, m_file_priority);
 		m_storage = m_owning_storage.get();
 
@@ -1338,8 +1351,9 @@ namespace libtorrent
 
 			if (ev && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
-				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle()
-					, error_code(ev, get_libtorrent_category())));
+				storage_error se;
+				se.ec = error_code(ev, get_libtorrent_category());
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
 			}
 
 			if (ev)
@@ -1562,7 +1576,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 			<< torrent_file().name() << " rejected: "
-			<< j.error.message() << " ret:" << ret << "\n";
+			<< j.error.ec.message() << " ret:" << ret << "\n";
 #endif
 
 		// if ret != 0, it means we need a full check. We don't necessarily need
@@ -1759,17 +1773,16 @@ namespace libtorrent
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			if (m_ses.m_alerts.should_post<file_error_alert>())
-			{
-				m_ses.m_alerts.post_alert(file_error_alert(j.error_file, get_handle(), j.error));
-			}
+				m_ses.m_alerts.post_alert(file_error_alert(j.error, get_handle()));
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.error.message() <<
+				" error: " << j.error.ec.message() <<
 				" torrent: " << torrent_file().name() <<
 				" ]\n";
 #endif
 			pause();
-			set_error(j.error, j.error_file);
+			set_error(j.error.ec, j.error.file);
 			return;
 		}
 
@@ -1779,7 +1792,7 @@ namespace libtorrent
 		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
 			we_have(j.offset);
 
-		remove_time_critical_piece(j.offset);
+		remove_time_critical_piece(j.piece);
 
 		// we're not done checking yet
 		// this handler will be called repeatedly until
@@ -2701,6 +2714,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_picker->have_piece(index));
 
+		// if we're a seed we don't have a picker
+		// and we also don't have to do anything because
+		// we already have this piece
+		if (is_seed()) return;
+
 		// even though the piece passed the hash-check
 		// it might still have failed being written to disk
 		// if so, piece_picker::write_failed() has been
@@ -2796,6 +2814,8 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+//		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
+
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 #ifdef TORRENT_DEBUG
@@ -2804,8 +2824,7 @@ namespace libtorrent
 		piece_picker::downloading_piece dp;
 		m_picker->piece_info(index, dp);
 		int blocks_in_piece = m_picker->blocks_in_piece(index);
-		TORRENT_ASSERT(dp.finished == blocks_in_piece);
-		TORRENT_ASSERT(dp.writing == 0);
+		TORRENT_ASSERT(dp.finished + dp.writing == blocks_in_piece);
 		TORRENT_ASSERT(dp.requested == 0);
 		TORRENT_ASSERT(dp.index == index);
 #endif
@@ -3183,7 +3202,7 @@ namespace libtorrent
 		if (ret != 0)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
-				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
+				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error.ec));
 		}
 		else
 		{
@@ -3210,7 +3229,7 @@ namespace libtorrent
 
 		if (!j.resume_data)
 		{
-			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error));
+			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error.ec));
 		}
 		else
 		{
@@ -3236,7 +3255,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
 				alerts().post_alert(file_rename_failed_alert(get_handle()
-					, j.piece, j.error));
+					, j.piece, j.error.ec));
 		}
 	}
 
@@ -6875,6 +6894,14 @@ namespace libtorrent
 		if (!ready_for_connections()) return;
 		// rotate the cached pieces
 
+		filesystem().async_get_cache_info(new cache_status
+			, boost::bind(&torrent::refresh_explicit_cache_impl, shared_from_this(), _1, _2, cache_size));
+	}
+
+	void torrent::refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size)
+	{
+		cache_status* status = (cache_status*)j.buffer;
+
 		// add blocks_per_piece / 2 in order to round to closest whole piece
 		int blocks_per_piece = m_torrent_file->piece_length() / block_size();
 		int num_cache_pieces = (cache_size + blocks_per_piece / 2) / blocks_per_piece;
@@ -6914,18 +6941,17 @@ namespace libtorrent
 			else pieces[i].first = avail_vec[i];
 		}
 
+		// remove write cache entries
+		status->pieces.erase(std::remove_if(status->pieces.begin(), status->pieces.end()
+			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
+			, status->pieces.end());
+
 		// decrease the availability of the pieces that are
 		// already in the read cache, to move them closer to
 		// the beginning of the pieces list, and more likely
 		// to be included in this round of cache pieces
-		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
-		// remove write cache entries
-		ret.erase(std::remove_if(ret.begin(), ret.end()
-			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
-			, ret.end());
-		for (std::vector<cached_piece_info>::iterator i = ret.begin()
-			, end(ret.end()); i != end; ++i)
+		for (std::vector<cached_piece_info>::iterator i = status->pieces.begin()
+			, end(status->pieces.end()); i != end; ++i)
 		{
 			--pieces[i->piece].first;
 		}
@@ -6954,6 +6980,8 @@ namespace libtorrent
 				filesystem().async_cache(*i, boost::bind(&torrent::on_disk_cache_complete
 					, shared_from_this(), _1, _2));
 		}
+
+		delete status;
 	}
 
 	void torrent::get_suggested_pieces(std::vector<int>& s) const
@@ -6965,31 +6993,37 @@ namespace libtorrent
 			return;
 		}
 
-		std::vector<cached_piece_info> ret;
-		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
+		cache_status ret;
+
+		bool done = false;
+		mutex::scoped_lock l(m_ses.mut);
+// #error this doesn't work! The callback is posted to this thread, which is blocked
+		m_ses.get_cache_info(m_torrent_file->info_hash(), &ret, &done, &m_ses.cond, &m_ses.mut);
+		do { m_ses.cond.wait(l); } while(!done);
+
 		ptime now = time_now();
 
 		// remove write cache entries
-		ret.erase(std::remove_if(ret.begin(), ret.end()
+		ret.pieces.erase(std::remove_if(ret.pieces.begin(), ret.pieces.end()
 			, boost::bind(&cached_piece_info::kind, _1) == cached_piece_info::write_cache)
-			, ret.end());
+			, ret.pieces.end());
 
 		// sort by how new the cached entry is, new pieces first
-		std::sort(ret.begin(), ret.end()
+		std::sort(ret.pieces.begin(), ret.pieces.end()
 			, boost::bind(&cached_piece_info::last_use, _1)
 			< boost::bind(&cached_piece_info::last_use, _2));
 
 		// cut off the oldest pieces that we don't want to suggest
 		// if we have an explicit cache, it's much more likely to
 		// stick around, so we should suggest all pieces
-		int num_pieces_to_suggest = int(ret.size());
+		int num_pieces_to_suggest = int(ret.pieces.size());
 		if (num_pieces_to_suggest == 0) return;
 
 		if (!settings().explicit_read_cache)
-			num_pieces_to_suggest = (std::max)(1, int(ret.size() / 2));
-		ret.resize(num_pieces_to_suggest);
+			num_pieces_to_suggest = (std::max)(1, int(ret.pieces.size() / 2));
+		ret.pieces.resize(num_pieces_to_suggest);
 
-		std::transform(ret.begin(), ret.end(), std::back_inserter(s)
+		std::transform(ret.pieces.begin(), ret.pieces.end(), std::back_inserter(s)
 			, boost::bind(&cached_piece_info::piece, _1));
 	}
 

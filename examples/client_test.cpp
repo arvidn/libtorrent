@@ -60,6 +60,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // print_address
+#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 
 using boost::bind;
@@ -185,6 +187,7 @@ bool print_block = false;
 bool print_peer_rate = false;
 bool print_fails = false;
 bool print_send_bufs = true;
+bool print_disk_stats = false;
 
 // the number of times we've asked to save resume data
 // without having received a response (successful or failure)
@@ -459,9 +462,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 #endif
 	out += "down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags            source  ";
 	if (print_fails) out += "fail hshf ";
-	if (print_send_bufs) out += "rq sndb            quota rcvb            q-bytes ";
+	if (print_send_bufs) out += "rq sndb            quota rcvb          q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
-	out += "disk   rtt ";
+	out += "  v disk ^    rtt ";
 	if (print_block) out += "block-progress ";
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	out += "country ";
@@ -553,10 +556,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 		if (print_send_bufs)
 		{
-			snprintf(str, sizeof(str), "%2d %6d (%s) %5d %6d (%s) %6d "
+			snprintf(str, sizeof(str), "%2d %6d (%s) %s %6d (%s) %6d "
 				, i->requests_in_buffer, i->used_send_buffer, add_suffix(i->send_buffer_size).c_str()
-				, i->send_quota, i->used_receive_buffer, add_suffix(i->receive_buffer_size).c_str()
-				, i->queue_bytes);
+				, add_suffix(i->send_quota).c_str(), i->used_receive_buffer
+				, add_suffix(i->receive_buffer_size).c_str(), i->queue_bytes);
 			out += str;
 		}
 		if (print_timers)
@@ -568,8 +571,9 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 				, total_seconds(i->download_queue_time));
 			out += str;
 		}
-		snprintf(str, sizeof(str), "%s %4d "
+		snprintf(str, sizeof(str), "%s|%s %4d "
 			, add_suffix(i->pending_disk_bytes).c_str()
+			, add_suffix(i->pending_disk_read_bytes).c_str()
 			, i->rtt);
 		out += str;
 
@@ -1417,7 +1421,12 @@ int main(int argc, char* argv[])
 
 		std::sort(handles.begin(), handles.end(), &compare_torrent);
 
-		if (loop_limit > 1) --loop_limit;
+		if (loop_limit > 1)
+		{
+			// in test mode, don't quit until we're seeding
+			if (loop_limit > 2 || active_torrent == -1 || handles[active_torrent].is_seeding)
+				--loop_limit;
+		}
 		int c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
@@ -1543,6 +1552,11 @@ int main(int argc, char* argv[])
 			if (c == 'j' && !handles.empty())
 			{
 				get_active_torrent(handles).handle.force_recheck();
+			}
+
+			if (c == 'x')
+			{
+				print_disk_stats = !print_disk_stats;
 			}
 
 			if (c == 'r' && !handles.empty())
@@ -1813,6 +1827,7 @@ int main(int argc, char* argv[])
 					, (!s.paused && !s.auto_managed)?"[F] ":""
 					, (s.paused && !s.auto_managed)?"paused":
 					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
 					  state_str[s.state]
 					, esc("32"), add_suffix(s.total_download).c_str(), term
 					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
@@ -1884,13 +1899,20 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		cache_status cs = ses.get_cache_status();
+		sha1_hash ih(0);
+		torrent_handle h;
+		if (!handles.empty()) h = get_active_torrent(handles).handle;
+		if (h.is_valid()) ih = h.info_hash();
+
+		cache_status cs;
+		ses.get_cache_info(ih, &cs);
+
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
 
-		snprintf(str, sizeof(str), "==== conns: %d down: %s%s%s (%s%s%s) up: %s%s%s (%s%s%s) "
+		snprintf(str, sizeof(str), "==== conns: %d (%d) down: %s%s%s (%s%s%s) up: %s%s%s (%s%s%s) "
 			"tcp/ip: %s%s%s %s%s%s DHT: %s%s%s %s%s%s tracker: %s%s%s %s%s%s ====\n"
-			, sess_stat.num_peers
+			, sess_stat.num_peers, sess_stat.num_dead_peers
 			, esc("32"), add_suffix(sess_stat.download_rate, "/s").c_str(), esc("0")
 			, esc("32"), add_suffix(sess_stat.total_download).c_str(), esc("0")
 			, esc("31"), add_suffix(sess_stat.upload_rate, "/s").c_str(), esc("0")
@@ -1969,6 +1991,25 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
+		if (print_disk_stats)
+		{
+			snprintf(str, sizeof(str), "Disk stats:\n  timing - queue: %6d ms |"
+				" sort: %6d ms | read: %6d ms | write: %6d ms | issue: %6d\n"
+				, cs.average_queue_time / 1000, cs.average_sort_time / 1000
+				, cs.average_read_time / 1000, cs.average_write_time / 1000
+				, cs.average_issue_time / 1000);
+			out += str;
+
+			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d (%4d) blocked: %4d "
+				"aiocbs: %4d (%4d) queued-bytes: %5"PRId64" kB\n"
+				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.peak_pending, cs.blocked_jobs
+				, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
+			out += str;
+
+			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d\n"
+				, cs.cache_size, cs.read_cache_size, cs.cache_size - cs.read_cache_size);
+			out += str;
+		}
 
 		if (print_utp_stats)
 		{
@@ -1981,9 +2022,8 @@ int main(int argc, char* argv[])
 
 		torrent_status const* st = 0;
 		if (!handles.empty()) st = &get_active_torrent(handles);
-		if (st && st->handle.is_valid())
+		if (h.is_valid())
 		{
-			torrent_handle h = st->handle;
 			torrent_status const& s = *st;
 
 			if ((print_downloads && s.state != torrent_status::seeding)
@@ -2018,19 +2058,16 @@ int main(int argc, char* argv[])
 
 			if (print_downloads)
 			{
-				std::vector<cached_piece_info> pieces;
-				ses.get_cache_info(h.info_hash(), pieces);
-
 				h.get_download_queue(queue);
 
 				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
 					< boost::bind(&partial_piece_info::piece_index, _2));
 
-				std::sort(pieces.begin(), pieces.end(), boost::bind(&cached_piece_info::last_use, _1)
+				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::last_use, _1)
 					> boost::bind(&cached_piece_info::last_use, _2));
 
-				for (std::vector<cached_piece_info>::iterator i = pieces.begin();
-					i != pieces.end(); ++i)
+				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
+					i != cs.pieces.end(); ++i)
 				{
 					partial_piece_info* pp = 0;
 					partial_piece_info tmp;

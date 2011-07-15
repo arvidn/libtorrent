@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
 
+#ifdef __linux__
+#include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
+#endif // __linux
+
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
 #endif
@@ -54,6 +58,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#if !defined TORRENT_USE_SYNCIO \
+	&& !defined TORRENT_USE_OVERLAPPED \
+	&& !defined TORRENT_USE_AIO \
+	&& !defined TORRENT_USE_IOSUBMIT
+#define TORRENT_USE_DEFAULT_IO 1
+#else
+#define TORRENT_USE_DEFAULT_IO 0
+#endif
 
 // ======= GCC =========
 
@@ -144,8 +156,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 0
 #endif
-#endif
+#define TORRENT_USE_MACH_SEMAPHORE 1
+#else // __APPLE__
+#define TORRENT_USE_POSIX_SEMAPHORE 1
+#endif // __APPLE__
 #define TORRENT_HAS_FALLOCATE 0
+#if TORRENT_USE_DEFAULT_IO
+# define TORRENT_USE_AIO 1
+#endif
+#define TORRENT_AIO_SIGNAL SIGIO
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IFCONF 1
@@ -154,6 +173,16 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== LINUX ===
 #elif defined __linux__
 #define TORRENT_LINUX
+
+#if TORRENT_USE_DEFAULT_IO
+# if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+#  define TORRENT_USE_IOSUBMIT 1
+# else
+#  define TORRENT_USE_AIO 1
+# endif
+#endif
+#define TORRENT_AIO_SIGNAL SIGRTMIN
+#define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFCONF 1
@@ -168,6 +197,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
+#if TORRENT_USE_DEFAULT_IO
+# define TORRENT_USE_OVERLAPPED 1
+#endif
 #define TORRENT_USE_NETLINK 0
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
@@ -190,11 +222,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
+#if TORRENT_USE_DEFAULT_IO
+# define TORRENT_USE_OVERLAPPED 1
+#endif
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#if TORRENT_USE_DEFAULT_IO
+#define TORRENT_USE_AIO 1
+#endif
+#define TORRENT_AIO_SIGNAL SIGIO
+#define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
 
 // ==== BEOS ===
@@ -213,13 +253,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT __declspec(dllimport)
 # endif
 #endif
-
-// ==== GNU/Hurd ===
-#elif defined __GNU__
-#define TORRENT_HURD
-#define TORRENT_USE_IFADDRS 1
-#define TORRENT_USE_IFCONF 1
-
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
@@ -333,6 +366,50 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_DEPRECATED
 #endif
 
+#ifndef TORRENT_USE_MACH_SEMAPHORE
+#define TORRENT_USE_MACH_SEMAPHORE 0
+#endif
+
+#ifndef TORRENT_USE_POSIX_SEMAPHORE
+#define TORRENT_USE_POSIX_SEMAPHORE 0
+#endif
+
+// use POSIX AIO for asynchronous disk I/O (aio_read()/aio_write() etc.)
+#ifndef TORRENT_USE_AIO
+#define TORRENT_USE_AIO 0
+#endif
+
+// use io_submit for asynchronous disk I/O
+#ifndef TORRENT_USE_IOSUBMIT
+#define TORRENT_USE_IOSUBMIT 0
+#endif
+
+// use io_prep_pwritev and io_prep_preadv. These were never implemented
+// in mainline linux, but in Red Hat Enterprise 3. It defaults to off
+#ifndef TORRENT_USE_IOSUBMIT_VEC
+#define TORRENT_USE_IOSUBMIT_VEC 0
+#endif
+
+// use signalfd for event notification for POSIX AIO
+#ifndef TORRENT_USE_SIGNALFD
+#define TORRENT_USE_SIGNALFD 0
+#endif
+
+// use this signal number for event notifications in POSIX AIO
+#ifndef TORRENT_AIO_SIGNAL
+#define TORRENT_AIO_SIGNAL SIGUSR1
+#endif
+
+// use windows overlapped I/O for asynchronous disk I/O
+#ifndef TORRENT_USE_OVERLAPPED
+#define TORRENT_USE_OVERLAPPED 0
+#endif
+
+// use portable synchronous disk I/O
+#ifndef TORRENT_USE_SYNCIO
+#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED && !TORRENT_USE_IOSUBMIT)
+#endif
+
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
@@ -408,7 +485,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 	&& !defined TORRENT_USE_ECLOCK \
 	&& !defined TORRENT_USE_SYSTEM_TIME
 
-#if defined __APPLE__ && defined __MACH__
+#if defined(__MACH__)
 #define TORRENT_USE_ABSOLUTE_TIME 1
 #elif defined(_WIN32) || defined TORRENT_MINGW
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1

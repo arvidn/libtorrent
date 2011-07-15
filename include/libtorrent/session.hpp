@@ -237,10 +237,9 @@ namespace libtorrent
 		bool is_paused() const;
 
 		session_status status() const;
-		cache_status get_cache_status() const;
 
 		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const;
+			, cache_status* ret) const;
 
 		feed_handle add_feed(feed_settings const& feed);
 		void remove_feed(feed_handle h);

@@ -150,6 +150,7 @@ namespace libtorrent
 			, cache_buffer_chunk_size(16)
 			, cache_expiry(60)
 			, use_read_cache(true)
+			, dont_flush_write_cache(false)
 			, explicit_read_cache(0)
 			, explicit_cache_interval(30)
 			, disk_io_write_mode(0)
@@ -205,7 +206,11 @@ namespace libtorrent
 			, write_cache_line_size(32)
 			, optimistic_disk_retry(10 * 60)
 			, disable_hash_checks(false)
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
+			, allow_reordered_disk_operations(false)
+#else
 			, allow_reordered_disk_operations(true)
+#endif
 			, allow_i2p_mixed(false)
 			, max_suggest_pieces(10)
 			, drop_skipped_requests(false)
@@ -270,6 +275,7 @@ namespace libtorrent
 			, read_job_every(10)
 			, use_disk_read_ahead(true)
 			, lock_files(false)
+			, hashing_threads(1)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -547,6 +553,11 @@ namespace libtorrent
 		// cache for caching blocks read from disk too
 		bool use_read_cache;
 
+		// this will make the disk cache never flush a write
+		// piece if it would cause is to have to re-read it
+		// once we want to calculate the piece hash
+		bool dont_flush_write_cache;
+
 		// don't implicitly cache pieces in the read cache,
 		// only cache pieces that are explicitly asked to be
 		// cached.
@@ -565,6 +576,9 @@ namespace libtorrent
 		int disk_io_write_mode;
 		int disk_io_read_mode;
 
+		// allocate separate, contiguous, buffers for read and
+		// write calls. Only used where writev/readv cannot be used
+		// will use more RAM but may improve performance
 		bool coalesce_reads;
 		bool coalesce_writes;
 
@@ -779,14 +793,15 @@ namespace libtorrent
 		// disabled_storage)
 		bool disable_hash_checks;
 
-		// if this is true, disk read operations may
-		// be re-ordered based on their physical disk
-		// read offset. This greatly improves throughput
-		// when uploading to many peers. This assumes
-		// a traditional hard drive with a read head
-		// and spinning platters. If your storage medium
-		// is a solid state drive, this optimization
-		// doesn't give you an benefits
+		// if this is true, disk read operations are
+		// sorted by their physical offset on disk before
+		// issued to the operating system. This is useful
+		// if async I/O is not supported. It defaults to
+		// true if async I/O is not supported and fals
+		// otherwise.
+		// disk I/O operations are likely to be reordered
+		// regardless of this setting when async I/O
+		// is supported by the OS.
 		bool allow_reordered_disk_operations;
 
 		// if this is true, i2p torrents are allowed
@@ -1080,6 +1095,10 @@ namespace libtorrent
 		// if set to true, files will be locked when opened.
 		// preventing any other process from modifying them
 		bool lock_files;
+
+		// the number of threads to use for hash checking of pieces
+		// defaults to 1. If set to 0, the disk thread is used for hashing
+		int hashing_threads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
