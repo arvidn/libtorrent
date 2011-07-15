@@ -438,7 +438,7 @@ namespace libtorrent
 		int slot_for(int piece) const;
 		int piece_for(int slot) const;
 	
-		// helper functions for check_dastresume	
+		// helper functions for check_fastresume	
 		int check_no_fastresume(storage_error& error);
 		int check_init_storage(storage_error& error);
 		
