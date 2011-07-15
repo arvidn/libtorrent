@@ -1481,10 +1481,10 @@ ret:
 	boost::intrusive_ptr<file> default_storage::open_file(file_storage::iterator fe, int mode
 		, error_code& ec) const
 	{
-		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		// io_submit only works on files opened with O_DIRECT, so this
 		// is not optional if we're using io_submit
-#if USE_IOSUBMIT
+#if !USE_IOSUBMIT
+		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		if (cache_setting == session_settings::disable_os_cache
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
 			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
