@@ -367,6 +367,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, use_disk_read_ahead)
 		TORRENT_SETTING(boolean, lock_files)
 		TORRENT_SETTING(integer, hashing_threads)
+		TORRENT_SETTING(integer, checking_mem_usage)
 	};
 
 #undef TORRENT_SETTING

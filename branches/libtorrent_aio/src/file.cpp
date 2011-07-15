@@ -870,7 +870,7 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		DWORD flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : 0)
+		DWORD flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
 			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0)
 #if TORRENT_USE_OVERLAPPED
@@ -2296,7 +2296,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int e = aio_error(&aio->cb);
 		if (e == EINPROGRESS) return false;
 		size_t ret = aio_return(&aio->cb);
-		DLOG(stderr, "aio_return(%p) = %d\n", &aio->cb, int(ret));
+		DLOG(stderr, "aio_return(%p [fd: %d offset: %"PRId64"]) = %d\n"
+			, &aio->cb, aio->cb.aio_fildes, aio->cb.aio_offset, int(ret));
 		if (ret == -1) DLOG(stderr, " error: %s\n", strerror(errno));
 		se.ec = error_code(e, boost::system::get_posix_category());
 #elif TORRENT_USE_IOSUBMIT
@@ -2493,8 +2494,9 @@ finish:
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
 			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 			int ret;
-			DLOG(stderr, "aio_%s()\n", aios->cb.aio_lio_opcode == file::read_op
-				? "read" : "write");
+			DLOG(stderr, "aio_%s() fd: %d offset: %"PRId64" "
+				, aios->cb.aio_lio_opcode == file::read_op? "read" : "write"
+				, aios->cb.aio_fildes, aios->cb.aio_offset);
 			switch (aios->cb.aio_lio_opcode)
 			{
 				case file::read_op: ret = aio_read(&aios->cb); break;

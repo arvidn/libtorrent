@@ -65,25 +65,25 @@ namespace libtorrent
 			, release_files
 			, delete_files
 			, check_fastresume
-			, check_files
 			, save_resume_data
 			, rename_file
 			, abort_thread
 			, clear_read_cache
 			, abort_torrent
 			, update_settings
-			, read_and_hash
 			, cache_piece
 			, finalize_file
 			, get_cache_info
 			, hash_complete
+			// #error add a job that returns the status of all files in the file pool (open mode)
 		};
 
 		enum flags_t
 		{
-			volatile_read = 1,
-			need_uncork = 2,
-			cache_hit = 4
+			// these flags coexist with flags from file class
+			volatile_read = 0x100,
+			need_uncork = 0x200,
+			cache_hit = 0x400,
 		};
 
 		action_t action;
@@ -91,13 +91,17 @@ namespace libtorrent
 		char* buffer;
 		int buffer_size;
 		boost::intrusive_ptr<piece_manager> storage;
+
 		// flags controlling this job
 		boost::uint32_t flags;
+
 		// arguments used for read and write
-		int piece, offset;
-		// used for move_storage and rename_file. On errors, this is set
-		// to the error message
-		std::string str;
+		// the piece this job applies to
+		int piece;
+
+		// for read and write, the offset into the piece
+		// the read or write should start
+		int offset;
 
 		// if this is > 0, it specifies the max number of blocks to read
 		// ahead in the read cache for this access. This is only valid
@@ -107,6 +111,13 @@ namespace libtorrent
 		// if this is > 0, it may increase the minimum time the cache
 		// line caused by this operation stays in the cache
 		int cache_min_time;
+
+		// used for move_storage and rename_file. On errors, this is set
+		// to the error message.
+		std::string str;
+
+		// result for hash jobs
+		sha1_hash piece_hash;
 
 		boost::shared_ptr<entry> resume_data;
 

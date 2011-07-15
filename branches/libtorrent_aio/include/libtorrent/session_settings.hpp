@@ -276,6 +276,7 @@ namespace libtorrent
 			, use_disk_read_ahead(true)
 			, lock_files(false)
 			, hashing_threads(1)
+			, checking_mem_usage(200)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1099,6 +1100,11 @@ namespace libtorrent
 		// the number of threads to use for hash checking of pieces
 		// defaults to 1. If set to 0, the disk thread is used for hashing
 		int hashing_threads;
+
+		// the number of blocks to keep outstanding at any given time when
+		// checking torrents. Higher numbers give faster re-checks but uses
+		// more memory. Specified in number of 16 kiB blocks
+		int checking_mem_usage;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

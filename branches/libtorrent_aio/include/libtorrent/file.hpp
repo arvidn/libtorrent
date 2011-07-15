@@ -382,7 +382,8 @@ namespace libtorrent
 		enum
 		{
 			coalesce_buffers = 1,
-			resolve_phys_offset = 2
+			resolve_phys_offset = 2,
+			sequential_access = 4
 		};
 
 		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs

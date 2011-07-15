@@ -147,7 +147,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 	cache_piece_index_t::iterator p = find_piece(j);
 	if (p == idx.end())
 	{
-		int piece_size = j.storage->info()->piece_size(j.piece);
+		int piece_size = j.storage->files()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 
 		cached_piece_entry pe;
@@ -649,7 +649,7 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 {
 	if (pe->hash && pe->hashing == -1)
 	{
-		int piece_size = pe->storage.get()->info()->piece_size(pe->piece);
+		int piece_size = pe->storage.get()->files()->piece_size(pe->piece);
 		partial_hash& ph = *pe->hash;
 		if (ph.offset < piece_size)
 		{
@@ -739,9 +739,7 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 		int ret = i->buffer_size;
 		if (!ec)
 		{
-			if (reap_hash_jobs
-				&& (i->action == disk_io_job::hash
-					|| i->action == disk_io_job::read_and_hash))
+			if (reap_hash_jobs && i->action == disk_io_job::hash)
 			{
 				TORRENT_ASSERT(pe->hash);
 
@@ -767,12 +765,12 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 					"piece: %d begin: %d end: %d\n"
 					, &m_buffer_pool, int(pe->piece), hash_start, hash_end);
 
-				if (ph.offset < i->storage->info()->piece_size(i->piece))
+				if (ph.offset < i->storage->files()->piece_size(i->piece))
 				{
 					DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (incomplete hash) "
 							"piece: %d offset: %d begin: %d end: %d piece_size: %d\n"
 							, &m_buffer_pool, int(pe->piece)
-							, ph.offset, hash_start, hash_end, i->storage->info()->piece_size(i->piece));
+							, ph.offset, hash_start, hash_end, i->storage->files()->piece_size(i->piece));
 					++i;
 					continue;
 				}
@@ -807,8 +805,7 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 				continue;
 			}
 
-			if (i->action == disk_io_job::read
-				|| (i->action == disk_io_job::read_and_hash && reap_hash_jobs))
+			if (i->action == disk_io_job::read)
 			{
 				ret = copy_from_piece(p, *i);
 				if (ret == -1)
@@ -832,13 +829,12 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 				}
 			}
 
-			if ((ret >= 0 && i->action == disk_io_job::read_and_hash)
-				|| i->action == disk_io_job::hash)
+			if (i->action == disk_io_job::hash)
 			{
 				TORRENT_ASSERT(i->piece == pe->piece);
 				TORRENT_ASSERT(pe->hash);
 
-				if (pe->hashing != -1 || pe->hash->offset < i->storage->info()->piece_size(pe->piece))
+				if (pe->hashing != -1 || pe->hash->offset < i->storage->files()->piece_size(pe->piece))
 				{
 					DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (still hashing)"
 						"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
@@ -846,17 +842,16 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 					++i;
 					continue;
 				}
-				TORRENT_ASSERT(pe->hash->offset == i->storage->info()->piece_size(pe->piece));
+				TORRENT_ASSERT(pe->hash->offset == i->storage->files()->piece_size(pe->piece));
 				partial_hash& ph = *pe->hash;
 
 				// #error save the actual hash in the ph state as well
-				sha1_hash h = ph.h.final();
-				ret = (i->storage->info()->hash_for_piece(i->piece) == h)?ret:-2;
-				if (ret == -2)
+				i->piece_hash = ph.h.final();
+				ret = 0;
+				if (i->flags & disk_io_job::volatile_read)
 				{
-					i->storage->mark_failed(i->piece);
 					pe->marked_for_deletion = true;
-					DLOG(stderr, "[%p] block_cache reap_piece_jobs mark-for-deletion "
+					DLOG(stderr, "[%p] block_cache reap_piece_jobs volatile read. "
 						"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
 						, hash_start, hash_end);
 				}
@@ -1017,7 +1012,7 @@ void block_cache::free_piece(iterator p)
 
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
 {
-	int piece_size = p.storage->info()->piece_size(p.piece);
+	int piece_size = p.storage->files()->piece_size(p.piece);
 	int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 	int ret = 0;
 
@@ -1058,7 +1053,7 @@ void block_cache::check_invariant() const
 		TORRENT_ASSERT(p.blocks);
 		
 		TORRENT_ASSERT(p.storage);
-		int piece_size = p.storage->info()->piece_size(p.piece);
+		int piece_size = p.storage->files()->piece_size(p.piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		int num_blocks = 0;
 		int num_dirty = 0;
@@ -1135,7 +1130,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		++start_block;
 
 #ifdef TORRENT_DEBUG	
-		int piece_size = j.storage->info()->piece_size(j.piece);
+		int piece_size = j.storage->files()->piece_size(j.piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		TORRENT_ASSERT(start_block < blocks_in_piece);
 #endif

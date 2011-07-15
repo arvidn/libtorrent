@@ -4326,6 +4326,7 @@ namespace libtorrent
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
 		}
 
+//#error don't necessarily just pop the front request. If one request is blocked waiting for a piece to be verified, issue a read job for the next one
 		while (!m_requests.empty()
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
 		{
@@ -4340,7 +4341,37 @@ namespace libtorrent
 
 			std::pair<int, int> cache = preferred_caching();
 
-			if (!t->seed_mode() || t->verified_piece(r.piece))
+			if (t->seed_mode() && !t->verified_piece(r.piece))
+			{
+				// once this turns into a for-loop, continue instead
+				if (t->verifying_piece(r.piece)) break;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_logger) << time_now_string()
+					<< " *** FILE ASYNC HASH ["
+					" piece: " << r.piece << " ]\n";
+#endif
+				// this means we're in seed mode and we haven't yet
+				// verified this piece (r.piece)
+				t->filesystem().async_hash(r.piece, 0
+					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1, _2));
+				t->verifying(r.piece);
+				// once this is a for-loop, use continue
+				break;
+			}
+
+			// in seed mode, we might end up accepting a request
+			// which it later turns out we cannot serve, if we ended
+			// up not having that piece
+			if (!t->have_piece(r.piece))
+			{
+#if defined TORRENT_VERBOSE_LOGGING
+				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
+					, r.piece , r.start , r.length);
+#endif
+				write_reject_request(r);
+			}
+			else
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << time_now_string()
@@ -4352,32 +4383,48 @@ namespace libtorrent
 #endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.first, cache.second);
-			}
-			else
-			{
-#ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string()
-					<< " *** FILE ASYNC READ_AND_HASH ["
-					" piece: " << r.piece <<
-					" | s: " << r.start <<
-					" | l: " << r.length <<
-					" ]\n";
-#endif
-				// this means we're in seed mode and we haven't yet
-				// verified this piece (r.piece)
-				t->filesystem().async_read_and_hash(r, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r), cache.second);
-				t->verified(r.piece);
-			}
 
-			m_reading_bytes += r.length;
+				m_reading_bytes += r.length;
 
-			m_requests.erase(m_requests.begin());
-			sent_a_piece = true;
+				m_requests.erase(m_requests.begin());
+				sent_a_piece = true;
+			}
 		}
 
 		if (t->share_mode() && sent_a_piece)
 			t->recalc_share_mode();
+	}
+
+	// this is called when a previously unchecked piece has been
+	// checked, while in seed-mode
+	void peer_connection::on_seed_mode_hashed(int ret, disk_io_job const& j)
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+
+		if (!t->settings().disable_hash_checks
+			&& j.piece_hash != t->torrent_file().hash_for_piece(j.piece))
+		{
+			t->leave_seed_mode(false);
+		}
+		else
+		{
+			TORRENT_ASSERT(t->verifying_piece(j.piece));
+			if (t->seed_mode()) t->verified(j.piece);
+
+			if (t)
+			{
+				if (t->seed_mode() && t->all_verified())
+					t->leave_seed_mode(true);
+			}
+		}
+
+		// try to service the requests again, now that the piece
+		// has been verified
+		fill_send_buffer();
 	}
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
@@ -4385,7 +4432,6 @@ namespace libtorrent
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
-		// -2: hash check failed
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -4417,27 +4463,9 @@ namespace libtorrent
 		
 		if (ret != r.length)
 		{
-			if (ret == -3)
-			{
-#if defined TORRENT_VERBOSE_LOGGING
-				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
-					, r.piece , r.start , r.length);
-#endif
-				write_reject_request(r);
-				if (t->seed_mode()) t->leave_seed_mode(false);
-			}
-			else
-			{
-				// handle_disk_error may disconnect us
-				t->handle_disk_error(j, this);
-			}
+			// handle_disk_error may disconnect us
+			t->handle_disk_error(j, this);
 			return;
-		}
-
-		if (t)
-		{
-			if (t->seed_mode() && t->all_verified())
-				t->leave_seed_mode(true);
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING

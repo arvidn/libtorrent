@@ -342,6 +342,8 @@ namespace libtorrent
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
 		, m_storage_constructor(p.storage)
+		, m_checking_piece(0)
+		, m_num_checked_pieces(0)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
 		, m_average_piece_time(0)
@@ -514,7 +516,10 @@ namespace libtorrent
 			m_file_priority = *p.file_priorities;
 
 		if (m_seed_mode)
+		{
 			m_verified.resize(m_torrent_file->num_pieces(), false);
+			m_verifying.resize(m_torrent_file->num_pieces(), false);
+		}
 
 		if (p.resume_data) m_resume_data.swap(*p.resume_data);
 
@@ -1297,7 +1302,10 @@ namespace libtorrent
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_owning_storage = new piece_manager(shared_from_this(), m_torrent_file
+		m_owning_storage = new piece_manager(shared_from_this()
+			, (file_storage*)&m_torrent_file->files()
+			, &m_torrent_file->orig_files() != &m_torrent_file->files()
+				? &m_torrent_file->orig_files() : 0
 			, m_save_path, m_ses.m_disk_thread, m_storage_constructor
 			, (storage_mode_t)m_storage_mode, m_file_priority);
 		m_storage = m_owning_storage.get();
@@ -1752,17 +1760,36 @@ namespace libtorrent
 	void torrent::start_checking()
 	{
 		TORRENT_ASSERT(should_check_files());
+		TORRENT_ASSERT(m_state != torrent_status::checking_files);
+
+		if (m_state == torrent_status::checking_files) return;
+
 		set_state(torrent_status::checking_files);
 
-		m_storage->async_check_files(boost::bind(
-			&torrent::on_piece_checked
-			, shared_from_this(), _1, _2));
+		int num_outstanding = m_ses.m_settings.checking_mem_usage * block_size()
+			/ m_torrent_file->piece_length();
+		if (num_outstanding <= 0) num_outstanding = 1;
+
+		// subtract the number of pieces we already have outstanding
+		num_outstanding -= (m_checking_piece - m_num_checked_pieces);
+		if (num_outstanding < 0) num_outstanding = 0;
+
+		for (int i = 0; i < num_outstanding; ++i)
+		{
+			m_storage->async_hash(m_checking_piece++
+				, file::sequential_access | disk_io_job::volatile_read
+				, boost::bind(&torrent::on_piece_hashed
+					, shared_from_this(), _1, _2));
+			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
+		}
 	}
 	
-	void torrent::on_piece_checked(int ret, disk_io_job const& j)
+	void torrent::on_piece_hashed(int ret, disk_io_job const& j)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
+
+		++m_num_checked_pieces;
 
 		if (ret == piece_manager::disk_check_aborted)
 		{
@@ -1770,6 +1797,7 @@ namespace libtorrent
 			pause();
 			return;
 		}
+
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			if (m_ses.m_alerts.should_post<file_error_alert>())
@@ -1786,21 +1814,44 @@ namespace libtorrent
 			return;
 		}
 
-		m_progress_ppm = size_type(j.piece) * 1000000 / torrent_file().num_pieces();
+		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
-		TORRENT_ASSERT(m_picker);
-		if (j.offset >= 0 && !m_picker->have_piece(j.offset))
-			we_have(j.offset);
+		if (m_ses.m_settings.disable_hash_checks
+			|| j.piece_hash == m_torrent_file->hash_for_piece(j.piece))
+		{
+			TORRENT_ASSERT(m_picker);
+			if (!m_picker->have_piece(j.piece)) we_have(j.piece);
+			remove_time_critical_piece(j.piece);
+		}
 
-		remove_time_critical_piece(j.piece);
+		if (m_num_checked_pieces < m_torrent_file->num_pieces())
+		{
+			// we're not done yet, issue another job
+			if (m_checking_piece >= m_torrent_file->num_pieces())
+			{
+				// actually, we already have outstanding jobs for
+				// the remaining pieces. We just need to wait for them
+				// to finish
+				return;
+			}
 
-		// we're not done checking yet
-		// this handler will be called repeatedly until
-		// we're done, or encounter a failure
-		if (ret == piece_manager::need_full_check) return;
+			// we paused the checking
+			if (!should_check_files()) return;
 
+			m_storage->async_hash(m_checking_piece++
+				, file::sequential_access | disk_io_job::volatile_read
+				, boost::bind(&torrent::on_piece_hashed
+					, shared_from_this(), _1, _2));
+			return;
+		}
+
+		// we're done checking!
 		dequeue_torrent_check();
 		files_checked();
+
+		// reset the checking state
+		m_checking_piece = 0;
+		m_num_checked_pieces = 0;
 	}
 
 	void torrent::use_interface(std::string net_interfaces)
@@ -4427,7 +4478,11 @@ namespace libtorrent
 		set_max_connections(rd.dict_find_int_value("max_connections", -1));
 		set_max_uploads(rd.dict_find_int_value("max_uploads", -1));
 		m_seed_mode = rd.dict_find_int_value("seed_mode", 0) && m_torrent_file->is_valid();
-		if (m_seed_mode) m_verified.resize(m_torrent_file->num_pieces(), false);
+		if (m_seed_mode)
+		{
+			m_verified.resize(m_torrent_file->num_pieces(), false);
+			m_verifying.resize(m_torrent_file->num_pieces(), false);
+		}
 		super_seeding(rd.dict_find_int_value("super_seeding", 0));
 
 		m_last_scrape = rd.dict_find_int_value("last_scrape", 0);
@@ -4738,6 +4793,7 @@ namespace libtorrent
 		if (m_seed_mode)
 		{
 			TORRENT_ASSERT(m_verified.size() == pieces.size());
+			TORRENT_ASSERT(m_verifying.size() == pieces.size());
 			for (int i = 0, end(pieces.size()); i < end; ++i)
 				pieces[i] |= m_verified[i] ? 2 : 0;
 		}
@@ -7211,8 +7267,8 @@ namespace libtorrent
 		}
 #endif
 
-		m_storage->async_hash(piece_index, boost::bind(&torrent::on_piece_verified
-			, shared_from_this(), _1, _2, f));
+		m_storage->async_hash(piece_index, 0
+			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, f));
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif
@@ -7223,12 +7279,22 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		// return value:
+		if (m_ses.m_settings.disable_hash_checks)
+		{
+			ret = 0;
+		}
+		else
+		{
+			if (ret == -1) handle_disk_error(j);
+
+			if (j.piece_hash != m_torrent_file->hash_for_piece(j.piece))
+				ret = -2;
+		}
+
+		// error codes passed into f
 		// 0: success, piece passed hash check
 		// -1: disk failure
 		// -2: hash check failed
-
-		if (ret == -1) handle_disk_error(j);
 		f(ret);
 	}
 

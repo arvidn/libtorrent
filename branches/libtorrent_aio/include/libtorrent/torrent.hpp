@@ -154,7 +154,7 @@ namespace libtorrent
 
 		void on_resume_data_checked(int ret, disk_io_job const& j);
 		void on_force_recheck(int ret, disk_io_job const& j);
-		void on_piece_checked(int ret, disk_io_job const& j);
+		void on_piece_hashed(int ret, disk_io_job const& j);
 		void files_checked();
 		void start_checking();
 
@@ -803,9 +803,23 @@ namespace libtorrent
 			if (!seed) force_recheck();
 			m_num_verified = 0;
 			m_verified.free();
+			m_verifying.free();
 		}
 		bool all_verified() const
 		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		bool verifying_piece(int piece) const
+		{
+			TORRENT_ASSERT(piece < int(m_verifying.size()));
+			TORRENT_ASSERT(piece >= 0);
+			return m_verifying.get_bit(piece);
+		}
+		void verifying(int piece)
+		{
+			TORRENT_ASSERT(piece < int(m_verifying.size()));
+			TORRENT_ASSERT(piece >= 0);
+			TORRENT_ASSERT(m_verifying.get_bit(piece) == false);
+			m_verifying.set_bit(piece);
+		}
 		bool verified_piece(int piece) const
 		{
 			TORRENT_ASSERT(piece < int(m_verified.size()));
@@ -1019,6 +1033,9 @@ namespace libtorrent
 		// is only used in seed mode (when m_seed_mode
 		// is true)
 		bitfield m_verified;
+		// this means there is an outstanding, async, operation
+		// to verify each piece that has a 1
+		bitfield m_verifying;
 
 		// set if there's an error on this torrent
 		error_code m_error;
@@ -1042,6 +1059,13 @@ namespace libtorrent
 		// encrypted hand shakes
 		sha1_hash m_obfuscated_hash;
 #endif
+
+		// when checking, this is the first piece we have not
+		// issued a hash job for
+		int m_checking_piece;
+
+		// the number of pieces we completed the check of
+		int m_num_checked_pieces;
 
 		// the upload/download ratio that each peer
 		// tries to maintain.

@@ -236,7 +236,6 @@ namespace libtorrent
 		int do_release_files(disk_io_job& j);
 		int do_delete_files(disk_io_job& j);
 		int do_check_fastresume(disk_io_job& j);
-		int do_check_files(disk_io_job& j);
 		int do_save_resume_data(disk_io_job& j);
 		int do_rename_file(disk_io_job& j);
 		int do_abort_thread(disk_io_job& j);
@@ -273,7 +272,7 @@ namespace libtorrent
 			op_write = 1
 		};
 
-		int io_range(block_cache::iterator p, int start, int end, int readwrite);
+		int io_range(block_cache::iterator p, int start, int end, int readwrite, int flags);
 
 		int allocate_read_piece(disk_io_job& j, block_cache::iterator& p);
 

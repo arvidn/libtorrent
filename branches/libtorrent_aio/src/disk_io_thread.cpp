@@ -500,7 +500,7 @@ namespace libtorrent
 			// we're flushing a block which we will need
 			// to read back later, when we hash this piece
 			if (start_of_run > hash_pos) pe->need_readback = true;
-			ret += io_range(p, start_of_run, i, op_write);
+			ret += io_range(p, start_of_run, i, op_write, 0);
 			start_of_run = i + 1;
 			if (ret >= num) return ret;
 		}
@@ -511,7 +511,7 @@ namespace libtorrent
 			// to read back later, when we hash this piece
 			if (start_of_run > hash_pos) pe->need_readback = true;
 			// we should flush start_of_run - i.
-			ret += io_range(p, start_of_run, i, op_write);
+			ret += io_range(p, start_of_run, i, op_write, 0);
 			start_of_run = i + 1;
 		}
 		return ret;
@@ -565,7 +565,7 @@ namespace libtorrent
 		DLOG(stderr, "[%p] try_flush_hashed: %d blocks: %d end: %d num: %d\n"
 			, this, int(p->piece), int(p->blocks_in_piece), end, num);
 
-		return io_range(p, 0, end, op_write);
+		return io_range(p, 0, end, op_write, 0);
 	}
 
 	int count_aios(file::aiocb_t* a)
@@ -584,7 +584,8 @@ namespace libtorrent
 	// issues read or write operations for blocks in the given
 	// range on the given piece. Returns the number of blocks operations
 	// were actually issued for
-	int disk_io_thread::io_range(block_cache::iterator p, int start, int end, int readwrite)
+	int disk_io_thread::io_range(block_cache::iterator p, int start, int end
+		, int readwrite, int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -596,7 +597,7 @@ namespace libtorrent
 		end = (std::min)(end, int(p->blocks_in_piece));
 
 		cached_piece_entry const& pe = *p;
-		int piece_size = pe.storage->info()->piece_size(pe.piece);
+		int piece_size = pe.storage->files()->piece_size(pe.piece);
 		TORRENT_ASSERT(piece_size > 0);
 		
 		int buffer_size = 0;
@@ -608,7 +609,7 @@ namespace libtorrent
 		end = (std::min)(end, int(pe.blocks_in_piece));
 
 #ifdef DEBUG_STORAGE
-		DLOG(stderr, "[%p] io_range: [", this);
+		DLOG(stderr, "[%p] io_range: piece: %d [", this, int(p->piece));
 		for (int i = 0; i < start; ++i) DLOG(stderr, ".");
 #endif
 
@@ -661,7 +662,7 @@ namespace libtorrent
 						, range_start, i, to_write, _1);
 
 					aios = p->storage->write_async_impl(iov
-						, pe.piece, to_write, iov_counter, handler);
+						, pe.piece, to_write, iov_counter, flags, handler);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
 				}
@@ -673,7 +674,7 @@ namespace libtorrent
 					handler = boost::bind(&disk_io_thread::on_disk_read, this, p
 						, range_start, i, _1);
 					aios = pe.storage->read_async_impl(iov, pe.piece
-						, range_start * m_block_size, iov_counter, handler);
+						, range_start * m_block_size, iov_counter, flags, handler);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
 				}
@@ -836,7 +837,7 @@ namespace libtorrent
 			else if (flags & flush_write_cache && p->num_dirty > 0)
 			{
 				// issue write commands
-				io_range(p, 0, INT_MAX, op_write);
+				io_range(p, 0, INT_MAX, op_write, 0);
 
 				// if we're also flushing the read cache, this piece
 				// should be removed as soon as all write jobs finishes
@@ -924,14 +925,12 @@ namespace libtorrent
 		&disk_io_thread::do_release_files,
 		&disk_io_thread::do_delete_files,
 		&disk_io_thread::do_check_fastresume,
-		&disk_io_thread::do_check_files,
 		&disk_io_thread::do_save_resume_data,
 		&disk_io_thread::do_rename_file,
 		&disk_io_thread::do_abort_thread,
 		&disk_io_thread::do_clear_read_cache,
 		&disk_io_thread::do_abort_torrent,
 		&disk_io_thread::do_update_settings,
-		&disk_io_thread::do_read_and_hash,
 		&disk_io_thread::do_cache_piece,
 		&disk_io_thread::do_finalize_file,
 		&disk_io_thread::do_get_cache_info,
@@ -947,14 +946,12 @@ namespace libtorrent
 		"release_files",
 		"delete_files",
 		"check_fastresume",
-		"check_files",
 		"save_resume_data",
 		"rename_file",
 		"abort_thread",
 		"clear_read_cache",
 		"abort_torrent",
 		"update_settings",
-		"read_and_hash",
 		"cache_piece",
 		"finalize_file",
 		"get_cache_info",
@@ -1072,7 +1069,7 @@ namespace libtorrent
 					if (ret >= 0)
 					{
 						// some blocks were allocated
-						if (ret > 0) io_range(p, start_block, end_block, op_read);
+						if (ret > 0) io_range(p, start_block, end_block, op_read, j.flags);
 
 						DLOG(stderr, "[%p] do_read: cache miss\n", this);
 						return defer_handler;
@@ -1108,7 +1105,7 @@ namespace libtorrent
 		++m_outstanding_jobs;
 		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
 		file::iovec_t b = { j.buffer, j.buffer_size };
-		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1
+		file::aiocb_t* aios = j.storage->read_async_impl(&b, j.piece, j.offset, 1, j.flags
 			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
@@ -1201,7 +1198,7 @@ namespace libtorrent
 		// just exceed the disk queue size limit?
 		added_to_write_queue();
 
-		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1
+		file::aiocb_t* aios = j.storage->write_async_impl(&b, j.piece, j.offset, 1, j.flags
 			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
@@ -1249,7 +1246,7 @@ namespace libtorrent
 			DLOG(stderr, "[%p] do_hash: flushing %d dirty blocks piece: %d\n"
 				, this, int(p->num_dirty), int(p->piece));
 			// issue write commands
-			io_range(p, 0, INT_MAX, op_write);
+			io_range(p, 0, INT_MAX, op_write, j.flags);
 		}
 
 		if (m_settings.disable_hash_checks)
@@ -1315,7 +1312,7 @@ namespace libtorrent
 					// some blocks were allocated
 					if (ret > 0)
 					{
-						m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read);
+						m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read, j.flags);
 					}
 					ret = defer_handler;
 				}
@@ -1336,19 +1333,17 @@ namespace libtorrent
 				// in the pe->hash object. We just need to finalize
 				// it and compare to the actual hash
 
-				TORRENT_ASSERT(pe->hash->offset == j.storage->info()->piece_size(pe->piece));
+				TORRENT_ASSERT(pe->hash->offset == j.storage->files()->piece_size(pe->piece));
 				partial_hash& ph = *pe->hash;
-				sha1_hash h = ph.h.final();
+				j.piece_hash = ph.h.final();
+				ret = 0;
 				// return value:
 				// 0: success, piece passed hash check
 				// -1: disk failure
-				// -2: hash check failed
-				ret = (j.storage->info()->hash_for_piece(j.piece) == h)?0:-2;
-				if (ret == -2)
+				if (j.flags & disk_io_job::volatile_read)
 				{
-					j.storage->mark_failed(j.piece);
 					pe->marked_for_deletion = true;
-					DLOG(stderr, "[%p] do_hash: hash complete, returning immediately. "
+					DLOG(stderr, "[%p] do_hash: volatile, mark piece for deletion. "
 						"ret: %d piece: %d\n", this, ret, int(pe->piece));
 				}
 				delete pe->hash;
@@ -1460,62 +1455,6 @@ namespace libtorrent
 		return j.storage->check_fastresume(*rd, j.error);
 	}
 
-	int disk_io_thread::do_check_files(disk_io_job& j)
-	{
-		int piece_size = j.storage->info()->piece_length();
-		int ret = 0;
-		for (int processed = 0; processed < 4 * 1024 * 1024; processed += piece_size)
-		{
-			ptime now = time_now_hires();
-			TORRENT_ASSERT(now >= m_last_file_check);
-			if (now - m_last_file_check < milliseconds(m_settings.file_checks_delay_per_block))
-			{
-				int sleep_time = m_settings.file_checks_delay_per_block
-					* (piece_size / (16 * 1024))
-					- total_milliseconds(now - m_last_file_check);
-				if (sleep_time < 0) sleep_time = 0;
-				TORRENT_ASSERT(sleep_time < 5 * 1000);
-
-				sleep(sleep_time);
-			}
-			m_last_file_check = time_now_hires();
-
-			if (m_abort)
-			{
-				j.error.ec = error::operation_aborted;
-				return disk_operation_failed;
-			}
-
-			// #error it would be nice to check files with async operations too
-			ret = j.storage->check_files(j.piece, j.offset, j.error);
-			DLOG(stderr, "check_files() ret=%d j.piece=%d j.offset=%d j.error=%s\n"
-				, ret, j.piece, j.offset, j.error.ec.message().c_str());
-
-			if (j.error) return disk_operation_failed;
-
-			if (ret == piece_manager::need_full_check && j.callback)
-				m_ios.post(boost::bind(j.callback, ret, j));
-			if (ret != piece_manager::need_full_check)
-				return ret;
-		}
-
-		// if the check is not done, add it at the end of the job queue
-		if (ret == piece_manager::need_full_check)
-		{
-			// offset needs to be reset to 0 so that the disk
-			// job sorting can be done correctly
-			j.offset = 0;
-			add_job(j);
-			return defer_handler;
-		}
-		return ret;
-	}
-/*
-	void disk_io_thread::on_check()
-	{
-	
-	}
-*/
 	int disk_io_thread::do_save_resume_data(disk_io_job& j)
 	{
 		int ret = flush_cache(j, flush_write_cache);
@@ -1699,7 +1638,7 @@ namespace libtorrent
 		if (ret >= 0)
 		{
 			// some blocks were allocated
-			if (ret > 0) io_range(p, 0, p->blocks_in_piece, op_read);
+			if (ret > 0) io_range(p, 0, p->blocks_in_piece, op_read, j.flags);
 			return defer_handler;
 		}
 		else if (ret == -1)
@@ -1719,94 +1658,6 @@ namespace libtorrent
 		return 0;
 	}
 
-	int disk_io_thread::do_read_and_hash(disk_io_job& j)
-	{
-		DLOG(stderr, "[%p] do_read_and_hash\n", this);
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(j.buffer == 0);
-
-		if (m_settings.disable_hash_checks)
-		{
-			DLOG(stderr, "[%p] do_read_and_hash: hash checking turned off, redirecting to normal read\n", this);
-			j.action = disk_io_job::read;
-			do_read(j);
-			return 0;
-		}
-
-		block_cache::iterator p;
-		int ret = allocate_read_piece(j, p);
-
-		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
-		if (pe->hash == 0) pe->hash = new partial_hash;
-
-		// 0 means all blocks are already in the cache
-		if (ret != 0)
-		{
-			// increase the refcount for all blocks the hash job needs in
-			// order to complete. These are decremented in block_cache::mark_as_done
-			// for hash jobs
-			int hash_start = pe->hash->offset / m_block_size;
-			for (int i = hash_start; i < pe->blocks_in_piece; ++i)
-			{
-				++pe->blocks[i].refcount;
-				++pe->refcount;
-			}
-
-			return ret;
-		}
-
-		// we get here if all the blocks we want are already
-		// in the cache
-
-		// #error issue an async hash job
-
-		ret = m_disk_cache.try_read(j);
-		if (ret == -2)
-		{
-			// allocation failed
-			TORRENT_ASSERT(j.buffer == 0);
-			j.error.ec = error::no_memory;
-			j.str.clear();
-			return disk_operation_failed;
-		}
-		TORRENT_ASSERT(ret == j.buffer_size);
-		j.flags |= disk_io_job::cache_hit;
-
-		// we're done with the hash
-		delete pe->hash;
-		pe->hash = 0;
-
-//#error run this in separate threads!
-		ptime start_hash = time_now_hires();
-		hasher sha1;
-		int size = j.storage->info()->piece_size(p->piece);
-		for (int i = 0; i < p->blocks_in_piece; ++i)
-		{
-			TORRENT_ASSERT(size > 0);
-			sha1.update(p->blocks[i].buf, (std::min)(m_block_size, size));
-			size -= m_block_size;
-		}
-		sha1_hash h = sha1.final();
-		if (p->blocks_in_piece > 0)
-		{
-			ptime done = time_now_hires();
-			m_disk_cache.add_hash_time(done - start_hash, p->blocks_in_piece);
-		}
-
-		ret = (j.storage->info()->hash_for_piece(j.piece) == h)?ret:-2;
-
-		if (ret == -2)
-		{
-			j.storage->mark_failed(j.piece);
-			m_disk_cache.mark_for_deletion(p);
-			j.error.ec = errors::failed_hash_check;
-			j.str.clear();
-			free_buffer(j.buffer);
-			j.buffer = 0;
-		}
-		return ret;
-	}
-
 	int disk_io_thread::do_cache_piece(disk_io_job& j)
 	{
 		INVARIANT_CHECK;
@@ -1822,7 +1673,7 @@ namespace libtorrent
 
 		if (ret >= 0)
 		{
-			if (ret > 0) io_range(p, 0, INT_MAX, op_read);
+			if (ret > 0) io_range(p, 0, INT_MAX, op_read, j.flags);
 			return defer_handler;
 		}
 		else if (ret == -1)

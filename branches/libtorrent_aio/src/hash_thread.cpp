@@ -160,7 +160,7 @@ namespace libtorrent
 
 	void hash_thread::process_piece(hash_queue_entry const& e)
 	{
-		int piece_size = e.piece->storage.get()->info()->piece_size(e.piece->piece);
+		int piece_size = e.piece->storage.get()->files()->piece_size(e.piece->piece);
 		partial_hash& ph = *e.piece->hash;
 		for (int i = e.start; i < e.end; ++i)
 		{

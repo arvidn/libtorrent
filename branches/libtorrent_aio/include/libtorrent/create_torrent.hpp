@@ -251,67 +251,12 @@ namespace libtorrent
 		char* m_piece;
 	};
 
-	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f
-		, error_code& ec)
-	{
-		file_pool fp;
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
-			, std::vector<boost::uint8_t>()));
-
-		// if we're calculating file hashes as well, use this hasher
-		hasher filehash;
-		int file_idx = 0;
-		size_type left_in_file = t.files().at(0).size;
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		piece_holder buf(t.piece_length());
-		for (int i = 0; i < num; ++i)
-		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			storage_error se;
-			st->read(buf.bytes(), i, 0, t.piece_size(i), se);
-			if (se.ec) { ec = se.ec; return; }
-			
-			if (t.should_add_file_hashes())
-			{
-				int left_in_piece = t.piece_size(i);
-				int this_piece_size = left_in_piece;
-				// the number of bytes from this file we just read
-				while (left_in_piece > 0)
-				{
-					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
-					if (to_hash_for_file > 0)
-					{
-						int offset = this_piece_size - left_in_piece;
-						filehash.update(buf.bytes() + offset, to_hash_for_file);
-					}
-					left_in_file -= to_hash_for_file;
-					left_in_piece -= to_hash_for_file;
-					if (left_in_file == 0)
-					{
-						if (!t.files().at(file_idx).pad_file)
-							t.set_file_hash(file_idx, filehash.final());
-						filehash.reset();
-						file_idx++;
-						if (file_idx >= t.files().num_files()) break;
-						left_in_file = t.files().at(file_idx).size;
-					}
-				}
-			}
-
-			hasher h(buf.bytes(), t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
-		}
-	}
+	void set_piece_hashes(create_torrent& t, std::string const& p
+		, boost::function<void(int i)> const& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
-	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f)
+	inline void set_piece_hashes(create_torrent& t, std::string const& p
+		, boost::function<void(int i)> const& f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
@@ -351,31 +296,12 @@ namespace libtorrent
 			, filename(utf8), detail::default_pred, flags);
 	}
 	
-	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p, boost::function<void(int)> f
 		, error_code& ec)
 	{
-		file_pool fp;
 		std::string utf8;
 		wchar_utf8(p, utf8);
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
-			, std::vector<boost::uint8_t>()));
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		std::vector<char> buf(t.piece_length());
-		storage_error se;
-		for (int i = 0; i < num; ++i)
-		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			st->read(&buf[0], i, 0, t.piece_size(i), se);
-			if (se.ec) { ec = se.ec; return; }
-			hasher h(&buf[0], t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
-		}
+		set_piece_hashes(t, utf8, f, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

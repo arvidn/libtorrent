@@ -105,6 +105,12 @@ namespace libtorrent
 	{
 		session_settings set;
 
+		// keep 2 blocks outstanding when hashing
+		set.checking_mem_usage = 2;
+
+		// don't use any extra threads to do SHA-1 hashing
+		set.hashing_threads = 0;
+
 		set.alert_queue_size = 100;
 
 		// setting this to a low limit, means more
@@ -302,6 +308,9 @@ namespace libtorrent
 		// performance machine, but not very likely to peg
 		// 3 cores doing SHA-1
 		set.hashing_threads = 3;
+
+		// keep 5 MiB outstanding when hashing
+		set.checking_mem_usage = 320;
 
 		return set;
 	}
