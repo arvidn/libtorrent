@@ -2353,20 +2353,24 @@ namespace libtorrent
 			}
 			}
 #else
-			DLOG(stderr, "[%p] sem_wait()\n", this);
 			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
 			// always time out after one second, since the global nature of the semaphore
 			// makes it unreliable when there are multiple instances of the disk_io_thread
 			// object.
-			g_job_sem.timed_wait(1000);
-			DLOG(stderr, "[%p] sem_wait() returned\n", this);
+			if (last_completed_aios == g_completed_aios)
+			{
+				DLOG(stderr, "[%p] sem_wait()\n", this);
+				g_job_sem.timed_wait(500);
+				DLOG(stderr, "[%p] sem_wait() returned\n", this);
+			}
 
 			// more jobs might complete as we go through
 			// the list. In which case m_completed_aios
 			// would have incremented again. It's incremented
 			// in the aio signal handler
 			int complete_aios = g_completed_aios;
-			DLOG(stderr, "m_completed_aios %d last_completed_aios: %d\n", complete_aios, last_completed_aios);
+			DLOG(stderr, "[%p] m_completed_aios %d last_completed_aios: %d\n"
+				, this, complete_aios, last_completed_aios);
 			while (complete_aios != last_completed_aios)
 			{
 				// this needs to be atomic for the signal handler
