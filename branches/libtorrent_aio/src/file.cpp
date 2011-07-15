@@ -149,7 +149,7 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 namespace libtorrent
 {
 #ifdef TORRENT_DISK_STATS
-	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete)
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp)
 	{
 		// the event format in the log is:
 		// uint64_t timestamp (microseconds)
@@ -158,7 +158,7 @@ namespace libtorrent
 		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
 		char event[29];
 		char* ptr = event;
-		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
+		detail::write_uint64(total_microseconds((timestamp - min_time())), ptr);
 		detail::write_uint64(aio_offset(aio), ptr);
 		detail::write_uint64((boost::uint64_t)aio, ptr);
 		detail::write_uint32(aio->file_ptr->file_id(), ptr);
@@ -2417,11 +2417,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				}
 				// move the aiocb_t entries over to the ret chain
 				num_issued += num_submitted;
+#ifdef TORRENT_DISK_STATS
+				ptime now = time_now_hires();
+#endif
 				while (num_submitted > 0)
 				{
 #ifdef TORRENT_DISK_STATS
 					list_start->handler->file_access_log = file_access_log;
-					if (file_access_log) write_disk_log(file_access_log, list_start, false);
+					if (file_access_log) write_disk_log(file_access_log, list_start, false, now);
 #endif
 					--num_submitted;
 					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
@@ -2475,7 +2478,7 @@ finish:
 		{
 #ifdef TORRENT_DISK_STATS
 			aios->handler->file_access_log = file_access_log;
-			if (file_access_log) write_disk_log(file_access_log, aios, false);
+			ptime start_time = time_now_hires();
 #endif
 
 			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
@@ -2656,6 +2659,11 @@ finish:
 #error what disk I/O API are we using?
 #endif
 		
+#ifdef TORRENT_DISK_STATS
+			// we cannot write to the log until we know the operation
+			// succeeded. But we back-date it with the actual start time
+			if (file_access_log) write_disk_log(file_access_log, aios, false, start_time);
+#endif
 			++num_issued;
 			aios = aios->next;
 		}

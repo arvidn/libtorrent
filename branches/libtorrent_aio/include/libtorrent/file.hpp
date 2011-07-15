@@ -448,7 +448,7 @@ namespace libtorrent
 	};
 
 #ifdef TORRENT_DISK_STATS
-	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete);
+	void write_disk_log(FILE* f, file::aiocb_t const* aio, bool complete, ptime timestamp);
 #endif
 
 	// this struct is used to hold the handler while
@@ -474,7 +474,7 @@ namespace libtorrent
 			if (ec.ec) error = ec;
 			else transferred += bytes_transferred;
 #ifdef TORRENT_DISK_STATS
-			if (file_access_log) write_disk_log(file_access_log, aio, true);
+			if (file_access_log) write_disk_log(file_access_log, aio, true, time_now_hires());
 #endif
 			--references;
 			TORRENT_ASSERT(references >= 0);
