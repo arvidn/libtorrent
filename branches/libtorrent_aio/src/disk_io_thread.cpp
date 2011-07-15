@@ -1246,14 +1246,16 @@ namespace libtorrent
 		// flush the write jobs for this piece
 		if (p != m_disk_cache.end() && p->num_dirty > 0)
 		{
-			DLOG(stderr, "[%p] do_hash: flushing %d dirty blocks\n", this, int(p->num_dirty));
+			DLOG(stderr, "[%p] do_hash: flushing %d dirty blocks piece: %d\n"
+				, this, int(p->num_dirty), int(p->piece));
 			// issue write commands
 			io_range(p, 0, INT_MAX, op_write);
 		}
 
 		if (m_settings.disable_hash_checks)
 		{
-			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning\n", this);
+			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning piece: %d\n"
+				, this, int(p->piece));
 			return 0;
 		}
 
@@ -1265,7 +1267,8 @@ namespace libtorrent
 		// need in order to calculate the hash
 		if (p == m_disk_cache.end())
 		{
-			DLOG(stderr, "[%p] do_hash: allocating a new piece\n", this);
+			DLOG(stderr, "[%p] do_hash: allocating a new piece: %d\n"
+				, this, int(j.piece));
 			// allocate_read_piece will add the job to the piece
 			// and allocate a piece and fill in p
 			ret = allocate_read_piece(j, p);
@@ -1289,13 +1292,22 @@ namespace libtorrent
 				else start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
 			}
 
-			DLOG(stderr, "[%p] do_hash: reading missing blocks %d-%d\n", this
-				, start_block, int(p->blocks_in_piece));
+			// find a (potential) range that we can start hashing, of blocks that we already have
+			int end = start_block;
+			while (end < pe->blocks_in_piece && pe->blocks[end].buf && !pe->blocks[end].pending) ++end;
+
+			bool submitted = false;
+			if (end > start_block)
+			{
+				submitted = m_hash_thread.async_hash(pe, start_block, end);
+				start_block = end;
+			}
 
 			if (start_block < p->blocks_in_piece)
 			{
 				ret = m_disk_cache.allocate_pending(p, start_block, p->blocks_in_piece, j, 2);
-				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d\n", this, ret);
+				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d piece: %d\n"
+					, this, ret, int(p->piece));
 				if (ret >= 0)
 				{
 					// if allocate_pending succeeds, it adds the job as well
@@ -1345,19 +1357,12 @@ namespace libtorrent
 			}
 		}
 
-		if (!job_added)
-		{
-			DLOG(stderr, "[%p] do_hash: adding job\n", this);
-			pe->jobs.push_back(j);
-		}
-
 		// we need the partial hash object
-		bool submitted = true;
 		if (pe->hash == 0)
 		{
-			DLOG(stderr, "[%p] do_hash: creating hash object\n", this);
+			DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
+				, this, int(p->piece));
 			pe->hash = new partial_hash;
-			submitted = m_hash_thread.async_hash(pe, start_block, pe->blocks_in_piece);
 		}
 
 		// increase the refcount for all blocks the hash job needs in
@@ -1369,12 +1374,13 @@ namespace libtorrent
 			++pe->refcount;
 		}
 
-		if (!submitted)
+		if (!job_added)
 		{
-			// if the job wasn't submitted, but processed immediately
-			// we need to call the completion notification ourselves
-			m_disk_cache.hashing_done(pe, start_block, pe->blocks_in_piece, m_ios);
+			DLOG(stderr, "[%p] do_hash: adding job piece: %d\n"
+				, this, int(p->piece));
+			pe->jobs.push_back(j);
 		}
+
 #if DEBUG_STORAGE
 		DLOG(stderr, "[%p] do_hash: jobs [", this);
 		for (std::list<disk_io_job>::const_iterator i = pe->jobs.begin();
