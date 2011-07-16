@@ -4394,10 +4394,10 @@ namespace libtorrent
 
 				m_reading_bytes += r.length;
 
-				m_requests.erase(m_requests.begin() + i);
-				--i;
 				sent_a_piece = true;
 			}
+			m_requests.erase(m_requests.begin() + i);
+			--i;
 		}
 
 		if (t->share_mode() && sent_a_piece)
