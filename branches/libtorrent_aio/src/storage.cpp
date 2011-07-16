@@ -1148,6 +1148,17 @@ namespace libtorrent
 		m_io_thread.add_job(j);
 	}
 
+	void piece_manager::async_file_status(std::vector<pool_file_status>* ret
+		, boost::function<void(int, disk_io_job const&)> const& handler)
+	{
+		disk_io_job j;
+		j.storage = this;
+		j.action = disk_io_job::file_status;
+		j.buffer = (char*)ret;
+		j.callback = handler;
+		m_io_thread.add_job(j);
+	}
+
 	void piece_manager::async_save_resume_data(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{

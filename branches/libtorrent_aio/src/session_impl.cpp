@@ -1586,6 +1586,7 @@ namespace aux {
 		e->signal_all(l);
 	}
 
+	// #error should this be a function on torrent_handle?
 	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m)
 	{
 		piece_manager* st = 0;

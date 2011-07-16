@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
+#include "libtorrent/file_pool.hpp" // pool_file_status
 
 // #error remove this once file checking is async
 #include "libtorrent/block_cache.hpp"
@@ -311,6 +312,9 @@ namespace libtorrent
 		void async_finalize_file(int file);
 
 		void async_get_cache_info(cache_status* ret
+			, boost::function<void(int, disk_io_job const&)> const& handler);
+
+		void async_file_status(std::vector<pool_file_status>* ret
 			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		void async_check_fastresume(lazy_entry const* resume_data

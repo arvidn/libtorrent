@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
+#include "libtorrent/file_pool.hpp"
 
 namespace libtorrent
 {
@@ -203,6 +204,7 @@ namespace libtorrent
 		};
 
 		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
+		std::vector<pool_file_status> file_status() const;
 
 		void clear_error() const;
 

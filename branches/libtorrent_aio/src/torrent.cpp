@@ -7315,6 +7315,7 @@ namespace libtorrent
 #if !TORRENT_NO_FPU
 	void torrent::file_progress(std::vector<float>& fp) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		fp.clear();
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
@@ -7332,6 +7333,7 @@ namespace libtorrent
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags) const
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(valid_metadata());
 	
 		fp.resize(m_torrent_file->num_files(), 0);
@@ -7469,6 +7471,21 @@ namespace libtorrent
 		}
 	}
 	
+	void file_status_done(int ret, disk_io_job const& j, mutex* m, condition* e, bool* done)
+	{
+		mutex::scoped_lock l(*m);
+		*done = true;
+		e->signal_all(l);
+	}
+
+	void torrent::file_status(std::vector<pool_file_status>* files
+		, bool* done, condition* e, mutex* m) const
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		if (m_storage == 0) return;
+		m_storage->async_file_status(files, boost::bind(&file_status_done, _1, _2, m, e, done));
+	}
+
 	void torrent::set_state(torrent_status::state_t s)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());

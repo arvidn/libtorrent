@@ -2106,11 +2106,11 @@ int main(int argc, char* argv[])
 				out += "___________________________________\n";
 			}
 
-			if (print_file_progress
-				&& s.state != torrent_status::seeding
-				&& s.has_metadata)
+			if (print_file_progress && s.has_metadata)
 			{
 				std::vector<size_type> file_progress;
+				std::vector<pool_file_status> file_status = h.file_status();
+				std::vector<pool_file_status>::iterator f = file_status.begin();
 				h.file_progress(file_progress);
 				torrent_info const& info = h.get_torrent_info();
 				for (int i = 0; i < info.num_files(); ++i)
@@ -2123,13 +2123,28 @@ int main(int argc, char* argv[])
 					char const* color = (file_progress[i] == info.file_at(i).size)
 						?"32":"33";
 
-					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s\n",
+					std::string mode;
+					if (f != file_status.end() && f->file_index == i)
+					{
+						mode += "OPEN [ ";
+						if (f->open_mode & file::random_access) mode += "random_access ";
+						if (f->open_mode & file::lock_file) mode += "locked ";
+						if (f->open_mode & file::sparse) mode += "sparse ";
+						if (f->open_mode & file::read_write) mode += "read/write ";
+						else if (f->open_mode & file::write_only) mode += "write ";
+						if (f->open_mode & file::no_buffer) mode += "unbuffered ";
+						mode += "]";
+						++f;
+					}
+
+					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s %s\n",
 						progress_bar(progress, 100, color).c_str()
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
 						, filename(info.files().file_path(info.file_at(i))).c_str()
-						, pad_file?esc("0"):"");
+						, pad_file?esc("0"):""
+						, mode.c_str());
 					out += str;
 				}
 

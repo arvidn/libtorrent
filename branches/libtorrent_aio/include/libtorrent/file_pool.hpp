@@ -51,6 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct pool_file_status
+	{
+		int file_index;
+		ptime last_use;
+		int open_mode;
+	};
+
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40);
@@ -66,6 +73,7 @@ namespace libtorrent
 		void resize(int size);
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
+		void get_status(std::vector<pool_file_status>* files, void* st) const;
 
 #if TORRENT_USE_OVERLAPPED
 		void set_iocp(HANDLE completion_port) { m_iocp = completion_port; }

@@ -303,6 +303,8 @@ namespace libtorrent
 		void status(torrent_status* st, boost::uint32_t flags);
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
+		void file_status(std::vector<pool_file_status>* files
+			, bool* done, condition* e, mutex* m) const;
 
 		void use_interface(std::string net_interface);
 		tcp::endpoint get_interface() const;

@@ -247,6 +247,7 @@ namespace libtorrent
 		int do_finalize_file(disk_io_job& j);
 		int do_get_cache_info(disk_io_job& j);
 		int do_hashing_done(disk_io_job& j);
+		int do_file_status(disk_io_job& j);
 
 		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG

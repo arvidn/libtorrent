@@ -935,6 +935,7 @@ namespace libtorrent
 		&disk_io_thread::do_finalize_file,
 		&disk_io_thread::do_get_cache_info,
 		&disk_io_thread::do_hashing_done,
+		&disk_io_thread::do_file_status,
 	};
 
 	static const char* job_action_name[] =
@@ -955,7 +956,8 @@ namespace libtorrent
 		"cache_piece",
 		"finalize_file",
 		"get_cache_info",
-		"hashing_done"
+		"hashing_done",
+		"file_status"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job j)
@@ -1762,6 +1764,13 @@ namespace libtorrent
 	int disk_io_thread::do_hashing_done(disk_io_job& j)
 	{
 		m_disk_cache.hashing_done((cached_piece_entry*)j.buffer, j.piece, j.offset, m_ios);
+		return 0;
+	}
+
+	int disk_io_thread::do_file_status(disk_io_job& j)
+	{
+		std::vector<pool_file_status>* files = (std::vector<pool_file_status>*)j.buffer;
+		m_file_pool.get_status(files, (void*)j.storage->get_storage_impl());
 		return 0;
 	}
 

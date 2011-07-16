@@ -170,6 +170,21 @@ namespace libtorrent
 		return e.file_ptr;
 	}
 
+	void file_pool::get_status(std::vector<pool_file_status>* files, void* st) const
+	{
+		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
+		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
+	
+		for (file_set::const_iterator i = start; i != end; ++i)
+		{
+			pool_file_status s;
+			s.file_index = i->first.second;
+			s.open_mode = i->second.mode;
+			s.last_use = i->second.last_use;
+			files->push_back(s);
+		}
+	}
+
 	void file_pool::remove_oldest()
 	{
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS

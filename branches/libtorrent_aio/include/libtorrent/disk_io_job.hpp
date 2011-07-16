@@ -76,7 +76,7 @@ namespace libtorrent
 			, finalize_file
 			, get_cache_info
 			, hash_complete
-			// #error add a job that returns the status of all files in the file pool (open mode)
+			, file_status
 		};
 
 		enum flags_t
