@@ -7628,6 +7628,11 @@ namespace libtorrent
 			}
 		}
 
+		if ((flags & torrent_handle::query_verified_pieces))
+		{
+			st->verified_pieces = m_verified;
+		}
+
 		st->num_uploads = m_num_uploads;
 		st->uploads_limit = m_max_uploads;
 		st->num_connections = int(m_connections.size());

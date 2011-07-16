@@ -1411,7 +1411,9 @@ int main(int argc, char* argv[])
 			// is a somewhat expensive operation, don't do it by default for
 			// all torrents
 			handles[active_torrent] = handles[active_torrent].handle.status(
-				torrent_handle::query_distributed_copies);
+				torrent_handle::query_distributed_copies
+				| torrent_handle::query_pieces
+				| torrent_handle::query_verified_pieces);
 		}
 
 		std::vector<feed_handle> feeds;
@@ -1871,12 +1873,19 @@ int main(int argc, char* argv[])
 			}
 			++lines_printed;
 
-			if (print_piece_bar && s.state != torrent_status::seeding)
+			if (print_piece_bar && (s.state != torrent_status::seeding || s.seed_mode))
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
 				out += "\n";
 				++lines_printed;
+				if (s.seed_mode)
+				{
+					out += "     ";
+					out += piece_bar(s.verified_pieces, terminal_width - 7);
+					out += "\n";
+					++lines_printed;
+				}
 			}
 
 			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)

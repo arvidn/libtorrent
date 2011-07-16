@@ -1392,7 +1392,7 @@ namespace libtorrent
 	int disk_io_thread::do_move_storage(disk_io_job& j)
 	{
 		TORRENT_ASSERT(j.buffer == 0);
-//#error do we have to close all files on windows?
+		// if files have to be closed, that's the storage's responsibility
 		j.storage->get_storage_impl()->move_storage(j.str, j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
@@ -1413,9 +1413,8 @@ namespace libtorrent
 			return j.error ? disk_operation_failed : 0;
 		}
 
-//#error this fence would only have to block write operations and let read operations through
-//#error maybe not. If blocks are reference counted, even read operation would force cache pieces to linger
-
+		// this fence have to block both read and write operations and let read operations
+		// When blocks are reference counted, even read operation would force cache pieces to linger
 		// raise the fence to block new async. operations
 		j.flags |= disk_io_job::need_uncork;
 		DLOG(stderr, "[%p] raising fence ret: %d\n", this, ret);
@@ -1480,7 +1479,7 @@ namespace libtorrent
 	int disk_io_thread::do_rename_file(disk_io_job& j)
 	{
 		TORRENT_ASSERT(j.buffer == 0);
-//#error do we have to close the file on windows?
+		// if files need to be closed, that's the storage's responsibility
 		j.storage->get_storage_impl()->rename_file(j.piece, j.str, j.error);
 		return j.error ? disk_operation_failed : 0;
 	}
@@ -1652,7 +1651,8 @@ namespace libtorrent
 		else if (ret < -1)
 		{
 			m_disk_cache.mark_for_deletion(p);
-			//#error handle the case where there wasn't enough cache space
+			// this shouldn't happen
+			TORRENT_ASSERT(false);
 		}
 		return 0;
 	}
@@ -2014,7 +2014,7 @@ namespace libtorrent
 // signal, but our file descriptor to swallow all of them
 #if TORRENT_USE_SIGNALFD
 		m_signal_fd[0] = signalfd(-1, &mask, SFD_NONBLOCK);
-		// #error do error handling of this fd
+		// #error error handling needed
 
 		if (pthread_sigmask(SIG_BLOCK, &mask, 0) == -1)
 		{
@@ -2209,10 +2209,10 @@ namespace libtorrent
 			}
 			}
 #else
-			// #error if we have jobs to issue (m_to_issue) we probably shouldn't go to sleep here (only if we failed to issue a single job last time we tried)
-			// always time out after one second, since the global nature of the semaphore
+			// always time out after half a second, since the global nature of the semaphore
 			// makes it unreliable when there are multiple instances of the disk_io_thread
-			// object.
+			// object. There might also a potential race condition if the semaphore is signalled
+			// right before we start waiting on it
 			if (last_completed_aios == g_completed_aios)
 			{
 				DLOG(stderr, "[%p] sem_wait()\n", this);

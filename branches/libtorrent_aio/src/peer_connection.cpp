@@ -165,6 +165,7 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
+		, m_outstanding_piece_verification(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -4326,12 +4327,15 @@ namespace libtorrent
 			buffer_size_watermark = m_ses.settings().send_buffer_watermark;
 		}
 
-//#error don't necessarily just pop the front request. If one request is blocked waiting for a piece to be verified, issue a read job for the next one
-		while (!m_requests.empty()
-			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark))
+		// don't just pop the front element here, since in seed mode one request may
+		// be blocked because we have to verify the hash first, so keep going with the
+		// next request. However, only let each peer have one hash verification outstanding
+		// at any given time
+		for (int i = 0; i < m_requests.size()
+			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
-			peer_request& r = m_requests.front();
+			peer_request& r = m_requests[i];
 			
 			TORRENT_ASSERT(r.piece >= 0);
 			TORRENT_ASSERT(r.piece < (int)m_have_piece.size());
@@ -4344,7 +4348,12 @@ namespace libtorrent
 			if (t->seed_mode() && !t->verified_piece(r.piece))
 			{
 				// once this turns into a for-loop, continue instead
-				if (t->verifying_piece(r.piece)) break;
+				if (t->verifying_piece(r.piece)) continue;
+
+				// only have one outstanding hash check per peer
+				if (m_outstanding_piece_verification) continue;
+
+				m_outstanding_piece_verification = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_logger) << time_now_string()
@@ -4356,8 +4365,7 @@ namespace libtorrent
 				t->filesystem().async_hash(r.piece, 0
 					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1, _2));
 				t->verifying(r.piece);
-				// once this is a for-loop, use continue
-				break;
+				continue;
 			}
 
 			// in seed mode, we might end up accepting a request
@@ -4386,7 +4394,8 @@ namespace libtorrent
 
 				m_reading_bytes += r.length;
 
-				m_requests.erase(m_requests.begin());
+				m_requests.erase(m_requests.begin() + i);
+				--i;
 				sent_a_piece = true;
 			}
 		}
@@ -4401,6 +4410,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
+
+		m_outstanding_piece_verification = false;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;

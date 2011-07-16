@@ -845,7 +845,6 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 				TORRENT_ASSERT(pe->hash->offset == i->storage->files()->piece_size(pe->piece));
 				partial_hash& ph = *pe->hash;
 
-				// #error save the actual hash in the ph state as well
 				i->piece_hash = ph.h.final();
 				ret = 0;
 				if (i->flags & disk_io_job::volatile_read)
