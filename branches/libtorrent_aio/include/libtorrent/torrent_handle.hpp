@@ -204,7 +204,7 @@ namespace libtorrent
 		};
 
 		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
-		std::vector<pool_file_status> file_status() const;
+		void file_status(std::vector<pool_file_status>& status) const;
 
 		void clear_error() const;
 

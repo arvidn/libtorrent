@@ -2109,9 +2109,10 @@ int main(int argc, char* argv[])
 			if (print_file_progress && s.has_metadata)
 			{
 				std::vector<size_type> file_progress;
-				std::vector<pool_file_status> file_status = h.file_status();
-				std::vector<pool_file_status>::iterator f = file_status.begin();
 				h.file_progress(file_progress);
+				std::vector<pool_file_status> file_status;
+			 	h.file_status(file_status);
+				std::vector<pool_file_status>::iterator f = file_status.begin();
 				torrent_info const& info = h.get_torrent_info();
 				for (int i = 0; i < info.num_files(); ++i)
 				{
@@ -2126,7 +2127,7 @@ int main(int argc, char* argv[])
 					std::string mode;
 					if (f != file_status.end() && f->file_index == i)
 					{
-						mode += "OPEN [ ";
+						mode += "- OPEN [ ";
 						if (f->open_mode & file::random_access) mode += "random_access ";
 						if (f->open_mode & file::lock_file) mode += "locked ";
 						if (f->open_mode & file::sparse) mode += "sparse ";
@@ -2138,7 +2139,7 @@ int main(int argc, char* argv[])
 					}
 
 					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s %s\n",
-						progress_bar(progress, 100, color).c_str()
+						progress_bar(progress, 50, color).c_str()
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()

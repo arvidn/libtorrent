@@ -2213,6 +2213,7 @@ Its declaration looks like this::
 
 		torrent_status status(boost::uint32_t flags = 0xffffffff);
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
+		void file_status(std::vector<pool_file_status>& status);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
 		torrent_info const& get_torrent_info() const;
@@ -2474,6 +2475,53 @@ fully downloaded and passed the hash check count. When specifying piece granular
 the operation is a lot cheaper, since libtorrent already keeps track of this internally
 and no calculation is required.
 
+file_status()
+-------------
+
+	::
+
+		void file_status(std::vector<pool_file_status>& status);
+
+This function fills in the passed in vector with status about files that are open
+for this torrent. Any file that is not open in this torrent, will not be reported
+in the vector, i.e. it's possible that the vector is empty when returning, if none
+of the files in the torrent are currently open.
+
+The ``pool_file_status`` is defined as::
+
+	struct pool_file_status
+	{
+		int file_index;
+		ptime last_use;
+		int open_mode;
+	};
+
+``file_index`` is the index of the file this entry refers to into the ``file_storage``
+file list of this torrent. This starts indexing at 0.
+
+``last_use`` is a (high precision) timestamp of when the file was last used.
+
+``open_mode`` is a bitmask of the file flags this file is currently opened with. These
+are the flags used in the ``file::open()`` function. This enum is defined as a member
+of the ``file`` class.
+
+::
+
+	enum
+	{
+		read_only = 0,
+		write_only = 1,
+		read_write = 2,
+		rw_mask = 3,
+		no_buffer = 4,
+		sparse = 8,
+		no_atime = 16,
+		random_access = 32,
+		lock_file = 64,
+	};
+
+Note that the read/write mode is not a bitmask. The two least significant bits are used
+to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
 
 save_path()
 -----------

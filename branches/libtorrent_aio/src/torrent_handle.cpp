@@ -802,18 +802,16 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(force_tracker_request, time_now());
 	}
 
-	std::vector<pool_file_status> torrent_handle::file_status() const
+	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
 	{
-		std::vector<pool_file_status> ret;
-
+		status.clear();
 		bool done = false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return ret;
+		if (!t) return;
 		session_impl& ses = t->session();
 		mutex::scoped_lock l(ses.mut);
-		ses.m_io_service.post(boost::bind(&torrent::file_status, t, &ret, &done, &ses.cond, &ses.mut));
+		ses.m_io_service.post(boost::bind(&torrent::file_status, t, &status, &done, &ses.cond, &ses.mut));
 		do { ses.cond.wait(l); } while(!done);
-		return ret;
 	}
 
 	void torrent_handle::scrape_tracker() const
