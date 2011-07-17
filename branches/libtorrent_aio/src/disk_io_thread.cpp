@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct async_handler;
 
 	bool same_sign(int a, int b) { return ((a < 0) == (b < 0)) || (a == 0) || (b == 0); }
 
@@ -652,17 +653,21 @@ namespace libtorrent
 				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
 				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
 				file::aiocb_t* aios = 0;
-				boost::function<void(async_handler*)> handler;
+				async_handler* a = m_aiocb_pool.alloc_handler();
+				if (a == 0)
+				{
+					// #error handle no mem
+				}
 				if (readwrite == op_write)
 				{
 //					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					m_pending_buffer_size += to_write;
-					handler = boost::bind(&disk_io_thread::on_disk_write, this, p
+					a->handler = boost::bind(&disk_io_thread::on_disk_write, this, p
 						, range_start, i, to_write, _1);
 
 					aios = p->storage->get_storage_impl()->async_writev(iov
-						, pe.piece, to_write, iov_counter, flags, handler);
+						, pe.piece, to_write, iov_counter, flags, a);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
 				}
@@ -671,10 +676,10 @@ namespace libtorrent
 //					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
 //						, this, int(pe.piece), range_start, i);
 					++m_outstanding_jobs;
-					handler = boost::bind(&disk_io_thread::on_disk_read, this, p
+					a->handler = boost::bind(&disk_io_thread::on_disk_read, this, p
 						, range_start, i, _1);
 					aios = pe.storage->get_storage_impl()->async_readv(iov, pe.piece
-						, range_start * m_block_size, iov_counter, flags, handler);
+						, range_start * m_block_size, iov_counter, flags, a);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
 				}
@@ -683,11 +688,16 @@ namespace libtorrent
 				// any actual async. file operations, but just filled in the buffers
 				if (aios == 0)
 				{
-					async_handler tmp(time_now());
-					tmp.handler = handler;
-					tmp.transferred = bufs_size(iov, iov_counter);
-					tmp.references = 0;
-					handler(&tmp);
+					TORRENT_ASSERT(a->references == 0);
+					a->transferred = bufs_size(iov, iov_counter);
+					a->handler(a);
+				}
+
+				if (a->references == 0)
+				{
+					a->handler(a);
+					m_aiocb_pool.free_handler(a);
+					a = 0;
 				}
 
 #ifdef TORRENT_DEBUG
@@ -1106,9 +1116,33 @@ namespace libtorrent
 		DLOG(stderr, "[%p] do_read: async\n", this);
 		++m_outstanding_jobs;
 		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
+		async_handler* a = m_aiocb_pool.alloc_handler();
+		if (a == 0)
+		{
+			j.error.ec = error::no_memory;
+			return disk_operation_failed;
+		}
+		a->handler = boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j);
 		file::iovec_t b = { j.buffer, j.buffer_size };
-		file::aiocb_t* aios = j.storage->get_storage_impl()->async_readv(&b, j.piece, j.offset, 1, j.flags
-			, boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j));
+		file::aiocb_t* aios = j.storage->get_storage_impl()->async_readv(&b
+			, j.piece, j.offset, 1, j.flags, a);
+
+		// this is a special case for when the storage doesn't want to produce
+		// any actual async. file operations, but just filled in the buffers
+		if (aios == 0)
+		{
+			TORRENT_ASSERT(a->references == 0);
+			a->transferred = j.buffer_size;
+			a->handler(a);
+		}
+
+		if (a->references == 0)
+		{
+			a->handler(a);
+			m_aiocb_pool.free_handler(a);
+			a = 0;
+		}
+
 		DLOG(stderr, "prepending aios (%p) from read_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
@@ -1200,10 +1234,34 @@ namespace libtorrent
 		// just exceed the disk queue size limit?
 		added_to_write_queue();
 
-		file::aiocb_t* aios = j.storage->get_storage_impl()->async_writev(&b, j.piece, j.offset, 1, j.flags
-			, boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j));
+		async_handler* a = m_aiocb_pool.alloc_handler();
+		if (a == 0)
+		{
+			j.error.ec = error::no_memory;
+			return disk_operation_failed;
+		}
+		a->handler = boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j);
+		file::aiocb_t* aios = j.storage->get_storage_impl()->async_writev(&b
+			, j.piece, j.offset, 1, j.flags, a);
+
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
+
+		// this is a special case for when the storage doesn't want to produce
+		// any actual async. file operations, but just filled in the buffers
+		if (aios == 0)
+		{
+			TORRENT_ASSERT(a->references == 0);
+			a->transferred = j.buffer_size;
+			a->handler(a);
+		}
+
+		if (a->references == 0)
+		{
+			a->handler(a);
+			m_aiocb_pool.free_handler(a);
+			a = 0;
+		}
 
 #ifdef TORRENT_DEBUG
 		// make sure we're not already requesting this same block

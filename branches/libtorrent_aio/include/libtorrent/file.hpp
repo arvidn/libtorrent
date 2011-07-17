@@ -469,20 +469,8 @@ namespace libtorrent
 		ptime started;
 
 		void done(storage_error const& ec, size_t bytes_transferred
-			, file::aiocb_t const* aio)
-		{
-			TORRENT_ASSERT(references > 0);
-			if (ec.ec) error = ec;
-			else transferred += bytes_transferred;
-#ifdef TORRENT_DISK_STATS
-			if (file_access_log) write_disk_log(file_access_log, aio, true, time_now_hires());
-#endif
-			--references;
-			TORRENT_ASSERT(references >= 0);
-			if (references > 0) return;
-			handler(this);
-			delete this;
-		}
+			, file::aiocb_t const* aio, aiocb_pool* pool);
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		~async_handler()
 		{

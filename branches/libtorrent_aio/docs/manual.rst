@@ -7928,57 +7928,65 @@ The interface looks like this::
 
 	struct storage_interface
 	{
-		virtual void initialize(bool allocate_files, error_code& ec) = 0;
-		virtual bool has_any_file(error_code& ec) = 0;
+		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
+		virtual bool has_any_file(storage_error& ec) = 0;
 		virtual void hint_read(int slot, int offset, int len);
 		virtual int sparse_end(int start) const;
-		virtual void move_storage(std::string const& save_path, error_code& ec) = 0;
-		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
-		virtual bool write_resume_data(entry& rd, error_code& ec) const = 0;
-		virtual void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
-		virtual void release_files(error_code& ec) = 0;
-		virtual void delete_files(error_code& ec) = 0;
-		virtual void finalize_file(int index, error_code& ec) {}
+		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error) = 0;
+		virtual bool write_resume_data(entry& rd, storage_error& ec) const = 0;
+		virtual void rename_file(int file, std::string const& new_name, storage_error& ec) = 0;
+		virtual void release_files(storage_error& ec) = 0;
+		virtual void delete_files(storage_error& ec) = 0;
+		virtual void finalize_file(int index, storage_error& ec) {}
 		virtual ~storage_interface() {}
 
 		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int slot, int offset, int num_bufs, int flags
-			, boost::function<void(async_handler*)> const& handler) = 0;
+			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
 		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int slot, int offset, int num_bufs, int flags
-			, boost::function<void(async_handler*)> const& handler) = 0;
+			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
 
 		// non virtual functions
 
 		disk_buffer_pool* disk_pool();
 	};
 
+	struct storage_error
+	{
+		error_code ec;
+		// the file the error occurred on
+		std::string file;
+		// the operation that failed
+		// this must be a string literal, it
+		// should never be freed
+		char const* operation;
+	};
 
 initialize()
 ------------
 
 	::
 
-		virtual void initialize(bool allocate_files, error_code& ec) = 0;
+		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
 
 This function is called when the storage is to be initialized. The default storage
 will create directories and empty files at this point. If ``allocate_files`` is true,
 it will also ``ftruncate`` all files to their target size.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 has_any_file()
 --------------
 
 	::
 
-		virtual bool has_any_file(error_code& ec) = 0;
+		virtual bool has_any_file(storage_error& ec) = 0;
 
 This function is called when first checking (or re-checking) the storage for a torrent.
 It should return true if any of the files that is used in this storage exists on disk.
 If so, the storage will be checked for existing pieces before starting the download.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 hint_read()
 -----------
@@ -7997,11 +8005,9 @@ async_readv() async_writev()
 	::
 
 		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags
-			, boost::function<void(async_handler*)> const& handler) = 0;
+			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
 		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags
-			, boost::function<void(async_handler*)> const& handler) = 0;
+			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
 
 These functions should produce I/O jobs (``aiocb_t``) to read or write the data in
 or to the given ``piece`` at the given ``offset``. It should read or write ``num_bufs``
@@ -8018,8 +8024,11 @@ The return value is a *chain* (linked list) of ``aiocb_t`` objects representing 
 required to satisfy the read or write request. The ``aiocb_t`` objects are produced by
 the async. operations of the ``file`` class.
 
-The functions must also allocate an ``file::async_handler`` object. It has the following
-definition::
+Each ``aiocb`` object that is returned, must also have its handler set to the
+passed in ``async_handler`` object. The ``async_handler`` object, must in turn
+have its references member incremented for each ``aiocb_t`` object that references it.
+
+The ``file::async_handler`` class has the following definition::
 
 	struct async_handler
 	{
@@ -8031,7 +8040,7 @@ definition::
 		ptime started;
 
 		void done(storage_error const& ec, size_t bytes_transferred
-			, file::aiocb_t const* aio);
+			, file::aiocb_t const* aio, aiocb_pool* pool);
 	};
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
@@ -8042,6 +8051,10 @@ last piece of a file in unbuffered mode.
 The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
 exceptions when it's not. Specifically if the read cache is disabled/or full and a
 client requests unaligned data. Most clients request aligned data.
+
+If the function returns NULL, no disk operation is assumed to  be required, and the
+completion handler is called immediately. This is a special case that can be used by
+storage implementations that stores the data in RAM for instance.
 
 sparse_end()
 ------------
@@ -8060,7 +8073,7 @@ move_storage()
 
 	::
 
-		void move_storage(fs::path save_path, error_code& ec) = 0;
+		void move_storage(fs::path save_path, storage_error& ec) = 0;
 
 This function should move all the files belonging to the storage to the new save_path.
 The default storage moves the single file or the directory of the torrent.
@@ -8068,7 +8081,7 @@ The default storage moves the single file or the directory of the torrent.
 Before moving the files, any open file handles may have to be closed, like
 ``release_files()``.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 
 verify_resume_data()
@@ -8076,7 +8089,7 @@ verify_resume_data()
 
 	::
 
-		bool verify_resume_data(lazy_entry const& rd, error_code& error) = 0;
+		bool verify_resume_data(lazy_entry const& rd, storage_error& error) = 0;
 
 This function should verify the resume data ``rd`` with the files
 on disk. If the resume data seems to be up-to-date, return true. If
@@ -8084,7 +8097,7 @@ not, set ``error`` to a description of what mismatched and return false.
 
 The default storage may compare file sizes and time stamps of the files.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 
 write_resume_data()
@@ -8092,7 +8105,7 @@ write_resume_data()
 
 	::
 
-		bool write_resume_data(entry& rd, error_code& ec) const = 0;
+		bool write_resume_data(entry& rd, storage_error& ec) const = 0;
 
 This function should fill in resume data, the current state of the
 storage, in ``rd``. The default storage adds file timestamps and
@@ -8100,7 +8113,7 @@ sizes.
 
 Returning ``true`` indicates an error occurred.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 
 rename_file()
@@ -8108,24 +8121,24 @@ rename_file()
 
 	::
 
-		void rename_file(int file, std::string const& new_name, error_code& ec) = 0;
+		void rename_file(int file, std::string const& new_name, storage_error& ec) = 0;
 
 Rename file with index ``file`` to the thame ``new_name``.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 release_files()
 ---------------
 
 	::
 
-		void release_files(error_code& ec) = 0;
+		void release_files(storage_error& ec) = 0;
 
 This function should release all the file handles that it keeps open to files
 belonging to this storage. The default implementation just calls
 ``file_pool::release_files(this)``.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 
 delete_files()
@@ -8133,11 +8146,11 @@ delete_files()
 
 	::
 
-		void delete_files(error_code& ec) = 0;
+		void delete_files(storage_error& ec) = 0;
 
 This function should delete all files and directories belonging to this storage.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 The ``disk_buffer_pool`` is used to allocate and free disk buffers. It has the
 following members::
@@ -8160,7 +8173,7 @@ finalize_file()
 
 	::
 
-		virtual void finalize_file(int index, error_code& ec);
+		virtual void finalize_file(int index, storage_error& ec);
 
 This function is called each time a file is completely downloaded. The
 storage implementation can perform last operations on a file. The file will
@@ -8171,7 +8184,7 @@ not be opened for writing after this.
 On windows the default storage implementation clears the sparse file flag
 on the specified file.
 
-If an error occurs, ``error_code`` should be set to reflect it.
+If an error occurs, ``storage_error`` should be set to reflect it.
 
 example
 -------
@@ -8207,11 +8220,8 @@ basics of implementing a custom storage.
 		virtual bool rename_file(int file, std::string const& new_name)
 		{ assert(false); return false; }
 		virtual bool move_storage(std::string const& save_path) { return false; }
-		virtual bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
+		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error) { return false; }
 		virtual bool write_resume_data(entry& rd) const { return false; }
-		virtual bool move_slot(int src_slot, int dst_slot) { assert(false); return false; }
-		virtual bool swap_slots(int slot1, int slot2) { assert(false); return false; }
-		virtual bool swap_slots3(int slot1, int slot2, int slot3) { assert(false); return false; }
 		virtual size_type physical_offset(int slot, int offset)
 		{ return slot * m_files.piece_length() + offset; };
 		virtual sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size)

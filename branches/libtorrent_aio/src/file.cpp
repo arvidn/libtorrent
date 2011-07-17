@@ -751,6 +751,22 @@ namespace libtorrent
 #endif
 	}
 
+	void async_handler::done(storage_error const& ec, size_t bytes_transferred
+		, file::aiocb_t const* aio, aiocb_pool* pool)
+	{
+		TORRENT_ASSERT(references > 0);
+		if (ec.ec) error = ec;
+		else transferred += bytes_transferred;
+#ifdef TORRENT_DISK_STATS
+		if (file_access_log) write_disk_log(file_access_log, aio, true, time_now_hires());
+#endif
+		--references;
+		TORRENT_ASSERT(references >= 0);
+		if (references > 0) return;
+		handler(this);
+		pool->free_handler(this);
+	}
+
 	file::aiocb_base::aiocb_base()
 		: prev(0)
 		, next(0)
@@ -2341,7 +2357,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 		// #error if there's an error, figure out which file it's in!
-		aio->handler->done(se, ret, aio);
+		aio->handler->done(se, ret, aio, &pool);
 
 		pool.free_vec(aio->vec);
 
@@ -2519,7 +2535,7 @@ finish:
 				se.ec = error_code(errno, boost::system::get_posix_category());
 				se.operation = aios->cb.aio_lio_opcode == file::read_op ? "read" : "write";
 				// #error figure out which file the error happened in
-				del->handler->done(se, 0, del);
+				del->handler->done(se, 0, del, &pool);
 				pool.destroy(del);
 				continue;
 			}
@@ -2546,7 +2562,7 @@ finish:
 				se.ec = error_code(errno, boost::system::get_posix_category());
 				se.operation = aios->cb.aio_lio_opcode == file::read_op ? "read" : "write";
 				// #error figure out which file the error happened in
-				del->handler->done(se, 0, del);
+				del->handler->done(se, 0, del, &pool);
 				pool.destroy(del);
 				continue;
 			}
@@ -2621,7 +2637,7 @@ finish:
 				aios = aios->next;
 
 				// #error figure out which file the error happened in
-				del->handler->done(se, ret, del);
+				del->handler->done(se, ret, del, &pool);
 				pool.destroy(del);
 				continue;
 			}
@@ -2653,7 +2669,7 @@ finish:
 			se.operation = aios->op == file::read_op ? "read" : "write";
 			aios = aios->next;
 			// #error figure out which file the error happened on (if any)
-			del->handler->done(se, ret, del);
+			del->handler->done(se, ret, del, &pool);
 			pool.destroy(del);
 			++num_issued;
 			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);

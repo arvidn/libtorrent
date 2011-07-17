@@ -835,12 +835,8 @@ namespace libtorrent
 	}
 
 	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, int flags
-		, boost::function<void(async_handler*)> const& handler)
+		, int slot, int offset, int num_bufs, int flags, async_handler* a)
 	{
-		async_handler* a = new async_handler(time_now_hires());
-		a->handler = handler;
-
 		if (m_settings)
 		{
 			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
@@ -851,23 +847,13 @@ namespace libtorrent
 			, file::read_only, flags, "async_readv"};
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
-		if (a->references == 0)
-		{
-			a->error = ec;
-			handler(a);
-			delete a;
-		}
+		a->error = ec;
 		return op.ret;
 	}
 
-	// #error the async_handler should be passed in here, so that a single job could use a single handler
 	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, int flags
-		, boost::function<void(async_handler*)> const& handler)
+		, int slot, int offset, int num_bufs, int flags, async_handler* a)
 	{
-		async_handler* a = new async_handler(time_now_hires());
-		a->handler = handler;
-
 		if (m_settings)
 			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
 
@@ -875,12 +861,7 @@ namespace libtorrent
 			, file::read_write, flags, "async_writev"};
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
-		if (a->references == 0)
-		{
-			a->error = ec;
-			handler(a);
-			delete a;
-		}
+		a->error = ec;
 		return op.ret;
 	}
 
@@ -1086,13 +1067,13 @@ namespace libtorrent
 	}
 
 	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, int flags, boost::function<void(async_handler*)> const& handler)
+		, int offset, int num_bufs, int flags, async_handler* a)
 	{
 		return 0;
 	}
 
 	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, int flags, boost::function<void(async_handler*)> const& handler)
+		, int offset, int num_bufs, int flags, async_handler* a)
 	{
 		return 0;
 	}

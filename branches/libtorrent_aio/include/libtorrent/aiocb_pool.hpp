@@ -50,10 +50,34 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			, m_pool(sizeof(file::aiocb_t), 128)
 			, m_vec_pool(sizeof(file::iovec_t) * max_iovec)
+			, m_handler_pool(sizeof(async_handler))
 #endif
 		{
 #ifdef TORRENT_DISK_STATS
 			file_access_log = 0;
+#endif
+		}
+
+		async_handler* alloc_handler()
+		{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+			async_handler* ret = new async_handler(time_now_hires());
+#else
+			async_handler* ret = (async_handler*)m_handler_pool.malloc();
+			new (ret) async_handler(time_now_hires());
+			m_pool.set_next_size(50);
+#endif
+			return ret;
+		}
+
+		void free_handler(async_handler* h)
+		{
+			if (h == 0) return;
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+			delete h;
+#else
+			h->~async_handler();
+			m_handler_pool.free(h);
 #endif
 		}
 
@@ -63,7 +87,7 @@ namespace libtorrent
 			file::iovec_t* ret = new file::iovec_t[max_iovec];
 #else
 			file::iovec_t* ret = (file::iovec_t*)m_vec_pool.malloc();
-			m_pool.set_next_size(256);
+			m_pool.set_next_size(50);
 #endif
 			return ret;
 		}
@@ -136,6 +160,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		boost::pool<> m_pool;
 		boost::pool<> m_vec_pool;
+		boost::pool<> m_handler_pool;
 #endif
 	};
 }
