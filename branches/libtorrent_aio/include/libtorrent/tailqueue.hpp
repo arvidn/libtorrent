@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,70 +30,82 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_AIOCB_POOL
-#define TORRENT_AIOCB_POOL
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp" // for file::iovec_t
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/object_pool.hpp>
-#endif
+#ifndef TORRENT_TAILQUEUE_HPP
+#define TORRENT_TAILQUEUE_HPP
 
 namespace libtorrent
 {
-	struct async_handler;
-	struct disk_io_job;
-
-	struct aiocb_pool
+	struct tailqueue_node
 	{
-		enum { max_iovec = 64 };
+		tailqueue_node() : next(0) {}
+		tailqueue_node* next;
+	};
 
-		aiocb_pool();
+	template<class N>
+	inline N* postinc(N*& e)
+	{
+		N* ret = e;
+		e = (N*)ret->next;
+		return ret;
+	}
 
-		disk_io_job* allocate_job(int type);
-		void free_job(disk_io_job* j);
-
-		async_handler* alloc_handler();
-		void free_handler(async_handler* h);
-
-		file::iovec_t* alloc_vec();
-		void free_vec(file::iovec_t* vec);
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		bool is_from(file::aiocb_t* p) const { return true; }
-#else
-		bool is_from(file::aiocb_t* p) const { return m_pool.is_from(p); }
-#endif
-
-		file::aiocb_t* construct();
-		void destroy(file::aiocb_t* a);
-
-		int in_use() const { return m_in_use; }
-		int peak_in_use() const { return m_peak_in_use; }
-
-#if TORRENT_USE_IOSUBMIT
-		io_context_t io_queue;
-		int event;
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		FILE* file_access_log;
-#endif
+	struct tailqueue_iterator
+	{
+		friend struct tailqueue;
+		tailqueue_node* get() const { return m_current; }
+		void next() { m_current = m_current->next; }
 
 	private:
-
-		int m_in_use;
-		int m_peak_in_use;
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		boost::pool<> m_pool;
-		boost::pool<> m_vec_pool;
-		boost::pool<> m_handler_pool;
-#endif
-		boost::pool<> m_job_pool;
-
+		tailqueue_iterator(tailqueue_node* cur)
+			: m_current(cur) {}
+		// the current element
+		tailqueue_node* m_current;
 	};
-}
 
-#endif // AIOCB_POOL
+	struct tailqueue
+	{
+		tailqueue(): m_first(0), m_last(0), m_size(0) {}
+
+		tailqueue_iterator iterate()
+		{ return tailqueue_iterator(m_first); }
+
+		tailqueue_node* pop_front()
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			tailqueue_node* e = m_first;
+			m_first = m_first->next;
+			if (e == m_last) m_last = 0;
+			e->next = 0;
+			--m_size;
+			return e;
+		}
+		void push_back(tailqueue_node* e)
+		{
+			TORRENT_ASSERT(e->next == 0);
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			if (m_last) m_last->next = e;
+			else m_first = e;
+			m_last = e;
+			e->next = 0;
+			++m_size;
+		}
+		tailqueue_node* get_all()
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			tailqueue_node* e = m_first;
+			m_first = 0;
+			m_last = 0;
+			m_size = 0;
+			return e;
+		}
+		int size() const { return m_size; }
+		bool empty() const { return m_size == 0; }
+	private:
+		tailqueue_node* m_first;
+		tailqueue_node* m_last;
+		int m_size;
+	};
+};
+
+#endif // TAILQUEUE_HPP
 

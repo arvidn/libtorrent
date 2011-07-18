@@ -96,6 +96,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// wrap job handlers to free the job itself
+	// this is called in the network thread when a job completes
+	void complete_job(aiocb_pool* pool, int ret, disk_io_job* j)
+	{
+		if (j->callback) j->callback(ret, *j);
+		pool->free_job(j);
+	}
+
 	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
 	{
 		TORRENT_ASSERT(!ec);
@@ -1111,62 +1119,56 @@ namespace libtorrent
 
 	void piece_manager::async_finalize_file(int file)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::finalize_file;
-		j.piece = file;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::finalize_file);
+		j->storage = this;
+		j->piece = file;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_get_cache_info(cache_status* ret
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::get_cache_info;
-		j.buffer = (char*)ret;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::get_cache_info);
+		j->storage = this;
+		j->buffer = (char*)ret;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_file_status(std::vector<pool_file_status>* ret
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::file_status;
-		j.buffer = (char*)ret;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::file_status);
+		j->storage = this;
+		j->buffer = (char*)ret;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_save_resume_data(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::save_resume_data;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::save_resume_data);
+		j->storage = this;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_clear_read_cache(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::clear_read_cache;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::clear_read_cache);
+		j->storage = this;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_release_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::release_files;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::release_files);
+		j->storage = this;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
@@ -1178,21 +1180,19 @@ namespace libtorrent
 	void piece_manager::async_delete_files(
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::delete_files;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::delete_files);
+		j->storage = this;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_move_storage(std::string const& p
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::move_storage;
-		j.str = p;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::move_storage);
+		j->storage = this;
+		j->str = strdup(p.c_str());
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
@@ -1200,23 +1200,21 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		TORRENT_ASSERT(resume_data != 0);
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::check_fastresume;
-		j.buffer = (char*)resume_data;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::check_fastresume);
+		j->storage = this;
+		j->buffer = (char*)resume_data;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_rename_file(int index, std::string const& name
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.piece = index;
-		j.str = name;
-		j.action = disk_io_job::rename_file;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::rename_file);
+		j->storage = this;
+		j->piece = index;
+		j->str = name;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
@@ -1224,15 +1222,11 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& handler
 		, int cache_expiry)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::cache_piece;
-		j.piece = piece;
-		j.offset = 0;
-		j.buffer_size = 0;
-		j.buffer = 0;
-		j.cache_min_time = cache_expiry;
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::cache_piece);
+		j->storage = this;
+		j->piece = piece;
+		j->cache_min_time = cache_expiry;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
@@ -1242,20 +1236,19 @@ namespace libtorrent
 		, int cache_line_size
 		, int cache_expiry)
 	{
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::read;
-		j.piece = r.piece;
-		j.offset = r.start;
-		j.buffer_size = r.length;
-		j.buffer = 0;
-		j.max_cache_line = cache_line_size;
-		j.cache_min_time = cache_expiry;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
+		j->storage = this;
+		j->piece = r.piece;
+		j->offset = r.start;
+		j->buffer_size = r.length;
+		j->buffer = 0;
+		j->max_cache_line = cache_line_size;
+		j->cache_min_time = cache_expiry;
 
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
 		TORRENT_ASSERT(r.length <= 16 * 1024);
-		j.callback = handler;
+		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
 
@@ -1268,14 +1261,14 @@ namespace libtorrent
 		// the buffer needs to be allocated through the io_thread
 		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.get()));
 
-		disk_io_job j;
-		j.storage = this;
-		j.action = disk_io_job::write;
-		j.piece = r.piece;
-		j.offset = r.start;
-		j.buffer_size = r.length;
-		j.buffer = buffer.get();
-		j.callback = handler;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::write);
+		j->storage = this;
+		j->action = disk_io_job::write;
+		j->piece = r.piece;
+		j->offset = r.start;
+		j->buffer_size = r.length;
+		j->buffer = buffer.get();
+		j->callback = handler;
 		int queue_size = m_io_thread.add_job(j);
 		buffer.release();
 
@@ -1285,13 +1278,12 @@ namespace libtorrent
 	void piece_manager::async_hash(int piece, int flags
 		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		disk_io_job j;
-		j.flags = flags;
-		j.storage = this;
-		j.action = disk_io_job::hash;
-		j.piece = piece;
-		j.callback = handler;
-		j.buffer_size = 0;
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::hash);
+		j->flags = flags;
+		j->storage = this;
+		j->piece = piece;
+		j->callback = handler;
+		j->buffer_size = 0;
 		m_io_thread.add_job(j);
 	}
 

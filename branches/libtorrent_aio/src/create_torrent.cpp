@@ -198,10 +198,7 @@ namespace libtorrent
 			sett.cache_size = 0;
 			sett.hashing_threads = 2;
 
-			disk_io_job j;
-			j.buffer = (char*)&sett;
-			j.action = disk_io_job::update_settings;
-			disk_thread.add_job(j);
+			disk_thread.set_settings(&sett);
 
 			int piece_counter = 0;
 			int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();

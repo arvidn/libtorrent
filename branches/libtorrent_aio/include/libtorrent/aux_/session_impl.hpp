@@ -492,7 +492,6 @@ namespace libtorrent
 			void update_unchoke_limit();
 			void update_rate_settings();
 
-			void update_disk_thread_settings();
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
 

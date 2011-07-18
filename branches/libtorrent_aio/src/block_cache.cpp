@@ -112,12 +112,12 @@ block_cache::block_cache(disk_buffer_pool& p, hash_thread& h)
 // returns:
 // -1: not in cache
 // -2: no memory
-int block_cache::try_read(disk_io_job& j)
+int block_cache::try_read(disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(j.buffer == 0);
-	TORRENT_ASSERT(j.cache_min_time >= 0);
+	TORRENT_ASSERT(j->buffer == 0);
+	TORRENT_ASSERT(j->cache_min_time >= 0);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
 	cache_piece_index_t::iterator p = find_piece(j);
@@ -131,15 +131,15 @@ int block_cache::try_read(disk_io_job& j)
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
 	if (p->num_blocks == 0) idx.erase(p);
-	else idx.modify(p, update_last_use(j.cache_min_time));
+	else idx.modify(p, update_last_use(j->cache_min_time));
 
-	ret = j.buffer_size;
+	ret = j->buffer_size;
 	++m_blocks_read;
 	++m_blocks_read_hit;
 	return ret;
 }
 
-block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
+block_cache::iterator block_cache::allocate_piece(disk_io_job const* j)
 {
 	INVARIANT_CHECK;
 
@@ -147,13 +147,13 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 	cache_piece_index_t::iterator p = find_piece(j);
 	if (p == idx.end())
 	{
-		int piece_size = j.storage->files()->piece_size(j.piece);
+		int piece_size = j->storage->files()->piece_size(j->piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 
 		cached_piece_entry pe;
-		pe.piece = j.piece;
-		pe.storage = j.storage;
-		pe.expire = time(0) + j.cache_min_time;
+		pe.piece = j->piece;
+		pe.storage = j->storage;
+		pe.expire = time(0) + j->cache_min_time;
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		TORRENT_ASSERT(pe.blocks);
@@ -163,7 +163,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const& j)
 	return p;
 }
 
-block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
+block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
@@ -171,8 +171,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	TORRENT_ASSERT(p != end());
 	if (p == end()) return p;
 
-	int block = j.offset / block_size;
-	TORRENT_ASSERT((j.offset % block_size) == 0);
+	int block = j->offset / block_size;
+	TORRENT_ASSERT((j->offset % block_size) == 0);
 
 	// this only evicts read blocks
 	if (m_cache_size + 1 > m_max_size)
@@ -183,7 +183,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 	TORRENT_ASSERT(pe->blocks[block].pending == false);
 	TORRENT_ASSERT(pe->blocks[block].dirty == false);
 	TORRENT_ASSERT(pe->blocks[block].buf == 0);
-	TORRENT_ASSERT(j.piece == pe->piece);
+	TORRENT_ASSERT(j->piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
 	if (pe->blocks[block].buf != 0)
@@ -197,16 +197,17 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job const& j)
 		pe->blocks[block].buf = 0;
 	}
 
-	pe->blocks[block].buf = j.buffer;
+	pe->blocks[block].buf = j->buffer;
 
 	pe->blocks[block].dirty = true;
 	++pe->num_blocks;
 	++pe->num_dirty;
 	++m_write_cache_size;
 	++m_cache_size;
+	j->buffer = 0;
+	TORRENT_ASSERT(j->piece == pe->piece);
 	pe->jobs.push_back(j);
-	pe->jobs.back().buffer = 0;
-	pe->expire = (std::max)(pe->expire, time(0) + j.cache_min_time);
+	pe->expire = (std::max)(pe->expire, time(0) + j->cache_min_time);
 
 	int hash_start = 0;
 	int hash_end = 0;
@@ -384,16 +385,15 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 // -2 = out of cache space
 
 int block_cache::allocate_pending(block_cache::iterator p
-	, int begin, int end, disk_io_job const& j, int prio
-	, bool force)
+	, int begin, int end, disk_io_job* j, int prio, bool force)
 {
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(begin >= 0);
 	TORRENT_ASSERT(end <= p->blocks_in_piece);
 	TORRENT_ASSERT(begin < end);
-	TORRENT_ASSERT(p->piece == j.piece);
-	TORRENT_ASSERT(p->storage == j.storage);
+	TORRENT_ASSERT(p->piece == j->piece);
+	TORRENT_ASSERT(p->storage == j->storage);
 
 	int ret = 0;
 
@@ -467,7 +467,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 		++ret;
 	}
 	
-	TORRENT_ASSERT(j.piece == pe->piece);
+	TORRENT_ASSERT(j->piece == pe->piece);
 	if (ret >= 0)
 	{
 		// in case this was marked for deletion
@@ -488,7 +488,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 }
 
 void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
-	, io_service& ios, error_code const& ec)
+	, io_service& ios, aiocb_pool* pool, error_code const& ec)
 {
 	INVARIANT_CHECK;
 
@@ -589,7 +589,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	kick_hasher(pe, hash_start, hash_end);
 
 	bool include_hash_jobs = hash_start != 0 || hash_end != 0;
-	reap_piece_jobs(p, ec, hash_start, hash_end, ios, include_hash_jobs);
+	reap_piece_jobs(p, ec, hash_start, hash_end, ios, pool, include_hash_jobs);
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
@@ -721,7 +721,8 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 }
 
 void block_cache::reap_piece_jobs(iterator p, error_code const& ec
-	, int hash_start, int hash_end, io_service& ios, bool reap_hash_jobs)
+	, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
+	, bool reap_hash_jobs)
 {
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
@@ -729,57 +730,114 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 	log_refcounts(pe);
 #endif
 
-	for (std::list<disk_io_job>::iterator i = pe->jobs.begin();
-		i != pe->jobs.end();)
+	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
+	while (i)
 	{
+		disk_io_job* j = i;
+		i = (disk_io_job*)i->next;
+		j->next = 0;
+
 		DLOG(stderr, "[%p] block_cache reap_piece_jobs j: %d\n"
-			, &m_buffer_pool, i->action);
-		TORRENT_ASSERT(i->piece == pe->piece);
-		i->error.ec = ec;
-		int ret = i->buffer_size;
-		if (!ec)
+			, &m_buffer_pool, j->action);
+		TORRENT_ASSERT(j->piece == pe->piece);
+		j->error.ec = ec;
+		int ret = 0;
+		if (j->action == disk_io_job::read || j->action == disk_io_job::write)
 		{
-			if (reap_hash_jobs && i->action == disk_io_job::hash)
+			ret = j->buffer_size;
+		}
+		if (ec)
+		{
+			// there was a read error, regardless of which blocks
+			// this job is waiting for just return the failure
+			ret = -1;
+			goto post_job;
+		}
+
+		if (reap_hash_jobs && j->action == disk_io_job::hash)
+		{
+			TORRENT_ASSERT(pe->hash);
+
+			partial_hash& ph = *pe->hash;
+
+			// every hash job increases the refcount of all
+			// blocks that it needs to complete when it's
+			// issued to make sure they're not evicted before
+			// they're hashed. As soon as they are hashed, the
+			// refcount is decreased
+			for (int b = hash_start; b < hash_end; ++b)
 			{
-				TORRENT_ASSERT(pe->hash);
-
-				partial_hash& ph = *pe->hash;
-
-				// every hash job increases the refcount of all
-				// blocks that it needs to complete when it's
-				// issued to make sure they're not evicted before
-				// they're hashed. As soon as they are hashed, the
-				// refcount is decreased
-				for (int b = hash_start; b < hash_end; ++b)
-				{
-					cached_block_entry& bl = pe->blocks[b];
-					TORRENT_ASSERT(!bl.pending || bl.dirty);
-					// obviously we need a buffer
-					TORRENT_ASSERT(bl.buf != 0);
-					TORRENT_ASSERT(bl.refcount >= bl.pending);
-					--bl.refcount;
-					TORRENT_ASSERT(pe->refcount >= bl.pending);
-					--pe->refcount;
-				}
-				DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
-					"piece: %d begin: %d end: %d\n"
-					, &m_buffer_pool, int(pe->piece), hash_start, hash_end);
-
-				if (ph.offset < i->storage->files()->piece_size(i->piece))
-				{
-					DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (incomplete hash) "
-							"piece: %d offset: %d begin: %d end: %d piece_size: %d\n"
-							, &m_buffer_pool, int(pe->piece)
-							, ph.offset, hash_start, hash_end, i->storage->files()->piece_size(i->piece));
-					++i;
-					continue;
-				}
+				cached_block_entry& bl = pe->blocks[b];
+				TORRENT_ASSERT(!bl.pending || bl.dirty);
+				// obviously we need a buffer
+				TORRENT_ASSERT(bl.buf != 0);
+				TORRENT_ASSERT(bl.refcount >= bl.pending);
+				--bl.refcount;
+				TORRENT_ASSERT(pe->refcount >= bl.pending);
+				--pe->refcount;
 			}
+			DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
+				"piece: %d begin: %d end: %d\n"
+				, &m_buffer_pool, int(pe->piece), hash_start, hash_end);
 
+			if (ph.offset < j->storage->files()->piece_size(j->piece))
+			{
+				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (incomplete hash) "
+						"piece: %d offset: %d begin: %d end: %d piece_size: %d\n"
+						, &m_buffer_pool, int(pe->piece)
+						, ph.offset, hash_start, hash_end, j->storage->files()->piece_size(j->piece));
+				pe->jobs.push_back(j);
+				continue;
+			}
+		}
+
+		if ((j->action == disk_io_job::hash)
+			&& (pe->num_dirty > 0 || pe->hashing != -1))
+		{
+			DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (hash) "
+				"piece: %d num_dirty: %d begin: %d end: %d\n"
+				, &m_buffer_pool, int(pe->piece), int(pe->num_dirty)
+				, hash_start, hash_end);
+			// this job is waiting for some blocks to be written
+			pe->jobs.push_back(j);
+			continue;
+		}
+
+		if (j->action == disk_io_job::hash)
+		{
+			TORRENT_ASSERT(j->piece == pe->piece);
+			TORRENT_ASSERT(pe->hash);
+
+			if (pe->hashing != -1 || pe->hash->offset < j->storage->files()->piece_size(pe->piece))
+			{
+				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (still hashing)"
+					"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
+					, hash_start, hash_end);
+				pe->jobs.push_back(j);
+				continue;
+			}
+			TORRENT_ASSERT(pe->hash->offset == j->storage->files()->piece_size(pe->piece));
+			partial_hash& ph = *pe->hash;
+
+			j->piece_hash = ph.h.final();
+			ret = 0;
+			if (j->flags & disk_io_job::volatile_read)
+			{
+				pe->marked_for_deletion = true;
+				DLOG(stderr, "[%p] block_cache reap_piece_jobs volatile read. "
+					"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
+					, hash_start, hash_end);
+			}
+			delete pe->hash;
+			pe->hash = 0;
+		}
+
+		if (j->action == disk_io_job::read || j->action == disk_io_job::write)
+		{
 			// if the job overlaps any blocks that are still pending,
 			// leave it in the list
-			int first_block = i->offset / block_size;
-			int last_block = (i->offset + i->buffer_size - 1) / block_size;
+			int first_block = j->offset / block_size;
+			int last_block = (j->offset + j->buffer_size - 1) / block_size;
 			TORRENT_ASSERT(first_block >= 0);
 			TORRENT_ASSERT(last_block < pe->blocks_in_piece);
 			TORRENT_ASSERT(first_block <= last_block);
@@ -789,93 +847,45 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (overlap) "
 					"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
 					, hash_start, hash_end);
-				++i;
+				pe->jobs.push_back(j);
 				continue;
-			}
-
-			if ((i->action == disk_io_job::hash)
-				&& (pe->num_dirty > 0 || pe->hashing != -1))
-			{
-				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (hash) "
-					"piece: %d num_dirty: %d begin: %d end: %d\n"
-					, &m_buffer_pool, int(pe->piece), int(pe->num_dirty)
-					, hash_start, hash_end);
-				// this job is waiting for some blocks to be written
-				++i;
-				continue;
-			}
-
-			if (i->action == disk_io_job::read)
-			{
-				ret = copy_from_piece(p, *i);
-				if (ret == -1)
-				{
-					TORRENT_ASSERT(false);
-					// this job is waiting for some other
-					// blocks from this piece, we have to
-					// leave it in here. It's not clear if this
-					// would ever happen and in that case why
-					++i;
-					continue;
-				}
-				else if (ret == -2)
-				{
-					ret = disk_io_thread::disk_operation_failed;
-					i->error.ec = error::no_memory;
-				}
-				else
-				{
-					ret = i->buffer_size;
-				}
-			}
-
-			if (i->action == disk_io_job::hash)
-			{
-				TORRENT_ASSERT(i->piece == pe->piece);
-				TORRENT_ASSERT(pe->hash);
-
-				if (pe->hashing != -1 || pe->hash->offset < i->storage->files()->piece_size(pe->piece))
-				{
-					DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (still hashing)"
-						"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
-						, hash_start, hash_end);
-					++i;
-					continue;
-				}
-				TORRENT_ASSERT(pe->hash->offset == i->storage->files()->piece_size(pe->piece));
-				partial_hash& ph = *pe->hash;
-
-				i->piece_hash = ph.h.final();
-				ret = 0;
-				if (i->flags & disk_io_job::volatile_read)
-				{
-					pe->marked_for_deletion = true;
-					DLOG(stderr, "[%p] block_cache reap_piece_jobs volatile read. "
-						"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
-						, hash_start, hash_end);
-				}
-				delete pe->hash;
-				pe->hash = 0;
 			}
 		}
-		else
+
+		if (j->action == disk_io_job::read)
 		{
-			// there was a read error, regardless of which blocks
-			// this job is waiting for just return the failure
-			ret = -1;
+			ret = copy_from_piece(p, j);
+			if (ret == -1)
+			{
+				TORRENT_ASSERT(false);
+				// this job is waiting for some other
+				// blocks from this piece, we have to
+				// leave it in here. It's not clear if this
+				// would ever happen and in that case why
+				pe->jobs.push_back(j);
+				continue;
+			}
+			else if (ret == -2)
+			{
+				ret = disk_io_thread::disk_operation_failed;
+				j->error.ec = error::no_memory;
+			}
+			else
+			{
+				ret = j->buffer_size;
+			}
 		}
 
-		TORRENT_ASSERT(i->piece == pe->piece);
+post_job:
+		TORRENT_ASSERT(j->piece == pe->piece);
 		DLOG(stderr, "[%p] block_cache reap_piece_jobs post job "
-			"piece: %d offset: %d block: %d jobtype: %d\n", &m_buffer_pool
-			, int(i->piece), i->offset, int(i->offset / block_size), i->action);
-		if (i->callback) ios.post(boost::bind(i->callback, ret, *i));
-		i = pe->jobs.erase(i);
+			"piece: %d  jobtype: %d\n", &m_buffer_pool, int(j->piece), j->action);
+		ios.post(boost::bind(&complete_job, pool, ret, j));
 	}
 }
 
 void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
-	, io_service& ios)
+	, io_service& ios, aiocb_pool* pool)
 {
 	INVARIANT_CHECK;
 
@@ -910,7 +920,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 	cache_piece_index_t::iterator p = find_piece(pe);
 	TORRENT_ASSERT(p != idx.end());
 
-	reap_piece_jobs(p, error_code(), begin, end, ios, true);
+	reap_piece_jobs(p, error_code(), begin, end, ios, pool, true);
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
@@ -941,7 +951,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 	}
 }
 
-void block_cache::abort_dirty(iterator p, io_service& ios)
+void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 {
 	INVARIANT_CHECK;
 
@@ -960,13 +970,16 @@ void block_cache::abort_dirty(iterator p, io_service& ios)
 		--pe->num_dirty;
 	}
 
-	for (std::list<disk_io_job>::iterator i = pe->jobs.begin();
-		i != pe->jobs.end();)
+	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
+	while (i)
 	{
-		if (i->action != disk_io_job::write) { ++i; continue; }
-		i->error.ec.assign(libtorrent::error::operation_aborted, get_system_category());
-		if (i->callback) ios.post(boost::bind(i->callback, -1, *i));
-		i = pe->jobs.erase(i);
+		disk_io_job* j = (disk_io_job*)i;
+		i = (disk_io_job*)i->next;
+		j->next = 0;
+		if (j->action != disk_io_job::write) { pe->jobs.push_back(j); continue; }
+		j->error.ec.assign(libtorrent::error::operation_aborted, get_system_category());
+		TORRENT_ASSERT(j->callback);
+		ios.post(boost::bind(&complete_job, pool, -1, j));
 	}
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
@@ -1107,19 +1120,19 @@ void block_cache::check_invariant() const
 // -1: block not in cache
 // -2: out of memory
 
-int block_cache::copy_from_piece(iterator p, disk_io_job& j)
+int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(j.buffer == 0);
+	TORRENT_ASSERT(j->buffer == 0);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
 	// copy from the cache and update the last use timestamp
-	int block = j.offset / block_size;
-	int block_offset = j.offset & (block_size-1);
+	int block = j->offset / block_size;
+	int block_offset = j->offset & (block_size-1);
 	int buffer_offset = 0;
-	int size = j.buffer_size;
+	int size = j->buffer_size;
 	int min_blocks_to_read = block_offset > 0 && (size > block_size - block_offset) ? 2 : 1;
 	TORRENT_ASSERT(size <= block_size);
 	int start_block = block;
@@ -1129,7 +1142,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		++start_block;
 
 #ifdef TORRENT_DEBUG	
-		int piece_size = j.storage->files()->piece_size(j.piece);
+		int piece_size = j->storage->files()->piece_size(j->piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		TORRENT_ASSERT(start_block < blocks_in_piece);
 #endif
@@ -1140,8 +1153,8 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 	if (pe->blocks[start_block].buf == 0
 		|| pe->blocks[start_block].pending) return -1;
 
-	j.buffer = m_buffer_pool.allocate_buffer("send buffer");
-	if (j.buffer == 0) return -2;
+	j->buffer = m_buffer_pool.allocate_buffer("send buffer");
+	if (j->buffer == 0) return -2;
 
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
@@ -1152,7 +1165,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		TORRENT_ASSERT(pe->blocks[block].buf);
 		int to_copy = (std::min)(block_size
 				- block_offset, size);
-		std::memcpy(j.buffer + buffer_offset
+		std::memcpy(j->buffer + buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, to_copy);
 		++pe->blocks[block].hitcount;
@@ -1162,7 +1175,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		// #error this breaks if there are multiple requests to the same block
 		// the first request will go through, but the second one will read a NULL pointer
 /*
-		if (j.flags & disk_io_job::volatile_read)
+		if (j->flags & disk_io_job::volatile_read)
 		{
 			// if volatile read cache is set, the assumption is
 			// that no other peer is likely to request the same
@@ -1187,7 +1200,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job& j)
 		++block;
 	}
 	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
-	return j.buffer_size;
+	return j->buffer_size;
 }
 
 block_cache::iterator block_cache::find_piece(cached_piece_entry const* pe)
@@ -1199,13 +1212,12 @@ block_cache::iterator block_cache::find_piece(cached_piece_entry const* pe)
 	return i;
 }
 
-block_cache::iterator block_cache::find_piece(
-	disk_io_job const& j)
+block_cache::iterator block_cache::find_piece(disk_io_job const* j)
 {
 	cache_piece_index_t& idx = m_pieces.get<0>();
 	cache_piece_index_t::iterator i
-		= idx.find(boost::make_tuple((void*)j.storage.get(), j.piece));
-	TORRENT_ASSERT(i == idx.end() || (i->storage == j.storage && i->piece == j.piece));
+		= idx.find(boost::make_tuple((void*)j->storage.get(), j->piece));
+	TORRENT_ASSERT(i == idx.end() || (i->storage == j->storage && i->piece == j->piece));
 	return i;
 }
 

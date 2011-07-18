@@ -207,12 +207,13 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
+		void set_settings(session_settings* sett);
 		void abort();
 		void join();
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
-		int add_job(disk_io_job const& j);
+		int add_job(disk_io_job* j);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		void thread_fun();
@@ -229,25 +230,25 @@ namespace libtorrent
 			defer_handler = -100
 		};
 
-		int do_read(disk_io_job& j);
-		int do_write(disk_io_job& j);
-		int do_hash(disk_io_job& j);
-		int do_move_storage(disk_io_job& j);
-		int do_release_files(disk_io_job& j);
-		int do_delete_files(disk_io_job& j);
-		int do_check_fastresume(disk_io_job& j);
-		int do_save_resume_data(disk_io_job& j);
-		int do_rename_file(disk_io_job& j);
-		int do_abort_thread(disk_io_job& j);
-		int do_clear_read_cache(disk_io_job& j);
-		int do_abort_torrent(disk_io_job& j);
-		int do_update_settings(disk_io_job& j);
-		int do_read_and_hash(disk_io_job& j);
-		int do_cache_piece(disk_io_job& j);
-		int do_finalize_file(disk_io_job& j);
-		int do_get_cache_info(disk_io_job& j);
-		int do_hashing_done(disk_io_job& j);
-		int do_file_status(disk_io_job& j);
+		int do_read(disk_io_job* j);
+		int do_write(disk_io_job* j);
+		int do_hash(disk_io_job* j);
+		int do_move_storage(disk_io_job* j);
+		int do_release_files(disk_io_job* j);
+		int do_delete_files(disk_io_job* j);
+		int do_check_fastresume(disk_io_job* j);
+		int do_save_resume_data(disk_io_job* j);
+		int do_rename_file(disk_io_job* j);
+		int do_abort_thread(disk_io_job* j);
+		int do_clear_read_cache(disk_io_job* j);
+		int do_abort_torrent(disk_io_job* j);
+		int do_update_settings(disk_io_job* j);
+		int do_read_and_hash(disk_io_job* j);
+		int do_cache_piece(disk_io_job* j);
+		int do_finalize_file(disk_io_job* j);
+		int do_get_cache_info(disk_io_job* j);
+		int do_hashing_done(disk_io_job* j);
+		int do_file_status(disk_io_job* j);
 
 		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG
@@ -259,7 +260,7 @@ namespace libtorrent
 		void added_to_write_queue();
 		void deducted_from_write_queue();
 
-		void perform_async_job(disk_io_job j);
+		void perform_async_job(disk_io_job* j);
 
 		void uncork_jobs();
 		void on_disk_write(block_cache::iterator p, int begin
@@ -275,13 +276,13 @@ namespace libtorrent
 
 		int io_range(block_cache::iterator p, int start, int end, int readwrite, int flags);
 
-		int allocate_read_piece(disk_io_job& j, block_cache::iterator& p);
+		int allocate_read_piece(disk_io_job* j, block_cache::iterator& p);
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
-		int flush_cache(disk_io_job const& j, boost::uint32_t flags);
+		int flush_cache(disk_io_job* j, boost::uint32_t flags);
 
-		void on_write_one_buffer(async_handler* handler, disk_io_job j);
-		void on_read_one_buffer(async_handler* handler, disk_io_job j);
+		void on_write_one_buffer(async_handler* handler, disk_io_job* j);
+		void on_read_one_buffer(async_handler* handler, disk_io_job* j);
 
 		int try_flush_contiguous(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
 		int try_flush_hashed(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
@@ -401,7 +402,7 @@ namespace libtorrent
 		// list. Each time a storage is taken out of the fence,
 		// this list is gone through and jobs belonging to the
 		// storage are issued.
-		std::deque<disk_io_job> m_blocked_jobs;
+		tailqueue m_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that
@@ -415,7 +416,7 @@ namespace libtorrent
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
 
-		std::deque<disk_io_job> m_queued_jobs;
+		tailqueue m_queued_jobs;
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;

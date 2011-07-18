@@ -715,6 +715,23 @@ namespace aux {
 
 		PRINT_SIZEOF(file_entry)
 
+		PRINT_SIZEOF(disk_io_job)
+		PRINT_OFFSETOF(disk_io_job, action)
+		PRINT_OFFSETOF(disk_io_job, buffer)
+		PRINT_OFFSETOF(disk_io_job, buffer_size)
+		PRINT_OFFSETOF(disk_io_job, storage)
+		PRINT_OFFSETOF(disk_io_job, flags)
+		PRINT_OFFSETOF(disk_io_job, piece)
+		PRINT_OFFSETOF(disk_io_job, offset)
+		PRINT_OFFSETOF(disk_io_job, max_cache_line)
+		PRINT_OFFSETOF(disk_io_job, cache_min_time)
+		PRINT_OFFSETOF(disk_io_job, str)
+		PRINT_OFFSETOF(disk_io_job, piece_hash)
+		PRINT_OFFSETOF(disk_io_job, resume_data)
+		PRINT_OFFSETOF(disk_io_job, error)
+		PRINT_OFFSETOF(disk_io_job, callback)
+		PRINT_OFFSETOF(disk_io_job, start_time)
+
 //		PRINT_SIZEOF(stat_channel)
 //		PRINT_OFFSETOF(stat_channel, m_counter)
 //		PRINT_OFFSETOF(stat_channel, m_average)
@@ -1223,7 +1240,7 @@ namespace aux {
 
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 
-		update_disk_thread_settings();
+		m_disk_thread.set_settings(&m_settings);
 
 		settings = e->dict_find_list("feeds");
 		if (settings)
@@ -1579,7 +1596,7 @@ namespace aux {
 		m_disk_thread.abort();
 	}
 
-	void get_cache_info_done(int ret, disk_io_job const& j, mutex* m, condition* e, bool* done)
+	void get_cache_info_done(int ret, mutex* m, condition* e, bool* done)
 	{
 		mutex::scoped_lock l(*m);
 		*done = true;
@@ -1589,20 +1606,18 @@ namespace aux {
 	// #error should this be a function on torrent_handle?
 	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m)
 	{
-		piece_manager* st = 0;
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
-		disk_io_job j;
 		if (!t || !t->valid_storage())
 		{
 			*ret = cache_status();
-			get_cache_info_done(0, j, m, e, done);
+			get_cache_info_done(0, m, e, done);
 			return;
 		}
-		st = &t->filesystem();
-		j.storage = st;
-		j.action = disk_io_job::get_cache_info;
-		j.buffer = (char*)ret;
-		j.callback = boost::bind(&get_cache_info_done, _1, _2, m, e, done);
+		piece_manager* st = &t->filesystem();
+		disk_io_job* j = m_disk_thread.aiocbs()->allocate_job(disk_io_job::get_cache_info);
+		j->storage = st;
+		j->buffer = (char*)ret;
+		j->callback = boost::bind(&get_cache_info_done, _1, m, e, done);
 		m_disk_thread.add_job(j);
 	}
 
@@ -1628,14 +1643,6 @@ namespace aux {
 	ip_filter const& session_impl::get_ip_filter() const
 	{
 		return m_ip_filter;
-	}
-
-	void session_impl::update_disk_thread_settings()
-	{
-		disk_io_job j;
-		j.buffer = (char*)&m_settings;
-		j.action = disk_io_job::update_settings;
-		m_disk_thread.add_job(j);
 	}
 
 	void session_impl::set_settings(session_settings const& s)
@@ -1801,7 +1808,7 @@ namespace aux {
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
-			update_disk_thread_settings();
+			m_disk_thread.set_settings(&m_settings);
 
 		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{

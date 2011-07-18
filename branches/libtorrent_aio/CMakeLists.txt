@@ -3,6 +3,7 @@ project(libtorrent)
 
 set(sources
 	web_connection_base
+	aiocb_pool
 	alert
 	allocator
 	assert

@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/tailqueue.hpp"
 
 namespace libtorrent
 {
@@ -58,6 +59,7 @@ namespace libtorrent
 	struct disk_buffer_pool;
 	struct cache_status;
 	struct hash_thread;
+	struct aiocb_pool;
 
 	using boost::multi_index::multi_index_container;
 	using boost::multi_index::ordered_non_unique;
@@ -183,7 +185,7 @@ namespace libtorrent
 		// for read jobs, these are outstanding read jobs
 		// for this piece that are waiting for data to become
 		// avaialable. Read jobs may be overlapping.
-		std::list<disk_io_job> jobs;
+		tailqueue jobs;
 	};
 
 	struct block_cache
@@ -242,15 +244,15 @@ namespace libtorrent
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
-		int try_read(disk_io_job& j);
+		int try_read(disk_io_job* j);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
-		block_cache::iterator allocate_piece(disk_io_job const& j);
+		block_cache::iterator allocate_piece(disk_io_job const* j);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
-		block_cache::iterator find_piece(disk_io_job const& j);
+		block_cache::iterator find_piece(disk_io_job const* j);
 		block_cache::iterator find_piece(cached_piece_entry const* pe);
 
 		block_cache::iterator end();
@@ -262,7 +264,7 @@ namespace libtorrent
 		// it's less than the requested, it means the cache is
 		// full and there's no space left
 		int allocate_pending(iterator p
-			, int start, int end, disk_io_job const& j
+			, int start, int end, disk_io_job* j
 			, int prio = 0, bool force = false);
 
 		// clear the pending flags of the specified block range.
@@ -274,20 +276,21 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(iterator p, int begin, int end
-			, io_service& ios, error_code const& ec);
+			, io_service& ios, aiocb_pool* pool, error_code const& ec);
 
 		// this is called by the hasher thread when hashing of
 		// a range of block is complete.
-		void hashing_done(cached_piece_entry* p, int begin, int end, io_service& ios);
+		void hashing_done(cached_piece_entry* p, int begin, int end
+			, io_service& ios, aiocb_pool* pool);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
-		void abort_dirty(iterator p, io_service& ios);
+		void abort_dirty(iterator p, io_service& ios, aiocb_pool* pool);
 
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is
 		// flushed, the callback is posted
-		block_cache::iterator add_dirty_block(disk_io_job const& j);
+		block_cache::iterator add_dirty_block(disk_io_job* j);
 	
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -317,12 +320,13 @@ namespace libtorrent
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 
 		void reap_piece_jobs(iterator p, error_code const& ec
-			, int hash_start, int hash_end, io_service& ios, bool reap_hash_jobs);
+			, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
+			, bool reap_hash_jobs);
 
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
-		int copy_from_piece(iterator p, disk_io_job& j);
+		int copy_from_piece(iterator p, disk_io_job* j);
 
 		void free_piece(iterator i);
 		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf);

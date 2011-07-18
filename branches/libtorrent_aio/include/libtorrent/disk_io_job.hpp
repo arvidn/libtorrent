@@ -36,15 +36,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include "libtorrent/ptime.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/tailqueue.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/storage.hpp"
 #include <boost/function/function2.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace libtorrent
 {
 	class entry;
+	struct piece_manager;
 
 	// #error turn this into a union to make it smaller
-	struct disk_io_job
+
+	// disk_io_jobs are allocated in a pool allocator in aiocb_pool
+	// they are always allocated from the network thread, posted
+	// (as pointers) to the disk I/O thread, and then passed back
+	// to the network thread for completion handling and to be freed.
+	// each disk_io_job can belong to one tailqueue. The job queue
+	// in the disk thread, is one, the jobs waiting on completion
+	// on a cache piece (in block_cache) is another, and a job
+	// waiting for a storage fence to be lowered is another. Jobs
+	// are never in more than one queue at a time. Only passing around
+	// pointers and chaining them back and forth into lists saves
+	// a lot of heap allocation churn of using general purpose
+	// containers.
+	struct disk_io_job : tailqueue_node
 	{
 		disk_io_job()
 			: action(read)

@@ -139,11 +139,11 @@ namespace libtorrent
 			process_piece(e);
 
 			// post back to the disk thread
-			disk_io_job j;
-			j.action = disk_io_job::hash_complete;
-			j.buffer = (char*)e.piece;
-			j.piece = e.start;
-			j.offset = e.end;
+			disk_io_job* j = m_disk_thread->aiocbs()->allocate_job(
+				disk_io_job::hash_complete);
+			j->buffer = (char*)e.piece;
+			j->piece = e.start;
+			j->offset = e.end;
 			m_disk_thread->add_job(j);
 		}
 

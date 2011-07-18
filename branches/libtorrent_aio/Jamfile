@@ -400,6 +400,7 @@ lib ws2_32 : : <name>ws2_32 <link>shared ;
 lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
+	aiocb_pool
 	alert
 	allocator
 	assert
