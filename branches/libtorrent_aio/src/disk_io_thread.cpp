@@ -976,6 +976,8 @@ namespace libtorrent
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
 	{
+		TORRENT_ASSERT(j->next == 0);
+
 		DLOG(stderr, "[%p] perform_async_job job: %s piece: %d offset: %d\n"
 			, this, job_action_name[j->action], j->piece, j->offset);
 		if (j->storage && j->storage->get_storage_impl()->m_settings == 0)
@@ -1022,7 +1024,13 @@ namespace libtorrent
 			TORRENT_ASSERT(!j->storage->has_fence());
 			disk_io_job* k = (disk_io_job*)m_blocked_jobs.get_all();
 
-			while (k) perform_async_job(postinc(k));
+			while (k)
+			{
+				disk_io_job* j = k;
+				k = (disk_io_job*)k->next;
+				j->next = 0;
+				perform_async_job(j);
+			}
 		}
 	}
 
@@ -1594,8 +1602,13 @@ namespace libtorrent
 				continue;
 			}
 
-			if (k->buffer) to_free.push_back(k->buffer);
-			k->buffer = 0;
+			if ((k->action == disk_io_job::read || k->action == disk_io_job::write)
+				&& k->buffer)
+			{
+				to_free.push_back(k->buffer);
+				k->buffer = 0;
+			}
+
 			k->error.ec = error::operation_aborted;
 			TORRENT_ASSERT(k->callback);
 			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
