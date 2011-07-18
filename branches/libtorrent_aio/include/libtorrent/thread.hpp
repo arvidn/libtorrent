@@ -102,7 +102,7 @@ namespace libtorrent
 				// we see negative values or 0
 				sem_getvalue(&m_sem, &waiters);
 				sem_post(&m_sem);
-			} while (waiters < 0)
+			} while (waiters < 0);
 		}
 		void wait() { sem_wait(&m_sem); }
 		void timed_wait(int ms)
