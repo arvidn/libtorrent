@@ -276,8 +276,6 @@ namespace libtorrent
 
 		int io_range(block_cache::iterator p, int start, int end, int readwrite, int flags);
 
-		int allocate_read_piece(disk_io_job* j, block_cache::iterator& p);
-
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		int flush_cache(disk_io_job* j, boost::uint32_t flags);
 

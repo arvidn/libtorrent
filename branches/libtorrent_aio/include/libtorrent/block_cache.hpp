@@ -276,7 +276,7 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(iterator p, int begin, int end
-			, io_service& ios, aiocb_pool* pool, error_code const& ec);
+			, io_service& ios, aiocb_pool* pool, storage_error const& ec);
 
 		// this is called by the hasher thread when hashing of
 		// a range of block is complete.
@@ -319,7 +319,7 @@ namespace libtorrent
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 
-		void reap_piece_jobs(iterator p, error_code const& ec
+		void reap_piece_jobs(iterator p, storage_error const& ec
 			, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
 			, bool reap_hash_jobs);
 

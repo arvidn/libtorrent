@@ -688,17 +688,11 @@ namespace libtorrent
 					++m_cache_stats.reads;
 				}
 
-				// this is a special case for when the storage doesn't want to produce
-				// any actual async. file operations, but just filled in the buffers
-				if (aios == 0)
-				{
-					TORRENT_ASSERT(a->references == 0);
-					a->transferred = bufs_size(iov, iov_counter);
-					a->handler(a);
-				}
-
 				if (a->references == 0)
 				{
+					// this is a special case for when the storage doesn't want to produce
+					// any actual async. file operations, but just filled in the buffers
+					if (!a->error.ec) a->transferred = bufs_size(iov, iov_counter);
 					a->handler(a);
 					m_aiocb_pool.free_handler(a);
 					a = 0;
@@ -740,6 +734,7 @@ namespace libtorrent
 			pe.blocks[i].uninitialized = false;
 			if (!pe.blocks[i].pending)
 			{
+				TORRENT_ASSERT(pe.blocks[i].buf);
 				pe.blocks[i].pending = true;
 				++pe.blocks[i].refcount;
 				++const_cast<cached_piece_entry&>(pe).refcount;
@@ -783,9 +778,9 @@ namespace libtorrent
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, &m_aiocb_pool
-			, handler->error.ec);
+			, handler->error);
 
-		if (!handler->error.ec)
+		if (!handler->error)
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
@@ -806,9 +801,9 @@ namespace libtorrent
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
 		m_disk_cache.mark_as_done(p, begin, end, m_ios, &m_aiocb_pool
-			, handler->error.ec);
+			, handler->error);
 
-		if (!handler->error.ec)
+		if (!handler->error)
 		{
 			boost::uint32_t job_time = total_microseconds(time_now_hires() - handler->started);
 			m_job_time.add_sample(job_time);
@@ -1131,17 +1126,11 @@ namespace libtorrent
 		file::aiocb_t* aios = j->storage->get_storage_impl()->async_readv(&b
 			, j->piece, j->offset, 1, j->flags, a);
 
-		// this is a special case for when the storage doesn't want to produce
-		// any actual async. file operations, but just filled in the buffers
-		if (aios == 0)
-		{
-			TORRENT_ASSERT(a->references == 0);
-			a->transferred = j->buffer_size;
-			a->handler(a);
-		}
-
 		if (a->references == 0)
 		{
+			// this is a special case for when the storage doesn't want to produce
+			// any actual async. file operations, but just filled in the buffers
+			if (!a->error.ec) a->transferred = j->buffer_size;
 			a->handler(a);
 			m_aiocb_pool.free_handler(a);
 			a = 0;
@@ -1250,17 +1239,11 @@ namespace libtorrent
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
 
-		// this is a special case for when the storage doesn't want to produce
-		// any actual async. file operations, but just filled in the buffers
-		if (aios == 0)
-		{
-			TORRENT_ASSERT(a->references == 0);
-			a->transferred = j->buffer_size;
-			a->handler(a);
-		}
-
 		if (a->references == 0)
 		{
+			// this is a special case for when the storage doesn't want to produce
+			// any actual async. file operations, but just filled in the buffers
+			if (!a->error.ec) a->transferred = j->buffer_size;
 			a->handler(a);
 			m_aiocb_pool.free_handler(a);
 			a = 0;
@@ -1322,6 +1305,7 @@ namespace libtorrent
 		cached_piece_entry* pe = 0;
 
 		int start_block = 0;
+		bool need_read = false;
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
@@ -1329,12 +1313,41 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p] do_hash: allocating a new piece: %d\n"
 				, this, int(j->piece));
-			// allocate_read_piece will add the job to the piece
-			// and allocate a piece and fill in p
-			ret = allocate_read_piece(j, p);
-			// if allocation failed, fail the disk operation
-			if (ret != 0 && ret != defer_handler) return ret;
+
+			p = m_disk_cache.allocate_piece(j);
+			if (p == m_disk_cache.end())
+			{
+				TORRENT_ASSERT(j->buffer == 0);
+				j->error.ec = error::no_memory;
+				return disk_operation_failed;
+			}
+
+			// allocate_pending will add the job to the piece
+			ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
+			DLOG(stderr, "[%p] do_hash: allocate_pending ret=%d\n", this, ret);
 			job_added = true;
+
+			if (ret >= 0)
+			{
+				// some blocks were allocated
+				if (ret > 0) need_read = true;
+				TORRENT_ASSERT(start_block == 0);
+				ret = defer_handler;
+			}
+			else if (ret == -1)
+			{
+				// allocation failed
+				m_disk_cache.mark_for_deletion(p);
+				TORRENT_ASSERT(j->buffer == 0);
+				j->error.ec = error::no_memory;
+				return disk_operation_failed;
+			}
+			else if (ret < -1)
+			{
+				m_disk_cache.mark_for_deletion(p);
+				// this shouldn't happen
+				TORRENT_ASSERT(false);
+			}
 			ret = defer_handler;
 			m_cache_stats.total_read_back += p->blocks_in_piece;
 			pe = const_cast<cached_piece_entry*>(&*p);
@@ -1373,10 +1386,7 @@ namespace libtorrent
 					// if allocate_pending succeeds, it adds the job as well
 					job_added = true;
 					// some blocks were allocated
-					if (ret > 0)
-					{
-						m_cache_stats.total_read_back += io_range(p, 0, p->blocks_in_piece, op_read, j->flags);
-					}
+					if (ret > 0) need_read = true;
 					ret = defer_handler;
 				}
 				else if (ret == -1)
@@ -1427,6 +1437,7 @@ namespace libtorrent
 		// for hash jobs
 		for (int i = start_block; i < pe->blocks_in_piece; ++i)
 		{
+			TORRENT_ASSERT(pe->blocks[i].buf);
 			++pe->blocks[i].refcount;
 			++pe->refcount;
 		}
@@ -1439,6 +1450,11 @@ namespace libtorrent
 			pe->jobs.push_back(j);
 		}
 
+		if (need_read)
+		{
+			m_cache_stats.total_read_back += io_range(p, start_block
+				, p->blocks_in_piece, op_read, j->flags);
+		}
 #if DEBUG_STORAGE
 		DLOG(stderr, "[%p] do_hash: jobs [", this);
 		for (tailqueue_iterator i = pe->jobs.iterate(); i.get(); i.next())
@@ -1673,46 +1689,6 @@ namespace libtorrent
 		if (m_disk_cache.size() - num_pending_write_blocks > m_settings.cache_size)
 			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0, m_disk_cache.end());
 
-		return 0;
-	}
-
-	int disk_io_thread::allocate_read_piece(disk_io_job* j, block_cache::iterator& p)
-	{
-		// read the entire piece and verify the piece hash
-		// since we need to check the hash, this function
-		// will ignore the cache size limit (at least for
-		// reading and hashing, not for keeping it around)
-		p = m_disk_cache.allocate_piece(j);
-		if (p == m_disk_cache.end())
-		{
-			TORRENT_ASSERT(j->buffer == 0);
-			j->error.ec = error::no_memory;
-			return disk_operation_failed;
-		}
-
-		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
-		DLOG(stderr, "[%p] allocate_read_piece: allocate_pending ret=%d\n", this, ret);
-
-		if (ret >= 0)
-		{
-			// some blocks were allocated
-			if (ret > 0) io_range(p, 0, p->blocks_in_piece, op_read, j->flags);
-			return defer_handler;
-		}
-		else if (ret == -1)
-		{
-			// allocation failed
-			m_disk_cache.mark_for_deletion(p);
-			TORRENT_ASSERT(j->buffer == 0);
-			j->error.ec = error::no_memory;
-			return disk_operation_failed;
-		}
-		else if (ret < -1)
-		{
-			m_disk_cache.mark_for_deletion(p);
-			// this shouldn't happen
-			TORRENT_ASSERT(false);
-		}
 		return 0;
 	}
 

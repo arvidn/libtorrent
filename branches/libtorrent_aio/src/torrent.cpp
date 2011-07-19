@@ -1800,18 +1800,25 @@ namespace libtorrent
 
 		if (ret == piece_manager::fatal_disk_error)
 		{
-			if (m_ses.m_alerts.should_post<file_error_alert>())
-				m_ses.m_alerts.post_alert(file_error_alert(j.error, get_handle()));
+			if (j.error.ec == boost::system::errc::no_such_file_or_directory)
+			{
+				// TODO: skip this file by updating m_checking_piece to the first piece following it
+			}
+			else
+			{
+				if (m_ses.m_alerts.should_post<file_error_alert>())
+					m_ses.m_alerts.post_alert(file_error_alert(j.error, get_handle()));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
-				" error: " << j.error.ec.message() <<
-				" torrent: " << torrent_file().name() <<
-				" ]\n";
+				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
+					" error: " << j.error.ec.message() <<
+					" torrent: " << torrent_file().name() <<
+					" ]\n";
 #endif
-			pause();
-			set_error(j.error.ec, j.error.file);
-			return;
+				pause();
+				set_error(j.error.ec, j.error.file);
+				return;
+			}
 		}
 
 		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();

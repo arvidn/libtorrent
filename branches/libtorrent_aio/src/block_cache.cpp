@@ -488,7 +488,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 }
 
 void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
-	, io_service& ios, aiocb_pool* pool, error_code const& ec)
+		, io_service& ios, aiocb_pool* pool, storage_error const& ec)
 {
 	INVARIANT_CHECK;
 
@@ -498,7 +498,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	DLOG(stderr, "[%p] block_cache mark_as_done error: %s\n", &m_buffer_pool, ec.message().c_str());
+	DLOG(stderr, "[%p] block_cache mark_as_done error: %s\n"
+		, &m_buffer_pool, ec.ec.message().c_str());
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
@@ -720,7 +721,7 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 	}
 }
 
-void block_cache::reap_piece_jobs(iterator p, error_code const& ec
+void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 	, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
 	, bool reap_hash_jobs)
 {
@@ -740,7 +741,7 @@ void block_cache::reap_piece_jobs(iterator p, error_code const& ec
 		DLOG(stderr, "[%p] block_cache reap_piece_jobs j: %d\n"
 			, &m_buffer_pool, j->action);
 		TORRENT_ASSERT(j->piece == pe->piece);
-		j->error.ec = ec;
+		j->error = ec;
 		int ret = 0;
 		if (j->action == disk_io_job::read || j->action == disk_io_job::write)
 		{
@@ -920,7 +921,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 	cache_piece_index_t::iterator p = find_piece(pe);
 	TORRENT_ASSERT(p != idx.end());
 
-	reap_piece_jobs(p, error_code(), begin, end, ios, pool, true);
+	reap_piece_jobs(p, storage_error(), begin, end, ios, pool, true);
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
