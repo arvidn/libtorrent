@@ -30,6 +30,23 @@ rule libtorrent_linking ( properties * )
     {
         result += <source>src/peer_plugin.cpp ;
     }
+
+    if <boost>source in $(properties)
+    {
+        if <boost-link>static in $(properties) || <link>static in $(properties)
+        {
+            result += <library>/boost/python//boost_python/<boost-link>static ;
+        }
+        else
+        {
+            result += <library>/boost/python//boost_python/<boost-link>shared ;
+        }
+    }
+    else
+    {
+        result += <library>boost_python ;
+    }
+
     return $(result) ;
 }
 
@@ -57,9 +74,6 @@ python-extension libtorrent
     src/error_code.cpp
   : <include>src
     <library>/torrent//torrent/<link>static
-    <boost>system:<library>boost_python
-    <boost>source,<boost-link>static:<library>/boost/python//boost_python/<link>static
-    <boost>source,<boost-link>shared:<library>/boost/python//boost_python/<link>shared
     <conditional>@libtorrent_linking
   ;
 
