@@ -7953,9 +7953,10 @@ The interface looks like this::
 
 	struct storage_error
 	{
+		// the actual error code
 		error_code ec;
-		// the file the error occurred on
-		std::string file;
+		// the index of the file the error occurred on
+		int file;
 		// the operation that failed
 		// this must be a string literal, it
 		// should never be freed
