@@ -182,8 +182,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
-// apple uses utf-8 as its locale, so no conversion
-// is necessary
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 1

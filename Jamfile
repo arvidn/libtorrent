@@ -100,7 +100,7 @@ rule linking ( properties * )
 
 	if <target-os>beos in $(properties)
 	{
-		result += <library>netkit ;
+		result += <library>netkit <library>gcc ;
 	}
 
 	if <target-os>solaris in $(properties)
@@ -342,6 +342,7 @@ lib gdi32 : : <name>gdi32 ;
 
 # required for networking on beos
 lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
+lib gcc : : <name>gcc <link>static ;
 
 # when using iconv
 lib libiconv : : <name>iconv <link>shared ;
