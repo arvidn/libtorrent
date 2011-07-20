@@ -2347,7 +2347,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return false;
 		size_t ret = 0;
 #else
-#error what disk I/O API are we using?
+#error which disk I/O API are we using?
 #endif
 
 		if (aio->flags & file::coalesce_buffers)

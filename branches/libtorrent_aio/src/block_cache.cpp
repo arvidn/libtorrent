@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/alloca.hpp"
 
 #define DEBUG_CACHE 0
 
@@ -262,14 +263,14 @@ void block_cache::mark_for_deletion(iterator p)
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
-	std::vector<char*> to_delete;
-	to_delete.reserve(pe->blocks_in_piece);
+	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
 		TORRENT_ASSERT(!pe->blocks[i].pending);
 		TORRENT_ASSERT(pe->blocks[i].buf != 0);
-		to_delete.push_back(pe->blocks[i].buf);
+		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
@@ -282,7 +283,7 @@ void block_cache::mark_for_deletion(iterator p)
 		}
 		else --pe->num_dirty;
 	}
-	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
+	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 	pe->marked_for_deletion = true;
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", &m_buffer_pool, int(pe->piece));
@@ -311,8 +312,8 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 
 	cache_lru_index_t& idx = m_pieces.get<1>();
 
-	std::vector<char*> to_free;
-	to_free.reserve(num);
+	char** to_delete = TORRENT_ALLOCA(char*, num);
+	int num_to_delete = 0;
 
 	// iterate over all blocks in order of last being used (oldest first) and as
 	// long as we still have blocks to evict
@@ -347,7 +348,7 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 			cached_block_entry& b = pe->blocks[j];
 			if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
 			
-			to_free.push_back(b.buf);
+			to_delete[num_to_delete++] = b.buf;
 			b.buf = 0;
 			--pe->num_blocks;
 			--m_read_cache_size;
@@ -359,11 +360,11 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 		else ++i;
 	}
 
-	if (to_free.empty()) return num;
+	if (num_to_delete == 0) return num;
 
-	DLOG(stderr, "[%p]    removed %d blocks\n", &m_buffer_pool, int(to_free.size()));
+	DLOG(stderr, "[%p]    removed %d blocks\n", &m_buffer_pool, num_to_delete);
 
-	m_buffer_pool.free_multiple_buffers(&to_free[0], to_free.size());
+	m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
@@ -429,14 +430,14 @@ int block_cache::allocate_pending(block_cache::iterator p
 		pe->blocks[i].buf = m_buffer_pool.allocate_buffer("pending read");
 		if (pe->blocks[i].buf == 0)
 		{
-			std::vector<char*> to_delete;
-			to_delete.reserve(end - begin);
+			char** to_delete = TORRENT_ALLOCA(char*, end - begin);
+			int num_to_delete = 0;
 			for (int j = begin; j < end; ++j)
 			{
 				cached_block_entry& bl = pe->blocks[j];
 				if (!bl.uninitialized) continue;
 				TORRENT_ASSERT(bl.buf != 0);
-				to_delete.push_back(bl.buf);
+				to_delete[num_to_delete++] = bl.buf;
 				bl.buf = 0;
 				bl.uninitialized = false;
 				TORRENT_ASSERT(m_read_cache_size > 0);
@@ -451,7 +452,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 				cache_piece_index_t& idx = m_pieces.get<0>();
 				idx.erase(p);
 			}
-			if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
+			if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 
 			TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 			TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
@@ -505,8 +506,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	log_refcounts(pe);
 #endif
 
-	std::vector<char*> to_delete;
-	to_delete.reserve(pe->blocks_in_piece);
+	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	int num_to_delete = 0;
 	if (ec)
 	{
 		// fail all jobs for this piece with this error
@@ -544,7 +545,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				--m_read_cache_size;
 			}
 			TORRENT_ASSERT(bl.buf != 0);
-			to_delete.push_back(bl.buf);
+			to_delete[num_to_delete++] = bl.buf;
 			bl.buf = 0;
 			bl.pending = false;
 			TORRENT_ASSERT(pe->num_blocks > 0);
@@ -596,7 +597,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	log_refcounts(pe);
 #endif
 
-	if (!to_delete.empty()) m_buffer_pool.free_multiple_buffers(&to_delete[0], to_delete.size());
+	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 
 	bool lower_fence = false;
 	boost::intrusive_ptr<piece_manager> storage = pe->storage;
@@ -997,14 +998,14 @@ void block_cache::free_piece(iterator p)
 	TORRENT_ASSERT(pe->refcount == 0);
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
-	std::vector<char*> buffers;
-	buffers.reserve(pe->blocks_in_piece);
+	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0) continue;
 		TORRENT_ASSERT(pe->blocks[i].pending == false);
 		TORRENT_ASSERT(pe->blocks[i].refcount == 0);
-		buffers.push_back(pe->blocks[i].buf);
+		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
@@ -1017,7 +1018,7 @@ void block_cache::free_piece(iterator p)
 		}
 		else --pe->num_dirty;
 	}
-	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
+	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
@@ -1154,6 +1155,19 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	if (pe->blocks[start_block].buf == 0
 		|| pe->blocks[start_block].pending) return -1;
 
+	if (min_blocks_to_read == 1)
+	{
+		// special case for block aligned request
+		// don't actually copy the buffer, just reference
+		// the existing block
+		++pe->blocks[start_block].refcount;
+		++pe->refcount;
+		j->ref.pe = pe;
+		j->ref.block = start_block;
+		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size-1));
+		return j->buffer_size;
+	}
+
 	j->buffer = m_buffer_pool.allocate_buffer("send buffer");
 	if (j->buffer == 0) return -2;
 
@@ -1165,7 +1179,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	{
 		TORRENT_ASSERT(pe->blocks[block].buf);
 		int to_copy = (std::min)(block_size
-				- block_offset, size);
+			- block_offset, size);
 		std::memcpy(j->buffer + buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, to_copy);
@@ -1173,7 +1187,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;
-		// #error this breaks if there are multiple requests to the same block
+		// #error disabled because it breaks if there are multiple requests to the same block
 		// the first request will go through, but the second one will read a NULL pointer
 /*
 		if (j->flags & disk_io_job::volatile_read)

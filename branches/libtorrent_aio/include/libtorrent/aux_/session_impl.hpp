@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
+#include "libtorrent/disk_io_job.hpp" // block_cache_reference
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -436,6 +437,10 @@ namespace libtorrent
 
 			char* allocate_disk_buffer(char const* category);
 			void free_disk_buffer(char* buf);
+
+			// decrement the refcounts for the blocks
+			// in the disk cache
+			void reclaim_block(block_cache_reference ref);
 
 			enum
 			{

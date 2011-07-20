@@ -208,6 +208,7 @@ namespace libtorrent
 		~disk_io_thread();
 
 		void set_settings(session_settings* sett);
+		void reclaim_block(block_cache_reference ref);
 		void abort();
 		void join();
 
@@ -249,6 +250,7 @@ namespace libtorrent
 		int do_get_cache_info(disk_io_job* j);
 		int do_hashing_done(disk_io_job* j);
 		int do_file_status(disk_io_job* j);
+		int do_reclaim_block(disk_io_job* j);
 
 		void get_disk_metrics(cache_status& ret) const;
 #ifdef TORRENT_DEBUG

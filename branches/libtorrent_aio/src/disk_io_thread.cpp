@@ -448,6 +448,13 @@ namespace libtorrent
 		return !m_exceeded_write_queue;
 	}
 
+	void disk_io_thread::reclaim_block(block_cache_reference ref)
+	{
+		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::reclaim_block);
+		j->ref = ref;
+		add_job(j);
+	}
+
 	void disk_io_thread::set_settings(session_settings* sett)
 	{
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::update_settings);
@@ -945,6 +952,7 @@ namespace libtorrent
 		&disk_io_thread::do_get_cache_info,
 		&disk_io_thread::do_hashing_done,
 		&disk_io_thread::do_file_status,
+		&disk_io_thread::do_reclaim_block,
 	};
 
 	static const char* job_action_name[] =
@@ -966,7 +974,8 @@ namespace libtorrent
 		"finalize_file",
 		"get_cache_info",
 		"hashing_done",
-		"file_status"
+		"file_status",
+		"reclaim_block"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1429,6 +1438,7 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
 				, this, int(p->piece));
+			// TODO: maybe the partial_hash objects should be pool allocated
 			pe->hash = new partial_hash;
 		}
 
@@ -1804,6 +1814,20 @@ namespace libtorrent
 	{
 		std::vector<pool_file_status>* files = (std::vector<pool_file_status>*)j->buffer;
 		m_file_pool.get_status(files, (void*)j->storage->get_storage_impl());
+		return 0;
+	}
+
+	int disk_io_thread::do_reclaim_block(disk_io_job* j)
+	{
+		TORRENT_ASSERT(j->ref.pe);
+		TORRENT_ASSERT(j->ref.block < j->ref.pe->blocks_in_piece);
+		if (j->ref.block >= 0)
+		{
+			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount > 0);
+			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf);
+			--j->ref.pe->blocks[j->ref.block].refcount;
+			--j->ref.pe->refcount;
+		}
 		return 0;
 	}
 

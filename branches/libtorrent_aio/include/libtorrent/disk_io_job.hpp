@@ -46,6 +46,14 @@ namespace libtorrent
 {
 	class entry;
 	struct piece_manager;
+	struct cached_piece_entry;
+
+	struct block_cache_reference
+	{
+		block_cache_reference(): pe(0), block(-1) {}
+		cached_piece_entry* pe;
+		int block;
+	};
 
 	// #error turn this into a union to make it smaller
 
@@ -94,6 +102,7 @@ namespace libtorrent
 			, get_cache_info
 			, hash_complete
 			, file_status
+			, reclaim_block
 		};
 
 		enum flags_t
@@ -150,6 +159,16 @@ namespace libtorrent
 		// the time when this job was queued. This is used to
 		// keep track of disk I/O congestion
 		ptime start_time;
+
+		// if this is set, the read operation is required to
+		// release the block references once it's done sending
+		// the buffer. For aligned block requests (by far the
+		// most common) the buffers are not actually copied
+		// into the send buffer, but simply referenced. When this
+		// is set in a response to a read, the buffer needs to
+		// be de-referenced by sending a reclaim_block message
+		// back to the disk thread
+		block_cache_reference ref;
 	};
 
 }

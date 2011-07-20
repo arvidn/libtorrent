@@ -5374,6 +5374,13 @@ namespace aux {
 		m_disk_thread.free_buffer(buf);
 	}
 
+	// decrement the refcount of the block in the disk cache
+	// since the network thread doesn't need it anymore
+	void session_impl::reclaim_block(block_cache_reference ref)
+	{
+		m_disk_thread.reclaim_block(ref);
+	}
+
 	char* session_impl::allocate_disk_buffer(char const* category)
 	{
 		return m_disk_thread.allocate_buffer(category);

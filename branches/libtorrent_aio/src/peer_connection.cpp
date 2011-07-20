@@ -4460,14 +4460,16 @@ namespace libtorrent
 #endif
 		m_reading_bytes -= r.length;
 
-		disk_buffer_holder buffer(m_ses, j.buffer);
+		disk_buffer_holder buffer(m_ses, j.ref.pe == 0 ? j.buffer : 0);
 #if TORRENT_BUFFER_STATS
-		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
+		if (j.buffer && j.ref.pe == 0)
+			m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
 #endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
+			if (j.ref.pe) m_ses.reclaim_block(j.ref);
 			disconnect(j.error.ec);
 			return;
 		}
@@ -4475,6 +4477,7 @@ namespace libtorrent
 		if (ret != r.length)
 		{
 			// handle_disk_error may disconnect us
+			if (j.ref.pe) m_ses.reclaim_block(j.ref);
 			t->handle_disk_error(j, this);
 			return;
 		}
@@ -4485,9 +4488,10 @@ namespace libtorrent
 #endif
 
 #if TORRENT_BUFFER_STATS
-		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
+		if (j.buffer && j.ref.pe == 0)
+			m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
-		write_piece(r, buffer);
+		write_piece(r, buffer, j);
 		setup_send();
 	}
 
