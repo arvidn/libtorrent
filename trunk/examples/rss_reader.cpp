@@ -3,6 +3,7 @@
 #include "libtorrent/session.hpp"
 #include "libtorrent/bencode.hpp"
 #include <signal.h>
+#include <stdio.h>
 
 using namespace libtorrent;
 
@@ -65,7 +66,7 @@ int main(int argc, char* argv[])
 {
 	if ((argc == 2 && strcmp(argv[1], "--help") == 0) || argc > 2)
 	{
-		std::cerr << "usage: rss_reader [rss-url]\n";
+		fprintf(stderr, "usage: rss_reader [rss-url]\n");
 		return 0;
 	}
 

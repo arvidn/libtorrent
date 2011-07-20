@@ -1877,7 +1877,7 @@ int main(int argc, char* argv[])
 					, esc("37"), s.distributed_copies, esc("0")
 					, s.sparse_regions
 					, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
-					, esc("37"), t.hours(), t.minutes(), t.seconds(), esc("0")
+					, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
 					, esc("36"), s.current_tracker.c_str(), esc("0"));
 				out += str;
 				++lines_printed;

@@ -101,6 +101,33 @@ namespace libtorrent
 		TORRENT_ASSERT(l.locked());
 		ReleaseSemaphore(m_sem, m_num_waiters, 0);
 	}
+#elif defined TORRENT_BEOS
+	condition::condition()
+		: m_num_waiters(0)
+	{
+		m_sem = create_sem(0, 0);
+	}
+
+	condition::~condition()
+	{
+		delete_sem(m_sem);
+	}
+
+	void condition::wait(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		++m_num_waiters;
+		l.unlock();
+		acquire_sem(m_sem);
+		l.lock();
+		--m_num_waiters;
+	}
+
+	void condition::signal_all(mutex::scoped_lock& l)
+	{
+		TORRENT_ASSERT(l.locked());
+		release_sem_etc(m_sem, m_num_waiters, 0);
+	}
 #else
 #error not implemented
 #endif
