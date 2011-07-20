@@ -189,7 +189,7 @@ namespace libtorrent
 		if ((int)sizes.size() != fs.num_files())
 		{
 			ec.ec = errors::mismatching_number_of_files;
-			ec.file.clear();
+			ec.file = -1;
 			ec.operation = 0;
 			return false;
 		}
@@ -214,7 +214,7 @@ namespace libtorrent
 				if (error != boost::system::errc::no_such_file_or_directory)
 				{
 					ec.ec = error;
-					ec.file = file_path;
+					ec.file = i - fs.begin();
 					ec.operation = "stat";
 					return false;
 				}
@@ -229,7 +229,7 @@ namespace libtorrent
 				|| (!(flags & compact_mode) && size < size_iter->first))
 			{
 				ec.ec = errors::mismatching_file_size;
-				ec.file = file_path;
+				ec.file = i - fs.begin();
 				ec.operation = 0;
 				return false;
 			}
@@ -243,7 +243,7 @@ namespace libtorrent
 				(!(flags & compact_mode) && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
 			{
 				ec.ec = errors::mismatching_file_timestamp;
-				ec.file = file_path;
+				ec.file = i - fs.begin();
 				ec.operation = 0;
 				return false;
 			}
@@ -370,7 +370,7 @@ namespace libtorrent
 			if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
 				&& ec.ec != boost::system::errc::not_a_directory)
 			{
-				ec.file = file_path;
+				ec.file = file_iter - files().begin();
 				ec.operation = "stat";
 				break;
 			}
@@ -389,7 +389,7 @@ namespace libtorrent
 				if (!ec.ec && f) f->set_size(file_iter->size, ec.ec);
 				if (ec)
 				{
-					ec.file = file_path;
+					ec.file = file_iter - files().begin();
 					ec.operation = "open";
 					break;
 				}
@@ -410,8 +410,7 @@ namespace libtorrent
 		boost::intrusive_ptr<file> f = open_file(files().begin() + index, file::read_write, 0, ec.ec);
 		if (ec || !f)
 		{
-			ec.file = combine_path(m_save_path
-				, files().file_path(*(files().begin() + index)));
+			ec.file = index;
 			ec.operation = "open";
 			return;
 		}
@@ -439,7 +438,7 @@ namespace libtorrent
 
 			if (ec)
 			{
-				ec.file = file_path;
+				ec.file = i - files().begin();
 				ec.operation = "stat";
 				return false;
 			}
@@ -462,7 +461,7 @@ namespace libtorrent
 
 		if (ec)
 		{
-			ec.file = old_name;
+			ec.file = index;
 			ec.operation = "rename";
 			return;
 		}
@@ -510,7 +509,7 @@ namespace libtorrent
 				bp = parent_path(bp);
 			}
 			delete_one_file(p, ec.ec);
-			if (ec) { ec.file = p; ec.operation = "remove"; }
+			if (ec) { ec.file = i - files().begin(); ec.operation = "remove"; }
 		}
 
 		// remove the directories. Reverse order to delete
@@ -520,7 +519,7 @@ namespace libtorrent
 			, end(directories.rend()); i != end; ++i)
 		{
 			delete_one_file(*i, ec.ec);
-			if (ec) { ec.file = *i; ec.operation = "remove"; }
+			if (ec) { ec.file = -1; ec.operation = "remove"; }
 		}
 	}
 
@@ -701,14 +700,14 @@ namespace libtorrent
 			create_directories(save_path, ec.ec);
 			if (ec)
 			{
-				ec.file = save_path;
+				ec.file = -1;
 				ec.operation = "mkdir";
 				return;
 			}
 		}
 		else if (ec)
 		{
-			ec.file = save_path;
+			ec.file = -1;
 			ec.operation = "stat";
 			return;
 		}
@@ -716,21 +715,21 @@ namespace libtorrent
 
 		m_pool.release(this);
 
-		std::set<std::string> to_move;
+		std::map<std::string, int> to_move;
 		file_storage const& f = files();
 
 		for (file_storage::iterator i = f.begin()
 			, end(f.end()); i != end; ++i)
 		{
 			std::string split = split_path(f.file_path(*i));
-			to_move.insert(to_move.begin(), split);
+			to_move.insert(to_move.begin(), std::make_pair(split, int(i - f.begin())));
 		}
 
-		for (std::set<std::string>::const_iterator i = to_move.begin()
+		for (std::map<std::string, int>::const_iterator i = to_move.begin()
 			, end(to_move.end()); i != end; ++i)
 		{
-			std::string old_path = combine_path(m_save_path, *i);
-			std::string new_path = combine_path(save_path, *i);
+			std::string old_path = combine_path(m_save_path, i->first);
+			std::string new_path = combine_path(save_path, i->first);
 
 			rename(old_path, new_path, ec.ec);
 			if (ec.ec == boost::system::errc::no_such_file_or_directory)
@@ -741,7 +740,7 @@ namespace libtorrent
 				ec.ec.clear();
 				recursive_copy(old_path, new_path, ec.ec);
 				if (!ec) recursive_remove(old_path);
-				else { ec.file = old_path; ec.operation = "copy"; }
+				else { ec.file = i->second; ec.operation = "copy"; }
 				break;
 			}
 		}
@@ -991,7 +990,7 @@ namespace libtorrent
 
 			if (!file_handle || ec)
 			{
-				ec.file = combine_path(m_save_path, files().file_path(*file_iter));
+				ec.file = file_iter - files().begin();
 				TORRENT_ASSERT(ec);
 				return -1;
 			}
@@ -1029,7 +1028,7 @@ namespace libtorrent
 
 			if (ec)
 			{
-				ec.file = combine_path(m_save_path, files().file_path(*file_iter));
+				ec.file = file_iter - files().begin();
 				ec.operation = op.operation_name;
 				return -1;
 			}

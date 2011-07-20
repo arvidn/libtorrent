@@ -202,8 +202,7 @@ namespace libtorrent
 		iterator end() const { return m_files.end(); }
 		reverse_iterator rbegin() const { return m_files.rbegin(); }
 		reverse_iterator rend() const { return m_files.rend(); }
-		int num_files() const
-		{ return int(m_files.size()); }
+		int num_files() const { return int(m_files.size()); }
 
 		file_entry at(int index) const;
 		file_entry at(iterator i) const;

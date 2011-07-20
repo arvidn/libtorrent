@@ -234,8 +234,10 @@ namespace libtorrent
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
+		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const& j, peer_connection* c = 0);
 		void clear_error();
+		void set_error(error_code const& ec, int file);
 		void set_error(error_code const& ec, std::string const& file);
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }

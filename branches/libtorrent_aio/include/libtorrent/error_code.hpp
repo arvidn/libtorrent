@@ -405,7 +405,7 @@ namespace libtorrent
 		// the error that occurred
 		error_code ec;
 		// the file the error occurred on
-		std::string file;
+		int file;
 		// the operation that failed
 		// this must be a string literal, it
 		// should never be freed

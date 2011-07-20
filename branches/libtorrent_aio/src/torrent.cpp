@@ -791,9 +791,7 @@ namespace libtorrent
 #endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 					{
-						storage_error se;
-						se.ec = ec;
-						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
+						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec, "", 0));
 					}
 				}
 			}
@@ -1058,14 +1056,16 @@ namespace libtorrent
 			)
 		{
 			if (alerts().should_post<file_error_alert>())
-				alerts().post_alert(file_error_alert(j.error, get_handle()));
+				alerts().post_alert(file_error_alert(j.error.ec
+					, resolve_filename(j.error.file), j.error.operation, get_handle()));
 			if (c) c->disconnect(errors::no_memory);
 			return;
 		}
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
-			alerts().post_alert(file_error_alert(j.error, get_handle()));
+			alerts().post_alert(file_error_alert(j.error.ec
+				, resolve_filename(j.error.file), j.error.operation, get_handle()));
 
 		// put the torrent in an error-state
 		set_error(j.error.ec, j.error.file);
@@ -1359,9 +1359,8 @@ namespace libtorrent
 
 			if (ev && m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 			{
-				storage_error se;
-				se.ec = error_code(ev, get_libtorrent_category());
-				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), se));
+				error_code ec = error_code(ev, get_libtorrent_category());
+				m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec, "", 0));
 			}
 
 			if (ev)
@@ -1578,7 +1577,8 @@ namespace libtorrent
 		if ((j.error || ret != 0) && !m_resume_data.empty()
 			&& m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
-			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error));
+			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error.ec
+				, resolve_filename(j.error.file), j.error.operation));
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1802,12 +1802,22 @@ namespace libtorrent
 		{
 			if (j.error.ec == boost::system::errc::no_such_file_or_directory)
 			{
-				// TODO: skip this file by updating m_checking_piece to the first piece following it
+				// skip this file by updating m_checking_piece to the first piece following it
+				file_storage const& st = m_torrent_file->files();
+				file_entry f = st.at(j.error.file);
+				int last = st.map_file(j.error.file, f.size, 0).piece;
+				if (m_checking_piece < last)
+				{
+					int diff = last - m_checking_piece;
+					m_num_checked_pieces += diff;
+					m_checking_piece += diff;
+				}
 			}
 			else
 			{
 				if (m_ses.m_alerts.should_post<file_error_alert>())
-					m_ses.m_alerts.post_alert(file_error_alert(j.error, get_handle()));
+					m_ses.m_alerts.post_alert(file_error_alert(j.error.ec,
+						resolve_filename(j.error.file), j.error.operation, get_handle()));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
@@ -5192,7 +5202,7 @@ namespace libtorrent
 				// TODO: pass in ec along with the alert
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
-			set_error(errors::invalid_swarm_metadata, "");
+			set_error(errors::invalid_swarm_metadata, -1);
 			pause();
 			return false;
 		}
@@ -5706,7 +5716,8 @@ namespace libtorrent
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
 			{
-				alerts().post_alert(storage_moved_failed_alert(get_handle(), j.error));
+				alerts().post_alert(storage_moved_failed_alert(get_handle(), j.error.ec
+					, resolve_filename(j.error.file), j.error.operation));
 			}
 		}
 	}
@@ -6112,6 +6123,25 @@ namespace libtorrent
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
 
+	}
+
+	std::string torrent::resolve_filename(int file) const
+	{
+		if (m_storage && file >= 0)
+		{
+			file_storage const& st = m_torrent_file->files();
+			return combine_path(m_save_path, st.file_path(*(st.begin() + file)));
+		}
+		else
+		{
+			return m_save_path;
+		}
+	}
+
+	void torrent::set_error(error_code const& ec, int error_file)
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		set_error(ec, resolve_filename(error_file));
 	}
 
 	void torrent::set_error(error_code const& ec, std::string const& error_file)
