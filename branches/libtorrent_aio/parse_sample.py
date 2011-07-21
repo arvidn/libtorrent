@@ -55,6 +55,7 @@ for l in f:
 
 	if 'invariant_checker_impl' in fun: fold = indentation
 	if 'free_multiple_buffers' in fun: fold = indentation
+	if 'libtorrent::condition::wait' in fun: fold = indentation
 	if 'allocate_buffer' in fun: fold = indentation
 	if '::find_POD' in fun: fold = indentation
 	if 'SHA1_Update' in fun: fold = indentation

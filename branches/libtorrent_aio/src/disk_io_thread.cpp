@@ -1902,7 +1902,13 @@ namespace libtorrent
 	// This is sometimes called from an outside thread!
 	int disk_io_thread::add_job(disk_io_job* j)
 	{
-		TORRENT_ASSERT(!m_abort);
+		TORRENT_ASSERT(!m_abort || j->action == disk_io_job::reclaim_block);
+		if (m_abort)
+		{
+			m_aiocb_pool.free_job(j);
+			return 0;
+		}
+
 
 		j->start_time = time_now_hires();
 
