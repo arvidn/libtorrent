@@ -106,6 +106,7 @@ block_cache::block_cache(disk_buffer_pool& p, hash_thread& h)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
 	, m_cumulative_hash_time(0)
+	, m_pinned_blocks(0)
 	, m_buffer_pool(p)
 	, m_hash_thread(h)
 {}
@@ -525,6 +526,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			// async. operation
 			if (bl.refcount > 0) continue;
 
+			--m_pinned_blocks;
+
 			TORRENT_ASSERT(pe->blocks[i].pending);
 
 			// if this block isn't pending, it was here before
@@ -564,6 +567,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(pe->blocks[i].pending);
 			--pe->refcount;
 			pe->blocks[i].pending = false;
+			--m_pinned_blocks;
 
 #if TORRENT_BUFFER_STATS
 			m_buffer_pool.rename_buffer(pe->blocks[i].buf, "read cache");
@@ -777,6 +781,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				--bl.refcount;
 				TORRENT_ASSERT(pe->refcount >= bl.pending);
 				--pe->refcount;
+				if (bl.refcount == 0) --m_pinned_blocks;
 			}
 			DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
 				"piece: %d begin: %d end: %d\n"
@@ -909,6 +914,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		--pe->blocks[i].refcount;
 		TORRENT_ASSERT(pe->refcount > 0);
 		--pe->refcount;
+		if (pe->blocks[i].refcount == 0) --m_pinned_blocks;
 	}
 
 #if DEBUG_CACHE
@@ -970,6 +976,7 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		--m_cache_size;
 		TORRENT_ASSERT(pe->num_dirty > 0);
 		--pe->num_dirty;
+		if (pe->blocks[i].refcount == 0) --m_pinned_blocks;
 	}
 
 	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
@@ -1052,6 +1059,7 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->read_cache_size = m_read_cache_size;
 	ret->average_hash_time = m_hash_time.mean();
 	ret->cumulative_hash_time = m_cumulative_hash_time;
+	ret->pinned_blocks = m_pinned_blocks;
 }
 
 #ifdef TORRENT_DEBUG
@@ -1160,6 +1168,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference
 		// the existing block
+		if (pe->blocks[start_block].refcount == 0) ++m_pinned_blocks;
 		++pe->blocks[start_block].refcount;
 		++pe->refcount;
 		j->ref.pe = pe;

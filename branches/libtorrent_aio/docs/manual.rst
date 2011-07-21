@@ -890,6 +890,7 @@ a piece is, the more likely it is to be flushed to disk.
 			size_type queued_bytes;
 			int cache_size;
 			int read_cache_size;
+			int pinned_blocks;
 			int total_used_buffers;
 			int average_queue_time;
 			int average_read_time;
@@ -939,6 +940,9 @@ bytes passed on to the operating system but have not yet completed.
 This includes both read and write cache.
 
 ``read_cache_size`` is the number of 16KiB blocks in the read cache.
+
+``pinned_blocks`` is the number of blocks that have more than 0 references
+to them, forcing them to stay in RAM.
 
 ``total_used_buffers`` is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers

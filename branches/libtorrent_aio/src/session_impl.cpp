@@ -1039,6 +1039,7 @@ namespace aux {
 			":page faults"
 			":smooth read ops/s"
 			":smooth write ops/s"
+			":pinned blocks"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3515,6 +3516,7 @@ namespace aux {
 
 			STAT_LOG(d, m_read_ops.mean());
 			STAT_LOG(d, m_write_ops.mean());
+			STAT_LOG(d, cs.pinned_blocks);
 
 			fprintf(m_stats_logger, "\n");
 

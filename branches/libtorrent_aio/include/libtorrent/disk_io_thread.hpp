@@ -91,6 +91,7 @@ namespace libtorrent
 			, queued_bytes(0)
 			, cache_size(0)
 			, read_cache_size(0)
+			, pinned_blocks(0)
 			, elevator_turns(0)
 			, total_used_buffers(0)
 			, average_queue_time(0)
@@ -143,6 +144,10 @@ namespace libtorrent
 
 		// the number of blocks in the cache used for read cache
 		int read_cache_size;
+
+		// the number of blocks with a refcount > 0, i.e.
+		// they may not be evicted
+		int pinned_blocks;
 
 		// the number of times we've changed elevator direction
 		int elevator_turns;

@@ -315,6 +315,8 @@ namespace libtorrent
 			m_cumulative_hash_time += total_microseconds(dt);
 		}
 
+		void pinned_change(int diff) { m_pinned_blocks += diff; }
+
 	private:
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
@@ -352,6 +354,10 @@ namespace libtorrent
 
 		// microseconds
 		size_type m_cumulative_hash_time;
+
+		// the number of blocks with a refcount > 0, i.e.
+		// they may not be evicted
+		int m_pinned_blocks;
 
 		// this is where buffers are allocated from
 		disk_buffer_pool& m_buffer_pool;

@@ -1936,7 +1936,7 @@ int main(int argc, char* argv[])
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
 			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %"PRId64"%% r: %"PRId64"%% "
-			"size: %s (%s) / %s dq: %"PRId64" ===\n"
+			"size: %s (%s) / %s pinned: %s dq: %"PRId64" ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -1951,6 +1951,7 @@ int main(int argc, char* argv[])
 			, add_suffix(boost::int64_t(cs.cache_size) * 16 * 1024).c_str()
 			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
 			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str()
+			, add_suffix(boost::int64_t(cs.pinned_blocks) * 16 * 1024).c_str()
 			, cs.queued_bytes);
 		out += str;
 

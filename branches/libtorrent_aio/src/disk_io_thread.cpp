@@ -743,6 +743,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(pe.blocks[i].buf);
 				pe.blocks[i].pending = true;
+				if (pe.blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 				++pe.blocks[i].refcount;
 				++const_cast<cached_piece_entry&>(pe).refcount;
 			}
@@ -1448,6 +1449,7 @@ namespace libtorrent
 		for (int i = start_block; i < pe->blocks_in_piece; ++i)
 		{
 			TORRENT_ASSERT(pe->blocks[i].buf);
+			if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 			++pe->blocks[i].refcount;
 			++pe->refcount;
 		}
@@ -1827,6 +1829,7 @@ namespace libtorrent
 			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf);
 			--j->ref.pe->blocks[j->ref.block].refcount;
 			--j->ref.pe->refcount;
+			if (j->ref.pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
 		}
 		return 0;
 	}

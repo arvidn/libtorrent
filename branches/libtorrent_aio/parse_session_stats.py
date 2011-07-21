@@ -117,7 +117,7 @@ reports = [
 	('average_disk_queue_time', 'job queued time', 's', 'running averages of disk queue time', ['disk queue time', 'disk job time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time', '% issue time']),
 	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),
-	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size']),
+	('disk_cache', 'blocks (16kiB)', '', 'disk cache size and usage', ['read disk cache size', 'disk cache size', 'disk buffer allocations', 'cache size', 'pinned blocks']),
 	('disk_readback', '% of written blocks', '%%', 'portion of written blocks that had to be read back for hash verification', ['% read back']),
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'read job queue size limit']),
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s', 'smooth read ops/s', 'smooth write ops/s']),
