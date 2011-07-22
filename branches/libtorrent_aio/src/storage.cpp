@@ -841,8 +841,8 @@ namespace libtorrent
 		}
 	}
 
-	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, int flags, async_handler* a)
+	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, async_handler* a)
 	{
 		if (m_settings)
 		{
@@ -858,8 +858,8 @@ namespace libtorrent
 		return op.ret;
 	}
 
-	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs
-		, int slot, int offset, int num_bufs, int flags, async_handler* a)
+	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, async_handler* a)
 	{
 		if (m_settings)
 			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
@@ -1073,14 +1073,14 @@ namespace libtorrent
 		return new default_storage(fs, mapped, path, fp, file_prio);
 	}
 
-	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, int flags, async_handler* a)
+	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs
+		, int num_bufs, int slot, int offset, int flags, async_handler* a)
 	{
 		return 0;
 	}
 
-	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs, int slot
-		, int offset, int num_bufs, int flags, async_handler* a)
+	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs
+		, int num_bufs, int slot, int offset, int flags, async_handler* a)
 	{
 		return 0;
 	}

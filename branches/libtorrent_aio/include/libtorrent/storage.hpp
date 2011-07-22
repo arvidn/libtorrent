@@ -112,10 +112,12 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
 
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
+
+		virtual void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset) {}
 
 		virtual bool has_any_file(storage_error& ec) = 0;
 		virtual void hint_read(int slot, int offset, int len) {}
@@ -184,10 +186,10 @@ namespace libtorrent
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error);
 		void write_resume_data(entry& rd, storage_error& ec) const;
 
-		file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a);
-		file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a);
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
 
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
@@ -255,10 +257,10 @@ namespace libtorrent
 		void move_storage(std::string const& save_path, storage_error& ec) {}
 		size_type physical_offset(int slot, int offset) { return 0; }
 
-		file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a);
-		file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a);
+		file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
+		file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
 
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error) { return false; }
 		void write_resume_data(entry& rd, storage_error& ec) const {}

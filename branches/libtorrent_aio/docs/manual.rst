@@ -7945,10 +7945,12 @@ The interface looks like this::
 		virtual void finalize_file(int index, storage_error& ec) {}
 		virtual ~storage_interface() {}
 
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
+
+		virtual void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset);
 
 		// non virtual functions
 
@@ -8009,10 +8011,10 @@ async_readv() async_writev()
 
 	::
 
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs
-			, int piece, int offset, int num_bufs, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a) = 0;
 
 These functions should produce I/O jobs (``aiocb_t``) to read or write the data in
 or to the given ``piece`` at the given ``offset``. It should read or write ``num_bufs``
@@ -8060,6 +8062,21 @@ client requests unaligned data. Most clients request aligned data.
 If the function returns NULL, no disk operation is assumed to  be required, and the
 completion handler is called immediately. This is a special case that can be used by
 storage implementations that stores the data in RAM for instance.
+
+readv_done()
+------------
+
+	::
+
+		void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset);
+
+This function is called when all asynchronous disk operations complete from a previous
+call to ``async_readv()``. It is not called for ``async_readv`` invocations that don't
+return any async disk jobs. It passes in the same buffers that were passed in to the read
+call.
+
+The intention of this hook is to allow the storage to do any post processing on the data
+that was just read from disk.
 
 sparse_end()
 ------------

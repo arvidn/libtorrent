@@ -677,8 +677,8 @@ namespace libtorrent
 					a->handler = boost::bind(&disk_io_thread::on_disk_write, this, p
 						, range_start, i, to_write, _1);
 
-					aios = p->storage->get_storage_impl()->async_writev(iov
-						, pe.piece, to_write, iov_counter, flags, a);
+					aios = p->storage->get_storage_impl()->async_writev(iov, iov_counter
+						, pe.piece, to_write, flags, a);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
 				}
@@ -689,8 +689,8 @@ namespace libtorrent
 					++m_outstanding_jobs;
 					a->handler = boost::bind(&disk_io_thread::on_disk_read, this, p
 						, range_start, i, _1);
-					aios = pe.storage->get_storage_impl()->async_readv(iov, pe.piece
-						, range_start * m_block_size, iov_counter, flags, a);
+					aios = pe.storage->get_storage_impl()->async_readv(iov, iov_counter
+						, pe.piece, range_start * m_block_size, flags, a);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
 				}
@@ -805,6 +805,18 @@ namespace libtorrent
 			m_read_time.add_sample(read_time);
 			m_cache_stats.cumulative_read_time += read_time;
 		}
+
+		file::iovec_t* vec = TORRENT_ALLOCA(file::iovec_t, end - begin);
+		int piece_size = p->storage->files()->piece_size(p->piece);
+		for (int i = begin, k = 0; i < end; ++i, ++k)
+		{
+			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
+			vec[k].iov_base = (file::iovec_base_t)p->blocks[i].buf;
+			vec[k].iov_len = m_block_size;
+		}
+
+		p->storage->get_storage_impl()->readv_done(vec, end - begin
+			, p->piece, begin * m_block_size);
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
@@ -1055,7 +1067,7 @@ namespace libtorrent
 		}
 #endif
 
-		if (m_settings.use_read_cache && !m_settings.explicit_read_cache)
+		if (m_settings.use_read_cache)
 		{
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
@@ -1133,8 +1145,8 @@ namespace libtorrent
 		}
 		a->handler = boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j);
 		file::iovec_t b = { j->buffer, j->buffer_size };
-		file::aiocb_t* aios = j->storage->get_storage_impl()->async_readv(&b
-			, j->piece, j->offset, 1, j->flags, a);
+		file::aiocb_t* aios = j->storage->get_storage_impl()->async_readv(&b, 1
+			, j->piece, j->offset, j->flags, a);
 
 		if (a->references == 0)
 		{
@@ -1243,8 +1255,8 @@ namespace libtorrent
 			return disk_operation_failed;
 		}
 		a->handler = boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j);
-		file::aiocb_t* aios = j->storage->get_storage_impl()->async_writev(&b
-			, j->piece, j->offset, 1, j->flags, a);
+		file::aiocb_t* aios = j->storage->get_storage_impl()->async_writev(&b, 1
+			, j->piece, j->offset, j->flags, a);
 
 		DLOG(stderr, "prepending aios (%p) from write_async_impl to m_to_issue (%p)\n"
 			, aios, m_to_issue);
@@ -1894,6 +1906,12 @@ namespace libtorrent
 			m_cache_stats.cumulative_read_time += read_time;
 			m_cache_stats.cumulative_job_time += read_time;
 		}
+
+		file::iovec_t vec;
+		vec.iov_base = (file::iovec_base_t)j->buffer;
+		vec.iov_len = j->buffer_size;
+
+		j->storage->get_storage_impl()->readv_done(&vec, 1, j->piece, j->offset);
 
 		++m_cache_stats.blocks_read;
 		if (j->callback)
