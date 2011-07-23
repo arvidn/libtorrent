@@ -30,31 +30,34 @@ import random
 # variables to test. All these are run on the first
 # entry in the filesystem list.
 cache_sizes = [0, 32768, 393216]
-peers = [200, 1000, 2000]
+peers = [200, 1000]
 builds = ['syncio', 'aio']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
-#filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
-filesystem = ['ext4']
+filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
 
 # the number of peers for the filesystem test. The
 # idea is to stress test the filesystem by using a lot
 # of peers, since each peer essentially is a separate
 # read location on the platter
-filesystem_peers = 200
+filesystem_peers = peers[-1]
 
 # the amount of cache for the filesystem test
-# 6 GiB of cache
-filesystem_cache = 393216
+# 5.5 GiB of cache
+filesystem_cache = cache_sizes[-1]
 
 # the number of seconds to run each test. It's important that
 # this is shorter than what it takes to finish downloading
 # the test torrent, since then the average rate will not
 # be representative of the peak anymore
 # this has to be long enough to download a full copy
-# of the test torrent
-test_duration = 300
+# of the test torrent. It's also important for the
+# test to be long enough that the warming up of the
+# disk cache is not a significant part of the test,
+# since download rates will be extremely high while downloading
+# into RAM
+test_duration = 700
 
 
 
@@ -88,7 +91,7 @@ for i in filesystem:
 # make sure we have a test torrent
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
-	os.system('./stage_%s/connection_tester gen-torrent test.torrent' % builds[0])
+	os.system('./stage_%s/connection_tester gen-torrent 2000 test.torrent' % builds[0])
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -108,7 +111,7 @@ def build_commandline(config, port):
 		
 	global test_duration
 
-	return './stage_%s/client_test -k -z -N -h -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt -a %s test.torrent' \
+	return './stage_%s/client_test -k -z -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" %s %s -q %d -p %d -f session_stats/alerts_log.txt -a %s test.torrent' \
 		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'] \
 			, no_disk_reorder, no_read_ahead, test_duration, port, config['allocation-mode'])
 
@@ -181,7 +184,7 @@ def run_test(config):
 	# enable disk stats printing
 	print >>client.stdin, 'x',
 	# when allocating storage, we have to wait for it to complete before we can connect
-	time.sleep(1)
+	time.sleep(10)
 	cmdline = './stage_%s/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['build'], config['test'], config['num-peers'], port)
 	print 'launching: %s' % cmdline
 	tester_output = open('session_stats/tester.output', 'w+')
@@ -215,13 +218,6 @@ def run_test(config):
 	print 'saving results'
 	os.rename('session_stats', build_target_folder(config))
 
-	# clean up
-	# don't clean up unless we ran a seed-test, so that we leave the test file
-	# complete for the seed test. i.e. we don't clean up if we ran a download test
-#	if config['test'] == 'download':
-#		print 'cleaning up'
-#		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), '.dht_state'])
-
 	port += 1
 
 #config = build_test_config('ext4', filesystem_peers, filesystem_cache, True, True, False)
@@ -233,10 +229,9 @@ for fs in filesystem:
 	rdahead = True
 	reorder = True
 	preallocate = False
-	for b in builds:
-		for test in ['upload', 'download']:
-			config = build_test_config(fs, filesystem_peers, filesystem_cache, rdahead, reorder, preallocate, test=test, build=b)
-			run_test(config)
+	for test in ['upload', 'download']:
+		config = build_test_config(fs, filesystem_peers, filesystem_cache, rdahead, reorder, preallocate, test=test, build='aio')
+		run_test(config)
 
 for c in cache_sizes:
 	for p in peers:
