@@ -167,6 +167,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 1
 #endif
+#define TORRENT_ICONV_ARG (const char**)
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_USE_NETLINK 0
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
@@ -274,6 +275,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
 	&& !defined (TORRENT_UPNP_LOGGING) && TORRENT_USE_IOSTREAM
 #define TORRENT_UPNP_LOGGING
+#endif
+
+#ifndef TORRENT_ICONV_ARG
+#define TORRENT_ICONV_ARG (char**)
 #endif
 
 // libiconv presence, not implemented yet
