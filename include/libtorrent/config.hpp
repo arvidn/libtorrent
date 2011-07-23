@@ -131,6 +131,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_ICONV_ARG (const char**)
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #define TORRENT_HAS_FALLOCATE 0
@@ -221,6 +222,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
 # define TORRENT_WRITE_HANDLER_MAX_SIZE 256
+#endif
+
+#ifndef TORRENT_ICONV_ARG
+#define TORRENT_ICONV_ARG (char**)
 #endif
 
 #if defined _MSC_VER && _MSC_VER <= 1200
