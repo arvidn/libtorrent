@@ -57,6 +57,14 @@ void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
 	}
 }
 
+// in order to circumvent the restricton of only
+// one connection per IP that most clients implement
+// all sockets created by this tester are bound to
+// uniqe local IPs in the range (127.0.0.1 - 127.255.255.255)
+// it's only enabled if the target is also on the loopback
+int local_if_counter = 0;
+bool local_bind = false;
+
 struct peer_conn
 {
 	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
@@ -75,6 +83,27 @@ struct peer_conn
 		, start_time(time_now_hires())
 	{
 		pieces.reserve(num_pieces);
+		if (local_bind)
+		{
+			error_code ec;
+			s.open(ep.protocol(), ec);
+			if (ec)
+			{
+				close("ERROR OPEN: %s", ec);
+				return;
+			}
+			tcp::endpoint bind_if(address_v4(
+				(127 << 24)
+				+ ((local_if_counter / 255) << 16)
+				+ ((local_if_counter % 255) + 1)), 0);
+			++local_if_counter;
+			s.bind(bind_if, ec);
+			if (ec)
+			{
+				close("ERROR BIND: %s", ec);
+				return;
+			}
+		}
 		s.async_connect(ep, boost::bind(&peer_conn::on_connect, this, _1));
 	}
 
@@ -227,6 +256,7 @@ struct peer_conn
 		char tmp[1024];
 		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = total_milliseconds(end_time - start_time);
+		if (time == 0) time = 1;
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
 		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
 		printf("%s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
@@ -458,6 +488,12 @@ int main(int argc, char* argv[])
 	int port = atoi(argv[4]);
 	tcp::endpoint ep(addr, port);
 	
+	unsigned long ip = addr.to_ulong();
+	if ((ip & 0xff000000) == 0x7f000000)
+	{
+		local_bind = true;
+	}
+
 	torrent_info ti(argv[5], ec);
 	if (ec)
 	{
@@ -497,6 +533,7 @@ int main(int argc, char* argv[])
 	{
 		peer_conn* p = *i;
 		int time = total_milliseconds(p->end_time - p->start_time);
+		if (time == 0) time = 1;
 		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
 		down += (boost::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
 		delete p;
