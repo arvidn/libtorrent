@@ -561,7 +561,10 @@ namespace libtorrent
 		ret.resize(outsize);
 		char const* in = s.c_str();
 		char* out = &ret[0];
-		size_t retval = iconv(iconv_handle, (char**)&in, &insize,
+		// posix has a weird iconv signature. implementations
+		// differ on what this signature should be, so we use
+		// a macro to let config.hpp determine it
+		size_t retval = iconv(iconv_handle, TORRENT_ICONV_ARG &in, &insize,
 			&out, &outsize);
 		if (retval == (size_t)-1) return s;
 		// if this string has an invalid utf-8 sequence in it, don't touch it
