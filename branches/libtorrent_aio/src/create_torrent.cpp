@@ -67,6 +67,7 @@ namespace libtorrent
 			std::string path = convert_to_native(p);
 			DWORD attr = GetFileAttributesA(path.c_str());
 #endif // TORRENT_USE_WSTRING
+			if (attr == INVALID_FILE_ATTRIBUTES) return 0;
 			if (attr & FILE_ATTRIBUTE_HIDDEN) return file_storage::attribute_hidden;
 			return 0;
 #else

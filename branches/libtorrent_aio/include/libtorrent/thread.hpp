@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
+#if defined TORRENT_BEOS
+#include <kernel/OS.h>
+#endif
+
 #include <memory> // for auto_ptr required by asio
 
 #include <boost/asio/detail/thread.hpp>
@@ -77,6 +81,10 @@ namespace libtorrent
 		pthread_cond_t m_cond;
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 		HANDLE m_sem;
+		mutex m_mutex;
+		int m_num_waiters;
+#elif defined TORRENT_BEOS
+		sem_id m_sem;
 		mutex m_mutex;
 		int m_num_waiters;
 #else

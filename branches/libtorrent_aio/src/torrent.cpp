@@ -2751,7 +2751,7 @@ namespace libtorrent
 			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 				i != downloading_piece.end(); ++i)
 			{
-				fprintf(stderr, "   %d:%d  %d\n", i->first.piece_index, i->first.block_index, i->second);
+				fprintf(stderr, "   %d:%d  %d\n", int(i->first.piece_index), int(i->first.block_index), i->second);
 			}
 
 		}

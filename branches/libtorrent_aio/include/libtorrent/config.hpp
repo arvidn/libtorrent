@@ -51,7 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef PRId64
-#ifdef _MSC_VER
+// MinGW uses microsofts runtime
+#if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #else
 #define PRId64 "lld"
@@ -196,6 +197,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 1
 #endif
+#define TORRENT_ICONV_ARG (const char**)
 #define TORRENT_USE_RLIMIT 0
 #if TORRENT_USE_DEFAULT_IO
 # define TORRENT_USE_OVERLAPPED 1
@@ -214,8 +216,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
-// apple uses utf-8 as its locale, so no conversion
-// is necessary
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 1
@@ -253,6 +253,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_EXPORT __declspec(dllimport)
 # endif
 #endif
+
+// ==== GNU/Hurd ===
+#elif defined __GNU__
+#define TORRENT_HURD
+#define TORRENT_USE_IFADDRS 1
+#define TORRENT_USE_IFCONF 1
+
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
@@ -309,6 +316,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
 	&& !defined (TORRENT_UPNP_LOGGING) && TORRENT_USE_IOSTREAM
 #define TORRENT_UPNP_LOGGING
+#endif
+
+#ifndef TORRENT_ICONV_ARG
+#define TORRENT_ICONV_ARG (char**)
 #endif
 
 // libiconv presence, not implemented yet
@@ -485,7 +496,7 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 	&& !defined TORRENT_USE_ECLOCK \
 	&& !defined TORRENT_USE_SYSTEM_TIME
 
-#if defined(__MACH__)
+#if defined __APPLE__ && defined __MACH__
 #define TORRENT_USE_ABSOLUTE_TIME 1
 #elif defined(_WIN32) || defined TORRENT_MINGW
 #define TORRENT_USE_QUERY_PERFORMANCE_TIMER 1
