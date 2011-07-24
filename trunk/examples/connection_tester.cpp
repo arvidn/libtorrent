@@ -126,6 +126,7 @@ struct peer_conn
 	int outstanding_requests;
 	// if this is true, this connection is a seed
 	bool seed;
+	bool fast_extension;
 	int blocks_received;
 	int blocks_sent;
 	int num_pieces;
@@ -175,6 +176,11 @@ struct peer_conn
 			return;
 		}
 
+		// buffer is the full 68 byte handshake
+		// look at the extension bits
+
+		fast_extension = ((char*)buffer)[27] & 4;
+
 		if (seed)
 		{
 			write_have_all();
@@ -187,11 +193,30 @@ struct peer_conn
 
 	void write_have_all()
 	{
-		// have_all and unchoke
-		static char msg[] = "\0\0\0\x01\x0e\0\0\0\x01\x01";
-		error_code ec;
-		boost::asio::async_write(s, libtorrent::asio::buffer(msg, sizeof(msg) - 1)
-			, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		if (fast_extension)
+		{
+			// have_all and unchoke
+			static char msg[] = "\0\0\0\x01\x0e\0\0\0\x01\x01";
+			error_code ec;
+			boost::asio::async_write(s, libtorrent::asio::buffer(msg, sizeof(msg) - 1)
+				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		}
+		else
+		{
+			// bitfield
+			int len = (num_pieces + 7) / 8;
+			char* ptr = (char*)buffer;
+			write_uint32(len + 1, ptr);
+			write_uint8(5, ptr);
+			memset(ptr, 255, len);
+			ptr += len;
+			// unchoke
+			write_uint32(1, ptr);
+			write_uint8(1, ptr);
+			error_code ec;
+			boost::asio::async_write(s, libtorrent::asio::buffer((char*)buffer, len + 10)
+				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		}
 	
 	}
 
@@ -347,9 +372,23 @@ struct peer_conn
 				if (pieces.empty()) pieces.push_back(piece);
 				else pieces.insert(pieces.begin() + (rand() % pieces.size()), piece);
 			}
-			else if (msg == 5)
+			else if (msg == 5) // bitfield
 			{
-				// todo: support bitfield
+				pieces.reserve(num_pieces);
+				int piece = 0;
+				for (int i = 0; i < bytes_transferred; ++i)
+				{
+					int mask = 0x80;
+					for (int k = 0; k < 8; ++k)
+					{
+						if (piece > num_pieces) break;
+						if (*ptr & mask) pieces.push_back(piece);
+						mask >>= 1;
+						++piece;
+					}
+					++ptr;
+				}
+				std::random_shuffle(pieces.begin(), pieces.end());
 			}
 			else if (msg == 7)
 			{
@@ -413,7 +452,16 @@ void generate_torrent(std::vector<char>& buf, int size)
 	const int piece_size = 1024 * 1024;
 	const int num_pieces = size;
 	const size_type total_size = size_type(piece_size) * num_pieces;
-	fs.add_file("stress_test_file", total_size);
+	size_type s = total_size;
+	int i = 0;
+	while (s)
+	{
+		char buf[100];
+		snprintf(buf, sizeof(buf), "t/stress_test%d", i);
+		++i;
+		fs.add_file(buf, (std::min)(s, size_type(20*1024*1024)));
+		s -= 20*1024*1024;
+	}
 	libtorrent::create_torrent t(fs, piece_size);
 
 	fprintf(stderr, "\n");
@@ -434,6 +482,14 @@ void generate_torrent(std::vector<char>& buf, int size)
 	std::back_insert_iterator<std::vector<char> > out(buf);
 
 	bencode(out, t.generate());
+}
+
+void io_thread(io_service* ios)
+{
+	error_code ec;
+	ios->run(ec);
+	if (ec)
+		fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
 }
 
 int main(int argc, char* argv[])
@@ -519,27 +575,34 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	ios.run(ec);
-	if (ec)
-	{
-		fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
-		return 1;
-	}
+
+	thread t1(boost::bind(&io_thread, &ios));
+	thread t2(boost::bind(&io_thread, &ios));
+ 
+	t1.join();
+	t2.join();
 
 	float up = 0.f;
 	float down = 0.f;
+	boost::uint64_t total_sent = 0;
+	boost::uint64_t total_received = 0;
+	
 	for (std::list<peer_conn*>::iterator i = conns.begin()
 		, end(conns.end()); i != end; ++i)
 	{
 		peer_conn* p = *i;
 		int time = total_milliseconds(p->end_time - p->start_time);
 		if (time == 0) time = 1;
+		if (time == 0) time = 1;
+		total_sent += p->blocks_sent;
 		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
 		down += (boost::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
 		delete p;
 	}
 
-	printf("=========================\nup: %.1fMB/s\ndown: %.1fMB/s\n", up, down);
+	printf("=========================\ntotal sent: %.1f %% received: %.1f %%\n"
+		, total_sent * 0x4000 / float(ti.total_size())
+		, total_received * 0x4000 / float(ti.total_size()));
 
 	return 0;
 }
