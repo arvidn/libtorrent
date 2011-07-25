@@ -342,12 +342,22 @@ struct peer_conn
 
 		if (seed)
 		{
-			if (msg == 6 && bytes_transferred == 13)
+			if (msg == 6)
 			{
+				if (bytes_transferred != 13)
+				{
+					close("REQUEST packet has invalid size", error_code());
+					return;
+				}
 				int piece = detail::read_int32(ptr);
 				int start = detail::read_int32(ptr);
 				int length = detail::read_int32(ptr);
 				write_piece(piece, start, length);
+			}
+			else if (msg == 3) // not-interested
+			{
+				close("DONE", error_code());
+				return;
 			}
 			else
 			{
@@ -428,10 +438,14 @@ void print_usage()
 		"    this command takes two extra arguments:\n"
 		"    1. the size of the torrent in megabytes\n"
 		"    2. the file to save the .torrent file to\n\n"
+		"  gen-data            generate the data file(s) for the test torrent\n"
+		"    this command takes two extra arguments:\n"
+		"    1. the torrent file that was previously generated\n"
+		"    2. the path to where the data should be stored\n"
 		"  upload              start an uploader test\n"
 		"  download            start a downloader test\n"
 		"  dual                start a download and upload test\n"
-		"    these commands set takes 4 additional arguments\n"
+		"    these commands set takes 4 additional arguments:\n"
 		"    1. num-connections - the number of connections to make to the target\n"
 		"    2. destination-IP - the IP address of the target\n"
 		"    3. destination-port - the port the target listens on\n"
@@ -470,6 +484,7 @@ void generate_torrent(std::vector<char>& buf, int size)
 	const int piece_size = 1024 * 1024;
 	const int num_pieces = size;
 	const size_type total_size = size_type(piece_size) * num_pieces;
+/*
 	size_type s = total_size;
 	int i = 0;
 	while (s)
@@ -480,6 +495,8 @@ void generate_torrent(std::vector<char>& buf, int size)
 		fs.add_file(buf, (std::min)(s, size_type(20*1024*1024)));
 		s -= 20*1024*1024;
 	}
+*/
+	fs.add_file("stress_test_file", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 
 	// generate the hashes in 4 threads
@@ -498,12 +515,29 @@ void generate_torrent(std::vector<char>& buf, int size)
 	bencode(out, t.generate());
 }
 
+void generate_data(char const* path, int num_pieces, int piece_size)
+{
+	FILE* f = fopen(path, "w+");
+
+	boost::uint32_t piece[0x4000 / 4];
+	for (int i = 0; i < num_pieces; ++i)
+	{
+		for (int j = 0; j < piece_size; j += 0x4000)
+		{
+			generate_block(piece, i, j, 0x4000);
+			fwrite(piece, 0x4000, 1, f);
+		}
+		if (i & 1) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(num_pieces));
+	}
+
+	fclose(f);
+}
+
 void io_thread(io_service* ios)
 {
 	error_code ec;
 	ios->run(ec);
-	if (ec)
-		fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+	if (ec) fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
 }
 
 int main(int argc, char* argv[])
@@ -528,6 +562,18 @@ int main(int argc, char* argv[])
 			fclose(output);
 
 		return 0;
+	}
+	else if (strcmp(argv[1], "gen-torrent") == 0)
+	{
+		if (argc != 4) print_usage();
+		error_code ec;
+		torrent_info ti(argv[2], ec);
+		if (ec)
+		{
+			fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
+			return 1;
+		}
+		generate_data(argv[3], ti.num_pieces(), ti.piece_length());
 	}
 	else if (strcmp(argv[1], "upload") == 0)
 	{
@@ -614,9 +660,12 @@ int main(int argc, char* argv[])
 		delete p;
 	}
 
-	printf("=========================\ntotal sent: %.1f %% received: %.1f %%\n"
-		, total_sent * 0x4000 / float(ti.total_size())
-		, total_received * 0x4000 / float(ti.total_size()));
+	printf("=========================\n"
+		"total sent: %.1f %% received: %.1f %%\n"
+		"rate sent: %.1f MB/s received: %.1f MB/s\n"
+		, total_sent * 0x4000 * 100.f / float(ti.total_size())
+		, total_received * 0x4000 * 100.f / float(ti.total_size())
+		, up, down);
 
 	return 0;
 }
