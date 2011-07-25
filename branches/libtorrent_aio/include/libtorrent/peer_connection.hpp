@@ -140,6 +140,8 @@ namespace libtorrent
 		{ return pb.block == block; }
 	};
 
+	inline void nop(char*) {}
+
 	class TORRENT_EXPORT peer_connection
 		: public bandwidth_socket
 		, public boost::noncopyable
@@ -544,22 +546,10 @@ namespace libtorrent
 		void log_buffer_usage(char* buffer, int size, char const* label);
 #endif
 
-		template <class Destructor>
-		void append_send_buffer(char* buffer, int size, Destructor const& destructor
-			, bool encrypted = false)
-		{
-#if defined TORRENT_BUFFER_STATS
-			log_buffer_usage(buffer, size, "queued send buffer");
-#endif
-			// bittorrent connections should never use this function, since
-			// they might be encrypted and this would circumvent the actual
-			// encryption. bt_peer_connection overrides this function with
-			// its own version.
-			TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
-			m_send_buffer.append_buffer(buffer, size, size, destructor);
-		}
+		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor
+			, bool encrypted = false);
 
-		virtual void append_const_send_buffer(char const* buffer, int size);
+		virtual void append_const_send_buffer(char const* buffer, int size, boost::function<void(char*)> const& destructor = &nop);
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
 		void set_country(char const* c)

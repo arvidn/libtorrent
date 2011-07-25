@@ -626,7 +626,8 @@ namespace libtorrent
 #endif
 	}
 
-	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
+	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
+		, boost::function<void(char*)> const& destructor)
 	{
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted && m_rc4_encrypted)
@@ -636,12 +637,23 @@ namespace libtorrent
 			char* buf = (char*)malloc(size);
 			memcpy(buf, buffer, size);
 			bt_peer_connection::append_send_buffer(buf, size, boost::bind(&::free, _1));
+			destructor((char*)buffer);
 		}
 		else
 #endif
 		{
-			peer_connection::append_const_send_buffer(buffer, size);
+			peer_connection::append_const_send_buffer(buffer, size, destructor);
 		}
+	}
+
+	void bt_peer_connection::append_send_buffer(char* buffer, int size
+		, boost::function<void(char*)> const& destructor)
+	{
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_rc4_encrypted)
+			m_rc4_handler->encrypt(buffer, size);
+#endif
+		peer_connection::append_send_buffer(buffer, size, destructor, true);
 	}
 
 	void encrypt(char* buf, int len, void* userdata)
@@ -2281,7 +2293,7 @@ namespace libtorrent
 		}
 		else
 		{
-			append_send_buffer(j.buffer, r.length
+			append_const_send_buffer(j.buffer, r.length
 				, boost::bind(&session_impl::reclaim_block
 				, boost::ref(m_ses), j.ref));
 		}

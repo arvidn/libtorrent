@@ -4982,11 +4982,24 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
-	void nop(char*) {}
-
-	void peer_connection::append_const_send_buffer(char const* buffer, int size)
+	void peer_connection::append_send_buffer(char* buffer, int size
+		, boost::function<void(char*)> const& destructor, bool encrypted)
 	{
-		m_send_buffer.append_buffer((char*)buffer, size, size, &nop);
+#if defined TORRENT_BUFFER_STATS
+		log_buffer_usage(buffer, size, "queued send buffer");
+#endif
+		// bittorrent connections should never use this function, since
+		// they might be encrypted and this would circumvent the actual
+		// encryption. bt_peer_connection overrides this function with
+		// its own version.
+		TORRENT_ASSERT(encrypted || type() != bittorrent_connection);
+		m_send_buffer.append_buffer(buffer, size, size, destructor);
+	}
+
+	void peer_connection::append_const_send_buffer(char const* buffer, int size
+		, boost::function<void(char*)> const& destructor)
+	{
+		m_send_buffer.append_buffer((char*)buffer, size, size, destructor);
 #if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
 		m_ses.m_buffer_usage_logger << log_time() << " append_const_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
