@@ -6095,7 +6095,7 @@ namespace libtorrent
 		}
 		else if (is_seed())
 		{
-			int num_pieces = m_picker->num_pieces();
+			int num_pieces = m_torrent_file->num_pieces();
 			st.pieces.resize(num_pieces, true);
 		}
 		st.num_pieces = num_have();
