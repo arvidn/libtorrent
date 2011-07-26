@@ -169,6 +169,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
+	TORRENT_ASSERT(j->buffer);
+
 	iterator p = allocate_piece(j);
 	TORRENT_ASSERT(p != end());
 	if (p == end()) return p;
@@ -182,14 +184,13 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(block < pe->blocks_in_piece);
-	TORRENT_ASSERT(pe->blocks[block].pending == false);
-	TORRENT_ASSERT(pe->blocks[block].dirty == false);
-	TORRENT_ASSERT(pe->blocks[block].buf == 0);
 	TORRENT_ASSERT(j->piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
 	if (pe->blocks[block].buf != 0)
 	{
+		TORRENT_ASSERT(pe->blocks[block].refcount == 0);
+		TORRENT_ASSERT(pe->blocks[block].dirty == false);
 		m_buffer_pool.free_buffer(pe->blocks[block].buf);
 		--pe->num_blocks;
 		TORRENT_ASSERT(m_cache_size > 0);
@@ -217,6 +218,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
+	TORRENT_ASSERT(m_write_cache_size <= m_buffer_pool.in_use());
 	return p;
 }
 
@@ -282,7 +284,11 @@ void block_cache::mark_for_deletion(iterator p)
 			TORRENT_ASSERT(m_read_cache_size > 0);
 			--m_read_cache_size;
 		}
-		else --pe->num_dirty;
+		else
+		{
+			--pe->num_dirty;
+			--m_write_cache_size;
+		}
 	}
 	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 	pe->marked_for_deletion = true;
@@ -330,6 +336,10 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 
 		if (pe->num_blocks == 0 && !pe->hash)
 		{
+#ifdef TORRENT_DEBUG
+			for (int j = 0; j < pe->blocks_in_piece; ++j)
+				TORRENT_ASSERT(pe->blocks[j].buf == 0);
+#endif
 			TORRENT_ASSERT(pe->refcount == 0);
 			idx.erase(i++);
 			continue;
@@ -480,6 +490,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 				"piece: %d\n", &m_buffer_pool, int(pe->piece));
 			pe->marked_for_deletion = false;
 		}
+		TORRENT_ASSERT(j->piece == pe->piece);
 		pe->jobs.push_back(j);
 	}
 
@@ -526,6 +537,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			// async. operation
 			if (bl.refcount > 0) continue;
 
+			TORRENT_ASSERT(m_pinned_blocks > 0);
 			--m_pinned_blocks;
 
 			TORRENT_ASSERT(pe->blocks[i].pending);
@@ -567,7 +579,11 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(pe->blocks[i].pending);
 			--pe->refcount;
 			pe->blocks[i].pending = false;
-			--m_pinned_blocks;
+			if (pe->blocks[i].refcount == 0)
+			{
+				TORRENT_ASSERT(m_pinned_blocks > 0);
+				--m_pinned_blocks;
+			}
 
 #if TORRENT_BUFFER_STATS
 			m_buffer_pool.rename_buffer(pe->blocks[i].buf, "read cache");
@@ -781,7 +797,11 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				--bl.refcount;
 				TORRENT_ASSERT(pe->refcount >= bl.pending);
 				--pe->refcount;
-				if (bl.refcount == 0) --m_pinned_blocks;
+				if (bl.refcount == 0)
+				{
+					TORRENT_ASSERT(m_pinned_blocks > 0);
+					--m_pinned_blocks;
+				}
 			}
 			DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
 				"piece: %d begin: %d end: %d\n"
@@ -793,6 +813,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 						"piece: %d offset: %d begin: %d end: %d piece_size: %d\n"
 						, &m_buffer_pool, int(pe->piece)
 						, ph.offset, hash_start, hash_end, j->storage->files()->piece_size(j->piece));
+				TORRENT_ASSERT(j->piece == pe->piece);
 				pe->jobs.push_back(j);
 				continue;
 			}
@@ -806,6 +827,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				, &m_buffer_pool, int(pe->piece), int(pe->num_dirty)
 				, hash_start, hash_end);
 			// this job is waiting for some blocks to be written
+			TORRENT_ASSERT(j->piece == pe->piece);
 			pe->jobs.push_back(j);
 			continue;
 		}
@@ -820,6 +842,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (still hashing)"
 					"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
 					, hash_start, hash_end);
+				TORRENT_ASSERT(j->piece == pe->piece);
 				pe->jobs.push_back(j);
 				continue;
 			}
@@ -854,6 +877,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (overlap) "
 					"piece: %d begin: %d end: %d\n", &m_buffer_pool, int(pe->piece)
 					, hash_start, hash_end);
+				TORRENT_ASSERT(j->piece == pe->piece);
 				pe->jobs.push_back(j);
 				continue;
 			}
@@ -869,6 +893,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				// blocks from this piece, we have to
 				// leave it in here. It's not clear if this
 				// would ever happen and in that case why
+				TORRENT_ASSERT(j->piece == pe->piece);
 				pe->jobs.push_back(j);
 				continue;
 			}
@@ -914,7 +939,11 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		--pe->blocks[i].refcount;
 		TORRENT_ASSERT(pe->refcount > 0);
 		--pe->refcount;
-		if (pe->blocks[i].refcount == 0) --m_pinned_blocks;
+		if (pe->blocks[i].refcount == 0)
+		{
+			TORRENT_ASSERT(m_pinned_blocks > 0);
+			--m_pinned_blocks;
+		}
 	}
 
 #if DEBUG_CACHE
@@ -976,7 +1005,6 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		--m_cache_size;
 		TORRENT_ASSERT(pe->num_dirty > 0);
 		--pe->num_dirty;
-		if (pe->blocks[i].refcount == 0) --m_pinned_blocks;
 	}
 
 	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
@@ -985,7 +1013,12 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		disk_io_job* j = (disk_io_job*)i;
 		i = (disk_io_job*)i->next;
 		j->next = 0;
-		if (j->action != disk_io_job::write) { pe->jobs.push_back(j); continue; }
+		if (j->action != disk_io_job::write)
+		{
+			TORRENT_ASSERT(j->piece == pe->piece);
+			pe->jobs.push_back(j);
+			continue;
+		}
 		j->error.ec.assign(libtorrent::error::operation_aborted, get_system_category());
 		TORRENT_ASSERT(j->callback);
 		ios.post(boost::bind(&complete_job, pool, -1, j));
@@ -1115,6 +1148,7 @@ void block_cache::check_invariant() const
 		TORRENT_ASSERT(num_refcount == p.refcount);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
+	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
 	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);
 
 #ifdef TORRENT_BUFFER_STATS

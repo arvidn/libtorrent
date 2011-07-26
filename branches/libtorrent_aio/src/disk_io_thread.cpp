@@ -1026,6 +1026,7 @@ namespace libtorrent
 
 		if (ret != defer_handler && j->callback)
 		{
+			TORRENT_ASSERT(j->next == 0);
 			DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
 			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
 		}
@@ -1380,11 +1381,37 @@ namespace libtorrent
 
 			// we already had a piece allocated, but we might not have
 			// all the blocks we need in the cache
+			if (pe->hashing != -1)
+			{
+				// there's already an outstanding hash job
+				// this happens for instance when we're downloading
+				// a piece, which always will calculate the hash
+				// as it's downloaded, and we finish it and issue
+				// a hash job before the last async hash job returns
+				// in this case, just tag on the hash job on the piece
+				// and have it be completed when the hasher get kicked
+				// again and later finishes the whole piece
+				pe->jobs.push_back(j);
+
+				// increase the refcount for all blocks the hash job needs in
+				// order to complete. These are decremented in block_cache::reap_piece_jobs
+				// for hash jobs
+				for (int i = pe->hashing; i < pe->blocks_in_piece; ++i)
+				{
+					TORRENT_ASSERT(pe->blocks[i].buf);
+					if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
+					++pe->blocks[i].refcount;
+					++pe->refcount;
+				}
+
+				return defer_handler;
+			}
+
 			// issue read commands to read those blocks in
 			if (pe->hash)
 			{
-				if (pe->hashing != -1) start_block = pe->hashing;
-				else start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
+				TORRENT_ASSERT(pe->hashing == -1);
+				start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
 			}
 
 			// find a (potential) range that we can start hashing, of blocks that we already have

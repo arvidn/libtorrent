@@ -83,6 +83,7 @@ namespace libtorrent
 		, mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+		return m_buffers_in_use.count(buffer) == 1;
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
 			== m_buf_to_category.end()) return false;
@@ -110,6 +111,10 @@ namespace libtorrent
 #else
 		char* ret = (char*)m_pool.malloc();
 		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
+#endif
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
+		m_buffers_in_use.insert(ret);
 #endif
 		++m_in_use;
 #if TORRENT_USE_MLOCK
@@ -205,6 +210,11 @@ namespace libtorrent
 		page_aligned_allocator::free(buf);
 #else
 		m_pool.free(buf);
+#endif
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
+		TORRENT_ASSERT(i != m_buffers_in_use.end());
+		m_buffers_in_use.erase(i);
 #endif
 		--m_in_use;
 	}

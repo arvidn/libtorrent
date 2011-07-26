@@ -262,6 +262,8 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		
+		void pinned_change(int diff) { m_disk_cache.pinned_change(diff); }
+
 	private:
 
 		void added_to_write_queue();

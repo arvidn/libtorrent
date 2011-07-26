@@ -55,12 +55,20 @@ namespace libtorrent
 		if (ptr == 0) return 0;
 		new (ptr) disk_io_job;
 		ptr->action = (disk_io_job::action_t)type;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		ptr->in_use = true;
+#endif
 		return ptr;
 	}
 
 	void aiocb_pool::free_job(disk_io_job* j)
 	{
+		TORRENT_ASSERT(j);
 		if (j == 0) return;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(j->in_use);
+		j->in_use = false;
+#endif
 		j->~disk_io_job();
 		m_job_pool.free(j);	
 	}

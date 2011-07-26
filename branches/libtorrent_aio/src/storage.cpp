@@ -100,6 +100,7 @@ namespace libtorrent
 	// this is called in the network thread when a job completes
 	void complete_job(aiocb_pool* pool, int ret, disk_io_job* j)
 	{
+		TORRENT_ASSERT(j->next == 0);
 		if (j->callback) j->callback(ret, *j);
 		pool->free_job(j);
 	}
@@ -1259,6 +1260,7 @@ namespace libtorrent
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		// the buffer needs to be allocated through the io_thread
 		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.get()));
+		TORRENT_ASSERT(buffer.get());
 
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::write);
 		j->storage = this;

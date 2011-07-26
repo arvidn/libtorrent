@@ -315,7 +315,11 @@ namespace libtorrent
 			m_cumulative_hash_time += total_microseconds(dt);
 		}
 
-		void pinned_change(int diff) { m_pinned_blocks += diff; }
+		void pinned_change(int diff)
+		{
+			TORRENT_ASSERT(diff > 0 || m_pinned_blocks >= -diff);
+			m_pinned_blocks += diff;
+		}
 
 	private:
 

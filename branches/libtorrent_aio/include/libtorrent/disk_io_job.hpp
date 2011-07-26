@@ -80,6 +80,9 @@ namespace libtorrent
 			, offset(0)
 			, max_cache_line(0)
 			, cache_min_time(0)
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			, in_use(false)
+#endif
 		{}
 
 		enum action_t
@@ -169,6 +172,9 @@ namespace libtorrent
 		// be de-referenced by sending a reclaim_block message
 		// back to the disk thread
 		block_cache_reference ref;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		bool in_use;
+#endif
 	};
 
 }

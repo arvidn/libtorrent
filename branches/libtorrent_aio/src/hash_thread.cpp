@@ -74,6 +74,7 @@ namespace libtorrent
 			p->hashing = start;
 			for (int i = start; i < end; ++i)
 			{
+				if (p->blocks[i].refcount == 0) m_disk_thread->pinned_change(1);
 				++p->blocks[i].refcount;
 				++p->refcount;
 			}

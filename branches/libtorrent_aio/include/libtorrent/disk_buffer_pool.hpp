@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #endif
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#include <set>
+#endif
+
 #ifdef TORRENT_BUFFER_STATS
 #include <map>
 #include <fstream>
@@ -115,6 +119,7 @@ namespace libtorrent
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int m_magic;
+		std::set<char*> m_buffers_in_use;
 #endif
 	};
 
