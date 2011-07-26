@@ -242,6 +242,11 @@ namespace libtorrent
 		// passed in iterator will be invalidated
 		void mark_for_deletion(iterator i);
 
+		// simialr to  mark_for_deletion, except for actually marking the
+		// piece for deletion. If the piece was actually deleted,
+		// the function returns true
+		bool evict_piece(iterator i);
+
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
 		int try_read(disk_io_job* j);

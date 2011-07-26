@@ -966,6 +966,7 @@ namespace libtorrent
 		&disk_io_thread::do_hashing_done,
 		&disk_io_thread::do_file_status,
 		&disk_io_thread::do_reclaim_block,
+		&disk_io_thread::do_clear_piece,
 	};
 
 	static const char* job_action_name[] =
@@ -988,7 +989,8 @@ namespace libtorrent
 		"get_cache_info",
 		"hashing_done",
 		"file_status",
-		"reclaim_block"
+		"reclaim_block",
+		"clear_piece"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1871,6 +1873,13 @@ namespace libtorrent
 			if (j->ref.pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
 		}
 		return 0;
+	}
+
+	int disk_io_thread::do_clear_piece(disk_io_job* j)
+	{
+		block_cache::iterator p = m_disk_cache.find_piece(j);
+		if (p == m_disk_cache.end()) return 0;
+		m_disk_cache.evict_piece(p);
 	}
 
 	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job* j)

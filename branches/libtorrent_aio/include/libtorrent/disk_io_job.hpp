@@ -106,6 +106,7 @@ namespace libtorrent
 			, hash_complete
 			, file_status
 			, reclaim_block
+			, clear_piece
 		};
 
 		enum flags_t

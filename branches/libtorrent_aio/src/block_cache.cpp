@@ -260,11 +260,9 @@ std::pair<block_cache::iterator, block_cache::iterator> block_cache::pieces_for_
 	return idx.equal_range(boost::make_tuple(st));
 }
 
-void block_cache::mark_for_deletion(iterator p)
+bool block_cache::evict_piece(iterator i)
 {
-	INVARIANT_CHECK;
-
-	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
 
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
@@ -291,20 +289,33 @@ void block_cache::mark_for_deletion(iterator p)
 		}
 	}
 	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
-	pe->marked_for_deletion = true;
-	DLOG(stderr, "[%p] block_cache mark-for-deletion "
-		"piece: %d\n", &m_buffer_pool, int(pe->piece));
-
-	if (pe->refcount == 0)
-	{
-		TORRENT_ASSERT(p->jobs.empty());
-		cache_piece_index_t& idx = m_pieces.get<0>();
-		idx.erase(p);
-		return;
-	}
 
 	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
 	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
+
+	if (pe->refcount == 0)
+	{
+		TORRENT_ASSERT(pe->jobs.empty());
+		cache_piece_index_t& idx = m_pieces.get<0>();
+		idx.erase(i);
+		return true;
+	}
+
+	return false;
+}
+
+void block_cache::mark_for_deletion(iterator p)
+{
+	INVARIANT_CHECK;
+
+	DLOG(stderr, "[%p] block_cache mark-for-deletion "
+		"piece: %d\n", &m_buffer_pool, int(p->piece));
+
+	if (!evict_piece(p))
+	{
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+		pe->marked_for_deletion = true;
+	}
 }
 
 // this only evicts read blocks. For write blocks, see

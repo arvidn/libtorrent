@@ -360,6 +360,8 @@ namespace libtorrent
 		void async_save_resume_data(
 			boost::function<void(int, disk_io_job const&)> const& handler);
 
+		void async_clear_piece(int piece);
+
 		enum return_t
 		{
 			// return values from check_fastresume

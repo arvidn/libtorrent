@@ -3014,6 +3014,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
+		if (m_storage) m_storage->async_clear_piece(index);
+
 		if (m_ses.m_alerts.should_post<hash_failed_alert>())
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
 
