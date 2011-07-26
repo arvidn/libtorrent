@@ -238,7 +238,7 @@ namespace libtorrent
 					m_own = true;
 				}
 			}
-			else
+			else if (bits > 0)
 			{
 				m_bytes = (unsigned char*)std::malloc(b);
 				m_own = true;
