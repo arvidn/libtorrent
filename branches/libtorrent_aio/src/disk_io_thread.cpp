@@ -1417,8 +1417,12 @@ namespace libtorrent
 			}
 
 			// find a (potential) range that we can start hashing, of blocks that we already have
+			// it's OK to start hashing blocks that are dirty and being written right now
+			// in fact, we want to do that to be able to serve them as soon as possible
 			int end = start_block;
-			while (end < pe->blocks_in_piece && pe->blocks[end].buf && !pe->blocks[end].pending) ++end;
+			while (end < pe->blocks_in_piece
+				&& pe->blocks[end].buf
+				&& (!pe->blocks[end].pending || pe->blocks[end].dirty)) ++end;
 
 			bool submitted = false;
 			if (end > start_block)
