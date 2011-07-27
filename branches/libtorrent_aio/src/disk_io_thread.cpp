@@ -567,7 +567,7 @@ namespace libtorrent
 
 		// count number of blocks that would be flushed
 		int num_blocks = 0;
-		for (int i = end; i >= 0; --i)
+		for (int i = end-1; i >= 0; --i)
 			num_blocks += (p->blocks[i].dirty && !p->blocks[i].pending);
 
 		// we did not satisfy the cont_block requirement
