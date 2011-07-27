@@ -161,7 +161,7 @@ struct test_storage : storage_interface
 	virtual void initialize(bool allocate_files, storage_error& ec) {}
 	virtual bool has_any_file(storage_error& ec) { return true; }
 
-
+/*
 	int write(
 		const char* buf
 		, int slot
@@ -198,8 +198,9 @@ struct test_storage : storage_interface
 		return size;
 	}
 
-	file::aiocb_t* async_readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
+*/
+	file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, async_handler* handler)
 	{
 /*
 		error_code ec;
@@ -213,8 +214,8 @@ struct test_storage : storage_interface
 	// #error instead of passing in a boost::function, pass in the async_handler
 	// and if this function doesn't add any references to it, the caller will
 	// invoke the callback
-	file::aiocb_t* async_writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
+	file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, async_handler*  handler)
 	{
 /*
 		error_code ec;
@@ -222,6 +223,23 @@ struct test_storage : storage_interface
 		TORRENT_ASSERT(m_disk_io_service);
 		m_disk_io_service->post(boost::bind(handler, ec, ret));
 */
+
+		if (slot == 0 || slot == 5999)
+		{
+			libtorrent::mutex::scoped_lock l(m_mutex);
+			std::cerr << "--- starting job " << slot << " waiting for main thread ---\n" << std::endl;
+			m_ready = true;
+			m_ready_condition.signal(l);
+
+			while (!m_started)
+				m_condition.wait(l);
+
+			m_condition.clear(l);
+			m_ready_condition.clear(l);
+			m_ready = false;
+			m_started = false;
+			std::cerr << "--- starting ---\n" << std::endl;
+		}
 		return 0;
 	}
 
@@ -308,11 +326,10 @@ void callback(int ret, disk_io_job const& j)
 
 void add_job(disk_io_thread& dio, int piece, boost::intrusive_ptr<piece_manager>& pm)
 {
-	disk_io_job j;
-	j.action = disk_io_job::read;
-	j.storage = pm;
-	j.piece = piece;
-	j.callback = boost::bind(&callback, _1, _2);
+	disk_io_job* j = dio.aiocbs()->allocate_job(disk_io_job::read);
+	j->storage = pm;
+	j->piece = piece;
+	j->callback = boost::bind(&callback, _1, _2);
 	++job_counter;
 	dio.add_job(j);
 }
@@ -328,8 +345,9 @@ void run_elevator_test()
 	{
 		error_code ec;
 		disk_io_thread dio(ios, boost::bind(&nop), boost::bind(&nop));
-		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>(), ti, ""
-			, dio, &create_test_storage, storage_mode_sparse, std::vector<boost::uint8_t>()));
+		boost::intrusive_ptr<piece_manager> pm(new piece_manager(boost::shared_ptr<void>()
+			, (file_storage*)&ti->files(), 0, "", dio, &create_test_storage, storage_mode_sparse
+			, std::vector<boost::uint8_t>()));
 
 		// we must disable the read cache in order to
 		// verify that the elevator algorithm works.
@@ -337,9 +355,10 @@ void run_elevator_test()
 		// the elevator order
 		session_settings set;
 		set.use_read_cache = false;
-		disk_io_job j;
-		j.buffer = (char*)&set;
-		j.action = disk_io_job::update_settings;
+
+		disk_io_job* j = dio->aiocbs()->allocate_job(disk_io_job::update_settings);
+		j->buffer = (char*)&set;
+		++job_counter;
 		dio.add_job(j);
 
 		// test the elevator going up
@@ -401,8 +420,9 @@ void run_elevator_test()
 
 		// test disabling disk-reordering
 		set.allow_reordered_disk_operations = false;
-		j.buffer = (char*)&set;
-		j.action = disk_io_job::update_settings;
+		j = aio->aiocbs()->allocate_job(disk_io_job::update_settings);
+		j->buffer = (char*)&set;
+		++job_counter;
 		dio.add_job(j);
 
 		turns = 0;
