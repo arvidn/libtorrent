@@ -63,6 +63,7 @@ set(sources
 	logger
 	file_pool
 	lsd
+	disk_io_job
 	disk_io_thread
 	enum_net
 	broadcast_socket

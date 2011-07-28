@@ -36,9 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp" // for file::iovec_t
 
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
+//#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/object_pool.hpp>
-#endif
+//#endif
 
 namespace libtorrent
 {

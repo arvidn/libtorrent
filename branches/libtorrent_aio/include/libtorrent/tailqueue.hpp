@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TAILQUEUE_HPP
 #define TORRENT_TAILQUEUE_HPP
 
+#include "libtorrent/assert.hpp"
+
 namespace libtorrent
 {
 	struct tailqueue_node

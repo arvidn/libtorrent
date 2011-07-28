@@ -1096,7 +1096,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		disk_buffer_holder buffer(m_ses, j.buffer);
+		disk_buffer_holder buffer(m_ses, j);
 
 		--rp->blocks_left;
 		if (ret != r.length)
@@ -3014,8 +3014,6 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		if (m_storage) m_storage->async_clear_piece(index);
-
 		if (m_ses.m_alerts.should_post<hash_failed_alert>())
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
 
@@ -3052,6 +3050,11 @@ namespace libtorrent
 			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
+
+		// don't do this until after the plugins have had a chance
+		// to read back the blocks that failed, for blame purposes
+		// this way they have a chance to hit the cache
+		if (m_storage) m_storage->async_clear_piece(index);
 
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)

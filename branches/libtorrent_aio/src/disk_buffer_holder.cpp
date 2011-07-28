@@ -38,33 +38,51 @@ namespace libtorrent
 {
 
 	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, char* buf)
-		: m_disk_pool(ses.m_disk_thread), m_buf(buf)
+		: m_disk_thread(ses.m_disk_thread), m_buf(buf)
 	{
-		TORRENT_ASSERT(buf == 0 || m_disk_pool.is_disk_buffer(buf));
+		m_ref.pe = 0;
+		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_buffer_pool& iothread, char* buf)
-		: m_disk_pool(iothread), m_buf(buf)
+	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j)
+		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.ref)
 	{
-		TORRENT_ASSERT(buf == 0 || m_disk_pool.is_disk_buffer(buf));
+		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
+	}
+
+	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, disk_io_job const& j)
+		: m_disk_thread(iothread), m_buf(j.buffer), m_ref(j.ref)
+	{
+		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
+		// in this use case, we're in the disk io thread, we shouldn't
+		// be using the reference counted buffer here
+		TORRENT_ASSERT(m_ref.pe == 0);
+	}
+
+	void disk_buffer_holder::reset(disk_io_job const& j)
+	{
+		if (m_ref.pe) m_disk_thread.reclaim_block(m_ref);
+		else if (m_buf) m_disk_thread.free_buffer(m_buf);
+		m_buf = j.buffer;
+		m_ref = j.ref;
 	}
 
 	void disk_buffer_holder::reset(char* buf)
 	{
-		if (m_buf) m_disk_pool.free_buffer(m_buf);
+		if (m_ref.pe) m_disk_thread.reclaim_block(m_ref);
+		else if (m_buf) m_disk_thread.free_buffer(m_buf);
 		m_buf = buf;
+		m_ref.pe = 0;
 	}
 
 	char* disk_buffer_holder::release()
 	{
 		char* ret = m_buf;
 		m_buf = 0;
+		m_ref.pe = 0;
 		return ret;
 	}
 
-	disk_buffer_holder::~disk_buffer_holder()
-	{
-		if (m_buf) m_disk_pool.free_buffer(m_buf);
-	}
+	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 }
 

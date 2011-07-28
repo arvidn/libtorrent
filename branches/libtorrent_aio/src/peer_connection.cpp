@@ -4460,7 +4460,7 @@ namespace libtorrent
 #endif
 		m_reading_bytes -= r.length;
 
-		disk_buffer_holder buffer(m_ses, j.ref.pe == 0 ? j.buffer : 0);
+		disk_buffer_holder buffer(m_ses, j);
 #if TORRENT_BUFFER_STATS
 		if (j.buffer && j.ref.pe == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
@@ -4477,7 +4477,6 @@ namespace libtorrent
 		if (ret != r.length)
 		{
 			// handle_disk_error may disconnect us
-			if (j.ref.pe) m_ses.reclaim_block(j.ref);
 			t->handle_disk_error(j, this);
 			return;
 		}

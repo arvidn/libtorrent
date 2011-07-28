@@ -38,9 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
 #include <boost/function/function2.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 namespace libtorrent
 {
@@ -71,19 +71,8 @@ namespace libtorrent
 	// containers.
 	struct disk_io_job : tailqueue_node
 	{
-		disk_io_job()
-			: action(read)
-			, buffer(0)
-			, buffer_size(0)
-			, flags(0)
-			, piece(0)
-			, offset(0)
-			, max_cache_line(0)
-			, cache_min_time(0)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			, in_use(false)
-#endif
-		{}
+		disk_io_job();
+		~disk_io_job();
 
 		enum action_t
 		{

@@ -1381,39 +1381,11 @@ namespace libtorrent
 		{
 			pe = const_cast<cached_piece_entry*>(&*p);
 
-			// we already had a piece allocated, but we might not have
-			// all the blocks we need in the cache
-			if (pe->hashing != -1)
-			{
-				// there's already an outstanding hash job
-				// this happens for instance when we're downloading
-				// a piece, which always will calculate the hash
-				// as it's downloaded, and we finish it and issue
-				// a hash job before the last async hash job returns
-				// in this case, just tag on the hash job on the piece
-				// and have it be completed when the hasher get kicked
-				// again and later finishes the whole piece
-				pe->jobs.push_back(j);
-
-				// increase the refcount for all blocks the hash job needs in
-				// order to complete. These are decremented in block_cache::reap_piece_jobs
-				// for hash jobs
-				for (int i = pe->hashing; i < pe->blocks_in_piece; ++i)
-				{
-					TORRENT_ASSERT(pe->blocks[i].buf);
-					if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
-					++pe->blocks[i].refcount;
-					++pe->refcount;
-				}
-
-				return defer_handler;
-			}
-
 			// issue read commands to read those blocks in
 			if (pe->hash)
 			{
-				TORRENT_ASSERT(pe->hashing == -1);
-				start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
+				if (pe->hashing != -1) start_block = pe->hashing;
+				else start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
 			}
 
 			// find a (potential) range that we can start hashing, of blocks that we already have
@@ -1454,11 +1426,12 @@ namespace libtorrent
 				}
 				ret = defer_handler;
 			}
-			else
+			else if (pe->hashing == -1)
 			{
 				// we get here if the hashing is already complete
 				// in the pe->hash object. We just need to finalize
 				// it and compare to the actual hash
+				// This doesn't seem very likely to ever happen
 
 				TORRENT_ASSERT(pe->hash->offset == j->storage->files()->piece_size(pe->piece));
 				partial_hash& ph = *pe->hash;

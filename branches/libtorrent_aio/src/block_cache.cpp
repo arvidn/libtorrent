@@ -680,75 +680,55 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end)
 {
-	if (pe->hash && pe->hashing == -1)
+	TORRENT_ASSERT(pe->hash);
+	if (!pe->hash) return;
+
+	TORRENT_ASSERT(pe->hashing == -1);
+	if (pe->hashing != -1) return;
+
+	int piece_size = pe->storage.get()->files()->piece_size(pe->piece);
+	partial_hash& ph = *pe->hash;
+	if (ph.offset < piece_size)
 	{
-		int piece_size = pe->storage.get()->files()->piece_size(pe->piece);
-		partial_hash& ph = *pe->hash;
-		if (ph.offset < piece_size)
+		int cursor = ph.offset / block_size;
+		int num_blocks = 0;
+
+		int end = cursor;
+		bool submitted = false;
+		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
-			int cursor = ph.offset / block_size;
-			int num_blocks = 0;
-#if 0
-			hash_start = hash_end = cursor;
-			DLOG(stderr, "[%p] hashing piece: %d [", &m_buffer_pool, int(pe->piece));
+			cached_block_entry& bl = pe->blocks[i];
+			if ((bl.pending && !bl.dirty) || bl.buf == 0) break;
+			++num_blocks;
+			++end;
+		}
+		// once the hashing is done, a disk io job will be posted
+		// to the disk io thread which will call hashing_done
+		if (end > cursor)
+		{
 			ptime start_hash = time_now_hires();
-			for (int i = cursor; i < pe->blocks_in_piece; ++i)
-			{
-				cached_block_entry& bl = pe->blocks[i];
-				if ((bl.pending && !bl.dirty) || bl.buf == 0) break;
-   
-				DLOG(stderr, " %d", i);
-				int size = (std::min)(block_size, piece_size - ph.offset);
-				ph.h.update(bl.buf, size);
-				ph.offset += size;
-				++num_blocks;
-				++hash_end;
-			}
+
+			submitted = m_hash_thread.async_hash(pe, cursor, end);
+
 			if (num_blocks > 0)
 			{
 				ptime done = time_now_hires();
 				add_hash_time(done - start_hash, num_blocks);
 			}
-			DLOG(stderr, " ]\n");
-#else
-			int end = cursor;
-			bool submitted = false;
-			for (int i = cursor; i < pe->blocks_in_piece; ++i)
-			{
-				cached_block_entry& bl = pe->blocks[i];
-				if ((bl.pending && !bl.dirty) || bl.buf == 0) break;
-				++num_blocks;
-				++end;
-			}
-			// once the hashing is done, a disk io job will be posted
-			// to the disk io thread which will call hashing_done
-			if (end > cursor)
-			{
-				ptime start_hash = time_now_hires();
 
-				submitted = m_hash_thread.async_hash(pe, cursor, end);
-
-				if (num_blocks > 0)
-				{
-					ptime done = time_now_hires();
-					add_hash_time(done - start_hash, num_blocks);
-				}
-
-				DLOG(stderr, "[%p] block_cache async_hash "
-					"piece: %d begin: %d end: %d submitted: %d\n", &m_buffer_pool
-					, int(pe->piece), cursor, end, submitted);
-			}
-			if (!submitted)
-			{
-				hash_start = cursor;
-				hash_end = end;
-			}
-			else
-			{
-				hash_start = 0;
-				hash_end = 0;
-			}
-#endif
+			DLOG(stderr, "[%p] block_cache async_hash "
+				"piece: %d begin: %d end: %d submitted: %d\n", &m_buffer_pool
+				, int(pe->piece), cursor, end, submitted);
+		}
+		if (!submitted)
+		{
+			hash_start = cursor;
+			hash_end = end;
+		}
+		else
+		{
+			hash_start = 0;
+			hash_end = 0;
 		}
 	}
 }

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,48 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISK_BUFFER_HOLDER_HPP_INCLUDED
-#define TORRENT_DISK_BUFFER_HOLDER_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/disk_io_job.hpp"
-#include <algorithm>
+#include "libtorrent/storage.hpp"
 
 namespace libtorrent
 {
-
-	namespace aux { struct session_impl; }
-	struct disk_io_thread;
-
-	struct TORRENT_EXPORT disk_buffer_holder
-	{
-		disk_buffer_holder(aux::session_impl& ses, char* buf);
-		disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j);
-		disk_buffer_holder(disk_io_thread& disk_pool, disk_io_job const& j);
-		~disk_buffer_holder();
-		char* release();
-		char* get() const { return m_buf; }
-		void reset(disk_io_job const& j);
-		void reset(char* buf = 0);
-		void swap(disk_buffer_holder& h)
-		{
-			TORRENT_ASSERT(&h.m_disk_thread == &m_disk_thread);
-			std::swap(h.m_buf, m_buf);
-			std::swap(h.m_ref, m_ref);
-		}
-
-		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
-		operator unspecified_bool_type() const
-		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
-
-	private:
-		disk_io_thread& m_disk_thread;
-		char* m_buf;
-		block_cache_reference m_ref;
-	};
-
-}
-
+	disk_io_job::disk_io_job()
+			: action(read)
+			, buffer(0)
+			, buffer_size(0)
+			, flags(0)
+			, piece(0)
+			, offset(0)
+			, max_cache_line(0)
+			, cache_min_time(0)
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			, in_use(false)
 #endif
+		{}
+
+	disk_io_job::~disk_io_job() {}
+}
 

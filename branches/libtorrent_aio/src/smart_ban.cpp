@@ -172,7 +172,7 @@ namespace
 		{
 			TORRENT_ASSERT(m_torrent.session().is_network_thread());
 			
-			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
+			disk_buffer_holder buffer(m_torrent.session(), j);
 
 			// ignore read errors
 			if (ret != j.buffer_size) return;
@@ -253,7 +253,7 @@ namespace
 		{
 			TORRENT_ASSERT(m_torrent.session().is_network_thread());
 
-			disk_buffer_holder buffer(m_torrent.session(), j.buffer);
+			disk_buffer_holder buffer(m_torrent.session(), j);
 
 			// ignore read errors
 			if (ret != j.buffer_size) return;

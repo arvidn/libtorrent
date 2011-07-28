@@ -415,6 +415,7 @@ SOURCES =
 	create_torrent
 	disk_buffer_holder
 	disk_buffer_pool
+	disk_io_job
 	entry
 	error_code
 	file_storage
