@@ -101,6 +101,13 @@ namespace libtorrent
 	void complete_job(aiocb_pool* pool, int ret, disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->next == 0);
+#ifdef TORRENT_DEBUG
+		if (j->ref.pe)
+		{
+			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount >= 1);
+			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf == j->buffer);
+		}
+#endif
 		if (j->callback) j->callback(ret, *j);
 		pool->free_job(j);
 	}
@@ -1241,6 +1248,7 @@ namespace libtorrent
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
+		, int flags
 		, int cache_line_size
 		, int cache_expiry)
 	{
@@ -1252,6 +1260,7 @@ namespace libtorrent
 		j->buffer = 0;
 		j->max_cache_line = cache_line_size;
 		j->cache_min_time = cache_expiry;
+		j->flags = flags;
 
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
@@ -1263,7 +1272,8 @@ namespace libtorrent
 	int piece_manager::async_write(
 		peer_request const& r
 		, disk_buffer_holder& buffer
-		, boost::function<void(int, disk_io_job const&)> const& handler)
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, int flags)
 	{
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		// the buffer needs to be allocated through the io_thread
@@ -1278,6 +1288,7 @@ namespace libtorrent
 		j->buffer_size = r.length;
 		j->buffer = buffer.get();
 		j->callback = handler;
+		j->flags = flags;
 		int queue_size = m_io_thread.add_job(j);
 		buffer.release();
 

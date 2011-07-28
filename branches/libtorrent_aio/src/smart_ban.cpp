@@ -146,8 +146,12 @@ namespace
 			{
 				if (*i != 0)
 				{
+					// for very sad and involved reasons, this read need to force a copy out of the cache
+					// since the piece has failed, this block is very likely to be replaced with a newly
+					// downloaded one very soon, and to get a block by reference would fail, since the
+					// block read will have been deleted by the time it gets back to the gui thread
 					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2));
+						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2), disk_io_job::force_copy);
 				}
 
 				r.start += 16*1024;

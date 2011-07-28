@@ -104,6 +104,10 @@ namespace libtorrent
 			volatile_read = 0x100,
 			need_uncork = 0x200,
 			cache_hit = 0x400,
+			// force making a copy of the cached block, rather
+			// than getting a reference to the block already in
+			// the cache
+			force_copy = 0x800,
 		};
 
 		action_t action;

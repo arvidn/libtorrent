@@ -191,6 +191,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	{
 		TORRENT_ASSERT(pe->blocks[block].refcount == 0);
 		TORRENT_ASSERT(pe->blocks[block].dirty == false);
+		if (pe->blocks[block].refcount > 0) ::abort();
+
 		m_buffer_pool.free_buffer(pe->blocks[block].buf);
 		--pe->num_blocks;
 		TORRENT_ASSERT(m_cache_size > 0);
@@ -680,7 +682,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 
 void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end)
 {
-	TORRENT_ASSERT(pe->hash);
 	if (!pe->hash) return;
 
 	TORRENT_ASSERT(pe->hashing == -1);
@@ -1188,7 +1189,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	if (pe->blocks[start_block].buf == 0
 		|| pe->blocks[start_block].pending) return -1;
 
-	if (min_blocks_to_read == 1)
+	if (min_blocks_to_read == 1 && (j->flags & disk_io_job::force_copy) == 0)
 	{
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference

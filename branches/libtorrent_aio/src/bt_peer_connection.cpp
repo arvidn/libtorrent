@@ -2289,14 +2289,14 @@ namespace libtorrent
 			append_send_buffer(buffer.get(), r.length
 				, boost::bind(&session_impl::free_disk_buffer
 				, boost::ref(m_ses), _1));
-			buffer.release();
 		}
 		else
 		{
-			append_const_send_buffer(j.buffer, r.length
+			append_const_send_buffer(buffer.get(), r.length
 				, boost::bind(&session_impl::reclaim_block
-				, boost::ref(m_ses), j.ref));
+				, boost::ref(m_ses), buffer.ref()));
 		}
+		buffer.release();
 
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();

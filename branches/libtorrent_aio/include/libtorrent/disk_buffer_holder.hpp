@@ -61,6 +61,8 @@ namespace libtorrent
 			std::swap(h.m_ref, m_ref);
 		}
 
+		block_cache_reference ref() const { return m_ref; }
+
 		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
 		operator unspecified_bool_type() const
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
