@@ -356,7 +356,7 @@ void run_elevator_test()
 		session_settings set;
 		set.use_read_cache = false;
 
-		disk_io_job* j = dio->aiocbs()->allocate_job(disk_io_job::update_settings);
+		disk_io_job* j = dio.aiocbs()->allocate_job(disk_io_job::update_settings);
 		j->buffer = (char*)&set;
 		++job_counter;
 		dio.add_job(j);
@@ -420,7 +420,7 @@ void run_elevator_test()
 
 		// test disabling disk-reordering
 		set.allow_reordered_disk_operations = false;
-		j = aio->aiocbs()->allocate_job(disk_io_job::update_settings);
+		j = dio.aiocbs()->allocate_job(disk_io_job::update_settings);
 		j->buffer = (char*)&set;
 		++job_counter;
 		dio.add_job(j);
@@ -557,8 +557,8 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	libtorrent::asio::io_service ios;
 	disk_io_thread io(ios, boost::bind(&nop), boost::bind(&nop));
 	boost::shared_ptr<int> dummy(new int);
-	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, info
-		, test_path, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
+	boost::intrusive_ptr<piece_manager> pm = new piece_manager(dummy, (file_storage&)info.files()
+		, 0, test_path, io, default_storage_constructor, storage_mode, std::vector<boost::uint8_t>());
 	libtorrent::mutex lock;
 
 	error_code ec;
@@ -569,7 +569,7 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	run_until(ios, done);
 
 	done = false;
-	pm->async_check_files(boost::bind(&on_check_files, _1, _2, &done));
+	pm->async_hash(boost::bind(&on_check_files, _1, _2, &done));
 	run_until(ios, done);
 
 	done = false;
