@@ -967,6 +967,8 @@ namespace libtorrent
 		&disk_io_thread::do_file_status,
 		&disk_io_thread::do_reclaim_block,
 		&disk_io_thread::do_clear_piece,
+		&disk_io_thread::do_sync_piece,
+		&disk_io_thread::do_flush_piece,
 	};
 
 	static const char* job_action_name[] =
@@ -990,7 +992,9 @@ namespace libtorrent
 		"hashing_done",
 		"file_status",
 		"reclaim_block",
-		"clear_piece"
+		"clear_piece",
+		"sync_piece",
+		"flush_piece"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1310,16 +1314,6 @@ namespace libtorrent
 		int ret = defer_handler;
 
 		bool job_added = false;
-
-		// flush the write jobs for this piece
-		if (p != m_disk_cache.end() && p->num_dirty > 0)
-		{
-			DLOG(stderr, "[%p] do_hash: flushing %d dirty blocks piece: %d\n"
-				, this, int(p->num_dirty), int(p->piece));
-			// issue write commands
-			io_range(p, 0, INT_MAX, op_write, j->flags);
-		}
-
 		if (m_settings.disable_hash_checks)
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning piece: %d\n"
@@ -1843,11 +1837,28 @@ namespace libtorrent
 		TORRENT_ASSERT(j->ref.block < j->ref.pe->blocks_in_piece);
 		if (j->ref.block >= 0)
 		{
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount > 0);
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf);
-			--j->ref.pe->blocks[j->ref.block].refcount;
-			--j->ref.pe->refcount;
-			if (j->ref.pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
+			cached_piece_entry* pe = j->ref.pe;
+			TORRENT_ASSERT(pe->blocks[j->ref.block].refcount > 0);
+			TORRENT_ASSERT(pe->blocks[j->ref.block].buf);
+			--pe->blocks[j->ref.block].refcount;
+			--pe->refcount;
+			if (pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
+			if (pe->refcount == 0)
+			{
+				// the refcount just reached 0, are there any sync-jobs to post?
+				// post all the sync jobs
+				disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
+				while (i)
+				{
+					disk_io_job* j = i;
+					i = (disk_io_job*)i->next;
+					j->next = 0;
+					if (j->action == disk_io_job::sync_piece)
+						m_ios.post(boost::bind(&complete_job, aiocbs(), 0, j));
+					else
+						pe->jobs.push_back(j);
+				}
+			}
 		}
 		return 0;
 	}
@@ -1857,6 +1868,37 @@ namespace libtorrent
 		block_cache::iterator p = m_disk_cache.find_piece(j);
 		if (p == m_disk_cache.end()) return 0;
 		m_disk_cache.evict_piece(p);
+		return 0;
+	}
+
+	// if the piece doesn't have any outstanding operations
+	// queued on it, complete immediately and return true.
+	// if it has outstanding operations, add the job to it
+	// and return false. The job will be completed when the
+	// piece no longer have any outstanding operations
+	int disk_io_thread::do_sync_piece(disk_io_job* j)
+	{
+		block_cache::iterator p = m_disk_cache.find_piece(j);
+		if (p == m_disk_cache.end()) return 0;
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+		if (p->refcount == 0) return 0;
+		pe->jobs.push_back(j);
+		return defer_handler;
+	}
+
+	int disk_io_thread::do_flush_piece(disk_io_job* j)
+	{
+		block_cache::iterator p = m_disk_cache.find_piece(j);
+
+		// flush the write jobs for this piece
+		if (p != m_disk_cache.end() && p->num_dirty > 0)
+		{
+			DLOG(stderr, "[%p] do_flush_piece: flushing %d dirty blocks piece: %d\n"
+				, this, int(p->num_dirty), int(p->piece));
+			// issue write commands
+			io_range(p, 0, INT_MAX, op_write, j->flags);
+		}
+		return 0;
 	}
 
 	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job* j)

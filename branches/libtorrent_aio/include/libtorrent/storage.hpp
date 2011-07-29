@@ -364,6 +364,11 @@ namespace libtorrent
 
 		void async_clear_piece(int piece);
 
+		void async_sync_piece(int piece
+			, boost::function<void(int, disk_io_job const&)> const& handler);
+
+		void async_flush_piece(int piece);
+
 		enum return_t
 		{
 			// return values from check_fastresume

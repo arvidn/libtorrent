@@ -187,20 +187,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT(j->piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
-	if (pe->blocks[block].buf != 0)
-	{
-		TORRENT_ASSERT(pe->blocks[block].refcount == 0);
-		TORRENT_ASSERT(pe->blocks[block].dirty == false);
-		if (pe->blocks[block].refcount > 0) ::abort();
-
-		m_buffer_pool.free_buffer(pe->blocks[block].buf);
-		--pe->num_blocks;
-		TORRENT_ASSERT(m_cache_size > 0);
-		--m_cache_size;
-		TORRENT_ASSERT(m_read_cache_size > 0);
-		--m_read_cache_size;
-		pe->blocks[block].buf = 0;
-	}
+	TORRENT_ASSERT(pe->blocks[block].buf != 0);
+	TORRENT_ASSERT(pe->blocks[block].refcount == 0);
 
 	pe->blocks[block].buf = j->buffer;
 
@@ -744,6 +732,8 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 	log_refcounts(pe);
 #endif
 
+	tailqueue sync_jobs;
+
 	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
 	while (i)
 	{
@@ -900,11 +890,43 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			}
 		}
 
+		if (j->action == disk_io_job::sync_piece)
+		{
+			sync_jobs.push_back(j);
+			continue;
+		}
+
 post_job:
 		TORRENT_ASSERT(j->piece == pe->piece);
 		DLOG(stderr, "[%p] block_cache reap_piece_jobs post job "
 			"piece: %d  jobtype: %d\n", &m_buffer_pool, int(j->piece), j->action);
 		ios.post(boost::bind(&complete_job, pool, ret, j));
+	}
+
+	// handle the sync jobs last, to make sure all references are
+	// released first
+	i = (disk_io_job*)sync_jobs.get_all();
+	if (pe->refcount == 0)
+	{
+		// post all the sync jobs
+		while (i)
+		{
+			disk_io_job* j = i;
+			i = (disk_io_job*)i->next;
+			j->next = 0;
+			ios.post(boost::bind(&complete_job, pool, 0, j));
+		}
+	}
+	else
+	{
+		// save the jobs back again
+		while (i)
+		{
+			disk_io_job* j = i;
+			i = (disk_io_job*)i->next;
+			j->next = 0;
+			pe->jobs.push_back(j);
+		}
 	}
 }
 

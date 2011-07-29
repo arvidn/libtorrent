@@ -672,6 +672,11 @@ namespace libtorrent
 		// this is done when a piece fails
 		void restore_piece_state(int index);
 
+		// when restoring a failed piece, we first have to wait
+		// for all outstanding disk operations on that piece to
+		// finish. This function is called whent they are
+		void on_piece_sync(int ret, disk_io_job const& j);
+
 		void add_redundant_bytes(int b);
 		void add_failed_bytes(int b);
 

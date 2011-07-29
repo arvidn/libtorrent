@@ -2918,6 +2918,9 @@ namespace libtorrent
 		std::set<void*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
+		// make the disk cache flush the piece to disk
+		m_storage->async_flush_piece(index);
+
 		we_have(index);
 
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
@@ -3099,18 +3102,9 @@ namespace libtorrent
 			}
 		}
 
-		// we have to let the piece_picker know that
-		// this piece failed the check as it can restore it
-		// and mark it as being interesting for download
-		m_picker->restore_piece(index);
-
-		// we might still have outstanding requests to this
-		// piece that hasn't been received yet. If this is the
-		// case, we need to re-open the piece and mark any
-		// blocks we're still waiting for as requested
-		restore_piece_state(index);
-
 		TORRENT_ASSERT(m_storage);
+		m_storage->async_sync_piece(index, boost::bind(&torrent::on_piece_sync
+			, shared_from_this(), _1, _2));
 
 		TORRENT_ASSERT(m_picker->have_piece(index) == false);
 
@@ -3125,6 +3119,20 @@ namespace libtorrent
 			}
 		}
 #endif
+	}
+
+	void torrent::on_piece_sync(int ret, disk_io_job const& j)
+	{
+		// we have to let the piece_picker know that
+		// this piece failed the check as it can restore it
+		// and mark it as being interesting for download
+		m_picker->restore_piece(j.piece);
+
+		// we might still have outstanding requests to this
+		// piece that hasn't been received yet. If this is the
+		// case, we need to re-open the piece and mark any
+		// blocks we're still waiting for as requested
+		restore_piece_state(j.piece);
 	}
 
 	void torrent::restore_piece_state(int index)
