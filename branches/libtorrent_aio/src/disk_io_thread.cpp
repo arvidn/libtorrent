@@ -1390,16 +1390,17 @@ namespace libtorrent
 				&& pe->blocks[end].buf
 				&& (!pe->blocks[end].pending || pe->blocks[end].dirty)) ++end;
 
-			bool submitted = false;
-			if (end > start_block)
+			if (end > start_block && pe->hashing == -1)
 			{
-				submitted = m_hash_thread.async_hash(pe, start_block, end);
-				start_block = end;
+				m_hash_thread.async_hash(pe, start_block, end);
 			}
 
-			if (start_block < p->blocks_in_piece)
+			// deal with read-back. i.e. blocks that have already been flushed to disk
+			// and are no longer in the cache, we need to read those back in order to hash
+			// them
+			if (end < p->blocks_in_piece)
 			{
-				ret = m_disk_cache.allocate_pending(p, start_block, p->blocks_in_piece, j, 2);
+				ret = m_disk_cache.allocate_pending(p, end, p->blocks_in_piece, j, 2);
 				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d piece: %d\n"
 					, this, ret, int(p->piece));
 				if (ret >= 0)
@@ -1464,6 +1465,9 @@ namespace libtorrent
 			if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 			++pe->blocks[i].refcount;
 			++pe->refcount;
+#ifdef TORRENT_DEBUG
+			++pe->blocks[i].check_count;
+#endif
 		}
 
 		if (!job_added)
@@ -1842,6 +1846,10 @@ namespace libtorrent
 			TORRENT_ASSERT(pe->blocks[j->ref.block].buf);
 			--pe->blocks[j->ref.block].refcount;
 			--pe->refcount;
+#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(pe->blocks[j->ref.block].reading_count > 0);
+			--pe->blocks[j->ref.block].reading_count;
+#endif
 			if (pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
 			if (pe->refcount == 0)
 			{

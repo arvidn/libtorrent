@@ -81,7 +81,14 @@ namespace libtorrent
 	struct cached_block_entry
 	{
 		cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
-			, dirty(false), pending(false), uninitialized(false) {}
+			, dirty(false), pending(false), uninitialized(false)
+		{
+#ifdef TORRENT_DEBUG
+			hashing = false;
+			reading_count = 0;
+			check_count = 0;
+#endif
+		}
 
 		char* buf;
 
@@ -120,6 +127,14 @@ namespace libtorrent
 		// it is not valid for this flag to be set for blocks where
 		// the dirty flag is set.
 		bool uninitialized:1;
+#ifdef TORRENT_DEBUG
+		// this block is part of an outstanding hash job
+		bool hashing:1;
+		// this block is being used in this many peer's send buffers currently
+		int reading_count;
+		// the number of check_piece disk jobs that have a reference to this block
+		int check_count;
+#endif
 	};
 
 	struct cached_piece_entry

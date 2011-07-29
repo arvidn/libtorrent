@@ -604,11 +604,15 @@ int main(int argc, char* argv[])
 	int port = atoi(argv[4]);
 	tcp::endpoint ep(addr, port);
 	
+#if !defined __APPLE__
+	// apparently darwin doesn't seems to let you bind to
+	// loopback on any other IP than 127.0.0.1
 	unsigned long ip = addr.to_ulong();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;
 	}
+#endif
 
 	torrent_info ti(argv[5], ec);
 	if (ec)

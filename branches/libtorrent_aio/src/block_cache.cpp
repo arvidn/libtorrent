@@ -187,7 +187,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT(j->piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
-	TORRENT_ASSERT(pe->blocks[block].buf != 0);
+	TORRENT_ASSERT(pe->blocks[block].buf == 0);
 	TORRENT_ASSERT(pe->blocks[block].refcount == 0);
 
 	pe->blocks[block].buf = j->buffer;
@@ -671,8 +671,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end)
 {
 	if (!pe->hash) return;
-
-	TORRENT_ASSERT(pe->hashing == -1);
 	if (pe->hashing != -1) return;
 
 	int piece_size = pe->storage.get()->files()->piece_size(pe->piece);
@@ -775,10 +773,14 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				TORRENT_ASSERT(!bl.pending || bl.dirty);
 				// obviously we need a buffer
 				TORRENT_ASSERT(bl.buf != 0);
-				TORRENT_ASSERT(bl.refcount >= bl.pending);
+				TORRENT_ASSERT(bl.refcount > bl.pending);
 				--bl.refcount;
-				TORRENT_ASSERT(pe->refcount >= bl.pending);
+				TORRENT_ASSERT(pe->refcount > bl.pending);
 				--pe->refcount;
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(bl.check_count > 0);
+				--bl.check_count;
+#endif
 				if (bl.refcount == 0)
 				{
 					TORRENT_ASSERT(m_pinned_blocks > 0);
@@ -953,6 +955,10 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		--pe->blocks[i].refcount;
 		TORRENT_ASSERT(pe->refcount > 0);
 		--pe->refcount;
+#ifdef TORRENT_DEBUG
+		TORRENT_ASSERT(pe->blocks[i].hashing);
+		pe->blocks[i].hashing = false;
+#endif
 		if (pe->blocks[i].refcount == 0)
 		{
 			TORRENT_ASSERT(m_pinned_blocks > 0);
@@ -1222,6 +1228,9 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		j->ref.pe = pe;
 		j->ref.block = start_block;
 		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size-1));
+#ifdef TORRENT_DEBUG
+		++pe->blocks[start_block].reading_count;
+#endif
 		return j->buffer_size;
 	}
 

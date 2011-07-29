@@ -50,7 +50,9 @@ namespace libtorrent
 
 	disk_io_job* aiocb_pool::allocate_job(int type)
 	{
+		mutex::scoped_lock l(m_job_mutex);
 		disk_io_job* ptr = (disk_io_job*)m_job_pool.malloc();
+		l.unlock();
 
 		if (ptr == 0) return 0;
 		new (ptr) disk_io_job;
@@ -70,6 +72,7 @@ namespace libtorrent
 		j->in_use = false;
 #endif
 		j->~disk_io_job();
+		mutex::scoped_lock l(m_job_mutex);
 		m_job_pool.free(j);	
 	}
 

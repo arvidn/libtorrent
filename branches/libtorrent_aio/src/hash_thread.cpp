@@ -77,6 +77,10 @@ namespace libtorrent
 				if (p->blocks[i].refcount == 0) m_disk_thread->pinned_change(1);
 				++p->blocks[i].refcount;
 				++p->refcount;
+#ifdef TORRENT_DEBUG
+				TORRENT_ASSERT(!p->blocks[i].hashing);
+				p->blocks[i].hashing = true;
+#endif
 			}
 
 			mutex::scoped_lock l(m_mutex);
