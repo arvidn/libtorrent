@@ -57,13 +57,13 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#downloading-and-building" id="id9">downloading and building</a><ul>
-<li><a class="reference internal" href="#building-from-svn" id="id10">building from svn</a></li>
-<li><a class="reference internal" href="#building-with-bbv2" id="id11">building with BBv2</a></li>
-<li><a class="reference internal" href="#building-with-autotools" id="id12">building with autotools</a></li>
-<li><a class="reference internal" href="#building-with-other-build-systems" id="id13">building with other build systems</a></li>
-<li><a class="reference internal" href="#build-configurations" id="id14">build configurations</a></li>
-<li><a class="reference internal" href="#building-openssl-for-windows" id="id15">building openssl for windows</a></li>
+<li><a class="reference internal" href="#downloading-and-building" id="id8">downloading and building</a><ul>
+<li><a class="reference internal" href="#building-from-svn" id="id9">building from svn</a></li>
+<li><a class="reference internal" href="#building-with-bbv2" id="id10">building with BBv2</a></li>
+<li><a class="reference internal" href="#building-with-autotools" id="id11">building with autotools</a></li>
+<li><a class="reference internal" href="#building-with-other-build-systems" id="id12">building with other build systems</a></li>
+<li><a class="reference internal" href="#build-configurations" id="id13">build configurations</a></li>
+<li><a class="reference internal" href="#building-openssl-for-windows" id="id14">building openssl for windows</a></li>
 </ul>
 </li>
 </ul>
@@ -93,18 +93,8 @@ when linking against libtorrent.</p>
 <div class="section" id="building-from-svn">
 <h2>building from svn</h2>
 <p>To build libtorrent from svn you need to check out the libtorrent sources from
-sourceforge and also check out the asio sources from its sourceforge cvs.
-If you downloaded a release tarball, you can skip this section.</p>
-<p>To prepare the directory structure for building, follow these steps:</p>
-<ul class="simple">
-<li>Check out libtorrent (<a class="reference external" href="http://sourceforge.net/svn/?group_id=79942">instructions</a>).</li>
-<li>Check out asio (<a class="reference external" href="http://sourceforge.net/cvs/?group_id=122478">instructions</a>).</li>
-<li>Copy the <tt class="docutils literal"><span class="pre">asio/include/asio/</span></tt> directory into the <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent/</span></tt>
-directory. Alternatively you can make a symbolic link.</li>
-<li>Copy <tt class="docutils literal"><span class="pre">asio/include/asio.hpp</span></tt> into <tt class="docutils literal"><span class="pre">libtorrent/include/libtorrent</span></tt>.</li>
-</ul>
-<p>Now the libtorrent directory is ready for building. Follow the steps in one
-of the following sections depending on which build system you prefer to use.</p>
+sourceforge. If you downloaded a release tarball, you can skip this section.</p>
+<p>To check out libtorrent follow these <a class="reference external" href="http://sourceforge.net/svn/?group_id=79942">instructions</a>.</p>
 </div>
 <div class="section" id="building-with-bbv2">
 <h2>building with BBv2</h2>
@@ -215,16 +205,16 @@ as a shared library (DLL), since you will get separate heaps in the library
 and in the client application. It will result in crashes and possibly link
 errors.</p>
 </div>
-<div class="warning">
-<p class="first admonition-title">Warning</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
 <p class="last">With boost-build V2 (Milestone 11), the darwin toolset uses the <tt class="docutils literal"><span class="pre">-s</span></tt> linker
 option to strip debug symbols. This option is buggy in Apple's GCC, and
 will make the executable crash on startup. On Mac OS X, instead build
 your release executables with the <tt class="docutils literal"><span class="pre">debug-symbols=on</span></tt> option, and
 later strip your executable with <tt class="docutils literal"><span class="pre">strip</span></tt>.</p>
 </div>
-<div class="warning">
-<p class="first admonition-title">Warning</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
 <p class="last">Some linux systems requires linking against <tt class="docutils literal"><span class="pre">librt</span></tt> in order to access
 the POSIX clock functions. If you get an error complaining about a missing
 symbol <tt class="docutils literal"><span class="pre">clock_gettime</span></tt>, you have to give <tt class="docutils literal"><span class="pre">need-librt=yes</span></tt> on the
@@ -247,6 +237,12 @@ Also, make sure the paths are correct in the different environments. In cygwin, 
 (<tt class="docutils literal"><span class="pre">BOOST_BUILD_PATH</span></tt> and <tt class="docutils literal"><span class="pre">BOOST_ROOT</span></tt>) should be in the typical unix-format (e.g.
 <tt class="docutils literal"><span class="pre">/cygdrive/c/boost_1_34_0</span></tt>). In the windows environment, they should have the typical
 windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_34_0</span></tt>).</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
+in path names. If you want spaces in your paths, make sure to quote them
+with double quotes (&quot;).</p>
+</div>
 <p>The <tt class="docutils literal"><span class="pre">Jamfile</span></tt> will define <tt class="docutils literal"><span class="pre">NDEBUG</span></tt> when it's building a release build.
 For more build configuration flags see <a class="reference internal" href="#build-configurations">Build configurations</a>.</p>
 <p>Build features:</p>
@@ -585,7 +581,7 @@ with the following option:</p>
 </pre>
 <p>The above option make use of -DNDEBUG, which is used throughout libtorrent.</p>
 </div>
-<div class="section" id="id8">
+<div class="section" id="id7">
 <h3>Step 3: Building libtorrent</h3>
 <p>Once the configure script is run successfully, you just type <tt class="docutils literal"><span class="pre">make</span></tt> and
 libtorrent, the examples and the tests will be built.</p>

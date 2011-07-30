@@ -61,6 +61,7 @@
 <li><a class="reference internal" href="#add-node" id="id17">add_node()</a></li>
 <li><a class="reference internal" href="#add-tracker" id="id18">add_tracker()</a></li>
 <li><a class="reference internal" href="#set-priv-priv" id="id19">set_priv() priv()</a></li>
+<li><a class="reference internal" href="#merkle-tree" id="id20">merkle_tree()</a></li>
 </ul>
 </li>
 </ul>
@@ -338,7 +339,10 @@ optimized disk-I/O.</dd>
 be opened in clients that don't specifically support merkle torrents.
 The benefit is that the resulting torrent file will be much smaller and
 not grow with more pieces. When this option is specified, it is
-recommended to have a fairly small piece size, say 64 kiB.</dd>
+recommended to have a fairly small piece size, say 64 kiB.
+When creating merkle torrents, the full hash tree is also generated
+and should be saved off separately. It is accessed through  the
+<tt class="docutils literal"><span class="pre">merkle_tree()</span></tt> function.</dd>
 <dt>modification_time</dt>
 <dd>This will include the file modification time as part of the torrent.
 This is not enabled by default, as it might cause problems when you
@@ -464,6 +468,20 @@ bool priv() const;
 </pre>
 </blockquote>
 <p>Sets and queries the private flag of the torrent.</p>
+</div>
+<div class="section" id="merkle-tree">
+<h2>merkle_tree()</h2>
+<blockquote>
+<pre class="literal-block">
+std::vector&lt;sha1_hash&gt; const&amp; merkle_tree() const;
+</pre>
+</blockquote>
+<p>This function returns the merkle hash tree, if the torrent was created as a merkle
+torrent. The tree is created by <tt class="docutils literal"><span class="pre">generate()</span></tt> and won't be valid until that function
+has been called. When creating a merkle tree torrent, the actual tree itself has to
+be saved off separately and fed into libtorrent the first time you start seeding it,
+through the <tt class="docutils literal"><span class="pre">torrent_info::set_merkle_tree()</span></tt> function. From that point onwards, the
+tree will be saved in the resume data.</p>
 </div>
 </div>
     </div>
