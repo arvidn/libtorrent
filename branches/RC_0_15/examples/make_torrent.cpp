@@ -66,8 +66,10 @@ void print_usage()
 		"Generates a torrent file from the specified file\n"
 		"or directory and writes it to standard out\n\n"
 		"OPTIONS:\n"
-		"-m          generate a merkle hash tree torrent.\n"
+		"-m file     generate a merkle hash tree torrent.\n"
 		"            merkle torrents require client support\n"
+		"            the resulting full merkle tree is written to\n"
+		"            the specified file\n"
 		"-w url      adds a web seed to the torrent with\n"
 		"            the specified url\n"
 		"-t url      adds the specified tracker to the\n"
@@ -109,6 +111,7 @@ int main(int argc, char* argv[])
 		int flags = 0;
 
 		std::string outfile;
+		std::string merklefile;
 #ifdef TORRENT_WINDOWS
 		// don't ever write binary data to the console on windows
 		// it will just be interpreted as text and corrupted
@@ -143,6 +146,8 @@ int main(int argc, char* argv[])
 					piece_size = atoi(argv[i]);
 					break;
 				case 'm':
+					++i;
+					merklefile = argv[i];
 					flags |= create_torrent::merkle;
 					break;
 				case 'o':
@@ -200,6 +205,18 @@ int main(int argc, char* argv[])
 
 		if (output != stdout)
 			fclose(output);
+
+		if (!merklefile.empty())
+		{
+			output = fopen(merklefile.c_str(), "wb+");
+			int ret = fwrite(&t.merkle_tree()[0], 1, t.merkle_tree().size(), output);
+			if (ret != t.merkle_tree().size())
+			{
+				fprintf(stderr, "failed to write %s: (%d) %s\n"
+					, merklefile.c_str(), errno, strerror(errno));
+			}
+			fclose(output);
+		}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	}

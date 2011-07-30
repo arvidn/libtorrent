@@ -1,3 +1,4 @@
+	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python
 	* exposed alert error_codes to python
 	* fixed bug in announce_entry::next_announce_in and min_announce_in

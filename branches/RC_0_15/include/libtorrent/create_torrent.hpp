@@ -99,6 +99,8 @@ namespace libtorrent
 		int piece_size(int i) const { return m_files.piece_size(i); }
 		bool priv() const { return m_private; }
 
+		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
+
 	private:
 
 		file_storage& m_files;
@@ -114,6 +116,11 @@ namespace libtorrent
 		std::vector<std::string> m_url_seeds;
 
 		std::vector<sha1_hash> m_piece_hash;
+
+		// if we're generating a merkle torrent, this is the
+		// merkle tree we got. This should be saved in fast-resume
+		// in order to start seeding the torrent
+		mutable std::vector<sha1_hash> m_merkle_tree;
 
 		// dht nodes to add to the routing table/bootstrap from
 		typedef std::vector<std::pair<std::string, int> > nodes_t;

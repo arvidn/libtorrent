@@ -297,6 +297,9 @@ merkle
 	The benefit is that the resulting torrent file will be much smaller and
 	not grow with more pieces. When this option is specified, it is
 	recommended to have a fairly small piece size, say 64 kiB.
+	When creating merkle torrents, the full hash tree is also generated
+	and should be saved off separately. It is accessed through  the 
+	``merkle_tree()`` function.
 
 modification_time
 	This will include the file modification time as part of the torrent.
@@ -426,4 +429,20 @@ set_priv() priv()
 		bool priv() const;
 
 Sets and queries the private flag of the torrent.
+
+merkle_tree()
+-------------
+
+	::
+
+		std::vector<sha1_hash> const& merkle_tree() const;
+
+This function returns the merkle hash tree, if the torrent was created as a merkle
+torrent. The tree is created by ``generate()`` and won't be valid until that function
+has been called. When creating a merkle tree torrent, the actual tree itself has to
+be saved off separately and fed into libtorrent the first time you start seeding it,
+through the ``torrent_info::set_merkle_tree()`` function. From that point onwards, the
+tree will be saved in the resume data.
+
+
 

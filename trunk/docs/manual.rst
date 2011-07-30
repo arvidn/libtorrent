@@ -1666,6 +1666,9 @@ The ``torrent_info`` has the following synopsis::
 		sha1_hash const& hash_for_piece(unsigned int index) const;
 		char const* hash_for_piece_ptr(unsigned int index) const;
 
+		std::vector<sha1_hash> const& merkle_tree() const;
+		void set_merkle_tree(std::vector<sha1_hash>& h);
+
 		boost::shared_array<char> metadata() const;
 		int metadata_size() const;
 	};
@@ -2078,6 +2081,23 @@ piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of
 torrent file. For more information on the ``sha1_hash``, see the big_number_ class.
 ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
 Note that the string is not null-terminated.
+
+merkle_tree() set_merkle_tree()
+-------------------------------
+
+	::
+
+		std::vector<sha1_hash> const& merkle_tree() const;
+		void set_merkle_tree(std::vector<sha1_hash>& h);
+
+``merkle_tree()`` returns a reference to the merkle tree for this torrent, if any.
+
+``set_merkle_tree()`` moves the passed in merkle tree into the torrent_info object.
+i.e. ``h`` will not be identical after the call. You need to set the merkle tree for
+a torrent that you've just created (as a merkle torrent). The merkle tree is retrieved
+from the ``create_torrent::merkle_tree()`` function, and need to be saved separately
+from the torrent file itself. Once it's added to libtorrent, the merkle tree will be
+persisted in the resume data.
 
 
 name() comment() creation_date() creator()
