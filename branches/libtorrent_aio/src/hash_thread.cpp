@@ -149,7 +149,7 @@ namespace libtorrent
 			j->buffer = (char*)e.piece;
 			j->piece = e.start;
 			j->offset = e.end;
-			m_disk_thread->add_job(j);
+			m_disk_thread->add_job(j, true);
 		}
 
 #ifdef TORRENT_DEBUG

@@ -81,6 +81,15 @@ namespace libtorrent
 			--m_size;
 			return e;
 		}
+		void push_front(tailqueue_node* e)
+		{
+			TORRENT_ASSERT(e->next == 0);
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			e->next = m_first;
+			m_first = e;
+			if (!m_last) m_last = e;
+			++m_size;
+		}
 		void push_back(tailqueue_node* e)
 		{
 			TORRENT_ASSERT(e->next == 0);

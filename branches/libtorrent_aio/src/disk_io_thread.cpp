@@ -320,6 +320,7 @@ namespace libtorrent
 		, boost::function<void(alert*)> const& post_alert
 		, int block_size)
 		: m_abort(false)
+		, m_last_cache_expiry(0)
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
@@ -451,7 +452,7 @@ namespace libtorrent
 	{
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::reclaim_block);
 		j->ref = ref;
-		add_job(j);
+		add_job(j, true);
 	}
 
 	void disk_io_thread::set_settings(session_settings* sett)
@@ -868,7 +869,7 @@ namespace libtorrent
 				// operation_aborted error code
 				m_disk_cache.abort_dirty(p, m_ios, &m_aiocb_pool);
 			}
-			else if (flags & flush_write_cache && p->num_dirty > 0)
+			else if ((flags & flush_write_cache) && p->num_dirty > 0)
 			{
 				// issue write commands
 				io_range(p, 0, INT_MAX, op_write, 0);
@@ -890,10 +891,6 @@ namespace libtorrent
 
 		}
 		return ret;
-	}
-
-	void disk_io_thread::uncork_jobs()
-	{
 	}
 
 	// this is called if we're exceeding (or about to exceed) the cache
@@ -944,6 +941,35 @@ namespace libtorrent
 
 				num -= try_flush_contiguous(m_disk_cache.map_iterator(p), 1, num);
 			}
+		}
+	}
+
+	void disk_io_thread::flush_expired_write_blocks()
+	{
+		DLOG(stderr, "[%p] flush_expired_write_blocks\n", this);
+
+		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
+			= m_disk_cache.all_lru_pieces();
+
+		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
+#ifdef TORRENT_DEBUG
+		time_t timeout = 0;
+#endif
+
+		time_t now = time(0);
+
+		for (block_cache::lru_iterator p = range.first; p != range.second; ++p)
+		{
+#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(p->expire >= timeout);
+			timeout = p->expire;
+#endif
+			// since we're iterating in order of last use, if this piece
+			// shouldn't be evicted, none of the following ones will either
+			if (now - p->expire < m_settings.cache_expiry) break;
+			if (p->num_dirty == 0) continue;
+
+			io_range(m_disk_cache.map_iterator(p), 0, INT_MAX, op_write, 0);
 		}
 	}
 
@@ -1646,9 +1672,12 @@ namespace libtorrent
 		std::vector<char*> to_free;
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
-		disk_io_job* k = (disk_io_job*)m_blocked_jobs.get_all();
-		while (k)
+		disk_io_job* i = (disk_io_job*)m_blocked_jobs.get_all();
+		while (i)
 		{
+			disk_io_job* k = i;
+			i = (disk_io_job*)i->next;
+			k->next = 0;
 			if (k->storage != j->storage)
 			{
 				// not ours, put it back
@@ -1666,7 +1695,6 @@ namespace libtorrent
 			k->error.ec = error::operation_aborted;
 			TORRENT_ASSERT(k->callback);
 			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
-			k = (disk_io_job*)k->next;
 		}
 
 		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
@@ -1853,28 +1881,26 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j->ref.pe);
 		TORRENT_ASSERT(j->ref.block < j->ref.pe->blocks_in_piece);
-		if (j->ref.block >= 0)
+		if (j->ref.block < 0) return 0;
+
+		m_disk_cache.reclaim_block(j->ref);
+
+		cached_piece_entry* pe = j->ref.pe;
+
+		if (pe->refcount > 0) return 0;
+
+		// the refcount just reached 0, are there any sync-jobs to post?
+		// post all the sync jobs
+		disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
+		while (i)
 		{
-			m_disk_cache.reclaim_block(j->ref);
-
-			cached_piece_entry* pe = j->ref.pe;
-
-			if (pe->refcount == 0)
-			{
-				// the refcount just reached 0, are there any sync-jobs to post?
-				// post all the sync jobs
-				disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
-				while (i)
-				{
-					disk_io_job* j = i;
-					i = (disk_io_job*)i->next;
-					j->next = 0;
-					if (j->action == disk_io_job::sync_piece)
-						m_ios.post(boost::bind(&complete_job, aiocbs(), 0, j));
-					else
-						pe->jobs.push_back(j);
-				}
-			}
+			disk_io_job* j = i;
+			i = (disk_io_job*)i->next;
+			j->next = 0;
+			if (j->action == disk_io_job::sync_piece)
+				m_ios.post(boost::bind(&complete_job, aiocbs(), 0, j));
+			else
+				pe->jobs.push_back(j);
 		}
 		return 0;
 	}
@@ -1992,7 +2018,7 @@ namespace libtorrent
 	}
 
 	// This is sometimes called from an outside thread!
-	int disk_io_thread::add_job(disk_io_job* j)
+	int disk_io_thread::add_job(disk_io_job* j, bool high_priority)
 	{
 		TORRENT_ASSERT(!m_abort || j->action == disk_io_job::reclaim_block);
 		if (m_abort)
@@ -2005,7 +2031,10 @@ namespace libtorrent
 		j->start_time = time_now_hires();
 
 		mutex::scoped_lock l (m_job_mutex);
-		m_queued_jobs.push_back(j);
+		if (high_priority)
+			m_queued_jobs.push_front(j);
+		else
+			m_queued_jobs.push_back(j);
 
 		DLOG(stderr, "[%p] add_job job: %s\n", this, job_action_name[j->action]);
 
@@ -2403,6 +2432,13 @@ namespace libtorrent
 			new_job = true;
 			iocbs_reaped = true;
 #endif
+
+			time_t now = time(0);
+			if (now > m_last_cache_expiry + 5)
+			{
+				m_last_cache_expiry = now;
+				flush_expired_write_blocks();
+			}
 
 			// if didn't receive a message waking us up because we have new jobs
 			// another reason to keep going is if we just reaped some aiocbs and

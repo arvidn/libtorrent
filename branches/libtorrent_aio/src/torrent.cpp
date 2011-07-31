@@ -2787,14 +2787,6 @@ namespace libtorrent
 		// we already have this piece
 		if (is_seed()) return;
 
-		// even though the piece passed the hash-check
-		// it might still have failed being written to disk
-		// if so, piece_picker::write_failed() has been
-		// called, and the piece is no longer finished.
-		// in this case, we have to ignore the fact that
-		// it passed the check
-		if (!m_picker->is_piece_finished(index)) return;
-
 		if (passed_hash_check == 0)
 		{
 			// the following call may cause picker to become invalid

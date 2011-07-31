@@ -221,7 +221,7 @@ namespace libtorrent
 
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
-		int add_job(disk_io_job* j);
+		int add_job(disk_io_job* j, bool high_priority = false);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		block_cache* cache() { return &m_disk_cache; }
@@ -277,7 +277,6 @@ namespace libtorrent
 
 		void perform_async_job(disk_io_job* j);
 
-		void uncork_jobs();
 		void on_disk_write(block_cache::iterator p, int begin
 			, int end, int to_write, async_handler* handler);
 		void on_disk_read(block_cache::iterator p, int begin
@@ -293,6 +292,7 @@ namespace libtorrent
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		int flush_cache(disk_io_job* j, boost::uint32_t flags);
+		void flush_expired_write_blocks();
 
 		void on_write_one_buffer(async_handler* handler, disk_io_job* j);
 		void on_read_one_buffer(async_handler* handler, disk_io_job* j);
@@ -304,6 +304,9 @@ namespace libtorrent
 		bool m_abort;
 
 		session_settings m_settings;
+
+		// the last time we expired write blocks from the cache
+		time_t m_last_cache_expiry;
 
 		// this is the number of bytes we're waiting for to be written
 		size_type m_pending_buffer_size;

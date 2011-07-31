@@ -75,6 +75,17 @@ struct update_last_use
 	int expire;
 };
 
+struct set_last_use
+{
+	set_last_use(time_t exp): expire(exp) {}
+	void operator()(cached_piece_entry& p)
+	{
+		TORRENT_ASSERT(p.storage);
+		p.expire = expire;
+	}
+	time_t expire;
+};
+
 cached_piece_entry::cached_piece_entry()
 	: storage()
 	, expire(0)
@@ -198,7 +209,9 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	j->buffer = 0;
 	TORRENT_ASSERT(j->piece == pe->piece);
 	pe->jobs.push_back(j);
-	pe->expire = (std::max)(pe->expire, time(0) + j->cache_min_time);
+
+	cache_piece_index_t& idx = m_pieces.get<0>();
+	idx.modify(p, set_last_use((std::max)(pe->expire, time(0) + j->cache_min_time)));
 
 	int hash_start = 0;
 	int hash_end = 0;
@@ -1096,12 +1109,17 @@ void block_cache::check_invariant() const
 	int cached_write_blocks = 0;
 	int cached_read_blocks = 0;
 	int num_pinned = 0;
-	cache_piece_index_t const& idx = m_pieces.get<0>();
-	for (cache_piece_index_t::const_iterator i = idx.begin()
+	cache_lru_index_t const& idx = m_pieces.get<1>();
+
+	time_t timeout = 0;
+
+	for (cache_lru_index_t::const_iterator i = idx.begin()
 		, end(idx.end()); i != end; ++i)
 	{
 		cached_piece_entry const& p = *i;
 		TORRENT_ASSERT(p.blocks);
+		TORRENT_ASSERT(p.expire >= timeout);
+		timeout = p.expire;
 		
 		TORRENT_ASSERT(p.storage);
 		int piece_size = p.storage->files()->piece_size(p.piece);
