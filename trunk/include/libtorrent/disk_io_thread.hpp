@@ -33,10 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_THREAD
 #define TORRENT_DISK_IO_THREAD
 
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
-#include <fstream>
-#endif
-
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
@@ -48,11 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include <deque>
 #include "libtorrent/config.hpp"
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/pool.hpp>
-#endif
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/disk_buffer_pool.hpp"
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
@@ -229,78 +223,6 @@ namespace libtorrent
 		int read_queue_size;
 	};
 	
-	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
-	{
-		disk_buffer_pool(int block_size);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		~disk_buffer_pool();
-#endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
-		bool is_disk_buffer(char* buffer
-			, mutex::scoped_lock& l) const;
-		bool is_disk_buffer(char* buffer) const;
-#endif
-
-		char* allocate_buffer(char const* category);
-		void free_buffer(char* buf);
-		void free_multiple_buffers(char** bufvec, int numbufs);
-
-		int block_size() const { return m_block_size; }
-
-#ifdef TORRENT_STATS
-		int disk_allocations() const
-		{ return m_allocations; }
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		std::ofstream m_disk_access_log;
-#endif
-
-		void release_memory();
-
-		int in_use() const { return m_in_use; }
-
-	protected:
-
-		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
-
-		// number of bytes per block. The BitTorrent
-		// protocol defines the block size to 16 KiB.
-		const int m_block_size;
-
-		// number of disk buffers currently allocated
-		int m_in_use;
-
-		session_settings m_settings;
-
-	private:
-
-		mutable mutex m_pool_mutex;
-
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		// memory pool for read and write operations
-		// and disk cache
-		boost::pool<page_aligned_allocator> m_pool;
-#endif
-
-#if defined TORRENT_DISK_STATS || defined TORRENT_STATS
-		int m_allocations;
-#endif
-#ifdef TORRENT_DISK_STATS
-	public:
-		void rename_buffer(char* buf, char const* category);
-	protected:
-		std::map<std::string, int> m_categories;
-		std::map<char*, std::string> m_buf_to_category;
-		std::ofstream m_log;
-	private:
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		int m_magic;
-#endif
-	};
-
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
 	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
