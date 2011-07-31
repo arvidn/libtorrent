@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
 
 #include <boost/intrusive_ptr.hpp> // atomic_count
 
@@ -201,7 +200,7 @@ namespace libtorrent
 	
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
+	struct TORRENT_EXPORT disk_io_thread
 	{
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
@@ -217,11 +216,15 @@ namespace libtorrent
 		void abort();
 		void join();
 
+		void free_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
+		char* allocate_buffer(char const* category) { return m_disk_cache.allocate_buffer(category); }
+
 		// aborts read operations
 		void stop(boost::intrusive_ptr<piece_manager> s);
 		int add_job(disk_io_job* j);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
+		block_cache* cache() { return &m_disk_cache; }
 		void thread_fun();
 		bool can_write() const;
 
@@ -299,6 +302,8 @@ namespace libtorrent
 		void try_flush_write_blocks(int num);
 
 		bool m_abort;
+
+		session_settings m_settings;
 
 		// this is the number of bytes we're waiting for to be written
 		size_type m_pending_buffer_size;

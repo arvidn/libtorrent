@@ -1118,7 +1118,7 @@ namespace libtorrent
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
-		m_storage->m_disk_pool = &m_io_thread;
+		m_storage->m_disk_pool = m_io_thread.cache();
 		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
 
@@ -1295,7 +1295,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		// the buffer needs to be allocated through the io_thread
-		TORRENT_ASSERT(m_io_thread.is_disk_buffer(buffer.get()));
 		TORRENT_ASSERT(buffer.get());
 
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::write);

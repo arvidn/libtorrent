@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/allocator.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #include <algorithm>
 
@@ -52,7 +53,7 @@ namespace libtorrent
 		: m_block_size(block_size)
 		, m_in_use(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(block_size, m_settings.cache_buffer_chunk_size)
+		, m_pool(block_size, 32)
 #endif
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
@@ -110,7 +111,7 @@ namespace libtorrent
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
 		char* ret = (char*)m_pool.malloc();
-		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
+		m_pool.set_next_size(m_cache_buffer_chunk_size);
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
@@ -118,7 +119,7 @@ namespace libtorrent
 #endif
 		++m_in_use;
 #if TORRENT_USE_MLOCK
-		if (m_settings.lock_disk_cache)
+		if (m_lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
 			VirtualLock(ret, m_block_size);
@@ -180,6 +181,12 @@ namespace libtorrent
 		free_buffer_impl(buf, l);
 	}
 
+	void disk_buffer_pool::set_settings(session_settings const& sett)
+	{
+		m_cache_buffer_chunk_size = sett.cache_buffer_chunk_size;
+		m_lock_disk_cache = sett.lock_disk_cache;
+	}
+
 	void disk_buffer_pool::free_buffer_impl(char* buf, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(buf);
@@ -197,7 +204,7 @@ namespace libtorrent
 		m_buf_to_category.erase(buf);
 #endif
 #if TORRENT_USE_MLOCK
-		if (m_settings.lock_disk_cache)
+		if (m_lock_disk_cache)
 		{
 #ifdef TORRENT_WINDOWS
 			VirtualUnlock(buf, m_block_size);

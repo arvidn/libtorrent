@@ -41,19 +41,16 @@ namespace libtorrent
 		: m_disk_thread(ses.m_disk_thread), m_buf(buf)
 	{
 		m_ref.pe = 0;
-		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
 	}
 
 	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j)
 		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.ref)
 	{
-		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
 	}
 
 	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, disk_io_job const& j)
 		: m_disk_thread(iothread), m_buf(j.buffer), m_ref(j.ref)
 	{
-		TORRENT_ASSERT(m_buf == 0 || m_disk_thread.is_disk_buffer(m_buf));
 		// in this use case, we're in the disk io thread, we shouldn't
 		// be using the reference counted buffer here
 		TORRENT_ASSERT(m_ref.pe == 0);

@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/tailqueue.hpp"
+#include "libtorrent/disk_buffer_pool.hpp"
 
 namespace libtorrent
 {
@@ -204,9 +205,9 @@ namespace libtorrent
 		tailqueue jobs;
 	};
 
-	struct block_cache
+	struct block_cache : disk_buffer_pool
 	{
-		block_cache(disk_buffer_pool& p, hash_thread& h);
+		block_cache(int block_size, hash_thread& h);
 
 	private:
 
@@ -389,9 +390,6 @@ namespace libtorrent
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int m_pinned_blocks;
-
-		// this is where buffers are allocated from
-		disk_buffer_pool& m_buffer_pool;
 
 		hash_thread& m_hash_thread;
 	};

@@ -319,15 +319,14 @@ namespace libtorrent
 		, boost::function<void()> const& queue_callback
 		, boost::function<void(alert*)> const& post_alert
 		, int block_size)
-		: disk_buffer_pool(block_size)
-		, m_abort(false)
+		: m_abort(false)
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
 		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
 		, m_hash_thread(this)
-		, m_disk_cache(*this, m_hash_thread)
+		, m_disk_cache(block_size, m_hash_thread)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -494,7 +493,8 @@ namespace libtorrent
 		DLOG(stderr, "[%p] try_flush_contiguous: %d blocks: %d cont_block: %d num: %d\n"
 			, this, int(p->piece), int(p->blocks_in_piece), int(cont_block), num);
 
-		int hash_pos = p->hash == 0 ? 0 : (p->hash->offset + m_block_size - 1) / m_block_size;
+		int block_size = m_disk_cache.block_size();
+		int hash_pos = p->hash == 0 ? 0 : (p->hash->offset + block_size - 1) / block_size;
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
 		for (; i < p->blocks_in_piece; ++i)
@@ -543,7 +543,8 @@ namespace libtorrent
 		// end is one past the end
 		// round offset up to include the last block, which might
 		// have an odd size
-		int end = (p->hash->offset + m_block_size - 1) / m_block_size;
+		int block_size = m_disk_cache.block_size();
+		int end = (p->hash->offset + block_size - 1) / block_size;
 
 		// nothing has been hashed yet, don't flush anything
 		if (end == 0 && !p->need_readback) return 0;
@@ -660,9 +661,10 @@ namespace libtorrent
 				elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
 #endif
 
-				TORRENT_ASSERT(buffer_size <= i * m_block_size);
-				int to_write = (std::min)(i * m_block_size, piece_size) - buffer_size;
-				int range_start = i - (buffer_size + m_block_size - 1) / m_block_size;
+				int block_size = m_disk_cache.block_size();
+				TORRENT_ASSERT(buffer_size <= i * block_size);
+				int to_write = (std::min)(i * block_size, piece_size) - buffer_size;
+				int range_start = i - (buffer_size + block_size - 1) / block_size;
 				file::aiocb_t* aios = 0;
 				async_handler* a = m_aiocb_pool.alloc_handler();
 				if (a == 0)
@@ -690,7 +692,7 @@ namespace libtorrent
 					a->handler = boost::bind(&disk_io_thread::on_disk_read, this, p
 						, range_start, i, _1);
 					aios = pe.storage->get_storage_impl()->async_readv(iov, iov_counter
-						, pe.piece, range_start * m_block_size, flags, a);
+						, pe.piece, range_start * block_size, flags, a);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
 				}
@@ -727,7 +729,9 @@ namespace libtorrent
 				continue;
 			}
 			DLOG(stderr, "x");
-			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
+
+			int block_size = m_disk_cache.block_size();
+			block_size = (std::min)(piece_size - i * block_size, block_size);
 			TORRENT_ASSERT_VAL(i < end, i);
 			iov[iov_counter].iov_base = pe.blocks[i].buf;
 			iov[iov_counter].iov_len = block_size;
@@ -808,15 +812,16 @@ namespace libtorrent
 
 		file::iovec_t* vec = TORRENT_ALLOCA(file::iovec_t, end - begin);
 		int piece_size = p->storage->files()->piece_size(p->piece);
+		int block_size = m_disk_cache.block_size();
 		for (int i = begin, k = 0; i < end; ++i, ++k)
 		{
-			int block_size = (std::min)(piece_size - i * m_block_size, m_block_size);
+			int block_size = (std::min)(piece_size - i * block_size, block_size);
 			vec[k].iov_base = (file::iovec_base_t)p->blocks[i].buf;
-			vec[k].iov_len = m_block_size;
+			vec[k].iov_len = block_size;
 		}
 
 		p->storage->get_storage_impl()->readv_done(vec, end - begin
-			, p->piece, begin * m_block_size);
+			, p->piece, begin * block_size);
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
@@ -1063,7 +1068,7 @@ namespace libtorrent
 		DLOG(stderr, "[%p] do_read\n", this);
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(j->buffer_size <= m_block_size);
+		TORRENT_ASSERT(j->buffer_size <= m_disk_cache.block_size());
 
 		// there's no point in hinting that we will read something
 		// when using async I/O anyway
@@ -1073,6 +1078,8 @@ namespace libtorrent
 			j->storage->get_storage_impl()->hint_read(j->piece, j->offset, j->buffer_size);
 		}
 #endif
+
+		int block_size = m_disk_cache.block_size();
 
 		if (m_settings.use_read_cache)
 		{
@@ -1095,7 +1102,7 @@ namespace libtorrent
 				block_cache::iterator p = m_disk_cache.allocate_piece(j);
 				if (p != m_disk_cache.end())
 				{
-					int start_block = j->offset / m_block_size;
+					int start_block = j->offset / block_size;
 					int end_block = (std::min)(int(p->blocks_in_piece)
 							, start_block + m_settings.read_cache_line_size);
 					// this will also add the job to the pending job list in this piece
@@ -1134,7 +1141,7 @@ namespace libtorrent
 			}
 		}
 
-		j->buffer = allocate_buffer("send buffer");
+		j->buffer = m_disk_cache.allocate_buffer("send buffer");
 		if (j->buffer == 0)
 		{
 			j->error.ec = error::no_memory;
@@ -1199,7 +1206,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer != 0);
-		TORRENT_ASSERT(j->buffer_size <= m_block_size);
+		TORRENT_ASSERT(j->buffer_size <= m_disk_cache.block_size());
+		int block_size = m_disk_cache.block_size();
 
 		if (m_settings.cache_size > 0)
 		{
@@ -1227,8 +1235,8 @@ namespace libtorrent
 				// deduct the writing blocks from the cache size, otherwise we'll flush the
 				// entire cache as soon as we exceed the limit, since all flush operations are
 				// async.
-				int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
-				int current_size = in_use();
+				int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
+				int current_size = m_disk_cache.in_use();
 				if (m_settings.cache_size <= current_size - num_pending_write_blocks)
 				{
 					int left = current_size - m_settings.cache_size;
@@ -1242,7 +1250,7 @@ namespace libtorrent
 				return defer_handler;
 			}
 
-			free_buffer(j->buffer);
+			m_disk_cache.free_buffer(j->buffer);
 			j->buffer = 0;
 			j->error.ec = error::no_memory;
 			return disk_operation_failed;
@@ -1322,6 +1330,7 @@ namespace libtorrent
 			return 0;
 		}
 
+		int block_size = m_disk_cache.block_size();
 		cached_piece_entry* pe = 0;
 
 		int start_block = 0;
@@ -1380,7 +1389,7 @@ namespace libtorrent
 			if (pe->hash)
 			{
 				if (pe->hashing != -1) start_block = pe->hashing;
-				else start_block = (pe->hash->offset + m_block_size - 1) / m_block_size;
+				else start_block = (pe->hash->offset + block_size - 1) / block_size;
 			}
 
 			// find a (potential) range that we can start hashing, of blocks that we already have
@@ -1609,7 +1618,7 @@ namespace libtorrent
 			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
 			k = (disk_io_job*)k->next;
 		}
-		if (!to_free.empty()) free_multiple_buffers(&to_free[0], to_free.size());
+		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
 
 		// if there is a storage that has a fence up
 		// it's going to get left hanging here.
@@ -1660,14 +1669,14 @@ namespace libtorrent
 			k = (disk_io_job*)k->next;
 		}
 
-		if (!to_free.empty()) free_multiple_buffers(&to_free[0], to_free.size());
+		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
 
 		// the fence function will issue all blocked jobs, but we
 		// just cleared them all from m_blocked_jobs anyway
 		// lowering the fence will at least allow new jobs
 		if (j->storage->has_fence()) j->storage->lower_fence();
 
-		release_memory();
+		m_disk_cache.release_memory();
 		return 0;
 	}
 
@@ -1677,6 +1686,7 @@ namespace libtorrent
 		session_settings const& s = *((session_settings*)j->buffer);
 		TORRENT_ASSERT(s.cache_size >= 0);
 		TORRENT_ASSERT(s.cache_expiry > 0);
+		int block_size = m_disk_cache.block_size();
 
 #if defined TORRENT_WINDOWS
 		if (m_settings.low_prio_disk != s.low_prio_disk)
@@ -1692,6 +1702,7 @@ namespace libtorrent
 
 		m_settings = s;
 		m_file_pool.resize(m_settings.file_pool_size);
+		m_disk_cache.set_settings(m_settings);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 			, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
@@ -1707,15 +1718,15 @@ namespace libtorrent
 			if (m_physical_ram == 0)
 				m_settings.cache_size = 1024;
 			else
-				m_settings.cache_size = m_physical_ram / 8 / m_block_size;
+				m_settings.cache_size = m_physical_ram / 8 / block_size;
 		}
 
 		m_disk_cache.set_max_size(m_settings.cache_size);
 		// deduct the writing blocks from the cache size, otherwise we'll flush the
 		// entire cache as soon as we exceed the limit, since all flush operations are
 		// async.
-		int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
-		int current_size = in_use();
+		int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
+		int current_size = m_disk_cache.in_use();
 		if (current_size - num_pending_write_blocks > m_settings.cache_size)
 			m_disk_cache.try_evict_blocks(current_size - m_settings.cache_size, 0, m_disk_cache.end());
 
@@ -1760,7 +1771,7 @@ namespace libtorrent
 	{
 		ret = m_cache_stats;
 
-		ret.total_used_buffers = in_use();
+		ret.total_used_buffers = m_disk_cache.in_use();
 #if TORRENT_USE_SYNCIO
 		ret.elevator_turns = m_elevator_turns;
 #else
@@ -1802,6 +1813,7 @@ namespace libtorrent
 
 		cache_status* ret = (cache_status*)j->buffer;
 		get_disk_metrics(*ret);
+		int block_size = m_disk_cache.block_size();
 
 		time_t now_time_t = time(0);
 		ptime now = time_now();
@@ -1813,7 +1825,7 @@ namespace libtorrent
 			info.piece = i->piece;
 			info.last_use = now - seconds(now_time_t - i->expire);
 			info.need_readback = i->need_readback;
-			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + m_block_size - 1) / m_block_size;
+			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
 			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
 			int blocks_in_piece = i->blocks_in_piece;
 			info.blocks.resize(blocks_in_piece);
@@ -1917,7 +1929,7 @@ namespace libtorrent
 		// just drop below the disk queue low watermark limit?
 		deducted_from_write_queue();
 
-		free_buffer(j->buffer);
+		m_disk_cache.free_buffer(j->buffer);
 		j->buffer = 0;
 
 		DLOG(stderr, "[%p] on_write_one_buffer piece=%d offset=%d error=%s\n"
@@ -1976,7 +1988,7 @@ namespace libtorrent
 		if (j->callback)
 			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
 		else if (j->buffer)
-			free_buffer(j->buffer);
+			m_disk_cache.free_buffer(j->buffer);
 	}
 
 	// This is sometimes called from an outside thread!

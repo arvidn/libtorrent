@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/session_settings.hpp"
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
@@ -53,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct session_settings;
 
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
 	{
@@ -82,6 +82,8 @@ namespace libtorrent
 
 		boost::uint32_t in_use() const { return m_in_use; }
 
+		void set_settings(session_settings const& sett);
+
 	protected:
 
 		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
@@ -93,8 +95,6 @@ namespace libtorrent
 		// number of disk buffers currently allocated
 		boost::uint32_t m_in_use;
 
-		session_settings m_settings;
-
 	private:
 
 		mutable mutex m_pool_mutex;
@@ -104,6 +104,9 @@ namespace libtorrent
 		// and disk cache
 		boost::pool<page_aligned_allocator> m_pool;
 #endif
+
+		int m_cache_buffer_chunk_size;
+		bool m_lock_disk_cache;
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;
