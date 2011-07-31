@@ -31,6 +31,7 @@ libtorrent_rasterbar_la_SOURCES = \
   ConvertUTF.cpp                  \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \
+  disk_buffer_pool.cpp            \
   disk_io_thread.cpp              \
   entry.cpp                       \
   enum_net.cpp                    \
