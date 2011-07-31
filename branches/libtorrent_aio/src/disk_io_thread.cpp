@@ -1228,9 +1228,10 @@ namespace libtorrent
 				// entire cache as soon as we exceed the limit, since all flush operations are
 				// async.
 				int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
-				if (m_settings.cache_size <= m_disk_cache.size() - num_pending_write_blocks)
+				int current_size = in_use();
+				if (m_settings.cache_size <= current_size - num_pending_write_blocks)
 				{
-					int left = m_disk_cache.size() - m_settings.cache_size;
+					int left = current_size - m_settings.cache_size;
 					left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
 					if (left > 0 && !m_settings.dont_flush_write_cache)
 						try_flush_write_blocks(left);
@@ -1714,8 +1715,9 @@ namespace libtorrent
 		// entire cache as soon as we exceed the limit, since all flush operations are
 		// async.
 		int num_pending_write_blocks = (m_pending_buffer_size + m_block_size - 1) / m_block_size;
-		if (m_disk_cache.size() - num_pending_write_blocks > m_settings.cache_size)
-			m_disk_cache.try_evict_blocks(m_disk_cache.size() - m_settings.cache_size, 0, m_disk_cache.end());
+		int current_size = in_use();
+		if (current_size - num_pending_write_blocks > m_settings.cache_size)
+			m_disk_cache.try_evict_blocks(current_size - m_settings.cache_size, 0, m_disk_cache.end());
 
 		return 0;
 	}
@@ -1841,16 +1843,10 @@ namespace libtorrent
 		TORRENT_ASSERT(j->ref.block < j->ref.pe->blocks_in_piece);
 		if (j->ref.block >= 0)
 		{
+			m_disk_cache.reclaim_block(j->ref);
+
 			cached_piece_entry* pe = j->ref.pe;
-			TORRENT_ASSERT(pe->blocks[j->ref.block].refcount > 0);
-			TORRENT_ASSERT(pe->blocks[j->ref.block].buf);
-			--pe->blocks[j->ref.block].refcount;
-			--pe->refcount;
-#ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(pe->blocks[j->ref.block].reading_count > 0);
-			--pe->blocks[j->ref.block].reading_count;
-#endif
-			if (pe->blocks[j->ref.block].refcount == 0) m_disk_cache.pinned_change(-1);
+
 			if (pe->refcount == 0)
 			{
 				// the refcount just reached 0, are there any sync-jobs to post?

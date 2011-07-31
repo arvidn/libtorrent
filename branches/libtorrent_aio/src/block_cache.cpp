@@ -100,9 +100,9 @@ cached_piece_entry::~cached_piece_entry()
 
 block_cache::block_cache(disk_buffer_pool& p, hash_thread& h)
 	: m_max_size(0)
-	, m_cache_size(0)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
+	, m_send_buffer_blocks(0)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
 	, m_cumulative_hash_time(0)
@@ -179,8 +179,9 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT((j->offset % block_size) == 0);
 
 	// this only evicts read blocks
-	if (m_cache_size + 1 > m_max_size)
-		try_evict_blocks(m_cache_size + 1 - m_max_size, 1, p);
+
+	if (m_write_cache_size + m_read_cache_size + 1 > m_max_size)
+		try_evict_blocks(m_write_cache_size + m_write_cache_size + 1 - m_max_size, 1, p);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(block < pe->blocks_in_piece);
@@ -196,7 +197,6 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	++pe->num_blocks;
 	++pe->num_dirty;
 	++m_write_cache_size;
-	++m_cache_size;
 	j->buffer = 0;
 	TORRENT_ASSERT(j->piece == pe->piece);
 	pe->jobs.push_back(j);
@@ -206,9 +206,6 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	int hash_end = 0;
 	kick_hasher(pe, hash_start, hash_end);
 
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_write_cache_size <= m_buffer_pool.in_use());
 	return p;
 }
 
@@ -265,8 +262,6 @@ bool block_cache::evict_piece(iterator i)
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
-		TORRENT_ASSERT(m_cache_size > 0);
-		--m_cache_size;
 		if (!pe->blocks[i].dirty)
 		{
 			TORRENT_ASSERT(m_read_cache_size > 0);
@@ -274,14 +269,13 @@ bool block_cache::evict_piece(iterator i)
 		}
 		else
 		{
+			TORRENT_ASSERT(pe->num_dirty > 0);
 			--pe->num_dirty;
+			TORRENT_ASSERT(m_write_cache_size > 0);
 			--m_write_cache_size;
 		}
 	}
 	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 
 	if (pe->refcount == 0)
 	{
@@ -362,9 +356,10 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 			
 			to_delete[num_to_delete++] = b.buf;
 			b.buf = 0;
+			TORRENT_ASSERT(pe->num_blocks > 0);
 			--pe->num_blocks;
+			TORRENT_ASSERT(m_read_cache_size > 0);
 			--m_read_cache_size;
-			--m_cache_size;
 			--num;
 		}
 
@@ -377,9 +372,6 @@ int block_cache::try_evict_blocks(int num, int prio, iterator ignore)
 	DLOG(stderr, "[%p]    removed %d blocks\n", &m_buffer_pool, num_to_delete);
 
 	m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 
 	return num;
 }
@@ -421,9 +413,9 @@ int block_cache::allocate_pending(block_cache::iterator p
 		++blocks_to_allocate;
 	}
 
-	if (m_cache_size + blocks_to_allocate > m_max_size)
+	if (m_write_cache_size + m_read_cache_size + blocks_to_allocate > m_max_size)
 	{
-		if (try_evict_blocks(m_cache_size + blocks_to_allocate - m_max_size, prio, p) > 0
+		if (try_evict_blocks(m_write_cache_size + m_read_cache_size + blocks_to_allocate - m_max_size, prio, p) > 0
 			&& prio < 1)
 		{
 			// we couldn't evict enough blocks to make room for this piece
@@ -454,8 +446,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 				bl.uninitialized = false;
 				TORRENT_ASSERT(m_read_cache_size > 0);
 				--m_read_cache_size;
-				TORRENT_ASSERT(m_cache_size > 0);
-				--m_cache_size;
 				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
 			}
@@ -466,9 +456,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 			}
 			if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
 
-			TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-			TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
-
 			return -1;
 		}
 		++pe->num_blocks;
@@ -476,7 +463,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 		// be read in io_range()
 		pe->blocks[i].uninitialized = true;
 		++m_read_cache_size;
-		++m_cache_size;
 		++ret;
 	}
 	
@@ -494,9 +480,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 		TORRENT_ASSERT(j->piece == pe->piece);
 		pe->jobs.push_back(j);
 	}
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 
 	return ret;
 }
@@ -566,18 +549,16 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			bl.pending = false;
 			TORRENT_ASSERT(pe->num_blocks > 0);
 			--pe->num_blocks;
-			TORRENT_ASSERT(m_cache_size > 0);
-			--m_cache_size;
 		}
 	}
 	else
 	{
 		for (int i = begin; i < end; ++i)
 		{
+			TORRENT_ASSERT(pe->blocks[i].pending);
 			TORRENT_ASSERT(pe->blocks[i].refcount > 0);
 			--pe->blocks[i].refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
-			TORRENT_ASSERT(pe->blocks[i].pending);
 			--pe->refcount;
 			pe->blocks[i].pending = false;
 			if (pe->blocks[i].refcount == 0)
@@ -663,9 +644,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	// to avoid inconsistent states when new jobs are issued
 	if (lower_fence)
 		storage->lower_fence();
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end)
@@ -1021,8 +999,8 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
-		TORRENT_ASSERT(m_cache_size > 0);
-		--m_cache_size;
+		TORRENT_ASSERT(m_write_cache_size > 0);
+		--m_write_cache_size;
 		TORRENT_ASSERT(pe->num_dirty > 0);
 		--pe->num_dirty;
 	}
@@ -1043,9 +1021,6 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		TORRENT_ASSERT(j->callback);
 		ios.post(boost::bind(&complete_job, pool, -1, j));
 	}
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 // frees all buffers associated with this piece. May only
@@ -1069,19 +1044,20 @@ void block_cache::free_piece(iterator p)
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
 		--pe->num_blocks;
-		TORRENT_ASSERT(m_cache_size > 0);
-		--m_cache_size;
-		if (!pe->blocks[i].dirty)
+		if (pe->blocks[i].dirty)
+		{
+			TORRENT_ASSERT(m_write_cache_size > 0);
+			--m_write_cache_size;
+			TORRENT_ASSERT(pe->num_dirty > 0);
+			--pe->num_dirty;
+		}
+		else
 		{
 			TORRENT_ASSERT(m_read_cache_size > 0);
 			--m_read_cache_size;
 		}
-		else --pe->num_dirty;
 	}
 	if (num_to_delete) m_buffer_pool.free_multiple_buffers(to_delete, num_to_delete);
-
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 }
 
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
@@ -1096,19 +1072,18 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 		buf.push_back(p.blocks[i].buf);
 		++ret;
 		p.blocks[i].buf = 0;
+		TORRENT_ASSERT(p.num_blocks > 0);
 		--p.num_blocks;
-		--m_cache_size;
+		TORRENT_ASSERT(m_read_cache_size > 0);
 		--m_read_cache_size;
 	}
-	TORRENT_ASSERT(m_cache_size <= m_buffer_pool.in_use());
-	TORRENT_ASSERT(m_read_cache_size <= m_buffer_pool.in_use());
 	return ret;
 }
 
 void block_cache::get_stats(cache_status* ret) const
 {
 	ret->blocks_read_hit = m_blocks_read_hit;
-	ret->cache_size = m_cache_size;
+	ret->write_cache_size = m_write_cache_size;
 	ret->read_cache_size = m_read_cache_size;
 	ret->average_hash_time = m_hash_time.mean();
 	ret->cumulative_hash_time = m_cumulative_hash_time;
@@ -1118,8 +1093,11 @@ void block_cache::get_stats(cache_status* ret) const
 #ifdef TORRENT_DEBUG
 void block_cache::check_invariant() const
 {
+	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= m_buffer_pool.in_use());
+
 	int cached_write_blocks = 0;
 	int cached_read_blocks = 0;
+	int num_pinned = 0;
 	cache_piece_index_t const& idx = m_pieces.get<0>();
 	for (cache_piece_index_t::const_iterator i = idx.begin()
 		, end(idx.end()); i != end; ++i)
@@ -1153,6 +1131,7 @@ void block_cache::check_invariant() const
 					++cached_read_blocks;
 				}
 				if (p.blocks[k].pending) ++num_pending;
+				if (p.blocks[k].refcount > 0) ++num_pinned;
 			}
 			else
 			{
@@ -1169,7 +1148,7 @@ void block_cache::check_invariant() const
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
-	TORRENT_ASSERT(m_cache_size == cached_read_blocks + cached_write_blocks);
+	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
 
 #ifdef TORRENT_BUFFER_STATS
 	int read_allocs = m_buffer_pool.m_categories.find(std::string("read cache"))->second;
@@ -1228,6 +1207,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		j->ref.pe = pe;
 		j->ref.block = start_block;
 		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size-1));
+		++m_send_buffer_blocks;
 #ifdef TORRENT_DEBUG
 		++pe->blocks[start_block].reading_count;
 #endif
@@ -1271,8 +1251,6 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 				pe->blocks[i].buf = 0;
 				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
-				TORRENT_ASSERT(m_cache_size > 0);
-				--m_cache_size;
 				TORRENT_ASSERT(m_read_cache_size > 0);
 				--m_read_cache_size;
 			}
@@ -1282,6 +1260,28 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	}
 	if (!buffers.empty()) m_buffer_pool.free_multiple_buffers(&buffers[0], buffers.size());
 	return j->buffer_size;
+}
+
+void block_cache::reclaim_block(block_cache_reference const& ref)
+{
+	cached_piece_entry* pe = ref.pe;
+	TORRENT_ASSERT(pe->blocks[ref.block].refcount > 0);
+	TORRENT_ASSERT(pe->blocks[ref.block].buf);
+	--pe->blocks[ref.block].refcount;
+	if (pe->blocks[ref.block].refcount == 0)
+	{
+		TORRENT_ASSERT(m_pinned_blocks > 0);
+		--m_pinned_blocks;
+	}
+	TORRENT_ASSERT(pe->refcount > 0);
+	--pe->refcount;
+#ifdef TORRENT_DEBUG
+	TORRENT_ASSERT(pe->blocks[ref.block].reading_count > 0);
+	--pe->blocks[ref.block].reading_count;
+#endif
+
+	TORRENT_ASSERT(m_send_buffer_blocks > 0);
+	--m_send_buffer_blocks;
 }
 
 block_cache::iterator block_cache::find_piece(cached_piece_entry const* pe)

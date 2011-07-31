@@ -60,6 +60,7 @@ namespace libtorrent
 	struct cache_status;
 	struct hash_thread;
 	struct aiocb_pool;
+	struct block_cache_reference;
 
 	using boost::multi_index::multi_index_container;
 	using boost::multi_index::ordered_non_unique;
@@ -232,6 +233,8 @@ namespace libtorrent
 		typedef cache_piece_index_t::iterator iterator;
 		typedef cache_lru_index_t::iterator lru_iterator;
 
+		void reclaim_block(block_cache_reference const& ref);
+
 		// returns the range of all pieces that belongs to the
 		// given storage
 		std::pair<iterator, iterator> pieces_for_storage(void* st);
@@ -324,8 +327,6 @@ namespace libtorrent
 
 		void get_stats(cache_status* ret) const;
 
-		boost::uint32_t size() const { return m_cache_size; }
-
 		void set_max_size(int s) { m_max_size = s; }
 
 		void add_hash_time(time_duration dt, int num_blocks)
@@ -363,12 +364,18 @@ namespace libtorrent
 		// total number of blocks allowed to be cached
 		boost::uint32_t m_max_size;
 
-		// the total number of blocks in the cache
-		boost::uint32_t m_cache_size;
 		// the number of blocks in the cache
 		// that are in the read cache
 		boost::uint32_t m_read_cache_size;
+		// the number of blocks in the cache
+		// that are in the write cache
 		boost::uint32_t m_write_cache_size;
+
+		// the number of blocks that are currently sitting
+		// in peer's send buffers. If two peers are sending
+		// the same block, it counts as 2, even though there're
+		// no buffer duplication
+		boost::uint32_t m_send_buffer_blocks;
 
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;

@@ -888,7 +888,7 @@ a piece is, the more likely it is to be flushed to disk.
 			size_type blocks_read_hit;
 			size_type reads;
 			size_type queued_bytes;
-			int cache_size;
+			int write_cache_size;
 			int read_cache_size;
 			int pinned_blocks;
 			int total_used_buffers;
@@ -936,8 +936,8 @@ for the read cache.
 ``queued_bytes`` is the total number of bytes queued for writing, including
 bytes passed on to the operating system but have not yet completed.
 
-``cache_size`` is the number of 16 KiB blocks currently in the disk cache.
-This includes both read and write cache.
+``write_cache_size`` is the number of 16 KiB blocks currently in the disk
+write cache.
 
 ``read_cache_size`` is the number of 16KiB blocks in the read cache.
 
@@ -946,7 +946,7 @@ to them, forcing them to stay in RAM.
 
 ``total_used_buffers`` is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers
-used in peer connections.
+used in peer connections. It only counts disk buffers.
 
 ``average_queue_time`` is the number of microseconds an average disk I/O job
 has to wait in the job queue before it get processed.
