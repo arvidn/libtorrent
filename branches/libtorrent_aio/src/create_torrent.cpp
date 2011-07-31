@@ -508,18 +508,16 @@ namespace libtorrent
 		info["piece length"] = m_files.piece_length();
 		if (m_merkle_torrent)
 		{
-			std::vector<sha1_hash> merkle_tree;
-			
 			int num_leafs = merkle_num_leafs(m_files.num_pieces());
 			int num_nodes = merkle_num_nodes(num_leafs);
 			int first_leaf = num_nodes - num_leafs;
-			merkle_tree.resize(num_nodes);
+			m_merkle_tree.resize(num_nodes);
 			int num_pieces = m_piece_hash.size();
 			for (int i = 0; i < num_pieces; ++i)
-				merkle_tree[first_leaf + i] = m_piece_hash[i];
+				m_merkle_tree[first_leaf + i] = m_piece_hash[i];
 			sha1_hash filler(0);
 			for (int i = num_pieces; i < num_leafs; ++i)
-				merkle_tree[first_leaf + i] = filler;
+				m_merkle_tree[first_leaf + i] = filler;
 
 			// now that we have initialized all leaves, build
 			// each level bottom-up
@@ -531,16 +529,16 @@ namespace libtorrent
 				for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
 				{
 					hasher h;
-					h.update((char const*)&merkle_tree[i][0], 20);
-					h.update((char const*)&merkle_tree[i+1][0], 20);
-					merkle_tree[parent] = h.final();
+					h.update((char const*)&m_merkle_tree[i][0], 20);
+					h.update((char const*)&m_merkle_tree[i+1][0], 20);
+					m_merkle_tree[parent] = h.final();
 				}
 				level_start = merkle_get_parent(level_start);
 				level_size /= 2;
 			}
 			TORRENT_ASSERT(level_size == 1);
 			std::string& p = info["root hash"].string();
-			p.assign((char const*)&merkle_tree[0][0], 20);
+			p.assign((char const*)&m_merkle_tree[0][0], 20);
 		}
 		else
 		{

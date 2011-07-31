@@ -7754,6 +7754,11 @@ namespace libtorrent
 			for (int i = 0; i < num_pieces; ++i)
 				if (m_picker->have_piece(i)) st->pieces.set_bit(i);
 		}
+		else if (is_seed())
+		{
+			int num_pieces = m_torrent_file->num_pieces();
+			st->pieces.resize(num_pieces, true);
+		}
 		st->num_pieces = num_have();
 		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
