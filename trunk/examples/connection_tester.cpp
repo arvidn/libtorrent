@@ -454,7 +454,7 @@ void generate_torrent(std::vector<char>& buf, int size)
 	const size_type total_size = size_type(piece_size) * num_pieces;
 	size_type s = total_size;
 	int i = 0;
-	while (s)
+	while (s > 0)
 	{
 		char buf[100];
 		snprintf(buf, sizeof(buf), "t/stress_test%d", i);
