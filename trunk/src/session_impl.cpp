@@ -360,7 +360,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
-		TORRENT_SETTING(integer, smooth_connects)
+		TORRENT_SETTING(boolean, smooth_connects)
 		TORRENT_SETTING(boolean, always_send_user_agent)
 		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
 		TORRENT_SETTING(integer, read_job_every)
