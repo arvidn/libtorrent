@@ -352,18 +352,6 @@ namespace libtorrent
 		for (file_storage::iterator file_iter = files().begin(),
 			end_iter = files().end(); file_iter != end_iter; ++file_iter)
 		{
-			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
-			std::string dir = parent_path(file_path);
-
-			if (dir != last_path)
-			{
-				last_path = dir;
-
-				error_code tmp;
-				if (!is_directory(last_path, tmp))
-					create_directories(last_path, tmp);
-			}
-
 			int file_index = files().file_index(*file_iter);
 
 			// ignore files that have priority 0
@@ -372,6 +360,8 @@ namespace libtorrent
 
 			// ignore pad files
 			if (file_iter->pad_file) continue;
+
+			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
 
 			file_status s;
 			stat_file(file_path, &s, ec.ec);
@@ -392,6 +382,20 @@ namespace libtorrent
 				|| (!ec && s.file_size > file_iter->size)
 				|| file_iter->size == 0)
 			{
+				std::string dir = parent_path(file_path);
+
+				if (dir != last_path)
+				{
+					last_path = dir;
+
+					create_directories(last_path, ec.ec);
+					if (ec.ec)
+					{
+						ec.file = file_iter - files().begin();
+						ec.operation = "mkdir";
+						break;
+					}
+				}
 				ec.ec.clear();
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, 0, ec.ec);
 				if (!ec.ec && f) f->set_size(file_iter->size, ec.ec);

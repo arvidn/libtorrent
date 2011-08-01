@@ -15,7 +15,6 @@ set(sources
 	connection_queue
 	create_torrent
 	disk_buffer_holder
-	disk_buffer_pool
 	entry
 	error_code
 	file_storage
@@ -64,6 +63,7 @@ set(sources
 	file_pool
 	lsd
 	disk_io_job
+	disk_buffer_pool
 	disk_io_thread
 	enum_net
 	broadcast_socket

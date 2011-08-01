@@ -1,3 +1,4 @@
+	* don't create all directories up front when adding torrents
 	* support DHT scrape
 	* added support for fadvise/F_RDADVISE for improved disk read performance
 	* introduced pop_alerts() which pops the entire alert queue in a single call
@@ -87,6 +88,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python
 	* exposed alert error_codes to python
