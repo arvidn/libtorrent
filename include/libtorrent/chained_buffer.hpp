@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
-#include <boost/function/function1.hpp>
+#include <boost/function.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/buffer.hpp>
@@ -123,12 +123,12 @@ namespace libtorrent
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
 		// it returns false
-		char* append(char const* buf, int s)
+		bool append(char const* buf, int s)
 		{
 			char* insert = allocate_appendix(s);
-			if (insert == 0) return 0;
+			if (insert == 0) return false;
 			memcpy(insert, buf, s);
-			return insert;
+			return true;
 		}
 
 		// tries to allocate memory from the end

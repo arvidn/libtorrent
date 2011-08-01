@@ -40,8 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <boost/optional.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/detail/atomic_count.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -50,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/deadline_timer.hpp"
 
 namespace libtorrent
 {
@@ -75,7 +76,6 @@ namespace libtorrent { namespace dht
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
-		friend bool send_callback(void* userdata, entry& e, udp::endpoint const& addr, int flags);
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
 
@@ -88,7 +88,7 @@ namespace libtorrent { namespace dht
 
 		entry state() const;
 
-		void announce(sha1_hash const& ih, int listen_port, bool seed
+		void announce(sha1_hash const& ih, int listen_port
 			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
 		void dht_status(session_status& s);
@@ -112,8 +112,10 @@ namespace libtorrent { namespace dht
 		void refresh_timeout(error_code const& e);
 		void tick(error_code const& e);
 
-		void on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&);
-		bool send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags);
+		void on_bootstrap();
+		void send_packet(msg const& m);
+
+		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);
 
 		node_impl m_dht;
 		libtorrent::aux::session_impl& m_ses;
@@ -128,6 +130,10 @@ namespace libtorrent { namespace dht
 		dht_settings const& m_settings;
 		int m_refresh_bucket;
 
+		// The mutex is used to abort the dht node
+		// it's only used to set m_abort to true
+		typedef boost::mutex mutex_t;
+		mutable mutex_t m_mutex;
 		bool m_abort;
 
 		// used to resolve hostnames for nodes
@@ -159,8 +165,17 @@ namespace libtorrent { namespace dht
 		int m_replies_bytes_sent[5];
 		int m_queries_bytes_received[5];
 		int m_counter;
+		int m_announces;
+		int m_failed_announces;
 
 		int m_total_message_input;
+		int m_az_message_input;
+		int m_ut_message_input;
+		int m_lt_message_input;
+		int m_mp_message_input;
+		int m_gr_message_input;
+		int m_mo_message_input;
+		
 		int m_total_in_bytes;
 		int m_total_out_bytes;
 		

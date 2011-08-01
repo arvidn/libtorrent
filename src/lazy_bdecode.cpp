@@ -47,13 +47,12 @@ namespace
 
 namespace libtorrent
 {
-
-#define TORRENT_FAIL_BDECODE(code) \
-	{ \
-		ec = code; \
-		if (error_pos) *error_pos = start - orig_start; \
-		return -1; \
+	int fail_bdecode(lazy_entry& ret, int return_value = -1)
+	{
+		ret.clear();
+		return return_value;
 	}
+
 	// fills in 'val' with what the string between start and the
 	// first occurance of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
@@ -76,21 +75,9 @@ namespace libtorrent
 		return start;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	int lazy_bdecode(char const* start, char const* end
-		, lazy_entry& ret, int depth_limit, int item_limit)
-	{
-		error_code ec;
-		int pos;
-		return lazy_bdecode(start, end, ret, ec, &pos, depth_limit, item_limit);
-	}
-#endif
-
 	// return 0 = success
-	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret
-		, error_code& ec, int* error_pos, int depth_limit, int item_limit)
+	int lazy_bdecode(char const* start, char const* end, lazy_entry& ret, int depth_limit)
 	{
-		char const* const orig_start = start;
 		ret.clear();
 		if (start == end) return 0;
 
@@ -103,11 +90,11 @@ namespace libtorrent
 
 			lazy_entry* top = stack.back();
 
-			if (int(stack.size()) > depth_limit) TORRENT_FAIL_BDECODE(errors::depth_exceeded);
-			if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+			if (int(stack.size()) > depth_limit) return fail_bdecode(ret);
+			if (start >= end) return fail_bdecode(ret);
 			char t = *start;
 			++start;
-			if (start >= end && t != 'e') TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+			if (start >= end && t != 'e') return fail_bdecode(ret);
 
 			switch (top->type())
 			{
@@ -119,17 +106,16 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_string);
+					if (!is_digit(t)) return fail_bdecode(ret);
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 3 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+					if (start == 0 || start + len + 3 > end || *start != ':') return fail_bdecode(ret);
 					++start;
-					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start == end) return fail_bdecode(ret);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
+					if (ent == 0) return fail_bdecode(ret, -2);
 					start += len;
-					if (start >= end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start >= end) return fail_bdecode(ret);
 					stack.push_back(ent);
 					t = *start;
 					++start;
@@ -144,15 +130,12 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) TORRENT_FAIL_BDECODE(errors::no_memory);
+					if (ent == 0) return fail_bdecode(ret, -2);
 					stack.push_back(ent);
 					break;
 				}
 				default: break;
 			}
-
-			--item_limit;
-			if (item_limit <= 0) TORRENT_FAIL_BDECODE(errors::limit_exceeded);
 
 			top = stack.back();
 			switch (t)
@@ -168,7 +151,7 @@ namespace libtorrent
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
 					top->construct_int(int_start, start - int_start);
-					if (start == end) TORRENT_FAIL_BDECODE(errors::unexpected_eof);
+					if (start == end) return fail_bdecode(ret);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
@@ -176,12 +159,11 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_value);
+					if (!is_digit(t)) return fail_bdecode(ret);
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
-					if (start == 0 || start + len + 1 > end || *start != ':')
-						TORRENT_FAIL_BDECODE(errors::expected_colon);
+					if (start == 0 || start + len + 1 > end || *start != ':') return fail_bdecode(ret);
 					++start;
 					top->construct_string(start, int(len));
 					stack.pop_back();
@@ -222,7 +204,7 @@ namespace libtorrent
 			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * m_size);
-			for (int i = 0; i < int(m_size); ++i) m_data.dict[i].val.release();
+			for (int i = 0; i < m_size; ++i) m_data.dict[i].val.release();
 			delete[] m_data.dict;
 			m_data.dict = tmp;
 			m_capacity = capacity;
@@ -257,7 +239,7 @@ namespace libtorrent
 		m_data.start = start;
 		m_size = length;
 		m_begin = start - 1 - num_digits(length);
-		m_len = start - m_begin + length;
+		m_end = start + length;
 	}
 
 	namespace
@@ -281,7 +263,7 @@ namespace libtorrent
 	std::pair<std::string, lazy_entry const*> lazy_entry::dict_at(int i) const
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		TORRENT_ASSERT(i < int(m_size));
+		TORRENT_ASSERT(i < m_size);
 		lazy_dict_entry const& e = m_data.dict[i];
 		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
 	}
@@ -291,13 +273,6 @@ namespace libtorrent
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
-	}
-
-	pascal_string lazy_entry::dict_find_pstr(char const* name) const
-	{
-		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
-		return e->string_pstr();
 	}
 
 	lazy_entry const* lazy_entry::dict_find_string(char const* name) const
@@ -338,7 +313,7 @@ namespace libtorrent
 	lazy_entry* lazy_entry::dict_find(char const* name)
 	{
 		TORRENT_ASSERT(m_type == dict_t);
-		for (int i = 0; i < int(m_size); ++i)
+		for (int i = 0; i < m_size; ++i)
 		{
 			lazy_dict_entry& e = m_data.dict[i];
 			if (string_equal(name, e.name, e.val.m_begin - e.name))
@@ -364,7 +339,7 @@ namespace libtorrent
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity];
 			if (tmp == 0) return 0;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * m_size);
-			for (int i = 0; i < int(m_size); ++i) m_data.list[i].release();
+			for (int i = 0; i < m_size; ++i) m_data.list[i].release();
 			delete[] m_data.list;
 			m_data.list = tmp;
 			m_capacity = capacity;
@@ -379,13 +354,6 @@ namespace libtorrent
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
-	}
-
-	pascal_string lazy_entry::list_pstr_at(int i) const
-	{
-		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
-		return e->string_pstr();
 	}
 
 	size_type lazy_entry::list_int_value_at(int i, size_type default_val) const
@@ -412,7 +380,9 @@ namespace libtorrent
 	std::pair<char const*, int> lazy_entry::data_section() const
 	{
 		typedef std::pair<char const*, int> return_t;
-		return return_t(m_begin, m_len);
+		TORRENT_ASSERT(m_end - m_begin < INT_MAX);
+		TORRENT_ASSERT(m_end >= m_begin);
+		return return_t(m_begin, int(m_end - m_begin));
 	}
 
 #if TORRENT_USE_IOSTREAM
@@ -422,64 +392,8 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_IOSTREAM
 
-	int line_longer_than(lazy_entry const& e, int limit)
+	std::string print_entry(lazy_entry const& e)
 	{
-		int line_len = 0;
-		switch (e.type())
-		{
-		case lazy_entry::list_t:
-			line_len += 4;
-			if (line_len > limit) return -1;
-			for (int i = 0; i < e.list_size(); ++i)
-			{
-				int ret = line_longer_than(*e.list_at(i), limit - line_len);
-				if (ret == -1) return -1;
-				line_len += ret + 2;
-			}
-			break;
-		case lazy_entry::dict_t:
-			line_len += 4;
-			if (line_len > limit) return -1;
-			for (int i = 0; i < e.dict_size(); ++i)
-			{
-				line_len += 4 + e.dict_at(i).first.size();
-				if (line_len > limit) return -1;
-				int ret = line_longer_than(*e.dict_at(i).second, limit - line_len);
-				if (ret == -1) return -1;
-				line_len += ret + 1;
-			}
-			break;
-		case lazy_entry::string_t:
-			line_len += 3 + e.string_length();
-			break;
-		case lazy_entry::int_t:
-		{
-			size_type val = e.int_value();
-			while (val > 0)
-			{
-				++line_len;
-				val /= 10;
-			}
-			line_len += 2;
-		}
-		break;
-		case lazy_entry::none_t:
-			line_len += 4;
-			break;
-		}
-	
-		if (line_len > limit) return -1;
-		return line_len;
-	}
-
-	std::string print_entry(lazy_entry const& e, bool single_line, int indent)
-	{
-		char indent_str[200];
-		memset(indent_str, ' ', 200);
-		indent_str[0] = ',';
-		indent_str[1] = '\n';
-		indent_str[199] = 0;
-		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
 		std::string ret;
 		switch (e.type())
 		{
@@ -520,15 +434,20 @@ namespace libtorrent
 			case lazy_entry::list_t:
 			{
 				ret += '[';
-				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
-
-				if (!one_liner) ret += indent_str + 1;
+				bool one_liner = (e.list_size() == 0
+					|| (e.list_at(0)->type() == lazy_entry::int_t
+						&& e.list_size() < 20)
+					|| (e.list_at(0)->type() == lazy_entry::string_t
+						&& (e.list_at(0)->string_length() < 10
+							|| e.list_size() < 2)
+						&& e.list_size() < 5));
+				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.list_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
-					ret += print_entry(*e.list_at(i), single_line, indent + 2);
-					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
-					else ret += (one_liner?" ":indent_str+1);
+					ret += print_entry(*e.list_at(i));
+					if (i < e.list_size() - 1) ret += (one_liner?", ":",\n");
+					else ret += (one_liner?" ":"\n");
 				}
 				ret += "]";
 				return ret;
@@ -536,9 +455,14 @@ namespace libtorrent
 			case lazy_entry::dict_t:
 			{
 				ret += "{";
-				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
+				bool one_liner = (e.dict_size() == 0
+					|| e.dict_at(0).second->type() == lazy_entry::int_t
+					|| (e.dict_at(0).second->type() == lazy_entry::string_t
+						&& e.dict_at(0).second->string_length() < 30)
+					|| e.dict_at(0).first.size() < 10)
+					&& e.dict_size() < 5;
 
-				if (!one_liner) ret += indent_str+1;
+				if (!one_liner) ret += "\n";
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
@@ -546,9 +470,9 @@ namespace libtorrent
 					ret += "'";
 					ret += ent.first;
 					ret += "': ";
-					ret += print_entry(*ent.second, single_line, indent + 2);
-					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
-					else ret += (one_liner?" ":indent_str+1);
+					ret += print_entry(*ent.second);
+					if (i < e.dict_size() - 1) ret += (one_liner?", ":",\n");
+					else ret += (one_liner?" ":"\n");
 				}
 				ret += "}";
 				return ret;

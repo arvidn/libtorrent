@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-#include <boost/function/function5.hpp>
+#include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -45,17 +43,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
 
-#include "libtorrent/i2p_stream.hpp"
-
 #ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
+#include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/variant_stream.hpp"
 #endif
 
 namespace libtorrent
@@ -92,9 +88,6 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 		, m_last_receive(time_now())
 		, m_bottled(bottled)
 		, m_called(false)
-#ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(ios, asio::ssl::context::sslv23_client)
-#endif
 		, m_rate_limit(0)
 		, m_download_quota(0)
 		, m_limiter_timer_active(false)
@@ -107,10 +100,6 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 		, m_abort(false)
 	{
 		TORRENT_ASSERT(!m_handler.empty());
-#ifdef TORRENT_USE_OPENSSL
-		error_code ec;
-		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
-#endif
 	}
 
 	void rate_limit(int limit);
@@ -122,33 +111,25 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
-		, std::string const& user_agent = "", address const& bind_addr = address_v4::any()
-#if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
-#endif
-		);
+		, std::string const& user_agent = "", address const& bind_addr = address_v4::any());
 
 	void start(std::string const& hostname, std::string const& port
 		, time_duration timeout, int prio = 0, proxy_settings const* ps = 0
 		, bool ssl = false, int handle_redirect = 5
-		, address const& bind_addr = address_v4::any()
-#if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn = 0
-#endif
-		);
+		, address const& bind_addr = address_v4::any());
 
 	void close();
 
+#ifdef TORRENT_USE_OPENSSL
+	variant_stream<socket_type, ssl_stream<socket_type> > const& socket() const { return m_sock; }
+#else
 	socket_type const& socket() const { return m_sock; }
+#endif
 
 	std::list<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 	
 private:
 
-#if TORRENT_USE_I2P
-	void on_i2p_resolve(error_code const& e
-		, char const* destination);
-#endif
 	void on_resolve(error_code const& e
 		, tcp::resolver::iterator i);
 	void queue_connect();
@@ -161,12 +142,13 @@ private:
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
-	void callback(error_code e, char const* data = 0, int size = 0);
+	void callback(error_code const& e, char const* data = 0, int size = 0);
 
 	std::vector<char> m_recvbuffer;
+#ifdef TORRENT_USE_OPENSSL
+	variant_stream<socket_type, ssl_stream<socket_type> > m_sock;
+#else
 	socket_type m_sock;
-#if TORRENT_USE_I2P
-	i2p_connection* m_i2p_conn;
 #endif
 	int m_read_pos;
 	tcp::resolver m_resolver;
@@ -187,12 +169,8 @@ private:
 	std::string m_hostname;
 	std::string m_port;
 	std::string m_url;
-	std::string m_user_agent;
 
 	std::list<tcp::endpoint> m_endpoints;
-#ifdef TORRENT_USE_OPENSSL
-	asio::ssl::context m_ssl_ctx;
-#endif
 
 	// the current download limit, in bytes per second
 	// 0 is unlimited.

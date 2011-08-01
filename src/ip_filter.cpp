@@ -74,7 +74,8 @@ namespace libtorrent
 		return boost::make_tuple(m_filter4.export_filter<address_v4>()
 			, m_filter6.export_filter<address_v6>());
 #else
-		return m_filter4.export_filter<address_v4>();
+		return boost::make_tuple(m_filter4.export_filter<address_v4>()
+			, std::vector<ip_range<address_v6> >());
 #endif
 	}
 	

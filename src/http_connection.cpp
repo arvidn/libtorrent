@@ -38,10 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
 
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
-
 #include <boost/bind.hpp>
 #include <string>
 #include <algorithm>
@@ -52,14 +48,8 @@ enum { max_bottled_buffer = 1024 * 1024 };
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr
-#if TORRENT_USE_I2P
-	, i2p_connection* i2p_conn
-#endif
-	)
+	, address const& bind_addr)
 {
-	m_user_agent = user_agent;
-
 	std::string protocol;
 	std::string auth;
 	std::string hostname;
@@ -108,15 +98,13 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #define APPEND_FMT1(fmt, arg) ptr += snprintf(ptr, end - ptr, fmt, arg)
 #define APPEND_FMT2(fmt, arg1, arg2) ptr += snprintf(ptr, end - ptr, fmt, arg1, arg2)
 
-	// exclude ssl here, because SSL assumes CONNECT support in the
-	// proxy and is handled at the lower layer
 	if (ps && (ps->type == proxy_settings::http
 		|| ps->type == proxy_settings::http_pw)
 		&& !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
-		APPEND_FMT1("GET %s HTTP/1.1\r\n", url.c_str());
+		APPEND_FMT1("GET %s HTTP/1.0\r\n", url.c_str());
 		if (ps->type == proxy_settings::http_pw)
 			APPEND_FMT1("Proxy-Authorization: Basic %s\r\n", base64encode(
 				ps->username + ":" + ps->password).c_str());
@@ -125,19 +113,17 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	}
 	else
 	{
-		APPEND_FMT2("GET %s HTTP/1.1\r\n"
+		APPEND_FMT2("GET %s HTTP/1.0\r\n"
 			"Host: %s", path.c_str(), hostname.c_str());
 		if (port != default_port) APPEND_FMT1(":%d\r\n", port);
 		else APPEND_FMT("\r\n");
 	}
 
-//	APPEND_FMT("Accept: */*\r\n");
-
 	if (!auth.empty())
 		APPEND_FMT1("Authorization: Basic %s\r\n", base64encode(auth).c_str());
 
-	if (!m_user_agent.empty())
-		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
+	if (!user_agent.empty())
+		APPEND_FMT1("User-Agent: %s\r\n", user_agent.c_str());
 	
 	if (m_bottled)
 		APPEND_FMT("Accept-Encoding: gzip\r\n");
@@ -147,20 +133,12 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	sendbuffer.assign(request);
 	m_url = url;
 	start(hostname, to_string(port).elems, timeout, prio
-		, ps, ssl, handle_redirects, bind_addr
-#if TORRENT_USE_I2P
-		, i2p_conn
-#endif
-		);
+		, ps, ssl, handle_redirects, bind_addr);
 }
 
 void http_connection::start(std::string const& hostname, std::string const& port
 	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
-	, address const& bind_addr
-#if TORRENT_USE_I2P
-	, i2p_connection* i2p_conn
-#endif
-	)
+	, address const& bind_addr)
 {
 	TORRENT_ASSERT(prio >= 0 && prio < 2);
 
@@ -174,9 +152,6 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	m_timeout = timeout;
 	error_code ec;
 	m_timer.expires_from_now(m_timeout, ec);
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_timeout");
-#endif
 	m_timer.async_wait(boost::bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(me), _1));
 	m_called = false;
@@ -195,9 +170,6 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port
 		&& m_ssl == ssl && m_bind_addr == bind_addr)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_write");
-#endif
 		async_write(m_sock, asio::buffer(sendbuffer)
 			, boost::bind(&http_connection::on_write, me, _1));
 	}
@@ -208,53 +180,39 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		error_code ec;
 		m_sock.close(ec);
 
-#if TORRENT_USE_I2P
-		bool is_i2p = false;
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		if (top_domain && strcmp(top_domain, ".i2p") == 0 && i2p_conn)
-		{
-			// this is an i2p name, we need to use the sam connection
-			// to do the name lookup
-			is_i2p = true;
-			m_i2p_conn = i2p_conn;
-			// quadruple the timeout for i2p destinations
-			// because i2p is sloooooow
-			m_timeout *= 4;
-		}
-#endif
-
-#if TORRENT_USE_I2P
-		if (is_i2p && i2p_conn->proxy().type != proxy_settings::i2p_proxy)
-		{
-			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
-			return;
-		}
-#endif
-
-		proxy_settings const* proxy = ps;
-#if TORRENT_USE_I2P
-		if (is_i2p) proxy = &i2p_conn->proxy();
-#endif
-
 		// in this case, the upper layer is assumed to have taken
 		// care of the proxying already. Don't instantiate the socket
 		// with this proxy
-		if (proxy && (proxy->type == proxy_settings::http
-			|| proxy->type == proxy_settings::http_pw)
+		if (ps && (ps->type == proxy_settings::http
+			|| ps->type == proxy_settings::http_pw)
 			&& !ssl)
 		{
-			proxy = 0;
+			ps = 0;
 		}
 		proxy_settings null_proxy;
 
-		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-		if (m_ssl) userdata = &m_ssl_ctx;
+		if (m_ssl)
+		{
+			m_sock.instantiate<ssl_stream<socket_type> >(m_resolver.get_io_service());
+			ssl_stream<socket_type>* s = m_sock.get<ssl_stream<socket_type> >();
+			TORRENT_ASSERT(s);
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, ps ? *ps : null_proxy, s->next_layer());
+			TORRENT_ASSERT(ret);
+		}
+		else
+		{
+			m_sock.instantiate<socket_type>(m_resolver.get_io_service());
+			bool ret = instantiate_connection(m_resolver.get_io_service()
+				, ps ? *ps : null_proxy, *m_sock.get<socket_type>());
+			TORRENT_ASSERT(ret);
+		}
+#else
+		bool ret = instantiate_connection(m_resolver.get_io_service()
+			, ps ? *ps : null_proxy, m_sock);
+		TORRENT_ASSERT(ret);
 #endif
-		instantiate_connection(m_resolver.get_io_service()
-			, proxy ? *proxy : null_proxy, m_sock, userdata);
-
 		if (m_bind_addr != address_v4::any())
 		{
 			error_code ec;
@@ -268,36 +226,10 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
-#if TORRENT_USE_I2P
-		if (is_i2p)
-		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_i2p_resolve");
-#endif
-			i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
-				, me, _1, _2));
-		}
-		else
-#endif
-		if (ps && ps->proxy_hostnames
-			&& (ps->type == proxy_settings::socks5
-				|| ps->type == proxy_settings::socks5_pw))
-		{
-			m_hostname = hostname;
-			m_port = port;
-			m_endpoints.push_back(tcp::endpoint(address(), atoi(port.c_str())));
-			queue_connect();
-		}
-		else
-		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_resolve");
-#endif
-			m_endpoints.clear();
-			tcp::resolver::query query(hostname, port);
-			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
-				, me, _1, _2));
-		}
+		m_endpoints.clear();
+		tcp::resolver::query query(hostname, port);
+		m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
+			, me, _1, _2));
 		m_hostname = hostname;
 		m_port = port;
 	}
@@ -327,9 +259,6 @@ void http_connection::on_connect_timeout()
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	, error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_timeout");
-#endif
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 
@@ -339,9 +268,6 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	{
 		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_timeout");
-#endif
 			error_code ec;
 			c->m_sock.close(ec);
 			c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
@@ -356,9 +282,6 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	}
 
 	if (!c->m_sock.is_open()) return;
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_timeout");
-#endif
 	error_code ec;
 	c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
 	c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
@@ -377,46 +300,9 @@ void http_connection::close()
 	m_abort = true;
 }
 
-#if TORRENT_USE_I2P
-void http_connection::on_i2p_resolve(error_code const& e
-	, char const* destination)
-{
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_i2p_resolve");
-#endif
-	if (e)
-	{
-		callback(e);
-		close();
-		return;
-	}
-
-#ifdef TORRENT_USE_OPENSSL
-	TORRENT_ASSERT(m_ssl == false);
-	TORRENT_ASSERT(m_sock.get<socket_type>());
-	TORRENT_ASSERT(m_sock.get<socket_type>()->get<i2p_stream>());
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_destination(destination);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<socket_type>()->get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
-#else
-	m_sock.get<i2p_stream>()->set_destination(destination);
-	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
-	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
-#endif
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_connect");
-#endif
-	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
-		, shared_from_this(), _1));
-}
-#endif
-
 void http_connection::on_resolve(error_code const& e
 	, tcp::resolver::iterator i)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_resolve");
-#endif
 	if (e)
 	{
 		boost::shared_ptr<http_connection> me(shared_from_this());
@@ -467,37 +353,12 @@ void http_connection::queue_connect()
 void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
 	m_connection_ticket = ticket;
-	if (m_proxy.proxy_hostnames
-		&& (m_proxy.type == proxy_settings::socks5
-			|| m_proxy.type == proxy_settings::socks5_pw))
-	{
-		// we're using a socks proxy and we're resolving
-		// hostnames through it
-#ifdef TORRENT_USE_OPENSSL
-		if (m_ssl)
-		{
-			TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
-			m_sock.get<ssl_stream<socks5_stream> >()->next_layer().next_layer().set_dst_name(m_hostname);
-		}
-		else
-#endif
-		{
-			TORRENT_ASSERT(m_sock.get<socks5_stream>());
-			m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
-		}
-	}
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_connect");
-#endif
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
 
 void http_connection::on_connect(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_connect");
-#endif
 	if (m_connection_ticket >= 0)
 	{
 		m_cc.done(m_connection_ticket);
@@ -508,9 +369,6 @@ void http_connection::on_connect(error_code const& e)
 	if (!e)
 	{ 
 		if (m_connect_handler) m_connect_handler(*this);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_write");
-#endif
 		async_write(m_sock, asio::buffer(sendbuffer)
 			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -529,36 +387,13 @@ void http_connection::on_connect(error_code const& e)
 	}
 }
 
-void http_connection::callback(error_code e, char const* data, int size)
+void http_connection::callback(error_code const& e, char const* data, int size)
 {
 	if (m_bottled && m_called) return;
 
 	std::vector<char> buf;
 	if (data && m_bottled && m_parser.header_finished())
 	{
-		if (m_parser.chunked_encoding())
-		{
-			// go through all chunks and compact them
-			// since we're bottled, and the buffer is our after all
-			// it's OK to mutate it
-			char* write_ptr = (char*)data;
-			// the offsets in the array are from the start of the
-			// buffer, not start of the body, so subtract the size
-			// of the HTTP header from them
-			int offset = m_parser.body_start();
-			std::vector<std::pair<size_type, size_type> > const& chunks = m_parser.chunks();
-			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
-				, end(chunks.end()); i != end; ++i)
-			{
-				TORRENT_ASSERT(i->second - i->first < INT_MAX);
-				int len = int(i->second - i->first);
-				if (i->first - offset + len > size) len = size - int(i->first) + offset;
-				memmove(write_ptr, data + i->first - offset, len);
-				write_ptr += len;
-			}
-			size = write_ptr - data;
-		}
-
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
 		{
@@ -572,11 +407,6 @@ void http_connection::callback(error_code e, char const* data, int size)
 			size = int(buf.size());
 			data = size == 0 ? 0 : &buf[0];
 		}
-
-		// if we completed the whole response, no need
-		// to tell the user that the connection was closed by
-		// the server or by us. Just clear any error
-		if (m_parser.finished()) e.clear();
 	}
 	m_called = true;
 	error_code ec;
@@ -586,9 +416,6 @@ void http_connection::callback(error_code e, char const* data, int size)
 
 void http_connection::on_write(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_write");
-#endif
 	if (e)
 	{
 		boost::shared_ptr<http_connection> me(shared_from_this());
@@ -607,18 +434,10 @@ void http_connection::on_write(error_code const& e)
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
 				on_assign_bandwidth(error_code());
-			}
 			return;
 		}
 	}
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -628,9 +447,6 @@ void http_connection::on_write(error_code const& e)
 void http_connection::on_read(error_code const& e
 	, std::size_t bytes_transferred)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_read");
-#endif
 	if (m_rate_limit)
 	{
 		m_download_quota -= bytes_transferred;
@@ -708,12 +524,7 @@ void http_connection::on_read(error_code const& e
 					= parse_url_components(location, ec);
 				if (!ec)
 				{
-					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
-#if TORRENT_USE_I2P
-						, m_i2p_conn
-#endif
-						);
+					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1);
 				}
 				else
 				{
@@ -729,12 +540,7 @@ void http_connection::on_read(error_code const& e
 						url += '/';
 					url += location;
 
-					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1
-						, m_user_agent, m_bind_addr
-#if TORRENT_USE_I2P
-						, m_i2p_conn
-#endif
-						);
+					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1);
 				}
 				return;
 			}
@@ -780,18 +586,10 @@ void http_connection::on_read(error_code const& e
 		if (m_download_quota == 0)
 		{
 			if (!m_limiter_timer_active)
-			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
 				on_assign_bandwidth(error_code());
-			}
 			return;
 		}
 	}
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -800,9 +598,6 @@ void http_connection::on_read(error_code const& e
 
 void http_connection::on_assign_bandwidth(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_assign_bandwidth");
-#endif
 	if ((e == asio::error::operation_aborted
 		&& m_limiter_timer_active)
 		|| !m_sock.is_open())
@@ -823,9 +618,6 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 
 	if (!m_sock.is_open()) return;
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
 	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -834,9 +626,6 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_from_now(milliseconds(250), ec);
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
 	m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
@@ -850,9 +639,6 @@ void http_connection::rate_limit(int limit)
 		error_code ec;
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_from_now(milliseconds(250), ec);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
 		m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}

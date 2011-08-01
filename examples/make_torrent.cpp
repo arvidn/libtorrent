@@ -37,18 +37,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/file.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/bind.hpp>
 
+using namespace boost::filesystem;
 using namespace libtorrent;
 
 // do not include files and folders whose
 // name starts with a .
-bool file_filter(std::string const& f)
+bool file_filter(boost::filesystem::path const& filename)
 {
-	if (filename(f)[0] == '.') return false;
-	fprintf(stderr, "%s\n", f.c_str());
+	if (filename.leaf()[0] == '.') return false;
+	fprintf(stderr, "%s\n", filename.string().c_str());
 	return true;
 }
 
@@ -68,9 +70,6 @@ void print_usage()
 		"            merkle torrents require client support\n"
 		"            the resulting full merkle tree is written to\n"
 		"            the specified file\n"
-		"-f          include sha-1 file hashes in the torrent\n"
-		"            this helps supporting mixing sources from\n"
-		"            other networks\n"
 		"-w url      adds a web seed to the torrent with\n"
 		"            the specified url\n"
 		"-t url      adds the specified tracker to the\n"
@@ -91,6 +90,7 @@ void print_usage()
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
 	char const* creator_str = "libtorrent";
 
@@ -154,9 +154,6 @@ int main(int argc, char* argv[])
 					++i;
 					outfile = argv[i];
 					break;
-				case 'f':
-					flags |= create_torrent::calculate_file_hashes;
-					break;
 				case 'l':
 					flags |= create_torrent::symlinks;
 					break;
@@ -168,7 +165,7 @@ int main(int argc, char* argv[])
 
 		file_storage fs;
 		file_pool fp;
-		std::string full_path = libtorrent::complete(argv[1]);
+		path full_path = complete(path(argv[1]));
 
 		add_files(fs, full_path, file_filter, flags);
 		if (fs.num_files() == 0)
@@ -187,7 +184,7 @@ int main(int argc, char* argv[])
 			t.add_url_seed(*i);
 
 		error_code ec;
-		set_piece_hashes(t, parent_path(full_path)
+		set_piece_hashes(t, full_path.branch_path()
 			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
 		if (ec)
 		{

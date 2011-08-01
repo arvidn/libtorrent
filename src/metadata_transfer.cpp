@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -47,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <utility>
 #include <numeric>
-#include <algorithm> // count
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
@@ -200,7 +197,6 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
-			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 
 		void on_piece_pass(int)
@@ -251,8 +247,6 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const { return "LT_metadata"; }
-
 		// can add entries to the extension handshake
 		virtual void add_handshake(entry& h)
 		{
@@ -268,7 +262,7 @@ namespace libtorrent { namespace
 			lazy_entry const* messages = h.dict_find("m");
 			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = int(messages->dict_find_int_value("LT_metadata", -1));
+			int index = messages->dict_find_int_value("LT_metadata", -1);
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
@@ -293,17 +287,16 @@ namespace libtorrent { namespace
 				<< " ==> METADATA_REQUEST  [ start: " << start << " | size: " << size << " ]\n";
 #endif
 
-			char msg[9];
-			char* ptr = msg;
+			buffer::interval i = m_pc.allocate_send_buffer(9);
 
-			detail::write_uint32(1 + 1 + 3, ptr);
-			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(m_message_index, ptr);
+			detail::write_uint32(1 + 1 + 3, i.begin);
+			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+			detail::write_uint8(m_message_index, i.begin);
 			// means 'request data'
-			detail::write_uint8(0, ptr);
-			detail::write_uint8(start, ptr);
-			detail::write_uint8(size - 1, ptr);
-			m_pc.send_buffer(msg, sizeof(msg));
+			detail::write_uint8(0, i.begin);
+			detail::write_uint8(start, i.begin);
+			detail::write_uint8(size - 1, i.begin);
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
@@ -323,8 +316,9 @@ namespace libtorrent { namespace
 				std::pair<int, int> offset
 					= req_to_offset(req, (int)m_tp.metadata().left());
 
-				char msg[15];
-				char* ptr = msg;
+				// TODO: don't allocate send buffer for the metadata part
+				// just tag it on as a separate buffer like ut_metadata
+				buffer::interval i = m_pc.allocate_send_buffer(15 + offset.second);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				(*m_pc.m_logger) << time_now_string()
@@ -335,16 +329,18 @@ namespace libtorrent { namespace
 					<< " ]\n";
 #endif
 				// yes, we have metadata, send it
-				detail::write_uint32(11 + offset.second, ptr);
-				detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-				detail::write_uint8(m_message_index, ptr);
+				detail::write_uint32(11 + offset.second, i.begin);
+				detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+				detail::write_uint8(m_message_index, i.begin);
 				// means 'data packet'
-				detail::write_uint8(1, ptr);
-				detail::write_uint32((int)m_tp.metadata().left(), ptr);
-				detail::write_uint32(offset.first, ptr);
-				m_pc.send_buffer(msg, sizeof(msg));
+				detail::write_uint8(1, i.begin);
+				detail::write_uint32((int)m_tp.metadata().left(), i.begin);
+				detail::write_uint32(offset.first, i.begin);
 				char const* metadata = m_tp.metadata().begin;
-				m_pc.append_const_send_buffer(metadata + offset.first, offset.second);
+				std::copy(metadata + offset.first
+					, metadata + offset.first + offset.second, i.begin);
+				i.begin += offset.second;
+				TORRENT_ASSERT(i.begin == i.end);
 			}
 			else
 			{
@@ -352,17 +348,15 @@ namespace libtorrent { namespace
 				(*m_pc.m_logger) << time_now_string()
 					<< " ==> DONT HAVE METADATA\n";
 #endif
-				char msg[4+3];
-				char* ptr = msg;
-
+				buffer::interval i = m_pc.allocate_send_buffer(4 + 3);
 				// we don't have the metadata, reply with
 				// don't have-message
-				detail::write_uint32(1 + 2, ptr);
-				detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-				detail::write_uint8(m_message_index, ptr);
+				detail::write_uint32(1 + 2, i.begin);
+				detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+				detail::write_uint8(m_message_index, i.begin);
 				// means 'have no data'
-				detail::write_uint8(2, ptr);
-				m_pc.send_buffer(msg, sizeof(msg));
+				detail::write_uint8(2, i.begin);
+				TORRENT_ASSERT(i.begin == i.end);
 			}
 			m_pc.setup_send();
 		}
@@ -423,7 +417,7 @@ namespace libtorrent { namespace
 						<< " ]\n";
 #endif
 
-					if (total_size > m_torrent.session().settings().max_metadata_size)
+					if (total_size > 500 * 1024)
 					{
 						m_pc.disconnect(errors::metadata_too_large, 2);
 						return true;
@@ -535,16 +529,32 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
 		peer_connection* pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
-
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
 	}
 
 	std::pair<int, int> metadata_plugin::metadata_request()
 	{
+		// count the number of peers that supports the
+		// extension and that has metadata
+		int peers = 0;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (torrent::peer_iterator i = m_torrent.begin()
+			, end(m_torrent.end()); i != end; ++i)
+		{
+			bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(*i);
+			if (c == 0) continue;
+			metadata_peer_plugin* p
+				= c->supports_extension<metadata_peer_plugin>();
+			if (p == 0) continue;
+			if (!p->has_metadata()) continue;
+			++peers;
+		}
+#endif
+
 		// the number of blocks to request
-		int num_blocks = 256 / 4;
+		int num_blocks = 256 / (peers + 1);
 		TORRENT_ASSERT(num_blocks <= 128);
 
 		int min_element = (std::numeric_limits<int>::max)();
@@ -589,5 +599,4 @@ namespace libtorrent
 
 }
 
-#endif
 
