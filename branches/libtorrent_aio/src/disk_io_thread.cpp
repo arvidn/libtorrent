@@ -816,9 +816,8 @@ namespace libtorrent
 		int block_size = m_disk_cache.block_size();
 		for (int i = begin, k = 0; i < end; ++i, ++k)
 		{
-			int block_size = (std::min)(piece_size - i * block_size, block_size);
 			vec[k].iov_base = (file::iovec_base_t)p->blocks[i].buf;
-			vec[k].iov_len = block_size;
+			vec[k].iov_len = (std::min)(piece_size - i * block_size, block_size);
 		}
 
 		p->storage->get_storage_impl()->readv_done(vec, end - begin

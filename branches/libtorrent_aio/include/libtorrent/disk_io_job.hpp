@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class entry;
-	struct piece_manager;
+	class piece_manager;
 	struct cached_piece_entry;
 
 	struct block_cache_reference

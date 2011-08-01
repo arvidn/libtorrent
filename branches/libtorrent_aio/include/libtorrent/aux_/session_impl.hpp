@@ -126,16 +126,16 @@ namespace libtorrent
 		struct session_impl;
 
 #if defined TORRENT_STATS && !defined __MACH__
-	struct vm_statistics_data_t
-	{
-		boost::uint64_t active_count;
-		boost::uint64_t inactive_count;
-		boost::uint64_t wire_count;
-		boost::uint64_t free_count;
-		boost::uint64_t pageins;
-		boost::uint64_t pageouts;
-		boost::uint64_t faults;
-	};
+		struct vm_statistics_data_t
+		{
+			boost::uint64_t active_count;
+			boost::uint64_t inactive_count;
+			boost::uint64_t wire_count;
+			boost::uint64_t free_count;
+			boost::uint64_t pageins;
+			boost::uint64_t pageouts;
+			boost::uint64_t faults;
+		};
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

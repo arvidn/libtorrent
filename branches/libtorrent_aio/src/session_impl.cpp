@@ -180,6 +180,18 @@ namespace libtorrent {
 	mutex _async_ops_mutex;
 #endif
 
+namespace detail
+{
+	std::string generate_auth_string(std::string const& user
+		, std::string const& passwd)
+	{
+		if (user.empty()) return std::string();
+		return user + ":" + passwd;
+	}
+}
+
+namespace aux {
+
 #ifdef TORRENT_STATS
 	void get_vm_stats(vm_statistics_data_t* vm_stat)
 	{
@@ -212,21 +224,7 @@ namespace libtorrent {
 // TOOD: windows?
 	}
 
-		
-#endif
-
-namespace detail
-{
-
-	std::string generate_auth_string(std::string const& user
-		, std::string const& passwd)
-	{
-		if (user.empty()) return std::string();
-		return user + ":" + passwd;
-	}
-}
-
-namespace aux {
+#endif // TORRENT_STATS
 
 	struct seed_random_generator
 	{
@@ -395,7 +393,7 @@ namespace aux {
 		TORRENT_SETTING(boolean, no_connect_privileged_ports)
 		TORRENT_SETTING(integer, alert_queue_size)
 		TORRENT_SETTING(integer, max_metadata_size)
-		TORRENT_SETTING(integer, smooth_connects)
+		TORRENT_SETTING(boolean, smooth_connects)
 		TORRENT_SETTING(boolean, always_send_user_agent)
 		TORRENT_SETTING(boolean, apply_ip_filter_to_trackers)
 		TORRENT_SETTING(integer, read_job_every)
