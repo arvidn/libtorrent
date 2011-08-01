@@ -87,6 +87,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python
 	* exposed alert error_codes to python
