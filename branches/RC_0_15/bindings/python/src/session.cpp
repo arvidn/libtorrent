@@ -378,6 +378,7 @@ void bind_session()
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
         .def("get_cache_status", allow_threads(&session::get_cache_status))
+		  .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 
     enum_<session::save_state_flags_t>("save_state_flags_t")
