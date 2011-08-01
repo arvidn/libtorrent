@@ -18,5 +18,5 @@ rm -f bindings/python/Makefile bindings/python/Makefile.in
 chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
-./configure --enable-python-binding --with-zlib=shipped --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --with-boost-thread=mt --with-boost-filesystem=mt
+./configure --enable-python-binding --with-zlib=shipped --enable-examples=yes --enable-tests=yes --with-boost-system=mt --with-boost-python=mt --with-boost-thread=mt --with-boost-filesystem=mt --with-python=mt
 make V=1 -j4 dist check
