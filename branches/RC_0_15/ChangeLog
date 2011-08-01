@@ -1,3 +1,5 @@
+0.15.7 release
+
 	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python
