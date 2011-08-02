@@ -3639,8 +3639,8 @@ across sessions.</p>
 <p><tt class="docutils literal"><span class="pre">active_time</span></tt>, <tt class="docutils literal"><span class="pre">finished_time</span></tt> and <tt class="docutils literal"><span class="pre">seeding_time</span></tt> are second counters.
 They keep track of the number of seconds this torrent has been active (not
 paused) and the number of seconds it has been active while being finished and
-active while being a seed. <tt class="docutils literal"><span class="pre">seeding_time</span></tt> should be &gt;= <tt class="docutils literal"><span class="pre">finished_time</span></tt> which
-should be &gt;= <tt class="docutils literal"><span class="pre">active_time</span></tt>. They are all saved in and restored from resume data,
+active while being a seed. <tt class="docutils literal"><span class="pre">seeding_time</span></tt> should be &lt;= <tt class="docutils literal"><span class="pre">finished_time</span></tt> which
+should be &lt;= <tt class="docutils literal"><span class="pre">active_time</span></tt>. They are all saved in and restored from resume data,
 to keep totals across sessions.</p>
 <p><tt class="docutils literal"><span class="pre">seed_rank</span></tt> is a rank of how important it is to seed the torrent, it is used
 to determine which torrents to seed and which to queue. It is based on the peer
