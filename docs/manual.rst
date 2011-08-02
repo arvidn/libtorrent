@@ -3621,8 +3621,8 @@ across sessions.
 ``active_time``, ``finished_time`` and ``seeding_time`` are second counters.
 They keep track of the number of seconds this torrent has been active (not
 paused) and the number of seconds it has been active while being finished and
-active while being a seed. ``seeding_time`` should be >= ``finished_time`` which
-should be >= ``active_time``. They are all saved in and restored from resume data,
+active while being a seed. ``seeding_time`` should be <= ``finished_time`` which
+should be <= ``active_time``. They are all saved in and restored from resume data,
 to keep totals across sessions.
 
 ``seed_rank`` is a rank of how important it is to seed the torrent, it is used
