@@ -4469,7 +4469,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
-			if (j.ref.pe) m_ses.reclaim_block(j.ref);
 			disconnect(j.error.ec);
 			return;
 		}

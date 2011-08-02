@@ -105,7 +105,7 @@ namespace libtorrent
 		if (j->ref.pe)
 		{
 			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount >= 1);
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf == j->buffer);
+			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf + (j->offset & 0x3fff) == j->buffer);
 		}
 #endif
 		if (j->callback) j->callback(ret, *j);
