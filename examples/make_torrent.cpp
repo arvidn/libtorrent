@@ -209,8 +209,8 @@ int main(int argc, char* argv[])
 		if (!merklefile.empty())
 		{
 			output = fopen(merklefile.c_str(), "wb+");
-			int ret = fwrite(&t.merkle_tree()[0], 1, t.merkle_tree().size(), output);
-			if (ret != t.merkle_tree().size())
+			int ret = fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output);
+			if (ret != t.merkle_tree().size() * 20)
 			{
 				fprintf(stderr, "failed to write %s: (%d) %s\n"
 					, merklefile.c_str(), errno, strerror(errno));
