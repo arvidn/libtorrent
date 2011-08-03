@@ -2226,8 +2226,7 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 	}
 
-	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder& buffer
-		, disk_io_job const& j)
+	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder& buffer)
 	{
 		INVARIANT_CHECK;
 
@@ -2284,7 +2283,7 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		if (j.ref.pe == 0)
+		if (buffer.ref().pe == 0)
 		{
 			append_send_buffer(buffer.get(), r.length
 				, boost::bind(&session_impl::free_disk_buffer

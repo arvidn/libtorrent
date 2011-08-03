@@ -4489,7 +4489,7 @@ namespace libtorrent
 		if (j.buffer && j.ref.pe == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
-		write_piece(r, buffer, j);
+		write_piece(r, buffer);
 		setup_send();
 	}
 

@@ -33,6 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aiocb_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 
+#ifdef TORRENT_DEBUG
+	// defined in assert.cpp
+	void print_backtrace(char* out, int len);
+#endif
+
 namespace libtorrent
 {
 	aiocb_pool::aiocb_pool(): m_in_use(0), m_peak_in_use(0)
@@ -59,6 +64,9 @@ namespace libtorrent
 		ptr->action = (disk_io_job::action_t)type;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		ptr->in_use = true;
+#endif
+#ifdef TORRENT_DEBUG
+		print_backtrace(ptr->stack_trace, sizeof(ptr->stack_trace));
 #endif
 		return ptr;
 	}

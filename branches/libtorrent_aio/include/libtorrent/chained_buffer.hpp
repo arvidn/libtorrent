@@ -66,114 +66,27 @@ namespace libtorrent
 		int size() const { return m_bytes; }
 		int capacity() const { return m_capacity; }
 
-		void pop_front(int bytes_to_pop)
-		{
-			TORRENT_ASSERT(bytes_to_pop <= m_bytes);
-			while (bytes_to_pop > 0 && !m_vec.empty())
-			{
-				buffer_t& b = m_vec.front();
-				if (b.used_size > bytes_to_pop)
-				{
-					b.start += bytes_to_pop;
-					b.used_size -= bytes_to_pop;
-					m_bytes -= bytes_to_pop;
-					TORRENT_ASSERT(m_bytes <= m_capacity);
-					TORRENT_ASSERT(m_bytes >= 0);
-					TORRENT_ASSERT(m_capacity >= 0);
-					break;
-				}
+		void pop_front(int bytes_to_pop);
 
-				b.free(b.buf);
-				m_bytes -= b.used_size;
-				m_capacity -= b.size;
-				bytes_to_pop -= b.used_size;
-				TORRENT_ASSERT(m_bytes >= 0);
-				TORRENT_ASSERT(m_capacity >= 0);
-				TORRENT_ASSERT(m_bytes <= m_capacity);
-				m_vec.pop_front();
-			}
-		}
-
-		template <class D>
-		void append_buffer(char* buffer, int s, int used_size, D const& destructor)
-		{
-			TORRENT_ASSERT(s >= used_size);
-			buffer_t b;
-			b.buf = buffer;
-			b.size = s;
-			b.start = buffer;
-			b.used_size = used_size;
-			b.free = destructor;
-			m_vec.push_back(b);
-
-			m_bytes += used_size;
-			m_capacity += s;
-			TORRENT_ASSERT(m_bytes <= m_capacity);
-		}
+		void append_buffer(char* buffer, int s, int used_size, boost::function<void(char*)> const& destructor);
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
-		int space_in_last_buffer()
-		{
-			if (m_vec.empty()) return 0;
-			buffer_t& b = m_vec.back();
-			return b.size - b.used_size - (b.start - b.buf);
-		}
+		int space_in_last_buffer();
 
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
 		// it returns false
-		char* append(char const* buf, int s)
-		{
-			char* insert = allocate_appendix(s);
-			if (insert == 0) return 0;
-			memcpy(insert, buf, s);
-			return insert;
-		}
+		char* append(char const* buf, int s);
 
 		// tries to allocate memory from the end
 		// of the last buffer. If there isn't
 		// enough room, returns 0
-		char* allocate_appendix(int s)
-		{
-			if (m_vec.empty()) return 0;
-			buffer_t& b = m_vec.back();
-			char* insert = b.start + b.used_size;
-			if (insert + s > b.buf + b.size) return 0;
-			b.used_size += s;
-			m_bytes += s;
-			TORRENT_ASSERT(m_bytes <= m_capacity);
-			return insert;
-		}
+		char* allocate_appendix(int s);
 
-		std::list<asio::const_buffer> const& build_iovec(int to_send)
-		{
-			m_tmp_vec.clear();
+		std::list<asio::const_buffer> const& build_iovec(int to_send);
 
-			for (std::list<buffer_t>::iterator i = m_vec.begin()
-				, end(m_vec.end()); to_send > 0 && i != end; ++i)
-			{
-				if (i->used_size > to_send)
-				{
-					TORRENT_ASSERT(to_send > 0);
-					m_tmp_vec.push_back(asio::const_buffer(i->start, to_send));
-					break;
-				}
-				TORRENT_ASSERT(i->used_size > 0);
-				m_tmp_vec.push_back(asio::const_buffer(i->start, i->used_size));
-				to_send -= i->used_size;
-			}
-			return m_tmp_vec;
-		}
-
-		~chained_buffer()
-		{
-			for (std::list<buffer_t>::iterator i = m_vec.begin()
-				, end(m_vec.end()); i != end; ++i)
-			{
-				i->free(i->buf);
-			}
-		}
+		~chained_buffer();
 
 	private:
 
