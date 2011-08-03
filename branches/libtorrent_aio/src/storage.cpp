@@ -238,7 +238,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::mismatching_file_size;
 				ec.file = i - fs.begin();
-				ec.operation = 0;
+				ec.operation = "stat";
 				return false;
 			}
 
@@ -252,7 +252,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::mismatching_file_timestamp;
 				ec.file = i - fs.begin();
-				ec.operation = 0;
+				ec.operation = "stat";
 				return false;
 			}
 		}
@@ -1340,9 +1340,14 @@ namespace libtorrent
 		bool has_files = false;
 		if (!m_storage->settings().no_recheck_incomplete_resume)
 		{
-			has_files = m_storage->has_any_file(ec);
+			storage_error se;
+			has_files = m_storage->has_any_file(se);
 
-			if (ec) return fatal_disk_error; 
+			if (se)
+			{
+				ec = se;
+				return fatal_disk_error; 
+			}
 
 			if (has_files) return need_full_check;
 		}
@@ -1352,8 +1357,14 @@ namespace libtorrent
 	
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
-		m_storage->initialize(m_storage_mode == storage_mode_allocate, ec);
-		if (ec) return fatal_disk_error;
+		storage_error se;
+		m_storage->initialize(m_storage_mode == storage_mode_allocate, se);
+		if (se)
+		{
+			ec = se;
+			return fatal_disk_error; 
+		}
+
 		return no_error;
 	}
 
