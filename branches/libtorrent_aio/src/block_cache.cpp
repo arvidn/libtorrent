@@ -792,19 +792,6 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			}
 		}
 
-		if ((j->action == disk_io_job::hash)
-			&& (pe->num_dirty > 0 || pe->hashing != -1))
-		{
-			DLOG(stderr, "[%p] block_cache reap_piece_jobs leaving job (hash) "
-				"piece: %d num_dirty: %d begin: %d end: %d\n"
-				, this, int(pe->piece), int(pe->num_dirty)
-				, hash_start, hash_end);
-			// this job is waiting for some blocks to be written
-			TORRENT_ASSERT(j->piece == pe->piece);
-			pe->jobs.push_back(j);
-			continue;
-		}
-
 		if (j->action == disk_io_job::hash)
 		{
 			TORRENT_ASSERT(j->piece == pe->piece);
