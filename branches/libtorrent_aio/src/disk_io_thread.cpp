@@ -1411,7 +1411,6 @@ namespace libtorrent
 				TORRENT_ASSERT(false);
 			}
 			ret = defer_handler;
-			m_cache_stats.total_read_back += p->blocks_in_piece;
 			pe = const_cast<cached_piece_entry*>(&*p);
 		}
 		else
