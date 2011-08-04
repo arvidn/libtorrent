@@ -98,6 +98,8 @@ namespace libtorrent
 			, clear_piece
 			, sync_piece
 			, flush_piece
+
+			, num_job_ids
 		};
 
 		enum flags_t

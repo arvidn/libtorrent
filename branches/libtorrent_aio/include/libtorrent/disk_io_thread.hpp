@@ -77,6 +77,7 @@ namespace libtorrent
 		int next_to_hash;
 		enum kind_t { read_cache = 0, write_cache = 1 };
 		kind_t kind;
+		int num_jobs[disk_io_job::num_job_ids];
 	};
 	
 	struct cache_status

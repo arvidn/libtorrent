@@ -1654,12 +1654,12 @@ namespace libtorrent
 								if (bits & (1 << b))
 								{
 									m_picker->mark_as_finished(piece_block(piece, block), 0);
-									if (m_picker->is_piece_finished(piece))
-										async_verify_piece(piece, boost::bind(&torrent::piece_finished
-											, shared_from_this(), piece, _1));
 								}
 							}
 						}
+						if (m_picker->is_piece_finished(piece))
+							async_verify_piece(piece, boost::bind(&torrent::piece_finished
+								, shared_from_this(), piece, _1));
 					}
 				}
 			}

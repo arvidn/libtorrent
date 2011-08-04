@@ -964,10 +964,32 @@ void print_piece(libtorrent::partial_piece_info* pp
 	out += esc("0");
 #endif
 	char const* piece_state[4] = {"", " slow", " medium", " fast"};
-	snprintf(str, sizeof(str), "] %3d cache age: %-.1f %s\n"
+	snprintf(str, sizeof(str), "] %3d cache age: %-.1f %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, pp ? piece_state[pp->piece_state] : "");
+		, pp ? piece_state[pp->piece_state] : ""
+		, cs && cs->num_jobs[0] ? "read ":""
+		, cs && cs->num_jobs[1] ? "write ":""
+		, cs && cs->num_jobs[2] ? "hash ":""
+		, cs && cs->num_jobs[3] ? "move ":""
+		, cs && cs->num_jobs[4] ? "release ":""
+		, cs && cs->num_jobs[5] ? "delete ":""
+		, cs && cs->num_jobs[6] ? "check-resume ":""
+		, cs && cs->num_jobs[7] ? "save-resume ":""
+		, cs && cs->num_jobs[8] ? "rename ":""
+		, cs && cs->num_jobs[9] ? "abort-thread ":""
+		, cs && cs->num_jobs[10] ? "clear-cache ":""
+		, cs && cs->num_jobs[11] ? "abort-torrent ":""
+		, cs && cs->num_jobs[12] ? "update-settings ":""
+		, cs && cs->num_jobs[13] ? "cache-piece ":""
+		, cs && cs->num_jobs[14] ? "finalize ":""
+		, cs && cs->num_jobs[15] ? "get-cache-info ":""
+		, cs && cs->num_jobs[16] ? "hash-complete ":""
+		, cs && cs->num_jobs[17] ? "file-status ":""
+		, cs && cs->num_jobs[18] ? "reclaim ":""
+		, cs && cs->num_jobs[19] ? "clear-piece ":""
+		, cs && cs->num_jobs[20] ? "sync-piece ":""
+		, cs && cs->num_jobs[21] ? "flush ":"");
 	out += str;
 }
 

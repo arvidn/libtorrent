@@ -1866,6 +1866,11 @@ namespace libtorrent
 			info.blocks.resize(blocks_in_piece);
 			for (int b = 0; b < blocks_in_piece; ++b)
 				info.blocks[b] = i->blocks[b].buf != 0;
+			// count the number of jobs hanging off of this piece, keep
+			// separate counts per type of job
+			memset(info.num_jobs, 0, sizeof(info.num_jobs));
+			for (tailqueue_iterator iter = i->jobs.iterate(); iter.get(); iter.next())
+				++info.num_jobs[((disk_io_job*)iter.get())->action];
 		}
 		return 0;
 	}

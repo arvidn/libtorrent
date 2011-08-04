@@ -54,21 +54,21 @@ namespace libtorrent
 	struct tailqueue_iterator
 	{
 		friend struct tailqueue;
-		tailqueue_node* get() const { return m_current; }
+		tailqueue_node const* get() const { return m_current; }
 		void next() { m_current = m_current->next; }
 
 	private:
-		tailqueue_iterator(tailqueue_node* cur)
+		tailqueue_iterator(tailqueue_node const* cur)
 			: m_current(cur) {}
 		// the current element
-		tailqueue_node* m_current;
+		tailqueue_node const* m_current;
 	};
 
 	struct tailqueue
 	{
 		tailqueue(): m_first(0), m_last(0), m_size(0) {}
 
-		tailqueue_iterator iterate()
+		tailqueue_iterator iterate() const
 		{ return tailqueue_iterator(m_first); }
 
 		tailqueue_node* pop_front()
