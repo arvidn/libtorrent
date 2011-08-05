@@ -399,7 +399,7 @@ namespace libtorrent
 	// error happened on
 	struct TORRENT_EXPORT storage_error
 	{
-		storage_error(): operation(0) {}
+		storage_error(): file(-1), operation(0) {}
 
 		operator bool() const { return ec.value() != 0; }
 		// the error that occurred
