@@ -47,7 +47,11 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			, in_use(false)
 #endif
-		{}
+		{
+#if defined TORRENT_DEBUG
+			callback_called = false;
+#endif
+		}
 
 	disk_io_job::~disk_io_job() {}
 }

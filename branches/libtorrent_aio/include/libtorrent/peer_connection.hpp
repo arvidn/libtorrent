@@ -810,7 +810,9 @@ namespace libtorrent
 		// the receive buffer into the disk buffer
 		disk_buffer_holder m_disk_recv_buffer;
 
+	public:
 		chained_buffer m_send_buffer;
+	private:
 
 		boost::shared_ptr<socket_type> m_socket;
 		// this is the peer we're actually talking to

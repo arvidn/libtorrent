@@ -108,6 +108,7 @@ namespace libtorrent
 			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf + (j->offset & 0x3fff) == j->buffer);
 		}
 #endif
+		TORRENT_ASSERT(j->callback_called == true);
 		if (j->callback) j->callback(ret, *j);
 		pool->free_job(j);
 	}

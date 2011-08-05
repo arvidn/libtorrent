@@ -963,11 +963,11 @@ void print_piece(libtorrent::partial_piece_info* pp
 #ifdef ANSI_TERMINAL_COLORS
 	out += esc("0");
 #endif
-	char const* piece_state[4] = {"", " slow", " medium", " fast"};
-	snprintf(str, sizeof(str), "] %3d cache age: %-.1f %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n"
+	char const* piece_state[4] = {"-", "s", "m", "f"};
+	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, pp ? piece_state[pp->piece_state] : ""
+		, pp ? piece_state[pp->piece_state] : "-"
 		, cs && cs->num_jobs[0] ? "read ":""
 		, cs && cs->num_jobs[1] ? "write ":""
 		, cs && cs->num_jobs[2] ? "hash ":""

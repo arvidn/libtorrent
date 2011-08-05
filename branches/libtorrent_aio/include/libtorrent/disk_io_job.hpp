@@ -176,6 +176,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		// the stack trace of where this job was allocated
 		char stack_trace[4096];
+		// set to true when the callback has been called once
+		// used to make sure we don't call it twice
+		bool callback_called;
 #endif
 	};
 

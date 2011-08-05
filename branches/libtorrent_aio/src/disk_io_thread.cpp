@@ -1072,6 +1072,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(j->next == 0);
 			DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(j->callback_called == false);
+			j->callback_called = true;
+#endif
 			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
 		}
 
@@ -1640,13 +1644,21 @@ namespace libtorrent
 		std::vector<char*> to_free;
 		// we're aborting. Cancel all jobs that are blocked or
 		// have been deferred as well
-		disk_io_job* k = (disk_io_job*)m_blocked_jobs.get_all();
-		while (k)
+		disk_io_job* i = (disk_io_job*)m_blocked_jobs.get_all();
+		while (i)
 		{
+			disk_io_job* k = i;
+			i = (disk_io_job*)i->next;
+			k->next = 0;
+
 			if (k->buffer) to_free.push_back(k->buffer);
 			k->buffer = 0;
 			if (k->storage->has_fence()) fences.insert(k->storage.get());
 			k->error.ec = error::operation_aborted;
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(k->callback_called == false);
+			k->callback_called = true;
+#endif
 			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
 			k = (disk_io_job*)k->next;
 		}
@@ -1700,6 +1712,10 @@ namespace libtorrent
 
 			k->error.ec = error::operation_aborted;
 			TORRENT_ASSERT(k->callback);
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(k->callback_called == false);
+			k->callback_called = true;
+#endif
 			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
 		}
 
@@ -1909,7 +1925,13 @@ namespace libtorrent
 			i = (disk_io_job*)i->next;
 			j->next = 0;
 			if (j->action == disk_io_job::sync_piece)
+			{
+#if defined TORRENT_DEBUG
+				TORRENT_ASSERT(j->callback_called == false);
+				j->callback_called = true;
+#endif
 				m_ios.post(boost::bind(&complete_job, aiocbs(), 0, j));
+			}
 			else
 				pe->jobs.push_back(j);
 		}
@@ -1987,7 +2009,13 @@ namespace libtorrent
 
 		++m_cache_stats.blocks_written;
 		if (j->callback)
+		{
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(j->callback_called == false);
+			j->callback_called = true;
+#endif
 			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
+		}
 	}
 
 	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job* j)
@@ -2023,7 +2051,13 @@ namespace libtorrent
 
 		++m_cache_stats.blocks_read;
 		if (j->callback)
+		{
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(j->callback_called == false);
+			j->callback_called = true;
+#endif
 			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
+		}
 		else if (j->buffer)
 			m_disk_cache.free_buffer(j->buffer);
 	}

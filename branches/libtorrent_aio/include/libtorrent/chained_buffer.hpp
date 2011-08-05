@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string.h> // for memcpy
 
+#ifdef TORRENT_DEBUG
+#include "libtorrent/disk_io_job.hpp"
+#endif
+
 namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
@@ -60,6 +64,9 @@ namespace libtorrent
 
 			char* start; // the first byte to send/receive in the buffer
 			int used_size; // this is the number of bytes to send/receive
+#ifdef TORRENT_DEBUG
+			block_cache_reference ref;
+#endif
 		};
 
 		bool empty() const { return m_bytes == 0; }
@@ -69,6 +76,20 @@ namespace libtorrent
 		void pop_front(int bytes_to_pop);
 
 		void append_buffer(char* buffer, int s, int used_size, boost::function<void(char*)> const& destructor);
+
+#ifdef TORRENT_DEBUG
+		void set_ref(block_cache_reference ref)
+		{
+			for (std::list<buffer_t>::iterator i = m_vec.begin()
+				, end(m_vec.end()); i != end; ++i)
+			{
+				// technically this is allowed, but not very likely to happen
+				// without being a bug
+				TORRENT_ASSERT(i->ref.pe != ref.pe || i->ref.block != ref.block);
+			}
+			m_vec.back().ref = ref;
+		}
+#endif
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.

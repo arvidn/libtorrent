@@ -2294,6 +2294,9 @@ namespace libtorrent
 			append_const_send_buffer(buffer.get(), r.length
 				, boost::bind(&session_impl::reclaim_block
 				, boost::ref(m_ses), buffer.ref()));
+#ifdef TORRENT_DEBUG
+			m_send_buffer.set_ref(buffer.ref());
+#endif
 		}
 		buffer.release();
 
