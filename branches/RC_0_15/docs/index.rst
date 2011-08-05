@@ -99,18 +99,10 @@ Support the development of libtorrent
 
 .. raw:: html
 	
-	<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
-		<input type="hidden" name="cmd" value="_xclick">
-		<input type="hidden" name="business" value="arvid@cs.umu.se">
-		<input type="hidden" name="item_name" value="libtorrent">
-		<input type="hidden" name="return" value="http://libtorrent.sf.net">
-		<input type="hidden" name="currency_code" value="USD">
-		<input type="hidden" name="tax" value="0">
-		<input type="image" src="https://www.paypal.com/images/x-click-but04.gif"
-			border="0" name="submit" alt="Make payments with PayPal - it's fast, free and secure!">
-	</form>
-
-
+  	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
+	<noscript><a href="http://flattr.com/thing/95662/libtorrent" target="_blank">
+	<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
+  
 
 Feedback
 ========
