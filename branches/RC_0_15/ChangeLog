@@ -1,3 +1,4 @@
+	* add reset_piece_deadline function
 	* fix merkle tree torrent assert
 
 0.15.7 release
