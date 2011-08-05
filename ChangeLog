@@ -88,6 +88,10 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix merkle tree torrent assert
+
+0.15.67 release
+
 	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python
