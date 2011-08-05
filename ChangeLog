@@ -88,6 +88,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix for set_piece_deadline
 	* add reset_piece_deadline function
 	* fix merkle tree torrent assert
 

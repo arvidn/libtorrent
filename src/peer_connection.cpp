@@ -2745,6 +2745,10 @@ namespace libtorrent
 		if ((int)m_download_queue.size() + (int)m_request_queue.size()
 			> m_desired_queue_size * 2) return false;
 		if (on_parole()) return false; 
+		if (m_disconnecting) return false;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		if (t->upload_mode()) return false;
 		return true;
 	}
 
