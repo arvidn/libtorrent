@@ -2556,6 +2556,11 @@ namespace libtorrent
 		m_time_critical_pieces.insert(i, p);
 	}
 
+	void torrent::reset_piece_deadline(int piece)
+	{
+		remove_time_critical_piece(piece);
+	}
+
 	void torrent::remove_time_critical_piece(int piece, bool finished)
 	{
 		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()

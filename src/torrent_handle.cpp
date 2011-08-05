@@ -745,5 +745,11 @@ namespace libtorrent
 		TORRENT_FORWARD(set_piece_deadline(index, deadline, flags));
 	}
 
+	void torrent_handle::reset_piece_deadline(int index) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_FORWARD(reset_piece_deadline(index));
+	}
+
 }
 
