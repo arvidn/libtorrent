@@ -1,3 +1,5 @@
+	* fix merkle tree torrent assert
+
 0.15.7 release
 
 	* exposed set_peer_id to python binding
