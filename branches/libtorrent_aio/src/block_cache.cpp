@@ -197,8 +197,20 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT(j->piece == pe->piece);
 	TORRENT_ASSERT(!pe->marked_for_deletion);
 
-	TORRENT_ASSERT(pe->blocks[block].buf == 0);
 	TORRENT_ASSERT(pe->blocks[block].refcount == 0);
+
+	// we might have a left-over read block from
+	// hash checking
+	if (pe->blocks[block].buf != 0)
+	{
+		free_buffer(pe->blocks[block].buf);
+		pe->blocks[block].buf = 0;
+		TORRENT_ASSERT(pe->blocks[block].dirty == 0);
+		TORRENT_ASSERT(pe->num_blocks > 0);
+		--pe->num_blocks;
+		TORRENT_ASSERT(m_read_cache_size > 0);
+		--m_read_cache_size;
+	}
 
 	pe->blocks[block].buf = j->buffer;
 
