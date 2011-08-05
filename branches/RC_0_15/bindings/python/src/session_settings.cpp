@@ -8,6 +8,16 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+void set_announce_ip(session_settings& s, std::string const& ip)
+{
+	s.announce_ip = address::from_string(ip.c_str());
+}
+
+std::string get_announce_ip(session_settings const& s)
+{
+	return s.announce_ip.to_string();
+}
+
 void bind_session_settings()
 {
     class_<session_settings>("session_settings")
@@ -38,6 +48,7 @@ void bind_session_settings()
         .def_readwrite("inactivity_timeout", &session_settings::inactivity_timeout)
         .def_readwrite("unchoke_interval", &session_settings::unchoke_interval)
         .def_readwrite("optimistic_unchoke_interval", &session_settings::optimistic_unchoke_interval)
+        .add_property("announce_ip", &get_announce_ip, &set_announce_ip)
         .def_readwrite("num_want", &session_settings::num_want)
         .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
         .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
