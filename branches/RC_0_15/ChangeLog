@@ -1,3 +1,4 @@
+	* fix for set_piece_deadline
 	* add reset_piece_deadline function
 	* fix merkle tree torrent assert
 
