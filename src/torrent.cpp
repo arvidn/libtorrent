@@ -5602,6 +5602,8 @@ namespace libtorrent
 		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
+			if (peers.empty()) break;
+
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
 				+ m_average_piece_time + m_piece_time_deviation * 4)
 			{
@@ -5644,7 +5646,11 @@ namespace libtorrent
 				}
 				else if (!interesting_blocks.empty())
 				{
-					c.add_request(interesting_blocks.front(), peer_connection::req_time_critical);
+					if (!c.add_request(interesting_blocks.front(), peer_connection::req_time_critical))
+					{
+						peers.erase(p);
+						continue;
+					}
 					added_request = true;
 				}
 
