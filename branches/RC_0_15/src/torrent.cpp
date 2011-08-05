@@ -5576,6 +5576,9 @@ namespace libtorrent
 	void torrent::request_time_critical_pieces()
 	{
 		// build a list of peers and sort it by download_queue_time
+		// we use this sorted list to determine which peer we should
+		// request a block from. The higher up a peer is in the list,
+		// the sooner we will fully download the block we request.
 		std::vector<peer_connection*> peers;
 		peers.reserve(m_connections.size());
 		std::remove_copy_if(m_connections.begin(), m_connections.end()
@@ -5593,6 +5596,9 @@ namespace libtorrent
 
 		ptime now = time_now();
 
+		// now, iterate over all time critical pieces, in order of importance, and
+		// request them from the peers, in order of responsiveness. i.e. request
+		// the most time critical pieces from the fastest peers.
 		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
@@ -5600,16 +5606,19 @@ namespace libtorrent
 				+ m_average_piece_time + m_piece_time_deviation * 4)
 			{
 				// don't request pieces whose deadline is too far in the future
+				// this is one of the termination conditions. We don't want to
+				// send requests for all pieces in the torrent right away
 				break;
 			}
 
-			// loop until every block has been requested from
+			// loop until every block has been requested from this piece (i->piece)
 			do
 			{
 				// pick the peer with the lowest download_queue_time that has i->piece
 				std::vector<peer_connection*>::iterator p = std::find_if(peers.begin(), peers.end()
 					, boost::bind(&peer_connection::has_piece, _1, i->piece));
 
+				// obviously we'll have to skip it if we don't have a peer that has this piece
 				if (p == peers.end()) break;
 				peer_connection& c = **p;
 
