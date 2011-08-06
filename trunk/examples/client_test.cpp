@@ -1850,7 +1850,10 @@ int main(int argc, char* argv[])
 			else
 			{
 				snprintf(str, sizeof(str), "%-13s %s\n"
-					, state_str[s.state]
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+					  state_str[s.state]
 					, progress_bar(s.progress_ppm / 1000, terminal_width - 43 - 20, "35").c_str());
 				out += str;
 			}
