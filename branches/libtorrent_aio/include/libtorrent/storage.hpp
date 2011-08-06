@@ -66,9 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status
 
-// #error remove this once file checking is async
-#include "libtorrent/block_cache.hpp"
-
 namespace libtorrent
 {
 	class session;
@@ -276,7 +273,6 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	friend struct disk_io_thread;
-	friend struct block_cache;
 	public:
 
 		piece_manager(
