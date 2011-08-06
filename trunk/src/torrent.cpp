@@ -3297,6 +3297,24 @@ namespace libtorrent
 		std::list<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
 		m_time_critical_pieces.insert(i, p);
+
+		piece_picker::downloading_piece pi;
+		m_picker->piece_info(piece, pi);
+		if (pi.requested == 0) return;
+		// this means we have outstanding requests (or queued
+		// up requests that haven't been sent yet). Promote them
+		// to deadline pieces immediately
+		std::vector<void*> downloaders;
+		m_picker->get_downloaders(downloaders, piece);
+
+		int block = 0;
+		for (std::vector<void*>::iterator i = downloaders.begin()
+			, end(downloaders.end()); i != end; ++i, ++block)
+		{
+			policy::peer* p = (policy::peer*)*i;
+			if (p == 0 || p->connection == 0) continue;
+			p->connection->make_time_critical(piece_block(piece, block));
+		}
 	}
 
 	void torrent::reset_piece_deadline(int piece)
