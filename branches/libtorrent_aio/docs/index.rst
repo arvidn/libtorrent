@@ -106,6 +106,8 @@ Support the development of libtorrent
 .. raw:: html
 	
 	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
+	<noscript><a href="http://flattr.com/thing/95662/libtorrent" target="_blank">
+	<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
 
 
 Feedback

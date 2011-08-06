@@ -300,6 +300,7 @@ namespace libtorrent
 		void file_priorities(std::vector<int>*) const;
 
 		void set_piece_deadline(int piece, int t, int flags);
+		void reset_piece_deadline(int piece);
 		void update_piece_priorities();
 
 		void status(torrent_status* st, boost::uint32_t flags);

@@ -88,6 +88,12 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix for set_piece_deadline
+	* add reset_piece_deadline function
+	* fix merkle tree torrent assert
+
+0.15.67 release
+
 	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
 	* exposed comparison operators on torrent_handle to python

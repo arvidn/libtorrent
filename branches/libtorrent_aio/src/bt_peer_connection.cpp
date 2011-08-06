@@ -1123,12 +1123,36 @@ namespace libtorrent
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		int piece_bytes = 0;
-		if (recv_pos <= 9)
+
+		int header_size = merkle?13:9;
+
+		peer_request p;
+		int list_size = 0;
+
+		if (recv_pos >= header_size)
+		{
+			const char* ptr = recv_buffer.begin + 1;
+			p.piece = detail::read_int32(ptr);
+			p.start = detail::read_int32(ptr);
+
+			if (merkle)
+			{
+				list_size = detail::read_int32(ptr);
+				p.length = packet_size() - list_size - header_size;
+				header_size += list_size;
+			}
+			else
+			{
+				p.length = packet_size() - header_size;
+			}
+		}
+
+		if (recv_pos <= header_size)
 		{
 			// only received protocol data
 			m_statistics.received_bytes(0, received);
 		}
-		else if (recv_pos - received >= 9)
+		else if (recv_pos - received >= header_size)
 		{
 			// only received payload data
 			m_statistics.received_bytes(received, 0);
@@ -1137,35 +1161,16 @@ namespace libtorrent
 		else
 		{
 			// received a bit of both
-			TORRENT_ASSERT(recv_pos - received < 9);
-			TORRENT_ASSERT(recv_pos > 9);
-			TORRENT_ASSERT(9 - (recv_pos - received) <= 9);
+			TORRENT_ASSERT(recv_pos - received < header_size);
+			TORRENT_ASSERT(recv_pos > header_size);
+			TORRENT_ASSERT(header_size - (recv_pos - received) <= header_size);
 			m_statistics.received_bytes(
-				recv_pos - 9
-				, 9 - (recv_pos - received));
-			piece_bytes = recv_pos - 9;
+				recv_pos - header_size
+				, header_size - (recv_pos - received));
+			piece_bytes = recv_pos - header_size;
 		}
-
-		const int header_size = merkle?13:9;
 
 		if (recv_pos < header_size) return;
-
-		const char* ptr = recv_buffer.begin + 1;
-		peer_request p;
-		p.piece = detail::read_int32(ptr);
-		p.start = detail::read_int32(ptr);
-
-		int list_size = 0;
-
-		if (merkle)
-		{
-			list_size = detail::read_int32(ptr);
-			p.length = packet_size() - list_size - header_size;
-		}
-		else
-		{
-			p.length = packet_size() - header_size;
-		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
 //			peer_log("<== PIECE_FRAGMENT p: %d start: %d length: %d"

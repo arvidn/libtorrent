@@ -2314,6 +2314,7 @@ Its declaration looks like this::
 
 		enum deadline_flags { alert_when_available = 1 };
 		void set_piece_deadline(int index, int deadline, int flags = 0) const;
+		void reset_piece_deadline(int index) const;
 
 		void piece_availability(std::vector<int>& avail) const;
 		void piece_priority(int index, int priority) const;
@@ -2362,13 +2363,14 @@ it will throw ``invalid_handle``.
 	Since the torrents are processed by a background thread, there is no
 	guarantee that a handle will remain valid between two calls.
 
-set_piece_deadline()
---------------------
+set_piece_deadline() reset_piece_deadline()
+-------------------------------------------
 
 	::
 
 		enum deadline_flags { alert_when_available = 1 };
 		void set_piece_deadline(int index, int deadline, int flags = 0) const;
+		void reset_piece_deadline(int index) const;
 
 This function sets or resets the deadline associated with a specific piece
 index (``index``). libtorrent will attempt to download this entire piece before
@@ -2387,6 +2389,8 @@ as calling `read_piece()`_ for ``index``.
 
 ``deadline`` is the number of milliseconds until this piece should be completed.
 
+``reset_piece_deadline`` removes the deadline from the piece. If it hasn't already
+been downloaded, it will no longer be considered a priority.
 
 piece_availability()
 --------------------
@@ -3708,8 +3712,8 @@ across sessions.
 ``active_time``, ``finished_time`` and ``seeding_time`` are second counters.
 They keep track of the number of seconds this torrent has been active (not
 paused) and the number of seconds it has been active while being finished and
-active while being a seed. ``seeding_time`` should be >= ``finished_time`` which
-should be >= ``active_time``. They are all saved in and restored from resume data,
+active while being a seed. ``seeding_time`` should be <= ``finished_time`` which
+should be <= ``active_time``. They are all saved in and restored from resume data,
 to keep totals across sessions.
 
 ``seed_rank`` is a rank of how important it is to seed the torrent, it is used

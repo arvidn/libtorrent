@@ -33,7 +33,6 @@ nobase_include_HEADERS = \
   deadline_timer.hpp           \
   debug.hpp                    \
   disk_buffer_holder.hpp       \
-  disk_buffer_pool.hpp         \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
   entry.hpp                    \

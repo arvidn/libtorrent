@@ -3715,7 +3715,10 @@ namespace aux {
 			// checking torrents are not subject to auto-management
 			if (t->state() == torrent_status::checking_files
 				|| t->state() == torrent_status::queued_for_checking)
+			{
+				if (t->is_auto_managed() && t->is_paused()) t->resume();
 				continue;
+			}
 			if (t->is_auto_managed() && !t->has_error())
 			{
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
@@ -5450,14 +5453,20 @@ namespace aux {
 		TORRENT_ASSERT(is_network_thread());
 
 		int num_checking = 0;
+		int num_queued_for_checking = 0;
 		for (check_queue_t::const_iterator i = m_queued_for_checking.begin()
 			, end(m_queued_for_checking.end()); i != end; ++i)
 		{
 			if ((*i)->state() == torrent_status::checking_files) ++num_checking;
+			else if ((*i)->state() == torrent_status::queued_for_checking)
+			{
+				++num_queued_for_checking;
+			}
 		}
 
 		// the queue is either empty, or it has exactly one checking torrent in it
 		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1 || (m_paused && num_checking == 0));
+//		TORRENT_ASSERT(m_queued_for_checking.size() == num_queued_for_checking);
 
 		std::set<int> unique;
 		int total_downloaders = 0;

@@ -882,5 +882,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL3(set_piece_deadline, index, deadline, flags);
 	}
 
+	void torrent_handle::reset_piece_deadline(int index) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
+	}
+
 }
 
