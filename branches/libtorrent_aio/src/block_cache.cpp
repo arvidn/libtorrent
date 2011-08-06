@@ -59,7 +59,7 @@ void log_refcounts(cached_piece_entry const* pe)
 	{
 		ptr += snprintf(ptr, end - ptr, "%d ", int(pe->blocks[i].refcount));
 	}
-	ptr += snprintf(ptr, end - ptr, "]\n");
+	strncpy(ptr, "]\n", end - ptr);
 	DLOG(stderr, out);
 }
 #endif
@@ -540,18 +540,21 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(pe->refcount > 0);
 			--pe->refcount;
 
-			// we can't free blocks that are in use by some 
-			// async. operation
-			if (bl.refcount > 0) continue;
+			// TODO: if we have a hash job in the queue, that job
+			// might hold references to the blocks as well. This
+			// needs to be taken into account
 
-			TORRENT_ASSERT(m_pinned_blocks > 0);
-			--m_pinned_blocks;
+			if (bl.refcount == 0)
+			{
+				TORRENT_ASSERT(m_pinned_blocks > 0);
+				--m_pinned_blocks;
+			}
 
 			TORRENT_ASSERT(pe->blocks[i].pending);
 
 			// if this block isn't pending, it was here before
 			// this operation failed
-			if (!bl.pending && !bl.dirty) continue;
+			if (!bl.pending) continue;
 
 			if (bl.dirty)
 			{
@@ -560,16 +563,21 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 				bl.dirty = false;
 				TORRENT_ASSERT(m_write_cache_size > 0);
 				--m_write_cache_size;
-			}
-			else
-			{
-				TORRENT_ASSERT(m_read_cache_size > 0);
-				--m_read_cache_size;
+				++m_read_cache_size;
 			}
 			TORRENT_ASSERT(bl.buf != 0);
+
+			bl.pending = false;
+
+			// we can't free blocks that are in use by some 
+			// async. operation
+			if (bl.refcount > 0) continue;
+
+			TORRENT_ASSERT(m_read_cache_size > 0);
+			--m_read_cache_size;
+
 			to_delete[num_to_delete++] = bl.buf;
 			bl.buf = 0;
-			bl.pending = false;
 			TORRENT_ASSERT(pe->num_blocks > 0);
 			--pe->num_blocks;
 		}
@@ -607,6 +615,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		}
 	}
 
+	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
+
 	int hash_start = 0;
 	int hash_end = 0;
 
@@ -621,8 +631,6 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 #if DEBUG_CACHE
 	log_refcounts(pe);
 #endif
-
-	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
 	bool lower_fence = false;
 	boost::intrusive_ptr<piece_manager> storage = pe->storage;
@@ -753,6 +761,41 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 		{
 			// there was a read error, regardless of which blocks
 			// this job is waiting for just return the failure
+			if (j->action == disk_io_job::hash)
+			{
+				hash_start = j->offset;
+				hash_end = pe->blocks_in_piece;
+
+				// every hash job increases the refcount of all
+				// blocks that it needs to complete when it's
+				// issued to make sure they're not evicted before
+				// they're hashed. As soon as they are hashed, the
+				// refcount is decreased
+				for (int b = hash_start; b < hash_end; ++b)
+				{
+					cached_block_entry& bl = pe->blocks[b];
+					// obviously we need a buffer
+					TORRENT_ASSERT(bl.buf != 0);
+					TORRENT_ASSERT(bl.refcount >= bl.pending);
+					--bl.refcount;
+					TORRENT_ASSERT(pe->refcount >= bl.pending);
+					--pe->refcount;
+#ifdef TORRENT_DEBUG
+					TORRENT_ASSERT(bl.check_count > 0);
+					--bl.check_count;
+#endif
+					if (bl.refcount == 0)
+					{
+						TORRENT_ASSERT(m_pinned_blocks > 0);
+						--m_pinned_blocks;
+					}
+				}
+				j->offset = hash_end;
+				DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
+					"piece: %d begin: %d end: %d error: %s\n"
+					, this, int(pe->piece), hash_start, hash_end, ec.ec.message().c_str());
+			}
+
 			ret = -1;
 			goto post_job;
 		}
@@ -768,15 +811,15 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			// issued to make sure they're not evicted before
 			// they're hashed. As soon as they are hashed, the
 			// refcount is decreased
-			for (int b = hash_start; b < hash_end; ++b)
+			for (int b = j->offset; b < hash_end; ++b)
 			{
 				cached_block_entry& bl = pe->blocks[b];
 				TORRENT_ASSERT(!bl.pending || bl.dirty);
 				// obviously we need a buffer
 				TORRENT_ASSERT(bl.buf != 0);
-				TORRENT_ASSERT(bl.refcount > bl.pending);
+				TORRENT_ASSERT(bl.refcount >= bl.pending);
 				--bl.refcount;
-				TORRENT_ASSERT(pe->refcount > bl.pending);
+				TORRENT_ASSERT(pe->refcount >= bl.pending);
 				--pe->refcount;
 #ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(bl.check_count > 0);
@@ -788,6 +831,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 					--m_pinned_blocks;
 				}
 			}
+			j->offset = hash_end;
 			DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
 				"piece: %d begin: %d end: %d\n"
 				, this, int(pe->piece), hash_start, hash_end);
@@ -860,7 +904,6 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			ret = copy_from_piece(p, j);
 			if (ret == -1)
 			{
-				TORRENT_ASSERT(false);
 				// this job is waiting for some other
 				// blocks from this piece, we have to
 				// leave it in here. It's not clear if this
@@ -933,6 +976,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 {
 	INVARIANT_CHECK;
 
+	TORRENT_ASSERT(begin == pe->hashing);
 	TORRENT_ASSERT(pe->hashing != -1);
 	TORRENT_ASSERT(pe->hash);
 	pe->hashing = -1;

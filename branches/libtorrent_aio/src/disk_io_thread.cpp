@@ -1515,6 +1515,7 @@ namespace libtorrent
 			++pe->blocks[i].check_count;
 #endif
 		}
+		j->offset = start_block;
 
 		if (!job_added)
 		{

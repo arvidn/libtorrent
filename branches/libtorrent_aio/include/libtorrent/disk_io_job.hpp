@@ -129,6 +129,10 @@ namespace libtorrent
 
 		// for read and write, the offset into the piece
 		// the read or write should start
+		// for hash jobs, this is the first block the hash
+		// job is still holding a reference to. The end of
+		// the range of blocks a hash jobs holds references
+		// to is always the last block in the piece.
 		int offset;
 
 		// if this is > 0, it specifies the max number of blocks to read
