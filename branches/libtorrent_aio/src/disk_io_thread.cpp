@@ -2087,7 +2087,7 @@ namespace libtorrent
 			{
 				disk_io_job* k = (disk_io_job*)iter.get();
 				if (k->action != disk_io_job::reclaim_block) continue;
-				if (k->ref.pe == j->ref.pe || k->ref.block == j->ref.block) ++count;
+				if (k->ref.pe == j->ref.pe && k->ref.block == j->ref.block) ++count;
 			}
 			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount >= count);
 		}
