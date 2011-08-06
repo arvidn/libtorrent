@@ -1958,7 +1958,7 @@ int main(int argc, char* argv[])
 
 		snprintf(str, sizeof(str), "==== waste: %s fail: %s unchoked: %d / %d "
 			"bw queues: %8d (%d) | %8d (%d) disk queues: %d | %d cache: w: %"PRId64"%% r: %"PRId64"%% "
-			"size: w: %s r: %s total: %s pinned: %s dq: %"PRId64" ===\n"
+			"size: w: %s r: %s total: %s ===\n"
 			, add_suffix(sess_stat.total_redundant_bytes).c_str()
 			, add_suffix(sess_stat.total_failed_bytes).c_str()
 			, sess_stat.num_unchoked, sess_stat.allowed_upload_slots
@@ -1972,9 +1972,7 @@ int main(int argc, char* argv[])
 			, cs.blocks_read_hit * 100 / cs.blocks_read
 			, add_suffix(boost::int64_t(cs.write_cache_size) * 16 * 1024).c_str()
 			, add_suffix(boost::int64_t(cs.read_cache_size) * 16 * 1024).c_str()
-			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str()
-			, add_suffix(boost::int64_t(cs.pinned_blocks) * 16 * 1024).c_str()
-			, cs.queued_bytes);
+			, add_suffix(boost::int64_t(cs.total_used_buffers) * 16 * 1024).c_str());
 		out += str;
 
 		snprintf(str, sizeof(str), "==== optimistic unchoke: %d unchoke counter: %d peerlist: %d ====\n"
@@ -2038,8 +2036,9 @@ int main(int argc, char* argv[])
 				, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
 			out += str;
 
-			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d\n"
-				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size);
+			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d\n"
+				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size, cs.pinned_blocks
+				, int(cs.queued_bytes / 0x4000));
 			out += str;
 		}
 
