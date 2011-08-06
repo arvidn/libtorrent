@@ -1220,6 +1220,7 @@ namespace libtorrent
 		bool m_disconnect_started:1;
 		bool m_initialized:1;
 		int m_received_in_piece;
+		bool m_destructed;
 #endif
 	};
 }

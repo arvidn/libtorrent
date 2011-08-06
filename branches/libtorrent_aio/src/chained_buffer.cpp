@@ -137,6 +137,10 @@ namespace libtorrent
 
 	chained_buffer::~chained_buffer()
 	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(!m_destructed);
+		m_destructed = true;
+#endif
 		TORRENT_ASSERT(m_bytes >= 0);
 		TORRENT_ASSERT(m_capacity >= 0);
 		for (std::list<buffer_t>::iterator i = m_vec.begin()

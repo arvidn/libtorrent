@@ -171,6 +171,7 @@ namespace libtorrent
 		, m_disconnect_started(false)
 		, m_initialized(false)
 		, m_received_in_piece(0)
+		, m_destructed(false)
 #endif
 	{
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
@@ -314,6 +315,7 @@ namespace libtorrent
 		, m_disconnect_started(false)
 		, m_initialized(false)
 		, m_received_in_piece(0)
+		, m_destructed(false)
 #endif
 	{
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
@@ -870,6 +872,10 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
+		TORRENT_ASSERT(!m_destructed);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_destructed = true;
+#endif
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
 

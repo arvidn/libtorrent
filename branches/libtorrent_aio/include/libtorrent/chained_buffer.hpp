@@ -54,7 +54,12 @@ namespace libtorrent
 #endif
 	struct chained_buffer
 	{
-		chained_buffer(): m_bytes(0), m_capacity(0) {}
+		chained_buffer(): m_bytes(0), m_capacity(0)
+		{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			m_destructed = false;
+#endif
+		}
 
 		struct buffer_t
 		{
@@ -127,6 +132,10 @@ namespace libtorrent
 		// this is the vector of buffers used when
 		// invoking the async write call
 		std::list<asio::const_buffer> m_tmp_vec;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		bool m_destructed;
+#endif
 	};	
 }
 
