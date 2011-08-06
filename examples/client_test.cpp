@@ -1806,57 +1806,44 @@ int main(int argc, char* argv[])
 			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 			else downloaders = s.list_peers - s.list_seeds;
 
-			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
-			{
-				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (!s.paused && !s.auto_managed)?"[F] ":""
-					, (s.paused && !s.auto_managed)?"paused":
-					  (s.paused && s.auto_managed)?"queued":
-					  state_str[s.state]
-					, esc("32"), add_suffix(s.total_download).c_str(), term
-					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
-					, esc("31"), add_suffix(s.total_upload).c_str(), term
-					, downloaders, seeds
-					, s.up_bandwidth_queue, s.down_bandwidth_queue
-					, esc("32"), add_suffix(s.all_time_download).c_str(), term
-					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
-				out += str;
-				++lines_printed;
+			snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
+				"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
+				, (!s.paused && !s.auto_managed)?"[F] ":""
+				, (s.paused && !s.auto_managed)?"paused":
+				  (s.paused && s.auto_managed)?"queued":
+				  state_str[s.state]
+				, esc("32"), add_suffix(s.total_download).c_str(), term
+				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
+				, esc("31"), add_suffix(s.total_upload).c_str(), term
+				, downloaders, seeds
+				, s.up_bandwidth_queue, s.down_bandwidth_queue
+				, esc("32"), add_suffix(s.all_time_download).c_str(), term
+				, esc("31"), add_suffix(s.all_time_upload).c_str(), term
+				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
+			out += str;
+			++lines_printed;
 
-				if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
-				char const* progress_bar_color = "33"; // yellow
-				if (s.state == torrent_status::downloading_metadata)
-				{
-					progress_bar_color = "35"; // magenta
-				}
-				else if (s.current_tracker.empty())
-				{
-					progress_bar_color = "31"; // red
-				}
-				else if (sess_stat.has_incoming_connections)
-				{
-					progress_bar_color = "32"; // green
-				}
-
-				snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
-					, s.sequential_download?"sequential":"progress"
-					, esc("32"), s.total_done, esc("0")
-					, s.progress_ppm / 10000.f
-					, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
-				out += str;
-			}
-			else
+			if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
+			char const* progress_bar_color = "33"; // yellow
+			if (s.state == torrent_status::downloading_metadata)
 			{
-				snprintf(str, sizeof(str), "%-13s %s\n"
-					, (!s.paused && !s.auto_managed)?"[F] ":""
-					, (s.paused && !s.auto_managed)?"paused":
-					  (s.paused && s.auto_managed)?"queued":
-					  state_str[s.state]
-					, progress_bar(s.progress_ppm / 1000, terminal_width - 43 - 20, "35").c_str());
-				out += str;
+				progress_bar_color = "35"; // magenta
 			}
+			else if (s.current_tracker.empty())
+			{
+				progress_bar_color = "31"; // red
+			}
+			else if (sess_stat.has_incoming_connections)
+			{
+				progress_bar_color = "32"; // green
+			}
+
+			snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
+				, s.sequential_download?"sequential":"progress"
+				, esc("32"), s.total_done, esc("0")
+				, s.progress_ppm / 10000.f
+				, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
+			out += str;
 			++lines_printed;
 
 			if (print_piece_bar && s.state != torrent_status::seeding)
