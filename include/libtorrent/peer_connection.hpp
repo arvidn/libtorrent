@@ -413,6 +413,7 @@ namespace libtorrent
 		void incoming_interested();
 		void incoming_not_interested();
 		void incoming_have(int piece_index);
+		void incoming_dont_have(int piece_index);
 		void incoming_bitfield(bitfield const& bits);
 		void incoming_request(peer_request const& r);
 		void incoming_piece(peer_request const& p, disk_buffer_holder& data);
