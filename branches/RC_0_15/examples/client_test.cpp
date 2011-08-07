@@ -512,6 +512,7 @@ std::string monitor_dir;
 std::string bind_to_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
+bool seed_mode = false;
 
 using boost::bind;
 using boost::filesystem::path;
@@ -548,6 +549,7 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
+	p.seed_mode = seed_mode;
 	lazy_entry resume_data;
 
 	std::string filename = (save_path / (t->name() + ".resume")).string();
@@ -777,6 +779,8 @@ int main(int argc, char* argv[])
 			"  -L <user:passwd>      Use the specified username and password for the\n"
 			"                        proxy specified by -P\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
+			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
+			"                        are present and check hashes on-demand)\n"
 			"  "
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -862,6 +866,7 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
+				p.seed_mode = seed_mode;
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
 				p.save_path = save_path;
@@ -891,6 +896,7 @@ int main(int argc, char* argv[])
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
 				break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
+			case 'G': seed_mode = true; --i; break;
 			case 'd': ses.set_download_rate_limit(atoi(arg) * 1000); break;
 			case 'u': ses.set_upload_rate_limit(atoi(arg) * 1000); break;
 			case 'S': ses.set_max_uploads(atoi(arg)); break;
@@ -1008,6 +1014,7 @@ int main(int argc, char* argv[])
 		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
+			p.seed_mode = seed_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			printf("adding MANGET link: %s\n", i->c_str());
