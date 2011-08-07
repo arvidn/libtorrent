@@ -2580,6 +2580,10 @@ force_reannounce() force_dht_announce()
 peers. The second overload of ``force_reannounce`` that takes a ``time_duration`` as
 argument will schedule a reannounce in that amount of time from now.
 
+If the tracker's ``min_interval`` has not passed since the last announce, the forced
+announce will be scheduled to happen immediately as the ``min_interval`` expires. This is
+to honor trackers minimum re-announce interval settings.
+
 ``force_dht_announce`` will announce the torrent to the DHT immediately.
 
 scrape_tracker()
