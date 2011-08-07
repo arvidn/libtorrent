@@ -214,7 +214,7 @@ namespace libtorrent
 			, dht_announce_interval(15 * 60)
 			, udp_tracker_token_expiry(60)
 			, volatile_read_cache(false)
-			, guided_read_cache(true)
+			, guided_read_cache(false)
 			, default_cache_min_age(1)
 			, num_optimistic_unchoke_slots(0)
 			, no_atime_storage(true)

@@ -169,7 +169,9 @@ namespace libtorrent
 		{
 			query_distributed_copies = 1,
 			query_accurate_download_counters = 2,
-			query_last_seen_complete = 4
+			query_last_seen_complete = 4,
+			query_pieces = 8,
+			query_verified_pieces = 16
 		};
 
 		// the flags specify which fields are calculated. By default everything
@@ -574,6 +576,7 @@ namespace libtorrent
 		int connect_candidates;
 		
 		bitfield pieces;
+		bitfield verified_pieces;
 		
 		// this is the number of pieces the client has
 		// downloaded. it is equal to:
