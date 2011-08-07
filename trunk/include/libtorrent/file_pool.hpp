@@ -53,7 +53,8 @@ namespace libtorrent
 {
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
-		file_pool(int size = 40): m_size(size), m_low_prio_io(true) {}
+		file_pool(int size = 40);
+		~file_pool();
 
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
 			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
@@ -64,7 +65,6 @@ namespace libtorrent
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 
 	private:
-		file_pool(file_pool const&);
 
 		void remove_oldest();
 
@@ -86,6 +86,16 @@ namespace libtorrent
 		
 		file_set m_files;
 		mutex m_mutex;
+
+#if TORRENT_CLOSE_MAY_BLOCK
+		void closer_thread_fun();
+		mutex m_closer_mutex;
+		std::vector<boost::intrusive_ptr<file> > m_queued_for_close;
+		bool m_stop_thread;
+
+		// used to close files
+		thread m_closer_thread;
+#endif
 	};
 }
 
