@@ -41,7 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	file_pool::file_pool(int size)
-		: m_size(size), m_low_prio_io(true)
+		: m_size(size)
+		, m_low_prio_io(true)
+#if TORRENT_CLOSE_MAY_BLOCK
+		, m_stop_thread(false)
+		, m_closer_thread(boost::bind(&file_pool::closer_thread_fun, this))
+#endif
 	{
 #if TORRENT_USE_OVERLAPPED
 		m_iocp = INVALID_HANDLE_VALUE;
@@ -49,6 +54,17 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_owning_thread = pthread_self();
+#endif
+	}
+
+	file_pool::~file_pool()
+	{
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l(m_closer_mutex);
+		m_stop_thread = true;
+		l.unlock();
+		// wait for hte closer thread to finish closing all files
+		m_closer_thread.join();
 #endif
 	}
 
@@ -60,6 +76,46 @@ namespace libtorrent
 	void file_pool::clear_thread_owner()
 	{
 		m_owning_thread = 0;
+	}
+#endif
+
+#if TORRENT_CLOSE_MAY_BLOCK
+	void file_pool::closer_thread_fun()
+	{
+		for (;;)
+		{
+			mutex::scoped_lock l(m_closer_mutex);
+			if (m_stop_thread)
+			{
+				l.unlock();
+				m_queued_for_close.clear();
+				return;
+			}
+
+			// find a file that doesn't have any other threads referencing
+			// it. Since only those files can be closed in this thead
+			std::vector<boost::intrusive_ptr<file> >::iterator i = std::find_if(
+				m_queued_for_close.begin(), m_queued_for_close.end()
+				, boost::bind(&file::refcount, boost::bind(&boost::intrusive_ptr<file>::get, _1)) == 1);
+
+			if (i == m_queued_for_close.end())
+			{
+				l.unlock();
+				// none of the files are ready to be closet yet
+				// because they're still in use by other threads
+				// hold off for a while
+				sleep(1000);
+			}
+			else
+			{
+				// ok, first pull the file out of the queue, release the mutex
+				// (since closing the file may block) and then close it.
+				boost::intrusive_ptr<file> f = *i;
+				m_queued_for_close.erase(i);
+				l.unlock();
+				f->close();
+			}
+		}
 	}
 #endif
 
@@ -100,12 +156,18 @@ namespace libtorrent
 				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
 				// close the file before we open it with
+#if TORRENT_CLOSE_MAY_BLOCK
+				mutex::scoped_lock l(m_closer_mutex);
+				m_queued_for_close.push_back(e.file_ptr);
+				l.unlock();
+#endif
 				// the new read/write privilages, since windows may
 				// file opening a file twice. However, since there may
 				// be outstanding operations on it, we can't close the
 				// file, we can only delete our reference to it.
 				// if this is the only reference to the file, it will be closed
 				e.file_ptr.reset(new (std::nothrow)file);
+
 				std::string full_path = combine_path(p, fs.file_path(*fe));
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
@@ -194,6 +256,12 @@ namespace libtorrent
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
 		if (i == m_files.end()) return;
+
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l(m_closer_mutex);
+		m_queued_for_close.push_back(i->second.file_ptr);
+		l.unlock();
+#endif
 		m_files.erase(i);
 	}
 
@@ -203,7 +271,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_owning_thread == 0 || m_owning_thread == pthread_self());
 #endif
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
-		if (i != m_files.end()) m_files.erase(i);
+		if (i == m_files.end()) return;
+		
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l2(m_closer_mutex);
+		m_queued_for_close.push_back(i->second.file_ptr);
+		l2.unlock();
+#endif
+		m_files.erase(i);
 	}
 
 	// closes files belonging to the specified

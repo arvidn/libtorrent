@@ -156,6 +156,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 0
+#define TORRENT_CLOSE_MAY_BLOCK 1
 #endif
 #define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
@@ -349,6 +350,14 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_LOCALE
 #define TORRENT_USE_LOCALE 0
+#endif
+
+// set this to true if close() may block on your system
+// Mac OS X does this if the file being closed is not fully
+// allocated on disk yet for instance. When defined, the disk
+// I/O subsytem will use a separate thread for closing files
+#ifndef TORRENT_CLOSE_MAY_BLOCK
+#define TORRENT_CLOSE_MAY_BLOCK 0
 #endif
 
 #ifndef TORRENT_BROKEN_UNIONS

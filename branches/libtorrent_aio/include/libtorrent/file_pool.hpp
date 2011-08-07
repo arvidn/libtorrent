@@ -61,6 +61,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
 		file_pool(int size = 40);
+		~file_pool();
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		void set_thread_owner();
 		void clear_thread_owner();
@@ -80,7 +81,6 @@ namespace libtorrent
 #endif
 
 	private:
-		file_pool(file_pool const&);
 
 		void remove_oldest();
 
@@ -108,6 +108,16 @@ namespace libtorrent
 
 #if TORRENT_USE_OVERLAPPED
 		HANDLE m_iocp;
+#endif
+
+#if TORRENT_CLOSE_MAY_BLOCK
+		void closer_thread_fun();
+		mutex m_closer_mutex;
+		std::vector<boost::intrusive_ptr<file> > m_queued_for_close;
+		bool m_stop_thread;
+
+		// used to close files
+		thread m_closer_thread;
 #endif
 	};
 }
