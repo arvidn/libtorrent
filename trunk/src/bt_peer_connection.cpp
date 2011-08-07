@@ -102,6 +102,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
+		, m_dont_have_id(0)
 		, m_share_mode_id(0)
 		, m_supports_extensions(false)
 #endif
@@ -138,6 +139,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
+		, m_dont_have_id(0)
 		, m_share_mode_id(0)
 		, m_supports_extensions(false)
 #endif
@@ -1605,6 +1607,13 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
+			if (packet_size() != 1)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== UPLOAD_ONLY [ ERROR: unexpected packet size: %d ]", packet_size());
+#endif
+				return;
+			}
 			bool ul = detail::read_uint8(recv_buffer.begin) != 0;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<== UPLOAD_ONLY [ %s ]", (ul?"true":"false"));
@@ -1616,6 +1625,13 @@ namespace libtorrent
 		if (extended_id == share_mode_msg)
 		{
 			if (!packet_finished()) return;
+			if (packet_size() != 1)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== SHARE_MODE [ ERROR: unexpected packet size: %d ]", packet_size());
+#endif
+				return;
+			}
 			bool sm = detail::read_uint8(recv_buffer.begin) != 0;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<== SHARE_MODE [ %s ]", (sm?"true":"false"));
@@ -1631,6 +1647,21 @@ namespace libtorrent
 			peer_log("<== HOLEPUNCH");
 #endif
 			on_holepunch();
+			return;
+		}
+
+		if (extended_id == dont_have_msg)
+		{
+			if (!packet_finished()) return;
+			if (packet_size() != 4)
+			{
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== DONT_HAVE [ ERROR: unexpected packet size: %d ]", packet_size());
+#endif
+				return;
+			}
+			int piece = detail::read_uint32(recv_buffer.begin) != 0;
+			incoming_dont_have(piece);
 			return;
 		}
 
@@ -1698,6 +1729,7 @@ namespace libtorrent
 		{
 			m_upload_only_id = boost::uint8_t(m->dict_find_int_value("upload_only", 0));
 			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
+			m_dont_have_id = boost::uint8_t(m->dict_find_int_value("lt_donthave", 0));
 		}
 #endif
 
@@ -2082,6 +2114,7 @@ namespace libtorrent
 		m["upload_only"] = upload_only_msg;
 		m["ut_holepunch"] = holepunch_msg;
 		m["share_mode"] = share_mode_msg;
+		m["lt_donthave"] = dont_have_msg;
 
 		int complete_ago = -1;
 		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();

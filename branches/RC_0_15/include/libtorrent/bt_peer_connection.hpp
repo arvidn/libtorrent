@@ -104,7 +104,10 @@ namespace libtorrent
 
 		void start();
 
-		enum { upload_only_msg = 2 };
+		enum {
+			upload_only_msg = 2,
+			dont_have_msg = 5
+		};
 
 		~bt_peer_connection();
 		
@@ -371,6 +374,9 @@ private:
 		// the message ID for upload only message
 		// 0 if not supported
 		int m_upload_only_id;
+
+		// the message ID for don't-have message
+		boost::uint8_t m_dont_have_id;
 
 		char m_reserved_bits[8];
 		// this is set to true if the handshake from

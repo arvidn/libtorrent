@@ -131,6 +131,9 @@ namespace libtorrent
 		virtual bool on_have(int index)
 		{ return false; }
 
+		virtual bool on_dont_have(int index)
+		{ return false; }
+
 		virtual bool on_bitfield(bitfield const& bitfield)
 		{ return false; }
 

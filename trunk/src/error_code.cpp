@@ -159,7 +159,7 @@ namespace libtorrent
 			"invalid lt_tracker message",
 			"pex messages sent too frequent (possible attack)",
 			"torrent has no metadata",
-			"",
+			"invalid dont-have message",
 			"",
 			"",
 			"",

@@ -166,7 +166,7 @@ namespace libtorrent
 			invalid_lt_tracker_message,
 			reserved108,
 			reserved109,
-			reserved110,
+			invalid_dont_have,
 			reserved111,
 			reserved112,
 			reserved113,
