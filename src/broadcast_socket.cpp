@@ -172,8 +172,8 @@ namespace libtorrent
 			// both are v4
 			address_v4::bytes_type b1 = a1.to_v4().to_bytes();
 			address_v4::bytes_type b2 = a2.to_v4().to_bytes();
-			return address_v4::bytes_type::static_size * 8
-				- common_bits(b1.c_array(), b2.c_array(), b1.size());
+			return address_v4::bytes_type().size() * 8
+				- common_bits(b1.data(), b2.data(), b1.size());
 #if TORRENT_USE_IPV6
 		}
 	
@@ -183,8 +183,8 @@ namespace libtorrent
 		else b1 = a1.to_v6().to_bytes();
 		if (a2.is_v4()) b2 = address_v6::v4_mapped(a2.to_v4()).to_bytes();
 		else b2 = a2.to_v6().to_bytes();
-		return address_v6::bytes_type::static_size * 8
-			- common_bits(b1.c_array(), b2.c_array(), b1.size());
+		return address_v6::bytes_type().size() * 8
+			- common_bits(b1.data(), b2.data(), b1.size());
 #endif
 	}
 
