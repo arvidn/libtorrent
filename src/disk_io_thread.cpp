@@ -1037,14 +1037,19 @@ namespace libtorrent
 		TORRENT_ASSERT(j.cache_min_time >= 0);
 
 		mutex::scoped_lock l(m_piece_mutex);
+
+		int piece_size = j.storage->info()->piece_size(j.piece);
+		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
+
+		if (in_use() + blocks_in_piece >= m_settings.cache_size)
+		{
+			flush_cache_blocks(l, in_use() - m_settings.cache_size + blocks_in_piece);
+		}
 	
 		cache_piece_index_t::iterator p;
 		bool hit;
 		int ret = cache_piece(j, p, hit, ignore_cache_size, l);
 		if (ret < 0) return ret;
-
-		int piece_size = j.storage->info()->piece_size(j.piece);
-		int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
 
 		if (!m_settings.disable_hash_checks)
 		{
