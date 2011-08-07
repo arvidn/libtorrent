@@ -2193,7 +2193,9 @@ Its declaration looks like this::
 		{
 			query_distributed_copies = 1,
 			query_accurate_download_counters = 2,
-			query_last_seen_complete = 4
+			query_last_seen_complete = 4,
+			query_pieces = 8,
+			query_verified_pieces = 16
 		};
 
 		torrent_status status(boost::uint32_t flags = 0xffffffff);
@@ -3177,6 +3179,12 @@ By default everything is included. The flags you can use to decide what to *incl
 * ``query_last_seen_complete``
 	includes ``last_seen_complete``.
 
+* ``query_pieces``
+	includes ``pieces``.
+
+* ``query_verified_pieces``
+	includes ``verified_pieces`` (only applies to torrents in *seed mode*).
+
 
 get_download_queue()
 --------------------
@@ -3350,6 +3358,8 @@ It contains the following fields::
 		int connect_candidates;
 
 		bitfield pieces;
+		bitfield verified_pieces;
+
 		int num_pieces;
 
 		size_type total_done;
@@ -3519,6 +3529,10 @@ order block). This is supposed to be as low as possible.
 ``pieces`` is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.
+
+``verified_pieces`` is a bitmask representing which pieces has had their hash
+checked. This only applies to torrents in *seed mode*. If the torrent is not
+in seed mode, this bitmask may be empty.
 
 ``num_pieces`` is the number of pieces that has been downloaded. It is equivalent
 to: ``std::accumulate(pieces->begin(), pieces->end())``. So you don't have to
