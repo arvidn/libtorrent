@@ -302,9 +302,6 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents() const;
 			
-			void queue_check_torrent(boost::shared_ptr<torrent> const& t);
-			void dequeue_check_torrent(boost::shared_ptr<torrent> const& t);
-
 			void set_alert_mask(boost::uint32_t m);
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			std::auto_ptr<alert> pop_alert();
@@ -642,9 +639,6 @@ namespace libtorrent
 
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
-			// this has all torrents that wants to be checked in it
-			check_queue_t m_queued_for_checking;
-
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -795,8 +789,8 @@ namespace libtorrent
 			void on_tick(error_code const& e);
 
 			void auto_manage_torrents(std::vector<torrent*>& list
-				, int& dht_limit, int& tracker_limit, int& lsd_limit
-				, int& hard_limit, int type_limit);
+				, int& checking_limit, int& dht_limit, int& tracker_limit
+				, int& lsd_limit, int& hard_limit, int type_limit);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots(int congested_torrents
 				, int uncongested_torrents);

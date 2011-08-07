@@ -3384,7 +3384,7 @@ It contains the following fields::
 	{
 		enum state_t
 		{
-			queued_for_checking,
+			queued_for_checking, // deprecated
 			checking_files,
 			downloading_metadata,
 			downloading,
@@ -3514,7 +3514,12 @@ The torrent's current task is in the ``state`` member, it will be one of the fol
 |                          |completed in a fraction of a second, but if you add a     |
 |                          |large number of torrents at once, they will queue up.     |
 +--------------------------+----------------------------------------------------------+
-|``queued_for_checking``   |The torrent is in the queue for being checked. But there  |
+|``queued_for_checking``   |**THIS STATE IS DEPRECATED**                              |
+|                          |A torrent that is queued for checking is now in the       |
+|                          |``checking_files`` state, and paused and auto-managed.    |
+|                          |                                                          |
+|                          |The previous semantic for this state was:                 |
+|                          |The torrent is in the queue for being checked. But there  |
 |                          |currently is another torrent that are being checked.      |
 |                          |This torrent will wait for its turn.                      |
 +--------------------------+----------------------------------------------------------+

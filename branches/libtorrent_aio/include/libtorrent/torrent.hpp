@@ -860,9 +860,6 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
-		void queue_torrent_check();
-		void dequeue_torrent_check();
-
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -1237,10 +1234,6 @@ namespace libtorrent
 		// before the files are checked, we don't try to
 		// connect to peers
 		bool m_files_checked:1;
-
-		// this is true if the torrent has been added to
-		// checking queue in the session
-		bool m_queued_for_checking:1;
 
 		// the maximum number of connections for this torrent
 		unsigned int m_max_connections:24;

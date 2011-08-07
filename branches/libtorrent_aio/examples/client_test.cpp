@@ -250,8 +250,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		++counters[torrents_stopped];
 	}
 
-	if (st.state == torrent_status::checking_files
-		|| st.state == torrent_status::queued_for_checking)
+	if (st.state == torrent_status::checking_files)
 	{
 		++counters[torrents_checking];
 	}
@@ -270,8 +269,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 			|| st.state == torrent_status::finished);
 		case torrents_queued: return st.paused && st.auto_managed;
 		case torrents_stopped: return st.paused && !st.auto_managed;
-		case torrents_checking: return st.state == torrent_status::checking_files
-			|| st.state == torrent_status::queued_for_checking;
+		case torrents_checking: return st.state == torrent_status::checking_files;
 		case torrents_feeds: return false;
 	}
 	return true;
@@ -1900,7 +1898,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (s.state != torrent_status::queued_for_checking && s.state != torrent_status::checking_files)
+			if (s.state != torrent_status::checking_files)
 			{
 				boost::posix_time::time_duration t = s.next_announce;
 				snprintf(str, sizeof(str)

@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -121,7 +119,7 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#torrent-handle" id="id71">torrent_handle</a><ul>
-<li><a class="reference internal" href="#set-piece-deadline" id="id72">set_piece_deadline()</a></li>
+<li><a class="reference internal" href="#set-piece-deadline-reset-piece-deadline" id="id72">set_piece_deadline() reset_piece_deadline()</a></li>
 <li><a class="reference internal" href="#piece-availability" id="id73">piece_availability()</a></li>
 <li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id74">piece_priority() prioritize_pieces() piece_priorities()</a></li>
 <li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id75">file_priority() prioritize_files() file_priorities()</a></li>
@@ -1130,7 +1128,7 @@ struct cache_status
         size_type blocks_read_hit;
         size_type reads;
         size_type queued_bytes;
-        int cache_size;
+        int write_cache_size;
         int read_cache_size;
         int pinned_blocks;
         int total_used_buffers;
@@ -1171,14 +1169,14 @@ for the read cache.</p>
 <p><tt class="docutils literal"><span class="pre">reads</span></tt> is the total number of read operations called this session.</p>
 <p><tt class="docutils literal"><span class="pre">queued_bytes</span></tt> is the total number of bytes queued for writing, including
 bytes passed on to the operating system but have not yet completed.</p>
-<p><tt class="docutils literal"><span class="pre">cache_size</span></tt> is the number of 16 KiB blocks currently in the disk cache.
-This includes both read and write cache.</p>
+<p><tt class="docutils literal"><span class="pre">write_cache_size</span></tt> is the number of 16 KiB blocks currently in the disk
+write cache.</p>
 <p><tt class="docutils literal"><span class="pre">read_cache_size</span></tt> is the number of 16KiB blocks in the read cache.</p>
 <p><tt class="docutils literal"><span class="pre">pinned_blocks</span></tt> is the number of blocks that have more than 0 references
 to them, forcing them to stay in RAM.</p>
 <p><tt class="docutils literal"><span class="pre">total_used_buffers</span></tt> is the total number of buffers currently in use.
 This includes the read/write disk cache as well as send and receive buffers
-used in peer connections.</p>
+used in peer connections. It only counts disk buffers.</p>
 <p><tt class="docutils literal"><span class="pre">average_queue_time</span></tt> is the number of microseconds an average disk I/O job
 has to wait in the job queue before it get processed.</p>
 <p><tt class="docutils literal"><span class="pre">average_read_time</span></tt> is the time read jobs takes on average to complete
@@ -2402,6 +2400,7 @@ struct torrent_handle
 
         enum deadline_flags { alert_when_available = 1 };
         void set_piece_deadline(int index, int deadline, int flags = 0) const;
+        void reset_piece_deadline(int index) const;
 
         void piece_availability(std::vector&lt;int&gt;&amp; avail) const;
         void piece_priority(int index, int priority) const;
@@ -2451,12 +2450,13 @@ one exception <tt class="docutils literal"><span class="pre">is_valid()</span></
 Since the torrents are processed by a background thread, there is no
 guarantee that a handle will remain valid between two calls.</p>
 </div>
-<div class="section" id="set-piece-deadline">
-<h2>set_piece_deadline()</h2>
+<div class="section" id="set-piece-deadline-reset-piece-deadline">
+<h2>set_piece_deadline() reset_piece_deadline()</h2>
 <blockquote>
 <pre class="literal-block">
 enum deadline_flags { alert_when_available = 1 };
 void set_piece_deadline(int index, int deadline, int flags = 0) const;
+void reset_piece_deadline(int index) const;
 </pre>
 </blockquote>
 <p>This function sets or resets the deadline associated with a specific piece
@@ -2472,6 +2472,8 @@ piece has been downloaded, by passing <tt class="docutils literal"><span class="
 the <tt class="docutils literal"><span class="pre">alert_when_available</span></tt> flag is set, in which case it will do the same thing
 as calling <a class="reference internal" href="#read-piece">read_piece()</a> for <tt class="docutils literal"><span class="pre">index</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">deadline</span></tt> is the number of milliseconds until this piece should be completed.</p>
+<p><tt class="docutils literal"><span class="pre">reset_piece_deadline</span></tt> removes the deadline from the piece. If it hasn't already
+been downloaded, it will no longer be considered a priority.</p>
 </div>
 <div class="section" id="piece-availability">
 <h2>piece_availability()</h2>
@@ -3408,7 +3410,7 @@ struct torrent_status
 {
         enum state_t
         {
-                queued_for_checking,
+                queued_for_checking, // deprecated
                 checking_files,
                 downloading_metadata,
                 downloading,
@@ -3541,9 +3543,14 @@ completed in a fraction of a second, but if you add a
 large number of torrents at once, they will queue up.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">queued_for_checking</span></tt></td>
-<td>The torrent is in the queue for being checked. But there
+<td><p class="first"><strong>THIS STATE IS DEPRECATED</strong>
+A torrent that is queued for checking is now in the
+<tt class="docutils literal"><span class="pre">checking_files</span></tt> state, and paused and auto-managed.</p>
+<p class="last">The previous semantic for this state was:
+The torrent is in the queue for being checked. But there
 currently is another torrent that are being checked.
-This torrent will wait for its turn.</td>
+This torrent will wait for its turn.</p>
+</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">checking_files</span></tt></td>
 <td>The torrent has not started its download yet, and is

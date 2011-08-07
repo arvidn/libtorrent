@@ -1515,7 +1515,7 @@ namespace aux {
 		{
 			torrent& t = *i->second;
 			t.do_resume();
-			if (t.should_check_files()) t.queue_torrent_check();
+			if (t.should_check_files()) t.start_checking();
 		}
 	}
 	
@@ -1533,7 +1533,6 @@ namespace aux {
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
 #endif
-		m_queued_for_checking.clear();
 		if (m_lsd) m_lsd->close();
 		if (m_upnp) m_upnp->close();
 		if (m_natpmp) m_natpmp->close();
@@ -2826,8 +2825,6 @@ namespace aux {
 		torrent_map::iterator least_recently_scraped = m_torrents.end();
 		int num_paused_auto_managed = 0;
 
-		int num_checking = 0;
-		int num_queued = 0;
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end();)
 		{
@@ -2837,9 +2834,6 @@ namespace aux {
 				++congested_torrents;
 			else
 				++uncongested_torrents;
-
-			if (t.state() == torrent_status::checking_files) ++num_checking;
-			else if (t.state() == torrent_status::queued_for_checking && !t.is_paused()) ++num_queued;
 
 			if (t.is_auto_managed() && t.is_paused() && !t.has_error())
 			{
@@ -2864,23 +2858,6 @@ namespace aux {
 
 			t.second_tick(m_stat, tick_interval_ms);
 			++i;
-		}
-
-		// some people claim that there sometimes can be cases where
-		// there is no torrent being checked, but there are torrents
-		// waiting to be checked. I have never seen this, and I can't 
-		// see a way for it to happen. But, if it does, start one of
-		// the queued torrents
-		if (num_checking == 0 && num_queued > 0 && !m_paused)
-		{
-			TORRENT_ASSERT(false);
-			check_queue_t::iterator i = std::min_element(m_queued_for_checking.begin()
-				, m_queued_for_checking.end(), boost::bind(&torrent::queue_position, _1)
-				< boost::bind(&torrent::queue_position, _2));
-			if (i != m_queued_for_checking.end())
-			{
-				(*i)->start_checking();
-			}
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -3264,8 +3241,7 @@ namespace aux {
 				++seeding_torrents;
 			else
 				++downloading_torrents;
-			if (i->second->state() == torrent_status::checking_files
-				|| i->second->state() == torrent_status::queued_for_checking)
+			if (i->second->state() == torrent_status::checking_files)
 				++checking_torrents;
 			if (i->second->is_paused())
 				++stopped_torrents;
@@ -3639,17 +3615,25 @@ namespace aux {
 	}
 	
 	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
-		, int& dht_limit, int& tracker_limit, int& lsd_limit
-		, int& hard_limit, int type_limit)
+		, int& checking_limit, int& dht_limit, int& tracker_limit
+		, int& lsd_limit, int& hard_limit, int type_limit)
 	{
 		for (std::vector<torrent*>::iterator i = list.begin()
 			, end(list.end()); i != end; ++i)
 		{
 			torrent* t = *i;
 
-			if ((t->state() == torrent_status::checking_files
-				|| t->state() == torrent_status::queued_for_checking))
+			if (t->state() == torrent_status::checking_files)
+			{
+				if (checking_limit <= 0) t->pause();
+				else
+				{
+					t->resume();
+					t->start_checking();
+					--checking_limit;
+				}
 				continue;
+			}
 
 			if (!t->is_paused() && !is_active(t, settings())
 				&& hard_limit > 0)
@@ -3685,6 +3669,7 @@ namespace aux {
 	void session_impl::recalculate_auto_managed_torrents()
 	{
 		// these vectors are filled with auto managed torrents
+		std::vector<torrent*> checking;
 		std::vector<torrent*> downloaders;
 		downloaders.reserve(m_torrents.size());
 		std::vector<torrent*> seeds;
@@ -3694,6 +3679,7 @@ namespace aux {
 		// of each kind we're allowed to have active
 		int num_downloaders = settings().active_downloads;
 		int num_seeds = settings().active_seeds;
+		int checking_limit = 1;
 		int dht_limit = settings().active_dht_limit;
 		int tracker_limit = settings().active_tracker_limit;
 		int lsd_limit = settings().active_lsd_limit;
@@ -3712,15 +3698,14 @@ namespace aux {
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
 
-			// checking torrents are not subject to auto-management
-			if (t->state() == torrent_status::checking_files
-				|| t->state() == torrent_status::queued_for_checking)
-			{
-				if (t->is_auto_managed() && t->is_paused()) t->resume();
-				continue;
-			}
 			if (t->is_auto_managed() && !t->has_error())
 			{
+				if (t->state() == torrent_status::checking_files)
+				{
+					checking.push_back(t);
+					continue;
+				}
+
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)
@@ -3731,6 +3716,11 @@ namespace aux {
 			}
 			else if (!t->is_paused())
 			{
+				if (t->state() == torrent_status::checking_files)
+				{
+					if (checking_limit > 0) --checking_limit;
+					continue;
+				}
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				--hard_limit;
 			  	if (is_active(t, settings()))
@@ -3762,18 +3752,21 @@ namespace aux {
 				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 		}
 
+		auto_manage_torrents(checking, checking_limit, dht_limit, tracker_limit, lsd_limit
+			, hard_limit, num_downloaders);
+
 		if (settings().auto_manage_prefer_seeds)
 		{
-			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(seeds, checking_limit, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_seeds);
-			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(downloaders, checking_limit, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_downloaders);
 		}
 		else
 		{
-			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(downloaders, checking_limit, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_downloaders);
-			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(seeds, checking_limit, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_seeds);
 		}
             
@@ -4359,56 +4352,6 @@ namespace aux {
 		return torrent_handle(torrent_ptr);
 	}
 
-	void session_impl::queue_check_torrent(boost::shared_ptr<torrent> const& t)
-	{
-		if (m_abort) return;
-		TORRENT_ASSERT(t->should_check_files());
-		TORRENT_ASSERT(t->state() != torrent_status::checking_files);
-		if (m_queued_for_checking.empty()) t->start_checking();
-		else t->set_state(torrent_status::queued_for_checking);
-		TORRENT_ASSERT(std::find(m_queued_for_checking.begin()
-			, m_queued_for_checking.end(), t) == m_queued_for_checking.end());
-		m_queued_for_checking.push_back(t);
-	}
-
-	void session_impl::dequeue_check_torrent(boost::shared_ptr<torrent> const& t)
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(t->state() == torrent_status::checking_files
-			|| t->state() == torrent_status::queued_for_checking);
-
-		if (m_queued_for_checking.empty()) return;
-
-		boost::shared_ptr<torrent> next_check = *m_queued_for_checking.begin();
-		check_queue_t::iterator done = m_queued_for_checking.end();
-		for (check_queue_t::iterator i = m_queued_for_checking.begin()
-			, end(m_queued_for_checking.end()); i != end; ++i)
-		{
-			// the reason m_paused is in there is because when the session
-			// is paused, all torrents  that are queued ar all of a sudden
-			// not supposed to be queued anymore. The first torrent that gets
-			// removed from the queue will hence trigger this assert, without
-			// the m_paused exception
-			TORRENT_ASSERT(*i == t || (*i)->should_check_files() || m_paused);
-			if (*i == t) done = i;
-			else if (next_check == t || next_check->queue_position() > (*i)->queue_position())
-				next_check = *i;
-		}
-		TORRENT_ASSERT(next_check != t || m_queued_for_checking.size() == 1);
-		// only start a new one if we removed the one that is checking
-		TORRENT_ASSERT(done != m_queued_for_checking.end());
-		if (done == m_queued_for_checking.end()) return;
-
-		if (next_check != t
-			&& t->state() == torrent_status::checking_files
-			&& !m_paused)
-		{
-			next_check->start_checking();
-		}
-
-		m_queued_for_checking.erase(done);
-	}
-
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
@@ -4475,9 +4418,6 @@ namespace aux {
 		if (m_next_connect_torrent == m_torrents.end())
 			m_next_connect_torrent = m_torrents.begin();
 
-		std::list<boost::shared_ptr<torrent> >::iterator k
-			= std::find(m_queued_for_checking.begin(), m_queued_for_checking.end(), tptr);
-		if (k != m_queued_for_checking.end()) m_queued_for_checking.erase(k);
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
@@ -5451,22 +5391,6 @@ namespace aux {
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_network_thread());
-
-		int num_checking = 0;
-		int num_queued_for_checking = 0;
-		for (check_queue_t::const_iterator i = m_queued_for_checking.begin()
-			, end(m_queued_for_checking.end()); i != end; ++i)
-		{
-			if ((*i)->state() == torrent_status::checking_files) ++num_checking;
-			else if ((*i)->state() == torrent_status::queued_for_checking)
-			{
-				++num_queued_for_checking;
-			}
-		}
-
-		// the queue is either empty, or it has exactly one checking torrent in it
-		TORRENT_ASSERT(m_queued_for_checking.empty() || num_checking == 1 || (m_paused && num_checking == 0));
-//		TORRENT_ASSERT(m_queued_for_checking.size() == num_queued_for_checking);
 
 		std::set<int> unique;
 		int total_downloaders = 0;
