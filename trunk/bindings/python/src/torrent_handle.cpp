@@ -384,4 +384,11 @@ void bind_torrent_handle()
         .value("alert_when_available", torrent_handle::alert_when_available)
     ;
 
+    enum_<torrent_handle::status_flags_t>("status_flags_t")
+        .value("query_distributed_copies", torrent_handle::query_distributed_copies)
+        .value("query_accurate_download_counters", torrent_handle::query_accurate_download_counters)
+        .value("query_last_seen_complete", torrent_handle::query_last_seen_complete)
+        .value("query_pieces", torrent_handle::query_pieces)
+        .value("query_verified_pieces", torrent_handle::query_verified_pieces)
+    ;
 }

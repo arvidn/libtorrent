@@ -9,15 +9,17 @@
 using namespace boost::python;
 using namespace libtorrent;
 
-object pieces(torrent_status const& s)
+object bitfield_to_list(bitfield const& bf)
 {
-    list result;
+	list ret;
 
-    for (bitfield::const_iterator i(s.pieces.begin()), e(s.pieces.end()); i != e; ++i)
-        result.append(*i);
-
-    return result;
+	for (bitfield::const_iterator i(bf.begin()), e(bf.end()); i != e; ++i)
+		ret.append(*i);
+	return ret;
 }
+
+object pieces(torrent_status const& s) { return bitfield_to_list(s.pieces); }
+object verified_pieces(torrent_status const& s) { return bitfield_to_list(s.verified_pieces); }
 
 void bind_torrent_status()
 {
@@ -60,7 +62,8 @@ void bind_torrent_status()
         .def_readonly("num_incomplete", &torrent_status::num_incomplete)
         .def_readonly("list_seeds", &torrent_status::list_seeds)
         .def_readonly("list_peers", &torrent_status::list_peers)
-        .add_property("pieces", pieces)
+        .add_property("pieces", &pieces)
+        .add_property("verified_pieces", &verified_pieces)
         .def_readonly("num_pieces", &torrent_status::num_pieces)
         .def_readonly("total_done", &torrent_status::total_done)
         .def_readonly("total_wanted_done", &torrent_status::total_wanted_done)
