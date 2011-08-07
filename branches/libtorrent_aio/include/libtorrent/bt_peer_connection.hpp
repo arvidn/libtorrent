@@ -106,7 +106,8 @@ namespace libtorrent
 		{
 			upload_only_msg = 2,
 			holepunch_msg = 3,
-			share_mode_msg = 4
+			share_mode_msg = 4,
+			dont_have_msg = 5,
 		};
 
 		~bt_peer_connection();
@@ -376,6 +377,9 @@ private:
 
 		// the message ID for holepunch messages
 		boost::uint8_t m_holepunch_id;
+
+		// the message ID for don't-have message
+		boost::uint8_t m_dont_have_id;
 
 		// the message ID for share mode message
 		// 0 if not supported

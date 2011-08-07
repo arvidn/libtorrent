@@ -1760,6 +1760,65 @@ namespace libtorrent
 	}
 
 	// -----------------------------
+	// -------- DONT HAVE ----------
+	// -----------------------------
+
+	void peer_connection::incoming_dont_have(int index)
+	{
+		INVARIANT_CHECK;
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			if ((*i)->on_dont_have(index)) return;
+		}
+#endif
+
+		if (is_disconnecting()) return;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<== DONT_HAVE [ piece: %d ]", index);
+#endif
+
+		if (is_disconnecting()) return;
+
+		// if we got an invalid message, abort
+		if (index >= int(m_have_piece.size()) || index < 0)
+		{
+			disconnect(errors::invalid_dont_have, 2);
+			return;
+		}
+
+		if (!m_have_piece[index])
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			peer_log("   got redundant DONT_HAVE message for index: %d", index);
+#endif
+			return;
+		}
+
+		bool was_seed = is_seed();
+		m_have_piece.clear_bit(index);
+		TORRENT_ASSERT(m_num_pieces > 0);
+		--m_num_pieces;
+
+		// only update the piece_picker if
+		// we have the metadata and if
+		// we're not a seed (in which case
+		// we won't have a piece picker)
+		if (!t->valid_metadata()) return;
+
+		t->peer_lost(index);
+
+		if (was_seed)
+			t->get_policy().set_seed(m_peer_info, false);
+	}
+
+	// -----------------------------
 	// --------- BITFIELD ----------
 	// -----------------------------
 

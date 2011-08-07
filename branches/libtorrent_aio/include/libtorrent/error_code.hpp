@@ -167,7 +167,7 @@ namespace libtorrent
 			invalid_lt_tracker_message,
 			too_frequent_pex,
 			no_metadata,
-			reserved110,
+			invalid_dont_have,
 			reserved111,
 			reserved112,
 			reserved113,
