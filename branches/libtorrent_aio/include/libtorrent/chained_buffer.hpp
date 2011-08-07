@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/block_cache.hpp"
 #endif
 
 namespace libtorrent
@@ -85,13 +86,15 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		void set_ref(block_cache_reference ref)
 		{
+			int count = 1;
 			for (std::list<buffer_t>::iterator i = m_vec.begin()
 				, end(m_vec.end()); i != end; ++i)
 			{
 				// technically this is allowed, but not very likely to happen
 				// without being a bug
-				TORRENT_ASSERT(i->ref.pe != ref.pe || i->ref.block != ref.block);
+				if (i->ref.pe == ref.pe && i->ref.block == ref.block) ++count;
 			}
+			TORRENT_ASSERT(count <= ref.pe->blocks[ref.block].reading_count);
 			m_vec.back().ref = ref;
 		}
 #endif
