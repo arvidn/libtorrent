@@ -1,3 +1,4 @@
+	* close files in separate thread on systems where close() may block (Mac OS X for instance)
 	* don't create all directories up front when adding torrents
 	* support DHT scrape
 	* added support for fadvise/F_RDADVISE for improved disk read performance
