@@ -2583,7 +2583,7 @@ namespace libtorrent
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 
-		if (ret == -1)
+		if (ret == -1 && j.error.ec != boost::system::errc::operation_canceled)
 		{
 			// handle_disk_error may disconnect us
 			t->handle_disk_error(j, this);
@@ -2597,6 +2597,12 @@ namespace libtorrent
 		TORRENT_ASSERT(p.piece == j.piece);
 		TORRENT_ASSERT(p.start == j.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
+
+		if (ret == -1 && j.error.ec == boost::system::errc::operation_canceled)
+		{
+			picker.mark_as_canceled(block_finished, peer_info_struct());
+			return;
+		}
 //		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());

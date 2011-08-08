@@ -1943,6 +1943,42 @@ namespace libtorrent
 	{
 		block_cache::iterator p = m_disk_cache.find_piece(j);
 		if (p == m_disk_cache.end()) return 0;
+
+		// cancel all jobs (at least the ones that haven't
+		// started yet).
+		storage_error e;
+		e.ec = error_code(boost::system::errc::operation_canceled, boost::system::system_category());
+
+		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+		disk_io_job* k = (disk_io_job*)pe->jobs.get_all();
+		while (k)
+		{
+			disk_io_job* j = k;
+			k = (disk_io_job*)k->next;
+			j->next = 0;
+
+			if (j->action != disk_io_job::write)
+			{
+				pe->jobs.push_back(j);
+				continue;
+			}
+
+			int job_start = j->offset / m_disk_cache.block_size();
+			int job_last = (j->offset + j->buffer_size - 1) / m_disk_cache.block_size();
+			if (pe->blocks[job_start].pending
+				|| pe->blocks[job_last].pending)
+			{
+				pe->jobs.push_back(j);
+				continue;
+			}
+#if defined TORRENT_DEBUG
+			TORRENT_ASSERT(j->callback_called == false);
+			j->callback_called = true;
+#endif
+			j->error = e;
+			m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, -1, j));
+		}
+
 		m_disk_cache.evict_piece(p);
 		return 0;
 	}

@@ -287,6 +287,7 @@ namespace libtorrent
 		// and false if the block is already finished or writing
 		bool mark_as_writing(piece_block block, void* peer);
 
+		void mark_as_canceled(piece_block block, void* peer);
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
