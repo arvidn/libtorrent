@@ -32,8 +32,8 @@ import signal
 # entry in the filesystem list.
 cache_sizes = [0, 32768, 393216]
 peers = [200, 1000, 2000]
-builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
-#builds = ['rtorrent']
+#builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
+builds = ['aio', 'rtorrent']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
@@ -60,7 +60,7 @@ default_cache = cache_sizes[-1]
 # disk cache is not a significant part of the test,
 # since download rates will be extremely high while downloading
 # into RAM
-test_duration = 700
+test_duration = 200 #  700
 
 
 
@@ -94,7 +94,7 @@ for i in filesystem:
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
-	os.system('./stage_aio/connection_tester gen-torrent 10000 test.torrent')
+	os.system('./stage_aio/connection_tester gen-torrent 1000 test.torrent')
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -137,12 +137,18 @@ def build_commandline(config, port):
 		return './utorrent-server-v3_0/utserver -logfile session_stats/alerts_log.txt -settingspath utorrent_session'
 
 	if config['build'] == 'rtorrent':
-		try: os.mkdir('rtorrent_session')
-		except: pass
-		# it seems rtorrent may delete the original torrent when it's being added
-		try: shutil.copy('test.torrent', 'rtorrent_session/')
-		except: pass
-		return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d -O load_start_verbose=rtorrent_session/test.torrent -s rtorrent_session -O handshake_log=yes' % (config['save-path'], port, port, num_peers, num_peers)
+		if os.path.exists('rtorrent_session'):
+			add_command = ''
+		else:
+			try: os.mkdir('rtorrent_session')
+			except: pass
+			# it seems rtorrent may delete the original torrent when it's being added
+			try: shutil.copy('test.torrent', 'rtorrent_session/')
+			except: pass
+			add_command = '-O load_start_verbose=rtorrent_session/test.torrent '
+
+		return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s rtorrent_session -O max_memory_usage=128000000000' \
+			% (config['save-path'], port, port, num_peers, num_peers, add_command)
 
 	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -f session_stats/alerts_log.txt test.torrent' \
 		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port)
@@ -154,7 +160,7 @@ def delete_files(files):
 			try: shutil.rmtree(i)
 			except:
 				try:
-					if os.exists(i): print 'failed to delete %s' % i
+					if os.path.exists(i): print 'failed to delete %s' % i
 				except: pass
 
 def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio'):
@@ -205,12 +211,12 @@ def run_test(config):
 	client_output = open('session_stats/client.output', 'w+')
 	client_error = open('session_stats/client.error', 'w+')
 	print 'launching: %s' % cmdline
-	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
+	#client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
+	client = subprocess.Popen('LD_PRELOAD=/usr/lib64/libtcmalloc_and_profiler.so.0 HEAPPROFILE=./heap ' + cmdline, stdout=client_output, stdin=subprocess.PIPE, stderr=client_error, shell=True)
 	print 'OK'
 	# enable disk stats printing
 	if config['build'] != 'rtorrent' and config['build'] != 'utorrent':
 		print >>client.stdin, 'x',
-	# when allocating storage, we have to wait for it to complete before we can connect
 	time.sleep(4)
 	cmdline = './stage_aio/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['test'], config['num-peers'], port)
 	print 'launching: %s' % cmdline
@@ -241,17 +247,26 @@ def run_test(config):
 	print '\n'
 
 	if client.returncode == None:
-		print 'killing client'
-		if client_need_kill:
-			client.send_signal(signal.SIGINT)
-		else:
-			print >>client.stdin, 'q',
+		try:
+			print 'killing client'
+			if client_need_kill:
+				client.send_signal(signal.SIGINT)
+			else:
+				print >>client.stdin, 'q',
+		except:
+			pass
 
+	time.sleep(10)
+	client.wait()
 	tester.wait()
 	tester_output.close()
 	client_output.close()
-	if tester.returncode != 0: sys.exit(tester.returncode)
-	if client.returncode != 0 and not client_need_kill: sys.exit(client.returncode)
+	if tester.returncode != 0:
+		print 'tester returned %d' % tester.returncode
+		sys.exit(tester.returncode)
+	if client.returncode != 0:
+		print 'client returned %d' % client.returncode
+		sys.exit(client.returncode)
 
 	# run fragmentation test
 	print 'analyzing fragmentation'
