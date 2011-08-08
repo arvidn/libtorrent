@@ -65,8 +65,13 @@ test_duration = 200 #  700
 
 
 # make sure the environment is properly set up
-if os.name == 'posix':
-	resource.setrlimit(resource.RLIMIT_NOFILE, (4000, 5000))
+try:
+	if os.name == 'posix':
+		resource.setrlimit(resource.RLIMIT_NOFILE, (4000, 5000))
+except:
+	if resource.getrlimit(resource.RLIMIT_NOFILE)[0] < 4000:
+		print 'please set ulimit -n to at least 4000'
+		sys.exit(1)
 
 def build_stage_dirs():
 	ret = []
