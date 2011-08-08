@@ -1947,7 +1947,7 @@ namespace libtorrent
 		// cancel all jobs (at least the ones that haven't
 		// started yet).
 		storage_error e;
-		e.ec = error_code(boost::system::errc::operation_canceled, boost::system::system_category());
+		e.ec = error_code(boost::system::errc::operation_canceled, get_system_category());
 
 		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 		disk_io_job* k = (disk_io_job*)pe->jobs.get_all();
