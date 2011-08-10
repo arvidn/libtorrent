@@ -1555,7 +1555,7 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== DONT_HAVE [ piece: %d ]", index);
+		(*m_logger) << time_now_string() << " <== DONT_HAVE [ piece: " << index << " ]\n";
 #endif
 
 		if (is_disconnecting()) return;
@@ -1570,7 +1570,7 @@ namespace libtorrent
 		if (!m_have_piece[index])
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("   got redundant DONT_HAVE message for index: %d", index);
+			(*m_logger) << time_now_string() << "   got redundant DONT_HAVE message for index: " <<  index << "\n";
 #endif
 			return;
 		}
