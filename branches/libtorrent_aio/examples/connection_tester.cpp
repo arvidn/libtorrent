@@ -108,6 +108,7 @@ struct peer_conn
 	}
 
 	stream_socket s;
+	char write_buf_proto[100];
 	boost::uint32_t write_buffer[17*1024/4];
 	boost::uint32_t buffer[17*1024/4];
 	int read_pos;
@@ -195,10 +196,15 @@ struct peer_conn
 	{
 		if (fast_extension)
 		{
-			// have_all and unchoke
-			static char msg[] = "\0\0\0\x01\x0e\0\0\0\x01\x01";
+			char* ptr = write_buf_proto;
+			// have_all
+			write_uint32(1, ptr);
+			write_uint8(0xe, ptr);
+			// unchoke
+			write_uint32(1, ptr);
+			write_uint8(1, ptr);
 			error_code ec;
-			boost::asio::async_write(s, libtorrent::asio::buffer(msg, sizeof(msg) - 1)
+			boost::asio::async_write(s, libtorrent::asio::buffer(write_buf_proto, ptr - write_buf_proto)
 				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 		else
@@ -412,18 +418,14 @@ struct peer_conn
 	void write_piece(int piece, int start, int length)
 	{
 		generate_block(write_buffer, piece, start, length);
-		static char msg[] = "    \x07"
-			"    " // piece
-			"    "; // start
-		char* ptr = msg;
+		char* ptr = write_buf_proto;
 		write_uint32(9 + length, ptr);
 		assert(length == 0x4000);
-		assert(*ptr == 7);
-		++ptr; // skip message id
+		write_uint8(7, ptr);
 		write_uint32(piece, ptr);
 		write_uint32(start, ptr);
 		boost::array<libtorrent::asio::const_buffer, 2> vec;
-		vec[0] = libtorrent::asio::buffer(msg, sizeof(msg)-1);
+		vec[0] = libtorrent::asio::buffer(write_buf_proto, ptr - write_buf_proto);
 		vec[1] = libtorrent::asio::buffer(write_buffer, length);
 		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		++blocks_sent;
@@ -622,17 +624,16 @@ int main(int argc, char* argv[])
 	}
 			
 	std::list<peer_conn*> conns;
-	const int num_threads = 2;
-	io_service ios[num_threads];
+	io_service ios;
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
-		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
+		conns.push_back(new peer_conn(ios, ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0], seed));
 		libtorrent::sleep(1);
-		ios[i % num_threads].poll_one(ec);
+		ios.poll_one(ec);
 		if (ec)
 		{
 			fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
@@ -641,8 +642,8 @@ int main(int argc, char* argv[])
 	}
 
 
-	thread t1(boost::bind(&io_thread, &ios[0]));
-	thread t2(boost::bind(&io_thread, &ios[1]));
+	thread t1(boost::bind(&io_thread, &ios));
+	thread t2(boost::bind(&io_thread, &ios));
  
 	t1.join();
 	t2.join();
