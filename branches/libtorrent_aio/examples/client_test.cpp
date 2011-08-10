@@ -651,6 +651,7 @@ std::string bind_to_interface = "";
 std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
+bool seed_mode = false;
 
 bool share_mode = false;
 bool disable_storage = false;
@@ -686,6 +687,7 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
+	p.seed_mode = seed_mode;
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	p.share_mode = share_mode;
 	lazy_entry resume_data;
@@ -1012,6 +1014,8 @@ int main(int argc, char* argv[])
 			"                        this is useful for scripting tests\n"
 			"  -k                    enable high performance settings. This overwrites any other\n"
 			"                        previous command line options, so be sure to specify this first\n"
+			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
+			"                        are present and check hashes on-demand)\n"
 			"\n BITTORRENT OPTIONS\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
@@ -1139,6 +1143,7 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
+				p.seed_mode = seed_mode;
 				if (disable_storage) p.storage = disabled_storage_constructor;
 				p.share_mode = share_mode;
 				p.tracker_url = argv[i] + 41;
@@ -1174,6 +1179,7 @@ int main(int argc, char* argv[])
 				break;
 			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
+			case 'G': seed_mode = true; --i; break;
 			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
 			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
 			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
@@ -1361,6 +1367,7 @@ int main(int argc, char* argv[])
 			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
+			p.seed_mode = seed_mode;
 			if (disable_storage) p.storage = disabled_storage_constructor;
 			p.share_mode = share_mode;
 			p.save_path = save_path;

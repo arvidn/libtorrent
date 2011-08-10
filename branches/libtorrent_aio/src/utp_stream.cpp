@@ -710,6 +710,7 @@ void utp_stream::close()
 	if (!m_impl) return;
 	if (!m_impl->destroy())
 	{
+		if (!m_impl) return;
 		detach_utp_impl(m_impl);
 		m_impl = 0;
 	}

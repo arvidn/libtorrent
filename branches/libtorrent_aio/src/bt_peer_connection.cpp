@@ -1775,7 +1775,7 @@ namespace libtorrent
 		if (!myip.empty())
 		{
 			// TODO: don't trust this blindly
-			if (myip.size() == address_v4::bytes_type::static_size)
+			if (myip.size() == address_v4::bytes_type().size())
 			{
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
@@ -1783,7 +1783,7 @@ namespace libtorrent
 					, aux::session_impl::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
-			else if (myip.size() == address_v6::bytes_type::static_size)
+			else if (myip.size() == address_v6::bytes_type().size())
 			{
 				address_v6::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());

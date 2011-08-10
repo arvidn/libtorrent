@@ -727,7 +727,7 @@ int test_main()
 
 	TEST_CHECK(errors::reserved129 == 129);
 	TEST_CHECK(errors::reserved159 == 159);
-	TEST_CHECK(errors::reserved110 == 110);
+	TEST_CHECK(errors::reserved114 == 114);
 
 	{
 	// test session state load/restore
