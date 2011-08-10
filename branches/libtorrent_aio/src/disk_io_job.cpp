@@ -48,7 +48,7 @@ namespace libtorrent
 			, in_use(false)
 #endif
 		{
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			callback_called = false;
 #endif
 		}

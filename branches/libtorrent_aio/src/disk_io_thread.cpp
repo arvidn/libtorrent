@@ -1072,7 +1072,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(j->next == 0);
 			DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
@@ -1656,7 +1656,7 @@ namespace libtorrent
 			k->buffer = 0;
 			if (k->storage->has_fence()) fences.insert(k->storage.get());
 			k->error.ec = error::operation_aborted;
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(k->callback_called == false);
 			k->callback_called = true;
 #endif
@@ -1713,7 +1713,7 @@ namespace libtorrent
 
 			k->error.ec = error::operation_aborted;
 			TORRENT_ASSERT(k->callback);
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(k->callback_called == false);
 			k->callback_called = true;
 #endif
@@ -1927,7 +1927,7 @@ namespace libtorrent
 			j->next = 0;
 			if (j->action == disk_io_job::sync_piece)
 			{
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				TORRENT_ASSERT(j->callback_called == false);
 				j->callback_called = true;
 #endif
@@ -1971,7 +1971,7 @@ namespace libtorrent
 				pe->jobs.push_back(j);
 				continue;
 			}
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
@@ -2047,7 +2047,7 @@ namespace libtorrent
 		++m_cache_stats.blocks_written;
 		if (j->callback)
 		{
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
@@ -2089,7 +2089,7 @@ namespace libtorrent
 		++m_cache_stats.blocks_read;
 		if (j->callback)
 		{
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif

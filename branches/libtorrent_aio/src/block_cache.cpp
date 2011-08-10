@@ -933,7 +933,7 @@ post_job:
 		TORRENT_ASSERT(j->piece == pe->piece);
 		DLOG(stderr, "[%p] block_cache reap_piece_jobs post job "
 			"piece: %d  jobtype: %d\n", this, int(j->piece), j->action);
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif
@@ -951,7 +951,7 @@ post_job:
 			disk_io_job* j = i;
 			i = (disk_io_job*)i->next;
 			j->next = 0;
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
@@ -1081,7 +1081,7 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		}
 		j->error.ec.assign(libtorrent::error::operation_aborted, get_system_category());
 		TORRENT_ASSERT(j->callback);
-#if defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif

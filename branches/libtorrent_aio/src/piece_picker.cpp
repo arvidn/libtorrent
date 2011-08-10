@@ -2163,7 +2163,6 @@ namespace libtorrent
 
 		std::vector<downloading_piece>::iterator i
 			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(block.piece_index));
-		TORRENT_ASSERT(i != m_downloads.end());
 		if (i == m_downloads.end()) return;
 
 		block_info& info = i->info[block.block_index];

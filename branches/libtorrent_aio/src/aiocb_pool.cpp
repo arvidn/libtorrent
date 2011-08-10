@@ -66,7 +66,7 @@ namespace libtorrent
 		ptr->in_use = true;
 #endif
 #ifdef TORRENT_DEBUG
-		print_backtrace(ptr->stack_trace, sizeof(ptr->stack_trace));
+//		print_backtrace(ptr->stack_trace, sizeof(ptr->stack_trace));
 #endif
 		return ptr;
 	}

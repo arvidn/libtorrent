@@ -85,7 +85,7 @@ namespace libtorrent
 		cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
 			, dirty(false), pending(false), uninitialized(false)
 		{
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			hashing = false;
 			reading_count = 0;
 			check_count = 0;
@@ -129,7 +129,7 @@ namespace libtorrent
 		// it is not valid for this flag to be set for blocks where
 		// the dirty flag is set.
 		bool uninitialized:1;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// this block is part of an outstanding hash job
 		bool hashing:1;
 		// this block is being used in this many peer's send buffers currently
