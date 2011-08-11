@@ -32,8 +32,7 @@ import signal
 # entry in the filesystem list.
 cache_sizes = [0, 32768, 393216]
 peers = [200, 1000, 2000]
-#builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
-builds = ['aio', 'rtorrent']
+builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
@@ -99,7 +98,7 @@ for i in filesystem:
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
-	os.system('./stage_aio/connection_tester gen-torrent 1000 test.torrent')
+	os.system('./stage_aio/connection_tester gen-torrent 40000 test.torrent')
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -228,10 +227,6 @@ def run_test(config):
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
 	print 'OK'
 	
-	client_need_kill = False
-	if config['build'] == 'utorrent': client_need_kill = True
-	if config['build'] == 'rtorrent': client_need_kill = True
-
 	print '\n'
 	i = 0
 	while True:
@@ -253,11 +248,7 @@ def run_test(config):
 	if client.returncode == None:
 		try:
 			print 'killing client'
-			if client_need_kill:
-				client.send_signal(signal.SIGINT)
-			else:
-				print >>client.stdin, 'q',
-				client.stdin.flush()
+			client.send_signal(signal.SIGINT)
 		except:
 			pass
 
