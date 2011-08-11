@@ -108,6 +108,7 @@ void clear_home()
 #include <termios.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <signal.h>
 
 #define ANSI_TERMINAL_COLORS
 
@@ -656,6 +657,14 @@ bool seed_mode = false;
 bool share_mode = false;
 bool disable_storage = false;
 
+int loop_limit = 0;
+
+void signal_handler(int signo)
+{
+	// make the main loop terminate
+	loop_limit = 1;
+}
+
 using boost::bind;
 
 // monitored_dir is true if this torrent is added because
@@ -1086,7 +1095,6 @@ int main(int argc, char* argv[])
 	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
-	int loop_limit = 0;
 
 	std::deque<std::string> events;
 
@@ -1425,6 +1433,10 @@ int main(int argc, char* argv[])
 
 	int tick = 0;
 
+#ifndef WIN32
+	signal(SIGTERM, signal_handler);
+	signal(SIGINT, signal_handler);
+#endif
 	while (loop_limit > 1 || loop_limit == 0)
 	{
 		++tick;
