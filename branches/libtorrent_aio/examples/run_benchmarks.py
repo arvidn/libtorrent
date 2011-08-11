@@ -216,8 +216,7 @@ def run_test(config):
 	client_output = open('session_stats/client.output', 'w+')
 	client_error = open('session_stats/client.error', 'w+')
 	print 'launching: %s' % cmdline
-	#client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
-	client = subprocess.Popen('LD_PRELOAD=/usr/lib64/libtcmalloc_and_profiler.so.0 HEAPPROFILE=./heap ' + cmdline, stdout=client_output, stdin=subprocess.PIPE, stderr=client_error, shell=True)
+	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
 	print 'OK'
 	# enable disk stats printing
 	if config['build'] != 'rtorrent' and config['build'] != 'utorrent':
@@ -258,6 +257,7 @@ def run_test(config):
 				client.send_signal(signal.SIGINT)
 			else:
 				print >>client.stdin, 'q',
+				client.stdin.flush()
 		except:
 			pass
 
