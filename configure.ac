@@ -323,7 +323,7 @@ AS_CASE(["$ARG_ENABLE_DEPRECATED"],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_NO_DEPRECATE],[1],[Define to exclude all deprecated functions from the API.])
-      COMPILETIME_OPTIONS+="-DTORRENT_NO_DEPRECATE "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_NO_DEPRECATE "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEPRECATED])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DEPRECATED". Use either "yes" or "no".])]
@@ -334,13 +334,13 @@ AS_CASE(["$ARG_ENABLE_DEBUG"],
   ["yes"], [
       AC_MSG_RESULT([yes])
       AC_DEFINE([TORRENT_DEBUG],[1],[Define to enable debug code.])
-      COMPILETIME_OPTIONS+="-DTORRENT_DEBUG "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DEBUG "
       DEBUGFLAGS="-g"
    ],
   ["no"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([NDEBUG],[1],[Define to disable debug code.])
-      #COMPILETIME_OPTIONS+="-DNDEBUG "
+      #COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DNDEBUG "
       DEBUGFLAGS="-Os"
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEBUG])
@@ -374,7 +374,7 @@ AS_CASE(["$ARG_ENABLE_LOGGING"],
   ["yes"|"default"], [
       AC_MSG_RESULT([yes])
       AC_DEFINE([TORRENT_LOGGING],[1],[Define to enable logging of the session events.])
-      COMPILETIME_OPTIONS+="-DTORRENT_LOGGING "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LOGGING "
     ],
   ["no"|"none"], [
       AC_MSG_RESULT([no])
@@ -382,12 +382,12 @@ AS_CASE(["$ARG_ENABLE_LOGGING"],
   ["verbose"], [
       AC_MSG_RESULT([verbose])
       AC_DEFINE([TORRENT_VERBOSE_LOGGING],[1],[Define to enable logging of the session events and every peer connection.])
-      COMPILETIME_OPTIONS+="-DTORRENT_VERBOSE_LOGGING "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_VERBOSE_LOGGING "
     ],
   ["errors"], [
       AC_MSG_RESULT([errors])
       AC_DEFINE([TORRENT_ERROR_LOGGING],[1],[Define to enable logging of the session events and every peer connection limited to errors.])
-      COMPILETIME_OPTIONS+="-DTORRENT_ERROR_LOGGING "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_ERROR_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_LOGGING". Use either "yes", "no", "verbose" or "errors".])]
@@ -430,7 +430,7 @@ AS_CASE(["$ARG_ENABLE_ENCRYPTION"],
 
       AX_CHECK_OPENSSL([
           AC_DEFINE([TORRENT_USE_OPENSSL],[1],[Define to use OpenSSL support.])
-          COMPILETIME_OPTIONS+="-DTORRENT_USE_OPENSSL "
+          COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_OPENSSL "
         ], [
           AC_MSG_ERROR([OpenSSL library not found. Try using --with-openssl=DIR or disabling encryption at all.])
       ])
@@ -438,7 +438,7 @@ AS_CASE(["$ARG_ENABLE_ENCRYPTION"],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_DISABLE_ENCRYPTION],[1],[Define to disable any encryption support and avoid linking against OpenSSL.])
-      COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_ENCRYPTION "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_ENCRYPTION "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_ENCRYPTION])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_ENCRYPTION". Use either "yes" or "no".])]
@@ -452,7 +452,7 @@ AS_CASE(["$ARG_ENABLE_GEOIP"],
   ["no"], [
     AC_MSG_RESULT([no])
     AC_DEFINE([TORRENT_DISABLE_GEO_IP],[1],[Define to disable the GeoIP support and avoid linking against LGPLed code.])
-    COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_GEO_IP "
+    COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_GEO_IP "
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_GEOIP])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_GEOIP". Use either "yes" or "no".])]
@@ -466,12 +466,12 @@ AS_CASE(["$ARG_ENABLE_DHT"],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_DISABLE_DHT],[1],[Define to disable the DHT support.])
-      COMPILETIME_OPTIONS+="-DTORRENT_DISABLE_DHT "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_DHT "
     ],
   ["logging"], [
       AC_MSG_RESULT([logging])
       AC_DEFINE([TORRENT_DHT_VERBOSE_LOGGING],[1],[Define to enable DHT support with verbose logging.])
-      COMPILETIME_OPTIONS+="-DTORRENT_DHT_VERBOSE_LOGGING "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DHT_VERBOSE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]
@@ -562,7 +562,7 @@ AS_CASE(["$ARG_WITH_LIBGEOIP"],
             AC_MSG_RESULT([no])
             ARG_WITH_LIBGEOIP="no"
             AC_DEFINE([WITH_SHIPPED_GEOIP_H],[1],[Define to use shipped copy of GeoIP.h])
-            COMPILETIME_OPTIONS+="-DWITH_SHIPPED_GEOIP_H "
+            COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DWITH_SHIPPED_GEOIP_H "
       ])
    ],
   [AC_MSG_RESULT([$ARG_WITH_LIBGEOIP])
@@ -589,13 +589,13 @@ AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
 # this works around a bug in asio in boost-1.39
 # see: https://svn.boost.org/trac/boost/ticket/3095
 AC_DEFINE([BOOST_ASIO_HASH_MAP_BUCKETS],[1021],[Define to fix a wrong behavior in boost 1.39.])
-COMPILETIME_OPTIONS+="-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
-COMPILETIME_OPTIONS+="-DBOOST_EXCEPTION_DISABLE "
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 
 AC_DEFINE([BOOST_ASIO_ENABLE_CANCELIO],[1],[Define to enable cancel support in asio on windows XP and older.])
-COMPILETIME_OPTIONS+="-DBOOST_ASIO_ENABLE_CANCELIO "
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_ENABLE_CANCELIO "
 
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])
@@ -605,7 +605,7 @@ AS_IF([test "x$PYTHON_INSTALL_PARAMS" = "x"],
 dnl Set some defines if we are building a shared library
 AS_IF([test "x$enable_shared" = "xyes"],
       [AC_DEFINE([TORRENT_BUILDING_SHARED],[1],[Define to exports functions and classes with default visibility in GCC.])
-       COMPILETIME_OPTIONS+="-DTORRENT_LINKING_SHARED "])
+       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LINKING_SHARED "])
 
 AC_SUBST(DEBUGFLAGS)
 AC_SUBST(PYTHON_INSTALL_PARAMS)
