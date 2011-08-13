@@ -960,10 +960,14 @@ namespace libtorrent
 			++peer_info_struct()->fast_reconnects;
 	}
 
-	void peer_connection::announce_piece(int index)
+	void peer_connection::received_piece(int index)
 	{
 		// dont announce during handshake
 		if (in_handshake()) return;
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		peer_log("<<< RECEIVED [ piece: %d ]", index);
+#endif
 
 		// remove suggested pieces once we have them
 		std::vector<int>::iterator i = std::find(
@@ -982,7 +986,22 @@ namespace libtorrent
 			// interested anymore
 			update_interest();
 			if (is_disconnecting()) return;
+		}
 
+#ifdef TORRENT_DEBUG
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(t->have_piece(index));
+#endif
+	}
+
+	void peer_connection::announce_piece(int index)
+	{
+		// dont announce during handshake
+		if (in_handshake()) return;
+
+		if (has_piece(index))
+		{
 			// optimization, don't send have messages
 			// to peers that already have the piece
 			if (!m_ses.settings().send_redundant_have)
@@ -2042,7 +2061,7 @@ namespace libtorrent
 		// is not choked
 		if (r.piece >= 0
 			&& r.piece < t->torrent_file().num_pieces()
-			&& t->have_piece(r.piece)
+			&& (t->have_piece(r.piece) || t->is_predictive_piece(r.piece))
 			&& r.start >= 0
 			&& r.start < t->torrent_file().piece_size(r.piece)
 			&& r.length > 0
@@ -2120,6 +2139,19 @@ namespace libtorrent
 				t->alerts().post_alert(invalid_request_alert(
 					t->get_handle(), m_remote, m_peer_id, r));
 			}
+		}
+	}
+
+	// reject all requests to this piece
+	void peer_connection::reject_piece(int index)
+	{
+		for (std::vector<peer_request>::iterator i = m_requests.begin()
+			, end(m_requests.end()); i != end; ++i)
+		{
+			peer_request const& r = *i;
+			if (r.piece != index) continue;
+			write_reject_request(r);
+			i = m_requests.erase(i);
 		}
 	}
 
@@ -2511,6 +2543,42 @@ namespace libtorrent
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
+
+		if (m_ses.m_settings.predictive_piece_announce)
+		{
+			int piece = b->block.piece_index;
+			piece_picker::downloading_piece st;
+			t->picker().piece_info(piece, st);
+
+			int num_blocks = t->picker().blocks_in_piece(piece);
+			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
+			{
+				std::vector<void*> d;
+				t->picker().get_requestors(d, piece);
+				if (d.size() == 1)
+				{
+					// only make predicitons if all remaining
+					// blocks are requested from the same peer
+					policy::peer* p = (policy::peer*)d[0];
+					if (p->connection)
+					{
+						// we have a connection. now, what is the current
+						// download rate from this peer, and how many blocks
+						// do we have left to download?
+						boost::int64_t rate = p->connection->statistics().download_payload_rate();
+						boost::int64_t bytes_left = st.requested * t->block_size();
+						// the settings unit is milliseconds, so calculate the
+						// number of milliseconds worth of bytes left in the piece
+						if (rate > 1000
+							&& (bytes_left * 1000) / rate < m_ses.m_settings.predictive_piece_announce)
+						{
+							// we predict we will complete this piece very soon.
+							t->predicted_have_piece(piece, (bytes_left * 1000) / rate);
+						}
+					}
+				}
+			}
+		}
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
@@ -4404,7 +4472,7 @@ namespace libtorrent
 			
 			TORRENT_ASSERT(r.piece >= 0);
 			TORRENT_ASSERT(r.piece < (int)m_have_piece.size());
-			TORRENT_ASSERT(t->have_piece(r.piece));
+//			TORRENT_ASSERT(t->have_piece(r.piece));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
@@ -4437,6 +4505,11 @@ namespace libtorrent
 			// up not having that piece
 			if (!t->have_piece(r.piece))
 			{
+				// we don't have this piece yet, but we anticipate to have
+				// it very soon, so we have told our peers we have it.
+				// hold off on sending it. If the piece fails later
+				// we will reject this request
+				if (t->is_predictive_piece(r.piece)) continue;
 #if defined TORRENT_VERBOSE_LOGGING
 				peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
 					, r.piece , r.start , r.length);

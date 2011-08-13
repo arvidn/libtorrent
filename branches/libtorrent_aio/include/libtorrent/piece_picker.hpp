@@ -318,6 +318,12 @@ namespace libtorrent
 		// the hash-check yet
 		int unverified_blocks() const;
 
+		// return the peer pointers for all blocks that are currently
+		// in requested state (i.e. requested but not received)
+		void get_requestors(std::vector<void*>& d, int index) const;
+
+		// return the peer pointers to all peers that participated in
+		// this piece
 		void get_downloaders(std::vector<void*>& d, int index) const;
 
 		std::vector<downloading_piece> const& get_download_queue() const

@@ -2860,6 +2860,16 @@ namespace libtorrent
 
 //		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
 
+		bool announce_piece = true;
+		std::vector<int>::iterator i = std::find(m_predictive_pieces.begin()
+			, m_predictive_pieces.end(), index);
+		if (i != m_predictive_pieces.end())
+		{
+			// this means we've already announced the piece
+			announce_piece = false;
+			m_predictive_pieces.erase(i);
+		}
+
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 #ifdef TORRENT_DEBUG
@@ -2901,7 +2911,9 @@ namespace libtorrent
 		{
 			intrusive_ptr<peer_connection> p = *i;
 			++i;
-			p->announce_piece(index);
+			if (announce_piece) p->announce_piece(index);
+			else p->fill_send_buffer();
+			p->received_piece(index);
 		}
 
 		for (std::set<void*>::iterator i = peers.begin()
@@ -2975,6 +2987,27 @@ namespace libtorrent
 			recalc_share_mode();
 	}
 
+	// we believe we will complete this piece very soon
+	// announce it to peers ahead of time to eliminate the
+	// round-trip times involved in announcing it, requesting it
+	// and sending it
+	void torrent::predicted_have_piece(int index, int milliseconds)
+	{
+		if (is_predictive_piece(index)) return;
+		
+		for (std::set<peer_connection*>::iterator p = m_connections.begin()
+			, end(m_connections.end()); p != end; ++p)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			(*p)->peer_log(">>> PREDICTIVE_HAVE [ piece: %d expected in %d ms]"
+				, index, milliseconds);
+#endif
+			(*p)->announce_piece(index);
+		}
+
+		m_predictive_pieces.push_back(index);
+	}
+
 	void torrent::piece_failed(int index)
 	{
 		// if the last piece fails the peer connection will still
@@ -2994,6 +3027,22 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<hash_failed_alert>())
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
 
+		std::vector<int>::iterator i = std::find(m_predictive_pieces.begin()
+			, m_predictive_pieces.end(), index);
+		if (i != m_predictive_pieces.end())
+		{
+			for (std::set<peer_connection*>::iterator p = m_connections.begin()
+				, end(m_connections.end()); p != end; ++p)
+			{
+				// send reject messages for
+				// potential outstanding requests to this piece
+				(*p)->reject_piece(index);
+				// let peers that support the dont-have message
+				// know that we don't actually have this piece
+				(*p)->write_dont_have(index);
+			}
+			m_predictive_pieces.erase(i);
+		}
 		// increase the total amount of failed bytes
 		add_failed_bytes(m_torrent_file->piece_size(index));
 

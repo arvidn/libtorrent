@@ -2062,6 +2062,12 @@ namespace libtorrent
 		for (int c = 0; c < num_lazy_pieces; ++c)
 			msg[5 + lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 
+		// add predictive pieces to the bitfield as well, since we won't
+		// announce them again
+		for (std::vector<int>::const_iterator i = t->predictive_pieces().begin()
+			, end(t->predictive_pieces().end()); i != end; ++i)
+			msg[5 + *i / 8] |= (0x80 >> (*i & 7));
+
 #ifdef TORRENT_VERBOSE_LOGGING
 
 		std::string bitfield_string;
@@ -2260,6 +2266,25 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,5,msg_have,0,0,0,0};
 		char* ptr = msg + 5;
+		detail::write_int32(index, ptr);
+		send_buffer(msg, sizeof(msg));
+	}
+
+	void bt_peer_connection::write_dont_have(int index)
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().num_pieces());
+
+		if (in_handshake()) return;
+
+		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+
+		if (!m_supports_extensions || m_dont_have_id == 0) return;
+
+		char msg[] = {0,0,0,6,msg_extended,m_dont_have_id,0,0,0,0};
+		char* ptr = msg + 6;
 		detail::write_int32(index, ptr);
 		send_buffer(msg, sizeof(msg));
 	}

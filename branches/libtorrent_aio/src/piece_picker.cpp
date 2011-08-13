@@ -2303,6 +2303,22 @@ namespace libtorrent
 		}
 	}
 
+	void piece_picker::get_requestors(std::vector<void*>& d, int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index <= (int)m_piece_map.size());
+		std::vector<downloading_piece>::const_iterator i
+			= std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
+		TORRENT_ASSERT(i != m_downloads.end());
+
+		d.clear();
+		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
+		{
+			if (i->info[j].state != block_info::state_requested) continue;
+			if (i->info[j].peer == 0) continue;
+			d.push_back(i->info[j].peer);
+		}
+	}
+
 	void piece_picker::get_downloaders(std::vector<void*>& d, int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index <= (int)m_piece_map.size());

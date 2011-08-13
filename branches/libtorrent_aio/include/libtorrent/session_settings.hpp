@@ -277,6 +277,7 @@ namespace libtorrent
 			, lock_files(false)
 			, hashing_threads(1)
 			, checking_mem_usage(200)
+			, predictive_piece_announce(0)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1105,6 +1106,13 @@ namespace libtorrent
 		// checking torrents. Higher numbers give faster re-checks but uses
 		// more memory. Specified in number of 16 kiB blocks
 		int checking_mem_usage;
+
+		// if set to > 0, pieces will be announced to other peers before they
+		// are fully downloaded (and before they are hash checked). The intention
+		// is to gain 1.5 potential round trip times per downloaded piece. When
+		// non-zero, this indicates how many milliseconds in advance pieces
+		// should be announced, before they are expected to be completed.
+		int predictive_piece_announce;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

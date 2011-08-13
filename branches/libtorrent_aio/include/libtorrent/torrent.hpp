@@ -531,6 +531,15 @@ namespace libtorrent
 			return has_picker()?m_picker->have_piece(index):true;
 		}
 
+		// a predictive piece is a piece that we might
+		// not have yet, but still announced to peers, anticipating that
+		// we'll have it very soon
+		bool is_predictive_piece(int index) const
+		{
+			return std::find(m_predictive_pieces.begin(), m_predictive_pieces.end(), index)
+				!= m_predictive_pieces.end();
+		}
+
 		// called when we learn that we have a piece
 		// only once per piece
 		void we_have(int index);
@@ -860,6 +869,13 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
+		std::vector<int> const& predictive_pieces() const
+		{ return m_predictive_pieces; }
+
+		// this is called whenever we predict to have this piece
+		// within one second
+		void predicted_have_piece(int index, int milliseconds);
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
@@ -1034,6 +1050,15 @@ namespace libtorrent
 		// this is used as temporary storage while downloading
 		// the .torrent file from m_url
 		std::vector<char> m_torrent_file_buf;
+
+		// this is a list of all pieces that we have announced
+		// as having, without actually having yet. If we receive
+		// a request for a piece in this list, we need to hold off
+		// on responding until we have completed the piece and
+		// verified its hash. If the hash fails, send reject to
+		// peers with outstanding requests, and dont_have to other
+		// peers.
+		std::vector<int> m_predictive_pieces;
 
 		// each bit represents a piece. a set bit means
 		// the piece has had its hash verified. This

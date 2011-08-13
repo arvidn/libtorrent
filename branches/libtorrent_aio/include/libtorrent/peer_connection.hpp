@@ -147,6 +147,7 @@ namespace libtorrent
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
+	friend struct torrent;
 	public:
 
 		enum connection_type
@@ -269,6 +270,10 @@ namespace libtorrent
 
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
+
+		// this is called when we receive a new piece
+		// (and it has passed the hash check)
+		void received_piece(int index);
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
@@ -486,6 +491,9 @@ namespace libtorrent
 		void send_suggest(int piece);
 
 		void snub_peer();
+		// reject any request in the request
+		// queue from this piece
+		void reject_piece(int index);
 
 		bool can_request_time_critical() const;
 
@@ -612,6 +620,7 @@ namespace libtorrent
 		virtual void write_request(peer_request const& r) = 0;
 		virtual void write_cancel(peer_request const& r) = 0;
 		virtual void write_have(int index) = 0;
+		virtual void write_dont_have(int index) = 0;
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
 		virtual void write_suggest(int piece) = 0;
