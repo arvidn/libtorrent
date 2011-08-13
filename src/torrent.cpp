@@ -6339,7 +6339,7 @@ namespace libtorrent
 				if (p->outstanding_bytes() > 0)
 				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-					(*p->m_logger) << "*** CHOKING PEER: torrent graceful paused\n";
+					p->peer_log("*** CHOKING PEER: torrent graceful paused");
 #endif
 					// remove any un-sent requests from the queue
 					p->clear_request_queue();
@@ -6349,7 +6349,7 @@ namespace libtorrent
 				}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*p->m_logger) << "*** CLOSING CONNECTION: torrent_paused\n";
+				p->peer_log("*** CLOSING CONNECTION: torrent_paused");
 #endif
 				p->disconnect(errors::torrent_paused);
 			}
@@ -6380,7 +6380,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 		{
-			(*(*i)->m_logger) << time_now_string() << " *** " << message << "\n";
+			(*i)->peer_log("*** %s", message);
 		}
 #endif
 
@@ -6733,7 +6733,7 @@ namespace libtorrent
 				TORRENT_DECLARE_DUMMY(std::exception, e);
 				(void)e;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*p->m_logger) << "**ERROR**: " << e.what() << "\n";
+				p->peer_log("*** ERROR %s", e.what());
 #endif
 				p->disconnect(errors::no_error, 1);
 			}
