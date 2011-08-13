@@ -2459,12 +2459,8 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " *** FILE ASYNC WRITE ["
-			" piece: " << p.piece <<
-			" | s: " << p.start <<
-			" | l: " << p.length <<
-			" ]\n";
+		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
+			, p.piece, p.start, p.length);
 #endif
 		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
@@ -2561,14 +2557,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " *** FILE ASYNC WRITE COMPLETE ["
-				" ret: " << ret <<
-				" | piece: " << p.piece <<
-				" | s: " << p.start <<
-				" | l: " << p.length <<
-				" | e: " << j.error.ec.message() <<
-				" ]\n";
+		peer_log("*** FILE ASYNC WRITE COMPLETE [ ret: %d | piece: %d | s: %d | l: %d | e: %s ]"
+			, ret, p.piece, p.start, p.length, j.error.ec.message().c_str());
 #endif
 
 		if (!t)
@@ -4422,7 +4412,8 @@ namespace libtorrent
 
 			if (t->seed_mode() && !t->verified_piece(r.piece))
 			{
-				// once this turns into a for-loop, continue instead
+				// we're still verifying the hash of this piece
+				// so we can't return it yet.
 				if (t->verifying_piece(r.piece)) continue;
 
 				// only have one outstanding hash check per peer
@@ -4431,9 +4422,7 @@ namespace libtorrent
 				m_outstanding_piece_verification = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string()
-					<< " *** FILE ASYNC HASH ["
-					" piece: " << r.piece << " ]\n";
+				peer_log("*** FILE ASYNC HASH [ piece: %d ]", r.piece);
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
@@ -4457,12 +4446,8 @@ namespace libtorrent
 			else
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
-				(*m_logger) << time_now_string()
-					<< " *** FILE ASYNC READ ["
-					" piece: " << r.piece <<
-					" | s: " << r.start <<
-					" | l: " << r.length <<
-					" ]\n";
+				peer_log("*** FILE ASYNC READ [ piece: %d | s: %d | l: %d ]"
+					, r.piece, r.start, r.length);
 #endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.first, cache.second);
@@ -4522,16 +4507,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string()
-			<< " *** FILE ASYNC READ COMPLETE ["
-			" ret: " << ret <<
-			" | piece: " << r.piece <<
-			" | s: " << r.start <<
-			" | l: " << r.length <<
-			" | b: " << (void*)j.buffer <<
-			" | c: " << (j.flags & disk_io_job::cache_hit ? "cache hit" : "cache miss") <<
-			" | e: " << j.error.ec.message() <<
-			" ]\n";
+		peer_log("*** FILE ASYNC READ COMPLETE [ ret: %d | piece: %d | s: %d | l: %d"
+			" | b: %p | c: %s | e: %s ]"
+			, ret, r.piece, r.start, r.length, j.buffer
+			, (j.flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
+			, j.error.ec.message().c_str());
 #endif
 		m_reading_bytes -= r.length;
 
