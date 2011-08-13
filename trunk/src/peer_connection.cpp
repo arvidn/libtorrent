@@ -982,13 +982,12 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log(" ==> HAVE    [ piece: %d ]", index);
+		peer_log("==> HAVE    [ piece: %d ]", index);
 #endif
 		write_have(index);
 #ifdef TORRENT_DEBUG
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->have_piece(index));
 #endif
 	}
 
@@ -5513,7 +5512,7 @@ namespace libtorrent
 		{
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only() && m_upload_only)
-				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause());
+				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
 			if (m_upload_only
 				&& !m_interesting
 				&& m_bitfield_received
@@ -5525,7 +5524,7 @@ namespace libtorrent
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_upload_only())
-				TORRENT_ASSERT(!m_interesting || t->graceful_pause());
+				TORRENT_ASSERT(!m_interesting || t->graceful_pause() || t->has_error());
 			if (is_seed())
 				TORRENT_ASSERT(m_upload_only);
 		}
