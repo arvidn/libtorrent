@@ -2327,7 +2327,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_downloads.end());
 
 		d.clear();
-		for (int j = 0; j < blocks_in_piece(index); ++j)
+		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
 		{
 			d.push_back(i->info[j].peer);
 		}

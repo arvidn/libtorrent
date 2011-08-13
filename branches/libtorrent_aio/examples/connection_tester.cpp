@@ -624,16 +624,17 @@ int main(int argc, char* argv[])
 	}
 			
 	std::list<peer_conn*> conns;
-	io_service ios;
+	const int num_threads = 2;
+	io_service ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
-		conns.push_back(new peer_conn(ios, ti.num_pieces(), ti.piece_length() / 16 / 1024
+		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0], seed));
 		libtorrent::sleep(1);
-		ios.poll_one(ec);
+		ios[i % num_threads].poll_one(ec);
 		if (ec)
 		{
 			fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
@@ -642,8 +643,8 @@ int main(int argc, char* argv[])
 	}
 
 
-	thread t1(boost::bind(&io_thread, &ios));
-	thread t2(boost::bind(&io_thread, &ios));
+	thread t1(boost::bind(&io_thread, &ios[0]));
+	thread t2(boost::bind(&io_thread, &ios[1]));
  
 	t1.join();
 	t2.join();
