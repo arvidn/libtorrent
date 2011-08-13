@@ -81,7 +81,8 @@ namespace libtorrent
 
 		void pop_front(int bytes_to_pop);
 
-		void append_buffer(char* buffer, int s, int used_size, boost::function<void(char*)> const& destructor);
+		void append_buffer(char* buffer, int s, int used_size
+			, boost::function<void(char*)> const& destructor);
 
 #ifdef TORRENT_DEBUG
 		void set_ref(block_cache_reference ref)
