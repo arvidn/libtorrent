@@ -27,6 +27,7 @@ libtorrent_rasterbar_la_SOURCES = \
   bloom_filter.cpp                \
   broadcast_socket.cpp            \
   bt_peer_connection.cpp          \
+  chained_buffer.cpp              \
   connection_queue.cpp            \
   ConvertUTF.cpp                  \
   create_torrent.cpp              \
