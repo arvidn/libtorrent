@@ -56,7 +56,9 @@ std::string demangle(char const* name);
 #include <sstream>
 #endif
 
-TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file, char const* function, char const* val);
+TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
+	, char const* function, char const* val);
+
 #define TORRENT_ASSERT(x) do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, 0); } while (false)
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, __s__.str().c_str()); } } while (false)

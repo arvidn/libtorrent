@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
+#include "libtorrent/config.hpp"
+
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
 #endif
@@ -122,7 +124,8 @@ void print_backtrace(char* out, int len) {}
 char const* libtorrent_assert_log = "asserts.log";
 #endif
 
-void assert_fail(char const* expr, int line, char const* file, char const* function, char const* value)
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
+	, char const* function, char const* value)
 {
 #if TORRENT_PRODUCTION_ASSERTS
 	FILE* out = fopen(libtorrent_assert_log, "a+");
