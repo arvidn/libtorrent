@@ -1358,10 +1358,14 @@ namespace libtorrent
 	void piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
 		, int prefer_whole_pieces, void* peer, piece_state_t speed
-		, int options, std::vector<int> const& suggested_pieces) const
+		, int options, std::vector<int> const& suggested_pieces
+		, int num_peers) const
 	{
 		// prevent the number of partial pieces to grow indefinitely
-		if (m_downloads.size() > 20) options |= prioritize_partials;
+		// make this scale by the number of peers we have. For large
+		// scale clients, we would have more peers, and allow a higher
+		// threshold for the number of partials
+		if (m_downloads.size() > num_peers * 3 / 2) options |= prioritize_partials;
 
 		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
