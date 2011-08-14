@@ -1823,6 +1823,13 @@ namespace libtorrent
 
 		int num_blocks_in_piece = blocks_in_piece(dp.index);
 
+		// if all blocks have been requested (and we don't need any backup
+		// blocks), we might as well return immediately
+		if (int(backup_blocks2.size()) >= num_blocks
+			&& int(backup_blocks.size()) >= num_blocks
+			&& dp.requested + dp.writing + dp.finished == num_blocks_in_piece)
+			return num_blocks;
+
 		// is true if all the other pieces that are currently
 		// requested from this piece are from the same
 		// peer as 'peer'.
