@@ -60,6 +60,9 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_destructed = false;
 #endif
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+			m_network_thread = pthread_self();
+#endif
 		}
 
 		struct buffer_t
@@ -118,6 +121,17 @@ namespace libtorrent
 
 		~chained_buffer();
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		bool is_network_thread() const
+		{
+#if defined BOOST_HAS_PTHREADS
+			if (m_network_thread == 0) return true;
+			return m_network_thread == pthread_self();
+#endif
+			return true;
+		}
+#endif
+
 	private:
 
 		// this is the list of all the buffers we want to
@@ -139,6 +153,9 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_destructed;
+#endif
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+		pthread_t m_network_thread;
 #endif
 	};	
 }

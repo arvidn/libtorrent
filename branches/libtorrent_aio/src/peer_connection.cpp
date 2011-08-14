@@ -4588,6 +4588,14 @@ namespace libtorrent
 		m_reading_bytes -= r.length;
 
 		disk_buffer_holder buffer(m_ses, j);
+
+#ifdef TORRENT_DEBUG
+		if (buffer.ref().pe != 0)
+		{
+			TORRENT_ASSERT(buffer.ref().pe->blocks[buffer.ref().block].reading_count >= 1);
+		}
+#endif
+
 #if TORRENT_BUFFER_STATS
 		if (j.buffer && j.ref.pe == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
@@ -4608,8 +4616,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log("==> PIECE   [ piece: %d s: %d l: ]"
-			, r.piece, r.start, r.length);
+		peer_log("==> PIECE   [ piece: %d s: %d l: ]", r.piece, r.start, r.length);
 #endif
 
 #if TORRENT_BUFFER_STATS
