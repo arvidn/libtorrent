@@ -204,7 +204,7 @@ std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p, c
 {
 	std::vector<piece_block> picked;
 	p->pick_pieces(string2vec(availability), picked, num_blocks, prefer_whole_pieces, peer_struct
-		, state, options, suggested_pieces);
+		, state, options, suggested_pieces, 20);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	return picked;
@@ -693,7 +693,7 @@ int test_main()
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
-		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector);
+		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector, 20);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	// don't pick both busy pieces, just one
@@ -702,14 +702,14 @@ int test_main()
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::prioritize_partials
-		| piece_picker::rarest_first, empty_vector);
+		| piece_picker::rarest_first, empty_vector, 20);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
-		, piece_picker::fast, piece_picker::rarest_first, empty_vector);
+		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);

@@ -320,10 +320,20 @@
 </li>
 <li><a class="reference internal" href="#extensions" id="id245">extensions</a><ul>
 <li><a class="reference internal" href="#metadata-from-peers" id="id246">metadata from peers</a></li>
-<li><a class="reference internal" href="#http-seeding" id="id247">HTTP seeding</a></li>
+<li><a class="reference internal" href="#dont-have" id="id247">dont_have</a></li>
+<li><a class="reference internal" href="#http-seeding" id="id248">HTTP seeding</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#filename-checks" id="id248">filename checks</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id249">piece picker</a><ul>
+<li><a class="reference internal" href="#internal-representation" id="id250">internal representation</a></li>
+<li><a class="reference internal" href="#picker-strategy" id="id251">picker strategy</a></li>
+<li><a class="reference internal" href="#reverse-order" id="id252">reverse order</a></li>
+<li><a class="reference internal" href="#parole-mode" id="id253">parole mode</a></li>
+<li><a class="reference internal" href="#prioritize-partial-pieces" id="id254">prioritize partial pieces</a></li>
+<li><a class="reference internal" href="#prefer-whole-pieces" id="id255">prefer whole pieces</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#filename-checks" id="id256">filename checks</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -2318,7 +2328,9 @@ struct torrent_handle
         {
                 query_distributed_copies = 1,
                 query_accurate_download_counters = 2,
-                query_last_seen_complete = 4
+                query_last_seen_complete = 4,
+                query_pieces = 8,
+                query_verified_pieces = 16
         };
 
         torrent_status status(boost::uint32_t flags = 0xffffffff);
@@ -2726,6 +2738,9 @@ void force_dht_announce() const;
 <p><tt class="docutils literal"><span class="pre">force_reannounce()</span></tt> will force this torrent to do another tracker request, to receive new
 peers. The second overload of <tt class="docutils literal"><span class="pre">force_reannounce</span></tt> that takes a <tt class="docutils literal"><span class="pre">time_duration</span></tt> as
 argument will schedule a reannounce in that amount of time from now.</p>
+<p>If the tracker's <tt class="docutils literal"><span class="pre">min_interval</span></tt> has not passed since the last announce, the forced
+announce will be scheduled to happen immediately as the <tt class="docutils literal"><span class="pre">min_interval</span></tt> expires. This is
+to honor trackers minimum re-announce interval settings.</p>
 <p><tt class="docutils literal"><span class="pre">force_dht_announce</span></tt> will announce the torrent to the DHT immediately.</p>
 </div>
 <div class="section" id="scrape-tracker">
@@ -3297,6 +3312,18 @@ if you're not interested in it (and see performance issues), you can filter them
 </dd>
 </dl>
 </li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">query_pieces</span></tt></dt>
+<dd><p class="first last">includes <tt class="docutils literal"><span class="pre">pieces</span></tt>.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">query_verified_pieces</span></tt></dt>
+<dd><p class="first last">includes <tt class="docutils literal"><span class="pre">verified_pieces</span></tt> (only applies to torrents in <em>seed mode</em>).</p>
+</dd>
+</dl>
+</li>
 </ul>
 </div>
 <div class="section" id="get-download-queue">
@@ -3463,6 +3490,8 @@ struct torrent_status
         int connect_candidates;
 
         bitfield pieces;
+        bitfield verified_pieces;
+
         int num_pieces;
 
         size_type total_done;
@@ -3632,6 +3661,9 @@ order block). This is supposed to be as low as possible.</p>
 <p><tt class="docutils literal"><span class="pre">pieces</span></tt> is the bitmask that represents which pieces we have (set to true) and
 the pieces we don't have. It's a pointer and may be set to 0 if the torrent isn't
 downloading or seeding.</p>
+<p><tt class="docutils literal"><span class="pre">verified_pieces</span></tt> is a bitmask representing which pieces has had their hash
+checked. This only applies to torrents in <em>seed mode</em>. If the torrent is not
+in seed mode, this bitmask may be empty.</p>
 <p><tt class="docutils literal"><span class="pre">num_pieces</span></tt> is the number of pieces that has been downloaded. It is equivalent
 to: <tt class="docutils literal"><span class="pre">std::accumulate(pieces-&gt;begin(),</span> <span class="pre">pieces-&gt;end())</span></tt>. So you don't have to
 count yourself. This can be used to see if anything has updated since last time
@@ -7497,6 +7529,12 @@ the metadata (.torrent file) and it doesn't have it yet.
 This happens for magnet links before they have downloaded the
 metadata, and also torrents added by URL.</td>
 </tr>
+<tr><td>110</td>
+<td>invalid_dont_have</td>
+<td>The peer sent an invalid <tt class="docutils literal"><span class="pre">dont_have</span></tt> message. The dont have
+message is an extension to allow peers to advertise that the
+no longer has a piece they previously had.</td>
+</tr>
 </tbody>
 </table>
 <p>NAT-PMP errors:</p>
@@ -8664,7 +8702,9 @@ bittorrent client.</p>
 <div class="section" id="metadata-from-peers">
 <h2>metadata from peers</h2>
 <p>Extension name: &quot;LT_metadata&quot;</p>
-<p>The point with this extension is that you don't have to distribute the
+<p>This extension is deprecated in favor of the more widely supported <tt class="docutils literal"><span class="pre">ut_metadata</span></tt>
+extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.
+The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
 a torrent is the tracker url and the info-hash of the torrent.</p>
@@ -8780,6 +8820,39 @@ doesn't have any metadata.</td>
 </tbody>
 </table>
 </div>
+<div class="section" id="dont-have">
+<h2>dont_have</h2>
+<p>Extension name: &quot;lt_dont_have&quot;</p>
+<p>The <tt class="docutils literal"><span class="pre">dont_have</span></tt> extension message is used to tell peers that the client no longer
+has a specific piece. The extension message should be advertised in the <tt class="docutils literal"><span class="pre">m</span></tt> dictionary
+as <tt class="docutils literal"><span class="pre">lt_dont_have</span></tt>. The message format mimics the regular <tt class="docutils literal"><span class="pre">HAVE</span></tt> bittorrent message.</p>
+<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
+bittorrent extension message) and the message ID assigned to this extension in the <tt class="docutils literal"><span class="pre">m</span></tt>
+dictionary in the handshake.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint32_t</td>
+<td>piece</td>
+<td>index of the piece the peer no longer
+has.</td>
+</tr>
+</tbody>
+</table>
+<p>The length of this message (including the extension message prefix) is
+6 bytes, i.e. one byte longer than the normal <tt class="docutils literal"><span class="pre">HAVE</span></tt> message, because
+of the extension message wrapping.</p>
+</div>
 <div class="section" id="http-seeding">
 <h2>HTTP seeding</h2>
 <p>There are two kinds of HTTP seeding. One with that assumes a smart
@@ -8794,6 +8867,105 @@ that file. The way this works is that if the torrent is a single-file torrent,
 only that filename is appended. If the torrent is a multi-file torrent, the
 torrent's name '/' the file name is appended. This is the same directory
 structure that libtorrent will download torrents into.</p>
+</div>
+</div>
+<div class="section" id="piece-picker">
+<h1>piece picker</h1>
+<p>The piece picker in libtorrent has the following features:</p>
+<ul class="simple">
+<li>rarest first</li>
+<li>sequential download</li>
+<li>random pick</li>
+<li>reverse order picking</li>
+<li>parole mode</li>
+<li>prioritize partial pieces</li>
+<li>prefer whole pieces</li>
+<li>piece affinity by speed category</li>
+<li>piece priorities</li>
+</ul>
+<div class="section" id="internal-representation">
+<h2>internal representation</h2>
+<p>It is optimized by, at all times, keeping a list of pieces ordered
+by rarity, randomly shuffled within each rarity class. This list
+is organized as a single vector of contigous memory in RAM, for
+optimal memory locality and to eliminate heap allocations and frees
+when updating rarity of pieces.</p>
+<p>Expensive events, like a peer joining or leaving, are evaluated
+lazily, since it's cheaper to rebuild the whole list rather than
+updating every single piece in it. This means as long as no blocks
+are picked, peers joining and leaving is no more costly than a single
+peer joining or leaving. Of course the special cases of peers that have
+all or no pieces are optimized to not require rebuilding the list.</p>
+</div>
+<div class="section" id="picker-strategy">
+<h2>picker strategy</h2>
+<p>The normal mode of the picker is of course <em>rarest first</em>, meaning
+pieces that few peers have are preferred to be downloaded over pieces
+that more peers have. This is a fundamental algorithm that is the
+basis of the performance of bittorrent. However, the user may set the
+piece picker into sequential download mode. This mode simply picks
+pieces sequentially, always preferring lower piece indices.</p>
+<p>When a torrent starts out, picking the rarest pieces means increased
+risk that pieces won't be completed early (since there are only a few
+peers they can be downloaded from), leading to a delay of having any
+piece to offer to other peers. This lack of pieces to trade, delays
+the client from getting started into the normal tit-for-tat mode of
+bittorrent, and will result in a long ramp-up time. The heuristic to
+mitigate this problem is to, for the first few pieces, pick random pieces
+rather than rare pieces. The threshold for when to leave this initial
+picker mode is determined by <tt class="docutils literal"><span class="pre">session_settings::initial_picker_threshold</span></tt>.</p>
+</div>
+<div class="section" id="reverse-order">
+<h2>reverse order</h2>
+<p>An orthogonal setting is <em>reverse order</em>, which is used for <em>snubbed</em>
+peers. Snubbed peers are peers that appear very slow, and might have timed
+out a piece request. The idea behind this is to make all snubbed peers
+more likely to be able to do download blocks from the same piece,
+concentrating slow peers on as few pieces as possible. The reverse order
+means that the most common pieces are picked, instead of the rarest pieces
+(or in the case of sequential download, the last pieces, intead of the first).</p>
+</div>
+<div class="section" id="parole-mode">
+<h2>parole mode</h2>
+<p>Peers that have participated in a piece that failed the hash check, may be
+put in <em>parole mode</em>. This means we prefer downloading a full piece  from this
+peer, in order to distinguish which peer is sending corrupt data. Whether to
+do this is or not is controlled by <tt class="docutils literal"><span class="pre">session_settings::use_parole_mode</span></tt>.</p>
+<p>In parole mode, the piece picker prefers picking one whole piece at a time for
+a given peer, avoiding picking any blocks from a piece any other peer has
+contributed to (since that would defeat the purpose of parole mode).</p>
+</div>
+<div class="section" id="prioritize-partial-pieces">
+<h2>prioritize partial pieces</h2>
+<p>This setting determines if partially downloaded or requested pieces should always
+be preferred over other pieces. The benefit of doing this is that the number of
+partial pieces is minimized (and hence the turn-around time for downloading a block
+until it can be uploaded to others is minimized). It also puts less stress on the
+disk cache, since fewer partial pieces need to be kept in the cache. Whether or
+not to enable this is controlled by <tt class="docutils literal"><span class="pre">session_settings::prioritize_partial_pieces</span></tt>.</p>
+<p>The main benefit of not prioritizing partial pieces is that the rarest first
+algorithm gets to have more influence on which pieces are picked. The picker is
+more likely to truly pick the rarest piece, and hence improving the performance
+of the swarm.</p>
+<p>This setting is turned on automatically whenever the number of partial pieces
+in the piece picker exceeds the number of peers we're connected to times 1.5.
+This is in order to keep the waste of partial pieces to a minimum, but still
+prefer rarest pieces.</p>
+</div>
+<div class="section" id="prefer-whole-pieces">
+<h2>prefer whole pieces</h2>
+<p>The <em>prefer whole pieces</em> setting makes the piece picker prefer picking entire
+pieces at a time. This is used by web connections (both http seeding
+standards), in order to be able to coalesce the small bittorrent requests
+to larger HTTP requests. This significantly improves performance when
+downloading over HTTP.</p>
+<p>It is also used by peers that are downloading faster than a certain
+threshold. The main advantage is that these peers will better utilize the
+other peer's disk cache, by requesting all blocks in a single piece, from
+the same peer.</p>
+<p>This threshold is controlled by <tt class="docutils literal"><span class="pre">session_settings::whole_pieces_threshold</span></tt>.</p>
+<p><em>TODO: piece affinity by speed category</em>
+<em>TODO: piece priorities</em></p>
 </div>
 </div>
 <div class="section" id="filename-checks">

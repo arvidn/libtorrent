@@ -16,10 +16,12 @@ using namespace libtorrent;
 
 namespace
 {
-    bool listen_on(session& s, int min_, int max_, char const* interface)
+    void listen_on(session& s, int min_, int max_, char const* interface, int flags)
     {
         allow_threading_guard guard;
-        return s.listen_on(std::make_pair(min_, max_), interface);
+		  error_code ec;
+        s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
+		  if (ec) throw libtorrent_exception(ec);
     }
 
     void outgoing_ports(session& s, int _min, int _max)
@@ -468,7 +470,7 @@ void bind_session()
         )
         .def(
             "listen_on", &listen_on
-          , (arg("min"), "max", arg("interface") = (char const*)0)
+          , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
         )
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&session::is_listening))
@@ -572,7 +574,7 @@ void bind_session()
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
         .def("get_cache_info", &get_cache_info)
-		  .def("set_peer_id", allow_threads(&session::set_peer_id))
+        .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 
     enum_<session::save_state_flags_t>("save_state_flags_t")
@@ -589,6 +591,11 @@ void bind_session()
         .value("save_web_proxy", session::save_web_proxy)
         .value("save_tracker_proxy", session::save_tracker_proxy)
 #endif
+    ;
+
+    enum_<session::listen_on_flags_t>("listen_on_flags_t")
+        .value("listen_reuse_address", session::listen_reuse_address)
+        .value("listen_no_system_port", session::listen_no_system_port)
     ;
 
     class_<feed_handle>("feed_handle")

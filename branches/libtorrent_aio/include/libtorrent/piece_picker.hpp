@@ -241,7 +241,8 @@ namespace libtorrent
 		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_whole_pieces, void* peer, piece_state_t speed
-			, int options, std::vector<int> const& suggested_pieces) const;
+			, int options, std::vector<int> const& suggested_pieces
+			, int num_peers) const;
 
 		// picks blocks from each of the pieces in the piece_list
 		// vector that is also in the piece bitmask. The blocks

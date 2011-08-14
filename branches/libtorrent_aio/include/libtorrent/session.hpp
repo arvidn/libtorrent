@@ -312,7 +312,7 @@ namespace libtorrent
 		// this function will return false on failure.
 		// If it fails, it will also generate alerts describing
 		// the error. It will return true on success.
-		enum
+		enum listen_on_flags_t
 		{
 			listen_reuse_address = 0x01,
 			listen_no_system_port = 0x02

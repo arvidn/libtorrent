@@ -7712,6 +7712,10 @@ code   symbol                                    description
                                                  the metadata (.torrent file) and it doesn't have it yet.
                                                  This happens for magnet links before they have downloaded the
                                                  metadata, and also torrents added by URL.
+------ ----------------------------------------- -----------------------------------------------------------------
+110    invalid_dont_have                         The peer sent an invalid ``dont_have`` message. The dont have
+                                                 message is an extension to allow peers to advertise that the
+                                                 no longer has a piece they previously had.                      
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
@@ -8731,6 +8735,8 @@ metadata from peers
 
 Extension name: "LT_metadata"
 
+This extension is deprecated in favor of the more widely supported ``ut_metadata``
+extension, see `BEP 9`_.
 The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
@@ -8800,6 +8806,32 @@ Don't have metadata:
 |           |               | doesn't have any metadata.             |
 +-----------+---------------+----------------------------------------+
 
+.. _`BEP 9`: http://bittorrent.org/beps/bep_0009.html
+
+dont_have
+---------
+
+Extension name: "lt_dont_have"
+
+The ``dont_have`` extension message is used to tell peers that the client no longer
+has a specific piece. The extension message should be advertised in the ``m`` dictionary
+as ``lt_dont_have``. The message format mimics the regular ``HAVE`` bittorrent message.
+
+Just like all extension messages, the first 2 bytes in the mssage itself are 20 (the
+bittorrent extension message) and the message ID assigned to this extension in the ``m``
+dictionary in the handshake.
+
++-----------+---------------+----------------------------------------+
+| size      | name          | description                            |
++===========+===============+========================================+
+| uint32_t  | piece         | index of the piece the peer no longer  |
+|           |               | has.                                   |
++-----------+---------------+----------------------------------------+
+
+The length of this message (including the extension message prefix) is
+6 bytes, i.e. one byte longer than the normal ``HAVE`` message, because
+of the extension message wrapping.
+
 HTTP seeding
 ------------
 
@@ -8820,6 +8852,119 @@ structure that libtorrent will download torrents into.
 
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+
+piece picker
+============
+
+The piece picker in libtorrent has the following features:
+
+* rarest first
+* sequential download
+* random pick
+* reverse order picking
+* parole mode
+* prioritize partial pieces
+* prefer whole pieces
+* piece affinity by speed category
+* piece priorities
+
+internal representation
+-----------------------
+
+It is optimized by, at all times, keeping a list of pieces ordered
+by rarity, randomly shuffled within each rarity class. This list
+is organized as a single vector of contigous memory in RAM, for
+optimal memory locality and to eliminate heap allocations and frees
+when updating rarity of pieces.
+
+Expensive events, like a peer joining or leaving, are evaluated
+lazily, since it's cheaper to rebuild the whole list rather than
+updating every single piece in it. This means as long as no blocks
+are picked, peers joining and leaving is no more costly than a single
+peer joining or leaving. Of course the special cases of peers that have
+all or no pieces are optimized to not require rebuilding the list.
+
+picker strategy
+---------------
+
+The normal mode of the picker is of course *rarest first*, meaning
+pieces that few peers have are preferred to be downloaded over pieces
+that more peers have. This is a fundamental algorithm that is the
+basis of the performance of bittorrent. However, the user may set the
+piece picker into sequential download mode. This mode simply picks
+pieces sequentially, always preferring lower piece indices.
+
+When a torrent starts out, picking the rarest pieces means increased
+risk that pieces won't be completed early (since there are only a few
+peers they can be downloaded from), leading to a delay of having any
+piece to offer to other peers. This lack of pieces to trade, delays
+the client from getting started into the normal tit-for-tat mode of
+bittorrent, and will result in a long ramp-up time. The heuristic to
+mitigate this problem is to, for the first few pieces, pick random pieces
+rather than rare pieces. The threshold for when to leave this initial
+picker mode is determined by ``session_settings::initial_picker_threshold``.
+
+reverse order
+-------------
+
+An orthogonal setting is *reverse order*, which is used for *snubbed*
+peers. Snubbed peers are peers that appear very slow, and might have timed
+out a piece request. The idea behind this is to make all snubbed peers
+more likely to be able to do download blocks from the same piece,
+concentrating slow peers on as few pieces as possible. The reverse order
+means that the most common pieces are picked, instead of the rarest pieces
+(or in the case of sequential download, the last pieces, intead of the first).
+
+parole mode
+-----------
+
+Peers that have participated in a piece that failed the hash check, may be
+put in *parole mode*. This means we prefer downloading a full piece  from this
+peer, in order to distinguish which peer is sending corrupt data. Whether to
+do this is or not is controlled by ``session_settings::use_parole_mode``.
+
+In parole mode, the piece picker prefers picking one whole piece at a time for
+a given peer, avoiding picking any blocks from a piece any other peer has
+contributed to (since that would defeat the purpose of parole mode).
+
+prioritize partial pieces
+-------------------------
+
+This setting determines if partially downloaded or requested pieces should always
+be preferred over other pieces. The benefit of doing this is that the number of
+partial pieces is minimized (and hence the turn-around time for downloading a block
+until it can be uploaded to others is minimized). It also puts less stress on the
+disk cache, since fewer partial pieces need to be kept in the cache. Whether or
+not to enable this is controlled by ``session_settings::prioritize_partial_pieces``.
+
+The main benefit of not prioritizing partial pieces is that the rarest first
+algorithm gets to have more influence on which pieces are picked. The picker is
+more likely to truly pick the rarest piece, and hence improving the performance
+of the swarm.
+
+This setting is turned on automatically whenever the number of partial pieces
+in the piece picker exceeds the number of peers we're connected to times 1.5.
+This is in order to keep the waste of partial pieces to a minimum, but still
+prefer rarest pieces.
+
+prefer whole pieces
+-------------------
+
+The *prefer whole pieces* setting makes the piece picker prefer picking entire
+pieces at a time. This is used by web connections (both http seeding
+standards), in order to be able to coalesce the small bittorrent requests
+to larger HTTP requests. This significantly improves performance when
+downloading over HTTP.
+
+It is also used by peers that are downloading faster than a certain
+threshold. The main advantage is that these peers will better utilize the
+other peer's disk cache, by requesting all blocks in a single piece, from
+the same peer.
+
+This threshold is controlled by ``session_settings::whole_pieces_threshold``.
+
+*TODO: piece affinity by speed category*
+*TODO: piece priorities*
 
 filename checks
 ===============
