@@ -267,7 +267,7 @@ feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 ;
+feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
 feature.compose <asserts>off : <define>TORRENT_NO_ASSERTS=1 ;
 feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 

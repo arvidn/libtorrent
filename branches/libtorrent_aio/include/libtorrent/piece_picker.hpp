@@ -360,6 +360,14 @@ namespace libtorrent
 			int index;
 		};
 
+		struct compare_index
+		{
+			bool operator()(const downloading_piece& p, int piece) const
+			{ return p.index < piece; }
+			bool operator()(int piece, const downloading_piece& p) const
+			{ return piece < p.index; }
+		};
+
 		int blocks_in_last_piece() const
 		{ return m_blocks_in_last_piece; }
 
@@ -490,10 +498,13 @@ namespace libtorrent
 		// shuffles the given piece inside it's priority range
 		void shuffle(int priority, int elem_index);
 
-		void sort_piece(std::vector<downloading_piece>::iterator dp);
+//		void sort_piece(std::vector<downloading_piece>::iterator dp);
 
-		downloading_piece& add_download_piece();
+		downloading_piece& add_download_piece(int index);
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
+
+		std::vector<downloading_piece>::const_iterator find_dl_piece(int index) const;
+		std::vector<downloading_piece>::iterator find_dl_piece(int index);
 
 		// some compilers (e.g. gcc 2.95, does not inherit access
 		// privileges to nested classes)
@@ -527,7 +538,8 @@ namespace libtorrent
 		// each piece that's currently being downloaded
 		// has an entry in this list with block allocations.
 		// i.e. it says wich parts of the piece that
-		// is being downloaded
+		// is being downloaded. This list is ordered
+		// by piece index to make lookups efficient
 		std::vector<downloading_piece> m_downloads;
 
 		// this holds the information of the
