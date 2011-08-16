@@ -276,7 +276,8 @@ namespace libtorrent
 			{
 				downloading_piece const& dp = *i;
 				downloading_piece const& next = *(i + 1);
-				TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
+//				TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
+				TORRENT_ASSERT(dp.index < next.index);
 			}
 		}
 
@@ -314,6 +315,8 @@ namespace libtorrent
 			TORRENT_ASSERT(num_requested == i->requested);
 			TORRENT_ASSERT(num_writing == i->writing);
 			TORRENT_ASSERT(num_finished == i->finished);
+			if (m_piece_map[i->index].full)
+				TORRENT_ASSERT(num_finished + num_writing + num_requested == num_blocks);
 		}
 		int num_pieces = int(m_piece_map.size());
 		TORRENT_ASSERT(m_cursor >= 0);
@@ -1391,6 +1394,11 @@ namespace libtorrent
 				, end(m_downloads.end()); i != end; ++i)
 			{
 				if (!pieces[i->index]) continue;
+				if (m_piece_map[i->index].full
+					&& backup_blocks.size() >= num_blocks
+					&& backup_blocks2.size() >= num_blocks)
+					continue;
+
 				num_blocks = add_blocks_downloading(*i, pieces
 					, interesting_blocks, backup_blocks, backup_blocks2
 					, num_blocks, prefer_whole_pieces, peer, speed, options);
@@ -1555,21 +1563,26 @@ namespace libtorrent
 
 		if (num_blocks <= 0) return;
 
+		// we might have to re-pick some backup blocks
+		// from full pieces, since we skipped those the
+		// first pass over
+		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
+			, end(m_downloads.end()); i != end; ++i)
+		{
+			if (!pieces[i->index]) continue;
+			// we've already considered the non-full pieces
+			if (!m_piece_map[i->index].full) continue;
+			std::vector<piece_block> temp;
+			add_blocks_downloading(*i, pieces
+				, temp, backup_blocks, backup_blocks2
+				, num_blocks, prefer_whole_pieces, peer, speed, options);
+		}
+
 #ifdef TORRENT_DEBUG
 		verify_pick(interesting_blocks, pieces);
 		verify_pick(backup_blocks, pieces);
 		verify_pick(backup_blocks2, pieces);
 #endif
-
-		num_blocks = append_blocks(interesting_blocks, backup_blocks
-			, num_blocks);
-		if (num_blocks <= 0) return;
-
-		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
-		if (num_blocks <= 0) return;
-
-		// don't double-pick anything if the peer is on parole
-		if (options & on_parole) return;
 
 		std::vector<piece_block> temp;
 		for (std::vector<downloading_piece>::const_iterator i = m_downloads.begin()
@@ -1594,6 +1607,16 @@ namespace libtorrent
 			}
 			if (done) break;
 		}
+
+		num_blocks = append_blocks(interesting_blocks, backup_blocks
+			, num_blocks);
+		if (num_blocks <= 0) return;
+
+		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
+		if (num_blocks <= 0) return;
+
+		// don't double-pick anything if the peer is on parole
+		if (options & on_parole) return;
 
 		// pick one random block from the first busy piece we encountered
 		// none of these blocks have more than one request to them
@@ -1754,6 +1777,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_piece_map[piece].priority(this) >= 0);
 		if (m_piece_map[piece].downloading)
 		{
+			if (m_piece_map[piece].full) return num_blocks;
+
 			// if we're prioritizing partials, we've already
 			// looked through the downloading pieces
 			if (options & prioritize_partials) return num_blocks;
@@ -1815,11 +1840,11 @@ namespace libtorrent
 
 		// if all blocks have been requested (and we don't need any backup
 		// blocks), we might as well return immediately
-		if (int(backup_blocks2.size()) >= 1
+/*		if (int(backup_blocks2.size()) >= num_blocks
 			&& int(backup_blocks.size()) >= num_blocks
 			&& dp.requested + dp.writing + dp.finished == num_blocks_in_piece)
 			return num_blocks;
-
+*/
 		// is true if all the other pieces that are currently
 		// requested from this piece are from the same
 		// peer as 'peer'.
@@ -1836,7 +1861,7 @@ namespace libtorrent
 		// downloading from this piece, add it as backups
 		if (prefer_whole_pieces > 0 && !exclusive_active)
 		{
-			if (int(backup_blocks2.size()) >= 1)
+			if (int(backup_blocks2.size()) >= num_blocks)
 				return num_blocks;
 
 			for (int j = 0; j < num_blocks_in_piece; ++j)
@@ -1873,7 +1898,7 @@ namespace libtorrent
 				else
 				{
 					// don't pick too many back-up blocks
-					if (int(backup_blocks2.size()) >= 1) return num_blocks;
+					if (int(backup_blocks2.size()) >= num_blocks) return num_blocks;
 					backup_blocks2.push_back(piece_block(dp.index, j));
 				}
 				continue;
@@ -1959,6 +1984,7 @@ namespace libtorrent
 //		return std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		std::vector<piece_picker::downloading_piece>::iterator i = std::lower_bound(
 			m_downloads.begin(), m_downloads.end(), index, compare_index());
+		if (i == m_downloads.end()) return i;
 		if (i->index == index) return i;
 		return m_downloads.end();
 	}
@@ -1968,8 +1994,15 @@ namespace libtorrent
 //		return std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
 		std::vector<piece_picker::downloading_piece>::const_iterator i = std::lower_bound(
 			m_downloads.begin(), m_downloads.end(), index, compare_index());
+		if (i == m_downloads.end()) return i;
 		if (i->index == index) return i;
 		return m_downloads.end();
+	}
+
+	void piece_picker::update_full(downloading_piece& dp)
+	{
+		int num_blocks = blocks_in_piece(dp.index);
+		m_piece_map[dp.index].full = dp.requested + dp.finished + dp.writing == num_blocks;
 	}
 
 	bool piece_picker::is_requested(piece_block block) const
@@ -2041,6 +2074,7 @@ namespace libtorrent
 			info.peer = peer;
 			info.num_peers = 1;
 			++dp.requested;
+			update_full(dp);
 		}
 		else
 		{
@@ -2061,6 +2095,7 @@ namespace libtorrent
 			{
 				info.state = block_info::state_requested;
 				++i->requested;
+				update_full(*i);
 			}
 			++info.num_peers;
 			if (i->state == none) i->state = state;
@@ -2134,6 +2169,7 @@ namespace libtorrent
 			info.peer = peer;
 			info.num_peers = 0;
 			dp.writing = 1;
+			update_full(dp);
 //			sort_piece(m_downloads.end()-1);
 		}
 		else
@@ -2187,6 +2223,8 @@ namespace libtorrent
 		info.peer = 0;
 
 		info.state = block_info::state_none;
+
+		update_full(*i);
 
 		if (i->finished + i->writing + i->requested == 0)
 		{
@@ -2400,6 +2438,7 @@ namespace libtorrent
 			// clear this block as being downloaded
 			info.state = block_info::state_none;
 			--i->requested;
+			update_full(*i);
 		}	
 
 		// if there are no other blocks in this piece
