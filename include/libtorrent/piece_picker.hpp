@@ -383,6 +383,7 @@ namespace libtorrent
 			piece_pos(int peer_count_, int index_)
 				: peer_count(peer_count_)
 				, downloading(0)
+				, full(0)
 				, piece_priority(1)
 				, index(index_)
 			{
@@ -392,9 +393,11 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-			unsigned peer_count : 10;
+			unsigned peer_count : 9;
 			// is 1 if the piece is marked as being downloaded
 			unsigned downloading : 1;
+			// set when downloading, but no free blocks to request left
+			unsigned full : 1;
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
 			// 2 is higher priority than pieces at the same availability level
@@ -415,7 +418,7 @@ namespace libtorrent
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
-				max_peer_count = 0x3ff
+				max_peer_count = 0x1ff
 			};
 			
 			bool have() const { return index == we_have_index; }
@@ -498,6 +501,8 @@ namespace libtorrent
 
 		std::vector<downloading_piece>::const_iterator find_dl_piece(int index) const;
 		std::vector<downloading_piece>::iterator find_dl_piece(int index);
+
+		void update_full(downloading_piece& dp);
 
 		// some compilers (e.g. gcc 2.95, does not inherit access
 		// privileges to nested classes)

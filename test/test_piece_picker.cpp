@@ -467,7 +467,7 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == first.piece_index);
 
 // ========================================================
-
+/*
 	// make sure downloading pieces closer to completion have higher priority
 	// piece 3 has only 1 block from being completed, and should be picked
 	print_title("test downloading piece order");
@@ -476,7 +476,7 @@ int test_main()
 		, options | piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(3, 3));
-
+*/
 // ========================================================
 
 	// test sequential download
