@@ -149,6 +149,8 @@ namespace libtorrent
 			downloading_piece(): state(none), index(-1), info(0)
 				, finished(0), writing(0), requested(0) {}
 
+			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
+
 			piece_state_t state;
 
 			// the index of the piece
@@ -351,14 +353,6 @@ namespace libtorrent
 			bool operator()(const downloading_piece& p) const
 			{ return p.index == index; }
 			int index;
-		};
-
-		struct compare_index
-		{
-			bool operator()(const downloading_piece& p, int piece) const
-			{ return p.index < piece; }
-			bool operator()(int piece, const downloading_piece& p) const
-			{ return piece < p.index; }
 		};
 
 		int blocks_in_last_piece() const

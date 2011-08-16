@@ -171,8 +171,10 @@ namespace libtorrent
 					m_downloads[i].info = &m_block_info[m_downloads[i].info - base];
 			}
 		}
+		downloading_piece cmp;
+		cmp.index = piece;
 		std::vector<downloading_piece>::iterator i = std::lower_bound(m_downloads.begin()
-			, m_downloads.end(), piece, compare_index());
+			, m_downloads.end(), cmp);
 		TORRENT_ASSERT(i == m_downloads.end() || i->index != piece);
 		i = m_downloads.insert(i, downloading_piece());
 		downloading_piece& ret = *i;
@@ -1990,8 +1992,10 @@ namespace libtorrent
 	std::vector<piece_picker::downloading_piece>::iterator piece_picker::find_dl_piece(int index)
 	{
 //		return std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
+		downloading_piece cmp;
+		cmp.index = index;
 		std::vector<piece_picker::downloading_piece>::iterator i = std::lower_bound(
-			m_downloads.begin(), m_downloads.end(), index, compare_index());
+			m_downloads.begin(), m_downloads.end(), cmp);
 		if (i == m_downloads.end()) return i;
 		if (i->index == index) return i;
 		return m_downloads.end();
@@ -2000,8 +2004,10 @@ namespace libtorrent
 	std::vector<piece_picker::downloading_piece>::const_iterator piece_picker::find_dl_piece(int index) const
 	{
 //		return std::find_if(m_downloads.begin(), m_downloads.end(), has_index(index));
+		downloading_piece cmp;
+		cmp.index = index;
 		std::vector<piece_picker::downloading_piece>::const_iterator i = std::lower_bound(
-			m_downloads.begin(), m_downloads.end(), index, compare_index());
+			m_downloads.begin(), m_downloads.end(), cmp);
 		if (i == m_downloads.end()) return i;
 		if (i->index == index) return i;
 		return m_downloads.end();
