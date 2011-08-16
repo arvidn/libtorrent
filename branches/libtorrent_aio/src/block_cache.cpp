@@ -1279,7 +1279,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		j->ref.block = start_block;
 		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size()-1));
 		++m_send_buffer_blocks;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		++pe->blocks[start_block].reading_count;
 #endif
 		return j->buffer_size;
@@ -1346,7 +1346,7 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 	}
 	TORRENT_ASSERT(pe->refcount > 0);
 	--pe->refcount;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	TORRENT_ASSERT(pe->blocks[ref.block].reading_count > 0);
 	--pe->blocks[ref.block].reading_count;
 #endif
