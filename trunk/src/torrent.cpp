@@ -1971,6 +1971,19 @@ namespace libtorrent
 		for (int i = 0; i < int(m_trackers.size()); ++i)
 		{
 			announce_entry& ae = m_trackers[i];
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[1000];
+			snprintf(msg, sizeof(msg), "*** announce with tracker: considering \"%s\" "
+				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d"
+				" i->tier: %d tier: %d "
+				" is_working: %d fails: %d fail_limit: %d updating: %d"
+				" can_announce: %d sent_announce: %d ]"
+				, ae.url.c_str(), settings().announce_to_all_tiers
+				, settings().announce_to_all_trackers
+				, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
+				, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
+			debug_log(msg);
+#endif
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			if (settings().announce_to_all_tiers
@@ -1980,7 +1993,7 @@ namespace libtorrent
 				&& tier != INT_MAX)
 				continue;
 
-			if (ae.tier > tier && !settings().announce_to_all_tiers) break;
+			if (ae.tier > tier && sent_announce && !settings().announce_to_all_tiers) break;
 			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
 			if (!ae.can_announce(now, is_seed()))
 			{
@@ -6461,7 +6474,13 @@ namespace libtorrent
 	void torrent::update_tracker_timer(ptime now)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		if (!m_announcing) return;
+		if (!m_announcing)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("*** update tracker timer: not announcing");
+#endif
+			return;
+		}
 
 		ptime next_announce = max_time();
 		int tier = INT_MAX;
@@ -6471,6 +6490,18 @@ namespace libtorrent
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			char msg[1000];
+			snprintf(msg, sizeof(msg), "*** update tracker timer: considering \"%s\" "
+				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d"
+				" found_working: %d i->tier: %d tier: %d "
+				" is_working: %d fails: %d fail_limit: %d updating: %d ]"
+				, i->url.c_str(), settings().announce_to_all_tiers
+				, settings().announce_to_all_trackers, found_working
+				, i->tier, tier, i->is_working(), i->fails, i->fail_limit
+				, i->updating);
+			debug_log(msg);
+#endif
 			if (settings().announce_to_all_tiers
 				&& found_working
 				&& i->tier <= tier
@@ -6491,7 +6522,14 @@ namespace libtorrent
 				&& !settings().announce_to_all_tiers) break;
 		}
 
-		if (next_announce <= now) return;
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		char msg[200];
+		snprintf(msg, sizeof(msg), "*** update tracker timer: next_announce < now %d"
+			" m_waiting_tracker: %d next_announce_in: %d"
+			, next_announce <= now, m_waiting_tracker, total_seconds(now - next_announce));
+		debug_log(msg);
+#endif
+		if (next_announce <= now) next_announce = now;
 
 		m_waiting_tracker = true;
 		error_code ec;
@@ -7722,6 +7760,10 @@ namespace libtorrent
 				ae->last_error = ec;
 				ae->message = msg;
 				int tracker_index = ae - &m_trackers[0];
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+				debug_log("*** increment tracker fail count ["
+					+ std::string(to_string(ae->fails).elems) + "]");
+#endif
 				deprioritize_tracker(tracker_index);
 			}
 			if (m_ses.m_alerts.should_post<tracker_error_alert>())
