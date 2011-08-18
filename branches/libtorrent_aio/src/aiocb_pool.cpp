@@ -58,15 +58,13 @@ namespace libtorrent
 		mutex::scoped_lock l(m_job_mutex);
 		disk_io_job* ptr = (disk_io_job*)m_job_pool.malloc();
 		l.unlock();
+		TORRENT_ASSERT(ptr);
 
 		if (ptr == 0) return 0;
 		new (ptr) disk_io_job;
 		ptr->action = (disk_io_job::action_t)type;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		ptr->in_use = true;
-#endif
-#ifdef TORRENT_DEBUG
-//		print_backtrace(ptr->stack_trace, sizeof(ptr->stack_trace));
 #endif
 		return ptr;
 	}
@@ -111,10 +109,13 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		file::iovec_t* ret = new file::iovec_t[max_iovec];
+		TORRENT_ASSERT(ret);
 #else
 		file::iovec_t* ret = (file::iovec_t*)m_vec_pool.malloc();
+		TORRENT_ASSERT(ret);
 		m_pool.set_next_size(50);
 #endif
+		TORRENT_ASSERT(ret);
 		return ret;
 	}
 
@@ -134,8 +135,10 @@ namespace libtorrent
 		if (m_in_use > m_peak_in_use) m_peak_in_use = m_in_use;
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		file::aiocb_t* ret = new file::aiocb_t;
+		TORRENT_ASSERT(ret);
 #else
 		file::aiocb_t* ret = (file::aiocb_t*)m_pool.malloc();
+		TORRENT_ASSERT(ret);
 		new (ret) file::aiocb_t;
 		m_pool.set_next_size(256);
 #endif

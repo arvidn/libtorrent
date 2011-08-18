@@ -36,22 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	disk_io_job::disk_io_job()
-			: action(read)
-			, buffer(0)
-			, buffer_size(0)
-			, flags(0)
-			, piece(0)
-			, offset(0)
-			, max_cache_line(0)
-			, cache_min_time(0)
+		: buffer(0)
+		, piece(0)
+		, offset(0)
+		, buffer_size(0)
+		, flags(0)
+		, max_cache_line(0)
+		, cache_min_time(0)
+		, action(read)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			, in_use(false)
+		, in_use(false)
+		, callback_called(false)
 #endif
-		{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			callback_called = false;
-#endif
-		}
+	{}
 
 	disk_io_job::~disk_io_job() {}
 }

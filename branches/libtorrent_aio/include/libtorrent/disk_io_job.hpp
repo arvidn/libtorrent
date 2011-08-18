@@ -114,56 +114,31 @@ namespace libtorrent
 			force_copy = 0x800,
 		};
 
-		action_t action;
-
+		// for write, this points to the data to write,
+		// for read, the data read is returned here
+		// for other jobs, it may point to other job-specific types
 		char* buffer;
-		int buffer_size;
+
+		// the disk storage this job applies to (if applicable)
 		boost::intrusive_ptr<piece_manager> storage;
 
-		// flags controlling this job
-		boost::uint32_t flags;
+		// the time when this job was queued. This is used to
+		// keep track of disk I/O congestion
+		ptime start_time;
 
-		// arguments used for read and write
-		// the piece this job applies to
-		int piece;
-
-		// for read and write, the offset into the piece
-		// the read or write should start
-		// for hash jobs, this is the first block the hash
-		// job is still holding a reference to. The end of
-		// the range of blocks a hash jobs holds references
-		// to is always the last block in the piece.
-		int offset;
-
-		// if this is > 0, it specifies the max number of blocks to read
-		// ahead in the read cache for this access. This is only valid
-		// for 'read' actions
-		int max_cache_line;
-
-		// if this is > 0, it may increase the minimum time the cache
-		// line caused by this operation stays in the cache
-		int cache_min_time;
-
-		// used for move_storage and rename_file. On errors, this is set
-		// to the error message.
-		std::string str;
-
-		// result for hash jobs
-		sha1_hash piece_hash;
-
+		// only used for check_fastresume and save_resume_data
 		boost::shared_ptr<entry> resume_data;
+
+		// this is called when operation completes
+		boost::function<void(int, disk_io_job const&)> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the
 		// file the disk operation failed on
 		storage_error error;
 
-		// this is called when operation completes
-		boost::function<void(int, disk_io_job const&)> callback;
-
-		// the time when this job was queued. This is used to
-		// keep track of disk I/O congestion
-		ptime start_time;
+		// used for move_storage and rename_file.
+		std::string str;
 
 		// if this is set, the read operation is required to
 		// release the block references once it's done sending
@@ -174,13 +149,46 @@ namespace libtorrent
 		// be de-referenced by sending a reclaim_block message
 		// back to the disk thread
 		block_cache_reference ref;
+
+		// result for hash jobs
+		sha1_hash piece_hash;
+
+		// arguments used for read and write
+		// the piece this job applies to
+		boost::uint32_t piece;
+
+		// for read and write, the offset into the piece
+		// the read or write should start
+		// for hash jobs, this is the first block the hash
+		// job is still holding a reference to. The end of
+		// the range of blocks a hash jobs holds references
+		// to is always the last block in the piece.
+		boost::uint32_t offset;
+
+		// number of bytes 'buffer' points to. Used for read & write
+		boost::uint16_t buffer_size;
+
+		// flags controlling this job
+		boost::uint16_t flags;
+
+		// if this is > 0, it specifies the max number of blocks to read
+		// ahead in the read cache for this access. This is only valid
+		// for 'read' actions
+		boost::uint8_t max_cache_line;
+
+		// if this is > 0, it may increase the minimum time the cache
+		// line caused by this operation stays in the cache
+		// this is specified in seconds
+		boost::uint8_t cache_min_time;
+
+		// the type of job this is
+		boost::uint8_t action;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool in_use;
-		// the stack trace of where this job was allocated
-		char stack_trace[4096];
+		bool in_use:1;
 		// set to true when the callback has been called once
 		// used to make sure we don't call it twice
-		bool callback_called;
+		bool callback_called:1;
 #endif
 	};
 
