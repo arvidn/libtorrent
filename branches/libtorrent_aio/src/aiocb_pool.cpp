@@ -57,6 +57,7 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_job_mutex);
 		disk_io_job* ptr = (disk_io_job*)m_job_pool.malloc();
+		m_job_pool.set_next_size(100);
 		l.unlock();
 		TORRENT_ASSERT(ptr);
 
