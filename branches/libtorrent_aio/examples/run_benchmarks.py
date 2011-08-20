@@ -7,6 +7,7 @@ import time
 import subprocess
 import random
 import signal
+import hashlib
 
 # this is a disk I/O benchmark script. It runs menchmarks
 # over different filesystems, different cache sizes and
@@ -132,6 +133,13 @@ def build_commandline(config, port):
 		cfg.write('17:dir_autoload_flagi1e')
 		cfg.write('12:dir_autoload8:autoload')
 		cfg.write('11:logger_maski4294967295e')
+		cfg.write('1:vi0e')
+		cfg.write('12:webui.enablei1e')
+		cfg.write('19:webui.enable_listeni1e')
+		cfg.write('14:webui.hashword20:' + hashlib.sha1('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadmin').digest())
+		cfg.write('10:webui.porti8080e')
+		cfg.write('10:webui.salt32:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+		cfg.write('14:webui.username5:admin')
 		cfg.write('e')
 		cfg.close()
 		try: os.mkdir('utorrent_session/autoload')
@@ -167,13 +175,14 @@ def delete_files(files):
 					if os.path.exists(i): print 'failed to delete %s' % i
 				except: pass
 
-def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio'):
-	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build}
+def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio', profile=False):
+	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile}
 	return config
 
 def build_target_folder(config):
 	test = 'seed'
 	if config['test'] == 'upload': test = 'download'
+	elif config['test'] == 'dual': test = 'dual'
 
 	return 'results_%s_%s_%d_%d_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1])
 
@@ -184,11 +193,16 @@ def run_test(config):
 		print 'results already exists, skipping test (%s)' % target_folder
 		return
 
+	print '\n\n*********************************'
+	print '*          RUNNING TEST         *'
+	print '*********************************\n\n'
+	print '%s %s' % (config['build'], config['test'])
+
 	# make sure any previous test file is removed
 	# don't clean up unless we're running a download-test, so that we leave the test file
 	# complete for a seed test.
 	delete_files(['utorrent_session/settings.dat', 'utorrent_session/settings.dat.old'])
-	if config['test'] == 'upload':
+	if config['test'] == 'upload' or config['test'] == 'dual':
 		print 'deleting files'
 		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), 'utorrent_session', '.dht_state', 'session_stats', 'rtorrent_session'])
 
@@ -198,6 +212,9 @@ def run_test(config):
 	# save off the command line for reference
 	global port
 	cmdline = build_commandline(config, port)
+	binary = cmdline.split(' ')[0]
+	environment = None
+	if config['profile']: environment = {'LD_PRELOAD':'/usr/lib/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
 	f = open('session_stats/cmdline.txt', 'w+')
 	f.write(cmdline)
 	f.close()
@@ -206,16 +223,13 @@ def run_test(config):
 	print >>f, config
 	f.close()
 
-	print '\n\n*********************************'
-	print '*          RUNNING TEST         *'
-	print '*********************************\n\n'
 	print 'clearing disk cache'
 	clear_caches()
 	print 'OK'
 	client_output = open('session_stats/client.output', 'w+')
 	client_error = open('session_stats/client.error', 'w+')
 	print 'launching: %s' % cmdline
-	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error)
+	client = subprocess.Popen(shlex.split(cmdline), stdout=client_output, stdin=subprocess.PIPE, stderr=client_error, env=environment)
 	print 'OK'
 	# enable disk stats printing
 	if config['build'] != 'rtorrent' and config['build'] != 'utorrent':
@@ -227,6 +241,8 @@ def run_test(config):
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
 	print 'OK'
 	
+	time.sleep(2)
+
 	print '\n'
 	i = 0
 	while True:
@@ -242,7 +258,7 @@ def run_test(config):
 		print '\r%d / %d' % (i, test_duration),
 		sys.stdout.flush()
 		i += 1
-		if config['test'] != 'upload' and i >= test_duration: break
+		if config['test'] != 'upload' and config['test'] != 'dual' and i >= test_duration: break
 	print '\n'
 
 	if client.returncode == None:
@@ -264,6 +280,10 @@ def run_test(config):
 		print 'client returned %d' % client.returncode
 		sys.exit(client.returncode)
 
+	try: shutil.copy('asserts.log', 'session_stats/')
+	except: pass
+
+
 	# run fragmentation test
 	print 'analyzing fragmentation'
 	os.system('./stage_aio/fragmentation_test test.torrent %s' % (config['save-path']))
@@ -281,21 +301,26 @@ def run_test(config):
 
 	os.chdir('..')
 
+	if config['profile']:
+		print 'analyzing CPU profile [%s]' % binary
+		os.system('google-pprof --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % binary)
+
 	# move the results into its final place
 	print 'saving results'
 	os.rename('session_stats', build_target_folder(config))
 
 	port += 1
 
-#config = build_test_config('ext4', filesystem_peers, filesystem_cache, True, True, False)
-#run_test(config)
-#sys.exit(0)
+for b in ['aio', 'syncio']:
+	for test in ['dual', 'upload', 'download']:
+		config = build_test_config(build=b, test=test)
+		run_test(config)
+sys.exit(0)
 
 for b in builds:
 	for test in ['upload', 'download']:
 		config = build_test_config(build=b, test=test)
 		run_test(config)
-sys.exit(0)
 
 for p in peers:
 	for test in ['upload', 'download']:
