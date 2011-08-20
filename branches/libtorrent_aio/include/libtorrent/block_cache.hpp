@@ -150,43 +150,6 @@ namespace libtorrent
 		int get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
 
-		// the last time a block was writting to this piece
-		// plus the minimum amount of time the block is guaranteed
-		// to stay in the cache
-		time_t expire;
-
-		boost::uint64_t piece:18;
-
-		// the number of dirty blocks in this piece
-		boost::uint64_t num_dirty:11;
-		
-		// the number of blocks in the cache for this piece
-		boost::uint64_t num_blocks:11;
-
-		// the total number of blocks in this piece (and the number
-		// of elements in the blocks array)
-		boost::uint64_t blocks_in_piece:11;
-
-		// the sum of all refcounts in all blocks
-		boost::uint64_t refcount:11;
-		
-		// if this is true, whenever refcount hits 0, 
-		// this piece should be deleted
-		bool marked_for_deletion:1;
-
-		// this is set to true once we flush blocks past
-		// the hash cursor. Once this happens, there's
-		// no point in keeping cache blocks around for
-		// it in avoid_readback mode
-		bool need_readback:1;
-
-		// while we have an outstanding async hash operation
-		// working on this piece, 'hashing' is set to the first block
-		// in the range that is being hashed. When the operation
-		// returns, this is set to -1. -1 means there's no
-		// outstanding hash operation running
-		int hashing;
-
 		// if this is set, we'll be calculating the hash
 		// for this piece. This member stores the interim
 		// state while we're calulcating the hash.
@@ -203,6 +166,43 @@ namespace libtorrent
 		// for this piece that are waiting for data to become
 		// avaialable. Read jobs may be overlapping.
 		tailqueue jobs;
+
+		// the last time a block was writting to this piece
+		// plus the minimum amount of time the block is guaranteed
+		// to stay in the cache
+		time_t expire;
+
+		boost::uint64_t piece:18;
+
+		// the number of dirty blocks in this piece
+		boost::uint64_t num_dirty:14;
+		
+		// the number of blocks in the cache for this piece
+		boost::uint64_t num_blocks:14;
+
+		// if this is true, whenever refcount hits 0, 
+		// this piece should be deleted
+		boost::uint64_t marked_for_deletion:1;
+
+		// this is set to true once we flush blocks past
+		// the hash cursor. Once this happens, there's
+		// no point in keeping cache blocks around for
+		// it in avoid_readback mode
+		boost::uint64_t need_readback:1;
+
+		// the total number of blocks in this piece (and the number
+		// of elements in the blocks array)
+		boost::uint64_t blocks_in_piece:14;
+
+		// while we have an outstanding async hash operation
+		// working on this piece, 'hashing' is set to the first block
+		// in the range that is being hashed. When the operation
+		// returns, this is set to -1. -1 means there's no
+		// outstanding hash operation running
+		boost::int32_t hashing;
+
+		// the sum of all refcounts in all blocks
+		boost::uint32_t refcount;	
 	};
 
 	struct block_cache : disk_buffer_pool

@@ -716,6 +716,15 @@ namespace aux {
 
 		PRINT_SIZEOF(internal_file_entry)
 
+		PRINT_SIZEOF(cached_piece_entry)
+		PRINT_OFFSETOF(cached_piece_entry, storage)
+		PRINT_OFFSETOF(cached_piece_entry, hash)
+		PRINT_OFFSETOF(cached_piece_entry, blocks)
+		PRINT_OFFSETOF(cached_piece_entry, jobs)
+		PRINT_OFFSETOF(cached_piece_entry, expire)
+		PRINT_OFFSETOF(cached_piece_entry, hashing)
+		PRINT_OFFSETOF(cached_piece_entry, refcount)
+
 		PRINT_SIZEOF(disk_io_job)
 		PRINT_OFFSETOF(disk_io_job, buffer)
 		PRINT_OFFSETOF(disk_io_job, storage)

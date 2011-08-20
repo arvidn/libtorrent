@@ -88,18 +88,18 @@ struct set_last_use
 
 cached_piece_entry::cached_piece_entry()
 	: storage()
+	, hash(0)
+	, blocks()
+	, jobs()
 	, expire(0)
 	, piece(0)
 	, num_dirty(0)
 	, num_blocks(0)
-	, blocks_in_piece(0)
-	, refcount(0)
 	, marked_for_deletion(false)
 	, need_readback(false)
+	, blocks_in_piece(0)
 	, hashing(-1)
-	, hash(0)
-	, blocks()
-	, jobs()
+	, refcount(0)
 {}
 
 cached_piece_entry::~cached_piece_entry()
@@ -128,7 +128,6 @@ int block_cache::try_read(disk_io_job* j)
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(j->buffer == 0);
-	TORRENT_ASSERT(j->cache_min_time >= 0);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
 	cache_piece_index_t::iterator p = find_piece(j);
@@ -270,9 +269,9 @@ std::pair<block_cache::iterator, block_cache::iterator> block_cache::pieces_for_
 	return idx.equal_range(boost::make_tuple(st));
 }
 
-bool block_cache::evict_piece(iterator i)
+bool block_cache::evict_piece(iterator p)
 {
-	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
@@ -304,7 +303,7 @@ bool block_cache::evict_piece(iterator i)
 	{
 		TORRENT_ASSERT(pe->jobs.empty());
 		cache_piece_index_t& idx = m_pieces.get<0>();
-		idx.erase(i);
+		idx.erase(p);
 		return true;
 	}
 
@@ -661,7 +660,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	}
 
 	DLOG(stderr, "[%p] block_cache mark_done mark-for-deletion: %d "
-		"piece: %d refcount: %d\n", this, pe->marked_for_deletion
+		"piece: %d refcount: %d\n", this, int(pe->marked_for_deletion)
 		, int(pe->piece), int(pe->refcount));
 	if (pe->marked_for_deletion && pe->refcount == 0)
 	{
@@ -1036,7 +1035,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 
 	DLOG(stderr, "[%p] block_cache hashing_done delete? "
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
-		, int(pe->piece), int(pe->refcount), pe->marked_for_deletion);
+		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
 	if (pe->marked_for_deletion && pe->refcount == 0)
 	{
@@ -1274,7 +1273,9 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		// the existing block
 		if (pe->blocks[start_block].refcount == 0) ++m_pinned_blocks;
 		++pe->blocks[start_block].refcount;
+		TORRENT_ASSERT(pe->blocks[start_block].refcount > 0); // make sure it didn't wrap
 		++pe->refcount;
+		TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
 		j->ref.pe = pe;
 		j->ref.block = start_block;
 		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size()-1));

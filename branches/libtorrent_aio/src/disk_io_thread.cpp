@@ -758,7 +758,9 @@ namespace libtorrent
 				pe.blocks[i].pending = true;
 				if (pe.blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 				++pe.blocks[i].refcount;
+				TORRENT_ASSERT(pe.blocks[i].refcount > 0); // make sure it didn't wrap
 				++const_cast<cached_piece_entry&>(pe).refcount;
+				TORRENT_ASSERT(pe.refcount > 0); // make sure it didn't wrap
 			}
 			++iov_counter;
 			++ret;
@@ -1511,6 +1513,8 @@ namespace libtorrent
 			if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 			++pe->blocks[i].refcount;
 			++pe->refcount;
+			TORRENT_ASSERT(pe->blocks[i].refcount > 0); // make sure it didn't wrap
+			TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
 #ifdef TORRENT_DEBUG
 			++pe->blocks[i].check_count;
 #endif
