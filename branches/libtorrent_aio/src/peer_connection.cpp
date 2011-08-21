@@ -4522,7 +4522,7 @@ namespace libtorrent
 					, r.piece, r.start, r.length);
 #endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r), cache.first, cache.second);
+					, self(), _1, _2, r), 0, cache.first, cache.second);
 
 				m_reading_bytes += r.length;
 
