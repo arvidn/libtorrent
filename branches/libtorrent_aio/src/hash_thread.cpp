@@ -55,6 +55,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(p->hashing == -1);
 		if (p->hashing != -1) return false;
+		TORRENT_ASSERT(p->hash != 0);
 
 		hash_queue_entry e;
 		e.piece = p;

@@ -1440,6 +1440,15 @@ namespace libtorrent
 
 			if (end > start_block && pe->hashing == -1)
 			{
+				// do we need the partial hash object?
+				if (pe->hash == 0)
+				{
+					DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
+						, this, int(p->piece));
+					// TODO: maybe the partial_hash objects should be pool allocated
+					pe->hash = new partial_hash;
+				}
+
 				m_hash_thread.async_hash(pe, start_block, end);
 			}
 
@@ -1495,7 +1504,7 @@ namespace libtorrent
 			}
 		}
 
-		// we need the partial hash object
+		// do we need the partial hash object?
 		if (pe->hash == 0)
 		{
 			DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
@@ -2106,7 +2115,9 @@ namespace libtorrent
 	// This is sometimes called from an outside thread!
 	int disk_io_thread::add_job(disk_io_job* j, bool high_priority)
 	{
-		TORRENT_ASSERT(!m_abort || j->action == disk_io_job::reclaim_block);
+		TORRENT_ASSERT(!m_abort
+			|| j->action == disk_io_job::reclaim_block
+			|| j->action == disk_io_job::hash_complete);
 		if (m_abort)
 		{
 			m_aiocb_pool.free_job(j);
