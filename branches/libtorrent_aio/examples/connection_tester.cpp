@@ -65,6 +65,17 @@ void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
 int local_if_counter = 0;
 bool local_bind = false;
 
+// number of seeds we've spawned. The test is terminated
+// when this reaches zero, for dual tests
+boost::detail::atomic_count num_seeds(0);
+
+// the kind of test to run. Upload sends data to a
+// bittorrent client, download requests data from
+// a client and dual uploads and downloads from a client
+// at the same time (this is presumably the most realistic
+// test)
+enum { none, upload_test, download_test, dual_test } test_mode = none;
+
 struct peer_conn
 {
 	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
@@ -82,6 +93,7 @@ struct peer_conn
 		, num_pieces(num_pieces)
 		, start_time(time_now_hires())
 	{
+		if (seed) ++num_seeds;
 		pieces.reserve(num_pieces);
 		if (local_bind)
 		{
@@ -292,6 +304,7 @@ struct peer_conn
 		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
 		printf("%s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 			, tmp, blocks_sent, blocks_received, time, up, down);
+		if (seed) --num_seeds;
 	}
 
 	void work_download()
@@ -343,6 +356,13 @@ struct peer_conn
 		}
 		char* ptr = (char*)buffer;
 		int msg = read_uint8(ptr);
+
+		if (test_mode == dual_test && num_seeds == 0)
+		{
+			TORRENT_ASSERT(!seed);
+			close("NO MORE SEEDS, test done", error_code());
+			return;
+		}
 
 		//printf("msg: %d len: %d\n", msg, int(bytes_transferred));
 
@@ -545,8 +565,6 @@ void io_thread(io_service* ios)
 int main(int argc, char* argv[])
 {
 	if (argc <= 1) print_usage();
-
-	enum { none, upload_test, download_test, dual_test } test_mode = none;
 
 	if (strcmp(argv[1], "gen-torrent") == 0)
 	{
