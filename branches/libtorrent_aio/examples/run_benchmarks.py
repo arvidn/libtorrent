@@ -201,7 +201,7 @@ def run_test(config):
 	# make sure any previous test file is removed
 	# don't clean up unless we're running a download-test, so that we leave the test file
 	# complete for a seed test.
-	delete_files(['utorrent_session/settings.dat', 'utorrent_session/settings.dat.old'])
+	delete_files(['utorrent_session/settings.dat', 'utorrent_session/settings.dat.old', 'asserts.log'])
 	if config['test'] == 'upload' or config['test'] == 'dual':
 		print 'deleting files'
 		delete_files([os.path.join(config['save-path'], 'stress_test_file'), '.ses_state', os.path.join(config['save-path'], '.resume'), 'utorrent_session', '.dht_state', 'session_stats', 'rtorrent_session'])
