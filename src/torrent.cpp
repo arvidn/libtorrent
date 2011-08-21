@@ -244,7 +244,9 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_resume_entry)
 		PRINT_OFFSETOF(torrent, m_name)
 		PRINT_OFFSETOF(torrent, m_storage_constructor)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
+#endif
 		PRINT_OFFSETOF(torrent, m_ratio)
 		PRINT_OFFSETOF(torrent, m_available_free_upload)
 		PRINT_OFFSETOF(torrent, m_average_piece_time)
