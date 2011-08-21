@@ -1514,7 +1514,9 @@ namespace aux {
 				if (m_dht) m_dht->on_unreachable(ep);
 			}
 
-			if (m_alerts.should_post<udp_error_alert>())
+			// don't bubble up operation aborted errors to the user
+			if (e != asio::error::operation_aborted
+				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
 			return;
 		}
