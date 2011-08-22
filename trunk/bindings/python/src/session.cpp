@@ -431,7 +431,9 @@ void bind_session()
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
+#ifndef TORRENT_NO_DEPRECATE
         .value("storage_mode_compact", storage_mode_compact)
+#endif
     ;
 
     enum_<session::options_t>("options_t")
