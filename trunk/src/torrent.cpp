@@ -1062,7 +1062,12 @@ namespace libtorrent
 		// put the torrent in an error-state
 		set_error(j.error, j.error_file);
 
-		if (j.action == disk_io_job::write)
+		if (j.action == disk_io_job::write
+			&& (j.error == boost::system::errc::read_only_file_system
+			|| j.error == boost::system::errc::permission_denied
+			|| j.error == boost::system::errc::operation_not_permitted
+			|| j.error == boost::system::errc::no_space_on_device
+			|| j.error == boost::system::errc::file_too_large))
 		{
 			// if we failed to write, stop downloading and just
 			// keep seeding.
