@@ -537,8 +537,7 @@ namespace libtorrent
 		bool is_predictive_piece(int index) const
 		{
 			// #error make this a sorted list and binary_search to lookup
-			return std::find(m_predictive_pieces.begin(), m_predictive_pieces.end(), index)
-				!= m_predictive_pieces.end();
+			return std::binary_search(m_predictive_pieces.begin(), m_predictive_pieces.end(), index);
 		}
 
 		// called when we learn that we have a piece
@@ -1058,7 +1057,7 @@ namespace libtorrent
 		// on responding until we have completed the piece and
 		// verified its hash. If the hash fails, send reject to
 		// peers with outstanding requests, and dont_have to other
-		// peers.
+		// peers. This vector is ordered, to make lookups fast.
 		std::vector<int> m_predictive_pieces;
 
 		// each bit represents a piece. a set bit means

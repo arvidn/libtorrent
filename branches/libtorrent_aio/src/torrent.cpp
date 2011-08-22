@@ -2858,9 +2858,9 @@ namespace libtorrent
 		// (unless it has already been announced through predictive_piece_announce
 		// feature).
 		bool announce_piece = true;
-		std::vector<int>::iterator i = std::find(m_predictive_pieces.begin()
+		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
-		if (i != m_predictive_pieces.end())
+		if (i != m_predictive_pieces.end() && *i == index)
 		{
 			// this means we've already announced the piece
 			announce_piece = false;
@@ -3035,7 +3035,9 @@ namespace libtorrent
 	// and sending it
 	void torrent::predicted_have_piece(int index, int milliseconds)
 	{
-		if (is_predictive_piece(index)) return;
+		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
+			, m_predictive_pieces.end(), index);
+		if (i != m_predictive_pieces.end() && *i == index) return;
 		
 		for (std::set<peer_connection*>::iterator p = m_connections.begin()
 			, end(m_connections.end()); p != end; ++p)
@@ -3047,7 +3049,7 @@ namespace libtorrent
 			(*p)->announce_piece(index);
 		}
 
-		m_predictive_pieces.push_back(index);
+		m_predictive_pieces.insert(i, index);
 	}
 
 	void torrent::piece_failed(int index)
@@ -3069,9 +3071,9 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<hash_failed_alert>())
 			m_ses.m_alerts.post_alert(hash_failed_alert(get_handle(), index));
 
-		std::vector<int>::iterator i = std::find(m_predictive_pieces.begin()
+		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
-		if (i != m_predictive_pieces.end())
+		if (i != m_predictive_pieces.end() && *i == index)
 		{
 			for (std::set<peer_connection*>::iterator p = m_connections.begin()
 				, end(m_connections.end()); p != end; ++p)
