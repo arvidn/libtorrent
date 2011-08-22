@@ -47,7 +47,11 @@ namespace libtorrent
 	{
 		storage_mode_allocate = 0,
 		storage_mode_sparse,
-		storage_mode_compact
+		// this is here for internal use
+		internal_storage_mode_compact_deprecated,
+#ifndef TORRENT_NO_DEPRECATE
+		storage_mode_compact = internal_storage_mode_compact_deprecated
+#endif
 	};
 	
 	typedef boost::function<storage_interface*(file_storage const&, file_storage const*

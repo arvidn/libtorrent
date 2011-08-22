@@ -462,6 +462,7 @@ storage_mode_allocate
 	``fallocate()`` and similar calls. This mode minimizes fragmentation.
 
 storage_mode_compact
+	**this mode is deprecated and will be removed in future versions of libtorrent**
 	The storage will grow as more pieces are downloaded, and pieces
 	are rearranged to finally be in their correct places once the entire torrent has been
 	downloaded.
@@ -8470,7 +8471,7 @@ libtorrent starts 2 or 3 threads.
 storage allocation
 ==================
 
-There are three modes in which storage (files on disk) are allocated in libtorrent.
+There are two modes in which storage (files on disk) are allocated in libtorrent.
 
 1. The traditional *full allocation* mode, where the entire files are filled up with
    zeros before anything is downloaded. libtorrent will look for sparse files support
@@ -8478,11 +8479,12 @@ There are three modes in which storage (files on disk) are allocated in libtorre
    zero fill support if present. This means that on NTFS, full allocation mode will
    only allocate storage for the downloaded pieces.
 
-2. The *compact allocation* mode, where only files are allocated for actual
-   pieces that have been downloaded.
-
-3. The *sparse allocation*, sparse files are used, and pieces are downloaded directly
+2. The *sparse allocation*, sparse files are used, and pieces are downloaded directly
    to where they belong. This is the recommended (and default) mode.
+
+In previous versions of libtorrent, a 3rd mode was supported, *compact allocation*.
+Support for this is deprecated and will be removed in future versions of libtorrent.
+It's still described in here for completeness.
 
 The allocation mode is selected when a torrent is started. It is passed as an
 argument to ``session::add_torrent()`` (see `add_torrent()`_).
@@ -8538,6 +8540,9 @@ The benefits of this mode are:
 
 compact allocation
 ------------------
+
+Note that support for compact allocation is deprecated in libttorrent, and will
+be removed in future versions.
 
 The compact allocation will only allocate as much storage as it needs to keep the
 pieces downloaded so far. This means that pieces will be moved around to be placed

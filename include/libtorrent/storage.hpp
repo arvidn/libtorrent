@@ -409,8 +409,10 @@ namespace libtorrent
 		// this function returns true if the checking is complete
 		int check_files(int& current_slot, int& have_piece, error_code& error);
 
+#ifndef TORRENT_NO_DEPRECATE
 		bool compact_allocation() const
 		{ return m_storage_mode == storage_mode_compact; }
+#endif
 
 #ifdef TORRENT_DEBUG
 		std::string name() const { return m_info->name(); }

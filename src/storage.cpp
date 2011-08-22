@@ -1735,7 +1735,7 @@ ret:
 
 		m_storage->write_resume_data(rd);
 
-		if (m_storage_mode == storage_mode_compact)
+		if (m_storage_mode == internal_storage_mode_compact_deprecated)
 		{
 			entry::list_type& slots = rd["slots"].list();
 			slots.clear();
@@ -1764,7 +1764,7 @@ ret:
 
 		INVARIANT_CHECK;
 
-		if (m_storage_mode != storage_mode_compact) return;
+		if (m_storage_mode != internal_storage_mode_compact_deprecated) return;
 
 		TORRENT_ASSERT(piece_index >= 0 && piece_index < (int)m_piece_to_slot.size());
 		int slot_index = m_piece_to_slot[piece_index];
@@ -1984,7 +1984,7 @@ ret:
 					// that piece as unassigned, since this slot
 					// is the correct place for the piece.
 					m_slot_to_piece[other_slot] = unassigned;
-					if (m_storage_mode == storage_mode_compact)
+					if (m_storage_mode == internal_storage_mode_compact_deprecated)
 						m_free_slots.push_back(other_slot);
 				}
 				TORRENT_ASSERT(m_piece_to_slot[piece_index] != current_slot);
@@ -2036,7 +2036,7 @@ ret:
 				m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
 				m_slot_to_piece.clear();
 				m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
-				if (m_storage_mode == storage_mode_compact)
+				if (m_storage_mode == internal_storage_mode_compact_deprecated)
 				{
 					m_unallocated_slots.clear();
 					m_free_slots.clear();
@@ -2046,7 +2046,7 @@ ret:
 			}
 		}
 
-		if (m_storage_mode == storage_mode_compact)
+		if (m_storage_mode == internal_storage_mode_compact_deprecated)
 		{
 			// in compact mode without checking, we need to
 			// populate the unallocated list
@@ -2073,7 +2073,7 @@ ret:
 		m_state = state_finished;
 		m_scratch_buffer.reset();
 		m_scratch_buffer2.reset();
-		if (m_storage_mode != storage_mode_compact)
+		if (m_storage_mode != internal_storage_mode_compact_deprecated)
 		{
 			// if no piece is out of place
 			// since we're in full allocation mode, we can
@@ -2119,7 +2119,7 @@ ret:
 			return check_no_fastresume(error);
 		}
 
-		storage_mode_t storage_mode = storage_mode_compact;
+		storage_mode_t storage_mode = internal_storage_mode_compact_deprecated;
 		if (rd.dict_find_string_value("allocation") != "compact")
 			storage_mode = storage_mode_sparse;
 
@@ -2132,7 +2132,7 @@ ret:
 
 		// if we don't have a piece map, we need the slots
 		// if we're in compact mode, we also need the slots map
-		if (storage_mode == storage_mode_compact || rd.dict_find("pieces") == 0)
+		if (storage_mode == internal_storage_mode_compact_deprecated || rd.dict_find("pieces") == 0)
 		{
 			// read slots map
 			lazy_entry const* slots = rd.dict_find_list("slots");
@@ -2148,7 +2148,7 @@ ret:
 				return check_no_fastresume(error);
 			}
 
-			if (m_storage_mode == storage_mode_compact)
+			if (m_storage_mode == internal_storage_mode_compact_deprecated)
 			{
 				int num_pieces = int(m_files.num_pieces());
 				m_slot_to_piece.resize(num_pieces, unallocated);
@@ -2176,13 +2176,13 @@ ret:
 					}
 					else if (index == unassigned)
 					{
-						if (m_storage_mode == storage_mode_compact)
+						if (m_storage_mode == internal_storage_mode_compact_deprecated)
 							m_free_slots.push_back(i);
 					}
 					else
 					{
 						TORRENT_ASSERT(index == unallocated);
-						if (m_storage_mode == storage_mode_compact)
+						if (m_storage_mode == internal_storage_mode_compact_deprecated)
 							m_unallocated_slots.push_back(i);
 					}
 				}
@@ -2213,7 +2213,7 @@ ret:
 			// by check_pieces.
 			//		m_storage->shuffle();
 
-			if (m_storage_mode == storage_mode_compact)
+			if (m_storage_mode == internal_storage_mode_compact_deprecated)
 			{
 				if (m_unallocated_slots.empty()) switch_to_full_mode();
 			}
@@ -2235,7 +2235,7 @@ ret:
 			}
 
 		}
-		else if (m_storage_mode == storage_mode_compact)
+		else if (m_storage_mode == internal_storage_mode_compact_deprecated)
 		{
 			// read piece map
 			lazy_entry const* pieces = rd.dict_find("pieces");
@@ -2423,7 +2423,7 @@ ret:
 			// piece overlapping with a sparse region. We should skip 'skip' number
 			// of pieces
 
-			if (m_storage_mode == storage_mode_compact)
+			if (m_storage_mode == internal_storage_mode_compact_deprecated)
 			{
 				for (int i = m_current_slot; i < m_current_slot + skip - 1; ++i)
 				{
@@ -2447,7 +2447,7 @@ ret:
 			// clear the memory we've been using
 			std::multimap<sha1_hash, int>().swap(m_hash_to_piece);
 
-			if (m_storage_mode != storage_mode_compact)
+			if (m_storage_mode != internal_storage_mode_compact_deprecated)
 			{
 				if (!m_out_of_place)
 				{
@@ -2612,7 +2612,7 @@ ret:
 				std::vector<int>::iterator i =
 					std::find(m_free_slots.begin(), m_free_slots.end(), other_slot);
 				TORRENT_ASSERT(i != m_free_slots.end());
-				if (m_storage_mode == storage_mode_compact)
+				if (m_storage_mode == internal_storage_mode_compact_deprecated)
 				{
 					m_free_slots.erase(i);
 					m_free_slots.push_back(m_current_slot);
@@ -2645,7 +2645,7 @@ ret:
 			m_piece_to_slot[other_piece] = m_current_slot;
 
 			if (piece_index == unassigned
-				&& m_storage_mode == storage_mode_compact)
+				&& m_storage_mode == internal_storage_mode_compact_deprecated)
 				m_free_slots.push_back(other_slot);
 
 			bool ret = false;
@@ -2726,7 +2726,7 @@ ret:
 					std::vector<int>::iterator i =
 						std::find(m_free_slots.begin(), m_free_slots.end(), slot1);
 					TORRENT_ASSERT(i != m_free_slots.end());
-					if (m_storage_mode == storage_mode_compact)
+					if (m_storage_mode == internal_storage_mode_compact_deprecated)
 					{
 						m_free_slots.erase(i);
 						m_free_slots.push_back(slot2);
@@ -2761,7 +2761,7 @@ ret:
 			// the slot was identified as piece 'piece_index'
 			if (piece_index != unassigned)
 				m_piece_to_slot[piece_index] = m_current_slot;
-			else if (m_storage_mode == storage_mode_compact)
+			else if (m_storage_mode == internal_storage_mode_compact_deprecated)
 				m_free_slots.push_back(m_current_slot);
 
 			m_slot_to_piece[m_current_slot] = piece_index;
@@ -2785,7 +2785,7 @@ ret:
 
 	void piece_manager::switch_to_full_mode()
 	{
-		TORRENT_ASSERT(m_storage_mode == storage_mode_compact);	
+		TORRENT_ASSERT(m_storage_mode == internal_storage_mode_compact_deprecated);	
 		TORRENT_ASSERT(m_unallocated_slots.empty());	
 		// we have allocated all slots, switch to
 		// full allocation mode in order to free
@@ -2801,7 +2801,7 @@ ret:
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		if (m_storage_mode != storage_mode_compact) return piece_index;
+		if (m_storage_mode != internal_storage_mode_compact_deprecated) return piece_index;
 
 		INVARIANT_CHECK;
 
@@ -2922,7 +2922,7 @@ ret:
 #endif
 
 		TORRENT_ASSERT(!m_unallocated_slots.empty());
-		TORRENT_ASSERT(m_storage_mode == storage_mode_compact);
+		TORRENT_ASSERT(m_storage_mode == internal_storage_mode_compact_deprecated);
 
 		bool written = false;
 
@@ -2954,7 +2954,7 @@ ret:
 
 	int piece_manager::slot_for(int piece) const
 	{
-		if (m_storage_mode != storage_mode_compact) return piece;
+		if (m_storage_mode != internal_storage_mode_compact_deprecated) return piece;
 		TORRENT_ASSERT(piece < int(m_piece_to_slot.size()));
 		TORRENT_ASSERT(piece >= 0);
 		return m_piece_to_slot[piece];
@@ -2962,7 +2962,7 @@ ret:
 
 	int piece_manager::piece_for(int slot) const
 	{
-		if (m_storage_mode != storage_mode_compact) return slot;
+		if (m_storage_mode != internal_storage_mode_compact_deprecated) return slot;
 		TORRENT_ASSERT(slot < int(m_slot_to_piece.size()));
 		TORRENT_ASSERT(slot >= 0);
 		return m_slot_to_piece[slot];
@@ -2977,17 +2977,17 @@ ret:
 			&& m_free_slots.empty()
 			&& m_state == state_finished)
 		{
-			TORRENT_ASSERT(m_storage_mode != storage_mode_compact
+			TORRENT_ASSERT(m_storage_mode != internal_storage_mode_compact_deprecated
 				|| m_files.num_pieces() == 0);
 		}
 		
-		if (m_storage_mode != storage_mode_compact)
+		if (m_storage_mode != internal_storage_mode_compact_deprecated)
 		{
 			TORRENT_ASSERT(m_unallocated_slots.empty());
 			TORRENT_ASSERT(m_free_slots.empty());
 		}
 		
-		if (m_storage_mode != storage_mode_compact
+		if (m_storage_mode != internal_storage_mode_compact_deprecated
 			&& m_state != state_expand_pieces
 			&& m_state != state_full_check)
 		{

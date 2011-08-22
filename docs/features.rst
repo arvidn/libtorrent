@@ -69,8 +69,6 @@ disk management
 * queues torrents for file check, instead of checking all of them in parallel.
 * does not have any requirements on the piece order in a torrent that it
   resumes. This means it can resume a torrent downloaded by any client.
-* supports both sparse files and compact file allocation (where pieces
-  are kept consolidated on disk)
 * seed mode, where the files on disk are assumed to be complete, and each
   piece's hash is verified the first time it is requested.
 
