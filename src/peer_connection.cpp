@@ -985,7 +985,7 @@ namespace libtorrent
 		peer_log("==> HAVE    [ piece: %d ]", index);
 #endif
 		write_have(index);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 #endif
@@ -2119,7 +2119,7 @@ namespace libtorrent
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 		check_invariant();
 #endif
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		buffer::const_interval recv_buffer = receive_buffer();
 		int recv_pos = recv_buffer.end - recv_buffer.begin;
 		TORRENT_ASSERT(recv_pos >= 9);
@@ -2487,7 +2487,7 @@ namespace libtorrent
 		t->check_invariant();
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		piece_picker::downloading_piece pi;
 		picker.piece_info(p.piece, pi);
 		int num_blocks = picker.blocks_in_piece(p.piece);
@@ -5054,7 +5054,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
 				+ m_disk_recv_buffer_size));
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
 			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
@@ -5062,7 +5062,7 @@ namespace libtorrent
 				INVARIANT_CHECK;
 				on_receive(error, bytes_transferred);
 			}
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
 			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
@@ -5149,7 +5149,7 @@ namespace libtorrent
 	void peer_connection::on_connect(int ticket)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
 		// exit invariant check is run
@@ -5382,12 +5382,12 @@ namespace libtorrent
 
 		m_last_sent = time_now();
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		size_type cur_payload_ul = m_statistics.last_payload_uploaded();
 		size_type cur_protocol_ul = m_statistics.last_protocol_uploaded();
 #endif
 		on_sent(error, bytes_transferred);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
 		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
 		size_type stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
