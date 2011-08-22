@@ -146,25 +146,56 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece(): state(none), index(-1), info(0)
-				, finished(0), writing(0), requested(0) {}
+			downloading_piece() : info(0), index(-1)
+				, finished(0), state(none), writing(0)
+				, passed_hash_check(0), failed_write(0)
+				, requested(0), outstanding_hash_check(0) {}
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
-			piece_state_t state;
-
-			// the index of the piece
-			int index;
 			// info about each block
 			// this is a pointer into the m_block_info
 			// vector owned by the piece_picker
 			block_info* info;
+
+			// the index of the piece
+			int index;
+
 			// the number of blocks in the finished state
-			boost::int16_t finished;
+			boost::uint16_t finished:14;
+
+			// the speed state of this piece
+			boost::uint16_t state:2;
+
 			// the number of blocks in the writing state
-			boost::int16_t writing;
+			boost::uint16_t writing:14;
+
+			// set to true when the hash check job
+			// returns with a valid hash for this piece.
+			// we might not 'have' the piece yet though,
+			// since it might not have been written to
+			// disk. This is not set of failed_write is
+			// set.
+			boost::uint16_t passed_hash_check:1;
+
+			// set to true when any block in this piece
+			// fails to be written to disk
+			// if a block fails, passed_hash_check is also
+			// cleared. Checking the hash of a piece and
+			// writing it to disk are both done asynchronously.
+			// the operations may complete in any order. It's
+			// important that at the end we know whether
+			// both succeeded. And if write failed, we want
+			// the piece to be restored to a state where download
+			// can be resumed
+			boost::uint16_t failed_write:1;
+
 			// the number of blocks in the requested state
-			boost::int16_t requested;
+			boost::uint16_t requested:14;
+
+			// set to true while there is an outstanding
+			// hash check for this piece
+			boost::uint16_t outstanding_hash_check:1;
 		};
 		
 		piece_picker();
@@ -208,7 +239,8 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_piece_map.size()));
-			return m_piece_map[index].index == piece_pos::we_have_index;
+			piece_pos const& p = m_piece_map[index];
+			return p.index == piece_pos::we_have_index;
 		}
 
 		// sets the priority of a piece.
@@ -294,6 +326,10 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
+		void piece_passed(int index);
+
+		void mark_as_checking(int index);
+		void mark_as_done_checking(int index);
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;

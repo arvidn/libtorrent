@@ -1024,6 +1024,19 @@ namespace libtorrent
 #endif
 	}
 
+	void piece_picker::piece_passed(int index)
+	{
+		piece_pos& p = m_piece_map[index];
+		if (!p.downloading) return;
+
+		std::vector<downloading_piece>::iterator i = find_dl_piece(index);
+		TORRENT_ASSERT(i != m_downloads.end());
+		if (!i->failed_write) i->passed_hash_check = true;
+		if (i->finished < blocks_in_piece(index)) return;
+		
+		we_have(index);
+	}
+
 	void piece_picker::we_dont_have(int index)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -2227,8 +2240,20 @@ namespace libtorrent
 		if (info.state == block_info::state_writing) --i->writing;
 
 		info.peer = 0;
-
 		info.state = block_info::state_none;
+		if (i->passed_hash_check)
+		{
+			// the hash was good, but we failed to write
+			// some of the blocks to disk, which means we
+			// can't consider the piece complete
+			i->passed_hash_check = false;
+		}
+		else if (i->outstanding_hash_check)
+		{
+			// prevent this hash job from actually completing
+			// this piece, by setting the failure state.
+			i->failed_write = true;
+		}
 
 		update_full(*i);
 
@@ -2351,7 +2376,25 @@ namespace libtorrent
 				info.state = block_info::state_finished;
 //				sort_piece(i);
 			}
+
+			if (i->passed_hash_check && i->finished == blocks_in_piece(i->index))
+				we_have(i->index);
 		}
+	}
+
+	void piece_picker::mark_as_checking(int index)
+	{
+		std::vector<downloading_piece>::iterator i = find_dl_piece(index);
+		if (i == m_downloads.end()) return;
+		TORRENT_ASSERT(i->outstanding_hash_check == false);
+		i->outstanding_hash_check = true;
+	}
+
+	void piece_picker::mark_as_done_checking(int index)
+	{
+		std::vector<downloading_piece>::iterator i = find_dl_piece(index);
+		if (i == m_downloads.end()) return;
+		i->outstanding_hash_check = false;
 	}
 
 	void piece_picker::get_requestors(std::vector<void*>& d, int index) const
@@ -2373,9 +2416,15 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= 0 && index <= (int)m_piece_map.size());
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(index);
-		TORRENT_ASSERT(i != m_downloads.end());
 
 		d.clear();
+		if (i == m_downloads.end())
+		{
+			int num_blocks = blocks_in_piece(index);
+			for (int i = 0; i < num_blocks; ++i) d.push_back(0);
+			return;
+		}
+
 		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
 		{
 			d.push_back(i->info[j].peer);

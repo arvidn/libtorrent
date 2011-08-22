@@ -8966,6 +8966,34 @@ This threshold is controlled by ``session_settings::whole_pieces_threshold``.
 *TODO: piece affinity by speed category*
 *TODO: piece priorities*
 
+predictive piece announce
+=========================
+
+In order to improve performance, libtorrent supports a feature called
+``predictive piece announce``. When enabled, it will make libtorrent announce
+that we have pieces to peers, before we truly have them. The most important
+case is to announce a piece as soon as it has been downloaded and passed
+the hash check, but not yet been written to disk. In this case, there is
+a risk the piece will fail to be written to disk, in which case we won't have
+the piece anymore, even though we announced it to peers.
+
+The other case is when we're very close to completing the download of a piece
+and assume it will pass the hash check, we can announce it to peers to make
+it available one round-trip sooner than otherwise. This lets libtorrent start
+uploading the piece to interested peers immediately when the piece complete, instead
+of waiting one round-trip for the peers to request it.
+
+This makes for the implementation slightly more complicated, since piece will have
+more states and more complicated transitions. For instance, a piece could be:
+
+1. hashed but not fully written to disk
+2. fully written to disk but not hashed
+3. not fully downloaded
+4. downloaded and hash checked
+
+Once a piece is fully downloaded, the hash check could complete before any of
+the write operations or it could complete after all write operations are complete.
+
 filename checks
 ===============
 

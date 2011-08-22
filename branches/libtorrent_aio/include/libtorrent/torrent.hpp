@@ -536,6 +536,7 @@ namespace libtorrent
 		// we'll have it very soon
 		bool is_predictive_piece(int index) const
 		{
+			// #error make this a sorted list and binary_search to lookup
 			return std::find(m_predictive_pieces.begin(), m_predictive_pieces.end(), index)
 				!= m_predictive_pieces.end();
 		}
