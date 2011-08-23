@@ -116,8 +116,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 			<< " session total: " << ss.total_payload_download
 			<< " torrent total: " << s.total_payload_download
 			<< " rate sum:" << ses_rate_sum
-			<< " cache: " << cs.cache_size
-			<< " rcache: " << cs.read_cache_size
+			<< " w-cache: " << cs.write_cache_size
+			<< " r-cache: " << cs.read_cache_size
 			<< " buffers: " << cs.total_used_buffers
 			<< std::endl;
 */
@@ -135,7 +135,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		test_sleep(500);
 	}
 
-	TEST_EQUAL(cs.cache_size, torrent_file->total_size() / 0x4000);
+	TEST_EQUAL(cs.read_cache_size, torrent_file->total_size() / 0x4000);
 	TEST_EQUAL(cs.total_used_buffers, torrent_file->total_size() / 0x4000);
 
 	std::cerr << "total_size: " << total_size
