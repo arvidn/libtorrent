@@ -96,9 +96,8 @@ namespace libtorrent
 			{
 				// technically this is allowed, but not very likely to happen
 				// without being a bug
-				if (i->ref.pe == ref.pe && i->ref.block == ref.block) ++count;
+				if (i->ref.storage == ref.storage && i->ref.piece == ref.piece && i->ref.block == ref.block) ++count;
 			}
-			TORRENT_ASSERT(count <= ref.pe->blocks[ref.block].reading_count);
 			m_vec.back().ref = ref;
 		}
 #endif

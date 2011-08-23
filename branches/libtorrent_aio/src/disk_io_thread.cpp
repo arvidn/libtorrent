@@ -450,14 +450,12 @@ namespace libtorrent
 
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
-		TORRENT_ASSERT(ref.pe);
+		TORRENT_ASSERT(ref.storage);
 		// technically this isn't allowed, since these values are owned
 		// and modified by the disk thread (and this call is made from the
 		// network thread). However, it's just asserts (so it only affects
 		// debug builds) and on the most popular systems, these read operations
 		// will most likely be atomic anyway
-		TORRENT_ASSERT(ref.pe->blocks[ref.block].refcount > 0);
-		TORRENT_ASSERT(ref.pe->blocks[ref.block].reading_count > 0);
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::reclaim_block);
 		j->ref = ref;
 		add_job(j, true);
@@ -1920,13 +1918,10 @@ namespace libtorrent
 
 	int disk_io_thread::do_reclaim_block(disk_io_job* j)
 	{
-		TORRENT_ASSERT(j->ref.pe);
-		TORRENT_ASSERT(j->ref.block < j->ref.pe->blocks_in_piece);
+		TORRENT_ASSERT(j->ref.storage);
 		if (j->ref.block < 0) return 0;
 
-		m_disk_cache.reclaim_block(j->ref);
-
-		cached_piece_entry* pe = j->ref.pe;
+		cached_piece_entry* pe = m_disk_cache.reclaim_block(j->ref);
 
 		if (pe->refcount > 0) return 0;
 
@@ -2127,23 +2122,6 @@ namespace libtorrent
 		j->start_time = time_now_hires();
 
 		mutex::scoped_lock l (m_job_mutex);
-
-#ifdef TORRENT_DEBUG
-		// make sure we're not "double freeing" this block.
-		// i.e. make sure there's not an identical job in the queue
-		if (j->action == disk_io_job::reclaim_block)
-		{
-			int count = 1;
-			for (tailqueue_iterator iter = m_queued_jobs.iterate();
-				iter.get(); iter.next())
-			{
-				disk_io_job* k = (disk_io_job*)iter.get();
-				if (k->action != disk_io_job::reclaim_block) continue;
-				if (k->ref.pe == j->ref.pe && k->ref.block == j->ref.block) ++count;
-			}
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount >= count);
-		}
-#endif
 
 		if (high_priority)
 			m_queued_jobs.push_front(j);

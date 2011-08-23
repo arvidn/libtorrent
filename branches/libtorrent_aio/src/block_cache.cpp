@@ -466,16 +466,20 @@ int block_cache::allocate_pending(block_cache::iterator p
 				to_delete[num_to_delete++] = bl.buf;
 				bl.buf = 0;
 				bl.uninitialized = false;
+				bl.dirty = false;
 				TORRENT_ASSERT(m_read_cache_size > 0);
 				--m_read_cache_size;
 				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
 			}
-			if (p->num_blocks == 0)
-			{
-				cache_piece_index_t& idx = m_pieces.get<0>();
-				idx.erase(p);
-			}
+			// we cannot erase the piece 'p' here, since
+			// the caller still has an iterator pointint
+			// to it, and will expect it to still be valid
+//			if (p->num_blocks == 0)
+//			{
+//				cache_piece_index_t& idx = m_pieces.get<0>();
+//				idx.erase(p);
+//			}
 			if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
 			return -1;
@@ -1276,7 +1280,8 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		TORRENT_ASSERT(pe->blocks[start_block].refcount > 0); // make sure it didn't wrap
 		++pe->refcount;
 		TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
-		j->ref.pe = pe;
+		j->ref.storage = j->storage.get();
+		j->ref.piece = pe->piece;
 		j->ref.block = start_block;
 		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size()-1));
 		++m_send_buffer_blocks;
@@ -1334,9 +1339,10 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	return j->buffer_size;
 }
 
-void block_cache::reclaim_block(block_cache_reference const& ref)
+cached_piece_entry* block_cache::reclaim_block(block_cache_reference const& ref)
 {
-	cached_piece_entry* pe = ref.pe;
+	iterator i = find_piece(ref);
+	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
 	TORRENT_ASSERT(pe->blocks[ref.block].refcount > 0);
 	TORRENT_ASSERT(pe->blocks[ref.block].buf);
 	--pe->blocks[ref.block].refcount;
@@ -1354,6 +1360,16 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 
 	TORRENT_ASSERT(m_send_buffer_blocks > 0);
 	--m_send_buffer_blocks;
+	return pe;
+}
+
+block_cache::iterator block_cache::find_piece(block_cache_reference const& ref)
+{
+	cache_piece_index_t& idx = m_pieces.get<0>();
+	cache_piece_index_t::iterator i
+		= idx.find(boost::make_tuple(ref.storage, ref.piece));
+	TORRENT_ASSERT(i == idx.end() || (i->storage == ref.storage && i->piece == ref.piece));
+	return i;
 }
 
 block_cache::iterator block_cache::find_piece(cached_piece_entry const* pe)

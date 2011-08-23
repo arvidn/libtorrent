@@ -101,13 +101,6 @@ namespace libtorrent
 	void complete_job(aiocb_pool* pool, int ret, disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->next == 0);
-#ifdef TORRENT_DEBUG
-		if (j->ref.pe)
-		{
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].refcount >= 1);
-			TORRENT_ASSERT(j->ref.pe->blocks[j->ref.block].buf + (j->offset & 0x3fff) == j->buffer);
-		}
-#endif
 		TORRENT_ASSERT(j->callback_called == true);
 		if (j->callback) j->callback(ret, *j);
 		pool->free_job(j);

@@ -2665,11 +2665,18 @@ namespace libtorrent
 		picker.mark_as_finished(block_finished, peer_info_struct());
 		TORRENT_ASSERT(picker.is_finished(block_finished));
 
+		if (t->alerts().should_post<block_finished_alert>())
+		{
+			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
+				remote(), pid(), block_finished.block_index, block_finished.piece_index));
+		}
+
 		if (picker.have_piece(block_finished.piece_index))
 			t->we_have(block_finished.piece_index);
 
-#ifndef NDBEUG
+		if (m_disconnecting) return;
 
+#ifdef TORRENT_DEBUG
 		const std::vector<piece_picker::downloading_piece>& q
 			= picker.get_download_queue();
 
@@ -2682,12 +2689,6 @@ namespace libtorrent
 		}
 
 #endif
-		if (t->alerts().should_post<block_finished_alert>())
-		{
-			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
-				remote(), pid(), block_finished.block_index, block_finished.piece_index));
-		}
-
 		if (t->is_aborted()) return;
 	}
 
@@ -4593,15 +4594,8 @@ namespace libtorrent
 
 		disk_buffer_holder buffer(m_ses, j);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		if (buffer.ref().pe != 0)
-		{
-			TORRENT_ASSERT(buffer.ref().pe->blocks[buffer.ref().block].reading_count >= 1);
-		}
-#endif
-
 #if TORRENT_BUFFER_STATS
-		if (j.buffer && j.ref.pe == 0)
+		if (j.buffer && j.ref.storage == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "received send buffer");
 #endif
 
@@ -4624,7 +4618,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_BUFFER_STATS
-		if (j.buffer && j.ref.pe == 0)
+		if (j.buffer && j.ref.storage == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
 		write_piece(r, buffer);

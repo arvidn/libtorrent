@@ -234,7 +234,7 @@ namespace libtorrent
 		typedef cache_piece_index_t::iterator iterator;
 		typedef cache_lru_index_t::iterator lru_iterator;
 
-		void reclaim_block(block_cache_reference const& ref);
+		cached_piece_entry* reclaim_block(block_cache_reference const& ref);
 
 		// returns the range of all pieces that belongs to the
 		// given storage
@@ -276,6 +276,7 @@ namespace libtorrent
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
+		block_cache::iterator find_piece(block_cache_reference const& ref);
 		block_cache::iterator find_piece(disk_io_job const* j);
 		block_cache::iterator find_piece(cached_piece_entry const* pe);
 

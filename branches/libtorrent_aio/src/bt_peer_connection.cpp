@@ -2293,13 +2293,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifdef TORRENT_DEBUG
-		if (buffer.ref().pe != 0)
-		{
-			TORRENT_ASSERT(buffer.ref().pe->blocks[buffer.ref().block].reading_count >= 1);
-		}
-#endif
-
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -2353,7 +2346,7 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		if (buffer.ref().pe == 0)
+		if (buffer.ref().storage == 0)
 		{
 			append_send_buffer(buffer.get(), r.length
 				, boost::bind(&session_impl::free_disk_buffer
@@ -2365,7 +2358,6 @@ namespace libtorrent
 				, boost::bind(&session_impl::reclaim_block
 				, boost::ref(m_ses), buffer.ref()));
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(buffer.ref().pe->blocks[buffer.ref().block].reading_count >= 1);
 			m_send_buffer.set_ref(buffer.ref());
 #endif
 		}

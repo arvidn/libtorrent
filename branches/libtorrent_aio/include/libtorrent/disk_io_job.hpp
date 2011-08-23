@@ -50,8 +50,9 @@ namespace libtorrent
 
 	struct block_cache_reference
 	{
-		block_cache_reference(): pe(0), block(-1) {}
-		cached_piece_entry* pe;
+		block_cache_reference(): storage(0), piece(-1), block(-1) {}
+		void* storage;
+		int piece;
 		int block;
 	};
 
