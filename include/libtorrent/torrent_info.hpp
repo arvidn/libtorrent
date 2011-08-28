@@ -333,6 +333,8 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
+		std::string const& ssl_cert() const { return m_ssl_root_cert; }
+
 		bool is_valid() const { return m_files.is_valid(); }
 
 		bool priv() const { return m_private; }
@@ -455,6 +457,11 @@ namespace libtorrent
 		// an optional string naming the software used
 		// to create the torrent file
 		std::string m_created_by;
+
+		// for ssl-torrens, this contains the root
+		// certificate, in .pem format (i.e. ascii
+		// base64 encoded with head and tails)
+		std::string m_ssl_root_cert;
 
 		// the info section parsed. points into m_info_section
 		// parsed lazily

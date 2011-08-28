@@ -63,6 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
 
 namespace libtorrent
 {
@@ -90,6 +93,9 @@ namespace libtorrent
 			, num_want(0)
 			, send_stats(true)
 			, apply_ip_filter(true)
+#ifdef TORRENT_USE_OPENSSL
+			, ssl_ctx(0)
+#endif
 		{}
 
 		enum
@@ -125,6 +131,9 @@ namespace libtorrent
 		address bind_ip;
 		bool send_stats;
 		bool apply_ip_filter;
+#ifdef TORRENT_USE_OPENSSL
+		boost::asio::ssl::context* ssl_ctx;
+#endif
 	};
 
 	struct TORRENT_EXPORT request_callback
