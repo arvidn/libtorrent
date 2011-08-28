@@ -84,6 +84,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/verify_context.hpp>
 #endif
 
 #if TORRENT_USE_IOSTREAM
@@ -1261,6 +1263,15 @@ namespace libtorrent
 
 #endif
 
+/*
+#ifdef TORRENT_USE_OPENSSL
+	bool verify_function(bool preverified, boost::asio::ssl::verify_context& ctx)
+	{
+		return false;
+	}
+#endif
+*/
+
 	// this may not be called from a constructor because of the call to
 	// shared_from_this()
 	void torrent::init()
@@ -1269,6 +1280,98 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
+
+#ifdef TORRENT_USE_OPENSSL
+		std::string cert = m_torrent_file->ssl_cert();
+		if (!cert.empty())
+		{
+			using boost::asio::ssl::context;
+
+			// create the SSL context for this torrent. We need to
+			// inject the root certificate, and no other, to
+			// verify other peers against
+			boost::shared_ptr<context> ctx(
+				new (std::nothrow) context(m_ses.m_io_service, context::tlsv1));
+	
+			if (!ctx)
+			{
+				set_error(asio::error::no_memory, "SSL context");
+				pause();
+				return;
+			}
+
+			error_code ec;
+			ctx->set_verify_mode(context::verify_peer
+				| context::verify_fail_if_no_peer_cert, ec);
+			if (ec)
+			{
+				set_error(ec, "SSL context");
+				pause();
+				return;
+			}
+
+// this is used for debugging			
+/*
+			ctx->set_verify_callback(verify_function, ec);
+			if (ec)
+			{
+				set_error(ec, "SSL verify callback");
+				pause();
+				return;
+			}
+*/
+			SSL_CTX* ssl_ctx = ctx->impl();
+
+			// we don't want regular peers to be able to invite others
+			// by in turn signing new certificates. So, break the verification
+			// chain at depth 2. This is just a precaution in case the
+			// issuer of the peer certificates made a mistake and issued them
+			// as CA certs.
+			SSL_CTX_set_verify_depth(ssl_ctx, 0);
+
+			// create a new x.509 certificate store
+			X509_STORE* cert_store = X509_STORE_new();
+			if (!cert_store)
+			{
+				set_error(asio::error::no_memory, "x.509 certificate store");
+				pause();
+				return;
+			}
+
+			// wrap the PEM certificate in a BIO, for openssl to read
+			BIO* bp = BIO_new_mem_buf((void*)cert.c_str(), cert.size());
+
+			// parse the certificate into OpenSSL's internal
+			// representation
+			X509* certificate = PEM_read_bio_X509_AUX(bp, 0, 0, 0);
+
+			BIO_free(bp);
+
+			if (!certificate)
+			{
+				X509_STORE_free(cert_store);
+				set_error(asio::error::no_memory, "x.509 certificate");
+				pause();
+				return;
+			}
+
+			// add cert to cert_store
+			X509_STORE_add_cert(cert_store, certificate);
+
+			// and lastly, replace the default cert store with ours
+			SSL_CTX_set_cert_store(ssl_ctx, cert_store);
+#if 0
+			char filename[100];
+			snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
+			FILE* f = fopen(filename, "w+");
+			fwrite(cert.c_str(), cert.size(), 1, f);
+			fclose(f);
+			ctx->load_verify_file(filename);
+#endif
+			// if all went well, set the torrent ssl context to this one
+			m_ssl_ctx = ctx;
+		}
+#endif
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
 		m_file_progress.resize(m_torrent_file->num_files(), 0);
@@ -1941,6 +2044,11 @@ namespace libtorrent
 		req.corrupt = m_total_failed_bytes;
 		req.left = bytes_left();
 		if (req.left == -1) req.left = 16*1024;
+#ifdef TORRENT_USE_OPENSSL
+		// if this torrent contains an SSL certificate, make sure
+		// any SSL tracker presents a certificate signed by it
+		req.ssl_ctx = m_ssl_ctx.get();
+#endif
 
 		// exclude redundant bytes if we should
 		if (!settings().report_true_downloaded)

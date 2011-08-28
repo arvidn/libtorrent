@@ -78,40 +78,13 @@ struct TORRENT_EXPORT http_connection : boost::enable_shared_from_this<http_conn
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true
 		, http_connect_handler const& ch = http_connect_handler()
-		, http_filter_handler const& fh = http_filter_handler())
-		: m_sock(ios)
-#if TORRENT_USE_I2P
-		, m_i2p_conn(0)
-#endif
-		, m_read_pos(0)
-		, m_resolver(ios)
-		, m_handler(handler)
-		, m_connect_handler(ch)
-		, m_filter_handler(fh)
-		, m_timer(ios)
-		, m_last_receive(time_now())
-		, m_bottled(bottled)
-		, m_called(false)
+		, http_filter_handler const& fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(ios, asio::ssl::context::sslv23_client)
+		, boost::asio::ssl::context* ssl_ctx = 0
 #endif
-		, m_rate_limit(0)
-		, m_download_quota(0)
-		, m_limiter_timer_active(false)
-		, m_limiter_timer(ios)
-		, m_redirects(5)
-		, m_connection_ticket(-1)
-		, m_cc(cc)
-		, m_ssl(false)
-		, m_priority(0)
-		, m_abort(false)
-	{
-		TORRENT_ASSERT(!m_handler.empty());
-#ifdef TORRENT_USE_OPENSSL
-		error_code ec;
-		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
-#endif
-	}
+		);
+
+	~http_connection();
 
 	void rate_limit(int limit);
 
@@ -191,7 +164,8 @@ private:
 
 	std::list<tcp::endpoint> m_endpoints;
 #ifdef TORRENT_USE_OPENSSL
-	asio::ssl::context m_ssl_ctx;
+	asio::ssl::context* m_ssl_ctx;
+	bool m_own_ssl_context;
 #endif
 
 	// the current download limit, in bytes per second
