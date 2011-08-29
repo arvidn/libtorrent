@@ -85,7 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
-#include <boost/asio/ssl/verify_context.hpp>
+//#include <boost/asio/ssl/verify_context.hpp>
 #endif
 
 #if TORRENT_USE_IOSTREAM

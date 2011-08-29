@@ -1926,7 +1926,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	bool ret = m_read_handler || m_write_handler || m_connect_handler;
 	
 	// calling the callbacks with m_userdata being 0 will just crash
-	TORRENT_ASSERT(ret == bool(m_userdata));
+	TORRENT_ASSERT((ret && bool(m_userdata)) || !ret);
 
 	if (m_read_handler) m_read_handler(m_userdata, 0, ec, kill);
 	m_read_handler = 0;
