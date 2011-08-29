@@ -518,7 +518,7 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		m_rc4_handler->encrypt(ptr, encrypt_size);
+		m_enc_handler->encrypt(ptr, encrypt_size);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
 
@@ -538,7 +538,7 @@ namespace libtorrent
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		m_rc4_handler->encrypt(msg, buf_size);
+		m_enc_handler->encrypt(msg, buf_size);
 		send_buffer(msg, buf_size);
 
 		// encryption method has been negotiated
@@ -613,11 +613,12 @@ namespace libtorrent
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
 		
-		TORRENT_ASSERT(!m_rc4_handler.get());
-		m_rc4_handler.reset(new (std::nothrow) rc4_handler);
-		m_rc4_handler->set_incoming_key(&remote_key[0], 20);
-		m_rc4_handler->set_outgoing_key(&local_key[0], 20);
-		if (!m_rc4_handler)
+		TORRENT_ASSERT(!m_enc_handler.get());
+		m_enc_handler.reset(new (std::nothrow) rc4_handler);
+		m_enc_handler->set_incoming_key(&remote_key[0], 20);
+		m_enc_handler->set_outgoing_key(&local_key[0], 20);
+
+		if (!m_enc_handler)
 		{
 			disconnect(errors::no_memory);
 			return;
@@ -663,7 +664,7 @@ namespace libtorrent
 		if (m_encrypted && m_rc4_encrypted)
 		{
 			fun = encrypt;
-			userdata = m_rc4_handler.get();
+			userdata = m_enc_handler.get();
 		}
 #endif
 		
@@ -2362,8 +2363,8 @@ namespace libtorrent
 		if (m_rc4_encrypted && m_encrypted)
 		{
 			std::pair<buffer::interval, buffer::interval> wr_buf = wr_recv_buffers(bytes_transferred);
-			m_rc4_handler->decrypt(wr_buf.first.begin, wr_buf.first.left());
-			if (wr_buf.second.left()) m_rc4_handler->decrypt(wr_buf.second.begin, wr_buf.second.left());
+			m_enc_handler->decrypt(wr_buf.first.begin, wr_buf.first.left());
+			if (wr_buf.second.left()) m_enc_handler->decrypt(wr_buf.second.begin, wr_buf.second.left());
 		}
 #endif
 
@@ -2555,7 +2556,7 @@ namespace libtorrent
 				}
 			}
 
-			if (!m_rc4_handler.get())
+			if (!m_enc_handler.get())
 			{
 				disconnect(errors::invalid_info_hash, 1);
 				return;
@@ -2563,7 +2564,7 @@ namespace libtorrent
 
 			// verify constant
 			buffer::interval wr_recv_buf = wr_recv_buffer();
-			m_rc4_handler->decrypt(wr_recv_buf.begin + 20, 8);
+			m_enc_handler->decrypt(wr_recv_buf.begin + 20, 8);
 			wr_recv_buf.begin += 28;
 
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
@@ -2608,7 +2609,7 @@ namespace libtorrent
 					return;
 				}
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
-				m_rc4_handler->decrypt(m_sync_vc.get(), 8);
+				m_enc_handler->decrypt(m_sync_vc.get(), 8);
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
@@ -2666,7 +2667,7 @@ namespace libtorrent
 			if (!packet_finished()) return;
 
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
 			recv_buffer = receive_buffer();
 			
@@ -2681,80 +2682,57 @@ namespace libtorrent
 
 			if (!is_local())
 			{
-				int crypto_select = 0;
 				// select a crypto method
-				switch (m_ses.get_pe_settings().allowed_enc_level)
+				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
+				int crypto_select = crypto_field & allowed_encryption;
+	
+				// when prefer_rc4 is set, keep the most significant bit
+				// otherwise keep the least significant one
+				if (m_ses.get_pe_settings().prefer_rc4)
 				{
-				case pe_settings::plaintext:
-					if (!(crypto_field & 0x01))
+					int mask = INT_MAX;
+					while (crypto_select & (mask << 1))
 					{
-						disconnect(errors::no_plaintext_mode, 1);
-						return;
+						mask <<= 1;
+						crypto_select = crypto_select & mask;
 					}
-					crypto_select = 0x01;
-					break;
-				case pe_settings::rc4:
-					if (!(crypto_field & 0x02))
+				}
+				else
+				{
+					int mask = INT_MAX;
+					while (crypto_select & (mask >> 1))
 					{
-						disconnect(errors::no_rc4_mode, 1);
-						return;
+						mask >>= 1;
+						crypto_select = crypto_select & mask;
 					}
-					crypto_select = 0x02;
-					break;
-				case pe_settings::both:
-					if (m_ses.get_pe_settings().prefer_rc4)
-					{
-						if (crypto_field & 0x02) 
-							crypto_select = 0x02;
-						else if (crypto_field & 0x01)
-							crypto_select = 0x01;
-					}
-					else
-					{
-						if (crypto_field & 0x01)
-							crypto_select = 0x01;
-						else if (crypto_field & 0x02)
-							crypto_select = 0x02;
-					}
-					if (!crypto_select)
-					{
+				}
+
+				if (crypto_select == 0)
+				{
 						disconnect(errors::unsupported_encryption_mode, 1);
 						return;
-					}
-					break;
-				} // switch
-				
+				}
+
 				// write the pe4 step
 				write_pe4_sync(crypto_select);
 			}
 			else // is_local()
 			{
 				// check if crypto select is valid
-				pe_settings::enc_level const& allowed_enc_level = m_ses.get_pe_settings().allowed_enc_level;
+				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
 
-				if (crypto_field == 0x02)
+				crypto_field &= allowed_encryption; 
+				if (crypto_field == 0)
 				{
-					if (allowed_enc_level == pe_settings::plaintext)
-					{
-						disconnect(errors::unsupported_encryption_mode_selected, 2);
-						return;
-					}
-					m_rc4_encrypted = true;
-				}
-				else if (crypto_field == 0x01)
-				{
-					if (allowed_enc_level == pe_settings::rc4)
-					{
-						disconnect(errors::unsupported_encryption_mode_selected, 2);
-						return;
-					}
-					m_rc4_encrypted = false;
-				}
-				else
-				{
+					// we don't allow any of the offered encryption levels
 					disconnect(errors::unsupported_encryption_mode_selected, 2);
 					return;
 				}
+
+				if (crypto_field == pe_settings::plaintext)
+					m_rc4_encrypted = false;
+				else if (crypto_field == pe_settings::rc4)
+					m_rc4_encrypted = true;
 			}
 
 			int len_pad = detail::read_int16(recv_buffer.begin);
@@ -2789,7 +2767,7 @@ namespace libtorrent
 			int pad_size = is_local() ? packet_size() : packet_size() - 2;
 
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
 			recv_buffer = receive_buffer();
 				
@@ -2838,7 +2816,7 @@ namespace libtorrent
 
 			// ia is always rc4, so decrypt it
 			buffer::interval wr_buf = wr_recv_buffer();
-			m_rc4_handler->decrypt(wr_buf.begin, packet_size());
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** decrypted ia : %d bytes", packet_size());
@@ -2846,13 +2824,13 @@ namespace libtorrent
 
 			if (!m_rc4_encrypted)
 			{
-				m_rc4_handler.reset();
+				m_enc_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** destroyed rc4 keys");
 #endif
 			}
 
-			// everything that arrives after this is Encrypt2
+			// everything that arrives after this is encrypted
 			m_encrypted = true;
 
 			m_state = read_protocol_identifier;
@@ -2870,16 +2848,16 @@ namespace libtorrent
 			{
 				buffer::interval wr_buf = wr_recv_buffer();
 				wr_buf.begin += packet_size();
-				m_rc4_handler->decrypt(wr_buf.begin, wr_buf.left());
+				m_enc_handler->decrypt(wr_buf.begin, wr_buf.left());
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** decrypted remaining %d bytes", wr_buf.left());
 #endif
 			}
 			else // !m_rc4_encrypted
 			{
-				m_rc4_handler.reset();
+				m_enc_handler.reset();
 #ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("*** destroyed rc4 keys");
+				peer_log("*** destroyed encryption handler");
 #endif
 			}
 
@@ -3341,7 +3319,7 @@ namespace libtorrent
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_local());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || m_rc4_handler.get());
+		TORRENT_ASSERT(!m_rc4_encrypted || m_enc_handler.get());
 #endif
 		if (!in_handshake())
 		{

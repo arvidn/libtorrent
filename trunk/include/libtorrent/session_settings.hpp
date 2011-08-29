@@ -1161,9 +1161,9 @@ namespace libtorrent
 
 		enum enc_level
 		{
-			plaintext, // use only plaintext encryption
-			rc4, // use only rc4 encryption 
-			both // allow both
+			plaintext = 1, // use only plaintext encryption
+			rc4 = 2, // use only rc4 encryption 
+			both = 3 // allow both
 		};
 
 		enc_policy out_enc_policy;
