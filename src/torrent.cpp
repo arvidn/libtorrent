@@ -1312,6 +1312,7 @@ namespace libtorrent
 
 // this is used for debugging			
 /*
+#error there's a bug where the async_handshake on the ssl_stream always succeeds, regardless of the certificate failing. It's not a trivial bug in asio, that's been tested with a small repro program.
 			ctx->set_verify_callback(verify_function, ec);
 			if (ec)
 			{
@@ -1321,13 +1322,6 @@ namespace libtorrent
 			}
 */
 			SSL_CTX* ssl_ctx = ctx->impl();
-
-			// we don't want regular peers to be able to invite others
-			// by in turn signing new certificates. So, break the verification
-			// chain at depth 2. This is just a precaution in case the
-			// issuer of the peer certificates made a mistake and issued them
-			// as CA certs.
-			SSL_CTX_set_verify_depth(ssl_ctx, 0);
 
 			// create a new x.509 certificate store
 			X509_STORE* cert_store = X509_STORE_new();
