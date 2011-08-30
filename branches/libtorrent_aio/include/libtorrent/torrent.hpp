@@ -961,6 +961,10 @@ namespace libtorrent
 		// the object.
 		piece_manager* m_storage;
 
+#ifdef TORRENT_USE_OPENSSL
+		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
+#endif
+
 #ifdef TORRENT_DEBUG
 	public:
 #endif

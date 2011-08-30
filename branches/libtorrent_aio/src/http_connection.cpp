@@ -50,6 +50,52 @@ namespace libtorrent {
 
 enum { max_bottled_buffer = 1024 * 1024 };
 
+http_connection::http_connection(io_service& ios, connection_queue& cc
+	, http_handler const& handler, bool bottled
+	, http_connect_handler const& ch
+	, http_filter_handler const& fh
+#ifdef TORRENT_USE_OPENSSL
+	, boost::asio::ssl::context* ssl_ctx
+#endif
+	)
+	: m_sock(ios)
+#if TORRENT_USE_I2P
+	, m_i2p_conn(0)
+#endif
+	, m_read_pos(0)
+	, m_resolver(ios)
+	, m_handler(handler)
+	, m_connect_handler(ch)
+	, m_filter_handler(fh)
+	, m_timer(ios)
+	, m_last_receive(time_now())
+	, m_bottled(bottled)
+	, m_called(false)
+#ifdef TORRENT_USE_OPENSSL
+	, m_ssl_ctx(ssl_ctx)
+	, m_own_ssl_context(false)
+#endif
+	, m_rate_limit(0)
+	, m_download_quota(0)
+	, m_limiter_timer_active(false)
+	, m_limiter_timer(ios)
+	, m_redirects(5)
+	, m_connection_ticket(-1)
+	, m_cc(cc)
+	, m_ssl(false)
+	, m_priority(0)
+	, m_abort(false)
+{
+	TORRENT_ASSERT(!m_handler.empty());
+}
+
+http_connection::~http_connection()
+{
+#ifdef TORRENT_USE_OPENSSL
+	if (m_own_ssl_context) delete m_ssl_ctx;
+#endif
+}
+
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
 	, address const& bind_addr
@@ -250,7 +296,20 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-		if (m_ssl) userdata = &m_ssl_ctx;
+		if (m_ssl)
+		{
+			if (m_ssl_ctx == 0)
+			{
+				m_ssl_ctx = new boost::asio::ssl::context(m_resolver.get_io_service(), asio::ssl::context::sslv23_client);
+				if (m_ssl_ctx)
+				{
+					m_own_ssl_context = true;
+					error_code ec;
+					m_ssl_ctx->set_verify_mode(asio::ssl::context::verify_none, ec);
+				}
+			}
+			userdata = m_ssl_ctx;
+		}
 #endif
 		instantiate_connection(m_resolver.get_io_service()
 			, proxy ? *proxy : null_proxy, m_sock, userdata);

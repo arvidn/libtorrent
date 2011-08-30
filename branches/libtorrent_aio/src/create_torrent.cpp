@@ -419,6 +419,9 @@ namespace libtorrent
 
 		info["name"] = m_files.name();
 
+		if (!m_root_cert.empty())
+			info["ssl-cert"] = m_root_cert;
+
 		if (m_private) info["private"] = 1;
 
 		if (!m_multifile)
@@ -565,6 +568,11 @@ namespace libtorrent
 
 		std::sort(m_urls.begin(), m_urls.end()
 			, boost::bind(&announce_entry::second, _1) < boost::bind(&announce_entry::second, _2));
+	}
+
+	void create_torrent::set_root_cert(std::string const& cert)
+	{
+		m_root_cert = cert;
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)

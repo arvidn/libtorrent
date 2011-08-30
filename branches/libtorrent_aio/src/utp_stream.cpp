@@ -259,22 +259,12 @@ struct utp_socket_impl
 		, m_attached(true)
 		, m_nagle(true)
 	{
+		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = UINT_MAX;
 	}
 
 	~utp_socket_impl();
-
-	void init(udp::endpoint const& ep, boost::uint16_t id, void* userdata
-		, utp_socket_manager* sm)
-	{
-		m_remote_address = ep.address();
-		m_port = ep.port();
-		m_send_id = id + 1;
-		m_recv_id = id;
-		m_userdata = userdata;
-		m_sm = sm;
-	}
 
 	void tick(ptime const& now);
 	void init_mtu(int link_mtu, int utp_mtu);
@@ -806,6 +796,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
+	TORRENT_ASSERT(s);
 
 	UTP_LOGV("%8p: calling connect handler ec:%s kill:%d\n"
 		, s->m_impl, ec.message().c_str(), kill);
@@ -875,6 +866,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 // handler immediately.
 void utp_stream::set_read_handler(handler_t h)
 {
+	TORRENT_ASSERT(m_impl->m_userdata);
 	m_impl->m_read_handler = h;
 	if (m_impl->test_socket_state()) return;
 
@@ -985,6 +977,7 @@ void utp_stream::set_write_handler(handler_t h)
 
 	TORRENT_ASSERT(m_impl->m_write_buffer_size > 0);
 
+	TORRENT_ASSERT(m_impl->m_userdata);
 	m_impl->m_write_handler = h;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
@@ -1110,6 +1103,7 @@ bool utp_socket_impl::destroy()
 	bool cancelled = cancel_handlers(asio::error::operation_aborted, true);
 
 	m_userdata = 0;
+
 	m_read_buffer.clear();
 	m_read_buffer_size = 0;
 
@@ -1930,6 +1924,10 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 {
 	TORRENT_ASSERT(ec);
 	bool ret = m_read_handler || m_write_handler || m_connect_handler;
+	
+	// calling the callbacks with m_userdata being 0 will just crash
+	TORRENT_ASSERT((ret && bool(m_userdata)) || !ret);
+
 	if (m_read_handler) m_read_handler(m_userdata, 0, ec, kill);
 	m_read_handler = 0;
 	if (m_write_handler) m_write_handler(m_userdata, 0, ec, kill);

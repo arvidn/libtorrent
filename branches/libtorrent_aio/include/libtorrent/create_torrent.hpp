@@ -89,6 +89,7 @@ namespace libtorrent
 		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
+		void set_root_cert(std::string const& pem);
 		void set_priv(bool p) { m_private = p; }
 
 		int num_pieces() const { return m_files.num_pieces(); }
@@ -144,6 +145,9 @@ namespace libtorrent
 		// an optional string naming the software used
 		// to create the torrent file
 		std::string m_created_by;
+
+		// this is the root cert for SSL torrents
+		std::string m_root_cert;
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible

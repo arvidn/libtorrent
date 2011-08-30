@@ -932,6 +932,9 @@ namespace libtorrent
 		}
 
 		m_private = info.dict_find_int_value("private", 0);
+
+		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
+
 		return true;
 	}
 

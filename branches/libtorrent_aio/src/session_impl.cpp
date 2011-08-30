@@ -581,7 +581,7 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_writing_bytes(0)
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
 #endif
 	{
@@ -896,6 +896,11 @@ namespace aux {
 
 		memset(&m_last_cache_status, 0, sizeof(m_last_cache_status));
 		get_vm_stats(&m_last_vm_stat);
+
+		m_last_failed = 0;
+		m_last_redundant = 0;
+		m_last_uploaded = 0;
+		m_last_downloaded = 0;
 
 		reset_stat_counters();
 		rotate_stats_log();
@@ -2222,7 +2227,9 @@ namespace aux {
 					m_stat.received_tracker_bytes(len + 28);
 			}
 
-			if (m_alerts.should_post<udp_error_alert>())
+			// don't bubble up operation aborted errors to the user
+			if (e != asio::error::operation_aborted
+				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
 			return;
 		}
@@ -4128,7 +4135,7 @@ namespace aux {
 
 	void session_impl::main_thread()
 	{
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		m_network_thread = pthread_self();
 #endif
 		TORRENT_ASSERT(is_network_thread());
@@ -4176,7 +4183,7 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		m_network_thread = 0;
 #endif
 	}

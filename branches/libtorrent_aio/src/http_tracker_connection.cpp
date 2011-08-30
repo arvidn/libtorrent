@@ -216,7 +216,11 @@ namespace libtorrent
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
 			, true
 			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
-			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)));
+			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)
+#ifdef TORRENT_USE_OPENSSL
+			, tracker_req().ssl_ctx
+#endif
+			));
 
 		int timeout = tracker_req().event==tracker_request::stopped
 			?settings.stop_tracker_timeout

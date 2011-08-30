@@ -1,3 +1,4 @@
+	* deprecated compact storage allocation
 	* close files in separate thread on systems where close() may block (Mac OS X for instance)
 	* don't create all directories up front when adding torrents
 	* support DHT scrape
@@ -89,6 +90,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* don't post 'operation aborted' UDP errors when changing listen port
 	* fix tracker retry logic, where in some configurations the next tier would not be tried
 	* fixed bug in http seeding logic (introduced in 0.15.7)
 	* add support for dont-have extension message

@@ -85,7 +85,15 @@ namespace libtorrent
 		sha1_hash m_xor_mask;
 	};
 
-	class rc4_handler // Non copyable
+	struct encryption_handler
+	{
+		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
+		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
+		virtual void encrypt(char* pos, int len) = 0;
+		virtual void decrypt(char* pos, int len) = 0;
+	};
+
+	struct rc4_handler : encryption_handler
 	{
 	public:
 		// Input longkeys must be 20 bytes

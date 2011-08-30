@@ -85,6 +85,8 @@ void print_usage()
 		"            If this is not specified, the torrent file is\n"
 		"            printed to the standard out, except on windows\n"
 		"            where the filename defaults to a.torrent\n"
+		"-c          add root certificate to the torrent, to make\n"
+		"            it an SSL torrent\n"
 		, stderr);
 }
 
@@ -109,6 +111,7 @@ int main(int argc, char* argv[])
 		int pad_file_limit = -1;
 		int piece_size = 0;
 		int flags = 0;
+		std::string root_cert;
 
 		std::string outfile;
 		std::string merklefile;
@@ -160,6 +163,10 @@ int main(int argc, char* argv[])
 				case 'l':
 					flags |= create_torrent::symlinks;
 					break;
+				case 'c':
+					++i;
+					root_cert = argv[i];
+					break;
 				default:
 					print_usage();
 					return 1;
@@ -197,6 +204,20 @@ int main(int argc, char* argv[])
 
 		fprintf(stderr, "\n");
 		t.set_creator(creator_str);
+
+		if (!root_cert.empty())
+		{
+			FILE* cert = fopen(root_cert.c_str(), "rb");
+			if (cert)
+			{
+				std::string pem;
+				pem.resize(5000);
+				int s = fread(&pem[0], 1, pem.size(), cert);
+				pem.resize(s);
+				t.set_root_cert(pem);
+				fclose(cert);
+			}
+		}
 
 		// create the torrent and print it to stdout
 		std::vector<char> torrent;
