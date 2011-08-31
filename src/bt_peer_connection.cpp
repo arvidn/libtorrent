@@ -514,7 +514,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
 		peer_log(" crypto provide : [ %s ]"
-			, level[allowed_enc_level]);
+			, level[allowed_enc_level-1]);
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
