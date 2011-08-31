@@ -64,6 +64,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #	include <eh.h>
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+// this is a nasty openssl macro
+#ifdef set_key
+#undef set_key
+#endif
+#endif
+
 namespace libtorrent
 {
 	struct plugin;
