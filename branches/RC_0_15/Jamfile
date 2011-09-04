@@ -155,8 +155,10 @@ rule linking ( properties * )
 	{
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
+		# on open indiana, boost is install at /usr/g++/include
 		result += <include>/opt/local/include/boost-1_35
 			<include>/opt/local/include
+			<include>/usr/g++/include
 			;
 	}
 
@@ -315,15 +317,16 @@ local boost-library-search-path =
   <search>/usr/lib
   <search>/usr/local/lib
   <search>/sw/lib
+  <search>/usr/g++/lib
   ;
 
 lib boost_filesystem : : <target-os>darwin <name>boost_filesystem-mt $(boost-library-search-path) ;
 lib boost_thread : : <target-os>darwin <name>boost_thread-mt $(boost-library-search-path) ;
 lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
 
-lib boost_filesystem : : <name>boost_filesystem ;
-lib boost_thread : : <name>boost_thread ;
-lib boost_system : : <name>boost_system ;
+lib boost_filesystem : : <name>boost_filesystem $(boost-library-search-path) ;
+lib boost_thread : : <name>boost_thread $(boost-library-search-path) ;
+lib boost_system : : <name>boost_system $(boost-library-search-path) ;
 
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto <search>/lib ;

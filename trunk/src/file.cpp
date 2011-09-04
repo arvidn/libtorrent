@@ -211,6 +211,10 @@ namespace libtorrent
 	void create_directories(std::string const& f, error_code& ec)
 	{
 		ec.clear();
+		if (is_directory(f, ec)) return;
+		if (ec != boost::system::errc::no_such_file_or_directory)
+			return;
+		ec.clear();
 		if (is_root_path(f)) return;
 		if (has_parent_path(f))
 		{
@@ -1758,6 +1762,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// this is supported on solaris
 		size_type ret = lseek(m_fd, start, SEEK_DATA);
 		if (ret < 0) return start;
+		return start;
 #else
 		return start;
 #endif

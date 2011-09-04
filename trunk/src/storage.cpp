@@ -246,6 +246,12 @@ namespace libtorrent
 		return true;
 	}
 
+	void storage_interface::set_error(std::string const& file, error_code const& ec) const
+	{
+		m_error_file = file;
+		m_error = ec;
+	}
+
 	// for backwards compatibility, let the default readv and
 	// writev implementations be implemented in terms of the
 	// old read and write
