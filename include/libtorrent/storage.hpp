@@ -166,11 +166,7 @@ namespace libtorrent
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
 
-		void set_error(std::string const& file, error_code const& ec) const
-		{
-			m_error_file = file;
-			m_error = ec;
-		}
+		void set_error(std::string const& file, error_code const& ec) const;
 
 		error_code const& error() const { return m_error; }
 		std::string const& error_file() const { return m_error_file; }
