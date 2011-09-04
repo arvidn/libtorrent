@@ -1092,6 +1092,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// this is supported on solaris
 		size_type ret = lseek(m_fd, start, SEEK_DATA);
 		if (ret < 0) return start;
+		return start;
 #else
 		return start;
 #endif
