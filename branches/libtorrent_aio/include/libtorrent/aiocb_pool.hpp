@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp" // for file::iovec_t
 #include "libtorrent/thread.hpp"
+#include "libtorrent/max.hpp" // for min<> metafunction
 
 //#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/object_pool.hpp>
@@ -48,7 +49,7 @@ namespace libtorrent
 
 	struct aiocb_pool
 	{
-		enum { max_iovec = 64 };
+		enum { max_iovec = min<64, TORRENT_IOV_MAX>::value };
 
 		aiocb_pool();
 
