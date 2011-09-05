@@ -1,3 +1,4 @@
+	* honor IOV_MAX when using writev and readv
 	* don't post 'operation aborted' UDP errors when changing listen port
 	* fix tracker retry logic, where in some configurations the next tier would not be tried
 	* fixed bug in http seeding logic (introduced in 0.15.7)

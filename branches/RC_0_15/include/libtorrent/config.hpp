@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
+#include <limits.h> // for IOV_MAX
 
 #ifndef WIN32
 #define __STDC_FORMAT_MACROS
@@ -215,6 +216,14 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_LOCALE_FILENAMES 1
 #else
 #define TORRENT_USE_LOCALE_FILENAMES 0
+#endif
+
+#if !defined TORRENT_IOV_MAX
+#ifdef IOV_MAX
+#define TORRENT_IOV_MAX IOV_MAX
+#else
+#define TORRENT_IOV_MAX INT_MAX
+#endif
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)

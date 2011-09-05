@@ -90,6 +90,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* honor IOV_MAX when using writev and readv
 	* don't post 'operation aborted' UDP errors when changing listen port
 	* fix tracker retry logic, where in some configurations the next tier would not be tried
 	* fixed bug in http seeding logic (introduced in 0.15.7)
@@ -98,7 +99,7 @@
 	* add reset_piece_deadline function
 	* fix merkle tree torrent assert
 
-0.15.67 release
+0.15.7 release
 
 	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation
