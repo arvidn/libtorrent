@@ -1379,6 +1379,12 @@ namespace libtorrent
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
 
+		// set to true if this torrent has been added to the session
+		// global list for encrypted torrents. When the torrent is
+		// paused it's removed and when it's started again, it's
+		// re-added
+		bool m_in_encrypted_list:1;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
 		// set to false until we've loaded resume data

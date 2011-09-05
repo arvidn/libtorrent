@@ -1,3 +1,4 @@
+	* feature to encrypt peer connections with a secret AES-256 key stored in .torrent file
 	* deprecated compact storage allocation
 	* close files in separate thread on systems where close() may block (Mac OS X for instance)
 	* don't create all directories up front when adding torrents
@@ -90,6 +91,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* honor IOV_MAX when using writev and readv
 	* don't post 'operation aborted' UDP errors when changing listen port
 	* fix tracker retry logic, where in some configurations the next tier would not be tried
 	* fixed bug in http seeding logic (introduced in 0.15.7)
@@ -98,7 +100,7 @@
 	* add reset_piece_deadline function
 	* fix merkle tree torrent assert
 
-0.15.67 release
+0.15.7 release
 
 	* exposed set_peer_id to python binding
 	* improve support for merkle tree torrent creation

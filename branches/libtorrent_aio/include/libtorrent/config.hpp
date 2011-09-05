@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
+#include <limits.h> // for IOV_MAX
 
 #ifdef __linux__
 #include <linux/version.h> // for LINUX_VERSION_CODE and KERNEL_VERSION
@@ -237,6 +238,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_AIO_SIGNAL SIGIO
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
+#define TORRENT_HAS_SALEN 0
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -474,6 +476,14 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_STRDUP
 #define TORRENT_HAS_STRDUP 1
+#endif
+
+#if !defined TORRENT_IOV_MAX
+#ifdef IOV_MAX
+#define TORRENT_IOV_MAX IOV_MAX
+#else
+#define TORRENT_IOV_MAX INT_MAX
+#endif
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)

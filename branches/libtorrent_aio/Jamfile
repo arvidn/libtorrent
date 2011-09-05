@@ -171,8 +171,10 @@ rule linking ( properties * )
 	{
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
+		# on open indiana, boost is install at /usr/g++/include
 		result += <include>/opt/local/include/boost-1_35
 			<include>/opt/local/include
+			<include>/usr/g++/include
 			;
 	}
 
@@ -371,9 +373,12 @@ local boost-library-search-path =
   <search>/usr/lib
   <search>/usr/local/lib
   <search>/sw/lib
+  <search>/usr/g++/lib
   ;
 
 lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
+
+lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
 
 lib boost_system : : <name>boost_system ;
 

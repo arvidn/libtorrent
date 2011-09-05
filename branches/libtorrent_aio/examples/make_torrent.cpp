@@ -85,8 +85,10 @@ void print_usage()
 		"            If this is not specified, the torrent file is\n"
 		"            printed to the standard out, except on windows\n"
 		"            where the filename defaults to a.torrent\n"
-		"-c          add root certificate to the torrent, to make\n"
-		"            it an SSL torrent\n"
+		"-c file     add root certificate to the torrent, to verify\n"
+		"            the HTTPS tracker\n"
+		"-e file     add an AES-256 encryption key. This is used\n"
+		"            to encrypt every peer connection\n"
 		, stderr);
 }
 
@@ -112,6 +114,7 @@ int main(int argc, char* argv[])
 		int piece_size = 0;
 		int flags = 0;
 		std::string root_cert;
+		std::string encryption_key;
 
 		std::string outfile;
 		std::string merklefile;
@@ -167,6 +170,10 @@ int main(int argc, char* argv[])
 					++i;
 					root_cert = argv[i];
 					break;
+				case 'e':
+					++i;
+					encryption_key = argv[i];
+					break;
 				default:
 					print_usage();
 					return 1;
@@ -207,15 +214,29 @@ int main(int argc, char* argv[])
 
 		if (!root_cert.empty())
 		{
-			FILE* cert = fopen(root_cert.c_str(), "rb");
-			if (cert)
+			std::vector<char> pem;
+			load_file(root_cert, pem, ec, 10000);
+			if (ec)
 			{
-				std::string pem;
-				pem.resize(5000);
-				int s = fread(&pem[0], 1, pem.size(), cert);
-				pem.resize(s);
-				t.set_root_cert(pem);
-				fclose(cert);
+				fprintf(stderr, "failed to load root certificate for tracker: %s\n", ec.message().c_str());
+			}
+			else
+			{
+				t.set_root_cert(std::string(&pem[0], pem.size()));
+			}
+		}
+
+		if (!encryption_key.empty())
+		{
+			std::vector<char> key;
+			load_file(encryption_key, key, ec, 32);
+			if (ec)
+			{
+				fprintf(stderr, "failed to load AES-256 encryption key: %s\n", ec.message().c_str());
+			}
+			else
+			{
+				t.set_encryption_key(std::string(&key[0], key.size()));
 			}
 		}
 

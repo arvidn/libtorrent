@@ -333,7 +333,11 @@ namespace libtorrent
 // ------- end deprecation -------
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
 		std::string const& ssl_cert() const { return m_ssl_root_cert; }
+
+		std::string const& encryption_key() const { return m_aes_key; }
+#endif
 
 		bool is_valid() const { return m_files.is_valid(); }
 
@@ -450,6 +454,8 @@ namespace libtorrent
 		// pointing to the first byte of the first sha-1 hash
 		char const* m_piece_hashes;
 
+		// TODO: these strings could be lazy_entry* to save memory
+
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
@@ -458,10 +464,15 @@ namespace libtorrent
 		// to create the torrent file
 		std::string m_created_by;
 
+#ifdef TORRENT_USE_OPENSSL
 		// for ssl-torrens, this contains the root
 		// certificate, in .pem format (i.e. ascii
 		// base64 encoded with head and tails)
 		std::string m_ssl_root_cert;
+
+		// used to encrypt the peer connections
+		std::string m_aes_key;
+#endif
 
 		// the info section parsed. points into m_info_section
 		// parsed lazily

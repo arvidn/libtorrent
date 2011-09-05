@@ -1147,7 +1147,7 @@ namespace libtorrent
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
-	void peer_connection::attach_to_torrent(sha1_hash const& ih)
+	void peer_connection::attach_to_torrent(sha1_hash const& ih, bool allow_encrypted)
 	{
 		INVARIANT_CHECK;
 
@@ -1179,6 +1179,14 @@ namespace libtorrent
 			disconnect(errors::invalid_info_hash, 1);
 			return;
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		if (t->torrent_file().encryption_key().size() == 32 && !allow_encrypted)
+		{
+			disconnect(errors::invalid_info_hash, 2);
+			return;
+		}
+#endif
 
 		if (t->is_paused() && (!t->is_auto_managed()
 			|| !m_ses.m_settings.incoming_starts_queued_torrents))
