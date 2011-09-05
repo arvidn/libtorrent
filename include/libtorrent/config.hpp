@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
+#include <limits.h> // for IOV_MAX
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
@@ -391,6 +392,14 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_STRDUP
 #define TORRENT_HAS_STRDUP 1
+#endif
+
+#if !defined TORRENT_IOV_MAX
+#ifdef IOV_MAX
+#define TORRENT_IOV_MAX IOV_MAX
+#else
+#define TORRENT_IOV_MAX INT_MAX
+#endif
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
