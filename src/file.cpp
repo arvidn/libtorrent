@@ -526,40 +526,55 @@ namespace libtorrent
 		}
 #if TORRENT_USE_READV
 
+		ret = 0;
+		while (num_bufs > 0)
+		{
+			int nbufs = (std::min)(num_bufs, TORRENT_IOV_MAX);
+			int tmp_ret = 0;
 #ifdef TORRENT_LINUX
-		bool aligned = false;
-		int size = 0;
-		// if we're not opened in no-buffer mode, we don't need alignment
-		if ((m_open_mode & no_buffer) == 0) aligned = true;
-		if (!aligned)
-		{
-			size = bufs_size(bufs, num_bufs);
-			if ((size & (size_alignment()-1)) == 0) aligned = true;
-		}
-		if (aligned)
-#endif // TORRENT_LINUX
-		{
-			ret = ::readv(m_fd, bufs, num_bufs);
-			if (ret < 0)
+			bool aligned = false;
+			int size = 0;
+			// if we're not opened in no-buffer mode, we don't need alignment
+			if ((m_open_mode & no_buffer) == 0) aligned = true;
+			if (!aligned)
 			{
-				ec = error_code(errno, get_posix_category());
-				return -1;
+				size = bufs_size(bufs, nbufs);
+				if ((size & (size_alignment()-1)) == 0) aligned = true;
 			}
-			return ret;
-		}
-#ifdef TORRENT_LINUX
-		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
-		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
-		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + m_page_size;
-		ret = ::readv(m_fd, temp_bufs, num_bufs);
-		if (ret < 0)
-		{
-			ec = error_code(errno, get_posix_category());
-			return -1;
-		}
-		return (std::min)(ret, size_type(size));
+			if (aligned)
 #endif // TORRENT_LINUX
+			{
+				tmp_ret = ::readv(m_fd, bufs, nbufs);
+				if (tmp_ret < 0)
+				{
+					ec = error_code(errno, get_posix_category());
+					return -1;
+				}
+				ret += tmp_ret;
+			}
+#ifdef TORRENT_LINUX
+			else
+			{
+				file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, nbufs);
+				memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * nbufs);
+				iovec_t& last = temp_bufs[nbufs-1];
+				last.iov_len = (last.iov_len & ~(size_alignment()-1)) + m_page_size;
+				tmp_ret = ::readv(m_fd, temp_bufs, nbufs);
+				if (tmp_ret < 0)
+				{
+					ec = error_code(errno, get_posix_category());
+					return -1;
+				}
+			}
+			ret += (std::min)(tmp_ret, size_type(size));
+
+#endif // TORRENT_LINUX
+
+			num_bufs -= nbufs;
+			bufs += nbufs;
+		}
+
+		return ret;
 
 #else // TORRENT_USE_READV
 
@@ -760,45 +775,59 @@ namespace libtorrent
 
 #if TORRENT_USE_WRITEV
 
+		ret = 0;
+		while (num_bufs > 0)
+		{
+			int nbufs = (std::min)(num_bufs, TORRENT_IOV_MAX);
+			int tmp_ret = 0;
 #ifdef TORRENT_LINUX
-		bool aligned = false;
-		int size = 0;
-		// if we're not opened in no-buffer mode, we don't need alignment
-		if ((m_open_mode & no_buffer) == 0) aligned = true;
-		if (!aligned)
-		{
-			size = bufs_size(bufs, num_bufs);
-			if ((size & (size_alignment()-1)) == 0) aligned = true;
-		}
-		if (aligned)
-#endif
-		{
-			ret = ::writev(m_fd, bufs, num_bufs);
-			if (ret < 0)
+			bool aligned = false;
+			int size = 0;
+			// if we're not opened in no-buffer mode, we don't need alignment
+			if ((m_open_mode & no_buffer) == 0) aligned = true;
+			if (!aligned)
 			{
-				ec = error_code(errno, get_posix_category());
-				return -1;
+				size = bufs_size(bufs, nbufs);
+				if ((size & (size_alignment()-1)) == 0) aligned = true;
 			}
-			return ret;
-		}
+			if (aligned)
+#endif
+			{
+				tmp_ret = ::writev(m_fd, bufs, nbufs);
+				if (tmp_ret < 0)
+				{
+					ec = error_code(errno, get_posix_category());
+					return -1;
+				}
+				ret += tmp_ret;
+			}
 #ifdef TORRENT_LINUX
-		file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
-		memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * num_bufs);
-		iovec_t& last = temp_bufs[num_bufs-1];
-		last.iov_len = (last.iov_len & ~(size_alignment()-1)) + size_alignment();
-		ret = ::writev(m_fd, temp_bufs, num_bufs);
-		if (ret < 0)
-		{
-			ec = error_code(errno, get_posix_category());
-			return -1;
-		}
-		if (ftruncate(m_fd, file_offset + size) < 0)
-		{
-			ec = error_code(errno, get_posix_category());
-			return -1;
-		}
-		return (std::min)(ret, size_type(size));
+			else
+			{
+				file::iovec_t* temp_bufs = TORRENT_ALLOCA(file::iovec_t, nbufs);
+				memcpy(temp_bufs, bufs, sizeof(file::iovec_t) * nbufs);
+				iovec_t& last = temp_bufs[nbufs-1];
+				last.iov_len = (last.iov_len & ~(size_alignment()-1)) + size_alignment();
+				tmp_ret = ::writev(m_fd, temp_bufs, nbufs);
+				if (tmp_ret < 0)
+				{
+					ec = error_code(errno, get_posix_category());
+					return -1;
+				}
+				if (ftruncate(m_fd, file_offset + size) < 0)
+				{
+					ec = error_code(errno, get_posix_category());
+					return -1;
+				}
+				ret += (std::min)(tmp_ret, size_type(size));
+			}
 #endif // TORRENT_LINUX
+
+			num_bufs -= nbufs;
+			bufs += nbufs;
+		}
+
+		return ret;
 
 #else // TORRENT_USE_WRITEV
 
