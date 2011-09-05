@@ -163,7 +163,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // should wpath or path be used?
 #if defined UNICODE && !defined BOOST_FILESYSTEM_NARROW_ONLY \
-	&& BOOST_VERSION >= 103400 && !defined __APPLE__ && !defined TORRENT_MINGW
+	&& BOOST_VERSION >= 103400 && !defined __APPLE__ \
+	&& !defined TORRENT_MINGW \
+	&& !defined TORRENT_SOLARIS
 #define TORRENT_USE_WPATH 1
 #else
 #define TORRENT_USE_WPATH 0
