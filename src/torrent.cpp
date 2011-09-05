@@ -412,6 +412,7 @@ namespace libtorrent
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.apply_ip_filter)
 		, m_merge_resume_trackers(p.merge_resume_trackers)
+		, m_in_encrypted_list(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -1364,6 +1365,14 @@ namespace libtorrent
 #endif
 			// if all went well, set the torrent ssl context to this one
 			m_ssl_ctx = ctx;
+		}
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+		if (m_torrent_file->encryption_key().size() == 32 && !m_in_encrypted_list)
+		{
+			m_ses.m_encrypted_torrents.insert(shared_from_this());
+			m_in_encrypted_list = true;
 		}
 #endif
 
@@ -3191,6 +3200,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_abort) return;
+
+#ifdef TORRENT_USE_OPENSSL
+		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && m_in_encrypted_list)
+		{
+			m_ses.m_encrypted_torrents.erase(shared_from_this());
+			m_in_encrypted_list = false;
+		}
+#endif
 
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
@@ -6410,6 +6427,14 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!is_paused()) return;
 
+#ifdef TORRENT_USE_OPENSSL
+		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && m_in_encrypted_list)
+		{
+			m_ses.m_encrypted_torrents.erase(shared_from_this());
+			m_in_encrypted_list = false;
+		}
+#endif
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -6559,6 +6584,14 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) return;
+
+#ifdef TORRENT_USE_OPENSSL
+		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && !m_in_encrypted_list)
+		{
+			m_ses.m_encrypted_torrents.insert(shared_from_this());
+			m_in_encrypted_list = true;
+		}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()

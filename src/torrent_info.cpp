@@ -467,6 +467,10 @@ namespace libtorrent
 		, m_piece_hashes(t.m_piece_hashes)
 		, m_comment(t.m_comment)
 		, m_created_by(t.m_created_by)
+#ifdef TORRENT_USE_OPENSSL
+		, m_ssl_root_cert(t.m_ssl_root_cert)
+		, m_aes_key(t.m_aes_key)
+#endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
 		, m_merkle_first_leaf(t.m_merkle_first_leaf)
@@ -933,7 +937,11 @@ namespace libtorrent
 
 		m_private = info.dict_find_int_value("private", 0);
 
+#ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
+
+		m_aes_key = info.dict_find_string_value("encryption-key");
+#endif
 
 		return true;
 	}

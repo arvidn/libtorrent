@@ -298,7 +298,7 @@ public:
 		void append_send_buffer(char* buffer, int size, Destructor const& destructor)
 		{
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			if (m_enc_handler)
+			if (m_rc4_encrypted)
 				m_enc_handler->encrypt(buffer, size);
 #endif
 			peer_connection::append_send_buffer(buffer, size, destructor, true);

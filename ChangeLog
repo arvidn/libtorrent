@@ -1,3 +1,4 @@
+	* feature to encrypt peer connections with a secret AES-256 key stored in .torrent file
 	* deprecated compact storage allocation
 	* close files in separate thread on systems where close() may block (Mac OS X for instance)
 	* don't create all directories up front when adding torrents

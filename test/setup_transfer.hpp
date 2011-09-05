@@ -53,7 +53,7 @@ void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
-	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true);
+	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true, bool encrypted = false);
 
 boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
@@ -62,7 +62,7 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
 	, boost::intrusive_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
-	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true);
+	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool encrypted_torrent = false);
 
 int start_web_server(bool ssl = false, bool chunked = false);
 void stop_web_server();
