@@ -203,7 +203,7 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 }
 
 boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
-	, int num_pieces, bool add_tracker)
+	, int num_pieces, bool add_tracker, bool encrypted_torrent)
 {
 	char const* tracker_url = "http://non-existent-name.com/announce";
 	// excercise the path when encountering invalid urls
@@ -243,7 +243,17 @@ boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char> > out(tmp);
 
-	bencode(out, t.generate());
+	entry tor = t.generate();
+
+	if (encrypted_torrent)
+	{
+		std::string key;
+		key.resize(32);
+		std::generate(key.begin(), key.end(), &std::rand);
+		tor["info"]["encryption-key"] = key;
+	}
+
+	bencode(out, tor);
 	error_code ec;
 	return boost::intrusive_ptr<torrent_info>(new torrent_info(
 		&tmp[0], tmp.size(), ec));
@@ -254,7 +264,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
 	, boost::intrusive_ptr<torrent_info>* torrent, bool super_seeding
-	, add_torrent_params const* p, bool stop_lsd)
+	, add_torrent_params const* p, bool stop_lsd, bool encrypted_torrent)
 {
 	assert(ses1);
 	assert(ses2);
@@ -298,7 +308,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		error_code ec;
 		create_directory("./tmp1" + suffix, ec);
 		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 19, true);
+		t = ::create_torrent(&file, piece_size, 19, true, encrypted_torrent);
 		file.close();
 		if (clear_files)
 		{

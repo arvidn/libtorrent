@@ -664,7 +664,11 @@ namespace libtorrent
 		void reset_recv_buffer(int packet_size);
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
-		void attach_to_torrent(sha1_hash const& ih);
+		// if allow_encrypted is false, and the torrent 'ih' turns out
+		// to be an encrypted torrent (AES-256 encrypted) the peer will
+		// be disconnected. This is to prevent non-encrypted peers to
+		// attach to an encrypted torrent
+		void attach_to_torrent(sha1_hash const& ih, bool allow_encrypted);
 
 		bool verify_piece(peer_request const& p) const;
 
