@@ -613,6 +613,11 @@ namespace libtorrent
 		m_comment = str;
 	}
 
+	void create_torrent::set_encryption_key(std::string const& key)
+	{
+		m_encryption_key = key;
+	}
+
 	void create_torrent::set_creator(char const* str)
 	{
 		m_created_by = str;
