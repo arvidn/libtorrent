@@ -2196,6 +2196,8 @@ namespace libtorrent
 	{
 		if (signal != TORRENT_AIO_SIGNAL) return;
 
+		DLOG(stderr, "*** signal_handler\n");
+
 		++g_completed_aios;
 		// wake up the disk thread to
 		// make it handle these completed jobs

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_THREAD_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 #include <memory>
 
@@ -98,7 +99,11 @@ namespace libtorrent
 	{
 		semaphore() { sem_init(&m_sem, 0, 0); }
 		~semaphore() { sem_destroy(&m_sem); }
-		void signal() { sem_post(&m_sem); }
+		void signal()
+		{
+			int ret = sem_post(&m_sem);
+			TORRENT_ASSERT(ret == 0);
+		}
 		void signal_all()
 		{
 			int waiters = 0;
@@ -112,11 +117,30 @@ namespace libtorrent
 				sem_post(&m_sem);
 			} while (waiters < 0);
 		}
-		void wait() { sem_wait(&m_sem); }
+		void wait()
+		{
+			int ret = sem_wait(&m_sem);
+			TORRENT_ASSERT(ret == 0);
+		}
 		void timed_wait(int ms)
 		{
+#if TORRENT_HAS_SEM_RELTIMEDWAIT
 			timespec sp = { ms / 1000, (ms % 1000) * 1000000 };
-			sem_timedwait(&m_sem, &sp);
+			int ret = sem_reltimedwait_np(&m_sem, &sp);
+#else
+			timespec sp;
+			int ret = clock_gettime(CLOCK_REALTIME, &sp);
+			TORRENT_ASSERT(ret == 0);
+			sp.tv_sec += ms / 1000;
+			ms -= ms / 1000;
+			boost::uint64_t carry = sp.tv_nsec;
+			carry += ms * 1000000;
+			sp.tv_nsec = carry % 1000000000;
+			sp.tv_sec += carry / 1000000000;
+
+			ret = sem_timedwait(&m_sem, &sp);
+#endif
+			TORRENT_ASSERT(ret == 0 || errno == ETIMEDOUT);
 		}
 		sem_t m_sem;
 	};

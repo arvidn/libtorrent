@@ -235,10 +235,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_DEFAULT_IO
 #define TORRENT_USE_AIO 1
 #endif
-#define TORRENT_AIO_SIGNAL SIGIO
+#define TORRENT_AIO_SIGNAL SIGUSR1
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
+#define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -348,6 +349,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 #define TORRENT_USE_GETIPFORWARDTABLE 0
+#endif
+
+#ifndef TORRENT_HAS_SEM_RELTIMEDWAIT
+#define TORRENT_HAS_SEM_RELTIMEDWAIT 0
 #endif
 
 #ifndef TORRENT_USE_LOCALE
