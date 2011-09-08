@@ -52,6 +52,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DLOG if (DEBUG_AIO) fprintf
 
+#if TORRENT_USE_AIO_PORTS
+#include <port.h>
+#endif
+
 #ifdef TORRENT_WINDOWS
 // windows part
 
@@ -2534,14 +2538,29 @@ finish:
 			TORRENT_ASSERT(aios->next == 0 || aios->next->prev == aios);
 #if TORRENT_USE_AIO
 			memset(&aios->cb.aio_sigevent, 0, sizeof(aios->cb.aio_sigevent));
+#if TORRENT_USE_AIO_PORTS
+
+			port_notify_t p;
+			p.portnfy_port = pool.port;
+			p.portnfy_user = aios;
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_PORT;
+			aios->cb.aio_sigevent.sigev_value.sival_ptr = &p;
+
+			DLOG(stderr, " port: %d\n", pool.port);
+	
+#else // !TORRENT_USE_AIO_PORTS
+
+			// TODO: when kqueue is available, use SIGEV_KEVENT
+
 #ifdef SIGEV_THREAD_ID
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
 			aios->cb.aio_sigevent._tid = self;
 #else
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-#endif
+#endif // SIGEV_THREAD_ID
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
 			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
+#endif // TORRENT_USE_AIO_PORTS
 			int ret;
 			DLOG(stderr, "aio_%s() fd: %d offset: %"PRId64" "
 				, aios->cb.aio_lio_opcode == file::read_op? "read" : "write"

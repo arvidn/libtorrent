@@ -79,6 +79,10 @@ namespace libtorrent
 		int event;
 #endif
 
+#if TORRENT_USE_AIO_PORTS
+		int port;
+#endif
+
 #ifdef TORRENT_DISK_STATS
 		FILE* file_access_log;
 #endif

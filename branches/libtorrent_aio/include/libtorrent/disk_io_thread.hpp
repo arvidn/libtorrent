@@ -377,7 +377,7 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
 		static void signal_handler(int signal, siginfo_t* si, void*);
 #endif
 
@@ -455,6 +455,13 @@ namespace libtorrent
 		// this is used to feed events of completed disk I/O
 		// operations to the disk thread
 		HANDLE m_completion_port;
+#endif
+
+#if TORRENT_USE_AIO_PORTS
+		// on solaris we can get AIO completions over ports
+		// which is a lot nicer than signals. This is the
+		// port used for notifications
+		int m_port;
 #endif
 
 #if TORRENT_USE_SIGNALFD

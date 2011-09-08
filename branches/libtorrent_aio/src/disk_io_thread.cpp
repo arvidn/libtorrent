@@ -53,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/signalfd.h>
 #endif
 
+#if TORRENT_USE_AIO_PORTS
+#include <port.h>
+#endif
+
 #ifdef TORRENT_BSD
 #include <sys/sysctl.h>
 #endif
@@ -295,7 +299,7 @@ namespace libtorrent
 #endif // TORRENT_USE_SYNCIO
 	}
 
-#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
+#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD &&!TORRENT_USE_AIO_PORTS) \
 	|| TORRENT_USE_SYNCIO
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
@@ -353,13 +357,9 @@ namespace libtorrent
 #endif
 		, m_disk_io_thread(boost::bind(&disk_io_thread::thread_fun, this))
 	{
-#if TORRENT_USE_SIGNALFD
-		m_job_event_fd = eventfd(0, 0);
-		if (m_job_event_fd < 0)
-		{
-			TORRENT_ASSERT(false);
-		}
-#endif
+		// Essentially all members
+		// of this object are owned by the newly created thread.
+		// initialize stuff in thread_fun().
 #if TORRENT_USE_IOSUBMIT
 		m_io_queue = 0;
 		int ret = io_setup(20000, &m_io_queue);
@@ -382,12 +382,22 @@ namespace libtorrent
 		m_aiocb_pool.event = m_disk_event_fd;
 		
 #endif
-		// don't do anything in here. Essentially all members
-		// of this object are owned by the newly created thread.
-		// initialize stuff in thread_fun().
+
+#if TORRENT_USE_AIO
+
+#if TORRENT_USE_AIO_PORTS 
+		m_port = port_create();
+		DLOG(stderr, "port_create() = %d\n", m_port);
+		TORRENT_ASSERT(m_port >= 0);
+		m_aiocb_pool.port = m_port;
+#endif
+
 #if TORRENT_USE_SIGNALFD
-		// however, we need another signalfd in this thread since
-		// some of the notification signals are sent to this thread
+		m_job_event_fd = eventfd(0, 0);
+		if (m_job_event_fd < 0)
+		{
+			TORRENT_ASSERT(false);
+		}
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, TORRENT_AIO_SIGNAL);
@@ -398,6 +408,8 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 #endif
+
+#endif // TORRENT_USE_AIO
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -416,6 +428,10 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_AIO
+
+#if TORRENT_USE_AIO_PORTS
+		close(m_port);
+#else
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, TORRENT_AIO_SIGNAL);
@@ -429,13 +445,12 @@ namespace libtorrent
 		close(m_signal_fd[0]);
 		close(m_signal_fd[1]);
 		close(m_event_fd);
-#endif
+#endif // TORRENT_USE_SIGNALFD
+#endif // TORRENT_USE_AIO_PORTS
 
 #elif TORRENT_USE_OVERLAPPED
 		CloseHandle(m_completion_port);
-#endif
-
-#if TORRENT_USE_IOSUBMIT
+#elif TORRENT_USE_IOSUBMIT
 		io_destroy(m_io_queue);
 		close(m_disk_event_fd);
 		close(m_job_event_fd);
@@ -2152,6 +2167,8 @@ namespace libtorrent
 		int len = write(m_job_event_fd, &dummy, sizeof(dummy));
 		DLOG(stderr, "[%p] write(m_job_event_fd) = %d\n", this, len);
 		TORRENT_ASSERT(len == sizeof(dummy));
+#elif TORRENT_USE_AIO_PORTS
+		port_send(m_port, 1, 0);
 #else
 		g_job_sem.signal_all();
 #endif
@@ -2190,7 +2207,7 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
 
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
@@ -2310,11 +2327,11 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
-#endif
+#endif // TORRENT_USE_SIGNALFD
 #endif // BOOST_HAS_PTHREADS
 #endif // TORRENT_USE_AIO
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
 		struct sigaction sa;
 
 		sa.sa_flags = SA_SIGINFO | SA_RESTART;
@@ -2327,7 +2344,7 @@ namespace libtorrent
 		}
 #endif
 
-#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD) \
+#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS) \
 	|| TORRENT_USE_SYNCIO
 		int last_completed_aios = 0;
 #endif
@@ -2493,6 +2510,42 @@ namespace libtorrent
 				} while (len == sizeof(sigbuf));
 			}
 			}
+#elif TORRENT_USE_AIO_PORTS
+			const int max_events = 300;
+			uint_t num_events = 1;
+			port_event_t events[max_events];
+			// if there are no events in 5 seconds, return anyway in order to
+			// flush write blocks
+			timespec sp = { 5, 0 };
+			DLOG(stderr, "[%p] port_getn()\n", this);
+			int ret = port_getn(m_port, events, max_events, &num_events, &sp);
+			DLOG(stderr, "[%p]  = %d nget: %d\n", this, ret, num_events);
+
+			for (int i = 0; i < num_events; ++i)
+			{
+				if (events[i].portev_source == PORT_SOURCE_USER)
+				{
+					new_job = true;
+					continue;
+				}
+				if (events[i].portev_source != PORT_SOURCE_AIO)
+				{
+					TORRENT_ASSERT(false);
+					continue;
+				}
+				// at this point, event[i] refers to an AIO event
+				// and the user-data pointer points to our aiocb_t
+
+				file::aiocb_t* aio = (file::aiocb_t*)events[i].portev_user;
+
+				TORRENT_ASSERT_VALID_AIOCB(aio);
+				file::aiocb_t* next = aio->next;
+				bool removed = reap_aio(aio, m_aiocb_pool);
+				iocbs_reaped = removed;
+				if (removed && m_in_progress == aio) m_in_progress = next;
+				DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+			}
+
 #else
 			// always time out after half a second, since the global nature of the semaphore
 			// makes it unreliable when there are multiple instances of the disk_io_thread

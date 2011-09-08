@@ -46,10 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 

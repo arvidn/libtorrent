@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
+#define _FILE_OFFSET_BITS 64
+
 #include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <stdio.h> // for snprintf
@@ -59,6 +61,30 @@ POSSIBILITY OF SUCH DAMAGE.
 #define PRId64 "lld"
 #endif
 #endif
+
+/*
+
+	These are the different disk I/O options:
+
+	TORRENT_USE_AIO         - use posix AIO
+	  TORRENT_USE_SIGNALFD  - use (linux) signalfd as notification
+	                          mechanism in posix AIO
+	  TORRENT_USE_AIO_PORTS - use (solaris) ports as notification
+	                          mechanism in posix AIO
+
+	TORRENT_USE_IOSUBMIT    - use (linux) io_submit() for I/O
+
+	TORRENT_USE_OVERLAPPED  - use (win32) overlapped I/O and
+	                          IO completion ports
+
+	TORRENT_USE_SYNCIO      - use portable, synchronous, file operations
+
+
+	If none of these are set, this config header will determine which
+	one to use based on operating system, by setting TORRENT_USE_DEFAULT_IO
+
+*/
+
 
 #if !defined TORRENT_USE_SYNCIO \
 	&& !defined TORRENT_USE_OVERLAPPED \
@@ -240,6 +266,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
+#define TORRENT_USE_AIO_PORTS 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -467,6 +494,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_NO_FPU
 #define TORRENT_NO_FPU 0
+#endif
+
+#ifndef TORRENT_USE_AIO_PORTS
+#define TORRENT_USE_AIO_PORTS 0
 #endif
 
 #if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
