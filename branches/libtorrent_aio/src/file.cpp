@@ -2548,19 +2548,26 @@ finish:
 
 			DLOG(stderr, " port: %d\n", pool.port);
 	
-#else // !TORRENT_USE_AIO_PORTS
+#elif TORRENT_USE_AIO_KQUEUE
 
-			// TODO: when kqueue is available, use SIGEV_KEVENT
+			aios->cb.aio_sigevent.sigev_notify_kqueue = pool.queue;
+			aios->cb.aio_sigevent.sigev_notify = SIGEV_KEVENT;
+			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 
-#ifdef SIGEV_THREAD_ID
+			DLOG(stderr, " queue: %d\n", pool.queue);
+
+#else // default AIO uses signals as completion notification
+
+# ifdef SIGEV_THREAD_ID
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
 			aios->cb.aio_sigevent._tid = self;
-#else
+# else
 			aios->cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-#endif // SIGEV_THREAD_ID
+# endif // SIGEV_THREAD_ID
 			aios->cb.aio_sigevent.sigev_signo = TORRENT_AIO_SIGNAL;
 			aios->cb.aio_sigevent.sigev_value.sival_ptr = aios;
 #endif // TORRENT_USE_AIO_PORTS
+
 			int ret;
 			DLOG(stderr, "aio_%s() fd: %d offset: %"PRId64" "
 				, aios->cb.aio_lio_opcode == file::read_op? "read" : "write"

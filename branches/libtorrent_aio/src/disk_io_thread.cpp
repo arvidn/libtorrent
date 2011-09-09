@@ -57,6 +57,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <port.h>
 #endif
 
+#if TORRENT_USE_AIO_KQUEUE
+#include <sys/event.h>
+#endif
+
 #ifdef TORRENT_BSD
 #include <sys/sysctl.h>
 #endif
@@ -299,7 +303,7 @@ namespace libtorrent
 #endif // TORRENT_USE_SYNCIO
 	}
 
-#if (TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD &&!TORRENT_USE_AIO_PORTS) \
+#if (TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE) \
 	|| TORRENT_USE_SYNCIO
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
@@ -409,6 +413,19 @@ namespace libtorrent
 		}
 #endif
 
+#if TORRENT_USE_AIO_KQUEUE
+		m_queue = kqueue();
+		TORRENT_ASSERT(m_queue >= 0);
+		m_aiocb_pool.queue = m_queue;
+		pipe(m_job_pipe);
+		// set up an event on m_job_pipe[1] being readable
+		// this is how we communicate that a new job has been
+		// posted
+		struct kevent e;
+		EV_SET(&e, m_job_pipe[1], EVFILT_READ, EV_ADD, 0, 0, 0);
+		kevent(m_queue, &e, 1, 0, 0, 0);
+#endif
+
 #endif // TORRENT_USE_AIO
 	}
 
@@ -431,6 +448,10 @@ namespace libtorrent
 
 #if TORRENT_USE_AIO_PORTS
 		close(m_port);
+#elif TORRENT_USE_AIO_KQUEUE
+		close(m_job_pipe[0]);
+		close(m_job_pipe[1]);
+		close(m_queue);
 #else
 		sigset_t mask;
 		sigemptyset(&mask);
@@ -2162,13 +2183,18 @@ namespace libtorrent
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
-#elif (TORRENT_USE_AIO && TORRENT_USE_AIO_SIGNALFD) || TORRENT_USE_IOSUBMIT
+#elif TORRENT_USE_AIO_SIGNALFD || TORRENT_USE_IOSUBMIT
 		boost::uint64_t dummy = 1;
 		int len = write(m_job_event_fd, &dummy, sizeof(dummy));
 		DLOG(stderr, "[%p] write(m_job_event_fd) = %d\n", this, len);
 		TORRENT_ASSERT(len == sizeof(dummy));
 #elif TORRENT_USE_AIO_PORTS
 		port_send(m_port, 1, 0);
+#elif TORRENT_USE_AIO_KQUEUE
+		boost::uint8_t dummy = 0;
+		int len = write(m_job_pipe[0], &dummy, sizeof(dummy));
+		DLOG(stderr, "[%p] write(m_job_pipe) = %d\n", this, len);
+		TORRENT_ASSERT(len == sizeof(dummy));
 #else
 		g_job_sem.signal_all();
 #endif
@@ -2207,7 +2233,7 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE
 
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
@@ -2331,7 +2357,7 @@ namespace libtorrent
 #endif // BOOST_HAS_PTHREADS
 #endif // TORRENT_USE_AIO
 
-#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE
 		struct sigaction sa;
 
 		sa.sa_flags = SA_SIGINFO | SA_RESTART;
@@ -2454,7 +2480,7 @@ namespace libtorrent
 				} while (num_events == max_events);
 			}
 
-#elif TORRENT_USE_AIO && TORRENT_USE_AIO_SIGNALFD
+#elif TORRENT_USE_AIO_SIGNALFD
 			// wait either for a signal coming in through the 
 			// signalfd or an add-job even coming in through
 			// the eventfd
@@ -2544,6 +2570,45 @@ namespace libtorrent
 				iocbs_reaped = removed;
 				if (removed && m_in_progress == aio) m_in_progress = next;
 				DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+			}
+
+#elif TORRENT_USE_AIO_KQUEUE
+			const int max_events = 300;
+			struct kevent events[max_events];
+			// if there are no events in 5 seconds, return anyway in order to
+			// flush write blocks
+			timespec sp = { 5, 0 };
+			DLOG(stderr, "[%p] kevent()\n", this);
+			int num_events = kevent(m_queue, 0, 0, events, max_events, &sp);
+			DLOG(stderr, "[%p]  = %d\n", this, num_events);
+
+			for (int i = 0; i < num_events; ++i)
+			{
+				struct kevent& e = events[i];
+				if (e.filter == EVFILT_READ && e.ident == m_job_pipe[1])
+				{
+					new_job = true;
+					continue;
+				}
+				if (e.filter == EVFILT_AIO)
+				{
+					// at this point, event[i] refers to an AIO event
+					// and the user-data pointer points to our aiocb_t
+
+					file::aiocb_t* aio = (file::aiocb_t*)e.udata;
+					TORRENT_ASSERT((void*)e.data == (void*)&aio->cb);
+
+					TORRENT_ASSERT_VALID_AIOCB(aio);
+					file::aiocb_t* next = aio->next;
+					bool removed = reap_aio(aio, m_aiocb_pool);
+					iocbs_reaped = removed;
+					if (removed && m_in_progress == aio) m_in_progress = next;
+					DLOG(stderr, "[%p]  removed = %d\n", this, removed);
+					continue;
+				}
+				DLOG(stderr, "[%p] unknown event [ filter: %d ident: %p flags: %d fflags: %d data: %p udata: %p ]\n"
+					, this, int(e.filter), e.ident, int(e.flags), int(e.fflags), e.data, e.udata);
+				TORRENT_ASSERT(false);
 			}
 
 #else

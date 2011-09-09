@@ -66,18 +66,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 	These are the different disk I/O options:
 
-	TORRENT_USE_AIO         - use posix AIO
+	TORRENT_USE_AIO             - use posix AIO
 	  TORRENT_USE_AIO_SIGNALFD  - use (linux) signalfd as notification
-	                          mechanism in posix AIO
-	  TORRENT_USE_AIO_PORTS - use (solaris) ports as notification
-	                          mechanism in posix AIO
+	                              mechanism in posix AIO
+	  TORRENT_USE_AIO_PORTS     - use (solaris) ports as notification
+	                              mechanism in posix AIO
+	  TORRENT_USE_AIO_KQUEUE    - use (bsd) kqueue as notification mechanism
+	                              in posix AIO
 
-	TORRENT_USE_IOSUBMIT    - use (linux) io_submit() for I/O
+	TORRENT_USE_IOSUBMIT        - use (linux) io_submit() for I/O
 
-	TORRENT_USE_OVERLAPPED  - use (win32) overlapped I/O and
-	                          IO completion ports
+	TORRENT_USE_OVERLAPPED      - use (win32) overlapped I/O and
+	                              IO completion ports
 
-	TORRENT_USE_SYNCIO      - use portable, synchronous, file operations
+	TORRENT_USE_SYNCIO          - use portable, synchronous, file operations
 
 
 	If none of these are set, this config header will determine which
@@ -180,19 +182,27 @@ POSSIBILITY OF SUCH DAMAGE.
 // we don't need iconv on mac, because
 // the locale is always utf-8
 #if defined __APPLE__
-#ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 0
-#define TORRENT_CLOSE_MAY_BLOCK 1
-#endif
-#define TORRENT_USE_MACH_SEMAPHORE 1
+# ifndef TORRENT_USE_ICONV
+#  define TORRENT_USE_ICONV 0
+#  define TORRENT_USE_LOCALE 0
+#  define TORRENT_CLOSE_MAY_BLOCK 1
+# endif
+# define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
-#define TORRENT_USE_POSIX_SEMAPHORE 1
+# define TORRENT_USE_POSIX_SEMAPHORE 1
 #endif // __APPLE__
+
 #define TORRENT_HAS_FALLOCATE 0
+
 #if TORRENT_USE_DEFAULT_IO
 # define TORRENT_USE_AIO 1
 #endif
+
+// Darwin's kqueue doesn't support AIO
+#if TORRENT_USE_AIO && !defined __APPLE__
+# define TORRENT_USE_AIO_KQUEUE 1
+#endif
+
 #define TORRENT_AIO_SIGNAL SIGIO
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
@@ -210,6 +220,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_USE_AIO 1
 # endif
 #endif
+
+#if TORRENT_USE_AIO
+#define TORRENT_USE_AIO_SIGNALFD 1
+#endif
+
 #define TORRENT_AIO_SIGNAL SIGRTMIN
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
@@ -266,7 +281,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
-#define TORRENT_USE_AIO_PORTS 1
+
+#if TORRENT_USE_AIO
+# define TORRENT_USE_AIO_PORTS 1
+#endif
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -447,6 +465,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // use signalfd for event notification for POSIX AIO
 #ifndef TORRENT_USE_AIO_SIGNALFD
 #define TORRENT_USE_AIO_SIGNALFD 0
+#endif
+
+#ifndef TORRENT_USE_AIO_KQUEUE
+#define TORRENT_USE_AIO_KQUEUE 0
 #endif
 
 // use this signal number for event notifications in POSIX AIO

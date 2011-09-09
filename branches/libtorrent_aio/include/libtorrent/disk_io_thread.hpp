@@ -377,7 +377,7 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
-#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE
 		static void signal_handler(int signal, siginfo_t* si, void*);
 #endif
 
@@ -462,6 +462,18 @@ namespace libtorrent
 		// which is a lot nicer than signals. This is the
 		// port used for notifications
 		int m_port;
+#endif
+
+#if TORRENT_USE_AIO_KQUEUE
+		// when using kqueue for aio completion notifications
+		// this is the queue events are posted to
+		int m_queue;
+
+		// this is a pipe that's used to interrupt the disk thread
+		// waiting in the kevent() call. A single byte is written
+		// to the pipe and the kqueue has an event triggered by
+		// the pipe becoming readable
+		int m_job_pipe[2];
 #endif
 
 #if TORRENT_USE_AIO_SIGNALFD

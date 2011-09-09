@@ -83,6 +83,10 @@ namespace libtorrent
 		int port;
 #endif
 
+#if TORRENT_USE_AIO_KQUEUE
+		int queue;
+#endif
+
 #ifdef TORRENT_DISK_STATS
 		FILE* file_access_log;
 #endif
