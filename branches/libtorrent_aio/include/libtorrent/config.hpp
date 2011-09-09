@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 	These are the different disk I/O options:
 
 	TORRENT_USE_AIO         - use posix AIO
-	  TORRENT_USE_SIGNALFD  - use (linux) signalfd as notification
+	  TORRENT_USE_AIO_SIGNALFD  - use (linux) signalfd as notification
 	                          mechanism in posix AIO
 	  TORRENT_USE_AIO_PORTS - use (solaris) ports as notification
 	                          mechanism in posix AIO
@@ -445,8 +445,8 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 // use signalfd for event notification for POSIX AIO
-#ifndef TORRENT_USE_SIGNALFD
-#define TORRENT_USE_SIGNALFD 0
+#ifndef TORRENT_USE_AIO_SIGNALFD
+#define TORRENT_USE_AIO_SIGNALFD 0
 #endif
 
 // use this signal number for event notifications in POSIX AIO

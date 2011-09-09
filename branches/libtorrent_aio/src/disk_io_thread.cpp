@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
 
-#if TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO_SIGNALFD
 #include <sys/signalfd.h>
 #endif
 
@@ -299,7 +299,7 @@ namespace libtorrent
 #endif // TORRENT_USE_SYNCIO
 	}
 
-#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD &&!TORRENT_USE_AIO_PORTS) \
+#if (TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD &&!TORRENT_USE_AIO_PORTS) \
 	|| TORRENT_USE_SYNCIO
 	// this semaphore is global so that the global signal
 	// handler can access it. The side-effect of this is
@@ -392,7 +392,7 @@ namespace libtorrent
 		m_aiocb_pool.port = m_port;
 #endif
 
-#if TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO_SIGNALFD
 		m_job_event_fd = eventfd(0, 0);
 		if (m_job_event_fd < 0)
 		{
@@ -441,11 +441,11 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 
-#if TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO_SIGNALFD
 		close(m_signal_fd[0]);
 		close(m_signal_fd[1]);
 		close(m_event_fd);
-#endif // TORRENT_USE_SIGNALFD
+#endif // TORRENT_USE_AIO_SIGNALFD
 #endif // TORRENT_USE_AIO_PORTS
 
 #elif TORRENT_USE_OVERLAPPED
@@ -2162,7 +2162,7 @@ namespace libtorrent
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
-#elif (TORRENT_USE_AIO && TORRENT_USE_SIGNALFD) || TORRENT_USE_IOSUBMIT
+#elif (TORRENT_USE_AIO && TORRENT_USE_AIO_SIGNALFD) || TORRENT_USE_IOSUBMIT
 		boost::uint64_t dummy = 1;
 		int len = write(m_job_event_fd, &dummy, sizeof(dummy));
 		DLOG(stderr, "[%p] write(m_job_event_fd) = %d\n", this, len);
@@ -2207,7 +2207,7 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
 
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
@@ -2314,7 +2314,7 @@ namespace libtorrent
 
 // if we're using signalfd, we don't want a signal handler to catch our
 // signal, but our file descriptor to swallow all of them
-#if TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO_SIGNALFD
 		m_signal_fd[0] = signalfd(-1, &mask, SFD_NONBLOCK);
 		// #error error handling needed
 
@@ -2327,11 +2327,11 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
-#endif // TORRENT_USE_SIGNALFD
+#endif // TORRENT_USE_AIO_SIGNALFD
 #endif // BOOST_HAS_PTHREADS
 #endif // TORRENT_USE_AIO
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
 		struct sigaction sa;
 
 		sa.sa_flags = SA_SIGINFO | SA_RESTART;
@@ -2344,7 +2344,7 @@ namespace libtorrent
 		}
 #endif
 
-#if (TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS) \
+#if (TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS) \
 	|| TORRENT_USE_SYNCIO
 		int last_completed_aios = 0;
 #endif
@@ -2454,7 +2454,7 @@ namespace libtorrent
 				} while (num_events == max_events);
 			}
 
-#elif TORRENT_USE_AIO && TORRENT_USE_SIGNALFD
+#elif TORRENT_USE_AIO && TORRENT_USE_AIO_SIGNALFD
 			// wait either for a signal coming in through the 
 			// signalfd or an add-job even coming in through
 			// the eventfd

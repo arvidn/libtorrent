@@ -377,7 +377,7 @@ namespace libtorrent
 		std::ofstream m_log;
 #endif
 
-#if TORRENT_USE_AIO && !TORRENT_USE_SIGNALFD && !TORRENT_USE_AIO_PORTS
+#if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS
 		static void signal_handler(int signal, siginfo_t* si, void*);
 #endif
 
@@ -464,7 +464,7 @@ namespace libtorrent
 		int m_port;
 #endif
 
-#if TORRENT_USE_SIGNALFD
+#if TORRENT_USE_AIO_SIGNALFD
 		// if we're using a signalfd instead of a signal handler
 		// this is its file descriptor
 		// this is fucked up. If we only have a single signalfd, in
