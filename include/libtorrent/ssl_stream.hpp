@@ -56,11 +56,11 @@ public:
 	{
 	}
 
-	typedef asio::ssl::stream<Stream> next_layer_type;
+	typedef typename asio::ssl::stream<Stream> sock_type;
+	typedef typename sock_type::next_layer_type next_layer_type;
 	typedef typename Stream::lowest_layer_type lowest_layer_type;
 	typedef typename Stream::endpoint_type endpoint_type;
 	typedef typename Stream::protocol_type protocol_type;
-	typedef typename asio::ssl::stream<Stream> sock_type;
 
 	typedef boost::function<void(error_code const&)> handler_type;
 
@@ -77,6 +77,33 @@ public:
 
 		m_sock.next_layer().async_connect(endpoint
 			, boost::bind(&ssl_stream::connected, this, _1, h));
+	}
+
+	template <class Handler>
+	void async_accept_handshake(Handler const& handler)
+	{
+		// this is used for accepting SSL connections
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		m_sock.async_handshake(asio::ssl::stream_base::server
+			, boost::bind(&ssl_stream::handshake, this, _1, h));
+	}
+
+	void accept_handshake(error_code& ec)
+	{
+		// this is used for accepting SSL connections
+		m_sock.handshake(asio::ssl::stream_base::server, ec);
+	}
+
+	template <class Handler>
+	void async_shutdown(Handler const& handler)
+	{
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		m_sock.async_shutdown( boost::bind(&ssl_stream::on_shutdown, this, _1, h));
+	}
+
+	void shutdown(error_code& ec)
+	{
+		m_sock.shutdown(ec);
 	}
 
 	template <class Mutable_Buffers, class Handler>
@@ -222,7 +249,7 @@ public:
 	
 	next_layer_type& next_layer()
 	{
-		return m_sock;
+		return m_sock.next_layer();
 	}
 
 private:

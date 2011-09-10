@@ -1292,7 +1292,7 @@ namespace libtorrent
 			// inject the root certificate, and no other, to
 			// verify other peers against
 			boost::shared_ptr<context> ctx(
-				new (std::nothrow) context(m_ses.m_io_service, context::tlsv1));
+				new (std::nothrow) context(m_ses.m_io_service, context::sslv23));
 	
 			if (!ctx)
 			{
@@ -3972,6 +3972,26 @@ namespace libtorrent
 		}
 	}
 
+#ifdef TORRENT_USE_OPENSSL
+	// certificate is a filename to a .pem file which is our
+	// certificate. root_cert is a filename to a certificate
+	// on disk which is the trusted certificate authority (CA)
+	// for this torrent. 'certificate' must be signed by the
+	// 'root_cert', and any peer we connect to or that connect
+	// to use must present a valid certificate signed by 'root_cert'
+	void torrent::set_ssl_cert(std::string const& certificate, error_code& ec)
+	{
+		ec.clear();
+		if (!m_ssl_ctx)
+		{
+			ec = asio::error::operation_not_supported;
+			return;
+		}
+		using boost::asio::ssl::context;
+		m_ssl_ctx->use_certificate_file(certificate, context::pem, ec);
+	}
+#endif
+
 	void torrent::remove_peer(peer_connection* p)
 	{
 //		INVARIANT_CHECK;
@@ -4313,7 +4333,11 @@ namespace libtorrent
 		bool ssl = string_begins_no_case("https://", web->url.c_str());
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-		if (ssl) userdata = &m_ses.m_ssl_ctx;
+		if (ssl)
+		{
+			userdata = m_ssl_ctx.get();
+			if (!userdata) userdata = &m_ses.m_ssl_ctx;
+		}
 #endif
 		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata, 0, true);
 		(void)ret;
@@ -4335,13 +4359,11 @@ namespace libtorrent
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
+			socks5_stream* str =
 #ifdef TORRENT_USE_OPENSSL
-			socks5_stream* str = ssl
-				? &s->get<ssl_stream<socks5_stream> >()->next_layer().next_layer()
-				: s->get<socks5_stream>();
-#else
-			socks5_stream* str = s->get<socks5_stream>();
+				ssl ? &s->get<ssl_stream<socks5_stream> >()->next_layer() :
 #endif
+				s->get<socks5_stream>();
 			TORRENT_ASSERT(str);
 
 			using boost::tuples::ignore;

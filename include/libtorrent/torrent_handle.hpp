@@ -252,6 +252,9 @@ namespace libtorrent
 		bool resolve_countries() const;
 #endif
 
+		void set_ssl_certificates(std::string const& certificate
+			, error_code& ec);
+
 		storage_interface* get_storage_impl() const;
 
 		// all these are deprecated, use piece

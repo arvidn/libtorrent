@@ -375,6 +375,16 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(flush_cache);
 	}
 
+	void torrent_handle::set_ssl_certificates(
+		std::string const& certificate, error_code& ec)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASYNC_CALL2(set_ssl_cert, certificate, boost::ref(ec));
+#else
+		ec = boost::asio::error::operation_not_supported;
+#endif
+	}
+
 	void torrent_handle::save_resume_data(int f) const
 	{
 		INVARIANT_CHECK;
