@@ -72,7 +72,9 @@ POSSIBILITY OF SUCH DAMAGE.
 		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
 			get<ssl_stream<socks5_stream> >()->x; break; \
 		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
-			get<ssl_stream<http_stream> >()->x; break;
+			get<ssl_stream<http_stream> >()->x; break; \
+		case socket_type_int_impl<ssl_stream<utp_stream> >::value: \
+			get<ssl_stream<utp_stream> >()->x; break;
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
 		case socket_type_int_impl<ssl_stream<stream_socket> >::value: \
@@ -80,7 +82,9 @@ POSSIBILITY OF SUCH DAMAGE.
 		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
 			return get<ssl_stream<socks5_stream> >()->x; \
 		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
-			return get<ssl_stream<http_stream> >()->x;
+			return get<ssl_stream<http_stream> >()->x; \
+		case socket_type_int_impl<ssl_stream<utp_stream> >::value: \
+			return get<ssl_stream<utp_stream> >()->x;
 
 #else
 
@@ -160,6 +164,10 @@ namespace libtorrent
 	template <>
 	struct socket_type_int_impl<ssl_stream<http_stream> >
 	{ enum { value = 8 }; };
+
+	template <>
+	struct socket_type_int_impl<ssl_stream<utp_stream> >
+	{ enum { value = 9 }; };
 #endif
 
 	struct TORRENT_EXPORT socket_type
@@ -260,7 +268,7 @@ namespace libtorrent
 
 		io_service& m_io_service;
 		int m_type;
-		enum { storage_size = max8<
+		enum { storage_size = max9<
 			sizeof(stream_socket)
 			, sizeof(socks5_stream)
 			, sizeof(http_stream)
@@ -274,8 +282,9 @@ namespace libtorrent
 			, sizeof(ssl_stream<stream_socket>)
 			, sizeof(ssl_stream<socks5_stream>)
 			, sizeof(ssl_stream<http_stream>)
+			, sizeof(ssl_stream<utp_stream>)
 #else
-			, 0, 0, 0
+			, 0, 0, 0, 0
 #endif
 			>::value
 		};

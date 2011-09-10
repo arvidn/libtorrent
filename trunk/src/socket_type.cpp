@@ -71,6 +71,9 @@ namespace libtorrent
 			case socket_type_int_impl<ssl_stream<http_stream> >::value:
 				get<ssl_stream<http_stream> >()->~ssl_stream();
 				break;
+			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
+				get<ssl_stream<utp_stream> >()->~ssl_stream();
+				break;
 #endif
 			default: TORRENT_ASSERT(false);
 		}
@@ -114,6 +117,11 @@ namespace libtorrent
 			case socket_type_int_impl<ssl_stream<http_stream> >::value:
 				TORRENT_ASSERT(userdata);
 				new ((ssl_stream<http_stream>*)m_data) ssl_stream<http_stream>(m_io_service
+					, *((boost::asio::ssl::context*)userdata));
+				break;
+			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
+				TORRENT_ASSERT(userdata);
+				new ((ssl_stream<utp_stream>*)m_data) ssl_stream<utp_stream>(m_io_service
 					, *((boost::asio::ssl::context*)userdata));
 				break;
 #endif

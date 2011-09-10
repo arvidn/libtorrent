@@ -166,11 +166,14 @@ class TORRENT_EXPORT utp_stream
 {
 public:
 
+	typedef utp_stream lowest_layer_type;
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
 	explicit utp_stream(asio::io_service& io_service);
 	~utp_stream();
+
+	lowest_layer_type& lowest_layer() { return *this; }
 
 	// used for incoming connections
 	void set_impl(utp_socket_impl* s);
@@ -239,8 +242,7 @@ public:
 	std::size_t available() const;
 	std::size_t available(error_code& ec) const { return available(); }
 
-	asio::io_service& io_service()
-	{ return m_io_service; }
+	asio::io_service& get_io_service() { return m_io_service; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -338,9 +340,32 @@ public:
 	template <class Const_Buffers>
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
+		TORRENT_ASSERT(false && "not implemented!");
 		// TODO: implement
 		return 0;
 	}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	template <class Mutable_Buffers>
+	std::size_t read_some(Mutable_Buffers const& buffers)
+	{
+		error_code ec;
+		std::size_t ret = read_some(buffers, ec);
+		if (ec)
+			boost::throw_exception(boost::system::system_error(ec));
+		return ret;
+	}
+
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const& buffers)
+	{
+		error_code ec;
+		std::size_t ret = write_some(buffers, ec);
+		if (ec)
+			boost::throw_exception(boost::system::system_error(ec));
+		return ret;
+	}
+#endif
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)

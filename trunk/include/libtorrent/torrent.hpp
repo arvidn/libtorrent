@@ -838,6 +838,12 @@ namespace libtorrent
 		void queue_torrent_check();
 		void dequeue_torrent_check();
 
+#ifdef TORRENT_USE_OPENSSL
+		void set_ssl_cert(std::string const& certificate, error_code& ec);
+		bool is_ssl_torrent() const { return m_ssl_ctx; } 
+		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
+#endif
+
 	private:
 
 		void on_files_deleted(int ret, disk_io_job const& j);
