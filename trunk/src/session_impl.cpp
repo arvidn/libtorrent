@@ -3564,6 +3564,13 @@ namespace aux {
 				|| t->state() == torrent_status::queued_for_checking))
 				continue;
 
+			--dht_limit;
+			--lsd_limit;
+			--tracker_limit;
+			t->set_announce_to_dht(dht_limit >= 0);
+			t->set_announce_to_trackers(tracker_limit >= 0);
+			t->set_announce_to_lsd(lsd_limit >= 0);
+
 			if (!t->is_paused() && !is_active(t, settings())
 				&& hard_limit > 0)
 			{
@@ -3575,13 +3582,9 @@ namespace aux {
 			{
 				--hard_limit;
 				--type_limit;
-				--dht_limit;
-				--tracker_limit;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 				t->log_to_all_peers(("AUTO MANAGER STARTING TORRENT: " + t->torrent_file().name()).c_str());
 #endif
-				t->set_announce_to_dht(dht_limit >= 0);
-				t->set_announce_to_trackers(tracker_limit >= 0);
 				t->set_allow_peers(true);
 			}
 			else
