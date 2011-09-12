@@ -174,7 +174,8 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, policy::peer* peerinfo
+			, bool outgoing = true);
 
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
@@ -182,7 +183,8 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, policy::peer* peerinfo
+			, bool outgoing = false);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function

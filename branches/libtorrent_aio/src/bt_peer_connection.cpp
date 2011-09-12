@@ -99,9 +99,10 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, policy::peer* peerinfo)
+		, policy::peer* peerinfo
+		, bool outgoing)
 		: peer_connection(ses, tor, s, remote
-			, peerinfo)
+			, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
@@ -152,8 +153,9 @@ namespace libtorrent
 		session_impl& ses
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, policy::peer* peerinfo)
-		: peer_connection(ses, s, remote, peerinfo)
+		, policy::peer* peerinfo
+		, bool outgoing)
+		: peer_connection(ses, s, remote, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
@@ -225,6 +227,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		std::string const key = t->torrent_file().encryption_key();
 		if (key.size() == 32) out_enc_policy = pe_settings::disabled;
+
+		// never try an encrypted connection when already using SSL
+		if (get_socket()->get<ssl_stream<stream_socket> >() || get_socket()->get<ssl_stream<utp_stream> >())
+			out_enc_policy = pe_settings::disabled;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
 		char const* policy_name[] = {"forced", "enabled", "disabled"};
@@ -2986,6 +2992,18 @@ namespace libtorrent
 				peer_log("*** unrecognized protocol header");
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+				if (get_socket()->get<ssl_stream<stream_socket> >()
+					|| get_socket()->get<ssl_stream<utp_stream> >())
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** SSL peers are not allowed to use any other encryption");
+#endif
+					disconnect(errors::invalid_info_hash, 1);
+					return;
+				}
+#endif // TORRENT_USE_OPENSSL
+
 				bool found_encrypted_torrent = false;
 #ifdef TORRENT_USE_OPENSSL
 				if (!is_local())
@@ -3127,7 +3145,13 @@ namespace libtorrent
 				std::copy(recv_buffer.begin + 8, recv_buffer.begin + 28
 					, (char*)info_hash.begin());
 
-				attach_to_torrent(info_hash, m_encrypted && m_rc4_encrypted);
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				bool allow_encrypted = m_encrypted && m_rc4_encrypted;
+#else
+				bool allow_encrypted = true;
+#endif
+
+				attach_to_torrent(info_hash, allow_encrypted);
 				if (is_disconnecting()) return;
 			}
 			else

@@ -1285,6 +1285,21 @@ namespace libtorrent
 		error_code error;
 	};
 
+	struct TORRENT_EXPORT torrent_need_cert_alert: torrent_alert
+	{
+		torrent_need_cert_alert(torrent_handle const& h)
+			: torrent_alert(h)
+		{}
+
+		TORRENT_DEFINE_ALERT(torrent_need_cert_alert);
+
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		error_code error;
+	};
+
 
 }
 

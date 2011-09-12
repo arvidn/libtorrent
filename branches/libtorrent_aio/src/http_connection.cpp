@@ -87,6 +87,10 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
+	// TODO: if we were handed an SSL context, we should really
+	// verify the hostname of the web server as well. This is supported
+	// in boost starting with version 1.47.0. See ssl::rfc2818_verification
+	// and ssl::context::set_verify_callback
 }
 
 http_connection::~http_connection()
@@ -300,12 +304,14 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		{
 			if (m_ssl_ctx == 0)
 			{
-				m_ssl_ctx = new boost::asio::ssl::context(m_resolver.get_io_service(), asio::ssl::context::sslv23_client);
+				m_ssl_ctx = new (std::nothrow) boost::asio::ssl::context(
+					m_resolver.get_io_service(), asio::ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
 					error_code ec;
 					m_ssl_ctx->set_verify_mode(asio::ssl::context::verify_none, ec);
+					TORRENT_ASSERT(!ec);
 				}
 			}
 			userdata = m_ssl_ctx;
@@ -536,7 +542,7 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 		if (m_ssl)
 		{
 			TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
-			m_sock.get<ssl_stream<socks5_stream> >()->next_layer().next_layer().set_dst_name(m_hostname);
+			m_sock.get<ssl_stream<socks5_stream> >()->next_layer().set_dst_name(m_hostname);
 		}
 		else
 #endif

@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	TORRENT_EXPORT bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
 		, void* ssl_context
@@ -50,12 +49,26 @@ namespace libtorrent
 	{
 		if (sm)
 		{
-			s.instantiate<utp_stream>(ios);
-			s.get<utp_stream>()->set_impl(sm->new_utp_socket(s.get<utp_stream>()));
+			utp_stream* str;
+#ifdef TORRENT_USE_OPENSSL
+			if (ssl_context)
+			{
+				s.instantiate<ssl_stream<utp_stream> >(ios, ssl_context);
+				str = &s.get<ssl_stream<utp_stream> >()->next_layer();
+			}
+			else
+#endif
+			{
+				s.instantiate<utp_stream>(ios);
+				str = s.get<utp_stream>();
+			}
+			str->set_impl(sm->new_utp_socket(str));
 		}
 #if TORRENT_USE_I2P
 		else if (ps.type == proxy_settings::i2p_proxy)
 		{
+			// it doesn't make any sense to try ssl over i2p
+			TORRENT_ASSERT(ssl_context == 0);
 			s.instantiate<i2p_stream>(ios);
 			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
 		}
@@ -63,12 +76,19 @@ namespace libtorrent
 		else if (ps.type == proxy_settings::none
 			|| (peer_connection && !ps.proxy_peer_connections))
 		{
+			stream_socket* str;
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
+			{
 				s.instantiate<ssl_stream<stream_socket> >(ios, ssl_context);
+				str = &s.get<ssl_stream<stream_socket> >()->next_layer();
+			}
 			else
 #endif
+			{
 				s.instantiate<stream_socket>(ios);
+				str = s.get<stream_socket>();
+			}
 		}
 		else if (ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
@@ -78,7 +98,7 @@ namespace libtorrent
 			if (ssl_context)
 			{
 				s.instantiate<ssl_stream<http_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<http_stream> >()->next_layer().next_layer();
+				str = &s.get<ssl_stream<http_stream> >()->next_layer();
 			}
 			else
 #endif
@@ -100,7 +120,7 @@ namespace libtorrent
 			if (ssl_context)
 			{
 				s.instantiate<ssl_stream<socks5_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<socks5_stream> >()->next_layer().next_layer();
+				str = &s.get<ssl_stream<socks5_stream> >()->next_layer();
 			}
 			else
 #endif

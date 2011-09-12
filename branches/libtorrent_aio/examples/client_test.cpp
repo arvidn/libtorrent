@@ -861,6 +861,40 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 {
 	using namespace libtorrent;
 
+#ifdef TORRENT_USE_OPENSSL
+	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
+	{
+		torrent_handle h = p->handle;
+		error_code ec;
+		file_status st;
+		std::string cert = combine_path("certificates", to_hex(h.info_hash().to_string())) + ".pem";
+		std::string priv = combine_path("certificates", to_hex(h.info_hash().to_string())) + "_key.pem";
+		stat_file(cert, &st, ec);
+		if (ec)
+		{
+			char msg[256];
+			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			return;
+		}
+		stat_file(priv, &st, ec);
+		if (ec)
+		{
+			char msg[256];
+			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
+			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+			return;
+		}
+
+		char msg[256];
+		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
+		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
+
+		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "test");
+		h.resume();
+	}
+#endif
+
 	if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
 	{
 		p->handle.set_max_connections(max_connections_per_torrent / 2);

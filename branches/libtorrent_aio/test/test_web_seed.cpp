@@ -240,9 +240,13 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	}
 	else
 	{
-		snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/seed", port);
+		snprintf(tmp, sizeof(tmp), "%s://127.0.0.1:%d/seed", protocol, port);
 		t.add_http_seed(tmp);
 	}
+	fprintf(stderr, "testing: %s\n", tmp);
+
+//	for (int i = 0; i < 1000; ++i) sleep(1000);
+
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "./tmp1_web_seed", ec);
 

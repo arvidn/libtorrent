@@ -112,6 +112,12 @@ namespace libtorrent
 	session_impl& ses = t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2, a3))
 
+#define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = t->session(); \
+	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
+
 #define TORRENT_SYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
@@ -373,6 +379,17 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL(flush_cache);
+	}
+
+	void torrent_handle::set_ssl_certificate(
+		std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params
+		, std::string const& passphrase)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASYNC_CALL4(set_ssl_cert, certificate, private_key, dh_params, passphrase);
+#endif
 	}
 
 	void torrent_handle::save_resume_data(int f) const

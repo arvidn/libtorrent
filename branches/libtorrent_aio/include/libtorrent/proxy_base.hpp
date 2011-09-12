@@ -46,6 +46,7 @@ class proxy_base : boost::noncopyable
 {
 public:
 
+	typedef stream_socket next_layer_type;
 	typedef stream_socket::lowest_layer_type lowest_layer_type;
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
@@ -215,6 +216,11 @@ public:
 	lowest_layer_type& lowest_layer()
 	{
 		return m_sock.lowest_layer();
+	}
+
+	next_layer_type& next_layer()
+	{
+		return m_sock;
 	}
 
 	bool is_open() const { return m_sock.is_open(); }

@@ -2193,6 +2193,19 @@ done:
 			}
 #endif // F_PREALLOCATE
 
+#ifdef F_ALLOCSP64
+			flock64 fl64;
+			fl64.l_whence = SEEK_SET;
+			fl64.l_start = 0;
+			fl64.l_len = s;
+			if (fcntl(native_handle(), F_ALLOCSP64, &fl64) < 0)
+			{
+				ec.assign(errno, get_posix_category());
+				return false;
+			}
+
+#endif // F_ALLOCSP64
+
 #if defined TORRENT_LINUX || TORRENT_HAS_FALLOCATE
 			int ret;
 #endif
