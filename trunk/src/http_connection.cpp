@@ -87,6 +87,10 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
+	// TODO: if we were handed an SSL context, we should really
+	// verify the hostname of the web server as well. This is supported
+	// in boost starting with version 1.47.0. See ssl::rfc2818_verification
+	// and ssl::context::set_verify_callback
 }
 
 http_connection::~http_connection()

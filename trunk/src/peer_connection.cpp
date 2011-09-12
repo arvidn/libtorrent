@@ -79,7 +79,8 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& endp
-		, policy::peer* peerinfo)
+		, policy::peer* peerinfo
+		, bool outgoing)
 		:
 #ifdef TORRENT_DEBUG
 		m_last_choke(time_now() - hours(1))
@@ -139,7 +140,7 @@ namespace libtorrent
 		, m_choke_rejects(0)
 		, m_read_recurse(0)
 		, m_fast_reconnect(false)
-		, m_active(true)
+		, m_active(outgoing)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
 		, m_interesting(false)
@@ -149,8 +150,8 @@ namespace libtorrent
 		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
-		, m_connecting(true)
-		, m_queued(true)
+		, m_connecting(outgoing)
+		, m_queued(outgoing)
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
@@ -203,9 +204,12 @@ namespace libtorrent
 		error_code ec;
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
-		peer_log(">>> OUTGOING_CONNECTION [ ep: %s transport: %s seed: %d p: %p]"
+		peer_log(">>> %s [ ep: %s transport: %s seed: %d p: %p ]"
+			, outgoing ? "OUTGOING_CONNECTION" : "INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
-			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection"
+			, m_socket->get<ssl_stream<stream_socket> >() ? "SSL/TCP"
+				: m_socket->get<ssl_stream<utp_stream> >() ? "SSL/uTP"
+				: m_socket->get<utp_stream>() ? "uTP" : "TCP"
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info);
 #endif
 #ifdef TORRENT_DEBUG
@@ -223,7 +227,8 @@ namespace libtorrent
 		session_impl& ses
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& endp
-		, policy::peer* peerinfo)
+		, policy::peer* peerinfo
+		, bool outgoing)
 		:
 #ifdef TORRENT_DEBUG
 		m_last_choke(time_now() - hours(1))
@@ -282,7 +287,7 @@ namespace libtorrent
 		, m_choke_rejects(0)
 		, m_read_recurse(0)
 		, m_fast_reconnect(false)
-		, m_active(false)
+		, m_active(outgoing)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
 		, m_interesting(false)
@@ -292,8 +297,8 @@ namespace libtorrent
 		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
-		, m_connecting(false)
-		, m_queued(false)
+		, m_connecting(outgoing)
+		, m_queued(outgoing)
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
@@ -347,7 +352,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
-		peer_log("<<< INCOMING_CONNECTION [ ep: %s transport: %s ]"
+		peer_log("<<< %s [ ep: %s transport: %s ]"
+			, outgoing ? "OUTGOING_CONNECTION" : "INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection");
 #endif
@@ -536,7 +542,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (!t)
+		if (!m_active)
 		{
 			tcp::socket::non_blocking_io ioc(true);
 			error_code ec;
@@ -556,7 +562,8 @@ namespace libtorrent
 			if (m_remote.address().is_v4())
 				m_socket->set_option(type_of_service(m_ses.settings().peer_tos), ec);
 		}
-		else if (t->ready_for_connections())
+
+		if (t && t->ready_for_connections())
 		{
 			init();
 		}
@@ -1131,6 +1138,16 @@ namespace libtorrent
 #endif
 			t.reset();
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		if (t && t->is_ssl_torrent())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			peer_log("*** can't attach to an ssl torrent");
+#endif
+			t.reset();
+		}
+#endif
 
 		if (!t)
 		{
@@ -3320,7 +3337,7 @@ namespace libtorrent
 		peer_log("CONNECTION FAILED: %s", print_endpoint(m_remote).c_str());
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_ses.m_logger) << "CONNECTION FAILED: " << print_endpoint(m_remote) << "\n";
+		(*m_ses.m_logger) << time_now_string() << " CONNECTION FAILED: " << print_endpoint(m_remote) << "\n";
 #endif
 
 #ifdef TORRENT_STATS
@@ -5234,7 +5251,7 @@ namespace libtorrent
 			return;
 		}
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log(">>> ASYNC_CONENCT [ dst: %s ]", print_endpoint(m_remote).c_str());
+		peer_log(">>> ASYNC_CONNECT [ dst: %s ]", print_endpoint(m_remote).c_str());
 #endif
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_connection_complete");
@@ -5279,7 +5296,11 @@ namespace libtorrent
 		if (m_disconnecting) return;
 		m_last_receive = time_now();
 
-		if (m_socket->get<utp_stream>() && m_peer_info)
+		if ((m_socket->get<utp_stream>()
+#ifdef TORRENT_USE_OPENSSL
+			|| m_socket->get<ssl_stream<utp_stream> >()
+#endif
+			) && m_peer_info)
 		{
 			m_peer_info->confirmed_supports_utp = true;
 			m_peer_info->supports_utp = false;

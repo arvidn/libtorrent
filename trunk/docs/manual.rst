@@ -2310,6 +2310,11 @@ Its declaration looks like this::
 
 		sha1_hash info_hash() const;
 
+		void set_ssl_certificate(std::string const& cert
+			, std::string const& private_key
+			, std::string const& dh_params
+			, std::string const& passphrase = "");
+
 		bool operator==(torrent_handle const&) const;
 		bool operator!=(torrent_handle const&) const;
 		bool operator<(torrent_handle const&) const;
@@ -3300,6 +3305,35 @@ somehow invalid or if the filenames are not allowed (and hence cannot be opened/
 your filesystem. If such an error occurs, a file_error_alert_ is generated and all handles
 that refers to that torrent will become invalid.
 
+set_ssl_certificate()
+---------------------
+
+	::
+
+		void set_ssl_certificate(std::string const& cert, std::string const& private_key
+			, std::string const& dh_params, std::string const& passphrase = "");
+
+For SSL torrents, use this to specify a path to a .pem file to use as this client's certificate.
+The certificate must be signed by the certificate in the .torrent file to be valid.
+
+``cert`` is a path to the (signed) certificate in .pem format corresponding to this torrent.
+
+``private_key`` is a path to the private key for the specified certificate. This must be in .pem
+format.
+
+``dh_params`` is a path to the Diffie-Hellman parameter file, which needs to be in .pem format.
+You can generate this file using the openssl command like this:
+``openssl dhparam -outform PEM -out dhparams.pem 512``.
+
+``passphrase`` may be specified if the private key is encrypted and requires a passphrase to
+be decrypted.
+
+Note that when a torrent first starts up, and it needs a certificate, it will suspend connecting
+to any peers until it has one. It's typically desirable to resume the torrent after setting the
+ssl certificate.
+
+If you receive a torrent_need_cert_alert_, you need to call this to provide a valid cert. If you
+don't have a cert you won't be allowed to connect to any peers.
 
 torrent_status
 ==============
@@ -3423,6 +3457,8 @@ It contains the following fields::
 		bool ip_filter_applies;
 
 		sha1_hash info_hash;
+
+		int listen_port;
 	};
 
 ``handle`` is a handle to the torrent whose status the object represents.
@@ -3701,6 +3737,11 @@ was saved.
 to this torrent. This defaults to true.
 
 ``info_hash`` is the info-hash of the torrent.
+
+``listen_port`` is the listen port this torrent is listening on for new
+connections, if the torrent has its own listen socket. Only SSL torrents
+have their own listen sockets. If the torrent doesn't have one, and is
+accepting connections on the single listen socket, this is 0.
 
 peer_info
 =========
@@ -7128,6 +7169,21 @@ cache flush is complete and the torrent does no longer have any files open.
 		// ...
 	};
 
+torrent_need_cert_alert
+-----------------------
+
+This is always posted for SSL torrents. This is a reminder to the client that
+the torrent won't work unless torrent_handle::set_ssl_certificate() is called with
+a valid certificate. Valid certificates MUST be signed by the SSL certificate
+in the .torrent file.
+
+::
+
+	struct torrent_need_cert_alert: tracker_alert
+	{
+		// ...
+	};
+
 dht_announce_alert
 ------------------
 
@@ -8843,6 +8899,39 @@ This threshold is controlled by ``session_settings::whole_pieces_threshold``.
 
 *TODO: piece affinity by speed category*
 *TODO: piece priorities*
+
+SSL torrents
+============
+
+Torrents may have an SSL root (CA) certificate embedded in them. Such torrents
+are called *SSL torrents*. An SSL torrent talks to all bittorrent peers over SSL.
+The protocols are layered like this::
+
+	+-----------------------+
+	| BitTorrent protocol   |
+	+-----------------------+
+	| SSL                   |
+	+-----------+-----------+
+	| TCP       | uTP       |
+	|           +-----------+
+	|           | UDP       |
+	+-----------+-----------+
+
+During the SSL handshake, both peers need to authenticate by providing a certificate
+that is signed by the private counterpart of the CA certificate found in the
+.torrent file. These peer certificates are expected to be privided to peers through
+some other means than bittorrent. Typically by a peer generating a certificate request
+which is sent to the publisher of the torrent, and the publisher returning a signed
+certificate.
+
+In libtorrent, `set_ssl_certificate()`_ in torrent_handle_ is used to tell libtorrent where
+to find the peer certificate and the private key for it. When an SSL torrent is loaded,
+the torrent_need_cert_alert_ is posted to remind the user to provide a certificate.
+
+In order for the client to know which torrent an incoming connection belongs to, in order
+to provide the correct certificate, each SSL torrent opens their own dedicated listen socket.
+
+This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``).
 
 filename checks
 ===============

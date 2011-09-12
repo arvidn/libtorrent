@@ -119,6 +119,27 @@ namespace libtorrent
 
 	struct bencode_map_entry;
 
+	struct listen_socket_t
+	{
+		listen_socket_t(): external_port(0) {}
+
+		// this is typically empty but can be set
+		// to the WAN IP address of NAT-PMP or UPnP router
+		address external_address;
+
+		// this is typically set to the same as the local
+		// listen port. In case a NAT port forward was
+		// successfully opened, this will be set to the
+		// port that is open on the external (NAT) interface
+		// on the NAT box itself. This is the port that has
+		// to be published to peers, since this is the port
+		// the client is reachable through.
+		int external_port;
+
+		// the actual socket
+		boost::shared_ptr<socket_acceptor> sock;
+	};
+
 	namespace aux
 	{
 		struct session_impl;
@@ -349,7 +370,7 @@ namespace libtorrent
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
-			void announce_lsd(sha1_hash const& ih, bool broadcast = false);
+			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false);
 
 			void save_state(entry* e, boost::uint32_t flags) const;
 			void load_state(lazy_entry const* e);
@@ -661,26 +682,6 @@ namespace libtorrent
 			tcp::endpoint m_ipv6_interface;
 			tcp::endpoint m_ipv4_interface;
 			
-			struct listen_socket_t
-			{
-				listen_socket_t(): external_port(0) {}
-
-				// this is typically empty but can be set
-				// to the WAN IP address of NAT-PMP or UPnP router
-				address external_address;
-
-				// this is typically set to the same as the local
-				// listen port. In case a NAT port forward was
-				// successfully opened, this will be set to the
-				// port that is open on the external (NAT) interface
-				// on the NAT box itself. This is the port that has
-				// to be published to peers, since this is the port
-				// the client is reachable through.
-				int external_port;
-
-				// the actual socket
-				boost::shared_ptr<socket_acceptor> sock;
-			};
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
@@ -697,7 +698,7 @@ namespace libtorrent
 			boost::shared_ptr<socket_type> m_i2p_listen_socket;
 #endif
 
-			listen_socket_t setup_listener(tcp::endpoint ep, int retries
+			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int retries
 				, bool v6_only, int flags, error_code& ec);
 
 			// the proxy used for bittorrent
