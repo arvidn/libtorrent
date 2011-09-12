@@ -252,8 +252,10 @@ namespace libtorrent
 		bool resolve_countries() const;
 #endif
 
-		void set_ssl_certificates(std::string const& certificate
-			, error_code& ec);
+		void set_ssl_certificate(std::string const& certificate
+			, std::string const& private_key
+			, std::string const& dh_params
+			, std::string const& passphrase = "");
 
 		storage_interface* get_storage_impl() const;
 
@@ -485,6 +487,7 @@ namespace libtorrent
 			, need_save_resume(false)
 			, ip_filter_applies(true)
 			, info_hash(0)
+			, listen_port(0)
 		{}
 
 		// handle to the torrent
@@ -701,6 +704,10 @@ namespace libtorrent
 
 		// the info-hash for this torrent
 		sha1_hash info_hash;
+		
+		// if this torrent has its own listen socket, this is
+		// the port it's listening on. Otherwise it's 0
+		int listen_port;
 	};
 
 }

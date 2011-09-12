@@ -561,5 +561,10 @@ namespace libtorrent {
 		return torrent_alert::message() + " removed";
 	}
 
+	std::string torrent_need_cert_alert::message() const
+	{
+		return torrent_alert::message() + " needs SSL certificate";
+	}
+
 } // namespace libtorrent
 

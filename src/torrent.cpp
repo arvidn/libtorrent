@@ -1264,14 +1264,289 @@ namespace libtorrent
 
 #endif
 
-/*
 #ifdef TORRENT_USE_OPENSSL
+/*
 	bool verify_function(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		return false;
 	}
-#endif
 */
+
+	void torrent::init_ssl(std::string const& cert)
+	{
+		using boost::asio::ssl::context;
+
+		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
+		OpenSSL_add_all_algorithms();
+
+		// TODO: come up with something better
+		RAND_seed(&info_hash()[0], 20);
+		TORRENT_ASSERT(RAND_status() == 1);
+
+		// create the SSL context for this torrent. We need to
+		// inject the root certificate, and no other, to
+		// verify other peers against
+		boost::shared_ptr<context> ctx(
+			new (std::nothrow) context(m_ses.m_io_service, context::sslv23));
+
+		if (!ctx)
+		{
+			set_error(asio::error::no_memory, "SSL context");
+			pause();
+			return;
+		}
+
+		ctx->set_options(context::default_workarounds
+			| boost::asio::ssl::context::no_sslv2
+			| boost::asio::ssl::context::single_dh_use);
+
+		error_code ec;
+		ctx->set_verify_mode(context::verify_peer
+			| context::verify_fail_if_no_peer_cert
+			| context::verify_client_once, ec);
+		if (ec)
+		{
+			set_error(ec, "SSL verify mode");
+			pause();
+			return;
+		}
+
+		// this is used for debugging			
+		/*
+#error there's a bug where the async_handshake on the ssl_stream always succeeds, regardless of the certificate failing. It's not a trivial bug in asio, that's been tested with a small repro program.
+ctx->set_verify_callback(verify_function, ec);
+		if (ec)
+		{
+			set_error(ec, "SSL verify callback");
+			pause();
+			return;
+		}
+		*/
+		SSL_CTX* ssl_ctx = ctx->impl();
+
+		// create a new x.509 certificate store
+		X509_STORE* cert_store = X509_STORE_new();
+		if (!cert_store)
+		{
+			set_error(asio::error::no_memory, "x.509 certificate store");
+			pause();
+			return;
+		}
+
+		// wrap the PEM certificate in a BIO, for openssl to read
+		BIO* bp = BIO_new_mem_buf((void*)cert.c_str(), cert.size());
+
+		// parse the certificate into OpenSSL's internal
+		// representation
+		X509* certificate = PEM_read_bio_X509_AUX(bp, 0, 0, 0);
+
+		BIO_free(bp);
+
+		if (!certificate)
+		{
+			X509_STORE_free(cert_store);
+			set_error(asio::error::no_memory, "x.509 certificate");
+			pause();
+			return;
+		}
+
+		// add cert to cert_store
+		X509_STORE_add_cert(cert_store, certificate);
+
+		// and lastly, replace the default cert store with ours
+		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
+#if 0
+		char filename[100];
+		snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
+		FILE* f = fopen(filename, "w+");
+		fwrite(cert.c_str(), cert.size(), 1, f);
+		fclose(f);
+		ctx->load_verify_file(filename);
+#endif
+		// if all went well, set the torrent ssl context to this one
+		m_ssl_ctx = ctx;
+
+		// tell the client we need a cert for this torrent
+		alerts().post_alert(torrent_need_cert_alert(get_handle()));
+
+		m_ssl_acceptor.reset(new listen_socket_t);
+		m_ses.setup_listener(m_ssl_acceptor.get()
+			, tcp::endpoint(address_v4::any(), m_ses.m_listen_interface.port())
+			, m_ses.m_listen_port_retries + 10, false, 0, ec);
+		if (!m_ssl_acceptor->sock)
+		{
+			set_error(ec, "ssl listen port");
+			pause();
+			return;
+		}
+
+		// TODO: issue UPnP and NAT-PMP for this socket
+
+		async_accept(m_ssl_acceptor->sock);
+
+		set_allow_peers(false);
+	}
+
+	void torrent::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
+	{
+		boost::shared_ptr<socket_type> c(new socket_type(m_ses.m_io_service));
+		c->instantiate<ssl_stream<stream_socket> >(m_ses.m_io_service, m_ssl_ctx.get());
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("torrent::on_accept_ssl_connection");
+#endif
+		listener->async_accept(c->get<ssl_stream<stream_socket> >()->next_layer()
+			, boost::bind(&torrent::on_accept_ssl_connection, shared_from_this(), c
+				, boost::weak_ptr<socket_acceptor>(listener), _1));
+	}
+
+	void torrent::on_accept_ssl_connection(boost::shared_ptr<socket_type> const& s
+		, boost::weak_ptr<socket_acceptor> listen_socket, error_code const& e)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("torrent::on_accept_ssl_connection");
+#endif
+		// TODO: there's some code duplication with session_impl::on_accept_connection
+
+		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
+		if (!listener) return;
+		
+		if (e == asio::error::operation_aborted) return;
+
+		if (m_abort) return;
+
+		error_code ec;
+		if (e)
+		{
+			tcp::endpoint ep = listener->local_endpoint(ec);
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			std::string msg = "error accepting connection on '"
+				+ print_endpoint(ep) + "' " + e.message();
+			(*m_ses.m_logger) << msg << "\n";
+#endif
+#ifdef TORRENT_WINDOWS
+			// Windows sometimes generates this error. It seems to be
+			// non-fatal and we have to do another async_accept.
+			if (e.value() == ERROR_SEM_TIMEOUT)
+			{
+				async_accept(listener);
+				return;
+			}
+#endif
+#ifdef TORRENT_BSD
+			// Leopard sometimes generates an "invalid argument" error. It seems to be
+			// non-fatal and we have to do another async_accept.
+			if (e.value() == EINVAL)
+			{
+				async_accept(listener);
+				return;
+			}
+#endif
+			if (alerts().should_post<listen_failed_alert>())
+				alerts().post_alert(listen_failed_alert(ep, e));
+			return;
+		}
+		async_accept(listener);
+
+		if (is_paused()) return;
+
+		// we got a connection request!
+		tcp::endpoint endp = s->remote_endpoint(ec);
+
+		if (ec)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << endp << " <== INCOMING CONNECTION FAILED, could "
+				"not retrieve remote endpoint " << ec.message() << "\n";
+#endif
+			return;
+		}
+
+		if (!settings().enable_incoming_tcp)
+		{
+			if (alerts().should_post<peer_blocked_alert>())
+				alerts().post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
+			return;
+		}
+
+		if (m_apply_ip_filter
+			&& m_ses.m_ip_filter.access(endp.address()) & ip_filter::blocked)
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			(*m_ses.m_logger) << "filtered blocked ip\n";
+#endif
+			if (alerts().should_post<peer_blocked_alert>())
+				alerts().post_alert(peer_blocked_alert(get_handle(), endp.address()));
+			return;
+		}
+
+		if (m_connections.size() >= m_max_connections)
+		{
+			if (alerts().should_post<peer_disconnected_alert>())
+			{
+				alerts().post_alert(
+					peer_disconnected_alert(get_handle(), endp, peer_id()
+						, error_code(errors::too_many_connections, get_libtorrent_category())));
+			}
+			return;
+		}
+
+		m_ses.setup_socket_buffers(*s);
+
+		s->get<ssl_stream<stream_socket> >()->async_accept_handshake(boost::bind(&torrent::ssl_handshake
+			, shared_from_this(), _1, s));
+	}
+
+	void torrent::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
+	{
+		error_code e;
+		tcp::endpoint endp = s->remote_endpoint(e);
+		if (e) return;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << time_now_string() << " *** peer SSL handshake done [ ip: "
+			<< endp << " ec: " << ec.message() << "]\n";
+#endif
+
+		if (ec)
+		{
+			if (alerts().should_post<peer_error_alert>())
+			{
+				alerts().post_alert(peer_error_alert(get_handle(), endp
+					, peer_id(), ec));
+			}
+			return;
+		}
+
+		boost::intrusive_ptr<peer_connection> c(
+			new bt_peer_connection(m_ses, shared_from_this(), s, endp, 0, false));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		c->m_in_constructor = false;
+#endif
+
+		if (c->is_disconnecting()) return;
+
+		if (!m_policy.new_connection(*c, m_ses.session_time()))
+		{
+#if defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
+				<< p->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
+#endif
+			c->disconnect(errors::too_many_connections);
+			return;
+		}
+
+		// add the newly connected peer to this torrent's peer list
+		m_connections.insert(boost::get_pointer(c));
+		m_ses.m_connections.insert(c);
+		c->start();
+		if (settings().default_peer_upload_rate)
+			c->set_upload_limit(settings().default_peer_upload_rate);
+		if (settings().default_peer_download_rate)
+			c->set_download_limit(settings().default_peer_download_rate);
+	}
+
+#endif
 
 	// this may not be called from a constructor because of the call to
 	// shared_from_this()
@@ -1284,88 +1559,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
-		if (!cert.empty())
-		{
-			using boost::asio::ssl::context;
-
-			// create the SSL context for this torrent. We need to
-			// inject the root certificate, and no other, to
-			// verify other peers against
-			boost::shared_ptr<context> ctx(
-				new (std::nothrow) context(m_ses.m_io_service, context::sslv23));
-	
-			if (!ctx)
-			{
-				set_error(asio::error::no_memory, "SSL context");
-				pause();
-				return;
-			}
-
-			error_code ec;
-			ctx->set_verify_mode(context::verify_peer
-				| context::verify_fail_if_no_peer_cert, ec);
-			if (ec)
-			{
-				set_error(ec, "SSL context");
-				pause();
-				return;
-			}
-
-// this is used for debugging			
-/*
-#error there's a bug where the async_handshake on the ssl_stream always succeeds, regardless of the certificate failing. It's not a trivial bug in asio, that's been tested with a small repro program.
-			ctx->set_verify_callback(verify_function, ec);
-			if (ec)
-			{
-				set_error(ec, "SSL verify callback");
-				pause();
-				return;
-			}
-*/
-			SSL_CTX* ssl_ctx = ctx->impl();
-
-			// create a new x.509 certificate store
-			X509_STORE* cert_store = X509_STORE_new();
-			if (!cert_store)
-			{
-				set_error(asio::error::no_memory, "x.509 certificate store");
-				pause();
-				return;
-			}
-
-			// wrap the PEM certificate in a BIO, for openssl to read
-			BIO* bp = BIO_new_mem_buf((void*)cert.c_str(), cert.size());
-
-			// parse the certificate into OpenSSL's internal
-			// representation
-			X509* certificate = PEM_read_bio_X509_AUX(bp, 0, 0, 0);
-
-			BIO_free(bp);
-
-			if (!certificate)
-			{
-				X509_STORE_free(cert_store);
-				set_error(asio::error::no_memory, "x.509 certificate");
-				pause();
-				return;
-			}
-
-			// add cert to cert_store
-			X509_STORE_add_cert(cert_store, certificate);
-
-			// and lastly, replace the default cert store with ours
-			SSL_CTX_set_cert_store(ssl_ctx, cert_store);
-#if 0
-			char filename[100];
-			snprintf(filename, sizeof(filename), "/tmp/%d.pem", rand());
-			FILE* f = fopen(filename, "w+");
-			fwrite(cert.c_str(), cert.size(), 1, f);
-			fclose(f);
-			ctx->load_verify_file(filename);
-#endif
-			// if all went well, set the torrent ssl context to this one
-			m_ssl_ctx = ctx;
-		}
+		if (!cert.empty()) init_ssl(cert);
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
@@ -1968,8 +2162,14 @@ namespace libtorrent
 
 		if (is_paused()) return;
 
+#ifdef TORRENT_USE_OPENSSL
+		int port = is_ssl_torrent() ? m_ssl_acceptor->external_port : m_ses.listen_port();
+#else
+		int port = m_ses.listen_port();
+#endif
+
 		// announce with the local discovery service
-		m_ses.announce_lsd(m_torrent_file->info_hash()
+		m_ses.announce_lsd(m_torrent_file->info_hash(), port
 			, m_ses.settings().broadcast_lsd && m_lsd_seq == 0);
 		++m_lsd_seq;
 	}
@@ -1984,9 +2184,15 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_allow_peers);
 
+#ifdef TORRENT_USE_OPENSSL
+		int port = is_ssl_torrent() ? m_ssl_acceptor->external_port : m_ses.listen_port();
+#else
+		int port = m_ses.listen_port();
+#endif
+
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.m_dht->announce(m_torrent_file->info_hash()
-			, m_ses.listen_port(), is_seed()
+			, port, is_seed()
 			, boost::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
@@ -2073,6 +2279,14 @@ namespace libtorrent
 		req.num_want = (req.event == tracker_request::stopped)
 			?0:settings().num_want;
 
+		// SSL torrents use their own listen socket
+#ifdef TORRENT_USE_OPENSSL
+		// TODO: this pattern is repeated in a few places. Factor this into
+		// a function and generalize the concept of a torrent having a
+		// dedicated listen port
+		if (is_ssl_torrent()) req.listen_port = m_ssl_acceptor->external_port;
+		else
+#endif
 		req.listen_port = m_ses.listen_port();
 		req.key = m_ses.m_key;
 
@@ -3207,6 +3421,12 @@ namespace libtorrent
 			m_ses.m_encrypted_torrents.erase(shared_from_this());
 			m_in_encrypted_list = false;
 		}
+
+		if (m_ssl_acceptor && m_ssl_acceptor->sock)
+		{
+			error_code ec;
+			m_ssl_acceptor->sock->close(ec);
+		}
 #endif
 
 		m_abort = true;
@@ -3973,22 +4193,51 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_USE_OPENSSL
-	// certificate is a filename to a .pem file which is our
-	// certificate. root_cert is a filename to a certificate
-	// on disk which is the trusted certificate authority (CA)
-	// for this torrent. 'certificate' must be signed by the
-	// 'root_cert', and any peer we connect to or that connect
-	// to use must present a valid certificate signed by 'root_cert'
-	void torrent::set_ssl_cert(std::string const& certificate, error_code& ec)
+	std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
+		, std::string pw)
 	{
-		ec.clear();
-		if (!m_ssl_ctx)
-		{
-			ec = asio::error::operation_not_supported;
-			return;
-		}
+		if (p != boost::asio::ssl::context::for_reading) return "";
+		return pw;
+	}
+
+	// certificate is a filename to a .pem file which is our
+	// certificate. The certificate must be signed by the root
+	// cert of the torrent file. any peer we connect to or that
+	// connect to use must present a valid certificate signed
+	// by the torrent root cert as well
+	void torrent::set_ssl_cert(std::string const& certificate
+		, std::string const& private_key
+		, std::string const& dh_params
+		, std::string const& passphrase)
+	{
+		if (!m_ssl_ctx) return;
+
 		using boost::asio::ssl::context;
+		error_code ec;
+		m_ssl_ctx->set_password_callback(boost::bind(&password_callback, _1, _2, passphrase), ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
 		m_ssl_ctx->use_certificate_file(certificate, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
+		m_ssl_ctx->use_tmp_dh_file(dh_params, ec);
+		if (ec)
+		{
+			if (alerts().should_post<torrent_error_alert>())
+				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
 	}
 #endif
 
@@ -4022,7 +4271,7 @@ namespace libtorrent
 				if (m_picker.get())
 				{
 					bitfield const& pieces = p->get_bitfield();
-					TORRENT_ASSERT(pieces.count() < int(pieces.size()));
+					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
 					m_picker->dec_refcount(pieces);
 				}
 			}
@@ -5159,6 +5408,9 @@ namespace libtorrent
 		}
 #endif
 
+		// extend connect timeout by this many seconds
+		int timeout_extend = 0;
+
 		TORRENT_ASSERT(want_more_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections() < m_ses.settings().connections_limit || ignore_limit);
 
@@ -5178,6 +5430,8 @@ namespace libtorrent
 			s->get<i2p_stream>()->set_destination(static_cast<policy::i2p_peer*>(peerinfo)->destination);
 			s->get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
 			s->get<i2p_stream>()->set_session_id(m_ses.m_i2p_conn.session_id());
+			// i2p setups are slow
+			timeout_extend = 20;
 		}
 		else
 #endif
@@ -5196,7 +5450,20 @@ namespace libtorrent
 			// don't make a TCP connection if it's disabled
 			if (sm == 0 && !m_ses.m_settings.enable_outgoing_tcp) return false;
 
-			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, 0, sm, true);
+			void* userdata = 0;
+#ifdef TORRENT_USE_OPENSSL
+			if (is_ssl_torrent())
+			{
+				userdata = m_ssl_ctx.get();
+				// SSL handshakes are slow
+				timeout_extend = 10;
+
+				// we don't support SSL over uTP yet
+				sm = 0;
+			}
+#endif
+
+			bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata, sm, true);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 		}
@@ -5239,6 +5506,7 @@ namespace libtorrent
 
 		int timeout = settings().peer_connect_timeout;
 		if (peerinfo) timeout += 3 * peerinfo->failcount;
+		timeout += timeout_extend;
 
 		TORRENT_TRY
 		{
@@ -5379,6 +5647,7 @@ namespace libtorrent
 				(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
 					<< p->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
 #endif
+				p->disconnect(errors::too_many_connections);
 				return false;
 			}
 		}
@@ -7674,6 +7943,11 @@ namespace libtorrent
 
 		st->handle = get_handle();
 		st->info_hash = info_hash();
+
+		st->listen_port = 0;
+#ifdef TORRENT_USE_OPENSSL
+		if (is_ssl_torrent() && m_ssl_acceptor) st->listen_port = m_ssl_acceptor->external_port;
+#endif
 
 		st->has_incoming = m_has_incoming;
 		if (m_error) st->error = m_error.message() + ": " + m_error_file;

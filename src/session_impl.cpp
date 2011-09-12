@@ -1771,41 +1771,40 @@ namespace aux {
 		return m_ipv4_interface;
 	}
 
-	session_impl::listen_socket_t session_impl::setup_listener(tcp::endpoint ep
+	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
 		, int retries, bool v6_only, int flags, error_code& ec)
 	{
-		listen_socket_t s;
-		s.sock.reset(new socket_acceptor(m_io_service));
-		s.sock->open(ep.protocol(), ec);
+		s->sock.reset(new socket_acceptor(m_io_service));
+		s->sock->open(ep.protocol(), ec);
 		if (ec)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
 				<< ": " << ec.message() << "\n" << "\n";
 #endif
-			return listen_socket_t();
+			return;
 		}
 		if (flags & session::listen_reuse_address)
 		{
 			error_code err; // ignore errors here
-			s.sock->set_option(socket_acceptor::reuse_address(true), err);
+			s->sock->set_option(socket_acceptor::reuse_address(true), err);
 		}
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
 			error_code err; // ignore errors here
-			s.sock->set_option(v6only(v6_only), err);
+			s->sock->set_option(v6only(v6_only), err);
 #ifdef TORRENT_WINDOWS
 
 #ifndef PROTECTION_LEVEL_UNRESTRICTED
 #define PROTECTION_LEVEL_UNRESTRICTED 10
 #endif
 			// enable Teredo on windows
-			s.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
+			s->sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif
 		}
 #endif
-		s.sock->bind(ep, ec);
+		s->sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1818,7 +1817,7 @@ namespace aux {
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			ep.port(ep.port() + 1);
-			s.sock->bind(ep, ec);
+			s->sock->bind(ep, ec);
 		}
 		if (ec && !(flags & session::listen_no_system_port))
 		{
@@ -1826,7 +1825,7 @@ namespace aux {
 			// let the OS pick a port
 			ep.port(0);
 			ec = error_code();
-			s.sock->bind(ep, ec);
+			s->sock->bind(ep, ec);
 		}
 		if (ec)
 		{
@@ -1839,10 +1838,10 @@ namespace aux {
 				, print_endpoint(ep).c_str(), ec.message().c_str());
 			(*m_logger) << time_now_string() << msg << "\n";
 #endif
-			return listen_socket_t();
+			return;
 		}
-		s.external_port = s.sock->local_endpoint(ec).port();
-		if (!ec) s.sock->listen(m_settings.listen_queue_size, ec);
+		s->external_port = s->sock->local_endpoint(ec).port();
+		if (!ec) s->sock->listen(m_settings.listen_queue_size, ec);
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -1853,22 +1852,21 @@ namespace aux {
 				, print_endpoint(ep).c_str(), ec.message().c_str());
 			(*m_logger) << time_now_string() << msg << "\n";
 #endif
-			return listen_socket_t();
+			return;
 		}
 
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
 		if (ep.port() == 0)
-			ep.port(s.sock->local_endpoint().port());
+			ep.port(s->sock->local_endpoint().port());
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		(*m_logger) << time_now_string() << " listening on: " << ep
-			<< " external port: " << s.external_port << "\n";
+			<< " external port: " << s->external_port << "\n";
 #endif
-		return s;
 	}
 	
 	void session_impl::open_listen_port(int flags, error_code& ec)
@@ -1887,8 +1885,8 @@ namespace aux {
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
 		
-			listen_socket_t s = setup_listener(
-				tcp::endpoint(address_v4::any(), m_listen_interface.port())
+			listen_socket_t s;
+			setup_listener(&s, tcp::endpoint(address_v4::any(), m_listen_interface.port())
 				, m_listen_port_retries, false, flags, ec);
 
 			if (s.sock)
@@ -1906,8 +1904,7 @@ namespace aux {
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				s = setup_listener(
-					tcp::endpoint(address_v6::any(), m_listen_interface.port())
+				setup_listener(&s, tcp::endpoint(address_v6::any(), m_listen_interface.port())
 					, m_listen_port_retries, true, flags, ec);
 
 				if (s.sock)
@@ -1936,8 +1933,8 @@ namespace aux {
 			// we should only open a single listen socket, that
 			// binds to the given interface
 
-			listen_socket_t s = setup_listener(
-				m_listen_interface, m_listen_port_retries, false, flags, ec);
+			listen_socket_t s;
+			setup_listener(&s, m_listen_interface, m_listen_port_retries, false, flags, ec);
 
 			if (s.sock)
 			{
@@ -4470,11 +4467,11 @@ namespace aux {
 		return m_listen_sockets.front().external_port;
 	}
 
-	void session_impl::announce_lsd(sha1_hash const& ih, bool broadcast)
+	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
 		// use internal listen port for local peers
 		if (m_lsd.get())
-			m_lsd->announce(ih, m_listen_interface.port(), broadcast);
+			m_lsd->announce(ih, port, broadcast);
 	}
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
