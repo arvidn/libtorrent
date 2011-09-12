@@ -1381,14 +1381,8 @@ namespace libtorrent
 			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
 			if (!ae.can_announce(now, is_seed()))
 			{
-				if (ae.is_working())
-				{
-					sent_announce = true; // this counts
-
-					if (!m_settings.announce_to_all_trackers
-						&& !m_settings.announce_to_all_tiers)
-						break;
-				}
+				// this counts
+				if (ae.is_working()) sent_announce = true;
 				continue;
 			}
 			
@@ -1416,8 +1410,8 @@ namespace libtorrent
 			}
 			else
 #endif
-				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
-					, tracker_login() , shared_from_this());
+			m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
+				, tracker_login() , shared_from_this());
 			ae.updating = true;
 			ae.next_announce = now + seconds(20);
 			ae.min_announce = now + seconds(10);
@@ -5324,14 +5318,20 @@ namespace libtorrent
 			if (i->tier > tier && !m_settings.announce_to_all_tiers) break;
 			if (i->is_working()) { tier = i->tier; found_working = false; }
 			if (i->fails >= i->fail_limit && i->fail_limit != 0) continue;
-			if (i->updating) { found_working = true; continue; }
-			ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
-			if (!i->updating
-				&& next_tracker_announce < next_announce
-				&& (!found_working || i->is_working()))
-				next_announce = next_tracker_announce;
+			if (i->updating)
+			{
+				found_working = true;
+			}
+			else
+			{
+				ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+				if (next_tracker_announce < next_announce
+					&& (!found_working || i->is_working()))
+					next_announce = next_tracker_announce;
+			}
 			if (i->is_working()) found_working = true;
-			if (!m_settings.announce_to_all_trackers
+			if (found_working
+				&& !m_settings.announce_to_all_trackers
 				&& !m_settings.announce_to_all_tiers) break;
 		}
 
@@ -5348,9 +5348,8 @@ namespace libtorrent
 		error_code ec;
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-		// since we don't know if we have to re-issue the async_wait or not
-		// always do it
-//		if (m_tracker_timer.expires_at() <= next_announce) return;
+		// don't re-issue the timer if it's the same expiration time as last time
+		if (m_tracker_timer.expires_at() == next_announce) return;
 
 		m_tracker_timer.expires_at(next_announce, ec);
 		m_tracker_timer.async_wait(boost::bind(&torrent::on_tracker_announce_disp, self, _1));
