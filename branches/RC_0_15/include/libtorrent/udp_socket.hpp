@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #include <deque>
 #include <boost/function.hpp>
@@ -45,14 +46,14 @@ namespace libtorrent
 {
 	class connection_queue;
 
-	class udp_socket
+	class udp_socket : public intrusive_ptr_base<udp_socket>
 	{
 	public:
 		typedef boost::function<void(error_code const& ec
 			, udp::endpoint const&, char const* buf, int size)> callback_t;
 
 		udp_socket(io_service& ios, callback_t const& c, connection_queue& cc);
-		~udp_socket();
+		virtual ~udp_socket();
 
 		bool is_open() const
 		{

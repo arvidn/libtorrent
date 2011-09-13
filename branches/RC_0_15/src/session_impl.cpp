@@ -429,8 +429,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_same_port(true)
 		, m_external_udp_port(0)
-		, m_dht_socket(m_io_service, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
-			, m_half_open)
+		, m_dht_socket(new rate_limited_udp_socket(m_io_service, boost::bind(&session_impl::on_receive_udp
+			, this, _1, _2, _3, _4), m_half_open))
 #endif
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
@@ -815,7 +815,7 @@ namespace aux {
 		m_tracker_proxy = s;
 #ifndef TORRENT_DISABLE_DHT
 		m_dht_proxy = s;
-		m_dht_socket.set_proxy_settings(s);
+		m_dht_socket->set_proxy_settings(s);
 #endif
 	}
 
@@ -1106,7 +1106,7 @@ namespace aux {
 			m_dht->stop();
 			m_dht = 0;
 		}
-		m_dht_socket.close();
+		m_dht_socket->close();
 #endif
 		error_code ec;
 		m_timer.cancel(ec);
@@ -2982,7 +2982,7 @@ namespace aux {
 				m_dht_settings.service_port = new_interface.port();
 			// the listen interface changed, rebind the dht listen socket as well
 			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
+			m_dht_socket->bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
 
 			maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
 			maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
@@ -3181,11 +3181,11 @@ namespace aux {
 		m_external_udp_port = m_dht_settings.service_port;
 		maybe_update_udp_mapping(0, m_dht_settings.service_port, m_dht_settings.service_port);
 		maybe_update_udp_mapping(1, m_dht_settings.service_port, m_dht_settings.service_port);
-		m_dht = new dht::dht_tracker(*this, m_dht_socket, m_dht_settings, &startup_state);
-		if (!m_dht_socket.is_open() || m_dht_socket.local_port() != m_dht_settings.service_port)
+		m_dht = new dht::dht_tracker(*this, *m_dht_socket, m_dht_settings, &startup_state);
+		if (!m_dht_socket->is_open() || m_dht_socket->local_port() != m_dht_settings.service_port)
 		{
 			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
+			m_dht_socket->bind(udp::endpoint(m_listen_interface.address(), m_dht_settings.service_port), ec);
 		}
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
@@ -3264,7 +3264,7 @@ namespace aux {
 			&& m_dht)
 		{
 			error_code ec;
-			m_dht_socket.bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);
+			m_dht_socket->bind(udp::endpoint(m_listen_interface.address(), settings.service_port), ec);
 
 			maybe_update_udp_mapping(0, settings.service_port, settings.service_port);
 			maybe_update_udp_mapping(1, settings.service_port, settings.service_port);

@@ -216,14 +216,14 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		{
 			++m_v4_outstanding;
 			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
-				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+				, m_v4_ep, boost::bind(&udp_socket::on_read, self(), s, _1, _2));
 		}
 #if TORRENT_USE_IPV6
 		else if (m_v6_outstanding == 0)
 		{
 			++m_v6_outstanding;
 			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
-				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+				, m_v6_ep, boost::bind(&udp_socket::on_read, self(), s, _1, _2));
 		}
 #endif
 
@@ -266,7 +266,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		{
 			++m_v4_outstanding;
 			s->async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
-				, m_v4_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+				, m_v4_ep, boost::bind(&udp_socket::on_read, self(), s, _1, _2));
 		}
 	}
 #if TORRENT_USE_IPV6
@@ -300,7 +300,7 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 		{
 			++m_v6_outstanding;
 			s->async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
-				, m_v6_ep, boost::bind(&udp_socket::on_read, this, s, _1, _2));
+				, m_v6_ep, boost::bind(&udp_socket::on_read, self(), s, _1, _2));
 		}
 	}
 #endif // TORRENT_USE_IPV6
@@ -437,7 +437,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		{
 			++m_v4_outstanding;
 			m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
-				, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
+				, m_v4_ep, boost::bind(&udp_socket::on_read, self(), &m_ipv4_sock, _1, _2));
 		}
 	}
 #if TORRENT_USE_IPV6
@@ -451,7 +451,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		{
 			++m_v6_outstanding;
 			m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
-				, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
+				, m_v6_ep, boost::bind(&udp_socket::on_read, self(), &m_ipv6_sock, _1, _2));
 		}
 	}
 #endif
@@ -484,7 +484,7 @@ void udp_socket::bind(int port)
 		{
 			++m_v4_outstanding;
 			m_ipv4_sock.async_receive_from(asio::buffer(m_v4_buf, sizeof(m_v4_buf))
-				, m_v4_ep, boost::bind(&udp_socket::on_read, this, &m_ipv4_sock, _1, _2));
+				, m_v4_ep, boost::bind(&udp_socket::on_read, self(), &m_ipv4_sock, _1, _2));
 		}
 	}
 #if TORRENT_USE_IPV6
@@ -497,7 +497,7 @@ void udp_socket::bind(int port)
 		{
 			++m_v6_outstanding;
 			m_ipv6_sock.async_receive_from(asio::buffer(m_v6_buf, sizeof(m_v6_buf))
-				, m_v6_ep, boost::bind(&udp_socket::on_read, this, &m_ipv6_sock, _1, _2));
+				, m_v6_ep, boost::bind(&udp_socket::on_read, self(), &m_ipv6_sock, _1, _2));
 		}
 	}
 #endif // TORRENT_USE_IPV6
@@ -527,7 +527,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		++m_outstanding_ops;
 		m_resolver.async_resolve(q, boost::bind(
-			&udp_socket::on_name_lookup, this, _1, _2));
+			&udp_socket::on_name_lookup, self(), _1, _2));
 	}
 }
 
@@ -569,8 +569,8 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// To simplyfy this, it's probably a good idea to
 	// merge on_connect and on_timeout to a single function
 	++m_outstanding_ops;
-	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
-		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
+	m_cc.enqueue(boost::bind(&udp_socket::on_connect, self(), _1)
+		, boost::bind(&udp_socket::on_timeout, self()), seconds(10));
 }
 
 void udp_socket::on_timeout()
@@ -609,7 +609,7 @@ void udp_socket::on_connect(int ticket)
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
 	++m_outstanding_ops;
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
-		, boost::bind(&udp_socket::on_connected, this, _1));
+		, boost::bind(&udp_socket::on_connected, self(), _1));
 }
 
 void udp_socket::on_connected(error_code const& e)
@@ -673,7 +673,7 @@ void udp_socket::on_connected(error_code const& e)
 	}
 	++m_outstanding_ops;
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&udp_socket::handshake1, this, _1));
+		, boost::bind(&udp_socket::handshake1, self(), _1));
 }
 
 void udp_socket::handshake1(error_code const& e)
@@ -692,7 +692,7 @@ void udp_socket::handshake1(error_code const& e)
 
 	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&udp_socket::handshake2, this, _1));
+		, boost::bind(&udp_socket::handshake2, self(), _1));
 }
 
 void udp_socket::handshake2(error_code const& e)
@@ -739,7 +739,7 @@ void udp_socket::handshake2(error_code const& e)
 		write_string(m_proxy_settings.password, p);
 		++m_outstanding_ops;
 		asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
-			, boost::bind(&udp_socket::handshake3, this, _1));
+			, boost::bind(&udp_socket::handshake3, self(), _1));
 	}
 	else
 	{
@@ -765,7 +765,7 @@ void udp_socket::handshake3(error_code const& e)
 
 	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&udp_socket::handshake4, this, _1));
+		, boost::bind(&udp_socket::handshake4, self(), _1));
 }
 
 void udp_socket::handshake4(error_code const& e)
@@ -817,7 +817,7 @@ void udp_socket::socks_forward_udp(mutex_t::scoped_lock& l)
 
 	++m_outstanding_ops;
 	asio::async_write(m_socks5_sock, asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&udp_socket::connect1, this, _1));
+		, boost::bind(&udp_socket::connect1, self(), _1));
 }
 
 void udp_socket::connect1(error_code const& e)
@@ -836,7 +836,7 @@ void udp_socket::connect1(error_code const& e)
 
 	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&udp_socket::connect2, this, _1));
+		, boost::bind(&udp_socket::connect2, self(), _1));
 }
 
 void udp_socket::connect2(error_code const& e)
@@ -889,7 +889,7 @@ void udp_socket::connect2(error_code const& e)
 
 	++m_outstanding_ops;
 	asio::async_read(m_socks5_sock, asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&udp_socket::hung_up, this, _1));
+		, boost::bind(&udp_socket::hung_up, self(), _1));
 }
 
 void udp_socket::hung_up(error_code const& e)
@@ -923,7 +923,8 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 {
 	error_code ec;
 	m_timer.expires_from_now(seconds(1), ec);
-	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
+	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick
+		, boost::intrusive_ptr<rate_limited_udp_socket>(this), _1));
 	TORRENT_ASSERT(!ec);
 }
 
@@ -953,7 +954,8 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 	error_code ec;
 	ptime now = time_now_hires();
 	m_timer.expires_at(now + seconds(1), ec);
-	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
+	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick
+		, boost::intrusive_ptr<rate_limited_udp_socket>(this), _1));
 
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
