@@ -6301,7 +6301,7 @@ namespace libtorrent
 			}
 		}
 		// announce to the next working tracker
-		if ((!m_abort && m_allow_peers) || r.event == tracker_request::stopped)
+		if ((!m_abort && !is_paused()) || r.event == tracker_request::stopped)
 			announce_with_tracker(r.event);
 		update_tracker_timer(time_now());
 	}
