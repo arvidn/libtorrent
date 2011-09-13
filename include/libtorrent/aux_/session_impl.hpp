@@ -315,7 +315,7 @@ namespace libtorrent
 			void set_dht_proxy(proxy_settings const& s)
 			{
 				m_dht_proxy = s;
-				m_dht_socket.set_proxy_settings(s);
+				m_dht_socket->set_proxy_settings(s);
 			}
 			proxy_settings const& dht_proxy() const
 			{ return m_dht_proxy; }
@@ -663,7 +663,7 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_dht_socket;
+			boost::intrusive_ptr<rate_limited_udp_socket> m_dht_socket;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased

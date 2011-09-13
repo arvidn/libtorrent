@@ -112,7 +112,7 @@ namespace libtorrent
 		tracker_manager& m_man;
 
 		udp::resolver m_name_lookup;
-		udp_socket m_socket;
+		boost::intrusive_ptr<udp_socket> m_socket;
 		udp::endpoint m_target;
 		std::list<udp::endpoint> m_endpoints;
 
