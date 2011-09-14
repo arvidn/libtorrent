@@ -175,8 +175,9 @@ def delete_files(files):
 					if os.path.exists(i): print 'failed to delete %s' % i
 				except: pass
 
+# typically the schedulers available are 'noop', 'deadline' and 'cfq'
 def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio', profile=False):
-	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile}
+	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile }
 	return config
 
 def build_target_folder(config):
@@ -184,7 +185,10 @@ def build_target_folder(config):
 	if config['test'] == 'upload': test = 'download'
 	elif config['test'] == 'dual': test = 'dual'
 
-	return 'results_%s_%s_%d_%d_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1])
+	# todod, resolve 'sdh' by calling mount and look for the save directory instead
+	io_scheduler = open('/sys/block/sdh/queue/scheduler').read().split('[')[1].split(']')[0]
+
+	return 'results_%s_%s_%d_%d_%s_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], io_scheduler)
 
 def run_test(config):
 
@@ -291,6 +295,9 @@ def run_test(config):
 	shutil.copy('fragmentation.png', 'session_stats/')
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
 	shutil.copy('file_access.log', 'session_stats/')
+
+	os.system('filefrag %s >session_stats/filefrag.out' % config['save-path'])
+	os.system('filefrag -v %s >session_stats/filefrag_verbose.out' % config['save-path'])
 
 	os.chdir('session_stats')
 
