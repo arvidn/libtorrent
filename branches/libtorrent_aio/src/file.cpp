@@ -1654,7 +1654,7 @@ done:
 					ec.assign(errno, get_posix_category());
 					return -1;
 				}
-				ret += (std::min)(tmp_ret, size_type(size));
+				ret += (std::min)(tmp_ret, size);
 			}
 #endif // TORRENT_LINUX
 
@@ -1980,7 +1980,7 @@ done:
 					ec.assign(errno, get_posix_category());
 					return -1;
 				}
-				ret += (std::min)(ret, size_type(size));
+				ret += (std::min)(tmp_ret, size);
 			}
 #endif // TORRENT_LINUX
 
