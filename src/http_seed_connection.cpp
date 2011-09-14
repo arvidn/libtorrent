@@ -377,6 +377,16 @@ namespace libtorrent
 					m_server_string += ")";
 				}
 
+				std::string const& transfer_encoding = m_parser.header("transfer-encoding");
+				if (string_equal_no_case(transfer_encoding.c_str(), "chunked"))
+				{
+					m_statistics.received_bytes(0, bytes_transferred);
+					// we don't support chunked encoding (yet)
+					t->remove_web_seed(m_url, web_seed_entry::http_seed);
+					disconnect(errors::unsupported_url_protocol, 2);
+					return;
+				}
+
 				m_response_left = atol(m_parser.header("content-length").c_str());
 				if (m_response_left == -1)
 				{
