@@ -193,19 +193,26 @@ namespace detail
 namespace aux {
 
 #ifdef TORRENT_STATS
-	void get_vm_stats(vm_statistics_data_t* vm_stat)
+	void get_vm_stats(vm_statistics_data_t* vm_stat, error_code& ec)
 	{
 		memset(vm_stat, 0, sizeof(*vm_stat));
 #if defined __MACH__
+		ec.clear();
 		mach_port_t host_port = mach_host_self();
 		mach_msg_type_number_t host_count = HOST_VM_INFO_COUNT;
 		kern_return_t error = host_statistics(host_port, HOST_VM_INFO,
 			(host_info_t)vm_stat, &host_count);
 #elif defined TORRENT_LINUX
+		ec.clear();
 		char string[4096];
 		boost::uint32_t value;
 		FILE* f = fopen("/proc/vmstat", "r");
 		int ret = 0;
+		if (f == 0)
+		{
+			ec.assign(errno, boost::system::get_system_category());
+			return;
+		}
 		while ((ret = fscanf(f, "%s %u\n", string, &value)) != EOF)
 		{
 			if (ret != 2) continue;
@@ -220,6 +227,8 @@ namespace aux {
 			else if (strcmp(string, "pgfault") == 0) vm_stat->faults = value;
 		}
 		fclose(f);
+#else
+		ec = boost::system::errc::not_supported;
 #endif
 // TOOD: windows?
 	}
@@ -895,7 +904,9 @@ namespace aux {
 		m_stats_logging_enabled = true;
 
 		memset(&m_last_cache_status, 0, sizeof(m_last_cache_status));
-		get_vm_stats(&m_last_vm_stat);
+		vm_statistics_data_t vst;
+		get_vm_stats(&vst, ec);
+		if (!ec) m_last_vm_stat = vst;
 
 		m_last_failed = 0;
 		m_last_redundant = 0;
@@ -972,13 +983,13 @@ namespace aux {
 		char filename[100];
 		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
 		m_stats_logger = fopen(filename, "w+");
+		m_last_log_rotation = time_now();
 		if (m_stats_logger == 0)
 		{
 			fprintf(stderr, "Failed to create session stats log file \"%s\": (%d) %s\n"
 				, filename, errno, strerror(errno));
 			return;
 		}
-		m_last_log_rotation = time_now();
 			
 		fputs("second"
 			":uploaded bytes"
@@ -3383,8 +3394,9 @@ namespace aux {
 			rotate_stats_log();
 
 		// system memory stats
+		error_code vm_ec;
 		vm_statistics_data_t vm_stat;
-		get_vm_stats(&vm_stat);
+		get_vm_stats(&vm_stat, vm_ec);
 
 		if (m_stats_logger)
 		{
@@ -3530,7 +3542,7 @@ namespace aux {
 #undef STAT_LOG
 
 			m_last_cache_status = cs;
-			m_last_vm_stat = vm_stat;
+			if (!vm_ec) m_last_vm_stat = vm_stat;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
 			m_last_uploaded = m_stat.total_upload();
