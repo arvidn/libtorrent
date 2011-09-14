@@ -1517,10 +1517,9 @@ namespace libtorrent
 					if (m_exceeded_write_queue)
 					{
 						int low_watermark = m_settings.max_queued_disk_bytes_low_watermark == 0
-							? m_settings.max_queued_disk_bytes * 7 / 8
+							|| m_settings.max_queued_disk_bytes_low_watermark >= m_settings.max_queued_disk_bytes
+							? size_type(m_settings.max_queued_disk_bytes) * 7 / 8
 							: m_settings.max_queued_disk_bytes_low_watermark;
-						if (low_watermark >= m_settings.max_queued_disk_bytes)
-							low_watermark = m_settings.max_queued_disk_bytes * 7 / 8;
 
 						if (m_queue_buffer_size < low_watermark
 							|| m_settings.max_queued_disk_bytes == 0)
