@@ -1153,7 +1153,7 @@ namespace libtorrent
 		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
-			if (last_error != ERROR_IO_PENDING && last_error != ERROR_HANDLE_EOF)
+			if (last_error != ERROR_IO_PENDING)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
