@@ -176,7 +176,7 @@ def delete_files(files):
 				except: pass
 
 # typically the schedulers available are 'noop', 'deadline' and 'cfq'
-def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio', profile=False):
+def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio', profile=''):
 	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile }
 	return config
 
@@ -218,7 +218,8 @@ def run_test(config):
 	cmdline = build_commandline(config, port)
 	binary = cmdline.split(' ')[0]
 	environment = None
-	if config['profile']: environment = {'LD_PRELOAD':'/usr/lib/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
+	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':'/usr/lib/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
+	if config['profile'] == 'perf': cmdline = 'perf timechart record --call-graph --output=session_stats/perf_profile.prof ' + cmdline
 	f = open('session_stats/cmdline.txt', 'w+')
 	f.write(cmdline)
 	f.close()
@@ -308,9 +309,12 @@ def run_test(config):
 
 	os.chdir('..')
 
-	if config['profile']:
+	if config['profile'] == 'tcmalloc':
 		print 'analyzing CPU profile [%s]' % binary
 		os.system('google-pprof --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % binary)
+	if config['profile'] == 'perf':
+		print 'analyzing CPU profile [%s]' % binary
+		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_report.out')
 
 	# move the results into its final place
 	print 'saving results'
