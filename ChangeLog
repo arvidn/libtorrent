@@ -1,3 +1,4 @@
+	* fix possible hang in file::readv() on windows
 	* fix crash when using broken SOCKS5 proxies
 	* fix CPU busy loop issue in tracker announce logic
 	* honor IOV_MAX when using writev and readv
