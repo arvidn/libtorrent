@@ -91,6 +91,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix possible hang in file::readv() on windows
 	* fix CPU busy loop issue in tracker announce logic
 	* honor IOV_MAX when using writev and readv
 	* don't post 'operation aborted' UDP errors when changing listen port
