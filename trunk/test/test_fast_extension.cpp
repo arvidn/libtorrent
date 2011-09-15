@@ -203,6 +203,10 @@ void test_reject_fast()
 	add_torrent_params p;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
+
+	remove("./tmp1_fast/temporary", ec);
+	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
+	ec.clear();
 	ses1.add_torrent(p, ec);
 
 	test_sleep(2000);
@@ -261,6 +265,10 @@ void test_respect_suggest()
 	add_torrent_params p;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
+
+	remove("./tmp1_fast/temporary", ec);
+	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
+	ec.clear();
 	ses1.add_torrent(p, ec);
 
 	test_sleep(2000);
