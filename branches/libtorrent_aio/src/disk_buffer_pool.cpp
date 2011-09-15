@@ -55,6 +55,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size, 32)
 #endif
+		, m_cache_buffer_chunk_size(10)
+		, m_lock_disk_cache(false)
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		m_allocations = 0;
@@ -68,6 +70,7 @@ namespace libtorrent
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_magic = 0x1337;
+		m_settings_set = false;
 #endif
 	}
 
@@ -106,6 +109,7 @@ namespace libtorrent
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
+		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(m_magic == 0x1337);
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
@@ -183,14 +187,19 @@ namespace libtorrent
 
 	void disk_buffer_pool::set_settings(session_settings const& sett)
 	{
+		mutex::scoped_lock l(m_pool_mutex);
 		m_cache_buffer_chunk_size = sett.cache_buffer_chunk_size;
 		m_lock_disk_cache = sett.lock_disk_cache;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_settings_set = true;
+#endif
 	}
 
 	void disk_buffer_pool::free_buffer_impl(char* buf, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		--m_allocations;

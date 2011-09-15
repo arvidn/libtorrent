@@ -427,6 +427,9 @@ namespace libtorrent
 #endif
 
 #endif // TORRENT_USE_AIO
+
+		// initialize default settings
+		m_disk_cache.set_settings(m_settings);
 	}
 
 	disk_io_thread::~disk_io_thread()

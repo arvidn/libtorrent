@@ -123,6 +123,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int m_magic;
 		std::set<char*> m_buffers_in_use;
+		bool m_settings_set;
 #endif
 	};
 
