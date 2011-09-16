@@ -134,7 +134,7 @@ bool sleep_and_input(char* c, int sleep)
 	fd_set set;
 	FD_ZERO(&set);
 	FD_SET(0, &set);
-	timeval tv = {sleep, 0};
+	timeval tv = {sleep/ 1000, (sleep % 1000) * 1000 };
 	if (select(1, &set, 0, 0, &tv) > 0)
 	{
 		*c = getc(stdin);
