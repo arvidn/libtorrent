@@ -226,8 +226,8 @@ namespace libtorrent
 	{
 		mutex_t::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
-		TORRENT_ASSERT(!m_abort);
-		if (m_abort) return;
+		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
+		if (m_abort && req.event != tracker_request::stopped) return;
 		if (req.event == tracker_request::stopped)
 			req.num_want = 0;
 
