@@ -1000,12 +1000,12 @@ namespace libtorrent
 		TORRENT_SYNC_CALL_RET(int, num_connections);
 		return r;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
