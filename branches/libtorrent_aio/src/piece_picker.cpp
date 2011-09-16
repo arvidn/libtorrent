@@ -1653,27 +1653,6 @@ namespace libtorrent
 
 		if (num_blocks <= 0) return;
 
-		// we might have to re-pick some backup blocks
-		// from full pieces, since we skipped those the
-		// first pass over. There's no point in picking from
-		// finished pieces (i.e. bucket 2), so just do 1 and 2.
-		for (int k = 0; k < 2; ++k)
-		{
-			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin()
-				, end(m_downloads[k].end()); i != end; ++i)
-			{
-				if (!pieces[i->index]) continue;
-				// we've already considered the non-full pieces
-				TORRENT_ASSERT(m_piece_map[i->index].state == k + 1);
-				std::vector<piece_block> temp;
-				add_blocks_downloading(*i, pieces
-					, temp, backup_blocks, backup_blocks2
-					, num_blocks, prefer_whole_pieces, peer, speed, options);
-				if (backup_blocks.size() >= num_blocks) break;
-			}
-			if (backup_blocks.size() >= num_blocks) break;
-		}
-
 #ifdef TORRENT_DEBUG
 		verify_pick(interesting_blocks, pieces);
 		verify_pick(backup_blocks, pieces);
@@ -1687,40 +1666,64 @@ namespace libtorrent
 		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
 		if (num_blocks <= 0) return;
 
-		std::vector<piece_block> temp;
-		// no point in trying to pick from finished pieces.
-		// Just do 1 and 2
-		bool done = false;
-		for (int k = 0; k < 2; ++k)
-		{
-			for (std::vector<downloading_piece>::const_iterator i = m_downloads[k].begin()
-				, end(m_downloads[k].end()); i != end; ++i)
-			{
-				if (!pieces[i->index]) continue;
-				if (piece_priority(i->index) == 0) continue;
-
-				int num_blocks_in_piece = blocks_in_piece(i->index);
-
-				// fill in with blocks requested from other peers
-				// as backups
-				for (int j = 0; j < num_blocks_in_piece; ++j)
-				{
-					block_info const& info = i->info[j];
-					if (info.state != block_info::state_requested
-						|| info.peer == peer)
-						continue;
-					temp.push_back(piece_block(i->index, j));
-					done = true;
-				}
-				if (done) break;
-			}
-			if (done) break;
-		}
+		// ===== THIS IS FOR END-GAME MODE =====
 
 		// don't double-pick anything if the peer is on parole
 		if (options & on_parole) return;
 
-		if (!temp.empty()) interesting_blocks.push_back(temp[random() % temp.size()]);
+		// in end game mode we pick a single block
+		// that has already been requested from someone
+		// all pieces that are interesting are in
+		// m_downloads[0] and m_download[1] (i.e. partial and full pieces)
+
+		// to make this fast, pick one random block
+		// from m_downloads[1] that this peer has.
+		// Give it 10 attempts to find one, if we fail,
+		// don't pick anything this is better than
+		// looking through all of them, since there
+		// could be a lot, and that would be expensive.
+
+		int to_pick_from = m_downloads[0].size() + m_downloads[1].size();
+
+		// there are no pieces to request from
+		if (to_pick_from == 0) return;
+
+		std::vector<piece_block> temp;
+		// TODO: this could probably be optimized by creating a short
+		// array on the stack and shuffling it, to avoid repeated picks
+		for (int round = 0; round < 10; ++round)
+		{
+			int piece = random() % to_pick_from;
+			int k = 0;
+			if (piece > m_downloads[0].size())
+			{
+				piece -= m_downloads[0].size();
+				++k;
+			}
+			downloading_piece const& dp = m_downloads[k][piece];
+			// this peer doesn't have this piece, try again
+			if (!pieces[dp.index]) continue;
+			if (piece_priority(dp.index) == 0) continue;
+			// fill in with blocks requested from other peers
+			// as backups
+			int num_blocks_in_piece = blocks_in_piece(dp.index);
+			for (int j = 0; j < num_blocks_in_piece; ++j)
+			{
+				block_info const& info = dp.info[j];
+				if (info.state != block_info::state_requested
+					|| info.peer == peer)
+					continue;
+				temp.push_back(piece_block(dp.index, j));
+			}
+			// we're done!
+			if (!temp.empty()) break;
+		}
+
+		if (!temp.empty())
+		{
+			interesting_blocks.push_back(temp[random() % temp.size()]);
+			--num_blocks;
+		}
 
 #ifdef TORRENT_DEBUG
 //		make sure that we at this point have added requests to all unrequested blocks
@@ -1938,13 +1941,6 @@ namespace libtorrent
 
 		int num_blocks_in_piece = blocks_in_piece(dp.index);
 
-		// if all blocks have been requested (and we don't need any backup
-		// blocks), we might as well return immediately
-/*		if (int(backup_blocks2.size()) >= num_blocks
-			&& int(backup_blocks.size()) >= num_blocks
-			&& dp.requested + dp.writing + dp.finished == num_blocks_in_piece)
-			return num_blocks;
-*/
 		// is true if all the other pieces that are currently
 		// requested from this piece are from the same
 		// peer as 'peer'.
