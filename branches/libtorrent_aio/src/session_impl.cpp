@@ -1115,6 +1115,10 @@ namespace aux {
 			":smooth read ops/s"
 			":smooth write ops/s"
 			":pinned blocks"
+			":num partial pieces"
+			":num downlading partial pieces"
+			":num full partial pieces"
+			":num finished partial pieces"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3271,29 +3275,47 @@ namespace aux {
 		int peers_up_requests = 0;
 		int peers_down_requests = 0;
 
+		int partial_pieces = 0;
+		int partial_downloading_pieces = 0;
+		int partial_full_pieces = 0;
+		int partial_finished_pieces = 0;
+
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			int connection_slots = (std::max)(i->second->max_connections() - i->second->num_peers(), 0);
-			int candidates = i->second->get_policy().num_connect_candidates();
+			torrent* t = i->second.get();
+
+			int connection_slots = (std::max)(t->max_connections() - t->num_peers(), 0);
+			int candidates = t->get_policy().num_connect_candidates();
 			connect_candidates += (std::min)(candidates, connection_slots);
-			num_peers += i->second->get_policy().num_peers();
-			if (i->second->is_seed())
+			num_peers += t->get_policy().num_peers();
+			if (t->is_seed())
 				++seeding_torrents;
 			else
 				++downloading_torrents;
-			if (i->second->state() == torrent_status::checking_files)
+			if (t->state() == torrent_status::checking_files)
 				++checking_torrents;
-			if (i->second->is_paused())
+			if (t->is_paused())
 				++stopped_torrents;
-			if (i->second->is_upload_only())
+			if (t->is_upload_only())
 				++upload_only_torrents;
-			if (i->second->has_error())
+			if (t->has_error())
 				++error_torrents;
 
+			if (t->has_picker())
+			{
+				piece_picker& p = t->picker();
+				partial_pieces += p.get_download_queue_size();
+				int a, b, c;
+				p.get_download_queue_sizes(&a, &b, &c);
+				partial_downloading_pieces += a;
+				partial_full_pieces += b;
+				partial_finished_pieces += c;
+			}
+
 			dq.clear();
-			i->second->get_download_queue(dq);
+			t->get_download_queue(dq);
 			for (std::vector<partial_piece_info>::iterator j = dq.begin()
 				, end(dq.end()); j != end; ++j)
 			{
@@ -3537,6 +3559,11 @@ namespace aux {
 			STAT_LOG(d, m_read_ops.mean());
 			STAT_LOG(d, m_write_ops.mean());
 			STAT_LOG(d, cs.pinned_blocks);
+
+			STAT_LOG(d, partial_pieces);
+			STAT_LOG(d, partial_downloading_pieces);
+			STAT_LOG(d, partial_full_pieces);
+			STAT_LOG(d, partial_finished_pieces);
 
 			fprintf(m_stats_logger, "\n");
 

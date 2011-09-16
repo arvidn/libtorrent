@@ -252,6 +252,13 @@ namespace libtorrent
 		return ret;
 	}
 
+	void piece_picker::get_download_queue_sizes(int* partial, int* full, int* finished) const
+	{
+		*partial = m_downloads[0].size();
+		*full = m_downloads[1].size();
+		*finished = m_downloads[2].size();
+	}
+
 #ifdef TORRENT_DEBUG
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
