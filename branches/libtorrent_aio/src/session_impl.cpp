@@ -1116,7 +1116,7 @@ namespace aux {
 			":smooth write ops/s"
 			":pinned blocks"
 			":num partial pieces"
-			":num downlading partial pieces"
+			":num downloading partial pieces"
 			":num full partial pieces"
 			":num finished partial pieces"
 			"\n\n", m_stats_logger);
