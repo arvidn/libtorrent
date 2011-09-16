@@ -1728,7 +1728,7 @@ ctx->set_verify_callback(verify_function, ec);
 			// if we marked an entire piece as finished, we actually
 			// need to consider it finished
 
-			std::vector<piece_picker::downloading_piece> const& dq
+			std::vector<piece_picker::downloading_piece> dq
 				= m_picker->get_download_queue();
 
 			std::vector<int> have_pieces;
@@ -2972,7 +2972,7 @@ ctx->set_verify_callback(verify_function, ec);
 		// this is expensive, we might not want to do it all the time
 		if (!accurate) return;
 
-		const std::vector<piece_picker::downloading_piece>& dl_queue
+		std::vector<piece_picker::downloading_piece> dl_queue
 			= m_picker->get_download_queue();
 
 		const int blocks_per_piece = (piece_size + block_size() - 1) / block_size();
@@ -5195,7 +5195,7 @@ ctx->set_verify_callback(verify_function, ec);
 		// and there will be no half-finished pieces.
 		if (!is_seed())
 		{
-			const std::vector<piece_picker::downloading_piece>& q
+			std::vector<piece_picker::downloading_piece> q
 				= m_picker->get_download_queue();
 
 			// unfinished pieces
@@ -5453,7 +5453,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		if (!valid_metadata() || is_seed()) return;
 		piece_picker const& p = picker();
-		std::vector<piece_picker::downloading_piece> const& q
+		std::vector<piece_picker::downloading_piece> q
 			= p.get_download_queue();
 
 		const int blocks_per_piece = m_picker->blocks_in_piece(0);
@@ -6334,7 +6334,7 @@ ctx->set_verify_callback(verify_function, ec);
 			// make sure that pieces that have completed the download
 			// of all their blocks are in the disk io thread's queue
 			// to be checked.
-			const std::vector<piece_picker::downloading_piece>& dl_queue
+			std::vector<piece_picker::downloading_piece> dl_queue
 				= m_picker->get_download_queue();
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dl_queue.begin(); i != dl_queue.end(); ++i)
@@ -7398,7 +7398,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// don't have more pieces downloading in parallel than 5% of the total
 		// number of pieces we have downloaded
-		if (int(m_picker->get_download_queue().size()) > num_downloaded_pieces / 20)
+		if (m_picker->get_download_queue_size() > num_downloaded_pieces / 20)
 			return;
 
 		// one more important property is that there are enough pieces
@@ -7416,7 +7416,7 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			piece_picker::piece_pos const& pp = m_picker->piece_stats(i);
 			if (pp.peer_count == 0) continue;
-			if (pp.filtered() && (pp.have() || pp.downloading))
+			if (pp.filtered() && (pp.have() || pp.downloading()))
 			{
 				m_picker->set_piece_priority(i, 1);
 				prio_updated = true;
@@ -7915,8 +7915,7 @@ ctx->set_verify_callback(verify_function, ec);
 			fp[i] = done;
 		}
 
-		const std::vector<piece_picker::downloading_piece>& q
-			= m_picker->get_download_queue();
+		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator
 			i = q.begin(), end(q.end()); i != end; ++i)

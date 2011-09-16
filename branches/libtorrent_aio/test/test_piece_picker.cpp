@@ -232,6 +232,7 @@ int test_main()
 	boost::shared_ptr<piece_picker> p;
 	const std::vector<int> empty_vector;
 	int options = piece_picker::rarest_first;
+	std::pair<int, int> dc;
 
 // ========================================================
 
@@ -382,7 +383,7 @@ int test_main()
 	// there are 2 pieces with availability 2 and 5 with availability 3
 	print_title("test distributed copies");
 	p = setup_picker("1233333", "*      ", "", "");
-	std::pair<int, int> dc = p->distributed_copies();
+	dc = p->distributed_copies();
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 
 // ========================================================

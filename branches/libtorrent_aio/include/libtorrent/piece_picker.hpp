@@ -365,8 +365,8 @@ namespace libtorrent
 		// this piece
 		void get_downloaders(std::vector<void*>& d, int index) const;
 
-		std::vector<downloading_piece> const& get_download_queue() const
-		{ return m_downloads; }
+		std::vector<piece_picker::downloading_piece> get_download_queue() const;
+		int get_download_queue_size() const;
 
 		void* get_downloader(piece_block block) const;
 
@@ -419,8 +419,7 @@ namespace libtorrent
 			piece_pos() {}
 			piece_pos(int peer_count_, int index_)
 				: peer_count(peer_count_)
-				, downloading(0)
-				, full(0)
+				, state(piece_pos::piece_open)
 				, piece_priority(1)
 				, index(index_)
 			{
@@ -431,10 +430,23 @@ namespace libtorrent
 			// the number of peers that has this piece
 			// (availability)
 			unsigned peer_count : 9;
-			// is 1 if the piece is marked as being downloaded
-			unsigned downloading : 1;
-			// set when downloading, but no free blocks to request left
-			unsigned full : 1;
+
+			// state of this piece.
+			enum state_t
+			{
+				// the piece is open to be picked
+				piece_open,
+				// the piece is partially downloaded or requested
+				piece_downloading,
+				// all blocks in the piece have been requested
+				piece_full,
+				// all blocks in the piece have been received and
+				// are either finished or writing
+				piece_finished
+			};
+
+			unsigned state : 2;
+
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
 			// 2 is higher priority than pieces at the same availability level
@@ -461,6 +473,7 @@ namespace libtorrent
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
 			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
+			bool downloading() const { return state > 0; }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
 			void filtered(bool f) { piece_priority = f ? filter_priority : 0; }
@@ -487,7 +500,7 @@ namespace libtorrent
 					return -1;
 
 				// prio 7 disregards availability
-				if (piece_priority == priority_levels - 1) return 1 - downloading;
+				if (piece_priority == priority_levels - 1) return 1 - downloading();
 
 				// prio 4,5,6 halves the availability of a piece
 				int availability = peer_count;
@@ -498,7 +511,7 @@ namespace libtorrent
 					p -= (priority_levels - 2) / 2;
 				}
 
-				if (downloading) return availability * prio_factor;
+				if (downloading()) return availability * prio_factor;
 				return availability * prio_factor + (priority_levels / 2) - p;
 			}
 
@@ -536,10 +549,12 @@ namespace libtorrent
 		downloading_piece& add_download_piece(int index);
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
-		std::vector<downloading_piece>::const_iterator find_dl_piece(int index) const;
-		std::vector<downloading_piece>::iterator find_dl_piece(int index);
+		std::vector<downloading_piece>::const_iterator find_dl_piece(int queue, int index) const;
+		std::vector<downloading_piece>::iterator find_dl_piece(int queue, int index);
 
-		void update_full(downloading_piece& dp);
+		// returns an iterator to the downloading piece, whichever
+		// download list it may live in now
+		std::vector<downloading_piece>::iterator update_piece_state(std::vector<downloading_piece>::iterator dp);
 
 		// some compilers (e.g. gcc 2.95, does not inherit access
 		// privileges to nested classes)
@@ -575,15 +590,19 @@ namespace libtorrent
 		// i.e. it says wich parts of the piece that
 		// is being downloaded. This list is ordered
 		// by piece index to make lookups efficient
-		std::vector<downloading_piece> m_downloads;
+		// there are 3 buckets of downloading pieces, each
+		// is individually sorted by piece index.
+		// 0: downloading pieces with unrequested blocks
+		// 1: downloading pieces where every block is busy
+		//    and some are still in the requested state
+		// 2: downloading pieces where every block is
+		//    finished or writing
+		std::vector<downloading_piece> m_downloads[3];
 
 		// this holds the information of the
 		// blocks in partially downloaded pieces.
-		// the first m_blocks_per_piece entries
-		// in the vector belongs to the first
-		// entry in m_downloads, the second
-		// m_blocks_per_piece entries to the
-		// second entry in m_downloads and so on.
+		// the downloading_piece::info pointers
+		// point into this vector for its storage
 		std::vector<block_info> m_block_info;
 
 		int m_blocks_per_piece;

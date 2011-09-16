@@ -230,7 +230,7 @@ namespace libtorrent
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
 		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
-			&& p.num_have() + int(p.get_download_queue().size())
+			&& p.num_have() + p.get_download_queue_size()
 				< t.torrent_file().num_pieces())
 			|| dq.size() + rq.size() > 0;
 
