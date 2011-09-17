@@ -1054,7 +1054,7 @@ namespace libtorrent
 	{
 		// io_submit only works on files opened with O_DIRECT, so this
 		// is not optional if we're using io_submit
-#if !USE_IOSUBMIT
+#if !TORRENT_USE_IOSUBMIT
 		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
 		if (cache_setting == session_settings::disable_os_cache
 			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
