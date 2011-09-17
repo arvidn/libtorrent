@@ -1,3 +1,4 @@
+	* fix issue where event=stopped announces wouldn't be sent when closing session
 	* fix possible hang in file::readv() on windows
 	* fix crash when using broken SOCKS5 proxies
 	* fix CPU busy loop issue in tracker announce logic
