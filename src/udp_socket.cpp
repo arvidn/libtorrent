@@ -846,12 +846,17 @@ void udp_socket::connect2(error_code const& e)
 	--m_outstanding_ops;
 	if (m_abort)
 	{
+		m_queue.clear();
 		maybe_clear_callback(l);
 		return;
 	}
 
 	CHECK_MAGIC;
-	if (e) return;
+	if (e)
+	{
+		m_queue.clear();
+		return;
+	}
 
 	using namespace libtorrent::detail;
 
@@ -861,8 +866,11 @@ void udp_socket::connect2(error_code const& e)
 	++p; // RESERVED
 	int atyp = read_uint8(p); // address type
 
-	if (version != 5) return;
-	if (status != 0) return;
+	if (version != 5 || status != 0)
+	{
+		m_queue.clear();
+		return;
+	}
 
 	if (atyp == 1)
 	{
@@ -873,6 +881,8 @@ void udp_socket::connect2(error_code const& e)
 	{
 		// in this case we need to read more data from the socket
 		TORRENT_ASSERT(false && "not implemented yet!");
+		m_queue.clear();
+		return;
 	}
 	
 	m_tunnel_packets = true;
