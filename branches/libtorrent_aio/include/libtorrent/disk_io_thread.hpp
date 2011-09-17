@@ -116,6 +116,7 @@ namespace libtorrent
 			, peak_pending(0)
 			, num_aiocb(0)
 			, peak_aiocb(0)
+			, cumulative_completed_aiocbs(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -197,6 +198,10 @@ namespace libtorrent
 
 		// the peak number of aiocb_t structures in use
 		int peak_aiocb;
+
+		// counter of the number of aiocbs that have
+		// been completed
+		size_type cumulative_completed_aiocbs;
 	};
 	
 	// this is a singleton consisting of the thread and a queue

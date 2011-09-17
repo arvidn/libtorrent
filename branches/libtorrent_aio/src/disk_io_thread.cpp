@@ -2409,6 +2409,7 @@ namespace libtorrent
 				TORRENT_ASSERT_VALID_AIOCB(aio);
 				file::aiocb_t* next = aio->next;
 				bool removed = reap_aio(aio, m_aiocb_pool);
+				if (removed) ++m_cache_stats.cumulative_completed_aiobs;
 				iocbs_reaped = removed;
 				if (removed && m_in_progress == aio) m_in_progress = next;
 				DLOG(stderr, "[%p] overlapped = %p removed = %d\n", this, ol, removed);
@@ -2474,6 +2475,7 @@ namespace libtorrent
 						aio->ret = events[i].res;
 						aio->error = events[i].res2;
 						bool removed = reap_aio(aio, m_aiocb_pool);
+						if (removed) ++m_cache_stats.cumulative_completed_aiobs;
 						iocbs_reaped = removed;
 						if (removed && m_in_progress == aio) m_in_progress = next;
 						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
@@ -2529,6 +2531,7 @@ namespace libtorrent
 						TORRENT_ASSERT_VALID_AIOCB(aio);
 						file::aiocb_t* next = aio->next;
 						bool removed = reap_aio(aio, m_aiocb_pool);
+						if (removed) ++m_cache_stats.cumulative_completed_aiobs;
 						iocbs_reaped = removed;
 						if (removed && m_in_progress == aio) m_in_progress = next;
 						DLOG(stderr, "[%p]  removed = %d\n", this, removed);
@@ -2569,6 +2572,7 @@ namespace libtorrent
 				TORRENT_ASSERT_VALID_AIOCB(aio);
 				file::aiocb_t* next = aio->next;
 				bool removed = reap_aio(aio, m_aiocb_pool);
+				if (removed) ++m_cache_stats.cumulative_completed_aiobs;
 				iocbs_reaped = removed;
 				if (removed && m_in_progress == aio) m_in_progress = next;
 				DLOG(stderr, "[%p]  removed = %d\n", this, removed);
@@ -2603,6 +2607,7 @@ namespace libtorrent
 					TORRENT_ASSERT_VALID_AIOCB(aio);
 					file::aiocb_t* next = aio->next;
 					bool removed = reap_aio(aio, m_aiocb_pool);
+					if (removed) ++m_cache_stats.cumulative_completed_aiobs;
 					iocbs_reaped = removed;
 					if (removed && m_in_progress == aio) m_in_progress = next;
 					DLOG(stderr, "[%p]  removed = %d\n", this, removed);
@@ -2642,6 +2647,7 @@ namespace libtorrent
 				m_in_progress = reap_aios(m_in_progress, m_aiocb_pool);
 				DLOG(stderr, "[%p] new in progress aios (%p)\n", this, m_in_progress);
 				complete_aios = g_completed_aios;
+				m_cache_stats.cumulative_completed_aiocbs = g_completed_aios;
 			}
 			new_job = true;
 			iocbs_reaped = true;

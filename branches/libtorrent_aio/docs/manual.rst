@@ -910,8 +910,7 @@ a piece is, the more likely it is to be flushed to disk.
 			int peak_pending;
 			int num_aiocb;
 			int peak_aiocb;
-			int hash_jobs;
-			int hash_hit_jobs;
+			size_type cumulative_completed_aiocbs;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -996,6 +995,12 @@ yet completed.
 ``num_aiocb`` is the number of async. disk I/O request objects currently in use.
 
 ``peak_aiocb`` is the peak number of aiocb's that's ever been in use this session.
+
+``cumulative_completed_aiocbs`` is the total number of low-level AIO jobs that has
+completed. This can be used as an accurate job completion rate counter, by comparing
+consecutive values. Keep in mind that one low level job is typically 16 kiB, however,
+some back-ends support vector I/O, in which case a job may represent a lot more than
+that.
 
 
 is_listening() listen_port() listen_on()

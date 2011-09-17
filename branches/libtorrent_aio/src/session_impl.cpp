@@ -1119,6 +1119,7 @@ namespace aux {
 			":num downloading partial pieces"
 			":num full partial pieces"
 			":num finished partial pieces"
+			":completed aio jobs"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3564,6 +3565,8 @@ namespace aux {
 			STAT_LOG(d, partial_downloading_pieces);
 			STAT_LOG(d, partial_full_pieces);
 			STAT_LOG(d, partial_finished_pieces);
+
+			STAT_LOG(d, int(cs.cumulative_completed_aiocbs - m_last_cache_status.cumulative_completed_aiocbs));
 
 			fprintf(m_stats_logger, "\n");
 
