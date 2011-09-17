@@ -164,6 +164,8 @@ namespace libtorrent
 	std::size_t socket_type::available(error_code& ec) const
 	{ TORRENT_SOCKTYPE_FORWARD_RET(available(ec), 0) }
 
+	int socket_type::type() { return m_type; }
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void socket_type::open(protocol_type const& p)
 	{ TORRENT_SOCKTYPE_FORWARD(open(p)) }

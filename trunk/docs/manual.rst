@@ -7319,6 +7319,56 @@ having to call ``get_settings()``.
 
 ``error`` is an error code used for when an error occurs on the feed.
 
+incoming_connection_alert
+-------------------------
+
+The incoming connection alert is posted every time we successfully accept
+an incoming connection, through any mean. The most straigh-forward ways
+of accepting incoming connections are through the TCP listen socket and
+the UDP listen socket for uTP sockets. However, connections may also be
+accepted ofer a Socks5 or i2p listen socket, or via a torrent specific
+listen socket for SSL torrents.
+
+::
+
+	struct incoming_connection_alert: alert
+	{
+		// ...
+		virtual std::string message() const;
+
+		int socket_type;
+		tcp::endpoint ip;
+	};
+
+``socket_type`` tells you what kind of socket the connection was accepted
+as:
+
++==========+=====================================+
+| value    | type                                |
++==========+=====================================+
+| 0        | none (no socket instantiated)       |
++----------+-------------------------------------+
+| 1        | TCP                                 |
++----------+-------------------------------------+
+| 2        | Socks5                              |
++----------+-------------------------------------+
+| 3        | HTTP                                |
++----------+-------------------------------------+
+| 4        | uTP                                 |
++----------+-------------------------------------+
+| 5        | i2p                                 |
++----------+-------------------------------------+
+| 6        | SSL/TCP                             |
++----------+-------------------------------------+
+| 7        | SSL/Socks5                          |
++----------+-------------------------------------+
+| 8        | HTTPS (SSL/HTTP)                    |
++----------+-------------------------------------+
+| 9        | SSL/uTP                             |
++----------+-------------------------------------+
+
+``ip`` is the IP address and port the connection came from.
+
 
 alert dispatcher
 ================

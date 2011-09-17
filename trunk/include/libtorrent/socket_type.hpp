@@ -196,6 +196,7 @@ namespace libtorrent
 		endpoint_type remote_endpoint(error_code& ec) const;
 		void bind(endpoint_type const& endpoint, error_code& ec);
 		std::size_t available(error_code& ec) const;
+		int type();
 
 
 		template <class Mutable_Buffers>
