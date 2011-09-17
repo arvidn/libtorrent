@@ -1149,6 +1149,10 @@ namespace libtorrent
 		// there's no point in hinting that we will read something
 		// when using async I/O anyway
 #if TORRENT_USE_SYNCIO
+		// TODO: when reading too much ahead, linux seems to freeze (posix_fadvise() blocks indefinitely)
+		// this logic should be changed to apply to aiocb_t objects instead of disk_io_job, and once
+		// sorted, the first X aiocb_t object should have the hint_read called on them. That way the
+		// number of read-ahead-bytes is limited
 		if (m_settings.use_disk_read_ahead)
 		{
 			j->storage->get_storage_impl()->hint_read(j->piece, j->offset, j->buffer_size);
