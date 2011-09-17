@@ -1462,6 +1462,11 @@ ctx->set_verify_callback(verify_function, ec);
 			return;
 		}
 
+		if (alerts().should_post<incoming_connection_alert>())
+		{
+			alerts().post_alert(incoming_connection_alert(s->type(), endp));
+		}
+
 		if (!settings().enable_incoming_tcp)
 		{
 			if (alerts().should_post<peer_blocked_alert>())
