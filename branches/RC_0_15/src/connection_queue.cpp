@@ -68,7 +68,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(priority >= 0);
-		TORRENT_ASSERT(priority < 2);
+		TORRENT_ASSERT(priority < 3);
 
 		entry* e = 0;
 
@@ -79,6 +79,7 @@ namespace libtorrent
 				e = &m_queue.back();
 				break;
 			case 1:
+			case 2:
 				m_queue.push_front(entry());
 				e = &m_queue.front();
 				break;
@@ -126,12 +127,18 @@ namespace libtorrent
 		m_timer.cancel(ec);
 		m_abort = true;
 
+		std::list<entry> to_keep;
 		while (!m_queue.empty())
 		{
 			// we don't want to call the timeout callback while we're locked
 			// since that is a recipie for dead-locks
 			entry e = m_queue.front();
 			m_queue.pop_front();
+			if (e.priority > 1)
+			{
+				to_keep.push_back(e);
+				continue;
+			}
 			if (e.connecting) --m_num_connecting;
 			l.unlock();
 #ifndef BOOST_NO_EXCEPTIONS
@@ -143,6 +150,8 @@ namespace libtorrent
 #endif
 			l.lock();
 		}
+
+		m_queue.swap(to_keep);
 	}
 
 	void connection_queue::limit(int limit)

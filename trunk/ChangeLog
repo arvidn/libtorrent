@@ -92,6 +92,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix issue where event=stopped announces wouldn't be sent when closing session
 	* fix possible hang in file::readv() on windows
 	* fix CPU busy loop issue in tracker announce logic
 	* honor IOV_MAX when using writev and readv

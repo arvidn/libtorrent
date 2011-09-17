@@ -179,7 +179,8 @@ namespace libtorrent
 			:settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &m_ps, 5, settings.user_agent, bind_interface());
+			, tracker_req().event == tracker_request::stopped ? 2 : 1
+			, &m_ps, 5, settings.user_agent, bind_interface());
 
 		// the url + 100 estimated header size
 		sent_bytes(url.size() + 100);

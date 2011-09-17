@@ -52,6 +52,9 @@ bool print_alerts(libtorrent::session& ses, char const* name
 void wait_for_listen(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
+extern int g_udp_tracker_requests;
+extern int g_http_tracker_requests;
+
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true, bool encrypted = false);
 

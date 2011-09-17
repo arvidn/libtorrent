@@ -85,7 +85,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		return;
 	}
 
-	TORRENT_ASSERT(prio >= 0 && prio < 2);
+	TORRENT_ASSERT(prio >= 0 && prio < 3);
 
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
@@ -140,7 +140,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl, int handle_redirects
 	, address const& bind_addr)
 {
-	TORRENT_ASSERT(prio >= 0 && prio < 2);
+	TORRENT_ASSERT(prio >= 0 && prio < 3);
 
 	m_redirects = handle_redirects;
 	if (ps) m_proxy = *ps;
