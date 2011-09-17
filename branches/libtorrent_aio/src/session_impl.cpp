@@ -2392,6 +2392,11 @@ namespace aux {
 		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
 #endif
 
+		if (m_alerts.should_post<incoming_connection_alert>())
+		{
+			m_alerts.post_alert(incoming_connection_alert(s->type(), endp));
+		}
+
 		if (!m_settings.enable_incoming_utp
 			&& s->get<utp_stream>())
 		{

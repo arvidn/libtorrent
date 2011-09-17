@@ -1482,6 +1482,11 @@ ctx->set_verify_callback(verify_function, ec);
 			return;
 		}
 
+		if (alerts().should_post<incoming_connection_alert>())
+		{
+			alerts().post_alert(incoming_connection_alert(s->type(), endp));
+		}
+
 		if (!settings().enable_incoming_tcp)
 		{
 			if (alerts().should_post<peer_blocked_alert>())
@@ -4775,7 +4780,7 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 		if (!c) return;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -5615,7 +5620,7 @@ ctx->set_verify_callback(verify_function, ec);
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 

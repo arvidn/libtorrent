@@ -1,3 +1,4 @@
+	* add incoming_connection_alert for logging all successful incoming connections
 	* feature to encrypt peer connections with a secret AES-256 key stored in .torrent file
 	* deprecated compact storage allocation
 	* close files in separate thread on systems where close() may block (Mac OS X for instance)

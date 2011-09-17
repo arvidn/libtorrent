@@ -1300,6 +1300,22 @@ namespace libtorrent
 		error_code error;
 	};
 
+	struct TORRENT_EXPORT incoming_connection_alert: alert
+	{
+		incoming_connection_alert(int type_, tcp::endpoint const& ip_)
+			: socket_type(type_)
+			, ip(ip_)
+		{}
+
+		TORRENT_DEFINE_ALERT(incoming_connection_alert);
+
+		const static int static_category = alert::peer_notification;
+		virtual std::string message() const;
+
+		int socket_type;
+		tcp::endpoint ip;
+	};
+
 
 }
 
