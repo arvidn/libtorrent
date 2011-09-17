@@ -4637,7 +4637,7 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 		if (!c) return;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
@@ -5472,7 +5472,7 @@ ctx->set_verify_callback(verify_function, ec);
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, shared_from_this(), s, a, peerinfo));
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
 
