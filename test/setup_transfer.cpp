@@ -445,6 +445,9 @@ int start_tracker()
 	return port;
 }
 
+int g_udp_tracker_requests = 0;
+int g_http_tracker_requests = 0;
+
 void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint const* from, char* buffer, udp::socket* sock)
 {
 	if (ec)
@@ -486,6 +489,7 @@ void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoin
 			detail::write_uint32(1800, ptr); // interval
 			detail::write_uint32(1, ptr); // incomplete
 			detail::write_uint32(1, ptr); // complete
+			++g_udp_tracker_requests;
 			// 0 peers
 			sock->send_to(asio::buffer(buffer, 20), *from, 0, e);
 			break;
@@ -974,6 +978,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 
 			if (path.substr(0, 9) == "/announce")
 			{
+				fprintf(stderr, "%s\n", path.c_str());
 				entry announce;
 				announce["interval"] = 1800;
 				announce["complete"] = 1;
@@ -981,6 +986,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				announce["peers"].string();
 				std::vector<char> buf;
 				bencode(std::back_inserter(buf), announce);
+				++g_http_tracker_requests;
 			
 				send_response(s, ec, 200, "OK", extra_header, buf.size());
 				write(s, boost::asio::buffer(&buf[0], buf.size()), boost::asio::transfer_all(), ec);

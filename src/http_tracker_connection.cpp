@@ -227,7 +227,8 @@ namespace libtorrent
 			:settings.tracker_completion_timeout;
 
 		m_tracker_connection->get(url, seconds(timeout)
-			, 1, &m_ps, 5, settings.anonymous_mode ? "" : settings.user_agent
+			, tracker_req().event == tracker_request::stopped ? 2 : 1
+			, &m_ps, 5, settings.anonymous_mode ? "" : settings.user_agent
 			, bind_interface()
 #if TORRENT_USE_I2P
 			, m_i2p_conn
