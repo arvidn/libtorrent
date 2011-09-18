@@ -398,6 +398,20 @@ int test_main()
 	error_code ec;
 	int ret = 0;
 
+	sliding_average<4> avg;
+	TEST_EQUAL(avg.mean(), 0);
+	TEST_EQUAL(avg.avg_deviation(), 0);
+	avg.add_sample(500);
+	TEST_EQUAL(avg.mean(), 500);
+	TEST_EQUAL(avg.avg_deviation(), 0);
+	avg.add_sample(501);
+	TEST_EQUAL(avg.avg_deviation(), 1);
+	avg.add_sample(0);
+	avg.add_sample(0);
+	printf("avg: %d dev: %d\n", avg.mean(), avg.avg_deviation());
+	TEST_CHECK(abs(avg.mean() - 250) < 50);
+	TEST_CHECK(abs(avg.avg_deviation() - 250) < 80);
+
 	// test aio operation sorting
 #if TORRENT_USE_SYNCIO
 	for (int elevator = -1; elevator <= 1; elevator += 2)

@@ -45,6 +45,8 @@ struct sliding_average
 
 	void add_sample(int s)
 	{
+		TORRENT_ASSERT(s >= 0);
+		if (s < 0) s = 0;
 		if (m_mean == -1)
 		{
 			m_mean = s;
