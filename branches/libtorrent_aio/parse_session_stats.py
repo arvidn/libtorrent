@@ -114,6 +114,7 @@ reports = [
 	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk job time', 'disk read time', 'disk write time', 'disk hash time', 'disk sort time', 'disk issue time']),
+	('average_disk_issue_time_absolute', 'job time', 's', 'running averages of issue timing of disk operations', ['disk issue time']),
 	('average_disk_queue_time', 'job queued time', 's', 'running averages of disk queue time', ['disk queue time', 'disk job time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time', '% issue time']),
 	('disk_cache_hits', 'blocks (16kiB)', '', '', ['disk block read', 'read cache hits', 'disk block written', 'disk read back']),

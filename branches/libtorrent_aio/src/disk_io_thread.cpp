@@ -366,7 +366,7 @@ namespace libtorrent
 		// initialize stuff in thread_fun().
 #if TORRENT_USE_IOSUBMIT
 		m_io_queue = 0;
-		int ret = io_setup(20000, &m_io_queue);
+		int ret = io_setup(512, &m_io_queue);
 		if (ret != 0)
 		{
 			// error handling!
@@ -2449,7 +2449,7 @@ namespace libtorrent
 				// reading from the event fd will reset the event
 				// and tell us how many times it was fired. i.e.
 				// how many disk events are ready to be reaped
-				const int max_events = 300;
+				const int max_events = 512;
 				io_event events[max_events];
 				boost::int64_t n = 0;
 				int ret = read(m_disk_event_fd, &n, sizeof(n));
@@ -2477,7 +2477,7 @@ namespace libtorrent
 						file::aiocb_t* next = aio->next;
 						// copy the return codes from the io_event
 						aio->ret = events[i].res;
-						aio->error = events[i].res2;
+						aio->error = events[i].res < 0 ? -events[i].res : 0;
 						bool removed = reap_aio(aio, m_aiocb_pool);
 						if (removed) ++m_cache_stats.cumulative_completed_aiocbs;
 						iocbs_reaped = removed;
@@ -2740,7 +2740,7 @@ namespace libtorrent
 				prepend_aios(m_in_progress, pending);
 
 				int issue_time = total_microseconds(time_now_hires() - start);
-				if (num_issued > 0) m_issue_time.add_sample(issue_time / num_issued);
+				m_issue_time.add_sample(issue_time);
 				m_cache_stats.cumulative_issue_time += issue_time;
 
 #if !TORRENT_USE_SYNCIO
