@@ -1,3 +1,4 @@
+	* fix UPnP issue for routers with multiple PPPoE connections
 	* fix issue where event=stopped announces wouldn't be sent when closing session
 	* fix possible hang in file::readv() on windows
 	* fix crash when using broken SOCKS5 proxies
