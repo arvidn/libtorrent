@@ -818,8 +818,9 @@ TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& 
 			if (string_equal_no_case(string, state.service_type))
 				state.in_service = true;
 		}
-		else if (state.in_service && state.top_tags("service", "controlurl"))
+		else if (state.control_url.empty() && state.in_service && state.top_tags("service", "controlurl"))
 		{
+			// default to the first (or only) control url in the router's listing
 			state.control_url = string;
 		}
 		else if (state.model.empty() && state.top_tags("device", "modelname"))
