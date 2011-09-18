@@ -80,12 +80,15 @@ namespace libtorrent
 		}
 
 		error_code ec;
-		m_sock.open(i->endpoint().protocol(), ec);
-		if (ec)
+		if (!m_sock.is_open())
 		{
-			(*h)(ec);
-			close(ec);
-			return;
+			m_sock.open(i->endpoint().protocol(), ec);
+			if (ec)
+			{
+				(*h)(ec);
+				close(ec);
+				return;
+			}
 		}
 
 		// TOOD: we could bind the socket here, since we know what the
