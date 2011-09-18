@@ -93,6 +93,7 @@ namespace libtorrent
 		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
 		virtual void encrypt(char* pos, int len) = 0;
 		virtual void decrypt(char* pos, int len) = 0;
+		virtual ~encryption_handler() {}
 	};
 
 	struct rc4_handler : encryption_handler
@@ -221,7 +222,7 @@ namespace libtorrent
 			boost::uint8_t key[32];
 			boost::uint8_t iv[32];
 
-			int i = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), salt, in_key, len, nrounds, key, iv);
+			EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), salt, in_key, len, nrounds, key, iv);
 			TORRENT_ASSERT(len == 32);
 			EVP_EncryptInit_ex(&m_enc, EVP_aes_256_cbc(), NULL, key, iv);
 			// since we're using the AES as a stream cipher, both the encrypt and
