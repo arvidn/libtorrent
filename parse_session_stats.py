@@ -14,7 +14,7 @@ keys = line.strip().split(':')[1:]
 
 output_dir = 'session_stats_report'
 
-def gen_report(name, unit, lines, short_unit, generation, log_file):
+def gen_report(name, unit, lines, short_unit, generation, log_file, histogram=False):
 	try:
 		os.mkdir(output_dir)
 	except: pass
@@ -39,31 +39,52 @@ def gen_report(name, unit, lines, short_unit, generation, log_file):
 	out = open('session_stats.gnuplot', 'wb')
 	print >>out, "set term png size 1200,700"
 	print >>out, 'set output "%s"' % filename
-	print >>out, 'set xrange [0:*]'
-	print >>out, 'set xlabel "time (s)"'
-	print >>out, 'set ylabel "%s"' % unit
 	print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
-	print >>out, "set style data lines"
 	print >>out, "set key box"
-	print >>out, "set format y \"%%.1s%%c%s\";" % short_unit
-	print >>out, 'plot',
-	column = 2
-	first = True
-	for k in lines:
+	if histogram:
+		binwidth = 0.005;
+
+		print >>out, 'binwidth=%f' % binwidth
+		print >>out, 'set boxwidth binwidth'
+		print >>out, 'bin(x,width)=width*floor(x/width) + binwidth/2'
+		print >>out, 'set xrange [0:%f]' % (binwidth * 100)
+		print >>out, 'set xlabel "%s"' % unit
+		print >>out, 'set ylabel "number"'
+
+		k = lines[0]
 		try:
 			column = keys.index(k) + 2
 		except:
 			print '"%s" not found' % k
-			continue;
-		if not first: print >>out, ', ',
-		axis = 'x1y1'
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (log_file, column, k, axis),
-		first = False
-		column = column + 1
-	print >>out, ''
+			return
+		print >>out, 'plot "%s" using (bin($%d,binwidth)):(1.0) smooth freq with boxes' % (log_file, column)
+		print >>out, ''
+		print >>out, ''
+		print >>out, ''
 
-	print >>out, "set term png size 150,100"
+	else:
+		print >>out, 'set xrange [0:*]'
+		print >>out, 'set ylabel "%s"' % unit
+		print >>out, 'set xlabel "time (s)"'
+		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
+		print >>out, 'plot',
+		column = 2
+		first = True
+		for k in lines:
+			try:
+				column = keys.index(k) + 2
+			except:
+				print '"%s" not found' % k
+				continue;
+			if not first: print >>out, ', ',
+			axis = 'x1y1'
+			print >>out, ' "%s" using 1:%d title "%s" axes %s with steps' % (log_file, column, k, axis),
+			first = False
+			column = column + 1
+		print >>out, ''
+
+	print >>out, 'set term png size 150,100'
 	print >>out, 'set output "%s"' % thumb
 	print >>out, 'set key off'
 	print >>out, 'unset tics'
@@ -123,6 +144,7 @@ reports = [
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s', 'smooth read ops/s', 'smooth write ops/s']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
+	('uTP delay histogram', 'buffering delay', 's', 'network delays measured by uTP', ['uTP avg send delay'], True),
 	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages']),
 	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
 	('page faults', '', '', '', ['page faults']),
@@ -146,7 +168,11 @@ g = int(log_file_list[1])
 generations = []
 while os.path.exists(os.path.join(log_file_path, log_file)):
 	print '[%s] %04d\r[' % (' ' * len(reports), g),
-	for i in reports: gen_report(i[0], i[1], i[4], i[2], g, os.path.join(log_file_path, log_file))
+	for i in reports:
+		histogram = False
+		try: histogram = i[5]
+		except: pass
+		gen_report(i[0], i[1], i[4], i[2], g, os.path.join(log_file_path, log_file), histogram)
 	print ''
 	generations.append(g)
 	g += 1
