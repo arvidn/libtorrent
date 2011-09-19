@@ -99,7 +99,7 @@ for i in filesystem:
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
-	os.system('./stage_aio/connection_tester gen-torrent 40000 test.torrent')
+	os.system('./stage_aio/connection_tester gen-torrent 4000 test.torrent')
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -218,7 +218,8 @@ def run_test(config):
 	cmdline = build_commandline(config, port)
 	binary = cmdline.split(' ')[0]
 	environment = None
-	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':'/usr/lib/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
+	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':'/usr/lib64/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
+	if config['profile'] == 'memory': environment = {'LD_PRELOAD':'/usr/lib64/libtcmalloc_and_profiler.so.0', 'HEAPPROFILE': 'session_stats/heap_profile.prof'}
 	if config['profile'] == 'perf': cmdline = 'perf timechart record --call-graph --output=session_stats/perf_profile.prof ' + cmdline
 	f = open('session_stats/cmdline.txt', 'w+')
 	f.write(cmdline)
@@ -312,6 +313,13 @@ def run_test(config):
 	if config['profile'] == 'tcmalloc':
 		print 'analyzing CPU profile [%s]' % binary
 		os.system('google-pprof --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % binary)
+	if config['profile'] == 'memory':
+		for i in xrange(1, 300):
+			profile = 'session_stats/heap_profile.prof.%04d.heap' % i
+			try: os.stat(profile)
+			except: break
+			print 'analyzing heap profile [%s] %d' % (binary, i)
+			os.system('google-pprof --pdf %s %s >session_stats/heap_profile_%d.pdf' % (binary, profile, i))
 	if config['profile'] == 'perf':
 		print 'analyzing CPU profile [%s]' % binary
 		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_report.out')
@@ -324,7 +332,7 @@ def run_test(config):
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
-		config = build_test_config(build=b, test=test)
+		config = build_test_config(build=b, test=test, profile='memory')
 		run_test(config)
 sys.exit(0)
 
