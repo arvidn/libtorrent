@@ -204,6 +204,94 @@ namespace libtorrent
 		size_type cumulative_completed_aiocbs;
 	};
 	
+#if TORRENT_USE_SUBMIT_THREADS
+	// since linux' io_submit() isn't really asychronous, there's
+	// an option to create 3 worker threads to submit the disk jobs (iocbs)
+	struct submit_queue
+	{
+		submit_queue(aiocb_pool* p)
+			: m_abort(false), m_pool(p)
+			, m_thread1(boost::bind(&submit_queue::worker_fun, this))
+			, m_thread2(boost::bind(&submit_queue::worker_fun, this))
+			, m_thread3(boost::bind(&submit_queue::worker_fun, this))
+		{}
+
+		mutex m_mutex;
+		condition m_cond;
+		std::vector<iocb*> m_queue;
+		bool m_abort;
+		aiocb_pool* m_pool;
+		thread m_thread1;
+		thread m_thread2;
+		thread m_thread3;
+
+		int submit(file::aiocb_t* chain)
+		{
+			int count = 0;
+			for (file::aiocb_t* i = chain; i != 0; i = i->next) ++count;
+			mutex::scoped_lock l(m_mutex);
+			int index = m_queue.size();
+			m_queue.resize(m_queue.size() + count);
+			for (file::aiocb_t* i = chain; i != 0; (i = i->next), ++index) m_queue[index] = &i->cb;
+			m_cond.signal_all(l);
+			return count;
+		}
+
+		void kick()
+		{
+			mutex::scoped_lock l(m_mutex);
+			if (m_queue.empty()) return;
+			m_cond.signal_all(l);
+		}
+
+		~submit_queue()
+		{
+			mutex::scoped_lock l(m_mutex);
+			m_abort = true;
+			m_cond.signal_all(l);
+			l.unlock();
+
+			m_thread1.join();
+			m_thread2.join();
+			m_thread3.join();
+		}
+
+		void worker_fun()
+		{
+			mutex::scoped_lock l(m_mutex);
+			while (!m_abort || !m_queue.empty())
+			{
+				while (m_queue.empty() && !m_abort) m_cond.wait(l);
+				if (m_queue.empty()) continue;
+
+				const int submit_batch_size = 256;
+				int num_to_submit = (std::min)(submit_batch_size, int(m_queue.size()));
+				iocb* to_submit[submit_batch_size];
+				memcpy(to_submit, &m_queue[0], num_to_submit * sizeof(iocb*));
+				m_queue.erase(m_queue.begin(), m_queue.begin() + num_to_submit);
+				l.unlock();
+
+				int r = 0;
+				iocb** start = to_submit;
+				r = io_submit(m_pool->io_queue, num_to_submit, start);
+
+				int num_to_put_back = 0;
+				if (r < 0) num_to_put_back = num_to_submit;
+				else
+				{
+					num_to_put_back = num_to_submit - r;
+					start += r;
+				}
+				l.lock();
+
+				if (num_to_put_back)
+					m_queue.insert(m_queue.begin(), start, start + num_to_put_back);
+			}
+		}
+	};
+
+#endif // TORRENT_USE_SUBMIT_THREADS
+
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
 	struct TORRENT_EXPORT disk_io_thread
@@ -455,6 +543,11 @@ namespace libtorrent
 		// pool used to allocate the aiocb_t elements
 		// used by the async operations on files
 		aiocb_pool m_aiocb_pool;
+
+#if TORRENT_USE_SUBMIT_THREADS
+		// used to run io_submit() in separate threads
+		submit_queue m_submit_queue;
+#endif
 
 #if TORRENT_USE_OVERLAPPED
 		// this is used to feed events of completed disk I/O

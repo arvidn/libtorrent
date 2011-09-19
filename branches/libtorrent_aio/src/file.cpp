@@ -2497,7 +2497,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 					TORRENT_ASSERT(list_start->next == 0 || list_start->next->prev == list_start);
 					list_start = list_start->next;
 				}
-				if (r != i) goto finish;
+				// io_submit takes too long, we can't loop and call it
+				// over and over here, we'll spend most of the time in this
+				// call anyway. We need to have a finer granularity of what
+				// we do in the thread
+				goto finish;
+//				if (r != i) goto finish;
 				i = 0;
 			}
 			if (aios == 0) break;

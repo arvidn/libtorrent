@@ -66,20 +66,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 	These are the different disk I/O options:
 
-	TORRENT_USE_AIO             - use posix AIO
-	  TORRENT_USE_AIO_SIGNALFD  - use (linux) signalfd as notification
-	                              mechanism in posix AIO
-	  TORRENT_USE_AIO_PORTS     - use (solaris) ports as notification
-	                              mechanism in posix AIO
-	  TORRENT_USE_AIO_KQUEUE    - use (bsd) kqueue as notification mechanism
-	                              in posix AIO
+	TORRENT_USE_AIO              - use posix AIO
+	  TORRENT_USE_AIO_SIGNALFD   - use (linux) signalfd as notification
+	                               mechanism in posix AIO
+	  TORRENT_USE_AIO_PORTS      - use (solaris) ports as notification
+	                               mechanism in posix AIO
+	  TORRENT_USE_AIO_KQUEUE     - use (bsd) kqueue as notification mechanism
+	                               in posix AIO
 
-	TORRENT_USE_IOSUBMIT        - use (linux) io_submit() for I/O
+	TORRENT_USE_IOSUBMIT         - use (linux) io_submit() for I/O
+	  TORRENT_USE_SUBMIT_THREADS - use separate threads for the io_submit()
+	                               call, since it's a blocking call
 
-	TORRENT_USE_OVERLAPPED      - use (win32) overlapped I/O and
-	                              IO completion ports
+	TORRENT_USE_OVERLAPPED       - use (win32) overlapped I/O and
+	                               IO completion ports
 
-	TORRENT_USE_SYNCIO          - use portable, synchronous, file operations
+	TORRENT_USE_SYNCIO           - use portable, synchronous, file operations
 
 
 	If none of these are set, this config header will determine which
@@ -454,6 +456,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // use io_submit for asynchronous disk I/O
 #ifndef TORRENT_USE_IOSUBMIT
 #define TORRENT_USE_IOSUBMIT 0
+#endif
+
+#if TORRENT_USE_IOSUBMIT && !defined TORRENT_USE_SUBMIT_THREADS
+#define TORRENT_USE_SUBMIT_THREADS 1
 #endif
 
 // use io_prep_pwritev and io_prep_preadv. These were never implemented

@@ -355,6 +355,9 @@ namespace libtorrent
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(post_alert)
+#if TORRENT_USE_SUBMIT_THREADS
+		, m_submit_queue(&m_aiocb_pool)
+#endif
 #if TORRENT_USE_OVERLAPPED
 		, m_completion_port(CreateIoCompletionPort(INVALID_HANDLE_VALUE
 			, NULL, 0, 1))
@@ -366,7 +369,7 @@ namespace libtorrent
 		// initialize stuff in thread_fun().
 #if TORRENT_USE_IOSUBMIT
 		m_io_queue = 0;
-		int ret = io_setup(512, &m_io_queue);
+		int ret = io_setup(4096, &m_io_queue);
 		if (ret != 0)
 		{
 			// error handling!
@@ -2664,6 +2667,13 @@ namespace libtorrent
 				flush_expired_write_blocks();
 			}
 
+#if TORRENT_USE_SUBMIT_THREADS
+			if (iocbs_reaped)
+			{
+				m_submit_queue.kick();
+			}
+#endif
+
 			// if didn't receive a message waking us up because we have new jobs
 			// another reason to keep going is if we just reaped some aiocbs and
 			// we have outstanding iocbs waiting to be submitted
@@ -2728,8 +2738,14 @@ namespace libtorrent
 
 				file::aiocb_t* pending;
 				int num_issued = 0;
+#if TORRENT_USE_SUBMIT_THREADS
+				num_issued = m_submit_queue.submit(m_to_issue);
+				pending = m_to_issue;
+				m_to_issue = 0;
+#else
 				boost::tie(pending, m_to_issue) = issue_aios(m_to_issue, m_aiocb_pool
 					, num_issued);
+#endif
 				if (m_to_issue == 0) m_to_issue_end = 0;
 				TORRENT_ASSERT(m_num_to_issue >= num_issued);
 				m_num_to_issue -= num_issued;
