@@ -14,7 +14,7 @@ keys = line.strip().split(':')[1:]
 
 output_dir = 'session_stats_report'
 
-def gen_report(name, unit, lines, short_unit, generation, log_file, histogram=False):
+def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 	try:
 		os.mkdir(output_dir)
 	except: pass
@@ -42,13 +42,14 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, histogram=Fa
 	print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
 	print >>out, "set key box"
-	if histogram:
-		binwidth = 0.005;
+	if options['type'] == 'histogram':
+		binwidth = options['binwidth']
+		numbins = int(options['numbins'])
 
 		print >>out, 'binwidth=%f' % binwidth
 		print >>out, 'set boxwidth binwidth'
 		print >>out, 'bin(x,width)=width*floor(x/width) + binwidth/2'
-		print >>out, 'set xrange [0:%f]' % (binwidth * 100)
+		print >>out, 'set xrange [0:%f]' % (binwidth * numbins)
 		print >>out, 'set xlabel "%s"' % unit
 		print >>out, 'set ylabel "number"'
 
@@ -135,6 +136,8 @@ reports = [
 	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk job time', 'disk read time', 'disk write time', 'disk hash time', 'disk sort time', 'disk issue time']),
+	('disk_write_time', 'write time', 's', 'distribution of write jobs timing', ['disk write time'], {'type': 'histogram', 'binwidth': 0.1, 'numbins': 400}),
+	('disk_read_time', 'read time', 's', 'distribution of read jobs timing', ['disk read time'], {'type': 'histogram', 'binwidth': 0.1, 'numbins': 400}),
 	('average_disk_issue_time_absolute', 'job time', 's', 'running averages of issue timing of disk operations', ['disk issue time']),
 	('average_disk_queue_time', 'job queued time', 's', 'running averages of disk queue time', ['disk queue time', 'disk job time']),
 	('disk_time', '% of total disk job time', '%%', 'proportion of time spent by the disk thread', ['% read time', '% write time', '% hash time', '% sort time', '% issue time']),
@@ -146,7 +149,7 @@ reports = [
 	('disk aiocb completion', 'operations/s', '', 'number of disk operations per second', ['completed aio jobs', 'in progress aio jobs']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
-	('uTP delay histogram', 'buffering delay', 's', 'network delays measured by uTP', ['uTP avg send delay'], True),
+	('uTP delay histogram', 'buffering delay', 's', 'network delays measured by uTP', ['uTP avg send delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),
 	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages']),
 	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
 	('page faults', '', '', '', ['page faults']),
@@ -160,7 +163,9 @@ reports = [
 	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
 	('piece_picker_end_game', 'blocks', '', '', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 	('piece_picker', 'blocks', '', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
-	('picker partials', 'pieces', '', '', ['num partial pieces', 'num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces'])
+	('picker_partials', 'pieces', '', '', ['num partial pieces', 'num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces']),
+	('picker_full_partials_distribution', 'full pieces', 'count', '', ['num full partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120}),
+	('picker_partials_distribution', 'partial pieces', 'count', '', ['num downloading partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120})
 ]
 
 print 'generating graphs'
@@ -172,10 +177,10 @@ generations = []
 while os.path.exists(os.path.join(log_file_path, log_file)):
 	print '[%s] %04d\r[' % (' ' * len(reports), g),
 	for i in reports:
-		histogram = False
-		try: histogram = i[5]
+		options = {'type': 'lines'}
+		try: options = i[5]
 		except: pass
-		gen_report(i[0], i[1], i[4], i[2], g, os.path.join(log_file_path, log_file), histogram)
+		gen_report(i[0], i[1], i[4], i[2], g, os.path.join(log_file_path, log_file), options)
 	print ''
 	generations.append(g)
 	g += 1
