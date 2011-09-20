@@ -31,7 +31,7 @@ import hashlib
 
 # variables to test. All these are run on the first
 # entry in the filesystem list.
-cache_sizes = [0, 32768, 393216]
+cache_sizes = [0, 32768, 50000]
 peers = [200, 1000, 2000]
 builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
 
@@ -180,15 +180,58 @@ def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default
 	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile }
 	return config
 
+def prefix_len(text, prefix):
+	for i in xrange(1, len(prefix)):
+		if (not text.startswith(prefix[0:i])): return i-1
+	return len(prefix)
+
+def device_name(path):
+	mount = subprocess.Popen('mount', stdout=subprocess.PIPE)
+	
+	max_match_len = 0
+	match_device = ''
+	path = os.path.abspath(path)
+
+	for mp in mount.stdout.readlines():
+		c = mp.split(' ')
+		device = c[0]
+		mountpoint = c[2]
+		prefix = prefix_len(path, mountpoint)
+		if prefix > max_match_len:
+			max_match_len = prefix
+			match_device = device
+
+	device = match_device
+	device = device.split('/')[-1][0:3]
+	print 'device for path: %s -> %s' % (path, device)
+	return device
+
 def build_target_folder(config):
 	test = 'seed'
 	if config['test'] == 'upload': test = 'download'
 	elif config['test'] == 'dual': test = 'dual'
 
-	# todod, resolve 'sdh' by calling mount and look for the save directory instead
-	io_scheduler = open('/sys/block/sdh/queue/scheduler').read().split('[')[1].split(']')[0]
+	io_scheduler = open('/sys/block/%s/queue/scheduler' % device_name(config['save-path'])).read().split('[')[1].split(']')[0]
 
 	return 'results_%s_%s_%d_%d_%s_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], io_scheduler)
+
+def find_library(name):
+	paths = ['/usr/lib64/', '/usr/local/lib64/', '/usr/lib/', '/usr/local/lib/']
+
+	for p in paths:
+		try:
+			if os.path.exists(p + name): return p + name
+		except: pass
+	return name
+
+def find_binary(names):
+	paths = ['/usr/bin/', '/usr/local/bin/']
+	for p in paths:
+		for n in names:
+			try:
+				if os.path.exists(p + n): return p + name
+			except: pass
+	return name
 
 def run_test(config):
 
@@ -218,8 +261,8 @@ def run_test(config):
 	cmdline = build_commandline(config, port)
 	binary = cmdline.split(' ')[0]
 	environment = None
-	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':'/usr/lib64/libprofiler.so.0', 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
-	if config['profile'] == 'memory': environment = {'LD_PRELOAD':'/usr/lib64/libtcmalloc_and_profiler.so.0', 'HEAPPROFILE': 'session_stats/heap_profile.prof'}
+	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':find_library('libprofiler.so.0'), 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
+	if config['profile'] == 'memory': environment = {'LD_PRELOAD':find_library('libtcmalloc_and_profiler.so.0'), 'HEAPPROFILE': 'session_stats/heap_profile.prof'}
 	if config['profile'] == 'perf': cmdline = 'perf timechart record --call-graph --output=session_stats/perf_profile.prof ' + cmdline
 	f = open('session_stats/cmdline.txt', 'w+')
 	f.write(cmdline)
@@ -312,14 +355,14 @@ def run_test(config):
 
 	if config['profile'] == 'tcmalloc':
 		print 'analyzing CPU profile [%s]' % binary
-		os.system('google-pprof --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % binary)
+		os.system('%s --pdf %s session_stats/cpu_profile.prof >session_stats/cpu_profile.pdf' % (find_binary(['google-pprof', 'pprof']), binary))
 	if config['profile'] == 'memory':
 		for i in xrange(1, 300):
 			profile = 'session_stats/heap_profile.prof.%04d.heap' % i
 			try: os.stat(profile)
 			except: break
 			print 'analyzing heap profile [%s] %d' % (binary, i)
-			os.system('google-pprof --pdf %s %s >session_stats/heap_profile_%d.pdf' % (binary, profile, i))
+			os.system('%s --pdf %s %s >session_stats/heap_profile_%d.pdf' % (find_binary(['google-pprof', 'pprof']), binary, profile, i))
 	if config['profile'] == 'perf':
 		print 'analyzing CPU profile [%s]' % binary
 		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_report.out')
