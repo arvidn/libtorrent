@@ -1110,7 +1110,7 @@ namespace libtorrent
 		DLOG(stderr, "[%p]   return: %d error: %s\n"
 			, this, ret, j->error ? j->error.ec.message().c_str() : "");
 
-		if (ret != defer_handler && j->callback)
+		if (ret != defer_handler)
 		{
 			TORRENT_ASSERT(j->next == 0);
 			DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
@@ -2099,14 +2099,11 @@ namespace libtorrent
 		}
 
 		++m_cache_stats.blocks_written;
-		if (j->callback)
-		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			TORRENT_ASSERT(j->callback_called == false);
-			j->callback_called = true;
+		TORRENT_ASSERT(j->callback_called == false);
+		j->callback_called = true;
 #endif
-			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
-		}
+		m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
 	}
 
 	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job* j)
@@ -2141,16 +2138,15 @@ namespace libtorrent
 		j->storage->get_storage_impl()->readv_done(&vec, 1, j->piece, j->offset);
 
 		++m_cache_stats.blocks_read;
-		if (j->callback)
-		{
+
+		// the only way the buffer is freed is by a callback
+		TORRENT_ASSERT(j->callback);
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			TORRENT_ASSERT(j->callback_called == false);
-			j->callback_called = true;
+		TORRENT_ASSERT(j->callback_called == false);
+		j->callback_called = true;
 #endif
-			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
-		}
-		else if (j->buffer)
-			m_disk_cache.free_buffer(j->buffer);
+		m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
 	}
 
 	// This is sometimes called from an outside thread!
