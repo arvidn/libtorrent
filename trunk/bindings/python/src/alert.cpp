@@ -37,6 +37,11 @@ std::string dht_announce_alert_ip(dht_announce_alert const& pa)
     return pa.ip.to_string(ec);
 }
 
+tuple incoming_connection_alert_ip(incoming_connection_alert const& ica)
+{
+    return endpoint_to_tuple(ica.ip);
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -439,4 +444,10 @@ void bind_alert()
     enum_<anonymous_mode_alert::kind_t>("kind")
         .value("tracker_no_anonymous", anonymous_mode_alert::tracker_not_anonymous)
     ;
+
+    class_<incoming_connection_alert, bases<alert>, noncopyable>(
+        "incoming_connection_alert", no_init)
+        .def_readonly("socket_type", &incoming_connection_alert::socket_type)
+        .add_property("ip", &incoming_connection_alert_ip)
+        ;
 }
