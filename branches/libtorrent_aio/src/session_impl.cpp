@@ -1121,6 +1121,7 @@ namespace aux {
 			":num finished partial pieces"
 			":completed aio jobs"
 			":in progress aio jobs"
+			":allocated jobs"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3574,6 +3575,8 @@ namespace aux {
 
 			STAT_LOG(d, int(cs.cumulative_completed_aiocbs - m_last_cache_status.cumulative_completed_aiocbs));
 			STAT_LOG(d, cs.num_aiocb);
+
+			STAT_LOG(d, cs.num_jobs);
 
 			fprintf(m_stats_logger, "\n");
 

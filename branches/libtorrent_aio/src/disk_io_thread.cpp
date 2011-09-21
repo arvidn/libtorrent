@@ -1894,6 +1894,7 @@ namespace libtorrent
 		ret.peak_pending = m_peak_outstanding;
 		ret.num_aiocb = m_aiocb_pool.in_use();
 		ret.peak_aiocb = m_aiocb_pool.peak_in_use();
+		ret.num_jobs = m_aiocb_pool.jobs_in_use();
 
 		m_disk_cache.get_stats(&ret);
 	}

@@ -73,6 +73,7 @@ namespace libtorrent
 
 		int in_use() const { return m_in_use; }
 		int peak_in_use() const { return m_peak_in_use; }
+		int jobs_in_use() const { return m_jobs_in_use; }
 
 #if TORRENT_USE_IOSUBMIT
 		io_context_t io_queue;
@@ -95,6 +96,8 @@ namespace libtorrent
 
 		int m_in_use;
 		int m_peak_in_use;
+		int m_jobs_in_use;
+
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		boost::pool<> m_pool;
 		boost::pool<> m_vec_pool;
