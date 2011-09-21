@@ -38,6 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <numeric>
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/struct_debug.hpp"
+#endif
+
 #ifdef TORRENT_DEBUG
 #include <iostream>
 #endif
@@ -1049,7 +1053,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j.piece >= 0);
 
-		piece_block block_finished(j.piece, j.offset / block_size());
+		piece_block block_finished(j.piece, j.d.io.offset / block_size());
 
 		if (j.action == disk_io_job::write)
 		{
@@ -2152,7 +2156,7 @@ ctx->set_verify_callback(verify_function, ec);
 		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
 		if (m_ses.m_settings.disable_hash_checks
-			|| j.piece_hash == m_torrent_file->hash_for_piece(j.piece))
+			|| sha1_hash(j.d.piece_hash) == m_torrent_file->hash_for_piece(j.piece))
 		{
 			TORRENT_ASSERT(m_picker);
 			m_picker->we_have(j.piece);
@@ -3740,8 +3744,8 @@ ctx->set_verify_callback(verify_function, ec);
 		if (ret == 0)
 		{
 			if (alerts().should_post<file_renamed_alert>())
-				alerts().post_alert(file_renamed_alert(get_handle(), j.str, j.piece));
-			m_torrent_file->rename_file(j.piece, j.str);
+				alerts().post_alert(file_renamed_alert(get_handle(), j.buffer, j.piece));
+			m_torrent_file->rename_file(j.piece, j.buffer);
 		}
 		else
 		{
@@ -6224,9 +6228,9 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			if (alerts().should_post<storage_moved_alert>())
 			{
-				alerts().post_alert(storage_moved_alert(get_handle(), j.str));
+				alerts().post_alert(storage_moved_alert(get_handle(), j.buffer));
 			}
-			m_save_path = j.str;
+			m_save_path = j.buffer;
 		}
 		else
 		{
@@ -7835,7 +7839,7 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			if (ret == -1) handle_disk_error(j);
 
-			if (j.piece_hash != m_torrent_file->hash_for_piece(j.piece))
+			if (sha1_hash(j.d.piece_hash) != m_torrent_file->hash_for_piece(j.piece))
 				ret = -2;
 		}
 

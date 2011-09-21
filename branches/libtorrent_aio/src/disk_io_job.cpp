@@ -38,18 +38,23 @@ namespace libtorrent
 	disk_io_job::disk_io_job()
 		: buffer(0)
 		, piece(0)
-		, offset(0)
-		, buffer_size(0)
 		, flags(0)
-		, max_cache_line(0)
-		, cache_min_time(0)
 		, action(read)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, in_use(false)
 		, callback_called(false)
 #endif
-	{}
+	{
+		d.io.offset = 0;
+		d.io.buffer_size = 0;
+		d.io.max_cache_line = 0;
+		d.io.cache_min_time = 0;
+	}
 
-	disk_io_job::~disk_io_job() {}
+	disk_io_job::~disk_io_job()
+	{
+		if (action == rename_file || action == move_storage)
+			free(buffer);
+	}
 }
 

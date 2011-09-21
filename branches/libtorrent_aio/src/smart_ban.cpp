@@ -179,10 +179,10 @@ namespace
 			disk_buffer_holder buffer(m_torrent.session(), j);
 
 			// ignore read errors
-			if (ret != j.buffer_size) return;
+			if (ret != j.d.io.buffer_size) return;
 
 			hasher h;
-			h.update(j.buffer, j.buffer_size);
+			h.update(j.buffer, j.d.io.buffer_size);
 			h.update((char const*)&m_salt, sizeof(m_salt));
 
 			std::pair<policy::iterator, policy::iterator> range
@@ -260,10 +260,10 @@ namespace
 			disk_buffer_holder buffer(m_torrent.session(), j);
 
 			// ignore read errors
-			if (ret != j.buffer_size) return;
+			if (ret != j.d.io.buffer_size) return;
 
 			hasher h;
-			h.update(j.buffer, j.buffer_size);
+			h.update(j.buffer, j.d.io.buffer_size);
 			h.update((char const*)&m_salt, sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 

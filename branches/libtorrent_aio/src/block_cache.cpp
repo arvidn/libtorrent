@@ -141,9 +141,9 @@ int block_cache::try_read(disk_io_job* j)
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
 	if (p->num_blocks == 0) idx.erase(p);
-	else idx.modify(p, update_last_use(j->cache_min_time));
+	else idx.modify(p, update_last_use(j->d.io.cache_min_time));
 
-	ret = j->buffer_size;
+	ret = j->d.io.buffer_size;
 	++m_blocks_read;
 	++m_blocks_read_hit;
 	return ret;
@@ -163,7 +163,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const* j)
 		cached_piece_entry pe;
 		pe.piece = j->piece;
 		pe.storage = j->storage;
-		pe.expire = time(0) + j->cache_min_time;
+		pe.expire = time(0) + j->d.io.cache_min_time;
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		TORRENT_ASSERT(pe.blocks);
@@ -183,8 +183,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT(p != end());
 	if (p == end()) return p;
 
-	int block = j->offset / block_size();
-	TORRENT_ASSERT((j->offset % block_size()) == 0);
+	int block = j->d.io.offset / block_size();
+	TORRENT_ASSERT((j->d.io.offset % block_size()) == 0);
 
 	// this only evicts read blocks
 
@@ -222,7 +222,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	pe->jobs.push_back(j);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
-	idx.modify(p, set_last_use((std::max)(pe->expire, time(0) + j->cache_min_time)));
+	idx.modify(p, set_last_use((std::max)(pe->expire, time(0) + j->d.io.cache_min_time)));
 
 	int hash_start = 0;
 	int hash_end = 0;
@@ -758,7 +758,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 		int ret = 0;
 		if (j->action == disk_io_job::read || j->action == disk_io_job::write)
 		{
-			ret = j->buffer_size;
+			ret = j->d.io.buffer_size;
 		}
 		if (ec)
 		{
@@ -766,7 +766,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			// this job is waiting for just return the failure
 			if (j->action == disk_io_job::hash)
 			{
-				hash_start = j->offset;
+				hash_start = j->d.io.offset;
 				hash_end = pe->blocks_in_piece;
 
 				// every hash job increases the refcount of all
@@ -793,7 +793,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 						--m_pinned_blocks;
 					}
 				}
-				j->offset = hash_end;
+				j->d.io.offset = hash_end;
 				DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
 					"piece: %d begin: %d end: %d error: %s\n"
 					, this, int(pe->piece), hash_start, hash_end, ec.ec.message().c_str());
@@ -814,7 +814,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			// issued to make sure they're not evicted before
 			// they're hashed. As soon as they are hashed, the
 			// refcount is decreased
-			for (int b = j->offset; b < hash_end; ++b)
+			for (int b = j->d.io.offset; b < hash_end; ++b)
 			{
 				cached_block_entry& bl = pe->blocks[b];
 				TORRENT_ASSERT(!bl.pending || bl.dirty);
@@ -834,7 +834,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 					--m_pinned_blocks;
 				}
 			}
-			j->offset = hash_end;
+			j->d.io.offset = hash_end;
 			DLOG(stderr, "[%p] block_cache reap_piece_jobs hash decrementing refcounts "
 				"piece: %d begin: %d end: %d\n"
 				, this, int(pe->piece), hash_start, hash_end);
@@ -868,7 +868,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			TORRENT_ASSERT(pe->hash->offset == j->storage->files()->piece_size(pe->piece));
 			partial_hash& ph = *pe->hash;
 
-			j->piece_hash = ph.h.final();
+			memcpy(j->d.piece_hash, &ph.h.final()[0], 20);
 			ret = 0;
 			if (j->flags & disk_io_job::volatile_read)
 			{
@@ -885,8 +885,8 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 		{
 			// if the job overlaps any blocks that are still pending,
 			// leave it in the list
-			int first_block = j->offset / block_size();
-			int last_block = (j->offset + j->buffer_size - 1) / block_size();
+			int first_block = j->d.io.offset / block_size();
+			int last_block = (j->d.io.offset + j->d.io.buffer_size - 1) / block_size();
 			TORRENT_ASSERT(first_block >= 0);
 			TORRENT_ASSERT(last_block < pe->blocks_in_piece);
 			TORRENT_ASSERT(first_block <= last_block);
@@ -922,7 +922,7 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 			}
 			else
 			{
-				ret = j->buffer_size;
+				ret = j->d.io.buffer_size;
 			}
 		}
 
@@ -1246,10 +1246,10 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 
 	// copy from the cache and update the last use timestamp
-	int block = j->offset / block_size();
-	int block_offset = j->offset & (block_size()-1);
+	int block = j->d.io.offset / block_size();
+	int block_offset = j->d.io.offset & (block_size()-1);
 	int buffer_offset = 0;
-	int size = j->buffer_size;
+	int size = j->d.io.buffer_size;
 	int min_blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
 	TORRENT_ASSERT(size <= block_size());
 	int start_block = block;
@@ -1280,15 +1280,15 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		TORRENT_ASSERT(pe->blocks[start_block].refcount > 0); // make sure it didn't wrap
 		++pe->refcount;
 		TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
-		j->ref.storage = j->storage.get();
-		j->ref.piece = pe->piece;
-		j->ref.block = start_block;
-		j->buffer = pe->blocks[start_block].buf + (j->offset & (block_size()-1));
+		j->d.io.ref.storage = j->storage.get();
+		j->d.io.ref.piece = pe->piece;
+		j->d.io.ref.block = start_block;
+		j->buffer = pe->blocks[start_block].buf + (j->d.io.offset & (block_size()-1));
 		++m_send_buffer_blocks;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		++pe->blocks[start_block].reading_count;
 #endif
-		return j->buffer_size;
+		return j->d.io.buffer_size;
 	}
 
 	j->buffer = allocate_buffer("send buffer");
@@ -1336,7 +1336,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		++block;
 	}
 	if (!buffers.empty()) free_multiple_buffers(&buffers[0], buffers.size());
-	return j->buffer_size;
+	return j->d.io.buffer_size;
 }
 
 cached_piece_entry* block_cache::reclaim_block(block_cache_reference const& ref)

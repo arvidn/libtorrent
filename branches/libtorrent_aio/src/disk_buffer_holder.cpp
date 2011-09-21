@@ -44,12 +44,12 @@ namespace libtorrent
 	}
 
 	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j)
-		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.ref)
+		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.d.io.ref)
 	{
 	}
 
 	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, disk_io_job const& j)
-		: m_disk_thread(iothread), m_buf(j.buffer), m_ref(j.ref)
+		: m_disk_thread(iothread), m_buf(j.buffer), m_ref(j.d.io.ref)
 	{
 		// in this use case, we're in the disk io thread, we shouldn't
 		// be using the reference counted buffer here
@@ -61,7 +61,7 @@ namespace libtorrent
 		if (m_ref.storage) m_disk_thread.reclaim_block(m_ref);
 		else if (m_buf) m_disk_thread.free_buffer(m_buf);
 		m_buf = j.buffer;
-		m_ref = j.ref;
+		m_ref = j.d.io.ref;
 	}
 
 	void disk_buffer_holder::reset(char* buf)

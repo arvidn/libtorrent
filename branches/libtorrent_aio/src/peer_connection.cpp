@@ -2680,7 +2680,7 @@ namespace libtorrent
 		piece_picker& picker = t->picker();
 
 		TORRENT_ASSERT(p.piece == j.piece);
-		TORRENT_ASSERT(p.start == j.offset);
+		TORRENT_ASSERT(p.start == j.d.io.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
 		if (ret == -1 && j.error.ec == boost::system::errc::operation_canceled)
@@ -4582,7 +4582,7 @@ namespace libtorrent
 		if (!t) return;
 
 		if (!t->settings().disable_hash_checks
-			&& j.piece_hash != t->torrent_file().hash_for_piece(j.piece))
+			&& sha1_hash(j.d.piece_hash) != t->torrent_file().hash_for_piece(j.piece))
 		{
 			t->leave_seed_mode(false);
 		}

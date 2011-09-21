@@ -1222,7 +1222,7 @@ namespace libtorrent
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::move_storage);
 		j->storage = this;
-		j->str = strdup(p.c_str());
+		j->buffer = strdup(p.c_str());
 		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
@@ -1244,7 +1244,7 @@ namespace libtorrent
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::rename_file);
 		j->storage = this;
 		j->piece = index;
-		j->str = name;
+		j->buffer = strdup(name.c_str());
 		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
@@ -1256,7 +1256,7 @@ namespace libtorrent
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::cache_piece);
 		j->storage = this;
 		j->piece = piece;
-		j->cache_min_time = cache_expiry;
+		j->d.io.cache_min_time = cache_expiry;
 		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
@@ -1271,11 +1271,11 @@ namespace libtorrent
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
 		j->storage = this;
 		j->piece = r.piece;
-		j->offset = r.start;
-		j->buffer_size = r.length;
+		j->d.io.offset = r.start;
+		j->d.io.buffer_size = r.length;
 		j->buffer = 0;
-		j->max_cache_line = cache_line_size;
-		j->cache_min_time = cache_expiry;
+		j->d.io.max_cache_line = cache_line_size;
+		j->d.io.cache_min_time = cache_expiry;
 		j->flags = flags;
 
 		// if a buffer is not specified, only one block can be read
@@ -1299,8 +1299,8 @@ namespace libtorrent
 		j->storage = this;
 		j->action = disk_io_job::write;
 		j->piece = r.piece;
-		j->offset = r.start;
-		j->buffer_size = r.length;
+		j->d.io.offset = r.start;
+		j->d.io.buffer_size = r.length;
 		j->buffer = buffer.get();
 		j->callback = handler;
 		j->flags = flags;
@@ -1319,7 +1319,7 @@ namespace libtorrent
 		j->storage = this;
 		j->piece = piece;
 		j->callback = handler;
-		j->buffer_size = 0;
+		j->d.io.buffer_size = 0;
 		m_io_thread.add_job(j);
 	}
 

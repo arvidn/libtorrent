@@ -152,7 +152,7 @@ namespace libtorrent
 				disk_io_job::hash_complete);
 			j->buffer = (char*)e.piece;
 			j->piece = e.start;
-			j->offset = e.end;
+			j->d.io.offset = e.end;
 			m_disk_thread->add_job(j, true);
 		}
 

@@ -116,7 +116,7 @@ namespace libtorrent
 			*ec = j.error.ec;
 			return;
 		}
-		t->set_hash(j.piece, j.piece_hash);
+		t->set_hash(j.piece, sha1_hash(j.d.piece_hash));
 		if (*piece_counter < t->num_pieces())
 		{
 			storage->async_hash(*piece_counter, file::sequential_access
