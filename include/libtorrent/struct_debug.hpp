@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,62 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_INTRUSIVE_PTR_BASE
-#define TORRENT_INTRUSIVE_PTR_BASE
+#ifndef TORRENT_STRUCT_DEBUG
+#define TORRENT_STRUCT_DEBUG
 
-#include <boost/detail/atomic_count.hpp>
-#include <boost/checked_delete.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
+#define PRINT_SIZEOF(x) snprintf(tmp, sizeof(tmp), "\nsizeof(" #x ") = %d\n", int(sizeof(x))); \
+	l << tmp; \
+	temp = 0; \
+	prev_size = 0;
 
-namespace libtorrent
-{
-	template<class T>
-	struct intrusive_ptr_base
-	{
-		intrusive_ptr_base(intrusive_ptr_base<T> const&)
-			: m_refs(0) {}
+#define PRINT_OFFSETOF(x, y) if (offsetof(x, y) > 0) { \
+		snprintf(tmp, sizeof(tmp), "\tsize: %-3d\tpadding: %-3d\n" \
+		, prev_size \
+		, int((offsetof(x, y) - temp)) - prev_size); \
+		l << tmp; \
+	} \
+	snprintf(tmp, sizeof(tmp), "%-50s: %-3d" \
+		, #x "::" #y \
+		, int(offsetof(x, y))); \
+	temp = offsetof(x, y); \
+	prev_size = sizeof(reinterpret_cast<x*>(0)->y); \
+	l << tmp;
 
-		intrusive_ptr_base& operator=(intrusive_ptr_base const& rhs)
-		{ return *this; }
+#define PRINT_OFFSETOF_END(x) snprintf(tmp, sizeof(tmp), "\tsize: %-3d\tpadding: %-3d\n" \
+	, prev_size, int((sizeof(x) - temp) - prev_size)); \
+	l << tmp;
 
-		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
-		{
-			TORRENT_ASSERT(s != 0);
-			TORRENT_ASSERT(s->m_refs >= 0);
-			++s->m_refs;
-		}
-
-		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
-		{
-			TORRENT_ASSERT(s != 0);
-			TORRENT_ASSERT(s->m_refs > 0);
-			if (--s->m_refs == 0)
-				boost::checked_delete(static_cast<T const*>(s));
-		}
-
-		boost::intrusive_ptr<T> self()
-		{ return boost::intrusive_ptr<T>((T*)this); }
-
-		boost::intrusive_ptr<const T> self() const
-		{ return boost::intrusive_ptr<const T>((T const*)this); }
-
-		int refcount() const { return m_refs; }
-
-		intrusive_ptr_base(): m_refs(0) {}
-
-		// so that we can access this when logging
-#if !defined TORRENT_LOGGING \
-		&& !defined TORRENT_VERBOSE_LOGGING \
-		&& !defined TORRENT_ERROR_LOGGING
-	private:
-#endif
-		// reference counter for intrusive_ptr
-		mutable boost::detail::atomic_count m_refs;
-	};
-
-}
-
-#endif
+#endif // TORRENT_STRUCT_DEBUG
 

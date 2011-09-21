@@ -458,7 +458,8 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(torrent_info const& t, int flags)
-		: m_files(t.m_files)
+		: m_merkle_first_leaf(t.m_merkle_first_leaf)
+		, m_files(t.m_files)
 		, m_orig_files(t.m_orig_files)
 		, m_urls(t.m_urls)
 		, m_web_seeds(t.m_web_seeds)
@@ -473,7 +474,6 @@ namespace libtorrent
 #endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
-		, m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_info_section_size(t.m_info_section_size)
 		, m_multifile(t.m_multifile)
 		, m_private(t.m_private)
@@ -518,9 +518,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -551,9 +551,9 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(lazy_entry const& torrent_file, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -567,9 +567,9 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -611,9 +611,9 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 	torrent_info::torrent_info(std::wstring const& filename, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -652,9 +652,9 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(char const* buffer, int size, error_code& ec, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -669,9 +669,9 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(std::string const& filename, error_code& ec, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -691,9 +691,9 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 	torrent_info::torrent_info(std::wstring const& filename, error_code& ec, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
@@ -719,10 +719,10 @@ namespace libtorrent
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
 	torrent_info::torrent_info(sha1_hash const& info_hash, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(time(0))
 		, m_info_hash(info_hash)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
 		, m_private(false)
