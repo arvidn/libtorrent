@@ -88,6 +88,10 @@ POSSIBILITY OF SUCH DAMAGE.
 //#include <boost/asio/ssl/verify_context.hpp>
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/struct_debug.hpp"
+#endif
+
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
@@ -208,14 +212,15 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 
-#define PRINT_SIZEOF(x) l << "sizeof(" #x "): " << sizeof(x) << "\n";
-#define PRINT_OFFSETOF(x, y) l << "  " << (offsetof(x, y) - temp) << " offsetof(" #x "," #y "): " << offsetof(x, y) << "\n"; temp = offsetof(x, y);
-
 	void torrent::print_size(logger& l)
 	{
+		char tmp[300];
 		int temp = 0;
+		int prev_size = 0;
 		PRINT_SIZEOF(torrent)
 
+		PRINT_OFFSETOF(torrent, m_tracker_address)
+		PRINT_OFFSETOF(torrent, m_manager)
 		PRINT_OFFSETOF(torrent, m_policy)
 		PRINT_OFFSETOF(torrent, m_total_uploaded)
 		PRINT_OFFSETOF(torrent, m_total_downloaded)
@@ -239,6 +244,10 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_password)
 		PRINT_OFFSETOF(torrent, m_net_interfaces)
 		PRINT_OFFSETOF(torrent, m_save_path)
+		PRINT_OFFSETOF(torrent, m_url)
+		PRINT_OFFSETOF(torrent, m_uuid)
+		PRINT_OFFSETOF(torrent, m_source_feed_url)
+		PRINT_OFFSETOF(torrent, m_torrent_file_buf)
 		PRINT_OFFSETOF(torrent, m_verified)
 		PRINT_OFFSETOF(torrent, m_error)
 		PRINT_OFFSETOF(torrent, m_error_file)

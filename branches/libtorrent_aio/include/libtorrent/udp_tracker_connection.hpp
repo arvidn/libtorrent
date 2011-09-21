@@ -78,7 +78,9 @@ namespace libtorrent
 		void start();
 		void close();
 
-#if !defined TORRENT_VERBOSE_LOGGING && !defined TORRENT_LOGGING && !defined TORRENT_ERROR_LOGGING
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
 	private:
 #endif
@@ -112,7 +114,7 @@ namespace libtorrent
 
 		virtual void on_timeout(error_code const& ec);
 
-		tracker_manager& m_man;
+//		tracker_manager& m_man;
 
 		bool m_abort;
 		std::string m_hostname;

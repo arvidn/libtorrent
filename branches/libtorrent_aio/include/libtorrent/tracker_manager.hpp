@@ -168,8 +168,9 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line) = 0;
-#endif
+#else
 	private:
+#endif
 		tracker_manager* m_manager;
 	};
 
@@ -187,7 +188,12 @@ namespace libtorrent
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler() {}
 
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
 	private:
+#endif
 	
 		void timeout_callback(error_code const&);
 
@@ -236,10 +242,24 @@ namespace libtorrent
 		virtual bool on_receive_hostname(error_code const& ec, char const* hostname
 			, char const* buf, int size) { return false; }
 
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
 	protected:
+#endif
+
 		boost::weak_ptr<request_callback> m_requester;
-	private:
+
 		tracker_manager& m_man;
+
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
+	// necessary for logging member offsets
+	private:
+#endif
+
 		const tracker_request m_req;
 	};
 

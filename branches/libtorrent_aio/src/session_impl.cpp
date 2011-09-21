@@ -82,9 +82,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#endif
-
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
 #endif
@@ -93,6 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // for logging stat layout
 #include "libtorrent/stat.hpp"
+#include "libtorrent/struct_debug.hpp"
 
 // for logging the size of DHT structures
 #ifndef TORRENT_DISABLE_DHT
@@ -718,12 +716,10 @@ namespace aux {
 			, LIBTORRENT_REVISION);
 		(*m_logger) << tmp;
 
+		logger& l = *m_logger;
 
-#define PRINT_SIZEOF(x) snprintf(tmp, sizeof(tmp), "sizeof(" #x ") = %d\n", int(sizeof(x))); (*m_logger) << tmp;
-#define PRINT_OFFSETOF(x, y) snprintf(tmp, sizeof(tmp), "  offsetof(" #x "," #y "): %d\n", int(offsetof(x, y))); \
-		(*m_logger) << tmp;
-
-		PRINT_SIZEOF(internal_file_entry)
+		int temp = 0;
+		int prev_size = 0;
 
 		PRINT_SIZEOF(cached_piece_entry)
 		PRINT_OFFSETOF(cached_piece_entry, storage)
@@ -754,26 +750,36 @@ namespace aux {
 
 		PRINT_SIZEOF(announce_entry)
 		PRINT_OFFSETOF(announce_entry, url)
+		PRINT_OFFSETOF(announce_entry, trackerid)
 		PRINT_OFFSETOF(announce_entry, message)
 		PRINT_OFFSETOF(announce_entry, last_error)
 		PRINT_OFFSETOF(announce_entry, next_announce)
 		PRINT_OFFSETOF(announce_entry, min_announce)
 		PRINT_OFFSETOF(announce_entry, tier)
 		PRINT_OFFSETOF(announce_entry, fail_limit)
+		PRINT_OFFSETOF_END(announce_entry)
 
 		PRINT_SIZEOF(torrent_info)
+		PRINT_OFFSETOF(torrent_info, m_refs)
+		PRINT_OFFSETOF(torrent_info, m_merkle_first_leaf)
 		PRINT_OFFSETOF(torrent_info, m_files)
 		PRINT_OFFSETOF(torrent_info, m_orig_files)
+		PRINT_OFFSETOF(torrent_info, m_urls)
 		PRINT_OFFSETOF(torrent_info, m_web_seeds)
 		PRINT_OFFSETOF(torrent_info, m_nodes)
 		PRINT_OFFSETOF(torrent_info, m_merkle_tree)
 		PRINT_OFFSETOF(torrent_info, m_info_section)
 		PRINT_OFFSETOF(torrent_info, m_piece_hashes)
-		PRINT_OFFSETOF(torrent_info, m_info_dict)
-		PRINT_OFFSETOF(torrent_info, m_creation_date)
 		PRINT_OFFSETOF(torrent_info, m_comment)
 		PRINT_OFFSETOF(torrent_info, m_created_by)
+#ifdef TORRENT_USE_OPENSSL
+		PRINT_OFFSETOF(torrent_info, m_ssl_root_cert)
+		PRINT_OFFSETOF(torrent_info, m_aes_key)
+#endif
+		PRINT_OFFSETOF(torrent_info, m_info_dict)
+		PRINT_OFFSETOF(torrent_info, m_creation_date)
 		PRINT_OFFSETOF(torrent_info, m_info_hash)
+		PRINT_OFFSETOF_END(torrent_info)
 
 		PRINT_SIZEOF(union_endpoint)
 		PRINT_SIZEOF(request_callback)
@@ -783,6 +789,10 @@ namespace aux {
 		(*m_logger) << "sizeof(utp_socket_impl): " << socket_impl_size() << "\n";
 
 		PRINT_SIZEOF(file_entry)
+		PRINT_SIZEOF(internal_file_entry)
+		PRINT_OFFSETOF(internal_file_entry, name)
+		PRINT_OFFSETOF(internal_file_entry, path_index)
+		PRINT_OFFSETOF_END(internal_file_entry)
 
 		PRINT_SIZEOF(disk_io_job)
 		PRINT_OFFSETOF(disk_io_job, action)
@@ -800,6 +810,20 @@ namespace aux {
 		PRINT_OFFSETOF(disk_io_job, error)
 		PRINT_OFFSETOF(disk_io_job, callback)
 		PRINT_OFFSETOF(disk_io_job, start_time)
+		PRINT_OFFSETOF_END(disk_io_job)
+
+		PRINT_SIZEOF(file_storage)
+		PRINT_OFFSETOF(file_storage, m_files)
+		PRINT_OFFSETOF(file_storage, m_file_hashes)
+		PRINT_OFFSETOF(file_storage, m_symlinks)
+		PRINT_OFFSETOF(file_storage, m_mtime)
+		PRINT_OFFSETOF(file_storage, m_file_base)
+		PRINT_OFFSETOF(file_storage, m_paths)
+		PRINT_OFFSETOF(file_storage, m_name)
+		PRINT_OFFSETOF(file_storage, m_total_size)
+		PRINT_OFFSETOF(file_storage, m_num_pieces)
+		PRINT_OFFSETOF(file_storage, m_piece_length)
+		PRINT_OFFSETOF_END(file_storage)
 
 //		PRINT_SIZEOF(stat_channel)
 //		PRINT_OFFSETOF(stat_channel, m_counter)
@@ -823,11 +847,22 @@ namespace aux {
 #endif
 
 		PRINT_SIZEOF(policy::peer)
+		PRINT_OFFSETOF(policy::peer, prev_amount_upload)
+		PRINT_OFFSETOF(policy::peer, prev_amount_download)
 		PRINT_OFFSETOF(policy::peer, connection)
+#ifndef TORRENT_DISABLE_GEO_IP
+#ifdef TORRENT_DEBUG
+		PRINT_OFFSETOF(policy::peer, inet_as_num)
+#endif
+		PRINT_OFFSETOF(policy::peer, inet_as)
+#endif
 		PRINT_OFFSETOF(policy::peer, last_optimistically_unchoked)
 		PRINT_OFFSETOF(policy::peer, last_connected)
 		PRINT_OFFSETOF(policy::peer, port)
+		PRINT_OFFSETOF(policy::peer, upload_rate_limit)
+		PRINT_OFFSETOF(policy::peer, download_rate_limit)
 		PRINT_OFFSETOF(policy::peer, hashfails)
+		PRINT_OFFSETOF_END(policy::peer)
 
 		PRINT_SIZEOF(policy::ipv4_peer)
 #if TORRENT_USE_IPV6
@@ -836,13 +871,16 @@ namespace aux {
 
 		PRINT_SIZEOF(udp_socket)
 		PRINT_OFFSETOF(udp_socket, m_callback)
+		PRINT_OFFSETOF(udp_socket, m_callback2)
 		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
 		PRINT_OFFSETOF(udp_socket, m_v4_ep)
 		PRINT_OFFSETOF(udp_socket, m_v4_buf)
+		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer4)
 #if TORRENT_USE_IPV6
 		PRINT_OFFSETOF(udp_socket, m_ipv6_sock)
 		PRINT_OFFSETOF(udp_socket, m_v6_ep)
 		PRINT_OFFSETOF(udp_socket, m_v6_buf)
+		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer6)
 #endif
 		PRINT_OFFSETOF(udp_socket, m_bind_port)
 		PRINT_OFFSETOF(udp_socket, m_v4_outstanding)
@@ -862,19 +900,34 @@ namespace aux {
 		PRINT_OFFSETOF(udp_socket, m_abort)
 		PRINT_OFFSETOF(udp_socket, m_proxy_addr)
 		PRINT_OFFSETOF(udp_socket, m_queue)
+		PRINT_OFFSETOF(udp_socket, m_outstanding_ops)
 #ifdef TORRENT_DEBUG
 		PRINT_OFFSETOF(udp_socket, m_started)
 		PRINT_OFFSETOF(udp_socket, m_magic)
 		PRINT_OFFSETOF(udp_socket, m_outstanding_when_aborted)
 #endif
+		PRINT_OFFSETOF_END(udp_socket)
 
 		PRINT_SIZEOF(tracker_connection)
 		PRINT_SIZEOF(http_tracker_connection)
 
 		PRINT_SIZEOF(udp_tracker_connection)
+		PRINT_OFFSETOF(udp_tracker_connection, m_refs)
+
+		PRINT_OFFSETOF(udp_tracker_connection, m_start_time)
+		PRINT_OFFSETOF(udp_tracker_connection, m_read_time)
+		PRINT_OFFSETOF(udp_tracker_connection, m_timeout)
+		PRINT_OFFSETOF(udp_tracker_connection, m_completion_timeout)
+		PRINT_OFFSETOF(udp_tracker_connection, m_read_timeout)
+		PRINT_OFFSETOF(udp_tracker_connection, m_mutex)
+		PRINT_OFFSETOF(udp_tracker_connection, timeout_handler::m_abort)
+		PRINT_OFFSETOF(udp_tracker_connection, m_requester)
 #ifndef _MSC_VER
 		PRINT_OFFSETOF(udp_tracker_connection, m_man)
 #endif
+
+		PRINT_OFFSETOF(udp_tracker_connection, m_req)
+
 		PRINT_OFFSETOF(udp_tracker_connection, m_abort)
 		PRINT_OFFSETOF(udp_tracker_connection, m_hostname)
 		PRINT_OFFSETOF(udp_tracker_connection, m_target)
@@ -886,12 +939,14 @@ namespace aux {
 		PRINT_OFFSETOF(udp_tracker_connection, m_attempts)
 		PRINT_OFFSETOF(udp_tracker_connection, m_state)
 		PRINT_OFFSETOF(udp_tracker_connection, m_proxy)
+		PRINT_OFFSETOF_END(udp_tracker_connection)
 
 #ifndef TORRENT_DISABLE_DHT
 		PRINT_SIZEOF(dht::find_data_observer)
 		PRINT_SIZEOF(dht::announce_observer)
 		PRINT_SIZEOF(dht::null_observer)
 #endif
+#undef PRINT_OFFSETOF_END
 #undef PRINT_OFFSETOF
 #undef PRINT_SIZEOF
 
