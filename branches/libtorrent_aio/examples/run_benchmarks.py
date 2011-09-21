@@ -226,12 +226,12 @@ def find_library(name):
 
 def find_binary(names):
 	paths = ['/usr/bin/', '/usr/local/bin/']
-	for p in paths:
-		for n in names:
+	for n in names:
+		for p in paths:
 			try:
-				if os.path.exists(p + n): return p + name
+				if os.path.exists(p + n): return p + n
 			except: pass
-	return name
+	return names[0]
 
 def run_test(config):
 
