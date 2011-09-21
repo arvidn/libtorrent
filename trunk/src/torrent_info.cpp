@@ -759,6 +759,10 @@ namespace libtorrent
 		swap(m_creation_date, ti.m_creation_date);
 		m_comment.swap(ti.m_comment);
 		m_created_by.swap(ti.m_created_by);
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_root_cert.swap(ti.m_ssl_root_cert);
+		m_aes_key.swap(ti.m_aes_key);
+#endif
 		boost::uint32_t tmp;
 		SWAP(m_multifile, ti.m_multifile);
 		SWAP(m_private, ti.m_private);
