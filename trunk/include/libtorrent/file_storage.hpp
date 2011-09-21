@@ -117,7 +117,12 @@ namespace libtorrent
 		void set_name(char const* n, int borrow_chars = 0);
 		std::string filename() const;
 
+		// make it available for logging
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
 	private:
+#endif
 		// This string is not necessarily null terminated!
 		// that's why it's private, to keep people away from it
 		char const* name;
@@ -246,7 +251,11 @@ namespace libtorrent
 		void set_file_base(internal_file_entry const& fe, size_type off);
 		std::string file_path(internal_file_entry const& fe) const;
 
+#if !defined TORRENT_VERBOSE_LOGGING \
+	&& !defined TORRENT_LOGGING \
+	&& !defined TORRENT_ERROR_LOGGING
 	private:
+#endif
 
 		void update_path_index(internal_file_entry& e);
 		void reorder_file(int index, int dst);
