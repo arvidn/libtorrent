@@ -207,9 +207,12 @@ namespace libtorrent
 		peer_log(">>> %s [ ep: %s transport: %s seed: %d p: %p ]"
 			, outgoing ? "OUTGOING_CONNECTION" : "INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
-			, m_socket->get<ssl_stream<stream_socket> >() ? "SSL/TCP"
-				: m_socket->get<ssl_stream<utp_stream> >() ? "SSL/uTP"
-				: m_socket->get<utp_stream>() ? "uTP" : "TCP"
+			,
+#ifdef TORRENT_USE_OPENSSL
+				m_socket->get<ssl_stream<stream_socket> >() ? "SSL/TCP" :
+				m_socket->get<ssl_stream<utp_stream> >() ? "SSL/uTP" :
+#endif
+				m_socket->get<utp_stream>() ? "uTP" : "TCP"
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info);
 #endif
 #ifdef TORRENT_DEBUG
