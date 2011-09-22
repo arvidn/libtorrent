@@ -208,9 +208,7 @@ namespace libtorrent
 		for (int k = 0; k < 3; ++k) total_downloading_pieces += m_downloads[k].size();
 
 		std::vector<downloading_piece>::iterator other;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool found = false;
-#endif
 		for (int k = 0; k < 3; ++k)
 		{
 			other = std::find_if(
@@ -219,15 +217,13 @@ namespace libtorrent
 			== &m_block_info[(total_downloading_pieces - 1) * m_blocks_per_piece]);
 			if (other != m_downloads[k].end())
 			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				found = true;
-#endif
 				break;
 			}
 		}
 		TORRENT_ASSERT(found);
 
-		if (i != other)
+		if (found && i->index != other->index)
 		{
 			std::copy(other->info, other->info + m_blocks_per_piece, i->info);
 			other->info = i->info;
@@ -1695,7 +1691,7 @@ namespace libtorrent
 		{
 			int piece = random() % to_pick_from;
 			int k = 0;
-			if (piece > m_downloads[0].size())
+			if (piece >= m_downloads[0].size())
 			{
 				piece -= m_downloads[0].size();
 				++k;
