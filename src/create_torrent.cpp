@@ -544,12 +544,14 @@ namespace libtorrent
 
 	void create_torrent::set_comment(char const* str)
 	{
-		m_comment = str;
+		if (str == 0) m_comment.clear();
+		else m_comment = str;
 	}
 
 	void create_torrent::set_creator(char const* str)
 	{
-		m_created_by = str;
+		if (str == 0) m_created_by.clear();
+		else m_created_by = str;
 	}
 
 }
