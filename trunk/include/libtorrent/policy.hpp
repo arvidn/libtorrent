@@ -87,7 +87,7 @@ namespace libtorrent
 			return *this;
 		}
 	private:
-		unsigned int m_val;
+		boost::uint16_t m_val;
 	};
 
 	enum
