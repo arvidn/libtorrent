@@ -192,7 +192,7 @@ namespace libtorrent
 		{
 			ec.ec = errors::mismatching_number_of_files;
 			ec.file = -1;
-			ec.operation = 0;
+			ec.operation = storage_error::none;
 			return false;
 		}
 		p = complete(p);
@@ -217,7 +217,7 @@ namespace libtorrent
 				{
 					ec.ec = error;
 					ec.file = i - fs.begin();
-					ec.operation = "stat";
+					ec.operation = storage_error::stat;
 					return false;
 				}
 			}
@@ -232,7 +232,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::mismatching_file_size;
 				ec.file = i - fs.begin();
-				ec.operation = "stat";
+				ec.operation = storage_error::stat;
 				return false;
 			}
 
@@ -246,7 +246,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::mismatching_file_timestamp;
 				ec.file = i - fs.begin();
-				ec.operation = "stat";
+				ec.operation = storage_error::stat;
 				return false;
 			}
 		}
@@ -363,7 +363,7 @@ namespace libtorrent
 				&& ec.ec != boost::system::errc::not_a_directory)
 			{
 				ec.file = file_iter - files().begin();
-				ec.operation = "stat";
+				ec.operation = storage_error::stat;
 				break;
 			}
 
@@ -386,7 +386,7 @@ namespace libtorrent
 					if (ec.ec)
 					{
 						ec.file = file_iter - files().begin();
-						ec.operation = "mkdir";
+						ec.operation = storage_error::mkdir;
 						break;
 					}
 				}
@@ -396,7 +396,7 @@ namespace libtorrent
 				if (ec)
 				{
 					ec.file = file_iter - files().begin();
-					ec.operation = "open";
+					ec.operation = storage_error::open;
 					break;
 				}
 			}
@@ -417,7 +417,7 @@ namespace libtorrent
 		if (ec || !f)
 		{
 			ec.file = index;
-			ec.operation = "open";
+			ec.operation = storage_error::open;
 			return;
 		}
 
@@ -445,7 +445,7 @@ namespace libtorrent
 			if (ec)
 			{
 				ec.file = i - files().begin();
-				ec.operation = "stat";
+				ec.operation = storage_error::stat;
 				return false;
 			}
 			if (s.mode & file_status::regular_file && i->size > 0)
@@ -468,7 +468,7 @@ namespace libtorrent
 		if (ec)
 		{
 			ec.file = index;
-			ec.operation = "rename";
+			ec.operation = storage_error::rename;
 			return;
 		}
 
@@ -515,7 +515,7 @@ namespace libtorrent
 				bp = parent_path(bp);
 			}
 			delete_one_file(p, ec.ec);
-			if (ec) { ec.file = i - files().begin(); ec.operation = "remove"; }
+			if (ec) { ec.file = i - files().begin(); ec.operation = storage_error::remove; }
 		}
 
 		// remove the directories. Reverse order to delete
@@ -525,7 +525,7 @@ namespace libtorrent
 			, end(directories.rend()); i != end; ++i)
 		{
 			delete_one_file(*i, ec.ec);
-			if (ec) { ec.file = -1; ec.operation = "remove"; }
+			if (ec) { ec.file = -1; ec.operation = storage_error::remove; }
 		}
 	}
 
@@ -707,14 +707,14 @@ namespace libtorrent
 			if (ec)
 			{
 				ec.file = -1;
-				ec.operation = "mkdir";
+				ec.operation = storage_error::mkdir;
 				return;
 			}
 		}
 		else if (ec)
 		{
 			ec.file = -1;
-			ec.operation = "stat";
+			ec.operation = storage_error::mkdir;
 			return;
 		}
 		ec.ec.clear();
@@ -746,7 +746,7 @@ namespace libtorrent
 				ec.ec.clear();
 				recursive_copy(old_path, new_path, ec.ec);
 				if (!ec) recursive_remove(old_path);
-				else { ec.file = i->second; ec.operation = "copy"; }
+				else { ec.file = i->second; ec.operation = storage_error::copy; }
 				break;
 			}
 		}
@@ -857,7 +857,7 @@ namespace libtorrent
 		}
 
 		fileop op = { &file::async_readv, a, 0, m_settings ? settings().disk_io_read_mode : 0
-			, file::read_only, flags, "async_readv"};
+			, file::read_only, flags, storage_error::async_readv };
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		a->error = ec;
@@ -871,7 +871,7 @@ namespace libtorrent
 			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
 
 		fileop op = { &file::async_writev, a, 0, m_settings ? settings().disk_io_write_mode : 0
-			, file::read_write, flags, "async_writev"};
+			, file::read_write, flags, storage_error::async_writev };
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
 		a->error = ec;
@@ -1035,7 +1035,7 @@ namespace libtorrent
 			if (ec)
 			{
 				ec.file = file_iter - files().begin();
-				ec.operation = op.operation_name;
+				ec.operation = op.operation_type;
 				return -1;
 			}
 
@@ -1154,6 +1154,7 @@ namespace libtorrent
 		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::save_resume_data);
+		j->buffer = 0;
 		j->storage = this;
 		j->callback = handler;
 		m_io_thread.add_job(j);

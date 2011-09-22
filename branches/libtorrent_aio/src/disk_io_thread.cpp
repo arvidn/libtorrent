@@ -1670,8 +1670,10 @@ namespace libtorrent
 			// to this piece. We can go ahead and close the
 			// files immediately without interfering with
 			// any async operations
-			j->resume_data.reset(new entry(entry::dictionary_t));
-			j->storage->get_storage_impl()->write_resume_data(*j->resume_data, j->error);
+			entry* resume_data = new entry(entry::dictionary_t);
+			j->storage->get_storage_impl()->write_resume_data(*resume_data, j->error);
+			TORRENT_ASSERT(j->buffer == 0);
+			j->buffer = (char*)resume_data;
 			return j->error ? disk_operation_failed : 0;
 		}
 

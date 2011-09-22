@@ -207,7 +207,7 @@ namespace libtorrent
 			int mode;
 			int flags;
 			// used for error reporting
-			char const* operation_name;
+			int operation_type;
 		};
 
 		void delete_one_file(std::string const& p, error_code& ec);

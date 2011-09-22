@@ -124,13 +124,11 @@ namespace libtorrent
 		// for other jobs, it may point to other job-specific types
 		// for move_storage and rename_file this is a string allocated
 		// with malloc()
+		// an entry* for save_resume_data
 		char* buffer;
 
 		// the disk storage this job applies to (if applicable)
 		boost::intrusive_ptr<piece_manager> storage;
-
-		// only used for check_fastresume and save_resume_data
-		boost::shared_ptr<entry> resume_data;
 
 		// this is called when operation completes
 		boost::function<void(int, disk_io_job const&)> callback;
@@ -178,13 +176,13 @@ namespace libtorrent
 
 		// arguments used for read and write
 		// the piece this job applies to
-		boost::uint32_t piece;
+		boost::uint32_t piece:24;
+
+		// the type of job this is
+		boost::uint32_t action:8;
 
 		// flags controlling this job
 		boost::uint16_t flags;
-
-		// the type of job this is
-		boost::uint8_t action;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool in_use:1;

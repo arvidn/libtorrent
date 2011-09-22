@@ -2610,7 +2610,7 @@ finish:
 				aios = aios->next;
 				storage_error se;
 				se.ec = error_code(errno, boost::system::get_posix_category());
-				se.operation = aios->cb.aio_lio_opcode == file::read_op ? "read" : "write";
+				se.operation = aios->cb.aio_lio_opcode == file::read_op ? storage_error::read : storage_error::write;
 				// #error figure out which file the error happened in
 				del->handler->done(se, 0, del, &pool);
 				pool.destroy(del);

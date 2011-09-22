@@ -1073,7 +1073,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_error_alert>())
 				alerts().post_alert(file_error_alert(j.error.ec
-					, resolve_filename(j.error.file), j.error.operation, get_handle()));
+					, resolve_filename(j.error.file), j.error.operation_str(), get_handle()));
 			if (c) c->disconnect(errors::no_memory);
 			return;
 		}
@@ -1081,7 +1081,7 @@ namespace libtorrent
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
 			alerts().post_alert(file_error_alert(j.error.ec
-				, resolve_filename(j.error.file), j.error.operation, get_handle()));
+				, resolve_filename(j.error.file), j.error.operation_str(), get_handle()));
 
 		// put the torrent in an error-state
 		set_error(j.error.ec, j.error.file);
@@ -1909,7 +1909,7 @@ ctx->set_verify_callback(verify_function, ec);
 			&& m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j.error.ec
-				, resolve_filename(j.error.file), j.error.operation));
+				, resolve_filename(j.error.file), j.error.operation_str()));
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2135,7 +2135,7 @@ ctx->set_verify_callback(verify_function, ec);
 			{
 				if (m_ses.m_alerts.should_post<file_error_alert>())
 					m_ses.m_alerts.post_alert(file_error_alert(j.error.ec,
-						resolve_filename(j.error.file), j.error.operation, get_handle()));
+						resolve_filename(j.error.file), j.error.operation_str(), get_handle()));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				(*m_ses.m_logger) << time_now_string() << ": fatal disk error ["
@@ -3723,7 +3723,7 @@ ctx->set_verify_callback(verify_function, ec);
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		if (!j.resume_data)
+		if (!j.buffer)
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), j.error.ec));
 		}
@@ -3731,9 +3731,10 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			m_need_save_resume_data = false;
 			m_last_saved_resume = time(0);
-			write_resume_data(*j.resume_data);
-			alerts().post_alert(save_resume_data_alert(j.resume_data
+			write_resume_data(*((entry*)j.buffer));
+			alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>((entry*)j.buffer)
 				, get_handle()));
+			const_cast<disk_io_job&>(j).buffer = 0;
 		}
 	}
 
@@ -6237,7 +6238,7 @@ ctx->set_verify_callback(verify_function, ec);
 			if (alerts().should_post<storage_moved_failed_alert>())
 			{
 				alerts().post_alert(storage_moved_failed_alert(get_handle(), j.error.ec
-					, resolve_filename(j.error.file), j.error.operation));
+					, resolve_filename(j.error.file), j.error.operation_str()));
 			}
 		}
 	}

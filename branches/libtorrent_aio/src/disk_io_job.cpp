@@ -54,6 +54,8 @@ namespace libtorrent
 	{
 		if (action == rename_file || action == move_storage)
 			free(buffer);
+		if (action == save_resume_data)
+			delete (entry*)buffer;
 	}
 }
 

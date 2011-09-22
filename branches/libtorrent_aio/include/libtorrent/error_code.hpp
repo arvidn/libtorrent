@@ -405,11 +405,31 @@ namespace libtorrent
 		// the error that occurred
 		error_code ec;
 		// the file the error occurred on
-		int file;
+		boost::int32_t file:24;
 		// the operation that failed
-		// this must be a string literal, it
-		// should never be freed
-		char const* operation;
+		enum {
+			none,
+			stat,
+			mkdir,
+			open,
+			rename,
+			remove,
+			copy,
+			async_readv,
+			async_writev,
+			read,
+			write
+		};
+
+		char const* operation_str() const
+		{
+			char const* ops[] =
+			{
+				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write"
+			};
+			return ops[operation];
+		}
+		boost::uint32_t operation:8;
 	};
 
 }
