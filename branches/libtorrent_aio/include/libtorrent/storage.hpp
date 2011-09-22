@@ -321,12 +321,10 @@ namespace libtorrent
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
 			, int flags = 0
-			, int cache_line_size = 0
-			, int cache_expiry = 0);
+			, int cache_line_size = 0);
 
 		void async_cache(int piece
-			, boost::function<void(int, disk_io_job const&)> const& handler
-			, int cache_expiry = 0);
+			, boost::function<void(int, disk_io_job const&)> const& handler);
 
 		// returns the write queue size
 		int async_write(

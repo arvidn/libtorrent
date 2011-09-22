@@ -4438,10 +4438,9 @@ namespace libtorrent
 		send_block_requests();
 	}
 
-	std::pair<int, int> peer_connection::preferred_caching() const
+	int peer_connection::preferred_caching() const
 	{
 		int line_size = 0;
-		int expiry = 0;
 		if (m_ses.m_settings.guided_read_cache)
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -4458,14 +4457,9 @@ namespace libtorrent
 			// cache_size is the amount of cache we have per peer. The
 			// cache line should not be greater than this
 
-			// try to avoid locking caches for more than a couple of seconds
-			expiry = cache_size * 16 * 1024 / upload_rate;
-			if (expiry < 1) expiry = 1;
-			else if (expiry > 10) expiry = 10;
-
 			line_size = cache_size;
 		}
-		return std::make_pair(line_size, expiry);
+		return line_size;
 	}
 
 	void peer_connection::fill_send_buffer()
@@ -4508,7 +4502,7 @@ namespace libtorrent
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
-			std::pair<int, int> cache = preferred_caching();
+			int cache_line_size = preferred_caching();
 
 			if (t->seed_mode() && !t->verified_piece(r.piece))
 			{
@@ -4555,7 +4549,7 @@ namespace libtorrent
 					, r.piece, r.start, r.length);
 #endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r), 0, cache.first, cache.second);
+					, self(), _1, _2, r), 0, cache_line_size);
 
 				m_reading_bytes += r.length;
 

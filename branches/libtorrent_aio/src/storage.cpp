@@ -1250,13 +1250,11 @@ namespace libtorrent
 	}
 
 	void piece_manager::async_cache(int piece
-		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int cache_expiry)
+		, boost::function<void(int, disk_io_job const&)> const& handler)
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::cache_piece);
 		j->storage = this;
 		j->piece = piece;
-		j->d.io.cache_min_time = cache_expiry;
 		j->callback = handler;
 		m_io_thread.add_job(j);
 	}
@@ -1265,8 +1263,7 @@ namespace libtorrent
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
 		, int flags
-		, int cache_line_size
-		, int cache_expiry)
+		, int cache_line_size)
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
 		j->storage = this;
@@ -1275,7 +1272,6 @@ namespace libtorrent
 		j->d.io.buffer_size = r.length;
 		j->buffer = 0;
 		j->d.io.max_cache_line = cache_line_size;
-		j->d.io.cache_min_time = cache_expiry;
 		j->flags = flags;
 
 		// if a buffer is not specified, only one block can be read

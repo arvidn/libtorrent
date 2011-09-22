@@ -790,7 +790,6 @@ namespace aux {
 		PRINT_OFFSETOF(disk_io_job, d.io.offset)
 		PRINT_OFFSETOF(disk_io_job, d.io.buffer_size)
 		PRINT_OFFSETOF(disk_io_job, d.io.max_cache_line)
-		PRINT_OFFSETOF(disk_io_job, d.io.cache_min_time)
 		PRINT_OFFSETOF(disk_io_job, piece)
 		PRINT_OFFSETOF(disk_io_job, flags)
 		PRINT_OFFSETOF(disk_io_job, action)

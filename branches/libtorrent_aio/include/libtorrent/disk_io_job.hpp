@@ -173,10 +173,6 @@ namespace libtorrent
 			// for 'read' actions
 			boost::uint8_t max_cache_line;
 
-			// if this is > 0, it may increase the minimum time the cache
-			// line caused by this operation stays in the cache
-			// this is specified in seconds
-			boost::uint8_t cache_min_time;
 			} io;
 		} d;
 

@@ -141,7 +141,7 @@ int block_cache::try_read(disk_io_job* j)
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
 	if (p->num_blocks == 0) idx.erase(p);
-	else idx.modify(p, update_last_use(j->d.io.cache_min_time));
+	else idx.modify(p, update_last_use(0));
 
 	ret = j->d.io.buffer_size;
 	++m_blocks_read;
@@ -163,7 +163,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const* j)
 		cached_piece_entry pe;
 		pe.piece = j->piece;
 		pe.storage = j->storage;
-		pe.expire = time(0) + j->d.io.cache_min_time;
+		pe.expire = time(0);
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		TORRENT_ASSERT(pe.blocks);
@@ -222,7 +222,7 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	pe->jobs.push_back(j);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
-	idx.modify(p, set_last_use((std::max)(pe->expire, time(0) + j->d.io.cache_min_time)));
+	idx.modify(p, set_last_use((std::max)(pe->expire, time(0))));
 
 	int hash_start = 0;
 	int hash_end = 0;

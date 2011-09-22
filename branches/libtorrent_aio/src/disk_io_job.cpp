@@ -48,7 +48,6 @@ namespace libtorrent
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
 		d.io.max_cache_line = 0;
-		d.io.cache_min_time = 0;
 	}
 
 	disk_io_job::~disk_io_job()
