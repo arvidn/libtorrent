@@ -1254,10 +1254,18 @@ ret:
 		fs::path p(m_save_path / file_iter->path);
 		error_code ec;
 	
+		int mode = file::read_only;
+		if (m_settings
+			&& (settings().disk_io_read_mode == session_settings::disable_os_cache
+			|| (settings().disk_io_read_mode == session_settings::disable_os_cache_for_aligned_files
+			&& ((file_iter->offset + file_iter->file_base) & (m_page_size-1)) == 0)))
+			mode |= file::no_buffer;
+		if (!m_allocate_files) mode |= file::sparse;
+
 		// open the file read only to avoid re-opening
 		// it in case it's already opened in read-only mode
 		boost::shared_ptr<file> f = m_pool.open_file(
-			this, p, file::read_only, ec);
+			this, p, mode, ec);
 
 		size_type ret = 0;
 		if (f && !ec) ret = f->phys_offset(file_offset);
