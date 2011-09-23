@@ -1042,6 +1042,7 @@ namespace aux {
 			":page faults"
 			":smooth read ops/s"
 			":smooth write ops/s"
+			":pending reading bytes"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3277,6 +3278,7 @@ namespace aux {
 		int peers_down_unchoked = 0;
 		int peers_up_unchoked = 0;
 		int num_end_game_peers = 0;
+		int reading_bytes = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3296,6 +3298,7 @@ namespace aux {
 			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
 				++peers_up_requests;
 			if (p->endgame()) ++num_end_game_peers;
+			reading_bytes += p->num_reading_bytes();
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -3487,6 +3490,8 @@ namespace aux {
 
 			STAT_LOG(d, m_read_ops.mean());
 			STAT_LOG(d, m_write_ops.mean());
+
+			STAT_LOG(d, reading_bytes);
 
 			fprintf(m_stats_logger, "\n");
 
