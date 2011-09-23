@@ -729,6 +729,7 @@ namespace aux {
 		PRINT_OFFSETOF(cached_piece_entry, expire)
 		PRINT_OFFSETOF(cached_piece_entry, hashing)
 		PRINT_OFFSETOF(cached_piece_entry, refcount)
+		PRINT_OFFSETOF_END(cached_piece_entry)
 
 		PRINT_SIZEOF(announce_entry)
 		PRINT_OFFSETOF(announce_entry, url)
