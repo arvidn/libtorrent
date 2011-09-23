@@ -1,3 +1,4 @@
+	* changed semantics of send_buffer_watermark_factor to be specified as a percentage
 	* add incoming_connection_alert for logging all successful incoming connections
 	* feature to encrypt peer connections with a secret AES-256 key stored in .torrent file
 	* deprecated compact storage allocation

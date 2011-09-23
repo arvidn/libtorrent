@@ -286,17 +286,14 @@ namespace libtorrent
 
 		set.choking_algorithm = session_settings::fixed_slots_choker;
 
-		// in order to be able to deliver very high
-		// upload rates, this should be able to cover
-		// the bandwidth delay product. Assuming an RTT
-		// of 500 ms, and a send rate of 6 MB/s, the upper
-		// limit should be 3 MB
-		set.send_buffer_watermark = 3 * 1024 * 1024;
+		// of 500 ms, and a send rate of 4 MB/s, the upper
+		// limit should be 2 MB
+		set.send_buffer_watermark = 2 * 1024 * 1024;
 
-		// put 2 seconds worth of data in the send buffer
+		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
-		set.send_buffer_watermark_factor = 2;
+		set.send_buffer_watermark_factor = 150;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
