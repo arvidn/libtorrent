@@ -118,6 +118,8 @@ namespace libtorrent
 			, peak_aiocb(0)
 			, cumulative_completed_aiocbs(0)
 			, num_jobs(0)
+			, num_read_jobs(0)
+			, num_write_jobs(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -206,6 +208,12 @@ namespace libtorrent
 
 		// total number of disk job objects allocated right now
 		int num_jobs;
+
+		// total number of disk read job objects allocated right now
+		int num_read_jobs;
+
+		// total number of disk write job objects allocated right now
+		int num_write_jobs;
 	};
 	
 #if TORRENT_USE_SUBMIT_THREADS

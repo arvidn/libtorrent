@@ -255,7 +255,7 @@ namespace libtorrent
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 20 * 1024 * 1024;
+		set.max_queued_disk_bytes = 15 * 1024 * 1024;
 		// flush write cache in a way to minimize the amount we need to
 		// read back once we want to hash-check the piece. i.e. try to
 		// flush all blocks in-order
@@ -289,14 +289,14 @@ namespace libtorrent
 		// in order to be able to deliver very high
 		// upload rates, this should be able to cover
 		// the bandwidth delay product. Assuming an RTT
-		// of 500 ms, and a send rate of 20 MB/s, the upper
-		// limit should be 10 MB
-		set.send_buffer_watermark = 10 * 1024 * 1024;
+		// of 500 ms, and a send rate of 6 MB/s, the upper
+		// limit should be 3 MB
+		set.send_buffer_watermark = 3 * 1024 * 1024;
 
-		// put 10 seconds worth of data in the send buffer
+		// put 2 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
-		set.send_buffer_watermark_factor = 10;
+		set.send_buffer_watermark_factor = 2;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to

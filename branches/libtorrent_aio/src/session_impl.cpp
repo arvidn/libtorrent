@@ -1161,6 +1161,8 @@ namespace aux {
 			":completed aio jobs"
 			":in progress aio jobs"
 			":allocated jobs"
+			":allocated read jobs"
+			":allocated write jobs"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3615,6 +3617,8 @@ namespace aux {
 			STAT_LOG(d, cs.num_aiocb);
 
 			STAT_LOG(d, cs.num_jobs);
+			STAT_LOG(d, cs.num_read_jobs);
+			STAT_LOG(d, cs.num_write_jobs);
 
 			fprintf(m_stats_logger, "\n");
 

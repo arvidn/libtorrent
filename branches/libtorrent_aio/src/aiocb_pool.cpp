@@ -40,7 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	aiocb_pool::aiocb_pool(): m_in_use(0), m_peak_in_use(0), m_jobs_in_use(0)
+	aiocb_pool::aiocb_pool(
+		): m_in_use(0)
+		, m_peak_in_use(0)
+		, m_jobs_in_use(0)
+		, m_read_jobs(0)
+		, m_write_jobs(0)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(sizeof(file::aiocb_t), 128)
 		, m_vec_pool(sizeof(file::iovec_t) * max_iovec)
@@ -60,6 +65,8 @@ namespace libtorrent
 		m_job_pool.set_next_size(100);
 		if (ptr == 0) return 0;
 		++m_jobs_in_use;
+		if (type == disk_io_job::read) ++m_read_jobs;
+		else if (type == disk_io_job::write) ++m_write_jobs;
 		l.unlock();
 		TORRENT_ASSERT(ptr);
 
@@ -79,8 +86,11 @@ namespace libtorrent
 		TORRENT_ASSERT(j->in_use);
 		j->in_use = false;
 #endif
+		int type = j->action;
 		j->~disk_io_job();
 		mutex::scoped_lock l(m_job_mutex);
+		if (type == disk_io_job::read) --m_read_jobs;
+		else if (type == disk_io_job::write) --m_write_jobs;
 		--m_jobs_in_use;
 		m_job_pool.free(j);	
 	}
