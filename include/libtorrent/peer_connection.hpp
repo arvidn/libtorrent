@@ -608,6 +608,8 @@ namespace libtorrent
 		// start downloading payload again
 		void on_disk();
 
+		int num_reading_bytes() const { return m_reading_bytes; }
+
 		enum sync_t { read_async, read_sync };
 		void setup_receive(sync_t sync = read_sync);
 
