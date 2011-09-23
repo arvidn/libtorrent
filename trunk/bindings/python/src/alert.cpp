@@ -42,6 +42,15 @@ tuple incoming_connection_alert_ip(incoming_connection_alert const& ica)
     return endpoint_to_tuple(ica.ip);
 }
 
+list stats_alert_transferred(stats_alert const& alert)
+{
+   list result;
+   for (int i = 0; i < alert.num_channels; ++i) {
+      result.append(alert.transferred[i]);
+   }
+   return result;
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -415,10 +424,9 @@ void bind_alert()
         .value("download_limit_too_low", performance_alert::download_limit_too_low)
     ;
 
-
     class_<stats_alert, bases<torrent_alert>, noncopyable>(
         "stats_alert", no_init)
-        .def_readonly("transferred", &stats_alert::transferred)
+        	.add_property("transferred", &stats_alert_transferred)
         .def_readonly("interval", &stats_alert::interval)
     ;
 
