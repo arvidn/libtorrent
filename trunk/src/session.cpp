@@ -274,12 +274,12 @@ namespace libtorrent
 		// the bandwidth delay product. Assuming an RTT
 		// of 500 ms, and a send rate of 20 MB/s, the upper
 		// limit should be 10 MB
-		set.send_buffer_watermark = 10 * 1024 * 1024;
+		set.send_buffer_watermark = 2 * 1024 * 1024;
 
-		// put 10 seconds worth of data in the send buffer
+		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
-		set.send_buffer_watermark_factor = 10;
+		set.send_buffer_watermark_factor = 150;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to

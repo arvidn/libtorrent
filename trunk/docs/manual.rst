@@ -4697,10 +4697,12 @@ memory will be wasted. The actual watermark may be lower than this in case
 the upload rate is low, this is the upper limit.
 
 ``send_buffer_watermark_factor`` is multiplied to the peer's upload rate
-to determine the low-watermark for the peer. This is clamped to not
-exceed the ``send_buffer_watermark`` upper limit. This defaults to 1.
-For high capacity connections, setting this higher can improve upload
-performance and disk throughput.
+to determine the low-watermark for the peer. It is specified as a percentage,
+which means 100 represents a factor of 1.
+The low-watermark is still clamped to not exceed the ``send_buffer_watermark``
+upper limit. This defaults to 50. For high capacity connections, setting this
+higher can improve upload performance and disk throughput. Setting it too
+high may waste RAM and create a bias towards read jobs over write jobs.
 
 ``auto_upload_slots`` defaults to true. When true, if there is a global upload
 limit set and the current upload rate is less than 90% of that, another upload
@@ -6950,7 +6952,7 @@ send_buffer_watermark_too_low
 	The number of bytes that we keep outstanding, requested from the disk, is calculated
 	as follows::
 
-		min(512, max(upload_rate * send_buffer_watermark_factor, send_buffer_watermark))
+		min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
 
 	If you receive this alert, you migth want to either increase your ``send_buffer_watermark``
 	or ``send_buffer_watermark_factor``.
