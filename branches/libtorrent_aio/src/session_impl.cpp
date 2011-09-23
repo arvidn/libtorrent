@@ -1131,7 +1131,6 @@ namespace aux {
 			":tick interval"
 			":tick residual"
 			":max unchoked"
-			":read job queue size limit"
 			":smooth upload rate"
 			":smooth download rate"
 			":num end-game peers"
@@ -3581,7 +3580,6 @@ namespace aux {
 			STAT_LOG(f, float(tick_interval_ms) / 1000.f);
 			STAT_LOG(f, float(m_tick_residual) / 1000.f);
 			STAT_LOG(d, m_allowed_upload_slots);
-			STAT_LOG(d, m_settings.unchoke_slots_limit * 2);
 			STAT_LOG(d, m_stat.low_pass_upload_rate());
 			STAT_LOG(d, m_stat.low_pass_download_rate());
 			STAT_LOG(d, num_end_game_peers);
