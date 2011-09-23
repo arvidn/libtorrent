@@ -37,6 +37,15 @@ std::string dht_announce_alert_ip(dht_announce_alert const& pa)
     return pa.ip.to_string(ec);
 }
 
+list stats_alert_transferred(stats_alert const& alert)
+{
+   list result;
+   for (int i = 0; i < alert.num_channels; ++i) {
+      result.append(alert.transferred[i]);
+   }
+   return result;
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -389,10 +398,9 @@ void bind_alert()
         .value("download_limit_too_low", performance_alert::download_limit_too_low)
     ;
 
-
     class_<stats_alert, bases<torrent_alert>, noncopyable>(
         "stats_alert", no_init)
-        .def_readonly("transferred", &stats_alert::transferred)
+        	.add_property("transferred", &stats_alert_transferred)
         .def_readonly("interval", &stats_alert::interval)
         ;
 
