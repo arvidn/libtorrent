@@ -975,7 +975,7 @@ namespace libtorrent
 		// dont announce during handshake
 		if (in_handshake()) return;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 		peer_log("<<< RECEIVED [ piece: %d ]", index);
 #endif
 
