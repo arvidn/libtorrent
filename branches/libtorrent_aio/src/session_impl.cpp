@@ -4578,10 +4578,7 @@ namespace aux {
 		// don't do anything
 		if (new_interface == m_listen_interface
 			&& !m_listen_sockets.empty())
-		{
-			TORRENT_ASSERT(ec);
 			return;
-		}
 
 		m_listen_interface = new_interface;
 

@@ -1120,6 +1120,14 @@ namespace libtorrent
 
 		storage_constructor_type m_storage_constructor;
 
+		// the posix time this torrent was added and when
+		// it was completed. If the torrent isn't yet
+		// completed, m_completed_time is 0
+		time_t m_added_time;
+		time_t m_completed_time;
+		time_t m_last_seen_complete;
+		time_t m_last_saved_resume;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
@@ -1151,14 +1159,6 @@ namespace libtorrent
 		// downloaded that failed the hash-test
 		boost::uint32_t m_total_failed_bytes;
 		boost::uint32_t m_total_redundant_bytes;
-
-		// the posix time this torrent was added and when
-		// it was completed. If the torrent isn't yet
-		// completed, m_completed_time is 0
-		time_t m_added_time;
-		time_t m_completed_time;
-		time_t m_last_seen_complete;
-		time_t m_last_saved_resume;
 
 		// ==============================
 		// The following members are specifically

@@ -92,6 +92,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* allow NULL to be passed to create_torrent::set_comment and create_torrent::set_creator
 	* fix UPnP issue for routers with multiple PPPoE connections
 	* fix issue where event=stopped announces wouldn't be sent when closing session
 	* fix possible hang in file::readv() on windows
