@@ -147,6 +147,7 @@ reports = [
 	('disk_queue', 'number of queued disk jobs', '', 'queued disk jobs', ['disk queue size', 'disk read queue size', 'allocated jobs', 'allocated read jobs', 'allocated write jobs']),
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s', 'smooth read ops/s', 'smooth write ops/s']),
 	('disk aiocb completion', 'operations/s', '', 'number of disk operations per second', ['completed aio jobs', 'in progress aio jobs']),
+	('disk pending reads', 'Bytes', '', 'number of bytes peers are waiting for to be read from the disk', ['pending reading bytes']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP avg send delay']),
 	('uTP delay histogram', 'buffering delay', 's', 'network delays measured by uTP', ['uTP avg send delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),

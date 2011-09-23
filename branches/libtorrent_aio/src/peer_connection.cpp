@@ -2126,7 +2126,7 @@ namespace libtorrent
 			}
 			else
 			{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_REQUEST_LOGGING
 				static ptime start = time_now_hires();
 				// time-ms info-hash peer-id piece-index piece-offset size upload-rate-bytes-per-second
 				char ih[5];

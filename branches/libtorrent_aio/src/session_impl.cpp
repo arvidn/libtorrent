@@ -600,7 +600,9 @@ namespace aux {
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
+#endif
 
+#if defined TORRENT_REQUEST_LOGGING
 		m_request_logger = fopen("requests.log", "w+");
 #endif
 
@@ -1163,6 +1165,7 @@ namespace aux {
 			":allocated jobs"
 			":allocated read jobs"
 			":allocated write jobs"
+			":pending reading bytes"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3393,6 +3396,7 @@ namespace aux {
 		int peers_down_unchoked = 0;
 		int peers_up_unchoked = 0;
 		int num_end_game_peers = 0;
+		int reading_bytes = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3412,6 +3416,7 @@ namespace aux {
 			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
 				++peers_up_requests;
 			if (p->endgame()) ++num_end_game_peers;
+			reading_bytes += p->num_reading_bytes();
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -3619,6 +3624,8 @@ namespace aux {
 			STAT_LOG(d, cs.num_jobs);
 			STAT_LOG(d, cs.num_read_jobs);
 			STAT_LOG(d, cs.num_write_jobs);
+
+			STAT_LOG(d, reading_bytes);
 
 			fprintf(m_stats_logger, "\n");
 
@@ -4957,7 +4964,7 @@ namespace aux {
 
 	session_impl::~session_impl()
 	{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_REQUEST_LOGGING
 		fclose(m_request_logger);
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
