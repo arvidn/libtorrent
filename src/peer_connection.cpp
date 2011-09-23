@@ -4354,7 +4354,7 @@ namespace libtorrent
 		int upload_rate = int(m_statistics.upload_rate());
 
 		int buffer_size_watermark = upload_rate
-			* m_ses.settings().send_buffer_watermark_factor;
+			* m_ses.settings().send_buffer_watermark_factor / 100;
 
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
