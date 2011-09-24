@@ -2539,7 +2539,10 @@ finish:
 		TORRENT_ASSERT(file_access_log);
 #endif
 
-#ifdef SIGEV_THREAD_ID
+#if defined SIGEV_THREAD_ID \
+	&& !TORRENT_USE_AIO_PORTS \
+	&& !TORRENT_USE_AIO_KQUEUE \
+	&& TORRENT_USE_AIO
 		pthread_t self = pthread_self();
 #endif
 		// this is the chain of aios that were
@@ -2720,7 +2723,7 @@ finish:
 			}
 #elif TORRENT_USE_SYNCIO
 			error_code ec;
-			int ret;
+			int ret = -1;
 			file::iovec_t b = {aios->buf, aios->size};
 			file::iovec_t* vec = &b;
 			int num_vec = 1;
@@ -2746,6 +2749,10 @@ finish:
 			se.operation = aios->op == file::read_op ? storage_error::read : storage_error::write;
 			aios = aios->next;
 			// #error figure out which file the error happened on (if any)
+
+#ifdef TORRENT_DISK_STATS
+			if (file_access_log) write_disk_log(file_access_log, del, false, start_time);
+#endif
 			del->handler->done(se, ret, del, &pool);
 			pool.destroy(del);
 			++num_issued;
