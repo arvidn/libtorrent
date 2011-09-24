@@ -31,8 +31,8 @@ import hashlib
 
 # variables to test. All these are run on the first
 # entry in the filesystem list.
-cache_sizes = [0, 32768, 50000]
-peers = [200, 1000, 2000]
+cache_sizes = [0, 32768, 130000]
+peers = [200, 500, 1000]
 builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
 
 # the drives are assumed to be mounted under ./<name>
@@ -322,16 +322,21 @@ def run_test(config):
 	tester.wait()
 	tester_output.close()
 	client_output.close()
+	terminate = False
 	if tester.returncode != 0:
 		print 'tester returned %d' % tester.returncode
-		sys.exit(tester.returncode)
+		terminate = True
 	if client.returncode != 0:
 		print 'client returned %d' % client.returncode
-		sys.exit(client.returncode)
+		terminate = True
 
 	try: shutil.copy('asserts.log', 'session_stats/')
 	except: pass
 
+	try: shutil.move('libtorrent_logs0', 'session_stats/')
+	except: pass
+	try: shutil.move('libtorrent_logs%s' % port, 'session_stats/')
+	except: pass
 
 	# run fragmentation test
 	print 'analyzing fragmentation'
@@ -372,6 +377,8 @@ def run_test(config):
 	os.rename('session_stats', build_target_folder(config))
 
 	port += 1
+
+	if terminate: sys.exit(1)
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
