@@ -1549,7 +1549,7 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 #if defined TORRENT_LOGGING
 			(*m_ses.m_logger) << time_now_string() << " CLOSING CONNECTION "
-				<< p->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
+				<< c->remote() << " policy::new_connection returned false (i.e. peer list full)\n";
 #endif
 			c->disconnect(errors::too_many_connections);
 			return;
