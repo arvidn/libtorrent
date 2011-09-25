@@ -769,7 +769,9 @@ public:
 
     lowest_layer_type& lowest_layer()
     {
-        TORRENT_ASSERT(instantiated());
+//        this is called by the ssl_socket to get the io_service, which
+//        is ok even when it's not instantiated
+//        TORRENT_ASSERT(instantiated());
         return boost::apply_visitor(
             aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
         );
