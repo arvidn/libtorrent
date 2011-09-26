@@ -3053,7 +3053,8 @@ ctx->set_verify_callback(verify_function, ec);
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
 			<< index << " chk: " << ((passed_hash_check == 0)
 				?"passed":passed_hash_check == -1
-				?"disk failed":"failed") << " ]\n";
+				?"disk failed":"failed") << " size: "
+			<< m_torrent_file->piece_size(index) << " ]\n";
 #endif
 
 		TORRENT_ASSERT(valid_metadata());
