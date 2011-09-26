@@ -128,7 +128,7 @@ namespace libtorrent
 			, initial_picker_threshold(4)
 			, allowed_fast_set_size(10)
 			, suggest_mode(no_piece_suggestions)
-			, max_queued_disk_bytes(256 * 1024)
+			, max_queued_disk_bytes(1024 * 1024)
 			, max_queued_disk_bytes_low_watermark(0)
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
@@ -148,7 +148,7 @@ namespace libtorrent
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_buffer_chunk_size(16)
-			, cache_expiry(60)
+			, cache_expiry(120)
 			, use_read_cache(true)
 			, explicit_read_cache(0)
 			, explicit_cache_interval(30)
