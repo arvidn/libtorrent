@@ -69,8 +69,8 @@ int test_main()
 	sett.half_open_limit = 1;
 	sett.announce_to_all_trackers = true;
 	sett.announce_to_all_tiers = false;
-	sett.tracker_completion_timeout = 4;
-	sett.tracker_receive_timeout = 2;
+	sett.tracker_completion_timeout = 2;
+	sett.tracker_receive_timeout = 1;
 	s->set_settings(sett);
 
 	create_directory("./tmp2_tracker", ec);
@@ -107,8 +107,8 @@ int test_main()
 
 	for (int i = 0; i < 10; ++i)
 	{
-		test_sleep(1000);
 		print_alerts(*s, "s");
+		test_sleep(1000);
 		if (g_udp_tracker_requests == prev_udp_announces + 1) break;
 	}
 
