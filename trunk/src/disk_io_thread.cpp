@@ -431,48 +431,39 @@ namespace libtorrent
 		int current = 0;
 		int pos = 0;
 		int start = 0;
-		int blocks_in_piece = 0;
-		int first_block = -1;
+		int blocks_in_piece = (p.storage->info()->piece_size(p.piece)
+			+ m_block_size - 1) / m_block_size;
+
 		if (avoid_readback)
 		{
-			// with the avoid read-back mode, only consider blocks
-			// below the next_block_to_hash cursor
-			blocks_in_piece = p.next_block_to_hash;
+			start = p.next_block_to_hash;
+			for (int i = p.next_block_to_hash; i < blocks_in_piece; ++i)
+			{
+				if (p.blocks[i].buf) ++current;
+				else break;
+			}
 		}
 		else
 		{
-			blocks_in_piece = (p.storage->info()->piece_size(p.piece)
-				+ m_block_size - 1) / m_block_size;
-		}
-
-		for (int i = 0; i < blocks_in_piece; ++i)
-		{
-			if (p.blocks[i].buf)
+			for (int i = 0; i < blocks_in_piece; ++i)
 			{
-				if (first_block == -1) first_block = i;
-				++current;
-			}
-			else
-			{
-				if (current > len)
+				if (p.blocks[i].buf) ++current;
+				else
 				{
-					len = current;
-					pos = start;
+					if (current > len)
+					{
+						len = current;
+						pos = start;
+					}
+					current = 0;
+					start = i + 1;
 				}
-				current = 0;
-				start = i + 1;
 			}
 		}
 		if (current > len)
 		{
 			len = current;
 			pos = start;
-		}
-
-		if (avoid_readback && first_block >= 0 && p.next_block_to_hash - first_block > lower_limit)
-		{
-			len = flush_range(p, first_block, p.next_block_to_hash, l);
-			return len;
 		}
 
 		if (len < lower_limit || len <= 0) return 0;
