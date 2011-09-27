@@ -424,15 +424,26 @@ namespace libtorrent
 	}
 
 	int disk_io_thread::flush_contiguous_blocks(cached_piece_entry& p
-		, mutex::scoped_lock& l, int lower_limit)
+		, mutex::scoped_lock& l, int lower_limit, bool avoid_readback)
 	{
 		// first find the largest range of contiguous  blocks
 		int len = 0;
 		int current = 0;
 		int pos = 0;
 		int start = 0;
-		int blocks_in_piece = (p.storage->info()->piece_size(p.piece)
-			+ m_block_size - 1) / m_block_size;
+		int blocks_in_piece = 0;
+		if (avoid_readback)
+		{
+			// with the avoid read-back mode, only consider blocks
+			// below the next_block_to_hash cursor
+			blocks_in_piece = p.next_block_to_hash;
+		}
+		else
+		{
+			blocks_in_piece = (p.storage->info()->piece_size(p.piece)
+				+ m_block_size - 1) / m_block_size;
+		}
+
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			if (p.blocks[i].buf) ++current;
@@ -2027,9 +2038,10 @@ namespace libtorrent
 						// pieces when we need more space in the cache (which will avoid
 						// flushing blocks out-of-order) or when we issue a hash job,
 						// wich indicates the piece is completely downloaded
-						if (m_settings.disk_cache_algorithm != session_settings::avoid_readback)
-							flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
-								, l, m_settings.write_cache_line_size);
+						flush_contiguous_blocks(const_cast<cached_piece_entry&>(*p)
+							, l, m_settings.write_cache_line_size
+							, m_settings.disk_cache_algorithm == session_settings::avoid_readback);
+
 						if (p->num_blocks == 0) idx.erase(p);
 						test_error(j);
 						TORRENT_ASSERT(!j.storage->error());

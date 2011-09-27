@@ -336,7 +336,7 @@ namespace libtorrent
 			, int blocks, int ignore = -1, int options = 0);
 		void flush_expired_pieces();
 		int flush_contiguous_blocks(cached_piece_entry& p
-			, mutex::scoped_lock& l, int lower_limit = 0);
+			, mutex::scoped_lock& l, int lower_limit = 0, bool avoid_readback = false);
 		int flush_range(cached_piece_entry& p, int start, int end, mutex::scoped_lock& l);
 		int cache_block(disk_io_job& j
 			, boost::function<void(int,disk_io_job const&)>& handler
