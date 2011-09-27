@@ -918,7 +918,7 @@ namespace libtorrent
 		{
 			cached_piece_entry const& p = *i;
 			TORRENT_ASSERT(p.blocks);
-			TORRENT_ASSERT(p.num_contiguous_blocks == contiguous_blocks(p));
+//			TORRENT_ASSERT(p.num_contiguous_blocks == contiguous_blocks(p));
 			
 			TORRENT_ASSERT(p.storage);
 			int piece_size = p.storage->info()->piece_size(p.piece);
