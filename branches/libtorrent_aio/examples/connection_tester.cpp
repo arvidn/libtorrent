@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <iostream>
 #include <boost/array.hpp>
+#include <boost/detail/atomic_count.hpp>
 
 using namespace libtorrent;
 using namespace libtorrent::detail; // for write_* and read_*
@@ -75,6 +76,13 @@ boost::detail::atomic_count num_seeds(0);
 // at the same time (this is presumably the most realistic
 // test)
 enum { none, upload_test, download_test, dual_test } test_mode = none;
+
+// the number of suggest messages received (total across all peers)
+boost::detail::atomic_count num_suggest(0);
+
+// the number of requests made from suggested pieces
+boost::detail::atomic_count num_suggested_requests(0);
+
 
 struct peer_conn
 {
@@ -263,6 +271,7 @@ struct peer_conn
 			{
 				current_piece = suggested_pieces.front();
 				suggested_pieces.erase(suggested_pieces.begin());
+				++num_suggested_requests;
 			}
 			else if (pieces.size() > 0)
 			{
@@ -464,6 +473,7 @@ struct peer_conn
 				{
 					pieces.erase(i);
 					suggested_pieces.push_back(piece);
+					++num_suggest;
 				}
 			}
 			work_download();
@@ -730,8 +740,10 @@ int main(int argc, char* argv[])
 	}
 
 	printf("=========================\n"
+		"suggests: %d suggested-requests: %d\n"
 		"total sent: %.1f %% received: %.1f %%\n"
 		"rate sent: %.1f MB/s received: %.1f MB/s\n"
+		, int(num_suggest), int(num_suggested_requests)
 		, total_sent * 0x4000 * 100.f / float(ti.total_size())
 		, total_received * 0x4000 * 100.f / float(ti.total_size())
 		, up, down);
