@@ -220,6 +220,7 @@ public:
 	size_t read_some(bool clear_buffers);
 	
 	int send_delay() const;
+	int recv_delay() const;
 
 	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
