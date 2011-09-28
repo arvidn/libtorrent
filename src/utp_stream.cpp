@@ -237,7 +237,7 @@ struct utp_socket_impl
 		, m_in_packets(0)
 		, m_out_packets(0)
 		, m_send_delay(0)
-//		, m_recv_delay(0)
+		, m_recv_delay(0)
 		, m_port(0)
 		, m_send_id(send_id)
 		, m_recv_id(recv_id)
@@ -470,7 +470,7 @@ struct utp_socket_impl
 	// the last send delay sample
 	boost::int32_t m_send_delay;
 	// the last receive delay sample
-//	boost::int32_t m_recv_delay;
+	boost::int32_t m_recv_delay;
 
 	// average RTT
 	sliding_average<16> m_rtt;
@@ -681,6 +681,11 @@ int utp_socket_state(utp_socket_impl const* s)
 int utp_stream::send_delay() const
 {
 	return m_impl ? m_impl->m_send_delay : 0;
+}
+
+int utp_stream::recv_delay() const
+{
+	return m_impl ? m_impl->m_recv_delay : 0;
 }
 
 utp_stream::utp_stream(asio::io_service& io_service)
@@ -2504,6 +2509,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
 				m_send_delay = delay;
 			}
+
+			m_recv_delay = (std::min)(their_delay, min_rtt);
 
 			consume_incoming_data(ph, ptr, payload_size, receive_time);
 
