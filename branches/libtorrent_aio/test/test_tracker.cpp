@@ -60,7 +60,68 @@ int test_main()
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 2);
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + 2);
 
+	// ========================================
+	// test that we move on to try the next tier if the first one fails
+	// ========================================
+
+	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+
+	sett.half_open_limit = 1;
+	sett.announce_to_all_trackers = true;
+	sett.announce_to_all_tiers = false;
+	sett.tracker_completion_timeout = 2;
+	sett.tracker_receive_timeout = 1;
+	s->set_settings(sett);
+
+	create_directory("./tmp2_tracker", ec);
+	file.open("./tmp2_tracker/temporary");
+	t = ::create_torrent(&file, 16 * 1024, 13, false);
+	file.close();
+
+	// this should fail
+	snprintf(tracker_url, sizeof(tracker_url), "udp://www.google.com:80/announce");
+	t->add_tracker(tracker_url, 0);
+
+	// and this should fail
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.2:3/announce");
+	t->add_tracker(tracker_url, 1);
+
+	// this should be announced to
+	// udp trackers are prioritized if they're on the same host as an http one
+	// so this must be before the http one on 127.0.0.1
+	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	t->add_tracker(tracker_url, 2);
+
+	// and this should not be announced to (since the one before it succeeded)
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	t->add_tracker(tracker_url, 3);
+
+	prev_udp_announces = g_udp_tracker_requests;
+	prev_http_announces = g_http_tracker_requests;
+
+	addp.paused = false;
+	addp.auto_managed = false;
+	addp.ti = t;
+	addp.save_path = "./tmp2_tracker";
+	h = s->add_torrent(addp);
+
+	for (int i = 0; i < 10; ++i)
+	{
+		print_alerts(*s, "s");
+		test_sleep(1000);
+		if (g_udp_tracker_requests == prev_udp_announces + 1) break;
+	}
+
+	test_sleep(1000);
+
+	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
+	TEST_EQUAL(g_http_tracker_requests, prev_http_announces);
+
+	delete s;
+
 	stop_tracker();
 	stop_web_server();
+
+	return 0;
 }
 

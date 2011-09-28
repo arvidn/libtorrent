@@ -1146,6 +1146,8 @@ namespace aux {
 			":uTP down rate"
 			":uTP peak send delay"
 			":uTP avg send delay"
+			":uTP peak recv delay"
+			":uTP avg recv delay"
 			":read ops/s"
 			":write ops/s"
 			":active resident pages"
@@ -3411,8 +3413,11 @@ namespace aux {
 		int utp_up_rate = 0;
 		int utp_down_rate = 0;
 		int utp_peak_send_delay = 0;
+		int utp_peak_recv_delay = 0;
 		boost::uint64_t utp_send_delay_sum = 0;
+		boost::uint64_t utp_recv_delay_sum = 0;
 		int utp_num_delay_sockets = 0;
+		int utp_num_recv_delay_sockets = 0;
 		int num_complete_connections = 0;
 		int num_half_open = 0;
 		int peers_down_unchoked = 0;
@@ -3469,11 +3474,18 @@ namespace aux {
 				utp_up_rate += ul_rate;
 				utp_down_rate += dl_rate;
 				int send_delay = utp_socket->send_delay();
+				int recv_delay = utp_socket->recv_delay();
 				utp_peak_send_delay = (std::max)(utp_peak_send_delay, send_delay);
+				utp_peak_recv_delay = (std::max)(utp_peak_recv_delay, recv_delay);
 				if (send_delay > 0)
 				{
 					utp_send_delay_sum += send_delay;
 					++utp_num_delay_sockets;
+				}
+				if (recv_delay > 0)
+				{
+					utp_recv_delay_sum += recv_delay;
+					++utp_num_recv_delay_sockets;
 				}
 			}
 			else
@@ -3620,6 +3632,8 @@ namespace aux {
 			STAT_LOG(d, utp_down_rate);
 			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
 			STAT_LOG(f, float(utp_num_delay_sockets ? float(utp_send_delay_sum) / float(utp_num_delay_sockets) : 0) / 1000000.f);
+			STAT_LOG(f, float(utp_peak_recv_delay) / 1000000.f);
+			STAT_LOG(f, float(utp_num_recv_delay_sockets ? float(utp_recv_delay_sum) / float(utp_num_recv_delay_sockets) : 0) / 1000000.f);
 			STAT_LOG(f, float(cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
 			STAT_LOG(f, float(cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
 
