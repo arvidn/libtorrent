@@ -133,6 +133,8 @@ struct peer_conn
 	};
 	int state;
 	std::vector<int> pieces;
+	std::vector<int> suggested_pieces;
+	int current_piece; // the piece we're currently requesting blocks from
 	int block;
 	int blocks_per_piece;
 	char const* info_hash;
@@ -251,12 +253,27 @@ struct peer_conn
 			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
-	void write_request()
+	bool write_request()
 	{
-		if (pieces.empty()) return;
+		if (pieces.empty() && suggested_pieces.empty() && current_piece == -1) return false;
 
-		int piece = pieces.back();
-
+		if (current_piece == -1)
+		{
+			if (suggested_pieces.size() > 0)
+			{
+				current_piece = suggested_pieces.front();
+				suggested_pieces.erase(suggested_pieces.begin());
+			}
+			else if (pieces.size() > 0)
+			{
+				current_piece = pieces.front();
+				pieces.erase(pieces.begin());
+			}
+			else
+			{
+				TORRENT_ASSERT(false);
+			}
+		}
 		char msg[] = "\0\0\0\xd\x06"
 			"    " // piece
 			"    " // offset
@@ -264,19 +281,21 @@ struct peer_conn
 		char* m = (char*)malloc(sizeof(msg));
 		memcpy(m, msg, sizeof(msg));
 		char* ptr = m + 5;
-		write_uint32(piece, ptr);
+		write_uint32(current_piece, ptr);
 		write_uint32(block * 16 * 1024, ptr);
 		write_uint32(16 * 1024, ptr);
 		error_code ec;
 		boost::asio::async_write(s, libtorrent::asio::buffer(m, sizeof(msg) - 1)
 			, boost::bind(&peer_conn::on_req_sent, this, m, _1, _2));
-	
+
+		++outstanding_requests;
 		++block;
 		if (block == blocks_per_piece)
 		{
 			block = 0;
-			pieces.pop_back();
+			current_piece = -1;
 		}
+		return true;
 	}
 
 	void on_req_sent(char* m, error_code const& ec, size_t bytes_transferred)
@@ -288,8 +307,6 @@ struct peer_conn
 			return;
 		}
 
-		++outstanding_requests;
-	
 		work_download();
 	}
 
@@ -310,6 +327,8 @@ struct peer_conn
 	void work_download()
 	{
 		if (pieces.empty()
+			&& suggested_pieces.empty()
+			&& current_piece == -1
 			&& outstanding_requests == 0
 			&& blocks_received >= num_pieces * blocks_per_piece)
 		{
@@ -318,10 +337,9 @@ struct peer_conn
 		}
 
 		// send requests
-		if (outstanding_requests < 20 && !pieces.empty())
+		if (outstanding_requests < 40)
 		{
-			write_request();
-			return;
+			if (write_request()) return;
 		}
 
 		// read message
@@ -426,10 +444,27 @@ struct peer_conn
 				}
 				std::random_shuffle(pieces.begin(), pieces.end());
 			}
-			else if (msg == 7)
+			else if (msg == 7) // piece
 			{
 				++blocks_received;
 				--outstanding_requests;
+				int piece = detail::read_int32(ptr);
+				int start = detail::read_int32(ptr);
+				if ((start + bytes_transferred) / 0x4000 == blocks_per_piece)
+				{
+					write_have(piece);
+					return;
+				}
+			}
+			else if (msg == 13) // suggest
+			{
+				int piece = detail::read_int32(ptr);
+				std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
+				if (i != pieces.end())
+				{
+					pieces.erase(i);
+					suggested_pieces.push_back(piece);
+				}
 			}
 			work_download();
 		}
@@ -449,6 +484,15 @@ struct peer_conn
 		vec[1] = libtorrent::asio::buffer(write_buffer, length);
 		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		++blocks_sent;
+	}
+
+	void write_have(int piece)
+	{
+		char* ptr = write_buf_proto;
+		write_uint32(5, ptr);
+		write_uint8(4, ptr);
+		write_uint32(piece, ptr);
+		boost::asio::async_write(s, asio::buffer(write_buf_proto, 9), boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 };
 

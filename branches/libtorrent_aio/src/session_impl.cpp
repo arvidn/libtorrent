@@ -552,6 +552,8 @@ namespace aux {
 		, m_auto_scrape_time_scaler(180)
 		, m_next_explicit_cache_torrent(0)
 		, m_cache_rotation_timer(0)
+		, m_next_suggest_torrent(0)
+		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
 		, m_incoming_connection(false)
@@ -3038,6 +3040,26 @@ namespace aux {
 					least_recently_scraped->second->scrape_tracker();
 				}
 			}
+		}
+
+		// --------------------------------------------------------------
+		// refresh torrent suggestions
+		// --------------------------------------------------------------
+		--m_suggest_timer;
+		if (m_settings.suggest_mode != session_settings::no_piece_suggestions
+			&& m_suggest_timer <= 0)
+		{
+			m_suggest_timer = 10;
+
+			torrent_map::iterator least_recently_refreshed = m_torrents.begin();
+			if (m_next_suggest_torrent >= int(m_torrents.size()))
+				m_next_suggest_torrent = 0;
+
+			std::advance(least_recently_refreshed, m_next_suggest_torrent);
+
+			if (least_recently_refreshed != m_torrents.end())
+				least_recently_refreshed->second->refresh_suggest_pieces();
+			++m_next_suggest_torrent;
 		}
 
 		// --------------------------------------------------------------

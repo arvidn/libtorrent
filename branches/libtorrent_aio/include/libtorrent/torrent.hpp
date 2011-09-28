@@ -455,6 +455,11 @@ namespace libtorrent
 
 		void refresh_explicit_cache(int cache_size);
 
+		void add_suggest_piece(int piece);
+		void update_suggest_piece(int index, int change);
+		void refresh_suggest_pieces();
+		void on_cache_info(int ret, disk_io_job const& j);
+
 // --------------------------------------------
 		// TRACKER MANAGEMENT
 
@@ -518,7 +523,15 @@ namespace libtorrent
 
 		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
 
-		void get_suggested_pieces(std::vector<int>& s) const;
+		struct suggest_piece_t
+		{
+			int piece_index;
+			int num_peers;
+			bool operator<(suggest_piece_t const& p) const { return num_peers < p.num_peers; }
+		};
+
+		std::vector<suggest_piece_t> const& get_suggested_pieces() const
+		{ return m_suggested_pieces; }
 
 		bool super_seeding() const
 		{ return m_super_seeding; }
@@ -553,66 +566,14 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index)
-		{
-			if (m_picker.get())
-			{
-				TORRENT_ASSERT(!is_seed());
-				m_picker->inc_refcount(index);
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
+		void peer_has(int index);
 		
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits)
-		{
-			if (m_picker.get())
-			{
-				TORRENT_ASSERT(!is_seed());
-				m_picker->inc_refcount(bits);
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
+		void peer_has(bitfield const& bits);
 
-		void peer_has_all()
-		{
-			if (m_picker.get())
-			{
-				TORRENT_ASSERT(!is_seed());
-				m_picker->inc_refcount_all();
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
+		void peer_has_all();
 
-		void peer_lost(int index)
-		{
-			if (m_picker.get())
-			{
-				TORRENT_ASSERT(!is_seed());
-				m_picker->dec_refcount(index);
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
+		void peer_lost(int index);
 
 		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
 		peer_request to_req(piece_block const& p) const;
@@ -1032,6 +993,10 @@ namespace libtorrent
 		// this lets us trigger on individual files completing
 		std::vector<size_type> m_file_progress;
 
+		// these are the pieces we're currently
+		// suggesting to peers.
+		std::vector<suggest_piece_t> m_suggested_pieces;
+		
 		boost::scoped_ptr<piece_picker> m_picker;
 
 		std::vector<announce_entry> m_trackers;
@@ -1414,6 +1379,11 @@ namespace libtorrent
 		// paused it's removed and when it's started again, it's
 		// re-added
 		bool m_in_encrypted_list:1;
+
+		// this is set to true while we have an outstanding
+		// disk cache request to refresh the suggest pieces
+		// don't keep more than one out outstanding request
+		bool m_refreshing_suggest_pieces:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

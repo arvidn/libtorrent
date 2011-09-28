@@ -1075,6 +1075,7 @@ int main(int argc, char* argv[])
 			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
+			"  -K                    enable piece suggestions of read cache\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
@@ -1215,6 +1216,7 @@ int main(int argc, char* argv[])
 			case 'k': settings = high_performance_seed(); --i; break;
 			case 'j': settings.use_disk_read_ahead = false; --i; break;
 			case 'z': settings.disable_hash_checks = true; --i; break;
+			case 'K': settings.suggest_mode = session_settings::suggest_read_cache; --i; break;
 			case 'r':
 				preferred_ratio = atoi(arg);
 				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;

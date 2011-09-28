@@ -388,16 +388,22 @@ namespace libtorrent
 		if (!m_supports_fast) return;
 
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(t->valid_metadata());
 
 		if (m_sent_suggested_pieces.empty())
 			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
 
+		TORRENT_ASSERT(piece >= 0 && piece < m_sent_suggested_pieces.size());
+
 		if (m_sent_suggested_pieces[piece]) return;
 		m_sent_suggested_pieces.set_bit(piece);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> SUGGEST [ piece: %d num_peers: %d ]", piece, t->picker().get_availability(piece));
+#endif
 
 		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
 		char* ptr = msg + 5;

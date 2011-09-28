@@ -101,7 +101,7 @@ namespace libtorrent
 			if (i == m_queued_for_close.end())
 			{
 				l.unlock();
-				// none of the files are ready to be closet yet
+				// none of the files are ready to be closed yet
 				// because they're still in use by other threads
 				// hold off for a while
 				sleep(1000);

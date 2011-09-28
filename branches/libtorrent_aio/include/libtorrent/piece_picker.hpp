@@ -201,6 +201,7 @@ namespace libtorrent
 		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
+		int get_availability(int piece) const;
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)

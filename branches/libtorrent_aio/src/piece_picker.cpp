@@ -2293,6 +2293,12 @@ namespace libtorrent
 			*j = i->peer_count + m_seeds;
 	}
 
+	int piece_picker::get_availability(int piece) const
+	{
+		TORRENT_ASSERT(piece >= 0 && piece < int(m_piece_map.size()));
+		return m_piece_map[piece].peer_count + m_seeds;
+	}
+
 	bool piece_picker::mark_as_writing(piece_block block, void* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS

@@ -3226,13 +3226,14 @@ namespace libtorrent
 
 		if (!m_sent_suggests)
 		{
-			std::vector<int> ret;
-			t->get_suggested_pieces(ret);
-			for (std::vector<int>::iterator i = ret.begin()
+			std::vector<torrent::suggest_piece_t> const& ret
+				= t->get_suggested_pieces();
+
+			for (std::vector<torrent::suggest_piece_t>::const_iterator i = ret.begin()
 				, end(ret.end()); i != end; ++i)
 			{
-				TORRENT_ASSERT(*i >= 0);
-				send_suggest(*i);
+				TORRENT_ASSERT(i->piece_index >= 0);
+				send_suggest(i->piece_index);
 			}
 
 			m_sent_suggests = true;
@@ -3288,6 +3289,9 @@ namespace libtorrent
 
 	void peer_connection::send_suggest(int piece)
 	{
+		// we cannot suggest a piece we don't have!
+		TORRENT_ASSERT(m_torrent.lock()->have_piece(piece));
+
 		if (m_connecting) return;
 		if (in_handshake()) return;
 
@@ -3297,9 +3301,6 @@ namespace libtorrent
 			|| !m_peer_interested)
 			return;
 	
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> SUGGEST [ %d ]", piece);
-#endif
 		write_suggest(piece);
 	}
 
@@ -4142,7 +4143,7 @@ namespace libtorrent
 		// the peer and disconnect it
 		bool may_timeout = (m_channel_state[download_channel] == peer_info::bw_network);
 
-		if (may_timeout && d > seconds(m_timeout) && !m_connecting)
+		if (may_timeout && d > seconds(m_timeout) && !m_connecting && m_reading_bytes == 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** LAST ACTIVITY [ %d seconds ago ] ***", int(total_seconds(d)));
@@ -4643,6 +4644,15 @@ namespace libtorrent
 		if (j.buffer && j.ref.storage == 0)
 			m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
+
+		// we probably just pulled this piece into the cache.
+		// if it's rare enough to make it into the suggested piece
+		// push another piece out
+		if (m_ses.m_settings.suggest_mode == session_settings::suggest_read_cache
+			&& (j.flags & disk_io_job::cache_hit) == 0)
+		{
+			t->add_suggest_piece(r.piece);
+		}
 		write_piece(r, buffer);
 		setup_send();
 	}
