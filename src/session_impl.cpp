@@ -1664,6 +1664,8 @@ namespace aux {
 			|| m_settings.lock_disk_cache != s.lock_disk_cache
 #endif
 			|| m_settings.use_read_cache != s.use_read_cache
+			|| m_settings.disk_io_write_mode != s.disk_io_write_mode
+			|| m_settings.disk_io_read_mode != s.disk_io_read_mode
 			|| m_settings.allow_reordered_disk_operations != s.allow_reordered_disk_operations
 			|| m_settings.file_pool_size != s.file_pool_size
 			|| m_settings.volatile_read_cache != s.volatile_read_cache
