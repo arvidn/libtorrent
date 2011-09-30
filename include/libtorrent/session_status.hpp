@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
-#include <vector>
 
 namespace libtorrent
 {
@@ -49,37 +48,9 @@ namespace libtorrent
 		int timeouts;
 		int responses;
 		int branch_factor;
-		int nodes_left;
-		// the number of seconds ago the
-		// last message was sent that's still
-		// outstanding
-		int last_sent;
-		// the number of outstanding requests
-		// that have exceeded the short timeout
-		// and are considered timed out in the
-		// sense that they increased the branch
-		// factor
-		int first_timeout;
-	};
-
-	struct dht_routing_bucket
-	{
-		int num_nodes;
-		int num_replacements;
-		// number of seconds since last activity
-		int last_active;
 	};
 
 #endif
-
-	struct utp_status
-	{
-		int num_idle;
-		int num_syn_sent;
-		int num_connected;
-		int num_fin_sent;
-		int num_close_wait;
-	};
 
 	struct TORRENT_EXPORT session_status
 	{
@@ -126,22 +97,13 @@ namespace libtorrent
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
 
-		int disk_write_queue;
-		int disk_read_queue;
-
 #ifndef TORRENT_DISABLE_DHT
 		int dht_nodes;
 		int dht_node_cache;
 		int dht_torrents;
 		size_type dht_global_nodes;
 		std::vector<dht_lookup> active_requests;
-		std::vector<dht_routing_bucket> dht_routing_table;
-		int dht_total_allocations;
 #endif
-
-		utp_status utp_stats;
-
-		int peerlist_size;
 	};
 
 }

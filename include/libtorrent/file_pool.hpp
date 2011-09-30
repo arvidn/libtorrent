@@ -37,34 +37,35 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/intrusive_ptr.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include <map>
 #include "libtorrent/file.hpp"
-#include "libtorrent/ptime.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/file_storage.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	struct TORRENT_EXPORT file_pool : boost::noncopyable
 	{
-		file_pool(int size = 40);
-		~file_pool();
+		file_pool(int size = 40): m_size(size), m_low_prio_io(true) {}
 
-		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
-			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
+		boost::shared_ptr<file> open_file(void* st, fs::path const& p
+			, int m, error_code& ec);
 		void release(void* st);
-		void release(void* st, int file_index);
+		void release(fs::path const& p);
 		void resize(int size);
 		int size_limit() const { return m_size; }
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 
 	private:
+		file_pool(file_pool const&);
 
 		void remove_oldest();
 
@@ -73,29 +74,17 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): key(0), last_use(time_now()), mode(0) {}
-			mutable boost::intrusive_ptr<file> file_ptr;
+			lru_file_entry(): last_use(time_now()) {}
+			mutable boost::shared_ptr<file> file_ptr;
 			void* key;
 			ptime last_use;
 			int mode;
 		};
 
-		// maps storage pointer, file index pairs to the
-		// lru entry for the file
-		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
+		typedef std::map<std::string, lru_file_entry> file_set;
 		
 		file_set m_files;
-		mutex m_mutex;
-
-#if TORRENT_CLOSE_MAY_BLOCK
-		void closer_thread_fun();
-		mutex m_closer_mutex;
-		std::vector<boost::intrusive_ptr<file> > m_queued_for_close;
-		bool m_stop_thread;
-
-		// used to close files
-		thread m_closer_thread;
-#endif
+		boost::mutex m_mutex;
 	};
 }
 

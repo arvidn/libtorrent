@@ -33,166 +33,74 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DEBUG_HPP_INCLUDED
 #define TORRENT_DEBUG_HPP_INCLUDED
 
-#if defined TORRENT_ASIO_DEBUGGING
-
-#include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
-
-#include <execinfo.h>
-#include <map>
-
-std::string demangle(char const* name);
-
-namespace libtorrent
-{
-	struct async_t
-	{
-		async_t() : refs(0) {}
-		std::string stack;
-		int refs;
-	};
-
-	extern std::map<std::string, async_t> _async_ops;
-	extern int _async_ops_nthreads;
-	extern mutex _async_ops_mutex;
-
-	inline void add_outstanding_async(char const* name)
-	{
-		mutex::scoped_lock l(_async_ops_mutex);
-		async_t& a = _async_ops[name];
-		if (a.stack.empty())
-		{
-			void* stack[50];
-			int size = backtrace(stack, 50);
-			char** symbols = backtrace_symbols(stack, size);
-
-			for (int i = 1; i < size; ++i)
-			{
-				char str[200];
-				snprintf(str, sizeof(str), "%d: %s\n", i, demangle(symbols[i]).c_str());
-				a.stack += str;
-			}
-
-			free(symbols);
-		}
-		++a.refs;
-	}
-
-	inline void complete_async(char const* name)
-	{
-		mutex::scoped_lock l(_async_ops_mutex);
-		async_t& a = _async_ops[name];
-		TORRENT_ASSERT(a.refs > 0);
-		--a.refs;
-	}
-
-	inline void async_inc_threads()
-	{
-		mutex::scoped_lock l(_async_ops_mutex);
-		++_async_ops_nthreads;
-	}
-
-	inline void async_dec_threads()
-	{
-		mutex::scoped_lock l(_async_ops_mutex);
-		--_async_ops_nthreads;
-	}
-
-	inline int log_async()
-	{
-		mutex::scoped_lock l(_async_ops_mutex);
-		int ret = 0;
-		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
-			, end(_async_ops.end()); i != end; ++i)
-		{
-			if (i->second.refs <= _async_ops_nthreads - 1) continue;
-			ret += i->second.refs;
-			printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
-		}
-		return ret;
-	}
-}
-
-#endif
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-
 #include <string>
 #include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/thread.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <fstream>
 #include <iostream>
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+
 namespace libtorrent
 {
 	// DEBUG API
 	
+	namespace fs = boost::filesystem;
+
 	struct logger
 	{
+		logger(fs::path const& logpath, fs::path const& filename, int instance, bool append = true)
+		{
 #if TORRENT_USE_IOSTREAM
-		// all log streams share a single file descriptor
-		// and re-opens the file for each log line
-		// these members are defined in session_impl.cpp
-		static std::ofstream log_file;
-		static std::string open_filename;
-		static mutex file_mutex;
+
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
 #endif
-
-		~logger()
-		{
-			mutex::scoped_lock l(file_mutex);
-			log_file.close();
-			open_filename.clear();
-		}
-
-		logger(std::string const& logpath, std::string const& filename
-			, int instance, bool append)
-		{
-			char log_name[512];
-			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-			std::string dir(complete(combine_path(logpath, log_name)));
-			error_code ec;
-			if (!exists(dir)) create_directories(dir, ec);
-			m_filename = combine_path(dir, filename);
-
-			mutex::scoped_lock l(file_mutex);
-			open(!append);
-			log_file << "\n\n\n*** starting log ***\n";
-		}
-
-#if TORRENT_USE_IOSTREAM
-		void open(bool truncate)
-		{
-			if (open_filename == m_filename) return;
-			log_file.close();
-			log_file.clear();
-			log_file.open(m_filename.c_str(), truncate ? std::ios_base::trunc : std::ios_base::app);
-			open_filename = m_filename;
-			if (!log_file.good())
-				fprintf(stderr, "Failed to open logfile %s: %s\n", m_filename.c_str(), strerror(errno));
-		}
+				char log_name[256];
+				snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+				fs::path dir(fs::complete(logpath / log_name));
+				if (!fs::exists(dir)) fs::create_directories(dir);
+				m_file.open((dir / filename).string().c_str(), std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
+				*this << "\n\n\n*** starting log ***\n";
+#ifndef BOOST_NO_EXCEPTIONS
+			}
+			catch (std::exception& e)
+			{
+				std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
+			}
 #endif
+#endif
+		}
 
 		template <class T>
 		logger& operator<<(T const& v)
 		{
 #if TORRENT_USE_IOSTREAM
-			mutex::scoped_lock l(file_mutex);
-			open(false);
-			log_file << v;
+			m_file << v;
+			m_file.flush();
 #endif
 			return *this;
 		}
 
-		std::string m_filename;
+#if TORRENT_USE_IOSTREAM
+		std::ofstream m_file;
+#endif
 	};
 
 }
 
-#endif // TORRENT_VERBOSE_LOGGING || TORRENT_LOGGING || TORRENT_ERROR_LOGGING
 #endif // TORRENT_DEBUG_HPP_INCLUDED
 

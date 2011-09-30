@@ -68,7 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/max.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -82,6 +81,32 @@ namespace libtorrent
 	{
 		type_error(const char* error): std::runtime_error(error) {}
 	};
+
+	namespace detail
+	{
+		template<int v1, int v2>
+		struct max2 { enum { value = v1>v2?v1:v2 }; };
+
+		template<int v1, int v2, int v3>
+		struct max3
+		{
+			enum
+			{
+				temp = max2<v1,v2>::value,
+				value = temp>v3?temp:v3
+			};
+		};
+
+		template<int v1, int v2, int v3, int v4>
+		struct max4
+		{
+			enum
+			{
+				temp = max3<v1,v2, v3>::value,
+				value = temp>v4?temp:v4
+			};
+		};
+	}
 
 	class entry;
 
@@ -189,19 +214,20 @@ namespace libtorrent
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		// and sizeof(list<char>) == sizeof(list<entry>)
 		enum { union_size
-			= max4<sizeof(std::list<char>)
+			= detail::max4<sizeof(std::list<char>)
 			, sizeof(std::map<std::string, char>)
 			, sizeof(string_type)
 			, sizeof(integer_type)>::value
 		};
 #else
 		enum { union_size
-			= max4<sizeof(list_type)
+			= detail::max4<sizeof(list_type)
 			, sizeof(dictionary_type)
 			, sizeof(string_type)
 			, sizeof(integer_type)>::value
 		};
 #endif
+
 		integer_type data[(union_size + sizeof(integer_type) - 1)
 			/ sizeof(integer_type)];
 	};

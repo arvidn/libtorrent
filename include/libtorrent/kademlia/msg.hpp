@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <libtorrent/kademlia/node_id.hpp>
-#include "libtorrent/lazy_entry.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/udp.hpp>
 #else
@@ -46,7 +45,7 @@ namespace libtorrent {
 namespace dht {
 
 typedef std::vector<char> packet_t;
-/*
+
 namespace messages
 {
 	enum { ping = 0, find_node = 1, get_peers = 2, announce_peer = 3, error = 4 };
@@ -75,12 +74,17 @@ struct msg
 	// the message.
 	udp::endpoint addr;
 	// if this is a nodes response, these are the nodes
+	typedef std::vector<node_entry> nodes_t;
 	nodes_t nodes;
 
+	typedef std::vector<tcp::endpoint> peers_t;
 	peers_t peers;
 	
 	// similar to transaction_id but for write operations.
 	std::string write_token;
+
+	// if non-empty, include the "ip" key in the response
+	std::string ip;
 
 	// the info has for peer_requests, announce_peer
 	// and responses
@@ -93,21 +97,7 @@ struct msg
 	int error_code;
 	std::string error_msg;
 };
-*/
 
-typedef std::vector<node_entry> nodes_t;
-typedef std::vector<tcp::endpoint> peers_t;
-
-struct msg
-{
-	msg(lazy_entry const& m, udp::endpoint const& ep): message(m), addr(ep) {}
-	// the message
-	lazy_entry const& message;
-
-	// the address of the process sending or receiving
-	// the message.
-	udp::endpoint addr;
-};
 
 } }
 

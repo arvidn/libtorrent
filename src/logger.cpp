@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -48,18 +50,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer_request.hpp"
-
-#if TORRENT_USE_IOSTREAM && !defined TORRENT_DISABLE_EXTENSIONS
-
-#include <fstream>
-#include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_connection.hpp"
+
+#if TORRENT_USE_IOSTREAM
 
 namespace libtorrent {
 
-	class peer_connection;
+namespace fs = boost::filesystem;
 
 namespace
 {
@@ -68,11 +65,9 @@ namespace
 	{
 		logger_peer_plugin(std::string const& filename)
 		{
-			error_code ec;
-			std::string dir = complete("libtorrent_ext_logs");
-			if (!exists(dir)) create_directories(dir, ec);
-			m_file.open(combine_path(dir, filename).c_str()
-				, std::ios_base::out | std::ios_base::out);
+			fs::path dir(fs::complete("libtorrent_ext_logs"));
+			if (!fs::exists(dir)) fs::create_directories(dir);
+			m_file.open((dir / filename).string().c_str(), std::ios_base::out | std::ios_base::out);
 			m_file << "\n\n\n";
 			log_timestamp();
 			m_file << "*** starting log ***\n";

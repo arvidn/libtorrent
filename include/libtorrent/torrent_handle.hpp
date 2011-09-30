@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(push, 1)
 #endif
 
-#include <boost/assert.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 
@@ -50,26 +49,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/peer_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/ptime.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/bitfield.hpp"
-#include "libtorrent/socket.hpp" // tcp::endpoint
 
 namespace libtorrent
 {
+	namespace fs = boost::filesystem;
+
 	namespace aux
 	{
 		struct session_impl;
+		struct checker_impl;
 	}
 
 	struct torrent_plugin;
-	struct peer_info;
-	struct peer_list_entry;
-	struct torrent_status;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
@@ -78,359 +75,11 @@ namespace libtorrent
 	void throw_invalid_handle();
 #endif
 
-	struct TORRENT_EXPORT block_info
-	{
-		enum block_state_t
-		{ none, requested, writing, finished };
-
-	private:
-		TORRENT_UNION addr_t
-		{
-			address_v4::bytes_type v4;
-#if TORRENT_USE_IPV6
-			address_v6::bytes_type v6;
-#endif
-		} addr;
-
-		boost::uint16_t port;
-	public:
-
-		void set_peer(tcp::endpoint const& ep)
-		{
-#if TORRENT_USE_IPV6
-			is_v6_addr = ep.address().is_v6();
-			if (is_v6_addr)
-				addr.v6 = ep.address().to_v6().to_bytes();
-			else
-#endif
-				addr.v4 = ep.address().to_v4().to_bytes();
-			port = ep.port();
-		}
-
-		tcp::endpoint peer() const
-		{
-#if TORRENT_USE_IPV6
-			if (is_v6_addr)
-				return tcp::endpoint(address_v6(addr.v6), port);
-			else
-#endif
-				return tcp::endpoint(address_v4(addr.v4), port);
-		}
-
-		// number of bytes downloaded in this block
-		unsigned bytes_progress:15;
-		// the total number of bytes in this block
-		unsigned block_size:15;
-	private:
-		// the type of the addr union
-		unsigned is_v6_addr:1;
-		unsigned unused:1;
-	public:
-		// the state this block is in (see block_state_t)
-		unsigned state:2;
-		// the number of peers that has requested this block
-		// typically 0 or 1. If > 1, this block is in
-		// end game mode
-		unsigned num_peers:14;
-	};
-
-	struct TORRENT_EXPORT partial_piece_info
-	{
-		int piece_index;
-		int blocks_in_piece;
-		// the number of blocks in the finished state
-		int finished;
-		// the number of blocks in the writing state
-		int writing;
-		// the number of blocks in the requested state
-		int requested;
-		block_info* blocks;
-		enum state_t { none, slow, medium, fast };
-		state_t piece_state;
-	};
-
-	struct TORRENT_EXPORT torrent_handle
-	{
-		friend class invariant_access;
-		friend struct aux::session_impl;
-		friend struct feed;
-		friend class torrent;
-
-		torrent_handle() {}
-
-		enum flags_t { overwrite_existing = 1 };
-		void add_piece(int piece, char const* data, int flags = 0) const;
-		void read_piece(int piece) const;
-
-		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
-		void get_peer_info(std::vector<peer_info>& v) const;
-
-		enum status_flags_t
-		{
-			query_distributed_copies = 1,
-			query_accurate_download_counters = 2,
-			query_last_seen_complete = 4,
-			query_pieces = 8,
-			query_verified_pieces = 16
-		};
-
-		// the flags specify which fields are calculated. By default everything
-		// is included, you may save CPU by not querying fields you don't need
-		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
-		void get_download_queue(std::vector<partial_piece_info>& queue) const;
-
-		enum deadline_flags { alert_when_available = 1 };
-		void set_piece_deadline(int index, int deadline, int flags = 0) const;
-		void reset_piece_deadline(int index) const;
-
-		void set_priority(int prio) const;
-		
-#ifndef TORRENT_NO_DEPRECATE
-#if !TORRENT_NO_FPU
-		// fills the specified vector with the download progress [0, 1]
-		// of each file in the torrent. The files are ordered as in
-		// the torrent_info.
-		TORRENT_DEPRECATED_PREFIX
-		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
-#endif
-#endif
-		enum file_progress_flags_t
-		{
-			piece_granularity = 1
-		};
-
-		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
-
-		void clear_error() const;
-
-		std::vector<announce_entry> trackers() const;
-		void replace_trackers(std::vector<announce_entry> const&) const;
-		void add_tracker(announce_entry const&) const;
-
-		void add_url_seed(std::string const& url) const;
-		void remove_url_seed(std::string const& url) const;
-		std::set<std::string> url_seeds() const;
-
-		void add_http_seed(std::string const& url) const;
-		void remove_http_seed(std::string const& url) const;
-		std::set<std::string> http_seeds() const;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
-			, void* userdata = 0);
-#endif
-
-		bool set_metadata(char const* metadata, int size) const;
-		const torrent_info& get_torrent_info() const;
-		bool is_valid() const;
-
-		enum pause_flags_t { graceful_pause = 1 };
-		void pause(int flags = 0) const;
-		void resume() const;
-		void set_upload_mode(bool b) const;
-		void set_share_mode(bool b) const;
-		void flush_cache() const;
-
-		void apply_ip_filter(bool b) const;
-
-		void force_recheck() const;
-
-		enum save_resume_flags_t { flush_disk_cache = 1, save_info_dict = 2 };
-		void save_resume_data(int flags = 0) const;
-		bool need_save_resume_data() const;
-
-		void auto_managed(bool m) const;
-
-		int queue_position() const;
-		void queue_position_up() const;
-		void queue_position_down() const;
-		void queue_position_top() const;
-		void queue_position_bottom() const;
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
-		void resolve_countries(bool r);
-		bool resolve_countries() const;
-#endif
-
-		void set_ssl_certificate(std::string const& certificate
-			, std::string const& private_key
-			, std::string const& dh_params
-			, std::string const& passphrase = "");
-
-		storage_interface* get_storage_impl() const;
-
-		// all these are deprecated, use piece
-		// priority functions instead
-
-		// ================ start deprecation ============
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16. use status() instead
-		TORRENT_DEPRECATED_PREFIX
-		bool is_seed() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_finished() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_paused() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_auto_managed() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_sequential_download() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool has_metadata() const TORRENT_DEPRECATED;
-
-		// deprecated in 0.13
-		// marks the piece with the given index as filtered
-		// it will not be downloaded
-		TORRENT_DEPRECATED_PREFIX
-		void filter_piece(int index, bool filter) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void filter_pieces(std::vector<bool> const& pieces) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_piece_filtered(int index) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::vector<bool> filtered_pieces() const TORRENT_DEPRECATED;
-		// marks the file with the given index as filtered
-		// it will not be downloaded
-		TORRENT_DEPRECATED_PREFIX
-		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
-
-		// ================ end deprecation ============
-#endif
-
-		void piece_availability(std::vector<int>& avail) const;
-		
-		// priority must be within the range [0, 7]
-		void piece_priority(int index, int priority) const;
-		int piece_priority(int index) const;
-
-		void prioritize_pieces(std::vector<int> const& pieces) const;
-		std::vector<int> piece_priorities() const;
-
-		// priority must be within the range [0, 7]
-		void file_priority(int index, int priority) const;
-		int file_priority(int index) const;
-
-		void prioritize_files(std::vector<int> const& files) const;
-		std::vector<int> file_priorities() const;
-
-		// set the interface to bind outgoing connections
-		// to.
-		void use_interface(const char* net_interface) const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.14
-		// use save_resume_data() instead. It is async. and
-		// will return the resume data in an alert
-		TORRENT_DEPRECATED_PREFIX
-		entry write_resume_data() const TORRENT_DEPRECATED;
-#endif
-
-		// forces this torrent to reannounce
-		// (make a rerequest from the tracker)
-		void force_reannounce() const;
-#ifndef TORRENT_DISABLE_DHT
-		// announces this torrent to the DHT immediately
-		void force_dht_announce() const;
-#endif
-
-		// forces a reannounce in the specified amount of time.
-		// This overrides the default announce interval, and no
-		// announce will take place until the given time has
-		// timed out.
-		void force_reannounce(boost::posix_time::time_duration) const;
-
-		// performs a scrape request
-		void scrape_tracker() const;
-
-		// returns the name of this torrent, in case it doesn't
-		// have metadata it returns the name assigned to it
-		// when it was added.
-		std::string name() const;
-
-		// TODO: add a feature where the user can tell the torrent
-		// to finish all pieces currently in the pipeline, and then
-		// abort the torrent.
-
-		void set_upload_limit(int limit) const;
-		int upload_limit() const;
-		void set_download_limit(int limit) const;
-		int download_limit() const;
-
-		void set_sequential_download(bool sd) const;
-
-		int get_peer_upload_limit(tcp::endpoint ip) const;
-		int get_peer_download_limit(tcp::endpoint ip) const;
-		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
-
-		// manually connect a peer
-		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
-
-		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
-		// the ratio is uploaded / downloaded. less than 1 is not allowed
-		void set_ratio(float up_down_ratio) const;
-
-		std::string save_path() const;
-
-		// -1 means unlimited unchokes
-		void set_max_uploads(int max_uploads) const;
-		int max_uploads() const;
-
-		// -1 means unlimited connections
-		void set_max_connections(int max_connections) const;
-		int max_connections() const;
-
-		void set_tracker_login(std::string const& name
-			, std::string const& password) const;
-
-		// post condition: save_path() == save_path if true is returned
-		void move_storage(std::string const& save_path) const;
-		void rename_file(int index, std::string const& new_name) const;
-
-#if TORRENT_USE_WSTRING
-		void move_storage(std::wstring const& save_path) const;
-		void rename_file(int index, std::wstring const& new_name) const;
-#endif
-
-		bool super_seeding() const;
-		void super_seeding(bool on) const;
-
-		sha1_hash info_hash() const;
-
-		bool operator==(const torrent_handle& h) const
-		{ return m_torrent.lock() == h.m_torrent.lock(); }
-
-		bool operator!=(const torrent_handle& h) const
-		{ return m_torrent.lock() != h.m_torrent.lock(); }
-
-		bool operator<(const torrent_handle& h) const
-		{ return m_torrent.lock() < h.m_torrent.lock(); }
-
-	private:
-
-		torrent_handle(boost::weak_ptr<torrent> const& t)
-			: m_torrent(t)
-		{}
-
-#ifdef TORRENT_DEBUG
-		void check_invariant() const;
-#endif
-
-		boost::weak_ptr<torrent> m_torrent;
-
-	};
-
 	struct TORRENT_EXPORT torrent_status
 	{
 		torrent_status()
 			: state(checking_resume_data)
 			, paused(false)
-			, auto_managed(false)
-			, sequential_download(false)
-			, is_seeding(false)
-			, is_finished(false)
-			, has_metadata(false)
 			, progress(0.f)
 			, progress_ppm(0)
 			, total_download(0)
@@ -476,22 +125,8 @@ namespace libtorrent
 			, sparse_regions(0)
 			, seed_mode(false)
 			, upload_mode(false)
-			, share_mode(false)
 			, priority(0)
-			, added_time(0)
-			, completed_time(0)
-			, last_seen_complete(0)
-			, time_since_upload(0)
-			, time_since_download(0)
-			, queue_position(0)
-			, need_save_resume(false)
-			, ip_filter_applies(true)
-			, info_hash(0)
-			, listen_port(0)
 		{}
-
-		// handle to the torrent
-		torrent_handle handle;
 
 		enum state_t
 		{
@@ -507,12 +142,6 @@ namespace libtorrent
 		
 		state_t state;
 		bool paused;
-		bool auto_managed;
-		bool sequential_download;
-		bool is_seeding;
-		bool is_finished;
-		bool has_metadata;
-
 		float progress;
 		// progress parts per million (progress * 1000000)
 		// when disabling floating point operations, this is
@@ -582,7 +211,6 @@ namespace libtorrent
 		int connect_candidates;
 		
 		bitfield pieces;
-		bitfield verified_pieces;
 		
 		// this is the number of pieces the client has
 		// downloaded. it is equal to:
@@ -675,40 +303,317 @@ namespace libtorrent
 		// write operation failing
 		bool upload_mode;
 
-		// this is true if the torrent is in share-mode
-		bool share_mode;
-
 		// the priority of this torrent
 		int priority;
-
-		// the time this torrent was added and completed
-		time_t added_time;
-		time_t completed_time;
-		time_t last_seen_complete;
-
-		// number of seconds since last upload or download activity
-		int time_since_upload;
-		int time_since_download;
-
-		// the position in the download queue where this torrent is
-		// this is -1 for seeds and finished torrents
-		int queue_position;
-
-		// true if this torrent has had changes since the last
-		// time resume data was saved
-		bool need_save_resume;
-
-		// defaults to true. Determines whether the session
-		// IP filter applies to this torrent or not
-		bool ip_filter_applies;
-
-		// the info-hash for this torrent
-		sha1_hash info_hash;
-		
-		// if this torrent has its own listen socket, this is
-		// the port it's listening on. Otherwise it's 0
-		int listen_port;
 	};
+
+	struct TORRENT_EXPORT block_info
+	{
+		enum block_state_t
+		{ none, requested, writing, finished };
+
+	private:
+#ifdef __SUNPRO_CC
+		// sunpro is strict about POD types in unions
+		struct
+#else
+		union
+#endif
+		{
+			address_v4::bytes_type v4;
+			address_v6::bytes_type v6;
+		} addr;
+
+		boost::uint16_t port;
+	public:
+
+		void set_peer(tcp::endpoint const& ep)
+		{
+			is_v6_addr = ep.address().is_v6();
+			if (is_v6_addr)
+				addr.v6 = ep.address().to_v6().to_bytes();
+			else
+				addr.v4 = ep.address().to_v4().to_bytes();
+			port = ep.port();
+		}
+
+		tcp::endpoint peer() const
+		{
+			if (is_v6_addr)
+				return tcp::endpoint(address_v6(addr.v6), port);
+			else
+				return tcp::endpoint(address_v4(addr.v4), port);
+		}
+
+		// number of bytes downloaded in this block
+		unsigned bytes_progress:15;
+		// the total number of bytes in this block
+		unsigned block_size:15;
+	private:
+		// the type of the addr union
+		unsigned is_v6_addr:1;
+		unsigned unused:1;
+	public:
+		// the state this block is in (see block_state_t)
+		unsigned state:2;
+		// the number of peers that has requested this block
+		// typically 0 or 1. If > 1, this block is in
+		// end game mode
+		unsigned num_peers:14;
+	};
+
+	struct TORRENT_EXPORT partial_piece_info
+	{
+		int piece_index;
+		int blocks_in_piece;
+		// the number of blocks in the finished state
+		int finished;
+		// the number of blocks in the writing state
+		int writing;
+		// the number of blocks in the requested state
+		int requested;
+		block_info* blocks;
+		enum state_t { none, slow, medium, fast };
+		state_t piece_state;
+	};
+
+	struct TORRENT_EXPORT torrent_handle
+	{
+		friend class invariant_access;
+		friend struct aux::session_impl;
+		friend class torrent;
+
+		torrent_handle() {}
+
+		enum flags_t { overwrite_existing = 1 };
+		void add_piece(int piece, char const* data, int flags = 0) const;
+		void read_piece(int piece) const;
+
+		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
+		void get_peer_info(std::vector<peer_info>& v) const;
+		torrent_status status() const;
+		void get_download_queue(std::vector<partial_piece_info>& queue) const;
+
+		enum deadline_flags { alert_when_available = 1 };
+		void set_piece_deadline(int index, int deadline, int flags = 0) const;
+		void reset_piece_deadline(int index) const;
+
+		void set_priority(int prio) const;
+		
+#ifndef TORRENT_NO_DEPRECATE
+#if !TORRENT_NO_FPU
+		// fills the specified vector with the download progress [0, 1]
+		// of each file in the torrent. The files are ordered as in
+		// the torrent_info.
+		TORRENT_DEPRECATED_PREFIX
+		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
+#endif
+#endif
+		enum file_progress_flags_t
+		{
+			piece_granularity = 1
+		};
+
+		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
+
+		void clear_error() const;
+
+		std::vector<announce_entry> trackers() const;
+		void replace_trackers(std::vector<announce_entry> const&) const;
+		void add_tracker(announce_entry const&) const;
+
+		void add_url_seed(std::string const& url) const;
+		void remove_url_seed(std::string const& url) const;
+		std::set<std::string> url_seeds() const;
+
+		void add_http_seed(std::string const& url) const;
+		void remove_http_seed(std::string const& url) const;
+		std::set<std::string> http_seeds() const;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+			, void* userdata = 0);
+#endif
+
+		bool has_metadata() const;
+		bool set_metadata(char const* metadata, int size) const;
+		const torrent_info& get_torrent_info() const;
+		bool is_valid() const;
+
+		bool is_seed() const;
+		bool is_finished() const;
+		bool is_paused() const;
+		void pause() const;
+		void resume() const;
+		void set_upload_mode(bool b) const;
+		void flush_cache() const;
+
+		void force_recheck() const;
+		void save_resume_data() const;
+
+		bool is_auto_managed() const;
+		void auto_managed(bool m) const;
+
+		int queue_position() const;
+		void queue_position_up() const;
+		void queue_position_down() const;
+		void queue_position_top() const;
+		void queue_position_bottom() const;
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+		void resolve_countries(bool r);
+		bool resolve_countries() const;
+#endif
+
+		storage_interface* get_storage_impl() const;
+
+		// all these are deprecated, use piece
+		// priority functions instead
+
+		// ================ start deprecation ============
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.13
+		// marks the piece with the given index as filtered
+		// it will not be downloaded
+		TORRENT_DEPRECATED_PREFIX
+		void filter_piece(int index, bool filter) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void filter_pieces(std::vector<bool> const& pieces) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool is_piece_filtered(int index) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		std::vector<bool> filtered_pieces() const TORRENT_DEPRECATED;
+		// marks the file with the given index as filtered
+		// it will not be downloaded
+		TORRENT_DEPRECATED_PREFIX
+		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
+
+		// ================ end deprecation ============
+#endif
+
+		void piece_availability(std::vector<int>& avail) const;
+		
+		// priority must be within the range [0, 7]
+		void piece_priority(int index, int priority) const;
+		int piece_priority(int index) const;
+
+		void prioritize_pieces(std::vector<int> const& pieces) const;
+		std::vector<int> piece_priorities() const;
+
+		// priority must be within the range [0, 7]
+		void file_priority(int index, int priority) const;
+		int file_priority(int index) const;
+
+		void prioritize_files(std::vector<int> const& files) const;
+		std::vector<int> file_priorities() const;
+
+		// set the interface to bind outgoing connections
+		// to.
+		void use_interface(const char* net_interface) const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.14
+		// use save_resume_data() instead. It is async. and
+		// will return the resume data in an alert
+		TORRENT_DEPRECATED_PREFIX
+		entry write_resume_data() const TORRENT_DEPRECATED;
+#endif
+
+		// forces this torrent to reannounce
+		// (make a rerequest from the tracker)
+		void force_reannounce() const;
+#ifndef TORRENT_DISABLE_DHT
+		// announces this torrent to the DHT immediately
+		void force_dht_announce() const;
+#endif
+
+		// forces a reannounce in the specified amount of time.
+		// This overrides the default announce interval, and no
+		// announce will take place until the given time has
+		// timed out.
+		void force_reannounce(boost::posix_time::time_duration) const;
+
+		// performs a scrape request
+		void scrape_tracker() const;
+
+		// returns the name of this torrent, in case it doesn't
+		// have metadata it returns the name assigned to it
+		// when it was added.
+		std::string name() const;
+
+		// TODO: add a feature where the user can tell the torrent
+		// to finish all pieces currently in the pipeline, and then
+		// abort the torrent.
+
+		void set_upload_limit(int limit) const;
+		int upload_limit() const;
+		void set_download_limit(int limit) const;
+		int download_limit() const;
+
+		void set_sequential_download(bool sd) const;
+		bool is_sequential_download() const;
+
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
+
+		// manually connect a peer
+		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+
+		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
+		// the ratio is uploaded / downloaded. less than 1 is not allowed
+		void set_ratio(float up_down_ratio) const;
+
+		fs::path save_path() const;
+
+		// -1 means unlimited unchokes
+		void set_max_uploads(int max_uploads) const;
+		int max_uploads() const;
+
+		// -1 means unlimited connections
+		void set_max_connections(int max_connections) const;
+		int max_connections() const;
+
+		void set_tracker_login(std::string const& name
+			, std::string const& password) const;
+
+		// post condition: save_path() == save_path if true is returned
+		void move_storage(fs::path const& save_path) const;
+		void rename_file(int index, fs::path const& new_name) const;
+
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void move_storage(fs::wpath const& save_path) const;
+		void rename_file(int index, fs::wpath const& new_name) const;
+#endif
+
+		bool super_seeding() const;
+		void super_seeding(bool on) const;
+
+		sha1_hash info_hash() const;
+
+		bool operator==(const torrent_handle& h) const
+		{ return m_torrent.lock() == h.m_torrent.lock(); }
+
+		bool operator!=(const torrent_handle& h) const
+		{ return m_torrent.lock() != h.m_torrent.lock(); }
+
+		bool operator<(const torrent_handle& h) const
+		{ return m_torrent.lock() < h.m_torrent.lock(); }
+
+	private:
+
+		torrent_handle(boost::weak_ptr<torrent> const& t)
+			: m_torrent(t)
+		{}
+
+#ifdef TORRENT_DEBUG
+		void check_invariant() const;
+#endif
+
+		boost::weak_ptr<torrent> m_torrent;
+
+	};
+
 
 }
 

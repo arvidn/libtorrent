@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <string>
 #include <utility>
-#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -65,12 +64,11 @@ namespace libtorrent
 	class TORRENT_EXPORT http_parser
 	{
 	public:
-		enum flags_t { dont_parse_chunks = 1 };
-		http_parser(int flags = 0);
+		http_parser();
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;
-			std::multimap<std::string, std::string>::const_iterator i
+			std::map<std::string, std::string>::const_iterator i
 				= m_header.find(key);
 			if (i == m_header.end()) return empty;
 			return i->second;
@@ -91,36 +89,12 @@ namespace libtorrent
 		std::pair<size_type, size_type> content_range() const
 		{ return std::make_pair(m_range_start, m_range_end); }
 
-		// returns true if this response is using chunked encoding.
-		// in this case the body is split up into chunks. You need
-		// to call parse_chunk_header() for each chunk, starting with
-		// the start of the body.
-		bool chunked_encoding() const { return m_chunked_encoding; }
-
-		// returns false if the buffer doesn't contain a complete
-		// chunk header. In this case, call the function again with
-		// a bigger buffer once more bytes have been received.
-		// chunk_size is filled in with the number of bytes in the
-		// chunk that follows. 0 means the response terminated. In
-		// this case there might be additional headers in the parser
-		// object.
-		// header_size is filled in with the number of bytes the header
-		// itself was. Skip this number of bytes to get to the actual
-		// chunk data.
-		// if the function returns false, the chunk size and header
-		// size may still have been modified, but their values are
-		// undefined
-		bool parse_chunk_header(buffer::const_interval buf
-			, size_type* chunk_size, int* header_size);
-
-		// reset the whole state and start over
 		void reset();
 
-		std::multimap<std::string, std::string> const& headers() const { return m_header; }
-		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
+		std::map<std::string, std::string> const& headers() const { return m_header; }
 		
 	private:
-		size_type m_recv_pos;
+		int m_recv_pos;
 		int m_status_code;
 		std::string m_method;
 		std::string m_path;
@@ -133,29 +107,11 @@ namespace libtorrent
 
 		enum { read_status, read_header, read_body, error_state } m_state;
 
-		std::multimap<std::string, std::string> m_header;
+		std::map<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;
 		int m_body_start_pos;
 
-		bool m_chunked_encoding;
 		bool m_finished;
-
-		// contains offsets of the first and one-past-end of
-		// each chunked range in the response
-		std::vector<std::pair<size_type, size_type> > m_chunked_ranges;
-
-		// while reading a chunk, this is the offset where the
-		// current chunk will end (it refers to the first character
-		// in the chunk tail header or the next chunk header)
-		size_type m_cur_chunk_end;
-
-		// the sum of all chunk headers read so far
-		int m_chunk_header_size;
-
-		int m_partial_chunk_header;
-
-		// controls some behaviors of the parser
-		int m_flags;
 	};
 
 }

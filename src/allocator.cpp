@@ -35,12 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_WINDOWS
-#include <windows.h>
-#elif defined TORRENT_BEOS
-#include <kernel/OS.h>
-#include <stdlib.h> // malloc/free
+#include <Windows.h>
 #else
-#include <stdlib.h> // valloc/free
+#include <stdlib.h>
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
@@ -56,18 +53,12 @@ struct alloc_header
 {
 	libtorrent::size_type size;
 	int magic;
-	char stack[3072];
 };
 
 #endif
 
-#if defined TORRENT_DEBUG_BUFFERS && (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
-	void print_backtrace(char* out, int len);
-#endif
-
 namespace libtorrent
 {
-
 	int page_size()
 	{
 		static int s = 0;
@@ -77,8 +68,6 @@ namespace libtorrent
 		SYSTEM_INFO si;
 		GetSystemInfo(&si);
 		s = si.dwPageSize;
-#elif defined TORRENT_BEOS
-		s = B_PAGE_SIZE;
 #else
 		s = sysconf(_SC_PAGESIZE);
 #endif
@@ -88,21 +77,18 @@ namespace libtorrent
 		return s;
 	}
 
-	char* page_aligned_allocator::malloc(size_type bytes)
+	char* page_aligned_allocator::malloc(const size_type bytes)
 	{
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
-		int num_pages = (bytes + (page-1)) / page + 2;
-		char* ret = (char*)valloc(num_pages * page);
+		char* ret = (char*)valloc(bytes + 2 * page);
 		// make the two surrounding pages non-readable and -writable
+		TORRENT_ASSERT((bytes & (page-1)) == 0);
 		alloc_header* h = (alloc_header*)ret;
 		h->size = bytes;
 		h->magic = 0x1337;
-#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
-		print_backtrace(h->stack, sizeof(h->stack));
-#endif
 		mprotect(ret, page, PROT_READ);
-		mprotect(ret + (num_pages-1) * page, page, PROT_READ);
+		mprotect(ret + page + bytes, page, PROT_READ);
 //		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return ret + page;
@@ -111,19 +97,13 @@ namespace libtorrent
 #if TORRENT_USE_POSIX_MEMALIGN
 		void* ret;
 		if (posix_memalign(&ret, page_size(), bytes) != 0) ret = 0;
-		return (char*)ret;
+		return reinterpret_cast<char*>(ret);
 #elif TORRENT_USE_MEMALIGN
-		return (char*)memalign(page_size(), bytes);
+		return reinterpret_cast<char*>(memalign(page_size(), bytes));
 #elif defined TORRENT_WINDOWS
-		return (char*)VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-#elif defined TORRENT_BEOS
-		void* ret = 0;
-		area_id id = create_area("", &ret, B_ANY_ADDRESS
-			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
-		if (id < B_OK) return 0;
-		return (char*)ret;
+		return reinterpret_cast<char*>(VirtualAlloc(0, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
 #else
-		return (char*)valloc(bytes);
+		return reinterpret_cast<char*>(valloc(bytes));
 #endif
 	}
 
@@ -135,25 +115,18 @@ namespace libtorrent
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
 		alloc_header* h = (alloc_header*)(block - page);
-		int num_pages = (h->size + (page-1)) / page + 2;
+		TORRENT_ASSERT((h->size & (page-1)) == 0);
 		TORRENT_ASSERT(h->magic == 0x1337);
-		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
+		mprotect(block + h->size, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
 
-#if defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050)
-		print_backtrace(h->stack, sizeof(h->stack));
-#endif
 		::free(block - page);
 		return;
 #endif
 
 #ifdef TORRENT_WINDOWS
 		VirtualFree(block, 0, MEM_RELEASE);
-#elif defined TORRENT_BEOS
-		area_id id = area_for(block);
-		if (id < B_OK) return;
-		delete_area(id);
 #else
 		::free(block);
 #endif

@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <set>
-#include <map>
-#include <iostream>
 
 #include "test.hpp"
 
@@ -204,7 +202,7 @@ std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p, c
 {
 	std::vector<piece_block> picked;
 	p->pick_pieces(string2vec(availability), picked, num_blocks, prefer_whole_pieces, peer_struct
-		, state, options, suggested_pieces, 20);
+		, state, options, suggested_pieces);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
 	return picked;
@@ -467,7 +465,7 @@ int test_main()
 	TEST_CHECK(picked.front().piece_index == first.piece_index);
 
 // ========================================================
-/*
+
 	// make sure downloading pieces closer to completion have higher priority
 	// piece 3 has only 1 block from being completed, and should be picked
 	print_title("test downloading piece order");
@@ -476,7 +474,7 @@ int test_main()
 		, options | piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(3, 3));
-*/
+
 // ========================================================
 
 	// test sequential download
@@ -693,26 +691,26 @@ int test_main()
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
-		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector, 20);
+		, piece_picker::fast, piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
 	// don't pick both busy pieces, just one
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
 		, piece_picker::fast, piece_picker::prioritize_partials
-		| piece_picker::rarest_first, empty_vector, 20);
+		| piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, 0
-		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20);
+		, piece_picker::fast, piece_picker::rarest_first, empty_vector);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
-	TEST_EQUAL(picked.size(), 7 * blocks_per_piece - 1);
+	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 
 // ========================================================
 	

@@ -22,12 +22,9 @@
 
 Extensions
 
-* `uTP`_
 * `extensions protocol`_
 * `plugin interface`_
 * `DHT extensions`_
-* `DHT security extension`_
-* `DHT feed extension`_
 * `UDP tracker protocol`_
 * `HTTP seed`_
 * multitracker_
@@ -62,12 +59,9 @@ libtorrent
 .. _`running tests`: running_tests.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
-.. _`uTP`: utp.html
 .. _`extensions protocol`: extension_protocol.html
 .. _`plugin interface`: libtorrent_plugins.html
 .. _`DHT extensions`: dht_extensions.html
-.. _`DHT security extension`: dht_sec.html
-.. _`DHT feed extension`: dht_rss.html
 .. _`UDP tracker protocol`: udp_tracker_protocol.html
 .. _`HTTP seed`: http://www.getright.com/seedtorrent.html
 .. _multitracker: http://bittorrent.org/beps/bep_0012.html
@@ -105,10 +99,10 @@ Support the development of libtorrent
 
 .. raw:: html
 	
-	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
+  	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
 	<noscript><a href="http://flattr.com/thing/95662/libtorrent" target="_blank">
 	<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
-
+  
 
 Feedback
 ========

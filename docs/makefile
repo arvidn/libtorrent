@@ -4,9 +4,6 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
 TARGETS = index \
 	udp_tracker_protocol \
-	dht_rss \
-	dht_store \
-	auth \
 	client_test \
 	manual \
 	building \
@@ -16,15 +13,13 @@ TARGETS = index \
 	extension_protocol \
 	make_torrent \
 	dht_extensions \
-	dht_sec \
 	libtorrent_plugins \
 	python_binding \
 	projects \
 	running_tests \
-	utp \
 	tuning
 
-FIGURES = read_disk_buffers write_disk_buffers troubleshooting
+FIGURES = read_disk_buffers write_disk_buffers
 
 html: $(TARGETS:=.html) $(FIGURES:=.png)
 
@@ -37,10 +32,6 @@ all: html
 
 %.html:%.rst
 	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	cp $@ $(WEB_PATH)/$@
-
-%.png:%.dot
-	dot -Tpng $? >$@
 	cp $@ $(WEB_PATH)/$@
 
 %.eps:%.dot

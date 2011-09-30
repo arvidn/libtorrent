@@ -46,26 +46,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp" // peer_entry
-#include "libtorrent/session_settings.hpp" // proxy_settings
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/peer.hpp"
+#include "libtorrent/config.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/connection_queue.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
-#include "libtorrent/size_type.hpp"
-#include "libtorrent/union_endpoint.hpp"
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
-#endif
 
 namespace libtorrent
 {
@@ -92,10 +89,6 @@ namespace libtorrent
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
-			, apply_ip_filter(true)
-#ifdef TORRENT_USE_OPENSSL
-			, ssl_ctx(0)
-#endif
 		{}
 
 		enum
@@ -109,8 +102,7 @@ namespace libtorrent
 			none,
 			completed,
 			started,
-			stopped,
-			paused
+			stopped
 		};
 
 		sha1_hash info_hash;
@@ -123,17 +115,12 @@ namespace libtorrent
 		unsigned short listen_port;
 		event_t event;
 		std::string url;
-		std::string trackerid;
 		int key;
 		int num_want;
 		std::string ipv6;
 		std::string ipv4;
 		address bind_ip;
 		bool send_stats;
-		bool apply_ip_filter;
-#ifdef TORRENT_USE_OPENSSL
-		boost::asio::ssl::context* ssl_ctx;
-#endif
 	};
 
 	struct TORRENT_EXPORT request_callback
@@ -144,8 +131,7 @@ namespace libtorrent
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
 		virtual void tracker_scrape_response(tracker_request const& /*req*/
-			, int /*complete*/, int /*incomplete*/, int /*downloads*/
-			, int /*downloaders*/) {}
+			, int /*complete*/, int /*incomplete*/, int /*downloads*/) {}
 		virtual void tracker_response(
 			tracker_request const& req
 			, address const& tracker_ip
@@ -155,22 +141,21 @@ namespace libtorrent
 			, int min_interval
 			, int complete
 			, int incomplete
-			, address const& external_ip
-			, std::string const& trackerid) = 0;
+			, address const& external_ip) = 0;
+		virtual void tracker_request_timed_out(
+			tracker_request const& req) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
-			, error_code const& ec
-			, const std::string& msg
+			, const std::string& description
 			, int retry_interval) = 0;
 
-		union_endpoint m_tracker_address;
+		tcp::endpoint m_tracker_address;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line) = 0;
-#else
-	private:
 #endif
+	private:
 		tracker_manager* m_manager;
 	};
 
@@ -188,12 +173,7 @@ namespace libtorrent
 		virtual void on_timeout(error_code const& ec) = 0;
 		virtual ~timeout_handler() {}
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	private:
-#endif
 	
 		void timeout_callback(error_code const&);
 
@@ -211,7 +191,7 @@ namespace libtorrent
 		int m_completion_timeout;
 		int m_read_timeout;
 
-		typedef mutex mutex_t;
+		typedef boost::mutex mutex_t;
 		mutable mutex_t m_mutex;
 		bool m_abort;
 	};
@@ -229,37 +209,19 @@ namespace libtorrent
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail_disp(error_code ec) { fail(ec); }
-		void fail(error_code const& ec, int code = -1, char const* msg = ""
-			, int interval = 0, int min_interval = 0);
+		void fail_disp(int code, std::string const& msg) { fail(code, msg.c_str()); }
+		void fail(int code, char const* msg, int interval = 0, int min_interval = 0);
+		void fail_timeout();
 		virtual void start() = 0;
 		virtual void close();
 		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
-		virtual bool on_receive(error_code const& ec, udp::endpoint const& ep
-			, char const* buf, int size) { return false; }
-		virtual bool on_receive_hostname(error_code const& ec, char const* hostname
-			, char const* buf, int size) { return false; }
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	protected:
-#endif
-
 		boost::weak_ptr<request_callback> m_requester;
-
-		tracker_manager& m_man;
-
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	// necessary for logging member offsets
 	private:
-#endif
-
+		tracker_manager& m_man;
 		const tracker_request m_req;
 	};
 
@@ -288,16 +250,10 @@ namespace libtorrent
 
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
-
-		bool incoming_udp(error_code const& e, udp::endpoint const& ep, char const* buf, int size);
-
-		// this is only used for SOCKS packets, since
-		// they may be addressed to hostname
-		bool incoming_udp(error_code const& e, char const* hostname, char const* buf, int size);
 		
 	private:
 
-		typedef mutex mutex_t;
+		typedef boost::recursive_mutex mutex_t;
 		mutable mutex_t m_mutex;
 
 		typedef std::list<boost::intrusive_ptr<tracker_connection> >

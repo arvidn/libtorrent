@@ -72,15 +72,13 @@ namespace libtorrent
 			, tracker_manager& man
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
-			, aux::session_impl& ses
+			, aux::session_impl const& ses
 			, proxy_settings const& ps);
 
 		void start();
 		void close();
 
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
+#if !defined TORRENT_VERBOSE_LOGGING && !defined TORRENT_LOGGING && !defined TORRENT_ERROR_LOGGING
 	// necessary for logging member offsets
 	private:
 #endif
@@ -96,17 +94,14 @@ namespace libtorrent
 		boost::intrusive_ptr<udp_tracker_connection> self()
 		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void name_lookup(error_code const& error, tcp::resolver::iterator i);
+		void name_lookup(error_code const& error, udp::resolver::iterator i);
 		void timeout(error_code const& error);
-		void start_announce();
 
-		bool on_receive(error_code const& e, udp::endpoint const& ep
+		void on_receive(error_code const& e, udp::endpoint const& ep
 			, char const* buf, int size);
-		bool on_receive_hostname(error_code const& e, char const* hostname
-			, char const* buf, int size);
-		bool on_connect_response(char const* buf, int size);
-		bool on_announce_response(char const* buf, int size);
-		bool on_scrape_response(char const* buf, int size);
+		void on_connect_response(char const* buf, int size);
+		void on_announce_response(char const* buf, int size);
+		void on_scrape_response(char const* buf, int size);
 
 		void send_udp_connect();
 		void send_udp_announce();
@@ -114,15 +109,15 @@ namespace libtorrent
 
 		virtual void on_timeout(error_code const& ec);
 
-//		tracker_manager& m_man;
+		tracker_manager& m_man;
 
-		bool m_abort;
-		std::string m_hostname;
+		udp::resolver m_name_lookup;
+		boost::intrusive_ptr<udp_socket> m_socket;
 		udp::endpoint m_target;
-		std::list<tcp::endpoint> m_endpoints;
+		std::list<udp::endpoint> m_endpoints;
 
 		int m_transaction_id;
-		aux::session_impl& m_ses;
+		aux::session_impl const& m_ses;
 		int m_attempts;
 
 		struct connection_cache_entry
@@ -132,11 +127,9 @@ namespace libtorrent
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
-		static mutex m_cache_mutex;
+		static boost::mutex m_cache_mutex;
 
 		action_t m_state;
-
-		proxy_settings m_proxy;
 	};
 
 }
