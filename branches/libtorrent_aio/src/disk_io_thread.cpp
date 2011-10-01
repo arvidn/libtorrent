@@ -1955,6 +1955,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_hashing_done(disk_io_job* j)
 	{
+		m_hash_thread.hash_job_done();
 		m_disk_cache.hashing_done((cached_piece_entry*)j->buffer
 			, j->piece, j->d.io.offset, m_ios, &m_aiocb_pool);
 		return 0;
@@ -2160,7 +2161,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete);
-		if (m_abort)
+		if (m_abort && j->action != disk_io_job::hash_complete)
 		{
 			m_aiocb_pool.free_job(j);
 			return 0;
@@ -2790,7 +2791,7 @@ namespace libtorrent
 			// jobs, that's why we'll keep looping while m_in_progress
 			// is has jobs in it as well
 		
-		} while (!m_abort || m_in_progress || m_to_issue);
+		} while (!m_abort || m_in_progress || m_to_issue || m_hash_thread.num_pending_jobs());
 
 		m_hash_thread.stop();
 

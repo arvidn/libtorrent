@@ -51,6 +51,9 @@ namespace libtorrent
 		bool async_hash(cached_piece_entry* p, int start, int end);
 		void set_num_threads(int i, bool wait = true);
 
+		int num_pending_jobs() const { return m_outstanding_jobs; }
+		void hash_job_done() { TORRENT_ASSERT(m_outstanding_jobs > 0); --m_outstanding_jobs; }
+
 	private:
 
 		void thread_fun();
@@ -71,6 +74,10 @@ namespace libtorrent
 		mutex m_mutex;
 		condition m_cond;
 		std::deque<hash_queue_entry> m_queue;
+
+		// the number of async. hash jobs that have been issued
+		// and not completed yet
+		int m_outstanding_jobs;
 
 		std::vector<boost::shared_ptr<thread> > m_threads;
 		// this is a counter which is atomically incremented

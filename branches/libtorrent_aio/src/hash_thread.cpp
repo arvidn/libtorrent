@@ -47,6 +47,7 @@ namespace libtorrent
 	hash_thread::hash_thread(disk_io_thread* d)
 		: m_num_threads(0)
 		, m_disk_thread(d)
+		, m_outstanding_jobs(0)
 	{}
 
 	// returns true if the job was submitted for async. processing
@@ -90,6 +91,7 @@ namespace libtorrent
 			mutex::scoped_lock l(m_mutex);
 			m_queue.push_back(e);
 			m_cond.signal_all(l);
+			++m_outstanding_jobs;
 			return true;
 		}
 	}
