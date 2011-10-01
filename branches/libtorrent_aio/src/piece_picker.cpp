@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/alloca.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/peer_connection.hpp"
@@ -990,6 +991,15 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
+		const int size = 50;
+
+		// this is an optimization where if just a few
+		// pieces end up changing, instead of making
+		// the piece list dirty, just update those pieces
+		// instead
+		int* incremented = TORRENT_ALLOCA(int, size);
+		int num_inc = 0;
+
 		int index = 0;
 		bool updated = false;
 		for (bitfield::const_iterator i = bitmask.begin()
@@ -999,7 +1009,31 @@ namespace libtorrent
 			{
 				++m_piece_map[index].peer_count;
 				updated = true;
+				if (num_inc < size) incremented[num_inc] = index;
+				++num_inc;
 			}
+		}
+
+		// if we're already dirty, no point in doing anything more
+		if (m_dirty) return;
+
+		if (num_inc <= size)
+		{
+			// not that many pieces were updated
+			// just update those individually instead of
+			// rebuilding the whole piece list
+			for (int i = 0; i < num_inc; ++i)
+			{
+				int piece = incremented[i];
+				piece_pos& p = m_piece_map[piece];
+				TORRENT_ASSERT(p.peer_count > 0);
+				--p.peer_count;
+				int prev_priority = p.priority(this);
+				++p.peer_count;
+				if (prev_priority >= 0) update(prev_priority, p.index);
+				else add(p.index);
+			}
+			return;
 		}
 
 		if (updated) m_dirty = true;
@@ -1012,6 +1046,15 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
+		const int size = 50;
+
+		// this is an optimization where if just a few
+		// pieces end up changing, instead of making
+		// the piece list dirty, just update those pieces
+		// instead
+		int* decremented = TORRENT_ALLOCA(int, size);
+		int num_dec = 0;
+
 		int index = 0;
 		bool updated = false;
 		for (bitfield::const_iterator i = bitmask.begin()
@@ -1019,9 +1062,33 @@ namespace libtorrent
 		{
 			if (*i)
 			{
+				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
 				--m_piece_map[index].peer_count;
 				updated = true;
+				if (num_dec < size) decremented[num_dec] = index;
+				++num_dec;
 			}
+		}
+
+		// if we're already dirty, no point in doing anything more
+		if (m_dirty) return;
+
+		if (num_dec <= size)
+		{
+			// not that many pieces were updated
+			// just update those individually instead of
+			// rebuilding the whole piece list
+			for (int i = 0; i < num_dec; ++i)
+			{
+				int piece = decremented[i];
+				piece_pos& p = m_piece_map[piece];
+				++p.peer_count;
+				int prev_priority = p.priority(this);
+				TORRENT_ASSERT(p.peer_count > 0);
+				--p.peer_count;
+				if (prev_priority >= 0) update(prev_priority, p.index);
+			}
+			return;
 		}
 
 		if (updated) m_dirty = true;
