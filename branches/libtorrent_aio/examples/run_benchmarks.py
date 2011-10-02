@@ -101,6 +101,11 @@ if not os.path.exists('test.torrent'):
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
 	os.system('./stage_aio/connection_tester gen-torrent 4000 test.torrent')
 
+if not os.path.exists('test2.torrent'):
+	print 'generating test torrent 2'
+	# generate a 100 MB torrent, to make sure it will fit in physical RAM
+	os.system('./stage_aio/connection_tester gen-torrent 100 test2.torrent')
+
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
 port = 10000 + random.randint(0, 5000)
@@ -115,6 +120,7 @@ def clear_caches():
 def build_commandline(config, port):
 
 	num_peers = config['num-peers']
+	torrent_path = config['torrent']
 
 	if config['build'] == 'utorrent':
 		try: os.mkdir('utorrent_session')
@@ -144,7 +150,7 @@ def build_commandline(config, port):
 		cfg.close()
 		try: os.mkdir('utorrent_session/autoload')
 		except: pass
-		try: shutil.copy('test.torrent', 'utorrent_session/autoload/')
+		try: shutil.copy(torrent_path, 'utorrent_session/autoload/')
 		except: pass
 		return './utorrent-server-v3_0/utserver -logfile session_stats/alerts_log.txt -settingspath utorrent_session'
 
@@ -155,15 +161,16 @@ def build_commandline(config, port):
 			try: os.mkdir('rtorrent_session')
 			except: pass
 			# it seems rtorrent may delete the original torrent when it's being added
-			try: shutil.copy('test.torrent', 'rtorrent_session/')
+			try: shutil.copy(torrent_path, 'rtorrent_session/')
 			except: pass
-			add_command = '-O load_start_verbose=rtorrent_session/test.torrent '
+			add_command = '-O load_start_verbose=rtorrent_session/%s ' % torrent_path
 
 		return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s rtorrent_session -O max_memory_usage=128000000000' \
 			% (config['save-path'], port, port, num_peers, num_peers, add_command)
 
-	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -f session_stats/alerts_log.txt test.torrent' \
-		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port)
+	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -f -e %d session_stats/alerts_log.txt %s' \
+		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port, \
+			config['hash-threads'], torrent_path)
 
 def delete_files(files):
 	for i in files:
@@ -176,8 +183,11 @@ def delete_files(files):
 				except: pass
 
 # typically the schedulers available are 'noop', 'deadline' and 'cfq'
-def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, test='upload', build='aio', profile=''):
-	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, 'cache-size': cache_size, 'build': build, 'profile':profile }
+def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, \
+	test='upload', build='aio', profile='', hash_threads=1, torrent='test.torrent'):
+	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, \
+		'cache-size': cache_size, 'build': build, 'profile':profile, \
+		'hash-threads': hash_threads, 'torrent': torrent }
 	return config
 
 def prefix_len(text, prefix):
@@ -213,7 +223,9 @@ def build_target_folder(config):
 
 	io_scheduler = open('/sys/block/%s/queue/scheduler' % device_name(config['save-path'])).read().split('[')[1].split(']')[0]
 
-	return 'results_%s_%s_%d_%d_%s_%s' % (config['build'], test, config['num-peers'], config['cache-size'], os.path.split(config['save-path'])[1], io_scheduler)
+	return 'results_%s_%s_%d_%d_%s_%s_h%d' % (config['build'], test, config['num-peers'], \
+		config['cache-size'], os.path.split(config['save-path'])[1], io_scheduler, \
+		config['hash-threads'])
 
 def find_library(name):
 	paths = ['/usr/lib64/', '/usr/local/lib64/', '/usr/lib/', '/usr/local/lib/']
@@ -284,7 +296,7 @@ def run_test(config):
 	if config['build'] != 'rtorrent' and config['build'] != 'utorrent':
 		print >>client.stdin, 'x',
 	time.sleep(4)
-	cmdline = './stage_aio/connection_tester %s %d 127.0.0.1 %d test.torrent' % (config['test'], config['num-peers'], port)
+	cmdline = './stage_aio/connection_tester %s %d 127.0.0.1 %d %s' % (config['test'], config['num-peers'], port, config['torrent'])
 	print 'launching: %s' % cmdline
 	tester_output = open('session_stats/tester.output', 'w+')
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
@@ -379,6 +391,10 @@ def run_test(config):
 	port += 1
 
 	if terminate: sys.exit(1)
+
+for h in range(0, 5):
+	config = build_test_config(build='aio', test='upload', torrent='test2.torrent')
+	run_test(config)
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
