@@ -1111,6 +1111,7 @@ namespace libtorrent
 		, std::vector<boost::uint8_t> const& file_prio)
 		: m_files(*files)
 		, m_storage(sc(*files, orig_files, save_path, io.files(), file_prio))
+		, m_abort_job(0)
 		, m_storage_mode(sm)
 		, m_storage_constructor(sc)
 		, m_io_thread(io)
@@ -1120,7 +1121,10 @@ namespace libtorrent
 		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
 
-	piece_manager::~piece_manager() {}
+	piece_manager::~piece_manager()
+	{
+		TORRENT_ASSERT(m_abort_job == 0);
+	}
 
 	void piece_manager::async_finalize_file(int file)
 	{
@@ -1204,9 +1208,13 @@ namespace libtorrent
 		m_io_thread.add_job(j);
 	}
 
-	void piece_manager::abort_disk_io()
+	void piece_manager::abort_disk_io(
+		boost::function<void(int, disk_io_job const&)> const& handler)
 	{
-		m_io_thread.stop(this);
+		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::abort_torrent);
+		j->storage = this;
+		j->callback = handler;
+		m_io_thread.add_job(j);
 	}
 
 	void piece_manager::async_delete_files(

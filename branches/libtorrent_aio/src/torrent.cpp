@@ -3817,7 +3817,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// the torrent object from there
 		if (m_owning_storage.get())
 		{
-			m_storage->abort_disk_io();
+			m_storage->abort_disk_io(
+				boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 			m_storage->async_release_files(
 				boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1, _2));
 		}

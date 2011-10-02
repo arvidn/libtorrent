@@ -325,8 +325,6 @@ namespace libtorrent
 		void free_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
 		char* allocate_buffer(char const* category) { return m_disk_cache.allocate_buffer(category); }
 
-		// aborts read operations
-		void stop(boost::intrusive_ptr<piece_manager> s);
 		int add_job(disk_io_job* j, bool high_priority = false);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }

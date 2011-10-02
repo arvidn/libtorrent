@@ -301,6 +301,18 @@ namespace libtorrent
 			f();
 		}
 
+		void set_abort_job(disk_io_job* j)
+		{
+			TORRENT_ASSERT(m_abort_job == 0);
+			m_abort_job = j;
+		}
+		disk_io_job* pop_abort_job()
+		{
+			disk_io_job* j = m_abort_job;
+			m_abort_job = 0;
+			return j;
+		}
+
 		file_storage const* files() const { return &m_files; }
 
 		void async_finalize_file(int file);
@@ -340,7 +352,9 @@ namespace libtorrent
 			boost::function<void(int, disk_io_job const&)> const& handler
 			= boost::function<void(int, disk_io_job const&)>());
 
-		void abort_disk_io();
+		void abort_disk_io(
+			boost::function<void(int, disk_io_job const&)> const& handler
+			= boost::function<void(int, disk_io_job const&)>());
 
 		void async_clear_read_cache(
 			boost::function<void(int, disk_io_job const&)> const& handler
@@ -400,6 +414,13 @@ namespace libtorrent
 		// when set, this storage is blocked for new async
 		// operations
 		boost::function0<void> m_fence_fun;
+
+		// abort jobs synchronize with all pieces being evicted
+		// for a certain torrent. If some pieces cannot be evicted
+		// we have to wait until those pieces are evicted. This
+		// is the abort jobs, waiting for all pieces
+		// for this torrent to be evicted
+		disk_io_job* m_abort_job;
 
 		storage_mode_t m_storage_mode;
 

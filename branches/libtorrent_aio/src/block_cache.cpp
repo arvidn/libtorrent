@@ -666,13 +666,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	DLOG(stderr, "[%p] block_cache mark_done mark-for-deletion: %d "
 		"piece: %d refcount: %d\n", this, int(pe->marked_for_deletion)
 		, int(pe->piece), int(pe->refcount));
-	if (pe->marked_for_deletion && pe->refcount == 0)
-	{
-		TORRENT_ASSERT(p->jobs.empty());
-		cache_piece_index_t& idx = m_pieces.get<0>();
-		free_piece(p);
-		idx.erase(p);
-	}
+
+	maybe_free_piece(p, ios, pool);
 
 	// lower the fence after we deleted the piece from the cache
 	// to avoid inconsistent states when new jobs are issued
@@ -1041,14 +1036,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
-	if (pe->marked_for_deletion && pe->refcount == 0)
-	{
-		DLOG(stderr, "[%p] block_cache hashing_done remove_piece "
-			"piece: %d\n", this, int(pe->piece));
-
-		free_piece(p);
-		idx.erase(p);
-	}
+	maybe_free_piece(p, ios, pool);
 }
 
 void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
@@ -1339,10 +1327,10 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	return j->d.io.buffer_size;
 }
 
-cached_piece_entry* block_cache::reclaim_block(block_cache_reference const& ref)
+void block_cache::reclaim_block(block_cache_reference const& ref, io_service& ios, aiocb_pool* pool)
 {
-	iterator i = find_piece(ref);
-	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+	iterator p = find_piece(ref);
+	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(pe->blocks[ref.block].refcount > 0);
 	TORRENT_ASSERT(pe->blocks[ref.block].buf);
 	--pe->blocks[ref.block].refcount;
@@ -1360,7 +1348,59 @@ cached_piece_entry* block_cache::reclaim_block(block_cache_reference const& ref)
 
 	TORRENT_ASSERT(m_send_buffer_blocks > 0);
 	--m_send_buffer_blocks;
-	return pe;
+
+	maybe_free_piece(p, ios, pool);
+}
+
+bool block_cache::maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool)
+{
+	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+	if (pe->refcount > 0 || !pe->marked_for_deletion) return false;
+
+	boost::intrusive_ptr<piece_manager> s = pe->storage;
+
+	DLOG(stderr, "[%p] block_cache maybe_free_piece "
+		"piece: %d refcount: %d marked_for_deletion: %d\n", this
+		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
+
+	// the refcount just reached 0, are there any sync-jobs to post?
+	// post all the sync jobs
+	disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
+	while (i)
+	{
+		disk_io_job* j = i;
+		i = (disk_io_job*)i->next;
+		j->next = 0;
+		if (j->action == disk_io_job::sync_piece)
+		{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(j->callback_called == false);
+			j->callback_called = true;
+#endif
+			ios.post(boost::bind(&complete_job, pool, 0, j));
+		}
+		else
+			pe->jobs.push_back(j);
+	}
+
+	TORRENT_ASSERT(pe->jobs.size() == 0);
+	bool removed = evict_piece(p);
+	TORRENT_ASSERT(removed);
+	if (!removed) return true;
+
+	std::pair<iterator, iterator> range = pieces_for_storage(s.get());
+	if (range.first != range.second) return true;
+
+	disk_io_job* j = s->pop_abort_job();
+	if (!j) return true;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(j->callback_called == false);
+	j->callback_called = true;
+#endif
+	ios.post(boost::bind(&complete_job, pool, 0, j));
+
+	return true;
 }
 
 block_cache::iterator block_cache::find_piece(block_cache_reference const& ref)

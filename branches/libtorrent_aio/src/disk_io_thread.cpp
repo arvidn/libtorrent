@@ -523,14 +523,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort == true);
 	}
 
-	// aborts read operations
-	void disk_io_thread::stop(boost::intrusive_ptr<piece_manager> s)
-	{
-		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::abort_torrent);
-		j->storage = s;
-		add_job(j);
-	}
-
 	// flush blocks of 'cont_block' contiguous blocks, and if at least 'num'
 	// blocks are flushed, stop.
 	int disk_io_thread::try_flush_contiguous(block_cache::iterator p, int cont_block, int num)
@@ -1787,7 +1779,17 @@ namespace libtorrent
 		if (j->storage->has_fence()) j->storage->lower_fence();
 
 		m_disk_cache.release_memory();
-		return 0;
+
+		std::pair<block_cache::iterator, block_cache::iterator>  range
+			= m_disk_cache.pieces_for_storage(j->storage.get());
+		if (range.first == range.second) return 0;
+
+		// there are some blocks left, we cannot post the completion
+		// for this job yet.
+
+		j->storage->set_abort_job(j);
+
+		return defer_handler;
 	}
 
 	int disk_io_thread::do_update_settings(disk_io_job* j)
@@ -1973,29 +1975,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->d.io.ref.storage);
 		if (j->d.io.ref.block < 0) return 0;
 
-		cached_piece_entry* pe = m_disk_cache.reclaim_block(j->d.io.ref);
-
-		if (pe->refcount > 0) return 0;
-
-		// the refcount just reached 0, are there any sync-jobs to post?
-		// post all the sync jobs
-		disk_io_job* i = (disk_io_job*)pe->jobs.get_all();
-		while (i)
-		{
-			disk_io_job* j = i;
-			i = (disk_io_job*)i->next;
-			j->next = 0;
-			if (j->action == disk_io_job::sync_piece)
-			{
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-				TORRENT_ASSERT(j->callback_called == false);
-				j->callback_called = true;
-#endif
-				m_ios.post(boost::bind(&complete_job, aiocbs(), 0, j));
-			}
-			else
-				pe->jobs.push_back(j);
-		}
+		m_disk_cache.reclaim_block(j->d.io.ref, m_ios, &m_aiocb_pool);
 		return 0;
 	}
 

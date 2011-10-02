@@ -234,7 +234,7 @@ namespace libtorrent
 		typedef cache_piece_index_t::iterator iterator;
 		typedef cache_lru_index_t::iterator lru_iterator;
 
-		cached_piece_entry* reclaim_block(block_cache_reference const& ref);
+		void reclaim_block(block_cache_reference const& ref, io_service& ios, aiocb_pool* pool);
 
 		// returns the range of all pieces that belongs to the
 		// given storage
@@ -269,6 +269,11 @@ namespace libtorrent
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
 		int try_read(disk_io_job* j);
+
+		// if the piece is marked for deletion and has a refcount
+		// of 0, this function will post any sync jobs and
+		// delete the piece from the cache
+		bool maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
