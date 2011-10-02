@@ -1059,6 +1059,7 @@ int main(int argc, char* argv[])
 			"                        previous command line options, so be sure to specify this first\n"
 			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
 			"                        are present and check hashes on-demand)\n"
+			"  -e <num-threads>      specify how many hashing threads to use\n"
 			"\n BITTORRENT OPTIONS\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
@@ -1224,6 +1225,7 @@ int main(int argc, char* argv[])
 			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'G': seed_mode = true; --i; break;
+			case 'e': settings.hashing_threads = atoi(arg); break;
 			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
 			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
 			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
