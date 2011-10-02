@@ -106,7 +106,7 @@ namespace libtorrent
 			while (k < i)
 			{
 				m_threads.push_back(boost::shared_ptr<thread>(
-					new thread(boost::bind(&hash_thread::thread_fun, this))));
+					new thread(boost::bind(&hash_thread::thread_fun, this, k))));
 				++k;
 			}
 		}
@@ -116,10 +116,6 @@ namespace libtorrent
 			mutex::scoped_lock l(m_mutex);
 			m_cond.signal_all(l);
 			l.unlock();
-			// TODO: technically, we can't not wait, since if
-			// we destruct immediately following those threads
-			// may post messages back to the disk thread after
-			// it has been destructed
 			if (wait) for (int i = m_num_threads; i < m_threads.size(); ++i) m_threads[i]->join();
 			// this will detach the threads
 			m_threads.resize(m_num_threads);
@@ -128,10 +124,8 @@ namespace libtorrent
 
 	void hash_thread::stop() { set_num_threads(0, true); }
 
-	void hash_thread::thread_fun()
+	void hash_thread::thread_fun(int thread_id)
 	{
-		int thread_id = (++m_num_threads) - 1;
-	
 		for (;;)
 		{
 			mutex::scoped_lock l(m_mutex);

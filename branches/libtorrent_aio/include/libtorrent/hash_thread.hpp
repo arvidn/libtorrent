@@ -56,7 +56,7 @@ namespace libtorrent
 
 	private:
 
-		void thread_fun();
+		void thread_fun(int thread_id);
 
 		struct hash_queue_entry
 		{
