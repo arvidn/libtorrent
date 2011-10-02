@@ -388,7 +388,7 @@ lib z : : <link>shared <name>z <search>/lib ;
 lib crypto : : <name>crypto <search>/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto ;
 lib dl : : <link>shared <name>dl ;
-lib aio : : <name>aio ;
+lib aio : : <link>shared <name>aio ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
