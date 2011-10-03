@@ -3260,7 +3260,7 @@ ctx->set_verify_callback(verify_function, ec);
 			// if we're not interested already, no need to check
 			if (!p->is_interesting()) continue;
 			// if the peer doesn't have the piece we just got, it
-			// wouldn't affect our interest
+			// shouldn't affect our interest
 			if (!p->has_piece(index)) continue;
 			p->update_interest();
 		}

@@ -1858,6 +1858,14 @@ namespace libtorrent
 
 	}
 
+	bool piece_picker::have_piece(int index) const
+	{
+		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index < int(m_piece_map.size()));
+		piece_pos const& p = m_piece_map[index];
+		return p.index == piece_pos::we_have_index;
+	}
+
 	int piece_picker::blocks_in_piece(int index) const
 	{
 		TORRENT_ASSERT(index >= 0);
@@ -2115,7 +2123,10 @@ namespace libtorrent
 		TORRENT_ASSERT(index < (int)m_piece_map.size());
 		TORRENT_ASSERT(index >= 0);
 
-		int state = m_piece_map[index].state;
+		piece_pos const& p = m_piece_map[index];
+		if (p.index == piece_pos::we_have_index) return true;
+
+		int state = p.state;
 		if (state == piece_pos::piece_open)
 		{
 			TORRENT_ASSERT(find_dl_piece(0, index) == m_downloads[0].end());

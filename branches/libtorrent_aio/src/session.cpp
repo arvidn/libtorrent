@@ -255,7 +255,8 @@ namespace libtorrent
 
 		// the max number of bytes pending write before we throttle
 		// download rate
-		set.max_queued_disk_bytes = 15 * 1024 * 1024;
+// #error this should be implicit by having to wait to allocate disk buffers when we're running low
+		set.max_queued_disk_bytes = 0;
 		// flush write cache in a way to minimize the amount we need to
 		// read back once we want to hash-check the piece. i.e. try to
 		// flush all blocks in-order

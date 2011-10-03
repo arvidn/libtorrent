@@ -236,13 +236,7 @@ namespace libtorrent
 		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
 		int num_pieces() const { return int(m_piece_map.size()); }
 
-		bool have_piece(int index) const
-		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < int(m_piece_map.size()));
-			piece_pos const& p = m_piece_map[index];
-			return p.index == piece_pos::we_have_index;
-		}
+		bool have_piece(int index) const;
 
 		// sets the priority of a piece.
 		// returns true if the priority was changed from 0 to non-0

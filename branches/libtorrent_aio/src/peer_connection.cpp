@@ -597,7 +597,7 @@ namespace libtorrent
 			int num_pieces = p.num_pieces();
 			for (int j = 0; j != num_pieces; ++j)
 			{
-				if (!p.have_piece(j)
+				if (!p.is_piece_finished(j)
 					&& t->piece_priority(j) > 0
 					&& m_have_piece[j])
 				{
@@ -4720,9 +4720,9 @@ namespace libtorrent
 			, int(m_send_buffer.size()), priority
 			, bwc1, bwc2, bwc3, bwc4
 			, (bwc1?bwc1->throttle():0)
-         , (bwc2?bwc2->throttle():0)
-         , (bwc3?bwc3->throttle():0)
-         , (bwc4?bwc4->throttle():0)
+			, (bwc2?bwc2->throttle():0)
+			, (bwc3?bwc3->throttle():0)
+			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
 		return m_ses.m_upload_rate.request_bandwidth(self()
@@ -4746,9 +4746,9 @@ namespace libtorrent
 			, int(m_download_queue.size() * 16 * 1024 + 30), m_priority
 			, bwc1, bwc2, bwc3, bwc4
 			, (bwc1?bwc1->throttle():0)
-         , (bwc2?bwc2->throttle():0)
-         , (bwc3?bwc3->throttle():0)
-         , (bwc4?bwc4->throttle():0)
+			, (bwc2?bwc2->throttle():0)
+			, (bwc3?bwc3->throttle():0)
+			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
 
