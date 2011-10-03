@@ -31,7 +31,7 @@ import hashlib
 
 # variables to test. All these are run on the first
 # entry in the filesystem list.
-cache_sizes = [0, 32768, 130000]
+cache_sizes = [0, 32768, 400000]
 peers = [200, 500, 1000]
 builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
 
@@ -99,12 +99,12 @@ for i in filesystem:
 if not os.path.exists('test.torrent'):
 	print 'generating test torrent'
 	# generate a 100 GB torrent, to make sure it won't all fit in physical RAM
-	os.system('./stage_aio/connection_tester gen-torrent 4000 test.torrent')
+	os.system('./stage_aio/connection_tester gen-torrent 10000 test.torrent')
 
 if not os.path.exists('test2.torrent'):
 	print 'generating test torrent 2'
-	# generate a 100 MB torrent, to make sure it will fit in physical RAM
-	os.system('./stage_aio/connection_tester gen-torrent 100 test2.torrent')
+	# generate a 6 GB torrent, to make sure it will fit in physical RAM
+	os.system('./stage_aio/connection_tester gen-torrent 6000 test2.torrent')
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
@@ -168,7 +168,7 @@ def build_commandline(config, port):
 		return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s rtorrent_session -O max_memory_usage=128000000000' \
 			% (config['save-path'], port, port, num_peers, num_peers, add_command)
 
-	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -f -e %d session_stats/alerts_log.txt %s' \
+	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -e %d -f session_stats/alerts_log.txt %s' \
 		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port, \
 			config['hash-threads'], torrent_path)
 
@@ -274,7 +274,7 @@ def run_test(config):
 	binary = cmdline.split(' ')[0]
 	environment = None
 	if config['profile'] == 'tcmalloc': environment = {'LD_PRELOAD':find_library('libprofiler.so.0'), 'CPUPROFILE': 'session_stats/cpu_profile.prof'}
-	if config['profile'] == 'memory': environment = {'LD_PRELOAD':find_library('libtcmalloc_and_profiler.so.0'), 'HEAPPROFILE': 'session_stats/heap_profile.prof'}
+	if config['profile'] == 'memory': environment = {'LD_PRELOAD':find_library('libprofiler.so.0'), 'HEAPPROFILE': 'session_stats/heap_profile.prof'}
 	if config['profile'] == 'perf': cmdline = 'perf timechart record --call-graph --output=session_stats/perf_profile.prof ' + cmdline
 	f = open('session_stats/cmdline.txt', 'w+')
 	f.write(cmdline)
@@ -393,8 +393,9 @@ def run_test(config):
 	if terminate: sys.exit(1)
 
 for h in range(0, 5):
-	config = build_test_config(build='aio', test='upload', torrent='test2.torrent')
+	config = build_test_config(build='aio', test='upload', torrent='test2.torrent', hash_threads=h)
 	run_test(config)
+sys.exit(0)
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
