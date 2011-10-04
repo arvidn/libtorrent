@@ -102,12 +102,11 @@ namespace libtorrent
 
 		if (i > m_num_threads)
 		{
-			int k = m_num_threads;
-			while (k < i)
+			while (m_num_threads < i)
 			{
 				m_threads.push_back(boost::shared_ptr<thread>(
-					new thread(boost::bind(&hash_thread::thread_fun, this, k))));
-				++k;
+					new thread(boost::bind(&hash_thread::thread_fun, this, int(m_num_threads)))));
+				++m_num_threads;
 			}
 		}
 		else
