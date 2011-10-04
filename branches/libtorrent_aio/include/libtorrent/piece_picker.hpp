@@ -343,7 +343,13 @@ namespace libtorrent
 		// this means that this piece-block can be picked again
 		void abort_download(piece_block block, void* peer = 0);
 
+		// returns true if all blocks in this piece are finished
+		// or if we have the piece
 		bool is_piece_finished(int index) const;
+
+		// returns true if we have the piece or if the piece
+		// has passed the hash check
+		bool has_piece_passed(int index) const;
 
 		// returns the number of blocks there is in the given piece
 		int blocks_in_piece(int index) const;
@@ -426,7 +432,7 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-			unsigned peer_count : 9;
+			boost::uint32_t peer_count : 9;
 
 			// state of this piece.
 			enum state_t
@@ -442,7 +448,7 @@ namespace libtorrent
 				piece_finished
 			};
 
-			unsigned state : 2;
+			boost::uint32_t state : 2;
 
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
@@ -451,9 +457,9 @@ namespace libtorrent
 			// 4 is higher priority than partial pieces
 			// 5 and 6 same priority as availability 1 (ignores availability)
 			// 7 is maximum priority (ignores availability)
-			unsigned piece_priority : 3;
+			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
-			unsigned index : 18;
+			boost::uint32_t index : 18;
 
 			enum
 			{

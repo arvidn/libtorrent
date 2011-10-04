@@ -725,6 +725,8 @@ namespace aux {
 		int temp = 0;
 		int prev_size = 0;
 
+		PRINT_SIZEOF(piece_picker::piece_pos)
+
 		PRINT_SIZEOF(cached_piece_entry)
 		PRINT_OFFSETOF(cached_piece_entry, storage)
 		PRINT_OFFSETOF(cached_piece_entry, hash)

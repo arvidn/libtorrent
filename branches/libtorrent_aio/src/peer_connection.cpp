@@ -597,9 +597,9 @@ namespace libtorrent
 			int num_pieces = p.num_pieces();
 			for (int j = 0; j != num_pieces; ++j)
 			{
-				if (!p.is_piece_finished(j)
+				if (m_have_piece[j]
 					&& t->piece_priority(j) > 0
-					&& m_have_piece[j])
+					&& !p.has_piece_passed(j))
 				{
 					interested = true;
 					break;

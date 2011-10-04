@@ -2152,6 +2152,27 @@ namespace libtorrent
 		return true;
 	}
 
+	bool piece_picker::has_piece_passed(int index) const
+	{
+		TORRENT_ASSERT(index < (int)m_piece_map.size());
+		TORRENT_ASSERT(index >= 0);
+
+		piece_pos const& p = m_piece_map[index];
+		if (p.index == piece_pos::we_have_index) return true;
+
+		int state = p.state;
+		if (state == piece_pos::piece_open)
+		{
+			TORRENT_ASSERT(find_dl_piece(0, index) == m_downloads[0].end());
+			TORRENT_ASSERT(find_dl_piece(1, index) == m_downloads[1].end());
+			TORRENT_ASSERT(find_dl_piece(2, index) == m_downloads[2].end());
+			return false;
+		}
+		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state - 1,index);
+		TORRENT_ASSERT(i != m_downloads[state - 1].end());
+		return i->passed_hash_check;
+	}
+
 	std::vector<piece_picker::downloading_piece>::iterator piece_picker::find_dl_piece(
 		int queue, int index)
 	{
