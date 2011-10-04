@@ -3219,9 +3219,20 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			intrusive_ptr<peer_connection> p = *i;
 			++i;
+
+			// received_piece will check to see if we're still interested
+			// in this peer, and if neither of us is interested in the other,
+			// disconnect it.
+			p->received_piece(index);
+			if (p->is_disconnecting()) continue;
+
+			// if we're not announcing the piece, it means we
+			// already have, and that we might have received
+			// a request for it, and not sending it because
+			// we were waiting to receive the piece, now that
+			// we have received it, try to send stuff (fill_send_buffer)
 			if (announce_piece) p->announce_piece(index);
 			else p->fill_send_buffer();
-			p->received_piece(index);
 		}
 
 		if (settings().max_sparse_regions > 0
