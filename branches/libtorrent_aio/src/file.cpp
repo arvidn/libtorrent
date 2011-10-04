@@ -2794,5 +2794,17 @@ finish:
 
 #endif // TORRENT_USE_IOSUBMIT
 
+#if TORRENT_USE_OVERLAPPED
+	file::aiocb_t* to_aiocb(OVERLAPPED* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, ov)); }
+#elif TORRENT_USE_AIO
+	file::aiocb_t* to_aiocb(aiocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#elif TORRENT_USE_IOSUBMIT \
+	|| TORRENT_USE_IOSUBMIT_VEC
+	file::aiocb_t* to_aiocb(iocb* in)
+	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+#endif
+
 }
 

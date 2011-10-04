@@ -541,15 +541,12 @@ namespace libtorrent
 	// that's why we need to adjust the pointer from the platform specific
 	// pointer into the wrapper, aiocb_t
 #if TORRENT_USE_OVERLAPPED
-	inline file::aiocb_t* to_aiocb(OVERLAPPED* in)
-	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, ov)); }
+	file::aiocb_t* to_aiocb(OVERLAPPED* in);
 #elif TORRENT_USE_AIO
-	inline file::aiocb_t* to_aiocb(aiocb* in)
-	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+	file::aiocb_t* to_aiocb(aiocb* in);
 #elif TORRENT_USE_IOSUBMIT \
 	|| TORRENT_USE_IOSUBMIT_VEC
-	inline file::aiocb_t* to_aiocb(iocb* in)
-	{ return (file::aiocb_t*)(((char*)in) - offsetof(file::aiocb_t, cb)); }
+	file::aiocb_t* to_aiocb(iocb* in);
 #endif
 
 }
