@@ -228,7 +228,7 @@ namespace libtorrent
 			, m_thread3(boost::bind(&submit_queue::worker_fun, this))
 		{}
 
-		mutex m_mutex;
+		mutable mutex m_mutex;
 		condition m_cond;
 		std::vector<iocb*> m_queue;
 		bool m_abort;
@@ -297,7 +297,11 @@ namespace libtorrent
 				l.lock();
 
 				if (num_to_put_back)
+				{
 					m_queue.insert(m_queue.begin(), start, start + num_to_put_back);
+					// wait to be kicked, no point in re-trying immediately
+					m_cond.wait(l);
+				}
 			}
 		}
 	};
