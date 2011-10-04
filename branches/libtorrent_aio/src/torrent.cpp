@@ -4799,6 +4799,7 @@ ctx->set_verify_callback(verify_function, ec);
 			|| ps.type == proxy_settings::http_pw)
 		{
 			// use proxy
+			web->resolving = true;
 			tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 			m_ses.m_host_resolver.async_resolve(q,
 				boost::bind(&torrent::on_proxy_name_lookup, shared_from_this(), _1, _2, web));
@@ -4826,11 +4827,22 @@ ctx->set_verify_callback(verify_function, ec);
 
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(web->resolving == true);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " completed resolve proxy hostname for: " << web->url << "\n";
 		if (e)
 			*m_ses.m_logger << time_now_string() << " on_proxy_name_lookup: " << e.message() << "\n";
 #endif
+		web->resolving = false;
+
+		if (web->removed)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << " removed web seed\n";
+#endif
+			remove_web_seed(web);
+			return;
+		}
 
 		if (m_abort) return;
 

@@ -42,34 +42,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
-void display_pe_policy(libtorrent::pe_settings::enc_policy policy)
+char const* pe_policy(libtorrent::pe_settings::enc_policy policy)
 {
 	using namespace libtorrent;
-	using std::cerr;
 	
-	if (policy == pe_settings::disabled) cerr << "disabled ";
-	else if (policy == pe_settings::enabled) cerr << "enabled ";
-	else if (policy == pe_settings::forced) cerr << "forced ";
+	if (policy == pe_settings::disabled) return "disabled";
+	else if (policy == pe_settings::enabled) return "enabled";
+	else if (policy == pe_settings::forced) return "forced";
+	return "unknown";
 }
 
 void display_pe_settings(libtorrent::pe_settings s)
 {
 	using namespace libtorrent;
-	using std::cerr;
 	
-	cerr << "out_enc_policy - ";
-	display_pe_policy(s.out_enc_policy);
-	cerr << "\tin_enc_policy - ";
-	display_pe_policy(s.in_enc_policy);
+	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
+		, pe_policy(s.out_enc_policy), pe_policy(s.in_enc_policy));
 	
-	cerr << "\nenc_level - ";
-	if (s.allowed_enc_level == pe_settings::plaintext) cerr << "plaintext ";
-	else if (s.allowed_enc_level == pe_settings::rc4) cerr << "rc4 ";
-	else if (s.allowed_enc_level == pe_settings::both) cerr << "both ";
-	
-	cerr << "\t\tprefer_rc4 - ";
-	(s.prefer_rc4) ? cerr << "true" : cerr << "false";
-	cerr << "\n\n";
+	fprintf(stderr, "enc_level - %s\t\tprefer_rc4 - %s\n"
+		, s.allowed_enc_level == pe_settings::plaintext ? "plaintext"
+		: s.allowed_enc_level == pe_settings::rc4 ? "rc4"
+		: s.allowed_enc_level == pe_settings::both ? "both" : "unknown"
+		, s.prefer_rc4 ? "true": "false");
 }
 
 void test_transfer(libtorrent::pe_settings::enc_policy policy,
@@ -77,7 +71,6 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		   bool pref_rc4 = false, bool encrypted_torrent = false)
 {
 	using namespace libtorrent;
-	using std::cerr;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
@@ -95,12 +88,12 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	s.prefer_rc4 = pref_rc4;
 	ses1.set_pe_settings(s);
 
-// 	s = ses1.get_pe_settings();
-// 	cerr << " Session1 \n";
-// 	display_pe_settings(s);
-// 	s = ses2.get_pe_settings();
-// 	cerr << " Session2 \n";
-// 	display_pe_settings(s);
+	s = ses1.get_pe_settings();
+	fprintf(stderr, " Session1 \n");
+	display_pe_settings(s);
+	s = ses2.get_pe_settings();
+	fprintf(stderr, " Session2 \n");
+	display_pe_settings(s);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -109,7 +102,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true
 		, "_pe", 16 * 1024, 0, false, 0, true, encrypted_torrent);	
 
-	std::cerr << "waiting for transfer to complete\n";
+	fprintf(stderr, "waiting for transfer to complete\n");
 
 	for (int i = 0; i < 20; ++i)
 	{
@@ -122,7 +115,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
- 	if (tor2.status().is_seeding) std::cerr << "done\n";
+ 	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
@@ -227,7 +220,7 @@ int test_main()
 
 int test_main()
 {
-	std::cerr << "PE test not run because it's disabled" << std::endl;
+	fprintf(stderr, "PE test not run because it's disabled\n");
 	return 0;
 }
 
