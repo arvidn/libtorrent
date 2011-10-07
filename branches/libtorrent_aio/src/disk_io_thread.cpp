@@ -324,7 +324,6 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
-		, boost::function<void()> const& queue_callback
 		, boost::function<void(alert*)> const& post_alert
 		, int block_size)
 		: m_abort(false)
@@ -335,7 +334,7 @@ namespace libtorrent
 		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
 		, m_hash_thread(this)
-		, m_disk_cache(block_size, m_hash_thread)
+		, m_disk_cache(block_size, m_hash_thread, ios)
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -349,9 +348,7 @@ namespace libtorrent
 		, m_last_phys_off(0)
 #endif
 		, m_physical_ram(0)
-		, m_exceeded_write_queue(false)
 		, m_ios(ios)
-		, m_queue_callback(queue_callback)
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(post_alert)
@@ -482,12 +479,6 @@ namespace libtorrent
 		close(m_disk_event_fd);
 		close(m_job_event_fd);
 #endif
-	}
-
-	bool disk_io_thread::can_write() const
-	{
-		// make this atomic
-		return !m_exceeded_write_queue;
 	}
 
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
@@ -806,10 +797,6 @@ namespace libtorrent
 		DLOG(stderr, "] ret = %d\n", ret);
 #endif
 
-		// did m_queue_buffer_size + m_pending_buffer_size
-		// just exceed the disk queue size limit?
-		added_to_write_queue();
-
 		return ret;
 	}
 
@@ -825,10 +812,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_pending_buffer_size >= to_write);
 		m_pending_buffer_size -= to_write;
-
-		// did m_queue_buffer_size + m_pending_buffer_size
-		// just drop below the disk queue low watermark limit?
-		deducted_from_write_queue();
 
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
@@ -1041,6 +1024,7 @@ namespace libtorrent
 		&disk_io_thread::do_clear_piece,
 		&disk_io_thread::do_sync_piece,
 		&disk_io_thread::do_flush_piece,
+		&disk_io_thread::do_trim_cache,
 	};
 
 	static const char* job_action_name[] =
@@ -1073,12 +1057,19 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j->next == 0);
 
+		int evict = m_disk_cache.num_to_evict(0);
+		if (evict > 0)
+		{
+			evict -= m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+			if (evict > 0) try_flush_write_blocks(evict);
+		}
+
 		DLOG(stderr, "[%p] perform_async_job job: %s piece: %d offset: %d\n"
 			, this, job_action_name[j->action], j->piece, j->d.io.offset);
 		if (j->storage && j->storage->get_storage_impl()->m_settings == 0)
 			j->storage->get_storage_impl()->m_settings = &m_settings;
 
-		TORRENT_ASSERT(j->action >= 0 && j->action < sizeof(job_functions)/sizeof(job_functions[0]));
+		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
 
 		// is the fence up for this storage?
 		if (j->storage && j->storage->has_fence())
@@ -1334,10 +1325,6 @@ namespace libtorrent
 		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
 
 		m_pending_buffer_size += j->d.io.buffer_size;
-
-		// did m_queue_buffer_size + m_pending_buffer_size
-		// just exceed the disk queue size limit?
-		added_to_write_queue();
 
 		async_handler* a = m_aiocb_pool.alloc_handler();
 		if (a == 0)
@@ -1814,7 +1801,6 @@ namespace libtorrent
 
 		m_settings = s;
 		m_file_pool.resize(m_settings.file_pool_size);
-		m_disk_cache.set_settings(m_settings);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 			, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
@@ -1832,8 +1818,8 @@ namespace libtorrent
 			else
 				m_settings.cache_size = m_physical_ram / 8 / block_size;
 		}
+		m_disk_cache.set_settings(m_settings);
 
-		m_disk_cache.set_max_size(m_settings.cache_size);
 		// deduct the writing blocks from the cache size, otherwise we'll flush the
 		// entire cache as soon as we exceed the limit, since all flush operations are
 		// async.
@@ -2053,6 +2039,13 @@ namespace libtorrent
 		return 0;
 	}
 
+	int disk_io_thread::do_trim_cache(disk_io_job* j)
+	{
+		// no need to do anything in here, since perform_async_job() always
+		// trims the cache
+		return 0;
+	}
+
 	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job* j)
 	{
 		int ret = j->d.io.buffer_size;
@@ -2060,10 +2053,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_pending_buffer_size >= j->d.io.buffer_size);
 		m_pending_buffer_size -= j->d.io.buffer_size;
-
-		// did m_queue_buffer_size + m_pending_buffer_size
-		// just drop below the disk queue low watermark limit?
-		deducted_from_write_queue();
 
 		m_disk_cache.free_buffer(j->buffer);
 		j->buffer = 0;
@@ -2161,9 +2150,6 @@ namespace libtorrent
 		if (j->action == disk_io_job::write)
 		{
 			m_queue_buffer_size += j->d.io.buffer_size;
- 			// did m_queue_buffer_size + m_pending_buffer_size
-			// just exceed the disk queue size limit?
-			added_to_write_queue();
 		}
 		int ret = m_queue_buffer_size;
 		// we need to unlock here because writing to the
@@ -2191,37 +2177,6 @@ namespace libtorrent
 		g_job_sem.signal_all();
 #endif
 		return ret;
-	}
-
-	void disk_io_thread::added_to_write_queue()
-	{
-		if (m_exceeded_write_queue) return;
-
-		if (m_pending_buffer_size + m_queue_buffer_size > m_settings.max_queued_disk_bytes
-			&& m_settings.max_queued_disk_bytes > 0)
-		{
-			m_exceeded_write_queue = true;
-		}
-	}
-
-	void disk_io_thread::deducted_from_write_queue()
-	{
-		if (!m_exceeded_write_queue) return;
-
-		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark <= 0
-			|| m_settings.max_queued_disk_bytes_low_watermark >= m_settings.max_queued_disk_bytes
-			? size_type(m_settings.max_queued_disk_bytes) * 7 / 8
-			: m_settings.max_queued_disk_bytes_low_watermark;
-
-		if (m_pending_buffer_size + m_queue_buffer_size < low_watermark
-			|| m_settings.max_queued_disk_bytes == 0)
-		{
-			m_exceeded_write_queue = false;
-			// we just dropped below the high watermark of number of bytes
-			// queued for writing to the disk. Notify the session so that it
-			// can trigger all the connections waiting for this event
-			if (m_queue_callback) m_ios.post(m_queue_callback);
-		}
 	}
 
 #if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE
@@ -2321,7 +2276,6 @@ namespace libtorrent
 			}
 		}
 #endif
-		m_disk_cache.set_max_size(m_settings.cache_size);
 
 #if TORRENT_USE_AIO
 #if defined BOOST_HAS_PTHREADS
@@ -2681,10 +2635,6 @@ namespace libtorrent
 					mutex::scoped_lock l(m_job_mutex);
 					TORRENT_ASSERT(m_queue_buffer_size >= j->d.io.buffer_size);
 					m_queue_buffer_size -= j->d.io.buffer_size;
-
-					// did m_queue_buffer_size + m_pending_buffer_size
-					// just drop below the disk queue low watermark limit?
-					deducted_from_write_queue();
 					l.unlock();
 				}
 	
@@ -2791,10 +2741,24 @@ namespace libtorrent
 #endif
 	}
 
+	char* disk_io_thread::allocate_buffer(bool& exceeded
+		, boost::function<void()> const& cb
+		, char const* category)
+	{
+		bool trigger_trim = false;
+		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, cb, category);
+		if (trigger_trim)
+		{
+			// we just exceeded the cache size limit. Trigger a trim job
+			disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::trim_cache);
+			add_job(j, true);
+		}
+		return ret;
+	}
+
 #ifdef TORRENT_DEBUG
 	void disk_io_thread::check_invariant() const
 	{
-	
 	}
 #endif
 		

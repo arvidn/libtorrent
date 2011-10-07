@@ -129,7 +129,10 @@ namespace libtorrent
 			, allowed_fast_set_size(10)
 			, suggest_mode(no_piece_suggestions)
 			, max_queued_disk_bytes(1024 * 1024)
+#ifndef TORRENT_NO_DEPRECATE
+			// this is no longer used
 			, max_queued_disk_bytes_low_watermark(0)
+#endif
 			, handshake_timeout(10)
 #ifndef TORRENT_DISABLE_DHT
 			, use_dht_as_fallback(false)
@@ -444,24 +447,17 @@ namespace libtorrent
 		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
 		int suggest_mode;
 
-		// the maximum number of bytes a connection may have
-		// pending in the disk write queue before its download
-		// rate is being throttled. This prevents fast downloads
-		// to slow medias to allocate more and more memory
-		// indefinitely. This should be set to at least 16 kB
-		// to not completely disrupt normal downloads. If it's
-		// set to 0, you will be starving the disk thread and
-		// nothing will be written to disk.
-		// this is a per session setting.
+		// this is used to determine how many cache blocks to evict
+		// at a time once the limit is reached. The faster peers are
+		// downloading, and the more peers that are downloading, the
+		// larger this value should be to be efficient. It's specified
+		// in bytes, even though it's rounded to an even block (16kiB)
 		int max_queued_disk_bytes;
 
-		// this is the low watermark for the disk buffer queue.
-		// whenever the number of queued bytes exceed the
-		// max_queued_disk_bytes, libtorrent will wait for
-		// it to drop below this value before issuing more
-		// reads from the sockets. If set to 0, the
-		// low watermark will be half of the max queued disk bytes
+#ifndef TORRENT_NO_DEPRECATE
+		// not used anymore
 		int max_queued_disk_bytes_low_watermark;
+#endif
 
 		// the number of seconds to wait for a handshake
 		// response from a peer. If no response is received

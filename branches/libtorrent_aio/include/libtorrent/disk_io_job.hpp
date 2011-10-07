@@ -99,6 +99,7 @@ namespace libtorrent
 			, clear_piece
 			, sync_piece
 			, flush_piece
+			, trim_cache
 
 			, num_job_ids
 		};

@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/io_service_fwd.hpp"
+#include <boost/function.hpp>
+#include <vector>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
@@ -56,7 +59,7 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
 	{
-		disk_buffer_pool(int block_size);
+		disk_buffer_pool(int block_size, io_service& ios);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		~disk_buffer_pool();
 #endif
@@ -68,6 +71,8 @@ namespace libtorrent
 #endif
 
 		char* allocate_buffer(char const* category);
+		char* allocate_buffer(bool& exceeded, bool& trigger_trim
+			, boost::function<void()> const& cb, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
 
@@ -81,19 +86,44 @@ namespace libtorrent
 		void release_memory();
 
 		boost::uint32_t in_use() const { return m_in_use; }
+		boost::uint32_t num_to_evict(int num_needed = 0) const;
+		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
 		void set_settings(session_settings const& sett);
 
 	protected:
 
 		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
+		char* allocate_buffer_impl(mutex::scoped_lock& l, char const* category);
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
 		const int m_block_size;
 
 		// number of disk buffers currently allocated
-		boost::uint32_t m_in_use;
+		int m_in_use;
+
+		// cache size limit
+		int m_max_use;
+
+		// if we have exceeded the limit, we won't start
+		// allowing allocations again until we drop below
+		// this low watermark
+		int m_low_watermark;
+
+		// if we exceed the max number of buffers, we start
+		// adding up callbacks to this queue. Once the number
+		// of buffers in use drops below the low watermark,
+		// we start calling these functions back
+		std::vector<boost::function<void()> > m_callbacks;
+
+		// set to true to throttle more allocations
+		bool m_exceeded_max_size;
+
+		// this is the main thread io_service. Callbacks are
+		// posted on this in order to have them execute in
+		// the main thread.
+		io_service& m_ios;
 
 	private:
 
@@ -107,6 +137,8 @@ namespace libtorrent
 
 		int m_cache_buffer_chunk_size;
 		bool m_lock_disk_cache;
+
+		void check_usage(mutex::scoped_lock& l);
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;

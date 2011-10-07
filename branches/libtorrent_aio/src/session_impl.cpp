@@ -278,7 +278,6 @@ namespace aux {
 		TORRENT_SETTING(integer, allowed_fast_set_size)
 		TORRENT_SETTING(integer, suggest_mode)
 		TORRENT_SETTING(integer, max_queued_disk_bytes)
-		TORRENT_SETTING(integer, max_queued_disk_bytes_low_watermark)
 		TORRENT_SETTING(integer, handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_SETTING(boolean, use_dht_as_fallback)
@@ -526,7 +525,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size)
-		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this)
+		, m_disk_thread(m_io_service
 			, boost::bind(&session_impl::disk_performance_warning, this, _1))
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
@@ -1104,7 +1103,7 @@ namespace aux {
 			":disk write time"
 			":disk queue time"
 			":disk queue size"
-			":disk queued bytes"
+			":queued disk bytes"
 			":read cache hits"
 			":disk block read"
 			":disk block written"
@@ -1124,8 +1123,7 @@ namespace aux {
 			":cache size"
 			":max connections"
 			":connect candidates"
-			":disk queue limit"
-			":disk queue low watermark"
+			":cache trim low watermark"
 			":% read time"
 			":% write time"
 			":% hash time"
@@ -1800,7 +1798,6 @@ namespace aux {
 			|| m_settings.coalesce_writes != s.coalesce_writes
 			|| m_settings.coalesce_reads != s.coalesce_reads
 			|| m_settings.max_queued_disk_bytes != s.max_queued_disk_bytes
-			|| m_settings.max_queued_disk_bytes_low_watermark != s.max_queued_disk_bytes_low_watermark
 			|| m_settings.disable_hash_checks != s.disable_hash_checks
 			|| m_settings.explicit_read_cache != s.explicit_read_cache
 #ifndef TORRENT_DISABLE_MLOCK
@@ -2700,37 +2697,6 @@ namespace aux {
 		return port;
 	}
 
-	// this function is called every time a write operation completes
-	// from the main thread. outstanding_writes is the number of bytes
-	// pending to be written in the disk thread.d
-	void session_impl::on_disk_queue()
-	{
-		TORRENT_ASSERT(is_network_thread());
-
-		if (!can_write_to_disk()) return;
-
-		// just to play it safe
-		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
-
-		// never loop more times than there are connections
-		// keep in mind that connections may disconnect
-		// while we're looping, that's why this is a reliable
-		// way of limiting it
-		int limit = m_connections.size();
-
-		while (m_next_disk_peer != m_connections.end() && limit > 0 && can_write_to_disk())
-		{
-			--limit;
-			peer_connection* p = m_next_disk_peer->get();
-			++m_next_disk_peer;
-			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
-			if (p->m_channel_state[peer_connection::download_channel]
-				!= peer_info::bw_disk) continue;
-			p->on_disk();
-		}
-
-	}
-
 	// used to cache the current time
 	// every 100 ms. This is cheaper
 	// than a system call and can be
@@ -3500,11 +3466,6 @@ namespace aux {
 
 		}
 
-		int low_watermark = m_settings.max_queued_disk_bytes_low_watermark <= 0
-			|| m_settings.max_queued_disk_bytes_low_watermark >= m_settings.max_queued_disk_bytes
-			? size_type(m_settings.max_queued_disk_bytes) * 7 / 8
-			: m_settings.max_queued_disk_bytes_low_watermark;
-
 		if (now - m_last_log_rotation > hours(1))
 			rotate_stats_log();
 
@@ -3612,8 +3573,7 @@ namespace aux {
 			STAT_LOG(d, m_settings.cache_size);
 			STAT_LOG(d, m_settings.connections_limit);
 			STAT_LOG(d, connect_candidates);
-			STAT_LOG(d, int(m_settings.max_queued_disk_bytes));
-			STAT_LOG(d, low_watermark);
+			STAT_LOG(d, int(m_settings.cache_size - m_settings.max_queued_disk_bytes / 0x4000));
 			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
@@ -5502,6 +5462,13 @@ namespace aux {
 	char* session_impl::allocate_disk_buffer(char const* category)
 	{
 		return m_disk_thread.allocate_buffer(category);
+	}
+	
+	char* session_impl::allocate_disk_buffer(bool& exceeded
+		, boost::function<void()> const& cb
+		, char const* category)
+	{
+		return m_disk_thread.allocate_buffer(exceeded, cb, category);
 	}
 	
 	char* session_impl::allocate_buffer()

@@ -107,9 +107,8 @@ cached_piece_entry::~cached_piece_entry()
 	delete hash;
 }
 
-block_cache::block_cache(int block_size, hash_thread& h)
-	: disk_buffer_pool(block_size)
-	, m_max_size(0)
+block_cache::block_cache(int block_size, hash_thread& h, io_service& ios)
+	: disk_buffer_pool(block_size, ios)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
@@ -188,8 +187,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 
 	// this only evicts read blocks
 
-	if (in_use() + 1 > m_max_size)
-		try_evict_blocks(in_use() + 1 - m_max_size, 1, p);
+	int evict = num_to_evict(1);
+	if (evict > 0) try_evict_blocks(evict, 1, p);
 
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	TORRENT_ASSERT(block < pe->blocks_in_piece);
@@ -435,9 +434,10 @@ int block_cache::allocate_pending(block_cache::iterator p
 		++blocks_to_allocate;
 	}
 
-	if (in_use() + blocks_to_allocate > m_max_size)
+	int evict = num_to_evict(blocks_to_allocate);
+	if (evict > 0)
 	{
-		if (try_evict_blocks(in_use() + blocks_to_allocate - m_max_size, prio, p) > 0
+		if (try_evict_blocks(evict, prio, p) > 0
 			&& prio < 1)
 		{
 			// we couldn't evict enough blocks to make room for this piece

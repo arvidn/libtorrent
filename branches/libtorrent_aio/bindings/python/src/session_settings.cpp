@@ -42,7 +42,10 @@ void bind_session_settings()
         .def_readwrite("num_want", &session_settings::num_want)
         .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
         .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
+#ifndef TORRENT_NO_DEPRECATE
+		  // this is no longer used
         .def_readwrite("max_queued_disk_bytes", &session_settings::max_queued_disk_bytes)
+#endif
         .def_readwrite("handshake_timeout", &session_settings::handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)

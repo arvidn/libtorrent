@@ -207,7 +207,7 @@ namespace libtorrent
 
 	struct block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, hash_thread& h);
+		block_cache(int block_size, hash_thread& h, io_service& ios);
 
 	private:
 
@@ -334,8 +334,6 @@ namespace libtorrent
 
 		void get_stats(cache_status* ret) const;
 
-		void set_max_size(int s) { m_max_size = s; }
-
 		void add_hash_time(time_duration dt, int num_blocks)
 		{
 			TORRENT_ASSERT(num_blocks > 0);
@@ -367,9 +365,6 @@ namespace libtorrent
 
 		// block container
 		cache_t m_pieces;
-
-		// total number of blocks allowed to be cached
-		boost::uint32_t m_max_size;
 
 		// the number of blocks in the cache
 		// that are in the read cache

@@ -4179,8 +4179,7 @@ string.
 bytes per second.
 
 ``pending_disk_bytes`` is the number of bytes this peer has pending in the
-disk-io thread. Downloaded and waiting to be written to disk. This is what
-is capped by ``session_settings::max_queued_disk_bytes``.
+disk-io thread. Downloaded and waiting to be written to disk.
 
 ``send_quota`` and ``receive_quota`` are the number of bytes this peer has been
 assigned to be allowed to send and receive until it has to request more quota

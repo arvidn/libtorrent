@@ -316,7 +316,6 @@ namespace libtorrent
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 
 		disk_io_thread(io_service& ios
-			, boost::function<void()> const& queue_callback
 			, boost::function<void(alert*)> const& post_alert
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
@@ -327,16 +326,27 @@ namespace libtorrent
 		void join();
 
 		void free_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
-		char* allocate_buffer(char const* category) { return m_disk_cache.allocate_buffer(category); }
+		char* allocate_buffer(bool& exceeded, boost::function<void()> const& cb
+			, char const* category);
+		char* allocate_buffer(char const* category)
+		{ return m_disk_cache.allocate_buffer(category); }
 
 		int add_job(disk_io_job* j, bool high_priority = false);
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		block_cache* cache() { return &m_disk_cache; }
 		void thread_fun();
-		bool can_write() const;
 
 		file_pool& files() { return m_file_pool; }
+
+		io_service& get_io_service() { return m_ios; }
+
+		void get_disk_metrics(cache_status& ret) const;
+#ifdef TORRENT_DEBUG
+		void check_invariant() const;
+#endif
+		
+		void pinned_change(int diff) { m_disk_cache.pinned_change(diff); }
 
 		enum return_code_t
 		{
@@ -370,18 +380,9 @@ namespace libtorrent
 		int do_clear_piece(disk_io_job* j);
 		int do_sync_piece(disk_io_job* j);
 		int do_flush_piece(disk_io_job* j);
-
-		void get_disk_metrics(cache_status& ret) const;
-#ifdef TORRENT_DEBUG
-		void check_invariant() const;
-#endif
-		
-		void pinned_change(int diff) { m_disk_cache.pinned_change(diff); }
+		int do_trim_cache(disk_io_job* j);
 
 	private:
-
-		void added_to_write_queue();
-		void deducted_from_write_queue();
 
 		void perform_async_job(disk_io_job* j);
 
@@ -512,17 +513,10 @@ namespace libtorrent
 		// the amount of physical ram in the machine
 		boost::uint64_t m_physical_ram;
 
-		// if we exceeded the max queue disk write size
-		// this is set to true. It remains true until the
-		// queue is smaller than the low watermark
-		bool m_exceeded_write_queue;
-
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
-
-		boost::function<void()> m_queue_callback;
 
 		// Jobs that are blocked by the fence are put in this
 		// list. Each time a storage is taken out of the fence,

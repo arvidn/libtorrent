@@ -2302,7 +2302,19 @@ namespace libtorrent
 
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
-		char* buffer = m_ses.allocate_disk_buffer("receive buffer");
+		bool exceeded = false;
+		char* buffer = m_ses.allocate_disk_buffer(exceeded
+			, boost::bind(&peer_connection::on_disk, self())
+			, "receive buffer");
+
+		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		if (exceeded)
+		{
+			if (m_channel_state[download_channel] != peer_info::bw_disk)
+				m_ses.inc_disk_queue(download_channel);
+			m_channel_state[download_channel] = peer_info::bw_disk;
+		}
+
 		if (buffer == 0)
 		{
 			disconnect(errors::no_memory);
@@ -2524,7 +2536,6 @@ namespace libtorrent
 		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
-		m_ses.add_pending_write_bytes(p.length);
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
 
@@ -2536,16 +2547,6 @@ namespace libtorrent
 			m_ses.m_last_disk_queue_performance_warning = now;
 			t->alerts().post_alert(performance_alert(t->get_handle()
 				, performance_alert::too_high_disk_queue_limit));
-		}
-
-		if (!m_ses.can_write_to_disk()
-			&& m_ses.settings().max_queued_disk_bytes
-			&& t->alerts().should_post<performance_alert>()
-			&& (now - m_ses.m_last_disk_performance_warning) > seconds(10))
-		{
-			m_ses.m_last_disk_performance_warning = now;
-			t->alerts().post_alert(performance_alert(t->get_handle()
-				, performance_alert::outstanding_disk_buffer_limit_reached));
 		}
 
 		if (!m_download_queue.empty())
@@ -3925,12 +3926,25 @@ namespace libtorrent
 		m_disk_recv_buffer.reset();
 		// then allocate a new one
 
-		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer("receive buffer"));
+		bool exceeded = false;
+		m_disk_recv_buffer.reset(m_ses.allocate_disk_buffer(exceeded
+			, boost::bind(&peer_connection::on_disk, self())
+			, "receive buffer"));
+
 		if (!m_disk_recv_buffer)
 		{
 			disconnect(errors::no_memory);
 			return false;
 		}
+
+		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		if (exceeded)
+		{
+			if (m_channel_state[download_channel] != peer_info::bw_disk)
+				m_ses.inc_disk_queue(download_channel);
+			m_channel_state[download_channel] = peer_info::bw_disk;
+		}
+
 		m_disk_recv_buffer_size = disk_buffer_size;
 		return true;
 	}
@@ -4943,14 +4957,14 @@ namespace libtorrent
 			m_channel_state[download_channel] = peer_info::bw_idle;
 		}
 		
-		if (!can_read(&m_channel_state[download_channel]))
+		if (!can_read())
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
 				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
 				, (m_ignore_bandwidth_limits?"yes":"no")
-				, (m_ses.can_write_to_disk()?"yes":"no")
+				, (m_channel_state[download_channel] != peer_info::bw_disk?"yes":"no")
 				, m_ses.settings().max_queued_disk_bytes
 				, (m_disconnecting?"yes":"no"));
 #endif
@@ -5362,7 +5376,7 @@ namespace libtorrent
 			&& !m_connecting;
 	}
 
-	bool peer_connection::can_read(char* state) const
+	bool peer_connection::can_read() const
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
@@ -5370,21 +5384,12 @@ namespace libtorrent
 
 		if (!bw_limit) return false;
 
-		bool disk = m_ses.settings().max_queued_disk_bytes == 0
-			|| m_ses.can_write_to_disk()
+		bool disk = m_channel_state[download_channel] != peer_info::bw_disk
 			// don't block this peer because of disk saturation
 			// if we're not downloading any pieces from it
 			|| m_outstanding_bytes == 0;
 
-		if (!disk)
-		{
-			if (state)
-			{
-				if (*state != peer_info::bw_disk) m_ses.inc_disk_queue(download_channel);
-				*state = peer_info::bw_disk;
-			}
-			return false;
-		}
+		if (!disk) return false;
 
 		return !m_connecting && !m_disconnecting;
 	}

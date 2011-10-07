@@ -454,6 +454,9 @@ namespace libtorrent
 			void free_buffer(char* buf);
 
 			char* allocate_disk_buffer(char const* category);
+			char* allocate_disk_buffer(bool& exceeded
+				, boost::function<void()> const& cb
+				, char const* category);
 			void free_disk_buffer(char* buf);
 
 			// decrement the refcounts for the blocks
@@ -471,23 +474,6 @@ namespace libtorrent
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
-
-			void add_pending_write_bytes(int num)
-			{
-				TORRENT_ASSERT(num >= 0);
-				// #error we need a separate number for the number of bytes we've sent
-				// to the disk thread without having heard anything from yet
-				// this number also needs to decrease every time the job is
-				// received (popped) by the disk thread. Probably an atomic
-				// counter is the most appropriate
-//				m_writing_bytes += num;
-//				if (m_writing_bytes >= m_settings.max_queued_disk_bytes
-//					&& m_settings.max_queued_disk_bytes > 0)
-//					m_exceeded_write_queue = true;
-			}
-
-			bool can_write_to_disk() const
-			{ return m_disk_thread.can_write(); }
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -800,7 +786,6 @@ namespace libtorrent
 			// NAT or not.
 			bool m_incoming_connection;
 			
-			void on_disk_queue();
 			void on_tick(error_code const& e);
 
 			void auto_manage_torrents(std::vector<torrent*>& list

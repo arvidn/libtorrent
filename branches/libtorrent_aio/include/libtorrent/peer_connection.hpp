@@ -289,7 +289,7 @@ namespace libtorrent
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
 		bool can_write() const;
-		bool can_read(char* state = 0) const;
+		bool can_read() const;
 
 		bool is_seed() const;
 		int num_have_pieces() const { return m_num_pieces; }
