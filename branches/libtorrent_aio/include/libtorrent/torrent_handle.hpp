@@ -504,7 +504,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			queued_for_checking,
 #else
-			unused_enum_for_backwards_compatibility
+			unused_enum_for_backwards_compatibility,
 #endif
 			checking_files,
 			downloading_metadata,
