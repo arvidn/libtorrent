@@ -1030,8 +1030,10 @@ namespace libtorrent
 				--p.peer_count;
 				int prev_priority = p.priority(this);
 				++p.peer_count;
-				if (prev_priority >= 0) update(prev_priority, p.index);
-				else add(p.index);
+				int new_priority = p.priority(this);
+				if (prev_priority == new_priority) continue;
+				else if (prev_priority >= 0) update(prev_priority, p.index);
+				else add(piece);
 			}
 			return;
 		}
