@@ -1098,6 +1098,36 @@ namespace libtorrent
 		return new disabled_storage(fs.piece_length());
 	}
 
+	// -- zero_storage ------------------------------------------------------
+
+	file::aiocb_t* zero_storage::async_readv(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, int flags, async_handler* a)
+	{
+		a->transferred = 0;
+		for (int i = 0; i < num_bufs; ++i)
+		{
+			memset(bufs[i].iov_base, 0, bufs[i].iov_len);
+			a->transferred += bufs[i].iov_len;
+		}
+		return 0;
+	}
+
+	file::aiocb_t* zero_storage::async_writev(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, int flags, async_handler* a)
+	{
+		a->transferred = 0;
+		for (int i = 0; i < num_bufs; ++i)
+			a->transferred += bufs[i].iov_len;
+		return 0;
+	}
+
+	storage_interface* zero_storage_constructor(file_storage const& fs
+		, file_storage const* mapped, std::string const& path, file_pool& fp
+		, std::vector<boost::uint8_t> const&)
+	{
+		return new zero_storage;
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(

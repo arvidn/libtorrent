@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <boost/function.hpp>
 #include <string>
+#include <vector>
 
 namespace libtorrent
 {
@@ -65,6 +66,9 @@ namespace libtorrent
 		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
 		, std::vector<boost::uint8_t> const&);
 
+	TORRENT_EXPORT storage_interface* zero_storage_constructor(
+		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
+		, std::vector<boost::uint8_t> const&);
 }
 
 #endif

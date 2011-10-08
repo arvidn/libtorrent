@@ -265,6 +265,28 @@ namespace libtorrent
 		int m_piece_size;
 	};
 
+	// this storage implementation always reads zeroes, and always discards
+	// anything written to it
+	struct zero_storage : storage_interface
+	{
+		virtual void initialize(bool allocate_files, storage_error& ec) {}
+
+		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
+		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, async_handler* a);
+
+		virtual bool has_any_file(storage_error& ec) { return false; }
+		virtual size_type physical_offset(int slot, int offset) { return slot; }
+
+		virtual void move_storage(std::string const& save_path, storage_error& ec) {}
+		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) { return false; }
+		virtual void write_resume_data(entry& rd, storage_error& ec) const {}
+		virtual void release_files(storage_error& ec) {}
+		virtual void rename_file(int index, std::string const& new_filenamem, storage_error& ec) {}
+		virtual void delete_files(storage_error& ec) {}
+	};
+
 	struct disk_io_thread;
 
 	class TORRENT_EXPORT piece_manager
