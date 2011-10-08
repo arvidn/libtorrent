@@ -128,7 +128,8 @@ namespace libtorrent {
 	class TORRENT_EXPORT alert_manager
 	{
 	public:
-		alert_manager(io_service& ios, int queue_limit);
+		alert_manager(io_service& ios, int queue_limit
+			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
 		void post_alert(const alert& alert_);
