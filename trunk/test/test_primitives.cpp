@@ -501,7 +501,7 @@ int test_main()
 
 	// test external ip voting
 	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
-		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, ""
 #endif
@@ -524,7 +524,7 @@ int test_main()
 #endif
 	delete ses;
 	ses = new aux::session_impl(std::pair<int, int>(0,0)
-		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0"
+		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, ""
 #endif

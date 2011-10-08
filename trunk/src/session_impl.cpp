@@ -466,6 +466,7 @@ namespace aux {
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
 		, char const* listen_interface
+		, boost::uint32_t alert_mask
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, std::string const& logpath
 #endif
@@ -482,7 +483,7 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
 #endif
-		, m_alerts(m_io_service, m_settings.alert_queue_size)
+		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
 		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)

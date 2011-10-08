@@ -381,12 +381,11 @@ namespace libtorrent
 	void session::init(std::pair<int, int> listen_range, char const* listen_interface
 		, fingerprint const& id, int flags, boost::uint32_t alert_mask TORRENT_LOGPATH_ARG)
 	{
-		m_impl.reset(new session_impl(listen_range, id, listen_interface TORRENT_LOGPATH));
+		m_impl.reset(new session_impl(listen_range, id, listen_interface, alert_mask TORRENT_LOGPATH));
 
 #ifdef TORRENT_MEMDEBUG
 		start_malloc_debug();
 #endif
-		set_alert_mask(alert_mask);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
