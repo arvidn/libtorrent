@@ -163,7 +163,7 @@ namespace libtorrent
 		session_settings* m_settings;
 	};
 
-	class default_storage : public storage_interface, boost::noncopyable
+	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:
 		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
