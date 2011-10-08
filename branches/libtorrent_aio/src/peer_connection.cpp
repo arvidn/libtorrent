@@ -318,6 +318,7 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
+		, m_outstanding_piece_verification(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
