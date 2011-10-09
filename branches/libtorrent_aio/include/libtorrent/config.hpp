@@ -76,7 +76,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 	TORRENT_USE_IOSUBMIT         - use (linux) io_submit() for I/O
 	  TORRENT_USE_SUBMIT_THREADS - use separate threads for the io_submit()
-	                               call, since it's a blocking call
+	                               call, since it's a blocking call for filesystems
+	                               that don't support AIO. As far as I know,
+	                               xfs is the only one that supports aio properly.
+	  TORRENT_USE_IOSUBMIT_VEC   - used to enable support for PWRITEV and PREADV
+	                               in the io-submit code. Older kernels did not
+	                               support the vector I/O versions
 
 	TORRENT_USE_OVERLAPPED       - use (win32) overlapped I/O and
 	                               IO completion ports
@@ -218,6 +223,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_DEFAULT_IO
 # if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 #  define TORRENT_USE_IOSUBMIT 1
+//  more recent 2.6 kernels support vector I/O
+#   if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+#    define TORRENT_USE_IOSUBMIT_VEC 1
+#   endif
 # else
 #  define TORRENT_USE_AIO 1
 # endif
