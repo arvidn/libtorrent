@@ -37,7 +37,7 @@ builds = ['rtorrent', 'utorrent', 'aio', 'syncio']
 
 # the drives are assumed to be mounted under ./<name>
 # or have symbolic links to them.
-filesystem = ['ext4', 'ext3', 'reiser', 'xfs']
+filesystem = ['xfs', 'ext4', 'ext3', 'reiser']
 default_fs = filesystem[0]
 
 # the number of peers for the filesystem test. The
@@ -108,7 +108,7 @@ if not os.path.exists('test2.torrent'):
 
 # use a new port for each test to make sure they keep working
 # this port is incremented for each test run
-port = 10000 + random.randint(0, 5000)
+port = 10000 + random.randint(0, 40000)
 
 def clear_caches():
 	if 'linux' in sys.platform:
@@ -168,9 +168,11 @@ def build_commandline(config, port):
 		return 'rtorrent -d %s -n -p %d-%d -O max_peers=%d -O max_uploads=%d %s -s rtorrent_session -O max_memory_usage=128000000000' \
 			% (config['save-path'], port, port, num_peers, num_peers, add_command)
 
-	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -e %d -f session_stats/alerts_log.txt %s' \
+	disable_disk = ''
+	if config['disable-disk']: disable_disk = '-0'
+	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -e %d %s -f session_stats/alerts_log.txt %s' \
 		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port, \
-			config['hash-threads'], torrent_path)
+			config['hash-threads'], disable_disk, torrent_path)
 
 def delete_files(files):
 	for i in files:
@@ -184,10 +186,11 @@ def delete_files(files):
 
 # typically the schedulers available are 'noop', 'deadline' and 'cfq'
 def build_test_config(fs=default_fs, num_peers=default_peers, cache_size=default_cache, \
-	test='upload', build='aio', profile='', hash_threads=1, torrent='test.torrent'):
+	test='upload', build='aio', profile='', hash_threads=1, torrent='test.torrent', \
+	disable_disk = False):
 	config = {'test': test, 'save-path': os.path.join('./', fs), 'num-peers': num_peers, \
 		'cache-size': cache_size, 'build': build, 'profile':profile, \
-		'hash-threads': hash_threads, 'torrent': torrent }
+		'hash-threads': hash_threads, 'torrent': torrent, 'disable-disk': disable_disk }
 	return config
 
 def prefix_len(text, prefix):
@@ -223,9 +226,12 @@ def build_target_folder(config):
 
 	io_scheduler = open('/sys/block/%s/queue/scheduler' % device_name(config['save-path'])).read().split('[')[1].split(']')[0]
 
-	return 'results_%s_%s_%d_%d_%s_%s_h%d' % (config['build'], test, config['num-peers'], \
+	no_disk = ''
+	if config['disable-disk']: no_disk = '_no-disk'
+
+	return 'results_%s_%s_%d_%d_%s_%s_h%d%s' % (config['build'], test, config['num-peers'], \
 		config['cache-size'], os.path.split(config['save-path'])[1], io_scheduler, \
-		config['hash-threads'])
+		config['hash-threads'], no_disk)
 
 def find_library(name):
 	paths = ['/usr/lib64/', '/usr/local/lib64/', '/usr/lib/', '/usr/local/lib/']
@@ -354,7 +360,7 @@ def run_test(config):
 	print 'analyzing fragmentation'
 	os.system('./stage_aio/fragmentation_test test.torrent %s' % (config['save-path']))
 	shutil.copy('fragmentation.log', 'session_stats/')
-	shutil.copy('fragmentation.png', 'session_stats/')
+
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
 	shutil.copy('file_access.log', 'session_stats/')
 
@@ -382,7 +388,8 @@ def run_test(config):
 			os.system('%s --pdf %s %s >session_stats/heap_profile_%d.pdf' % (find_binary(['google-pprof', 'pprof']), binary, profile, i))
 	if config['profile'] == 'perf':
 		print 'analyzing CPU profile [%s]' % binary
-		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_report.out')
+		os.system('perf timechart --input=session_stats/perf_profile.prof --output=session_stats/profile_timechart.svg')
+		os.system('perf report --input=session_stats/perf_profile.prof --threads --show-nr-samples --vmlinux vmlinuz-2.6.38-8-generic.bzip >session_stats/profile.txt')
 
 	# move the results into its final place
 	print 'saving results'
@@ -393,13 +400,12 @@ def run_test(config):
 	if terminate: sys.exit(1)
 
 for h in range(0, 5):
-	config = build_test_config(build='aio', test='upload', torrent='test2.torrent', hash_threads=h)
+	config = build_test_config(build='aio', test='upload', torrent='test2.torrent', hash_threads=h, disable_disk=True)
 	run_test(config)
-sys.exit(0)
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
-		config = build_test_config(build=b, test=test, profile='memory')
+		config = build_test_config(build=b, test=test)
 		run_test(config)
 sys.exit(0)
 
