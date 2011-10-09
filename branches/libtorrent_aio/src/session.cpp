@@ -234,7 +234,7 @@ namespace libtorrent
 		// use 1 GB of cache
 		set.cache_size = 32768 * 2;
 		set.use_read_cache = true;
-		set.cache_buffer_chunk_size = 128;
+		set.cache_buffer_chunk_size = 1024;
 		set.read_cache_line_size = 32;
 		set.write_cache_line_size = 32;
 		set.low_prio_disk = false;
