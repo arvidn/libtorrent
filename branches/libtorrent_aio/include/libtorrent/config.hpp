@@ -468,7 +468,9 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if TORRENT_USE_IOSUBMIT && !defined TORRENT_USE_SUBMIT_THREADS
-#define TORRENT_USE_SUBMIT_THREADS 1
+// define this to one if you intend to use io_submit on a filesystem
+// other than XFS (ext3 and ext4 do not support AIO as of linux 2.6.38-8)
+#define TORRENT_USE_SUBMIT_THREADS 0
 #endif
 
 // use io_prep_pwritev and io_prep_preadv. These were never implemented
