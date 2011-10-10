@@ -46,6 +46,10 @@ namespace libtorrent
 	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j)
 		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.d.io.ref)
 	{
+		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece >= 0);
+		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block >= 0);
+		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece < ((piece_manager*)m_ref.storage)->files()->num_pieces());
+		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block <= ((piece_manager*)m_ref.storage)->files()->piece_length() / 0x4000);
 	}
 
 	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, disk_io_job const& j)
@@ -62,6 +66,12 @@ namespace libtorrent
 		else if (m_buf) m_disk_thread.free_buffer(m_buf);
 		m_buf = j.buffer;
 		m_ref = j.d.io.ref;
+
+		TORRENT_ASSERT(m_ref.piece >= 0);
+		TORRENT_ASSERT(m_ref.storage != 0);
+		TORRENT_ASSERT(m_ref.block >= 0);
+		TORRENT_ASSERT(m_ref.piece < ((piece_manager*)m_ref.storage)->files()->num_pieces());
+		TORRENT_ASSERT(m_ref.block <= ((piece_manager*)m_ref.storage)->files()->piece_length() / 0x4000);
 	}
 
 	void disk_buffer_holder::reset(char* buf)

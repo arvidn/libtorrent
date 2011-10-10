@@ -490,6 +490,11 @@ namespace libtorrent
 		// debug builds) and on the most popular systems, these read operations
 		// will most likely be atomic anyway
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::reclaim_block);
+		TORRENT_ASSERT(ref.piece >= 0);
+		TORRENT_ASSERT(ref.storage != 0);
+		TORRENT_ASSERT(ref.block >= 0);
+		TORRENT_ASSERT(ref.piece < ((piece_manager*)ref.storage)->files()->num_pieces());
+		TORRENT_ASSERT(ref.block <= ((piece_manager*)ref.storage)->files()->piece_length() / 0x4000);
 		j->d.io.ref = ref;
 		add_job(j, true);
 	}
@@ -1050,7 +1055,8 @@ namespace libtorrent
 		"reclaim_block",
 		"clear_piece",
 		"sync_piece",
-		"flush_piece"
+		"flush_piece",
+		"trim_cache"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1131,6 +1137,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
+		j->d.io.ref.storage = 0;
 
 		// there's no point in hinting that we will read something
 		// when using async I/O anyway
