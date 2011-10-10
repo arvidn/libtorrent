@@ -224,7 +224,10 @@ def build_target_folder(config):
 	if config['test'] == 'upload': test = 'download'
 	elif config['test'] == 'dual': test = 'dual'
 
-	io_scheduler = open('/sys/block/%s/queue/scheduler' % device_name(config['save-path'])).read().split('[')[1].split(']')[0]
+	if 'linux' in sys.platform:
+		io_scheduler = open('/sys/block/%s/queue/scheduler' % device_name(config['save-path'])).read().split('[')[1].split(']')[0]
+	else:
+		io_scheduler = sys.platform
 
 	no_disk = ''
 	if config['disable-disk']: no_disk = '_no-disk'
