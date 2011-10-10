@@ -2371,9 +2371,9 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_postcondition post_checker_(t);
-#if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		t->check_invariant();
 #endif
 #endif
@@ -2629,7 +2629,7 @@ namespace libtorrent
 		// to disk or are in the disk write cache
 		if (picker.is_piece_finished(p.piece) && !was_finished)
 		{
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 			check_postcondition post_checker2_(t, false);
 #endif
 			t->async_verify_piece(p.piece, boost::bind(&torrent::piece_finished, t
