@@ -1465,7 +1465,7 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
-			if (packet_size() != 1) return;
+			if (packet_size() != 3) return;
 			set_upload_only(detail::read_uint8(recv_buffer.begin));
 			return;
 		}
@@ -1473,7 +1473,7 @@ namespace libtorrent
 		if (extended_id == dont_have_msg)
 		{
 			if (!packet_finished()) return;
-			if (packet_size() != 4) return;
+			if (packet_size() != 6) return;
 			int piece = detail::read_uint32(recv_buffer.begin) != 0;
 			incoming_dont_have(piece);
 			return;
