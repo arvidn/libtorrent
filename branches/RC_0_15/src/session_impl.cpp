@@ -561,7 +561,9 @@ namespace aux {
 		PRINT_OFFSETOF(udp_socket, m_socks5_sock)
 		PRINT_OFFSETOF(udp_socket, m_connection_ticket)
 		PRINT_OFFSETOF(udp_socket, m_proxy_settings)
+#ifdef _MSC_VER
 		PRINT_OFFSETOF(udp_socket, m_cc)
+#endif
 		PRINT_OFFSETOF(udp_socket, m_resolver)
 		PRINT_OFFSETOF(udp_socket, m_tmp_buf)
 		PRINT_OFFSETOF(udp_socket, m_queue_packets)
