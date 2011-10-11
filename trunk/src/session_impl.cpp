@@ -2711,6 +2711,8 @@ namespace aux {
 
 					bandwidth_channel* tcp_channel[] = { &m_tcp_upload_channel, &m_tcp_download_channel };
 					int stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
+					// never throttle below this
+					int lower_limit[] = {5000, 30000};
 
 					for (int i = 0; i < 2; ++i)
 					{
@@ -2725,7 +2727,7 @@ namespace aux {
 							int total_peers = num_peers[0][i] + num_peers[1][i];
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
-							boost::uint64_t rate = (std::max)(stat_rate[i], 20000);
+							boost::uint64_t rate = (std::max)(stat_rate[i], lower_limit[i]);
 							tcp_channel[i]->throttle(int(rate * num_peers[0][i] / total_peers));
 						}
 					}
