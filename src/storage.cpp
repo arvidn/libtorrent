@@ -1536,15 +1536,21 @@ ret:
 		const int num_blocks = (aligned_size + block_size - 1) / block_size;
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
+		size_type actual_file_size = file_handle->get_size(ec);
+		if (ec) return -1;
+
 		// allocate a temporary, aligned, buffer
 		disk_buffer_holder aligned_buf(*disk_pool(), disk_pool()->allocate_buffers(
 			num_blocks, "write scratch"), num_blocks);
 		file::iovec_t b = {aligned_buf.get(), aligned_size};
-		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-		if (ret < 0)
+		if (aligned_start < actual_file_size) // we have something to read
 		{
-			TORRENT_ASSERT(ec);
-			return ret;
+			size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
+			if (ret < 0)
+			{
+				TORRENT_ASSERT(ec);
+				return ret;
+			}
 		}
 
 		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
@@ -1557,7 +1563,7 @@ ret:
 		}
 
 		// write the buffer back to disk
-		ret = file_handle->writev(aligned_start, &b, 1, ec);
+		size_type ret = file_handle->writev(aligned_start, &b, 1, ec);
 
 		if (ret < 0)
 		{
