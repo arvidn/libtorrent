@@ -1,3 +1,5 @@
+	* don't open files in random-access mode (speeds up hashing)
+
 0.15.8 release
 
 	* allow NULL to be passed to create_torrent::set_comment and create_torrent::set_creator
