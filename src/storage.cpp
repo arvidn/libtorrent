@@ -1342,14 +1342,20 @@ ret:
 			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
+		size_type actual_file_size = file_handle->get_size(ec);
+		if (ec) return -1;
+
 		// allocate a temporary, aligned, buffer
 		aligned_holder aligned_buf(aligned_size);
 		file::iovec_t b = {aligned_buf.get(), aligned_size};
-		size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-		if (ret < 0)
+		if (aligned_start < actual_file_size) // we have something to read
 		{
-			TORRENT_ASSERT(ec);
-			return ret;
+			size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
+			if (ret < 0)
+			{
+				TORRENT_ASSERT(ec);
+				return ret;
+			}
 		}
 
 		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
@@ -1362,7 +1368,7 @@ ret:
 		}
 
 		// write the buffer back to disk
-		ret = file_handle->writev(aligned_start, &b, 1, ec);
+		size_type ret = file_handle->writev(aligned_start, &b, 1, ec);
 
 		if (ret < 0)
 		{
