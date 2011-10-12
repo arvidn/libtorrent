@@ -1663,7 +1663,7 @@ namespace libtorrent
 		if (extended_id == upload_only_msg)
 		{
 			if (!packet_finished()) return;
-			if (packet_size() != 1)
+			if (packet_size() != 3)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("<== UPLOAD_ONLY [ ERROR: unexpected packet size: %d ]", packet_size());
@@ -1681,7 +1681,7 @@ namespace libtorrent
 		if (extended_id == share_mode_msg)
 		{
 			if (!packet_finished()) return;
-			if (packet_size() != 1)
+			if (packet_size() != 3)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("<== SHARE_MODE [ ERROR: unexpected packet size: %d ]", packet_size());
@@ -1709,7 +1709,7 @@ namespace libtorrent
 		if (extended_id == dont_have_msg)
 		{
 			if (!packet_finished()) return;
-			if (packet_size() != 4)
+			if (packet_size() != 6)
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("<== DONT_HAVE [ ERROR: unexpected packet size: %d ]", packet_size());

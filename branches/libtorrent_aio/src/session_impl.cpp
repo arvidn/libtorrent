@@ -2821,34 +2821,42 @@ namespace aux {
 				break;
 			case session_settings::peer_proportional:
 				{
-					int num_tcp_peers = 0;
-					int num_peers = 0;
+					int num_peers[2][2] = {{0, 0}, {0, 0}};
 					for (connection_map::iterator i = m_connections.begin()
 						, end(m_connections.end());i != end; ++i)
 					{
 						peer_connection& p = *(*i);
 						if (p.in_handshake()) continue;
-						if (!p.get_socket()->get<utp_stream>()) ++num_tcp_peers;
-						++num_peers;
+						int protocol = 0;
+						if (p.get_socket()->get<utp_stream>()) protocol = 1;
+
+						if (p.download_queue().size() + p.request_queue().size() > 0)
+							++num_peers[protocol][peer_connection::download_channel];
+						if (p.upload_queue().size() > 0)
+							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
-					if (num_peers == 0)
+					bandwidth_channel* tcp_channel[] = { &m_tcp_upload_channel, &m_tcp_download_channel };
+					int stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
+					// never throttle below this
+					int lower_limit[] = {5000, 30000};
+
+					for (int i = 0; i < 2; ++i)
 					{
-						m_tcp_upload_channel.throttle(0);
-						m_tcp_download_channel.throttle(0);
-					}
-					else
-					{
-						if (num_tcp_peers == 0) num_tcp_peers = 1;
-						// these are 64 bits since they are multiplied by the number
-						// of peers, which otherwise might overflow an int
-						boost::uint64_t upload_rate = (std::max)(m_stat.upload_rate(), 20000);
-						boost::uint64_t download_rate = (std::max)(m_stat.download_rate(), 20000);
-						if (m_upload_channel.throttle()) upload_rate = m_upload_channel.throttle();
-						if (m_download_channel.throttle()) download_rate = m_download_channel.throttle();
-						
-						m_tcp_upload_channel.throttle(int(upload_rate * num_tcp_peers / num_peers));
-						m_tcp_download_channel.throttle(int(download_rate * num_tcp_peers / num_peers));
+						// if there are no uploading uTP peers, don't throttle TCP up
+						if (num_peers[1][i] == 0)
+						{
+							tcp_channel[i]->throttle(0);
+						}
+						else
+						{
+							if (num_peers[0][i] == 0) num_peers[0][i] = 1;
+							int total_peers = num_peers[0][i] + num_peers[1][i];
+							// this are 64 bits since it's multiplied by the number
+							// of peers, which otherwise might overflow an int
+							boost::uint64_t rate = (std::max)(stat_rate[i], lower_limit[i]);
+							tcp_channel[i]->throttle(int(rate * num_peers[0][i] / total_peers));
+						}
 					}
 				}
 				break;
