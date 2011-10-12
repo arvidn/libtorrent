@@ -4251,6 +4251,17 @@ namespace aux {
 		return torrent_handle(find_torrent(info_hash));
 	}
 
+	void session_impl::async_add_torrent(add_torrent_params* params)
+	{
+		error_code ec;
+		torrent_handle handle = add_torrent(*params, ec);
+		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
+		delete params->resume_data;
+		free((char*)params->tracker_url);
+		free((char*)params->name);
+		delete params;
+	}
+
 	torrent_handle session_impl::add_torrent(add_torrent_params const& params
 		, error_code& ec)
 	{
