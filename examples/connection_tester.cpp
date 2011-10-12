@@ -442,6 +442,10 @@ void print_usage()
 		"    this command takes two extra arguments:\n"
 		"    1. the torrent file that was previously generated\n"
 		"    2. the path to where the data should be stored\n"
+		"  gen-test-torrents   generate many test torrents (cannot be used for up/down tests)\n"
+		"    1. number of torrents to generate\n"
+		"    2. number of files in each torrent\n"
+		"    3. base name of torrent files (index is appended)\n"
 		"  upload              start an uploader test\n"
 		"  download            start a downloader test\n"
 		"  dual                start a download and upload test\n"
@@ -563,7 +567,7 @@ int main(int argc, char* argv[])
 
 		return 0;
 	}
-	else if (strcmp(argv[1], "gen-torrent") == 0)
+	else if (strcmp(argv[1], "gen-data") == 0)
 	{
 		if (argc != 4) print_usage();
 		error_code ec;
@@ -574,6 +578,55 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 		generate_data(argv[3], ti.num_pieces(), ti.piece_length());
+		return 0;
+	}
+	else if (strcmp(argv[1], "gen-test-torrents") == 0)
+	{
+		if (argc != 5) print_usage();
+	
+		int num_torrents = atoi(argv[2]);
+		int num_files = atoi(argv[3]);
+		char const* name = argv[4];
+		std::vector<char> buf;
+		for (int i = 0; i < num_torrents; ++i)
+		{
+			char torrent_name[100];
+			snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", name, i);
+
+			file_storage fs;
+			for (int j = 0; j < num_files; ++j)
+			{
+				char file_name[100];
+				snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", name, i, j);
+				fs.add_file(file_name, (j + i + 1) * 251);
+			}
+			// 1 MiB piece size
+			const int piece_size = 1024 * 1024;
+			libtorrent::create_torrent t(fs, piece_size);
+			sha1_hash zero(0);
+			for (int i = 0; i < fs.num_pieces(); ++i)
+				t.set_hash(i, zero);
+
+
+			buf.clear();
+			std::back_insert_iterator<std::vector<char> > out(buf);
+			bencode(out, t.generate());
+			FILE* f = fopen(torrent_name, "w+");
+			if (f == 0)
+			{
+				perror("open file");
+				return 1;
+			}
+			size_t ret = fwrite(&buf[0], 1, buf.size(), f);
+			if (ret != buf.size())
+			{
+				fprintf(stderr, "write returned: %d (expected %d)\n", int(ret), int(buf.size()));
+				return 1;
+			}
+			printf("wrote %s\n", torrent_name);
+			fclose(f);
+		}
+		return 0;
 	}
 	else if (strcmp(argv[1], "upload") == 0)
 	{
