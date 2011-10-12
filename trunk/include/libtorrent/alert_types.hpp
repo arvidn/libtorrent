@@ -1294,6 +1294,23 @@ namespace libtorrent
 		tcp::endpoint ip;
 	};
 
+	struct TORRENT_EXPORT add_torrent_alert : torrent_alert
+	{
+		add_torrent_alert(torrent_handle h, add_torrent_params const& p, error_code ec)
+			: torrent_alert(h)
+			, params(p)
+			, error(ec)
+		{}
+
+		TORRENT_DEFINE_ALERT(add_torrent_alert);
+
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		add_torrent_params params;
+		error_code error;
+	};
 
 }
 

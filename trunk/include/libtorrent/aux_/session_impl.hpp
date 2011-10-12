@@ -310,6 +310,7 @@ namespace libtorrent
 			bool is_listening() const;
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
+			void async_add_torrent(add_torrent_params* params);
 
 			void remove_torrent(torrent_handle const& h, int options);
 			void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options);

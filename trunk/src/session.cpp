@@ -610,6 +610,15 @@ namespace libtorrent
 		return r;
 	}
 
+	void session::async_add_torrent(add_torrent_params const& params)
+	{
+		add_torrent_params* p = new add_torrent_params(params);
+		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
+		if (params.tracker_url) p->tracker_url = strdup(params.tracker_url);
+		if (params.name) p->name = strdup(params.name);
+		TORRENT_ASYNC_CALL1(async_add_torrent, p);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	// if the torrent already exists, this will throw duplicate_torrent

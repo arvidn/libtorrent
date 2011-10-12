@@ -661,7 +661,7 @@ using boost::bind;
 // is, it should be remembered so that it can be removed
 // if it's no longer in that directory.
 void add_torrent(libtorrent::session& ses
-	, handles_t& handles
+	, handles_t& files
 	, std::set<libtorrent::torrent_handle>& non_files
 	, std::string const& torrent
 	, float preferred_ratio
@@ -702,22 +702,16 @@ void add_torrent(libtorrent::session& ses
 	p.paused = true;
 	p.duplicate_is_error = false;
 	p.auto_managed = true;
-	torrent_handle h = ses.add_torrent(p, ec);
-	if (ec)
+	if (monitored_dir)
 	{
-		fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
+		p.userdata = (void*)strdup(torrent.c_str());
+		ses.async_add_torrent(p);
 		return;
 	}
 
-	if (monitored_dir)
-	{
-		handles.insert(std::pair<const std::string, torrent_handle>(
-			torrent, h));
-	}
-	else
-	{
-		non_files.insert(h);
-	}
+	torrent_handle h = ses.add_torrent(p, ec);
+
+	non_files.insert(h);
 
 	h.set_max_connections(max_connections_per_torrent);
 	h.set_max_uploads(-1);
@@ -846,7 +840,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 }
 
 void handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t const& files, std::set<libtorrent::torrent_handle> const& non_files)
+	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files)
 {
 	using namespace libtorrent;
 
@@ -884,7 +878,33 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
-	if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
+	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
+	{
+		std::string filename = (char*)p->params.userdata;
+		free(p->params.userdata);
+
+		if (p->error)
+		{
+			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str(), p->error.message().c_str());
+		}
+		else
+		{
+			torrent_handle h = p->handle;
+
+			files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+
+			h.set_max_connections(max_connections_per_torrent);
+			h.set_max_uploads(-1);
+			h.set_ratio(preferred_ratio);
+			h.set_upload_limit(torrent_upload_limit);
+			h.set_download_limit(torrent_download_limit);
+			h.use_interface(outgoing_interface.c_str());
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
+			h.resolve_countries(true);
+#endif
+		}
+	}
+	else if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
 	{
 		p->handle.set_max_connections(max_connections_per_torrent / 2);
 
