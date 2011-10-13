@@ -340,31 +340,59 @@ namespace libtorrent
 
 	void default_storage::initialize(bool allocate_files, storage_error& ec)
 	{
+		if (m_stat_cache.empty()) m_stat_cache.reserve(files().num_files());
+
 		m_allocate_files = allocate_files;
 		// first, create all missing directories
 		std::string last_path;
+		int file_index = 0;
+		std::string file_path;
 		for (file_storage::iterator file_iter = files().begin(),
-			end_iter = files().end(); file_iter != end_iter; ++file_iter)
+			end_iter = files().end(); file_iter != end_iter; ++file_iter, ++file_index)
 		{
-			int file_index = files().file_index(*file_iter);
-
 			// ignore files that have priority 0
 			if (int(m_file_priority.size()) > file_index
-				&& m_file_priority[file_index] == 0) continue;
+				&& m_file_priority[file_index] == 0)
+			{
+				if (m_stat_cache.size() < file_index)
+				{
+					TORRENT_ASSERT(m_stat_cache.size() == file_index);
+					m_stat_cache.push_back(-2);
+				}
+				continue;
+			}
 
 			// ignore pad files
-			if (file_iter->pad_file) continue;
-
-			std::string file_path = combine_path(m_save_path, files().file_path(*file_iter));
-
-			file_status s;
-			stat_file(file_path, &s, ec.ec);
-			if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
-				&& ec.ec != boost::system::errc::not_a_directory)
+			if (file_iter->pad_file)
 			{
-				ec.file = file_iter - files().begin();
-				ec.operation = storage_error::stat;
-				break;
+				if (m_stat_cache.size() < file_index)
+				{
+					TORRENT_ASSERT(m_stat_cache.size() == file_index);
+					m_stat_cache.push_back(-2);
+				}
+				continue;
+			}
+
+			if (m_stat_cache.size() <= file_index)
+			{
+				file_path = combine_path(m_save_path, files().file_path(*file_iter));
+
+				file_status s;
+				stat_file(file_path, &s, ec.ec);
+				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
+					&& ec.ec != boost::system::errc::not_a_directory)
+				{
+					if (m_stat_cache.size() < file_index)
+					{
+						TORRENT_ASSERT(m_stat_cache.size() == file_index);
+						m_stat_cache.push_back(-1);
+					}
+					ec.file = file_index;
+					ec.operation = storage_error::stat;
+					break;
+				}
+				TORRENT_ASSERT(m_stat_cache.size() == file_index);
+				m_stat_cache.push_back(s.file_size);
 			}
 
 			// ec is either ENOENT or the file existed and s is valid
@@ -373,7 +401,7 @@ namespace libtorrent
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
 			if ((ec && allocate_files)
-				|| (!ec && s.file_size > file_iter->size)
+				|| (!ec && m_stat_cache[file_index] > file_iter->size)
 				|| file_iter->size == 0)
 			{
 				std::string dir = parent_path(file_path);
@@ -385,7 +413,7 @@ namespace libtorrent
 					create_directories(last_path, ec.ec);
 					if (ec.ec)
 					{
-						ec.file = file_iter - files().begin();
+						ec.file = file_index;
 						ec.operation = storage_error::mkdir;
 						break;
 					}
@@ -395,7 +423,7 @@ namespace libtorrent
 				if (!ec.ec && f) f->set_size(file_iter->size, ec.ec);
 				if (ec)
 				{
-					ec.file = file_iter - files().begin();
+					ec.file = file_index;
 					ec.operation = storage_error::open;
 					break;
 				}
@@ -429,11 +457,22 @@ namespace libtorrent
 		file_storage::iterator i = files().begin();
 		file_storage::iterator end = files().end();
 
-		for (; i != end; ++i)
+		if (m_stat_cache.empty()) m_stat_cache.reserve(files().num_files());
+
+		std::string file_path;
+		int index = 0;
+		for (; i != end; ++i, ++index)
 		{
 			file_status s;
-			std::string file_path = combine_path(m_save_path, files().file_path(*i));
-			stat_file(file_path, &s, ec.ec);
+			if (m_stat_cache.size() <= index || m_stat_cache[index] == -2)
+			{
+				TORRENT_ASSERT(m_stat_cache.size() == index);
+				file_path = combine_path(m_save_path, files().file_path(*i));
+				stat_file(file_path, &s, ec.ec);
+				size_type r = s.file_size;
+				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
+				m_stat_cache.push_back(r);
+			}
 	
 			// if we didn't find the file, check the next one
 			if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
@@ -442,13 +481,16 @@ namespace libtorrent
 				continue;
 			}
 
+			if (m_stat_cache[index] == -1) continue;
+
 			if (ec)
 			{
-				ec.file = i - files().begin();
+				ec.file = index;
 				ec.operation = storage_error::stat;
 				return false;
 			}
-			if (s.mode & file_status::regular_file && i->size > 0)
+
+			if (m_stat_cache[index] > 0)
 				return true;
 		}
 		return false;

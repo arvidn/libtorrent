@@ -219,6 +219,15 @@ namespace libtorrent
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
+		// in order to avoid calling stat() on each file multiple times
+		// during startup, cache the results in here, and clear it all
+		// out once the torrent starts (to avoid getting stale results)
+		// each slot represents the size of the file
+		// -1 means error
+		// -2 means no data (i.e. if we want to stat the file, we should
+		//    do it and fill in this slot)
+		std::vector<size_type> m_stat_cache;
+
 		// helper function to open a file in the file pool with the right mode
 		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode
 			, int flags, error_code& ec) const;
