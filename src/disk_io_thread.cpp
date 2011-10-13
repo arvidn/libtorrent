@@ -527,19 +527,22 @@ namespace libtorrent
 		else if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
 		{
 			cache_lru_index_t& idx = m_pieces.get<1>();
-			for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end(); ++i)
+			for (cache_lru_index_t::iterator i = idx.begin(); i != idx.end();)
 			{
 				cached_piece_entry& p = const_cast<cached_piece_entry&>(*i);
-				if (!i->blocks[i->next_block_to_hash].buf) continue;
-				int piece_size = i->storage->info()->piece_size(i->piece);
+				cache_lru_index_t::iterator piece = i;
+				++i;
+
+				if (!piece->blocks[p.next_block_to_hash].buf) continue;
+				int piece_size = p.storage->info()->piece_size(p.piece);
 				int blocks_in_piece = (piece_size + m_block_size - 1) / m_block_size;
-				int start = i->next_block_to_hash;
+				int start = p.next_block_to_hash;
 				int end = start + 1;
-				while (end < blocks_in_piece && i->blocks[end].buf) ++end;
+				while (end < blocks_in_piece && p.blocks[end].buf) ++end;
 				tmp = flush_range(p, start, end, l);
 				p.num_contiguous_blocks = contiguous_blocks(p);
-				if (i->num_blocks == 0 && i->next_block_to_hash == blocks_in_piece)
-					idx.erase(i);
+				if (p.num_blocks == 0 && p.next_block_to_hash == blocks_in_piece)
+					idx.erase(piece);
 				blocks -= tmp;
 				ret += tmp;
 				if (blocks <= 0) break;
