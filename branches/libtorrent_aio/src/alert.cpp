@@ -588,5 +588,19 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string add_torrent_alert::message() const
+	{
+		char msg[600];
+		if (error)
+		{
+			snprintf(msg, sizeof(msg), "failed to add torrent: %s", error.message().c_str());
+		}
+		else
+		{
+			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
+		}
+		return msg;
+	}
+
 } // namespace libtorrent
 

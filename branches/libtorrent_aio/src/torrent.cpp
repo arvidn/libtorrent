@@ -4298,13 +4298,15 @@ ctx->set_verify_callback(verify_function, ec);
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
-		for (int i = 0; i < int(m_file_priority.size()); ++i)
+		int index = 0;
+		for (file_storage::iterator i = m_torrent_file->files().begin()
+			, end(m_torrent_file->files().end()); i != end; ++i, ++index)
 		{
 			size_type start = position;
-			size_type size = m_torrent_file->files().at(i).size;
+			size_type size = m_torrent_file->files().file_size(*i);
 			if (size == 0) continue;
 			position += size;
-			if (m_file_priority[i] == 0) continue;
+			if (m_file_priority[index] == 0) continue;
 
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
@@ -4316,7 +4318,7 @@ ctx->set_verify_callback(verify_function, ec);
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, boost::bind(&set_if_greater, _1, m_file_priority[i]));
+				, boost::bind(&set_if_greater, _1, m_file_priority[index]));
 		}
 		prioritize_pieces(pieces);
 	}

@@ -275,6 +275,11 @@ namespace libtorrent
 		return combine_path(m_paths[fe.path_index], fe.filename());
 	}
 
+	size_type file_storage::file_size(internal_file_entry const& fe) const
+	{
+		return fe.size;
+	}
+
 	peer_request file_storage::map_file(int file_index, size_type file_offset
 		, int size) const
 	{
