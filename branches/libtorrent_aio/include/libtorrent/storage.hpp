@@ -222,11 +222,19 @@ namespace libtorrent
 		// in order to avoid calling stat() on each file multiple times
 		// during startup, cache the results in here, and clear it all
 		// out once the torrent starts (to avoid getting stale results)
-		// each slot represents the size of the file
+		// each slot represents the size and timestamp of the file
+		// a size of:
 		// -1 means error
 		// -2 means no data (i.e. if we want to stat the file, we should
 		//    do it and fill in this slot)
-		std::vector<size_type> m_stat_cache;
+		// -3 file doesn't exist
+		struct stat_cache_t
+		{
+			stat_cache_t(size_type s, time_t t = 0): file_size(s), file_time(t) {}
+			size_type file_size;
+			time_t file_time;
+		};
+		std::vector<stat_cache_t> m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
 		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode

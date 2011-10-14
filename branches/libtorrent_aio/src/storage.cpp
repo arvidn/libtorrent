@@ -169,90 +169,6 @@ namespace libtorrent
 		return sizes;
 	}
 
-	// matches the sizes and timestamps of the files passed in
-	// in non-compact mode, actual file sizes and timestamps
-	// are allowed to be bigger and more recent than the fast
-	// resume data. This is because full allocation will not move
-	// pieces, so any older version of the resume data will
-	// still be a correct subset of the actual data on disk.
-	enum flags_t
-	{
-		compact_mode = 1,
-		ignore_timestamps = 2
-	};
-
-	bool match_filesizes(
-		file_storage const& fs
-		, std::string p
-		, std::vector<std::pair<size_type, std::time_t> > const& sizes
-		, int flags
-		, storage_error& ec)
-	{
-		if ((int)sizes.size() != fs.num_files())
-		{
-			ec.ec = errors::mismatching_number_of_files;
-			ec.file = -1;
-			ec.operation = storage_error::none;
-			return false;
-		}
-		p = complete(p);
-
-		std::vector<std::pair<size_type, std::time_t> >::const_iterator size_iter
-			= sizes.begin();
-		for (file_storage::iterator i = fs.begin()
-			, end(fs.end());i != end; ++i, ++size_iter)
-		{
-			size_type size = 0;
-			std::time_t time = 0;
-			if (i->pad_file) continue;
-
-			file_status s;
-			error_code error;
-			std::string file_path = combine_path(p, fs.file_path(*i));
-			stat_file(file_path, &s, error);
-
-			if (error)
-			{
-				if (error != boost::system::errc::no_such_file_or_directory)
-				{
-					ec.ec = error;
-					ec.file = i - fs.begin();
-					ec.operation = storage_error::stat;
-					return false;
-				}
-			}
-			else
-			{
-				size = s.file_size;
-				time = s.mtime;
-			}
-
-			if (((flags & compact_mode) && size != size_iter->first)
-				|| (!(flags & compact_mode) && size < size_iter->first))
-			{
-				ec.ec = errors::mismatching_file_size;
-				ec.file = i - fs.begin();
-				ec.operation = storage_error::stat;
-				return false;
-			}
-
-			if (flags & ignore_timestamps) continue;
-
-			// allow one second 'slack', because of FAT volumes
-			// in sparse mode, allow the files to be more recent
-			// than the resume data, but only by 5 minutes
-			if (((flags & compact_mode) && (time > size_iter->second + 1 || time < size_iter->second - 1)) ||
-				(!(flags & compact_mode) && (time > size_iter->second + 5 * 60 || time < size_iter->second - 1)))
-			{
-				ec.ec = errors::mismatching_file_timestamp;
-				ec.file = i - fs.begin();
-				ec.operation = storage_error::stat;
-				return false;
-			}
-		}
-		return true;
-	}
-
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
 	{
 		int size = 0;
@@ -357,7 +273,7 @@ namespace libtorrent
 				if (m_stat_cache.size() < file_index)
 				{
 					TORRENT_ASSERT(m_stat_cache.size() == file_index);
-					m_stat_cache.push_back(-2);
+					m_stat_cache.push_back(stat_cache_t(-2));
 				}
 				continue;
 			}
@@ -368,7 +284,7 @@ namespace libtorrent
 				if (m_stat_cache.size() < file_index)
 				{
 					TORRENT_ASSERT(m_stat_cache.size() == file_index);
-					m_stat_cache.push_back(-2);
+					m_stat_cache.push_back(stat_cache_t(-2));
 				}
 				continue;
 			}
@@ -385,14 +301,14 @@ namespace libtorrent
 					if (m_stat_cache.size() < file_index)
 					{
 						TORRENT_ASSERT(m_stat_cache.size() == file_index);
-						m_stat_cache.push_back(-1);
+						m_stat_cache.push_back(stat_cache_t(-1));
 					}
 					ec.file = file_index;
 					ec.operation = storage_error::stat;
 					break;
 				}
 				TORRENT_ASSERT(m_stat_cache.size() == file_index);
-				m_stat_cache.push_back(s.file_size);
+				m_stat_cache.push_back(stat_cache_t(s.file_size, s.mtime));
 			}
 
 			// ec is either ENOENT or the file existed and s is valid
@@ -401,7 +317,7 @@ namespace libtorrent
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
 			if ((ec && allocate_files)
-				|| (!ec && m_stat_cache[file_index] > file_iter->size)
+				|| (!ec && m_stat_cache[file_index].file_size > file_iter->size)
 				|| file_iter->size == 0)
 			{
 				std::string dir = parent_path(file_path);
@@ -464,33 +380,39 @@ namespace libtorrent
 		for (; i != end; ++i, ++index)
 		{
 			file_status s;
-			if (m_stat_cache.size() <= index || m_stat_cache[index] == -2)
+			if (m_stat_cache.size() <= index
+				|| m_stat_cache[index].file_size == -2
+				|| m_stat_cache[index].file_size == -1)
 			{
 				TORRENT_ASSERT(m_stat_cache.size() == index);
 				file_path = combine_path(m_save_path, files().file_path(*i));
 				stat_file(file_path, &s, ec.ec);
 				size_type r = s.file_size;
 				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
-				m_stat_cache.push_back(r);
+
+				if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
+				{
+					ec.ec.clear();
+					r = -3;
+				}
+
+				if (m_stat_cache.size() <= index)
+					m_stat_cache.push_back(stat_cache_t(r, s.mtime));
+				else
+					m_stat_cache[index] = stat_cache_t(r, s.mtime);
+
+				if (ec)
+				{
+					ec.file = index;
+					ec.operation = storage_error::stat;
+					return false;
+				}
 			}
 	
 			// if we didn't find the file, check the next one
-			if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
-			{
-				ec.ec.clear();
-				continue;
-			}
+			if (m_stat_cache[index].file_size == -3) continue;
 
-			if (m_stat_cache[index] == -1) continue;
-
-			if (ec)
-			{
-				ec.file = index;
-				ec.operation = storage_error::stat;
-				return false;
-			}
-
-			if (m_stat_cache[index] > 0)
+			if (m_stat_cache[index].file_size > 0)
 				return true;
 		}
 		return false;
@@ -629,9 +551,12 @@ namespace libtorrent
 				std::string new_filename = mapped_files->list_string_value_at(i);
 				if (new_filename.empty()) continue;
 				m_mapped_files->rename_file(i, new_filename);
+				if (m_stat_cache.size() > i) m_stat_cache[i].file_size = -2;
 			}
 		}
 		
+		if (mapped_files) std::vector<stat_cache_t>().swap(m_stat_cache);
+
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
 			== files().num_files())
@@ -641,7 +566,7 @@ namespace libtorrent
 				m_file_priority[i] = boost::uint8_t(file_priority->list_int_value_at(i, 1));
 		}
 
-		std::vector<std::pair<size_type, std::time_t> > file_sizes;
+//		std::vector<std::pair<size_type, std::time_t> > file_sizes;
 		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
@@ -649,26 +574,22 @@ namespace libtorrent
 			return false;
 		}
 		
-		for (int i = 0; i < file_sizes_ent->list_size(); ++i)
-		{
-			lazy_entry const* e = file_sizes_ent->list_at(i);
-			if (e->type() != lazy_entry::list_t
-				|| e->list_size() != 2
-				|| e->list_at(0)->type() != lazy_entry::int_t
-				|| e->list_at(1)->type() != lazy_entry::int_t)
-				continue;
-			file_sizes.push_back(std::pair<size_type, std::time_t>(
-				e->list_int_value_at(0), std::time_t(e->list_int_value_at(1))));
-		}
-
-		if (file_sizes.empty())
+		if (file_sizes_ent->list_size() == 0)
 		{
 			ec.ec = errors::no_files_in_resume_data;
 			return false;
 		}
 		
+		file_storage const& fs = files();
+		if (file_sizes_ent->list_size() != fs.num_files())
+		{
+			ec.ec = errors::mismatching_number_of_files;
+			ec.file = -1;
+			ec.operation = storage_error::none;
+			return false;
+		}
+
 		bool seed = false;
-		
 		lazy_entry const* slots = rd.dict_find_list("slots");
 		if (slots)
 		{
@@ -703,37 +624,97 @@ namespace libtorrent
 			return false;
 		}
 
+		file_storage::iterator file_iter = fs.begin();
+		for (int i = 0; i < file_sizes_ent->list_size(); ++i, ++file_iter)
+		{
+			if (file_iter->pad_file) continue;
+			lazy_entry const* e = file_sizes_ent->list_at(i);
+			if (e->type() != lazy_entry::list_t
+				|| e->list_size() < 2
+				|| e->list_at(0)->type() != lazy_entry::int_t
+				|| e->list_at(1)->type() != lazy_entry::int_t)
+			{
+				ec.ec = errors::missing_file_sizes;
+				ec.file = i;
+				ec.operation = storage_error::none;
+				return false;
+			}
+
+			size_type expected_size = e->list_int_value_at(0);
+			time_t expected_time = e->list_int_value_at(1);
+
+			// if we're a seed, the expected size should match
+			// the actual full size according to the torrent
+			if (seed && expected_size < file_iter->size)
+			{
+				ec.ec = errors::mismatching_file_size;
+				ec.file = i;
+				ec.operation = storage_error::none;
+				return false;
+			}
+
+			size_type file_size;
+			time_t file_time;
+			if (i < m_stat_cache.size() && m_stat_cache[i].file_size != -2)
+			{
+				file_size = m_stat_cache[i].file_size;
+				file_time = m_stat_cache[i].file_time;
+			}
+			else
+			{
+				file_status s;
+				error_code error;
+				std::string file_path = combine_path(m_save_path, fs.file_path(*file_iter));
+				stat_file(file_path, &s, error);
+				if (m_stat_cache.size() <= i) m_stat_cache.resize(i + 1, stat_cache_t(-2));
+				file_size = s.file_size;
+				file_time = s.mtime;
+				if (error)
+				{
+					if (error != boost::system::errc::no_such_file_or_directory)
+					{
+						m_stat_cache[i].file_size = -1;
+						ec.ec = error;
+						ec.file = i;
+						ec.operation = storage_error::stat;
+						return false;
+					}
+					m_stat_cache[i].file_size = -3;
+					if (expected_size != 0)
+					{
+						ec.ec = errors::mismatching_file_size;
+						ec.file = i;
+						ec.operation = storage_error::none;
+						return false;
+					}
+				}
+			}
+
+			if (expected_size > file_size)
+			{
+				ec.ec = errors::mismatching_file_size;
+				ec.file = i;
+				ec.operation = storage_error::none;
+				return false;
+			}
+
+			if (settings().ignore_resume_timestamps) continue;
+
+			// allow some slack, because of FAT volumes
+			if (file_time > expected_time + 5 * 60 || file_time < expected_time - 5)
+			{
+				ec.ec = errors::mismatching_file_timestamp;
+				ec.file = i;
+				ec.operation = storage_error::stat;
+				return false;
+			}
+		}
+
 		bool full_allocation_mode = false;
 		if (rd.dict_find_string_value("allocation") != "compact")
 			full_allocation_mode = true;
 
-		if (seed)
-		{
-			if (files().num_files() != (int)file_sizes.size())
-			{
-				ec.ec = errors::mismatching_number_of_files;
-				return false;
-			}
-
-			std::vector<std::pair<size_type, std::time_t> >::iterator
-				fs = file_sizes.begin();
-			// the resume data says we have the entire torrent
-			// make sure the file sizes are the right ones
-			for (file_storage::iterator i = files().begin()
-				, end(files().end()); i != end; ++i, ++fs)
-			{
-				if (!i->pad_file && i->size != fs->first)
-				{
-					ec.ec = errors::mismatching_file_size;
-					return false;
-				}
-			}
-		}
-		int flags = (full_allocation_mode ? 0 : compact_mode)
-			| (settings().ignore_resume_timestamps ? ignore_timestamps : 0);
-
-		return match_filesizes(files(), m_save_path, file_sizes, flags, ec);
-
+		return true;
 	}
 
 	// returns true on success
