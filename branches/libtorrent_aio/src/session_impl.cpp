@@ -537,6 +537,8 @@ namespace aux {
 #endif
 		, m_tracker_manager(*this, m_proxy)
 		, m_work(io_service::work(m_io_service))
+		, m_max_queue_pos(-1)
+		, m_key(0)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -4454,13 +4456,7 @@ namespace aux {
 			return torrent_handle();
 		}
 
-		int queue_pos = 0;
-		for (torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-		{
-			int pos = i->second->queue_position();
-			if (pos >= queue_pos) queue_pos = pos + 1;
-		}
+		int queue_pos = ++m_max_queue_pos;
 
 		torrent_ptr.reset(new torrent(*this, m_listen_interface
 			, 16 * 1024, queue_pos, params, *ih));

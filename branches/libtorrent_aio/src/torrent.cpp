@@ -6649,29 +6649,36 @@ ctx->set_verify_callback(verify_function, ec);
 		if (is_finished() && p != -1) return;
 		if (p == m_sequence_number) return;
 
+		TORRENT_ASSERT(p >= -1);
+
+		int& max_queue_pos = m_ses.m_max_queue_pos;
 		session_impl::torrent_map& torrents = m_ses.m_torrents;
+
 		if (p >= 0 && m_sequence_number == -1)
 		{
-			int max_seq = -1;
 			for (session_impl::torrent_map::iterator i = torrents.begin()
 				, end(torrents.end()); i != end; ++i)
 			{
 				torrent* t = i->second.get();
-				if (t->m_sequence_number > max_seq) max_seq = t->m_sequence_number;
+				if (t->m_sequence_number >= p) ++t->m_sequence_number;
 			}
-			m_sequence_number = (std::min)(max_seq + 1, p);
+			++max_queue_pos;
+			m_sequence_number = (std::min)(max_queue_pos, p);
 		}
 		else if (p < 0)
 		{
+			TORRENT_ASSERT(m_sequence_number >= 0);
+			TORRENT_ASSERT(p == -1);
 			for (session_impl::torrent_map::iterator i = torrents.begin()
 				, end(torrents.end()); i != end; ++i)
 			{
 				torrent* t = i->second.get();
 				if (t == this) continue;
-				if (t->m_sequence_number >= m_sequence_number
-					&& t->m_sequence_number != -1)
+				if (t->m_sequence_number == -1) continue;
+				if (t->m_sequence_number >= m_sequence_number)
 					--t->m_sequence_number;
 			}
+			--max_queue_pos;
 			m_sequence_number = p;
 		}
 		else if (p < m_sequence_number)
@@ -6681,9 +6688,9 @@ ctx->set_verify_callback(verify_function, ec);
 			{
 				torrent* t = i->second.get();
 				if (t == this) continue;
+				if (t->m_sequence_number == -1) continue;
 				if (t->m_sequence_number >= p 
-					&& t->m_sequence_number < m_sequence_number
-					&& t->m_sequence_number != -1)
+					&& t->m_sequence_number < m_sequence_number)
 					++t->m_sequence_number;
 			}
 			m_sequence_number = p;
@@ -6696,8 +6703,8 @@ ctx->set_verify_callback(verify_function, ec);
 			{
 				torrent* t = i->second.get();
 				int pos = t->m_sequence_number;
-				if (pos > max_seq) max_seq = pos;
 				if (t == this) continue;
+				if (pos == -1) continue;
 
 				if (pos <= p
 						&& pos > m_sequence_number
@@ -6705,7 +6712,7 @@ ctx->set_verify_callback(verify_function, ec);
 					--t->m_sequence_number;
 
 			}
-			m_sequence_number = (std::min)(max_seq, p);
+			m_sequence_number = (std::min)(max_queue_pos, p);
 		}
 
 		if (m_ses.m_auto_manage_time_scaler > 2)

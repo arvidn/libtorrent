@@ -668,6 +668,12 @@ namespace libtorrent
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
 
+			// this is the highest queue position of any torrent
+			// in this session. queue positions are packed (i.e. there
+			// are no gaps). If there are no torrents with queue positions
+			// this is -1.
+			int m_max_queue_pos;
+
 			// the key is an id that is used to identify the
 			// client with the tracker only. It is randomized
 			// at startup
