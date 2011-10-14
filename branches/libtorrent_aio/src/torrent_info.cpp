@@ -95,6 +95,7 @@ namespace libtorrent
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
+		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
 		for (std::string::iterator i = target.begin()
 			, end(target.end()); i != end; ++i)
@@ -183,48 +184,76 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	// TODO: should this take a char const*?
-	bool valid_path_element(std::string const& element)
+	void sanitize_append_path_element(std::string& path, char const* element, int element_len)
 	{
-		if (element.empty()
-			|| element == "." || element == ".."
-			|| element[0] == '/' || element[0] == '\\'
-			|| element[element.size()-1] == ':')
-			return false;
-		return true;
-	}
+		if (element_len == 0) return;
 
-	void trim_path_element(std::string& path_element)
-	{
-		const int max_path_len = TORRENT_MAX_PATH;
-		if (int(path_element.size()) > max_path_len)
+		if (element_len == 1 && element[0] == '.') return;
+
+#ifdef TORRENT_WINDOWS
+#define TORRENT_SEPARATOR "\\"
+#else
+#define TORRENT_SEPARATOR "/"
+#endif
+		path.reserve(path.size() + element_len + 2);
+		int added_separator = 0;
+		if (!path.empty())
 		{
-			// truncate filenames that are too long. But keep extensions!
-			std::string ext = extension(path_element);
-			if (ext.size() > 15)
+			path += TORRENT_SEPARATOR;
+			added_separator = 1;
+		}
+
+		int added = 0;
+		// the number of dots we've added
+		char num_dots = 0;
+		for (int i = 0; i < element_len; ++i)
+		{
+			if (element[i] == '/'
+				|| element[i] == '\\'
+#ifdef TORRENT_WINDOWS
+				|| element[i] == ':'
+#endif
+				)
+				continue;
+
+			if (element[i] == '.') ++num_dots;
+		
+			path += element[i];
+			++added;
+
+			// any given path element should not
+			// be more than 255 characters
+			// if we exceed 200, pick up any potential
+			// file extension and add that too
+			// TODO: this may corrupt utf-8 encoding. We should find a
+			// proper breaking point between characters
+			if (added > 200)
 			{
-				path_element.resize(max_path_len);
-			}
-			else
-			{
-				path_element.resize(max_path_len - ext.size());
-				path_element += ext;
+				i = -1;
+				for (int j = element_len-1; j > element_len - 10; --j)
+				{
+					if (element[j] != '.') continue;
+					i = j;
+					break;
+				}
+				// there is no extension
+				if (i == -1) break;
 			}
 		}
-	}
 
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p)
-	{
-		std::string new_path;
-		std::string split = split_path(p);
-		for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
+		if (added == num_dots && added <= 2)
 		{
-			std::string pe = e;
-			if (!valid_path_element(pe)) continue;
-			trim_path_element(pe);
-			new_path = combine_path(new_path, pe);
+			// revert everything
+			path.erase(path.end()-added-added_separator, path.end());
+			return;
 		}
-		return new_path;
+
+		if (added == 0 && added_separator)
+		{
+			// remove the separator added at the beginning
+			path.erase(path.end()-1);
+			return;
+		}
 	}
 
 	bool extract_single_file(lazy_entry const& dict, file_entry& target
@@ -251,16 +280,15 @@ namespace libtorrent
 			return false;
 
 		std::string path = root_dir;
+		std::string path_element;
 		for (int i = 0, end(p->list_size()); i < end; ++i)
 		{
 			if (p->list_at(i)->type() != lazy_entry::string_t)
 				return false;
-			std::string path_element = p->list_at(i)->string_value();
 			if (i == end - 1) *filename = p->list_at(i);
-			trim_path_element(path_element);
-			path = combine_path(path, path_element);
+			sanitize_append_path_element(path
+				, p->list_at(i)->string_ptr(), p->list_at(i)->string_length());
 		}
-		path = sanitize_path(path);
 		verify_encoding(path, true);
 
 		// bitcomet pad file
@@ -294,7 +322,6 @@ namespace libtorrent
 			for (int i = 0, end(s_p->list_size()); i < end; ++i)
 			{
 				std::string path_element = s_p->list_at(i)->string_value();
-				trim_path_element(path_element);
 				target.symlink_path = combine_path(target.symlink_path, path_element);
 			}
 		}
@@ -821,15 +848,10 @@ namespace libtorrent
 			return false;
 		}
 
-		std::string name = name_ent->string_value();
-		if (name.empty()) name = to_hex(m_info_hash.to_string());
-		name = sanitize_path(name);
+		std::string name;
+		sanitize_append_path_element(name, name_ent->string_ptr(), name_ent->string_length());
 	
-		if (!valid_path_element(name))
-		{
-			ec = errors::torrent_invalid_name;
-			return false;
-		}
+		if (name.empty()) name = to_hex(m_info_hash.to_string());
 
 		// correct utf-8 encoding errors
 		verify_encoding(name, true);
@@ -866,7 +888,6 @@ namespace libtorrent
 				for (int i = 0, end(s_p->list_size()); i < end; ++i)
 				{
 					std::string path_element = s_p->list_at(i)->string_value();
-					trim_path_element(path_element);
 					e.symlink_path = combine_path(e.symlink_path, path_element);
 				}
 			}

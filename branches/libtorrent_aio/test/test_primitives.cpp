@@ -67,7 +67,7 @@ using namespace libtorrent;
 using namespace boost::tuples;
 
 namespace libtorrent {
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p);
+	TORRENT_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
 }
 
 sha1_hash to_hash(char const* s)
@@ -962,23 +962,70 @@ int test_main()
 	TEST_EQUAL(maybe_url_encode("abc"), "abc");
 	TEST_EQUAL(maybe_url_encode("http://abc.com/abc"), "http://abc.com/abc");
 	
-	// test sanitize_path
+	// test sanitize_append_path_element
 
+	std::string path;
+	path.clear();
+	sanitize_append_path_element(path, "/a/", 3);
+	sanitize_append_path_element(path, "b", 1);
+	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a\\b\\c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a\\c");
+	TEST_EQUAL(path, "a\\b\\c");
 #else
-	TEST_EQUAL(sanitize_path("/a/b/c"), "a/b/c");
-	TEST_EQUAL(sanitize_path("a/../c"), "a/c");
+	TEST_EQUAL(path, "a/b/c");
 #endif
-	TEST_EQUAL(sanitize_path("/.././c"), "c");
-	TEST_EQUAL(sanitize_path("dev:"), "");
-	TEST_EQUAL(sanitize_path("c:/b"), "b");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "..", 2);
+	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize_path("c:\\.\\c"), "c");
-	TEST_EQUAL(sanitize_path("\\c"), "c");
+	TEST_EQUAL(path, "a\\c");
 #else
-	TEST_EQUAL(sanitize_path("//./c"), "c");
+	TEST_EQUAL(path, "a/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "/..", 3);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+	TEST_EQUAL(path, "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "dev:", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "");
+#else
+	TEST_EQUAL(path, "dev:");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, "b", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "b");
+#else
+	TEST_EQUAL(path, "c:/b");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c");
+#else
+	TEST_EQUAL(path, "c:/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\\c", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c/c");
 #endif
 
 	// make sure the time classes have correct semantics
@@ -1474,9 +1521,9 @@ int test_main()
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti2.name() == "test1\\test2\\test3");
+	TEST_CHECK(ti2.name() == "ctest1test2test3");
 #else
-	TEST_CHECK(ti2.name() == "test1/test2/test3");
+	TEST_CHECK(ti2.name() == "test1test2test3");
 #endif
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
@@ -1485,11 +1532,7 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(ti3.name() == "test2\\test3\\test4");
-#else
-	TEST_CHECK(ti3.name() == "test2/test3/test4");
-#endif
+	TEST_CHECK(ti3.name() == "test2..test3.......test4");
 
 #ifndef TORRENT_DISABLE_DHT	
 	// test kademlia functions

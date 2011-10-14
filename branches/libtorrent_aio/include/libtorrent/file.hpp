@@ -155,6 +155,7 @@ namespace libtorrent
 	TORRENT_EXPORT bool is_root_path(std::string const& f);
 	TORRENT_EXPORT std::string parent_path(std::string const& f);
 	TORRENT_EXPORT bool has_parent_path(std::string const& f);
+	TORRENT_EXPORT char const* filename_cstr(char const* f);
 	TORRENT_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);

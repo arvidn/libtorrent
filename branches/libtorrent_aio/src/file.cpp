@@ -477,6 +477,19 @@ namespace libtorrent
 		return std::string(f.c_str(), len);
 	}
 
+	char const* filename_cstr(char const* f)
+	{
+		if (f == 0) return f;
+
+		char const* sep = strrchr(f, '/');
+#ifdef TORRENT_WINDOWS
+		char const* altsep = strrchr(f, '\\');
+		if (sep == 0 || altsep > sep) sep = altsep;
+#endif
+		if (sep == 0) return f;
+		return sep+1;
+	}
+
 	std::string filename(std::string const& f)
 	{
 		if (f.empty()) return "";
