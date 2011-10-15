@@ -505,10 +505,10 @@ namespace libtorrent
 				}
 			}
 
-			entry::list_type p;
+			fl.push_back(entry(entry::list_t));
+			entry::list_type& p = fl.back().list();
 			p.push_back(entry(file_size));
 			p.push_back(entry(file_time));
-			fl.push_back(entry(p));
 		}
 	}
 
