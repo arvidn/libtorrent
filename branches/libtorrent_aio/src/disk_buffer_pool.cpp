@@ -87,7 +87,7 @@ namespace libtorrent
 	}
 #endif
 
-	boost::uint32_t disk_buffer_pool::num_to_evict(int num_needed) const
+	boost::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
 	{
 		int ret = 0;
 
@@ -101,6 +101,21 @@ namespace libtorrent
 
 		if (ret < 0) ret = 0;
 		else if (ret > m_in_use) ret = m_in_use;
+
+		if (m_exceeded_max_size && m_in_use - ret <= m_low_watermark)
+		{
+			// post these messages first, before we actually
+			// start flushing these blocks, to pipeline better
+			m_exceeded_max_size = false;
+			std::vector<boost::function<void()> > cbs;
+			m_callbacks.swap(cbs);
+			l.unlock();
+			for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
+				, end(cbs.end()); i != end; ++i)
+			{
+				m_ios.post(*i);
+			}
+		}
 
 		return ret;
 	}
@@ -221,32 +236,12 @@ namespace libtorrent
 			TORRENT_ASSERT(buf);
 			free_buffer_impl(buf, l);
 		}
-		check_usage(l);
 	}
 
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		free_buffer_impl(buf, l);
-		check_usage(l);
-	}
-
-	void disk_buffer_pool::check_usage(mutex::scoped_lock& l)
-	{
-		// we previously exceeded the limit, but now we
-		// have dropped below the low watermark
-		if (m_exceeded_max_size && m_in_use <= m_low_watermark)
-		{
-			m_exceeded_max_size = false;
-			std::vector<boost::function<void()> > cbs;
-			m_callbacks.swap(cbs);
-			l.unlock();
-			for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
-				, end(cbs.end()); i != end; ++i)
-			{
-				m_ios.post(*i);
-			}
-		}
 	}
 
 	void disk_buffer_pool::set_settings(session_settings const& sett)

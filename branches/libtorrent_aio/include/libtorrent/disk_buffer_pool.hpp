@@ -86,7 +86,7 @@ namespace libtorrent
 		void release_memory();
 
 		boost::uint32_t in_use() const { return m_in_use; }
-		boost::uint32_t num_to_evict(int num_needed = 0) const;
+		boost::uint32_t num_to_evict(int num_needed = 0);
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
 		void set_settings(session_settings const& sett);
@@ -137,8 +137,6 @@ namespace libtorrent
 
 		int m_cache_buffer_chunk_size;
 		bool m_lock_disk_cache;
-
-		void check_usage(mutex::scoped_lock& l);
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;
