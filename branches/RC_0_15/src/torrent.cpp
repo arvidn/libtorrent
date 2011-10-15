@@ -4876,6 +4876,7 @@ namespace libtorrent
 			{
 				torrent* t = i->second.get();
 				if (t->m_sequence_number > max_seq) max_seq = t->m_sequence_number;
+				if (t->m_sequence_number >= p) ++t->m_sequence_number;
 			}
 			m_sequence_number = (std::min)(max_seq + 1, p);
 		}
