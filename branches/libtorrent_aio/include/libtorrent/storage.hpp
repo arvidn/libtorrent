@@ -234,7 +234,7 @@ namespace libtorrent
 			size_type file_size;
 			time_t file_time;
 		};
-		std::vector<stat_cache_t> m_stat_cache;
+		mutable std::vector<stat_cache_t> m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
 		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode

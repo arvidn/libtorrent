@@ -141,34 +141,6 @@ namespace libtorrent
 		}
 	}
 
-	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
-		file_storage const& storage, std::string const& p)
-	{
-		std::string save_path = complete(p);
-		std::vector<std::pair<size_type, std::time_t> > sizes;
-		for (file_storage::iterator i = storage.begin()
-			, end(storage.end()); i != end; ++i)
-		{
-			size_type size = 0;
-			std::time_t time = 0;
-
-			if (!i->pad_file)
-			{
-				file_status s;
-				error_code ec;
-				stat_file(combine_path(save_path, storage.file_path(*i)), &s, ec);
-
-				if (!ec)
-				{
-					size = s.file_size;
-					time = s.mtime;
-				}
-			}
-			sizes.push_back(std::make_pair(size, time));
-		}
-		return sizes;
-	}
-
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
 	{
 		int size = 0;
@@ -497,16 +469,45 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(rd.type() == entry::dictionary_t);
 
-		std::vector<std::pair<size_type, std::time_t> > file_sizes
-			= get_filesizes(files(), m_save_path);
-
 		entry::list_type& fl = rd["file sizes"].list();
-		for (std::vector<std::pair<size_type, std::time_t> >::iterator i
-			= file_sizes.begin(), end(file_sizes.end()); i != end; ++i)
+
+		file_storage const& fs = files();
+		int index = 0;
+		for (file_storage::iterator i = fs.begin(); i != fs.end(); ++i, ++index)
 		{
+			size_type file_size = 0;
+			time_t file_time = 0;
+			if (m_stat_cache.size() > index && m_stat_cache[index].file_size != -2)
+			{
+				if (m_stat_cache[index].file_size >= 0)
+				{
+					file_size = m_stat_cache[index].file_size;
+					file_time = m_stat_cache[index].file_time;
+				}
+			}
+			else
+			{
+				file_status s;
+				error_code ec;
+				stat_file(combine_path(m_save_path, fs.file_path(*i)), &s, ec);
+				if (m_stat_cache.size() <= index) m_stat_cache.resize(index+1, stat_cache_t(-2));
+				if (!ec)
+				{
+					file_size = s.file_size;
+					file_time = s.mtime;
+				}
+				else
+				{
+					if (ec == boost::system::errc::no_such_file_or_directory)
+						m_stat_cache[index].file_size = -3;
+					else
+						m_stat_cache[index].file_size = -1;
+				}
+			}
+
 			entry::list_type p;
-			p.push_back(entry(i->first));
-			p.push_back(entry(i->second));
+			p.push_back(entry(file_size));
+			p.push_back(entry(file_time));
 			fl.push_back(entry(p));
 		}
 	}
@@ -555,8 +556,6 @@ namespace libtorrent
 			}
 		}
 		
-		if (mapped_files) std::vector<stat_cache_t>().swap(m_stat_cache);
-
 		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority->list_size()
 			== files().num_files())
@@ -1002,6 +1001,15 @@ namespace libtorrent
 				TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
 				file_offset = 0;
 				continue;
+			}
+
+			int file_index = file_iter - files().begin();
+			if (op.mode == file::read_write && m_stat_cache.size() > file_index)
+			{
+				// if we're writing to this file, we have to clear the
+				// stats cache for it, since its modification time will change
+				// and its size may change too
+				m_stat_cache[file_index].file_size = -2;
 			}
 
 			file_handle = open_file(file_iter, op.mode, op.flags, ec.ec);
