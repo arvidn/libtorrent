@@ -800,7 +800,7 @@ int main(int argc, char* argv[])
 
 	proxy_settings ps;
 
-	int refresh_delay = 1;
+	int refresh_delay = 1000;
 
 	std::deque<std::string> events;
 
