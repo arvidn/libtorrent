@@ -944,6 +944,21 @@ namespace libtorrent
 			vm_statistics_data_t m_last_vm_stat;
 			sliding_average<20> m_read_ops;
 			sliding_average<20> m_write_ops;;
+			enum
+			{
+				on_read_counter,
+				on_write_counter,
+				on_tick_counter,
+				on_lsd_counter,
+				on_lsd_peer_counter,
+				on_udp_counter,
+				on_accept_counter,
+				on_disk_queue_counter,
+				on_disk_read_counter,
+				on_disk_write_counter,
+				max_messages
+			};
+			int m_num_messages[max_messages];
 #endif
 
 			// each second tick the timer takes a little

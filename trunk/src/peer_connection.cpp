@@ -2545,6 +2545,9 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_write_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
@@ -4402,6 +4405,9 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(int ret, disk_io_job const& j, peer_request r)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_read_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		m_reading_bytes -= r.length;
@@ -5020,6 +5026,9 @@ namespace libtorrent
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		// keep ourselves alive in until this function exits in
@@ -5359,6 +5368,9 @@ namespace libtorrent
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_write_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #if defined TORRENT_VERBOSE_LOGGING 
