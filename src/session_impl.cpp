@@ -1046,6 +1046,16 @@ namespace aux {
 			":smooth read ops/s"
 			":smooth write ops/s"
 			":pending reading bytes"
+			":read_counter"
+			":write_counter"
+			":tick_counter"
+			":lsd_counter"
+			":lsd_peer_counter"
+			":udp_counter"
+			":accept_counter"
+			":disk_queue_counter"
+			":disk_read_counter"
+			":disk_write_counter"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2138,6 +2148,9 @@ namespace aux {
 	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_udp_counter];
+#endif
 		if (e)
 		{
 			if (e == asio::error::connection_refused
@@ -2203,6 +2216,9 @@ namespace aux {
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
+#endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_accept_counter];
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
@@ -2551,6 +2567,9 @@ namespace aux {
 	// wake them up
 	void session_impl::on_disk_queue()
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_disk_queue_counter];
+#endif
 		TORRENT_ASSERT(is_network_thread());
 
 		// just to play it safe
@@ -2592,6 +2611,10 @@ namespace aux {
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_tick_counter];
+#endif
+
 		TORRENT_ASSERT(is_network_thread());
 
 		ptime now = time_now_hires();
@@ -3214,6 +3237,8 @@ namespace aux {
 		m_connection_attempts = 0;
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
+
+		memset(m_num_messages, 0, sizeof(m_num_messages));
 	}
 
 	void session_impl::print_log_line(int tick_interval_ms, ptime now)
@@ -3518,6 +3543,11 @@ namespace aux {
 
 			STAT_LOG(d, reading_bytes);
 
+			for (int i = 0; i < max_messages; ++i)
+			{
+				STAT_LOG(d, m_num_messages[i]);
+			}
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
@@ -3593,6 +3623,9 @@ namespace aux {
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_lsd_announce");
+#endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_counter];
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
@@ -4574,6 +4607,9 @@ namespace aux {
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_peer_counter];
+#endif
 		TORRENT_ASSERT(is_network_thread());
 
 		INVARIANT_CHECK;

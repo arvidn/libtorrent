@@ -150,6 +150,10 @@ reports = [
 	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages']),
 	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
 	('page faults', '', '', '', ['page faults']),
+	('boost.asio messages', 'events/s', '', 'number of messages posted per second', [ \
+		'read_counter', 'write_counter', 'tick_counter', 'lsd_counter', \
+		'lsd_peer_counter', 'udp_counter', 'accept_counter', 'disk_queue_counter', \
+		'disk_read_counter', 'disk_write_counter']),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
