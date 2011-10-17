@@ -2325,6 +2325,9 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_write_counter];
+#endif
 		INVARIANT_CHECK;
 
 		m_outstanding_writing_bytes -= p.length;
@@ -3948,7 +3951,7 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int buffer_size_watermark = int(m_statistics.upload_rate()) / 2;
+		int buffer_size_watermark = int(m_statistics.upload_rate());
 		if (buffer_size_watermark < 512) buffer_size_watermark = 512;
 		else if (buffer_size_watermark > m_ses.settings().send_buffer_watermark)
 		{
@@ -3996,6 +3999,9 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_read_counter];
+#endif
 		m_reading_bytes -= r.length;
 
 		disk_buffer_holder buffer(m_ses, j.buffer);
@@ -4532,6 +4538,10 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
+
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
+#endif
 		on_receive_data_nolock(error, bytes_transferred);
 	}
 
@@ -4821,6 +4831,9 @@ namespace libtorrent
 	{
 		session_impl::mutex_t::scoped_lock l(m_ses.m_mutex);
 
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_write_counter];
+#endif
 		INVARIANT_CHECK;
 
 		// keep ourselves alive in until this function exits in

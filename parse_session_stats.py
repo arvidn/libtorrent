@@ -14,8 +14,6 @@ while not 'second:' in line:
 
 keys = line.strip().split(':')[1:]
 
-axes = ['x1y2', 'x1y2', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y1', 'x1y2']
-
 def gen_report(name, lines):
 	out = open('session_stats_%s.gnuplot' % name, 'wb')
 	print >>out, "set term png size 1200,700"
@@ -30,17 +28,23 @@ def gen_report(name, lines):
 	print >>out, "set key box"
 	print >>out, 'plot',
 	column = 2
+	index = 0
 	for k in keys:
 		if k not in lines:
 			column = column + 1
 			continue
-		print >>out, ' "%s" using 1:%d title "%s" axes %s with steps,' % (sys.argv[1], column, k, axes[column-2]),
-		column = column + 1
-	print >>out, 'x=0'
+		if index > 0: print >>out, ', ',
+		print >>out, ' "%s" using 1:%d title "%s" axes x1y2 with steps' % (sys.argv[1], column, k),
+		index += 1
+		column += 1
 	out.close()
 	os.system('gnuplot session_stats_%s.gnuplot' % name);
 
 gen_report('rates', ['upload rate', 'download rate', 'downloading torrents', 'seeding torrents', 'peers', 'unchoked peers'])
 gen_report('peers', ['peers', 'connecting peers', 'unchoked peers', 'num list peers'])
 gen_report('buffers', ['upload rate', 'download rate', 'disk block buffers'])
+gen_report('boost_asio_messages', [ \
+	'read_counter', 'write_counter', 'tick_counter', 'lsd_counter', \
+	'lsd_peer_counter', 'udp_counter', 'accept_counter', 'disk_queue_counter', \
+	'disk_read_counter', 'disk_write_counter'])
 

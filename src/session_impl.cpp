@@ -635,10 +635,22 @@ namespace aux {
 		m_stats_logger <<
 			"second:upload rate:download rate:downloading torrents:seeding torrents"
 			":peers:connecting peers:disk block buffers:unchoked peers:num list peers"
-			":peer allocations:peer storage bytes\n\n";
+			":peer allocations:peer storage bytes"
+			":read_counter"
+			":write_counter"
+			":tick_counter"
+			":lsd_counter"
+			":lsd_peer_counter"
+			":udp_counter"
+			":accept_counter"
+			":disk_queue_counter"
+			":disk_read_counter"
+			":disk_write_counter"
+			"\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
+		memset(m_num_messages, 0, sizeof(m_num_messages));
 #endif
 
 #if defined TORRENT_BSD || defined TORRENT_LINUX
@@ -1509,6 +1521,9 @@ namespace aux {
 	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_udp_counter];
+#endif
 		if (e)
 		{
 			if (e == asio::error::connection_refused
@@ -1547,6 +1562,10 @@ namespace aux {
 		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
 	{
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
+
+#ifdef TORRENT_STATS
+		++m_num_messages[on_accept_counter];
+#endif
 		if (!listener) return;
 		
 		if (e == asio::error::operation_aborted) return;
@@ -1801,6 +1820,9 @@ namespace aux {
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
 		
+#ifdef TORRENT_STATS
+		++m_num_messages[on_disk_queue_counter];
+#endif
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
@@ -1823,6 +1845,10 @@ namespace aux {
 	void session_impl::on_tick(error_code const& e)
 	{
 		session_impl::mutex_t::scoped_lock l(m_mutex);
+
+#ifdef TORRENT_STATS
+		++m_num_messages[on_tick_counter];
+#endif
 
 		ptime now = time_now_hires();
 		aux::g_current_time = now;
@@ -1938,8 +1964,14 @@ namespace aux {
 			<< unchoked_peers << "\t"
 			<< num_peers << "\t"
 			<< logging_allocator::allocations << "\t"
-			<< logging_allocator::allocated_bytes << "\t"
-			<< std::endl;
+			<< logging_allocator::allocated_bytes << "\t";
+
+		for (int i = 0; i < max_messages; ++i)
+			m_stats_logger << m_num_messages[i] << "\t";
+
+		m_stats_logger << std::endl;
+
+		memset(m_num_messages, 0, sizeof(m_num_messages));
 #endif
 
 		// --------------------------------------------------------------
@@ -2272,6 +2304,10 @@ namespace aux {
 		if (e) return;
 
 		session_impl::mutex_t::scoped_lock l(m_mutex);
+
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_counter];
+#endif
 		if (m_abort) return;
 
 		// announce on local network every 5 minutes
@@ -3018,6 +3054,9 @@ namespace aux {
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_peer_counter];
+#endif
 		INVARIANT_CHECK;
 
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
