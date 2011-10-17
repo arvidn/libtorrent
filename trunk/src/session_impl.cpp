@@ -82,6 +82,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
 
+#ifdef TORRENT_STATS && defined __MACH__
+#include <mach/task.h>
+#endif
+
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
 #endif
@@ -1058,6 +1062,8 @@ namespace aux {
 			":disk_write_counter"
 			":up 8:up 16:up 32:up 64:up 128:up 256:up 512:up 1024:up 2048:up 4096:up 8192:up 16384:up 32768:up 65536:up 131072:up 262144:up 524288:up 1048576"
 			":down 8:down 16:down 32:down 64:down 128:down 256:down 512:down 1024:down 2048:down 4096:down 8192:down 16384:down 32768:down 65536:down 131072:down 262144:down 524288:down 1048576"
+			":network thread system time"
+			":network thread user+system time"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3199,6 +3205,32 @@ namespace aux {
 // TOOD: windows?
 	}
 
+	void get_thread_cpu_usage(thread_cpu_usage* tu)
+	{
+#if defined __MACH__
+		task_thread_times_info t_info;
+		mach_msg_type_number_t t_info_count = TASK_THREAD_TIMES_INFO_COUNT;
+		task_info(mach_task_self(), TASK_THREAD_TIMES_INFO, (task_info_t)&t_info, &t_info_count);
+
+		tu->user_time = min_time()
+			+ seconds(t_info.user_time.seconds)
+			+ microsec(t_info.user_time.microseconds);
+		tu->system_time = min_time()
+			+ seconds(t_info.system_time.seconds)
+			+ microsec(t_info.system_time.microseconds);
+#elif defined TORRENT_LINUX
+		struct rusage ru;
+		getrusage(RUSAGE_THREAD, &ru);
+		tu->user_time = min_time()
+			+ seconds(ru.ru_utime.tv_sec)
+			+ microsec(ru.ru_utime.tv_usec);
+		tu->system_time = min_time()
+			+ seconds(ru.ru_stime.tv_sec)
+			+ microsec(ru.ru_stime.tv_usec);
+#elif defined TORRENT_WINDOWS
+		// GetThreadTimes
+#endif
+	}
 		
 	void session_impl::enable_stats_logging(bool s)
 	{
@@ -3215,6 +3247,7 @@ namespace aux {
 		else
 		{
 			rotate_stats_log();
+			get_thread_cpu_usage(&m_network_thread_cpu_usage);
 		}
 	}
 
@@ -3407,6 +3440,8 @@ namespace aux {
 		// system memory stats
 		vm_statistics_data_t vm_stat;
 		get_vm_stats(&vm_stat);
+		thread_cpu_usage cur_cpu_usage;
+		get_thread_cpu_usage(&cur_cpu_usage);
 
 		if (m_stats_logger)
 		{
@@ -3562,12 +3597,21 @@ namespace aux {
 				STAT_LOG(d, m_recv_buffer_sizes[i]);
 			}
 
+			STAT_LOG(f, total_milliseconds(cur_cpu_usage.user_time
+				- m_network_thread_cpu_usage.user_time) * 100.0 / double(tick_interval_ms));
+			STAT_LOG(f, (total_milliseconds(cur_cpu_usage.system_time
+					- m_network_thread_cpu_usage.system_time)
+				+ total_milliseconds(cur_cpu_usage.user_time
+					- m_network_thread_cpu_usage.user_time)) * 100.0
+				/ double(tick_interval_ms));
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
 
 			m_last_cache_status = cs;
 			m_last_vm_stat = vm_stat;
+			m_network_thread_cpu_usage = cur_cpu_usage;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
 			m_last_uploaded = m_stat.total_upload();
