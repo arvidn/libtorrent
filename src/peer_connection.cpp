@@ -5028,6 +5028,12 @@ namespace libtorrent
 	{
 #ifdef TORRENT_STATS
 		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
+		int size = 8;
+		int index = 0;
+		while (bytes_transferred > size) { size <<= 1; ++index; }
+		int num_max = sizeof(m_ses.m_recv_buffer_sizes)/sizeof(m_ses.m_recv_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_ses.m_recv_buffer_sizes[index];
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -5370,6 +5376,12 @@ namespace libtorrent
 	{
 #ifdef TORRENT_STATS
 		++m_ses.m_num_messages[aux::session_impl::on_write_counter];
+		int size = 8;
+		int index = 0;
+		while (bytes_transferred > size) { size <<= 1; ++index; }
+		int num_max = sizeof(m_ses.m_send_buffer_sizes)/sizeof(m_ses.m_send_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_ses.m_send_buffer_sizes[index];
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
