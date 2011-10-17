@@ -94,7 +94,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
-#if TORRENT_STATS && defined __MACH__
+#ifdef TORRENT_STATS && defined __MACH__
 #include <mach/vm_statistics.h>
 #include <mach/mach_init.h>
 #include <mach/host_info.h>
@@ -145,17 +145,23 @@ namespace libtorrent
 		struct session_impl;
 
 #if defined TORRENT_STATS && !defined __MACH__
-	struct vm_statistics_data_t
-	{
-		boost::uint64_t active_count;
-		boost::uint64_t inactive_count;
-		boost::uint64_t wire_count;
-		boost::uint64_t free_count;
-		boost::uint64_t pageins;
-		boost::uint64_t pageouts;
-		boost::uint64_t faults;
-	};
+		struct vm_statistics_data_t
+		{
+			boost::uint64_t active_count;
+			boost::uint64_t inactive_count;
+			boost::uint64_t wire_count;
+			boost::uint64_t free_count;
+			boost::uint64_t pageins;
+			boost::uint64_t pageouts;
+			boost::uint64_t faults;
+		};
 #endif
+
+		struct thread_cpu_usage
+		{
+			ptime user_time;
+			ptime system_time;
+		};
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
@@ -942,6 +948,7 @@ namespace libtorrent
 			int m_num_banned_peers;
 			int m_banned_for_hash_failure;
 			vm_statistics_data_t m_last_vm_stat;
+			thread_cpu_usage m_network_thread_cpu_usage;
 			sliding_average<20> m_read_ops;
 			sliding_average<20> m_write_ops;;
 			enum
