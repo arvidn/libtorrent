@@ -718,6 +718,22 @@ namespace libtorrent
 			std::ofstream m_buffer_usage_logger;
 			// the number of send buffers that are allocated
 			int m_buffer_allocations;
+
+			enum
+			{
+				on_read_counter,
+				on_write_counter,
+				on_tick_counter,
+				on_lsd_counter,
+				on_lsd_peer_counter,
+				on_udp_counter,
+				on_accept_counter,
+				on_disk_queue_counter,
+				on_disk_read_counter,
+				on_disk_write_counter,
+				max_messages
+			};
+			int m_num_messages[max_messages];
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
