@@ -47,4 +47,6 @@ gen_report('boost_asio_messages', [ \
 	'read_counter', 'write_counter', 'tick_counter', 'lsd_counter', \
 	'lsd_peer_counter', 'udp_counter', 'accept_counter', 'disk_queue_counter', \
 	'disk_read_counter', 'disk_write_counter'])
+gen_report('send_buffer_sizes', ['up 8', 'up 16', 'up 32', 'up 64', 'up 128', 'up 256', 'up 512', 'up 1024', 'up 2048', 'up 4096', 'up 8192', 'up 16384', 'up 32768', 'up 65536', 'up 131072', 'up 262144', 'up 524288', 'up 1048576'])
+gen_report('recv_buffer_sizes', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', 'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', 'down 32768', 'down 65536', 'down 131072', 'down 262144', 'down 524288', 'down 1048576'])
 

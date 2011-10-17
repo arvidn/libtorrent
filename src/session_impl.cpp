@@ -646,11 +646,15 @@ namespace aux {
 			":disk_queue_counter"
 			":disk_read_counter"
 			":disk_write_counter"
+			":up 8:up 16:up 32:up 64:up 128:up 256:up 512:up 1024:up 2048:up 4096:up 8192:up 16384:up 32768:up 65536:up 131072:up 262144:up 524288:up 1048576"
+			":down 8:down 16:down 32:down 64:down 128:down 256:down 512:down 1024:down 2048:down 4096:down 8192:down 16384:down 32768:down 65536:down 131072:down 262144:down 524288:down 1048576"
 			"\n\n";
 		m_buffer_usage_logger.open("buffer_stats.log", std::ios::trunc);
 		m_second_counter = 0;
 		m_buffer_allocations = 0;
 		memset(m_num_messages, 0, sizeof(m_num_messages));
+		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
+		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 #endif
 
 #if defined TORRENT_BSD || defined TORRENT_LINUX
@@ -1968,10 +1972,18 @@ namespace aux {
 
 		for (int i = 0; i < max_messages; ++i)
 			m_stats_logger << m_num_messages[i] << "\t";
+		int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
+		for (int i = 0; i < num_max; ++i)
+			m_stats_logger << m_send_buffer_sizes[i] << "\t";
+		num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
+		for (int i = 0; i < num_max; ++i)
+			m_stats_logger << m_recv_buffer_sizes[i] << "\t";
 
 		m_stats_logger << std::endl;
 
 		memset(m_num_messages, 0, sizeof(m_num_messages));
+		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
+		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 #endif
 
 		// --------------------------------------------------------------

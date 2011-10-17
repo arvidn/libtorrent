@@ -734,6 +734,10 @@ namespace libtorrent
 				max_messages
 			};
 			int m_num_messages[max_messages];
+			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+			int m_send_buffer_sizes[18];
+			int m_recv_buffer_sizes[18];
 #endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<logger> create_log(std::string const& name
