@@ -4354,7 +4354,7 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int upload_rate = int(m_statistics.upload_rate());
+		boost::uint64_t upload_rate = int(m_statistics.upload_rate());
 
 		int buffer_size_watermark = upload_rate
 			* m_ses.settings().send_buffer_watermark_factor / 100;
