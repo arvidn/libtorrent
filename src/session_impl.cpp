@@ -3228,7 +3228,19 @@ namespace aux {
 			+ seconds(ru.ru_stime.tv_sec)
 			+ microsec(ru.ru_stime.tv_usec);
 #elif defined TORRENT_WINDOWS
-		// GetThreadTimes
+		FILETIME system_time;
+		FILETIME user_time;
+		FILETIME creation_time;
+		FILETIME exit_time;
+		GetThreadTimes(GetCurrentThread(), &creation_time, &exit_time, &user_time, &system_time);
+
+		boost::uint64_t utime = (boost::uint64_t(user_time.dwhighdatetime) << 32)
+			+ user_time.dwlowdatetime;
+		boost::uint64_t stime = (boost::uint64_t(system_time.dwhighdatetime) << 32)
+			+ system_time.dwlowdatetime;
+
+		tu->user_time = min_time() + microsec(utime / 10);
+		tu->system_time = min_time() + microsec(stime / 10);
 #endif
 	}
 		
