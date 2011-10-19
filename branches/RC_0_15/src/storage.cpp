@@ -1999,6 +1999,8 @@ ret:
 		std::ofstream out("partial_hash.log", std::ios::app);
 #endif
 
+		if (m_storage->settings().disable_hash_checks) return ret;
+
 		if (offset == 0)
 		{
 			partial_hash& ph = m_piece_hasher[piece_index];
