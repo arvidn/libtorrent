@@ -98,12 +98,16 @@ namespace libtorrent
 
 	// wrap job handlers to free the job itself
 	// this is called in the network thread when a job completes
-	void complete_job(aiocb_pool* pool, int ret, disk_io_job* j)
+	void complete_job(aiocb_pool* pool, disk_io_job* j)
 	{
-		TORRENT_ASSERT(j->next == 0);
-		TORRENT_ASSERT(j->callback_called == true);
-		if (j->callback) j->callback(ret, *j);
-		pool->free_job(j);
+		while (j)
+		{
+			TORRENT_ASSERT(j->callback_called == true);
+			if (j->callback) j->callback(j->ret, *j);
+			disk_io_job* to_free = (disk_io_job*)j;
+			j = (disk_io_job*)j->next;
+			pool->free_job(to_free);
+		}
 	}
 
 	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)

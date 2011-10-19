@@ -60,8 +60,8 @@ namespace libtorrent
 	struct disk_buffer_pool;
 	struct cache_status;
 	struct hash_thread;
-	struct aiocb_pool;
 	struct block_cache_reference;
+	struct tailqueue;
 
 	using boost::multi_index::multi_index_container;
 	using boost::multi_index::ordered_non_unique;
@@ -234,7 +234,7 @@ namespace libtorrent
 		typedef cache_piece_index_t::iterator iterator;
 		typedef cache_lru_index_t::iterator lru_iterator;
 
-		void reclaim_block(block_cache_reference const& ref, io_service& ios, aiocb_pool* pool);
+		void reclaim_block(block_cache_reference const& ref, tailqueue& jobs);
 
 		// returns the range of all pieces that belongs to the
 		// given storage
@@ -273,7 +273,7 @@ namespace libtorrent
 		// if the piece is marked for deletion and has a refcount
 		// of 0, this function will post any sync jobs and
 		// delete the piece from the cache
-		bool maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool);
+		bool maybe_free_piece(iterator p, tailqueue& jobs);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
@@ -306,16 +306,16 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(iterator p, int begin, int end
-			, io_service& ios, aiocb_pool* pool, storage_error const& ec);
+			, tailqueue& jobs, storage_error const& ec);
 
 		// this is called by the hasher thread when hashing of
 		// a range of block is complete.
 		void hashing_done(cached_piece_entry* p, int begin, int end
-			, io_service& ios, aiocb_pool* pool);
+			, tailqueue& jobs);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
-		void abort_dirty(iterator p, io_service& ios, aiocb_pool* pool);
+		void abort_dirty(iterator p, tailqueue& jobs);
 
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is
@@ -352,7 +352,7 @@ namespace libtorrent
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 
 		void reap_piece_jobs(iterator p, storage_error const& ec
-			, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
+			, int hash_start, int hash_end, tailqueue& jobs
 			, bool reap_hash_jobs);
 
 		// returns number of bytes read on success, -1 on cache miss

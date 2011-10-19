@@ -182,6 +182,9 @@ namespace libtorrent
 		// the type of job this is
 		boost::uint32_t action:8;
 
+		// return value of operation
+		boost::int32_t ret;
+
 		// flags controlling this job
 		boost::uint16_t flags;
 

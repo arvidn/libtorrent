@@ -110,6 +110,7 @@ namespace libtorrent
 			std::vector<boost::function<void()> > cbs;
 			m_callbacks.swap(cbs);
 			l.unlock();
+			// #error TODO: make this be a single post passing the whole array in one go
 			for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
 				, end(cbs.end()); i != end; ++i)
 			{

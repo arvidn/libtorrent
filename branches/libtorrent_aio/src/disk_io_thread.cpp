@@ -820,8 +820,7 @@ namespace libtorrent
 
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, &m_aiocb_pool
-			, handler->error);
+		m_disk_cache.mark_as_done(p, begin, end, m_completed_jobs, handler->error);
 
 		if (!handler->error)
 		{
@@ -855,7 +854,7 @@ namespace libtorrent
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_ios, &m_aiocb_pool
+		m_disk_cache.mark_as_done(p, begin, end, m_completed_jobs
 			, handler->error);
 
 		if (!handler->error)
@@ -896,7 +895,7 @@ namespace libtorrent
 			{
 				// delete dirty blocks and post handlers with
 				// operation_aborted error code
-				m_disk_cache.abort_dirty(p, m_ios, &m_aiocb_pool);
+				m_disk_cache.abort_dirty(p, m_completed_jobs);
 			}
 			else if ((flags & flush_write_cache) && p->num_dirty > 0)
 			{
@@ -1107,7 +1106,8 @@ namespace libtorrent
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
-			m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
+			j->ret = ret;
+			m_completed_jobs.push_back(j);
 		}
 
 		// if this job actually completed (as opposed to deferred the handler)
@@ -1705,7 +1705,7 @@ namespace libtorrent
 			TORRENT_ASSERT(k->callback_called == false);
 			k->callback_called = true;
 #endif
-			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
+			m_completed_jobs.push_back(k);
 			k = (disk_io_job*)k->next;
 		}
 		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
@@ -1762,7 +1762,7 @@ namespace libtorrent
 			TORRENT_ASSERT(k->callback_called == false);
 			k->callback_called = true;
 #endif
-			m_ios.post(boost::bind(&complete_job, aiocbs(), -1, k));
+			m_completed_jobs.push_back(k);
 		}
 
 		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
@@ -1952,7 +1952,7 @@ namespace libtorrent
 	{
 		m_hash_thread.hash_job_done();
 		m_disk_cache.hashing_done((cached_piece_entry*)j->buffer
-			, j->piece, j->d.io.offset, m_ios, &m_aiocb_pool);
+			, j->piece, j->d.io.offset, m_completed_jobs);
 		return 0;
 	}
 
@@ -1968,7 +1968,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->d.io.ref.storage);
 		if (j->d.io.ref.block < 0) return 0;
 
-		m_disk_cache.reclaim_block(j->d.io.ref, m_ios, &m_aiocb_pool);
+		m_disk_cache.reclaim_block(j->d.io.ref, m_completed_jobs);
 		return 0;
 	}
 
@@ -2009,7 +2009,7 @@ namespace libtorrent
 			j->callback_called = true;
 #endif
 			j->error = e;
-			m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, -1, j));
+			m_completed_jobs.push_back(j);
 		}
 
 		m_disk_cache.evict_piece(p);
@@ -2085,7 +2085,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif
-		m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
+		m_completed_jobs.push_back(j);
 	}
 
 	void disk_io_thread::on_read_one_buffer(async_handler* handler, disk_io_job* j)
@@ -2128,7 +2128,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif
-		m_ios.post(boost::bind(&complete_job, aiocbs(), ret, j));
+		m_completed_jobs.push_back(j);
 	}
 
 	// This is sometimes called from an outside thread!
@@ -2575,9 +2575,9 @@ namespace libtorrent
 			// right before we start waiting on it
 			if (last_completed_aios == g_completed_aios)
 			{
-				DLOG(stderr, "[%p] sem_wait()\n", this);
+//				DLOG(stderr, "[%p] sem_wait()\n", this);
 				g_job_sem.timed_wait(500);
-				DLOG(stderr, "[%p] sem_wait() returned\n", this);
+//				DLOG(stderr, "[%p] sem_wait() returned\n", this);
 			}
 
 			// more jobs might complete as we go through
@@ -2585,10 +2585,11 @@ namespace libtorrent
 			// would have incremented again. It's incremented
 			// in the aio signal handler
 			int complete_aios = g_completed_aios;
-			DLOG(stderr, "[%p] m_completed_aios %d last_completed_aios: %d\n"
-				, this, complete_aios, last_completed_aios);
 			while (complete_aios != last_completed_aios)
 			{
+				DLOG(stderr, "[%p] m_completed_aios %d last_completed_aios: %d\n"
+					, this, complete_aios, last_completed_aios);
+
 				// this needs to be atomic for the signal handler
 				last_completed_aios = complete_aios;
 				// go through all outstanding disk operations
@@ -2622,7 +2623,15 @@ namespace libtorrent
 			// we have outstanding iocbs waiting to be submitted
 			// go back to sleep waiting for more io completion events
 			if (!new_job && (!iocbs_reaped || m_to_issue == 0))
+			{
+				if (!m_completed_jobs.empty())
+				{
+					disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+					m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, j));
+				}
+
 				continue;
+			}
 
 			// keep the mutex locked for as short as possible
 			// while we swap out all the jobs in the queue
@@ -2631,7 +2640,10 @@ namespace libtorrent
 			mutex::scoped_lock l(m_job_mutex);
 			disk_io_job* j = (disk_io_job*)m_queued_jobs.get_all();
 			l.unlock();
-			DLOG(stderr, "[%p] new jobs\n", this);
+			if (j)
+			{
+				DLOG(stderr, "[%p] new jobs\n", this);
+			}
 
 			// go through list of newly submitted jobs
 			// and perform the appropriate action
@@ -2649,6 +2661,12 @@ namespace libtorrent
 				j = (disk_io_job*)j->next;
 				job->next = 0;
 				perform_async_job(job);
+			}
+
+			if (!m_completed_jobs.empty())
+			{
+				disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+				m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, j));
 			}
 
 			// tell the kernel about the async disk I/O jobs we want to perform

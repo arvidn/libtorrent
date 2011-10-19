@@ -536,7 +536,12 @@ namespace libtorrent
 		// exist anymore, and crash. This prevents that.
 		boost::optional<io_service::work> m_work;
 
+		// jobs queued for servicing
 		tailqueue m_queued_jobs;
+		
+		// jobs that have been completed waiting
+		// to be posted back to the network thread
+		tailqueue m_completed_jobs;
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;

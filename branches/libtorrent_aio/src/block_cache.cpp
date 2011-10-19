@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/io_service.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
@@ -511,7 +511,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 }
 
 void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
-		, io_service& ios, aiocb_pool* pool, storage_error const& ec)
+		, tailqueue& jobs, storage_error const& ec)
 {
 	INVARIANT_CHECK;
 
@@ -629,7 +629,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 	kick_hasher(pe, hash_start, hash_end);
 
 	bool include_hash_jobs = hash_start != 0 || hash_end != 0;
-	reap_piece_jobs(p, ec, hash_start, hash_end, ios, pool, include_hash_jobs);
+	reap_piece_jobs(p, ec, hash_start, hash_end, jobs, include_hash_jobs);
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
@@ -667,7 +667,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 		"piece: %d refcount: %d\n", this, int(pe->marked_for_deletion)
 		, int(pe->piece), int(pe->refcount));
 
-	maybe_free_piece(p, ios, pool);
+	maybe_free_piece(p, jobs);
 
 	// lower the fence after we deleted the piece from the cache
 	// to avoid inconsistent states when new jobs are issued
@@ -728,7 +728,7 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 }
 
 void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
-	, int hash_start, int hash_end, io_service& ios, aiocb_pool* pool
+	, int hash_start, int hash_end, tailqueue& jobs
 	, bool reap_hash_jobs)
 {
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
@@ -935,7 +935,8 @@ post_job:
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif
-		ios.post(boost::bind(&complete_job, pool, ret, j));
+		j->ret = ret;
+		jobs.push_back(j);
 	}
 
 	// handle the sync jobs last, to make sure all references are
@@ -953,7 +954,7 @@ post_job:
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
-			ios.post(boost::bind(&complete_job, pool, 0, j));
+			jobs.push_back(j);
 		}
 	}
 	else
@@ -970,7 +971,7 @@ post_job:
 }
 
 void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
-	, io_service& ios, aiocb_pool* pool)
+	, tailqueue& jobs)
 {
 	INVARIANT_CHECK;
 
@@ -1015,7 +1016,7 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 	cache_piece_index_t::iterator p = find_piece(pe);
 	TORRENT_ASSERT(p != idx.end());
 
-	reap_piece_jobs(p, storage_error(), begin, end, ios, pool, true);
+	reap_piece_jobs(p, storage_error(), begin, end, jobs, true);
 
 #if DEBUG_CACHE
 	log_refcounts(pe);
@@ -1036,10 +1037,10 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
-	maybe_free_piece(p, ios, pool);
+	maybe_free_piece(p, jobs);
 }
 
-void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
+void block_cache::abort_dirty(iterator p, tailqueue& jobs)
 {
 	INVARIANT_CHECK;
 
@@ -1076,7 +1077,8 @@ void block_cache::abort_dirty(iterator p, io_service& ios, aiocb_pool* pool)
 		TORRENT_ASSERT(j->callback_called == false);
 		j->callback_called = true;
 #endif
-		ios.post(boost::bind(&complete_job, pool, -1, j));
+		j->ret = -1;
+		jobs.push_back(j);
 	}
 }
 
@@ -1327,7 +1329,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 	return j->d.io.buffer_size;
 }
 
-void block_cache::reclaim_block(block_cache_reference const& ref, io_service& ios, aiocb_pool* pool)
+void block_cache::reclaim_block(block_cache_reference const& ref, tailqueue& jobs)
 {
 	iterator p = find_piece(ref);
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
@@ -1349,10 +1351,10 @@ void block_cache::reclaim_block(block_cache_reference const& ref, io_service& io
 	TORRENT_ASSERT(m_send_buffer_blocks > 0);
 	--m_send_buffer_blocks;
 
-	maybe_free_piece(p, ios, pool);
+	maybe_free_piece(p, jobs);
 }
 
-bool block_cache::maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool)
+bool block_cache::maybe_free_piece(iterator p, tailqueue& jobs)
 {
 	cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 	if (pe->refcount > 0 || !pe->marked_for_deletion) return false;
@@ -1377,7 +1379,7 @@ bool block_cache::maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool
 			TORRENT_ASSERT(j->callback_called == false);
 			j->callback_called = true;
 #endif
-			ios.post(boost::bind(&complete_job, pool, 0, j));
+			jobs.push_back(j);
 		}
 		else
 			pe->jobs.push_back(j);
@@ -1398,7 +1400,7 @@ bool block_cache::maybe_free_piece(iterator p, io_service& ios, aiocb_pool* pool
 	TORRENT_ASSERT(j->callback_called == false);
 	j->callback_called = true;
 #endif
-	ios.post(boost::bind(&complete_job, pool, 0, j));
+	jobs.push_back(j);
 
 	return true;
 }
