@@ -318,8 +318,7 @@ namespace libtorrent
 			= boost::function<void(int, disk_io_job const&)>());
 
 		bool test_error(disk_io_job& j);
-		void post_callback(boost::function<void(int, disk_io_job const&)> const& handler
-			, disk_io_job const& j, int ret);
+		void post_callback(disk_io_job const& j, int ret);
 
 		// cache operations
 		cache_piece_index_t::iterator find_cached_piece(
@@ -376,7 +375,7 @@ namespace libtorrent
 		// read cache
 		cache_t m_read_pieces;
 
-		void flip_stats();
+		void flip_stats(ptime now);
 
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
@@ -440,6 +439,10 @@ namespace libtorrent
 		// reference to the file_pool which is a member of
 		// the session_impl object
 		file_pool& m_file_pool;
+
+		// when completion notifications are queued, they're stuck
+		// in this list
+		std::list<std::pair<disk_io_job, int> > m_queued_completions;
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
