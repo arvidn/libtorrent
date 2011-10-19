@@ -4458,7 +4458,6 @@ namespace libtorrent
 		if (j.buffer) m_ses.m_disk_thread.rename_buffer(j.buffer, "dispatched send buffer");
 #endif
 		write_piece(r, buffer);
-		setup_send();
 	}
 
 	void peer_connection::assign_bandwidth(int channel, int amount)
@@ -5005,7 +5004,7 @@ namespace libtorrent
 				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1));
 			++i;
 		}
-		setup_send();
+		if ((flags & cork_message) == 0) setup_send();
 	}
 
 	template<class T>
@@ -5030,7 +5029,7 @@ namespace libtorrent
 		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
 		int size = 8;
 		int index = 0;
-		while (bytes_transferred > size) { size <<= 1; ++index; }
+		while (bytes_transferred > size + 13) { size <<= 1; ++index; }
 		int num_max = sizeof(m_ses.m_recv_buffer_sizes)/sizeof(m_ses.m_recv_buffer_sizes[0]);
 		if (index >= num_max) index = num_max - 1;
 		++m_ses.m_recv_buffer_sizes[index];
@@ -5378,7 +5377,7 @@ namespace libtorrent
 		++m_ses.m_num_messages[aux::session_impl::on_write_counter];
 		int size = 8;
 		int index = 0;
-		while (bytes_transferred > size) { size <<= 1; ++index; }
+		while (bytes_transferred > size + 13) { size <<= 1; ++index; }
 		int num_max = sizeof(m_ses.m_send_buffer_sizes)/sizeof(m_ses.m_send_buffer_sizes[0]);
 		if (index >= num_max) index = num_max - 1;
 		++m_ses.m_send_buffer_sizes[index];
