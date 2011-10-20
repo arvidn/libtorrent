@@ -181,7 +181,8 @@ namespace libtorrent
 		m_buffers_in_use.insert(ret);
 #endif
 		++m_in_use;
-		if (m_in_use >= m_max_use) m_exceeded_max_size = true;
+		if (m_in_use >= m_low_watermark + (m_max_use - m_low_watermark) / 2)
+			m_exceeded_max_size = true;
 #if TORRENT_USE_MLOCK
 		if (m_lock_disk_cache)
 		{
