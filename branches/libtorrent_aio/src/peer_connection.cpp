@@ -2646,6 +2646,9 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_write_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
@@ -4491,7 +4494,7 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 		
-		int upload_rate = int(m_statistics.upload_rate());
+		boost::uint64_t upload_rate = int(m_statistics.upload_rate());
 
 		int buffer_size_watermark = upload_rate
 			* m_ses.settings().send_buffer_watermark_factor / 100;
@@ -4619,6 +4622,9 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_disk_read_counter];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4669,7 +4675,6 @@ namespace libtorrent
 			t->add_suggest_piece(r.piece);
 		}
 		write_piece(r, buffer);
-		setup_send();
 	}
 
 	void peer_connection::assign_bandwidth(int channel, int amount)
@@ -5229,7 +5234,7 @@ namespace libtorrent
 				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1));
 			++i;
 		}
-		setup_send();
+		if ((flags & cork_message) == 0) setup_send();
 	}
 
 	template<class T>
@@ -5250,6 +5255,15 @@ namespace libtorrent
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
+		int size = 8;
+		int index = 0;
+		while (bytes_transferred > size + 13) { size <<= 1; ++index; }
+		int num_max = sizeof(m_ses.m_recv_buffer_sizes)/sizeof(m_ses.m_recv_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_ses.m_recv_buffer_sizes[index];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		// keep ourselves alive in until this function exits in
@@ -5580,6 +5594,15 @@ namespace libtorrent
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_write_counter];
+		int size = 8;
+		int index = 0;
+		while (bytes_transferred > size + 13) { size <<= 1; ++index; }
+		int num_max = sizeof(m_ses.m_send_buffer_sizes)/sizeof(m_ses.m_send_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_ses.m_send_buffer_sizes[index];
+#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #if defined TORRENT_VERBOSE_LOGGING 

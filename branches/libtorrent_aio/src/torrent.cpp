@@ -6661,6 +6661,7 @@ ctx->set_verify_callback(verify_function, ec);
 			{
 				torrent* t = i->second.get();
 				if (t->m_sequence_number >= p) ++t->m_sequence_number;
+				if (t->m_sequence_number >= p) ++t->m_sequence_number;
 			}
 			++max_queue_pos;
 			m_sequence_number = (std::min)(max_queue_pos, p);

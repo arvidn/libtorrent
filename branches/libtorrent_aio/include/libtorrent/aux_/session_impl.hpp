@@ -95,7 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
-#if TORRENT_STATS && defined __MACH__
+#ifdef TORRENT_STATS && defined __MACH__
 #include <mach/vm_statistics.h>
 #include <mach/mach_init.h>
 #include <mach/host_info.h>
@@ -158,6 +158,12 @@ namespace libtorrent
 			boost::uint64_t faults;
 		};
 #endif
+
+		struct thread_cpu_usage
+		{
+			ptime user_time;
+			ptime system_time;
+		};
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger;
@@ -962,8 +968,28 @@ namespace libtorrent
 			int m_num_banned_peers;
 			int m_banned_for_hash_failure;
 			vm_statistics_data_t m_last_vm_stat;
+			thread_cpu_usage m_network_thread_cpu_usage;
 			sliding_average<20> m_read_ops;
 			sliding_average<20> m_write_ops;;
+			enum
+			{
+				on_read_counter,
+				on_write_counter,
+				on_tick_counter,
+				on_lsd_counter,
+				on_lsd_peer_counter,
+				on_udp_counter,
+				on_accept_counter,
+				on_disk_queue_counter,
+				on_disk_read_counter,
+				on_disk_write_counter,
+				max_messages
+			};
+			int m_num_messages[max_messages];
+			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+			int m_send_buffer_sizes[18];
+			int m_recv_buffer_sizes[18];
 #endif
 
 			// each second tick the timer takes a little

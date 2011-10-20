@@ -548,7 +548,7 @@ namespace libtorrent
 
 		// these functions are virtual to let bt_peer_connection hook into them
 		// and encrypt the content
-		enum message_type_flags { message_type_request = 1 };
+		enum message_type_flags { message_type_request = 1, cork_message = 2 };
 		virtual void send_buffer(char const* begin, int size, int flags = 0
 			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
 		virtual void setup_send();

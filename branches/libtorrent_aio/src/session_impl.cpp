@@ -82,6 +82,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
 
+#ifdef TORRENT_STATS && defined __MACH__
+#include <mach/task.h>
+#endif
+
 #ifndef TORRENT_WINDOWS
 #include <sys/resource.h>
 #endif
@@ -231,6 +235,45 @@ namespace aux {
 // TOOD: windows?
 	}
 
+	void get_thread_cpu_usage(thread_cpu_usage* tu)
+	{
+#if defined __MACH__
+		task_thread_times_info t_info;
+		mach_msg_type_number_t t_info_count = TASK_THREAD_TIMES_INFO_COUNT;
+		task_info(mach_task_self(), TASK_THREAD_TIMES_INFO, (task_info_t)&t_info, &t_info_count);
+
+		tu->user_time = min_time()
+			+ seconds(t_info.user_time.seconds)
+			+ microsec(t_info.user_time.microseconds);
+		tu->system_time = min_time()
+			+ seconds(t_info.system_time.seconds)
+			+ microsec(t_info.system_time.microseconds);
+#elif defined TORRENT_LINUX
+		struct rusage ru;
+		getrusage(RUSAGE_THREAD, &ru);
+		tu->user_time = min_time()
+			+ seconds(ru.ru_utime.tv_sec)
+			+ microsec(ru.ru_utime.tv_usec);
+		tu->system_time = min_time()
+			+ seconds(ru.ru_stime.tv_sec)
+			+ microsec(ru.ru_stime.tv_usec);
+#elif defined TORRENT_WINDOWS
+		FILETIME system_time;
+		FILETIME user_time;
+		FILETIME creation_time;
+		FILETIME exit_time;
+		GetThreadTimes(GetCurrentThread(), &creation_time, &exit_time, &user_time, &system_time);
+
+		boost::uint64_t utime = (boost::uint64_t(user_time.dwhighdatetime) << 32)
+			+ user_time.dwlowdatetime;
+		boost::uint64_t stime = (boost::uint64_t(system_time.dwhighdatetime) << 32)
+			+ system_time.dwlowdatetime;
+
+		tu->user_time = min_time() + microsec(utime / 10);
+		tu->system_time = min_time() + microsec(stime / 10);
+#endif
+	}
+		
 #endif // TORRENT_STATS
 
 	struct seed_random_generator
@@ -1173,6 +1216,20 @@ namespace aux {
 			":allocated read jobs"
 			":allocated write jobs"
 			":pending reading bytes"
+			":read_counter"
+			":write_counter"
+			":tick_counter"
+			":lsd_counter"
+			":lsd_peer_counter"
+			":udp_counter"
+			":accept_counter"
+			":disk_queue_counter"
+			":disk_read_counter"
+			":disk_write_counter"
+			":up 8:up 16:up 32:up 64:up 128:up 256:up 512:up 1024:up 2048:up 4096:up 8192:up 16384:up 32768:up 65536:up 131072:up 262144:up 524288:up 1048576"
+			":down 8:down 16:down 32:down 64:down 128:down 256:down 512:down 1024:down 2048:down 4096:down 8192:down 16384:down 32768:down 65536:down 131072:down 262144:down 524288:down 1048576"
+			":network thread system time"
+			":network thread user+system time"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2281,6 +2338,9 @@ namespace aux {
 	void session_impl::on_receive_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_udp_counter];
+#endif
 		if (e)
 		{
 			if (e == asio::error::connection_refused
@@ -2346,6 +2406,9 @@ namespace aux {
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
+#endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_accept_counter];
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
@@ -2717,6 +2780,10 @@ namespace aux {
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_tick_counter];
+#endif
+
 		TORRENT_ASSERT(is_network_thread());
 
 		ptime now = time_now_hires();
@@ -3283,6 +3350,7 @@ namespace aux {
 		else
 		{
 			rotate_stats_log();
+			get_thread_cpu_usage(&m_network_thread_cpu_usage);
 		}
 	}
 
@@ -3307,6 +3375,10 @@ namespace aux {
 		m_connection_attempts = 0;
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
+
+		memset(m_num_messages, 0, sizeof(m_num_messages));
+		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
+		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 	}
 
 	void session_impl::print_log_line(int tick_interval_ms, ptime now)
@@ -3484,6 +3556,8 @@ namespace aux {
 		error_code vm_ec;
 		vm_statistics_data_t vm_stat;
 		get_vm_stats(&vm_stat, vm_ec);
+		thread_cpu_usage cur_cpu_usage;
+		get_thread_cpu_usage(&cur_cpu_usage);
 
 		if (m_stats_logger)
 		{
@@ -3638,12 +3712,36 @@ namespace aux {
 
 			STAT_LOG(d, reading_bytes);
 
+			for (int i = 0; i < max_messages; ++i)
+			{
+				STAT_LOG(d, m_num_messages[i]);
+			}
+			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
+			for (int i = 0; i < num_max; ++i)
+			{
+				STAT_LOG(d, m_send_buffer_sizes[i]);
+			}
+			num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
+			for (int i = 0; i < num_max; ++i)
+			{
+				STAT_LOG(d, m_recv_buffer_sizes[i]);
+			}
+
+			STAT_LOG(f, total_milliseconds(cur_cpu_usage.user_time
+				- m_network_thread_cpu_usage.user_time) * 100.0 / double(tick_interval_ms));
+			STAT_LOG(f, (total_milliseconds(cur_cpu_usage.system_time
+					- m_network_thread_cpu_usage.system_time)
+				+ total_milliseconds(cur_cpu_usage.user_time
+					- m_network_thread_cpu_usage.user_time)) * 100.0
+				/ double(tick_interval_ms));
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
 
 			m_last_cache_status = cs;
 			if (!vm_ec) m_last_vm_stat = vm_stat;
+			m_network_thread_cpu_usage = cur_cpu_usage;
 			m_last_failed = m_total_failed_bytes;
 			m_last_redundant = m_total_redundant_bytes;
 			m_last_uploaded = m_stat.total_upload();
@@ -3713,6 +3811,9 @@ namespace aux {
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_lsd_announce");
+#endif
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_counter];
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
@@ -4652,6 +4753,9 @@ namespace aux {
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
+#ifdef TORRENT_STATS
+		++m_num_messages[on_lsd_peer_counter];
+#endif
 		TORRENT_ASSERT(is_network_thread());
 
 		INVARIANT_CHECK;
