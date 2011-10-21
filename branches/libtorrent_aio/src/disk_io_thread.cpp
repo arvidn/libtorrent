@@ -2132,20 +2132,21 @@ namespace libtorrent
 	}
 
 	// This is sometimes called from an outside thread!
-	int disk_io_thread::add_job(disk_io_job* j, bool high_priority)
+	void disk_io_thread::add_job(disk_io_job* j, bool high_priority)
 	{
+		j->start_time = time_now_hires();
+
+		mutex::scoped_lock l(m_job_mutex);
+
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete);
 		if (m_abort && j->action != disk_io_job::hash_complete)
 		{
+			l.unlock();
 			m_aiocb_pool.free_job(j);
-			return 0;
+			return;
 		}
-
-		j->start_time = time_now_hires();
-
-		mutex::scoped_lock l (m_job_mutex);
 
 		if (high_priority)
 			m_queued_jobs.push_front(j);
@@ -2155,14 +2156,13 @@ namespace libtorrent
 		DLOG(stderr, "[%p] add_job job: %s\n", this, job_action_name[j->action]);
 
 		if (j->action == disk_io_job::write)
-		{
 			m_queue_buffer_size += j->d.io.buffer_size;
-		}
-		int ret = m_queue_buffer_size;
-		// we need to unlock here because writing to the
-		// event_pipe may block, if the pipe is full. If it does
-		// and we hold the lock, we may get a dead lock with the
-		// disk thread
+	}
+
+	void disk_io_thread::submit_jobs()
+	{
+		mutex::scoped_lock l (m_job_mutex);
+		if (m_queued_jobs.empty()) return;
 		l.unlock();
 
 		// wake up the disk thread to issue this new job
@@ -2183,7 +2183,6 @@ namespace libtorrent
 #else
 		g_job_sem.signal_all();
 #endif
-		return ret;
 	}
 
 #if TORRENT_USE_AIO && !TORRENT_USE_AIO_SIGNALFD && !TORRENT_USE_AIO_PORTS && !TORRENT_USE_AIO_KQUEUE

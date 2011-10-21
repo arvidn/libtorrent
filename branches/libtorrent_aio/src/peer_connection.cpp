@@ -2534,21 +2534,11 @@ namespace libtorrent
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
 #endif
-		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
+		fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
 		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
 		m_download_queue.erase(b);
-
-		if (write_queue_size / 16 / 1024 > m_ses.m_settings.cache_size / 2
-			&& m_ses.m_settings.cache_size > 5
-			&& (now - m_ses.m_last_disk_queue_performance_warning) > seconds(10)
-			&& m_ses.m_alerts.should_post<performance_alert>())
-		{
-			m_ses.m_last_disk_queue_performance_warning = now;
-			t->alerts().post_alert(performance_alert(t->get_handle()
-				, performance_alert::too_high_disk_queue_limit));
-		}
 
 		if (!m_download_queue.empty())
 		{
@@ -5267,6 +5257,9 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+		// submit all disk jobs when we leave this function
+		deferred_submit_jobs sj(m_ses.m_disk_thread);
+
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
 		// this needs to be created before the invariant check,
@@ -5605,6 +5598,9 @@ namespace libtorrent
 		++m_ses.m_send_buffer_sizes[index];
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		// submit all disk jobs when we leave this function
+		deferred_submit_jobs sj(m_ses.m_disk_thread);
 
 #if defined TORRENT_VERBOSE_LOGGING 
 		peer_log("*** ON_SEND_DATA [ bytes: %d error: %s ]"

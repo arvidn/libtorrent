@@ -1191,6 +1191,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
+	// TODO: it doesn't make any sense for the piece_manager to
+	// contain this wrapper around posting jobs to the disk thread
+	// piece_manager can probably be removed
 	void piece_manager::async_finalize_file(int file)
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::finalize_file);
@@ -1355,7 +1358,7 @@ namespace libtorrent
 		m_io_thread.add_job(j);
 	}
 
-	int piece_manager::async_write(
+	void piece_manager::async_write(
 		peer_request const& r
 		, disk_buffer_holder& buffer
 		, boost::function<void(int, disk_io_job const&)> const& handler
@@ -1374,10 +1377,8 @@ namespace libtorrent
 		j->buffer = buffer.get();
 		j->callback = handler;
 		j->flags = flags;
-		int queue_size = m_io_thread.add_job(j);
+		m_io_thread.add_job(j);
 		buffer.release();
-
-		return queue_size;
 	}
 
 	void piece_manager::async_hash(int piece, int flags

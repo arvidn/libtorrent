@@ -331,7 +331,11 @@ namespace libtorrent
 		char* allocate_buffer(char const* category)
 		{ return m_disk_cache.allocate_buffer(category); }
 
-		int add_job(disk_io_job* j, bool high_priority = false);
+		// this queues up another job to be submitted
+		void add_job(disk_io_job* j, bool high_priority = false);
+
+		// this submits all queued up jobs to the thread
+		void submit_jobs();
 
 		aiocb_pool* aiocbs() { return &m_aiocb_pool; }
 		block_cache* cache() { return &m_disk_cache; }
@@ -623,6 +627,12 @@ namespace libtorrent
 		thread m_disk_io_thread;
 	};
 
+	struct deferred_submit_jobs
+	{
+		deferred_submit_jobs(disk_io_thread& dt): m_disk_thread(dt) {}
+		~deferred_submit_jobs() { m_disk_thread.submit_jobs(); }
+		disk_io_thread& m_disk_thread;
+	};
 }
 
 #endif

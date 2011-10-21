@@ -2786,6 +2786,9 @@ namespace aux {
 
 		TORRENT_ASSERT(is_network_thread());
 
+		// submit all disk jobs when we leave this function
+		deferred_submit_jobs sj(m_disk_thread);
+
 		ptime now = time_now_hires();
 		aux::g_current_time = now;
 // too expensive
