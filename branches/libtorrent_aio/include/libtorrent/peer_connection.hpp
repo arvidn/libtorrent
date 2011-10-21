@@ -1033,6 +1033,11 @@ namespace libtorrent
 		// used to limit recursion
 		boost::uint8_t m_read_recurse:5;
 
+		// this is used in seed mode whenever we trigger a hash check
+		// for a piece, before we read it. It's used to throttle
+		// the hash checks to just a few per peer at a time.
+		boost::uint8_t m_outstanding_piece_verification:3;
+		
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
 		// is closed. This means the time until we can
@@ -1142,11 +1147,6 @@ namespace libtorrent
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
 
-		// this is set in seed mode whenever we trigger a hash check
-		// for a piece, before we read it. It's used to throttle
-		// the hash checks to one per peer at a time.
-		bool m_outstanding_piece_verification:1;
-		
 		template <std::size_t Size>
 		struct handler_storage
 		{

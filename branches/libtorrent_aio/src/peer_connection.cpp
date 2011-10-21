@@ -143,6 +143,7 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
 		, m_read_recurse(0)
+		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
 		, m_active(outgoing)
 		, m_peer_interested(false)
@@ -166,7 +167,6 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
-		, m_outstanding_piece_verification(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -295,6 +295,7 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
 		, m_read_recurse(0)
+		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
 		, m_active(outgoing)
 		, m_peer_interested(false)
@@ -318,7 +319,6 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
-		, m_outstanding_piece_verification(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -4529,10 +4529,10 @@ namespace libtorrent
 				// so we can't return it yet.
 				if (t->verifying_piece(r.piece)) continue;
 
-				// only have one outstanding hash check per peer
-				if (m_outstanding_piece_verification) continue;
+				// only have three outstanding hash check per peer
+				if (m_outstanding_piece_verification >= 3) continue;
 
-				m_outstanding_piece_verification = true;
+				++m_outstanding_piece_verification;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** FILE ASYNC HASH [ piece: %d ]", r.piece);
@@ -4589,7 +4589,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
-		m_outstanding_piece_verification = false;
+		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
+		--m_outstanding_piece_verification;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
