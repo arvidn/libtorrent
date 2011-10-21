@@ -4896,7 +4896,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
 #endif
-		std::list<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+		std::vector<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_send_data");
 #endif

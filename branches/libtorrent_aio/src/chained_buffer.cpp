@@ -120,12 +120,12 @@ namespace libtorrent
 		return insert;
 	}
 
-	std::list<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
+	std::vector<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
 	{
 		TORRENT_ASSERT(is_network_thread());
 		m_tmp_vec.clear();
 
-		for (std::list<buffer_t>::iterator i = m_vec.begin()
+		for (std::deque<buffer_t>::iterator i = m_vec.begin()
 			, end(m_vec.end()); to_send > 0 && i != end; ++i)
 		{
 			if (i->used_size > to_send)
@@ -150,7 +150,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_network_thread());
 		TORRENT_ASSERT(m_bytes >= 0);
 		TORRENT_ASSERT(m_capacity >= 0);
-		for (std::list<buffer_t>::iterator i = m_vec.begin()
+		for (std::deque<buffer_t>::iterator i = m_vec.begin()
 			, end(m_vec.end()); i != end; ++i)
 		{
 			i->free(i->buf);
