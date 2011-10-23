@@ -1230,7 +1230,7 @@ namespace libtorrent
 			(*m_logger) << time_now_string() << " <== HASHPIECE " << p.piece << " list: " << list_size << " ";
 #endif
 			lazy_entry hash_list;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size, hash_list) != 0)
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.begin + 13 + list_size, hash_list) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, 2);
 				return;

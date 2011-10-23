@@ -1225,7 +1225,7 @@ namespace libtorrent
 #endif
 			lazy_entry hash_list;
 			error_code ec;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
 				, hash_list, ec) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, 2);
