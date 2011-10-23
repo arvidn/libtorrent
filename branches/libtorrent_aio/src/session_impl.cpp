@@ -82,7 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
 
-#ifdef TORRENT_STATS && defined __MACH__
+#if defined TORRENT_STATS && defined __MACH__
 #include <mach/task.h>
 #endif
 

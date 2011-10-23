@@ -95,7 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/context.hpp>
 #endif
 
-#ifdef TORRENT_STATS && defined __MACH__
+#if defined TORRENT_STATS && defined __MACH__
 #include <mach/vm_statistics.h>
 #include <mach/mach_init.h>
 #include <mach/host_info.h>
