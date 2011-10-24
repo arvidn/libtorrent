@@ -1367,8 +1367,6 @@ int main(int argc, char* argv[])
 	settings.disk_cache_algorithm = session_settings::avoid_readback;
 	settings.volatile_read_cache = false;
 
-	settings.max_allowed_in_request_queue = 1000;
-	settings.send_buffer_watermark = 10 * 1024 * 1024;
 	ses.set_settings(settings);
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
