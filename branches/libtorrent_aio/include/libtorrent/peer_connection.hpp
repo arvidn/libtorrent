@@ -745,16 +745,8 @@ namespace libtorrent
 			, peer_request r, boost::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(int ret, disk_io_job const& j);
 
-		int request_upload_bandwidth(
-			bandwidth_channel* bwc1
-			, bandwidth_channel* bwc2 = 0
-			, bandwidth_channel* bwc3 = 0
-			, bandwidth_channel* bwc4 = 0);
-		int request_download_bandwidth(
-			bandwidth_channel* bwc1
-			, bandwidth_channel* bwc2 = 0
-			, bandwidth_channel* bwc3 = 0
-			, bandwidth_channel* bwc4 = 0);
+		int request_upload_bandwidth();
+		int request_download_bandwidth(int bytes = 0);
 
 		// keep the io_service running as long as we
 		// have peer connections
