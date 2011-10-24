@@ -167,6 +167,7 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
+		, m_corked(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -319,6 +320,7 @@ namespace libtorrent
 		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
+		, m_corked(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -2641,6 +2643,11 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+		// flush send buffer at the end of this scope
+		// TODO: peers should really be corked/uncorked outside of
+		// all completed disk operations
+		cork _c(*this);
+
 		INVARIANT_CHECK;
 
 		m_outstanding_writing_bytes -= p.length;
@@ -4613,6 +4620,11 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
+		// flush send buffer at the end of this scope
+		// TODO: peers should really be corked/uncorked outside of
+		// all completed disk operations
+		cork _c(*this);
+
 #ifdef TORRENT_STATS
 		++m_ses.m_num_messages[aux::session_impl::on_disk_read_counter];
 #endif
@@ -4778,6 +4790,13 @@ namespace libtorrent
 			, priority , bwc1, bwc2, bwc3, bwc4);
 	}
 
+	void peer_connection::uncork_socket()
+	{
+		if (!m_corked) return;
+		m_corked = false;
+		setup_send();
+	}
+
 	void peer_connection::setup_send()
 	{
 		if (m_channel_state[upload_channel] != peer_info::bw_idle
@@ -4883,6 +4902,14 @@ namespace libtorrent
 			amount_to_send = quota_left;
 
 		TORRENT_ASSERT(amount_to_send > 0);
+
+		if (m_corked)
+		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(">>> CORKED WRITE [ bytes: %d ]", amount_to_send);
+#endif
+			return;		
+		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
@@ -5225,7 +5252,7 @@ namespace libtorrent
 				, boost::bind(&session_impl::free_buffer, boost::ref(m_ses), _1));
 			++i;
 		}
-		if ((flags & cork_message) == 0) setup_send();
+		setup_send();
 	}
 
 	template<class T>
@@ -5265,6 +5292,9 @@ namespace libtorrent
 		// this needs to be created before the invariant check,
 		// to keep the object alive through the exit check
 		boost::intrusive_ptr<peer_connection> me(self());
+
+		// flush the send buffer at the end of this function
+		cork _c(*this);
 
 		INVARIANT_CHECK;
 

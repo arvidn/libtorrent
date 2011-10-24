@@ -1243,7 +1243,7 @@ namespace libtorrent
 #endif
 			lazy_entry hash_list;
 			error_code ec;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.end + 13 + list_size
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
 				, hash_list, ec) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, 2);
@@ -2382,12 +2382,12 @@ namespace libtorrent
 			char* ptr = msg;
 			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size(), ptr);
 
-			send_buffer(msg, 17, cork_message);
-			send_buffer(&piece_list_buf[0], piece_list_buf.size(), cork_message);
+			send_buffer(msg, 17);
+			send_buffer(&piece_list_buf[0], piece_list_buf.size());
 		}
 		else
 		{
-			send_buffer(msg, 13, cork_message);
+			send_buffer(msg, 13);
 		}
 
 		if (buffer.ref().storage == 0)

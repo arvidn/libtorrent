@@ -548,10 +548,13 @@ namespace libtorrent
 
 		// these functions are virtual to let bt_peer_connection hook into them
 		// and encrypt the content
-		enum message_type_flags { message_type_request = 1, cork_message = 2 };
+		enum message_type_flags { message_type_request = 1 };
 		virtual void send_buffer(char const* begin, int size, int flags = 0
 			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
 		virtual void setup_send();
+
+		void cork_socket() { TORRENT_ASSERT(!m_corked); m_corked = true; }
+		void uncork_socket();
 
 #ifdef TORRENT_BUFFER_STATS
 		void log_buffer_usage(char* buffer, int size, char const* label);
@@ -1147,6 +1150,13 @@ namespace libtorrent
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
 
+		// when this is set, the peer_connection socket is
+		// corked, similar to the linux TCP feature TCP_CORK.
+		// we won't send anything to the actual socket, just
+		// buffer messages up in the application layer send
+		// buffer, and send it once we're uncorked.
+		bool m_corked:1;
+		
 		template <std::size_t Size>
 		struct handler_storage
 		{
@@ -1241,6 +1251,14 @@ namespace libtorrent
 		bool m_destructed;
 #endif
 	};
+
+	struct cork
+	{
+		cork(peer_connection& p): m_pc(p) { m_pc.cork_socket(); }
+		~cork() { m_pc.uncork_socket(); }
+		peer_connection& m_pc;
+	};
+
 }
 
 #endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED
