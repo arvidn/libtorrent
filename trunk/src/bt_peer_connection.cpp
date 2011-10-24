@@ -2339,12 +2339,12 @@ namespace libtorrent
 			char* ptr = msg;
 			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size(), ptr);
 
-			send_buffer(msg, 17, cork_message);
-			send_buffer(&piece_list_buf[0], piece_list_buf.size(), cork_message);
+			send_buffer(msg, 17);
+			send_buffer(&piece_list_buf[0], piece_list_buf.size());
 		}
 		else
 		{
-			send_buffer(msg, 13, cork_message);
+			send_buffer(msg, 13);
 		}
 
 		append_send_buffer(buffer.get(), r.length
