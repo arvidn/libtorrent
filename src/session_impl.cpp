@@ -1598,9 +1598,9 @@ namespace aux {
 		m_i2p_conn.close(ec);
 #endif
 		m_queued_for_checking.clear();
-		if (m_lsd) m_lsd->close();
-		if (m_upnp) m_upnp->close();
-		if (m_natpmp) m_natpmp->close();
+		stop_lsd();
+		stop_upnp();
+		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{

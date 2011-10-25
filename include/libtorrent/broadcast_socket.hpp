@@ -117,6 +117,9 @@ namespace libtorrent
 		void open_multicast_socket(io_service& ios, address const& addr
 			, bool loopback, error_code& ec);
 
+		// if we're aborting, destruct the handler and return true
+		bool maybe_abort();
+
 		// these sockets are used to
 		// join the multicast group (on each interface)
 		// and receive multicast messages
@@ -128,6 +131,18 @@ namespace libtorrent
 		std::list<socket_entry> m_unicast_sockets;
 		udp::endpoint m_multicast_endpoint;
 		receive_handler_t m_on_receive;
+
+		// the number of outstanding async operations
+		// we have on these sockets. The m_on_receive
+		// handler may not be destructed until this reaches
+		// 0, since it may be holding references to
+		// the broadcast_socket itself.
+		int m_outstanding_operations;
+		// when set to true, we're trying to shut down
+		// don't initiate new operations and once the
+		// outstanding counter reaches 0, destruct
+		// the handler object
+		bool m_abort;
 	};
 }
 	
