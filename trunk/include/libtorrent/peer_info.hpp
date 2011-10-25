@@ -87,8 +87,9 @@ namespace libtorrent
 		// bw_network: the channel is waiting for an async write
 		//   for read operation to complete
 		// bw_disk: the peer is waiting for the disk io thread
-		//   to catch up
-		enum bw_state { bw_idle, bw_limit, bw_network, bw_disk };
+		// this is a bitmask, a peer can wait for network and
+		// disk at the same time!
+		enum bw_state { bw_idle = 0, bw_limit = 1, bw_network = 2, bw_disk = 4 };
 #ifndef TORRENT_NO_DEPRECATE
 		enum bw_state_deprecated { bw_torrent = bw_limit, bw_global = bw_limit };
 #endif
