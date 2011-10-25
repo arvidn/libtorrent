@@ -2466,7 +2466,7 @@ namespace libtorrent
 		int write_queue_size = fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
-		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle);
+		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
 		m_download_queue.erase(b);
 
 		if (write_queue_size / 16 / 1024 > m_ses.m_settings.cache_size / 2
@@ -3457,15 +3457,15 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		if (m_channel_state[upload_channel] == peer_info::bw_disk)
+		if (m_channel_state[upload_channel] & peer_info::bw_disk)
 		{
 			m_ses.dec_disk_queue(upload_channel);
-			m_channel_state[upload_channel] = peer_info::bw_idle;
+			m_channel_state[upload_channel] &= ~peer_info::bw_disk;
 		}
-		if (m_channel_state[download_channel] == peer_info::bw_disk)
+		if (m_channel_state[download_channel] & peer_info::bw_disk)
 		{
 			m_ses.dec_disk_queue(download_channel);
-			m_channel_state[download_channel] = peer_info::bw_idle;
+			m_channel_state[download_channel] &= ~peer_info::bw_disk;
 		}
 
 		if (m_connecting && m_connection_ticket >= 0)
@@ -4020,7 +4020,7 @@ namespace libtorrent
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
-		bool may_timeout = (m_channel_state[download_channel] == peer_info::bw_network);
+		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network);
 
 		if (may_timeout && d > seconds(m_timeout) && !m_connecting)
 		{
@@ -4481,8 +4481,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(amount > 0);
 		m_quota[channel] += amount;
-		TORRENT_ASSERT(m_channel_state[channel] == peer_info::bw_limit);
-		m_channel_state[channel] = peer_info::bw_idle;
+		TORRENT_ASSERT(m_channel_state[channel] & peer_info::bw_limit);
+		m_channel_state[channel] &= ~peer_info::bw_limit;
 		if (channel == upload_channel)
 		{
 			setup_send();
@@ -4527,8 +4527,8 @@ namespace libtorrent
 		TORRENT_ASSERT(priority < 0xffff);
 
 		// peers that we are not interested in are non-prioritized
-		TORRENT_ASSERT(m_channel_state[upload_channel] != peer_info::bw_disk);
-		m_channel_state[upload_channel] = peer_info::bw_limit;
+		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
+		m_channel_state[upload_channel] |= peer_info::bw_limit;
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
@@ -4570,11 +4570,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_priority <= 255);
 		int priority = m_priority + (t->priority() << 8);
 
-		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_idle
-			|| m_channel_state[download_channel] == peer_info::bw_disk);
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
-		TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
-		m_channel_state[download_channel] = peer_info::bw_limit;
+		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
+		m_channel_state[download_channel] |= peer_info::bw_limit;
 		return m_ses.m_download_rate.request_bandwidth(self()
 			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
 				, m_statistics.download_rate() * 2
@@ -4591,8 +4589,7 @@ namespace libtorrent
 
 	void peer_connection::setup_send()
 	{
-		if (m_channel_state[upload_channel] != peer_info::bw_idle
-			&& m_channel_state[upload_channel] != peer_info::bw_disk) return;
+		if (m_channel_state[upload_channel] & (peer_info::bw_network || peer_info::bw_limit)) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
 
@@ -4625,12 +4622,15 @@ namespace libtorrent
 				ret = request_upload_bandwidth(&m_ses.m_local_upload_channel
 					, &m_bandwidth_channel[upload_channel]);
 			}
-			if (ret == 0) return;
+			if (ret == 0)
+			{
+				m_channel_state[upload_channel] |= peer_info::bw_limit;
+				return;
+			}
 
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[upload_channel] += ret;
-			m_channel_state[upload_channel] = peer_info::bw_idle;
 		}
 
 		int quota_left = m_quota[upload_channel];
@@ -4639,9 +4639,9 @@ namespace libtorrent
 			&& m_reading_bytes > 0
 			&& quota_left > 0)
 		{
-			if (m_channel_state[upload_channel] != peer_info::bw_disk)
+			if ((m_channel_state[upload_channel] & peer_info::bw_disk) == 0)
 				m_ses.inc_disk_queue(upload_channel);
-			m_channel_state[upload_channel] = peer_info::bw_disk;
+			m_channel_state[upload_channel] |= peer_info::bw_disk;
 
 			if (!m_connecting
 				&& !m_requests.empty()
@@ -4703,6 +4703,7 @@ namespace libtorrent
 			return;		
 		}
 
+		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_network) == 0);
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> ASYNC_WRITE [ bytes: %d ]", amount_to_send);
 #endif
@@ -4714,18 +4715,16 @@ namespace libtorrent
 			vec, make_write_handler(boost::bind(
 				&peer_connection::on_send_data, self(), _1, _2)));
 
-		if (m_channel_state[upload_channel] == peer_info::bw_disk)
-			m_ses.dec_disk_queue(upload_channel);
-		m_channel_state[upload_channel] = peer_info::bw_network;
+		m_channel_state[upload_channel] |= peer_info::bw_network;
 	}
 
 	void peer_connection::on_disk()
 	{
-		if (m_channel_state[download_channel] != peer_info::bw_disk) return;
+		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 	
 		m_ses.dec_disk_queue(download_channel);
-		m_channel_state[download_channel] = peer_info::bw_idle;
+		m_channel_state[download_channel] &= ~peer_info::bw_disk;
 		setup_receive(read_async);
 	}
 
@@ -4733,7 +4732,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_channel_state[download_channel] != peer_info::bw_idle) return;
+		if (m_channel_state[download_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
 		
@@ -4765,12 +4764,15 @@ namespace libtorrent
 				ret = request_download_bandwidth(&m_ses.m_local_download_channel
 					, &m_bandwidth_channel[download_channel]);
 			}
-			if (ret == 0) return;
+			if (ret == 0)
+			{
+				m_channel_state[download_channel] |= peer_info::bw_limit;
+				return;
+			}
 
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[download_channel] += ret;
-			m_channel_state[download_channel] = peer_info::bw_idle;
 		}
 		
 		if (!can_read(&m_channel_state[download_channel]))
@@ -4801,8 +4803,8 @@ namespace libtorrent
 				add_outstanding_async("peer_connection::on_receive_data");
 #endif
 				++m_read_recurse;
-				TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
-				m_channel_state[download_channel] = peer_info::bw_network;
+				TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+				m_channel_state[download_channel] |= peer_info::bw_network;
 				on_receive_data(ec, bytes_transferred);
 				--m_read_recurse;
 				return;
@@ -4885,8 +4887,8 @@ namespace libtorrent
 
 		if (s == read_async)
 		{
-			TORRENT_ASSERT(m_channel_state[download_channel] != peer_info::bw_disk);
-			m_channel_state[download_channel] = peer_info::bw_network;
+			TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+			m_channel_state[download_channel] |= peer_info::bw_network;
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< ASYNC_READ      [ max: %d bytes ]", max_receive);
 #endif
@@ -5081,8 +5083,8 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
 #endif
-		TORRENT_ASSERT(m_channel_state[download_channel] == peer_info::bw_network);
-		m_channel_state[download_channel] = peer_info::bw_idle;
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+		m_channel_state[download_channel] &= ~peer_info::bw_network;
 
 		int bytes_in_loop = bytes_transferred;
 
@@ -5209,8 +5211,9 @@ namespace libtorrent
 		{
 			if (state)
 			{
-				if (*state != peer_info::bw_disk) m_ses.inc_disk_queue(download_channel);
-				*state = peer_info::bw_disk;
+				if ((*state & peer_info::bw_disk) == 0)
+					m_ses.inc_disk_queue(download_channel);
+				*state |= peer_info::bw_disk;
 			}
 			return false;
 		}
@@ -5428,7 +5431,7 @@ namespace libtorrent
 		// case we disconnect
 		boost::intrusive_ptr<peer_connection> me(self());
 
-		TORRENT_ASSERT(m_channel_state[upload_channel] == peer_info::bw_network);
+		TORRENT_ASSERT(m_channel_state[upload_channel] & peer_info::bw_network);
 
 		m_send_buffer.pop_front(bytes_transferred);
 
@@ -5440,8 +5443,7 @@ namespace libtorrent
 			&& m_requests_in_buffer.front() <= 0)
 			m_requests_in_buffer.erase(m_requests_in_buffer.begin());
 		
-		TORRENT_ASSERT(m_channel_state[upload_channel] != peer_info::bw_disk);
-		m_channel_state[upload_channel] = peer_info::bw_idle;
+		m_channel_state[upload_channel] &= ~peer_info::bw_network;
 
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
 		m_quota[upload_channel] -= bytes_transferred;
@@ -5552,12 +5554,12 @@ namespace libtorrent
 
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
 		}
-
+/*
 		if (m_channel_state[download_channel] == peer_info::bw_limit)
 			TORRENT_ASSERT(m_quota[download_channel] == 0);
 		if (m_channel_state[upload_channel] == peer_info::bw_limit)
 			TORRENT_ASSERT(m_quota[upload_channel] == 0);
-
+*/
 		std::set<piece_block> unique;
 		std::transform(m_download_queue.begin(), m_download_queue.end()
 			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));
