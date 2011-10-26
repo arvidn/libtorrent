@@ -3881,7 +3881,8 @@ It contains the following fields::
 
 		int source;
 
-		enum bw_state { bw_idle, bw_limit, bw_network, bw_disk };
+		// bitmask representing socket state
+		enum bw_state { bw_idle = 0, bw_limit = 1, bw_network = 2, bw_disk = 4 };
 
 		char read_state;
 		char write_state;
@@ -4043,9 +4044,9 @@ was received. The flags are:
 | ``resume_data``        | The peer was added from the fast resume data.          |
 +------------------------+--------------------------------------------------------+
 
-``read_state`` and ``write_state`` indicates what state this peer is in with regards
-to sending and receiving data. The states are declared in the ``bw_state`` enum and
-defines as follows:
+``read_state`` and ``write_state`` are bitmasks indicating what state this peer
+is in with regards to sending and receiving data. The states are declared in the
+``bw_state`` enum and defines as follows:
 
 +------------------------+--------------------------------------------------------+
 | ``bw_idle``            | The peer is not waiting for any external events to     |
@@ -4065,6 +4066,10 @@ defines as follows:
 |                        | up writing buffers to disk before downloading more.    |
 |                        |                                                        |
 +------------------------+--------------------------------------------------------+
+
+Note that ``read_state`` and ``write_state`` are bitmasks. A peer may be waiting
+on disk and on the network at the same time. ``bw_idle`` does not represent a bit,
+but is simply a name for no bit being set in the bitmask.
 
 The ``ip`` field is the IP-address to this peer. The type is an asio endpoint. For
 more info, see the asio_ documentation.

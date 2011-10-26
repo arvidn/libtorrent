@@ -217,6 +217,8 @@ namespace libtorrent
 		, bool loopback)
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
+		, m_outstanding_operations(0)
+		, m_abort(false)
 	{
 		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
@@ -279,6 +281,7 @@ namespace libtorrent
 #endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+		++m_outstanding_operations;
 	}
 
 	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
@@ -305,6 +308,7 @@ namespace libtorrent
 #endif
 		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+		++m_outstanding_operations;
 	}
 
 	void broadcast_socket::send(char const* buffer, int size, error_code& ec, int flags)
@@ -365,14 +369,37 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("broadcast_socket::on_receive");
 #endif
-		if (ec || bytes_transferred == 0 || !m_on_receive) return;
+		TORRENT_ASSERT(m_outstanding_operations > 0);
+		--m_outstanding_operations;
+
+		if (ec || bytes_transferred == 0 || !m_on_receive)
+		{
+			maybe_abort();
+			return;
+		}
 		m_on_receive(s->remote, s->buffer, bytes_transferred);
+
+		if (maybe_abort()) return;
 		if (!s->socket) return;
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("broadcast_socket::on_receive");
 #endif
 		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
+		++m_outstanding_operations;
+	}
+
+	bool broadcast_socket::maybe_abort()
+	{
+		if (m_abort && m_outstanding_operations == 0)
+		{
+			// it's important that m_on_receive is cleared
+			// before the object is destructed, since it may
+			// hold a reference to ourself, which would otherwise
+			// cause an infinite recursion destructing the objects
+			receive_handler_t().swap(m_on_receive);
+		}
+		return m_abort;
 	}
 
 	void broadcast_socket::close()
@@ -380,7 +407,8 @@ namespace libtorrent
 		std::for_each(m_sockets.begin(), m_sockets.end(), boost::bind(&socket_entry::close, _1));
 		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), boost::bind(&socket_entry::close, _1));
 
-		m_on_receive.clear();
+		m_abort = true;
+		maybe_abort();
 	}
 }
 

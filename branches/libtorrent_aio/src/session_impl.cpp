@@ -1691,9 +1691,9 @@ namespace aux {
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
 #endif
-		if (m_lsd) m_lsd->close();
-		if (m_upnp) m_upnp->close();
-		if (m_natpmp) m_natpmp->close();
+		stop_lsd();
+		stop_upnp();
+		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
