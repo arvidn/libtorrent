@@ -360,7 +360,6 @@ namespace libtorrent
 				|| m_stat_cache[index].file_size == -2
 				|| m_stat_cache[index].file_size == -1)
 			{
-				TORRENT_ASSERT(m_stat_cache.size() == index);
 				file_path = combine_path(m_save_path, files().file_path(*i));
 				stat_file(file_path, &s, ec.ec);
 				size_type r = s.file_size;
