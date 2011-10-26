@@ -8009,7 +8009,7 @@ ctx->set_verify_callback(verify_function, ec);
 		st->all_time_download = m_total_downloaded;
 
 		// activity time
-		st->active_time = m_active_time;
+		st->finished_time = m_finished_time;
 		st->active_time = m_active_time;
 		st->seeding_time = m_seeding_time;
 		st->time_since_upload = m_last_upload;
