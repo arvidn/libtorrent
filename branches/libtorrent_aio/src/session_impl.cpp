@@ -5687,8 +5687,8 @@ namespace aux {
 			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
 			unique_peers.insert(i->get());
 
-			if ((*i)->m_channel_state[0] == peer_info::bw_disk) ++disk_queue[0];
-			if ((*i)->m_channel_state[1] == peer_info::bw_disk) ++disk_queue[1];
+			if ((*i)->m_channel_state[0] & peer_info::bw_disk) ++disk_queue[0];
+			if ((*i)->m_channel_state[1] & peer_info::bw_disk) ++disk_queue[1];
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
