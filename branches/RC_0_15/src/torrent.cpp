@@ -6059,7 +6059,7 @@ namespace libtorrent
 		st.all_time_upload = m_total_uploaded;
 		st.all_time_download = m_total_downloaded;
 
-		st.active_time = total_seconds(m_active_time);
+		st.finished_time = total_seconds(m_finished_time);
 		st.active_time = total_seconds(m_active_time);
 		st.seeding_time = total_seconds(m_seeding_time);
 
