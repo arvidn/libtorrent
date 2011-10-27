@@ -4758,8 +4758,6 @@ namespace libtorrent
 		TORRENT_ASSERT(priority < 0xffff);
 
 		// peers that we are not interested in are non-prioritized
-		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
-		m_channel_state[upload_channel] |= peer_info::bw_limit;
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
@@ -4771,11 +4769,16 @@ namespace libtorrent
 			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
-		return m_ses.m_upload_rate.request_bandwidth(self()
+		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
+		int ret = m_ses.m_upload_rate.request_bandwidth(self()
 			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
 				/ (1000 / m_ses.m_settings.tick_interval))
 			, priority
 			, bwc1, bwc2, bwc3, bwc4);
+
+		if (ret == 0) m_channel_state[upload_channel] |= peer_info::bw_limit;
+
+		return ret;
 	}
 
 	int peer_connection::request_download_bandwidth(int bytes)
@@ -4827,15 +4830,18 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
-		m_channel_state[download_channel] |= peer_info::bw_limit;
 		if (bytes == 0)
 		{
 			bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
 				, m_statistics.download_rate() * 2
 				/ (1000 / m_ses.m_settings.tick_interval));
 		}
-		return m_ses.m_download_rate.request_bandwidth(self()
+		int ret = m_ses.m_download_rate.request_bandwidth(self()
 			, bytes, priority, bwc1, bwc2, bwc3, bwc4);
+
+		if (ret == 0) m_channel_state[download_channel] |= peer_info::bw_limit;
+
+		return ret;
 	}
 
 	void peer_connection::uncork_socket()
