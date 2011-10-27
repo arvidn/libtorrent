@@ -5994,7 +5994,7 @@ namespace libtorrent
 
 		// if the last send has not completed yet, do not send a keep
 		// alive
-		if (m_channel_state[upload_channel] != peer_info::bw_idle) return;
+		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> KEEPALIVE");
