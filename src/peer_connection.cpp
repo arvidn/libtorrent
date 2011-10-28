@@ -4528,7 +4528,6 @@ namespace libtorrent
 
 		// peers that we are not interested in are non-prioritized
 		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
-		m_channel_state[upload_channel] |= peer_info::bw_limit;
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
 			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
