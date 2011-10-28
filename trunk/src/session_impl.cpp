@@ -2667,8 +2667,8 @@ namespace aux {
 			peer_connection* p = m_next_disk_peer->get();
 			++m_next_disk_peer;
 			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
-			if (p->m_channel_state[peer_connection::download_channel]
-				!= peer_info::bw_disk) continue;
+			if ((p->m_channel_state[peer_connection::download_channel]
+				& peer_info::bw_disk) == 0) continue;
 			p->on_disk();
 		}
 
@@ -5600,8 +5600,8 @@ namespace aux {
 			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
 			unique_peers.insert(i->get());
 
-			if ((*i)->m_channel_state[0] == peer_info::bw_disk) ++disk_queue[0];
-			if ((*i)->m_channel_state[1] == peer_info::bw_disk) ++disk_queue[1];
+			if ((*i)->m_channel_state[0] & peer_info::bw_disk) ++disk_queue[0];
+			if ((*i)->m_channel_state[1] & peer_info::bw_disk) ++disk_queue[1];
 
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(!p->is_disconnecting());
