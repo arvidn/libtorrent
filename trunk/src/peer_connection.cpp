@@ -4572,7 +4572,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
-		m_channel_state[download_channel] |= peer_info::bw_limit;
 		return m_ses.m_download_rate.request_bandwidth(self()
 			, (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
 				, m_statistics.download_rate() * 2
@@ -4631,6 +4630,10 @@ namespace libtorrent
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[upload_channel] += ret;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<<< ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
 		}
 
 		int quota_left = m_quota[upload_channel];
@@ -4773,6 +4776,10 @@ namespace libtorrent
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[download_channel] += ret;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(">>> ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
 		}
 		
 		if (!can_read(&m_channel_state[download_channel]))
