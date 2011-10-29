@@ -344,6 +344,7 @@ void run_elevator_test()
 		{
 			ios.run_one(ec);
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
+			if (job_counter == 0) break;
 		}
 
 		TEST_CHECK(turns == 0);
@@ -372,6 +373,7 @@ void run_elevator_test()
 		{
 			ios.run_one(ec);
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
+			if (job_counter == 0) break;
 		}
 
 		TEST_CHECK(turns == 0);
@@ -404,6 +406,7 @@ void run_elevator_test()
 		{
 			ios.run_one(ec);
 			if (ec) std::cerr << "run_one: " << ec.message() << std::endl;
+			if (job_counter == 0) break;
 		}
 
 		TEST_EQUAL(job_counter, 0);
