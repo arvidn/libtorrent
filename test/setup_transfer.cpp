@@ -689,6 +689,7 @@ void send_content(socket_type& s, char const* file, int size, bool chunked)
 
 void on_read(error_code const& ec, size_t bytes_transferred, size_t* bt, error_code* e, bool* done)
 {
+	DLOG(stderr, "on_read %d [ ec: %s ]\n", int(bytes_transferred), ec.message().c_str());
 	*bt = bytes_transferred;
 	*e = ec;
 	*done = true;
@@ -697,6 +698,7 @@ void on_read(error_code const& ec, size_t bytes_transferred, size_t* bt, error_c
 void on_read_timeout(error_code const& ec, bool* timed_out)
 {
 	if (ec) return;
+	fprintf(stderr, "read timed out\n");
 	*timed_out = true;
 }
 
@@ -868,10 +870,11 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;
+				DLOG(stderr, "async_read_some %d bytes [ len: %d ]\n", int(sizeof(buf) - len), len);
 				s.async_read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), boost::bind(&on_read, _1, _2, &received, &ec, &done));
 				deadline_timer timer(ios);
-				timer.expires_at(time_now() + seconds(2));
+				timer.expires_at(time_now_hires() + seconds(100));
 				timer.async_wait(boost::bind(&on_read_timeout, _1, &timed_out));
 
 				while (!done && !timed_out)
