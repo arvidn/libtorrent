@@ -281,6 +281,7 @@ namespace libtorrent
 			, hashing_threads(1)
 			, checking_mem_usage(200)
 			, predictive_piece_announce(0)
+			, contiguous_recv_buffer(true)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1110,6 +1111,11 @@ namespace libtorrent
 		// non-zero, this indicates how many milliseconds in advance pieces
 		// should be announced, before they are expected to be completed.
 		int predictive_piece_announce;
+
+		// when false, bytes off the socket is received directly into the disk
+		// buffer. This requires many more calls to recv(). When using a
+		// contiguous recv buffer, the download rate can be much higher
+		bool contiguous_recv_buffer;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

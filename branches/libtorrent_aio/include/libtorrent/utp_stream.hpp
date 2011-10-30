@@ -292,6 +292,25 @@ public:
 		set_read_handler(&utp_stream::on_read);
 	}
 
+	template <class Handler>
+	void async_read_some(boost::asio::null_buffers const&, Handler const& handler)
+	{
+		if (m_impl == 0)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			return;
+		}
+
+		TORRENT_ASSERT(!m_read_handler);
+		if (m_read_handler)
+		{
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			return;
+		}
+		m_read_handler = handler;
+		set_read_handler(&utp_stream::on_read);
+	}
+
 	void do_async_connect(endpoint_type const& ep
 		, boost::function<void(error_code const&)> const& handler);
 

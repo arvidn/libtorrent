@@ -649,8 +649,8 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_disk_recv_buffer);
 			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 			if (m_recv_buffer.empty()) return buffer::interval(0,0);
-			return buffer::interval(&m_recv_buffer[0]
-				, &m_recv_buffer[0] + m_recv_pos);
+			return buffer::interval(&m_recv_buffer[0] + m_recv_start
+				, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
 		}
 
 		std::pair<buffer::interval, buffer::interval> wr_recv_buffers(int bytes);
@@ -659,8 +659,8 @@ namespace libtorrent
 		buffer::const_interval receive_buffer() const
 		{
 			if (m_recv_buffer.empty()) return buffer::const_interval(0,0);
-			return buffer::const_interval(&m_recv_buffer[0]
-				, &m_recv_buffer[0] + m_recv_pos);
+			return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
+				, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
 		}
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
@@ -668,6 +668,7 @@ namespace libtorrent
 		bool has_disk_receive_buffer() const { return m_disk_recv_buffer; }
 		void cut_receive_buffer(int size, int packet_size, int offset = 0);
 		void reset_recv_buffer(int packet_size);
+		void normalize_receive_buffer();
 		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
 		// if allow_encrypted is false, and the torrent 'ih' turns out
@@ -701,7 +702,7 @@ namespace libtorrent
 		void on_send_data(error_code const& error
 			, std::size_t bytes_transferred);
 		void on_receive_data(error_code const& error
-			, std::size_t bytes_transferred);
+			, std::size_t bytes_transferred, bool nb);
 
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
@@ -926,9 +927,30 @@ namespace libtorrent
 		// dispatch. Ignored when set to 0
 		int m_soft_packet_size;
 
-		// the number of bytes of the bittorrent payload
-		// we've received so far
+		// the byte offset in m_recv_buffer that we have
+		// are passing on to the upper layer. This is
+		// always <= m_recv_end
 		int m_recv_pos;
+
+		// the number of valid, received bytes in m_recv_buffer
+		int m_recv_end;
+
+		// the start of the logical receive buffer
+		int m_recv_start;
+
+		// recv_buf.begin (start of actual receive buffer)
+		// |
+		// |      m_recv_start (logical start of current
+		// |      |  receive buffer, as perceived by upper layers)
+		// |      |
+		// |      |    m_recv_pos (size of logical receive buffer)
+		// |      |    |
+		// |      x---------x
+		// |      |         |        recv_buf.end (end of actual receive buffer)
+		// |      |         |        |
+		// v      v         v        v
+		// *------==========---------
+		// m_recv_buffer
 
 		int m_disk_recv_buffer_size;
 

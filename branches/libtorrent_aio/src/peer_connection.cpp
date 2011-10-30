@@ -123,6 +123,8 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_soft_packet_size(0)
 		, m_recv_pos(0)
+		, m_recv_end(0)
+		, m_recv_start(0)
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
 		, m_num_invalid_requests(0)
@@ -276,6 +278,8 @@ namespace libtorrent
 		, m_packet_size(0)
 		, m_soft_packet_size(0)
 		, m_recv_pos(0)
+		, m_recv_end(0)
+		, m_recv_start(0)
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
 		, m_num_invalid_requests(0)
@@ -3908,6 +3912,8 @@ namespace libtorrent
 	bool peer_connection::allocate_disk_receive_buffer(int disk_buffer_size)
 	{
 		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(m_ses.m_settings.contiguous_recv_buffer == false);
 		
 		TORRENT_ASSERT(m_packet_size > 0);
 		TORRENT_ASSERT(m_recv_pos <= m_packet_size - disk_buffer_size);
@@ -3965,17 +3971,43 @@ namespace libtorrent
 		TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_pos);
 		TORRENT_ASSERT(m_recv_pos >= size + offset);
 		TORRENT_ASSERT(offset >= 0);
+		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
 
-		if (size > 0)		
-			std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_pos - size - offset);
+		if (offset > 0)
+		{
+			if (size > 0)
+				std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_end - size - offset);
 
-		m_recv_pos -= size;
+			m_recv_pos -= size;
+			m_recv_end -= size;
 
 #ifdef TORRENT_DEBUG
-		std::fill(m_recv_buffer.begin() + m_recv_pos, m_recv_buffer.end(), 0);
+			std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0);
 #endif
+		}
+		else
+		{
+			TORRENT_ASSERT(m_recv_start + size <= m_recv_end);
+			m_recv_start += size;
+			m_recv_pos -= size;
+		}
 
 		m_packet_size = packet_size;
+	}
+
+	
+	void peer_connection::normalize_receive_buffer()
+	{
+		if (m_recv_start == 0) return;
+
+		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
+
+		m_recv_end -= m_recv_start;
+		m_recv_start = 0;
+
+#ifdef TORRENT_DEBUG
+		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0);
+#endif
 	}
 
 	void peer_connection::superseed_piece(int index)
@@ -4716,7 +4748,7 @@ namespace libtorrent
 			// bandwidth. So, we simply request bandwidth
 			// from the bandwidth manager
 			bwc1 = (m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_upload_channel : 0;
-			bwc2 = &t->m_bandwidth_channel[upload_channel];
+			bwc2 = t ? &t->m_bandwidth_channel[upload_channel] : 0;
 			bwc3 = &m_bandwidth_channel[upload_channel];
 			bwc4 = !utp ? &m_ses.m_tcp_upload_channel : 0;
 		}
@@ -4733,7 +4765,7 @@ namespace libtorrent
 
 		int priority;
 		if (m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
-			&& !t->upload_mode() && !t->is_upload_only())
+			&& t && !t->upload_mode() && !t->is_upload_only())
 		{
 			// when we use the bittyrant choker, the priority of a peer
 			// is decided based on the estimated reciprocation rate and
@@ -4753,7 +4785,7 @@ namespace libtorrent
 		{
 			priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
 			if (priority > 255) priority = 255;
-			priority += t->priority() << 8;
+			if (t) priority += t->priority() << 8;
 		}
 		TORRENT_ASSERT(priority < 0xffff);
 
@@ -4798,7 +4830,7 @@ namespace libtorrent
 			// receive, but no bandwidth quota. So, we simply
 			// request bandwidth from the bandwidth manager
 			bwc1 = (m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_download_channel : 0;
-			bwc2 = &t->m_bandwidth_channel[download_channel];
+			bwc2 = t ? &t->m_bandwidth_channel[download_channel] : 0;
 			bwc3 = &m_bandwidth_channel[download_channel];
 			bwc4 = !utp ? &m_ses.m_tcp_download_channel : 0;
 		}
@@ -4826,7 +4858,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_priority <= 255);
-		int priority = m_priority + (t->priority() << 8);
+		int priority = m_priority + (t ? (t->priority() << 8) : 0);
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
@@ -5011,7 +5043,7 @@ namespace libtorrent
 		}
 		error_code ec;
 
-		if (sync == read_sync && m_read_recurse < 10)
+		if (sync == read_sync && m_read_recurse < 10 && !m_ses.m_settings.contiguous_recv_buffer)
 		{
 			size_t bytes_transferred = try_read(read_sync, ec);
 
@@ -5023,7 +5055,7 @@ namespace libtorrent
 				++m_read_recurse;
 				TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
 				m_channel_state[download_channel] |= peer_info::bw_network;
-				on_receive_data(ec, bytes_transferred);
+				on_receive_data(ec, bytes_transferred, m_ses.m_settings.contiguous_recv_buffer);
 				--m_read_recurse;
 				return;
 			}
@@ -5040,67 +5072,94 @@ namespace libtorrent
 
 	size_t peer_connection::try_read(sync_t s, error_code& ec)
 	{
-		TORRENT_ASSERT(m_packet_size > 0);
-		int max_receive = m_packet_size - m_recv_pos;
-		TORRENT_ASSERT(max_receive >= 0);
-
-		if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
-		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
-			max_receive = m_soft_packet_size - m_recv_pos;
-		int quota_left = m_quota[download_channel];
-		if (max_receive > quota_left)
-			max_receive = quota_left;
-
-		if (max_receive == 0)
+		if (m_quota[download_channel] == 0)
 		{
 			ec = asio::error::would_block;
 			return 0;
 		}
-
-		TORRENT_ASSERT(m_recv_pos >= 0);
-		TORRENT_ASSERT(m_packet_size > 0);
-
+		
 		if (!can_read())
 		{
 			ec = asio::error::would_block;
 			return 0;
 		}
 
-		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
-
-		if (int(m_recv_buffer.size()) < regular_buffer_size)
-			m_recv_buffer.resize(round_up8(regular_buffer_size));
-
 		boost::array<asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
-		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
+		if (m_ses.m_settings.contiguous_recv_buffer)
 		{
-			// only receive into regular buffer
-			TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
-			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos], max_receive);
-			num_bufs = 1;
-		}
-		else if (m_recv_pos >= regular_buffer_size)
-		{
-			// only receive into disk buffer
-			TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
-			TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
-			vec[0] = asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size, max_receive);
-			num_bufs = 1;
+			if (s == read_async)
+			{
+				TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+				m_channel_state[download_channel] |= peer_info::bw_network;
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<<< ASYNC_READ      [ ]");
+#endif
+
+#if defined TORRENT_ASIO_DEBUGGING
+				add_outstanding_async("peer_connection::on_receive_data");
+#endif
+				m_socket->async_read_some(asio::null_buffers(), make_read_handler(
+					boost::bind(&peer_connection::on_receive_data, self(), _1, _2, true)));
+				return 0;
+			}
 		}
 		else
 		{
-			// receive into both regular and disk buffer
-			TORRENT_ASSERT(max_receive + m_recv_pos > regular_buffer_size);
-			TORRENT_ASSERT(m_recv_pos < regular_buffer_size);
-			TORRENT_ASSERT(max_receive - regular_buffer_size
-				+ m_recv_pos <= m_disk_recv_buffer_size);
-
-			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
-				, regular_buffer_size - m_recv_pos);
-			vec[1] = asio::buffer(m_disk_recv_buffer.get()
-				, max_receive - regular_buffer_size + m_recv_pos);
-			num_bufs = 2;
+			TORRENT_ASSERT(m_packet_size > 0);
+			int max_receive = m_packet_size - m_recv_pos;
+			TORRENT_ASSERT(max_receive >= 0);
+   
+			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
+			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
+				max_receive = m_soft_packet_size - m_recv_pos;
+			int quota_left = m_quota[download_channel];
+			if (max_receive > quota_left)
+				max_receive = quota_left;
+   
+			if (max_receive == 0)
+			{
+				ec = asio::error::would_block;
+				return 0;
+			}
+   
+			TORRENT_ASSERT(m_recv_pos >= 0);
+			TORRENT_ASSERT(m_packet_size > 0);
+   
+			int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
+   
+			if (int(m_recv_buffer.size()) < regular_buffer_size)
+				m_recv_buffer.resize(round_up8(regular_buffer_size));
+   
+			if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
+			{
+				// only receive into regular buffer
+				TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
+				vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos], max_receive);
+				num_bufs = 1;
+			}
+			else if (m_recv_pos >= regular_buffer_size)
+			{
+				// only receive into disk buffer
+				TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
+				TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
+				vec[0] = asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size, max_receive);
+				num_bufs = 1;
+			}
+			else
+			{
+				// receive into both regular and disk buffer
+				TORRENT_ASSERT(max_receive + m_recv_pos > regular_buffer_size);
+				TORRENT_ASSERT(m_recv_pos < regular_buffer_size);
+				TORRENT_ASSERT(max_receive - regular_buffer_size
+					+ m_recv_pos <= m_disk_recv_buffer_size);
+   
+				vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
+					, regular_buffer_size - m_recv_pos);
+				vec[1] = asio::buffer(m_disk_recv_buffer.get()
+					, max_receive - regular_buffer_size + m_recv_pos);
+				num_bufs = 2;
+			}
 		}
 
 		if (s == read_async)
@@ -5118,13 +5177,13 @@ namespace libtorrent
 			{
 				m_socket->async_read_some(
 					asio::mutable_buffers_1(vec[0]), make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
+						boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
 			}
 			else
 			{
 				m_socket->async_read_some(
 					vec, make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
+						boost::bind(&peer_connection::on_receive_data, self(), _1, _2, false)));
 			}
 			return 0;
 		}
@@ -5157,8 +5216,8 @@ namespace libtorrent
 		TORRENT_ASSERT(regular_buffer_size >= 0);
 		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos)
 		{
-			vec.first = buffer::interval(&m_recv_buffer[0]
-				+ m_recv_pos - bytes, &m_recv_buffer[0] + m_recv_pos);
+			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_start
+				+ m_recv_pos - bytes, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
 			vec.second = buffer::interval(0,0);
 		}
 		else if (m_recv_pos - bytes >= regular_buffer_size)
@@ -5172,8 +5231,8 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_recv_pos - bytes < regular_buffer_size);
 			TORRENT_ASSERT(m_recv_pos > regular_buffer_size);
-			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_pos - bytes
-				, &m_recv_buffer[0] + regular_buffer_size);
+			vec.first = buffer::interval(&m_recv_buffer[0] + m_recv_start + m_recv_pos - bytes
+				, &m_recv_buffer[0] + m_recv_start + regular_buffer_size);
 			vec.second = buffer::interval(m_disk_recv_buffer.get()
 				, m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size);
 		}
@@ -5184,13 +5243,15 @@ namespace libtorrent
 
 	void peer_connection::reset_recv_buffer(int packet_size)
 	{
+		TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
 		TORRENT_ASSERT(packet_size > 0);
-		if (m_recv_pos > m_packet_size)
+		if (m_recv_end > m_packet_size)
 		{
 			cut_receive_buffer(m_packet_size, packet_size);
 			return;
 		}
 		m_recv_pos = 0;
+		m_recv_end = 0;
 		m_packet_size = packet_size;
 	}
 
@@ -5282,18 +5343,18 @@ namespace libtorrent
 	// RECEIVE DATA
 	// --------------------------
 
+	// nb is true if this callback is due to a null_buffers()
+	// invocation of async_read_some(). In that case, we need
+	// to disregard bytes_transferred.
 	void peer_connection::on_receive_data(const error_code& error
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred, bool nb)
 	{
-#ifdef TORRENT_STATS
-		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
-		int size = 8;
-		int index = 0;
-		while (bytes_transferred > size + 13) { size <<= 1; ++index; }
-		int num_max = sizeof(m_ses.m_recv_buffer_sizes)/sizeof(m_ses.m_recv_buffer_sizes[0]);
-		if (index >= num_max) index = num_max - 1;
-		++m_ses.m_recv_buffer_sizes[index];
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("peer_connection::on_receive_data");
 #endif
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+		m_channel_state[download_channel] &= ~peer_info::bw_network;
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		// submit all disk jobs when we leave this function
@@ -5310,20 +5371,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
-				, bytes_transferred, error.message().c_str());
-#endif
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("peer_connection::on_receive_data");
-#endif
-		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-		m_channel_state[download_channel] &= ~peer_info::bw_network;
-
 		int bytes_in_loop = bytes_transferred;
-
-		if (m_extension_outstanding_bytes > 0)
-			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
 
 		if (error)
 		{
@@ -5337,10 +5385,74 @@ namespace libtorrent
 			return;
 		}
 
+		// nb is short for null_buffers. In this mode we don't actually
+		// allocate a receive buffer up-front, but get notified when
+		// we can read from the socket, and then determine how much there
+		// is to read.
+		if (nb)
+		{
+			error_code ec;
+			std::size_t buffer_size = m_socket->available(ec);
+			if (ec)
+			{
+				disconnect(ec);
+				return;
+			}
+
+			if (buffer_size > m_quota[download_channel])
+			{
+				if ((m_channel_state[download_channel] & peer_info::bw_limit) == 0)
+				{
+					int ret = request_download_bandwidth(buffer_size - m_quota[download_channel]);
+					if (ret > 0)
+					{
+						m_quota[download_channel] += ret;
+						m_channel_state[download_channel] &= ~peer_info::bw_limit;
+					}
+				}
+
+				buffer_size = m_quota[download_channel];
+			}
+			// at this point the ioctl told us the socket doesn't have any
+			// pending bytes, or we're already waiting to get some more
+			// quota from the bandwidth manager
+			if (buffer_size == 0) return;
+
+			// TODO: cap the size of the receive buffer? Maybe we can just rely
+			// on the OS buffer size limit on TCP buffers and assume it won't
+			// buffer more than necessary.
+			m_recv_buffer.resize(m_recv_pos + buffer_size);
+			TORRENT_ASSERT(m_recv_start == 0);
+			bytes_transferred = m_socket->read_some(asio::buffer(&m_recv_buffer[m_recv_pos]
+				, buffer_size), ec);
+			if (ec)
+			{
+				disconnect(ec);
+				return;
+			}
+		}
+
+#ifdef TORRENT_STATS
+		++m_ses.m_num_messages[aux::session_impl::on_read_counter];
+		int size = 8;
+		int index = 0;
+		while (bytes_transferred > size) { size <<= 1; ++index; }
+		int num_max = sizeof(m_ses.m_recv_buffer_sizes)/sizeof(m_ses.m_recv_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_ses.m_recv_buffer_sizes[index];
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
+			, bytes_transferred, error.message().c_str());
+#endif
+
+		if (m_extension_outstanding_bytes > 0)
+			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
+
 		int num_loops = 0;
 		do
 		{
-			TORRENT_ASSERT(int(m_recv_pos + bytes_transferred) <= m_packet_size);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("<<< read %d bytes", int(bytes_transferred));
 #endif
@@ -5357,27 +5469,40 @@ namespace libtorrent
 			TORRENT_ASSERT(m_packet_size > 0);
 			TORRENT_ASSERT(bytes_transferred > 0);
 
-			m_last_receive = time_now();
-			m_recv_pos += bytes_transferred;
+			m_recv_end += bytes_transferred;
 			TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
 				+ m_disk_recv_buffer_size));
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
-			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
-#endif
-			{
+			int bytes = bytes_transferred;
+			int sub_transferred = 0;
+			do {
 				INVARIANT_CHECK;
-				on_receive(error, bytes_transferred);
-			}
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == int(bytes_transferred));
+				size_type cur_payload_dl = m_statistics.last_payload_downloaded();
+				size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
+#endif
+				int packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
+				int limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
+				sub_transferred = (std::min)(bytes, limit);
+				m_recv_pos += sub_transferred;
+				on_receive(error, sub_transferred);
+				bytes -= sub_transferred;
+				TORRENT_ASSERT(sub_transferred > 0);
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
+				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
+				size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
+				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 #endif
 			if (m_disconnecting) return;
+
+			} while (bytes > 0 && sub_transferred > 0);
+
+			normalize_receive_buffer();
+
+			TORRENT_ASSERT(m_recv_pos == m_recv_end);
 
 			TORRENT_ASSERT(m_packet_size > 0);
 
@@ -5391,7 +5516,7 @@ namespace libtorrent
 
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 
-			if (num_loops > 20) break;
+			if (num_loops > 10 || nb) break;
 
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);
@@ -5407,6 +5532,8 @@ namespace libtorrent
 			++num_loops;
 		}
 		while (bytes_transferred > 0);
+
+		m_last_receive = time_now();
 
 		if (is_seed())
 		{

@@ -878,8 +878,6 @@ void utp_stream::set_read_handler(handler_t h)
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
 		, m_impl, m_impl->m_receive_buffer_size);
 
-	TORRENT_ASSERT(m_impl->m_read_buffer_size > 0);
-
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
 	// client's buffer right away

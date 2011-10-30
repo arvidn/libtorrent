@@ -105,6 +105,11 @@ namespace libtorrent
 	{
 		session_settings set;
 
+		// receive data directly into disk buffers
+		// this yields more system calls to read() and
+		// kqueue(), but saves RAM.
+		set.contiguous_recv_buffer = false;
+
 		// keep 2 blocks outstanding when hashing
 		set.checking_mem_usage = 2;
 
@@ -302,12 +307,13 @@ namespace libtorrent
 		// allow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = true;
 
-		// we're likely to have at least 4 cores on a high
-		// performance machine, but not very likely to peg
-		// 3 cores doing SHA-1
-		set.hashing_threads = 3;
+		// we're likely to have more than 4 cores on a high
+		// performance machine. One core is needed for the
+		// network thread
+		set.hashing_threads = 4;
 
-		// keep 5 MiB outstanding when hashing
+		// keep 5 MiB outstanding when checking hashes
+		// of a resumed file
 		set.checking_mem_usage = 320;
 
 		return set;
