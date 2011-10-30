@@ -710,6 +710,7 @@ namespace libtorrent
 				incoming_piece(r, recv_buffer.begin);
 				m_requests.pop_front();
 				if (associated_torrent().expired()) return;
+				TORRENT_ASSERT(m_block_pos >= r.length);
 				m_block_pos -= r.length;
 				m_received_body += r.length;
 				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
