@@ -600,6 +600,8 @@ void bind_session()
         .def("settings", &get_feed_settings)
     ;
 
-
     register_ptr_to_python<std::auto_ptr<alert> >();
+
+	 def("high_performance_seed", high_performance_seed);
+	 def("min_memory_usage", high_performance_seed);
 }
