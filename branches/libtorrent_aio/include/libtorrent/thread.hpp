@@ -101,8 +101,7 @@ namespace libtorrent
 		~semaphore() { sem_destroy(&m_sem); }
 		void signal()
 		{
-			int ret = sem_post(&m_sem);
-			TORRENT_ASSERT(ret == 0);
+			sem_post(&m_sem);
 		}
 		void signal_all()
 		{
@@ -119,8 +118,7 @@ namespace libtorrent
 		}
 		void wait()
 		{
-			int ret = sem_wait(&m_sem);
-			TORRENT_ASSERT(ret == 0);
+			sem_wait(&m_sem);
 		}
 		void timed_wait(int ms)
 		{
