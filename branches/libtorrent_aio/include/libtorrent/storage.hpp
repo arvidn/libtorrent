@@ -76,7 +76,7 @@ namespace libtorrent
 	struct aiocb_pool;
 	struct session_settings;
 
-	void complete_job(aiocb_pool* pool, disk_io_job* j);
+	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j);
 
 	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t

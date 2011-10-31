@@ -325,8 +325,10 @@ namespace libtorrent
 
 	disk_io_thread::disk_io_thread(io_service& ios
 		, boost::function<void(alert*)> const& post_alert
+		, void* userdata
 		, int block_size)
 		: m_abort(false)
+		, m_userdata(userdata)
 		, m_last_cache_expiry(0)
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
@@ -2626,7 +2628,7 @@ namespace libtorrent
 				if (!m_completed_jobs.empty())
 				{
 					disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
-					m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, j));
+					m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 				}
 
 				continue;
@@ -2665,7 +2667,7 @@ namespace libtorrent
 			if (!m_completed_jobs.empty())
 			{
 				disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
-				m_ios.post(boost::bind(&complete_job, &m_aiocb_pool, j));
+				m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 			}
 
 			// tell the kernel about the async disk I/O jobs we want to perform

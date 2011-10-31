@@ -570,7 +570,8 @@ namespace aux {
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
 		, m_disk_thread(m_io_service
-			, boost::bind(&session_impl::disk_performance_warning, this, _1))
+			, boost::bind(&session_impl::disk_performance_warning, this, _1)
+			, this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -1224,8 +1225,7 @@ namespace aux {
 			":udp_counter"
 			":accept_counter"
 			":disk_queue_counter"
-			":disk_read_counter"
-			":disk_write_counter"
+			":disk_counter"
 			":up 8:up 16:up 32:up 64:up 128:up 256:up 512:up 1024:up 2048:up 4096:up 8192:up 16384:up 32768:up 65536:up 131072:up 262144:up 524288:up 1048576"
 			":down 8:down 16:down 32:down 64:down 128:down 256:down 512:down 1024:down 2048:down 4096:down 8192:down 16384:down 32768:down 65536:down 131072:down 262144:down 524288:down 1048576"
 			":network thread system time"
@@ -4348,6 +4348,25 @@ namespace aux {
 					++m_num_unchoked;
 			}
 		}
+	}
+
+	void session_impl::cork_burst(peer_connection* p)
+	{
+		TORRENT_ASSERT(is_network_thread());
+		if (p->is_corked()) return;
+		p->cork_socket();
+		m_delayed_uncorks.push_back(p);
+	}
+
+	void session_impl::do_delayed_uncork()
+	{
+		TORRENT_ASSERT(is_network_thread());
+		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
+			, end(m_delayed_uncorks.end()); i != end; ++i)
+		{
+			(*i)->uncork_socket();
+		}
+		m_delayed_uncorks.clear();
 	}
 
 	void session_impl::main_thread()

@@ -2641,15 +2641,11 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(int ret, disk_io_job const& j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
-#ifdef TORRENT_STATS
-		++m_ses.m_num_messages[aux::session_impl::on_disk_write_counter];
-#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		// flush send buffer at the end of this scope
-		// TODO: peers should really be corked/uncorked outside of
-		// all completed disk operations
-		cork _c(*this);
+		// flush send buffer at the end of
+		// this burst of disk events
+		m_ses.cork_burst(this);
 
 		INVARIANT_CHECK;
 
@@ -4650,14 +4646,10 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		// flush send buffer at the end of this scope
-		// TODO: peers should really be corked/uncorked outside of
-		// all completed disk operations
-		cork _c(*this);
+		// flush send buffer at the end of
+		// this burst of disk events
+		m_ses.cork_burst(this);
 
-#ifdef TORRENT_STATS
-		++m_ses.m_num_messages[aux::session_impl::on_disk_read_counter];
-#endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING

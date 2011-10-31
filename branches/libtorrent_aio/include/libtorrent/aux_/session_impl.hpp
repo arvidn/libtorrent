@@ -501,6 +501,13 @@ namespace libtorrent
 				--m_disk_queues[channel];
 			}
 
+			// cork a peer and schedule a delayed uncork
+			// does nothing if the peer is already corked
+			void cork_burst(peer_connection* p);
+
+			// uncork all peers added to the delayed uncork queue
+			void do_delayed_uncork();
+
 //		private:
 
 			void disk_performance_warning(alert* a);
@@ -981,8 +988,7 @@ namespace libtorrent
 				on_udp_counter,
 				on_accept_counter,
 				on_disk_queue_counter,
-				on_disk_read_counter,
-				on_disk_write_counter,
+				on_disk_counter,
 				max_messages
 			};
 			int m_num_messages[max_messages];
@@ -1090,6 +1096,14 @@ namespace libtorrent
 			int m_writing_bytes;
 			
 			std::vector<boost::shared_ptr<feed> > m_feeds;
+
+			// this is a list of peer connections who have been
+			// corked (i.e. their network socket) and needs to be
+			// uncorked at the end of the burst of events. This is
+			// here to coalesce the effects of bursts of events
+			// into fewer network writes, saving CPU and possibly
+			// ending up sending larger network packets
+			std::vector<peer_connection*> m_delayed_uncorks;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;

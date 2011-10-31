@@ -317,6 +317,7 @@ namespace libtorrent
 
 		disk_io_thread(io_service& ios
 			, boost::function<void(alert*)> const& post_alert
+			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
@@ -417,6 +418,10 @@ namespace libtorrent
 		bool m_abort;
 
 		session_settings m_settings;
+
+		// userdata pointer for the complete_job function, which
+		// is posted to the network thread when jobs complete
+		void* m_userdata;
 
 		// the last time we expired write blocks from the cache
 		time_t m_last_cache_expiry;

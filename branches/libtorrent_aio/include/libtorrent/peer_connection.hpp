@@ -554,6 +554,7 @@ namespace libtorrent
 		virtual void setup_send();
 
 		void cork_socket() { TORRENT_ASSERT(!m_corked); m_corked = true; }
+		bool is_corked() const { return m_corked; }
 		void uncork_socket();
 
 #ifdef TORRENT_BUFFER_STATS

@@ -98,8 +98,12 @@ namespace libtorrent
 
 	// wrap job handlers to free the job itself
 	// this is called in the network thread when a job completes
-	void complete_job(aiocb_pool* pool, disk_io_job* j)
+	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j)
 	{
+		aux::session_impl* ses = (aux::session_impl*)user;
+#ifdef TORRENT_STATS
+		if (ses) ++ses->m_num_messages[aux::session_impl::on_disk_counter];
+#endif
 		while (j)
 		{
 			TORRENT_ASSERT(j->callback_called == true);
@@ -108,6 +112,9 @@ namespace libtorrent
 			j = (disk_io_job*)j->next;
 			pool->free_job(to_free);
 		}
+		// uncork all peers who received a disk event. This is
+		// to coalesce all the socket writes caused by the events.
+		if (ses) ses->do_delayed_uncork();
 	}
 
 	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
