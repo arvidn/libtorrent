@@ -1592,10 +1592,10 @@ int main(int argc, char* argv[])
 							, boost::bind(&handles_t::value_type::second, _1) == h);
 						if (i != files.end())
 						{
-							files.erase(i);
 							error_code ec;
 							remove(combine_path(monitor_dir, i->first), ec);
 							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+							files.erase(i);
 						}
 						if (h.is_valid())
 							ses.remove_torrent(h, session::delete_files);
