@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 
