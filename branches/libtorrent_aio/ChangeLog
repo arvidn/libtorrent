@@ -1,3 +1,14 @@
+	* optimized piece picker
+	* optimized disk cache
+	* optimized .torrent file parsing
+	* optimized initialization of storage when adding a torrent
+	* added support for adding torrents asynchronously (for improved startup performance)
+	* added support for asynchronous disk I/O
+	* almost completely changed the storage interface (for custom storage)
+	* added support for hashing pieces in multiple threads
+
+0.16 release
+
 	* change peer_states to be a bitmask (bw_limit, bw_network, bw_disk)
 	* changed semantics of send_buffer_watermark_factor to be specified as a percentage
 	* add incoming_connection_alert for logging all successful incoming connections

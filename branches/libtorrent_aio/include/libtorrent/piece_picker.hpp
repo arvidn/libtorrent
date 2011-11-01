@@ -503,7 +503,8 @@ namespace libtorrent
 				// filtered pieces (prio = 0), pieces we have or pieces with
 				// availability = 0 should not be present in the piece list
 				// returning -1 indicates that they shouldn't.
-				if (filtered() || have() || peer_count + picker->m_seeds == 0)
+				if (filtered() || have() || peer_count + picker->m_seeds == 0
+					|| state == piece_full || state == piece_finished)
 					return -1;
 
 				// prio 7 disregards availability

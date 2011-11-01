@@ -1966,8 +1966,8 @@ namespace libtorrent
 		// ignore pieces found in the ignore list
 		if (std::find(ignore.begin(), ignore.end(), piece) != ignore.end()) return num_blocks;
 
-		TORRENT_ASSERT(m_piece_map[piece].priority(this) >= 0);
 		if (m_piece_map[piece].state > piece_pos::piece_downloading) return num_blocks;
+		TORRENT_ASSERT(m_piece_map[piece].priority(this) >= 0);
 		if (m_piece_map[piece].state == piece_pos::piece_downloading)
 		{
 			// if we're prioritizing partials, we've already
@@ -2268,7 +2268,10 @@ namespace libtorrent
 		TORRENT_ASSERT(i == m_downloads[new_state - 1].end() || i->index != dp_info.index);
 		i = m_downloads[new_state - 1].insert(i, dp_info);
 
-		m_piece_map[dp_info.index].state = new_state;
+		piece_pos& p = m_piece_map[dp_info.index];
+		int prio = p.priority(this);
+		p.state = new_state;
+		if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 		return i;
 	}
