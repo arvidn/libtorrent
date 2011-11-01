@@ -172,6 +172,7 @@ reports = [
 	('peer_ul_rates2', 'num', '', 'peers split into upload rate buckets (only uploading peers)', ['peers up 0-2', 'peers up 2-5', 'peers up 5-10', 'peers up 50-100', 'peers up 100-']),
 	('piece_picker_end_game', 'blocks', '', '', ['end game piece picker blocks', 'piece picker blocks', 'piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
 	('piece_picker', 'blocks', '', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks']),
+	('piece_picker_loops', 'num checked pieces', '', '', ['piece picker loops']),
 	('picker_partials', 'pieces', '', '', ['num partial pieces', 'num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces']),
 	('picker_full_partials_distribution', 'full pieces', 'count', '', ['num full partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120}),
 	('picker_partials_distribution', 'partial pieces', 'count', '', ['num downloading partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120})

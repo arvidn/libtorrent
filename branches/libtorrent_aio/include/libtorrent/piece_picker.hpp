@@ -271,7 +271,11 @@ namespace libtorrent
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_whole_pieces, void* peer, piece_state_t speed
 			, int options, std::vector<int> const& suggested_pieces
-			, int num_peers) const;
+			, int num_peers
+#ifdef TORRENT_STATS
+			, int& loop_counter
+#endif
+			) const;
 
 		// picks blocks from each of the pieces in the piece_list
 		// vector that is also in the piece bitmask. The blocks

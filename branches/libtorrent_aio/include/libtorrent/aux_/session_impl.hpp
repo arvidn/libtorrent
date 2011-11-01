@@ -956,6 +956,7 @@ namespace libtorrent
 			// to the end-game mode
 			int m_end_game_piece_picker_blocks;
 			int m_piece_picker_blocks;
+			int m_piece_picker_loops;
 			int m_piece_picks;
 			int m_reject_piece_picks;
 			int m_unchoke_piece_picks;

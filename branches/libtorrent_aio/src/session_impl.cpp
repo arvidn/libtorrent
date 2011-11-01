@@ -1133,6 +1133,7 @@ namespace aux {
 			":outstanding writing blocks"
 			":end game piece picker blocks"
 			":piece picker blocks"
+			":piece picker loops"
 			":piece picks"
 			":reject piece picks"
 			":unchoke piece picks"
@@ -3365,6 +3366,7 @@ namespace aux {
 		m_connreset_peers = 0;
 		m_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
+		m_piece_picker_loops = 0;
 		m_piece_picks = 0;
 		m_reject_piece_picks = 0;
 		m_unchoke_piece_picks = 0;
@@ -3624,6 +3626,7 @@ namespace aux {
 			STAT_LOG(d, outstanding_write_blocks);
 			STAT_LOG(d, m_end_game_piece_picker_blocks);
 			STAT_LOG(d, m_piece_picker_blocks);
+			STAT_LOG(d, m_piece_picker_loops);
 			STAT_LOG(d, m_piece_picks);
 			STAT_LOG(d, m_reject_piece_picks);
 			STAT_LOG(d, m_unchoke_piece_picks);

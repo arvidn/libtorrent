@@ -216,7 +216,11 @@ namespace libtorrent
 		// then use this mode.
 		p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_whole_pieces, c.peer_info_struct()
-			, state, c.picker_options(), suggested, t.num_peers());
+			, state, c.picker_options(), suggested, t.num_peers()
+#ifdef TORRENT_STATS
+			, ses.m_piece_picker_loops
+#endif
+			);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
