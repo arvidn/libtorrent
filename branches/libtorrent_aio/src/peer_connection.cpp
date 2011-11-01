@@ -170,6 +170,7 @@ namespace libtorrent
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
 		, m_corked(false)
+		, m_need_interest_update(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -588,6 +589,14 @@ namespace libtorrent
 
 	void peer_connection::update_interest()
 	{
+		m_need_interest_update = true;
+	}
+
+	void peer_connection::do_update_interest()
+	{
+		TORRENT_ASSERT(m_need_interest_update);
+		m_need_interest_update = false;
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
@@ -4162,6 +4171,8 @@ namespace libtorrent
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
 		}
+
+		if (m_need_interest_update) do_update_interest();
 
 		on_tick();
 

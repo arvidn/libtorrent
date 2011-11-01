@@ -740,6 +740,7 @@ namespace libtorrent
 
 	private:
 
+		void do_update_interest();
 		int preferred_caching() const;
 		void fill_send_buffer();
 		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
@@ -1171,6 +1172,14 @@ namespace libtorrent
 		// buffer messages up in the application layer send
 		// buffer, and send it once we're uncorked.
 		bool m_corked:1;
+
+		// set to true when we should recalculate interest
+		// for this peer. Since this is a fairly expensive
+		// operation, it's delayed until the second_tick is
+		// fired, so that multiple events that wants to recalc
+		// interest are coalesced into only triggering it once
+		// the actual computation is done in do_update_interest().
+		bool m_need_interest_update:1;
 		
 		template <std::size_t Size>
 		struct handler_storage
