@@ -114,7 +114,6 @@ namespace libtorrent
 		big_number& operator<<=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			if (n > number_size * 8) n = number_size;
 			int num_bytes = n / 8;
 			if (num_bytes >= number_size)
 			{
@@ -141,6 +140,7 @@ namespace libtorrent
 
 		big_number& operator>>=(int n)
 		{
+			TORRENT_ASSERT(n >= 0);
 			int num_bytes = n / 8;
 			if (num_bytes >= number_size)
 			{
