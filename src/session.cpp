@@ -590,7 +590,7 @@ namespace libtorrent
 		}
 
 		error_code ec;
-		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
+		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
 		return r;
 	}
@@ -606,7 +606,7 @@ namespace libtorrent
 			return add_magnet_uri(*this, params.url, p, ec);
 		}
 
-		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, ec);
+		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		return r;
 	}
 
