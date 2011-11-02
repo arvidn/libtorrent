@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <numeric>
 
+#include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
+
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
