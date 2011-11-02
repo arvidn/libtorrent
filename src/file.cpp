@@ -633,7 +633,16 @@ namespace libtorrent
 				size += i->iov_len;
 			}
 			error_code code;
-			if (eof) TORRENT_ASSERT(file_offset + size >= get_size(code));
+			if (eof) 
+			{
+				size_type fsize = get_size(code);
+				if (code) printf("get_size: %s\n", code.message().c_str());
+				if (file_offset + size < fsize)
+				{
+					printf("offset: %d size: %d get_size: %d\n", int(file_offset), int(size), int(fsize));
+					TORRENT_ASSERT(false);
+				}
+			}
 		}
 #endif
 
@@ -738,36 +747,85 @@ namespace libtorrent
 
 		if (file_size > 0)
 		{
+#define FileEndOfFileInformation 20
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(x) (!((x) & 0x80000000))
+#endif
+			
+			// for NtSetInformationFile, see: 
+			// http://undocumented.ntinternals.net/UserMode/Undocumented%20Functions/NT%20Objects/File/NtSetInformationFile.html
+
+			typedef DWORD _NTSTATUS;
+			typedef _NTSTATUS (NTAPI * NtSetInformationFile_t)(HANDLE file, PULONG_PTR iosb, PVOID data, ULONG len, ULONG file_info_class);
+
+			static NtSetInformationFile_t NtSetInformationFile = 0;
+			static bool failed_ntdll = false;
+
+			if (NtSetInformationFile == 0 && !failed_ntdll)
+			{
+				HMODULE nt = LoadLibraryA("ntdll");
+				if (nt)
+				{
+					NtSetInformationFile = (NtSetInformationFile_t)GetProcAddress(nt, "NtSetInformationFile");
+					if (NtSetInformationFile == 0) failed_ntdll = true;
+				}
+				else failed_ntdll = true;
+			}
+
+			if (failed_ntdll || NtSetInformationFile == 0)
+			{
+				// if we fail to load NtSetInformationFile from ntdll, fall
+				// back to the old re-open-file-and-truncate trick
+
+				// TODO: this codepath will always fail unless we close this
+				// file first, and then re-open it again. Doing that though,
+				// opens up for race conditions where other applications may
+				// acquire an exclusive lock to the file, at which case we're screwed.
+
 #if TORRENT_USE_WPATH
 #define CreateFile_ CreateFileW
 #else
 #define CreateFile_ CreateFileA
 #endif
-			HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
-			, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
-			, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
+				HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
+				, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
+				, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
 
-			if (f == INVALID_HANDLE_VALUE)
-			{
-				ec = error_code(GetLastError(), get_system_category());
-				return -1;
-			}
+				if (f == INVALID_HANDLE_VALUE)
+				{
+					ec = error_code(GetLastError(), get_system_category());
+					return -1;
+				}
 
-			LARGE_INTEGER offs;
-			offs.QuadPart = file_size;
-			if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
-			{
+				LARGE_INTEGER offs;
+				offs.QuadPart = file_size;
+				if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
+				{
+					CloseHandle(f);
+					ec = error_code(GetLastError(), get_system_category());
+					return -1;
+				}
+				if (::SetEndOfFile(f) == FALSE)
+				{
+					ec = error_code(GetLastError(), get_system_category());
+					CloseHandle(f);
+					return -1;
+				}
 				CloseHandle(f);
-				ec = error_code(GetLastError(), get_system_category());
-				return -1;
 			}
-			if (::SetEndOfFile(f) == FALSE)
+			else
 			{
-				ec = error_code(GetLastError(), get_system_category());
-				CloseHandle(f);
-				return -1;
+				ULONG_PTR Iosb[2];
+				LARGE_INTEGER fsize;
+				fsize.QuadPart = file_size;
+				_NTSTATUS st = NtSetInformationFile(m_file_handle
+					, Iosb, &fsize, sizeof(fsize), FileEndOfFileInformation);
+				if (!NT_SUCCESS(st)) 
+				{
+					ec.assign(INVALID_SET_FILE_POINTER, get_system_category());
+					return -1;
+				}
 			}
-			CloseHandle(f);
 		}
 
 		return ret;
