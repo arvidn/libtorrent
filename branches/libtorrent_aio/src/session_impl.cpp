@@ -230,7 +230,7 @@ namespace aux {
 		}
 		fclose(f);
 #else
-		ec = boost::system::errc::not_supported;
+		ec = asio::error::operation_not_supported;
 #endif
 // TOOD: windows?
 	}
@@ -264,10 +264,10 @@ namespace aux {
 		FILETIME exit_time;
 		GetThreadTimes(GetCurrentThread(), &creation_time, &exit_time, &user_time, &system_time);
 
-		boost::uint64_t utime = (boost::uint64_t(user_time.dwhighdatetime) << 32)
-			+ user_time.dwlowdatetime;
-		boost::uint64_t stime = (boost::uint64_t(system_time.dwhighdatetime) << 32)
-			+ system_time.dwlowdatetime;
+		boost::uint64_t utime = (boost::uint64_t(user_time.dwHighDateTime) << 32)
+			+ user_time.dwLowDateTime;
+		boost::uint64_t stime = (boost::uint64_t(system_time.dwHighDateTime) << 32)
+			+ system_time.dwLowDateTime;
 
 		tu->user_time = min_time() + microsec(utime / 10);
 		tu->system_time = min_time() + microsec(stime / 10);
