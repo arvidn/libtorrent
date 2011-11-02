@@ -1468,6 +1468,7 @@ namespace libtorrent
 				if (!NT_SUCCESS(st)) 
 				{
 					ec.assign(INVALID_SET_FILE_POINTER, get_system_category());
+					return -1;
 				}
 			}
 		}
