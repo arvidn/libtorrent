@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #endif
 
+#include "libtorrent/invariant_check.hpp"
+
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
 //#define TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
 //#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
