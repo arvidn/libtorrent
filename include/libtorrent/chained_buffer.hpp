@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 #include <boost/function/function1.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
@@ -48,7 +50,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 	namespace asio = boost::asio;
 #endif
-	struct chained_buffer
+	struct TORRENT_EXPORT chained_buffer
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
