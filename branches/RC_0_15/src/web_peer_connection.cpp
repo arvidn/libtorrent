@@ -615,6 +615,7 @@ namespace libtorrent
 					incoming_piece(front_request, &m_piece[0]);
 					m_requests.pop_front();
 					if (associated_torrent().expired()) return;
+					TORRENT_ASSERT(m_block_pos >= front_request.length);
 					m_block_pos -= front_request.length;
 					cut_receive_buffer(m_body_start, t->block_size() + 1024);
 					m_body_start = 0;
@@ -628,7 +629,7 @@ namespace libtorrent
 			// report all received blocks to the bittorrent engine
 			while (!m_requests.empty()
 				&& range_contains(in_range, m_requests.front(), info.piece_length())
-				&& recv_buffer.left() >= m_requests.front().length)
+				&& m_block_pos >= m_requests.front().length)
 			{
 				peer_request r = m_requests.front();
 				TORRENT_ASSERT(recv_buffer.left() >= r.length);
