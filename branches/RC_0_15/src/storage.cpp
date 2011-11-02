@@ -1537,13 +1537,13 @@ ret:
 		TORRENT_ASSERT((aligned_size & size_align) == 0);
 
 		size_type actual_file_size = file_handle->get_size(ec);
-		if (ec) return -1;
+		if (ec && ec != make_error_code(boost::system::errc::no_such_file_or_directory)) return -1;
 
 		// allocate a temporary, aligned, buffer
 		disk_buffer_holder aligned_buf(*disk_pool(), disk_pool()->allocate_buffers(
 			num_blocks, "write scratch"), num_blocks);
 		file::iovec_t b = {aligned_buf.get(), aligned_size};
-		if (aligned_start < actual_file_size) // we have something to read
+		if (aligned_start < actual_file_size && !ec) // we have something to read
 		{
 			size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
 			if (ret < 0)
@@ -1552,6 +1552,8 @@ ret:
 				return ret;
 			}
 		}
+
+		ec.clear();
 
 		// OK, we read the portion of the file. Now, overlay the buffer we're writing 
 
