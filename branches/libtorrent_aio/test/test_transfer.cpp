@@ -122,22 +122,13 @@ void print_alert(std::auto_ptr<alert>)
 }
 
 // simulate a full disk
-struct test_storage : storage_interface
+struct test_storage : default_storage 
 {
 	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
-		: m_lower_layer(default_storage_constructor(fs, 0, p, fp, std::vector<boost::uint8_t>()))
+		: default_storage(fs, 0, p, fp, std::vector<boost::uint8_t>())
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
-
-	virtual void initialize(bool allocate_files, storage_error& ec)
-	{ m_lower_layer->initialize(allocate_files, ec); }
-
-	virtual bool has_any_file(storage_error& ec)
-	{ return m_lower_layer->has_any_file(ec); }
-
-	virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
-	{ return m_lower_layer->readv(bufs, slot, offset, num_bufs, ec); }
 
 	void set_limit(int lim)
 	{
@@ -145,105 +136,39 @@ struct test_storage : storage_interface
 		m_limit = lim;
 	}
 
-	virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs, storage_error& ec)
-	{
-		mutex::scoped_lock l(m_mutex);
-		if (m_written > m_limit)
-		{
-			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
-#if BOOST_VERSION == 103500
-			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
-#elif BOOST_VERSION > 103500
-			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
-#else
-			ec.ec = error_code(ENOSPC, get_posix_category());
-#endif
-			return -1;
-		}
-
-		int ret = m_lower_layer->writev(bufs, slot, offset, num_bufs, ec);
-		if (ret > 0) m_written += ret;
-		return ret;
-	}
-
-	virtual size_type physical_offset(int piece_index, int offset)
-	{ return m_lower_layer->physical_offset(piece_index, offset); }
-
-	virtual int read(char* buf, int slot, int offset, int size, storage_error& ec)
-	{ return m_lower_layer->read(buf, slot, offset, size, ec); }
-
-	virtual int write(const char* buf, int slot, int offset, int size, storage_error& ec)
-	{
-		mutex::scoped_lock l(m_mutex);
-		if (m_written >= m_limit)
-		{
-			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
-#if BOOST_VERSION == 103500
-			ec.ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
-#elif BOOST_VERSION > 103500
-			ec.ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
-#else
-			ec.ec = error_code(ENOSPC, get_posix_category());
-#endif
-			return -1;
-		}
-
-		int ret = m_lower_layer->write(buf, slot, offset, size, ec);
-		if (ret > 0) m_written += ret;
-		return ret;
-	}
-
-	virtual int sparse_end(int start) const
-	{ return m_lower_layer->sparse_end(start); }
-
-	virtual void move_storage(std::string const& save_path, storage_error& ec)
-	{ m_lower_layer->move_storage(save_path, ec); }
-
-	virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error)
-	{ return m_lower_layer->verify_resume_data(rd, error); }
-
-	virtual void write_resume_data(entry& rd, storage_error& ec) const
-	{ m_lower_layer->write_resume_data(rd, ec); }
-
-	virtual void move_slot(int src_slot, int dst_slot, storage_error& ec)
-	{ m_lower_layer->move_slot(src_slot, dst_slot, ec); }
-
-	virtual void swap_slots(int slot1, int slot2, storage_error& ec)
-	{ m_lower_layer->swap_slots(slot1, slot2, ec); }
-
-	virtual void swap_slots3(int slot1, int slot2, int slot3, storage_error& ec)
-	{ m_lower_layer->swap_slots3(slot1, slot2, slot3, ec); }
-
-	virtual void release_files(storage_error& ec) { return m_lower_layer->release_files(ec); }
-
-	virtual void rename_file(int index, std::string const& new_filename, storage_error& ec)
-	{ m_lower_layer->rename_file(index, new_filename, ec); }
-
-	virtual void delete_files(storage_error& ec) { m_lower_layer->delete_files(ec); }
-
-	file::aiocb_t* async_readv(
-		file::iovec_t const* bufs
-		, int piece_index
-		, int offset
-		, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
-	{
-		return m_lower_layer->async_readv(bufs, piece_index, offset, num_bufs, handler);
-	}
-
 	file::aiocb_t* async_writev(
 		file::iovec_t const* bufs
 		, int piece_index
 		, int offset
 		, int num_bufs
-		, boost::function<void(async_handler*)> const& handler)
+		, int flags
+		, async_handler* a)
 	{
-		return m_lower_layer->async_writev(bufs, piece_index, offset, num_bufs, handler);
+		mutex::scoped_lock l(m_mutex);
+		if (m_written >= m_limit)
+		{
+			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
+			error_code ec;
+#if BOOST_VERSION == 103500
+			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
+#elif BOOST_VERSION > 103500
+			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
+#else
+			ec = error_code(ENOSPC, get_posix_category());
+#endif
+			a->error.ec = ec;
+			return 0;
+		}
+
+		for (int i = 0; i < num_bufs; ++i)
+			m_written += bufs[i].iov_len;
+		l.unlock();
+		return default_storage::async_writev(bufs, piece_index, offset
+			, num_bufs, flags, a);
 	}
 
 	virtual ~test_storage() {}
 
-	boost::scoped_ptr<storage_interface> m_lower_layer;
 	int m_written;
 	int m_limit;
 	mutex m_mutex;

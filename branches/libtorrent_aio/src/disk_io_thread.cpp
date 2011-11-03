@@ -2592,13 +2592,14 @@ namespace libtorrent
 					, this, complete_aios, last_completed_aios);
 
 				// this needs to be atomic for the signal handler
+				int tmp = g_completed_aios;
 				last_completed_aios = complete_aios;
+				complete_aios = tmp;
 				// go through all outstanding disk operations
 				// and potentially dispatch ones that are complete
 				DLOG(stderr, "[%p] reap in progress aios (%p)\n", this, m_in_progress);
 				m_in_progress = reap_aios(m_in_progress, m_aiocb_pool);
 				DLOG(stderr, "[%p] new in progress aios (%p)\n", this, m_in_progress);
-				complete_aios = g_completed_aios;
 				m_cache_stats.cumulative_completed_aiocbs = g_completed_aios;
 			}
 			new_job = true;
