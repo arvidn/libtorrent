@@ -1547,7 +1547,11 @@ ret:
 		if (aligned_start < actual_file_size && !ec) // we have something to read
 		{
 			size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-			if (ec && ec != error_code(ERROR_HANDLE_EOF, get_system_category()))
+			if (ec
+#ifdef TORRENT_WINDOWS
+				&& ec != error_code(ERROR_HANDLE_EOF, get_system_category())
+#endif
+				)
 				return ret;
 		}
 
