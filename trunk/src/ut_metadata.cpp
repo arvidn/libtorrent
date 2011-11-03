@@ -216,7 +216,7 @@ namespace libtorrent { namespace
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
 #ifdef TORRENT_VERBOSE_LOGGING
-			m_pc.peer_log("<== UT_METADATA [ type: %d | piece: %d ]", type, piece);
+			m_pc.peer_log("==> UT_METADATA [ type: %d | piece: %d ]", type, piece);
 #endif
 
 			// abort if the peer doesn't support the metadata extension
@@ -235,7 +235,7 @@ namespace libtorrent { namespace
 				if (piece < 0 || piece >= int(m_tp.metadata().left() + 16 * 1024 - 1)/(16*1024))
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
-					m_pc.peer_log("<== UT_METADATA [ invalid piece %d metadata size: %d ]"
+					m_pc.peer_log("*** UT_METADATA [ invalid piece %d metadata size: %d ]"
 						, piece, int(m_tp.metadata().left()));
 #endif
 					m_pc.disconnect(errors::invalid_metadata_message, 2);
