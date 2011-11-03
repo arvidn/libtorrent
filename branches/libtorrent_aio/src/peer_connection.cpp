@@ -4888,6 +4888,8 @@ namespace libtorrent
 
 	void peer_connection::setup_send()
 	{
+		if (m_disconnecting) return;
+
 		if (m_channel_state[upload_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
@@ -4907,6 +4909,10 @@ namespace libtorrent
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[upload_channel] += ret;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<<< ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
 		}
 
 		int quota_left = m_quota[upload_channel];
@@ -4933,9 +4939,9 @@ namespace libtorrent
 				// upload rate being virtually 0. If m_requests is empty, it doesn't
 				// matter anyway, because we don't have any more requests from the
 				// peer to hang on to the disk
-				if (t->alerts().should_post<performance_alert>())
+				if (m_ses.m_alerts.should_post<performance_alert>())
 				{
-					t->alerts().post_alert(performance_alert(t->get_handle()
+					m_ses.m_alerts.post_alert(performance_alert(t->get_handle()
 						, performance_alert::send_buffer_watermark_too_low));
 				}
 			}
@@ -5008,6 +5014,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		if (m_disconnecting) return;
 		if (m_channel_state[download_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
 
 		shared_ptr<torrent> t = m_torrent.lock();
@@ -5026,6 +5033,10 @@ namespace libtorrent
 			// we were just assigned 'ret' quota
 			TORRENT_ASSERT(ret > 0);
 			m_quota[download_channel] += ret;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(">>> ASSIGN BANDWIDTH [ bytes: %d ]", ret);
+#endif
 		}
 		
 		if (!can_read())

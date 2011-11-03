@@ -37,8 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <numeric>
 
+#include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
+
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"
@@ -47,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
 #endif
+
+#include "libtorrent/invariant_check.hpp"
 
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
 //#define TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
