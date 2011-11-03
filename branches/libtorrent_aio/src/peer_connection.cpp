@@ -5877,6 +5877,16 @@ namespace libtorrent
 		TORRENT_ASSERT(m_download_limit >= 0);
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
+
+		if (!m_disconnect_started && m_initialized)
+		{
+			// none of this matters if we're disconnecting anyway
+			if (t->is_finished())
+				TORRENT_ASSERT(!is_interesting());
+			if (is_seed())
+				TORRENT_ASSERT(upload_only());
+		}
+
 		if (m_disconnecting)
 		{
 			TORRENT_ASSERT(m_download_queue.empty());

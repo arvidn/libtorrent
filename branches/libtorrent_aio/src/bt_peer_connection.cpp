@@ -3493,15 +3493,6 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 
-		if (!m_disconnect_started && m_initialized)
-		{
-			// none of this matters if we're disconnecting anyway
-			if (t->is_finished())
-				TORRENT_ASSERT(!is_interesting());
-			if (is_seed())
-				TORRENT_ASSERT(upload_only());
-		}
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_local());
