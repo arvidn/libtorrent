@@ -1344,6 +1344,7 @@ ret:
 
 		size_type actual_file_size = file_handle->get_size(ec);
 		if (ec && ec != make_error_code(boost::system::errc::no_such_file_or_directory)) return -1;
+		ec.clear();
 
 		// allocate a temporary, aligned, buffer
 		aligned_holder aligned_buf(aligned_size);
@@ -1352,11 +1353,8 @@ ret:
 		if (aligned_start < actual_file_size && !ec)
 		{
 			size_type ret = file_handle->readv(aligned_start, &b, 1, ec);
-			if (ret < 0)
-			{
-				TORRENT_ASSERT(ec);
+			if (ec && ec != error_code(ERROR_HANDLE_EOF, get_system_category()))
 				return ret;
-			}
 		}
 
 		ec.clear();
