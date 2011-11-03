@@ -2579,7 +2579,7 @@ namespace libtorrent
 
 		if (m_ses.m_settings.predictive_piece_announce)
 		{
-			int piece = b->block.piece_index;
+			int piece = block_finished.piece_index;
 			piece_picker::downloading_piece st;
 			t->picker().piece_info(piece, st);
 
@@ -2599,7 +2599,7 @@ namespace libtorrent
 						// download rate from this peer, and how many blocks
 						// do we have left to download?
 						boost::int64_t rate = p->connection->statistics().download_payload_rate();
-						boost::int64_t bytes_left = st.requested * t->block_size();
+						boost::int64_t bytes_left = boost::int64_t(st.requested) * t->block_size();
 						// the settings unit is milliseconds, so calculate the
 						// number of milliseconds worth of bytes left in the piece
 						if (rate > 1000
@@ -5087,6 +5087,8 @@ namespace libtorrent
 			return 0;
 		}
 
+		int max_receive = m_packet_size - m_recv_pos;
+
 		boost::array<asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
 		if (m_ses.m_settings.contiguous_recv_buffer)
@@ -5110,7 +5112,6 @@ namespace libtorrent
 		else
 		{
 			TORRENT_ASSERT(m_packet_size > 0);
-			int max_receive = m_packet_size - m_recv_pos;
 			TORRENT_ASSERT(max_receive >= 0);
    
 			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
