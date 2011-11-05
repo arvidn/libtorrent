@@ -424,7 +424,7 @@ namespace libtorrent
 		void* m_userdata;
 
 		// the last time we expired write blocks from the cache
-		time_t m_last_cache_expiry;
+		ptime m_last_cache_expiry;
 
 		// this is the number of bytes we're waiting for to be written
 		size_type m_pending_buffer_size;

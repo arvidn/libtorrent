@@ -329,7 +329,7 @@ namespace libtorrent
 		, int block_size)
 		: m_abort(false)
 		, m_userdata(userdata)
-		, m_last_cache_expiry(0)
+		, m_last_cache_expiry(min_time())
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
@@ -986,7 +986,8 @@ namespace libtorrent
 		time_t timeout = 0;
 #endif
 
-		time_t now = time(0);
+		ptime now = time_now();
+		time_duration expiration_limit = seconds(m_settings.cache_expiry);
 
 		for (block_cache::lru_iterator p = range.first; p != range.second; ++p)
 		{
@@ -996,7 +997,7 @@ namespace libtorrent
 #endif
 			// since we're iterating in order of last use, if this piece
 			// shouldn't be evicted, none of the following ones will either
-			if (now - p->expire < m_settings.cache_expiry) break;
+			if (now - p->expire < expiration_limit) break;
 			if (p->num_dirty == 0) continue;
 
 			io_range(m_disk_cache.map_iterator(p), 0, INT_MAX, op_write, 0);
@@ -1925,7 +1926,6 @@ namespace libtorrent
 		get_disk_metrics(*ret);
 		int block_size = m_disk_cache.block_size();
 
-		time_t now_time_t = time(0);
 		ptime now = time_now();
 
 		for (block_cache::iterator i = range.first; i != range.second; ++i)
@@ -1933,7 +1933,7 @@ namespace libtorrent
 			ret->pieces.push_back(cached_piece_info());
 			cached_piece_info& info = ret->pieces.back();
 			info.piece = i->piece;
-			info.last_use = now - seconds(now_time_t - i->expire);
+			info.last_use = i->expire;
 			info.need_readback = i->need_readback;
 			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
 			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
@@ -2606,8 +2606,8 @@ namespace libtorrent
 			iocbs_reaped = true;
 #endif
 
-			time_t now = time(0);
-			if (now > m_last_cache_expiry + 5)
+			ptime now = time_now_hires();
+			if (now > m_last_cache_expiry + seconds(5))
 			{
 				m_last_cache_expiry = now;
 				flush_expired_write_blocks();

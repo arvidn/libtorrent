@@ -167,10 +167,10 @@ namespace libtorrent
 		// avaialable. Read jobs may be overlapping.
 		tailqueue jobs;
 
-		// the last time a block was writting to this piece
+		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
-		time_t expire;
+		ptime expire;
 
 		boost::uint64_t piece:18;
 
@@ -221,7 +221,7 @@ namespace libtorrent
 					>
 				>
 				// second index. Ordered by expiration time
-				, ordered_non_unique<member<cached_piece_entry, time_t
+				, ordered_non_unique<member<cached_piece_entry, ptime
 					, &cached_piece_entry::expire> >
 				> 
 			> cache_t;

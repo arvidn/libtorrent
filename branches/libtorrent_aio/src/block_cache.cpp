@@ -66,24 +66,24 @@ void log_refcounts(cached_piece_entry const* pe)
 
 struct update_last_use
 {
-	update_last_use(int exp): expire(exp) {}
+	update_last_use(time_duration exp): expire(exp) {}
 	void operator()(cached_piece_entry& p)
 	{
 		TORRENT_ASSERT(p.storage);
-		p.expire = time(0) + expire;
+		p.expire = time_now() + expire;
 	}
-	int expire;
+	time_duration expire;
 };
 
 struct set_last_use
 {
-	set_last_use(time_t exp): expire(exp) {}
+	set_last_use(ptime exp): expire(exp) {}
 	void operator()(cached_piece_entry& p)
 	{
 		TORRENT_ASSERT(p.storage);
 		p.expire = expire;
 	}
-	time_t expire;
+	ptime expire;
 };
 
 cached_piece_entry::cached_piece_entry()
@@ -91,7 +91,7 @@ cached_piece_entry::cached_piece_entry()
 	, hash(0)
 	, blocks()
 	, jobs()
-	, expire(0)
+	, expire(min_time())
 	, piece(0)
 	, num_dirty(0)
 	, num_blocks(0)
@@ -140,7 +140,7 @@ int block_cache::try_read(disk_io_job* j)
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
 	if (p->num_blocks == 0) idx.erase(p);
-	else idx.modify(p, update_last_use(0));
+	else idx.modify(p, set_last_use(time_now()));
 
 	ret = j->d.io.buffer_size;
 	++m_blocks_read;
@@ -162,7 +162,7 @@ block_cache::iterator block_cache::allocate_piece(disk_io_job const* j)
 		cached_piece_entry pe;
 		pe.piece = j->piece;
 		pe.storage = j->storage;
-		pe.expire = time(0);
+		pe.expire = time_now();
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		TORRENT_ASSERT(pe.blocks);
@@ -221,7 +221,8 @@ block_cache::iterator block_cache::add_dirty_block(disk_io_job* j)
 	pe->jobs.push_back(j);
 
 	cache_piece_index_t& idx = m_pieces.get<0>();
-	idx.modify(p, set_last_use((std::max)(pe->expire, time(0))));
+	ptime now = time_now();
+	if (now > pe->expire) idx.modify(p, set_last_use(now));
 
 	int hash_start = 0;
 	int hash_end = 0;
@@ -1159,7 +1160,7 @@ void block_cache::check_invariant() const
 	int num_pinned = 0;
 	cache_lru_index_t const& idx = m_pieces.get<1>();
 
-	time_t timeout = 0;
+	ptime timeout = min_time();
 
 	for (cache_lru_index_t::const_iterator i = idx.begin()
 		, end(idx.end()); i != end; ++i)
