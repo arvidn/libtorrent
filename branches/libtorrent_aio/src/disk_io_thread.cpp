@@ -983,7 +983,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
 #ifdef TORRENT_DEBUG
-		time_t timeout = 0;
+		ptime timeout = min_time();
 #endif
 
 		ptime now = time_now();
