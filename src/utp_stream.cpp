@@ -2627,7 +2627,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_bytes_in_flight
 					, 0.f // float(scaled_gain)
 					, m_rtt.mean()
-					, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16
+					, int((m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16)
 					, 0
 					, m_adv_wnd
 					, packet_timeout()
