@@ -60,7 +60,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_pool(block_size, 32)
 #endif
-		, m_cache_buffer_chunk_size(10)
+		, m_cache_buffer_chunk_size(0)
 		, m_lock_disk_cache(false)
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
@@ -174,7 +174,10 @@ namespace libtorrent
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
 		char* ret = (char*)m_pool.malloc();
-		m_pool.set_next_size(m_cache_buffer_chunk_size);
+		int effective_block_size = m_cache_buffer_chunk_size
+			? m_cache_buffer_chunk_size
+			: (std::max)(m_max_use / 20, 1);
+		m_pool.set_next_size(effective_block_size);
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
@@ -249,6 +252,8 @@ namespace libtorrent
 	void disk_buffer_pool::set_settings(session_settings const& sett)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
+		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
+		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.cache_buffer_chunk_size;
 		m_lock_disk_cache = sett.lock_disk_cache;
 		m_max_use = sett.cache_size;

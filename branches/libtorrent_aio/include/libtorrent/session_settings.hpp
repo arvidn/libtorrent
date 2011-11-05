@@ -150,7 +150,7 @@ namespace libtorrent
 			, seed_choking_algorithm(round_robin)
 			, use_parole_mode(true)
 			, cache_size(1024)
-			, cache_buffer_chunk_size(16)
+			, cache_buffer_chunk_size(0)
 			, cache_expiry(120)
 			, use_read_cache(true)
 			, dont_flush_write_cache(false)
@@ -542,6 +542,8 @@ namespace libtorrent
 		// that should be allocated at a time. It must be
 		// at least 1. Lower number saves memory at the expense
 		// of more heap allocations
+		// setting this to zero means 'automatic', i.e. proportional
+		// to the total disk cache size
 		int cache_buffer_chunk_size;
 
 		// the number of seconds a write cache entry sits
