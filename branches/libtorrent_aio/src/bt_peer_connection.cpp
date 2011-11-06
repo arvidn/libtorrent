@@ -1287,7 +1287,7 @@ namespace libtorrent
 		char* disk_buffer = release_disk_receive_buffer();
 		if (disk_buffer)
 		{
-			disk_buffer_holder holder(m_ses, release_disk_receive_buffer());
+			disk_buffer_holder holder(m_ses, disk_buffer);
 			incoming_piece(p, holder);
 		}
 		else
@@ -3361,9 +3361,16 @@ namespace libtorrent
 
 			if (!t) return;
 
-			m_statistics.received_bytes(0, bytes_transferred);
+			// the 5th byte (if one) should not count as protocol
+			// byte here, instead it's counted in the message
+			// handler itself, for the specific message
+			TORRENT_ASSERT(bytes_transferred <= 5);
+			int used_bytes = recv_buffer.left() > 4 ? bytes_transferred - 1: bytes_transferred;
+			m_statistics.received_bytes(0, used_bytes);
+			bytes_transferred -= used_bytes;
 			if (recv_buffer.left() < 4) return;
-			bytes_transferred = 0;
+
+			TORRENT_ASSERT(bytes_transferred <= 1);
 
 			const char* ptr = recv_buffer.begin;
 			int packet_size = detail::read_int32(ptr);
@@ -3372,12 +3379,15 @@ namespace libtorrent
 			if (packet_size > 1024*1024 || packet_size < 0)
 			{
 				// packet too large
+				m_statistics.received_bytes(0, bytes_transferred);
 				disconnect(errors::packet_too_large, 2);
 				return;
 			}
 					
 			if (packet_size == 0)
 			{
+				TORRENT_ASSERT(bytes_transferred == 1);
+				m_statistics.received_bytes(0, bytes_transferred);
 				incoming_keepalive();
 				if (is_disconnecting()) return;
 				// keepalive message
@@ -3385,19 +3395,13 @@ namespace libtorrent
 				cut_receive_buffer(4, 5);
 				return;
 			}
-			else
-			{
-				if (recv_buffer.left() < 5) return;
+			if (recv_buffer.left() < 5) return;
 
-				m_state = read_packet;
-				cut_receive_buffer(4, packet_size);
-				recv_buffer = receive_buffer();
-				TORRENT_ASSERT(recv_buffer.left() == 1);
-			}
-			// if the message size is 1 (i.e. we already
-			// have the complete message), allow falling
-			// through into handling it
-			if (!packet_finished()) return;
+			m_state = read_packet;
+			cut_receive_buffer(4, packet_size);
+			recv_buffer = receive_buffer();
+			TORRENT_ASSERT(recv_buffer.left() == 1);
+			TORRENT_ASSERT(bytes_transferred == 1);
 		}
 
 		if (m_state == read_packet)

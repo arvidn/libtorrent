@@ -3961,6 +3961,10 @@ namespace libtorrent
 
 	char* peer_connection::release_disk_receive_buffer()
 	{
+		if (!m_disk_recv_buffer) return 0;
+
+		TORRENT_ASSERT(m_disk_recv_buffer_size <= m_recv_end);
+		m_recv_end -= m_disk_recv_buffer_size;
 		m_disk_recv_buffer_size = 0;
 		return m_disk_recv_buffer.release();
 	}
