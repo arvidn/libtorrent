@@ -1350,7 +1350,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 				if (m_fast_resend_seq_nr == ack_nr)
 					m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 
-				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, 0xffff)) ++dups;
+				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
 				packet* p = (packet*)m_outbuf.remove(ack_nr);
 				if (p)
@@ -1384,7 +1384,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 
 	// we received more than dup_ack_limit ACKs in this SACK message.
 	// trigger fast re-send
-	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, 0xffff))
+	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
 	{
 		experienced_loss(m_fast_resend_seq_nr);
 		int num_resent = 0;
@@ -1640,6 +1640,10 @@ bool utp_socket_impl::send_pkt(bool ack)
 	TORRENT_ASSERT(!m_error);
 
 	error_code ec;
+#ifdef TORRENT_DEBUG
+	// simulate 1% packet loss
+//	if ((rand() % 100) > 0)
+#endif
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, packet_size, ec
 		, use_as_probe ? utp_socket_manager::dont_fragment : 0);
@@ -1817,6 +1821,8 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 	// don't pass m_seq_nr, since we move into sequence
 	// numbers that haven't been sent yet, and aren't
 	// supposed to be in m_outbuf
+	// if the slot in m_outbuf is 0, it means the
+	// packet has been ACKed and removed from the send buffer
 	while (((m_acked_seq_nr + 1) & ACK_MASK) != m_seq_nr
 		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == 0)
 	{
@@ -2454,6 +2460,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				m_seq_nr = random();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
+				m_fast_resend_seq_nr = m_seq_nr;
 
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
@@ -2612,6 +2619,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"min_rtt:%u "
 					"send_buffer:%d "
 					"recv_buffer:%d "
+					"fast_resend_seq_nr:%d "
 					"\n"
 					, this
 					, sample
@@ -2642,7 +2650,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_reply_micro
 					, min_rtt / 1000
 					, m_write_buffer_size
-					, m_read_buffer_size);
+					, m_read_buffer_size
+					, m_fast_resend_seq_nr);
 			}
 #endif
 
