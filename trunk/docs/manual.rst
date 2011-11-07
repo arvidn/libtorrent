@@ -7350,7 +7350,7 @@ listen socket for SSL torrents.
 ``socket_type`` tells you what kind of socket the connection was accepted
 as:
 
-+==========+=====================================+
++----------+-------------------------------------+
 | value    | type                                |
 +==========+=====================================+
 | 0        | none (no socket instantiated)       |
