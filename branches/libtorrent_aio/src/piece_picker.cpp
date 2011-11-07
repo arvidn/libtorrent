@@ -2607,7 +2607,7 @@ namespace libtorrent
 
 			if (m_dirty) return;
 			if (new_priority == prev_priority) return;
-			if (prev_priority == -1) add(i->index);
+			if (prev_priority == -1) add(block.piece_index);
 			else update(prev_priority, p.index);
 		}
 		else
