@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
+//#define TORRENT_PICKER_LOG
+
 namespace libtorrent
 {
 
