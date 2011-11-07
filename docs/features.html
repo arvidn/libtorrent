@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -132,8 +130,6 @@ as well as all local peers in a separate fast-resume file.</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>does not have any requirements on the piece order in a torrent that it
 resumes. This means it can resume a torrent downloaded by any client.</li>
-<li>supports both sparse files and compact file allocation (where pieces
-are kept consolidated on disk)</li>
 <li>seed mode, where the files on disk are assumed to be complete, and each
 piece's hash is verified the first time it is requested.</li>
 </ul>
