@@ -6960,29 +6960,49 @@ struct incoming_connection_alert: alert
 </pre>
 <p><tt class="docutils literal"><span class="pre">socket_type</span></tt> tells you what kind of socket the connection was accepted
 as:</p>
-<p>+==========+=====================================+
-| value    | type                                |
-+==========+=====================================+
-| 0        | none (no socket instantiated)       |
-+----------+-------------------------------------+
-| 1        | TCP                                 |
-+----------+-------------------------------------+
-| 2        | Socks5                              |
-+----------+-------------------------------------+
-| 3        | HTTP                                |
-+----------+-------------------------------------+
-| 4        | uTP                                 |
-+----------+-------------------------------------+
-| 5        | i2p                                 |
-+----------+-------------------------------------+
-| 6        | SSL/TCP                             |
-+----------+-------------------------------------+
-| 7        | SSL/Socks5                          |
-+----------+-------------------------------------+
-| 8        | HTTPS (SSL/HTTP)                    |
-+----------+-------------------------------------+
-| 9        | SSL/uTP                             |
-+----------+-------------------------------------+</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">value</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>0</td>
+<td>none (no socket instantiated)</td>
+</tr>
+<tr><td>1</td>
+<td>TCP</td>
+</tr>
+<tr><td>2</td>
+<td>Socks5</td>
+</tr>
+<tr><td>3</td>
+<td>HTTP</td>
+</tr>
+<tr><td>4</td>
+<td>uTP</td>
+</tr>
+<tr><td>5</td>
+<td>i2p</td>
+</tr>
+<tr><td>6</td>
+<td>SSL/TCP</td>
+</tr>
+<tr><td>7</td>
+<td>SSL/Socks5</td>
+</tr>
+<tr><td>8</td>
+<td>HTTPS (SSL/HTTP)</td>
+</tr>
+<tr><td>9</td>
+<td>SSL/uTP</td>
+</tr>
+</tbody>
+</table>
 <p><tt class="docutils literal"><span class="pre">ip</span></tt> is the IP address and port the connection came from.</p>
 </div>
 </div>
