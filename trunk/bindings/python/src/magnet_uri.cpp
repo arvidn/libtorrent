@@ -12,7 +12,8 @@ using namespace boost::python;
 using namespace libtorrent;
 
 extern void dict_to_add_torrent_params(dict params
-    , add_torrent_params& p, std::vector<char>& rd);
+    , add_torrent_params& p, std::vector<char>& rd
+    , std::list<std::string>& storage);
 
 namespace {
     
@@ -21,7 +22,8 @@ namespace {
         add_torrent_params p;
 
         std::vector<char> resume_buf;
-        dict_to_add_torrent_params(params, p, resume_buf);
+        std::list<std::string> string_storage;
+        dict_to_add_torrent_params(params, p, resume_buf, string_storage);
 
 #ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
