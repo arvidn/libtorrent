@@ -4408,7 +4408,7 @@ namespace aux {
 
 		if (torrent_ptr)
 		{
-			if (!params.duplicate_is_error)
+			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
 			{
 				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
 					torrent_ptr->set_uuid(params.uuid);
@@ -4471,7 +4471,8 @@ namespace aux {
 			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
 
 		// recalculate auto-managed torrents sooner
-		if (params.auto_managed && m_auto_manage_time_scaler > 1)
+		if ((params.flags && add_torrent_params::flag_auto_managed)
+			&& m_auto_manage_time_scaler > 1)
 			m_auto_manage_time_scaler = 1;
 
 		return torrent_handle(torrent_ptr);

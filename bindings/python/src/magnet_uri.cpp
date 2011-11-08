@@ -11,47 +11,22 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+extern void dict_to_add_torrent_params(dict params
+    , add_torrent_params& p, std::vector<char>& rd);
+
 namespace {
     
     torrent_handle _add_magnet_uri(session& s, std::string uri, dict params)
     {
         add_torrent_params p;
 
-        std::string url;
-        if (params.has_key("tracker_url"))
-        {
-            url = extract<std::string>(params["tracker_url"]);
-            p.tracker_url = url.c_str();
-        }
-        std::string name;
-        if (params.has_key("name"))
-        {
-            name = extract<std::string>(params["name"]);
-            p.name = name.c_str();
-        }
-        p.save_path = extract<std::string>(params["save_path"]);
-
         std::vector<char> resume_buf;
-        if (params.has_key("resume_data"))
-        {
-            std::string resume = extract<std::string>(params["resume_data"]);
-            resume_buf.resize(resume.size());
-            std::memcpy(&resume_buf[0], &resume[0], resume.size());
-            p.resume_data = &resume_buf;
-        }
-        if (params.has_key("storage_mode"))
-            p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-        if (params.has_key("paused"))
-            p.paused = params["paused"];
-        if (params.has_key("auto_managed"))
-            p.auto_managed = params["auto_managed"];
-        if (params.has_key("duplicate_is_error"))
-            p.duplicate_is_error = params["duplicate_is_error"];
-        
+        dict_to_add_torrent_params(params, p, resume_buf);
+
 #ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
 #else
-		  error_code ec;
+        error_code ec;
         return add_magnet_uri(s, uri, p, ec);
 #endif
     }
