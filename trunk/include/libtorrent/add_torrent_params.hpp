@@ -53,20 +53,58 @@ namespace libtorrent
 			, name(0)
 			, resume_data(0)
 			, storage_mode(storage_mode_sparse)
-			, paused(true)
-			, auto_managed(true)
-			, duplicate_is_error(false)
 			, storage(sc)
 			, userdata(0)
+			, file_priorities(0)
+#ifndef TORRENT_NO_DEPRECATE
+			, flags(flag_ignore_flags)
 			, seed_mode(false)
 			, override_resume_data(false)
 			, upload_mode(false)
-			, file_priorities(0)
 			, share_mode(false)
 			, apply_ip_filter(true)
+			, paused(true)
+			, auto_managed(true)
+			, duplicate_is_error(false)
 			, merge_resume_trackers(false)
-		{}
+#else
+			, flags(flag_apply_ip_filter | flag_paused | flag_auto_managed)
+#endif
+		{
+#ifndef TORRENT_NO_DEPRECATE
+			if (flags == flag_ignore_flags)
+			{
+				flags = 0;
+				if (seed_mode) flags |= flag_seed_mode;
+				if (override_resume_data) flags |= flag_override_resume_data;
+				if (upload_mode) flags |= flag_upload_mode;
+				if (share_mode) flags |= flag_share_mode;
+				if (apply_ip_filter) flags |= flag_apply_ip_filter;
+				if (paused) flags |= flag_paused;
+				if (auto_managed) flags |= flag_auto_managed;
+				if (duplicate_is_error) flags |= flag_duplicate_is_error;
+				if (merge_resume_trackers) flags |= flag_merge_resume_trackers;
+			}
+#endif
+		}
 
+		enum flags_t
+		{
+			flag_seed_mode = 0x001,
+			flag_override_resume_data = 0x002,
+			flag_upload_mode = 0x004,
+			flag_share_mode = 0x008,
+			flag_apply_ip_filter = 0x010,
+			flag_paused = 0x020,
+			flag_auto_managed = 0x040,
+			flag_duplicate_is_error = 0x080,
+			flag_merge_resume_trackers = 0x100
+
+#ifndef TORRENT_NO_DEPRECATE
+			, flag_ignore_flags = 0x80000000
+#endif
+		};
+	
 		// libtorrent version. Used for forward binary compatibility
 		int version;
 		boost::intrusive_ptr<torrent_info> ti;
@@ -76,22 +114,25 @@ namespace libtorrent
 		std::string save_path;
 		std::vector<char>* resume_data;
 		storage_mode_t storage_mode;
-		bool paused;
-		bool auto_managed;
-		bool duplicate_is_error;
 		storage_constructor_type storage;
 		void* userdata;
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
 		std::vector<boost::uint8_t> const* file_priorities;
-		bool share_mode;
 		std::string trackerid;
 		std::string url;
 		std::string uuid;
 		std::string source_feed_url;
+		boost::uint64_t flags;
+#ifndef TORRENT_NO_DEPRECATE
+		bool seed_mode;
+		bool override_resume_data;
+		bool upload_mode;
+		bool share_mode;
 		bool apply_ip_filter;
+		bool paused;
+		bool auto_managed;
+		bool duplicate_is_error;
 		bool merge_resume_trackers;
+#endif
 	};
 }
 

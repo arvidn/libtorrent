@@ -429,14 +429,7 @@ void feed::on_feed(error_code const& ec
 	bencode_map_entry add_torrent_map[] =
 	{
 		TORRENT_SETTING(std_string, save_path)
-		TORRENT_SETTING(boolean, paused)
-		TORRENT_SETTING(boolean, auto_managed)
-		TORRENT_SETTING(boolean, duplicate_is_error)
-		TORRENT_SETTING(boolean, seed_mode)
-		TORRENT_SETTING(boolean, override_resume_data)
-		TORRENT_SETTING(boolean, upload_mode)
-		TORRENT_SETTING(boolean, share_mode)
-		TORRENT_SETTING(std_string, trackerid)
+		TORRENT_SETTING(size_integer, flags)
 	};
 #undef TORRENT_SETTING
 
