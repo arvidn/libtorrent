@@ -104,6 +104,16 @@ cached_piece_entry::cached_piece_entry()
 
 cached_piece_entry::~cached_piece_entry()
 {
+	TORRENT_ASSERT(refcount == 0);
+#ifdef TORRENT_DEBUG
+	for (int i = 0; i < blocks_in_piece; ++i)
+	{
+		TORRENT_ASSERT(blocks[i].buf == 0);
+		TORRENT_ASSERT(!blocks[i].pending);
+		TORRENT_ASSERT(blocks[i].refcount == 0);
+		TORRENT_ASSERT(blocks[i].hashing == 0);
+	}
+#endif
 	delete hash;
 }
 
@@ -280,6 +290,7 @@ bool block_cache::evict_piece(iterator p)
 		if (pe->blocks[i].buf == 0 || pe->blocks[i].refcount > 0) continue;
 		TORRENT_ASSERT(!pe->blocks[i].pending);
 		TORRENT_ASSERT(pe->blocks[i].buf != 0);
+		TORRENT_ASSERT(num_to_delete < pe->blocks_in_piece);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
@@ -464,6 +475,7 @@ int block_cache::allocate_pending(block_cache::iterator p
 				cached_block_entry& bl = pe->blocks[j];
 				if (!bl.uninitialized) continue;
 				TORRENT_ASSERT(bl.buf != 0);
+				TORRENT_ASSERT(num_to_delete < end - begin);
 				to_delete[num_to_delete++] = bl.buf;
 				bl.buf = 0;
 				bl.uninitialized = false;
@@ -580,6 +592,7 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			TORRENT_ASSERT(m_read_cache_size > 0);
 			--m_read_cache_size;
 
+			TORRENT_ASSERT(num_to_delete < pe->blocks_in_piece);
 			to_delete[num_to_delete++] = bl.buf;
 			bl.buf = 0;
 			TORRENT_ASSERT(pe->num_blocks > 0);
@@ -1100,6 +1113,7 @@ void block_cache::free_piece(iterator p)
 		if (pe->blocks[i].buf == 0) continue;
 		TORRENT_ASSERT(pe->blocks[i].pending == false);
 		TORRENT_ASSERT(pe->blocks[i].refcount == 0);
+		TORRENT_ASSERT(num_to_delete < pe->blocks_in_piece);
 		to_delete[num_to_delete++] = pe->blocks[i].buf;
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);

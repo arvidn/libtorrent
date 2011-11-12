@@ -1289,47 +1289,47 @@ namespace libtorrent
 		{
 			block_cache::iterator p = m_disk_cache.add_dirty_block(j);
 
-			if (p != m_disk_cache.end())
+			if (p == m_disk_cache.end())
 			{
-				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
-				if (pe->hash == 0 && !m_settings.disable_hash_checks) pe->hash = new partial_hash;
-
-				// flushes the piece to disk in case
-				// it satisfies the condition for a write
-				// piece to be flushed
-				if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
-				{
-					try_flush_hashed(p, m_settings.write_cache_line_size);
-				}
-				else
-				{
-					try_flush_contiguous(p, m_settings.write_cache_line_size);
-				}
-
-				// if we have more blocks in the cache than allowed by
-				// the cache size limit, flush some dirty blocks
-				// deduct the writing blocks from the cache size, otherwise we'll flush the
-				// entire cache as soon as we exceed the limit, since all flush operations are
-				// async.
-				int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
-				int current_size = m_disk_cache.in_use();
-				if (m_settings.cache_size <= current_size - num_pending_write_blocks)
-				{
-					int left = current_size - m_settings.cache_size;
-					left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
-					if (left > 0 && !m_settings.dont_flush_write_cache)
-						try_flush_write_blocks(left);
-				}
-
-				// the handler will be called when the block
-				// is flushed to disk
-				return defer_handler;
+				m_disk_cache.free_buffer(j->buffer);
+				j->buffer = 0;
+				j->error.ec = error::no_memory;
+				return disk_operation_failed;
 			}
 
-			m_disk_cache.free_buffer(j->buffer);
-			j->buffer = 0;
-			j->error.ec = error::no_memory;
-			return disk_operation_failed;
+			cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
+			if (pe->hash == 0 && !m_settings.disable_hash_checks) pe->hash = new partial_hash;
+
+			// flushes the piece to disk in case
+			// it satisfies the condition for a write
+			// piece to be flushed
+			if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+			{
+				try_flush_hashed(p, m_settings.write_cache_line_size);
+			}
+			else
+			{
+				try_flush_contiguous(p, m_settings.write_cache_line_size);
+			}
+
+			// if we have more blocks in the cache than allowed by
+			// the cache size limit, flush some dirty blocks
+			// deduct the writing blocks from the cache size, otherwise we'll flush the
+			// entire cache as soon as we exceed the limit, since all flush operations are
+			// async.
+			int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
+			int current_size = m_disk_cache.in_use();
+			if (m_settings.cache_size <= current_size - num_pending_write_blocks)
+			{
+				int left = current_size - m_settings.cache_size;
+				left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
+				if (left > 0 && !m_settings.dont_flush_write_cache)
+					try_flush_write_blocks(left);
+			}
+
+			// the handler will be called when the block
+			// is flushed to disk
+			return defer_handler;
 		}
 
 		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
