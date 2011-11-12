@@ -127,6 +127,8 @@ namespace libtorrent
 
 	private:
 
+		void check_buffer_level(mutex::scoped_lock& l);
+
 		mutable mutex m_pool_mutex;
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR

@@ -485,14 +485,6 @@ int block_cache::allocate_pending(block_cache::iterator p
 				TORRENT_ASSERT(pe->num_blocks > 0);
 				--pe->num_blocks;
 			}
-			// we cannot erase the piece 'p' here, since
-			// the caller still has an iterator pointint
-			// to it, and will expect it to still be valid
-//			if (p->num_blocks == 0)
-//			{
-//				cache_piece_index_t& idx = m_pieces.get<0>();
-//				idx.erase(p);
-//			}
 			if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
 			return -1;

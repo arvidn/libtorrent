@@ -102,23 +102,27 @@ namespace libtorrent
 		if (ret < 0) ret = 0;
 		else if (ret > m_in_use) ret = m_in_use;
 
-		if (m_exceeded_max_size && m_in_use - ret <= m_low_watermark)
-		{
-			// post these messages first, before we actually
-			// start flushing these blocks, to pipeline better
-			m_exceeded_max_size = false;
-			std::vector<boost::function<void()> > cbs;
-			m_callbacks.swap(cbs);
-			l.unlock();
-			// #error TODO: make this be a single post passing the whole array in one go
-			for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
-				, end(cbs.end()); i != end; ++i)
-			{
-				m_ios.post(*i);
-			}
-		}
-
 		return ret;
+	}
+
+	// checks to see if we're no longer exceeding the high watermark,
+	// and if we're in fact below the low watermar. If so, we need to
+	// post the notification messages to the peers that are waiting for
+	// more buffers to received data into
+	void disk_buffer_pool::check_buffer_level(mutex::scoped_lock& l)
+	{
+		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
+
+		m_exceeded_max_size = false;
+		std::vector<boost::function<void()> > cbs;
+		m_callbacks.swap(cbs);
+		l.unlock();
+		// #error TODO: make this be a single post passing the whole array in one go
+		for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
+			, end(cbs.end()); i != end; ++i)
+		{
+			m_ios.post(*i);
+		}
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
@@ -241,6 +245,8 @@ namespace libtorrent
 			TORRENT_ASSERT(buf);
 			free_buffer_impl(buf, l);
 		}
+
+		check_buffer_level(l);
 	}
 
 	void disk_buffer_pool::free_buffer(char* buf)
