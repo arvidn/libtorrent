@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 
 #include <algorithm>
+#include <boost/bind.hpp>
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
@@ -49,6 +50,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	// this is posted to the network thread
+	void watermark_callback(std::vector<boost::function<void()> >* cbs)
+	{
+		for (std::vector<boost::function<void()> >::iterator i = cbs->begin()
+			, end(cbs->end()); i != end; ++i)
+		{
+			(*i)();
+		}
+		delete cbs;
+	}
 
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios)
 		: m_block_size(block_size)
@@ -114,15 +126,11 @@ namespace libtorrent
 		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
 
 		m_exceeded_max_size = false;
-		std::vector<boost::function<void()> > cbs;
-		m_callbacks.swap(cbs);
+		std::vector<boost::function<void()> >* cbs = new std::vector<boost::function<void()> >();
+		m_callbacks.swap(*cbs);
 		l.unlock();
-		// #error TODO: make this be a single post passing the whole array in one go
-		for (std::vector<boost::function<void()> >::iterator i = cbs.begin()
-			, end(cbs.end()); i != end; ++i)
-		{
-			m_ios.post(*i);
-		}
+
+		m_ios.post(boost::bind(&watermark_callback, cbs));
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
