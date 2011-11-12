@@ -362,10 +362,12 @@ def run_test(config):
 	# run fragmentation test
 	print 'analyzing fragmentation'
 	os.system('./stage_aio/fragmentation_test test.torrent %s' % (config['save-path']))
-	shutil.copy('fragmentation.log', 'session_stats/')
+	try: shutil.copy('fragmentation.log', 'session_stats/')
+	except: pass
 
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
-	shutil.copy('file_access.log', 'session_stats/')
+	try: shutil.copy('file_access.log', 'session_stats/')
+	except: pass
 
 	os.system('filefrag %s >session_stats/filefrag.out' % config['save-path'])
 	os.system('filefrag -v %s >session_stats/filefrag_verbose.out' % config['save-path'])
