@@ -210,6 +210,7 @@ namespace libtorrent
 			reserved147,
 			reserved148,
 			reserved149,
+
 // HTTP errors
 			http_parse_error, // 150
 			http_missing_location,
