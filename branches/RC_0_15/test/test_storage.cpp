@@ -464,11 +464,13 @@ void run_storage_tests(boost::intrusive_ptr<torrent_info> info
 	
 	// test unaligned read (where the bytes are not aligned)
 	ret = s->read(piece, 0, 3, piece_size-9);
+	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1+3));
 
 	// verify piece 1
 	ret = s->read(piece, 0, 0, piece_size);
+	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error(ret, s);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
 	
