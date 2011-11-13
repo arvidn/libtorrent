@@ -1250,8 +1250,8 @@ ret:
 				bytes_transferred = (int)(this->*op.unaligned_op)(file_handle, adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
 				if (op.mode == file::read_write
-					&& adjusted_offset + bytes_transferred == file_iter->size
-					&& file_handle->pos_alignment() > 0)
+					&& adjusted_offset + bytes_transferred >= file_iter->size
+					&& (file_handle->pos_alignment() > 0 || file_handle->size_alignment() > 0))
 				{
 					// we were writing, and we just wrote the last block of the file
 					// we likely wrote a bit too much, since we're restricted to
@@ -1266,6 +1266,7 @@ ret:
 			{
 				bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
 					, tmp_bufs, num_tmp_bufs, ec);
+				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
 			file_offset = 0;
 
