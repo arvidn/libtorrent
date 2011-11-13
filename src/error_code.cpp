@@ -167,6 +167,8 @@ namespace libtorrent
 			"",
 			"",
 			"",
+			"",
+
 // natpmp errors
 			"unsupported protocol version",
 			"not authorized to create port map (enable NAT-PMP on your router)",
@@ -178,6 +180,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // fastresume errors
 			"missing or invalid 'file sizes' entry",
 			"no files in resume data",
@@ -199,6 +202,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // HTTP errors
 			"Invalid HTTP header",
 			"missing Location header in HTTP redirect",
