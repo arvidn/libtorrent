@@ -1018,10 +1018,17 @@ namespace aux {
 			++m_log_seq;
 			fclose(m_stats_logger);
 		}
+
 		error_code ec;
-		create_directory("session_stats", ec);
 		char filename[100];
+#ifdef TORRENT_WINDOWS
+		create_directory("session_stats", ec);
 		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
+#else
+		snprintf(filename, sizeof(filename), "/var/log/session_stats%d", int(getpid()));
+		create_directory(filename, ec);
+		snprintf(filename, sizeof(filename), "/var/log/session_stats%d/%04d.log", int(getpid()), m_log_seq);
+#endif
 		m_stats_logger = fopen(filename, "w+");
 		if (m_stats_logger == 0)
 		{
