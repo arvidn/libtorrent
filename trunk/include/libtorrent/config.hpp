@@ -101,6 +101,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable:4996)
 // 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
 #pragma warning(disable: 4996)
+#define strdup _strdup
 
 # if defined(TORRENT_BUILDING_SHARED)
 #  define TORRENT_EXPORT __declspec(dllexport)
