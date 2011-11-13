@@ -404,9 +404,10 @@ def run_test(config):
 
 	if terminate: sys.exit(1)
 
-for h in range(0, 5):
-	config = build_test_config(build='aio', test='upload', torrent='test2.torrent', hash_threads=h, disable_disk=True)
+for h in range(0, 7):
+	config = build_test_config(num_peers=30, build='aio', test='upload', torrent='test.torrent', hash_threads=h, disable_disk=True)
 	run_test(config)
+sys.exit(0)
 
 for b in ['aio', 'syncio']:
 	for test in ['dual', 'upload', 'download']:
