@@ -34,13 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TIMESTAMP_HISTORY_HPP
 
 #include "boost/cstdint.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 
 // timestamp history keeps a history of the lowest timestamps we've
 // seen in the last 20 minutes
-struct timestamp_history
+struct TORRENT_EXPORT timestamp_history
 {
 	enum { history_size = 20 };
 
