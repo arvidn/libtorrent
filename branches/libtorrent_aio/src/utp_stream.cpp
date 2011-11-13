@@ -135,7 +135,7 @@ struct packet
 	// the last time this packet was sent
 	ptime send_time;
 
-	// the size of the buffer 'buf' pointst to
+	// the size of the buffer 'buf' points to
 	boost::uint16_t size;
 
 	// this is the offset to the payload inside the buffer
@@ -144,7 +144,7 @@ struct packet
 	boost::uint16_t header_size;
 	
 	// the number of times this packet has been sent
-	boost::uint8_t num_transmissions:7;
+	boost::uint8_t num_transmissions:6;
 
 	// true if we need to send this packet again. All
 	// outstanding packets are marked as needing to be
@@ -220,7 +220,7 @@ struct utp_socket_impl
 		, m_read_timeout()
 		, m_write_timeout()
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
-		, m_last_cwnd_hit(min_time())
+		, m_last_cwnd_hit(time_now())
 		, m_ack_timer(time_now() + minutes(10))
 		, m_last_history_step(time_now_hires())
 		, m_cwnd(TORRENT_ETHERNET_MTU << 16)
@@ -258,6 +258,8 @@ struct utp_socket_impl
 		, m_eof(false)
 		, m_attached(true)
 		, m_nagle(true)
+		, m_slow_start(false)
+		, m_cwnd_full(false)
 	{
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
@@ -412,7 +414,7 @@ struct utp_socket_impl
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
 	// the value is always >= 0, but the calculations performed on
-	// it in do_ledbat() is signed.
+	// it in do_ledbat() are signed.
 	boost::int64_t m_cwnd;
 
 	timestamp_history m_delay_hist;
@@ -591,6 +593,14 @@ struct utp_socket_impl
 	// this is true if nagle is enabled (which it is by default)
 	// TODO: support the option to turn it off
 	bool m_nagle:1;
+
+	// this is true while the socket is in slow start mode. It's
+	// only in slow-start during the start-up phase
+	bool m_slow_start:1;
+	
+	// this is true as long as we have as many packets in
+	// flight as allowed by the congestion window (cwnd)
+	bool m_cwnd_full:1;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1080,7 +1090,7 @@ void utp_socket_impl::maybe_trigger_send_callback(ptime now)
 	// nothing has been written or there's no outstanding write operation
 	if (m_written == 0 || m_write_handler == 0) return;
 
-	if (m_written > m_write_buffer_size / 2 || now >= m_write_timeout)
+	if (m_written > m_write_buffer_size * 2 / 3 || now >= m_write_timeout)
 	{
 		UTP_LOGV("%8p: calling write handler written:%d\n", this, m_written);
 
@@ -1338,7 +1348,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 				if (m_fast_resend_seq_nr == ack_nr)
 					m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 
-				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, 0xffff)) ++dups;
+				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
 				packet* p = (packet*)m_outbuf.remove(ack_nr);
 				if (p)
@@ -1372,7 +1382,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 
 	// we received more than dup_ack_limit ACKs in this SACK message.
 	// trigger fast re-send
-	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, 0xffff))
+	if (dups >= dup_ack_limit && compare_less_wrap(m_fast_resend_seq_nr, last_ack, ACK_MASK))
 	{
 		experienced_loss(m_fast_resend_seq_nr);
 		int num_resent = 0;
@@ -1420,8 +1430,8 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 		size -= to_copy;
 		if (m_written == 0)
 		{
-			m_write_timeout = now + milliseconds(100);
-			UTP_LOGV("%8p: setting write timeout to 100 ms from now\n", this);
+			m_write_timeout = now + milliseconds(300);
+			UTP_LOGV("%8p: setting write timeout to 300 ms from now\n", this);
 		}
 		m_written += to_copy;
 		ptr += to_copy;
@@ -1505,15 +1515,17 @@ bool utp_socket_impl::send_pkt(bool ack)
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertized receive window from
 	// the other end.
-	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16), int(m_adv_wnd - m_bytes_in_flight)))
+	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16)
+		, int(m_adv_wnd - m_bytes_in_flight)))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
 		// we still need to send an ACK though
 		payload_size = 0;
 
-		// we're restrained by the window size
+		// we're constrained by the window size
 		m_last_cwnd_hit = time_now_hires();
+		m_cwnd_full = true;
 
 		// there's no more space in the cwnd, no need to
 		// try to send more right now
@@ -1626,6 +1638,10 @@ bool utp_socket_impl::send_pkt(bool ack)
 	TORRENT_ASSERT(!m_error);
 
 	error_code ec;
+#ifdef TORRENT_DEBUG
+	// simulate 1% packet loss
+//	if ((rand() % 100) > 0)
+#endif
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, packet_size, ec
 		, use_as_probe ? utp_socket_manager::dont_fragment : 0);
@@ -1718,9 +1734,10 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	// we can only resend the packet if there's
 	// enough space in our congestion window
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - m_bytes_in_flight;
-	if (!fast_resend&& p->size - p->header_size > window_size_left)
+	if (!fast_resend && p->size - p->header_size > window_size_left)
 	{
 		m_last_cwnd_hit = time_now_hires();
+		m_cwnd_full = true;
 		return false;
 	}
 
@@ -1791,6 +1808,9 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 
 	// the window size could go below one MMS here, if it does,
 	// we'll get a timeout in about one second
+	
+	// if we happen to be in slow-start mode, we need to leave it
+	m_slow_start = false;
 }
 
 void utp_socket_impl::maybe_inc_acked_seq_nr()
@@ -1799,6 +1819,8 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 	// don't pass m_seq_nr, since we move into sequence
 	// numbers that haven't been sent yet, and aren't
 	// supposed to be in m_outbuf
+	// if the slot in m_outbuf is 0, it means the
+	// packet has been ACKed and removed from the send buffer
 	while (((m_acked_seq_nr + 1) & ACK_MASK) != m_seq_nr
 		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == 0)
 	{
@@ -2436,6 +2458,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				m_seq_nr = random();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
+				m_fast_resend_seq_nr = m_seq_nr;
 
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
@@ -2594,6 +2617,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					"min_rtt:%u "
 					"send_buffer:%d "
 					"recv_buffer:%d "
+					"fast_resend_seq_nr:%d "
 					"\n"
 					, this
 					, sample
@@ -2609,7 +2633,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_bytes_in_flight
 					, 0.f // float(scaled_gain)
 					, m_rtt.mean()
-					, int(m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16
+					, int((m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16)
 					, 0
 					, m_adv_wnd
 					, packet_timeout()
@@ -2624,7 +2648,8 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 					, m_reply_micro
 					, min_rtt / 1000
 					, m_write_buffer_size
-					, m_read_buffer_size);
+					, m_read_buffer_size
+					, m_fast_resend_seq_nr);
 			}
 #endif
 
@@ -2742,11 +2767,31 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	// all of these are fixed points with 16 bits fraction portion
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
-	boost::int64_t scaled_gain = (window_factor * delay_factor) >> 16;
-	scaled_gain *= boost::int64_t(m_sm->gain_factor());
-
-	if (scaled_gain > 0 && m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 10)) < now)
+	boost::int64_t scaled_gain;
+  
+	if (delay >= target_delay / 2)
 	{
+		UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
+		m_slow_start = false;
+	}
+
+	boost::int64_t linear_gain = (window_factor * delay_factor) >> 16;
+	linear_gain *= boost::int64_t(m_sm->gain_factor());
+
+	if (m_slow_start)
+	{
+		scaled_gain = (std::max)((window_factor * m_cwnd) >> 16, linear_gain);
+	}
+	else
+	{
+		scaled_gain = linear_gain;
+	}
+
+	if (scaled_gain > 0 && !m_cwnd_full
+		&& m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 500)) < now)
+	{
+		UTP_LOGV("%8p: last_cwnd_hit:%d full_cwnd:%d scaled_gain -> 0, slow_start -> 0\n", this
+			, total_milliseconds(now - m_last_cwnd_hit), int(m_cwnd_full));
 		// we haven't bumped into the cwnd limit size in the last second
 		// this probably means we have a send rate limit, so we shouldn't make
 		// the cwnd size any larger
@@ -2754,10 +2799,11 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	}
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
-		"scaled_gain:%f cwnd:%d\n"
+		"scaled_gain:%f cwnd:%d slow_start:%d\n"
 		, this, delay, target_delay - delay, window_factor / float(1 << 16)
 		, delay_factor / float(1 << 16)
-		, scaled_gain / float(1 << 16), int(m_cwnd >> 16));
+		, scaled_gain / float(1 << 16), int(m_cwnd >> 16)
+		, int(m_slow_start));
 
 	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0
 	if (-scaled_gain >= m_cwnd)
@@ -2768,6 +2814,15 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	{
 		m_cwnd += scaled_gain;
 		TORRENT_ASSERT(m_cwnd > 0);
+	}
+
+
+	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - in_flight + acked_bytes;
+	if (window_size_left >= m_mtu)
+	{
+		UTP_LOGV("%8p: mtu:%d in_flight:%d adv_wnd:%d cwnd:%d acked_bytes:%d cwnd_full -> 0\n"
+			, this, m_mtu, in_flight, m_adv_wnd, m_cwnd >> 16, acked_bytes);
+		m_cwnd_full = false;
 	}
 }
 

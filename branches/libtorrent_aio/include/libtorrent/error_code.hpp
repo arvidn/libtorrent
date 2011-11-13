@@ -211,6 +211,7 @@ namespace libtorrent
 			reserved147,
 			reserved148,
 			reserved149,
+
 // HTTP errors
 			http_parse_error, // 150
 			http_missing_location,
@@ -222,6 +223,7 @@ namespace libtorrent
 			reserved157,
 			reserved158,
 			reserved159,
+
 // i2p errors
 			no_i2p_router, // 160
 			reserved161,

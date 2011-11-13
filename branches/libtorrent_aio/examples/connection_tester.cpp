@@ -717,8 +717,7 @@ int main(int argc, char* argv[])
 		if (argc != 6) print_usage();
 		test_mode = dual_test;
 	}
-
-	if (!download_test && !upload_test) print_usage();
+	else print_usage();
 
 	int num_connections = atoi(argv[2]);
 	error_code ec;

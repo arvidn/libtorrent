@@ -106,7 +106,11 @@ namespace libtorrent
 			address_v4 broadcast_address() const
 			{
 				error_code ec;
+#if BOOST_VERSION < 104700
+				return address_v4(socket->local_endpoint(ec).address().to_v4().to_ulong() | ((~netmask.to_ulong()) & 0xffffffff));
+#else
 				return address_v4::broadcast(socket->local_endpoint(ec).address().to_v4(), netmask);
+#endif
 			}
 		};
 	

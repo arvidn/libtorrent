@@ -1070,10 +1070,17 @@ namespace aux {
 			++m_log_seq;
 			fclose(m_stats_logger);
 		}
+
 		error_code ec;
-		create_directory("session_stats", ec);
 		char filename[100];
+#ifdef TORRENT_WINDOWS
+		create_directory("session_stats", ec);
 		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
+#else
+		snprintf(filename, sizeof(filename), "/var/log/session_stats%d", int(getpid()));
+		create_directory(filename, ec);
+		snprintf(filename, sizeof(filename), "/var/log/session_stats%d/%04d.log", int(getpid()), m_log_seq);
+#endif
 		m_stats_logger = fopen(filename, "w+");
 		m_last_log_rotation = time_now();
 		if (m_stats_logger == 0)
@@ -4567,7 +4574,7 @@ namespace aux {
 
 		if (torrent_ptr)
 		{
-			if (!params.duplicate_is_error)
+			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
 			{
 				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
 					torrent_ptr->set_uuid(params.uuid);
@@ -4624,7 +4631,8 @@ namespace aux {
 			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
 
 		// recalculate auto-managed torrents sooner
-		if (params.auto_managed && m_auto_manage_time_scaler > 1)
+		if ((params.flags && add_torrent_params::flag_auto_managed)
+			&& m_auto_manage_time_scaler > 1)
 			m_auto_manage_time_scaler = 1;
 
 		return torrent_handle(torrent_ptr);

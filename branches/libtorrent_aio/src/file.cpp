@@ -1614,7 +1614,8 @@ done:
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			if (GetOverlappedResult(native_handle(), &ol, &ret, true) == 0)
+			DWORD num_read;
+			if (GetOverlappedResult(native_handle(), &ol, &num_read, true) == 0)
 			{
 				if (GetLastError() != ERROR_HANDLE_EOF)
 				{
@@ -1623,6 +1624,7 @@ done:
 					return -1;
 				}
 			}
+			if (num_read < ret) ret = num_read;
 		}
 		CloseHandle(ol.hEvent);
 		return ret;
@@ -1881,17 +1883,12 @@ done:
 		ol.hEvent = CreateEvent(0, true, false, 0);
 
 		ret += size;
-		// if file_size is > 0, the file will be opened in unbuffered
-		// mode after the write completes, and truncate the file to
-		// file_size.
 		size_type file_size = 0;
 	
 		if ((size & (m_page_size-1)) != 0)
 		{
 			// if size is not an even multiple, this must be the tail
-			// of the file. Write the whole page and then open a new
-			// file without FILE_FLAG_NO_BUFFERING and set the
-			// file size to file_offset + size
+			// of the file.
 
 			file_size = file_offset + size;
 			size = num_pages * m_page_size;
@@ -1907,95 +1904,17 @@ done:
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			DWORD tmp;
-			if (GetOverlappedResult(native_handle(), &ol, &tmp, true) == 0)
+			DWORD num_written;
+			if (GetOverlappedResult(nateive_handle(), &ol, &num_written, true) == 0)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
-			if (tmp < ret) ret = tmp;
+			if (num_written < ret) ret = num_written;
 		}
 		CloseHandle(ol.hEvent);
-
-		if (file_size > 0)
-		{
-#define FileEndOfFileInformation 20
-#ifndef NT_SUCCESS
-#define NT_SUCCESS(x) (!((x) & 0x80000000))
-#endif
-			
-			// for NtSetInformationFile, see: 
-			// http://undocumented.ntinternals.net/UserMode/Undocumented%20Functions/NT%20Objects/File/NtSetInformationFile.html
-
-			typedef DWORD _NTSTATUS;
-			typedef _NTSTATUS (NTAPI * NtSetInformationFile_t)(HANDLE file, PULONG_PTR iosb, PVOID data, ULONG len, ULONG file_info_class);
-
-			static NtSetInformationFile_t NtSetInformationFile = 0;
-			static bool failed_ntdll = false;
-
-			if (NtSetInformationFile == 0 && !failed_ntdll)
-			{
-				HMODULE nt = LoadLibraryA("ntdll");
-				if (nt)
-				{
-					NtSetInformationFile = (NtSetInformationFile_t)GetProcAddress(nt, "NtSetInformationFile");
-					if (NtSetInformationFile == 0) failed_ntdll = true;
-				}
-				else failed_ntdll = true;
-			}
-
-			if (failed_ntdll || NtSetInformationFile == 0)
-			{
-				// if we fail to load NtSetInformationFile from ntdll, fall
-				// back to the old re-open-file-and-truncate trick
-
-				// TODO: this codepath will always fail unless we close this
-				// file first, and then re-open it again. Doing that though,
-				// opens up for race conditions where other applications may
-				// acquire an exclusive lock to the file, at which case we're screwed.
-
-				HANDLE f = CreateFile_(m_path.c_str(), GENERIC_WRITE
-					, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING
-					, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, 0);
-
-				if (f == INVALID_HANDLE_VALUE)
-				{
-					ec.assign(GetLastError(), get_system_category());
-					return -1;
-				}
-
-				LARGE_INTEGER offs;
-				offs.QuadPart = file_size;
-				if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
-				{
-					CloseHandle(f);
-					ec.assign(GetLastError(), get_system_category());
-					return -1;
-				}
-				if (::SetEndOfFile(f) == FALSE)
-				{
-					ec.assign(GetLastError(), get_system_category());
-					CloseHandle(f);
-					return -1;
-				}
-				CloseHandle(f);
-			}
-			else
-			{
-				ULONG_PTR Iosb[2];
-				LARGE_INTEGER fsize;
-				fsize.QuadPart = file_size;
-				_NTSTATUS st = NtSetInformationFile(native_handle()
-					, Iosb, &fsize, sizeof(fsize), FileEndOfFileInformation);
-				if (!NT_SUCCESS(st)) 
-				{
-					ec.assign(INVALID_SET_FILE_POINTER, get_system_category());
-					return -1;
-				}
-			}
-		}
-
+		if (file_size > 0) set_size(file_size, ec);
 		return ret;
 #else
 		size_type ret = lseek(native_handle(), file_offset, SEEK_SET);
@@ -2174,6 +2093,53 @@ done:
   		TORRENT_ASSERT(s >= 0);
 
 #ifdef TORRENT_WINDOWS
+
+		if ((m_open_mode & no_buffer) && (s & (size_alignment()-1)) != 0)
+		{
+			// the file is opened in unbuffered mode, and the size is not
+			// aligned to the required cluster size. Use NtSetInformationFile
+
+#define FileEndOfFileInformation 20
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(x) (!((x) & 0x80000000))
+#endif
+			
+			// for NtSetInformationFile, see: 
+			// http://undocumented.ntinternals.net/UserMode/Undocumented%20Functions/NT%20Objects/File/NtSetInformationFile.html
+
+			typedef DWORD _NTSTATUS;
+			typedef _NTSTATUS (NTAPI * NtSetInformationFile_t)(HANDLE file, PULONG_PTR iosb, PVOID data, ULONG len, ULONG file_info_class);
+
+			static NtSetInformationFile_t NtSetInformationFile = 0;
+			static bool failed_ntdll = false;
+
+			if (NtSetInformationFile == 0 && !failed_ntdll)
+			{
+				HMODULE nt = LoadLibraryA("ntdll");
+				if (nt)
+				{
+					NtSetInformationFile = (NtSetInformationFile_t)GetProcAddress(nt, "NtSetInformationFile");
+					if (NtSetInformationFile == 0) failed_ntdll = true;
+				}
+				else failed_ntdll = true;
+			}
+
+			if (!failed_ntdll && NtSetInformationFile)
+			{
+				ULONG_PTR Iosb[2];
+				LARGE_INTEGER fsize;
+				fsize.QuadPart = s;
+				_NTSTATUS st = NtSetInformationFile(m_file_handle
+					, Iosb, &fsize, sizeof(fsize), FileEndOfFileInformation);
+				if (!NT_SUCCESS(st)) 
+				{
+					ec.assign(INVALID_SET_FILE_POINTER, get_system_category());
+					return false;
+				}
+				return true;
+			}
+		}
+
 		LARGE_INTEGER offs;
 		LARGE_INTEGER cur_size;
 		if (GetFileSizeEx(native_handle(), &cur_size) == FALSE)

@@ -105,6 +105,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed rare piece picker bug
 	* fixed invalid torrent_status::finished_time
 	* fixed bugs in dont-have and upload-only extension messages
 	* don't open files in random-access mode (speeds up hashing)

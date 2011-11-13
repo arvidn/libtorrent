@@ -2,6 +2,8 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <list>
+#include <string>
 #include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
@@ -143,8 +145,10 @@ namespace
     }
 #endif
 #endif
+}
 
-    void dict_to_add_torrent_params(dict params, add_torrent_params& p, std::vector<char>& rd)
+    void dict_to_add_torrent_params(dict params, add_torrent_params& p
+        , std::vector<char>& rd, std::list<std::string>& string_storage)
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
         if (params.has_key("ti"))
@@ -153,16 +157,15 @@ namespace
         std::string url;
         if (params.has_key("tracker_url"))
         {
-            url = extract<std::string>(params["tracker_url"]);
-            p.tracker_url = url.c_str();
+            string_storage.push_back(extract<std::string>(params["tracker_url"]));
+            p.tracker_url = string_storage.back().c_str();
         }
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
-        std::string name;
         if (params.has_key("name"))
         {
-            name = extract<std::string>(params["name"]);
-            p.name = name.c_str();
+            string_storage.push_back(extract<std::string>(params["name"]));
+            p.name = string_storage.back().c_str();
         }
         p.save_path = extract<std::string>(params["save_path"]);
 
@@ -175,12 +178,8 @@ namespace
         }
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-        if (params.has_key("paused"))
-            p.paused = params["paused"];
-        if (params.has_key("auto_managed"))
-            p.auto_managed = params["auto_managed"];
-        if (params.has_key("duplicate_is_error"))
-            p.duplicate_is_error = params["duplicate_is_error"];
+
+#ifndef TORRENT_NO_DEPRECATE
         if (params.has_key("seed_mode"))
             p.seed_mode = params["seed_mode"];
         if (params.has_key("upload_mode"))
@@ -189,19 +188,39 @@ namespace
             p.upload_mode = params["share_mode"];
         if (params.has_key("override_resume_data"))
             p.override_resume_data = params["override_resume_data"];
+        if (params.has_key("apply_ip_filter"))
+            p.apply_ip_filter = params["apply_ip_filter"];
+        if (params.has_key("paused"))
+            p.paused = params["paused"];
+        if (params.has_key("auto_managed"))
+            p.auto_managed = params["auto_managed"];
+        if (params.has_key("duplicate_is_error"))
+            p.duplicate_is_error = params["duplicate_is_error"];
+        if (params.has_key("merge_resume_trackers"))
+            p.merge_resume_trackers = params["merge_resume_trackers"];
+#endif
+        if (params.has_key("flags"))
+            p.flags = extract<boost::uint64_t>(params["flags"]);
+
         if (params.has_key("trackerid"))
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
             p.url = extract<std::string>(params["url"]);
-        if (params.has_key("merge_resume_trackers"))
-            p.merge_resume_trackers = params["merge_resume_trackers"];
+        if (params.has_key("source_feed_url"))
+            p.source_feed_url = extract<std::string>(params["source_feed_url"]);
+        if (params.has_key("uuid"))
+            p.uuid = extract<std::string>(params["uuid"]);
     }
+
+namespace
+{
 
     torrent_handle add_torrent(session& s, dict params)
     {
         add_torrent_params p;
         std::vector<char> resume_buf;
-        dict_to_add_torrent_params(params, p, resume_buf);
+        std::list<std::string> string_buf;
+        dict_to_add_torrent_params(params, p, resume_buf, string_buf);
 
         allow_threading_guard guard;
 
@@ -213,7 +232,9 @@ namespace
 #endif
     }
 
-    void dict_to_feed_settings(dict params, feed_settings& feed, std::vector<char>& resume_buf)
+    void dict_to_feed_settings(dict params, feed_settings& feed
+        , std::vector<char>& resume_buf
+        , std::list<std::string>& string_storage)
     {
         if (params.has_key("auto_download"))
             feed.auto_download = extract<bool>(params["auto_download"]);
@@ -222,7 +243,8 @@ namespace
         if (params.has_key("url"))
             feed.url = extract<std::string>(params["url"]);
         if (params.has_key("add_args"))
-            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args, resume_buf);
+            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args
+                , resume_buf, string_storage);
     }
 
     feed_handle add_feed(session& s, dict params)
@@ -233,7 +255,8 @@ namespace
         // this static here is a bit of a hack. It will
         // probably work for the most part
         static std::vector<char> resume_buf;
-        dict_to_feed_settings(params, feed, resume_buf);
+        std::list<std::string> string_storage;
+        dict_to_feed_settings(params, feed, resume_buf, string_storage);
 
         return s.add_feed(feed);
     }
@@ -279,7 +302,8 @@ namespace
 
         feed_settings feed;
         static std::vector<char> resume_buf;
-        dict_to_feed_settings(sett, feed, resume_buf);
+        std::list<std::string> string_storage;
+        dict_to_feed_settings(sett, feed, resume_buf, string_storage);
         h.set_settings(feed);
     }
 
@@ -453,6 +477,17 @@ void bind_session()
         .value("start_default_features", session::start_default_features)
     ;
 
+    enum_<add_torrent_params::flags_t>("add_torrent_params_flags_t")
+        .value("flag_seed_mode", add_torrent_params::flag_seed_mode)
+        .value("flag_override_resume_data", add_torrent_params::flag_override_resume_data)
+        .value("flag_upload_mode", add_torrent_params::flag_upload_mode)
+        .value("flag_share_mode", add_torrent_params::flag_share_mode)
+        .value("flag_apply_ip_filter", add_torrent_params::flag_apply_ip_filter)
+        .value("flag_paused", add_torrent_params::flag_paused)
+        .value("flag_auto_managed", add_torrent_params::flag_auto_managed)
+        .value("flag_duplicate_is_error", add_torrent_params::flag_duplicate_is_error)
+        .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
+    ;
     class_<cache_status>("cache_status")
         .def_readonly("blocks_written", &cache_status::blocks_written)
         .def_readonly("writes", &cache_status::writes)

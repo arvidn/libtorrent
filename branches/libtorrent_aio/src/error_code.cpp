@@ -169,6 +169,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // natpmp errors
 			"unsupported protocol version",
 			"not authorized to create port map (enable NAT-PMP on your router)",
@@ -180,6 +181,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // fastresume errors
 			"missing or invalid 'file sizes' entry",
 			"no files in resume data",
@@ -201,6 +203,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // HTTP errors
 			"Invalid HTTP header",
 			"missing Location header in HTTP redirect",
@@ -212,6 +215,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // i2p errors
 			"no i2p router is set up",
 			"",
@@ -223,6 +227,7 @@ namespace libtorrent
 			"",
 			"",
 			"",
+
 // tracker errors
 			"scrape not available on tracker",
 			"invalid tracker response",
@@ -244,7 +249,6 @@ namespace libtorrent
 			"",
 			"",
 			"",
-
 
 // bdecode errors
 			"expected string in bencoded string",

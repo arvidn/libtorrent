@@ -50,7 +50,7 @@ Set the version to the version of python you have installed or want to use. If
 you've installed python in a non-standard location, you have to add the prefix
 path used when you installed python as a second option. Like this::
 
-	using python : 2.3 : /usr ;
+	using python : 2.6 : /usr/bin/python2.6 : /usr/include/python2.6 : /usr/lib/python2.6 ;
 
 The bindings require *at least* python version 2.2.
 

@@ -1069,6 +1069,7 @@ namespace libtorrent
 				aio->prev = last;
 				last = aio;
 				aio = aio->next;
+				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
 
 			file_offset = 0;

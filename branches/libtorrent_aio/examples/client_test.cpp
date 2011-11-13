@@ -696,9 +696,9 @@ void add_torrent(libtorrent::session& ses
 	printf("%s\n", t->name().c_str());
 
 	add_torrent_params p;
-	p.seed_mode = seed_mode;
+	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	if (disable_storage) p.storage = disabled_storage_constructor;
-	p.share_mode = share_mode;
+	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
 	std::string filename = combine_path(save_path, ".resume/" + to_hex(t->info_hash().to_string()) + ".resume");
@@ -710,9 +710,9 @@ void add_torrent(libtorrent::session& ses
 	p.ti = t;
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
-	p.paused = true;
-	p.duplicate_is_error = false;
-	p.auto_managed = true;
+	p.flags |= add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	p.flags |= add_torrent_params::flag_auto_managed;
 	if (monitored_dir)
 	{
 		p.userdata = (void*)strdup(torrent.c_str());
@@ -1207,16 +1207,16 @@ int main(int argc, char* argv[])
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
 
 				add_torrent_params p;
-				p.seed_mode = seed_mode;
+				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 				if (disable_storage) p.storage = disabled_storage_constructor;
-				p.share_mode = share_mode;
+				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 				p.tracker_url = argv[i] + 41;
 				p.info_hash = info_hash;
 				p.save_path = save_path;
 				p.storage_mode = (storage_mode_t)allocation_mode;
-				p.paused = true;
-				p.duplicate_is_error = false;
-				p.auto_managed = true;
+				p.flags |= add_torrent_params::flag_paused;
+				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
+				p.flags |= add_torrent_params::flag_auto_managed;
 				magnet_links.push_back(p);
 				continue;
 			}
@@ -1433,9 +1433,9 @@ int main(int argc, char* argv[])
 			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
-			p.seed_mode = seed_mode;
+			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 			if (disable_storage) p.storage = disabled_storage_constructor;
-			p.share_mode = share_mode;
+			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			p.url = *i;

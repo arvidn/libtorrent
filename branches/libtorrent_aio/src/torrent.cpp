@@ -390,7 +390,7 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_connections_initialized(false)
 		, m_super_seeding(false)
-		, m_override_resume_data(p.override_resume_data)
+		, m_override_resume_data(p.flags & add_torrent_params::flag_override_resume_data)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
@@ -412,13 +412,13 @@ namespace libtorrent
 		, m_incomplete(0xffffff)
 		, m_progress_ppm(0)
 		, m_abort(false)
-		, m_announce_to_dht(!p.paused)
-		, m_announce_to_trackers(!p.paused)
-		, m_announce_to_lsd(!p.paused)
-		, m_allow_peers(!p.paused)
-		, m_upload_mode(p.upload_mode)
-		, m_auto_managed(p.auto_managed)
-		, m_share_mode(p.share_mode)
+		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_announce_to_trackers((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_announce_to_lsd((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_allow_peers((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_upload_mode(p.flags & add_torrent_params::flag_upload_mode)
+		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
+		, m_share_mode(p.flags & add_torrent_params::flag_share_mode)
 		, m_num_verified(0)
 		, m_last_scrape(0)
 		, m_last_download(0)
@@ -430,8 +430,8 @@ namespace libtorrent
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
-		, m_apply_ip_filter(p.apply_ip_filter)
-		, m_merge_resume_trackers(p.merge_resume_trackers)
+		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
+		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_in_encrypted_list(false)
 		, m_refreshing_suggest_pieces(false)
 	{
@@ -518,7 +518,7 @@ namespace libtorrent
 		m_trackers = m_torrent_file->trackers();
 		if (m_torrent_file->is_valid())
 		{
-			m_seed_mode = p.seed_mode;
+			m_seed_mode = p.flags & add_torrent_params::flag_seed_mode;
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
 		}

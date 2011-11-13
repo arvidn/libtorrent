@@ -920,14 +920,8 @@ namespace libtorrent
 
 		if (new_priority == prev_priority) return;
 		if (m_dirty) return;
-		if (prev_priority == -1)
-		{
-			add(index);
-		}
-		else
-		{
-			update(prev_priority, p.index);
-		}
+		if (prev_priority == -1) add(index);
+		else update(prev_priority, p.index);
 	}
 
 	void piece_picker::inc_refcount_all()
