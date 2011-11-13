@@ -73,7 +73,7 @@ python-extension libtorrent
     src/magnet_uri.cpp
     src/error_code.cpp
   : <include>src
-    <library>/torrent//torrent/<link>static
+    <library>/torrent//torrent
     <conditional>@libtorrent_linking
   ;
 
