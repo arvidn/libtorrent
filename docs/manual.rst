@@ -138,6 +138,8 @@ The ``session`` class has the following synopsis::
 			add_torrent_params const& params
 			, error_code& ec);
 
+		void async_add_torrent(add_torrent_params const& params);
+
 		void pause();
 		void resume();
 
@@ -369,8 +371,8 @@ only valid operation is calling the destructor::
 	};
 
 
-add_torrent()
--------------
+async_add_torrent() add_torrent()
+---------------------------------
 
 	::
 
@@ -416,9 +418,15 @@ add_torrent()
 		torrent_handle add_torrent(add_torrent_params const& params);
 		torrent_handle add_torrent(add_torrent_params const& params
 			, error_code& ec);
+		void async_add_torrent(add_torrent_params const& params);
 
 You add torrents through the ``add_torrent()`` function where you give an
-object with all the parameters.
+object with all the parameters. The ``add_torrent()`` overloads will block
+until the torrent has been added (or failed to be added) and returns an
+error code and a ``torrent_handle``. In order to add torrents more efficiently,
+consider using ``async_add_torrent()`` which returns immediately, without
+waiting for the torrent to add. Notification of the torrent being added is sent
+as add_torrent_alert_.
 
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
@@ -6235,6 +6243,29 @@ It's posted when the ``status_notification`` bit is set in the alert mask.
 	{
 		// ...
 	};
+
+
+add_torrent_alert
+-----------------
+
+This alert is always posted when a torrent was added via ``async_add_torrent()``
+and contains the return status of the add operation. The torrent handle of the new
+torrent can be found in the base class' ``handle`` member.
+
+::
+
+	struct add_torrent_alert: torrent_alert
+	{
+		// ...
+		add_torrent_params params;
+		error_code error;
+	};
+
+``params`` is a copy of the parameters used when adding the torrent, it can be used
+to identify which invocation to ``async_add_torrent()`` caused this alert.
+
+``error`` is set to the error, if any, adding the torrent.
+
 
 torrent_removed_alert
 ---------------------
