@@ -1,3 +1,6 @@
+	* updated the API to add_torrent_params turning all bools into flags of a flags field
+	* added async_add_torrent() function to significantly improve performance when
+	  adding many torrents
 	* change peer_states to be a bitmask (bw_limit, bw_network, bw_disk)
 	* changed semantics of send_buffer_watermark_factor to be specified as a percentage
 	* add incoming_connection_alert for logging all successful incoming connections
