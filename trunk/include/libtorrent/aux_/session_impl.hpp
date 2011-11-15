@@ -497,6 +497,9 @@ namespace libtorrent
 				--m_disk_queues[channel];
 			}
 
+			void add_to_update_queue(boost::weak_ptr<torrent> t)
+			{ m_state_updates.push_back(t); }
+
 //		private:
 
 			void update_connections_limit();

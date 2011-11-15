@@ -8032,7 +8032,7 @@ ctx->set_verify_callback(verify_function, ec);
 		// add it to the list twice
 		if (!m_state_subscription || m_in_state_updates) return;
 
-		m_ses.m_state_updates.push_back(shared_from_this());
+		m_ses.add_to_update_queue(shared_from_this());
 		m_in_state_updates = true;
 	}
 
