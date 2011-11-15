@@ -2139,11 +2139,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
 		m_received_in_piece += bytes;
 #endif
+
+		// progress of this torrent increased
+		t->state_updated();
+
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 		check_invariant();
 #endif

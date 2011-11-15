@@ -567,6 +567,11 @@ namespace libtorrent
 		TORRENT_SYNC_CALL2(refresh_torrent_status, ret, flags);
 	}
 
+	void session::post_torrent_updates()
+	{
+		TORRENT_ASYNC_CALL(post_torrent_updates);
+	}
+
 	std::vector<torrent_handle> session::get_torrents() const
 	{
 		TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);

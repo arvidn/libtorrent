@@ -4342,6 +4342,25 @@ namespace aux {
 			t->status(&*i, flags);
 		}
 	}
+	
+	void session_impl::post_torrent_updates()
+	{
+		std::auto_ptr<state_update_alert> alert(new state_update_alert());
+		alert->status.reserve(m_state_updates.size());
+
+		for (std::vector<boost::weak_ptr<torrent> >::iterator i = m_state_updates.begin()
+			, end(m_state_updates.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent> t = i->lock();
+			if (!t) continue;
+			alert->status.push_back(torrent_status());
+			t->clear_in_state_update();
+			t->status(&alert->status.back(), 0xffffffff);
+		}
+		m_state_updates.clear();
+
+		m_alerts.post_alert_ptr(alert.release());
+	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
 	{
@@ -4377,6 +4396,10 @@ namespace aux {
 		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
+
+#ifndef TORRENT_NO_DEPRECATE
+		params.update_flags();
+#endif
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
