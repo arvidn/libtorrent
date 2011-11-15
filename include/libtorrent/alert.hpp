@@ -133,6 +133,7 @@ namespace libtorrent {
 		~alert_manager();
 
 		void post_alert(const alert& alert_);
+		void post_alert_ptr(alert* alert_);
 		bool pending() const;
 		std::auto_ptr<alert> get();
 		void get_all(std::deque<alert*>* alerts);
@@ -165,6 +166,8 @@ namespace libtorrent {
 #endif
 
 	private:
+		void post_impl(std::auto_ptr<alert>& alert_);
+
 		std::deque<alert*> m_alerts;
 		mutable mutex m_mutex;
 //		event m_condition;

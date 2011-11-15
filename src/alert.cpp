@@ -403,22 +403,20 @@ namespace libtorrent {
 		dispatcher(*alert_);
 	}
 
-	void alert_manager::post_alert(const alert& alert_)
+	void alert_manager::post_alert_ptr(alert* alert_)
 	{
-
+		std::auto_ptr<alert> a(alert_);
 		mutex::scoped_lock lock(m_mutex);
 
-		if (m_dispatch)
-		{
-			TORRENT_ASSERT(m_alerts.empty());
-			TORRENT_TRY {
-				m_dispatch(std::auto_ptr<alert>(alert_.clone()));
-			} TORRENT_CATCH(std::exception&) {}
-		}
-		else if (m_alerts.size() < m_queue_size_limit || !alert_.discardable())
-		{
-			m_alerts.push_back(alert_.clone().release());
-		}
+		post_impl(a);
+	}
+
+	void alert_manager::post_alert(const alert& alert_)
+	{
+		std::auto_ptr<alert> a(alert_.clone());
+		mutex::scoped_lock lock(m_mutex);
+
+		post_impl(a);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		lock.unlock();
@@ -432,6 +430,21 @@ namespace libtorrent {
 		}
 #endif
 
+	}
+		
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
+	{
+		if (m_dispatch)
+		{
+			TORRENT_ASSERT(m_alerts.empty());
+			TORRENT_TRY {
+				m_dispatch(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
+		{
+			m_alerts.push_back(alert_.release());
+		}
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -598,6 +611,13 @@ namespace libtorrent {
 		{
 			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
 		}
+		return msg;
+	}
+
+	std::string state_update_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "state updates for %d torrents", int(status.size()));
 		return msg;
 	}
 

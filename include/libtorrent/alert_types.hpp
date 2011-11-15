@@ -1312,6 +1312,16 @@ namespace libtorrent
 		error_code error;
 	};
 
+	struct TORRENT_EXPORT state_update_alert : alert
+	{
+		TORRENT_DEFINE_ALERT(state_update_alert);
+
+		const static int static_category = alert::status_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		std::vector<torrent_status> status;
+	};
 }
 
 

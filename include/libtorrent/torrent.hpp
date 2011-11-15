@@ -304,6 +304,10 @@ namespace libtorrent
 
 		void status(torrent_status* st, boost::uint32_t flags);
 
+		// this torrent changed state, if the user is subscribing to
+		// it, add it to the m_state_updates list in session_impl
+		void state_updated();
+
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
 
 		void use_interface(std::string net_interface);
@@ -325,6 +329,7 @@ namespace libtorrent
 			if (prio > 255) prio = 255;
 			else if (prio < 0) prio = 0;
 			m_priority = prio;
+			state_updated();
 		}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -839,6 +844,9 @@ namespace libtorrent
 		void queue_torrent_check();
 		void dequeue_torrent_check();
 
+		void clear_in_state_update()
+		{ m_in_state_updates = false; }
+
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -1322,7 +1330,7 @@ namespace libtorrent
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		boost::uint8_t	m_save_resume_flags;
+		boost::uint8_t m_save_resume_flags;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
@@ -1359,6 +1367,16 @@ namespace libtorrent
 		// paused it's removed and when it's started again, it's
 		// re-added
 		bool m_in_encrypted_list:1;
+		
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
+
+		// in state_updates list. When adding a torrent to the
+		// session_impl's m_state_update list, this bit is set
+		// to never add the same torrent twice
+		bool m_in_state_updates:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
