@@ -463,7 +463,7 @@ namespace libtorrent { namespace
 #ifdef TORRENT_VERBOSE_LOGGING
 			source.m_pc.peer_log("*** UT_METADATA [ ALREADY HAVE METADATA ]");				
 #endif
-			m_torrent.add_redundant_bytes(size);
+			m_torrent.add_redundant_bytes(size, torrent::piece_unknown);
 			return false;
 		}
 		

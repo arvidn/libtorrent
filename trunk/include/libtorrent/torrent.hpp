@@ -675,7 +675,12 @@ namespace libtorrent
 		// this is done when a piece fails
 		void restore_piece_state(int index);
 
-		void add_redundant_bytes(int b);
+		enum wasted_reason_t
+		{
+			piece_timed_out, piece_cancelled, piece_unknown, piece_seed, piece_end_game, piece_closing
+			, waste_reason_max
+		};
+		void add_redundant_bytes(int b, wasted_reason_t reason);
 		void add_failed_bytes(int b);
 
 		// this is true if we have all the pieces

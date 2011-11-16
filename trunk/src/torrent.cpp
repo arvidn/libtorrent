@@ -8244,12 +8244,12 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 	}
 
-	void torrent::add_redundant_bytes(int b)
+	void torrent::add_redundant_bytes(int b, torrent::wasted_reason_t reason)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
-		m_ses.add_redundant_bytes(b);
+		m_ses.add_redundant_bytes(b, reason);
 //		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
 //			<= m_stat.total_payload_download());
 	}
