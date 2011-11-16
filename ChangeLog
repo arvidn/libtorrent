@@ -98,6 +98,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* added some functions missing from the python binding
 	* fixed rare piece picker bug
 	* fixed invalid torrent_status::finished_time
 	* fixed bugs in dont-have and upload-only extension messages
