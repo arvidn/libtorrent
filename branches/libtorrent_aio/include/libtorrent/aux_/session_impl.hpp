@@ -328,6 +328,7 @@ namespace libtorrent
 				, boost::uint32_t flags) const;
 			void refresh_torrent_status(std::vector<torrent_status>* ret
 				, boost::uint32_t flags) const;
+			void post_torrent_updates();
 
 			std::vector<torrent_handle> get_torrents() const;
 			
@@ -446,10 +447,11 @@ namespace libtorrent
 
 			int next_port();
 
-			void add_redundant_bytes(size_type b)
+			void add_redundant_bytes(size_type b, int reason)
 			{
 				TORRENT_ASSERT(b > 0);
 				m_total_redundant_bytes += b;
+				m_redundant_bytes[reason] += b;
 			}
 
 			void add_failed_bytes(size_type b)
@@ -507,6 +509,9 @@ namespace libtorrent
 
 			// uncork all peers added to the delayed uncork queue
 			void do_delayed_uncork();
+
+			void add_to_update_queue(boost::weak_ptr<torrent> t)
+			{ m_state_updates.push_back(t); }
 
 //		private:
 
@@ -1096,6 +1101,9 @@ namespace libtorrent
 			// bytes just hanging out in the cache)
 			int m_writing_bytes;
 			
+			// redundant bytes per category
+			size_type m_redundant_bytes[7];
+
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
 			// this is a list of peer connections who have been
@@ -1105,6 +1113,10 @@ namespace libtorrent
 			// into fewer network writes, saving CPU and possibly
 			// ending up sending larger network packets
 			std::vector<peer_connection*> m_delayed_uncorks;
+
+			// this is the set of (subscribed) torrents that have changed
+			// their states since the last time the user requested updates.
+			std::vector<boost::weak_ptr<torrent> > m_state_updates;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;

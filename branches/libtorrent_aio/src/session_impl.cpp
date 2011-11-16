@@ -640,6 +640,7 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.dht_upload_rate_limit);
 
 		m_disk_queues[0] = 0;
@@ -1073,14 +1074,8 @@ namespace aux {
 
 		error_code ec;
 		char filename[100];
-#ifdef TORRENT_WINDOWS
 		create_directory("session_stats", ec);
 		snprintf(filename, sizeof(filename), "session_stats/%d.%04d.log", int(getpid()), m_log_seq);
-#else
-		snprintf(filename, sizeof(filename), "/var/log/session_stats%d", int(getpid()));
-		create_directory(filename, ec);
-		snprintf(filename, sizeof(filename), "/var/log/session_stats%d/%04d.log", int(getpid()), m_log_seq);
-#endif
 		m_stats_logger = fopen(filename, "w+");
 		m_last_log_rotation = time_now();
 		if (m_stats_logger == 0)
@@ -1238,6 +1233,13 @@ namespace aux {
 			":down 8:down 16:down 32:down 64:down 128:down 256:down 512:down 1024:down 2048:down 4096:down 8192:down 16384:down 32768:down 65536:down 131072:down 262144:down 524288:down 1048576"
 			":network thread system time"
 			":network thread user+system time"
+
+			":redundant timed-out"
+			":redundant cancelled"
+			":redundant unknown"
+			":redundant seed"
+			":redundant end-game"
+			":redundant closing"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3726,19 +3728,13 @@ namespace aux {
 			STAT_LOG(d, reading_bytes);
 
 			for (int i = 0; i < max_messages; ++i)
-			{
 				STAT_LOG(d, m_num_messages[i]);
-			}
 			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
-			{
 				STAT_LOG(d, m_send_buffer_sizes[i]);
-			}
 			num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
-			{
 				STAT_LOG(d, m_recv_buffer_sizes[i]);
-			}
 
 			STAT_LOG(f, total_milliseconds(cur_cpu_usage.user_time
 				- m_network_thread_cpu_usage.user_time) * 100.0 / double(tick_interval_ms));
@@ -3747,6 +3743,9 @@ namespace aux {
 				+ total_milliseconds(cur_cpu_usage.user_time
 					- m_network_thread_cpu_usage.user_time)) * 100.0
 				/ double(tick_interval_ms));
+
+			for (int i = 0; i < torrent::waste_reason_max; ++i)
+				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes));
 
 			fprintf(m_stats_logger, "\n");
 
@@ -4501,6 +4500,25 @@ namespace aux {
 			t->status(&*i, flags);
 		}
 	}
+	
+	void session_impl::post_torrent_updates()
+	{
+		std::auto_ptr<state_update_alert> alert(new state_update_alert());
+		alert->status.reserve(m_state_updates.size());
+
+		for (std::vector<boost::weak_ptr<torrent> >::iterator i = m_state_updates.begin()
+			, end(m_state_updates.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent> t = i->lock();
+			if (!t) continue;
+			alert->status.push_back(torrent_status());
+			t->clear_in_state_update();
+			t->status(&alert->status.back(), 0xffffffff);
+		}
+		m_state_updates.clear();
+
+		m_alerts.post_alert_ptr(alert.release());
+	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
 	{
@@ -4536,6 +4554,10 @@ namespace aux {
 		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
+
+#ifndef TORRENT_NO_DEPRECATE
+		params.update_flags();
+#endif
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{

@@ -943,6 +943,7 @@ namespace libtorrent
 		// this cannot be a connect candidate anymore, since i->connection is set
 		TORRENT_ASSERT(!is_connect_candidate(*i, m_finished));
 		TORRENT_ASSERT(has_connection(&c));
+		m_torrent->state_updated();
 		return true;
 	}
 
@@ -1095,6 +1096,8 @@ namespace libtorrent
 		if (is_connect_candidate(*p, m_finished))
 			++m_num_connect_candidates;
 
+		m_torrent->state_updated();
+
 		return true;
 	}
 
@@ -1199,6 +1202,7 @@ namespace libtorrent
 			p = *iter;
 			update_peer(p, src, flags, tcp::endpoint(), destination);
 		}
+		m_torrent->state_updated();
 		return p;
 	}
 #endif // TORRENT_USE_I2P

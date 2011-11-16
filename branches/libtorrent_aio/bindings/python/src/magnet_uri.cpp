@@ -32,9 +32,15 @@ namespace {
         return add_magnet_uri(s, uri, p, ec);
 #endif
     }
+
+	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
+	std::string (*make_magnet_uri1)(torrent_info const&) = make_magnet_uri;
 }
 
 void bind_magnet_uri()
 {
     def("add_magnet_uri", &_add_magnet_uri);
+    def("make_magnet_uri", make_magnet_uri0);
+    def("make_magnet_uri", make_magnet_uri1);
 }
+

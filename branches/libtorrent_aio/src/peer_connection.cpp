@@ -2209,11 +2209,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
 		m_received_in_piece += bytes;
 #endif
+
+		// progress of this torrent increased
+		t->state_updated();
+
 #if !defined TORRENT_DISABLE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 		check_invariant();
 #endif
@@ -2424,7 +2428,7 @@ namespace libtorrent
 			m_received_in_piece = 0;
 #endif
 			if (!m_download_queue.empty()) m_download_queue.erase(m_download_queue.begin());
-			t->add_redundant_bytes(p.length);
+			t->add_redundant_bytes(p.length, torrent::piece_seed);
 			return;
 		}
 
@@ -2457,7 +2461,7 @@ namespace libtorrent
 			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 			m_received_in_piece = 0;
 #endif
-			t->add_redundant_bytes(p.length);
+			t->add_redundant_bytes(p.length, torrent::piece_unknown);
 			return;
 		}
 
@@ -2521,7 +2525,13 @@ namespace libtorrent
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
-			t->add_redundant_bytes(p.length);
+			torrent::wasted_reason_t reason;
+			if (b->timed_out) reason = torrent::piece_timed_out;
+			else if (b->not_wanted) reason = torrent::piece_cancelled;
+			else if (b->busy) reason = torrent::piece_end_game;
+			else reason = torrent::piece_unknown;
+
+			t->add_redundant_bytes(p.length, reason);
 
 			m_download_queue.erase(b);
 			m_timeout_extend = 0;
@@ -3641,7 +3651,7 @@ namespace libtorrent
 					&& pbp->bytes_downloaded > 0
 					&& pbp->bytes_downloaded < pbp->full_block_bytes)
 				{
-					t->add_redundant_bytes(pbp->bytes_downloaded);
+					t->add_redundant_bytes(pbp->bytes_downloaded, torrent::piece_closing);
 				}
 			}
 
@@ -4440,7 +4450,16 @@ namespace libtorrent
 		if (!t->has_picker()) return;
 		piece_picker& picker = t->picker();
 
-		int prev_request_queue = m_request_queue.size();
+		// first, if we have any unsent requests, just
+		// wipe those out
+		while (!m_request_queue.empty())
+		{
+			t->picker().abort_download(m_request_queue.back().block, peer_info_struct());
+			m_request_queue.pop_back();
+		}
+		m_queued_time_critical = 0;
+
+		TORRENT_ASSERT(!m_download_queue.empty());
 
 		// request a new block before removing the previous
 		// one, in order to prevent it from
@@ -4451,25 +4470,28 @@ namespace libtorrent
 		++m_ses.m_snubbed_piece_picks;
 #endif
 		request_a_block(*t, *this);
+
+		// the block we just picked (potentially)
+		// hasn't been put in m_download_queue yet.
+		// it's in m_request_queue and will be sent
+		// once send_block_requests() is called.
+
 		m_desired_queue_size = 1;
 
-		piece_block r(piece_block::invalid);
-		// time out the last request in the queue
-		if (prev_request_queue > 0)
+		// time out the last request eligible
+		// block in the queue
+		int i = m_download_queue.size() - 1;
+		for (; i >= 0; --i)
 		{
-			std::vector<pending_block>::iterator i
-				= m_request_queue.begin() + (prev_request_queue - 1);
-			r = i->block;
-			m_request_queue.erase(i);
-			if (prev_request_queue <= m_queued_time_critical)
-				--m_queued_time_critical;
+			if (!m_download_queue[i].timed_out
+				&& !m_download_queue[i].not_wanted)
+				break;
 		}
-		else
+
+		if (i >= 0)
 		{
-			TORRENT_ASSERT(!m_download_queue.empty());
-			pending_block& qe = m_download_queue.back();
-			if (!qe.timed_out && !qe.not_wanted)
-				r = qe.block;
+			pending_block& qe = m_download_queue[i];
+			piece_block r = qe.block;
 
 			// only time out a request if it blocks the piece
 			// from being completed (i.e. no free blocks to
@@ -4490,12 +4512,8 @@ namespace libtorrent
 					, remote(), pid(), qe.block.block_index, qe.block.piece_index));
 			}
 			qe.timed_out = true;
-		}
-		if (!m_download_queue.empty() || !m_request_queue.empty())
-			m_timeout_extend += m_ses.settings().request_timeout;
-
-		if (r != piece_block::invalid)
 			picker.abort_download(r, peer_info_struct());
+		}
 
 		send_block_requests();
 	}

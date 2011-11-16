@@ -168,6 +168,10 @@ void bind_session_settings()
         .def_readwrite("read_job_every", &session_settings::read_job_every)
         .def_readwrite("use_disk_read_ahead", &session_settings::use_disk_read_ahead)
         .def_readwrite("lock_files", &session_settings::lock_files)
+        .def_readwrite("enable_outgoing_tcp", &session_settings::enable_outgoing_tcp)
+        .def_readwrite("enable_incoming_tcp", &session_settings::enable_incoming_tcp)
+        .def_readwrite("enable_outgoing_utp", &session_settings::enable_outgoing_utp)
+        .def_readwrite("enable_incoming_utp", &session_settings::enable_incoming_utp)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

@@ -138,6 +138,8 @@ The ``session`` class has the following synopsis::
 			add_torrent_params const& params
 			, error_code& ec);
 
+		void async_add_torrent(add_torrent_params const& params);
+
 		void pause();
 		void resume();
 
@@ -368,8 +370,8 @@ only valid operation is calling the destructor::
 	};
 
 
-add_torrent()
--------------
+async_add_torrent() add_torrent()
+---------------------------------
 
 	::
 
@@ -391,7 +393,8 @@ add_torrent()
 				flag_paused = 0x020,
 				flag_auto_managed = 0x040.
 				flag_duplicate_is_error = 0x080,
-				flag_merge_resume_trackers = 0x100
+				flag_merge_resume_trackers = 0x100,
+				flag_update_subscribe = 0x200
 			};
 
 			int version;
@@ -415,9 +418,15 @@ add_torrent()
 		torrent_handle add_torrent(add_torrent_params const& params);
 		torrent_handle add_torrent(add_torrent_params const& params
 			, error_code& ec);
+		void async_add_torrent(add_torrent_params const& params);
 
 You add torrents through the ``add_torrent()`` function where you give an
-object with all the parameters.
+object with all the parameters. The ``add_torrent()`` overloads will block
+until the torrent has been added (or failed to be added) and returns an
+error code and a ``torrent_handle``. In order to add torrents more efficiently,
+consider using ``async_add_torrent()`` which returns immediately, without
+waiting for the torrent to add. Notification of the torrent being added is sent
+as add_torrent_alert_.
 
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
@@ -515,7 +524,8 @@ and how it's added. These are the flags::
 		flag_paused = 0x020,
 		flag_auto_managed = 0x040.
 		flag_duplicate_is_error = 0x080,
-		flag_merge_resume_trackers = 0x100
+		flag_merge_resume_trackers = 0x100,
+		flag_update_subscribe = 0x200
 	}
 
 ``flag_apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
@@ -525,6 +535,9 @@ an auto-update torrent for instance.
 
 ``flag_merge_resume_trackers`` defaults to off and specifies whether tracker URLs loaded from
 resume data should be added to the trackers in the torrent or replace the trackers.
+
+``flag_update_subscribe`` is on by default and means that this torrent will be part of state
+updates when calling `post_torrent_updates()`_.
 
 ``flag_paused`` specifies whether or not the torrent is to be started in a paused
 state. I.e. it won't connect to the tracker or any of the peers until it's
@@ -628,6 +641,11 @@ get_torrent_status() refresh_torrent_status()
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags = 0) const;
 
+.. note::
+	these calls are potentially expensive and won't scale well
+	with lots of torrents. If you're concerned about performance, consider
+	using ``post_torrent_updates()`` instead.
+
 ``get_torrent_status`` returns a vector of the ``torrent_status`` for every
 torrent which satisfies ``pred``, which is a predicate function which determines
 if a torrent should be included in the returned set or not. Returning true means
@@ -646,6 +664,21 @@ if you have a lot of torrents.
 
 Any ``torrent_status`` object whose ``handle`` member is not referring to a
 valid torrent are ignored.
+
+post_torrent_updates()
+----------------------
+
+	::
+
+		void post_torrent_updates();
+
+This functions instructs the session to post the state_update_alert_, containing
+the status of all torrents whose state changed since the last time this function
+was called.
+
+Only torrents who has the state subscription flag set will be included. This flag
+is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_.
+
 
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
@@ -6341,6 +6374,29 @@ It's posted when the ``status_notification`` bit is set in the alert mask.
 		// ...
 	};
 
+
+add_torrent_alert
+-----------------
+
+This alert is always posted when a torrent was added via ``async_add_torrent()``
+and contains the return status of the add operation. The torrent handle of the new
+torrent can be found in the base class' ``handle`` member.
+
+::
+
+	struct add_torrent_alert: torrent_alert
+	{
+		// ...
+		add_torrent_params params;
+		error_code error;
+	};
+
+``params`` is a copy of the parameters used when adding the torrent, it can be used
+to identify which invocation to ``async_add_torrent()`` caused this alert.
+
+``error`` is set to the error, if any, adding the torrent.
+
+
 torrent_removed_alert
 ---------------------
 
@@ -7519,6 +7575,28 @@ as:
 +----------+-------------------------------------+
 
 ``ip`` is the IP address and port the connection came from.
+
+state_update_alert
+------------------
+
+This alert is only posted when requested by the user, by calling `post_torrent_updates()`_
+on the session. It contains the torrent status of all torrents that changed
+since last time this message was posted. Its category is ``status_notification``, but
+it's not subject to filtering, since it's only manually posted anyway.
+
+::
+
+	
+	struct state_update_alert: alert
+	{
+		// ...
+		std::vector<torrent_status> status;
+	};
+
+``status`` contains the torrent status of all torrents that changed since last time
+this message was posted. Note that you can map a torrent status to a specific torrent
+via its ``handle`` member. The receiving end is suggested to have all torrents sorted
+by the ``torrent_handle`` or hashed by it, for efficient updates.
 
 
 alert dispatcher

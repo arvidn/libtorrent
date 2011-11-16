@@ -1201,7 +1201,8 @@ int main(int argc, char* argv[])
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
 				&& is_hex(argv[i], 40)
-				&& string_begins_no_case(argv[i] + 40, "@http"))
+				&& (string_begins_no_case(argv[i] + 40, "@http://")
+					|| string_begins_no_case(argv[i] + 40, "@udp://")))
 			{
 				sha1_hash info_hash;
 				from_hex(argv[i], 40, (char*)&info_hash[0]);

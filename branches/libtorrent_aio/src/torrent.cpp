@@ -434,6 +434,8 @@ namespace libtorrent
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_in_encrypted_list(false)
 		, m_refreshing_suggest_pieces(false)
+		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
+		, m_in_state_updates(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -710,6 +712,8 @@ namespace libtorrent
 				get_handle()));
 		}
 
+		state_updated();
+
 		set_state(torrent_status::downloading);
 
 		m_override_resume_data = true;
@@ -865,6 +869,7 @@ namespace libtorrent
 		}
 		m_apply_ip_filter = b;
 		m_policy.ip_filter_updated();
+		state_updated();
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -1014,6 +1019,7 @@ namespace libtorrent
 
 		m_upload_mode = b;
 
+		state_updated();
 		send_upload_only();
 
 		if (m_upload_mode)
@@ -2558,16 +2564,21 @@ ctx->set_verify_callback(verify_function, ec);
  		INVARIANT_CHECK;
 		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
  
- 		if (complete >= 0) m_complete = complete;
- 		if (incomplete >= 0) m_incomplete = incomplete;
- 		if (downloaders >= 0) m_downloaders = downloaders;
- 
- 		if (m_ses.m_alerts.should_post<scrape_reply_alert>())
- 		{
- 			m_ses.m_alerts.post_alert(scrape_reply_alert(
- 				get_handle(), m_incomplete, m_complete, req.url));
- 		}
- 	}
+		if ((complete >= 0 && m_complete != complete)
+			|| (incomplete >= 0 && m_incomplete != incomplete)
+			|| (downloaders >= 0 && m_downloaders != downloaders))
+			state_updated();
+
+		if (complete >= 0) m_complete = complete;
+		if (incomplete >= 0) m_incomplete = incomplete;
+		if (downloaders >= 0) m_downloaders = downloaders;
+
+		if (m_ses.m_alerts.should_post<scrape_reply_alert>())
+		{
+			m_ses.m_alerts.post_alert(scrape_reply_alert(
+				get_handle(), m_incomplete, m_complete, req.url));
+		}
+	}
  
 	void torrent::tracker_response(
 		tracker_request const& r
@@ -2760,6 +2771,8 @@ ctx->set_verify_callback(verify_function, ec);
 				++m_ses.m_boost_connections;
 			}
 		}
+
+		state_updated();
 	}
 
 	ptime torrent::next_announce() const
@@ -3150,6 +3163,16 @@ ctx->set_verify_callback(verify_function, ec);
 
 		picker().mark_as_done_checking(index);
 
+		state_updated();
+
+		// even though the piece passed the hash-check
+		// it might still have failed being written to disk
+		// if so, piece_picker::write_failed() has been
+		// called, and the piece is no longer finished.
+		// in this case, we have to ignore the fact that
+		// it passed the check
+		if (!m_picker->is_piece_finished(index)) return;
+
 		// if we're a seed we don't have a picker
 		// and we also don't have to do anything because
 		// we already have this piece
@@ -3359,6 +3382,14 @@ ctx->set_verify_callback(verify_function, ec);
 			// it in the suggest set and pop the last one out
 			add_suggest_piece(index);
 		}
+
+		state_updated();
+		m_need_save_resume_data = true;
+
+		remove_time_critical_piece(index, true);
+
+		bool was_finished = m_picker->num_filtered() + num_have()
+			== torrent_file().num_pieces();
 
 		std::vector<void*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
@@ -3955,6 +3986,7 @@ ctx->set_verify_callback(verify_function, ec);
 			alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>((entry*)j.buffer)
 				, get_handle()));
 			const_cast<disk_io_job&>(j).buffer = 0;
+			state_updated();
 		}
 	}
 
@@ -4190,6 +4222,8 @@ ctx->set_verify_callback(verify_function, ec);
 			update_peer_interest(was_finished);
 			remove_time_critical_pieces(pieces);
 		}
+
+		state_updated();
 	}
 
 	void torrent::piece_priorities(std::vector<int>* pieces) const
@@ -4540,6 +4574,7 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_num_uploads > 0);
 		if (!c.send_choke()) return false;
 		--m_num_uploads;
+		state_updated();
 		return true;
 	}
 	
@@ -4556,6 +4591,7 @@ ctx->set_verify_callback(verify_function, ec);
 		if (m_num_uploads >= m_max_uploads && !optimistic) return false;
 		if (!c.send_unchoke()) return false;
 		++m_num_uploads;
+		state_updated();
 		return true;
 	}
 
@@ -5655,7 +5691,6 @@ ctx->set_verify_callback(verify_function, ec);
 		file_priority.clear();
 		for (int i = 0, end(m_file_priority.size()); i < end; ++i)
 			file_priority.push_back(m_file_priority[i]);
-
 	}
 
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const
@@ -6211,6 +6246,8 @@ ctx->set_verify_callback(verify_function, ec);
 
 		send_upload_only();
 
+		state_updated();
+
 		m_completed_time = time(0);
 
 		// disconnect all seeds
@@ -6626,7 +6663,10 @@ ctx->set_verify_callback(verify_function, ec);
 	void torrent::set_sequential_download(bool sd)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+		if (m_sequential_download == sd) return;
 		m_sequential_download = sd;
+
+		state_updated();
 	}
 
 	void torrent::queue_up()
@@ -6652,6 +6692,8 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(p >= -1);
 
 		int& max_queue_pos = m_ses.m_max_queue_pos;
+		state_updated();
+
 		session_impl::torrent_map& torrents = m_ses.m_torrents;
 
 		if (p >= 0 && m_sequence_number == -1)
@@ -6725,6 +6767,7 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (m_max_uploads != limit) state_updated();
 		m_max_uploads = limit;
 	}
 
@@ -6733,6 +6776,7 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (m_max_connections != limit) state_updated();
 		m_max_connections = limit;
 
 		if (num_peers() > int(m_max_connections))
@@ -6785,6 +6829,8 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
+		if (m_bandwidth_channel[peer_connection::upload_channel].throttle() != limit)
+			state_updated();
 		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
 	}
 
@@ -6801,6 +6847,8 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
+		if (m_bandwidth_channel[peer_connection::download_channel].throttle() != limit)
+			state_updated();
 		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
 	}
 
@@ -6840,6 +6888,8 @@ ctx->set_verify_callback(verify_function, ec);
 			m_ses.m_auto_manage_time_scaler = 2;
 		m_error = error_code();
 		m_error_file.clear();
+
+		state_updated();
 
 		// if we haven't downloaded the metadata from m_url, try again
 		if (!m_url.empty() && !m_torrent_file->is_valid())
@@ -6890,6 +6940,8 @@ ctx->set_verify_callback(verify_function, ec);
 			log_to_all_peers(buf);
 		}
 #endif
+
+		state_updated();
 	}
 
 	void torrent::auto_managed(bool a)
@@ -6900,6 +6952,8 @@ ctx->set_verify_callback(verify_function, ec);
 		if (m_auto_managed == a) return;
 		bool checking_files = should_check_files();
 		m_auto_managed = a;
+
+		state_updated();
 
 		// we need to save this new state as well
 		m_need_save_resume_data = true;
@@ -7007,6 +7061,7 @@ ctx->set_verify_callback(verify_function, ec);
 		m_need_save_resume_data = false;
 		m_last_saved_resume = time(0);
 		m_save_resume_flags = boost::uint8_t(flags);
+		state_updated();
 
 		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::checking_files
@@ -7073,6 +7128,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// we need to save this new state
 		m_need_save_resume_data = true;
+		state_updated();
 
 		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
@@ -7103,6 +7159,8 @@ ctx->set_verify_callback(verify_function, ec);
 			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
+
+		state_updated();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		log_to_all_peers("PAUSING TORRENT");
@@ -7255,6 +7313,8 @@ ctx->set_verify_callback(verify_function, ec);
 
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().post_alert(torrent_resumed_alert(get_handle()));
+
+		state_updated();
 
 		m_started = time_now();
 		clear_error();
@@ -7483,6 +7543,9 @@ ctx->set_verify_callback(verify_function, ec);
 			// let the stats fade out to 0
 			accumulator += m_stat;
  			m_stat.second_tick(tick_interval_ms);
+			// if the rate is 0, there's no update because of network transfers
+			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
+				state_updated();
 			return;
 		}
 
@@ -7578,6 +7641,10 @@ ctx->set_verify_callback(verify_function, ec);
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
+
+		// if the rate is 0, there's no update because of network transfers
+		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
+			state_updated();
 	}
 
 	void torrent::recalc_share_mode()
@@ -7997,6 +8064,8 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		peer_id id(0);
 		m_policy.add_peer(adr, id, source, 0);
+
+		state_updated();
 	}
 
 	void torrent::async_verify_piece(int piece_index, boost::function<void(int)> const& f)
@@ -8258,6 +8327,8 @@ ctx->set_verify_callback(verify_function, ec);
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 		m_state = s;
 
+		state_updated();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -8282,6 +8353,17 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 	}
 #endif
+
+	void torrent::state_updated()
+	{
+		// we're either not subscribing to this torrent, or
+		// it has already been updated this round, no need to
+		// add it to the list twice
+		if (!m_state_subscription || m_in_state_updates) return;
+
+		m_ses.add_to_update_queue(shared_from_this());
+		m_in_state_updates = true;
+	}
 
 	void torrent::status(torrent_status* st, boost::uint32_t flags)
 	{
@@ -8491,12 +8573,12 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 	}
 
-	void torrent::add_redundant_bytes(int b)
+	void torrent::add_redundant_bytes(int b, torrent::wasted_reason_t reason)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
-		m_ses.add_redundant_bytes(b);
+		m_ses.add_redundant_bytes(b, reason);
 //		TORRENT_ASSERT(m_total_redundant_bytes + m_total_failed_bytes
 //			<= m_stat.total_payload_download());
 	}

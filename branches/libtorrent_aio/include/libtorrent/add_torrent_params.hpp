@@ -57,7 +57,7 @@ namespace libtorrent
 			, userdata(0)
 			, file_priorities(0)
 #ifndef TORRENT_NO_DEPRECATE
-			, flags(flag_ignore_flags)
+			, flags(flag_ignore_flags | default_flags)
 			, seed_mode(false)
 			, override_resume_data(false)
 			, upload_mode(false)
@@ -68,25 +68,29 @@ namespace libtorrent
 			, duplicate_is_error(false)
 			, merge_resume_trackers(false)
 #else
-			, flags(flag_apply_ip_filter | flag_paused | flag_auto_managed)
+			, flags(default_flags)
 #endif
 		{
-#ifndef TORRENT_NO_DEPRECATE
-			if (flags == flag_ignore_flags)
-			{
-				flags = 0;
-				if (seed_mode) flags |= flag_seed_mode;
-				if (override_resume_data) flags |= flag_override_resume_data;
-				if (upload_mode) flags |= flag_upload_mode;
-				if (share_mode) flags |= flag_share_mode;
-				if (apply_ip_filter) flags |= flag_apply_ip_filter;
-				if (paused) flags |= flag_paused;
-				if (auto_managed) flags |= flag_auto_managed;
-				if (duplicate_is_error) flags |= flag_duplicate_is_error;
-				if (merge_resume_trackers) flags |= flag_merge_resume_trackers;
-			}
-#endif
 		}
+
+#ifndef TORRENT_NO_DEPRECATE
+		void update_flags() const
+		{
+			if (flags != (flag_ignore_flags | default_flags)) return;
+
+			boost::uint64_t& f = const_cast<boost::uint64_t&>(flags);
+			f = flag_update_subscribe;
+			if (seed_mode) f |= flag_seed_mode;
+			if (override_resume_data) f |= flag_override_resume_data;
+			if (upload_mode) f |= flag_upload_mode;
+			if (share_mode) f |= flag_share_mode;
+			if (apply_ip_filter) f |= flag_apply_ip_filter;
+			if (paused) f |= flag_paused;
+			if (auto_managed) f |= flag_auto_managed;
+			if (duplicate_is_error) f |= flag_duplicate_is_error;
+			if (merge_resume_trackers) f |= flag_merge_resume_trackers;
+		}
+#endif
 
 		enum flags_t
 		{
@@ -98,8 +102,10 @@ namespace libtorrent
 			flag_paused = 0x020,
 			flag_auto_managed = 0x040,
 			flag_duplicate_is_error = 0x080,
-			flag_merge_resume_trackers = 0x100
+			flag_merge_resume_trackers = 0x100,
+			flag_update_subscribe = 0x200,
 
+			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 #ifndef TORRENT_NO_DEPRECATE
 			, flag_ignore_flags = 0x80000000
 #endif
