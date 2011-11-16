@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
+#include <algorithm>
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
@@ -99,7 +100,7 @@ namespace libtorrent
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		char* ret = page_aligned_allocator::malloc(m_block_size);
 #else
-		char* ret = (char*)m_pool.ordered_malloc();
+		char* ret = (char*)m_pool.malloc();
 		m_pool.set_next_size(m_settings.cache_buffer_chunk_size);
 #endif
 		++m_in_use;
