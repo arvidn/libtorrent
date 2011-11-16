@@ -486,7 +486,9 @@ namespace libtorrent
 				if (best_match != i)
 				{
 					int index = file_index(*best_match);
-					reorder_file(index, file_index(*i));
+					int cur_index = file_index(*i);
+					reorder_file(index, cur_index);
+					i = m_files.begin() + cur_index;
 				}
 			}
 			else if (pad_file_limit >= 0
@@ -518,7 +520,9 @@ namespace libtorrent
 					// alignment
 					TORRENT_ASSERT(best_match != i);
 					int index = file_index(*best_match);
-					reorder_file(index, file_index(*i));
+					int cur_index = file_index(*i);
+					reorder_file(index, cur_index);
+					i = m_files.begin() + cur_index;
 
 					i->offset = off;
 					off += i->size;
