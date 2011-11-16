@@ -265,6 +265,9 @@ void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
 
+    bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
+    void (torrent_handle::*super_seeding1)(bool) const = &torrent_handle::super_seeding;
+
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
     void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
 
@@ -304,6 +307,8 @@ void bind_torrent_handle()
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
         .def("set_priority", _(&torrent_handle::set_priority))
+        .def("super_seeding", super_seeding0)
+        .def("super_seeding", super_seeding1)
 
         .def("is_auto_managed", _(&torrent_handle::is_auto_managed))
         .def("auto_managed", _(&torrent_handle::auto_managed))
