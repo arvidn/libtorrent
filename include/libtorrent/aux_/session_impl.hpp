@@ -446,10 +446,11 @@ namespace libtorrent
 
 			int next_port();
 
-			void add_redundant_bytes(size_type b)
+			void add_redundant_bytes(size_type b, int reason)
 			{
 				TORRENT_ASSERT(b > 0);
 				m_total_redundant_bytes += b;
+				m_redundant_bytes[reason] += b;
 			}
 
 			void add_failed_bytes(size_type b)
@@ -1063,6 +1064,9 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
+
+			// redundant bytes per category
+			size_type m_redundant_bytes[7];
 
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 
