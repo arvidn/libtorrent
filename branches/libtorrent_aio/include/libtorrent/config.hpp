@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 	                               mechanism in posix AIO
 	  TORRENT_USE_AIO_KQUEUE     - use (bsd) kqueue as notification mechanism
 	                               in posix AIO
+	  TORRENT_USE_AIOINIT        - use the GNU aio extension aio_init()
 
 	TORRENT_USE_IOSUBMIT         - use (linux) io_submit() for I/O
 	  TORRENT_USE_SUBMIT_THREADS - use separate threads for the io_submit()
@@ -207,7 +208,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // Darwin's kqueue doesn't support AIO
-#if TORRENT_USE_AIO && !defined __APPLE__
+#if TORRENT_USE_AIO && !defined __APPLE__ && !defined TORRENT_USE_AIO_KQUEUE
 # define TORRENT_USE_AIO_KQUEUE 1
 #endif
 
@@ -233,8 +234,12 @@ POSSIBILITY OF SUCH DAMAGE.
 # endif
 #endif
 
-#if TORRENT_USE_AIO
+#if TORRENT_USE_AIO && !defined TORRENT_USE_AIO_SIGNALFD
 #define TORRENT_USE_AIO_SIGNALFD 1
+#endif
+
+#if TORRENT_USE_AIO && !defined TORRENT_USE_AIOINIT
+# define TORRENT_USE_AIOINIT 1
 #endif
 
 #define TORRENT_AIO_SIGNAL SIGRTMIN
@@ -461,6 +466,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 // use POSIX AIO for asynchronous disk I/O (aio_read()/aio_write() etc.)
 #ifndef TORRENT_USE_AIO
 #define TORRENT_USE_AIO 0
+#endif
+
+#ifndef TORRENT_USE_AIOINIT
+# define TORRENT_USE_AIOINIT 0
 #endif
 
 // use io_submit for asynchronous disk I/O

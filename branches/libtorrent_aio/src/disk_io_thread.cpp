@@ -1809,6 +1809,18 @@ namespace libtorrent
 		if (m_settings.hashing_threads != s.hashing_threads)
 			m_hash_thread.set_num_threads(s.hashing_threads);
 
+#if TORRENT_USE_AIOINIT
+		if (m_settings.aio_threads != s.aio_threads
+			|| m_settings.aio_max != s.aio_max)
+		{
+			aioinit a;
+			memset(&a, 0, sizeof(a));
+			a.aio_threads = s.aio_threads;
+			a.aio_num = s.aio_max;
+			aio_init(&a);
+		}
+#endif
+
 		m_settings = s;
 		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050

@@ -282,6 +282,8 @@ namespace libtorrent
 			, checking_mem_usage(200)
 			, predictive_piece_announce(0)
 			, contiguous_recv_buffer(true)
+			, aio_threads(4)
+			, aio_max(300)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1118,6 +1120,11 @@ namespace libtorrent
 		// buffer. This requires many more calls to recv(). When using a
 		// contiguous recv buffer, the download rate can be much higher
 		bool contiguous_recv_buffer;
+
+		// for some aio back-ends, the number of io-threads to use
+		int aio_threads;
+		// for some aio back-ends, the max number of outstanding jobs
+		int aio_max;
 	};
 
 #ifndef TORRENT_DISABLE_DHT
