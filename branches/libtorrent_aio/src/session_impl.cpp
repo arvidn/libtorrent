@@ -451,7 +451,7 @@ namespace aux {
 		TORRENT_SETTING(integer, hashing_threads)
 		TORRENT_SETTING(integer, checking_mem_usage)
 		TORRENT_SETTING(integer, predictive_piece_announce)
-		TORRENT_SETTING(bool, contiguous_recv_buffer)
+		TORRENT_SETTING(boolean, contiguous_recv_buffer)
 	};
 
 #undef TORRENT_SETTING
