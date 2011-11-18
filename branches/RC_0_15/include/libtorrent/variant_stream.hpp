@@ -491,25 +491,6 @@ namespace aux
           return *(IOService*)0;
       }
   };
-
-// -------------- lowest_layer -----------
-
-  template <class LowestLayer>
-  struct lowest_layer_visitor
-    : boost::static_visitor<LowestLayer&>
-  {
-      template <class T>
-      LowestLayer& operator()(T* p) const
-      {
-          return p->lowest_layer();
-      }
-
-      LowestLayer& operator()(boost::blank) const
-      {
-          return *(LowestLayer*)0;
-      }
-  };
-
 } // namespace aux
 
 template <
@@ -536,7 +517,7 @@ public:
         >::type
     >::type variant_type;
 
-    typedef typename S0::lowest_layer_type lowest_layer_type;
+    typedef variant_stream lowest_layer_type;
     typedef typename S0::endpoint_type endpoint_type;
     typedef typename S0::protocol_type protocol_type;
 
@@ -769,12 +750,7 @@ public:
 
     lowest_layer_type& lowest_layer()
     {
-//        this is called by the ssl_socket to get the io_service, which
-//        is ok even when it's not instantiated
-//        TORRENT_ASSERT(instantiated());
-        return boost::apply_visitor(
-            aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
-        );
+        return *this;
     }
 
 private:

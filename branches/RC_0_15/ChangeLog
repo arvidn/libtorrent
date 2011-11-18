@@ -1,3 +1,4 @@
+	* fixed https crash
 	* added some functions missing from the python binding
 	* fixed rare piece picker bug
 	* fixed invalid torrent_status::finished_time
