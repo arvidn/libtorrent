@@ -360,7 +360,7 @@ the <tt class="docutils literal"><span class="pre">session</span></tt>, it conta
 <li><p class="first">start DHT, LSD, UPnP, NAT-PMP etc (see <a class="reference internal" href="#start-dht-stop-dht-set-dht-settings-dht-state-is-dht-running">start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()</a>
 <a class="reference internal" href="#start-lsd-stop-lsd">start_lsd() stop_lsd()</a>, <a class="reference internal" href="#start-upnp-stop-upnp">start_upnp() stop_upnp()</a> and <a class="reference internal" href="#start-natpmp-stop-natpmp">start_natpmp() stop_natpmp()</a>)</p>
 </li>
-<li><p class="first">parse .torrent-files and add them to the session (see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a> and <a href="#id266"><span class="problematic" id="id267">`add_torrent()`_</span></a>)</p>
+<li><p class="first">parse .torrent-files and add them to the session (see <a class="reference internal" href="#bdecode-bencode">bdecode() bencode()</a> and <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>)</p>
 </li>
 <li><p class="first">main loop (see <a class="reference internal" href="#session">session</a>)</p>
 <blockquote>
@@ -1414,7 +1414,7 @@ minutes between refreshes.</p>
 This object is used as a template for adding torrents from feeds,
 but some torrent specific fields will be overridden by the
 individual torrent being added. For more information on the
-<tt class="docutils literal"><span class="pre">add_torrent_params</span></tt>, see <a href="#id268"><span class="problematic" id="id269">`add_torrent()`_</span></a>.</p>
+<tt class="docutils literal"><span class="pre">add_torrent_params</span></tt>, see <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>.</p>
 <p>The returned <a class="reference internal" href="#feed-handle">feed_handle</a> is a handle which is used to interact
 with the feed, things like forcing a refresh or querying for
 information about the items in the feed. For more information,
@@ -2635,7 +2635,7 @@ and no calculation is required.</p>
 boost::filesystem::path save_path() const;
 </pre>
 </blockquote>
-<p><tt class="docutils literal"><span class="pre">save_path()</span></tt> returns the path that was given to <a href="#id270"><span class="problematic" id="id271">`add_torrent()`_</span></a> when this torrent
+<p><tt class="docutils literal"><span class="pre">save_path()</span></tt> returns the path that was given to <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a> when this torrent
 was started.</p>
 </div>
 <div class="section" id="move-storage">
@@ -4711,7 +4711,7 @@ are kept in memory after the torrent becomes a seed or not. If it is set to
 needed anymore since the torrent won't download anything more). If it's set
 to false they are not freed. If they are freed, the <a class="reference internal" href="#torrent-info">torrent_info</a> returned
 by get_torrent_info() will return an object that may be incomplete, that
-cannot be passed back to <a href="#id272"><span class="problematic" id="id273">`add_torrent()`_</span></a> for instance.</p>
+cannot be passed back to <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a> for instance.</p>
 <p><tt class="docutils literal"><span class="pre">upnp_ignore_nonrouters</span></tt> indicates whether or not the UPnP implementation
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
@@ -5855,7 +5855,7 @@ torrent_handle add_magnet_uri(session&amp; ses, std::string const&amp; uri
 and adds the torrent to the specified session (<tt class="docutils literal"><span class="pre">ses</span></tt>). It returns the
 handle to the newly added torrent, or an invalid handle in case parsing
 failed. To control some initial settings of the torrent, sepcify those in
-the <tt class="docutils literal"><span class="pre">add_torrent_params</span></tt>, <tt class="docutils literal"><span class="pre">p</span></tt>. See <a href="#id274"><span class="problematic" id="id275">`add_torrent()`_</span></a>.</p>
+the <tt class="docutils literal"><span class="pre">add_torrent_params</span></tt>, <tt class="docutils literal"><span class="pre">p</span></tt>. See <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>.</p>
 <p>The overload that does not take an <tt class="docutils literal"><span class="pre">error_code</span></tt> throws an exception on
 error and is not available when building without exception support.</p>
 <p>A simpler way to add a magnet link to a session is to pass in the
@@ -8416,7 +8416,7 @@ torrents are being downloaded at any given time, and once a torrent is completel
 downloaded, the next in line is started.</p>
 <p>Torrents that are <em>auto managed</em> are subject to the queuing and the active torrents
 limits. To make a torrent auto managed, set <tt class="docutils literal"><span class="pre">auto_managed</span></tt> to true when adding the
-torrent (see <a href="#id276"><span class="problematic" id="id277">`add_torrent()`_</span></a>).</p>
+torrent (see <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>).</p>
 <p>The limits of the number of downloading and seeding torrents are controlled via
 <tt class="docutils literal"><span class="pre">active_downloads</span></tt>, <tt class="docutils literal"><span class="pre">active_seeds</span></tt> and <tt class="docutils literal"><span class="pre">active_limit</span></tt> in <a class="reference internal" href="#session-settings">session_settings</a>.
 These limits takes non auto managed torrents into account as well. If there are
@@ -8464,7 +8464,7 @@ will not check the piece hashes then, and rely on the information given in the
 fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.</p>
-<p>To use the fast-resume data you simply give it to <a href="#id278"><span class="problematic" id="id279">`add_torrent()`_</span></a>, and it
+<p>To use the fast-resume data you simply give it to <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>, and it
 will skip the time consuming checks. It may have to do the checking anyway, if
 the fast-resume data is corrupt or doesn't fit the storage for that torrent,
 then it will not trust the fast-resume data and just do the checking.</p>
@@ -8702,7 +8702,7 @@ to where they belong. This is the recommended (and default) mode.</li>
 Support for this is deprecated and will be removed in future versions of libtorrent.
 It's still described in here for completeness.</p>
 <p>The allocation mode is selected when a torrent is started. It is passed as an
-argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a href="#id280"><span class="problematic" id="id281">`add_torrent()`_</span></a>).</p>
+argument to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> (see <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>).</p>
 <p>The decision to use full allocation or compact allocation typically depends on whether
 any files have priority 0 and if the filesystem supports sparse files.</p>
 <div class="section" id="sparse-allocation">
@@ -9118,33 +9118,6 @@ altogether. You can use:</p>
 boost::filesystem::path::default_name_check(boost::filesystem::native);
 </pre>
 <p>for example. For more information, see the <a class="reference external" href="http://www.boost.org/libs/filesystem/doc/index.htm">Boost.Filesystem docs</a>.</p>
-</div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id266">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 25); <em><a href="#id267">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id268">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 1189); <em><a href="#id269">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id270">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 2538); <em><a href="#id271">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id272">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 4741); <em><a href="#id273">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id274">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 6054); <em><a href="#id275">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id276">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8445); <em><a href="#id277">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id278">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8508); <em><a href="#id279">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
-<div class="system-message" id="id280">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8703); <em><a href="#id281">backlink</a></em></p>
-Unknown target name: &quot;add_torrent()&quot;.</div>
 </div>
     </div>
     <div id="footer">

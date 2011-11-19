@@ -22,7 +22,7 @@ The basic usage is as follows:
 * start extensions (see `add_extension()`_).
 * start DHT, LSD, UPnP, NAT-PMP etc (see `start_dht() stop_dht() set_dht_settings() dht_state() is_dht_running()`_
   `start_lsd() stop_lsd()`_, `start_upnp() stop_upnp()`_ and `start_natpmp() stop_natpmp()`_)
-* parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `add_torrent()`_)
+* parse .torrent-files and add them to the session (see `bdecode() bencode()`_ and `async_add_torrent() add_torrent()`_)
 * main loop (see session_)
 
 	* query the torrent_handles for progress (see torrent_handle_)
@@ -1191,7 +1191,7 @@ If torrents are added automatically, you may want to set the
 This object is used as a template for adding torrents from feeds,
 but some torrent specific fields will be overridden by the
 individual torrent being added. For more information on the
-``add_torrent_params``, see `add_torrent()`_.
+``add_torrent_params``, see `async_add_torrent() add_torrent()`_.
 
 The returned feed_handle_ is a handle which is used to interact
 with the feed, things like forcing a refresh or querying for
@@ -2535,7 +2535,7 @@ save_path()
 
 		boost::filesystem::path save_path() const;
 
-``save_path()`` returns the path that was given to `add_torrent()`_ when this torrent
+``save_path()`` returns the path that was given to `async_add_torrent() add_torrent()`_ when this torrent
 was started.
 
 move_storage()
@@ -4744,7 +4744,7 @@ are kept in memory after the torrent becomes a seed or not. If it is set to
 needed anymore since the torrent won't download anything more). If it's set
 to false they are not freed. If they are freed, the torrent_info_ returned
 by get_torrent_info() will return an object that may be incomplete, that
-cannot be passed back to `add_torrent()`_ for instance.
+cannot be passed back to `async_add_torrent() add_torrent()`_ for instance.
 
 ``upnp_ignore_nonrouters`` indicates whether or not the UPnP implementation
 should ignore any broadcast response from a device whose address is not the
@@ -6055,7 +6055,7 @@ This function parses the magnet URI (``uri``) as a bittorrent magnet link,
 and adds the torrent to the specified session (``ses``). It returns the
 handle to the newly added torrent, or an invalid handle in case parsing
 failed. To control some initial settings of the torrent, sepcify those in
-the ``add_torrent_params``, ``p``. See `add_torrent()`_.
+the ``add_torrent_params``, ``p``. See `async_add_torrent() add_torrent()`_.
 
 The overload that does not take an ``error_code`` throws an exception on
 error and is not available when building without exception support.
@@ -8444,7 +8444,7 @@ downloaded, the next in line is started.
 
 Torrents that are *auto managed* are subject to the queuing and the active torrents
 limits. To make a torrent auto managed, set ``auto_managed`` to true when adding the
-torrent (see `add_torrent()`_).
+torrent (see `async_add_torrent() add_torrent()`_).
 
 The limits of the number of downloading and seeding torrents are controlled via
 ``active_downloads``, ``active_seeds`` and ``active_limit`` in session_settings_. 
@@ -8505,7 +8505,7 @@ fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to `add_torrent()`_, and it
+To use the fast-resume data you simply give it to `async_add_torrent() add_torrent()`_, and it
 will skip the time consuming checks. It may have to do the checking anyway, if
 the fast-resume data is corrupt or doesn't fit the storage for that torrent,
 then it will not trust the fast-resume data and just do the checking.
@@ -8701,7 +8701,7 @@ Support for this is deprecated and will be removed in future versions of libtorr
 It's still described in here for completeness.
 
 The allocation mode is selected when a torrent is started. It is passed as an
-argument to ``session::add_torrent()`` (see `add_torrent()`_).
+argument to ``session::add_torrent()`` (see `async_add_torrent() add_torrent()`_).
 
 The decision to use full allocation or compact allocation typically depends on whether
 any files have priority 0 and if the filesystem supports sparse files.
