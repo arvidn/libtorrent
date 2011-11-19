@@ -8,6 +8,17 @@
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+  <script type="text/javascript">
+  /* <![CDATA[ */
+      (function() {
+          var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+          s.type = 'text/javascript';
+          s.async = true;
+          s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+          t.parentNode.insertBefore(s, t);
+      })();
+  /* ]]> */
+  </script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -38,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.15.7</td></tr>
+<td>0.15.8</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -109,7 +120,7 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#torrent-handle" id="id74">torrent_handle</a><ul>
-<li><a class="reference internal" href="#set-piece-deadline" id="id75">set_piece_deadline()</a></li>
+<li><a class="reference internal" href="#set-piece-deadline-reset-piece-deadline" id="id75">set_piece_deadline() reset_piece_deadline()</a></li>
 <li><a class="reference internal" href="#piece-availability" id="id76">piece_availability()</a></li>
 <li><a class="reference internal" href="#piece-priority-prioritize-pieces-piece-priorities" id="id77">piece_priority() prioritize_pieces() piece_priorities()</a></li>
 <li><a class="reference internal" href="#file-priority-prioritize-files-file-priorities" id="id78">file_priority() prioritize_files() file_priorities()</a></li>
@@ -2071,6 +2082,7 @@ struct torrent_handle
 
         enum deadline_flags { alert_when_available = 1 };
         void set_piece_deadline(int index, int deadline, int flags = 0) const;
+        void reset_piece_deadline(int index) const;
 
         void piece_availability(std::vector&lt;int&gt;&amp; avail) const;
         void piece_priority(int index, int priority) const;
@@ -2122,12 +2134,13 @@ one exception <tt class="docutils literal"><span class="pre">is_valid()</span></
 Since the torrents are processed by a background thread, there is no
 guarantee that a handle will remain valid between two calls.</p>
 </div>
-<div class="section" id="set-piece-deadline">
-<h2>set_piece_deadline()</h2>
+<div class="section" id="set-piece-deadline-reset-piece-deadline">
+<h2>set_piece_deadline() reset_piece_deadline()</h2>
 <blockquote>
 <pre class="literal-block">
 enum deadline_flags { alert_when_available = 1 };
 void set_piece_deadline(int index, int deadline, int flags = 0) const;
+void reset_piece_deadline(int index) const;
 </pre>
 </blockquote>
 <p>This function sets or resets the deadline associated with a specific piece
@@ -2143,6 +2156,8 @@ piece has been downloaded, by passing <tt class="docutils literal"><span class="
 the <tt class="docutils literal"><span class="pre">alert_when_available</span></tt> flag is set, in which case it will do the same thing
 as calling <a class="reference internal" href="#read-piece">read_piece()</a> for <tt class="docutils literal"><span class="pre">index</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">deadline</span></tt> is the number of milliseconds until this piece should be completed.</p>
+<p><tt class="docutils literal"><span class="pre">reset_piece_deadline</span></tt> removes the deadline from the piece. If it hasn't already
+been downloaded, it will no longer be considered a priority.</p>
 </div>
 <div class="section" id="piece-availability">
 <h2>piece_availability()</h2>
@@ -2352,6 +2367,9 @@ void force_dht_announce() const;
 <p><tt class="docutils literal"><span class="pre">force_reannounce()</span></tt> will force this torrent to do another tracker request, to receive new
 peers. The second overload of <tt class="docutils literal"><span class="pre">force_reannounce</span></tt> that takes a <tt class="docutils literal"><span class="pre">time_duration</span></tt> as
 argument will schedule a reannounce in that amount of time from now.</p>
+<p>If the tracker's <tt class="docutils literal"><span class="pre">min_interval</span></tt> has not passed since the last announce, the forced
+announce will be scheduled to happen immediately as the <tt class="docutils literal"><span class="pre">min_interval</span></tt> expires. This is
+to honor trackers minimum re-announce interval settings.</p>
 <p><tt class="docutils literal"><span class="pre">force_dht_announce</span></tt> will announce the torrent to the DHT immediately.</p>
 </div>
 <div class="section" id="scrape-tracker">
@@ -3880,7 +3898,7 @@ cannot be passed back to <a class="reference internal" href="#add-torrent">add_t
 should ignore any broadcast response from a device whose address is not the
 configured router for this machine. i.e. it's a way to not talk to other
 people's routers by mistake.</p>
-<p><tt class="docutils literal"><span class="pre">send_buffer_waterbark</span></tt> is the upper limit of the send buffer low-watermark.
+<p><tt class="docutils literal"><span class="pre">send_buffer_watermark</span></tt> is the upper limit of the send buffer low-watermark.
 if the send buffer has fewer bytes than this, we'll read another 16kB block
 onto it. If set too small, upload rate capacity will suffer. If set too high,
 memory will be wasted. The actual watermark may be lower than this in case
@@ -5234,7 +5252,7 @@ struct peer_disconnected_alert: peer_alert
 <div class="section" id="invalid-request-alert">
 <h2>invalid_request_alert</h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request.
-<tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
+<tt class="docutils literal"><span class="pre">Ïp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
 struct invalid_request_alert: peer_alert
@@ -6354,13 +6372,13 @@ std::string error_code_to_string(boost::system::error_code const&amp; ec)
         static const char const* swedish[] =
         {
                 &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil från en annan torrent&quot;,
+                &quot;en fil i torrenten kolliderar med en fil frÂn en annan torrent&quot;,
                 &quot;hash check misslyckades&quot;,
-                &quot;torrent filen är inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller är korrupt i torrentfilen&quot;,
-                &quot;'info'-fältet är inte en dictionary&quot;,
-                &quot;'piece length' fältet saknas eller är korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnfältet&quot;,
+                &quot;torrent filen ‰r inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;'info'-f‰ltet ‰r inte en dictionary&quot;,
+                &quot;'piece length' f‰ltet saknas eller ‰r korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnf‰ltet&quot;,
                 &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
                 // ... more strings here
         };
