@@ -2823,7 +2823,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	if (window_size_left >= m_mtu)
 	{
 		UTP_LOGV("%8p: mtu:%d in_flight:%d adv_wnd:%d cwnd:%d acked_bytes:%d cwnd_full -> 0\n"
-			, this, m_mtu, in_flight, m_adv_wnd, m_cwnd >> 16, acked_bytes);
+			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
 }
