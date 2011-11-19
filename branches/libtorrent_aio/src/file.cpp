@@ -1905,7 +1905,7 @@ done:
 				return -1;
 			}
 			DWORD num_written;
-			if (GetOverlappedResult(nateive_handle(), &ol, &num_written, true) == 0)
+			if (GetOverlappedResult(native_handle(), &ol, &num_written, true) == 0)
 			{
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
