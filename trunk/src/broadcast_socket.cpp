@@ -391,6 +391,7 @@ namespace libtorrent
 
 	bool broadcast_socket::maybe_abort()
 	{
+		bool ret = m_abort;
 		if (m_abort && m_outstanding_operations == 0)
 		{
 			// it's important that m_on_receive is cleared
@@ -399,7 +400,7 @@ namespace libtorrent
 			// cause an infinite recursion destructing the objects
 			receive_handler_t().swap(m_on_receive);
 		}
-		return m_abort;
+		return ret;
 	}
 
 	void broadcast_socket::close()
