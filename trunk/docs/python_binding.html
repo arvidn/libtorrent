@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent python binding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -101,7 +99,7 @@ using python : 2.3 ;
 you've installed python in a non-standard location, you have to add the prefix
 path used when you installed python as a second option. Like this:</p>
 <pre class="literal-block">
-using python : 2.3 : /usr ;
+using python : 2.6 : /usr/bin/python2.6 : /usr/include/python2.6 : /usr/lib/python2.6 ;
 </pre>
 <p>The bindings require <em>at least</em> python version 2.2.</p>
 <p>For more information on how to install and set up boost-build, see the
