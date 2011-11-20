@@ -877,7 +877,7 @@ namespace libtorrent
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL1(get_download_queue, boost::ref(queue));
+		TORRENT_SYNC_CALL1(get_download_queue, &queue);
 	}
 
 	void torrent_handle::set_piece_deadline(int index, int deadline, int flags) const
