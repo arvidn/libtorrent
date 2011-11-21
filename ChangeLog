@@ -1,3 +1,5 @@
+0.15.89 release
+
 	* fixed https crash
 	* added some functions missing from the python binding
 	* fixed rare piece picker bug
