@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -158,7 +156,7 @@ namespace libtorrent { namespace
 		virtual void add_handshake(entry& h)
 		{
 			entry& messages = h["m"];
-			messages["lt_tex"] = 19;
+			messages["lt_tex"] = 3;
 			h["tr"] = m_tp.list_hash().to_string();
 		}
 
@@ -170,7 +168,7 @@ namespace libtorrent { namespace
 			lazy_entry const* messages = h.dict_find("m");
 			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = int(messages->dict_find_int_value("lt_tex", -1));
+			int index = messages->dict_find_int_value("lt_tex", -1);
 			if (index == -1) return false;
 			m_message_index = index;
 
@@ -188,13 +186,12 @@ namespace libtorrent { namespace
 		virtual bool on_extended(int length
 			, int extended_msg, buffer::const_interval body)
 		{
-			if (extended_msg != 19) return false;
+			if (extended_msg != 3) return false;
 			if (m_message_index == 0) return false;
 			if (!m_pc.packet_finished()) return true;
 
 			lazy_entry msg;
-			error_code ec;
-			int ret = lazy_bdecode(body.begin, body.end, msg, ec);
+			int ret = lazy_bdecode(body.begin, body.end, msg);
 			if (ret != 0 || msg.type() != lazy_entry::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_lt_tracker_message, 2);
@@ -263,14 +260,15 @@ namespace libtorrent { namespace
 
 			std::vector<char> const& tex_msg = m_tp.get_lt_tex_msg();
 
-			char msg[6];
-			char* ptr = msg;
+			buffer::interval i = m_pc.allocate_send_buffer(6 + tex_msg.size());
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
-			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(m_message_index, ptr);
-			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
+			detail::write_uint32(1 + 1 + tex_msg.size(), i.begin);
+			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+			detail::write_uint8(m_message_index, i.begin);
+			std::copy(tex_msg.begin(), tex_msg.end(), i.begin);
+			i.begin += tex_msg.size();
+
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
@@ -302,14 +300,15 @@ namespace libtorrent { namespace
 			(*m_pc.m_logger) << log_line.str();
 #endif
 
-			char msg[6];
-			char* ptr = msg;
+			buffer::interval i = m_pc.allocate_send_buffer(6 + tex_msg.size());
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
-			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(m_message_index, ptr);
-			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
+			detail::write_uint32(1 + 1 + tex_msg.size(), i.begin);
+			detail::write_uint8(bt_peer_connection::msg_extended, i.begin);
+			detail::write_uint8(m_message_index, i.begin);
+			std::copy(tex_msg.begin(), tex_msg.end(), i.begin);
+			i.begin += tex_msg.size();
+
+			TORRENT_ASSERT(i.begin == i.end);
 			m_pc.setup_send();
 		}
 
@@ -328,10 +327,8 @@ namespace libtorrent { namespace
 	boost::shared_ptr<peer_plugin> lt_tracker_plugin::new_connection(
 		peer_connection* pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
-
-		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc);
+		bt_peer_connection* c = dynamic_cast<bt_peer_connection*>(pc);
+		if (!c) return boost::shared_ptr<peer_plugin>();
 		return boost::shared_ptr<peer_plugin>(new lt_tracker_peer_plugin(m_torrent, *c, *this));
 	}
 
@@ -348,5 +345,4 @@ namespace libtorrent
 
 }
 
-#endif
 

@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <cstring>
 
-#include "libtorrent/escape_string.hpp"
-
 namespace libtorrent
 {
 	enum
@@ -82,33 +80,10 @@ namespace libtorrent
 			if (p == end) break;
 		
 			// skip '<'
-			++p;
-			if (p != end && p+8 < end && string_begins_no_case("![CDATA[", p))
-			{
-				// CDATA. match '![CDATA['
-				p += 8;
-				start = p;
-				while (p != end && !string_begins_no_case("]]>", p-2)) ++p;
-
-				// parse error
-				if (p == end)
-				{
-					token = xml_parse_error;
-					start = "unexpected end of file";
-					callback(token, start, val_start);
-					break;
-				}
-			
-				token = xml_string;
-				char tmp = p[-2];
-				p[-2] = 0;
-				callback(token, start, val_start);
-				p[-2] = tmp;
-				continue;
-			}
+			++p;	
 
 			// parse the name of the tag.
-			for (start = p; p != end && *p != '>' && !is_space(*p); ++p);
+			for (start = p; p != end && *p != '>' && !isspace(*p); ++p);
 
 			char* tag_name_end = p;
 
@@ -227,6 +202,7 @@ namespace libtorrent
 				*i = save;
 			}
 		}
+	
 	}
 
 }

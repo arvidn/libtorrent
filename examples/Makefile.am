@@ -3,9 +3,7 @@ example_programs = \
   dump_torrent     \
   enum_if          \
   make_torrent     \
-  simple_client    \
-  rss_reader       \
-  utp_test
+  simple_client
 
 if ENABLE_EXAMPLES
 bin_PROGRAMS = $(example_programs)
@@ -28,12 +26,6 @@ simple_client_SOURCES = simple_client.cpp
 
 enum_if_SOURCES = enum_if.cpp
 #enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-rss_reader_SOURCES = rss_reader.cpp
-#rss_reader_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-utp_test_SOURCES = rss_reader.cpp
-#utp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 

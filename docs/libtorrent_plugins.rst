@@ -17,8 +17,6 @@ In short, the plugin interface makes it possible to:
 * add data and parse data from the extension handshake.
 * send extension messages and standard bittorrent messages.
 * override or block the handling of standard bittorrent messages.
-* save and restore state via the session state
-* see all alerts that are posted
 
 .. _extensions: extension_protocol.html
 
@@ -30,20 +28,14 @@ dead locks and race conditions. Since a plugin has access to internal
 structures it is also quite easy to sabotage libtorrent's operation.
 
 All the callbacks in this interface are called with the main libtorrent thread
-mutex locked. And they are always called from the libtorrent network thread. In
+mutex locked. And they are always called from the libtorrent main thread. In
 case portions of your plugin are called from other threads, typically the main
 thread, you cannot use any of the member functions on the internal structures
 in libtorrent, since those require the mutex to be locked. Futhermore, you would
 also need to have a mutex on your own shared data within the plugin, to make
 sure it is not accessed at the same time from the libtorrent thread (through a
 callback). See `boost thread's mutex`_. If you need to send out a message from
-another thread, it is advised to use an internal queue, and do the actual
-sending in ``tick()``.
-
-Since the plugin interface gives you easy access to internal structures, it
-is not supported as a stable API. Plugins should be considered spcific to a
-specific version of libtorrent. Although, in practice the internals mostly
-don't change that dramatically.
+another thread, use an internal queue, and do the actual sending in ``tick()``.
 
 .. _`boost thread's mutex`: http://www.boost.org/doc/html/mutex.html
 
@@ -51,15 +43,14 @@ don't change that dramatically.
 plugin interface
 ================
 
-The plugin interface consists of three base classes that the plugin may
-implement. These are called ``plugin``, ``torrent_plugin`` and ``peer_plugin``.
-They are found in the ``<libtorrent/extensions.hpp>`` header.
+The plugin interface consists of two base classes that the plugin may
+implement. These are called ``torrent_plugin`` and ``peer_plugin``. They are
+both found in the ``<libtorrent/extensions.hpp>`` header.
 
-These plugins are instantiated for each session, torrent and possibly each peer,
+These plugins are instantiated for each torrent and possibly each peer,
 respectively.
 
-For plugins that only need per torrent state, it is enough to only implement
-``torrent_plugin`` and pass a constructor function or function object to
+This is done by passing in a function or function object to
 ``session::add_extension()`` or ``torrent_handle::add_extension()`` (if the
 torrent has already been started and you want to hook in the extension at
 run-time).
@@ -77,27 +68,6 @@ may or may not be 0. If it is a null pointer, the extension is simply ignored
 for this torrent. If it is a valid pointer (to a class inheriting
 ``torrent_plugin``), it will be associated with this torrent and callbacks
 will be made on torrent events.
-
-For more elaborate plugins which require session wide state, you would
-implement ``plugin``, construct an object (in a ``boost::shared_ptr``) and pass
-it in to ``session::add_extension()``.
-
-plugin
-======
-
-::
-
-	struct plugin
-	{
-		virtual ~plugin();
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user);
-
-		virtual void added(boost::weak_ptr<aux::session_impl> s);
-		virtual void on_alert(alert const* a);
-		virtual void on_tick();
-		virtual void save_state(entry& ent) const;
-		virtual void load_state(lazy_entry const& ent);
-	};
 
 
 torrent_plugin
@@ -119,16 +89,6 @@ The synopsis for ``torrent_plugin`` follows::
 		virtual bool on_resume();
 
 		virtual void on_files_checked();
-
-		virtual void on_state(int s);
-
-		enum flags_t {
-			first_time = 1,
-			filtered = 2
-		};
-
-		virtual void on_add_peer(tcp::endpoint const& ip
-			, int src, int flags);
 	};
 
 This is the base class for a torrent_plugin. Your derived class is (if added
@@ -215,44 +175,6 @@ checked. If there are no files to check, this function is called immediately.
 
 i.e. This function is always called when the torrent is in a state where it
 can start downloading.
-
-on_files_checked()
-------------------
-
-::
-
-		enum flags_t {
-			first_time = 1,
-			filtered = 2
-		};
-
-		virtual void on_add_peer(tcp::endpoint const& ip
-			, int src, int flags);
-
-This function is called whenever we hear about a peer from any peer source,
-such as the tracker, PEX, DHT or Local peer discovery.
-
-``src`` is a bitmask of ``peer_info::peer_source_flags``::
-
-	enum peer_source_flags
-	{
-		tracker = 0x1,
-		dht = 0x2,
-		pex = 0x4,
-		lsd = 0x8,
-		resume_data = 0x10,
-		incoming = 0x20
-	};
-
-``flags`` is a bitmask of::
-
-		enum flags_t {
-			first_time = 1,
-			filtered = 2
-		};
-
-If the ``filtered`` flag is set, it means the peer wasn't added to the
-peer list because of and IP filter, port filter, reserved ports filter.
 
 
 peer_plugin

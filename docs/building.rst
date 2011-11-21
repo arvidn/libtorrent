@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.0
+:Version: 0.15.9
 
 .. contents:: Table of contents
   :depth: 2
@@ -260,12 +260,10 @@ Build features:
 |                          |   requires you to link against librt.a. This is    |
 |                          |   typically the case on x86 64 bit systems.        |
 +--------------------------+----------------------------------------------------+
-| ``asserts``              | * ``auto`` - asserts are on if in debug mode       |
-|                          | * ``on`` - asserts are on, even in release mode    |
-|                          | * ``off`` - asserts are disabled                   |
-|                          | * ``production`` - assertion failures are logged   |
-|                          |   to ``asserts.log`` in the current working        |
-|                          |   directory, but won't abort the process.          |
+| ``zlib``                 | * ``system`` - links against the zlib supplied     |
+|                          |   with your operating system.                      |
+|                          | * ``shipped`` - links against the zlib bundled     |
+|                          |   with the libtorrent package.                     |
 +--------------------------+----------------------------------------------------+
 | ``geoip``                | * ``off`` - geo ip lookups disabled                |
 |                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
@@ -279,18 +277,16 @@ Build features:
 |                          | * ``on`` - creates "upnp.log" with the messages    |
 |                          |   sent to and received from UPnP devices.          |
 +--------------------------+----------------------------------------------------+
-| ``encryption``           | * ``openssl`` - links against openssl and          |
-|                          |   libcrypto to enable https and encrypted          |
-|                          |   bittorrent connections.                          |
-|                          | * ``gcrypt`` - links against libgcrypt to enable   |
-|                          |   encrypted bittorrent connections.                |
-|                          | * ``tommath`` - uses a shipped version of          |
-|                          |   libtommath and a custom rc4 implementation       |
-|                          |   (based on libtomcrypt). This is the default      |
-|                          |   option.                                          |
+| ``openssl``              | * ``pe`` - turns on support for encrypted          |
+|                          |   connections. requires openssl (libcrypto)        |
+|                          | * ``sha-1`` - openssl will be used instead of the  |
+|                          |   public domain SHA-1 implementation shipped with  |
+|                          |   libtorrent. ``libcrypto.a`` will be required for |
+|                          |   linking. Encryption support is still turned off. |
 |                          | * ``off`` - turns off support for encrypted        |
-|                          |   connections. The shipped public domain SHA-1     |
-|                          |   implementation is used.                          |
+|                          |   connections. openssl is not linked in. The       |
+|                          |   shipped public domain SHA-1 implementation is    |
+|                          |   used.                                            |
 +--------------------------+----------------------------------------------------+
 | ``pool-allocators``      | * ``on`` - default, uses pool allocators for send  |
 |                          |   buffers.                                         |
@@ -345,27 +341,6 @@ Build features:
 |                          | * ``off`` - excludes deprecated functions from the |
 |                          |   API. Generates build errors when deprecated      |
 |                          |   functions are used.                              |
-+--------------------------+----------------------------------------------------+
-| ``full-stats``           | * ``on`` - default, collects stats for IP overhead |
-|                          |   and DHT and trackers. This uses a little bit     |
-|                          |   extra memory for each peer and torrent.          |
-|                          | * ``off`` - only collects the standard stats for   |
-|                          |   upload and download rate.                        |
-+--------------------------+----------------------------------------------------+
-| ``iconv``                | * ``auto`` - use iconv for string conversions for  |
-|                          |   linux and mingw and other posix platforms.       |
-|                          | * ``on`` - force use of iconv                      |
-|                          | * ``off`` - force not using iconv (disables locale |
-|                          |   awareness except on windows).                    |
-+--------------------------+----------------------------------------------------+
-| ``asserts``              | * ``off`` - disable all asserts                    |
-|                          | * ``peoduction`` - enable asserts in release       |
-|                          |   builds, but don't abort, just log them to        |
-|                          |   ``extern char const* libtorrent_assert_log``.    |
-|                          | * ``on`` - enable asserts in debug builds (this is |
-|                          |   the default). On GNU systems, print a stack      |
-|                          |   trace of the assert and some more information.   |
-|                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
@@ -568,6 +543,15 @@ defines you can use to control the build.
 |                                        | UTF-16 before they are passed to the file       |
 |                                        | operations.                                     |
 +----------------------------------------+-------------------------------------------------+
+| ``LITTLE_ENDIAN``                      | This will use the little endian version of the  |
+|                                        | sha-1 code. If defined on a big-endian system   |
+|                                        | the sha-1 hashes will be incorrect and fail.    |
+|                                        | If it is not defined and ``__BIG_ENDIAN__``     |
+|                                        | isn't defined either (it is defined by Apple's  |
+|                                        | GCC) both little-endian and big-endian versions |
+|                                        | will be built and the correct code will be      |
+|                                        | chosen at run-time.                             |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
@@ -594,13 +578,10 @@ defines you can use to control the build.
 |                                        | protocol traffic.                               |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_ENCRYPTION``         | This will disable any encryption support and    |
-|                                        | the dependencies of a crypto library.           |
+|                                        | the openssl dependency that comes with it.      |
 |                                        | Encryption support is the peer connection       |
 |                                        | encrypted supported by clients such as          |
 |                                        | uTorrent, Azureus and KTorrent.                 |
-|                                        | If this is not defined, either                  |
-|                                        | ``TORRENT_USE_OPENSSL`` or                      |
-|                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
 +----------------------------------------+-------------------------------------------------+
 | ``_UNICODE``                           | On windows, this will cause the file IO         |
 |                                        | use wide character API, to properly support     |
@@ -622,14 +603,6 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_NO_DEPRECATE``               | This will exclude all deprecated functions from |
 |                                        | the header files and cpp files.                 |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_PRODUCTION_ASSERTS``         | Define to either 0 or 1. Enables assert logging |
-|                                        | in release builds.                              |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_NO_ASSERTS``                 | Disables all asserts.                           |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_USE_SYSTEM_ASSERTS``         | Uses the libc assert macro rather then the      |
-|                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
 
 

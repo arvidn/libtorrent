@@ -30,9 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
-
-#include "libtorrent/config.hpp"
+#ifdef TORRENT_DEBUG
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -43,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 // uClibc++ doesn't have cxxabi.h
-#if defined __GNUC__ && __GNUC__ >= 3 \
-	&& !defined __UCLIBCXX_MAJOR__
+#if defined __GNUC__ && !defined __UCLIBCXX_MAJOR__
 
 #include <cxxabi.h>
 
@@ -99,45 +96,30 @@ std::string demangle(char const* name) { return name; }
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
-void print_backtrace(char* out, int len)
+void print_backtrace(char const* label)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
 	char** symbols = backtrace_symbols(stack, size);
 
-	for (int i = 1; i < size && len > 0; ++i)
+	fprintf(stderr, "%s\n", label);
+	for (int i = 1; i < size; ++i)
 	{
-		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
-		out += ret;
-		len -= ret;
+		fprintf(stderr, "%d: %s\n", i, demangle(symbols[i]).c_str());
 	}
 
 	free(symbols);
 }
 #else
 
-void print_backtrace(char* out, int len) {}
+void print_backtrace(char const* label) {}
 
 #endif
 
-#if TORRENT_PRODUCTION_ASSERTS
-char const* libtorrent_assert_log = "asserts.log";
-#endif
-
-TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
-	, char const* function, char const* value)
+void assert_fail(char const* expr, int line, char const* file, char const* function)
 {
-#if TORRENT_PRODUCTION_ASSERTS
-	FILE* out = fopen(libtorrent_assert_log, "a+");
-	if (out == 0) out = stderr;
-#else
-	FILE* out = stderr;
-#endif
 
-	char stack[8192];
-	print_backtrace(stack, sizeof(stack));
-
-	fprintf(out, "assertion failed. Please file a bugreport at "
+	fprintf(stderr, "assertion failed. Please file a bugreport at "
 		"http://code.rasterbar.com/libtorrent/newticket\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
@@ -145,23 +127,14 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"file: '%s'\n"
 		"line: %d\n"
 		"function: %s\n"
-		"expression: %s\n"
-		"%s%s\n"
-		"stack:\n"
-		"%s\n"
-		, LIBTORRENT_REVISION, file, line, function, expr
-		, value ? value : "", value ? "\n" : ""
-		, stack);
+		"expression: %s\n", LIBTORRENT_REVISION, file, line, function, expr);
 
-	// if production asserts are defined, don't abort, just print the error
-#if TORRENT_PRODUCTION_ASSERTS
-	if (out != stderr) fclose(out);
-#else
+	print_backtrace("stack:");
+
  	// send SIGINT to the current process
  	// to break into the debugger
  	raise(SIGINT);
  	abort();
-#endif
 }
 
 #else

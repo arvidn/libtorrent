@@ -222,7 +222,6 @@ namespace libtorrent
 	
 		void resize(int bits)
 		{
-			TORRENT_ASSERT(bits >= 0);
 			const int b = (bits + 7) / 8;
 			if (m_bytes)
 			{

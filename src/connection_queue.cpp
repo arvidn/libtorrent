@@ -31,16 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/bind.hpp>
-#include "libtorrent/config.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/connection_queue.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/error.hpp"
-
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -148,9 +141,13 @@ namespace libtorrent
 			}
 			if (e.connecting) --m_num_connecting;
 			l.unlock();
-			TORRENT_TRY {
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
 				e.on_timeout();
-			} TORRENT_CATCH(std::exception&) {}
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 			l.lock();
 		}
 
@@ -186,6 +183,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+#if BOOST_VERSION >= 103700
+		TORRENT_ASSERT(l.owns_lock());
+#endif
+
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif
@@ -213,9 +214,6 @@ namespace libtorrent
 			ptime expire = time_now_hires() + i->timeout;
 			if (m_num_connecting == 0)
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("connection_queue::on_timeout");
-#endif
 				error_code ec;
 				m_timer.expires_at(expire, ec);
 				m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
@@ -242,9 +240,13 @@ namespace libtorrent
 		while (!to_connect.empty())
 		{
 			entry& ent = to_connect.front();
-			TORRENT_TRY {
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
 				ent.on_connect(ent.ticket);
-			} TORRENT_CATCH(std::exception&) {}
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 			to_connect.pop_front();
 		}
 
@@ -262,9 +264,6 @@ namespace libtorrent
 	
 	void connection_queue::on_timeout(error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("connection_queue::on_timeout");
-#endif
 		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
@@ -272,7 +271,7 @@ namespace libtorrent
 		function_guard guard_(m_in_timeout_function);
 #endif
 
-		TORRENT_ASSERT(!e || e == error::operation_aborted);
+		TORRENT_ASSERT(!e || e == asio::error::operation_aborted);
 		if (e) return;
 
 		ptime next_expire = max_time();
@@ -301,20 +300,19 @@ namespace libtorrent
 		for (std::list<entry>::iterator i = timed_out.begin()
 			, end(timed_out.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(i->connecting);
-			TORRENT_ASSERT(i->ticket != -1);
-			TORRENT_TRY {
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
 				i->on_timeout();
-			} TORRENT_CATCH(std::exception&) {}
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (std::exception&) {}
+#endif
 		}
 		
 		l.lock();
 		
 		if (next_expire < max_time())
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("connection_queue::on_timeout");
-#endif
 			error_code ec;
 			m_timer.expires_at(next_expire, ec);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));

@@ -8,17 +8,17 @@
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
+  <script type="text/javascript">
+  /* <![CDATA[ */
+      (function() {
+          var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+          s.type = 'text/javascript';
+          s.async = true;
+          s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+          t.parentNode.insertBefore(s, t);
+      })();
+  /* ]]> */
+  </script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.0</td></tr>
+<td>0.15.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -305,14 +305,12 @@ typically the case on x86 64 bit systems.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">asserts</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">zlib</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">auto</span></tt> - asserts are on if in debug mode</li>
-<li><tt class="docutils literal"><span class="pre">on</span></tt> - asserts are on, even in release mode</li>
-<li><tt class="docutils literal"><span class="pre">off</span></tt> - asserts are disabled</li>
-<li><tt class="docutils literal"><span class="pre">production</span></tt> - assertion failures are logged
-to <tt class="docutils literal"><span class="pre">asserts.log</span></tt> in the current working
-directory, but won't abort the process.</li>
+<li><tt class="docutils literal"><span class="pre">system</span></tt> - links against the zlib supplied
+with your operating system.</li>
+<li><tt class="docutils literal"><span class="pre">shipped</span></tt> - links against the zlib bundled
+with the libtorrent package.</li>
 </ul>
 </td>
 </tr>
@@ -336,20 +334,18 @@ sent to and received from UPnP devices.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">encryption</span></tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">openssl</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">openssl</span></tt> - links against openssl and
-libcrypto to enable https and encrypted
-bittorrent connections.</li>
-<li><tt class="docutils literal"><span class="pre">gcrypt</span></tt> - links against libgcrypt to enable
-encrypted bittorrent connections.</li>
-<li><tt class="docutils literal"><span class="pre">tommath</span></tt> - uses a shipped version of
-libtommath and a custom rc4 implementation
-(based on libtomcrypt). This is the default
-option.</li>
+<li><tt class="docutils literal"><span class="pre">pe</span></tt> - turns on support for encrypted
+connections. requires openssl (libcrypto)</li>
+<li><tt class="docutils literal"><span class="pre">sha-1</span></tt> - openssl will be used instead of the
+public domain SHA-1 implementation shipped with
+libtorrent. <tt class="docutils literal"><span class="pre">libcrypto.a</span></tt> will be required for
+linking. Encryption support is still turned off.</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - turns off support for encrypted
-connections. The shipped public domain SHA-1
-implementation is used.</li>
+connections. openssl is not linked in. The
+shipped public domain SHA-1 implementation is
+used.</li>
 </ul>
 </td>
 </tr>
@@ -434,39 +430,6 @@ when deprecated functions are used).</li>
 <li><tt class="docutils literal"><span class="pre">off</span></tt> - excludes deprecated functions from the
 API. Generates build errors when deprecated
 functions are used.</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">full-stats</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">on</span></tt> - default, collects stats for IP overhead
-and DHT and trackers. This uses a little bit
-extra memory for each peer and torrent.</li>
-<li><tt class="docutils literal"><span class="pre">off</span></tt> - only collects the standard stats for
-upload and download rate.</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">iconv</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">auto</span></tt> - use iconv for string conversions for
-linux and mingw and other posix platforms.</li>
-<li><tt class="docutils literal"><span class="pre">on</span></tt> - force use of iconv</li>
-<li><tt class="docutils literal"><span class="pre">off</span></tt> - force not using iconv (disables locale
-awareness except on windows).</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">asserts</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal"><span class="pre">off</span></tt> - disable all asserts</li>
-<li><tt class="docutils literal"><span class="pre">peoduction</span></tt> - enable asserts in release
-builds, but don't abort, just log them to
-<tt class="docutils literal"><span class="pre">extern</span> <span class="pre">char</span> <span class="pre">const*</span> <span class="pre">libtorrent_assert_log</span></tt>.</li>
-<li><tt class="docutils literal"><span class="pre">on</span></tt> - enable asserts in debug builds (this is
-the default). On GNU systems, print a stack
-trace of the assert and some more information.</li>
-<li><tt class="docutils literal"><span class="pre">system</span></tt> use the libc assert macro</li>
 </ul>
 </td>
 </tr>
@@ -666,6 +629,16 @@ UTF-8 strings in pathnames are converted into
 UTF-16 before they are passed to the file
 operations.</td>
 </tr>
+<tr><td><tt class="docutils literal"><span class="pre">LITTLE_ENDIAN</span></tt></td>
+<td>This will use the little endian version of the
+sha-1 code. If defined on a big-endian system
+the sha-1 hashes will be incorrect and fail.
+If it is not defined and <tt class="docutils literal"><span class="pre">__BIG_ENDIAN__</span></tt>
+isn't defined either (it is defined by Apple's
+GCC) both little-endian and big-endian versions
+will be built and the correct code will be
+chosen at run-time.</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_POOL_ALLOCATOR</span></tt></td>
 <td>Disables use of <tt class="docutils literal"><span class="pre">boost::pool&lt;&gt;</span></tt>.</td>
 </tr>
@@ -698,13 +671,10 @@ protocol traffic.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_DISABLE_ENCRYPTION</span></tt></td>
 <td>This will disable any encryption support and
-the dependencies of a crypto library.
+the openssl dependency that comes with it.
 Encryption support is the peer connection
 encrypted supported by clients such as
-uTorrent, Azureus and KTorrent.
-If this is not defined, either
-<tt class="docutils literal"><span class="pre">TORRENT_USE_OPENSSL</span></tt> or
-<tt class="docutils literal"><span class="pre">TORRENT_USE_GCRYPT</span></tt> must be defined.</td>
+uTorrent, Azureus and KTorrent.</td>
 </tr>
 <tr><td><tt class="docutils literal"><span class="pre">_UNICODE</span></tt></td>
 <td>On windows, this will cause the file IO
@@ -731,17 +701,6 @@ or for running before releases.</td>
 <tr><td><tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt></td>
 <td>This will exclude all deprecated functions from
 the header files and cpp files.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_PRODUCTION_ASSERTS</span></tt></td>
-<td>Define to either 0 or 1. Enables assert logging
-in release builds.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_NO_ASSERTS</span></tt></td>
-<td>Disables all asserts.</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">TORRENT_USE_SYSTEM_ASSERTS</span></tt></td>
-<td>Uses the libc assert macro rather then the
-custom one.</td>
 </tr>
 </tbody>
 </table>

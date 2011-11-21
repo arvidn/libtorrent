@@ -52,15 +52,15 @@ namespace libtorrent
 
 		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
 		{
-			TORRENT_ASSERT(s != 0);
 			TORRENT_ASSERT(s->m_refs >= 0);
+			TORRENT_ASSERT(s != 0);
 			++s->m_refs;
 		}
 
 		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
 		{
-			TORRENT_ASSERT(s != 0);
 			TORRENT_ASSERT(s->m_refs > 0);
+			TORRENT_ASSERT(s != 0);
 			if (--s->m_refs == 0)
 				boost::checked_delete(static_cast<T const*>(s));
 		}
@@ -74,13 +74,7 @@ namespace libtorrent
 		int refcount() const { return m_refs; }
 
 		intrusive_ptr_base(): m_refs(0) {}
-
-		// so that we can access this when logging
-#if !defined TORRENT_LOGGING \
-		&& !defined TORRENT_VERBOSE_LOGGING \
-		&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
 		// reference counter for intrusive_ptr
 		mutable boost::detail::atomic_count m_refs;
 	};

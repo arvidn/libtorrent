@@ -35,22 +35,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <map>
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/noncopyable.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/array.hpp>
 #include <boost/pool/pool.hpp>
-#include <boost/function/function3.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/logging.hpp>
+#include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-#include "libtorrent/ptime.hpp"
-
-namespace libtorrent { namespace aux { struct session_impl; } }
+#include "libtorrent/time.hpp"
 
 namespace libtorrent { namespace dht
 {
+
+struct observer;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DECLARE_LOG(rpc);
@@ -58,9 +62,11 @@ TORRENT_DECLARE_LOG(rpc);
 
 struct null_observer : public observer
 {
-	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
-		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
-	virtual void reply(msg const&) { flags |= flag_done; }
+	null_observer(boost::pool<>& allocator): observer(allocator) {}
+	virtual void reply(msg const&) {}
+	virtual void timeout() {}
+	virtual void send(msg&) {}
+	void abort() {}
 };
 
 class routing_table;
@@ -68,56 +74,63 @@ class routing_table;
 class rpc_manager
 {
 public:
-	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
-	typedef boost::function3<void, address, int, address> external_ip_fun;
+	typedef boost::function1<void, msg const&> fun;
+	typedef boost::function1<void, msg const&> send_fun;
 
-	rpc_manager(node_id const& our_id
-		, routing_table& table, send_fun const& sf
-		, void* userdata, external_ip_fun ext_ip);
+	rpc_manager(fun const& incoming_fun, node_id const& our_id
+		, routing_table& table, send_fun const& sf);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
 
 	// returns true if the node needs a refresh
-	// if so, id is assigned the node id to refresh
-	bool incoming(msg const&, node_id* id);
+	bool incoming(msg const&);
 	time_duration tick();
 
-	bool invoke(entry& e, udp::endpoint target
+	void invoke(int message_id, udp::endpoint target
 		, observer_ptr o);
 
-	void add_our_id(entry& e);
+	void reply(msg& m);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	size_t allocation_size() const;
-#endif
 #ifdef TORRENT_DEBUG
+	size_t allocation_size() const;
 	void check_invariant() const;
 #endif
 
-	void* allocate_observer();
-	void free_observer(void* ptr);
-
-	int num_allocated_observers() const { return m_allocated_observers; }
+	boost::pool<>& allocator() const
+	{ return m_pool_allocator; }
 
 private:
 
+	enum { max_transactions = 2048 };
+
+	unsigned int new_transaction_id(observer_ptr o);
+	void update_oldest_transaction_id();
+	
 	boost::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::list<observer_ptr> transactions_t;
+	typedef boost::array<observer_ptr, max_transactions>
+		transactions_t;
 	transactions_t m_transactions;
+	std::vector<observer_ptr> m_aborted_transactions;
 	
+	// this is the next transaction id to be used
+	int m_next_transaction_id;
+	// this is the oldest transaction id still
+	// (possibly) in use. This is the transaction
+	// that will time out first, the one we are
+	// waiting for to time out
+	int m_oldest_transaction_id;
+	
+	fun m_incoming;
 	send_fun m_send;
-	void* m_userdata;
 	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;
 	node_id m_random_number;
-	int m_allocated_observers;
 	bool m_destructing;
-	external_ip_fun m_ext_ip;
 };
 
 } } // namespace libtorrent::dht

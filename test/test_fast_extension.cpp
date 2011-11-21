@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
-#include <iostream>
 
 using namespace libtorrent;
 
@@ -64,46 +63,9 @@ int read_message(stream_socket& s, char* buffer)
 	return length;
 }
 
-void print_message(char const* buffer, int len)
-{
-	char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
-		, "have", "bitfield", "request", "piece", "cancel", "dht_port", "", "", ""
-		, "suggest_piece", "have_all", "have_none", "reject_request", "allowed_fast"};
-
-	char message[50];
-	char extra[300];
-	extra[0] = 0;
-	if (len == 0)
-	{
-		strcpy(message, "keepalive");
-	}
-	else
-	{
-		int msg = buffer[0];
-		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
-			strcpy(message, message_name[msg]);
-		else
-			snprintf(message, sizeof(message), "unknown[%d]", msg);
-
-		if (msg == 0x6 && len == 13)
-		{
-			peer_request r;
-			const char* ptr = buffer + 1;
-			r.piece = detail::read_int32(ptr);
-			r.start = detail::read_int32(ptr);
-			r.length = detail::read_int32(ptr);
-			snprintf(extra, sizeof(extra), "p: %d s: %d l: %d", r.piece, r.start, r.length);
-		}
-		else if (msg == 0x11 && len == 5)
-		{
-			const char* ptr = buffer + 1;
-			int index = detail::read_int32(ptr);
-			snprintf(extra, sizeof(extra), "p: %d", index);
-		}
-	}
-
-	fprintf(stderr, "%s <== %s %s\n", time_now_string(), message, extra);
-}
+char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
+	, "have", "bitfield", "request", "piece", "cancel", "dht_port", "", "", ""
+	, "suggest_piece", "have_all", "have_none", "reject_request", "allowed_fast"};
 
 void send_allow_fast(stream_socket& s, int piece)
 {
@@ -199,20 +161,16 @@ void test_reject_fast()
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
-	error_code ec;
 	add_torrent_params p;
-	p.ti = t;
 	p.save_path = "./tmp1_fast";
-
-	remove("./tmp1_fast/temporary", ec);
-	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
-	ec.clear();
-	ses1.add_torrent(p, ec);
+	p.ti = t;
+	ses1.add_torrent(p);
 
 	test_sleep(2000);
 
 	io_service ios;
 	stream_socket s(ios);
+	error_code ec;
 	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
 
 	char recv_buffer[1000];
@@ -229,10 +187,13 @@ void test_reject_fast()
 
 	while (!allowed_fast.empty())
 	{
-		int len = read_message(s, recv_buffer);
-		print_message(recv_buffer, len);
+		read_message(s, recv_buffer);
 		int msg = recv_buffer[0];
-		if (msg != 0x6) continue;
+		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
+			std::cerr << time_now_string() << " <== " << message_name[msg] << std::endl;
+		else
+			std::cerr << time_now_string() << " <== " << msg << std::endl;
+		if (recv_buffer[0] != 0x6) continue;
 
 		using namespace libtorrent::detail;
 		char* ptr = recv_buffer + 1;
@@ -261,19 +222,15 @@ void test_respect_suggest()
 	sha1_hash ih = t->info_hash();
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 
-	error_code ec;
 	add_torrent_params p;
-	p.ti = t;
 	p.save_path = "./tmp1_fast";
-
-	remove("./tmp1_fast/temporary", ec);
-	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
-	ec.clear();
-	ses1.add_torrent(p, ec);
+	p.ti = t;
+	ses1.add_torrent(p);
 
 	test_sleep(2000);
 
 	io_service ios;
+	error_code ec;
 	stream_socket s(ios);
 	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
 
@@ -296,11 +253,15 @@ void test_respect_suggest()
 	int fail_counter = 100;	
 	while (!suggested.empty() && fail_counter > 0)
 	{
-		int len = read_message(s, recv_buffer);
-		print_message(recv_buffer, len);
+		read_message(s, recv_buffer);
+		std::cerr << time_now_string() << " <== ";
 		int msg = recv_buffer[0];
+		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
+			std::cerr << message_name[msg] << std::endl;
+		else
+			std::cerr << msg << std::endl;
 		fail_counter--;
-		if (msg != 0x6) continue;
+		if (recv_buffer[0] != 0x6) continue;
 
 		using namespace libtorrent::detail;
 		char* ptr = recv_buffer + 1;

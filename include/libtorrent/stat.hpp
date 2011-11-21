@@ -43,22 +43,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#include "libtorrent/debug.hpp" // for logger
-#endif
-
 namespace libtorrent
 {
 	class TORRENT_EXPORT stat_channel
 	{
+	friend class invariant_access;
 	public:
+		enum { history = 10 };
 
 		stat_channel()
 			: m_counter(0)
-			, m_5_sec_average(0)
-			, m_30_sec_average(0)
 			, m_total_counter(0)
-		{}
+			, m_rate_sum(0)
+		{
+			std::memset(m_rate_history, 0, sizeof(m_rate_history));
+		}
 
 		void operator+=(stat_channel const& s)
 		{
@@ -83,8 +82,8 @@ namespace libtorrent
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		int rate() const { return m_5_sec_average; }
-		int low_pass_rate() const { return m_30_sec_average; }
+		int rate() const { return m_rate_sum / history; }
+		size_type rate_sum() const { return m_rate_sum; }
 		size_type total() const { return m_total_counter; }
 
 		void offset(size_type c)
@@ -95,27 +94,39 @@ namespace libtorrent
 			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
-		int counter() const { return m_counter; }
+		size_type counter() const { return m_counter; }
 
 		void clear()
 		{
+			std::memset(m_rate_history, 0, sizeof(m_rate_history));
 			m_counter = 0;
-			m_5_sec_average = 0;
-			m_30_sec_average = 0;
 			m_total_counter = 0;
+			m_rate_sum = 0;
 		}
 
 	private:
 
+#ifdef TORRENT_DEBUG
+		void check_invariant() const
+		{
+			size_type sum = 0;
+			for (int i = 0; i < history; ++i) sum += m_rate_history[i];
+			TORRENT_ASSERT(m_rate_sum == sum);
+			TORRENT_ASSERT(m_total_counter >= 0);
+		}
+#endif
+
+		// history of rates a few seconds back
+		int m_rate_history[history];
+
 		// the accumulator for this second.
 		int m_counter;
 
-		// sliding average
-		int m_5_sec_average;
-		int m_30_sec_average;
-
 		// total counters
 		size_type m_total_counter;
+
+		// sum of all elements in m_rate_history
+		size_type m_rate_sum;
 	};
 
 	class TORRENT_EXPORT stat
@@ -130,50 +141,38 @@ namespace libtorrent
 
 		void sent_syn(bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-#endif
 		}
 
 		void received_synack(bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			// we received SYN-ACK and also sent ACK back
 			m_stat[download_ip_protocol].add(ipv6 ? 60 : 40);
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
-#endif
 		}
 
 		void received_dht_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_dht_protocol].add(bytes);
-#endif
 		}
 
 		void sent_dht_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_dht_protocol].add(bytes);
-#endif
 		}
 
 		void received_tracker_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[download_tracker_protocol].add(bytes);
-#endif
 		}
 
 		void sent_tracker_bytes(int bytes)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			TORRENT_ASSERT(bytes >= 0);
 			m_stat[upload_tracker_protocol].add(bytes);
-#endif
 		}
 
 		void received_bytes(int bytes_payload, int bytes_protocol)
@@ -198,7 +197,6 @@ namespace libtorrent
 		// account for the overhead caused by it
 		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
 		{
-#ifndef TORRENT_DISABLE_FULL_STATS
 			// one TCP/IP packet header for the packet
 			// sent or received, and one for the ACK
 			// The IPv4 header is 20 bytes
@@ -209,24 +207,14 @@ namespace libtorrent
 			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
-#endif
 		}
 
-#ifndef TORRENT_DISABLE_FULL_STATS
 		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
 		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
 		int upload_dht() const { return m_stat[upload_dht_protocol].counter(); }
 		int download_dht() const { return m_stat[download_dht_protocol].counter(); }
 		int download_tracker() const { return m_stat[download_tracker_protocol].counter(); }
 		int upload_tracker() const { return m_stat[upload_tracker_protocol].counter(); }
-#else
-		int upload_ip_overhead() const { return 0; }
-		int download_ip_overhead() const { return 0; }
-		int upload_dht() const { return 0; }
-		int download_dht() const { return 0; }
-		int download_tracker() const { return 0; }
-		int upload_tracker() const { return 0; }
-#endif
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms)
@@ -235,76 +223,40 @@ namespace libtorrent
 				m_stat[i].second_tick(tick_interval_ms);
 		}
 
-		int low_pass_upload_rate() const
-		{
-			return m_stat[upload_payload].low_pass_rate()
-				+ m_stat[upload_protocol].low_pass_rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[upload_ip_protocol].low_pass_rate()
-				+ m_stat[upload_dht_protocol].low_pass_rate()
-				+ m_stat[upload_tracker_protocol].low_pass_rate()
-#endif
-				;
-		}
-
-		int low_pass_download_rate() const
-		{
-			return m_stat[download_payload].low_pass_rate()
-				+ m_stat[download_protocol].low_pass_rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[download_ip_protocol].low_pass_rate()
-				+ m_stat[download_dht_protocol].low_pass_rate()
-				+ m_stat[download_tracker_protocol].low_pass_rate()
-#endif
-				;
-		}
-
 		int upload_rate() const
 		{
-			return m_stat[upload_payload].rate()
-				+ m_stat[upload_protocol].rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[upload_ip_protocol].rate()
-				+ m_stat[upload_dht_protocol].rate()
-				+ m_stat[upload_tracker_protocol].rate()
-#endif
-				;
+			return (m_stat[upload_payload].rate_sum()
+				+ m_stat[upload_protocol].rate_sum()
+				+ m_stat[upload_ip_protocol].rate_sum()
+				+ m_stat[upload_dht_protocol].rate_sum())
+				/ stat_channel::history;
 		}
 
 		int download_rate() const
 		{
-			return m_stat[download_payload].rate()
-				+ m_stat[download_protocol].rate()
-#ifndef TORRENT_DISABLE_FULL_STATS
-				+ m_stat[download_ip_protocol].rate()
-				+ m_stat[download_dht_protocol].rate()
-				+ m_stat[download_tracker_protocol].rate()
-#endif
-				;
+			return (m_stat[download_payload].rate_sum()
+				+ m_stat[download_protocol].rate_sum()
+				+ m_stat[download_ip_protocol].rate_sum()
+				+ m_stat[download_dht_protocol].rate_sum())
+				/ stat_channel::history;
 		}
 
 		size_type total_upload() const
 		{
 			return m_stat[upload_payload].total()
 				+ m_stat[upload_protocol].total()
-#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[upload_ip_protocol].total()
 				+ m_stat[upload_dht_protocol].total()
-				+ m_stat[upload_tracker_protocol].total()
-#endif
-				;
+				+ m_stat[upload_tracker_protocol].total();
 		}
 
 		size_type total_download() const
 		{
 			return m_stat[download_payload].total()
 				+ m_stat[download_protocol].total()
-#ifndef TORRENT_DISABLE_FULL_STATS
 				+ m_stat[download_ip_protocol].total()
 				+ m_stat[download_dht_protocol].total()
-				+ m_stat[download_tracker_protocol].total()
-#endif
-				;
+				+ m_stat[download_tracker_protocol].total();
 		}
 
 		int upload_payload_rate() const
@@ -336,13 +288,13 @@ namespace libtorrent
 			m_stat[upload_payload].offset(uploaded);
 		}
 
-		int last_payload_downloaded() const
+		size_type last_payload_downloaded() const
 		{ return m_stat[download_payload].counter(); }
-		int last_payload_uploaded() const
+		size_type last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
-		int last_protocol_downloaded() const
+		size_type last_protocol_downloaded() const
 		{ return m_stat[download_protocol].counter(); }
-		int last_protocol_uploaded() const
+		size_type last_protocol_uploaded() const
 		{ return m_stat[upload_protocol].counter(); }
 
 		// these are the channels we keep stats for
@@ -350,16 +302,14 @@ namespace libtorrent
 		{
 			upload_payload,
 			upload_protocol,
-			download_payload,
-			download_protocol,
-#ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
 			upload_dht_protocol,
 			upload_tracker_protocol,
+			download_payload,
+			download_protocol,
 			download_ip_protocol,
 			download_dht_protocol,
 			download_tracker_protocol,
-#endif
 			num_channels
 		};
 

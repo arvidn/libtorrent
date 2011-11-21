@@ -30,7 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <iterator>
+#include <exception>
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -38,40 +42,40 @@ POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
+#if BOOST_VERSION < 103400
+	namespace fs = boost::filesystem;
+	fs::path::default_name_check(fs::no_check);
+#endif
 
 	if (argc != 2)
 	{
-		fputs("usage: ./simple_client torrent-file\n"
-			"to stop the client, press return.\n", stderr);
+		std::cerr << "usage: ./simple_client torrent-file\n"
+			"to stop the client, press return.\n";
 		return 1;
 	}
 
 	session s;
-	error_code ec;
-	s.listen_on(std::make_pair(6881, 6889), ec);
-	if (ec)
-	{
-		fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
-		return 1;
-	}
+	s.listen_on(std::make_pair(6881, 6889));
 	add_torrent_params p;
 	p.save_path = "./";
+	error_code ec;
 	p.ti = new torrent_info(argv[1], ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::cout << ec.message() << std::endl;
 		return 1;
 	}
 	s.add_torrent(p, ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::cerr << ec.message() << std::endl;
 		return 1;
 	}
 
 	// wait for the user to end
 	char a;
-	scanf("%c\n", &a);
+	std::cin.unsetf(std::ios_base::skipws);
+	std::cin >> a;
 	return 0;
 }
 
