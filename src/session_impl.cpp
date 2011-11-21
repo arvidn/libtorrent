@@ -3346,7 +3346,7 @@ namespace aux {
 				++error_torrents;
 
 			dq.clear();
-			i->second->get_download_queue(dq);
+			i->second->get_download_queue(&dq);
 			for (std::vector<partial_piece_info>::iterator j = dq.begin()
 				, end(dq.end()); j != end; ++j)
 			{
