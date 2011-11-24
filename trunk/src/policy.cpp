@@ -459,20 +459,24 @@ namespace libtorrent
 
 	bool policy::should_erase_immediately(peer const& p) const
 	{
-		return p.source == peer_info::resume_data
-			&& p.failcount > 0
-			&& !p.banned;
+		return p.source == peer_info::resume_data;
 	}
 
 	bool policy::is_erase_candidate(peer const& pe, bool finished) const
 	{
-		return pe.connection == 0
-			&& pe.last_connected != 0
-			&& !pe.banned
-			&& !is_connect_candidate(pe, m_finished);
+		if (pe.connection) return false;
+		if (is_connect_candidate(pe, finished)) return false;
+
+		return (pe.failcount > 0)
+			|| (pe.source == peer_info::resume_data);
 	}
 
-	void policy::erase_peers()
+	bool policy::is_force_erase_candidate(peer const& pe) const
+	{
+		return pe.connection == 0;
+	}
+
+	void policy::erase_peers(int flags)
 	{
 		INVARIANT_CHECK;
 
@@ -483,15 +487,19 @@ namespace libtorrent
 		if (max_peerlist_size == 0 || m_peers.empty()) return;
 
 		int erase_candidate = -1;
+		int force_erase_candidate = -1;
 
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int round_robin = random() % m_peers.size();
 
+		int low_watermark = max_peerlist_size * 95 / 100;
+		if (low_watermark == max_peerlist_size) --low_watermark;
+
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
-			if (int(m_peers.size()) < max_peerlist_size * 0.95)
+			if (int(m_peers.size()) < low_watermark)
 				break;
 
 			if (round_robin == int(m_peers.size())) round_robin = 0;
@@ -507,6 +515,7 @@ namespace libtorrent
 					if (should_erase_immediately(pe))
 					{
 						if (erase_candidate > current) --erase_candidate;
+						if (force_erase_candidate > current) --force_erase_candidate;
 						TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
 						--round_robin;
 						erase_peer(m_peers.begin() + current);
@@ -515,6 +524,12 @@ namespace libtorrent
 					{
 						erase_candidate = current;
 					}
+				}
+				if (is_force_erase_candidate(pe)
+					&& (force_erase_candidate == -1
+						|| !compare_peer_erase(*m_peers[force_erase_candidate], pe)))
+				{
+					force_erase_candidate = current;
 				}
 			}
 
@@ -525,6 +540,11 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < int(m_peers.size()));
 			erase_peer(m_peers.begin() + erase_candidate);
+		}
+		else if ((flags & force_erase) && force_erase_candidate > -1)
+		{
+			TORRENT_ASSERT(force_erase_candidate >= 0 && force_erase_candidate < int(m_peers.size()));
+			erase_peer(m_peers.begin() + force_erase_candidate);
 		}
 	}
 
@@ -710,13 +730,6 @@ namespace libtorrent
 		return m_peers.begin() + candidate;
 	}
 
-	void policy::pulse()
-	{
-		INVARIANT_CHECK;
-
-		erase_peers();
-	}
-
 	bool policy::new_connection(peer_connection& c, int session_time)
 	{
 		TORRENT_ASSERT(!c.is_local());
@@ -739,6 +752,18 @@ namespace libtorrent
 			&& ses.num_connections() >= ses.settings().connections_limit
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+			(*m_torrent->session().m_logger) << time_now_string()
+				<< " *** TOO MANY CONNECTIONS ["
+				" torrent: " << m_torrent->name() <<
+				" torrent peers: " << m_torrent->num_peers() <<
+				" torrent limit: " << m_torrent->max_connections() <<
+				" global peers: " << ses.num_connections() <<
+				" global limit: " << ses.settings().connections_limit <<
+				" global list peers " << int(m_peers.size()) <<
+				" global list limit: " << m_torrent->settings().max_peerlist_size <<
+				" ]\n";
+#endif
 			c.disconnect(errors::too_many_connections);
 			return false;
 		}
@@ -859,9 +884,21 @@ namespace libtorrent
 			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 			{
 				// this may invalidate our iterator!
-				erase_peers();
+				erase_peers(force_erase);
 				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
 				{
+#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
+					(*m_torrent->session().m_logger) << time_now_string()
+						<< " *** TOO MANY CONNECTIONS ["
+						" torrent: " << m_torrent->name() <<
+						" torrent peers: " << m_torrent->num_peers() <<
+						" torrent limit: " << m_torrent->max_connections() <<
+						" global peers: " << ses.num_connections() <<
+						" global limit: " << ses.settings().connections_limit <<
+						" global list peers " << int(m_peers.size()) <<
+						" global list limit: " << m_torrent->settings().max_peerlist_size <<
+						" ]\n";
+#endif
 					c.disconnect(errors::too_many_connections);
 					return false;
 				}
@@ -1678,6 +1715,13 @@ namespace libtorrent
 	// this returns true if lhs is a better erase candidate than rhs
 	bool policy::compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const
 	{
+		TORRENT_ASSERT(lhs.connection == 0);
+		TORRENT_ASSERT(rhs.connection == 0);
+
+		// primarily, prefer getting rid of peers we've already tried and failed
+		if (lhs.failcount != rhs.failcount)
+			return lhs.failcount > rhs.failcount;
+
 		bool lhs_resume_data_source = lhs.source == peer_info::resume_data;
 		bool rhs_resume_data_source = rhs.source == peer_info::resume_data;
 
@@ -1689,7 +1733,10 @@ namespace libtorrent
 			return lhs.connectable < rhs.connectable;
 
 		// prefer peers with higher failcount
-		return lhs.failcount > rhs.failcount;
+		if (lhs.failcount != rhs.failcount)
+			return lhs.failcount > rhs.failcount;
+
+		return lhs.trust_points < rhs.trust_points;
 	}
 
 	// this returns true if lhs is a better connect candidate than rhs

@@ -108,10 +108,6 @@ namespace libtorrent
 
 		policy(torrent* t);
 
-		// this is called every 10 seconds to allow
-		// for peer choking management
-		void pulse();
-
 		struct peer;
 
 #if TORRENT_USE_I2P
@@ -433,9 +429,11 @@ namespace libtorrent
 
 		bool is_connect_candidate(peer const& p, bool finished) const;
 		bool is_erase_candidate(peer const& p, bool finished) const;
+		bool is_force_erase_candidate(peer const& pe) const;
 		bool should_erase_immediately(peer const& p) const;
 
-		void erase_peers();
+		enum flags_t { force_erase = 1 };
+		void erase_peers(int flags = 0);
 
 		peers_t m_peers;
 

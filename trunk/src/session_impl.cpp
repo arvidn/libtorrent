@@ -1145,6 +1145,9 @@ namespace aux {
 			":redundant seed"
 			":redundant end-game"
 			":redundant closing"
+			":no memory peer errors"
+			":too many peers"
+			":transport timeout peers"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3290,7 +3293,10 @@ namespace aux {
 		m_snubbed_piece_picks = 0;
 		m_connect_timeouts = 0;
 		m_uninteresting_peers = 0;
+		m_transport_timeout_peers = 0;
 		m_timeout_peers = 0;
+		m_no_memory_peers = 0;
+		m_too_many_peers = 0;
 		m_connection_attempts = 0;
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
@@ -3623,6 +3629,10 @@ namespace aux {
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes));
+
+			STAT_LOG(d, m_no_memory_peers);
+			STAT_LOG(d, m_too_many_peers);
+			STAT_LOG(d, m_transport_timeout_peers);
 
 			fprintf(m_stats_logger, "\n");
 
