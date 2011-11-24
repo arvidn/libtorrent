@@ -7187,8 +7187,6 @@ ctx->set_verify_callback(verify_function, ec);
 				m_available_free_upload = distribute_free_upload(
 					this->begin(), this->end(), m_available_free_upload);
 			}
-
-			m_policy.pulse();
 		}
 
 		// if we're in upload only mode and we're auto-managed
