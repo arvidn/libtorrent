@@ -782,6 +782,23 @@ namespace libtorrent
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	void session::get_cache_info(sha1_hash const& ih
+		, std::vector<cached_piece_info>& ret) const
+	{
+		cache_status st;
+		get_cache_info(ih, &st);
+		ret.swap(st.pieces);
+	}
+
+	cache_status session::get_cache_status() const
+	{
+		cache_status st;
+		get_cache_info(sha1_hash(0), &st);
+		return st;
+	}
+#endif
+
 	void session::get_cache_info(sha1_hash const& ih
 		, cache_status* ret) const
 	{

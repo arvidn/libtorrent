@@ -357,6 +357,15 @@ namespace
 		return ret;
 	 }
 
+#ifndef TORRENT_NO_DEPRECATE
+	 cache_status get_cache_status(session& s)
+	 {
+	 	cache_status ret;
+		s.get_cache_info(sha1_hash(0), &ret);
+		return ret;
+	 }
+#endif
+
 #ifndef TORRENT_DISABLE_GEO_IP
     void load_asnum_db(session& s, std::string file)
     {
@@ -640,6 +649,9 @@ void bind_session()
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
         .def("get_cache_info", &get_cache_info)
+#ifndef TORRENT_NO_DEPRECATE
+        .def("get_cache_status", &get_cache_status)
+#endif
         .def("set_peer_id", allow_threads(&session::set_peer_id))
         ;
 

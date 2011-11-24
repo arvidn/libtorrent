@@ -247,6 +247,14 @@ namespace libtorrent
 
 		session_status status() const;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in aio branch
+		TORRENT_DEPRECATED_PREFIX
+		void get_cache_info(sha1_hash const& ih
+			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		cache_status get_cache_status() const TORRENT_DEPRECATED;
+#endif
 		void get_cache_info(sha1_hash const& ih
 			, cache_status* ret) const;
 
