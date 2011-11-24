@@ -5367,7 +5367,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// for some weird reason valgrind claims these are uninitialized
 		// unless it's zeroed out here (block_info has a construct that's
 		// supposed to initialize it)
-		memset(&blk[0], 0, sizeof(blk[0]) * blk.size());
+		if (!blk.empty())
+			memset(&blk[0], 0, sizeof(blk[0]) * blk.size());
 
 		int counter = 0;
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
