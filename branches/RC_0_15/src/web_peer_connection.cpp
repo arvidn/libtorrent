@@ -182,8 +182,8 @@ namespace libtorrent
 		{
 			// handle .torrent files that don't include the filename in the url
 			if (m_path.empty()) m_path += "/" + t->torrent_file().name();
-			else if (m_path[m_path.size() - 1] == '/') m_path += t->torrent_file().name();
-			if (!m_url.empty() && m_url[m_url.size() - 1] == '/') m_url += t->torrent_file().name();
+			else if (m_path[m_path.size() - 1] == '/') m_path += t->torrent_file().files().at(0).path.string();
+			if (!m_url.empty() && m_url[m_url.size() - 1] == '/') m_url += t->torrent_file().files().at(0).path.string();
 		}
 
 		torrent_info const& info = t->torrent_file();
