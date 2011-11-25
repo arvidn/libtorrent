@@ -378,7 +378,7 @@ namespace libtorrent
 						+ (" " + m_parser.message());
 					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
-						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
+						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), m_url
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);
