@@ -276,7 +276,8 @@ piece_size will be calculated such that the torrent file is roughly 40 kB.
 If a ``pad_size_limit`` is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
 with the start of a piece. The pad_file_limit is ignored unless the
-``optimize`` flag is passed.
+``optimize`` flag is passed. Typically it doesn't make sense to set this
+any lower than 4kiB.
 
 The overload that takes a ``torrent_info`` object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
