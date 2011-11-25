@@ -1066,6 +1066,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			int res = load_file(path, file_buf, ec);
 			if (res == -1)
 			{
+				fprintf(stderr, ">> file not found: %s\n", path.c_str());
 				send_response(s, ec, 404, "Not Found", extra_header, 0);
 				continue;
 			}
@@ -1073,6 +1074,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			if (res != 0)
 			{
 				// this means the file was either too big or couldn't be read
+				fprintf(stderr, ">> file too big: %s\n", path.c_str());
 				send_response(s, ec, 503, "Internal Error", extra_header, 0);
 				continue;
 			}
