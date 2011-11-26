@@ -204,12 +204,17 @@ namespace libtorrent
 				i != files.end(); ++i)
 			{
 				file_slice const& f = *i;
+				if (info.orig_files().internal_at(f.file_index).pad_file)
+				{
+					m_file_requests.push_back(f.file_index);
+					continue;
+				}
 
 				request += "GET ";
 				if (using_proxy)
 				{
 					request += m_url;
-					std::string path = info.orig_files().file_path(info.orig_files().at(f.file_index));
+					std::string path = info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -218,7 +223,7 @@ namespace libtorrent
 				else
 				{
 					std::string path = m_path;
-					path += info.orig_files().file_path(info.orig_files().at(f.file_index));
+					path += info.orig_files().file_path(info.orig_files().internal_at(f.file_index));
 #ifdef TORRENT_WINDOWS
 					convert_path_to_posix(path);
 #endif
@@ -257,6 +262,36 @@ namespace libtorrent
 			return range_start <= req_start
 				&& range_start + range.length >= req_start + req.length;
 		}
+	}
+
+	bool web_peer_connection::maybe_harvest_block()
+	{
+		peer_request const& front_request = m_requests.front();
+
+		if (int(m_piece.size()) < front_request.length) return false;
+		TORRENT_ASSERT(int(m_piece.size() == front_request.length));
+
+		// each call to incoming_piece() may result in us becoming
+		// a seed. If we become a seed, all seeds we're connected to
+		// will be disconnected, including this web seed. We need to
+		// check for the disconnect condition after the call.
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		TORRENT_ASSERT(t);
+		buffer::const_interval recv_buffer = receive_buffer();
+
+		incoming_piece(front_request, &m_piece[0]);
+		m_requests.pop_front();
+		if (associated_torrent().expired()) return false;
+		TORRENT_ASSERT(m_block_pos >= front_request.length);
+		m_block_pos -= front_request.length;
+		cut_receive_buffer(m_body_start, t->block_size() + 1024);
+		m_body_start = 0;
+		recv_buffer = receive_buffer();
+//		TORRENT_ASSERT(m_received_body <= range_end - range_start);
+		m_piece.clear();
+		TORRENT_ASSERT(m_piece.empty());
+		return true;
 	}
 
 	void web_peer_connection::on_receive(error_code const& error
@@ -660,6 +695,7 @@ namespace libtorrent
 				int piece_size = int(m_piece.size());
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
+				if (copy_size > m_chunk_pos && m_chunk_pos > 0) copy_size = m_chunk_pos;
 				if (copy_size > 0)
 				{
 					m_piece.resize(piece_size + copy_size);
@@ -678,25 +714,9 @@ namespace libtorrent
 					incoming_piece_fragment(copy_size);
 				}
 
-				if (int(m_piece.size()) == front_request.length)
-				{
-					// each call to incoming_piece() may result in us becoming
-					// a seed. If we become a seed, all seeds we're connected to
-					// will be disconnected, including this web seed. We need to
-					// check for the disconnect condition after the call.
-
-					incoming_piece(front_request, &m_piece[0]);
-					m_requests.pop_front();
-					if (associated_torrent().expired()) return;
-					TORRENT_ASSERT(m_block_pos >= front_request.length);
-					m_block_pos -= front_request.length;
-					cut_receive_buffer(m_body_start, t->block_size() + 1024);
-					m_body_start = 0;
+				if (maybe_harvest_block())
 					recv_buffer = receive_buffer();
-					TORRENT_ASSERT(m_received_body <= range_end - range_start);
-					m_piece.clear();
-					TORRENT_ASSERT(m_piece.empty());
-				}
+				if (associated_torrent().expired()) return;
 			}
 
 			// report all received blocks to the bittorrent engine
@@ -776,6 +796,30 @@ namespace libtorrent
 				m_received_body = 0;
 				m_chunk_pos = 0;
 				m_partial_chunk_header = 0;
+				
+				torrent_info const& info = t->torrent_file();
+				while (!m_file_requests.empty()
+					&& info.orig_files().internal_at(m_file_requests.front()).pad_file)
+				{
+					// the next file is a pad file. We didn't actually send
+					// a request for this since it most likely doesn't exist on
+					// the web server anyway. Just pretend that we received a
+					// bunch of zeroes here and pop it again
+					int file_index = m_file_requests.front();
+					m_file_requests.pop_front();
+					size_type file_size = info.orig_files().file_size(info.orig_files().internal_at(file_index));
+					TORRENT_ASSERT(m_block_pos < front_request.length);
+					int pad_size = (std::min)(file_size, size_type(front_request.length - m_block_pos));
+
+					// insert zeroes to represent the pad file
+					m_piece.resize(m_piece.size() + pad_size, 0);
+					m_block_pos += pad_size;
+					incoming_piece_fragment(pad_size);
+
+					if (maybe_harvest_block())
+						recv_buffer = receive_buffer();
+					if (associated_torrent().expired()) return;
+				}
 				continue;
 			}
 			if (bytes_transferred == 0)

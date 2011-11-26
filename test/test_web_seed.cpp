@@ -98,6 +98,14 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	cache_status cs;
 
+	file_storage const& fs = torrent_file->files();
+	uint pad_file_size = 0;
+	for (int i = 0; i < fs.num_files(); ++i)
+	{
+		file_entry f = fs.at(i);
+		if (f.pad_file) pad_file_size += f.size;
+	}
+
 	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
@@ -124,11 +132,11 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 		if (s.is_seeding /* && ss.download_rate == 0.f*/)
 		{
-			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size);
+			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
 			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
-				, total_size);
+				, total_size - pad_file_size);
 			break;
 		}
 		test_sleep(500);
@@ -199,12 +207,12 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	file_storage fs;
 	std::srand(10);
-	int piece_size = 16;
+	int piece_size = 0x4000;
 	if (test_url_seed)
 	{
 		int file_sizes[] =
-		{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-			,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
+		{ 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
 
 		char* random_data = (char*)malloc(300000);
 		for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
@@ -230,7 +238,10 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 
 	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
 
-	libtorrent::create_torrent t(fs, piece_size, 0, libtorrent::create_torrent::calculate_file_hashes);
+	// generate a torrent with pad files to make sure they
+	// are not requested web seeds
+	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize
+		| libtorrent::create_torrent::calculate_file_hashes);
 	char tmp[512];
 	if (test_url_seed)
 	{
@@ -243,6 +254,12 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 		t.add_http_seed(tmp);
 	}
 	fprintf(stderr, "testing: %s\n", tmp);
+
+	for (int i = 0; i < fs.num_files(); ++i)
+	{
+		file_entry f = fs.at(i);
+		fprintf(stderr, "  %04x: %d %s\n", int(f.offset), f.pad_file, f.path.c_str());
+	}
 
 //	for (int i = 0; i < 1000; ++i) sleep(1000);
 
