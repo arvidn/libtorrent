@@ -105,6 +105,8 @@ namespace libtorrent
 
 	private:
 
+		bool maybe_harvest_block();
+
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
