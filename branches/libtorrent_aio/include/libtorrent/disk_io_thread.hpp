@@ -89,6 +89,9 @@ namespace libtorrent
 			, blocks_read_hit(0)
 			, reads(0)
 			, queued_bytes(0)
+#ifndef TORRENT_NO_DEPRECATE
+			, cache_size(0)
+#endif
 			, write_cache_size(0)
 			, read_cache_size(0)
 			, pinned_blocks(0)
@@ -143,6 +146,10 @@ namespace libtorrent
 		// submitted to the OS for writing, but not yet complete
 		mutable size_type queued_bytes;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// this is the sum of write_cache_size and read_cache_size
+		int cache_size;
+#endif
 		// the number of blocks in the cache used for write cache
 		int write_cache_size;
 

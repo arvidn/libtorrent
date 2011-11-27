@@ -504,6 +504,9 @@ void bind_session()
         .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
         .def_readonly("reads", &cache_status::reads)
         .def_readonly("queued_bytes", &cache_status::queued_bytes)
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("cache_size", &cache_status::cache_size)
+#endif
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)

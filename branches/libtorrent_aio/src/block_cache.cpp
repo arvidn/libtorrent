@@ -1154,6 +1154,9 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->average_hash_time = m_hash_time.mean();
 	ret->cumulative_hash_time = m_cumulative_hash_time;
 	ret->pinned_blocks = m_pinned_blocks;
+#ifndef TORRENT_NO_DEPRECATE
+	ret->cache_size = m_read_cache_size + m_write_cache_size;
+#endif
 }
 
 #ifdef TORRENT_DEBUG
