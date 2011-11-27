@@ -724,6 +724,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(read_piece, piece);
 	}
 
+	bool torrent_handle::have_piece(int piece) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET1(bool, false, have_piece, piece);
+		return r;
+	}
+
 	storage_interface* torrent_handle::get_storage_impl() const
 	{
 		INVARIANT_CHECK;

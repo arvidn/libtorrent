@@ -2363,6 +2363,7 @@ Its declaration looks like this::
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
 		void read_piece(int piece) const;
+		bool have_piece(int piece) const;
 
 		sha1_hash info_hash() const;
 
@@ -2628,6 +2629,15 @@ read_piece_alert_. In order to receive this alert, you must enable
 
 Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.
+
+have_piece()
+------------
+
+	::
+
+		bool have_piece(int piece) const;
+
+Returns true if this piece has been completely downloaded, and false otherwise.
 
 force_reannounce() force_dht_announce()
 ---------------------------------------
