@@ -649,6 +649,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
+			if (m_recv_buffer.empty())
+			{
+				TORRENT_ASSERT(m_recv_pos == 0);
+				return buffer::interval(0,0);
+			}
 			TORRENT_ASSERT(!m_disk_recv_buffer);
 			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
 			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
@@ -661,6 +666,11 @@ namespace libtorrent
 		
 		buffer::const_interval receive_buffer() const
 		{
+			if (m_recv_buffer.empty())
+			{
+				TORRENT_ASSERT(m_recv_pos == 0);
+				return buffer::interval(0,0);
+			}
 			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
 			return buffer::const_interval(&m_recv_buffer[0]
 				, &m_recv_buffer[0] + rcv_pos);
