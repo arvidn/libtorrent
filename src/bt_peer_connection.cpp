@@ -1082,7 +1082,7 @@ namespace libtorrent
 		TORRENT_ASSERT(received > 0);
 		
 		buffer::const_interval recv_buffer = receive_buffer();
-		int recv_pos = recv_buffer.end - recv_buffer.begin;
+		int recv_pos = receive_pos(); // recv_buffer.end - recv_buffer.begin;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
