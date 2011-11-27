@@ -819,7 +819,11 @@ int test_main()
 	TEST_EQUAL(is_root_path("c:\\blah"), false);
 	TEST_EQUAL(is_root_path("c:\\"), true);
 	TEST_EQUAL(is_root_path("\\\\"), true);
-	TEST_EQUAL(is_root_path("\\\\foobar"), false);
+	TEST_EQUAL(is_root_path("\\\\foobar"), true);
+	TEST_EQUAL(is_root_path("\\\\foobar\\"), true);
+	TEST_EQUAL(is_root_path("\\\\foobar/"), true);
+	TEST_EQUAL(is_root_path("\\\\foo/bar"), false);
+	TEST_EQUAL(is_root_path("\\\\foo\\bar\\"), false);
 #else
 	TEST_EQUAL(is_root_path("/blah"), false);
 	TEST_EQUAL(is_root_path("/"), true);
@@ -846,6 +850,10 @@ int test_main()
 	TEST_EQUAL(has_parent_path("c:\\"), false);
 	TEST_EQUAL(parent_path("c:\\a"), "c:\\");
 	TEST_EQUAL(has_parent_path("c:\\a"), true);
+	TEST_EQUAL(has_parent_path("\\\\a"), false);
+	TEST_EQUAL(has_parent_path("\\\\foobar/"), false);
+	TEST_EQUAL(has_parent_path("\\\\foobar\\"), false);
+	TEST_EQUAL(has_parent_path("\\\\foo/bar\\"), true);
 #endif
 
 #ifdef TORRENT_WINDOWS
