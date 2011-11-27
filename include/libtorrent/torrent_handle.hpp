@@ -161,6 +161,7 @@ namespace libtorrent
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0) const;
 		void read_piece(int piece) const;
+		bool have_piece(int piece) const;
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
