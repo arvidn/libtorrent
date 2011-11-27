@@ -455,6 +455,13 @@ struct peer_conn
 			}
 			else if (msg == 7) // piece
 			{
+//				if (verify_downloads)
+				{
+					int piece = read_uint32(ptr);
+					int start = read_uint32(ptr);
+					int size = bytes_transferred - 9;
+					verify_piece(piece, start, ptr, size);
+				}
 				++blocks_received;
 				--outstanding_requests;
 				int piece = detail::read_int32(ptr);
@@ -478,6 +485,22 @@ struct peer_conn
 			}
 			work_download();
 		}
+	}
+
+	bool verify_piece(int piece, int start, char const* ptr, int size)
+	{
+		boost::uint32_t* buf = (boost::uint32_t*)ptr;
+		boost::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+		for (int i = 0; i < size / 4; ++i)
+		{
+			if (buf[i] != fill)
+			{
+				fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
+				exit(1);
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void write_piece(int piece, int start, int length)
@@ -564,19 +587,21 @@ void generate_torrent(std::vector<char>& buf, int size)
 	const int piece_size = 1024 * 1024;
 	const int num_pieces = size;
 	const size_type total_size = size_type(piece_size) * num_pieces;
-/*
+
 	size_type s = total_size;
 	int i = 0;
+	int file_size = total_size / 9;
 	while (s > 0)
 	{
 		char buf[100];
 		snprintf(buf, sizeof(buf), "t/stress_test%d", i);
 		++i;
-		fs.add_file(buf, (std::min)(s, size_type(20*1024*1024)));
-		s -= 20*1024*1024;
+		fs.add_file(buf, (std::min)(s, size_type(file_size)));
+		s -= file_size;
+		file_size += 200;
 	}
-*/
-	fs.add_file("stress_test_file", total_size);
+
+//	fs.add_file("stress_test_file", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 
 	// generate the hashes in 4 threads
