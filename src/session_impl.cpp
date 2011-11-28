@@ -951,6 +951,7 @@ namespace aux {
 		m_last_redundant = 0;
 		m_last_uploaded = 0;
 		m_last_downloaded = 0;
+		get_thread_cpu_usage(&m_network_thread_cpu_usage);
 
 		reset_stat_counters();
 		rotate_stats_log();
