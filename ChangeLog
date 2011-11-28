@@ -99,6 +99,10 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fixed small memory leak in DHT
+
+0.15.9 release
+
 	* added some functions missing from the python binding
 	* fixed rare piece picker bug
 	* fixed invalid torrent_status::finished_time
