@@ -1321,6 +1321,7 @@ namespace libtorrent
 				&& m_settings.max_queued_disk_bytes > 0)
 				m_exceeded_write_queue = true;
 		}
+/*
 		else if (j.action == disk_io_job::read)
 		{
 			// if this is a cache hit, return it right away!
@@ -1347,7 +1348,7 @@ namespace libtorrent
 			free_buffer(j.buffer);
 			const_cast<disk_io_job&>(j).buffer = 0;
 		}
-
+*/
 		m_jobs.push_back(j);
 		m_jobs.back().callback.swap(const_cast<boost::function<void(int, disk_io_job const&)>&>(f));
 
