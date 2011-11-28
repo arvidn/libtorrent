@@ -112,7 +112,6 @@ namespace libtorrent { namespace dht
 		void refresh_timeout(error_code const& e);
 		void tick(error_code const& e);
 
-		void on_bootstrap();
 		void send_packet(msg const& m);
 
 		void incoming_error(char const* msg, lazy_entry const& e, udp::endpoint const& ep);

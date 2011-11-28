@@ -2820,7 +2820,9 @@ namespace libtorrent
 			{
 				char hex_pid[41];
 				to_hex(recv_buffer.begin, 20, hex_pid);
+				hex_pid[40] = 0;
 				char ascii_pid[21];
+				ascii_pid[20] = 0;
 				for (int i = 0; i != 20; ++i)
 				{
 					if (is_print(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
