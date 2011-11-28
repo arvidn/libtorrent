@@ -1,4 +1,6 @@
-0.15.89 release
+	* fixed small memory leak in DHT
+
+0.15.9 release
 
 	* fixed https crash
 	* added some functions missing from the python binding
