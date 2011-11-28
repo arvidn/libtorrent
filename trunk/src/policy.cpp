@@ -507,30 +507,28 @@ namespace libtorrent
 			peer& pe = *m_peers[round_robin];
 			int current = round_robin;
 
+			if (is_erase_candidate(pe, m_finished)
+				&& (erase_candidate == -1
+					|| !compare_peer_erase(*m_peers[erase_candidate], pe)))
 			{
-				if (is_erase_candidate(pe, m_finished)
-					&& (erase_candidate == -1
-						|| !compare_peer_erase(*m_peers[erase_candidate], pe)))
+				if (should_erase_immediately(pe))
 				{
-					if (should_erase_immediately(pe))
-					{
-						if (erase_candidate > current) --erase_candidate;
-						if (force_erase_candidate > current) --force_erase_candidate;
-						TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
-						--round_robin;
-						erase_peer(m_peers.begin() + current);
-					}
-					else
-					{
-						erase_candidate = current;
-					}
+					if (erase_candidate > current) --erase_candidate;
+					if (force_erase_candidate > current) --force_erase_candidate;
+					TORRENT_ASSERT(current >= 0 && current < int(m_peers.size()));
+					erase_peer(m_peers.begin() + current);
+					continue;
 				}
-				if (is_force_erase_candidate(pe)
-					&& (force_erase_candidate == -1
-						|| !compare_peer_erase(*m_peers[force_erase_candidate], pe)))
+				else
 				{
-					force_erase_candidate = current;
+					erase_candidate = current;
 				}
+			}
+			if (is_force_erase_candidate(pe)
+				&& (force_erase_candidate == -1
+					|| !compare_peer_erase(*m_peers[force_erase_candidate], pe)))
+			{
+				force_erase_candidate = current;
 			}
 
 			++round_robin;
