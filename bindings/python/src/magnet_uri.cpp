@@ -47,7 +47,9 @@ namespace {
             p.auto_managed = params["auto_managed"];
         if (params.has_key("duplicate_is_error"))
             p.duplicate_is_error = params["duplicate_is_error"];
-        
+
+        allow_threading_guard guard;
+
         return add_magnet_uri(s, uri, p);
     }
 
