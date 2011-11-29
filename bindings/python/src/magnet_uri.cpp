@@ -25,6 +25,8 @@ namespace {
         std::list<std::string> string_storage;
         dict_to_add_torrent_params(params, p, resume_buf, string_storage);
 
+        allow_threading_guard guard;
+
 #ifndef BOOST_NO_EXCEPTIONS
         return add_magnet_uri(s, uri, p);
 #else
