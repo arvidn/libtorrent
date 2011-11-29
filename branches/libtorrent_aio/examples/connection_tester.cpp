@@ -66,6 +66,10 @@ void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
 int local_if_counter = 0;
 bool local_bind = false;
 
+// when set to true, blocks downloaded are verified to match
+// the test torrents
+bool verify_downloads = false;
+
 // number of seeds we've spawned. The test is terminated
 // when this reaches zero, for dual tests
 boost::detail::atomic_count num_seeds(0);
@@ -455,7 +459,7 @@ struct peer_conn
 			}
 			else if (msg == 7) // piece
 			{
-//				if (verify_downloads)
+				if (verify_downloads)
 				{
 					int piece = read_uint32(ptr);
 					int start = read_uint32(ptr);
