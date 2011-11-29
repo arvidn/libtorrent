@@ -972,6 +972,9 @@ namespace libtorrent
 			int m_connect_timeouts;
 			int m_uninteresting_peers;
 			int m_timeout_peers;
+			int m_no_memory_peers;
+			int m_too_many_peers;
+			int m_transport_timeout_peers;
 			cache_status m_last_cache_status;
 			size_type m_last_failed;
 			size_type m_last_redundant;

@@ -589,6 +589,8 @@ namespace libtorrent
 		bool packet_finished() const
 		{ return m_packet_size <= m_recv_pos; }
 
+		int receive_pos() const { return m_recv_pos; }
+
 #ifdef TORRENT_DEBUG
 		bool piece_failed;
 #endif
@@ -647,11 +649,16 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		buffer::interval wr_recv_buffer()
 		{
+			if (m_recv_buffer.empty())
+			{
+				TORRENT_ASSERT(m_recv_pos == 0);
+				return buffer::interval(0,0);
+			}
 			TORRENT_ASSERT(!m_disk_recv_buffer);
 			TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
-			if (m_recv_buffer.empty()) return buffer::interval(0,0);
+			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
 			return buffer::interval(&m_recv_buffer[0] + m_recv_start
-				, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
+				, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 		}
 
 		std::pair<buffer::interval, buffer::interval> wr_recv_buffers(int bytes);
@@ -659,9 +666,14 @@ namespace libtorrent
 		
 		buffer::const_interval receive_buffer() const
 		{
-			if (m_recv_buffer.empty()) return buffer::const_interval(0,0);
+			if (m_recv_buffer.empty())
+			{
+				TORRENT_ASSERT(m_recv_pos == 0);
+				return buffer::interval(0,0);
+			}
+			int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
 			return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
-				, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
+				, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 		}
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);

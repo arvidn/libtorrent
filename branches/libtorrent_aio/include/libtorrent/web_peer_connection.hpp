@@ -96,7 +96,7 @@ namespace libtorrent
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred);
 			
-		std::string const& url() const { return m_original_url; }
+		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual void disconnect(error_code const& ec, int error = 0);
@@ -104,6 +104,8 @@ namespace libtorrent
 		void write_request(peer_request const& r);
 
 	private:
+
+		bool maybe_harvest_block();
 
 		// returns the block currently being
 		// downloaded. And the progress of that
@@ -117,7 +119,6 @@ namespace libtorrent
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
-		std::string m_original_url;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response

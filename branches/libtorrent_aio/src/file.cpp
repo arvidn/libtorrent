@@ -417,12 +417,29 @@ namespace libtorrent
 		if (f.empty()) return false;
 
 #ifdef TORRENT_WINDOWS
+		// match \\ form
 		if (f == "\\\\") return true;
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
 		if (i == int(f.size()-2) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
 			return true;
+		// match network paths \\computer_name\ form
+		if (f.size() > 2 && f[0] == '\\' && f[1] == '\\')
+		{
+			// we don't care about the last character, since it's OK for it
+			// to be a slash or a back slash
+			bool found = false;
+			for (int i = 2; i < f.size() - 1; ++i)
+			{
+				if (f[i] != '\\' && f[i] != '/') continue;
+				// there is a directory separator in here,
+				// i.e. this is not the root
+				found = true;
+				break;
+			}
+			if (!found) return true;
+		}
 #else
 		// as well as parent_path("/") should be "/".
 		if (f == "/") return true;
@@ -433,13 +450,7 @@ namespace libtorrent
 	bool has_parent_path(std::string const& f)
 	{
 		if (f.empty()) return false;
-
-#ifdef TORRENT_WINDOWS
-		if (f == "\\\\") return false;
-#else
-		// as well as parent_path("/") should be "/".
-		if (f == "/") return false;
-#endif
+		if (is_root_path(f)) return false;
 
 		int len = f.size() - 1;
 		// if the last character is / or \ ignore it

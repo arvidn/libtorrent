@@ -5732,10 +5732,10 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 	}
 
-	void torrent::get_download_queue(std::vector<partial_piece_info>& queue)
+	void torrent::get_download_queue(std::vector<partial_piece_info>* queue)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		queue.clear();
+		queue->clear();
 		std::vector<block_info>& blk = m_ses.m_block_info_storage;
 		blk.clear();
 
@@ -5746,6 +5746,11 @@ ctx->set_verify_callback(verify_function, ec);
 
 		const int blocks_per_piece = m_picker->blocks_in_piece(0);
 		blk.resize(q.size() * blocks_per_piece);
+		// for some weird reason valgrind claims these are uninitialized
+		// unless it's zeroed out here (block_info has a construct that's
+		// supposed to initialize it)
+		if (!blk.empty())
+			memset(&blk[0], 0, sizeof(blk[0]) * blk.size());
 
 		int counter = 0;
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
@@ -5757,6 +5762,7 @@ ctx->set_verify_callback(verify_function, ec);
 			pi.finished = (int)i->finished;
 			pi.writing = (int)i->writing;
 			pi.requested = (int)i->requested;
+			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[counter * blocks_per_piece];
 			int piece_size = int(torrent_file().piece_size(i->index));
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
@@ -5807,7 +5813,7 @@ ctx->set_verify_callback(verify_function, ec);
 				pi.blocks[j].num_peers = i->info[j].num_peers;
 			}
 			pi.piece_index = i->index;
-			queue.push_back(pi);
+			queue->push_back(pi);
 		}
 	
 	}
@@ -7525,8 +7531,6 @@ ctx->set_verify_callback(verify_function, ec);
 				m_available_free_upload = distribute_free_upload(
 					this->begin(), this->end(), m_available_free_upload);
 			}
-
-			m_policy.pulse();
 		}
 
 		// if we're in upload only mode and we're auto-managed

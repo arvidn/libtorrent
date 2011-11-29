@@ -62,7 +62,7 @@ void report_failure(char const* str, char const* file, int line);
 #define TEST_EQUAL(x, y) \
 	if (x != y) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR: " << #x << ": " << x << " expected: " << y << std::endl; \
+		s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -85,7 +85,7 @@ void report_failure(char const* str, char const* file, int line);
 	try { \
 		if (x != y) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " << #x << ": " << x << " expected: " << y << std::endl; \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << x << " expected: " << y << std::endl; \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \

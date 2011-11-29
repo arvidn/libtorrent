@@ -151,7 +151,7 @@ namespace libtorrent
 			, use_parole_mode(true)
 			, cache_size(1024)
 			, cache_buffer_chunk_size(0)
-			, cache_expiry(120)
+			, cache_expiry(300)
 			, use_read_cache(true)
 			, dont_flush_write_cache(false)
 			, explicit_read_cache(0)
@@ -550,7 +550,7 @@ namespace libtorrent
 
 		// the number of seconds a write cache entry sits
 		// idle in the cache before it's forcefully flushed
-		// to disk. Default is 60 seconds.
+		// to disk. Default is 5 minutes.
 		int cache_expiry;
 
 		// when true, the disk I/O thread uses the disk

@@ -133,7 +133,7 @@ reports = [
 	('disk_write_queue', 'Bytes', 'B', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes']),
 	('peers_upload', 'num', '', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers bw-up', 'max unchoked']),
 	('peers_download', 'num', '', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down','num end-game peers']),
-	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure']),
+	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure', 'no memory peer errors', 'too many peers', 'transport timeout peers']),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk job time', 'disk read time', 'disk write time', 'disk hash time', 'disk sort time', 'disk issue time']),
 	('disk_write_time', 'write time', 's', 'distribution of write jobs timing', ['disk write time'], {'type': 'histogram', 'binwidth': 0.1, 'numbins': 400}),

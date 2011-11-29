@@ -421,16 +421,9 @@ No build system is present if libtorrent is checked out from CVS - it
 needs to be generated first. If you're building from a released tarball,
 you may skip directly to `Step 2: Running configure`_.
 
-Execute the following commands, in the given order, to generate
-the build system::
+Execute the following command to generate the build system::
 
-	aclocal -I m4
-	autoheader
-	libtoolize --copy --force
-	automake --add-missing --copy --gnu
-	autoconf
-
-On darwin/OSX you have to run ``glibtoolize`` instead of ``libtoolize``.
+	./autotool.sh
 
 Step 2: Running configure
 ~~~~~~~~~~~~~~~~~~~~~~~~~

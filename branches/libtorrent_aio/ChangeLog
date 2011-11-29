@@ -9,6 +9,7 @@
 
 0.16 release
 
+	* add web seed support for torrents with pad files
 	* introduced a more scalable API for torrent status updates (post_torrent_updates())
 	* updated the API to add_torrent_params turning all bools into flags of a flags field
 	* added async_add_torrent() function to significantly improve performance when
@@ -108,6 +109,10 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+	* fixed small memory leak in DHT
+
+0.15.9 release
 
 	* added some functions missing from the python binding
 	* fixed rare piece picker bug

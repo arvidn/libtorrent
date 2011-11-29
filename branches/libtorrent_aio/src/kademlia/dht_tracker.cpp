@@ -250,6 +250,9 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
+	// defined in node.cpp
+	extern void nop();
+
 	void dht_tracker::start(entry const& bootstrap)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -273,7 +276,7 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, boost::bind(&dht_tracker::on_bootstrap, self(), _1));
+		m_dht.bootstrap(initial_nodes, boost::bind(&libtorrent::dht::nop));
 	}
 
 	void dht_tracker::stop()
@@ -605,11 +608,6 @@ namespace libtorrent { namespace dht
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		m_dht.add_router_node(node);
-	}
-
-	void dht_tracker::on_bootstrap(std::vector<std::pair<node_entry, std::string> > const&)
-	{
-	// #error post an alert
 	}
 
 	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)

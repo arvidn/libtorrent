@@ -724,6 +724,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(read_piece, piece);
 	}
 
+	bool torrent_handle::have_piece(int piece) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET1(bool, false, have_piece, piece);
+		return r;
+	}
+
 	storage_interface* torrent_handle::get_storage_impl() const
 	{
 		INVARIANT_CHECK;
@@ -890,7 +897,7 @@ namespace libtorrent
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL1(get_download_queue, boost::ref(queue));
+		TORRENT_SYNC_CALL1(get_download_queue, &queue);
 	}
 
 	void torrent_handle::set_piece_deadline(int index, int deadline, int flags) const

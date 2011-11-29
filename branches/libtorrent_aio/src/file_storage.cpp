@@ -551,7 +551,8 @@ namespace libtorrent
 				i->offset = off;
 				char name[30];
 				snprintf(name, sizeof(name), ".____padding_file/%d", padding_file);
-				i->set_name(name);
+				std::string path = combine_path(m_name, name);
+				i->set_name(path.c_str());
 				i->pad_file = true;
 				off += pad_size;
 				++padding_file;

@@ -332,6 +332,7 @@ void bind_torrent_handle()
 #endif
         .def("add_piece", add_piece)
         .def("read_piece", _(&torrent_handle::read_piece))
+        .def("have_piece", _(&torrent_handle::have_piece))
         .def("set_piece_deadline", _(&torrent_handle::set_piece_deadline)
             , (arg("index"), arg("deadline"), arg("flags") = 0))
         .def("reset_piece_deadline", _(&torrent_handle::reset_piece_deadline), (arg("index")))

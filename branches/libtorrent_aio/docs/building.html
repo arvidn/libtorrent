@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -502,16 +500,10 @@ and boost.program_options.</p>
 <p>No build system is present if libtorrent is checked out from CVS - it
 needs to be generated first. If you're building from a released tarball,
 you may skip directly to <a class="reference internal" href="#step-2-running-configure">Step 2: Running configure</a>.</p>
-<p>Execute the following commands, in the given order, to generate
-the build system:</p>
+<p>Execute the following command to generate the build system:</p>
 <pre class="literal-block">
-aclocal -I m4
-autoheader
-libtoolize --copy --force
-automake --add-missing --copy --gnu
-autoconf
+./autotool.sh
 </pre>
-<p>On darwin/OSX you have to run <tt class="docutils literal"><span class="pre">glibtoolize</span></tt> instead of <tt class="docutils literal"><span class="pre">libtoolize</span></tt>.</p>
 </div>
 <div class="section" id="step-2-running-configure">
 <h3>Step 2: Running configure</h3>
