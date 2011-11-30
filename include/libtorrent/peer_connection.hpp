@@ -1041,10 +1041,6 @@ namespace libtorrent
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
 
-		// counts the number of recursive calls to on_receive_data
-		// used to limit recursion
-		boost::uint8_t m_read_recurse:5;
-
 		// if this is true, the disconnection
 		// timestamp is not updated when the connection
 		// is closed. This means the time until we can
