@@ -115,6 +115,7 @@ namespace libtorrent
 
 		// don't use any extra threads to do SHA-1 hashing
 		set.hashing_threads = 0;
+		set.network_threads = 0;
 
 		set.alert_queue_size = 100;
 
@@ -185,8 +186,6 @@ namespace libtorrent
 
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
-
-		set.hashing_threads = 0;
 
 		return set;
 	}
@@ -311,6 +310,10 @@ namespace libtorrent
 		// performance machine. One core is needed for the
 		// network thread
 		set.hashing_threads = 4;
+
+		// the number of threads to use to call async_write_some
+		// on peer sockets
+		set.network_threads = 3;
 
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file

@@ -284,6 +284,7 @@ namespace libtorrent
 			, contiguous_recv_buffer(true)
 			, aio_threads(4)
 			, aio_max(300)
+			, network_threads(0)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1121,10 +1122,18 @@ namespace libtorrent
 		// contiguous recv buffer, the download rate can be much higher
 		bool contiguous_recv_buffer;
 
+		//#error this should not be an option, it should depend on whether or not we're seeding or downloading
+
 		// for some aio back-ends, the number of io-threads to use
 		int aio_threads;
 		// for some aio back-ends, the max number of outstanding jobs
 		int aio_max;
+
+		// the number of threads to use to call async_write_some on
+		// peer sockets. When seeding at extremely high speeds, using
+		// 2 or more threads here may make sense. Also when using SSL
+		// peer connections
+		int network_threads;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

@@ -4672,6 +4672,8 @@ session_settings
 		bool use_disk_read_ahead;
 		bool lock_files;
 		int hashing_threads;
+		int contiguous_recv_buffer;
+		int network_threads;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5554,6 +5556,21 @@ defaults to 1. For very high download rates, on machines with multiple cores, th
 could be incremented. Setting it higher than the number of CPU cores would presumably
 not provide any benefit of setting it to the number of cores. If it's set to 0,
 hashing is done in the disk thread.
+
+``contiguous_recv_buffer`` determines whether or not libtorrent should receive
+data from peers into a contiguous intermediate buffer, to then copy blocks into
+disk buffers from, or to make many smaller calls to ``read()``, each time passing
+in the specific buffer the data belongs in. When downloading at high rates, the latter
+may save some time copying data. When seeding at high rates, all incoming traffic
+consists of a very large number of tiny packets, and enabling ``contiguous_recv_buffer``
+will provide higher performance.
+
+``network_threads`` is the number of threads to use to call ``async_write_some``
+(i.e. send) on peer connection sockets. When seeding at extremely high rates,
+this may become a bottleneck, and setting this to 2 or more may parallelize
+that cost. When using SSL torrents, all encryption for outgoing traffic is
+done withint the socket send functions, and this will help parallelizing the
+cost of SSL encryption as well.
 
 pe_settings
 ===========

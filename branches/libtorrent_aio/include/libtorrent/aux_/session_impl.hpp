@@ -86,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
+#include "libtorrent/network_thread_pool.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -605,6 +606,10 @@ namespace libtorrent
 			// events to the io service, and needs to be
 			// constructed after it.
 			disk_io_thread m_disk_thread;
+
+			// a thread pool used for async_write_some calls,
+			// to distribute its cost to multiple threads
+			network_thread_pool m_net_thread_pool;
 
 			// this is a list of half-open tcp connections
 			// (only outgoing connections)

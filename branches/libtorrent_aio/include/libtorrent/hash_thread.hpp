@@ -34,56 +34,39 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HASH_THREAD
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
-#include <deque>
-#include <vector>
-#include <boost/detail/atomic_count.hpp>
+#include "libtorrent/thread_pool.hpp"
 
 namespace libtorrent
 {
 	struct cached_piece_entry;
 	struct disk_io_thread;
 
-	struct hash_thread
+	struct hash_queue_entry
 	{
-		hash_thread(disk_io_thread* d);
-		void stop();
+		cached_piece_entry* piece;
+		int start;
+		int end;
+	};
+
+	struct hash_thread : thread_pool<hash_queue_entry>
+	{
+		hash_thread(disk_io_thread* d) : m_outstanding_jobs(0), m_disk_thread(d) {}
 		bool async_hash(cached_piece_entry* p, int start, int end);
-		void set_num_threads(int i, bool wait = true);
 
 		int num_pending_jobs() const { return m_outstanding_jobs; }
 		void hash_job_done() { TORRENT_ASSERT(m_outstanding_jobs > 0); --m_outstanding_jobs; }
 
+	protected:
+
+		void retain_job(hash_queue_entry& e);
+
 	private:
 
-		void thread_fun(int thread_id);
-
-		struct hash_queue_entry
-		{
-			cached_piece_entry const* piece;
-			int start;
-			int end;
-		};
-
-		void process_piece(hash_queue_entry const& e);
-
-		// the mutex only protects m_cond and m_queue
-		// all other members are only used from a single
-		// thread (the user of this class, i.e. the disk
-		// thread).
-		mutex m_mutex;
-		condition m_cond;
-		std::deque<hash_queue_entry> m_queue;
+		void process_job(hash_queue_entry const& e, bool post);
 
 		// the number of async. hash jobs that have been issued
 		// and not completed yet
 		int m_outstanding_jobs;
-
-		std::vector<boost::shared_ptr<thread> > m_threads;
-		// this is a counter which is atomically incremented
-		// by each thread as it's started up, in order to
-		// assign a unique id to each thread
-		boost::detail::atomic_count m_num_threads;
 
 		// used for posting completion notifications back
 		// to the disk thread

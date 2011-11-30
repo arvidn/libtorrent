@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/error.hpp"
 
 #ifdef TORRENT_DEBUG
@@ -5029,9 +5030,11 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_send_data");
 #endif
-		m_socket->async_write_some(
-			vec, make_write_handler(boost::bind(
-				&peer_connection::on_send_data, self(), _1, _2)));
+
+		write_some_job j;
+		j.vec = &vec;
+		j.peer = self();
+		m_ses.m_net_thread_pool.post_job(j);
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 	}
@@ -5117,6 +5120,7 @@ namespace libtorrent
 			peer_log("*** reached recursion limit");
 		}
 #endif
+
 		try_read(read_async, ec);
 	}
 

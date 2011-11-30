@@ -44,12 +44,6 @@ namespace libtorrent
 
 	const int block_size = 0x4000;
 
-	hash_thread::hash_thread(disk_io_thread* d)
-		: m_num_threads(0)
-		, m_disk_thread(d)
-		, m_outstanding_jobs(0)
-	{}
-
 	// returns true if the job was submitted for async. processing
 	// and false if it was processed immediately
 	bool hash_thread::async_hash(cached_piece_entry* p, int start, int end)
@@ -62,107 +56,31 @@ namespace libtorrent
 		e.piece = p;
 		e.start = start;
 		e.end = end;
-
-		if (m_num_threads == 0)
-		{
-			// if we don't have any worker threads
-			// just do the work immediately
-			process_piece(e);
-			return false;
-		}
-		else
-		{
-			// increase refcounts to make sure these blocks are not removed
-			p->hashing = start;
-			for (int i = start; i < end; ++i)
-			{
-				if (p->blocks[i].refcount == 0) m_disk_thread->pinned_change(1);
-				++p->blocks[i].refcount;
-				++p->refcount;
-				// make sure the counters didn't wrap
-				TORRENT_ASSERT(p->blocks[i].refcount > 0);
-				TORRENT_ASSERT(p->refcount > 0);
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(!p->blocks[i].hashing);
-				p->blocks[i].hashing = true;
-#endif
-			}
-
-			mutex::scoped_lock l(m_mutex);
-			m_queue.push_back(e);
-			m_cond.signal_all(l);
-			++m_outstanding_jobs;
-			return true;
-		}
+		return post_job(e);
 	}
 
-	void hash_thread::set_num_threads(int i, bool wait)
+	void hash_thread::retain_job(hash_queue_entry& e)
 	{
-		if (i == m_num_threads) return;
-
-		if (i > m_num_threads)
+		cached_piece_entry* p = e.piece;
+		// increase refcounts to make sure these blocks are not removed
+		p->hashing = e.start;
+		for (int i = e.start; i < e.end; ++i)
 		{
-			while (m_num_threads < i)
-			{
-				m_threads.push_back(boost::shared_ptr<thread>(
-					new thread(boost::bind(&hash_thread::thread_fun, this, int(m_num_threads)))));
-				++m_num_threads;
-			}
-		}
-		else
-		{
-			while (m_num_threads > i) { --m_num_threads; }
-			mutex::scoped_lock l(m_mutex);
-			m_cond.signal_all(l);
-			l.unlock();
-			if (wait) for (int i = m_num_threads; i < m_threads.size(); ++i) m_threads[i]->join();
-			// this will detach the threads
-			m_threads.resize(m_num_threads);
-		}
-	}
-
-	void hash_thread::stop() { set_num_threads(0, true); }
-
-	void hash_thread::thread_fun(int thread_id)
-	{
-		for (;;)
-		{
-			mutex::scoped_lock l(m_mutex);
-			while (m_queue.empty() && thread_id < m_num_threads) m_cond.wait(l);
-
-			// if the number of wanted thread is decreased,
-			// we may stop this thread
-			// when we're terminating the last hasher thread (id=0), make sure
-			// we finish up all queud jobs first
-			if ((thread_id != 0 || m_queue.empty()) && thread_id >= m_num_threads) break;
-
-			hash_queue_entry e = m_queue.front();
-			m_queue.pop_front();
-			l.unlock();
-
-			process_piece(e);
-
-			// post back to the disk thread
-			disk_io_job* j = m_disk_thread->aiocbs()->allocate_job(
-				disk_io_job::hash_complete);
-			j->buffer = (char*)e.piece;
-			j->piece = e.start;
-			j->d.io.offset = e.end;
-			m_disk_thread->add_job(j, true);
-		}
-
+			if (p->blocks[i].refcount == 0) m_disk_thread->pinned_change(1);
+			++p->blocks[i].refcount;
+			++p->refcount;
+			// make sure the counters didn't wrap
+			TORRENT_ASSERT(p->blocks[i].refcount > 0);
+			TORRENT_ASSERT(p->refcount > 0);
 #ifdef TORRENT_DEBUG
-		if (thread_id == 0)
-		{
-			// when we're terminating the last hasher thread, make sure
-			// there are no more scheduled jobs
-			mutex::scoped_lock l(m_mutex);
-			TORRENT_ASSERT(m_queue.empty());
-		}
+			TORRENT_ASSERT(!p->blocks[i].hashing);
+			p->blocks[i].hashing = true;
 #endif
+		}
+		++m_outstanding_jobs;
 	}
 
-	void hash_thread::process_piece(hash_queue_entry const& e)
+	void hash_thread::process_job(hash_queue_entry const& e, bool post)
 	{
 		int piece_size = e.piece->storage.get()->files()->piece_size(e.piece->piece);
 		partial_hash& ph = *e.piece->hash;
@@ -177,6 +95,17 @@ namespace libtorrent
 			int size = (std::min)(block_size, piece_size - ph.offset);
 			ph.h.update(bl.buf, size);
 			ph.offset += size;
+		}
+
+		if (post)
+		{
+			// post back to the disk thread
+			disk_io_job* j = m_disk_thread->aiocbs()->allocate_job(
+				disk_io_job::hash_complete);
+			j->buffer = (char*)e.piece;
+			j->piece = e.start;
+			j->d.io.offset = e.end;
+			m_disk_thread->add_job(j, true);
 		}
 	}
 }

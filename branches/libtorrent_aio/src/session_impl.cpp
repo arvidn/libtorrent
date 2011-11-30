@@ -182,6 +182,13 @@ namespace libtorrent {
 	mutex _async_ops_mutex;
 #endif
 
+void network_thread_pool::process_job(write_some_job const& j, bool post)
+{
+	j.peer->get_socket()->async_write_some(
+		*j.vec, j.peer->make_write_handler(boost::bind(
+			&peer_connection::on_send_data, j.peer, _1, _2)));
+}
+
 namespace detail
 {
 	std::string generate_auth_string(std::string const& user
@@ -1982,6 +1989,9 @@ namespace aux {
 
 		if (m_settings.dht_upload_rate_limit != s.dht_upload_rate_limit)
 			m_udp_socket.set_rate_limit(s.dht_upload_rate_limit);
+
+		if (m_settings.network_threads != s.network_threads)
+			m_net_thread_pool.set_num_threads(s.network_threads);
 
 		m_settings = s;
 
