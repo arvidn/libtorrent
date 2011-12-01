@@ -5563,7 +5563,8 @@ disk buffers from, or to make many smaller calls to ``read()``, each time passin
 in the specific buffer the data belongs in. When downloading at high rates, the latter
 may save some time copying data. When seeding at high rates, all incoming traffic
 consists of a very large number of tiny packets, and enabling ``contiguous_recv_buffer``
-will provide higher performance.
+will provide higher performance. When this is enabled, it will only be used when
+seeding to peers, since that's when it provides performance improvements.
 
 ``network_threads`` is the number of threads to use to call ``async_write_some``
 (i.e. send) on peer connection sockets. When seeding at extremely high rates,

@@ -3940,8 +3940,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_ses.m_settings.contiguous_recv_buffer == false);
-		
 		TORRENT_ASSERT(m_packet_size > 0);
 		TORRENT_ASSERT(m_recv_pos <= m_packet_size - disk_buffer_size);
 		TORRENT_ASSERT(!m_disk_recv_buffer);
@@ -5114,7 +5112,10 @@ namespace libtorrent
 
 		boost::array<asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
-		if (m_ses.m_settings.contiguous_recv_buffer)
+		// only apply the contiguous receive buffer when we don't have any
+		// outstanding requests. When we're likely to receive pieces, we'll
+		// save more time from avoiding copying data from the socket
+		if (m_ses.m_settings.contiguous_recv_buffer && m_download_queue.empty())
 		{
 			if (s == read_async)
 			{
