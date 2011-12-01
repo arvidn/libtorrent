@@ -597,12 +597,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	key_desc_t top_desc[] = {
 		{"q", lazy_entry::string_t, 0, 0},
-		{"a", lazy_entry::dict_t, 0, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
-	lazy_entry const* top_level[2];
+	lazy_entry const* top_level[3];
 	char error_string[200];
-	if (!verify_message(&m.message, top_desc, top_level, 2, error_string, sizeof(error_string)))
+	if (!verify_message(&m.message, top_desc, top_level, 3, error_string, sizeof(error_string)))
 	{
 		incoming_error(e, error_string);
 		return;
@@ -612,14 +613,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	lazy_entry const* arg_ent = top_level[1];
 
-	lazy_entry const* node_id_ent = arg_ent->dict_find_string("id");
-	if (node_id_ent == 0 || node_id_ent->string_length() != 20)
-	{
-		incoming_error(e, "missing 'id' key");
-		return;
-	}
-
-	node_id id(node_id_ent->string_ptr());
+	node_id id(top_level[2]->string_ptr());
 
 	m_table.heard_about(id, m.addr);
 
