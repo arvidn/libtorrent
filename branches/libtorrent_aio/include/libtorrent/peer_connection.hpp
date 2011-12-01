@@ -1061,10 +1061,6 @@ namespace libtorrent
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
 
-		// counts the number of recursive calls to on_receive_data
-		// used to limit recursion
-		boost::uint8_t m_read_recurse:5;
-
 		// this is used in seed mode whenever we trigger a hash check
 		// for a piece, before we read it. It's used to throttle
 		// the hash checks to just a few per peer at a time.

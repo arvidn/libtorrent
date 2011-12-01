@@ -110,6 +110,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix python deadlock when using python extensions
 	* fixed small memory leak in DHT
 
 0.15.9 release

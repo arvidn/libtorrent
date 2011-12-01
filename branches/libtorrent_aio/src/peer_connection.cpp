@@ -145,7 +145,6 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
-		, m_read_recurse(0)
 		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
 		, m_active(outgoing)
@@ -301,7 +300,6 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
-		, m_read_recurse(0)
 		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
 		, m_active(outgoing)
@@ -2567,7 +2565,6 @@ namespace libtorrent
 		fs.async_write(p, data, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, _2, p, t));
 		m_outstanding_writing_bytes += p.length;
-		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
 		m_download_queue.erase(b);
 
 		if (!m_download_queue.empty())
@@ -5096,31 +5093,6 @@ namespace libtorrent
 		}
 		error_code ec;
 
-		if (sync == read_sync && m_read_recurse < 10 && !m_ses.m_settings.contiguous_recv_buffer)
-		{
-			size_t bytes_transferred = try_read(read_sync, ec);
-
-			if (ec != asio::error::would_block)
-			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("peer_connection::on_receive_data");
-#endif
-				++m_read_recurse;
-				TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
-				m_channel_state[download_channel] |= peer_info::bw_network;
-				on_receive_data(ec, bytes_transferred, m_ses.m_settings.contiguous_recv_buffer);
-				--m_read_recurse;
-				return;
-			}
-		}
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		if (m_read_recurse >= 10)
-		{
-			peer_log("*** reached recursion limit");
-		}
-#endif
-
 		try_read(read_async, ec);
 	}
 
@@ -5407,8 +5379,15 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_receive_data");
 #endif
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
+			, bytes_transferred, error.message().c_str());
+#endif
+
+		// leave this bit set until we're done looping, reading from the socket.
+		// that way we don't trigger any async read calls until the end of this
+		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-		m_channel_state[download_channel] &= ~peer_info::bw_network;
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -5597,6 +5576,11 @@ namespace libtorrent
 		}
 
 		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+
+		// allow reading from the socket again
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+		m_channel_state[download_channel] &= ~peer_info::bw_network;
+
 		setup_receive(read_async);
 	}
 
