@@ -107,8 +107,8 @@ namespace libtorrent
 	} // detail namespace
 
 	void on_hash(int ret, disk_io_job const& j, create_torrent* t
-		, boost::intrusive_ptr<piece_manager> storage
-		, int* piece_counter, error_code* ec)
+		, boost::intrusive_ptr<piece_manager> storage, disk_io_thread* iothread
+		, int* piece_counter, int* completed_piece, error_code* ec)
 	{
 		if (ret != 0)
 		{
@@ -117,12 +117,15 @@ namespace libtorrent
 			return;
 		}
 		t->set_hash(j.piece, sha1_hash(j.d.piece_hash));
+		++(*completed_piece);
 		if (*piece_counter < t->num_pieces())
 		{
 			storage->async_hash(*piece_counter, file::sequential_access
-				, boost::bind(&on_hash, _1, _2, t, storage, piece_counter, ec));
+				, boost::bind(&on_hash, _1, _2, t, storage, iothread
+				, piece_counter, completed_piece, ec));
 			++(*piece_counter);
 		}
+		iothread->submit_jobs();
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
@@ -201,22 +204,25 @@ namespace libtorrent
 			disk_thread.set_settings(&sett);
 
 			int piece_counter = 0;
+			int completed_piece = 0;
 			int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
 			if (piece_read_ahead < 1) piece_read_ahead = 1;
 
 			for (int i = 0; i < piece_read_ahead; ++i)
 			{
 				storage->async_hash(i, file::sequential_access
-					, boost::bind(&on_hash, _1, _2, &t, storage, &piece_counter, &ec));
+					, boost::bind(&on_hash, _1, _2, &t, storage, &disk_thread
+					, &piece_counter, &completed_piece, &ec));
 				++piece_counter;
 				if (piece_counter >= t.num_pieces()) break;
 			}
+			disk_thread.submit_jobs();
 
-			for (int i = 0; i < t.num_pieces(); ++i)
+			while (completed_piece < t.num_pieces())
 			{
 				ios.run_one(ec);
 				if (ec) return;
-				f(i);
+				f(completed_piece);
 			}
 
 			disk_thread.abort();
