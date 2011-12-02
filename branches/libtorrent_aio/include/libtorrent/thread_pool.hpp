@@ -46,6 +46,7 @@ namespace libtorrent
 	struct thread_pool
 	{
 		thread_pool() : m_num_threads(0) {}
+		virtual ~thread_pool() {}
 		void stop() { set_num_threads(0, true); }
 		void set_num_threads(int i, bool wait = true)
 		{

@@ -790,6 +790,7 @@ namespace libtorrent
 				++pe.blocks[i].refcount;
 				TORRENT_ASSERT(pe.blocks[i].refcount > 0); // make sure it didn't wrap
 				++const_cast<cached_piece_entry&>(pe).refcount;
+				m_disk_cache.inc_refcount();
 				TORRENT_ASSERT(pe.refcount > 0); // make sure it didn't wrap
 			}
 			++iov_counter;
@@ -1482,7 +1483,7 @@ namespace libtorrent
 					pe->hash = new partial_hash;
 				}
 
-				m_hash_thread.async_hash(pe, start_block, end);
+				m_hash_thread.async_hash(&m_disk_cache, pe, start_block, end);
 			}
 
 			// deal with read-back. i.e. blocks that have already been flushed to disk
@@ -1555,6 +1556,7 @@ namespace libtorrent
 			if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
 			++pe->blocks[i].refcount;
 			++pe->refcount;
+			m_disk_cache.inc_refcount();
 			TORRENT_ASSERT(pe->blocks[i].refcount > 0); // make sure it didn't wrap
 			TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
 #ifdef TORRENT_DEBUG
@@ -2760,7 +2762,8 @@ namespace libtorrent
 			// jobs, that's why we'll keep looping while m_in_progress
 			// is has jobs in it as well
 		
-		} while (!m_abort || m_in_progress || m_to_issue || m_hash_thread.num_pending_jobs());
+		} while (!m_abort || m_in_progress || m_to_issue
+			|| m_hash_thread.num_pending_jobs() || m_disk_cache.refcount() > 0);
 
 		m_hash_thread.stop();
 

@@ -124,6 +124,7 @@ block_cache::block_cache(int block_size, hash_thread& h, io_service& ios)
 	, m_send_buffer_blocks(0)
 	, m_blocks_read(0)
 	, m_blocks_read_hit(0)
+	, m_refcount(0)
 	, m_cumulative_hash_time(0)
 	, m_pinned_blocks(0)
 	, m_hash_thread(h)
@@ -261,6 +262,8 @@ std::pair<block_cache::lru_iterator, block_cache::lru_iterator> block_cache::all
 
 void block_cache::clear()
 {
+	TORRENT_ASSERT(m_refcount == 0);
+
 	cache_piece_index_t& idx = m_pieces.get<0>();
 	std::vector<char*> buffers;
 	for (iterator i = idx.begin(); i != idx.end(); ++i)
@@ -547,6 +550,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			--bl.refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
 			--pe->refcount;
+			TORRENT_ASSERT(m_refcount > 0);
+			--m_refcount;
 
 			// TODO: if we have a hash job in the queue, that job
 			// might hold references to the blocks as well. This
@@ -600,6 +605,8 @@ void block_cache::mark_as_done(block_cache::iterator p, int begin, int end
 			--pe->blocks[i].refcount;
 			TORRENT_ASSERT(pe->refcount > 0);
 			--pe->refcount;
+			TORRENT_ASSERT(m_refcount > 0);
+			--m_refcount;
 			pe->blocks[i].pending = false;
 			if (pe->blocks[i].refcount == 0)
 			{
@@ -708,7 +715,7 @@ void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash
 		{
 			ptime start_hash = time_now_hires();
 
-			submitted = m_hash_thread.async_hash(pe, cursor, end);
+			submitted = m_hash_thread.async_hash(this, pe, cursor, end);
 
 			if (num_blocks > 0)
 			{
@@ -784,6 +791,8 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 					--bl.refcount;
 					TORRENT_ASSERT(pe->refcount >= bl.pending);
 					--pe->refcount;
+					TORRENT_ASSERT(m_refcount > 0);
+					--m_refcount;
 #ifdef TORRENT_DEBUG
 					TORRENT_ASSERT(bl.check_count > 0);
 					--bl.check_count;
@@ -825,6 +834,8 @@ void block_cache::reap_piece_jobs(iterator p, storage_error const& ec
 				--bl.refcount;
 				TORRENT_ASSERT(pe->refcount >= bl.pending);
 				--pe->refcount;
+				TORRENT_ASSERT(m_refcount > 0);
+				--m_refcount;
 #ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(bl.check_count > 0);
 				--bl.check_count;
@@ -1000,6 +1011,8 @@ void block_cache::hashing_done(cached_piece_entry* pe, int begin, int end
 		--pe->blocks[i].refcount;
 		TORRENT_ASSERT(pe->refcount > 0);
 		--pe->refcount;
+		TORRENT_ASSERT(m_refcount > 0);
+		--m_refcount;
 #ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(pe->blocks[i].hashing);
 		pe->blocks[i].hashing = false;
@@ -1167,6 +1180,7 @@ void block_cache::check_invariant() const
 	int cached_write_blocks = 0;
 	int cached_read_blocks = 0;
 	int num_pinned = 0;
+	int total_refcount = 0;
 	cache_lru_index_t const& idx = m_pieces.get<1>();
 
 	ptime timeout = min_time();
@@ -1219,10 +1233,12 @@ void block_cache::check_invariant() const
 		TORRENT_ASSERT(num_blocks == p.num_blocks);
 		TORRENT_ASSERT(num_pending <= p.refcount);
 		TORRENT_ASSERT(num_refcount == p.refcount);
+		total_refcount += num_refcount;
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
 	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
+	TORRENT_ASSERT(total_refcount == m_refcount);
 
 #ifdef TORRENT_BUFFER_STATS
 	int read_allocs = m_categories.find(std::string("read cache"))->second;
@@ -1279,6 +1295,7 @@ int block_cache::copy_from_piece(iterator p, disk_io_job* j)
 		++pe->blocks[start_block].refcount;
 		TORRENT_ASSERT(pe->blocks[start_block].refcount > 0); // make sure it didn't wrap
 		++pe->refcount;
+		++m_refcount;
 		TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
 		j->d.io.ref.storage = j->storage.get();
 		j->d.io.ref.piece = pe->piece;
@@ -1353,6 +1370,8 @@ void block_cache::reclaim_block(block_cache_reference const& ref, tailqueue& job
 	}
 	TORRENT_ASSERT(pe->refcount > 0);
 	--pe->refcount;
+	TORRENT_ASSERT(m_refcount > 0);
+	--m_refcount;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	TORRENT_ASSERT(pe->blocks[ref.block].reading_count > 0);
 	--pe->blocks[ref.block].reading_count;

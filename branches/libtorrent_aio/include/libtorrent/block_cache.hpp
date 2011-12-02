@@ -236,6 +236,9 @@ namespace libtorrent
 
 		void reclaim_block(block_cache_reference const& ref, tailqueue& jobs);
 
+		void inc_refcount() { ++m_refcount; }
+		int refcount() const { return m_refcount; }
+
 		// returns the range of all pieces that belongs to the
 		// given storage
 		std::pair<iterator, iterator> pieces_for_storage(void* st);
@@ -381,6 +384,9 @@ namespace libtorrent
 
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;
+
+		// the sum of all reference counts in all blocks
+		boost::uint32_t m_refcount;
 
 		// average hash time (in microseconds)
 		sliding_average<512> m_hash_time;

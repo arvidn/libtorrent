@@ -46,7 +46,7 @@ namespace libtorrent
 
 	// returns true if the job was submitted for async. processing
 	// and false if it was processed immediately
-	bool hash_thread::async_hash(cached_piece_entry* p, int start, int end)
+	bool hash_thread::async_hash(block_cache* c, cached_piece_entry* p, int start, int end)
 	{
 		TORRENT_ASSERT(p->hashing == -1);
 		if (p->hashing != -1) return false;
@@ -54,6 +54,7 @@ namespace libtorrent
 
 		hash_queue_entry e;
 		e.piece = p;
+		e.cache = c;
 		e.start = start;
 		e.end = end;
 		return post_job(e);
@@ -69,6 +70,7 @@ namespace libtorrent
 			if (p->blocks[i].refcount == 0) m_disk_thread->pinned_change(1);
 			++p->blocks[i].refcount;
 			++p->refcount;
+			e.cache->inc_refcount();
 			// make sure the counters didn't wrap
 			TORRENT_ASSERT(p->blocks[i].refcount > 0);
 			TORRENT_ASSERT(p->refcount > 0);
