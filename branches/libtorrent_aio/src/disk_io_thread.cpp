@@ -2157,7 +2157,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete);
-		if (m_abort && j->action != disk_io_job::hash_complete)
+		if (m_abort && j->action != disk_io_job::hash_complete
+			&& j->action != disk_io_job::reclaim_block)
 		{
 			l.unlock();
 			m_aiocb_pool.free_job(j);
