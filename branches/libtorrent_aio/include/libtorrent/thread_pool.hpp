@@ -119,6 +119,7 @@ namespace libtorrent
 				// we finish up all queud jobs first
 				if ((thread_id != 0 || m_queue.empty()) && thread_id >= m_num_threads) break;
 
+				TORRENT_ASSERT(!m_queue.empty());
 				T e = m_queue.front();
 				m_queue.pop_front();
 				l.unlock();

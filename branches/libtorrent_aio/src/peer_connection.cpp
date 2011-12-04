@@ -3571,6 +3571,19 @@ namespace libtorrent
 		}
 #endif
 
+		if ((m_channel_state[upload_channel] & peer_info::bw_network) == 0)
+		{
+			// make sure we free up all send buffers that are owned
+			// by the disk thread
+			m_send_buffer.clear();
+			m_disk_recv_buffer.reset();
+		}
+
+		// we cannot do this in a constructor
+		TORRENT_ASSERT(m_in_constructor == false);
+		if (error > 0) m_failed = true;
+		if (m_disconnecting) return;
+
 #ifdef TORRENT_STATS
 		++m_ses.m_disconnected_peers;
 		if (error == 2) ++m_ses.m_error_peers;
@@ -3601,10 +3614,6 @@ namespace libtorrent
 			++m_ses.m_connect_timeouts;
 #endif
 
-		// we cannot do this in a constructor
-		TORRENT_ASSERT(m_in_constructor == false);
-		if (error > 0) m_failed = true;
-		if (m_disconnecting) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
@@ -5859,7 +5868,14 @@ namespace libtorrent
 			disconnect(error);
 			return;
 		}
-		if (m_disconnecting) return;
+		if (m_disconnecting)
+		{
+			// make sure we free up all send buffers that are owned
+			// by the disk thread
+			m_send_buffer.clear();
+			m_disk_recv_buffer.reset();
+			return;
+		}
 
 		TORRENT_ASSERT(!m_connecting);
 		TORRENT_ASSERT(bytes_transferred > 0);

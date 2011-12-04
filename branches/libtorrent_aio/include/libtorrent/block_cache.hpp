@@ -350,6 +350,8 @@ namespace libtorrent
 			m_pinned_blocks += diff;
 		}
 
+		int pinned_blocks() const { return m_pinned_blocks; }
+
 	private:
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);

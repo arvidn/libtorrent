@@ -1982,7 +1982,11 @@ namespace libtorrent
 	int disk_io_thread::do_reclaim_block(disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->d.io.ref.storage);
-		if (j->d.io.ref.block < 0) return 0;
+		if (j->d.io.ref.block < 0)
+		{
+			TORRENT_ASSERT(false);
+			return 0;
+		}
 
 		m_disk_cache.reclaim_block(j->d.io.ref, m_completed_jobs);
 		return 0;
@@ -2764,7 +2768,7 @@ namespace libtorrent
 			// is has jobs in it as well
 		
 		} while (!m_abort || m_in_progress || m_to_issue
-			|| m_hash_thread.num_pending_jobs() || m_disk_cache.refcount() > 0);
+			|| m_hash_thread.num_pending_jobs() || m_disk_cache.pinned_blocks() > 0);
 
 		m_hash_thread.stop();
 

@@ -121,6 +121,8 @@ namespace libtorrent
 
 		std::vector<asio::const_buffer> const& build_iovec(int to_send);
 
+		void clear();
+
 		~chained_buffer();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

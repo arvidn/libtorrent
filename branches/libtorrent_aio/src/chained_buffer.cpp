@@ -141,6 +141,18 @@ namespace libtorrent
 		return m_tmp_vec;
 	}
 
+	void chained_buffer::clear()
+	{
+		for (std::deque<buffer_t>::iterator i = m_vec.begin()
+			, end(m_vec.end()); i != end; ++i)
+		{
+			i->free(i->buf);
+		}
+		m_bytes = 0;
+		m_capacity = 0;
+		m_vec.clear();
+	}
+
 	chained_buffer::~chained_buffer()
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -150,16 +162,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_network_thread());
 		TORRENT_ASSERT(m_bytes >= 0);
 		TORRENT_ASSERT(m_capacity >= 0);
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); i != end; ++i)
-		{
-			i->free(i->buf);
-		}
-#ifdef TORRENT_DEBUG
-		m_bytes = -1;
-		m_capacity = -1;
-		m_vec.clear();
-#endif
+		clear();
 	}
 
 };
