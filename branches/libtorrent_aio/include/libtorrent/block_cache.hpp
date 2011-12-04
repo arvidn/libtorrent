@@ -236,9 +236,6 @@ namespace libtorrent
 
 		void reclaim_block(block_cache_reference const& ref, tailqueue& jobs);
 
-		void inc_refcount() { ++m_refcount; }
-		int refcount() const { return m_refcount; }
-
 		// returns the range of all pieces that belongs to the
 		// given storage
 		std::pair<iterator, iterator> pieces_for_storage(void* st);

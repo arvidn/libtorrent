@@ -45,7 +45,6 @@ namespace libtorrent
 	struct hash_queue_entry
 	{
 		cached_piece_entry* piece;
-		block_cache* cache;
 		int start;
 		int end;
 	};
@@ -53,7 +52,7 @@ namespace libtorrent
 	struct hash_thread : thread_pool<hash_queue_entry>
 	{
 		hash_thread(disk_io_thread* d) : m_outstanding_jobs(0), m_disk_thread(d) {}
-		bool async_hash(block_cache* c, cached_piece_entry* p, int start, int end);
+		bool async_hash(cached_piece_entry* p, int start, int end);
 
 		int num_pending_jobs() const { return m_outstanding_jobs; }
 		void hash_job_done() { TORRENT_ASSERT(m_outstanding_jobs > 0); --m_outstanding_jobs; }
