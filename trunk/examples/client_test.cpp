@@ -1665,6 +1665,14 @@ int main(int argc, char* argv[])
 				}
 			}
 
+			// toggle force-start
+			if (c == 'k' && !handles.empty())
+			{
+				torrent_status const& ts = get_active_torrent(handles);
+				ts.handle.auto_managed(!ts.auto_managed);
+				if (ts.auto_managed && ts.paused) ts.handle.resume();
+			}
+
 			if (c == 'c' && !handles.empty())
 			{
 				torrent_status const& ts = get_active_torrent(handles);
