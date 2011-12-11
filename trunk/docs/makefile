@@ -22,7 +22,8 @@ TARGETS = index \
 	projects \
 	running_tests \
 	utp \
-	tuning
+	tuning \
+	hacking
 
 FIGURES = read_disk_buffers write_disk_buffers troubleshooting
 

@@ -67,7 +67,6 @@ from certain disk errors if the problem is resolved. If the torrent is not
 auto managed, you have to call `set_upload_mode()`_ to turn
 downloading back on again.
 
-
 network primitives
 ==================
 
@@ -232,8 +231,8 @@ The ``session`` class has the following synopsis::
 
 		void add_extension(boost::function<
 			boost::shared_ptr<torrent_plugin>(torrent*)> ext);
- 
- 		void start_dht();
+
+		void start_dht();
 		void stop_dht();
 		void set_dht_settings(
 			dht_settings const& settings);
@@ -8675,23 +8674,6 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | last resume data checkpoint.                                 |
 +--------------------------+--------------------------------------------------------------+
 
-threads
-=======
-
-libtorrent starts 2 or 3 threads.
-
- * The first thread is the main thread that will sit
-   idle in a ``select()`` call most of the time. This thread runs the main loop
-   that will send and receive data on all connections.
-
- * The second thread is the disk I/O thread. All disk read and write operations
-   are passed to this thread and messages are passed back to the main thread when
-   the operation completes. The disk thread also verifies the piece hashes.
-
- * The third and forth threads are spawned by asio on systems that don't support
-   non-blocking host name resolution to simulate non-blocking getaddrinfo().
-
-
 storage allocation
 ==================
 
@@ -9100,18 +9082,4 @@ In order for the client to know which torrent an incoming connection belongs to,
 to provide the correct certificate, each SSL torrent opens their own dedicated listen socket.
 
 This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``).
-
-filename checks
-===============
-
-Boost.Filesystem will by default check all its paths to make sure they conform
-to filename requirements on many platforms. If you don't want this check, you can
-set it to either only check for native filesystem requirements or turn it off
-altogether. You can use::
-
-	boost::filesystem::path::default_name_check(boost::filesystem::native);
-
-for example. For more information, see the `Boost.Filesystem docs`__.
-
-__ http://www.boost.org/libs/filesystem/doc/index.htm
 
