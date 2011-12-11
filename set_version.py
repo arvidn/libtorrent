@@ -41,6 +41,7 @@ substitute_file('docs/contributing.rst')
 substitute_file('docs/utp.rst')
 substitute_file('docs/make_torrent.rst')
 substitute_file('docs/tuning.rst')
+substitute_file('docs/hacking.rst')
 substitute_file('Jamfile')
 
 
