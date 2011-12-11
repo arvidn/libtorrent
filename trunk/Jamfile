@@ -507,6 +507,9 @@ local usage-requirements =
 # disable some warnings for gcc
 	<toolset>gcc:<cflags>-fno-strict-aliasing
 	<toolset>gcc:<cflags>-Wno-missing-braces
+# assert on integer overflow
+	<toolset>gcc,<variant>debug:<cflags>-ftrapv
+	<toolset>darwin,<variant>debug:<cflags>-ftrapv
 	<toolset>clang:<cflags>-Wno-invalid-offsetof
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
