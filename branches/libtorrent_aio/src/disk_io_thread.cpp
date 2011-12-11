@@ -354,6 +354,9 @@ namespace libtorrent
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(post_alert)
+#if TORRENT_USE_SYNCIO
+		, m_worker_thread(this)
+#endif
 #if TORRENT_USE_SUBMIT_THREADS
 		, m_submit_queue(&m_aiocb_pool)
 #endif
@@ -389,6 +392,10 @@ namespace libtorrent
 		
 #endif
 
+#if TORRENT_USE_SYNCIO
+		m_aiocb_pool.worker_thread = &m_worker_thread;
+#endif
+
 #if TORRENT_USE_AIO
 
 #if TORRENT_USE_AIO_PORTS 
@@ -396,7 +403,7 @@ namespace libtorrent
 		DLOG(stderr, "port_create() = %d\n", m_port);
 		TORRENT_ASSERT(m_port >= 0);
 		m_aiocb_pool.port = m_port;
-#endif
+#endif // TORRENT_USE_AIO_PORTS
 
 #if TORRENT_USE_AIO_SIGNALFD
 		m_job_event_fd = eventfd(0, 0);
@@ -413,7 +420,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(false);
 		}
-#endif
+#endif // TORRENT_USE_AIO_SIGNALFD
 
 #if TORRENT_USE_AIO_KQUEUE
 		m_queue = kqueue();
@@ -426,7 +433,7 @@ namespace libtorrent
 		struct kevent e;
 		EV_SET(&e, m_job_pipe[1], EVFILT_READ, EV_ADD, 0, 0, 0);
 		kevent(m_queue, &e, 1, 0, 0, 0);
-#endif
+#endif // TORRENT_USE_AIO_KQUEUE
 
 #endif // TORRENT_USE_AIO
 
@@ -1032,6 +1039,7 @@ namespace libtorrent
 		&disk_io_thread::do_sync_piece,
 		&disk_io_thread::do_flush_piece,
 		&disk_io_thread::do_trim_cache,
+		&disk_io_thread::do_aiocb_complete,
 	};
 
 	static const char* job_action_name[] =
@@ -1058,7 +1066,8 @@ namespace libtorrent
 		"clear_piece",
 		"sync_piece",
 		"flush_piece",
-		"trim_cache"
+		"trim_cache",
+		"aiocb_complete"
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1821,6 +1830,11 @@ namespace libtorrent
 		}
 #endif
 
+#if TORRENT_USE_SYNCIO
+		if (m_settings.aio_threads != s.aio_threads)
+			m_worker_thread.set_num_threads(s.aio_threads);
+#endif
+
 		m_settings = s;
 		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
@@ -2071,6 +2085,13 @@ namespace libtorrent
 		return 0;
 	}
 
+	int disk_io_thread::do_aiocb_complete(disk_io_job* j)
+	{
+		file::aiocb_t* aios = (file::aiocb_t*)j->buffer;
+		aios->handler->done(j->error, j->ret, aios, &m_aiocb_pool);
+		return 0;
+	}
+
 	void disk_io_thread::on_write_one_buffer(async_handler* handler, disk_io_job* j)
 	{
 		int ret = j->d.io.buffer_size;
@@ -2159,6 +2180,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete);
+
+/*
 		if (m_abort && j->action != disk_io_job::hash_complete
 			&& j->action != disk_io_job::reclaim_block)
 		{
@@ -2166,16 +2189,21 @@ namespace libtorrent
 			m_aiocb_pool.free_job(j);
 			return;
 		}
-
+*/
 		if (high_priority)
 			m_queued_jobs.push_front(j);
 		else
 			m_queued_jobs.push_back(j);
 
-		DLOG(stderr, "[%p] add_job job: %s\n", this, job_action_name[j->action]);
-
 		if (j->action == disk_io_job::write)
 			m_queue_buffer_size += j->d.io.buffer_size;
+
+		l.unlock();
+
+		DLOG(stderr, "[%p] add_job job: %s\n", this, job_action_name[j->action]);
+
+		// high priority jobs tries to wake up the disk thread immediately
+		if (high_priority) submit_jobs_impl();
 	}
 
 	void disk_io_thread::submit_jobs()
@@ -2184,6 +2212,11 @@ namespace libtorrent
 		if (m_queued_jobs.empty()) return;
 		l.unlock();
 
+		submit_jobs_impl();
+	}
+
+	void disk_io_thread::submit_jobs_impl()
+	{
 		// wake up the disk thread to issue this new job
 #if TORRENT_USE_OVERLAPPED
 		PostQueuedCompletionStatus(m_completion_port, 1, 0, 0);
@@ -2715,6 +2748,7 @@ namespace libtorrent
 				file::aiocb_t* pending;
 				int num_issued = 0;
 #if TORRENT_USE_SUBMIT_THREADS
+				// #error move this into issue_aios, or just get rid of it
 				num_issued = m_submit_queue.submit(m_to_issue);
 				pending = m_to_issue;
 				m_to_issue = 0;

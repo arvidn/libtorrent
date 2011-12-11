@@ -42,10 +42,30 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/object_pool.hpp>
 //#endif
 
+#if TORRENT_USE_SYNCIO
+#include "libtorrent/thread_pool.hpp"
+#endif
+
 namespace libtorrent
 {
 	struct async_handler;
 	struct disk_io_job;
+	struct aiocb_pool;
+	struct disk_io_thread;
+
+#if TORRENT_USE_SYNCIO
+	struct disk_worker_pool : thread_pool<file::aiocb_t*>
+	{
+		disk_worker_pool(disk_io_thread* dt)
+			: m_disk_thread(dt)
+		{}
+
+		// defined in file.cpp
+		void process_job(file::aiocb_t *const& j, bool post);
+		
+		disk_io_thread* m_disk_thread;
+	};
+#endif
 
 	struct aiocb_pool
 	{
@@ -92,6 +112,10 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 		FILE* file_access_log;
+#endif
+
+#if TORRENT_USE_SYNCIO
+		disk_worker_pool* worker_thread;
 #endif
 
 	private:

@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <vector>
 #include <boost/detail/atomic_count.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
 namespace libtorrent
 {

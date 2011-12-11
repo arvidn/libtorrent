@@ -116,6 +116,7 @@ namespace libtorrent
 		// don't use any extra threads to do SHA-1 hashing
 		set.hashing_threads = 0;
 		set.network_threads = 0;
+		set.aio_threads = 0;
 
 		set.alert_queue_size = 100;
 
@@ -314,6 +315,9 @@ namespace libtorrent
 		// the number of threads to use to call async_write_some
 		// on peer sockets
 		set.network_threads = 3;
+
+		// number of disk threads for low level file operations
+		set.aio_threads = 4;
 
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file

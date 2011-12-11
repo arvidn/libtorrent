@@ -100,6 +100,7 @@ namespace libtorrent
 			, sync_piece
 			, flush_piece
 			, trim_cache
+			, aiocb_complete // this is only used for sync_io builds
 
 			, num_job_ids
 		};
@@ -108,11 +109,20 @@ namespace libtorrent
 		{
 			// these flags coexist with flags from file class
 			volatile_read = 0x100,
+
+			// when this job completes, make sure to uncorks all
+			// the backed up jobs that were put on hold waiting for
+			// this job. This is used for jobs that cannot be done
+			// in parallel, like moving files around.
 			need_uncork = 0x200,
+
+			// this flag is set on a job when a read operation did
+			// not hit the disk, but found the data in the read cache.
 			cache_hit = 0x400,
+
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
-			// the cache
+			// the cache.
 			force_copy = 0x800,
 		};
 
@@ -126,6 +136,7 @@ namespace libtorrent
 		// for move_storage and rename_file this is a string allocated
 		// with malloc()
 		// an entry* for save_resume_data
+		// for aiocb_complete this points to the aiocb that completed
 		char* buffer;
 
 		// the disk storage this job applies to (if applicable)

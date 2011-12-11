@@ -282,7 +282,7 @@ namespace libtorrent
 			, checking_mem_usage(200)
 			, predictive_piece_announce(0)
 			, contiguous_recv_buffer(true)
-			, aio_threads(4)
+			, aio_threads(2)
 			, aio_max(300)
 			, network_threads(0)
 		{}

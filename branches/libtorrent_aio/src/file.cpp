@@ -41,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp" // for string conversion
 #include "libtorrent/aiocb_pool.hpp"
 
+#if TORRENT_USE_SYNCIO
+#include "libtorrent/disk_io_thread.hpp"
+#endif
+
 #include <boost/scoped_ptr.hpp>
 #include <boost/static_assert.hpp>
 
@@ -2770,41 +2774,22 @@ finish:
 				continue;
 			}
 #elif TORRENT_USE_SYNCIO
-			error_code ec;
-			int ret = -1;
-			file::iovec_t b = {aios->buf, aios->size};
-			file::iovec_t* vec = &b;
-			int num_vec = 1;
-			if (aios->vec)
-			{
-				TORRENT_ASSERT(aios->num_vec > 0);
-				num_vec = aios->num_vec;
-				vec = aios->vec;
-			}
-			switch (aios->op)
-			{
-				case file::read_op: ret = aios->file_ptr->readv(aios->offset
-					, vec, num_vec, ec, aios->flags); break;
-				case file::write_op: ret = aios->file_ptr->writev(aios->offset
-					, vec, num_vec, ec, aios->flags); break;
-				default: TORRENT_ASSERT(false);
-			}
-			file::aiocb_t* del = aios;
-			if (aios->next) aios->next->prev = aios->prev;
-			if (aios->prev) aios->prev->next = aios->next;
-			storage_error se;
-			se.ec = ec;
-			se.operation = aios->op == file::read_op ? storage_error::read : storage_error::write;
-			aios = aios->next;
-			// #error figure out which file the error happened on (if any)
+			file::aiocb_t* job = aios;
 
-#ifdef TORRENT_DISK_STATS
-			if (file_access_log) write_disk_log(file_access_log, del, false, start_time);
-#endif
-			del->handler->done(se, ret, del, &pool);
-			pool.destroy(del);
-			++num_issued;
-			return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
+			bool deferred = pool.worker_thread->post_job(job);
+			if (!deferred)
+			{
+				// not deferred. It means we need to delete the
+				// aiocb struct immediately, and unlink it from the chain
+				if (aios->next) aios->next->prev = aios->prev;
+				if (aios->prev) aios->prev->next = aios->next;
+				aios = aios->next;
+				pool.destroy(job);
+				// just process one job at a time in this thread
+				// to keep the disk thread responsive
+				++num_issued;
+				return std::pair<file::aiocb_t*, file::aiocb_t*>(0, aios);
+			}
 #else
 #error what disk I/O API are we using?
 #endif
@@ -2839,6 +2824,58 @@ finish:
 		TORRENT_ASSERT(aios == 0 || aios->prev == 0);
 		return std::pair<file::aiocb_t*, file::aiocb_t*>(ret, aios);
 	}
+
+#if TORRENT_USE_SYNCIO
+	// declared in aiocb_pool.hpp
+	void disk_worker_pool::process_job(file::aiocb_t *const& j, bool post)
+	{
+		error_code ec;
+		int ret = -1;
+		file::iovec_t b = {j->buf, j->size};
+		file::iovec_t* vec = &b;
+		int num_vec = 1;
+		if (j->vec)
+		{
+			TORRENT_ASSERT(j->num_vec > 0);
+			num_vec = j->num_vec;
+			vec = j->vec;
+		}
+		switch (j->op)
+		{
+			case file::read_op: ret = j->file_ptr->readv(j->offset
+				, vec, num_vec, ec, j->flags); break;
+			case file::write_op: ret = j->file_ptr->writev(j->offset
+				, vec, num_vec, ec, j->flags); break;
+			default: TORRENT_ASSERT(false);
+		}
+		if (post)
+		{
+			// post back to the disk thread
+			disk_io_job* rj = m_disk_thread->aiocbs()->allocate_job(
+				disk_io_job::aiocb_complete);
+			rj->buffer = (char*)j;
+			rj->ret = ret;
+			rj->error.ec = ec;
+			rj->error.operation = j->op == file::read_op ? storage_error::read : storage_error::write;
+			// #error figure out which file the error happened on (if any)
+			m_disk_thread->add_job(rj, true);
+		}
+		else
+		{
+			// we're running disk jobs directly in the disk thread
+			// just call the handler immediately
+			storage_error se;
+			se.ec = ec;
+			se.operation = j->op == file::read_op ? storage_error::read : storage_error::write;
+			// #error figure out which file the error happened on (if any)
+
+#ifdef TORRENT_DISK_STATS
+			if (file_access_log) write_disk_log(file_access_log, del, false, start_time);
+#endif
+			j->handler->done(se, ret, j, m_disk_thread->aiocbs());
+		}
+	}
+#endif
 
 #endif // TORRENT_USE_IOSUBMIT
 

@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	aiocb_pool::aiocb_pool(
-		): m_in_use(0)
+	aiocb_pool::aiocb_pool()
+		: m_in_use(0)
 		, m_peak_in_use(0)
 		, m_jobs_in_use(0)
 		, m_read_jobs(0)
@@ -55,6 +55,9 @@ namespace libtorrent
 	{
 #ifdef TORRENT_DISK_STATS
 		file_access_log = 0;
+#endif
+#if TORRENT_USE_SYNCIO
+		worker_thread = 0;
 #endif
 	}
 

@@ -393,10 +393,12 @@ namespace libtorrent
 		int do_sync_piece(disk_io_job* j);
 		int do_flush_piece(disk_io_job* j);
 		int do_trim_cache(disk_io_job* j);
+		int do_aiocb_complete(disk_io_job* j);
 
 	private:
 
 		void perform_async_job(disk_io_job* j);
+		void submit_jobs_impl();
 
 		void on_disk_write(block_cache::iterator p, int begin
 			, int end, int to_write, async_handler* handler);
@@ -572,6 +574,10 @@ namespace libtorrent
 		// pool used to allocate the aiocb_t elements
 		// used by the async operations on files
 		aiocb_pool m_aiocb_pool;
+
+#if TORRENT_USE_SYNCIO
+		disk_worker_pool m_worker_thread;
+#endif
 
 #if TORRENT_USE_SUBMIT_THREADS
 		// used to run io_submit() in separate threads
