@@ -5124,7 +5124,7 @@ namespace libtorrent
 		// only apply the contiguous receive buffer when we don't have any
 		// outstanding requests. When we're likely to receive pieces, we'll
 		// save more time from avoiding copying data from the socket
-		if (m_ses.m_settings.contiguous_recv_buffer && m_download_queue.empty())
+		if ((m_ses.m_settings.contiguous_recv_buffer || m_download_queue.empty()) && !m_disk_recv_buffer)
 		{
 			if (s == read_async)
 			{
