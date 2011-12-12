@@ -99,6 +99,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* don't filter local peers received from a non-local tracker
 	* fix python deadlock when using python extensions
 	* fixed small memory leak in DHT
 

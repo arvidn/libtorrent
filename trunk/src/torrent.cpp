@@ -2616,7 +2616,14 @@ ctx->set_verify_callback(verify_function, ec);
 			else
 			{
 				// ignore local addresses from the tracker (unless the tracker is local too)
-				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
+				// there are 2 reasons to allow this:
+				// 1. retrackers are popular in russia, where an ISP runs a tracker within
+				//    the AS (but not on the local network) giving out peers only from the
+				//    local network
+				// 2. it might make sense to have a tracker extension in the future where
+				//    trackers records a peer's internal and external IP, and match up
+				//    peers on the same local network
+//				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
 				m_policy.add_peer(a, i->pid, peer_info::tracker, 0);
 			}
 		}
