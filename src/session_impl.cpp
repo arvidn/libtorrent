@@ -398,8 +398,6 @@ namespace aux {
 		TORRENT_SETTING(boolean, incoming_starts_queued_torrents)
 		TORRENT_SETTING(boolean, report_true_downloaded)
 		TORRENT_SETTING(boolean, strict_end_game_mode)
-		TORRENT_SETTING(integer, default_peer_upload_rate)
-		TORRENT_SETTING(integer, default_peer_download_rate)
 		TORRENT_SETTING(boolean, broadcast_lsd)
 		TORRENT_SETTING(boolean, enable_outgoing_utp)
 		TORRENT_SETTING(boolean, enable_incoming_utp)
@@ -2532,10 +2530,6 @@ namespace aux {
 		{
 			m_connections.insert(c);
 			c->start();
-			if (m_settings.default_peer_upload_rate)
-				c->set_upload_limit(m_settings.default_peer_upload_rate);
-			if (m_settings.default_peer_download_rate)
-				c->set_download_limit(m_settings.default_peer_download_rate);
 			// update the next disk peer round-robin cursor
 			if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 		}

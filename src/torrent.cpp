@@ -1565,10 +1565,6 @@ ctx->set_verify_callback(verify_function, ec);
 		m_connections.insert(boost::get_pointer(c));
 		m_ses.m_connections.insert(c);
 		c->start();
-		if (settings().default_peer_upload_rate)
-			c->set_upload_limit(settings().default_peer_upload_rate);
-		if (settings().default_peer_download_rate)
-			c->set_download_limit(settings().default_peer_download_rate);
 	}
 
 #endif
@@ -5537,11 +5533,6 @@ ctx->set_verify_callback(verify_function, ec);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
-
-		if (settings().default_peer_upload_rate)
-			c->set_upload_limit(settings().default_peer_upload_rate);
-		if (settings().default_peer_download_rate)
-			c->set_download_limit(settings().default_peer_download_rate);
 
  		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
 			, size_type(peerinfo->prev_amount_upload) << 10);
