@@ -129,8 +129,6 @@ namespace libtorrent
 		, m_reading_bytes(0)
 		, m_num_invalid_requests(0)
 		, m_priority(1)
-		, m_upload_limit(0)
-		, m_download_limit(0)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
@@ -283,8 +281,6 @@ namespace libtorrent
 		, m_reading_bytes(0)
 		, m_num_invalid_requests(0)
 		, m_priority(1)
-		, m_upload_limit(0)
-		, m_download_limit(0)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
@@ -3687,34 +3683,6 @@ namespace libtorrent
 		TORRENT_ASSERT(refcount() > 0);
 	}
 
-	int peer_connection::get_upload_limit() const
-	{
-		return m_upload_limit;
-	}
-
-	int peer_connection::get_download_limit() const
-	{
-		return m_download_limit;
-	}
-
-	void peer_connection::set_upload_limit(int limit)
-	{
-		TORRENT_ASSERT(limit >= -1);
-		if (limit < 0) limit = 0;
-		if (limit < 10 && limit > 0) limit = 10;
-		m_upload_limit = limit;
-		m_bandwidth_channel[upload_channel].throttle(m_upload_limit);
-	}
-
-	void peer_connection::set_download_limit(int limit)
-	{
-		TORRENT_ASSERT(limit >= -1);
-		if (limit < 0) limit = 0;
-		if (limit < 10 && limit > 0) limit = 10;
-		m_download_limit = limit;
-		m_bandwidth_channel[download_channel].throttle(m_download_limit);
-	}
-
 	bool peer_connection::ignore_unchoke_slots() const
 	{
 		return m_ignore_unchoke_slots
@@ -3770,19 +3738,12 @@ namespace libtorrent
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
-
-		if (m_bandwidth_channel[upload_channel].throttle() == 0)
-			p.upload_limit = -1;
-		else
-			p.upload_limit = m_bandwidth_channel[upload_channel].throttle();
-
-		if (m_bandwidth_channel[download_channel].throttle() == 0)
-			p.download_limit = -1;
-		else
-			p.download_limit = m_bandwidth_channel[download_channel].throttle();
 #ifndef TORRENT_NO_DEPRECATE
+		p.upload_limit = -1;
+		p.download_limit = -1;
 		p.load_balancing = 0;
 #endif
+
 		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
 		p.requests_in_buffer = int(m_requests_in_buffer.size() + m_request_queue.size());
 		p.target_dl_queue_length = int(desired_queue_size());
@@ -4069,8 +4030,6 @@ namespace libtorrent
 		{
 			int download_overhead = m_statistics.download_ip_overhead();
 			int upload_overhead = m_statistics.upload_ip_overhead();
-			m_bandwidth_channel[download_channel].use_quota(download_overhead);
-			m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
 
 			bandwidth_channel* upc = 0;
 			bandwidth_channel* downc = 0;
@@ -4085,16 +4044,13 @@ namespace libtorrent
 				downc = &m_ses.m_download_channel;
 			}
 	
-			int up_limit = m_bandwidth_channel[upload_channel].throttle();
-			int down_limit = m_bandwidth_channel[download_channel].throttle();
-
-			if (t)
+			if (t && !m_ignore_bandwidth_limits)
 			{
-				if (!m_ignore_bandwidth_limits)
-				{
-					t->m_bandwidth_channel[download_channel].use_quota(download_overhead);
-					t->m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
-				}
+				t->m_bandwidth_channel[download_channel].use_quota(download_overhead);
+				t->m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
+
+				int down_limit = t->m_bandwidth_channel[download_channel].throttle();
+				int up_limit = t->m_bandwidth_channel[upload_channel].throttle();
 
 				if (down_limit > 0
 					&& download_overhead >= down_limit
@@ -4287,8 +4243,6 @@ namespace libtorrent
 
 		int piece_timeout = m_ses.settings().piece_timeout;
 		int rate_limit = INT_MAX;
-		if (m_bandwidth_channel[download_channel].throttle() > 0)
-			rate_limit = (std::min)(m_bandwidth_channel[download_channel].throttle(), rate_limit);
 		if (t->bandwidth_throttle(download_channel) > 0)
 			rate_limit = (std::min)(t->bandwidth_throttle(download_channel) / t->num_peers(), rate_limit);
 		if (m_ses.m_download_channel.throttle() > 0)
@@ -4320,20 +4274,6 @@ namespace libtorrent
 			snub_peer();
 		}
 
-		// If the client sends more data
-		// we send it data faster, otherwise, slower.
-		// It will also depend on how much data the
-		// client has sent us. This is the mean to
-		// maintain the share ratio given by m_ratio
-		// with all peers.
-
-		if (t->is_upload_only() || is_choked())
-		{
-			// if we have downloaded more than one piece more
-			// than we have uploaded OR if we are a seed
-			// have an unlimited upload rate
-			m_bandwidth_channel[upload_channel].throttle(m_upload_limit);
-		}
 		// update once every minute
 		if (now - m_remote_dl_update >= seconds(60))
 		{
@@ -4705,8 +4645,7 @@ namespace libtorrent
 			// from the bandwidth manager
 			bwc1 = (m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_upload_channel : 0;
 			bwc2 = t ? &t->m_bandwidth_channel[upload_channel] : 0;
-			bwc3 = &m_bandwidth_channel[upload_channel];
-			bwc4 = !utp ? &m_ses.m_tcp_upload_channel : 0;
+			bwc3 = !utp ? &m_ses.m_tcp_upload_channel : 0;
 		}
 		else
 		{
@@ -4716,7 +4655,6 @@ namespace libtorrent
 			// global bandwidth channel for local peers, which defaults
 			// to unthrottled
 			bwc1 = &m_ses.m_local_upload_channel;
-			bwc2 = &m_bandwidth_channel[upload_channel];
 		}
 
 		int priority;
@@ -4787,8 +4725,7 @@ namespace libtorrent
 			// request bandwidth from the bandwidth manager
 			bwc1 = (m_ses.m_settings.rate_limit_utp || !utp) ? &m_ses.m_download_channel : 0;
 			bwc2 = t ? &t->m_bandwidth_channel[download_channel] : 0;
-			bwc3 = &m_bandwidth_channel[download_channel];
-			bwc4 = !utp ? &m_ses.m_tcp_download_channel : 0;
+			bwc3 = !utp ? &m_ses.m_tcp_download_channel : 0;
 		}
 		else
 		{
@@ -4798,7 +4735,6 @@ namespace libtorrent
 			// global bandwidth channel for local peers, which defaults
 			// to unthrottled
 			bwc1 = &m_ses.m_local_download_channel;
-			bwc2 = &m_bandwidth_channel[download_channel];
 		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -5828,9 +5764,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
-
-		TORRENT_ASSERT(m_upload_limit >= 0);
-		TORRENT_ASSERT(m_download_limit >= 0);
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 

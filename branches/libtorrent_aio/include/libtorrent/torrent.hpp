@@ -733,11 +733,6 @@ namespace libtorrent
 				m_available_free_upload = UINT_MAX;
 		}
 
-		int get_peer_upload_limit(tcp::endpoint ip) const;
-		int get_peer_download_limit(tcp::endpoint ip) const;
-		void set_peer_upload_limit(tcp::endpoint ip, int limit);
-		void set_peer_download_limit(tcp::endpoint ip, int limit);
-
 		void set_upload_limit(int limit);
 		int upload_limit() const;
 		void set_download_limit(int limit);

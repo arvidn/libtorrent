@@ -224,8 +224,6 @@ namespace libtorrent
 			, incoming_starts_queued_torrents(false)
 			, report_true_downloaded(false)
 			, strict_end_game_mode(true)
-			, default_peer_upload_rate(0)
-			, default_peer_download_rate(0)
 			, broadcast_lsd(true)
 			, enable_outgoing_utp(true)
 			, enable_incoming_utp(true)
@@ -886,10 +884,6 @@ namespace libtorrent
 		// if set to true, libtorrent won't request a piece multiple times
 		// until every piece is requested
 		bool strict_end_game_mode;
-
-		// each peer will have these limits set on it
-		int default_peer_upload_rate;
-		int default_peer_download_rate;
 
 		// if this is true, the broadcast socket will not only use IP multicast
 		// but also send the messages on the broadcast address. This is false by

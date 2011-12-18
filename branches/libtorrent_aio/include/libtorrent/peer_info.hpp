@@ -106,8 +106,10 @@ namespace libtorrent
 		size_type total_upload;
 		peer_id pid;
 		bitfield pieces;
+#ifndef TORRENT_NO_DEPRECATE
 		int upload_limit;
 		int download_limit;
+#endif
 
 		// time since last request
 		time_duration last_request;

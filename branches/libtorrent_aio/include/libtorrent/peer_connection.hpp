@@ -226,14 +226,6 @@ namespace libtorrent
 
 		void on_metadata_impl();
 
-		int get_upload_limit() const;
-		int get_download_limit() const;
-		void set_upload_limit(int limit);
-		void set_download_limit(int limit);
-
-		int upload_limit() const { return m_upload_limit; }
-		int download_limit() const { return m_download_limit; }
-
 		int prefer_whole_pieces() const
 		{
 			if (on_parole()) return 1;
@@ -512,9 +504,6 @@ namespace libtorrent
 		void cancel_request(piece_block const& b);
 		void send_block_requests();
 
-		int bandwidth_throttle(int channel) const
-		{ return m_bandwidth_channel[channel].throttle(); }
-
 		void assign_bandwidth(int channel, int amount);
 
 #ifdef TORRENT_DEBUG
@@ -688,10 +677,6 @@ namespace libtorrent
 		bool verify_piece(peer_request const& p) const;
 
 		void update_desired_queue_size();
-
-		// the bandwidth channels, upload and download
-		// keeps track of the current quotas
-		bandwidth_channel m_bandwidth_channel[num_channels];
 
 		// number of bytes this peer can send and receive
 		int m_quota[2];
@@ -972,9 +957,6 @@ namespace libtorrent
 		// this is the priority with which this peer gets
 		// download bandwidth quota assigned to it.
 		int m_priority;
-
-		int m_upload_limit;
-		int m_download_limit;
 
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming

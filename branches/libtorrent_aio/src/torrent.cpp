@@ -1523,10 +1523,6 @@ ctx->set_verify_callback(verify_function, ec);
 		m_connections.insert(boost::get_pointer(c));
 		m_ses.m_connections.insert(c);
 		c->start();
-		if (settings().default_peer_upload_rate)
-			c->set_upload_limit(settings().default_peer_upload_rate);
-		if (settings().default_peer_download_rate)
-			c->set_download_limit(settings().default_peer_download_rate);
 	}
 
 #endif
@@ -5834,12 +5830,6 @@ ctx->set_verify_callback(verify_function, ec);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
-
-		if (settings().default_peer_upload_rate)
-			c->set_upload_limit(settings().default_peer_upload_rate);
-		if (settings().default_peer_download_rate)
-			c->set_download_limit(settings().default_peer_download_rate);
-
  		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
 			, size_type(peerinfo->prev_amount_upload) << 10);
  		peerinfo->prev_amount_download = 0;
@@ -6712,44 +6702,6 @@ ctx->set_verify_callback(verify_function, ec);
 			disconnect_peers(num_peers() - m_max_connections
 				, error_code(errors::too_many_connections, get_libtorrent_category()));
 		}
-	}
-
-	int torrent::get_peer_upload_limit(tcp::endpoint ip) const
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::remote, _1) == ip);
-		if (i == m_connections.end()) return -1;
-		return (*i)->get_upload_limit();
-	}
-
-	int torrent::get_peer_download_limit(tcp::endpoint ip) const
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		const_peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::remote, _1) == ip);
-		if (i == m_connections.end()) return -1;
-		return (*i)->get_download_limit();
-	}
-
-	void torrent::set_peer_upload_limit(tcp::endpoint ip, int limit)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(limit >= -1);
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::remote, _1) == ip);
-		if (i == m_connections.end()) return;
-		(*i)->set_upload_limit(limit);
-	}
-
-	void torrent::set_peer_download_limit(tcp::endpoint ip, int limit)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(limit >= -1);
-		peer_iterator i = std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&peer_connection::remote, _1) == ip);
-		if (i == m_connections.end()) return;
-		(*i)->set_download_limit(limit);
 	}
 
 	void torrent::set_upload_limit(int limit)

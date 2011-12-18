@@ -149,18 +149,16 @@ namespace libtorrent
 // 8      4     4         connection
 // 12     2     2         last_optimistically_unchoked
 // 14     2     2         last_connected
-// 16     16    1         addr
-// 32     2     2         port
-// 34     2     2         upload_rate_limit
-// 36     2     2         download_rate_limit
-// 38     1     1         hashfails
-// 39     1     1         failcount, connectable, optimistically_unchoked, seed
-// 40     1     1         fast_reconnects, trust_points
-// 41     1     1         source, pe_support, is_v6_addr
-// 42     1     1         on_parole, banned, added_to_dht, supports_utp,
+// 16     2     2         port
+// 18     1     1         hashfails
+// 19     1     1         failcount, connectable, optimistically_unchoked, seed
+// 20     1     1         fast_reconnects, trust_points
+// 21     1     1         source, pe_support, is_v6_addr
+// 22     1     1         on_parole, banned, added_to_dht, supports_utp,
 //                        supports_holepunch
-// 43     1     1         <padding>
-// 44
+// 23     2     1         <padding>
+// 24
+
 		struct TORRENT_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
@@ -218,10 +216,6 @@ namespace libtorrent
 
 			// the port this peer is or was connected on
 			boost::uint16_t port;
-
-			// the upload and download rate limits set for this peer
-			ufloat16 upload_rate_limit;
-			ufloat16 download_rate_limit;
 
 			// the number of times this peer has been
 			// part of a piece that failed the hash check

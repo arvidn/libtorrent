@@ -246,34 +246,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_max_connections, max_connections);
 	}
 
-	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_upload_limit, ip);
-		return r;
-	}
-
-	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET1(int, -1, get_peer_download_limit, ip);
-		return r;
-	}
-
-	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_peer_upload_limit, ip, limit);
-	}
-
-	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_peer_download_limit, ip, limit);
-	}
-
 	void torrent_handle::set_upload_limit(int limit) const
 	{
 		INVARIANT_CHECK;
@@ -572,6 +544,11 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
+
+	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const { return -1; }
+	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const { return -1; }
+	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const {}
+	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const {}
 
 	bool torrent_handle::is_seed() const
 	{

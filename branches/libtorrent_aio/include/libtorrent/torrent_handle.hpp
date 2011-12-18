@@ -366,16 +366,19 @@ namespace libtorrent
 
 		void set_sequential_download(bool sd) const;
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int get_peer_download_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
 		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
 		// the ratio is uploaded / downloaded. less than 1 is not allowed
 		TORRENT_DEPRECATED_PREFIX
 		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
 #endif
-
-		int get_peer_upload_limit(tcp::endpoint ip) const;
-		int get_peer_download_limit(tcp::endpoint ip) const;
-		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;

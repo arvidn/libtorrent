@@ -2344,11 +2344,6 @@ Its declaration looks like this::
 		void set_sequential_download(bool sd) const;
 		bool is_sequential_download() const;
 
-		int get_peer_upload_limit(tcp::endpoint ip);
-		int get_peer_download_limit(tcp::endpoint ip);
-		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
-
 		int queue_position() const;
 		void queue_position_up() const;
 		void queue_position_down() const;
@@ -2825,20 +2820,6 @@ picker will pick pieces in sequence instead of rarest first.
 
 Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.
-
-get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()
----------------------------------------------------------------------------------------------------
-
-	::
-
-		int get_peer_upload_limit(tcp::endpoint ip);
-		int get_peer_download_limit(tcp::endpoint ip);
-		void set_peer_upload_limit(asio::ip::tcp::endpoint ip, int limit) const;
-		void set_peer_download_limit(asio::ip::tcp::endpoint ip, int limit) const;
-
-Works like ``get_upload_limit``, ``get_download_limit``, ``set_upload_limit`` and
-``set_download_limit`` respectively, but controls individual peer instead of the
-whole torrent.
 
 pause() resume()
 ----------------
@@ -4587,8 +4568,6 @@ session_settings
 		bool report_true_downloaded;
 		bool strict_end_game_mode;
 
-		int default_peer_upload_rate;
-		int default_peer_download_rate;
 		bool broadcast_lsd;
 
 		bool enable_outgoing_utp;
@@ -5306,13 +5285,6 @@ sometimes, but it may also avoid downloading a lot of redundant bytes.
 If this is ``false``, libtorrent attempts to use each peer connection
 to its max, by always requesting something, even if it means requesting
 something that has been requested from another peer already.
-
-``default_peer_upload_rate`` and ``default_peer_download_rate`` specifies
-the default upload and download rate limits for peers, respectively. These
-default to 0, which means unlimited. These settings affect the rate limits
-set on new peer connections (not existing ones). The peer rate limits can
-be changed individually later using
-`get_peer_download_limit() get_peer_upload_limit() set_peer_upload_limit() set_peer_download_limit()`_.
 
 if ``broadcast_lsd`` is set to true, the local peer discovery
 (or Local Service Discovery) will not only use IP multicast, but also
