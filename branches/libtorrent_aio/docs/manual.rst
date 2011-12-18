@@ -2333,7 +2333,6 @@ Its declaration looks like this::
 		void remove_http_seed(std::string const& url);
 		std::set<std::string> http_seeds() const;
 
-		void set_ratio(float ratio) const;
 		int max_uploads() const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
@@ -2791,23 +2790,6 @@ name()
 Returns the name of the torrent. i.e. the name from the metadata associated with it. In
 case the torrent was started without metadata, and hasn't completely received it yet,
 it returns the name given to it when added to the session. See ``session::add_torrent``.
-
-
-set_ratio()
------------
-
-	::
-
-		void set_ratio(float ratio) const;
-
-``set_ratio()`` sets the desired download / upload ratio. If set to 0, it is considered being
-infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
-in return. With this setting it will work much like the standard clients.
-
-Besides 0, the ratio can be set to any number greater than or equal to 1. It means how much to
-attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
-2 bytes for every byte received. The default setting for this is 0, which will make it work
-as a standard client.
 
 
 set_upload_limit() set_download_limit() upload_limit() download_limit()
@@ -3982,8 +3964,6 @@ It contains the following fields::
 		std::string inet_as_name;
 		int inet_as;
 
-		size_type load_balancing;
-
 		int requests_in_buffer;
 		int download_queue_length;
 		int upload_queue_length;
@@ -4197,12 +4177,6 @@ __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list
 an empty string if there is no name in the geo ip database.
 
 ``inet_as`` is the AS number the peer is located in.
-
-``load_balancing`` is a measurement of the balancing of free download (that we get)
-and free upload that we give. Every peer gets a certain amount of free upload, but
-this member says how much *extra* free upload this peer has got. If it is a negative
-number it means that this was a peer from which we have got this amount of free
-download.
 
 ``requests_in_buffer`` is the number of requests messages that are currently in the
 send buffer waiting to be sent.

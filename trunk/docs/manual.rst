@@ -2287,7 +2287,6 @@ Its declaration looks like this::
 		void remove_http_seed(std::string const& url);
 		std::set<std::string> http_seeds() const;
 
-		void set_ratio(float ratio) const;
 		int max_uploads() const;
 		void set_max_uploads(int max_uploads) const;
 		void set_max_connections(int max_connections) const;
@@ -2698,23 +2697,6 @@ name()
 Returns the name of the torrent. i.e. the name from the metadata associated with it. In
 case the torrent was started without metadata, and hasn't completely received it yet,
 it returns the name given to it when added to the session. See ``session::add_torrent``.
-
-
-set_ratio()
------------
-
-	::
-
-		void set_ratio(float ratio) const;
-
-``set_ratio()`` sets the desired download / upload ratio. If set to 0, it is considered being
-infinite. i.e. the client will always upload as much as it can, no matter how much it gets back
-in return. With this setting it will work much like the standard clients.
-
-Besides 0, the ratio can be set to any number greater than or equal to 1. It means how much to
-attempt to upload in return for each download. e.g. if set to 2, the client will try to upload
-2 bytes for every byte received. The default setting for this is 0, which will make it work
-as a standard client.
 
 
 set_upload_limit() set_download_limit() upload_limit() download_limit()

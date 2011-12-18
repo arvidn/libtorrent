@@ -320,12 +320,6 @@ namespace libtorrent
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
 
-		void set_ratio(float r)
-		{ TORRENT_ASSERT(r >= 0.0f); m_ratio = r; }
-
-		float ratio() const
-		{ return m_ratio; }
-
 		int priority() const { return m_priority; }
 		void set_priority(int prio)
 		{
@@ -1118,11 +1112,6 @@ namespace libtorrent
 
 		// the number of pieces we completed the check of
 		int m_num_checked_pieces;
-
-		// the upload/download ratio that each peer
-		// tries to maintain.
-		// 0 is infinite
-		float m_ratio;
 
 		// free download we have got that hasn't
 		// been distributed yet.

@@ -149,7 +149,9 @@ namespace libtorrent
 		int inet_as;
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		size_type load_balancing;
+#endif
 
 		// this is the number of requests
 		// we have sent to this peer

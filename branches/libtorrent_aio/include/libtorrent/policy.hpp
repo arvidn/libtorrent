@@ -94,10 +94,6 @@ namespace libtorrent
 	{
 		// the limits of the download queue size
 		min_request_queue = 2,
-
-		// the amount of free upload allowed before
-		// the peer is choked
-		free_upload_amount = 4 * 16 * 1024
 	};
 
 	void request_a_block(torrent& t, peer_connection& c);

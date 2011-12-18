@@ -642,7 +642,6 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 }
 
 int listen_port = 6881;
-float preferred_ratio = 0.f;
 int allocation_mode = libtorrent::storage_mode_sparse;
 std::string save_path(".");
 int torrent_upload_limit = 0;
@@ -675,7 +674,6 @@ void add_torrent(libtorrent::session& ses
 	, handles_t& files
 	, std::set<libtorrent::torrent_handle>& non_files
 	, std::string const& torrent
-	, float preferred_ratio
 	, int allocation_mode
 	, std::string const& save_path
 	, bool monitored_dir
@@ -726,7 +724,6 @@ void add_torrent(libtorrent::session& ses
 
 	h.set_max_connections(max_connections_per_torrent);
 	h.set_max_uploads(-1);
-	h.set_ratio(preferred_ratio);
 	h.set_upload_limit(torrent_upload_limit);
 	h.set_download_limit(torrent_download_limit);
 	h.use_interface(outgoing_interface.c_str());
@@ -739,7 +736,6 @@ void scan_dir(std::string const& dir_path
 	, libtorrent::session& ses
 	, handles_t& files 
 	, std::set<libtorrent::torrent_handle>& non_files
-	, float preferred_ratio
 	, int allocation_mode
 	, std::string const& save_path
 	, int torrent_upload_limit
@@ -764,7 +760,7 @@ void scan_dir(std::string const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, files, non_files, file, preferred_ratio, allocation_mode
+		add_torrent(ses, files, non_files, file, allocation_mode
 			, save_path, true, torrent_upload_limit, torrent_download_limit);
 		valid.insert(file);
 	}
@@ -906,7 +902,6 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
-			h.set_ratio(preferred_ratio);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
 			h.use_interface(outgoing_interface.c_str());
@@ -1092,7 +1087,6 @@ int main(int argc, char* argv[])
 			"  -H                    Don't start DHT\n"
 			"  -n                    announce to trackers in all tiers\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
-			"  -r <ratio>            sets the preferred share ratio\n"
 			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
@@ -1239,10 +1233,6 @@ int main(int argc, char* argv[])
 			case 'j': settings.use_disk_read_ahead = false; --i; break;
 			case 'z': settings.disable_hash_checks = true; --i; break;
 			case 'K': settings.suggest_mode = session_settings::suggest_read_cache; --i; break;
-			case 'r':
-				preferred_ratio = atoi(arg);
-				if (preferred_ratio != 0 && preferred_ratio < 1.f) preferred_ratio = 1.f;
-				break;
 			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'G': seed_mode = true; --i; break;
@@ -1420,7 +1410,6 @@ int main(int argc, char* argv[])
 
 		h.set_max_connections(max_connections_per_torrent);
 		h.set_max_uploads(-1);
-		h.set_ratio(preferred_ratio);
 		h.set_upload_limit(torrent_upload_limit);
 		h.set_download_limit(torrent_download_limit);
 		h.use_interface(outgoing_interface.c_str());
@@ -1473,7 +1462,6 @@ int main(int argc, char* argv[])
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
-			h.set_ratio(preferred_ratio);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
 			h.use_interface(outgoing_interface.c_str());
@@ -1481,7 +1469,7 @@ int main(int argc, char* argv[])
 		}
 
 		// if it's a torrent file, open it as usual
-		add_torrent(ses, files, non_files, i->c_str(), preferred_ratio
+		add_torrent(ses, files, non_files, i->c_str()
 			, allocation_mode, save_path, false
 			, torrent_upload_limit, torrent_download_limit);
 	}
@@ -2259,7 +2247,7 @@ int main(int argc, char* argv[])
 		if (!monitor_dir.empty()
 			&& next_dir_scan < time_now())
 		{
-			scan_dir(monitor_dir, ses, files, non_files, preferred_ratio
+			scan_dir(monitor_dir, ses, files, non_files
 				, allocation_mode, save_path, torrent_upload_limit
 				, torrent_download_limit);
 			next_dir_scan = time_now() + seconds(poll_interval);

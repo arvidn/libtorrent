@@ -396,15 +396,9 @@ namespace libtorrent
 		// It will reset the used bandwidth to 0.
 		void reset_upload_quota();
 
-		// free upload.
-		size_type total_free_upload() const;
-		void add_free_upload(size_type free_upload);
-
 		// trust management.
 		void received_valid_data(int index);
 		void received_invalid_data(int index);
-
-		size_type share_diff() const;
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
@@ -810,14 +804,6 @@ namespace libtorrent
 		// the time when we sent a not_interested message to
 		// this peer the last time.
 		ptime m_became_uninteresting;
-
-		// the amount of data this peer has been given
-		// as free upload. This is distributed from
-		// peers from which we get free download
-		// this will be negative on a peer from which
-		// we get free download, and positive on peers
-		// that we give the free upload, to keep the balance.
-		size_type m_free_upload;
 
 		// the total payload download bytes
 		// at the last unchoke cycle. This is used to

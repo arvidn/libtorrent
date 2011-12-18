@@ -365,6 +365,12 @@ namespace libtorrent
 		int download_limit() const;
 
 		void set_sequential_download(bool sd) const;
+#ifndef TORRENT_NO_DEPRECATE
+		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
+		// the ratio is uploaded / downloaded. less than 1 is not allowed
+		TORRENT_DEPRECATED_PREFIX
+		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
+#endif
 
 		int get_peer_upload_limit(tcp::endpoint ip) const;
 		int get_peer_download_limit(tcp::endpoint ip) const;
@@ -373,10 +379,6 @@ namespace libtorrent
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
-
-		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
-		// the ratio is uploaded / downloaded. less than 1 is not allowed
-		void set_ratio(float up_down_ratio) const;
 
 		std::string save_path() const;
 

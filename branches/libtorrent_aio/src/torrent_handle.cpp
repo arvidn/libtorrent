@@ -790,6 +790,8 @@ namespace libtorrent
 
 		return ret;
 	}
+
+	void torrent_handle::set_ratio(float ratio) const {}
 #endif
 
 	std::string torrent_handle::save_path() const
@@ -855,16 +857,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL1(super_seeding, on);
-	}
-
-	void torrent_handle::set_ratio(float ratio) const
-	{
-		INVARIANT_CHECK;
-		
-		TORRENT_ASSERT(ratio >= 0.f);
-		if (ratio < 1.f && ratio > 0.f)
-			ratio = 1.f;
-		TORRENT_ASYNC_CALL1(set_ratio, ratio);
 	}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES

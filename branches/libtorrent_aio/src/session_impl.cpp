@@ -4190,9 +4190,7 @@ namespace aux {
 
 			if (!p->is_peer_interested()
 				|| p->is_disconnecting()
-				|| p->is_connecting()
-				|| (p->share_diff() < -free_upload_amount
-					&& !t->is_seed()))
+				|| p->is_connecting())
 			{
 				// this peer is not unchokable. So, if it's unchoked
 				// already, make sure to choke it.

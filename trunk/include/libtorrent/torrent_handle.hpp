@@ -266,6 +266,10 @@ namespace libtorrent
 		// ================ start deprecation ============
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16, feature will be removed
+		TORRENT_DEPRECATED_PREFIX
+		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
+
 		// deprecated in 0.16. use status() instead
 		TORRENT_DEPRECATED_PREFIX
 		bool is_seed() const TORRENT_DEPRECATED;
@@ -367,10 +371,6 @@ namespace libtorrent
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
-
-		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
-		// the ratio is uploaded / downloaded. less than 1 is not allowed
-		void set_ratio(float up_down_ratio) const;
 
 		std::string save_path() const;
 
