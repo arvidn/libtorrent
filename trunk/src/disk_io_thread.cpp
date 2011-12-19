@@ -1561,9 +1561,12 @@ namespace libtorrent
 			// up read jobs increases too far.
 			int read_job_every = m_settings.read_job_every;
 
-			if (m_sorted_read_jobs.size() > m_settings.unchoke_slots_limit * 2)
+			int unchoke_limit = m_settings.unchoke_slots_limit;
+			if (unchoke_limit < 0) unchoke_limit = 100;
+
+			if (m_sorted_read_jobs.size() > unchoke_limit * 2)
 			{
-				int range = m_settings.unchoke_slots_limit;
+				int range = unchoke_limit;
 				int exceed = m_sorted_read_jobs.size() - range * 2;
 				read_job_every = (exceed * 1 + (range - exceed) * read_job_every) / 2;
 				if (read_job_every < 1) read_job_every = 1;
