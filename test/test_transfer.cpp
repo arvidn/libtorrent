@@ -270,6 +270,16 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		sett.unchoke_slots_limit = 0;
 	}
 
+	sett.unchoke_slots_limit = 0;
+	ses1.set_settings(sett);
+	TEST_CHECK(ses1.settings().unchoke_slots_limit == 0);
+	sett.unchoke_slots_limit = -1;
+	ses1.set_settings(sett);
+	TEST_CHECK(ses1.settings().unchoke_slots_limit == -1);
+	sett.unchoke_slots_limit = 8;
+	ses1.set_settings(sett);
+	TEST_CHECK(ses1.settings().unchoke_slots_limit == 8);
+
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.

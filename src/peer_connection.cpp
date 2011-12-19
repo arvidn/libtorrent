@@ -1534,7 +1534,8 @@ namespace libtorrent
 				// just unchoke it immediately
 				send_unchoke();
 			}
-			else if (m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit
+			else if ((m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit
+					|| m_ses.settings().unchoke_slots_limit < 0)
 				&& (t->ratio() == 0
 					|| share_diff() >= size_type(-free_upload_amount)
 					|| t->is_finished()))
@@ -1555,7 +1556,8 @@ namespace libtorrent
 			else
 			{
 				std::string reason;
-				if (m_ses.num_uploads() >= m_ses.settings().unchoke_slots_limit)
+				if (m_ses.num_uploads() >= m_ses.settings().unchoke_slots_limit
+					&& m_ses.settings().unchoke_slots_limit >= 0)
 				{
 					peer_log("DID NOT UNCHOKE [ the number of uploads (%d)"
 						"is more than or equal to the limit (%d) ]"
