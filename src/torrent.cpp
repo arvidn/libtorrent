@@ -1791,6 +1791,8 @@ ctx->set_verify_callback(verify_function, ec);
 			return;
 		}
 
+		state_updated();
+
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
@@ -7793,6 +7795,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// 0: success, piece passed hash check
 		// -1: disk failure
 		// -2: hash check failed
+
+		state_updated();
 
 		if (ret == -1) handle_disk_error(j);
 		f(ret);
