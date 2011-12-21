@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <list>
 
+#include "libtorrent/config.hpp"
+
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
 #include "libtorrent/GeoIP.h"
@@ -51,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/pool/object_pool.hpp>
+
+#if TORRENT_HAS_BOOST_UNORDERED
+#include <boost/unordered_map.hpp>
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -194,7 +200,11 @@ namespace libtorrent
 			friend struct checker_impl;
 			friend class invariant_access;
 			typedef std::set<boost::intrusive_ptr<peer_connection> > connection_map;
+#if TORRENT_HAS_BOOST_UNORDERED
+			typedef boost::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
+#else
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
+#endif
 
 			session_impl(
 				std::pair<int, int> listen_port_range

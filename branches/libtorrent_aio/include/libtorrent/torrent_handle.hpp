@@ -72,6 +72,7 @@ namespace libtorrent
 	struct peer_info;
 	struct peer_list_entry;
 	struct torrent_status;
+	struct torrent_handle;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
@@ -151,12 +152,16 @@ namespace libtorrent
 		state_t piece_state;
 	};
 
+	// for boost::hash (and to support using this type in unordered_map etc.)
+	std::size_t hash_value(torrent_handle const& h);
+
 	struct TORRENT_EXPORT torrent_handle
 	{
 		friend class invariant_access;
 		friend struct aux::session_impl;
 		friend struct feed;
 		friend class torrent;
+		friend std::size_t hash_value(torrent_handle const& h);
 
 		torrent_handle() {}
 

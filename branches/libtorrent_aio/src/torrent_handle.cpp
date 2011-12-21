@@ -204,6 +204,12 @@ namespace libtorrent
 
 #endif
 
+	std::size_t hash_value(torrent_handle const& h)
+	{
+		// use the pointer value as hash
+		return (std::size_t)h.m_torrent.lock().get();
+	}
+
 	sha1_hash torrent_handle::info_hash() const
 	{
 		INVARIANT_CHECK;

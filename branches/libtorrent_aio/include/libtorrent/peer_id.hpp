@@ -254,6 +254,13 @@ namespace libtorrent
 	typedef big_number peer_id;
 	typedef big_number sha1_hash;
 
+	inline std::size_t hash_value(big_number const& b)
+	{
+		std::size_t ret;
+		std::memcpy(&ret, &b[0], sizeof(ret));
+		return ret;
+	}
+
 #if TORRENT_USE_IOSTREAM
 	inline std::ostream& operator<<(std::ostream& os, big_number const& peer)
 	{

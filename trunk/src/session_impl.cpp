@@ -3167,9 +3167,9 @@ namespace aux {
 				if (m_next_connect_torrent == m_torrents.end())
 					m_next_connect_torrent = m_torrents.begin();
 
-				// if we have gone two whole loops without
+				// if we have gone a whole loop without
 				// handing out a single connection, break
-				if (steps_since_last_connect > num_torrents * 2) break;
+				if (steps_since_last_connect > num_torrents + 1) break;
 				// if there are no more free connection slots, abort
 				if (free_slots <= -m_half_open.limit()) break;
 				// if we should not make any more connections
@@ -4287,10 +4287,9 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
-		std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator i
-			= m_torrents.find(info_hash);
+		torrent_map::iterator i = m_torrents.find(info_hash);
 #ifdef TORRENT_DEBUG
-		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::iterator j
+		for (torrent_map::iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
 			torrent* p = boost::get_pointer(j->second);
@@ -4324,7 +4323,7 @@ namespace aux {
 		, boost::function<bool(torrent_status const&)> const& pred
 		, boost::uint32_t flags) const
 	{
-		for (session_impl::torrent_map::const_iterator i
+		for (torrent_map::const_iterator i
 			= m_torrents.begin(), end(m_torrents.end());
 			i != end; ++i)
 		{
@@ -4371,7 +4370,7 @@ namespace aux {
 	{
 		std::vector<torrent_handle> ret;
 
-		for (session_impl::torrent_map::const_iterator i
+		for (torrent_map::const_iterator i
 			= m_torrents.begin(), end(m_torrents.end());
 			i != end; ++i)
 		{
@@ -4505,9 +4504,12 @@ namespace aux {
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
 
-		// recalculate auto-managed torrents sooner
-		if ((params.flags && add_torrent_params::flag_auto_managed)
-			&& m_auto_manage_time_scaler > 1)
+		// recalculate auto-managed torrents sooner (or put it off)
+		// if another torrent will be added within one second from now
+		// we want to put it off again anyway. So that while we're adding
+		// a boat load of torrents, we postpone the recalculation until
+		// we're done adding them all (since it's kind of an expensive operation)
+		if (params.flags & add_torrent_params::flag_auto_managed)
 			m_auto_manage_time_scaler = 1;
 
 		return torrent_handle(torrent_ptr);
@@ -4589,7 +4591,7 @@ namespace aux {
 			if (j != m_uuids.end()) m_uuids.erase(j);
 		}
 
-		session_impl::torrent_map::iterator i =
+		torrent_map::iterator i =
 			m_torrents.find(tptr->torrent_file().info_hash());
 
 		// this torrent might be filed under the URL-hash
@@ -5666,7 +5668,7 @@ namespace aux {
 		{
 			TORRENT_ASSERT(false);
 		}
-		for (std::map<sha1_hash, boost::shared_ptr<torrent> >::const_iterator j
+		for (torrent_map::const_iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
 			TORRENT_ASSERT(boost::get_pointer(j->second));
