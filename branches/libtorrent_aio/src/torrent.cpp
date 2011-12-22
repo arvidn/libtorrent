@@ -205,7 +205,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
 #endif
-		PRINT_OFFSETOF(torrent, m_available_free_upload)
 		PRINT_OFFSETOF(torrent, m_average_piece_time)
 		PRINT_OFFSETOF(torrent, m_piece_time_deviation)
 		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
@@ -303,7 +302,6 @@ namespace libtorrent
 		, m_last_saved_resume(time(0))
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
-		, m_available_free_upload(0)
 		, m_average_piece_time(0)
 		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
@@ -366,7 +364,6 @@ namespace libtorrent
 		, m_in_encrypted_list(false)
 		, m_refreshing_suggest_pieces(false)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
-		, m_in_state_updates(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;

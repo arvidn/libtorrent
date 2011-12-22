@@ -724,15 +724,6 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		void add_free_upload(size_type diff)
-		{
-			TORRENT_ASSERT(diff >= 0);
-			if (UINT_MAX - m_available_free_upload > diff)
-				m_available_free_upload += boost::uint32_t(diff);
-			else
-				m_available_free_upload = UINT_MAX;
-		}
-
 		void set_upload_limit(int limit);
 		int upload_limit() const;
 		void set_download_limit(int limit);
@@ -1107,10 +1098,6 @@ namespace libtorrent
 
 		// the number of pieces we completed the check of
 		int m_num_checked_pieces;
-
-		// free download we have got that hasn't
-		// been distributed yet.
-		boost::uint32_t m_available_free_upload;
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;
