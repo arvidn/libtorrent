@@ -899,5 +899,14 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
 	}
 
+	std::size_t hash_value(torrent_status const& ts)
+	{
+		return hash_value(ts.handle);
+	}
+
+	std::size_t hash_value(torrent_handle const& th)
+	{
+		return std::size_t(th.m_torrent.lock().get());
+	}
 }
 
