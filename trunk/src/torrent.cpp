@@ -6023,6 +6023,10 @@ ctx->set_verify_callback(verify_function, ec);
 			// turn off super seeding if we're not a seed
 			if (m_super_seeding) m_super_seeding = false;
 
+			// if we just finished checking and we're not a seed, we are
+			// likely to be unpaused
+			m_ses.m_auto_manage_time_scaler = 2;
+
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
 		}
