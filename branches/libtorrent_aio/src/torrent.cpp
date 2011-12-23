@@ -6207,8 +6207,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// this torrent just completed downloads, which means it will fall
 		// under a different limit with the auto-manager. Make sure we
 		// update auto-manage torrents in that case
-		if (m_auto_managed && m_ses.m_auto_manage_time_scaler > 1)
-			m_ses.m_auto_manage_time_scaler = 1;
+		if (m_auto_managed)
+			m_ses.m_auto_manage_time_scaler = 2;
 	}
 
 	// this is called when we were finished, but some files were
@@ -6318,18 +6318,13 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// if this is an auto managed torrent, force a recalculation
 		// of which torrents to have active
-		if (m_auto_managed && m_ses.m_auto_manage_time_scaler > 1)
-			m_ses.m_auto_manage_time_scaler = 1;
+		if (m_auto_managed)
+			m_ses.m_auto_manage_time_scaler = 2;
 
 		if (!is_seed())
 		{
 			// turn off super seeding if we're not a seed
 			if (m_super_seeding) m_super_seeding = false;
-
-			// if we just finished checking and we're not a seed, we are
-			// likely to be unpaused
-			if (m_ses.m_auto_manage_time_scaler > 1)
-				m_ses.m_auto_manage_time_scaler = 1;
 
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
@@ -6683,8 +6678,7 @@ ctx->set_verify_callback(verify_function, ec);
 			m_sequence_number = (std::min)(max_queue_pos, p);
 		}
 
-		if (m_ses.m_auto_manage_time_scaler > 2)
-			m_ses.m_auto_manage_time_scaler = 2;
+		m_ses.m_auto_manage_time_scaler = 2;
 	}
 
 	void torrent::set_max_uploads(int limit)
@@ -6771,8 +6765,7 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_error) return;
 		bool checking_files = should_check_files();
-		if (m_ses.m_auto_manage_time_scaler > 2)
-			m_ses.m_auto_manage_time_scaler = 2;
+		m_ses.m_auto_manage_time_scaler = 2;
 		m_error = error_code();
 		m_error_file.clear();
 
@@ -6847,7 +6840,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// recalculate which torrents should be
 		// paused
-		m_ses.m_auto_manage_time_scaler = 0;
+		m_ses.m_auto_manage_time_scaler = 2;
 
 		if (!checking_files && should_check_files())
 		{
@@ -6856,9 +6849,8 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// if this torrent is running and just became auto-managed
 		// we might want to pause it in favor of some other torrent
-		if (m_auto_managed && !is_paused()
-			&& m_ses.m_auto_manage_time_scaler > 1)
-			m_ses.m_auto_manage_time_scaler = 1;
+		if (m_auto_managed && !is_paused())
+			m_ses.m_auto_manage_time_scaler = 2;
 	}
 
 	// the higher seed rank, the more important to seed
@@ -7110,8 +7102,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// if this torrent was just paused
 		// we might have to resume some other auto-managed torrent
-		if (m_ses.m_auto_manage_time_scaler > 1)
-			m_ses.m_auto_manage_time_scaler = 1;
+		m_ses.m_auto_manage_time_scaler = 2;
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING

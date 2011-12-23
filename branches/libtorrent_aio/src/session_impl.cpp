@@ -4700,7 +4700,7 @@ namespace aux {
 		// a boat load of torrents, we postpone the recalculation until
 		// we're done adding them all (since it's kind of an expensive operation)
 		if (params.flags & add_torrent_params::flag_auto_managed)
-			m_auto_manage_time_scaler = 1;
+			m_auto_manage_time_scaler = 2;
 
 		return torrent_handle(torrent_ptr);
 	}
