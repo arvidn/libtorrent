@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -377,7 +375,8 @@ piece_size will be calculated such that the torrent file is roughly 40 kB.</p>
 <p>If a <tt class="docutils literal"><span class="pre">pad_size_limit</span></tt> is specified (other than -1), any file larger than
 the specified number of bytes will be preceeded by a pad file to align it
 with the start of a piece. The pad_file_limit is ignored unless the
-<tt class="docutils literal"><span class="pre">optimize</span></tt> flag is passed.</p>
+<tt class="docutils literal"><span class="pre">optimize</span></tt> flag is passed. Typically it doesn't make sense to set this
+any lower than 4kiB.</p>
 <p>The overload that takes a <tt class="docutils literal"><span class="pre">torrent_info</span></tt> object will make a verbatim
 copy of its info dictionary (to preserve the info-hash). The copy of
 the info dictionary will be used by <tt class="docutils literal"><span class="pre">generate()</span></tt>. This means

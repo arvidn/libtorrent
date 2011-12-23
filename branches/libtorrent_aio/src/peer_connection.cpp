@@ -1563,7 +1563,8 @@ namespace libtorrent
 				// just unchoke it immediately
 				send_unchoke();
 			}
-			else if (m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit)
+			else if (m_ses.num_uploads() < m_ses.settings().unchoke_slots_limit
+				|| m_ses.settings().unchoke_slots_limit < 0)
 			{
 				// if the peer is choked and we have upload slots left,
 				// then unchoke it. Another condition that has to be met

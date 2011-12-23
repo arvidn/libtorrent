@@ -4280,7 +4280,8 @@ namespace aux {
 				++m_allowed_upload_slots;
 			}
 			else if (m_upload_rate.queue_size() > 1
-				&& m_allowed_upload_slots > m_settings.unchoke_slots_limit)
+				&& m_allowed_upload_slots > m_settings.unchoke_slots_limit
+				&& m_settings.unchoke_slots_limit >= 0)
 			{
 				--m_allowed_upload_slots;
 			}
@@ -5313,10 +5314,10 @@ namespace aux {
 
 	void session_impl::update_unchoke_limit()
 	{
-		if (m_settings.unchoke_slots_limit < 0)
-			m_settings.unchoke_slots_limit = (std::numeric_limits<int>::max)();
-
 		m_allowed_upload_slots = m_settings.unchoke_slots_limit;
+		if (m_allowed_upload_slots < 0)
+			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
+
 		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
@@ -5769,7 +5770,6 @@ namespace aux {
 
 		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_settings.connections_limit > 0);
-		TORRENT_ASSERT(m_settings.unchoke_slots_limit >= 0);
 		if (m_settings.choking_algorithm == session_settings::auto_expand_choker)
 			TORRENT_ASSERT(m_allowed_upload_slots >= m_settings.unchoke_slots_limit);
 		int unchokes = 0;

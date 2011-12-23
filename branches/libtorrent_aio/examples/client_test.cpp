@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/unordered_set.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -279,25 +280,40 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 bool yes(libtorrent::torrent_status const&)
 { return true; }
 
-bool compare_torrent(torrent_status const& lhs, torrent_status const& rhs)
-{
-	if (lhs.queue_position != -1 && rhs.queue_position != -1)
-	{
-		// both are downloading, sort by queue pos
-		return lhs.queue_position < rhs.queue_position;
-	}
-	else if (lhs.queue_position == -1 && rhs.queue_position == -1)
-	{
-		// both are seeding, sort by seed-rank
-		return lhs.seed_rank > rhs.seed_rank;
-	}
-
-	return (lhs.queue_position == -1) < (rhs.queue_position == -1);
-}
-
 FILE* g_log_file = 0;
 
 int active_torrent = 0;
+
+bool compare_torrent(torrent_status const* lhs, torrent_status const* rhs)
+{
+	if (lhs->queue_position != -1 && rhs->queue_position != -1)
+	{
+		// both are downloading, sort by queue pos
+		return lhs->queue_position < rhs->queue_position;
+	}
+	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
+	{
+		// both are seeding, sort by seed-rank
+		return lhs->seed_rank > rhs->seed_rank;
+	}
+
+	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
+}
+
+void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
+	, std::vector<torrent_status const*>& filtered_handles, int* counters)
+{
+	filtered_handles.clear();
+	memset(counters, 0, sizeof(int) * torrents_max);
+	for (boost::unordered_set<torrent_status>::iterator i = all_handles.begin()
+		, end(all_handles.end()); i != end; ++i)
+	{
+		if (!show_torrent(*i, torrent_filter, counters)) continue;
+		filtered_handles.push_back(&*i);
+	}
+	if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
+	std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
+}
 
 char const* esc(char const* code)
 {
@@ -796,13 +812,11 @@ void scan_dir(std::string const& dir_path
 	}
 }
 
-torrent_status const& get_active_torrent(std::vector<torrent_status> const& torrents)
+torrent_status const& get_active_torrent(std::vector<torrent_status const*> const& filtered_handles)
 {
-	if (active_torrent >= int(torrents.size())
+	if (active_torrent >= int(filtered_handles.size())
 		|| active_torrent < 0) active_torrent = 0;
-	std::vector<torrent_status>::const_iterator i = torrents.begin();
-	std::advance(i, active_torrent);
-	return *i;
+	return *filtered_handles[active_torrent];
 }
 
 void print_alert(libtorrent::alert const* a, std::string& str)
@@ -846,8 +860,13 @@ int save_file(std::string const& filename, std::vector<char>& v)
 	return 0;
 }
 
-void handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files)
+// returns true if the alert was handled (and should not be printed to the log)
+// returns false if the alert was not handled
+bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
+	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files
+	, int* counters, boost::unordered_set<torrent_status>& all_handles
+	, std::vector<torrent_status const*>& filtered_handles
+	, bool& need_resort)
 {
 	using namespace libtorrent;
 
@@ -865,7 +884,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), ec.message().c_str());
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
-			return;
+			return true;
 		}
 		stat_file(priv, &st, ec);
 		if (ec)
@@ -873,7 +892,7 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			char msg[256];
 			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), ec.message().c_str());
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
-			return;
+			return true;
 		}
 
 		char msg[256];
@@ -908,6 +927,14 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
+
+			boost::unordered_set<torrent_status>::iterator j
+				= all_handles.insert(h.status()).first;
+			if (show_torrent(*j, torrent_filter, counters))
+			{
+				filtered_handles.push_back(&*j);
+				need_resort = true;
+			}
 		}
 	}
 	else if (torrent_finished_alert* p = alert_cast<torrent_finished_alert>(a))
@@ -957,6 +984,21 @@ void handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		h.save_resume_data();
 		++num_outstanding_resume_data;
 	}
+	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
+	{
+		for (std::vector<torrent_status>::iterator i = p->status.begin();
+			i != p->status.end(); ++i)
+		{
+			boost::unordered_set<torrent_status>::iterator j = all_handles.find(*i);
+			// don't add new entries here, that's done in the handler
+			// for add_torrent_alert
+			if (j == all_handles.end()) continue;
+			((torrent_status&)*j) = *i;
+		}
+
+		return true;
+	}
+	return false;
 }
 
 void print_piece(libtorrent::partial_piece_info* pp
@@ -1154,7 +1196,9 @@ int main(int argc, char* argv[])
 	// it was added through the directory monitor. It is used to
 	// be able to remove torrents that were added via the directory
 	// monitor when they're not in the directory anymore.
-	std::vector<torrent_status> handles;
+	boost::unordered_set<torrent_status> all_handles;
+	std::vector<torrent_status const*> filtered_handles;
+
 	handles_t files;
 	// torrents that were not added via the monitor dir
 	std::set<torrent_handle> non_files;
@@ -1487,16 +1531,15 @@ int main(int argc, char* argv[])
 	while (loop_limit > 1 || loop_limit == 0)
 	{
 		++tick;
-		handles.clear();
-		memset(counters, 0, sizeof(counters));
-		ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-		if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
-		else if (active_torrent >= 0)
+		ses.post_torrent_updates();
+		if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
+		if (active_torrent >= 0)
 		{
 			// ask for distributed copies for the selected torrent. Since this
 			// is a somewhat expensive operation, don't do it by default for
 			// all torrents
-			handles[active_torrent] = handles[active_torrent].handle.status(
+			torrent_status const& h = *filtered_handles[active_torrent];
+			h.handle.status(
 				torrent_handle::query_distributed_copies
 				| torrent_handle::query_pieces
 				| torrent_handle::query_verified_pieces);
@@ -1507,12 +1550,12 @@ int main(int argc, char* argv[])
 
 		counters[torrents_feeds] = feeds.size();
 
-		std::sort(handles.begin(), handles.end(), &compare_torrent);
+		std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
 
 		if (loop_limit > 1)
 		{
 			// in test mode, don't quit until we're seeding
-			if (loop_limit > 2 || active_torrent == -1 || handles[active_torrent].is_seeding)
+			if (loop_limit > 2 || active_torrent == -1 || filtered_handles[active_torrent]->is_seeding)
 				--loop_limit;
 		}
 		int c = 0;
@@ -1542,11 +1585,7 @@ int main(int argc, char* argv[])
 					if (torrent_filter > 0)
 					{
 						--torrent_filter;
-						handles.clear();
-						memset(counters, 0, sizeof(counters));
-						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
-						std::sort(handles.begin(), handles.end(), &compare_torrent);
+						update_filtered_torrents(all_handles, filtered_handles, counters);
 					}
 				}
 				else if (c == 67)
@@ -1555,11 +1594,7 @@ int main(int argc, char* argv[])
 					if (torrent_filter < torrents_max - 1)
 					{
 						++torrent_filter;
-						handles.clear();
-						memset(counters, 0, sizeof(counters));
-						ses.get_torrent_status(&handles, boost::bind(&show_torrent, _1, torrent_filter, (int*)counters));
-						if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
-						std::sort(handles.begin(), handles.end(), &compare_torrent);
+						update_filtered_torrents(all_handles, filtered_handles, counters);
 					}
 				}
 				else if (c == 65)
@@ -1572,7 +1607,8 @@ int main(int argc, char* argv[])
 				{
 					// arrow down
 					++active_torrent;
-					if (active_torrent >= int(handles.size())) active_torrent = handles.size() - 1;
+					if (active_torrent >= int(filtered_handles.size()))
+						active_torrent = filtered_handles.size() - 1;
 				}
 			}
 
@@ -1612,7 +1648,7 @@ int main(int argc, char* argv[])
 
 			if (c == 'D')
 			{
-				torrent_handle h = get_active_torrent(handles).handle;
+				torrent_handle h = get_active_torrent(filtered_handles).handle;
 				if (h.is_valid())
 				{
 					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
@@ -1637,9 +1673,9 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (c == 'j' && !handles.empty())
+			if (c == 'j' && !filtered_handles.empty())
 			{
-				get_active_torrent(handles).handle.force_recheck();
+				get_active_torrent(filtered_handles).handle.force_recheck();
 			}
 
 			if (c == 'x')
@@ -1647,34 +1683,34 @@ int main(int argc, char* argv[])
 				print_disk_stats = !print_disk_stats;
 			}
 
-			if (c == 'r' && !handles.empty())
+			if (c == 'r' && !filtered_handles.empty())
 			{
-				get_active_torrent(handles).handle.force_reannounce();
+				get_active_torrent(filtered_handles).handle.force_reannounce();
 			}
 
-			if (c == 's' && !handles.empty())
+			if (c == 's' && !filtered_handles.empty())
 			{
-				torrent_status const& ts = get_active_torrent(handles);
+				torrent_status const& ts = get_active_torrent(filtered_handles);
 				ts.handle.set_sequential_download(!ts.sequential_download);
 			}
 
 			if (c == 'R')
 			{
 				// save resume data for all torrents
-				for (std::vector<torrent_status>::iterator i = handles.begin()
-					, end(handles.end()); i != end; ++i)
+				for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin()
+					, end(filtered_handles.end()); i != end; ++i)
 				{
-					if (i->need_save_resume)
+					if ((*i)->need_save_resume)
 					{
-						i->handle.save_resume_data();
+						(*i)->handle.save_resume_data();
 						++num_outstanding_resume_data;
 					}
 				}
 			}
 
-			if (c == 'o' && !handles.empty())
+			if (c == 'o' && !filtered_handles.empty())
 			{
-				torrent_status const& ts = get_active_torrent(handles);
+				torrent_status const& ts = get_active_torrent(filtered_handles);
 				int num_pieces = ts.num_pieces;
 				if (num_pieces > 300) num_pieces = 300;
 				for (int i = 0; i < num_pieces; ++i)
@@ -1683,15 +1719,15 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (c == 'v' && !handles.empty())
+			if (c == 'v' && !filtered_handles.empty())
 			{
-				torrent_status const& ts = get_active_torrent(handles);
+				torrent_status const& ts = get_active_torrent(filtered_handles);
 				ts.handle.scrape_tracker();
 			}
 
-			if (c == 'p' && !handles.empty())
+			if (c == 'p' && !filtered_handles.empty())
 			{
-				torrent_status const& ts = get_active_torrent(handles);
+				torrent_status const& ts = get_active_torrent(filtered_handles);
 				if (!ts.auto_managed && ts.paused)
 				{
 					ts.handle.auto_managed(true);
@@ -1703,9 +1739,17 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (c == 'c' && !handles.empty())
+			// toggle force-start
+			if (c == 'k' && !filtered_handles.empty())
 			{
-				torrent_status const& ts = get_active_torrent(handles);
+				torrent_status const& ts = get_active_torrent(filtered_handles);
+				ts.handle.auto_managed(!ts.auto_managed);
+				if (ts.auto_managed && ts.paused) ts.handle.resume();
+			}
+
+			if (c == 'c' && !filtered_handles.empty())
+			{
+				torrent_status const& ts = get_active_torrent(filtered_handles);
 				ts.handle.clear_error();
 			}
 
@@ -1773,16 +1817,26 @@ int main(int argc, char* argv[])
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			std::string event_string;
-
-			::print_alert(*i, event_string);
+			bool need_resort = false;
 			TORRENT_TRY
 			{
-				::handle_alert(ses, *i, files, non_files);
+				if (!::handle_alert(ses, *i, files, non_files, counters
+					, all_handles, filtered_handles, need_resort))
+				{
+					// if we didn't handle the alert, print it to the log
+					std::string event_string;
+					print_alert(*i, event_string);
+					events.push_back(event_string);
+					if (events.size() >= 20) events.pop_front();
+				}
 			} TORRENT_CATCH(std::exception& e) {}
 
-			events.push_back(event_string);
-			if (events.size() >= 20) events.pop_front();
+			if (need_resort)
+			{
+				std::sort(filtered_handles.begin(), filtered_handles.end()
+					, &compare_torrent);
+			}
+
 			delete *i;
 		}
 		alerts.clear();
@@ -1836,8 +1890,8 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		for (std::vector<torrent_status>::iterator i = handles.begin();
-			i != handles.end(); ++torrent_index)
+		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
+			i != filtered_handles.end(); ++torrent_index)
 		{
 			if (lines_printed >= terminal_height - 15)
 			{
@@ -1845,10 +1899,10 @@ int main(int argc, char* argv[])
 				break;
 			}
 
-			torrent_status& s = *i;
+			torrent_status const& s = **i;
 			if (!s.handle.is_valid())
 			{
-				i = handles.erase(i);
+				i = filtered_handles.erase(i);
 				continue;
 			}
 			else
@@ -1986,7 +2040,7 @@ int main(int argc, char* argv[])
 
 		sha1_hash ih(0);
 		torrent_handle h;
-		if (!handles.empty()) h = get_active_torrent(handles).handle;
+		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
 		if (h.is_valid()) ih = h.info_hash();
 
 		cache_status cs;
@@ -2106,7 +2160,7 @@ int main(int argc, char* argv[])
 		}
 
 		torrent_status const* st = 0;
-		if (!handles.empty()) st = &get_active_torrent(handles);
+		if (!filtered_handles.empty()) st = &get_active_torrent(filtered_handles);
 		if (h.is_valid())
 		{
 			torrent_status const& s = *st;

@@ -1753,6 +1753,8 @@ ctx->set_verify_callback(verify_function, ec);
 			return;
 		}
 
+		state_updated();
+
 		if (m_resume_entry.type() == lazy_entry::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
@@ -2627,7 +2629,14 @@ ctx->set_verify_callback(verify_function, ec);
 			else
 			{
 				// ignore local addresses from the tracker (unless the tracker is local too)
-				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
+				// there are 2 reasons to allow this:
+				// 1. retrackers are popular in russia, where an ISP runs a tracker within
+				//    the AS (but not on the local network) giving out peers only from the
+				//    local network
+				// 2. it might make sense to have a tracker extension in the future where
+				//    trackers records a peer's internal and external IP, and match up
+				//    peers on the same local network
+//				if (is_local(a.address()) && !is_local(tracker_ip)) continue;
 				m_policy.add_peer(a, i->pid, peer_info::tracker, 0);
 			}
 		}
@@ -5827,6 +5836,7 @@ ctx->set_verify_callback(verify_function, ec);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
+
  		c->add_stat(size_type(peerinfo->prev_amount_download) << 10
 			, size_type(peerinfo->prev_amount_upload) << 10);
  		peerinfo->prev_amount_download = 0;
@@ -7966,6 +7976,10 @@ ctx->set_verify_callback(verify_function, ec);
 		// 0: success, piece passed hash check
 		// -1: disk failure
 		// -2: hash check failed
+
+		state_updated();
+
+		if (ret == -1) handle_disk_error(j);
 		f(ret);
 	}
 

@@ -204,12 +204,6 @@ namespace libtorrent
 
 #endif
 
-	std::size_t hash_value(torrent_handle const& h)
-	{
-		// use the pointer value as hash
-		return (std::size_t)h.m_torrent.lock().get();
-	}
-
 	sha1_hash torrent_handle::info_hash() const
 	{
 		INVARIANT_CHECK;
@@ -555,6 +549,7 @@ namespace libtorrent
 	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const { return -1; }
 	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const {}
 	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const {}
+	void torrent_handle::set_ratio(float ratio) const {}
 
 	bool torrent_handle::is_seed() const
 	{
@@ -773,8 +768,6 @@ namespace libtorrent
 
 		return ret;
 	}
-
-	void torrent_handle::set_ratio(float ratio) const {}
 #endif
 
 	std::string torrent_handle::save_path() const
@@ -887,5 +880,15 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
 	}
 
+	std::size_t hash_value(torrent_status const& ts)
+	{
+		return hash_value(ts.handle);
+	}
+
+	std::size_t hash_value(torrent_handle const& th)
+	{
+		// use the pointer value as hash
+		return std::size_t(th.m_torrent.lock().get());
+	}
 }
 

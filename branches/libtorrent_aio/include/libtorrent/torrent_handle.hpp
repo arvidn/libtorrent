@@ -74,6 +74,8 @@ namespace libtorrent
 	struct torrent_status;
 	struct torrent_handle;
 
+	std::size_t hash_value(torrent_status const& ts);
+
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
 	typedef libtorrent_exception duplicate_torrent;
@@ -161,7 +163,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend struct feed;
 		friend class torrent;
-		friend std::size_t hash_value(torrent_handle const& h);
+		friend std::size_t hash_value(torrent_handle const& th);
 
 		torrent_handle() {}
 
@@ -277,6 +279,20 @@ namespace libtorrent
 		// ================ start deprecation ============
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16, feature will be removed
+		TORRENT_DEPRECATED_PREFIX
+		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		int get_peer_download_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
+
+		// deprecated in 0.16, feature will be removed
+		TORRENT_DEPRECATED_PREFIX
+		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
+
 		// deprecated in 0.16. use status() instead
 		TORRENT_DEPRECATED_PREFIX
 		bool is_seed() const TORRENT_DEPRECATED;
@@ -370,20 +386,6 @@ namespace libtorrent
 		int download_limit() const;
 
 		void set_sequential_download(bool sd) const;
-#ifndef TORRENT_NO_DEPRECATE
-		TORRENT_DEPRECATED_PREFIX
-		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int get_peer_download_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_upload_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_download_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
-		// valid ratios are 0 (infinite ratio) or [ 1.0 , inf )
-		// the ratio is uploaded / downloaded. less than 1 is not allowed
-		TORRENT_DEPRECATED_PREFIX
-		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
-#endif
 
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
@@ -506,6 +508,9 @@ namespace libtorrent
 			, info_hash(0)
 			, listen_port(0)
 		{}
+
+		bool operator==(torrent_status const& st) const
+		{ return handle == st.handle; }
 
 		// handle to the torrent
 		torrent_handle handle;
