@@ -707,7 +707,9 @@ void add_torrent(libtorrent::session& ses
 		return;
 	}
 
-	printf("%s\n", t->name().c_str());
+	static int counter = 0;
+
+	printf("[%d] %s\n", counter++, t->name().c_str());
 
 	add_torrent_params p;
 	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
