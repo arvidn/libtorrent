@@ -1,6 +1,6 @@
 	* deprecate set_ratio(), and per-peer rate limits
 	* add web seed support for torrents with pad files
-	* introduced a more scalable API for torrent status updates (post_torrent_updates())
+	* introduced a more scalable API for torrent status updates (post_torrent_updates()) and updated client_test to use it
 	* updated the API to add_torrent_params turning all bools into flags of a flags field
 	* added async_add_torrent() function to significantly improve performance when
 	  adding many torrents

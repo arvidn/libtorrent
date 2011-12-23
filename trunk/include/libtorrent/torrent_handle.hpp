@@ -71,6 +71,8 @@ namespace libtorrent
 	struct peer_list_entry;
 	struct torrent_status;
 
+	std::size_t hash_value(torrent_status const& ts);
+
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
 	typedef libtorrent_exception duplicate_torrent;
@@ -155,6 +157,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend struct feed;
 		friend class torrent;
+		friend std::size_t hash_value(torrent_handle const& th);
 
 		torrent_handle() {}
 
@@ -495,6 +498,9 @@ namespace libtorrent
 			, info_hash(0)
 			, listen_port(0)
 		{}
+
+		bool operator==(torrent_status const& st) const
+		{ return handle == st.handle; }
 
 		// handle to the torrent
 		torrent_handle handle;
