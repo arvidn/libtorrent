@@ -1960,8 +1960,7 @@ namespace aux {
 		// queued torrents sooner
 		if ((m_settings.active_downloads != s.active_downloads
 			|| m_settings.active_seeds != s.active_seeds
-			|| m_settings.active_limit != s.active_limit)
-			&& m_auto_manage_time_scaler > 2)
+			|| m_settings.active_limit != s.active_limit))
 			m_auto_manage_time_scaler = 2;
 
 		// if anonymous mode was enabled, clear out the peer ID
@@ -2957,7 +2956,7 @@ namespace aux {
 		// auto managed torrent
 		// --------------------------------------------------------------
 		m_auto_manage_time_scaler--;
-		if (m_auto_manage_time_scaler <= 0)
+		if (m_auto_manage_time_scaler < 0)
 		{
 			m_auto_manage_time_scaler = settings().auto_manage_interval;
 			recalculate_auto_managed_torrents();

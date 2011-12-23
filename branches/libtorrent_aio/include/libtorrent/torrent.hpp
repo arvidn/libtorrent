@@ -1109,6 +1109,10 @@ namespace libtorrent
 		boost::uint32_t m_total_failed_bytes;
 		boost::uint32_t m_total_redundant_bytes;
 
+		// the sequence number for this torrent, this is a
+		// monotonically increasing number for each added torrent
+		int m_sequence_number;
+
 		// ==============================
 		// The following members are specifically
 		// ordered to make the 24 bit members
@@ -1248,10 +1252,6 @@ namespace libtorrent
 
 		// the number of bytes of padding files
 		unsigned int m_padding:24;
-
-		// the sequence number for this torrent, this is a
-		// monotonically increasing number for each added torrent
-		boost::int16_t m_sequence_number;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
