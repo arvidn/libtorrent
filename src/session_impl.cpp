@@ -2847,7 +2847,7 @@ namespace aux {
 		// --------------------------------------------------------------
 		// auto managed torrent
 		// --------------------------------------------------------------
-		m_auto_manage_time_scaler--;
+		if (!m_paused) m_auto_manage_time_scaler--;
 		if (m_auto_manage_time_scaler < 0)
 		{
 			m_auto_manage_time_scaler = settings().auto_manage_interval;
