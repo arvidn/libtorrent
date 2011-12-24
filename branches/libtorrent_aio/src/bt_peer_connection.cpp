@@ -3385,10 +3385,10 @@ namespace libtorrent
 				disconnect(errors::packet_too_large, 2);
 				return;
 			}
-					
+
 			if (packet_size == 0)
 			{
-				TORRENT_ASSERT(bytes_transferred == 1);
+				TORRENT_ASSERT(bytes_transferred <= 1);
 				m_statistics.received_bytes(0, bytes_transferred);
 				incoming_keepalive();
 				if (is_disconnecting()) return;
