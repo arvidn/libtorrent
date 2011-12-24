@@ -57,8 +57,9 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0 && index < num_pieces());
 		if (index == num_pieces()-1)
 		{
-			int size = int(total_size()
-				- size_type(num_pieces() - 1) * piece_length());
+			size_type size_except_last = num_pieces() - 1;
+			size_except_last *= piece_length();
+			int size = int(total_size() - size_except_last);
 			TORRENT_ASSERT(size > 0);
 			TORRENT_ASSERT(size <= piece_length());
 			return int(size);

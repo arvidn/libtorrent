@@ -2004,6 +2004,8 @@ ctx->set_verify_callback(verify_function, ec);
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+		state_updated();
+
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
@@ -3318,6 +3320,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		state_updated();
 		m_need_save_resume_data = true;
+		state_updated();
 
 		remove_time_critical_piece(index, true);
 
@@ -6325,6 +6328,10 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			// turn off super seeding if we're not a seed
 			if (m_super_seeding) m_super_seeding = false;
+
+			// if we just finished checking and we're not a seed, we are
+			// likely to be unpaused
+			m_ses.m_auto_manage_time_scaler = 2;
 
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
