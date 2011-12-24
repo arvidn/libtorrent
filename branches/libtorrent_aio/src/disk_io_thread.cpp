@@ -90,7 +90,7 @@ namespace libtorrent
 {
 	struct async_handler;
 
-	bool same_sign(int a, int b) { return ((a < 0) == (b < 0)) || (a == 0) || (b == 0); }
+	bool same_sign(size_type a, size_type b) { return ((a < 0) == (b < 0)) || (a == 0) || (b == 0); }
 
 	bool between(size_type v, size_type b1, size_type b2)
 	{
