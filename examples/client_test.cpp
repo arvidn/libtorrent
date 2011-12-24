@@ -716,25 +716,8 @@ void add_torrent(libtorrent::session& ses
 	p.flags |= add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 	p.flags |= add_torrent_params::flag_auto_managed;
-	if (monitored_dir)
-	{
-		p.userdata = (void*)strdup(torrent.c_str());
-		ses.async_add_torrent(p);
-		return;
-	}
-
-	torrent_handle h = ses.add_torrent(p, ec);
-
-	non_files.insert(h);
-
-	h.set_max_connections(max_connections_per_torrent);
-	h.set_max_uploads(-1);
-	h.set_upload_limit(torrent_upload_limit);
-	h.set_download_limit(torrent_download_limit);
-	h.use_interface(outgoing_interface.c_str());
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-	h.resolve_countries(true);
-#endif
+	p.userdata = (void*)strdup(torrent.c_str());
+	ses.async_add_torrent(p);
 }
 
 void scan_dir(std::string const& dir_path
@@ -895,8 +878,12 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
 	{
-		std::string filename = (char*)p->params.userdata;
-		free(p->params.userdata);
+		std::string filename;
+		if (p->params.userdata)
+		{
+			filename = (char*)p->params.userdata;
+			free(p->params.userdata);
+		}
 
 		if (p->error)
 		{
@@ -906,7 +893,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			torrent_handle h = p->handle;
 
-			files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+			if (!filename.empty())
+				files.insert(std::pair<const std::string, torrent_handle>(filename, h));
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
@@ -1407,20 +1395,7 @@ int main(int argc, char* argv[])
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
 		, end(magnet_links.end()); i != end; ++i)
 	{
-		error_code ec;
-		torrent_handle h = ses.add_torrent(*i, ec);
-		if (ec)
-		{
-			fprintf(stderr, "failed to add torrent: %s\n", ec.message().c_str());
-			continue;
-		}
-		non_files.insert(h);
-
-		h.set_max_connections(max_connections_per_torrent);
-		h.set_max_uploads(-1);
-		h.set_upload_limit(torrent_upload_limit);
-		h.set_download_limit(torrent_download_limit);
-		h.use_interface(outgoing_interface.c_str());
+		ses.async_add_torrent(*i);
 	}
 
 	for (std::vector<std::string>::iterator i = torrents.begin()
@@ -1459,20 +1434,7 @@ int main(int argc, char* argv[])
 			}
 
 			printf("adding URL: %s\n", i->c_str());
-			error_code ec;
-			torrent_handle h = ses.add_torrent(p, ec);
-			if (ec)
-			{
-				fprintf(stderr, "%s\n", ec.message().c_str());
-				continue;
-			}
-			non_files.insert(h);
-
-			h.set_max_connections(max_connections_per_torrent);
-			h.set_max_uploads(-1);
-			h.set_upload_limit(torrent_upload_limit);
-			h.set_download_limit(torrent_download_limit);
-			h.use_interface(outgoing_interface.c_str());
+			ses.async_add_torrent(p);
 			continue;
 		}
 
