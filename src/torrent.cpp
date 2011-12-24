@@ -2047,6 +2047,8 @@ ctx->set_verify_callback(verify_function, ec);
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+		state_updated();
+
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
@@ -3198,6 +3200,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		state_updated();
 		m_need_save_resume_data = true;
+		state_updated();
 
 		remove_time_critical_piece(index, true);
 
