@@ -5772,7 +5772,7 @@ namespace libtorrent
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_finished())
-				TORRENT_ASSERT(!is_interesting());
+				TORRENT_ASSERT(!is_interesting() || m_need_interest_update);
 			if (is_seed())
 				TORRENT_ASSERT(upload_only());
 		}
