@@ -521,8 +521,34 @@ namespace libtorrent
 			// uncork all peers added to the delayed uncork queue
 			void do_delayed_uncork();
 
-			void add_to_update_queue(boost::weak_ptr<torrent> t)
-			{ m_state_updates.push_back(t); }
+			enum torrent_list_index
+			{
+				// this is the set of (subscribed) torrents that have changed
+				// their states since the last time the user requested updates.
+				torrent_state_updates,
+
+				// all torrents that want to be ticked every second
+				torrent_want_tick,
+
+				// all torrents that want more peers
+				torrent_want_peers,
+
+				// torrents that want auto-scrape (only paused auto-managed ones)
+				torrent_want_scrape,
+
+				// all torrents that have resume data to save
+//				torrent_want_save_resume,
+
+				num_torrent_lists,
+			};
+	
+			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
+
+			// these are the number of finished and downloading torrents that 
+			// want more peers. i.e. this is not a total count, just the active
+			// ones
+			int m_num_finished;
+			int m_num_downloaders;
 
 //		private:
 
@@ -833,8 +859,7 @@ namespace libtorrent
 				, int& checking_limit, int& dht_limit, int& tracker_limit
 				, int& lsd_limit, int& hard_limit, int type_limit);
 			void recalculate_auto_managed_torrents();
-			void recalculate_unchoke_slots(int congested_torrents
-				, int uncongested_torrents);
+			void recalculate_unchoke_slots();
 			void recalculate_optimistic_unchoke_slots();
 
 			ptime m_created;
@@ -930,8 +955,15 @@ namespace libtorrent
 
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.
-			// This implements a round robin.
-			torrent_map::iterator m_next_connect_torrent;
+			// This implements a round robin peer connections among
+			// torrents that want more peers. The index is into
+			// m_torrent_lists[torrent_want_peers] (which is a list
+			// of torrent pointers with all torrents that want peers)
+			int m_next_connect_torrent;
+
+			// index into m_torrent_lists[torrent_want_scrape] referring
+			// to the next torrent to auto-scrape
+			int m_next_scrape_torrent;
 
 			// this is the round-robin cursor for peers that
 			// get to download again after the disk has been
@@ -1131,10 +1163,6 @@ namespace libtorrent
 			// into fewer network writes, saving CPU and possibly
 			// ending up sending larger network packets
 			std::vector<peer_connection*> m_delayed_uncorks;
-
-			// this is the set of (subscribed) torrents that have changed
-			// their states since the last time the user requested updates.
-			std::vector<boost::weak_ptr<torrent> > m_state_updates;
 
 			// the main working thread
 			boost::scoped_ptr<thread> m_thread;

@@ -64,6 +64,7 @@ nobase_include_HEADERS = \
   io_service_fwd.hpp           \
   ip_filter.hpp                \
   lazy_entry.hpp               \
+  link.hpp                     \
   lsd.hpp                      \
   magnet_uri.hpp               \
   max.hpp                      \

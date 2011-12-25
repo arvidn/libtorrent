@@ -1,3 +1,4 @@
+	* optimize peer connection distribution logic across torrents to scale better with many torrents
 	* replaced std::map with boost::unordered_map for torrent list, to scale better with many torrents
 	* optimized piece picker
 	* optimized disk cache

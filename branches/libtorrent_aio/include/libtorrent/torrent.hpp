@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
+#include "libtorrent/link.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -428,7 +429,14 @@ namespace libtorrent
 
 		void cancel_block(piece_block block);
 
+		bool want_tick() const;
+		void update_want_tick();
+
 		bool want_more_peers() const;
+		void update_want_more_peers();
+
+		void update_want_scrape();
+
 		bool try_connect_peer();
 		void give_connect_points(int points);
 		void add_peer(tcp::endpoint const& adr, int source);
@@ -829,7 +837,7 @@ namespace libtorrent
 		void predicted_have_piece(int index, int milliseconds);
 
 		void clear_in_state_update()
-		{ m_in_state_updates = false; }
+		{ m_links[aux::session_impl::torrent_state_updates].clear(); }
 
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
@@ -1091,6 +1099,17 @@ namespace libtorrent
 		// encrypted hand shakes
 		sha1_hash m_obfuscated_hash;
 #endif
+
+	public:
+		// these are the lists this torrent belongs to. For more
+		// details about each list, see session_impl.hpp. Each list
+		// represents a group this torrent belongs to and makes it
+		// efficient to enumerate only torrents belonging to a specific
+		// group. Such as torrents that want peer connections or want
+		// to be ticked etc.
+		link m_links[aux::session_impl::num_torrent_lists];
+
+	private:
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1373,11 +1392,6 @@ namespace libtorrent
 		// disk cache request to refresh the suggest pieces
 		// don't keep more than one out outstanding request
 		bool m_refreshing_suggest_pieces:1;
-
-		// in state_updates list. When adding a torrent to the
-		// session_impl's m_state_update list, this bit is set
-		// to never add the same torrent twice
-		bool m_in_state_updates:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

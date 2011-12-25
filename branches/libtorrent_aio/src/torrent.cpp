@@ -368,6 +368,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 #endif
+
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
 		if (!p.ti || !p.ti->is_valid())
@@ -487,6 +488,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_files_checked = false;
 #endif
+		update_want_more_peers();
+		update_want_scrape();
+
 		INVARIANT_CHECK;
 
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
@@ -1518,6 +1522,8 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// add the newly connected peer to this torrent's peer list
 		m_connections.insert(boost::get_pointer(c));
+		update_want_more_peers();
+		update_want_tick();
 		m_ses.m_connections.insert(c);
 		c->start();
 	}
@@ -1709,6 +1715,8 @@ ctx->set_verify_callback(verify_function, ec);
 		m_storage->async_check_fastresume(&m_resume_entry
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1, _2));
+
+		update_want_more_peers();
 	}
 
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
@@ -1769,6 +1777,7 @@ ctx->set_verify_callback(verify_function, ec);
 					m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
+				update_want_more_peers();
 			}
 
 			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_string("banned_peers"))
@@ -1781,6 +1790,7 @@ ctx->set_verify_callback(verify_function, ec);
 						, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
+				update_want_more_peers();
 			}
 
 #if TORRENT_USE_IPV6
@@ -1793,6 +1803,7 @@ ctx->set_verify_callback(verify_function, ec);
 					m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
+				update_want_more_peers();
 			}
 
 			if (lazy_entry const* banned_peers6_entry = m_resume_entry.dict_find_string("banned_peers6"))
@@ -1805,6 +1816,7 @@ ctx->set_verify_callback(verify_function, ec);
 						, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
+				update_want_more_peers();
 			}
 #endif
 
@@ -1823,6 +1835,7 @@ ctx->set_verify_callback(verify_function, ec);
 					if (ec) continue;
 					m_policy.add_peer(a, id, peer_info::resume_data, 0);
 				}
+				update_want_more_peers();
 			}
 
 			// parse out "banned_peers" and add them as banned
@@ -1841,6 +1854,7 @@ ctx->set_verify_callback(verify_function, ec);
 					policy::peer* p = m_policy.add_peer(a, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
+				update_want_more_peers();
 			}
 		}
 
@@ -2058,6 +2072,8 @@ ctx->set_verify_callback(verify_function, ec);
 			return;
 		}
 
+		state_updated();
+
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			if (j.error.ec == boost::system::errc::no_such_file_or_directory)
@@ -2090,7 +2106,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 				// recalculate auto-managed torrents sooner
 				// in order to start checking the next torrent
-				m_ses.m_auto_manage_time_scaler = 0;
+				m_ses.m_auto_manage_time_scaler = 2;
 				return;
 			}
 		}
@@ -2131,7 +2147,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 		// recalculate auto-managed torrents sooner
 		// in order to start checking the next torrent
-		m_ses.m_auto_manage_time_scaler = 0;
+		m_ses.m_auto_manage_time_scaler = 2;
 
 		// reset the checking state
 		m_checking_piece = 0;
@@ -2261,6 +2277,8 @@ ctx->set_verify_callback(verify_function, ec);
 		std::for_each(peers.begin(), peers.end(), boost::bind(
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
+
+		update_want_more_peers();
 	}
 
 #endif
@@ -2642,6 +2660,7 @@ ctx->set_verify_callback(verify_function, ec);
 				m_policy.add_peer(a, i->pid, peer_info::tracker, 0);
 			}
 		}
+		update_want_more_peers();
 
 		if (m_ses.m_alerts.should_post<tracker_reply_alert>())
 		{
@@ -2705,6 +2724,8 @@ ctx->set_verify_callback(verify_function, ec);
 				--conns;
 				++m_ses.m_boost_connections;
 			}
+
+			update_want_more_peers();
 		}
 
 		state_updated();
@@ -2785,6 +2806,7 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 			
 		m_policy.add_peer(*host, pid, peer_info::tracker, 0);
+		update_want_more_peers();
 	}
 
 	size_type torrent::bytes_left() const
@@ -2865,7 +2887,7 @@ ctx->set_verify_callback(verify_function, ec);
 		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
 			return;
 
-		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
+		TORRENT_ASSERT(st.total_wanted >= size_type(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
@@ -3235,6 +3257,7 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 
 		m_need_save_resume_data = true;
+		state_updated();
 
 		if (m_ses.m_alerts.should_post<piece_finished_alert>())
 			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle(), index));
@@ -3485,6 +3508,7 @@ ctx->set_verify_callback(verify_function, ec);
 
 				// mark the peer as banned
 				m_policy.ban_peer(p);
+				update_want_more_peers();
 #ifdef TORRENT_STATS
 				++m_ses.m_banned_for_hash_failure;
 #endif
@@ -3776,6 +3800,9 @@ ctx->set_verify_callback(verify_function, ec);
 #endif
 
 		m_abort = true;
+		update_want_more_peers();
+		update_want_tick();
+
 		// if the torrent is paused, it doesn't need
 		// to announce with even=stopped again.
 		if (!is_paused())
@@ -4649,6 +4676,8 @@ ctx->set_verify_callback(verify_function, ec);
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
+		update_want_more_peers();
+		update_want_tick();
 	}
 
 	void torrent::remove_web_seed(std::list<web_seed_entry>::iterator web)
@@ -5009,6 +5038,8 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
+			update_want_more_peers();
+			update_want_tick();
 			m_ses.m_connections.insert(c);
 
 			TORRENT_ASSERT(!web->connection);
@@ -5261,6 +5292,9 @@ ctx->set_verify_callback(verify_function, ec);
 				m_announce_to_dht = !paused_;
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
+
+				update_want_more_peers();
+				update_want_scrape();
 			}
 			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
 			if (dht_ != -1) m_announce_to_dht = dht_;
@@ -5860,6 +5894,8 @@ ctx->set_verify_callback(verify_function, ec);
 		m_connections.insert(boost::get_pointer(c));
 		m_ses.m_connections.insert(c);
 		m_policy.set_connection(peerinfo, c.get());
+		update_want_more_peers();
+		update_want_tick();
 		c->start();
 
 		int timeout = settings().peer_connect_timeout;
@@ -5877,7 +5913,12 @@ ctx->set_verify_callback(verify_function, ec);
 		{
 			std::set<peer_connection*>::iterator i
 				= m_connections.find(boost::get_pointer(c));
-			if (i != m_connections.end()) m_connections.erase(i);
+			if (i != m_connections.end())
+			{
+				m_connections.erase(i);
+				update_want_more_peers();
+				update_want_tick();
+			}
 			c->disconnect(errors::no_error, 1);
 			return false;
 		}
@@ -6007,6 +6048,7 @@ ctx->set_verify_callback(verify_function, ec);
 				p->disconnect(errors::too_many_connections);
 				return false;
 			}
+			update_want_more_peers();
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
@@ -6021,6 +6063,9 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		peer_iterator ci = m_connections.insert(p).first;
+		update_want_more_peers();
+		update_want_tick();
+
 #ifdef TORRENT_DEBUG
 		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
@@ -6036,6 +6081,38 @@ ctx->set_verify_callback(verify_function, ec);
 		return true;
 	}
 
+	bool torrent::want_tick() const
+	{
+		if (m_abort) return false;
+
+		if (!m_connections.empty()) return true;
+
+		// we might want to connect web seeds
+		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
+			return true;
+
+		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
+			return true;
+
+		return false;
+	}
+
+	void torrent::update_want_tick()
+	{
+		if (want_tick())
+		{
+			m_links[aux::session_impl::torrent_want_tick]
+				.insert(m_ses.m_torrent_lists[aux::session_impl::torrent_want_tick]
+					, this);
+		}
+		else
+		{
+			m_links[aux::session_impl::torrent_want_tick]
+				.unlink(m_ses.m_torrent_lists[aux::session_impl::torrent_want_tick]
+					, aux::session_impl::torrent_want_tick);
+		}
+	}
+
 	bool torrent::want_more_peers() const
 	{
 		return m_connections.size() < m_max_connections
@@ -6048,6 +6125,40 @@ ctx->set_verify_callback(verify_function, ec);
 			&& (m_ses.settings().seeding_outgoing_connections
 				|| (m_state != torrent_status::seeding
 				&& m_state != torrent_status::finished));
+	}
+
+	void torrent::update_want_more_peers()
+	{
+		link& l = m_links[aux::session_impl::torrent_want_peers];
+		std::vector<torrent*>& v = m_ses.m_torrent_lists[aux::session_impl::torrent_want_peers];
+		if (want_more_peers())
+		{
+			if (l.in_list()) return;
+			l.insert(v, this);
+			if (is_finished()) ++m_ses.m_num_finished;
+			else ++m_ses.m_num_downloaders;
+		}
+		else
+		{
+			if (!l.in_list()) return;
+			l.unlink(v, aux::session_impl::torrent_want_peers);
+			if (is_finished()) --m_ses.m_num_finished;
+			else --m_ses.m_num_downloaders;
+		}
+	}
+
+	void torrent::update_want_scrape()
+	{
+		link& l = m_links[aux::session_impl::torrent_want_scrape];
+		std::vector<torrent*>& v = m_ses.m_torrent_lists[aux::session_impl::torrent_want_scrape];
+		if (!m_allow_peers && m_auto_managed)
+		{
+			l.insert(v, this);
+		}
+		else
+		{
+			l.unlink(v, aux::session_impl::torrent_want_scrape);
+		}	
 	}
 
 	void torrent::disconnect_all(error_code const& ec)
@@ -6072,6 +6183,9 @@ ctx->set_verify_callback(verify_function, ec);
 				p->disconnect(ec);
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
+
+		update_want_more_peers();
+		update_want_tick();
 	}
 
 	// this returns true if lhs is a better disconnect candidate than rhs
@@ -6201,6 +6315,7 @@ ctx->set_verify_callback(verify_function, ec);
 		if (m_abort) return;
 
 		m_policy.recalculate_connect_candidates();
+		update_want_more_peers();
 
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
@@ -6374,6 +6489,7 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 
 		m_files_checked = true;
+		update_want_more_peers();
 
 		start_announcing();
 	}
@@ -6468,6 +6584,10 @@ ctx->set_verify_callback(verify_function, ec);
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		TORRENT_ASSERT(want_more_peers() == m_links[aux::session_impl::torrent_want_peers].in_list());
+		TORRENT_ASSERT(want_tick() == m_links[aux::session_impl::torrent_want_tick].in_list());
+		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_impl::torrent_want_scrape].in_list());
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
@@ -6839,6 +6959,7 @@ ctx->set_verify_callback(verify_function, ec);
 		if (m_auto_managed == a) return;
 		bool checking_files = should_check_files();
 		m_auto_managed = a;
+		update_want_scrape();
 
 		state_updated();
 
@@ -7012,6 +7133,9 @@ ctx->set_verify_callback(verify_function, ec);
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
 
+		update_want_more_peers();
+		update_want_scrape();
+
 		// we need to save this new state
 		m_need_save_resume_data = true;
 		state_updated();
@@ -7047,6 +7171,8 @@ ctx->set_verify_callback(verify_function, ec);
 #endif
 
 		state_updated();
+		update_want_more_peers();
+		update_want_scrape();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		log_to_all_peers("PAUSING TORRENT");
@@ -7084,7 +7210,11 @@ ctx->set_verify_callback(verify_function, ec);
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 				if (p->is_disconnecting())
+				{
 					m_connections.erase(j);
+					update_want_more_peers();
+					update_want_tick();
+				}
 
 				if (p->outstanding_bytes() > 0)
 				{
@@ -7139,6 +7269,8 @@ ctx->set_verify_callback(verify_function, ec);
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
 
+		update_want_scrape();
+
 		if (!b)
 		{
 			m_announce_to_dht = false;
@@ -7170,6 +7302,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// we need to save this new state
 		m_need_save_resume_data = true;
 
+		update_want_scrape();
+
 		do_resume();
 	}
 
@@ -7199,10 +7333,14 @@ ctx->set_verify_callback(verify_function, ec);
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().post_alert(torrent_resumed_alert(get_handle()));
 
-		state_updated();
-
 		m_started = time_now();
 		clear_error();
+
+		state_updated();
+		update_want_more_peers();
+		update_want_tick();
+		update_want_scrape();
+
 		start_announcing();
 	}
 
@@ -7365,6 +7503,29 @@ ctx->set_verify_callback(verify_function, ec);
 		}
 #endif
 
+		// if we're in upload only mode and we're auto-managed
+		// leave upload mode every 10 minutes hoping that the error
+		// condition has been fixed
+		if (m_upload_mode && m_auto_managed && int(m_upload_mode_time)
+			>= settings().optimistic_disk_retry)
+		{
+			set_upload_mode(false);
+		}
+
+		if (is_paused())
+		{
+			// let the stats fade out to 0
+			accumulator += m_stat;
+ 			m_stat.second_tick(tick_interval_ms);
+			// if the rate is 0, there's no update because of network transfers
+			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
+				state_updated();
+			else
+				update_want_tick();
+
+			return;
+		}
+
 		m_time_scaler--;
 		if (m_time_scaler <= 0)
 		{
@@ -7383,26 +7544,6 @@ ctx->set_verify_callback(verify_function, ec);
 				for (int i = start; i < end; ++i)
 					update_sparse_piece_prio(i, start, end);
 			}
-		}
-
-		// if we're in upload only mode and we're auto-managed
-		// leave upload mode every 10 minutes hoping that the error
-		// condition has been fixed
-		if (m_upload_mode && m_auto_managed && int(m_upload_mode_time)
-			>= settings().optimistic_disk_retry)
-		{
-			set_upload_mode(false);
-		}
-
-		if (is_paused())
-		{
-			// let the stats fade out to 0
-			accumulator += m_stat;
- 			m_stat.second_tick(tick_interval_ms);
-			// if the rate is 0, there's no update because of network transfers
-			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
-				state_updated();
-			return;
 		}
 
 		if (settings().rate_limit_ip_overhead)
@@ -7501,6 +7642,8 @@ ctx->set_verify_callback(verify_function, ec);
 		// if the rate is 0, there's no update because of network transfers
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			state_updated();
+
+		update_want_tick();
 	}
 
 	void torrent::recalc_share_mode()
@@ -7921,6 +8064,7 @@ ctx->set_verify_callback(verify_function, ec);
 		peer_id id(0);
 		m_policy.add_peer(adr, id, source, 0);
 
+		update_want_more_peers();
 		state_updated();
 	}
 
@@ -8182,11 +8326,29 @@ ctx->set_verify_callback(verify_function, ec);
 			TORRENT_ASSERT(!is_finished());
 #endif
 
+		bool was_finished = is_finished();
+
 		if (int(m_state) == s) return;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 		m_state = s;
 
+		link& l = m_links[aux::session_impl::torrent_want_peers];
+		if (l.in_list() && is_finished() != was_finished)
+		{
+			if (was_finished)
+			{
+				--m_ses.m_num_finished;
+				++m_ses.m_num_downloaders;
+			}
+			else
+			{
+				--m_ses.m_num_downloaders;
+				++m_ses.m_num_finished;
+			}
+		}
+
+		update_want_more_peers();
 		state_updated();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -8219,10 +8381,12 @@ ctx->set_verify_callback(verify_function, ec);
 		// we're either not subscribing to this torrent, or
 		// it has already been updated this round, no need to
 		// add it to the list twice
-		if (!m_state_subscription || m_in_state_updates) return;
+		if (!m_state_subscription
+			|| m_links[aux::session_impl::torrent_state_updates].in_list()) return;
 
-		m_ses.add_to_update_queue(shared_from_this());
-		m_in_state_updates = true;
+		m_links[aux::session_impl::torrent_state_updates]
+			.insert(m_ses.m_torrent_lists[aux::session_impl::torrent_state_updates]
+				, this);
 	}
 
 	void torrent::status(torrent_status* st, boost::uint32_t flags)

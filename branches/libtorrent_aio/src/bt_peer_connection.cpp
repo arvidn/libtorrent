@@ -1573,6 +1573,7 @@ namespace libtorrent
 				// mark this connection to be in holepunch mode
 				// so that it will retry faster and stick to uTP while it's
 				// retrying
+				t->update_want_more_peers();
 				if (p->connection)
 					p->connection->set_holepunch_mode();
 #if defined TORRENT_VERBOSE_LOGGING
@@ -1809,6 +1810,7 @@ namespace libtorrent
 		{
 			t->get_policy().update_peer_port(listen_port
 				, peer_info_struct(), peer_info::incoming);
+			t->update_want_more_peers();
 			if (is_disconnecting()) return;
 		}
 		// there should be a version too
@@ -3324,7 +3326,11 @@ namespace libtorrent
 			peer_log("<== HANDSHAKE");
 #endif
 			// consider this a successful connection, reset the failcount
-			if (peer_info_struct()) t->get_policy().set_failcount(peer_info_struct(), 0);
+			if (peer_info_struct())
+			{
+				t->get_policy().set_failcount(peer_info_struct(), 0);
+				t->update_want_more_peers();
+			}
 			
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Toggle pe_support back to false if this is a
