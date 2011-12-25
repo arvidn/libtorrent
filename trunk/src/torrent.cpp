@@ -2082,6 +2082,8 @@ ctx->set_verify_callback(verify_function, ec);
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
+		state_updated();
+
 		if (ret == piece_manager::disk_check_aborted)
 		{
 			dequeue_torrent_check();
