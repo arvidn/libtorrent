@@ -2292,6 +2292,9 @@ namespace libtorrent
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 				m_ses.inc_disk_queue(download_channel);
 			m_channel_state[download_channel] |= peer_info::bw_disk;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** exceeded disk buffer watermark");
+#endif
 		}
 
 		if (buffer == 0)
@@ -3881,6 +3884,9 @@ namespace libtorrent
 
 		if (exceeded)
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** exceeded disk buffer watermark");
+#endif
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 				m_ses.inc_disk_queue(download_channel);
 			m_channel_state[download_channel] |= peer_info::bw_disk;
@@ -4814,6 +4820,9 @@ namespace libtorrent
 			if ((m_channel_state[upload_channel] & peer_info::bw_disk) == 0)
 				m_ses.inc_disk_queue(upload_channel);
 			m_channel_state[upload_channel] |= peer_info::bw_disk;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** exceeded disk buffer watermark");
+#endif
 
 			if (!m_connecting
 				&& !m_requests.empty()
@@ -4897,6 +4906,9 @@ namespace libtorrent
 		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 	
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** dropped below disk buffer watermark");
+#endif
 		m_ses.dec_disk_queue(download_channel);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
 		setup_receive(read_async);
@@ -4938,7 +4950,7 @@ namespace libtorrent
 				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
 				, (m_ignore_bandwidth_limits?"yes":"no")
-				, ((m_channel_state[download_channel] & peer_info::bw_disk)?"yes":"no")
+				, ((m_channel_state[download_channel] & peer_info::bw_disk)?"no":"yes")
 				, m_ses.settings().max_queued_disk_bytes
 				, (m_disconnecting?"yes":"no"));
 #endif
