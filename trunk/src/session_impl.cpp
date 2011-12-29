@@ -628,6 +628,16 @@ namespace aux {
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
 
+#ifdef TORRENT_REQUEST_LOGGING
+		char log_filename[200];
+		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", getpid());
+		m_request_log = fopen(log_filename, "w+");
+		if (m_request_log == 0)
+		{
+			fprintf(stderr, "failed to open request log file: (%d) %s\n", errno, strerror(errno));
+		}
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
@@ -5071,6 +5081,10 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
 		TORRENT_ASSERT(m_connections.empty());
+
+#ifdef TORRENT_REQUEST_LOGGING
+		if (m_request_log) fclose(m_request_log);
+#endif
 
 #ifdef TORRENT_STATS
 		if (m_stats_logger) fclose(m_stats_logger);

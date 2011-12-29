@@ -73,6 +73,36 @@ namespace libtorrent
 		return ((v & 7) == 0) ? v : v + (8 - (v & 7));
 	}
 
+#if defined TORRENT_REQUEST_LOGGING
+	void write_request_log(FILE* f, sha1_hash const& ih
+		, peer_connection* p, peer_request const& r)
+	{
+		// the event format in the log is:
+		// uint64_t timestamp (microseconds)
+		// uint64_t info-hash prefix
+		// uint32_t peer identifier
+		// uint32_t piece
+		// uint32_t start offset
+		// uint32_t length
+		char event[32];
+		char* ptr = event;
+		detail::write_uint64(total_microseconds((time_now_hires() - min_time())), ptr);
+		memcpy(ptr, &ih[0], 8);
+		ptr += 8;
+		detail::write_uint32(boost::uint32_t(p), ptr);
+		detail::write_uint32(r.piece, ptr);
+		detail::write_uint32(r.start, ptr);
+		detail::write_uint32(r.length, ptr);
+
+		int ret = fwrite(event, 1, sizeof(event), f);
+		if (ret != sizeof(event))
+		{
+			fprintf(stderr, "ERROR writing to request log: (%d) %s\n"
+				, errno, strerror(errno));
+		}
+	}
+#endif
+
 	// outbound connection
 	peer_connection::peer_connection(
 		session_impl& ses
@@ -2103,6 +2133,10 @@ namespace libtorrent
 			{
 				m_choke_rejects = 0;
 				m_requests.push_back(r);
+#ifdef TORRENT_REQUEST_LOGGING
+				if (m_ses.m_request_log)
+					write_request_log(m_ses.m_request_log, t->info_hash(), this, r);
+#endif
 				m_last_incoming_request = time_now();
 				fill_send_buffer();
 			}

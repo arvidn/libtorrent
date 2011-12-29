@@ -907,6 +907,11 @@ namespace libtorrent
 			int m_buffer_allocations;
 #endif
 
+#ifdef TORRENT_REQUEST_LOGGING
+			// used to log all requests from peers
+			FILE* m_request_log;
+#endif
+
 #ifdef TORRENT_STATS
 			void rotate_stats_log();
 			void print_log_line(int tick_interval_ms, ptime now);
