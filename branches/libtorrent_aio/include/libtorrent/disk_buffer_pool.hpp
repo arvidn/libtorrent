@@ -56,13 +56,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct session_settings;
+	struct alert;
 
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
 	{
-		disk_buffer_pool(int block_size, io_service& ios);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		disk_buffer_pool(int block_size, io_service& ios
+			, boost::function<void(alert*)> const& post_alert);
 		~disk_buffer_pool();
-#endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
 		bool is_disk_buffer(char* buffer
@@ -139,6 +139,20 @@ namespace libtorrent
 
 		int m_cache_buffer_chunk_size;
 		bool m_lock_disk_cache;
+
+#if TORRENT_HAVE_MMAP
+		// the file descriptor of the cache mmap file
+		int m_cache_fd;
+		// the pointer to the block of virtual address space
+		// making up the mmapped cache space
+		char* m_cache_pool;
+		// list of block indices that are not in use. block_index
+		// times 0x4000 + m_cache_pool is the address where the
+		// corresponding memory lives
+		std::vector<int> m_free_list;
+#endif
+
+		boost::function<void(alert*)> m_post_alert;
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;

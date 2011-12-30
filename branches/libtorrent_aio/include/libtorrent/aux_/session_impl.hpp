@@ -479,6 +479,8 @@ namespace libtorrent
 				, boost::function<void()> const& cb
 				, char const* category);
 			void free_disk_buffer(char* buf);
+			bool exceeded_cache_use() const
+			{ return m_disk_thread.exceeded_cache_use(); }
 
 			// decrement the refcounts for the blocks
 			// in the disk cache

@@ -338,6 +338,8 @@ namespace libtorrent
 			, char const* category);
 		char* allocate_buffer(char const* category)
 		{ return m_disk_cache.allocate_buffer(category); }
+		bool exceeded_cache_use() const
+		{ return m_disk_cache.exceeded_max_size(); }
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool high_priority = false);

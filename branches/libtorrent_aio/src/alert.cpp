@@ -622,5 +622,12 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string mmap_cache_alert::message() const
+	{
+		char msg[600];
+		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value(), error.message().c_str());
+		return msg;
+	}
+
 } // namespace libtorrent
 

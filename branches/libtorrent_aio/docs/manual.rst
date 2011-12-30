@@ -4626,6 +4626,8 @@ session_settings
 		int hashing_threads;
 		int contiguous_recv_buffer;
 		int network_threads;
+
+		std::string mmap_cache;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5517,6 +5519,26 @@ this may become a bottleneck, and setting this to 2 or more may parallelize
 that cost. When using SSL torrents, all encryption for outgoing traffic is
 done withint the socket send functions, and this will help parallelizing the
 cost of SSL encryption as well.
+
+``mmap_cache`` may be set to a filename where the disk cache will be mmapped
+to. This could be useful, for instance, to map the disk cache from regular
+rotating hard drives onto an SSD drive. Doing that effectively introduces
+a second layer of caching, allowing the disk cache to be as big as can
+fit on an SSD drive (probably about one order of magnitude more than the
+available RAM). The intention of this setting is to set it up once at the
+start up and not change it while running. The setting may not be changed
+as long as there are any disk buffers in use. This default to the empty
+string, which means use regular RAM allocations for the disk cache. The file
+specified will be created and truncated to the disk cache size (``cache_size``).
+Any existing file with the same name will be replaced.
+
+Since this setting sets a hard upper limit on cache usage, it cannot be combined
+with ``session_settings::contiguous_recv_buffers``, since that feature treats the
+``cache_size`` setting as a soft (but still pretty hard) limit. The result of combining
+the two is peers being disconnected after failing to allocate more disk buffers.
+
+This feature requires the ``mmap`` system call, on systems that don't have ``mmap``
+this setting is ignored.
 
 pe_settings
 ===========

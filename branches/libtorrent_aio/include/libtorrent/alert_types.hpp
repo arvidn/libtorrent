@@ -1344,6 +1344,17 @@ namespace libtorrent
 
 		std::vector<torrent_status> status;
 	};
+	
+	struct TORRENT_EXPORT mmap_cache_alert : alert
+	{
+		mmap_cache_alert(error_code const& ec): error(ec) {}
+		TORRENT_DEFINE_ALERT(mmap_cache_alert);
+
+		const static int static_category = alert::error_notification;
+		virtual std::string message() const;
+
+		error_code error;
+	};
 }
 
 

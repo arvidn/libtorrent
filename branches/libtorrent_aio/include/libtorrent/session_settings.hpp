@@ -1128,6 +1128,13 @@ namespace libtorrent
 		// 2 or more threads here may make sense. Also when using SSL
 		// peer connections
 		int network_threads;
+
+		// if this is set, it is interpreted as a file path to
+		// where to create an mmaped file to back the disk cache.
+		// this is mostly useful to introduce another caching layer
+		// between RAM and hard drives. Typically you would point
+		// this to an SSD drive.
+		std::string mmap_cache;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

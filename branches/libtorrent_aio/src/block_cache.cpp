@@ -117,8 +117,10 @@ cached_piece_entry::~cached_piece_entry()
 	delete hash;
 }
 
-block_cache::block_cache(int block_size, hash_thread& h, io_service& ios)
-	: disk_buffer_pool(block_size, ios)
+block_cache::block_cache(int block_size, hash_thread& h
+	, io_service& ios
+	, boost::function<void(alert*)> const& post_alert)
+	: disk_buffer_pool(block_size, ios, post_alert)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)

@@ -2287,6 +2287,12 @@ namespace libtorrent
 			, boost::bind(&peer_connection::on_disk, self())
 			, "receive buffer");
 
+		if (buffer == 0)
+		{
+			disconnect(errors::no_memory);
+			return;
+		}
+
 		if (exceeded)
 		{
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
@@ -2297,11 +2303,6 @@ namespace libtorrent
 #endif
 		}
 
-		if (buffer == 0)
-		{
-			disconnect(errors::no_memory);
-			return;
-		}
 		disk_buffer_holder holder(m_ses, buffer);
 		std::memcpy(buffer, data, p.length);
 		incoming_piece(p, holder);
@@ -5095,6 +5096,8 @@ namespace libtorrent
 		{
 			ret = m_socket->read_some(vec, ec);
 		}
+		// this is weird. You would imagine read_some() would do this
+		if (ret == 0 && !ec) ec = asio::error::eof;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("<<< SYNC_READ [ max: %d ret: %d e: %s ]", max_receive, ret, ec ? ec.message().c_str() : "");
@@ -5472,12 +5475,25 @@ namespace libtorrent
 
 		if (!bw_limit) return false;
 
-		bool disk = (m_channel_state[download_channel] & peer_info::bw_disk) == 0
-			// don't block this peer because of disk saturation
-			// if we're not downloading any pieces from it
-			|| m_outstanding_bytes == 0;
+		if (m_outstanding_bytes > 0)
+		{
+			// if we're expecting to download piece data, we might not
+			// want to read from the socket in case we're out of disk
+			// cache space right now
 
-		if (!disk) return false;
+			if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
+
+			if (m_ses.exceeded_cache_use())
+			{
+				if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
+					m_ses.inc_disk_queue(download_channel);
+				const_cast<peer_connection*>(this)->m_channel_state[download_channel] |= peer_info::bw_disk;
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** exceeded disk buffer watermark");
+#endif
+				return false;
+			}
+		}
 
 		return !m_connecting && !m_disconnecting;
 	}

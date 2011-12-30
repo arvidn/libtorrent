@@ -146,6 +146,11 @@ namespace libtorrent {
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
+		bool should_post(alert const* a) const
+		{
+			return m_alert_mask & a->category();
+		}
+
 		alert const* wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(boost::uint32_t m)

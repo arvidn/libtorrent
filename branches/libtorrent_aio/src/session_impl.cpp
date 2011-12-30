@@ -579,8 +579,7 @@ namespace aux {
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
 		, m_disk_thread(m_io_service
-			, boost::bind(&session_impl::disk_performance_warning, this, _1)
-			, this)
+			, boost::bind(&session_impl::disk_performance_warning, this, _1), this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -2734,7 +2733,7 @@ namespace aux {
 
 	void session_impl::disk_performance_warning(alert* a)
 	{
-		if (m_alerts.should_post<performance_alert>())
+		if (m_alerts.should_post(a))
 			m_alerts.post_alert(*a);
 		delete a;
 	}

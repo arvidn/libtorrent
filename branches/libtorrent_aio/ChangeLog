@@ -1,3 +1,4 @@
+	* add feature to allow storing disk cache blocks in an mmapped file (presumably on an SSD)
 	* optimize peer connection distribution logic across torrents to scale better with many torrents
 	* replaced std::map with boost::unordered_map for torrent list, to scale better with many torrents
 	* optimized piece picker

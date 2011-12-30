@@ -283,6 +283,25 @@ the same pieces, and on the other hand assume that they won't request the same p
 and drop them when the first peer requests it. To enable volatile read cache, set
 ``session_settings::volatile_read_cache`` to true.
 
+SSD as level 2 cache
+--------------------
+
+It is possible to introduce a second level of cache, below the RAM disk cache. This is done
+by setting ``session_settings::mmap_cache`` to a file path pointing to the SSD drive, and
+increasing the ``session_settings::cache_size`` to the number of 16 kiB blocks would fit
+on the drive (or less).
+
+This will allocate disk buffers (for reading and writing) from a memory region that has
+been mapped to the specified file. If the drive this file lives on is not significantly
+faster than the destination drive, performance will be degraded. The point is to take
+advantage primarily of the fast read speed from SSD drives and use it to extend the read
+cache, improving seed performance.
+
+Which parts of the cache that actually live in RAM is determined by the operating system.
+
+Note that when using this feature, any block which ends up being pulled from the mmapped
+file will be considered a cache hit.
+
 uTP-TCP mixed mode
 ------------------
 

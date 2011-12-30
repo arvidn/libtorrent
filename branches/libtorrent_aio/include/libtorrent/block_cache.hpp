@@ -207,7 +207,8 @@ namespace libtorrent
 
 	struct block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, hash_thread& h, io_service& ios);
+		block_cache(int block_size, hash_thread& h, io_service& ios
+			, boost::function<void(alert*)> const& post_alert);
 
 	private:
 

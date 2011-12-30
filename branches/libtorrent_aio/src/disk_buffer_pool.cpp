@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #include <algorithm>
 #include <boost/bind.hpp>
@@ -62,7 +64,8 @@ namespace libtorrent
 		delete cbs;
 	}
 
-	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios)
+	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
+		, boost::function<void(alert*)> const& post_alert)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)
@@ -74,6 +77,11 @@ namespace libtorrent
 #endif
 		, m_cache_buffer_chunk_size(0)
 		, m_lock_disk_cache(false)
+#if TORRENT_HAVE_MMAP
+		, m_cache_fd(-1)
+		, m_cache_pool(0)
+#endif
+		, m_post_alert(post_alert)
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		m_allocations = 0;
@@ -91,13 +99,26 @@ namespace libtorrent
 #endif
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	disk_buffer_pool::~disk_buffer_pool()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_magic = 0;
-	}
 #endif
+
+#if TORRENT_HAVE_MMAP
+		if (m_cache_pool)
+		{
+			munmap(m_cache_pool, boost::uint64_t(m_max_use) * 0x4000);
+			m_cache_pool = 0;
+			// attempt to make MacOS not flush this to disk, making close()
+			// block for a long time
+			ftruncate(m_cache_fd, 0);
+			close(m_cache_fd);
+			m_cache_fd = -1;
+		}
+#endif
+	}
 
 	boost::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
 	{
@@ -138,6 +159,14 @@ namespace libtorrent
 		, mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+
+#if TORRENT_HAVE_MMAP
+		if (m_cache_pool)
+		{
+			return buffer >= m_cache_pool && buffer < m_cache_pool + boost::uint64_t(m_max_use) * 0x4000;
+		}
+#endif
+
 		return m_buffers_in_use.count(buffer) == 1;
 #ifdef TORRENT_BUFFER_STATS
 		if (m_buf_to_category.find(buffer)
@@ -182,15 +211,38 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(m_magic == 0x1337);
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		char* ret = page_aligned_allocator::malloc(m_block_size);
-#else
-		char* ret = (char*)m_pool.malloc();
-		int effective_block_size = m_cache_buffer_chunk_size
-			? m_cache_buffer_chunk_size
-			: (std::max)(m_max_use / 20, 1);
-		m_pool.set_next_size(effective_block_size);
+
+		char* ret;
+#if TORRENT_HAVE_MMAP
+		if (m_cache_pool)
+		{
+			if (m_free_list.size() <= (m_max_use - m_low_watermark) / 2)
+				m_exceeded_max_size = true;
+			if (m_free_list.empty()) return 0;
+			boost::uint64_t slot_index = m_free_list.back();
+			m_free_list.pop_back();
+			ret = m_cache_pool + (slot_index * 0x4000);
+			TORRENT_ASSERT(is_disk_buffer(ret, l));
+		}
+		else
 #endif
+		{
+#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+			ret = page_aligned_allocator::malloc(m_block_size);
+#else
+			ret = (char*)m_pool.malloc();
+			int effective_block_size = m_cache_buffer_chunk_size
+				? m_cache_buffer_chunk_size
+				: (std::max)(m_max_use / 20, 1);
+			m_pool.set_next_size(effective_block_size);
+#endif
+			if (ret == 0)
+			{
+				m_exceeded_max_size = true;
+				return 0;
+			}
+		}
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
 		m_buffers_in_use.insert(ret);
@@ -205,7 +257,7 @@ namespace libtorrent
 			VirtualLock(ret, m_block_size);
 #else
 			mlock(ret, m_block_size);
-#endif		
+#endif
 		}
 #endif
 
@@ -217,7 +269,7 @@ namespace libtorrent
 		m_buf_to_category[ret] = category;
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 #endif
-		TORRENT_ASSERT(ret == 0 || is_disk_buffer(ret, l));
+		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
 	}
 
@@ -266,16 +318,82 @@ namespace libtorrent
 	void disk_buffer_pool::set_settings(session_settings const& sett)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
+
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
 		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.cache_buffer_chunk_size;
 		m_lock_disk_cache = sett.lock_disk_cache;
-		m_max_use = sett.cache_size;
-		m_low_watermark = m_max_use - (std::max)(16, sett.max_queued_disk_bytes / 0x4000);
-		if (m_low_watermark < 0) m_low_watermark = 0;
-		if (m_in_use >= m_max_use) m_exceeded_max_size = true;
+
+		// if we've already allocated an mmap, we can't change
+		// anything unless there are no allocations in use
+		if (m_cache_pool && m_in_use > 0) return;
+
+		// only allow changing size if we're not using mmapped
+		// cache, or if we're just about to turn it off
+		if (m_cache_pool == 0 || sett.mmap_cache.empty())
+		{
+			m_max_use = sett.cache_size;
+			m_low_watermark = m_max_use - (std::max)(16, sett.max_queued_disk_bytes / 0x4000);
+			if (m_low_watermark < 0) m_low_watermark = 0;
+			if (m_in_use >= m_max_use) m_exceeded_max_size = true;
+		}
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_settings_set = true;
+#endif
+
+#if TORRENT_HAVE_MMAP
+		// #error support resizing the map
+		if (m_cache_pool && sett.mmap_cache.empty())
+		{
+			TORRENT_ASSERT(m_in_use == 0);
+			munmap(m_cache_pool, boost::uint64_t(m_max_use) * 0x4000);
+			m_cache_pool = 0;
+			// attempt to make MacOS not flush this to disk, making close()
+			// block for a long time
+			ftruncate(m_cache_fd, 0);
+			close(m_cache_fd);
+			m_cache_fd = -1;
+			std::vector<int>().swap(m_free_list);
+		}
+		else if (m_cache_pool == 0 && !sett.mmap_cache.empty())
+		{
+			// O_TRUNC here is because we don't actually care about what's
+			// in the file now, there's no need to ever read that into RAM
+			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC);
+			if (m_cache_fd < 0 && m_post_alert)
+			{
+				error_code ec(errno, boost::system::get_posix_category());
+				m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
+			}
+			else
+			{
+				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
+				m_cache_pool = (char*)mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
+					, MAP_FILE | MAP_SHARED, m_cache_fd, 0);
+				if (intptr_t(m_cache_pool) == -1)
+				{
+					if (m_post_alert)
+					{
+						error_code ec(errno, boost::system::get_posix_category());
+						m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
+					}
+					m_cache_pool = 0;
+					// attempt to make MacOS not flush this to disk, making close()
+					// block for a long time
+					ftruncate(m_cache_fd, 0);
+					close(m_cache_fd);
+					m_cache_fd = -1;
+				}
+				else
+				{
+					TORRENT_ASSERT((size_t(m_cache_pool) & 0xfff) == 0);
+					m_free_list.reserve(m_max_use);
+					for (int i = 0; i < m_max_use; ++i)
+						m_free_list.push_back(i);
+				}
+			}
+		}
 #endif
 	}
 
@@ -285,6 +403,18 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
+
+#if TORRENT_USE_MLOCK
+		if (m_lock_disk_cache)
+		{
+#ifdef TORRENT_WINDOWS
+			VirtualUnlock(buf, m_block_size);
+#else
+			munlock(buf, m_block_size);
+#endif		
+		}
+#endif
+
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		--m_allocations;
 #endif
@@ -296,21 +426,29 @@ namespace libtorrent
 		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
 		m_buf_to_category.erase(buf);
 #endif
-#if TORRENT_USE_MLOCK
-		if (m_lock_disk_cache)
+
+#if TORRENT_HAVE_MMAP
+		if (m_cache_pool)
 		{
-#ifdef TORRENT_WINDOWS
-			VirtualUnlock(buf, m_block_size);
-#else
-			munlock(buf, m_block_size);
-#endif		
+			TORRENT_ASSERT(buf >= m_cache_pool);
+			TORRENT_ASSERT(buf <  m_cache_pool + boost::uint64_t(m_max_use) * 0x4000);
+			int slot_index = (buf - m_cache_pool) / 0x4000;
+			m_free_list.push_back(slot_index);
+			// this turned out to be very expensive on mac OS. The intention was
+			// to prevent synchronizations with the disk when it's unnecessary. It
+			// seems to have had the opposite effect
+//			msync(buf, 0x4000, MS_INVALIDATE);
 		}
+		else
 #endif
+		{
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		page_aligned_allocator::free(buf);
+			page_aligned_allocator::free(buf);
 #else
-		m_pool.free(buf);
+			m_pool.free(buf);
 #endif
+		}
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
 		TORRENT_ASSERT(i != m_buffers_in_use.end());
