@@ -2852,7 +2852,7 @@ ctx->set_verify_callback(verify_function, ec);
 		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
 			return;
 
-		TORRENT_ASSERT(st.total_wanted >= m_torrent_file->piece_length()
+		TORRENT_ASSERT(st.total_wanted >= size_type(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
