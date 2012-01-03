@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,43 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
+#include "libtorrent/peer_class_set.hpp"
+#include "libtorrent/peer_class.hpp"
+#include <vector>
 
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
-
-namespace libtorrent {
-
-struct TORRENT_EXPORT bw_request
+namespace libtorrent
 {
-	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio);
+	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
+	{
+		if (std::find(m_class.begin(), m_class.end(), c) != m_class.end()) return;
+		m_class.push_back(c);
+		pool.incref(c);
+	}
 
-	boost::intrusive_ptr<bandwidth_socket> peer;
-	// 1 is normal prio
-	int priority;
-	// the number of bytes assigned to this request so far
-	int assigned;
-	// once assigned reaches this, we dispatch the request function
-	int request_size;
+	bool peer_class_set::has_class(peer_class_t c) const
+	{
+		return std::find(m_class.begin(), m_class.end(), c) != m_class.end();
+	}
 
-	// the max number of rounds for this request to survive
-	// this ensures that requests gets responses at very low
-	// rate limits, when the requested size would take a long
-	// time to satisfy
-	int ttl;
-
-	// loops over the bandwidth channels and assigns bandwidth
-	// from the most limiting one
-	int assign_bandwidth();
-
-	// we don't actually support more than 10 channels per peer
-	bandwidth_channel* channel[10];
-};
-
+	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
+	{
+		std::vector<peer_class_t>::iterator i = std::find(m_class.begin(), m_class.end(), c);
+		if (i == m_class.end()) return;
+		m_class.erase(i);
+		pool.decref(c);
+	}
 }
-
-#endif
 

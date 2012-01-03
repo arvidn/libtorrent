@@ -85,13 +85,7 @@ namespace libtorrent
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	int bandwidth_manager::request_bandwidth(boost::intrusive_ptr<bandwidth_socket> const& peer
-		, int blk, int priority
-		, bandwidth_channel* chan1
-		, bandwidth_channel* chan2
-		, bandwidth_channel* chan3
-		, bandwidth_channel* chan4
-		, bandwidth_channel* chan5
-		)
+		, int blk, int priority, bandwidth_channel** chan, int num_channels)
 	{
 		INVARIANT_CHECK;
 		if (m_abort) return 0;
@@ -100,14 +94,7 @@ namespace libtorrent
 		TORRENT_ASSERT(priority > 0);
 		TORRENT_ASSERT(!is_queued(peer.get()));
 
-		bw_request bwr(peer, blk, priority);
-		int i = 0;
-		if (chan1 && chan1->throttle() > 0) bwr.channel[i++] = chan1;
-		if (chan2 && chan2->throttle() > 0) bwr.channel[i++] = chan2;
-		if (chan3 && chan3->throttle() > 0) bwr.channel[i++] = chan3;
-		if (chan4 && chan4->throttle() > 0) bwr.channel[i++] = chan4;
-		if (chan5 && chan5->throttle() > 0) bwr.channel[i++] = chan5;
-		if (i == 0)
+		if (num_channels == 0)
 		{
 			// the connection is not rate limited by any of its
 			// bandwidth channels, or it doesn't belong to any
@@ -115,6 +102,9 @@ namespace libtorrent
 			// the queue, just satisfy the request immediately
 			return blk;
 		}
+
+		bw_request bwr(peer, blk, priority);
+		memcpy(bwr.channel, chan, (std::min)(sizeof(*chan) * num_channels, sizeof(bwr.channel)));
 		m_queued_bytes += blk;
 		m_queue.push_back(bwr);
 		return 0;

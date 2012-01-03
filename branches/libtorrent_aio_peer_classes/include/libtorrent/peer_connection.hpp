@@ -79,6 +79,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/peer_class.hpp"
+#include "libtorrent/peer_class_set.hpp"
 
 #ifdef TORRENT_STATS
 #include "libtorrent/aux_/session_impl.hpp"
@@ -144,6 +146,7 @@ namespace libtorrent
 
 	class TORRENT_EXPORT peer_connection
 		: public bandwidth_socket
+		, public peer_class_set
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
@@ -397,14 +400,7 @@ namespace libtorrent
 		bool is_local() const { return m_active; }
 
 		bool on_local_network() const;
-		bool ignore_bandwidth_limits() const
-		{ return m_ignore_bandwidth_limits; }
-		void ignore_bandwidth_limits(bool i)
-		{ m_ignore_bandwidth_limits = i; }
-
 		bool ignore_unchoke_slots() const;
-		void ignore_unchoke_slots(bool i)
-		{ m_ignore_unchoke_slots = i; }
 
 		bool failed() const { return m_failed; }
 
@@ -1065,16 +1061,6 @@ namespace libtorrent
 		// case we will not try to reconnect to
 		// this peer
 		bool m_failed:1;
-
-		// if this is set to true, the peer will not
-		// request bandwidth from the limiter, but instead
-		// just send and receive as much as possible.
-		bool m_ignore_bandwidth_limits:1;
-
-		// set to true if this peer controls its unchoke
-		// state individually, regardless of the global
-		// unchoker
-		bool m_ignore_unchoke_slots:1;
 
 		// this is set to true when a have_all
 		// message is received. This information

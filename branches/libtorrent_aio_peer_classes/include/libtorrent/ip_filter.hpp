@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/utility.hpp>
+#include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
@@ -67,7 +68,7 @@ struct ip_range
 {
 	Addr first;
 	Addr last;
-	int flags;
+	boost::uint32_t flags;
 };
 
 namespace detail
@@ -160,8 +161,8 @@ namespace detail
 			TORRENT_ASSERT(j != m_access_list.begin());
 			TORRENT_ASSERT(j != i);
 			
-			int first_access = i->access;
-			int last_access = boost::prior(j)->access;
+			boost::uint32_t first_access = i->access;
+			boost::uint32_t last_access = boost::prior(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
@@ -181,7 +182,7 @@ namespace detail
 				// we can do this const-cast because we know that the new
 				// start address will keep the set correctly ordered
 				const_cast<Addr&>(i->start) = first;
-				const_cast<int&>(i->access) = flags;
+				const_cast<boost::uint32_t&>(i->access) = flags;
 			}
 			else if (first_access != flags)
 			{
@@ -202,7 +203,7 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 		}
 
-		int access(Addr const& addr) const
+		boost::uint32_t access(Addr const& addr) const
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
@@ -249,7 +250,7 @@ namespace detail
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set
-			int access;
+			boost::uint32_t access;
 		};
 
 		typedef std::set<range> range_t;

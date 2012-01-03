@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,43 +30,68 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
+#ifndef TORRENT_PEER_CLASS_HPP_INCLUDED
+#define TORRENT_PEER_CLASS_HPP_INCLUDED
 
-#include <boost/intrusive_ptr.hpp>
+#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+#include <vector>
+#include <boost/intrusive_ptr.hpp>
+#include <boost/cstdint.hpp>
 
-struct TORRENT_EXPORT bw_request
+namespace libtorrent
 {
-	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio);
 
-	boost::intrusive_ptr<bandwidth_socket> peer;
-	// 1 is normal prio
-	int priority;
-	// the number of bytes assigned to this request so far
-	int assigned;
-	// once assigned reaches this, we dispatch the request function
-	int request_size;
+	typedef boost::uint32_t peer_class_t;
 
-	// the max number of rounds for this request to survive
-	// this ensures that requests gets responses at very low
-	// rate limits, when the requested size would take a long
-	// time to satisfy
-	int ttl;
+	struct peer_class : intrusive_ptr_base<peer_class>
+	{
+		friend struct peer_class_pool;
 
-	// loops over the bandwidth channels and assigns bandwidth
-	// from the most limiting one
-	int assign_bandwidth();
+		peer_class(std::string const& label)
+			: ignore_unchoke_slots(false)
+			, label(label)
+			, references(0)
+		{}
 
-	// we don't actually support more than 10 channels per peer
-	bandwidth_channel* channel[10];
-};
+		void set_upload_limit(int limit);
+		void set_download_limit(int limit);
 
+		// the bandwidth channels, upload and download
+		// keeps track of the current quotas
+		bandwidth_channel channel[2];
+
+		bool ignore_unchoke_slots;
+
+		// the name of this peer class
+		std::string label;
+
+	private:
+		int references;
+
+	};
+
+	struct peer_class_pool
+	{
+	
+		peer_class_t new_peer_class(std::string const& label);
+		void decref(peer_class_t c);
+		void incref(peer_class_t c);
+		peer_class* at(peer_class_t c);
+		peer_class const* at(peer_class_t c) const;
+
+	private:
+
+		// state for peer classes (a peer can belong to multiple classes)
+		// this can control
+		std::vector<boost::intrusive_ptr<peer_class> > m_peer_classes;
+
+		// indices in m_peer_classes that are no longer used
+		std::vector<int> m_free_list;
+	};
 }
 
-#endif
+#endif // TORRENT_PEER_CLASS_HPP_INCLUDED
 

@@ -100,10 +100,13 @@ void peer_connection::assign_bandwidth(int channel, int amount)
 
 void peer_connection::start()
 {
-	m_bwm.request_bandwidth(self(), 150000, m_priority
-		, &m_bandwidth_channel
+	bandwidth_channel* channels[] = {
+		&m_bandwidth_channel
 		, &m_torrent_bandwidth_channel
-		, &global_bwc);
+		, &global_bwc
+	};
+
+	m_bwm.request_bandwidth(self(), 150000, m_priority, channels, 3);
 }
 
 
