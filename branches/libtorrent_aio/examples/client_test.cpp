@@ -1428,10 +1428,6 @@ int main(int argc, char* argv[])
 	settings.disk_cache_algorithm = session_settings::avoid_readback;
 	settings.volatile_read_cache = false;
 
-	settings.mmap_cache = "/Users/arvid/test_cache";
-	settings.cache_size = 65536;
-	settings.contiguous_recv_buffer = false;
-
 	ses.set_settings(settings);
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
