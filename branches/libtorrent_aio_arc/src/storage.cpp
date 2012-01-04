@@ -1198,6 +1198,18 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
+	void piece_manager::add_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
+		m_cached_pieces.insert(p);
+	}
+
+	void piece_manager::remove_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
+		m_cached_pieces.erase(p);
+	}
+
 	// TODO: it doesn't make any sense for the piece_manager to
 	// contain this wrapper around posting jobs to the disk thread
 	// piece_manager can probably be removed
