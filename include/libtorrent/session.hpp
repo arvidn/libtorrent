@@ -83,8 +83,8 @@ namespace libtorrent
 	class upnp;
 	class alert;
 
-	session_settings min_memory_usage();
-	session_settings high_performance_seed();
+	TORRENT_EXPORT session_settings min_memory_usage();
+	TORRENT_EXPORT session_settings high_performance_seed();
 
 	void TORRENT_EXPORT TORRENT_CFG();
 
