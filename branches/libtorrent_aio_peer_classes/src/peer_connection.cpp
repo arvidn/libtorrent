@@ -5570,7 +5570,12 @@ namespace libtorrent
 
 			if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
 
-			if (m_ses.exceeded_cache_use())
+			// if we already have a disk buffer, we might as well use it
+			// if contiguous recv buffer is true, don't apply this logic, but
+			// actually wait until we try to allocate a buffer and exceed the limit
+			if (m_ses.exceeded_cache_use()
+				&& !m_disk_recv_buffer
+				&& !m_ses.m_settings.contiguous_recv_buffer)
 			{
 				if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 					m_ses.inc_disk_queue(download_channel);
