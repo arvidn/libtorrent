@@ -7449,6 +7449,8 @@ ctx->set_verify_callback(verify_function, ec);
 		m_total_redundant_bytes = 0;
 		m_stat.clear();
 
+		update_want_tick();
+
 		announce_with_tracker();
 
 		// private torrents are never announced on LSD

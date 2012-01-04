@@ -3571,8 +3571,10 @@ namespace aux {
 #define STAT_LOG(type, val) fprintf(m_stats_logger, "%" #type "\t", val)
 
 			STAT_LOG(f, total_milliseconds(now - m_last_log_rotation) / 1000.f);
-			STAT_LOG(d, int(m_stat.total_upload() - m_last_uploaded));
-			STAT_LOG(d, int(m_stat.total_download() - m_last_downloaded));
+			size_type uploaded = m_stat.total_upload() - m_last_uploaded;
+			STAT_LOG(d, int(uploaded));
+			size_type downloaded = m_stat.total_download() - m_last_downloaded;
+			STAT_LOG(d, int(downloaded));
 			STAT_LOG(d, downloading_torrents);
 			STAT_LOG(d, seeding_torrents);
 			STAT_LOG(d, num_complete_connections);
