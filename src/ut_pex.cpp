@@ -72,9 +72,10 @@ namespace libtorrent { namespace
 
 	bool send_peer(peer_connection const& p)
 	{
-		// don't send out peers that we haven't connected to
-		// (that have connected to us)
-		if (!p.is_local()) return false;
+		// don't send out those peers that we haven't connected to
+		// (that have connected to us) and that aren't sharing their
+		// listening port 
+		if (!p.is_local() && !p.received_listen_port()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
 		return true;
@@ -136,7 +137,7 @@ namespace libtorrent { namespace
 				peer_connection* peer = *i;
 				if (!send_peer(*peer)) continue;
 
-				tcp::endpoint const& remote = peer->remote();
+				tcp::endpoint remote = peer->remote();
 				m_old_peers.insert(remote);
 
 				std::set<tcp::endpoint>::iterator di = dropped.find(remote);
@@ -150,6 +151,13 @@ namespace libtorrent { namespace
 						continue;
 
 					bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
+
+					// if the peer has told us which port its listening on,
+					// use that port. But only if we didn't connect to the peer.
+					// if we connected to it, use the port we know works
+					policy::peer *pi = 0;
+					if (!p->is_local() && (pi = peer->peer_info_struct()) && pi->port > 0)
+						remote.port(pi->port);
 
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
@@ -502,11 +510,26 @@ namespace libtorrent { namespace
 				// no supported flags to set yet
 				// 0x01 - peer supports encryption
 				// 0x02 - peer is a seed
+				// 0x04 - supports uTP. This is only a positive flags
+				//        passing 0 doesn't mean the peer doesn't
+				//        support uTP
+				// 0x08 - supports holepunching protocol. If this
+				//        flag is received from a peer, it can be
+				//        used as a rendezvous point in case direct
+				//        connections to the peer fail
 				int flags = p->is_seed() ? 2 : 0;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				flags |= p->supports_encryption() ? 1 : 0;
 #endif
-				tcp::endpoint const& remote = peer->remote();
+				flags |= p->get_socket()->get<utp_stream>() ? 4 :  0;
+				flags |= p->supports_holepunch() ? 8 : 0;
+
+				tcp::endpoint remote = peer->remote();
+
+				policy::peer *pi = 0;
+				if (!p->is_local() && (pi = peer->peer_info_struct()) && pi->port > 0)
+					remote.port(pi->port);
+
 				// i->first was added since the last time
 				if (remote.address().is_v4())
 				{

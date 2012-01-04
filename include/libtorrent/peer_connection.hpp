@@ -402,6 +402,10 @@ namespace libtorrent
 		// if it was an incoming connection, it is remote
 		bool is_local() const { return m_active; }
 
+		bool received_listen_port() const { return m_received_listen_port; }
+		void received_listen_port()
+		{ m_received_listen_port = true; }
+
 		bool on_local_network() const;
 		bool ignore_bandwidth_limits() const
 		{ return m_ignore_bandwidth_limits; }
@@ -1052,6 +1056,10 @@ namespace libtorrent
 		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
 		bool m_active:1;
+
+		// is true if we learn the incoming connections listening
+		// during the extended handshake
+		bool m_received_listen_port:1;
 
 		// other side says that it's interested in downloading
 		// from us.
