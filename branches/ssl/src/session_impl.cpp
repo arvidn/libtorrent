@@ -548,16 +548,30 @@ namespace aux {
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 	
 		if (!servername || strlen(servername) < 40)
-			return SSL_TLSEXT_ERR_NOACK;
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		sha1_hash info_hash;
 		bool valid = from_hex(servername, 40, (char*)&info_hash[0]);
 
 		// the server name is not a valid hex-encoded info-hash
 		if (!valid)
-			return SSL_TLSEXT_ERR_NOACK;
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
-#error look up if there is an ssl torrent with this info-hash. If so, pick that torrent's ssl certificate for this connection and tie the peer to this torrent, somehow.
+		// see if there is a torrent with this info-hash
+		boost::shared_ptr<torrent> t = ses->find_torrent(info_hash).lock();
+
+		// if there isn't, fail
+		if (!t) return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// if the torrent we found isn't an SSL torrent, also fail.
+		// the torrent doesn't have an SSL context and should not allow
+		// incoming SSL connections
+		if (!t->is_ssl_torrent()) return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// use this torrent's certificate
+		SSL_set_SSL_CTX(s, t->ssl_ctx()->native_handle());
+
+#error somehow tie this peer to this torrent, so that attach_peer() can verify that the bittorrent-level info-hash matches this one
 
 		return SSL_TLSEXT_ERR_OK;
 	}
