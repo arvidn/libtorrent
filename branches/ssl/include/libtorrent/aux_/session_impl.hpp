@@ -121,7 +121,7 @@ namespace libtorrent
 
 	struct listen_socket_t
 	{
-		listen_socket_t(): external_port(0) {}
+		listen_socket_t(): external_port(0), ssl(false) {}
 
 		// this is typically empty but can be set
 		// to the WAN IP address of NAT-PMP or UPnP router
@@ -135,6 +135,9 @@ namespace libtorrent
 		// to be published to peers, since this is the port
 		// the client is reachable through.
 		int external_port;
+
+		// set to true if this is an SSL listen socket
+		bool ssl;
 
 		// the actual socket
 		boost::shared_ptr<socket_acceptor> sock;
@@ -230,9 +233,9 @@ namespace libtorrent
 			tcp::endpoint get_ipv6_interface() const;
 			tcp::endpoint get_ipv4_interface() const;
 
-			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
+			void async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
+				, boost::weak_ptr<socket_acceptor> listener, error_code const& e, bool ssl);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 
@@ -373,7 +376,10 @@ namespace libtorrent
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			address listen_address() const;
-			unsigned short listen_port() const;
+			boost::uint16_t listen_port() const;
+#ifdef TORRENT_USE_OPENSSL
+			boost::uint16_t ssl_listen_port() const;
+#endif
 			
 			void abort();
 			
@@ -585,6 +591,8 @@ namespace libtorrent
 			mutable io_service m_io_service;
 
 #ifdef TORRENT_USE_OPENSSL
+			// this is a generic SSL context used when talking to
+			// unauthenticated HTTPS servers
 			asio::ssl::context m_ssl_ctx;
 #endif
 
@@ -698,6 +706,10 @@ namespace libtorrent
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
+
+#ifdef TORRENT_USE_OPENSSL
+			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
+#endif
 
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection

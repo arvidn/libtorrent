@@ -62,6 +62,9 @@ public:
 	typedef typename Stream::endpoint_type endpoint_type;
 	typedef typename Stream::protocol_type protocol_type;
 
+	void set_host_name(std::string name)
+	{ SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str()); }
+
 	typedef boost::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
