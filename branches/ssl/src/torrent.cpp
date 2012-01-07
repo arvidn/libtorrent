@@ -1288,7 +1288,7 @@ namespace libtorrent
 /*
 	bool verify_function(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
-		return false;
+		return true;
 	}
 */
 
@@ -1343,7 +1343,6 @@ namespace libtorrent
 		}
 		*/
 		SSL_CTX* ssl_ctx = ctx->impl();
-
 		// create a new x.509 certificate store
 		X509_STORE* cert_store = X509_STORE_new();
 		if (!cert_store)
@@ -5486,7 +5485,46 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-#error make sure that no non-ssl peers can attach to an SSL torrent, unless they authenticated against this torrent's certificate
+		if (is_ssl_torrent())
+		{
+			// if this is an SSL torrent, don't allow non SSL peers on it
+			boost::shared_ptr<socket_type> s = p->get_socket();
+
+			//
+#define SSL(t) socket_type_int_impl<ssl_stream<t> >::value: \
+			ssl_conn = s->get<ssl_stream<t> >()->native_handle(); \
+			break;
+
+			SSL* ssl_conn = 0;
+
+			switch (s->type())
+			{
+				case SSL(stream_socket)
+				case SSL(socks5_stream)
+				case SSL(http_stream)
+				case SSL(utp_stream)
+			};
+
+#undef SSL
+
+			if (ssl_conn == 0)
+			{
+				// don't allow non SSL peers on SSL torrents
+				p->disconnect(errors::requires_ssl_connection);
+				return false;
+			}
+
+			if (SSL_get_SSL_CTX(ssl_conn) != m_ssl_ctx->native_handle())
+			{
+				// if the SSL_CTX associated with this connection is
+				// not the one belonging to this torrent, the SSL handshake
+				// connected to one torrent, and the BitTorrent protocol
+				// to a different one. This is probably an attempt to circumvent
+				// access control. Don't allow it.
+				p->disconnect(errors::invalid_ssl_cert);
+				return false;
+			}
+		}
 
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(!p->is_local());

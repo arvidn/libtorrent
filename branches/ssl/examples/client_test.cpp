@@ -669,6 +669,9 @@ bool seed_mode = false;
 bool share_mode = false;
 bool disable_storage = false;
 
+// if non-empty, a peer that will be added to all torrents
+std::string peer;
+
 using boost::bind;
 
 // monitored_dir is true if this torrent is added because
@@ -871,7 +874,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
 		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
 
-		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "test");
+		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
 		h.resume();
 	}
 #endif
@@ -904,6 +907,20 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
+
+			// if we have a peer specified, connect to it
+			if (!peer.empty())
+			{
+				char* port = (char*) strrchr((char*)peer.c_str(), ':');
+				if (port > 0)
+				{
+					*port++ = 0;
+					char const* ip = peer.c_str();
+					int peer_port = atoi(port);
+					if (peer_port > 0)
+						h.connect_peer(tcp::endpoint(address::from_string(ip), peer_port));
+				}
+			}
 
 			boost::unordered_set<torrent_status>::iterator j
 				= all_handles.insert(h.status()).first;
@@ -1086,6 +1103,7 @@ int main(int argc, char* argv[])
 			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
+			"  -r <IP:port>          connect to specified peer\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
@@ -1298,6 +1316,7 @@ int main(int argc, char* argv[])
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
 			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
+			case 'r': peer = arg; break;
 			case 'P':
 				{
 					char* port = (char*) strrchr(arg, ':');

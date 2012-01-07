@@ -571,8 +571,6 @@ namespace aux {
 		// use this torrent's certificate
 		SSL_set_SSL_CTX(s, t->ssl_ctx()->native_handle());
 
-#error somehow tie this peer to this torrent, so that attach_peer() can verify that the bittorrent-level info-hash matches this one
-
 		return SSL_TLSEXT_ERR_OK;
 	}
 #endif
@@ -596,7 +594,7 @@ namespace aux {
 		, m_files(40)
 		, m_io_service()
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
+		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
 		, m_disk_thread(m_io_service, boost::bind(&session_impl::on_disk_queue, this), m_files)
@@ -2092,6 +2090,11 @@ namespace aux {
 		m_ipv6_interface = tcp::endpoint();
 		m_ipv4_interface = tcp::endpoint();
 
+#ifdef TORRENT_USE_OPENSSL
+		tcp::endpoint ssl_interface = m_listen_interface;
+		ssl_interface.port(m_settings.ssl_listen);
+#endif
+	
 		if (is_any(m_listen_interface.address()))
 		{
 			// this means we should open two listen sockets
@@ -2106,11 +2109,26 @@ namespace aux {
 				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
 				// sockets can be bound to the same one
-				m_listen_interface.port(s.sock->local_endpoint(ec).port());
+				m_listen_interface.port(s.external_port);
 
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock, false);
+				async_accept(s.sock, s.ssl);
 			}
+
+#ifdef TORRENT_USE_OPENSSL
+			if (m_settings.ssl_listen)
+			{
+				listen_socket_t s;
+				s.ssl = true;
+				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+
+				if (s.sock)
+				{
+					m_listen_sockets.push_back(s);
+					async_accept(s.sock, s.ssl);
+				}
+			}
+#endif
 
 #if TORRENT_USE_IPV6
 			// only try to open the IPv6 port if IPv6 is installed
@@ -2122,8 +2140,24 @@ namespace aux {
 				if (s.sock)
 				{
 					m_listen_sockets.push_back(s);
-					async_accept(s.sock, false);
+					async_accept(s.sock, s.ssl);
 				}
+
+#ifdef TORRENT_USE_OPENSSL
+				if (m_settings.ssl_listen)
+				{
+					listen_socket_t s;
+					s.ssl = true;
+					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
+						, 10, false, flags, ec);
+
+					if (s.sock)
+					{
+						m_listen_sockets.push_back(s);
+						async_accept(s.sock, s.ssl);
+					}
+				}
+#endif // TORRENT_USE_OPENSSL
 			}
 #endif // TORRENT_USE_IPV6
 
@@ -2151,7 +2185,7 @@ namespace aux {
 			if (s.sock)
 			{
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock, false);
+				async_accept(s.sock, s.ssl);
 
 				if (m_listen_interface.address().is_v6())
 					m_ipv6_interface = m_listen_interface;
@@ -2164,17 +2198,12 @@ namespace aux {
 			{
 				listen_socket_t s;
 				s.ssl = true;
-				setup_listener(&s, m_listen_interface, m_listen_port_retries, false, flags, ec);
+				setup_listener(&s, ssl_interface, 10, false, flags, ec);
 
 				if (s.sock)
 				{
 					m_listen_sockets.push_back(s);
 					async_accept(s.sock, s.ssl);
-
-					if (m_listen_interface.address().is_v6())
-						m_ipv6_interface = m_listen_interface;
-					else
-						m_ipv4_interface = m_listen_interface;
 				}
 			}
 #endif
@@ -2480,6 +2509,12 @@ namespace aux {
 	}
 
 #ifdef TORRENT_USE_OPENSSL
+
+	// to test SSL connections, one can use this openssl command template:
+	// 
+	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem \ 
+	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1 \ 
+	//   -servername <hex-encoded-info-hash>
 
 	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
 	{

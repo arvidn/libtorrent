@@ -1179,16 +1179,6 @@ namespace libtorrent
 			t.reset();
 		}
 
-#ifdef TORRENT_USE_OPENSSL
-		if (t && t->is_ssl_torrent())
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** can't attach to an ssl torrent");
-#endif
-			t.reset();
-		}
-#endif
-
 		if (!t)
 		{
 			// we couldn't find the torrent!

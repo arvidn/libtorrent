@@ -268,7 +268,7 @@ namespace libtorrent
 			, read_job_every(10)
 			, use_disk_read_ahead(true)
 			, lock_files(false)
-			, ssl_listen(true)
+			, ssl_listen(4433)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1077,8 +1077,8 @@ namespace libtorrent
 		// preventing any other process from modifying them
 		bool lock_files;
 
-		// open an ssl listen socket for ssl torrents
-		bool ssl_listen;
+		// open an ssl listen socket for ssl torrents on this port
+		int ssl_listen;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

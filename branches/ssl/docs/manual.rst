@@ -4535,6 +4535,8 @@ session_settings
 		int read_job_every;
 		bool use_disk_read_ahead;
 		bool lock_files;
+
+		int ssl_listen;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5402,6 +5404,13 @@ in the disk job queue. This gives a significant performance boost for seeding.
 to or seeding from. This is implemented using ``fcntl(F_SETLK)`` on unix systems and
 by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
 3rd party processes from corrupting the files under libtorrent's feet.
+
+``ssl_listen`` sets the listen port for SSL connections. If this is set to 0,
+no SSL listen port is opened. Otherwise a socket is opened on this port. This
+setting is only taken into account when opening the regular listen port, and
+won't re-open the listen socket simply by changing this setting.
+
+It defaults to port 4433.
 
 pe_settings
 ===========
@@ -7779,6 +7788,12 @@ code   symbol                                    description
 110    invalid_dont_have                         The peer sent an invalid ``dont_have`` message. The dont have
                                                  message is an extension to allow peers to advertise that the
                                                  no longer has a piece they previously had.                      
+------ ----------------------------------------- -----------------------------------------------------------------
+111    requires_ssl_connection                   The peer tried to connect to an SSL torrent without connecting
+                                                 over SSL.
+------ ----------------------------------------- -----------------------------------------------------------------
+112    invalid_ssl_cert                          The peer tried to connect to a torrent with a certificate
+                                                 for a different torrent.
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
