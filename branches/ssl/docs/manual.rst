@@ -9037,18 +9037,46 @@ The protocols are layered like this::
 	+-----------+-----------+
 
 During the SSL handshake, both peers need to authenticate by providing a certificate
-that is signed by the private counterpart of the CA certificate found in the
-.torrent file. These peer certificates are expected to be privided to peers through
-some other means than bittorrent. Typically by a peer generating a certificate request
-which is sent to the publisher of the torrent, and the publisher returning a signed
-certificate.
+that is signed by the CA certificate found in the .torrent file. These peer
+certificates are expected to be privided to peers through some other means than 
+bittorrent. Typically by a peer generating a certificate request which is sent to
+the publisher of the torrent, and the publisher returning a signed certificate.
 
 In libtorrent, `set_ssl_certificate()`_ in torrent_handle_ is used to tell libtorrent where
 to find the peer certificate and the private key for it. When an SSL torrent is loaded,
 the torrent_need_cert_alert_ is posted to remind the user to provide a certificate.
 
-In order for the client to know which torrent an incoming connection belongs to, in order
-to provide the correct certificate, each SSL torrent opens their own dedicated listen socket.
+A peer connecting to an SSL torrent MUST provide the *SNI* TLS extension (server name
+indication). The server name is the hex encoded info-hash of the torrent to connect to.
+This is required for the client accepting the connection to know which certificate to
+present.
+
+SSL connections are accepted on a separate socket from normal bittorrent connections. To
+pick which port the SSL socket should bind to, set ``session_settings::ssl_listen`` to a
+different port. It defaults to port 4433. This setting is only taken into account when the
+normal listen socket is opened (i.e. just changing this setting won't necessarily close
+and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
 This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``).
+
+To test incoming SSL connections to an SSL torrent, one can use the following *openssl* command::
+
+	openssl s_client -cert <peer-certificate>.pem -key <peer-private-key>.pem -CAfile <torrent-cert>.pem -debug -connect 127.0.0.1:4433 -tls1 -servername <info-hash>
+
+To create a root certificate, the Distinguished Name (*DN*) is not taken into account
+by bittorrent peers. You still need to specify something, but from libtorrent's point of
+view, it doesn't matter what it is. libtorrent only makes sure the peer certificates are
+signed by the correct root certificate.
+
+One way to create the certificates is to use the ``CA.sh`` script that comes with openssl, like thisi (don't forget to enter a common Name for the certificate)::
+
+	CA.sh -newca
+	CA.sh -newreq
+	CA.sh -sign
+
+The torrent certificate is located in ``./demoCA/private/demoCA/cacert.pem``, this is
+the pem file to include in the .torrent file.
+
+The peer's certificate is located in ``./newcert.pem`` and the certificate's
+private key in ``./newkey.pem``.
 

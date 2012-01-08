@@ -102,8 +102,7 @@ public:
 	template <class Handler>
 	void async_shutdown(Handler const& handler)
 	{
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
-		m_sock.async_shutdown( boost::bind(&ssl_stream::on_shutdown, this, _1, h));
+		m_sock.async_shutdown(handler);
 	}
 
 	void shutdown(error_code& ec)
