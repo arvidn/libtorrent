@@ -1,3 +1,4 @@
+	* fix overflow bug in progress_ppm field
 	* don't filter local peers received from a non-local tracker
 	* fix python deadlock when using python extensions
 	* fixed small memory leak in DHT
