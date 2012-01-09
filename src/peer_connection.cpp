@@ -3824,7 +3824,7 @@ namespace libtorrent
 #else
 			p.progress = (float)p.pieces.count() / (float)p.pieces.size();
 #endif
-			p.progress_ppm = p.pieces.count() * 1000000 / p.pieces.size();
+			p.progress_ppm = boost::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size();
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
