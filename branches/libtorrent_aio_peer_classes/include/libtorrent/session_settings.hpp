@@ -117,7 +117,10 @@ namespace libtorrent
 			, max_failcount(3)
 			, min_reconnect_time(60)
 			, peer_connect_timeout(15)
+#ifndef TORRENT_NO_DEPRECATE
+			  // deprecated in 0.17
 			, ignore_limits_on_local_network(true)
+#endif
 			, connection_speed(6)
 			, send_redundant_have(true)
 			, lazy_bitfields(true)
@@ -131,6 +134,7 @@ namespace libtorrent
 			, max_queued_disk_bytes(1024 * 1024)
 #ifndef TORRENT_NO_DEPRECATE
 			// this is no longer used
+			// deprecated in 0.17
 			, max_queued_disk_bytes_low_watermark(0)
 #endif
 			, handshake_timeout(10)
@@ -262,7 +266,10 @@ namespace libtorrent
 			, utp_delayed_ack(0) // milliseconds
 			, utp_dynamic_sock_buf(true)
 			, mixed_mode_algorithm(peer_proportional)
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in 0.17
 			, rate_limit_utp(false)
+#endif
 			, listen_queue_size(5)
 			, announce_double_nat(false)
 			, torrent_connect_boost(10)
@@ -395,9 +402,12 @@ namespace libtorrent
 		// connection is dropped. The time is specified in seconds.
 		int peer_connect_timeout;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use set_peer_class_filter() instead
 		// if set to true, upload, download and unchoke limits
 		// are ignored for peers on the local network.
 		bool ignore_limits_on_local_network;
+#endif
 
 		// the number of connection attempts that
 		// are made per second.
@@ -1031,9 +1041,12 @@ namespace libtorrent
 		// connections and uTP connections
 		int mixed_mode_algorithm;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use set_peer_class_filter() instead
 		// set to true if uTP connections should be rate limited
 		// defaults to false
 		bool rate_limit_utp;
+#endif
 
 		// this is the number passed in to listen(). i.e.
 		// the number of connections to accept while we're

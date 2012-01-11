@@ -43,8 +43,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	typedef boost::uint32_t peer_class_t;
+
+	struct peer_class_info
+	{
+		bool ignore_unchoke_slots;
+		std::string label;
+		int upload_limit;
+		int download_limit;
+	};
 
 	struct peer_class : intrusive_ptr_base<peer_class>
 	{
@@ -55,6 +62,9 @@ namespace libtorrent
 			, label(label)
 			, references(0)
 		{}
+
+		void set_info(peer_class_info const* pci);
+		void get_info(peer_class_info* pci);
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);

@@ -1371,7 +1371,18 @@ int main(int argc, char* argv[])
 				break;
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
-			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
+			case 'Y':
+				{
+					--i;
+					ip_filter pcf;
+					// 1 is the global peer class. This should be done properly in the future
+					pcf.add_rule(address_v4::from_string("0.0.0.0")
+						, address_v4::from_string("255.255.255.255"), 1);
+					pcf.add_rule(address_v6::from_string("::")
+						, address_v4::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+					ses.set_peer_class_filter(pcf);
+					break;
+				}
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;

@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/rss.hpp"
+#include "libtorrent/peer_class.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -334,6 +335,12 @@ namespace libtorrent
 			listen_reuse_address = 0x01,
 			listen_no_system_port = 0x02
 		};
+
+		void set_peer_class_filter(ip_filter const& f);
+		int create_peer_class(char const* name);
+		void delete_peer_class(int cid);
+		peer_class_info get_peer_class(int cid);
+		void set_peer_class(int cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16

@@ -578,6 +578,15 @@ namespace libtorrent
 
 		// add peer classes based on IP
 		boost::uint32_t peer_class_mask = m_ses.m_peer_class_filter.access(m_remote.address());
+
+		// assign peer class based on socket type
+		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
+		int socket_type = mapping[m_socket->type()];
+		// filter peer classes based on type
+		peer_class_mask &= m_ses.m_peer_class_type_mask[socket_type];
+		// add peer classes based on type
+		peer_class_mask |= m_ses.m_peer_class_type[socket_type];
+
 		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
 		{
 			if ((peer_class_mask & 1) == 0) continue;
@@ -4067,15 +4076,17 @@ namespace libtorrent
 	}
 
 	void use_quota_overhead(boost::shared_ptr<torrent> t, peer_class_pool& pool
-		, peer_class_set& set, int channel, int amount)
+		, peer_class_set& set, int amount_down, int amount_up)
 	{
 		int num = set.num_classes();
 		for (int i = 0; i < num; ++i)
 		{
 			peer_class* p = pool.at(set.class_at(i));
 			if (p == 0) continue;
-			bandwidth_channel* ch = &p->channel[channel];
-			use_quota_overhead(t, ch, channel, amount);
+			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
+			use_quota_overhead(t, ch, peer_connection::download_channel, amount_down);
+			ch = &p->channel[peer_connection::upload_channel];
+			use_quota_overhead(t, ch, peer_connection::upload_channel, amount_up);
 		}
 	}
 
@@ -4091,51 +4102,17 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		// drain the IP overhead from the bandwidth limiters
-// #error have this setting per peer_class
 		if (m_ses.m_settings.rate_limit_ip_overhead && t)
 		{
 			int download_overhead = m_statistics.download_ip_overhead();
 			int upload_overhead = m_statistics.upload_ip_overhead();
 
-			use_quota_overhead(t, m_ses.m_classes, *this, upload_channel
+			use_quota_overhead(t, m_ses.m_classes, *this
+				, m_statistics.download_ip_overhead()
 				, m_statistics.upload_ip_overhead());
-			use_quota_overhead(t, m_ses.m_classes, *this, download_channel
-				, m_statistics.download_ip_overhead());
-			use_quota_overhead(t, m_ses.m_classes, *t, upload_channel
+			use_quota_overhead(t, m_ses.m_classes, *t
+				, m_statistics.download_ip_overhead()
 				, m_statistics.upload_ip_overhead());
-			use_quota_overhead(t, m_ses.m_classes, *t, download_channel
-				, m_statistics.download_ip_overhead());
-
-			bool utp = m_socket->get<utp_stream>() != 0;
-			bandwidth_channel* global_channel;
-			global_channel = m_ses.get_global_channel(utp, on_local_network(), upload_channel);
-			if (global_channel)
-			{
-				use_quota_overhead(t, global_channel, upload_channel
-					, m_statistics.upload_ip_overhead());
-			}
-			global_channel = m_ses.get_global_channel(utp, on_local_network(), download_channel);
-			if (global_channel)
-			{
-				use_quota_overhead(t, global_channel, download_channel
-					, m_statistics.download_ip_overhead());
-			}
-
-			if (!utp)
-			{
-				bandwidth_channel* tcp_channel = m_ses.get_tcp_channel(upload_channel);
-				if (tcp_channel)
-				{
-					use_quota_overhead(t, tcp_channel, upload_channel
-						, m_statistics.upload_ip_overhead());
-				}
-				tcp_channel = m_ses.get_tcp_channel(download_channel);
-				if (tcp_channel)
-				{
-					use_quota_overhead(t, tcp_channel, download_channel
-						, m_statistics.download_ip_overhead());
-				}
-			}
 		}
 
 		if (!t || m_disconnecting)
@@ -4305,23 +4282,6 @@ namespace libtorrent
 		}
 
 		int piece_timeout = m_ses.settings().piece_timeout;
-		int rate_limit = 500;
-
-// #error go through all peer classes?
-		if (t->download_limit() > 0)
-			rate_limit = (std::min)(t->download_limit() / t->num_peers(), rate_limit);
-		if (m_ses.download_rate_limit(m_ses.m_global_class) > 0)
-			rate_limit = (std::min)(m_ses.download_rate_limit(m_ses.m_global_class)
-				/ m_ses.num_connections(), rate_limit);
-
-		// rate_limit is an approximation of what this connection is
-		// allowed to download. If it is impossible to beat the piece
-		// timeout at this rate, adjust it to be realistic
-
-		const int block_size = t->block_size();
-		int rate_limit_timeout = rate_limit / block_size;
-		if (piece_timeout < rate_limit_timeout && rate_limit_timeout != INT_MAX)
-			piece_timeout = rate_limit_timeout;
 
 		if (!m_download_queue.empty()
 			&& m_quota[download_channel] > 0
@@ -4729,17 +4689,6 @@ namespace libtorrent
 		// collect the pointers to all bandwidth channels
 		// that apply to this torrent
 		int c = 0;
-		bool utp = m_socket->get<utp_stream>() != 0;
-		bandwidth_channel* global_channel = m_ses.get_global_channel(utp
-			, on_local_network(), upload_channel);
-		if (global_channel)
-			channels[c++] = global_channel;
-
-		if (!utp)
-		{
-			bandwidth_channel* tcp_channel = m_ses.get_tcp_channel(upload_channel);
-			if (tcp_channel) channels[c++] = tcp_channel;
-		}
 
 		c += copy_pertinent_channels(m_ses.m_classes, *this, upload_channel
 			, channels + c, max_channels - c);
@@ -4812,18 +4761,6 @@ namespace libtorrent
 		// collect the pointers to all bandwidth channels
 		// that apply to this torrent
 		int c = 0;
-
-		bool utp = m_socket->get<utp_stream>() != 0;
-		bandwidth_channel* global_channel = m_ses.get_global_channel(utp
-			, on_local_network(), download_channel);
-		if (global_channel)
-			channels[c++] = global_channel;
-
-		if (!utp)
-		{
-			bandwidth_channel* tcp_channel = m_ses.get_tcp_channel(download_channel);
-			if (tcp_channel) channels[c++] = tcp_channel;
-		}
 
 		c += copy_pertinent_channels(m_ses.m_classes, *this, download_channel
 			, channels + c, max_channels - c);

@@ -877,6 +877,31 @@ namespace libtorrent
 	}
 #endif
 
+	void session::set_peer_class_filter(ip_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
+	}
+
+	int session::create_peer_class(char const* name)
+	{
+		TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);
+	}
+
+	void session::delete_peer_class(int cid)
+	{
+		TORRENT_ASYNC_CALL1(delete_peer_class, cid);
+	}
+
+	peer_class_info session::get_peer_class(int cid)
+	{
+		TORRENT_SYNC_CALL_RET1(peer_class_info, get_peer_class, cid);
+	}
+
+	void session::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		TORRENT_ASYNC_CALL2(set_peer_class, cid, pci);
+	}
+
 	bool session::is_listening() const
 	{
 		TORRENT_SYNC_CALL_RET(bool, is_listening);

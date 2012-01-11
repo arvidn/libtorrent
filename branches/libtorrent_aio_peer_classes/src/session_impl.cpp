@@ -315,7 +315,9 @@ namespace aux {
 		TORRENT_SETTING(integer, max_failcount)
 		TORRENT_SETTING(integer, min_reconnect_time)
 		TORRENT_SETTING(integer, peer_connect_timeout)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, ignore_limits_on_local_network)
+#endif
 		TORRENT_SETTING(integer, connection_speed)
 		TORRENT_SETTING(boolean, send_redundant_have)
 		TORRENT_SETTING(boolean, lazy_bitfields)
@@ -439,7 +441,9 @@ namespace aux {
 		TORRENT_SETTING(integer, utp_delayed_ack)
 		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
 		TORRENT_SETTING(integer, mixed_mode_algorithm)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, rate_limit_utp)
+#endif
 		TORRENT_SETTING(integer, listen_queue_size)
 		TORRENT_SETTING(boolean, announce_double_nat)
 		TORRENT_SETTING(integer, torrent_connect_boost)
@@ -554,6 +558,62 @@ namespace aux {
 	int session_impl::logging_allocator::allocations = 0;
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
+
+	void session_impl::init_peer_class_filter(bool unlimited_local)
+	{
+		// set the default peer_class_filter to use the local peer class
+		// for peers on local networks
+		boost::uint32_t lfilter = 1 << m_local_peer_class;
+		boost::uint32_t gfilter = 1 << m_global_class;
+
+		struct class_mapping
+		{
+			char const* first;
+			char const* last;
+			boost::uint32_t filter;
+		};
+
+		const static class_mapping v4_classes[] =
+		{
+			// everything
+			{"0.0.0.0", "255.255.255", gfilter},
+			// local networks
+			{"10.0.0.0", "10.255.255.255", lfilter},
+			{"172.16.0.0", "172.16.255.255", lfilter},
+			{"192.168.0.0", "192.168.255.255", lfilter},
+			// link-local
+			{"169.254.0.0", "169.254.255.255", lfilter},
+			// loop-back
+			{"127.0.0.0", "127.255.255.255", lfilter},
+		};
+
+		const static class_mapping v6_classes[] =
+		{
+			// everything
+			{"::0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", gfilter},
+			// link-local
+			{"fe80::", "febf::ffff:ffff:ffff:ffff:ffff:ffff:ffff", lfilter},
+			// loop-back
+			{"::1", "::1", lfilter},
+		};
+
+		class_mapping const* p = v4_classes;
+		int len = sizeof(v4_classes) / sizeof(v4_classes[0]);
+		if (!unlimited_local) len = 1;
+		for (int i = 0; i < len; ++i)
+		{
+			m_peer_class_filter.add_rule(address_v4::from_string(p[i].first)
+				, address_v4::from_string(p[i].last), p[i].filter);
+		}
+		p = v6_classes;
+		len = sizeof(v6_classes) / sizeof(v6_classes[0]);
+		if (!unlimited_local) len = 1;
+		for (int i = 0; i < len; ++i)
+		{
+			m_peer_class_filter.add_rule(address_v6::from_string(p[i].first)
+				, address_v6::from_string(p[i].last), p[i].filter);
+		}
+	}
 
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
@@ -761,6 +821,17 @@ namespace aux {
 		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
 		m_local_peer_class = m_classes.new_peer_class("local");
+
+		init_peer_class_filter(true);
+
+		memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
+		memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
+
+		// TCP, SSL/TCP and I2P connections should be assigned the TCP peer class
+		boost::uint32_t tfilter = 1 << m_tcp_peer_class;
+		m_peer_class_type[0] = tfilter;
+		m_peer_class_type[2] = tfilter;
+		m_peer_class_type[4] = tfilter;
 
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
@@ -1857,6 +1928,53 @@ namespace aux {
 		return m_ip_filter;
 	}
 
+	int session_impl::create_peer_class(char const* name)
+	{
+		return m_classes.new_peer_class(name);
+	}
+
+	void session_impl::delete_peer_class(int cid)
+	{
+		// if you hit this assert, you're deleting a non-existent peer class
+		TORRENT_ASSERT(m_classes.at(cid));
+		if (m_classes.at(cid) == 0) return;
+		m_classes.decref(cid);
+	}
+
+	peer_class_info session_impl::get_peer_class(int cid)
+	{
+		peer_class_info ret;
+		peer_class* pc = m_classes.at(cid);
+		// if you hit this assert, you're passing in an invalid cid
+		TORRENT_ASSERT(pc);
+		if (pc == 0)
+		{
+#ifdef TORRENT_DEBUG
+			// make it obvious that the return value is undefined
+			ret.upload_limit = rand();
+			ret.download_limit = rand();
+			ret.label.resize(20);
+			url_random(&ret.label[0], &ret.label[0] + 20);
+			ret.ignore_unchoke_slots = false;
+#endif
+			return ret;
+		}
+
+		pc->get_info(&ret);
+		return ret;
+	}
+
+	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		peer_class* pc = m_classes.at(cid);
+		// if you hit this assert, you're passing in an invalid cid
+		TORRENT_ASSERT(pc);
+		if (pc == 0) return;
+
+		pc->set_info(&pci);
+	}
+
+#error allow setting m_peer_class_type_mask and m_peer_class_type as well
 	void session_impl::set_peer_class_filter(ip_filter const& f)
 	{
 		INVARIANT_CHECK;
@@ -1921,6 +2039,28 @@ namespace aux {
 				m_settings.choking_algorithm = session_settings::auto_expand_choker;
 			else if (!s.auto_upload_slots)
 				m_settings.choking_algorithm = session_settings::fixed_slots_choker;
+		}
+
+		if (s.rate_limit_utp != m_settings.rate_limit_utp)
+		{
+			const int filter = (1 << m_local_peer_class) | (1 << m_global_class);
+			if (s.rate_limit_utp)
+			{
+				// allow the global or local peer class to limit uTP peers
+				m_peer_class_type_mask[1] |= filter;
+				m_peer_class_type_mask[3] |= filter;
+			}
+			else
+			{
+				// don't add the global or local peer class to limit uTP peers
+				m_peer_class_type_mask[1] &= ~filter;
+				m_peer_class_type_mask[3] &= ~filter;
+			}
+		}
+
+		if (s.ignore_limits_on_local_network != m_settings.ignore_limits_on_local_network)
+		{
+			init_peer_class_filter(s.ignore_limits_on_local_network);
 		}
 #endif
 
@@ -2592,8 +2732,10 @@ namespace aux {
 			return;
 		}
 
+#error instead of using ignore_local_limits_on_local_network. add another field to the peer_class saying it is allowed to exceed the connection limit (by some factor maybe) and change this code to resolve which peer classes the peer would belong to and go through those for this flag
 		// don't allow more connections than the max setting
 		bool reject = false;
+
 		if (m_settings.ignore_limits_on_local_network && is_local(endp.address()))
 			reject = m_settings.connections_limit < INT_MAX / 12
 				&& num_connections() >= m_settings.connections_limit * 12 / 10;
@@ -2804,23 +2946,6 @@ namespace aux {
 	initialize_timer::initialize_timer()
 	{
 		g_current_time = time_now_hires();
-	}
-
-	bandwidth_channel* session_impl::get_global_channel(bool utp
-		, bool local, int channel)
-	{
-		if (!m_settings.rate_limit_utp && utp) return 0;
-		if (!m_settings.ignore_limits_on_local_network) local = false;
-		peer_class* pc = m_classes.at(local ? m_local_peer_class : m_global_class);
-		if (pc == 0) return 0;
-		return &pc->channel[channel];
-	}
-
-	bandwidth_channel* session_impl::get_tcp_channel(int channel)
-	{
-		peer_class* pc = m_classes.at(m_tcp_peer_class);
-		if (pc == 0) return 0;
-		return &pc->channel[channel];
 	}
 
 	int session_impl::rate_limit(peer_class_t c, int channel) const

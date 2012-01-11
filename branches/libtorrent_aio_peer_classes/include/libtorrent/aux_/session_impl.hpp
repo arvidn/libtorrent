@@ -220,6 +220,8 @@ namespace libtorrent
 			void init();
 			void start_session();
 
+			void init_peer_class_filter(bool unlimited_local);
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
@@ -320,10 +322,17 @@ namespace libtorrent
 			void set_ip_filter(ip_filter const& f);
 			ip_filter const& get_ip_filter() const;
 			
-			void set_peer_class_filter(ip_filter const& f);
-			ip_filter const& get_peer_class_filter() const;
-
 			void set_port_filter(port_filter const& f);
+
+			// ==== peer class operations ====
+
+			int create_peer_class(char const* name);
+			void delete_peer_class(int cid);
+			void set_peer_class_filter(ip_filter const& f);
+			peer_class_info get_peer_class(int cid);
+			void set_peer_class(int cid, peer_class_info const& pci);
+
+			ip_filter const& get_peer_class_filter() const;
 
 			void  listen_on(
 				std::pair<int, int> const& port_range
@@ -381,9 +390,6 @@ namespace libtorrent
 			int download_rate_limit(peer_class_t c) const;
 			void set_upload_rate_limit(peer_class_t c, int limit);
 			void set_download_rate_limit(peer_class_t c, int limit);
-
-			bandwidth_channel* get_global_channel(bool utp, bool local, int channel);
-			bandwidth_channel* get_tcp_channel(int channel);
 
 			void set_rate_limit(peer_class_t c, int channel, int limit);
 			int rate_limit(peer_class_t c, int channel) const;
@@ -728,13 +734,25 @@ namespace libtorrent
 			// peers.
 			connection_map m_connections;
 			
-			// filters incoming connections
-			ip_filter m_ip_filter;
-
-			// maps IP ranges to bitmasks representing peer class IDs
+			// maps IP ranges to bitfields representing peer class IDs
 			// to assign peers matching a specific IP range based on its
 			// remote endpoint
 			ip_filter m_peer_class_filter;
+
+			// maps socket type to a bitmask that's used to filter out
+			// (mask) bits from the m_peer_class_filter. The different
+			// types are:
+			// 0: TCP
+			// 1: uTP
+			// 2: SSL/TCP
+			// 3: SSL/uTP
+			// 4: I2P 
+			boost::uint32_t m_peer_class_type_mask[5];
+			// peer class bitfield added based on socket type
+			boost::uint32_t m_peer_class_type[5];
+
+			// filters incoming connections
+			ip_filter m_ip_filter;
 
 			// filters outgoing connections
 			port_filter m_port_filter;

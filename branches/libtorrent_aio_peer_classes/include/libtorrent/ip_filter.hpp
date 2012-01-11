@@ -269,7 +269,7 @@ struct TORRENT_EXPORT ip_filter
 
 	// both addresses MUST be of the same type (i.e. both must
 	// be either IPv4 or both must be IPv6)
-	void add_rule(address first, address last, int flags);
+	void add_rule(address first, address last, boost::uint32_t flags);
 	int access(address const& addr) const;
 
 #if TORRENT_USE_IPV6
@@ -300,7 +300,7 @@ public:
 		blocked = 1
 	};
 
-	void add_rule(boost::uint16_t first, boost::uint16_t last, int flags);
+	void add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags);
 	int access(boost::uint16_t port) const;
 
 private:
