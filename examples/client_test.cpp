@@ -1086,6 +1086,7 @@ int main(int argc, char* argv[])
 			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
+			"  -e                    force encrypted bittorrent connections\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
@@ -1251,6 +1252,17 @@ int main(int argc, char* argv[])
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
 			case 'l': settings.listen_queue_size = atoi(arg); break;
+			case 'e':
+				{
+					pe_settings s;
+	
+					s.out_enc_policy = libtorrent::pe_settings::forced;
+					s.in_enc_policy = libtorrent::pe_settings::forced;
+					s.allowed_enc_level = pe_settings::rc4;
+					s.prefer_rc4 = true;
+					ses.set_pe_settings(s);
+					break;
+				}
 			case 'W':
 				settings.max_peerlist_size = atoi(arg);
 				settings.max_paused_peerlist_size = atoi(arg) / 2;
