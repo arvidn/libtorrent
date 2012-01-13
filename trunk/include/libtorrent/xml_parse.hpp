@@ -175,11 +175,11 @@ namespace libtorrent
 			for (char* i = tag_name_end; i < tag_end; ++i)
 			{
 				// find start of attribute name
-				for (; i != tag_end && isspace(*i); ++i);
+				for (; i != tag_end && is_space(*i); ++i);
 				if (i == tag_end) break;
 				start = i;
 				// find end of attribute name
-				for (; i != tag_end && *i != '=' && !isspace(*i); ++i);
+				for (; i != tag_end && *i != '=' && !is_space(*i); ++i);
 				char* name_end = i;
 
 				// look for equality sign
@@ -195,7 +195,7 @@ namespace libtorrent
 				}
 
 				++i;
-				for (; i != tag_end && isspace(*i); ++i);
+				for (; i != tag_end && is_space(*i); ++i);
 				// check for parse error (values must be quoted)
 				if (i == tag_end || (*i != '\'' && *i != '\"'))
 				{
