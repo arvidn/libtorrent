@@ -2128,12 +2128,13 @@ int main(int argc, char* argv[])
 				if (mru_size > 0)
 				{
 					out += progress_bar(cs.arc_mru_ghost_size * 1000 / mru_size
-						, mru_size * (terminal_width-2) / arc_size, "33", '-', '#');
+						, mru_size * (terminal_width-3) / arc_size, "33", '-', '#');
 				}
+				out += '|';
 				if (mfu_size)
 				{
 					out += progress_bar(cs.arc_mfu_size * 1000 / mfu_size
-						, mfu_size * (terminal_width-2) / arc_size, "32", '=', '-');
+						, mfu_size * (terminal_width-3) / arc_size, "32", '=', '-');
 				}
 			}
 			out += "\n";
