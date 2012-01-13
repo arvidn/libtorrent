@@ -148,6 +148,10 @@ namespace libtorrent
 		// state while we're calulcating the hash.
 		partial_hash* hash;
 
+		// set to a unique identifier of a peer that last
+		// requested from this piece.
+		void* last_requester;
+
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
 		boost::shared_array<cached_block_entry> blocks;
@@ -199,7 +203,16 @@ namespace libtorrent
 		boost::uint32_t need_readback:1;
 
 		// indicates which LRU list this piece is chained into
-		enum cache_state_t { read_lru, write_lru };
+		enum cache_state_t
+		{
+			write_lru,
+			read_lru1,
+			read_lru1_ghost,
+			read_lru2,
+			read_lru2_ghost,
+			num_lrus
+		};
+
 		boost::uint32_t cache_state:5;
 
 		// unused
@@ -247,21 +260,32 @@ namespace libtorrent
 		// passed in iterator will be invalidated
 		void mark_for_deletion(cached_piece_entry* p);
 
-		// simialr to  mark_for_deletion, except for actually marking the
+		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
 		bool evict_piece(cached_piece_entry* p);
+
+		// if this piece is in L1 or L2 proper, move it to
+		// its respective ghost list
+		void move_to_ghost(cached_piece_entry* p);
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
 		int try_read(disk_io_job* j);
 
+		// called when we're reading and we found the piece we're
+		// reading from in the hash table (not necessarily that we
+		// hit the block we needed)
+		void cache_hit(cached_piece_entry* p, void* requester);
+
+		// erase a piece (typically from the ghost list). Reclaim all
+		// its blocks and unlink it and free it.
+		void erase_piece(cached_piece_entry* p);
+
 		// bump the piece 'p' to the back of the LRU list it's
 		// in (back == MRU)
+		// this is only used for the write cache
 		void bump_lru(cached_piece_entry* p);
-
-		// remove from the LRU list this piece is in
-		void remove_lru(cached_piece_entry* p);
 
 		// move p into the correct lru queue
 		void update_cache_state(cached_piece_entry* p);
@@ -273,7 +297,7 @@ namespace libtorrent
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
-		cached_piece_entry* allocate_piece(disk_io_job const* j);
+		cached_piece_entry* allocate_piece(disk_io_job const* j, int cache_state);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
@@ -343,6 +367,8 @@ namespace libtorrent
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
+		void set_settings(session_settings const& sett);
+
 	private:
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
@@ -367,9 +393,26 @@ namespace libtorrent
 		// to tail gives the least recently used entries first
 		// the read-list is for read blocks and the write-list is for
 		// dirty blocks that needs flushing before being evicted
-		// [0] = read-LRU
-		// [1] = write-LRU
-		linked_list m_lru[2];
+		// [0] = write-LRU
+		// [1] = read-LRU1
+		// [2] = read-LRU1-ghost
+		// [3] = read-LRU2
+		// [4] = read-LRU2-ghost
+		linked_list m_lru[cached_piece_entry::num_lrus];
+
+		// this is used to determine whether to evict blocks from
+		// L1 or L2.
+		enum cache_op_t
+		{
+			cache_miss,
+			ghost_hit_lru1,
+			ghost_hit_lru2
+		};
+		int m_last_cache_op;
+
+		// the number of pieces to keep in the ARC ghost lists
+		// this is determined by being a fraction of the cache size
+		int m_ghost_size;
 
 		// the number of blocks in the cache
 		// that are in the read cache

@@ -130,6 +130,9 @@ namespace libtorrent
 		// keep track of disk I/O congestion
 		ptime start_time;
 
+		// unique identifier for the peer when reading
+		void* requester;
+
 		// for write, this points to the data to write,
 		// for read, the data read is returned here
 		// for other jobs, it may point to other job-specific types

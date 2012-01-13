@@ -77,7 +77,7 @@ cached_piece_entry::cached_piece_entry()
 	, hashing(not_hashing)
 	, marked_for_deletion(false)
 	, need_readback(false)
-	, cache_state(read_lru)
+	, cache_state(read_lru1)
 	, refcount(0)
 {}
 
@@ -100,6 +100,8 @@ block_cache::block_cache(int block_size, hash_thread& h
 	, io_service& ios
 	, boost::function<void(alert*)> const& post_alert)
 	: disk_buffer_pool(block_size, ios, post_alert)
+	, m_last_cache_op(cache_miss)
+	, m_ghost_size(8)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
@@ -127,7 +129,7 @@ int block_cache::try_read(disk_io_job* j)
 	// it's a cache miss
 	if (p == 0) return -1;
 
-	bump_lru(p);
+	cache_hit(p, j->requester);
 
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
@@ -141,7 +143,7 @@ int block_cache::try_read(disk_io_job* j)
 void block_cache::bump_lru(cached_piece_entry* p)
 {
 	// move to the top of the LRU list
-	TORRENT_ASSERT(p->cache_state < 2);
+	TORRENT_ASSERT(p->cache_state == cached_piece_entry::write_lru);
 	linked_list* lru_list = &m_lru[p->cache_state];
 
 	// move to the back (MRU) of the list
@@ -150,24 +152,58 @@ void block_cache::bump_lru(cached_piece_entry* p)
 	p->expire = time_now();
 }
 
-void block_cache::remove_lru(cached_piece_entry* p)
+// this is called for pieces that we're reading from, when they
+// are in the cache (including the ghost lists)
+void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 {
-	TORRENT_ASSERT(p->cache_state < 2);
-	linked_list* lru_list = &m_lru[p->cache_state];
+	// cache hits by the same peer don't count
+	if (p->last_requester == requester) return;
+	p->last_requester = requester;
 
-	lru_list->erase(p);
+	// if we have this piece anywhere in L1 or L2, it's a "hit"
+	// and it should be bumped to the highest priority in L2
+	// i.e. "frequently used"
+	if (p->cache_state >= cached_piece_entry::read_lru1
+		&& p->cache_state <= cached_piece_entry::read_lru2_ghost)
+	{
+		// if we got a cache hit in a ghost list, that indicates the proper
+		// list is too small. Record which ghost list we got the hit in and
+		// it will be used to determine which end of the cache we'll evict
+		// from, next time we need to reclaim blocks
+		if (p->cache_state == cached_piece_entry::read_lru1_ghost)
+			m_last_cache_op = ghost_hit_lru1;
+		else if (p->cache_state == cached_piece_entry::read_lru2_ghost)
+			m_last_cache_op = ghost_hit_lru2;
+
+		// move into L2 (frequently used)
+		m_lru[p->cache_state].erase(p);
+		m_lru[cached_piece_entry::read_lru2].push_back(p);
+		p->cache_state = cached_piece_entry::read_lru2;
+		p->expire = time_now();
+	}
+	else
+	{
+		// where did this piece come from?
+		TORRENT_ASSERT(false);
+	}
 }
 
+// this is used to move pieces primarily from the write cache
+// to the read cache. Technically it can move from read to write
+// cache as well, it's unclear if that ever happens though
 void block_cache::update_cache_state(cached_piece_entry* p)
 {
 	int state = p->cache_state;
-	int desired_state = cached_piece_entry::read_lru;
-	if (p->num_dirty > 0 || p->hash != 0) desired_state = cached_piece_entry::write_lru;
+	int desired_state = p->cache_state;
+	if (p->num_dirty > 0 || p->hash != 0)
+		desired_state = cached_piece_entry::write_lru;
+	else if (p->cache_state == cached_piece_entry::write_lru)
+		desired_state = cached_piece_entry::read_lru1;
 
 	if (desired_state == state) return;
 
-	TORRENT_ASSERT(state < 2);
-	TORRENT_ASSERT(desired_state < 2);
+	TORRENT_ASSERT(state < cached_piece_entry::num_lrus);
+	TORRENT_ASSERT(desired_state < cached_piece_entry::num_lrus);
 	linked_list* src = &m_lru[state];
 	linked_list* dst = &m_lru[desired_state];
 
@@ -177,9 +213,11 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 	p->cache_state = desired_state;
 }
 
-cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j)
+cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_state)
 {
 	INVARIANT_CHECK;
+
+	TORRENT_ASSERT(cache_state < cached_piece_entry::num_lrus);
 
 	cached_piece_entry* p = find_piece(j);
 	if (p == 0)
@@ -193,16 +231,24 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j)
 		pe.expire = time_now();
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
-		pe.cache_state = cached_piece_entry::read_lru;
+		pe.cache_state = cache_state;
 		TORRENT_ASSERT(pe.blocks);
 		if (!pe.blocks) return 0;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
 
 		j->storage->add_piece(p);
 
-		TORRENT_ASSERT(p->cache_state < 2);
+		TORRENT_ASSERT(p->cache_state < cached_piece_entry::num_lrus);
 		linked_list* lru_list = &m_lru[p->cache_state];
 		lru_list->push_back(p);
+
+		// this piece is part of the ARC cache (as opposed to
+		// the write cache). Allocating a new read piece indicates
+		// that we just got a cache miss. Record this to determine
+		// which end to evict blocks from next time we need to
+		// evict blocks
+		if (cache_state == cached_piece_entry::read_lru1)
+			m_last_cache_op = cache_miss;
 	}
 	return p;
 }
@@ -213,7 +259,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	TORRENT_ASSERT(j->buffer);
 
-	cached_piece_entry* pe = allocate_piece(j);
+	cached_piece_entry* pe = allocate_piece(j, cached_piece_entry::write_lru);
 	TORRENT_ASSERT(pe);
 	if (pe == 0) return pe;
 
@@ -280,9 +326,9 @@ void block_cache::clear()
 		drain_piece_bufs(*pe, buffers);
 	}
 	if (!buffers.empty()) free_multiple_buffers(&buffers[0], buffers.size());
+	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
+		m_lru[i].get_all();
 	m_pieces.clear();
-	m_lru[0].get_all();
-	m_lru[1].get_all();
 }
 
 bool block_cache::evict_piece(cached_piece_entry* pe)
@@ -317,14 +363,9 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 	if (pe->refcount == 0)
 	{
 		TORRENT_ASSERT(pe->jobs.empty());
-
-		remove_lru(pe);
-		pe->storage->remove_piece(pe);
-		m_pieces.erase(*pe);
+		move_to_ghost(pe);
 		return true;
 	}
-
-	update_cache_state(pe);
 
 	return false;
 }
@@ -342,6 +383,15 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 	}
 }
 
+void block_cache::erase_piece(cached_piece_entry* pe)
+{
+	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
+	linked_list* lru_list = &m_lru[pe->cache_state];
+	lru_list->erase(pe);
+	pe->storage->remove_piece(pe);
+	m_pieces.erase(*pe);
+}
+
 // this only evicts read blocks. For write blocks, see
 // try_flush_write_blocks in disk_io_thread.cpp
 int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
@@ -355,68 +405,91 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 	char** to_delete = TORRENT_ALLOCA(char*, num);
 	int num_to_delete = 0;
 
-	// iterate over all blocks in order of last being used (oldest first) and as
-	// long as we still have blocks to evict
-	for (list_iterator i = m_lru[cached_piece_entry::read_lru].iterate(); i.get() && num > 0;)
+	// There are two ends of the ARC cache we can evict from. There's L1
+	// and L2. The last cache operation determines which end we'll evict
+	// from. If we go through the entire list from the preferred end, and
+	// still need to evict more blocks, we'll go to the other end and start
+	// evicting from there. The lru_list is an array of two lists, these
+	// are the two ends to evict from, ordered by preference.
+
+	linked_list* lru_list[2];
+	if (m_last_cache_op == cache_miss || ghost_hit_lru1)
 	{
-		cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+		// when we insert new items or move things from L1 to L2
+		// evict blocks from L2
+		lru_list[0] = &m_lru[cached_piece_entry::read_lru2];
+		lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+	}
+	else
+	{
+		// when we get cache hits in L2 evict from L1
+		lru_list[0] = &m_lru[cached_piece_entry::read_lru1];
+		lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+	}
 
-		if (pe == ignore)
+	for (int end = 0; num > 0 && end < 2; ++end)
+	{
+		// iterate over all blocks in order of last being used (oldest first) and as
+		// long as we still have blocks to evict
+		for (list_iterator i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
-			i.next();
-			continue;
-		}
+			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
 
-		if (pe->num_blocks == 0 && !pe->hash)
-		{
+			if (pe == ignore)
+			{
+				i.next();
+				continue;
+			}
+
+			if (pe->num_blocks == 0 && !pe->hash)
+			{
 #ifdef TORRENT_DEBUG
-			for (int j = 0; j < pe->blocks_in_piece; ++j)
-				TORRENT_ASSERT(pe->blocks[j].buf == 0);
+				for (int j = 0; j < pe->blocks_in_piece; ++j)
+					TORRENT_ASSERT(pe->blocks[j].buf == 0);
 #endif
-			TORRENT_ASSERT(pe->refcount == 0);
-			i.next();
-			pe->storage->remove_piece(pe);
-			remove_lru(pe);
-			m_pieces.erase(*pe);
-			continue;
-		}
+				TORRENT_ASSERT(pe->refcount == 0);
+				i.next();
+				evict_piece(pe);
+				continue;
+			}
 
-		// all blocks in this piece are dirty
-		if (pe->num_dirty == pe->num_blocks)
-		{
-			i.next();
-			continue;
-		}
+			TORRENT_ASSERT(pe->num_dirty == 0);
+			// all blocks in this piece are dirty
+			if (pe->num_dirty == pe->num_blocks)
+			{
+				i.next();
+				continue;
+			}
 
-		// go through the blocks and evict the ones
-		// that are not dirty and not referenced
-		for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
-		{
-			cached_block_entry& b = pe->blocks[j];
-			if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
-			
-			to_delete[num_to_delete++] = b.buf;
-			b.buf = 0;
-			TORRENT_ASSERT(pe->num_blocks > 0);
-			--pe->num_blocks;
-			TORRENT_ASSERT(m_read_cache_size > 0);
-			--m_read_cache_size;
-			--num;
-		}
+			// go through the blocks and evict the ones
+			// that are not dirty and not referenced
+			for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
+			{
+				cached_block_entry& b = pe->blocks[j];
+				TORRENT_ASSERT(b.dirty == false);
+				if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
 
-		if (pe->num_blocks == 0 && !pe->hash)
-		{
+				to_delete[num_to_delete++] = b.buf;
+				b.buf = 0;
+				TORRENT_ASSERT(pe->num_blocks > 0);
+				--pe->num_blocks;
+				TORRENT_ASSERT(m_read_cache_size > 0);
+				--m_read_cache_size;
+				--num;
+			}
+
+			if (pe->num_blocks == 0 && !pe->hash)
+			{
 #ifdef TORRENT_DEBUG
-			for (int j = 0; j < pe->blocks_in_piece; ++j)
-				TORRENT_ASSERT(pe->blocks[j].buf == 0);
+				for (int j = 0; j < pe->blocks_in_piece; ++j)
+					TORRENT_ASSERT(pe->blocks[j].buf == 0);
 #endif
-			TORRENT_ASSERT(pe->refcount == 0);
-			i.next();
-			pe->storage->remove_piece(pe);
-			remove_lru(pe);
-			m_pieces.erase(*pe);
+				i.next();
+
+				move_to_ghost(pe);
+			}
+			else i.next();
 		}
-		else i.next();
 	}
 
 	if (num_to_delete == 0) return num;
@@ -426,6 +499,30 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 	free_multiple_buffers(to_delete, num_to_delete);
 
 	return num;
+}
+
+void block_cache::move_to_ghost(cached_piece_entry* pe)
+{
+	TORRENT_ASSERT(pe->refcount == 0);
+
+	// if the piece is in L1 or L2, move it into the ghost list
+	// i.e. recently evicted
+	if (pe->cache_state != cached_piece_entry::read_lru1
+		&& pe->cache_state != cached_piece_entry::read_lru2)
+		return;
+
+	// if the ghost list is growing too big, remove the oldest entry
+	linked_list* ghost_list = &m_lru[pe->cache_state + 1];
+	while (ghost_list->size() >= m_ghost_size)
+	{
+		cached_piece_entry* p = (cached_piece_entry*)ghost_list->front();
+		TORRENT_ASSERT(p != pe);
+		erase_piece(p);
+	}
+
+	m_lru[pe->cache_state].erase(pe);
+	pe->cache_state += 1;
+	ghost_list->push_back(pe);
 }
 
 // the priority controls which other blocks these new blocks
@@ -1178,6 +1275,16 @@ void block_cache::get_stats(cache_status* ret) const
 #endif
 }
 
+void block_cache::set_settings(session_settings const& sett)
+{
+	// the ghost size is the number of pieces to keep track of
+	// after they are evicted. Since cache_size is blocks, the
+	// assumption is that there are about 128 blocks per piece,
+	// and there are two ghost lists, so divide by 2.
+	m_ghost_size = (std::max)(8, sett.cache_size / 128 / 2);
+	disk_buffer_pool::set_settings(sett);
+}
+
 #ifdef TORRENT_DEBUG
 void block_cache::check_invariant() const
 {
@@ -1187,7 +1294,9 @@ void block_cache::check_invariant() const
 	int cached_read_blocks = 0;
 	int num_pinned = 0;
 
-	for (int i = 0; i < 2; ++i)
+	std::set<piece_manager*> storages;
+
+	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
 	{
 		ptime timeout = min_time();
 
@@ -1195,13 +1304,28 @@ void block_cache::check_invariant() const
 		{
 			cached_piece_entry* pe = (cached_piece_entry*)p.get();
 			TORRENT_ASSERT(pe->cache_state == i);
-			int desired_state = cached_piece_entry::read_lru;
 			if (pe->num_dirty > 0 || pe->hash != 0)
-				desired_state = cached_piece_entry::write_lru;
-			TORRENT_ASSERT(desired_state == i);
+				TORRENT_ASSERT(i == cached_piece_entry::write_lru);
 
-			TORRENT_ASSERT(pe->expire >= timeout);
-			timeout = pe->expire;
+			if (i != cached_piece_entry::read_lru1_ghost
+				&& i != cached_piece_entry::read_lru2_ghost)
+			{
+				TORRENT_ASSERT(pe->expire >= timeout);
+				timeout = pe->expire;
+			}
+
+			storages.insert(pe->storage.get());
+		}
+	}
+
+	for (std::set<piece_manager*>::iterator i = storages.begin()
+		, end(storages.end()); i != end; ++i)
+	{
+		for (boost::unordered_set<cached_piece_entry*>::iterator j = (*i)->cached_pieces().begin()
+			, end((*i)->cached_pieces().end()); j != end; ++j)
+		{
+			cached_piece_entry* pe = *j;
+			TORRENT_ASSERT(pe->storage == *i);
 		}
 	}
 

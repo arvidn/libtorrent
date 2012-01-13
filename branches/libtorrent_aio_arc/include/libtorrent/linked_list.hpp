@@ -107,6 +107,8 @@ namespace libtorrent
 			m_size = 0;
 			return e;
 		}
+		list_node* back() { return m_last; }
+		list_node* front() { return m_first; }
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
 	private:

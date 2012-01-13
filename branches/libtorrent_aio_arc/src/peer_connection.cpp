@@ -4503,7 +4503,7 @@ namespace libtorrent
 					, r.piece, r.start, r.length);
 #endif
 				t->filesystem().async_read(r, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, r), 0, cache_line_size);
+					, self(), _1, _2, r), 0, cache_line_size, this);
 
 				m_reading_bytes += r.length;
 

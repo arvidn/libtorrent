@@ -1359,7 +1359,8 @@ namespace libtorrent
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
 		, int flags
-		, int cache_line_size)
+		, int cache_line_size
+		, void* requester)
 	{
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
 		j->storage = this;
@@ -1369,6 +1370,7 @@ namespace libtorrent
 		j->buffer = 0;
 		j->d.io.max_cache_line = cache_line_size;
 		j->flags = flags;
+		j->requester = requester;
 
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers

@@ -1192,7 +1192,7 @@ namespace libtorrent
 			// cache the piece, unless we're using an explicit cache
 			if (!m_settings.explicit_read_cache)
 			{
-				cached_piece_entry* p = m_disk_cache.allocate_piece(j);
+				cached_piece_entry* p = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
 				if (p)
 				{
 					int start_block = j->d.io.offset / block_size;
@@ -1434,7 +1434,7 @@ namespace libtorrent
 			DLOG(stderr, "[%p] do_hash: allocating a new piece: %d\n"
 				, this, int(j->piece));
 
-			pe = m_disk_cache.allocate_piece(j);
+			pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
 			if (pe == 0)
 			{
 				TORRENT_ASSERT(j->buffer == 0);
@@ -1881,7 +1881,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer == 0);
 
-		cached_piece_entry* pe = m_disk_cache.allocate_piece(j);
+		cached_piece_entry* pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
 		if (pe == 0)
 		{
 			j->error.ec = errors::no_memory;
