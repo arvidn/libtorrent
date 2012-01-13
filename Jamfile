@@ -198,7 +198,7 @@ rule building ( properties * )
 		if <target-os>linux in $(properties)
 		{
 			# linker library on linux, required when using openssl
-			result += <source>/usr/lib/libdl.so ;
+			result += <library>dl ;
 		}
 
 	}
@@ -331,6 +331,7 @@ lib boost_system : : <name>boost_system $(boost-library-search-path) ;
 # openssl on linux/bsd/macos etc.
 lib crypto : : <name>crypto <search>/lib ;
 lib ssl : : <name>ssl ;
+lib dl : : <link>shared <name>dl ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt ;
