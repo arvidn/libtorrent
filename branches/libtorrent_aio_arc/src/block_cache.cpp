@@ -84,7 +84,7 @@ cached_piece_entry::cached_piece_entry()
 cached_piece_entry::~cached_piece_entry()
 {
 	TORRENT_ASSERT(refcount == 0);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		TORRENT_ASSERT(blocks[i].buf == 0);
@@ -92,6 +92,8 @@ cached_piece_entry::~cached_piece_entry()
 		TORRENT_ASSERT(blocks[i].refcount == 0);
 		TORRENT_ASSERT(blocks[i].hashing == 0);
 	}
+
+	if (storage) TORRENT_ASSERT(storage->has_piece(this) == false);
 #endif
 	delete hash;
 }
@@ -391,7 +393,6 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
 	linked_list* lru_list = &m_lru[pe->cache_state];
 	lru_list->erase(pe);
-	pe->storage->remove_piece(pe);
 	m_pieces.erase(*pe);
 }
 
@@ -524,6 +525,7 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 		erase_piece(p);
 	}
 
+	pe->storage->remove_piece(pe);
 	m_lru[pe->cache_state].erase(pe);
 	pe->cache_state += 1;
 	ghost_list->push_back(pe);
@@ -637,6 +639,7 @@ int block_cache::allocate_pending(cached_piece_entry* pe
 			--pe->cache_state;
 			m_lru[pe->cache_state].push_back(pe);
 			pe->expire = time_now();
+			pe->storage->add_piece(pe);
 		}
 	}
 
@@ -1329,6 +1332,7 @@ void block_cache::check_invariant() const
 			if (i != cached_piece_entry::read_lru1_ghost
 				&& i != cached_piece_entry::read_lru2_ghost)
 			{
+				TORRENT_ASSERT(pe->storage->has_piece(pe));
 				TORRENT_ASSERT(pe->expire >= timeout);
 				timeout = pe->expire;
 			}
@@ -1336,6 +1340,7 @@ void block_cache::check_invariant() const
 			{
 				// pieces in the ghost lists should never have any blocks
 				TORRENT_ASSERT(pe->num_blocks == 0);
+				TORRENT_ASSERT(pe->storage->has_piece(pe) == false);
 			}
 
 			storages.insert(pe->storage.get());

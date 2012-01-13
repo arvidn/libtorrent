@@ -1204,6 +1204,11 @@ namespace libtorrent
 		m_cached_pieces.insert(p);
 	}
 
+	bool piece_manager::has_piece(cached_piece_entry* p) const
+	{
+		return m_cached_pieces.count(p) > 0;
+	}
+
 	void piece_manager::remove_piece(cached_piece_entry* p)
 	{
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);

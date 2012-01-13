@@ -434,6 +434,7 @@ namespace libtorrent
 
 		void add_piece(cached_piece_entry* p);
 		void remove_piece(cached_piece_entry* p);
+		bool has_piece(cached_piece_entry* p) const;
 		int num_pieces() const { return m_cached_pieces.size(); }
 		boost::unordered_set<cached_piece_entry*> const& cached_pieces()
 		{ return m_cached_pieces; }
