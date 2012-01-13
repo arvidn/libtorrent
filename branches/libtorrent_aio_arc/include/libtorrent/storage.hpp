@@ -387,7 +387,8 @@ namespace libtorrent
 			, int flags = 0);
 
 		void async_hash(int piece, int flags
-			, boost::function<void(int, disk_io_job const&)> const& f);
+			, boost::function<void(int, disk_io_job const&)> const& f
+			, void* requester);
 
 		void async_release_files(
 			boost::function<void(int, disk_io_job const&)> const& handler

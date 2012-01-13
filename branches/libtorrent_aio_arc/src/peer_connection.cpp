@@ -4475,7 +4475,8 @@ namespace libtorrent
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t->filesystem().async_hash(r.piece, 0
-					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1, _2));
+					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1, _2)
+					, this);
 				t->verifying(r.piece);
 				continue;
 			}

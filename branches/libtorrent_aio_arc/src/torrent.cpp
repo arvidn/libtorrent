@@ -2054,7 +2054,7 @@ ctx->set_verify_callback(verify_function, ec);
 			m_storage->async_hash(m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2));
+					, shared_from_this(), _1, _2), (void*)1);
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 	}
@@ -2138,7 +2138,7 @@ ctx->set_verify_callback(verify_function, ec);
 			m_storage->async_hash(m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2));
+					, shared_from_this(), _1, _2), (void*)1);
 			return;
 		}
 
@@ -8093,7 +8093,8 @@ ctx->set_verify_callback(verify_function, ec);
 #endif
 
 		m_storage->async_hash(piece_index, 0
-			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, f));
+			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, f)
+			, (void*)1);
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif

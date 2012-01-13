@@ -123,6 +123,10 @@ namespace libtorrent
 			, num_jobs(0)
 			, num_read_jobs(0)
 			, num_write_jobs(0)
+			, arc_mru_size(0)
+			, arc_mru_ghost_size(0)
+			, arc_mfu_size(0)
+			, arc_mfu_ghost_size(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -221,6 +225,15 @@ namespace libtorrent
 
 		// total number of disk write job objects allocated right now
 		int num_write_jobs;
+
+		// ARC cache stats. All of these counters are in number of pieces
+		// not blocks. A piece does not necessarily correspond to a certain
+		// number of blocks. The pieces in the ghost list never have any
+		// blocks in them
+		int arc_mru_size;
+		int arc_mru_ghost_size;
+		int arc_mfu_size;
+		int arc_mfu_ghost_size;
 	};
 	
 #if TORRENT_USE_SUBMIT_THREADS

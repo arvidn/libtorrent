@@ -1403,13 +1403,15 @@ namespace libtorrent
 	}
 
 	void piece_manager::async_hash(int piece, int flags
-		, boost::function<void(int, disk_io_job const&)> const& handler)
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, void* requester)
 	{
 		TORRENT_ASSERT(piece >= 0 && piece < files()->num_pieces());
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::hash);
 		j->flags = flags;
 		j->storage = this;
 		j->piece = piece;
+		j->requester = requester;
 		j->callback = handler;
 		j->d.io.buffer_size = 0;
 		m_io_thread.add_job(j);

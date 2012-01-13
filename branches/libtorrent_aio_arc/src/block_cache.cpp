@@ -156,6 +156,8 @@ void block_cache::bump_lru(cached_piece_entry* p)
 // are in the cache (including the ghost lists)
 void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 {
+	TORRENT_ASSERT(requester != 0);
+
 	// cache hits by the same peer don't count
 	if (p->last_requester == requester) return;
 	p->last_requester = requester;
@@ -232,6 +234,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		pe.cache_state = cache_state;
+		pe.last_requester = j->requester;
 		TORRENT_ASSERT(pe.blocks);
 		if (!pe.blocks) return 0;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
@@ -504,6 +507,7 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 void block_cache::move_to_ghost(cached_piece_entry* pe)
 {
 	TORRENT_ASSERT(pe->refcount == 0);
+	TORRENT_ASSERT(pe->num_blocks == 0);
 
 	// if the piece is in L1 or L2, move it into the ghost list
 	// i.e. recently evicted
@@ -624,6 +628,16 @@ int block_cache::allocate_pending(cached_piece_entry* pe
 		}
 		TORRENT_ASSERT(j->piece == pe->piece);
 		pe->jobs.push_back(j);
+
+		// if this piece is in a ghost list, move it out
+		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
+			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
+		{
+			m_lru[pe->cache_state].erase(pe);
+			--pe->cache_state;
+			m_lru[pe->cache_state].push_back(pe);
+			pe->expire = time_now();
+		}
 	}
 
 	return ret;
@@ -1273,6 +1287,11 @@ void block_cache::get_stats(cache_status* ret) const
 #ifndef TORRENT_NO_DEPRECATE
 	ret->cache_size = m_read_cache_size + m_write_cache_size;
 #endif
+
+	ret->arc_mru_size = m_lru[cached_piece_entry::read_lru1].size();
+	ret->arc_mru_ghost_size = m_lru[cached_piece_entry::read_lru1_ghost].size();
+	ret->arc_mfu_size = m_lru[cached_piece_entry::read_lru2].size();
+	ret->arc_mfu_ghost_size = m_lru[cached_piece_entry::read_lru2_ghost].size();
 }
 
 void block_cache::set_settings(session_settings const& sett)
@@ -1281,7 +1300,7 @@ void block_cache::set_settings(session_settings const& sett)
 	// after they are evicted. Since cache_size is blocks, the
 	// assumption is that there are about 128 blocks per piece,
 	// and there are two ghost lists, so divide by 2.
-	m_ghost_size = (std::max)(8, sett.cache_size / 128 / 2);
+	m_ghost_size = (std::max)(8, sett.cache_size / (std::max)(sett.read_cache_line_size, 4) / 2);
 	disk_buffer_pool::set_settings(sett);
 }
 
@@ -1312,6 +1331,11 @@ void block_cache::check_invariant() const
 			{
 				TORRENT_ASSERT(pe->expire >= timeout);
 				timeout = pe->expire;
+			}
+			else
+			{
+				// pieces in the ghost lists should never have any blocks
+				TORRENT_ASSERT(pe->num_blocks == 0);
 			}
 
 			storages.insert(pe->storage.get());
