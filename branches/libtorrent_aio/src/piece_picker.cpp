@@ -1202,7 +1202,7 @@ namespace libtorrent
 	{
 		piece_pos& p = m_piece_map[index];
 		int state = p.state;
-		if (state == piece_pos::piece_downloading) return;
+		if (state != piece_pos::piece_open) return;
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
