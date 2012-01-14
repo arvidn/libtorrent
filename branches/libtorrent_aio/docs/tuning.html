@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -73,21 +71,22 @@
 <li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
 <li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
 <li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
-<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id15">uTP-TCP mixed mode</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id17">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
-<li><a class="reference internal" href="#sha-1-hashing" id="id19">SHA-1 hashing</a></li>
+<li><a class="reference internal" href="#ssd-as-level-2-cache" id="id15">SSD as level 2 cache</a></li>
+<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id16">uTP-TCP mixed mode</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id17">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id18">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id19">torrent limits</a></li>
+<li><a class="reference internal" href="#sha-1-hashing" id="id20">SHA-1 hashing</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#scalability" id="id20">scalability</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id21">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id22">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id23">session stats</a></li>
+<li><a class="reference internal" href="#scalability" id="id21">scalability</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id22">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id23">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id24">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#understanding-the-disk-thread" id="id24">understanding the disk thread</a></li>
-<li><a class="reference internal" href="#contributions" id="id25">contributions</a></li>
+<li><a class="reference internal" href="#understanding-the-disk-thread" id="id25">understanding the disk thread</a></li>
+<li><a class="reference internal" href="#contributions" id="id26">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -315,6 +314,21 @@ strategies for the read cache. You don't want to on one hand attract peers to re
 the same pieces, and on the other hand assume that they won't request the same pieces
 and drop them when the first peer requests it. To enable volatile read cache, set
 <tt class="docutils literal"><span class="pre">session_settings::volatile_read_cache</span></tt> to true.</p>
+</div>
+<div class="section" id="ssd-as-level-2-cache">
+<h2>SSD as level 2 cache</h2>
+<p>It is possible to introduce a second level of cache, below the RAM disk cache. This is done
+by setting <tt class="docutils literal"><span class="pre">session_settings::mmap_cache</span></tt> to a file path pointing to the SSD drive, and
+increasing the <tt class="docutils literal"><span class="pre">session_settings::cache_size</span></tt> to the number of 16 kiB blocks would fit
+on the drive (or less).</p>
+<p>This will allocate disk buffers (for reading and writing) from a memory region that has
+been mapped to the specified file. If the drive this file lives on is not significantly
+faster than the destination drive, performance will be degraded. The point is to take
+advantage primarily of the fast read speed from SSD drives and use it to extend the read
+cache, improving seed performance.</p>
+<p>Which parts of the cache that actually live in RAM is determined by the operating system.</p>
+<p>Note that when using this feature, any block which ends up being pulled from the mmapped
+file will be considered a cache hit.</p>
 </div>
 <div class="section" id="utp-tcp-mixed-mode">
 <h2>uTP-TCP mixed mode</h2>

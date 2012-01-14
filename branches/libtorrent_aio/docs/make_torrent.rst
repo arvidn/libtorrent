@@ -288,6 +288,7 @@ The ``create_torrent`` class has the following synopsis::
 		void add_http_seed(std::string const& url);
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
+		void set_root_cert(std::string const& pem);
 		void set_priv(bool p);
 
 		int num_pieces() const;
@@ -481,6 +482,20 @@ url to a machine running a bittorrent tracker that accepts announces for this to
 info-hash. The tier is the fallback priority of the tracker. All trackers with tier 0 are
 tried first (in any order). If all fail, trackers with tier 1 are tried. If all of those
 fail, trackers with tier 2 are tried, and so on.
+
+set_root_cert()
+---------------
+
+	::
+
+		void set_root_cert(std::string const& pem);
+
+This function sets an X.509 certificate in PEM format to the torrent. This makes the
+torrent an *SSL torrent*. An SSL torrent requires that each peer has a valid certificate
+signed by this root certificate. For SSL torrents, all peers are connecting over SSL
+connections. For more information on SSL torrents, see the manual_.
+
+.. _manual: manual.html#ssl-torrents
 
 set_priv() priv()
 -----------------

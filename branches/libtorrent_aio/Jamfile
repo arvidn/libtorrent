@@ -65,7 +65,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <encryption>gcrypt in $(properties)
+	if <encryption>gcrypt in $(properties) || <encryption>openssl in $(properties)
 	{
 		# on mac os x, adding the /opt/local/include path
 		# would include openssl headers incompatible with
@@ -389,7 +389,7 @@ lib boost_system : : <name>boost_system ;
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib z : : <link>shared <name>z <search>/lib ;
 lib crypto : : <name>crypto <search>/lib <use>z ;
-lib ssl : : <name>ssl <link>shared <use>crypto ;
+lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 lib aio : : <link>shared <name>aio ;
 

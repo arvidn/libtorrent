@@ -1208,16 +1208,6 @@ namespace libtorrent
 			t.reset();
 		}
 
-#ifdef TORRENT_USE_OPENSSL
-		if (t && t->is_ssl_torrent())
-		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** can't attach to an ssl torrent");
-#endif
-			t.reset();
-		}
-#endif
-
 		if (!t)
 		{
 			// we couldn't find the torrent!
@@ -2022,7 +2012,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log("<== REQUEST [ piece: %d s: %d l: ]"
+		peer_log("<== REQUEST [ piece: %d s: %d l: %d ]"
 			, r.piece, r.start, r.length);
 #endif
 
@@ -3541,6 +3531,12 @@ namespace libtorrent
 		return;
 	}
 
+	void close_socket(boost::shared_ptr<socket_type> const& s)
+	{
+		error_code ec;
+		s->close(ec);
+	}
+
 	// the error argument defaults to 0, which means deliberate disconnect
 	// 1 means unexpected disconnect/error
 	// 2 protocol error (client sent something invalid)
@@ -3716,7 +3712,23 @@ namespace libtorrent
 
 		m_disconnecting = true;
 		error_code e;
-		m_socket->close(e);
+
+#ifdef TORRENT_USE_OPENSSL
+		// for SSL connections, first do an async_shutdown, before closing the socket
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+		m_socket->get<ssl_stream<t> >()->async_shutdown(boost::bind(&close_socket, m_socket)); \
+		break;
+		switch(m_socket->type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+			default: m_socket->close(e); break;
+		}
+#undef CASE
+#endif // TORRENT_USE_OPENSSL
+
 		m_ses.close_connection(this, ec);
 
 		// we should only disconnect while we still have
@@ -4631,7 +4643,8 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log("==> PIECE   [ piece: %d s: %d l: ]", r.piece, r.start, r.length);
+		peer_log("==> PIECE   [ piece: %d s: %d l: %d ]"
+			, r.piece, r.start, r.length);
 #endif
 
 #if TORRENT_BUFFER_STATS

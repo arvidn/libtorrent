@@ -555,6 +555,44 @@ namespace aux {
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+	// when running bittorrent over SSL, the SNI (server name indication)
+	// extension is used to know which torrent the incoming connection is
+	// trying to connect to. The 40 first bytes in the name is expected to
+	// be the hex encoded info-hash
+	int servername_callback(SSL *s, int *ad, void *arg)
+	{
+		session_impl* ses = (session_impl*)arg;
+		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
+	
+		if (!servername || strlen(servername) < 40)
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		sha1_hash info_hash;
+		bool valid = from_hex(servername, 40, (char*)&info_hash[0]);
+
+		// the server name is not a valid hex-encoded info-hash
+		if (!valid)
+			return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// see if there is a torrent with this info-hash
+		boost::shared_ptr<torrent> t = ses->find_torrent(info_hash).lock();
+
+		// if there isn't, fail
+		if (!t) return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// if the torrent we found isn't an SSL torrent, also fail.
+		// the torrent doesn't have an SSL context and should not allow
+		// incoming SSL connections
+		if (!t->is_ssl_torrent()) return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+		// use this torrent's certificate
+		SSL_set_SSL_CTX(s, t->ssl_ctx()->native_handle());
+
+		return SSL_TLSEXT_ERR_OK;
+	}
+#endif
+
 	session_impl::session_impl(
 		std::pair<int, int> listen_port_range
 		, fingerprint const& cl_fprint
@@ -575,7 +613,7 @@ namespace aux {
 #endif
 		, m_io_service()
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23_client)
+		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
 		, m_disk_thread(m_io_service
@@ -676,6 +714,8 @@ namespace aux {
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
+		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
+		SSL_CTX_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -694,6 +734,10 @@ namespace aux {
 		m_tcp_mapping[1] = -1;
 		m_udp_mapping[0] = -1;
 		m_udp_mapping[1] = -1;
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_mapping[0] = -1;
+		m_ssl_mapping[1] = -1;
+#endif
 #ifdef WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
@@ -2173,6 +2217,11 @@ namespace aux {
 		m_ipv6_interface = tcp::endpoint();
 		m_ipv4_interface = tcp::endpoint();
 
+#ifdef TORRENT_USE_OPENSSL
+		tcp::endpoint ssl_interface = m_listen_interface;
+		ssl_interface.port(m_settings.ssl_listen);
+#endif
+	
 		if (is_any(m_listen_interface.address()))
 		{
 			// this means we should open two listen sockets
@@ -2187,11 +2236,26 @@ namespace aux {
 				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
 				// sockets can be bound to the same one
-				m_listen_interface.port(s.sock->local_endpoint(ec).port());
+				m_listen_interface.port(s.external_port);
 
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock);
+				async_accept(s.sock, s.ssl);
 			}
+
+#ifdef TORRENT_USE_OPENSSL
+			if (m_settings.ssl_listen)
+			{
+				listen_socket_t s;
+				s.ssl = true;
+				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+
+				if (s.sock)
+				{
+					m_listen_sockets.push_back(s);
+					async_accept(s.sock, s.ssl);
+				}
+			}
+#endif
 
 #if TORRENT_USE_IPV6
 			// only try to open the IPv6 port if IPv6 is installed
@@ -2203,8 +2267,24 @@ namespace aux {
 				if (s.sock)
 				{
 					m_listen_sockets.push_back(s);
-					async_accept(s.sock);
+					async_accept(s.sock, s.ssl);
 				}
+
+#ifdef TORRENT_USE_OPENSSL
+				if (m_settings.ssl_listen)
+				{
+					listen_socket_t s;
+					s.ssl = true;
+					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
+						, 10, false, flags, ec);
+
+					if (s.sock)
+					{
+						m_listen_sockets.push_back(s);
+						async_accept(s.sock, s.ssl);
+					}
+				}
+#endif // TORRENT_USE_OPENSSL
 			}
 #endif // TORRENT_USE_IPV6
 
@@ -2232,13 +2312,28 @@ namespace aux {
 			if (s.sock)
 			{
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock);
+				async_accept(s.sock, s.ssl);
 
 				if (m_listen_interface.address().is_v6())
 					m_ipv6_interface = m_listen_interface;
 				else
 					m_ipv4_interface = m_listen_interface;
 			}
+
+#ifdef TORRENT_USE_OPENSSL
+			if (m_settings.ssl_listen)
+			{
+				listen_socket_t s;
+				s.ssl = true;
+				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+
+				if (s.sock)
+				{
+					m_listen_sockets.push_back(s);
+					async_accept(s.sock, s.ssl);
+				}
+			}
+#endif
 		}
 
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
@@ -2268,26 +2363,34 @@ namespace aux {
 		if (!m_listen_sockets.empty())
 		{
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
-			if (!ec)
-			{
-				if (m_natpmp.get())
-				{
-					if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
-					m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-						, local.port(), local.port());
-				}
-				if (m_upnp.get())
-				{
-					if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
-					m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-						, local.port(), local.port());
-				}
-			}
+			if (!ec) remap_tcp_ports(3, local.port(), ssl_listen_port());
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 #endif
+	}
+
+	void session_impl::remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port)
+	{
+		if ((mask & 1) && m_natpmp.get())
+		{
+			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
+			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
+#ifdef TORRENT_USE_OPENSSL
+			if (m_ssl_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_mapping[0]);
+			m_ssl_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, ssl_port, ssl_port);
+#endif
+		}
+		if ((mask & 2) && m_upnp.get())
+		{
+			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
+			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
+#ifdef TORRENT_USE_OPENSSL
+			if (m_ssl_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_mapping[1]);
+			m_ssl_mapping[1] = m_upnp->add_mapping(upnp::tcp, ssl_port, ssl_port);
+#endif
+		}
 	}
 
 	void session_impl::open_new_incoming_socks_connection()
@@ -2421,21 +2524,40 @@ namespace aux {
 		}
 	}
 
-	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener)
+	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
-		c->instantiate<stream_socket>(m_io_service);
+		stream_socket* str = 0;
+
+#ifdef TORRENT_USE_OPENSSL
+		if (ssl)
+		{
+			// accept connections initializing the SSL connection to
+			// use the generic m_ssl_ctx context. However, since it has
+			// the servername callback set on it, we will switch away from
+			// this context into a specific torrent once we start handshaking
+			c->instantiate<ssl_stream<stream_socket> >(m_io_service, &m_ssl_ctx);
+			str = &c->get<ssl_stream<stream_socket> >()->next_layer();
+		}
+		else
+#endif
+		{
+			c->instantiate<stream_socket>(m_io_service);
+			str = c->get<stream_socket>();
+		}
+
+
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_accept_connection");
 #endif
-		listener->async_accept(*c->get<stream_socket>()
+		listener->async_accept(*str
 			, boost::bind(&session_impl::on_accept_connection, this, c
-			, boost::weak_ptr<socket_acceptor>(listener), _1));
+			, boost::weak_ptr<socket_acceptor>(listener), _1, ssl));
 	}
 
 	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<socket_acceptor> listen_socket, error_code const& e)
+		, weak_ptr<socket_acceptor> listen_socket, error_code const& e, bool ssl)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
@@ -2465,7 +2587,7 @@ namespace aux {
 			// non-fatal and we have to do another async_accept.
 			if (e.value() == ERROR_SEM_TIMEOUT)
 			{
-				async_accept(listener);
+				async_accept(listener, ssl);
 				return;
 			}
 #endif
@@ -2474,7 +2596,7 @@ namespace aux {
 			// non-fatal and we have to do another async_accept.
 			if (e.value() == EINVAL)
 			{
-				async_accept(listener);
+				async_accept(listener, ssl);
 				return;
 			}
 #endif
@@ -2500,16 +2622,62 @@ namespace aux {
 					m_settings.connections_limit = m_connections.size();
 				}
 				// try again, but still alert the user of the problem
-				async_accept(listener);
+				async_accept(listener, ssl);
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, e));
 			return;
 		}
-		async_accept(listener);
+		async_accept(listener, ssl);
+
+#ifdef TORRENT_USE_OPENSSL
+		if (ssl)
+		{
+			// for SSL connections, incoming_connection() is called
+			// after the handshake is done
+			s->get<ssl_stream<stream_socket> >()->async_accept_handshake(
+				boost::bind(&session_impl::ssl_handshake, this, _1, s));
+		}
+		else
+#endif
+		{
+			incoming_connection(s);
+		}
+	}
+
+#ifdef TORRENT_USE_OPENSSL
+
+	// to test SSL connections, one can use this openssl command template:
+	// 
+	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem \ 
+	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1 \ 
+	//   -servername <hex-encoded-info-hash>
+
+	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
+	{
+		error_code e;
+		tcp::endpoint endp = s->remote_endpoint(e);
+		if (e) return;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_logger) << time_now_string() << " *** peer SSL handshake done [ ip: "
+			<< endp << " ec: " << ec.message() << "]\n";
+#endif
+
+		if (ec)
+		{
+			if (m_alerts.should_post<peer_error_alert>())
+			{
+				m_alerts.post_alert(peer_error_alert(torrent_handle(), endp
+					, peer_id(), ec));
+			}
+			return;
+		}
 
 		incoming_connection(s);
 	}
+
+#endif // TORRENT_USE_OPENSSL
 
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
@@ -4805,7 +4973,7 @@ namespace aux {
 		return address();
 	}
 
-	unsigned short session_impl::listen_port() const
+	boost::uint16_t session_impl::listen_port() const
 	{
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
@@ -4820,6 +4988,30 @@ namespace aux {
 		if (m_settings.anonymous_mode) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().external_port;
+	}
+
+	boost::uint16_t session_impl::ssl_listen_port() const
+	{
+#ifdef TORRENT_USE_OPENSSL
+		// if peer connections are set up to be received over a socks
+		// proxy, and it's the same one as we're using for the tracker
+		// just tell the tracker the socks5 port we're listening on
+		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
+			&& m_proxy.hostname == m_proxy.hostname)
+			return m_socks_listen_port;
+
+		// if not, don't tell the tracker anything if we're in anonymous
+		// mode. We don't want to leak our listen port since it can
+		// potentially identify us if it is leaked elsewere
+		if (m_settings.anonymous_mode) return 0;
+		if (m_listen_sockets.empty()) return 0;
+		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			if (i->ssl) return i->external_port;
+		}
+#endif
+		return 0;
 	}
 
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
@@ -5472,8 +5664,7 @@ namespace aux {
 
 		if (m_listen_interface.port() > 0)
 		{
-			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-				, m_listen_interface.port(), m_listen_interface.port());
+			remap_tcp_ports(1, m_listen_interface.port(), ssl_listen_port());
 		}
 		if (m_udp_socket.is_open())
 		{
@@ -5505,10 +5696,9 @@ namespace aux {
 		m_upnp = u;
 
 		m_upnp->discover_device();
-		if (m_listen_interface.port() > 0)
+		if (m_listen_interface.port() > 0 || ssl_listen_port() > 0)
 		{
-			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-				, m_listen_interface.port(), m_listen_interface.port());
+			remap_tcp_ports(2, m_listen_interface.port(), ssl_listen_port());
 		}
 		if (m_udp_socket.is_open())
 		{
@@ -5539,6 +5729,9 @@ namespace aux {
 			m_upnp->close();
 			m_udp_mapping[1] = -1;
 			m_tcp_mapping[1] = -1;
+#ifdef TORRENT_USE_OPENSSL
+			m_ssl_mapping[1] = -1;
+#endif
 		}
 		m_upnp = 0;
 	}
