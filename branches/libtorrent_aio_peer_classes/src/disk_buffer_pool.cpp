@@ -360,6 +360,9 @@ namespace libtorrent
 		{
 			// O_TRUNC here is because we don't actually care about what's
 			// in the file now, there's no need to ever read that into RAM
+#ifndef O_EXLOCK
+#define O_EXLOCK 0
+#endif
 			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC);
 			if (m_cache_fd < 0 && m_post_alert)
 			{
@@ -370,7 +373,7 @@ namespace libtorrent
 			{
 				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
 				m_cache_pool = (char*)mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
-					, MAP_FILE | MAP_SHARED, m_cache_fd, 0);
+					, MAP_SHARED, m_cache_fd, 0);
 				if (intptr_t(m_cache_pool) == -1)
 				{
 					if (m_post_alert)

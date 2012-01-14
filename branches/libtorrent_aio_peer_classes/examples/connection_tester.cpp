@@ -87,7 +87,6 @@ boost::detail::atomic_count num_suggest(0);
 // the number of requests made from suggested pieces
 boost::detail::atomic_count num_suggested_requests(0);
 
-
 struct peer_conn
 {
 	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
