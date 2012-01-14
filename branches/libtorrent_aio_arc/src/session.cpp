@@ -101,7 +101,7 @@ namespace libtorrent
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
 	// usage, with no consideration of performance.
-	session_settings min_memory_usage()
+	TORRENT_EXPORT session_settings min_memory_usage()
 	{
 		session_settings set;
 
@@ -191,7 +191,7 @@ namespace libtorrent
 		return set;
 	}
 
-	session_settings high_performance_seed()
+	TORRENT_EXPORT session_settings high_performance_seed()
 	{
 		session_settings set;
 

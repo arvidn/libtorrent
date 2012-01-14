@@ -1107,7 +1107,7 @@ int main(int argc, char* argv[])
 			"                        previous command line options, so be sure to specify this first\n"
 			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
 			"                        are present and check hashes on-demand)\n"
-			"  -e <num-threads>      specify how many hashing threads to use\n"
+			"  -E <num-threads>      specify how many hashing threads to use\n"
 			"\n BITTORRENT OPTIONS\n"
 			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
@@ -1124,6 +1124,7 @@ int main(int argc, char* argv[])
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
 			"  -K                    enable piece suggestions of read cache\n"
+			"  -e                    force encrypted bittorrent connections\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
@@ -1271,7 +1272,7 @@ int main(int argc, char* argv[])
 			case 'B': settings.peer_timeout = atoi(arg); break;
 			case 'n': settings.announce_to_all_tiers = true; --i; break;
 			case 'G': seed_mode = true; --i; break;
-			case 'e': settings.hashing_threads = atoi(arg); break;
+			case 'E': settings.hashing_threads = atoi(arg); break;
 			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
 			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
 			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
@@ -1290,6 +1291,17 @@ int main(int argc, char* argv[])
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
 			case 'l': settings.listen_queue_size = atoi(arg); break;
+			case 'e':
+				{
+					pe_settings s;
+	
+					s.out_enc_policy = libtorrent::pe_settings::forced;
+					s.in_enc_policy = libtorrent::pe_settings::forced;
+					s.allowed_enc_level = pe_settings::rc4;
+					s.prefer_rc4 = true;
+					ses.set_pe_settings(s);
+					break;
+				}
 			case 'W':
 				settings.max_peerlist_size = atoi(arg);
 				settings.max_paused_peerlist_size = atoi(arg) / 2;

@@ -654,6 +654,16 @@ namespace aux {
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
 
+#ifdef TORRENT_REQUEST_LOGGING
+		char log_filename[200];
+		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", getpid());
+		m_request_log = fopen(log_filename, "w+");
+		if (m_request_log == 0)
+		{
+			fprintf(stderr, "failed to open request log file: (%d) %s\n", errno, strerror(errno));
+		}
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 		(*m_logger) << time_now_string() << "\n";
@@ -4502,6 +4512,7 @@ namespace aux {
 			, end(state_updates.end()); i != end; ++i)
 		{
 			torrent* t = *i;
+			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
 			alert->status.push_back(torrent_status());
 			t->clear_in_state_update();
 			t->status(&alert->status.back(), 0xffffffff);
@@ -5192,6 +5203,10 @@ namespace aux {
 		TORRENT_ASSERT(m_connections.empty());
 		TORRENT_ASSERT(m_connections.empty());
 
+#ifdef TORRENT_REQUEST_LOGGING
+		if (m_request_log) fclose(m_request_log);
+#endif
+
 #ifdef TORRENT_STATS
 		if (m_stats_logger) fclose(m_stats_logger);
 #endif
@@ -5723,6 +5738,16 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
+		for (int l = 0; l < num_torrent_lists; ++l)
+		{
+			std::vector<torrent*> const& list = m_torrent_lists[l];
+			for (std::vector<torrent*>::const_iterator i = list.begin()
+				, end(list.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT((*i)->m_links[l].in_list());
+			}
+		}
+	
 		std::set<int> unique;
 		int total_downloaders = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()

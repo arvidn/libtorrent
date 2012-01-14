@@ -28,3 +28,5 @@ exe fragmentation_test : fragmentation_test.cpp ;
 exe rss_reader : rss_reader.cpp ;
 exe upnp_test : upnp_test.cpp ;
 
+exe parse_request_log : parse_request_log.cpp ;
+
