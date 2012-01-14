@@ -1262,6 +1262,11 @@ namespace aux {
 			":no memory peer errors"
 			":too many peers"
 			":transport timeout peers"
+			
+			":arc LRU pieces"
+			":arc LRU ghost pieces"
+			":arc LFU pieces"
+			":arc LFU ghost pieces"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3747,6 +3752,11 @@ namespace aux {
 			STAT_LOG(d, m_no_memory_peers);
 			STAT_LOG(d, m_too_many_peers);
 			STAT_LOG(d, m_transport_timeout_peers);
+
+			STAT_LOG(d, cs.arc_mru_size);
+			STAT_LOG(d, cs.arc_mru_size + cs.arc_mru_ghost_size);
+			STAT_LOG(d, -cs.arc_mfu_size);
+			STAT_LOG(d, -cs.arc_mfu_size - cs.arc_mfu_ghost_size);
 
 			fprintf(m_stats_logger, "\n");
 
