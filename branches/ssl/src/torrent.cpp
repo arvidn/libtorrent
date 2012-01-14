@@ -5485,6 +5485,7 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
+#ifdef TORRENT_USE_OPENSSL
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -5525,6 +5526,7 @@ namespace libtorrent
 				return false;
 			}
 		}
+#endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(!p->is_local());

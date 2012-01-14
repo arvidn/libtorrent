@@ -2507,6 +2507,7 @@ namespace aux {
 		}
 		async_accept(listener, ssl);
 
+#ifdef TORRENT_USE_OPENSSL
 		if (ssl)
 		{
 			// for SSL connections, incoming_connection() is called
@@ -2515,6 +2516,7 @@ namespace aux {
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
 		}
 		else
+#endif
 		{
 			incoming_connection(s);
 		}

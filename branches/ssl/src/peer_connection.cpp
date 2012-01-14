@@ -3615,6 +3615,7 @@ namespace libtorrent
 		m_disconnecting = true;
 		error_code e;
 
+#ifdef TORRENT_USE_OPENSSL
 		// for SSL connections, first do an async_shutdown, before closing the socket
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 		m_socket->get<ssl_stream<t> >()->async_shutdown(boost::bind(&close_socket, m_socket)); \
@@ -3628,6 +3629,7 @@ namespace libtorrent
 			default: m_socket->close(e); break;
 		}
 #undef CASE
+#endif // TORRENT_USE_OPENSSL
 
 		m_ses.close_connection(this, ec);
 
