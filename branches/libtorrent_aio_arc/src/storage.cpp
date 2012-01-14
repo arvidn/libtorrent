@@ -1363,10 +1363,11 @@ namespace libtorrent
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
+		, void* requester
 		, int flags
-		, int cache_line_size
-		, void* requester)
+		, int cache_line_size)
 	{
+		TORRENT_ASSERT(requester != 0);
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
 		j->storage = this;
 		j->piece = r.piece;
@@ -1411,6 +1412,7 @@ namespace libtorrent
 		, boost::function<void(int, disk_io_job const&)> const& handler
 		, void* requester)
 	{
+		TORRENT_ASSERT(requester != 0);
 		TORRENT_ASSERT(piece >= 0 && piece < files()->num_pieces());
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::hash);
 		j->flags = flags;

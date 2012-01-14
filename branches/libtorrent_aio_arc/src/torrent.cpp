@@ -892,7 +892,7 @@ namespace libtorrent
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
 			filesystem().async_read(r, boost::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, _2, r, rp));
+				, shared_from_this(), _1, _2, r, rp), (void*)1);
 			++rp->blocks_left;
 		}
 	}

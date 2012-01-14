@@ -92,8 +92,6 @@ cached_piece_entry::~cached_piece_entry()
 		TORRENT_ASSERT(blocks[i].refcount == 0);
 		TORRENT_ASSERT(blocks[i].hashing == 0);
 	}
-
-	if (storage) TORRENT_ASSERT(storage->has_piece(this) == false);
 #endif
 	delete hash;
 }
@@ -175,9 +173,15 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 		// it will be used to determine which end of the cache we'll evict
 		// from, next time we need to reclaim blocks
 		if (p->cache_state == cached_piece_entry::read_lru1_ghost)
+		{
 			m_last_cache_op = ghost_hit_lru1;
+			p->storage->add_piece(p);
+		}
 		else if (p->cache_state == cached_piece_entry::read_lru2_ghost)
+		{
 			m_last_cache_op = ghost_hit_lru2;
+			p->storage->add_piece(p);
+		}
 
 		// move into L2 (frequently used)
 		m_lru[p->cache_state].erase(p);
@@ -254,6 +258,34 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		// evict blocks
 		if (cache_state == cached_piece_entry::read_lru1)
 			m_last_cache_op = cache_miss;
+	}
+	else
+	{
+		// we want to retain the piece now
+		p->marked_for_deletion = false;
+
+		if (p->cache_state != cache_state)
+		{
+			// this can happen for instance if a piece fails the hash check
+			// first it's in the write cache, then it completes and is moved
+			// into the read cache, but fails and is cleared (into the ghost list)
+			// then we want to add new dirty blocks to it and we need to move
+			// it back into the write cache
+
+			// it also happens when pulling a ghost piece back into the proper cache
+
+			if (p->cache_state == cached_piece_entry::read_lru1_ghost
+				|| p->cache_state == cached_piece_entry::read_lru2_ghost)
+			{
+				// since it used to be a ghost piece, but no more,
+				// we need to add it back to the storage
+				p->storage->add_piece(p);
+			}
+			m_lru[p->cache_state].erase(p);
+			p->cache_state = cache_state;
+			m_lru[p->cache_state].push_back(p);
+			p->expire = time_now();
+		}
 	}
 	return p;
 }
@@ -362,6 +394,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 			TORRENT_ASSERT(m_write_cache_size > 0);
 			--m_write_cache_size;
 		}
+		if (pe->num_blocks == 0) break;
 	}
 	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
@@ -392,6 +425,9 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 {
 	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
 	linked_list* lru_list = &m_lru[pe->cache_state];
+	if (pe->cache_state != cached_piece_entry::read_lru1_ghost
+		&& pe->cache_state != cached_piece_entry::read_lru2_ghost)
+		pe->storage->remove_piece(pe);
 	lru_list->erase(pe);
 	m_pieces.erase(*pe);
 }
@@ -522,6 +558,8 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	{
 		cached_piece_entry* p = (cached_piece_entry*)ghost_list->front();
 		TORRENT_ASSERT(p != pe);
+		TORRENT_ASSERT(p->num_blocks == 0);
+		TORRENT_ASSERT(p->refcount == 0);
 		erase_piece(p);
 	}
 
