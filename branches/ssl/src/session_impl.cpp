@@ -703,6 +703,10 @@ namespace aux {
 		m_tcp_mapping[1] = -1;
 		m_udp_mapping[0] = -1;
 		m_udp_mapping[1] = -1;
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_mapping[0] = -1;
+		m_ssl_mapping[1] = -1;
+#endif
 #ifdef WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
@@ -2236,26 +2240,34 @@ namespace aux {
 		if (!m_listen_sockets.empty())
 		{
 			tcp::endpoint local = m_listen_sockets.front().sock->local_endpoint(ec);
-			if (!ec)
-			{
-				if (m_natpmp.get())
-				{
-					if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
-					m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-						, local.port(), local.port());
-				}
-				if (m_upnp.get())
-				{
-					if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
-					m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-						, local.port(), local.port());
-				}
-			}
+			if (!ec) remap_tcp_ports(3, local.port(), ssl_listen_port());
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
 #endif
+	}
+
+	void session_impl::remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port)
+	{
+		if ((mask & 1) && m_natpmp.get())
+		{
+			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
+			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
+#ifdef TORRENT_USE_OPENSSL
+			if (m_ssl_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_mapping[0]);
+			m_ssl_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, ssl_port, ssl_port);
+#endif
+		}
+		if ((mask & 2) && m_upnp.get())
+		{
+			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
+			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
+#ifdef TORRENT_USE_OPENSSL
+			if (m_ssl_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_mapping[1]);
+			m_ssl_mapping[1] = m_upnp->add_mapping(upnp::tcp, ssl_port, ssl_port);
+#endif
+		}
 	}
 
 	void session_impl::open_new_incoming_socks_connection()
@@ -4872,9 +4884,9 @@ namespace aux {
 		return m_listen_sockets.front().external_port;
 	}
 
-#ifdef TORRENT_USE_OPENSSL
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
+#ifdef TORRENT_USE_OPENSSL
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
@@ -4892,9 +4904,9 @@ namespace aux {
 		{
 			if (i->ssl) return i->external_port;
 		}
+#endif
 		return 0;
 	}
-#endif
 
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
@@ -5532,8 +5544,7 @@ namespace aux {
 
 		if (m_listen_interface.port() > 0)
 		{
-			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
-				, m_listen_interface.port(), m_listen_interface.port());
+			remap_tcp_ports(1, m_listen_interface.port(), ssl_listen_port());
 		}
 		if (m_udp_socket.is_open())
 		{
@@ -5565,10 +5576,9 @@ namespace aux {
 		m_upnp = u;
 
 		m_upnp->discover_device();
-		if (m_listen_interface.port() > 0)
+		if (m_listen_interface.port() > 0 || ssl_listen_port() > 0)
 		{
-			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
-				, m_listen_interface.port(), m_listen_interface.port());
+			remap_tcp_ports(2, m_listen_interface.port(), ssl_listen_port());
 		}
 		if (m_udp_socket.is_open())
 		{
@@ -5599,6 +5609,9 @@ namespace aux {
 			m_upnp->close();
 			m_udp_mapping[1] = -1;
 			m_tcp_mapping[1] = -1;
+#ifdef TORRENT_USE_OPENSSL
+			m_ssl_mapping[1] = -1;
+#endif
 		}
 		m_upnp = 0;
 	}

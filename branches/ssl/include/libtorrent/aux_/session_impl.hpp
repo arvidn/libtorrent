@@ -377,9 +377,7 @@ namespace libtorrent
 			void set_key(int key);
 			address listen_address() const;
 			boost::uint16_t listen_port() const;
-#ifdef TORRENT_USE_OPENSSL
 			boost::uint16_t ssl_listen_port() const;
-#endif
 			
 			void abort();
 			
@@ -871,9 +869,17 @@ namespace libtorrent
 			boost::intrusive_ptr<upnp> m_upnp;
 			boost::intrusive_ptr<lsd> m_lsd;
 
+			// mask is a bitmask of which protocols to remap on:
+			// 1: NAT-PMP
+			// 2: UPnP
+			void remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port);
+
 			// 0 is natpmp 1 is upnp
 			int m_tcp_mapping[2];
 			int m_udp_mapping[2];
+#ifdef TORRENT_USE_OPENSSL
+			int m_ssl_mapping[2];
+#endif
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
