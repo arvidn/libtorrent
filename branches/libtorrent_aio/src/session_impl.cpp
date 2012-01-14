@@ -4511,6 +4511,7 @@ namespace aux {
 			, end(state_updates.end()); i != end; ++i)
 		{
 			torrent* t = *i;
+			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
 			alert->status.push_back(torrent_status());
 			t->clear_in_state_update();
 			t->status(&alert->status.back(), 0xffffffff);
@@ -5736,6 +5737,16 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_network_thread());
 
+		for (int l = 0; l < num_torrent_lists; ++l)
+		{
+			std::vector<torrent*> const& list = m_torrent_lists[l];
+			for (std::vector<torrent*>::const_iterator i = list.begin()
+				, end(list.end()); i != end; ++i)
+			{
+				TORRENT_ASSERT((*i)->m_links[l].in_list());
+			}
+		}
+	
 		std::set<int> unique;
 		int total_downloaders = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
