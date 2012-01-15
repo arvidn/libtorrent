@@ -2538,7 +2538,7 @@ namespace aux {
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " *** peer SSL handshake done [ ip: "
-			<< endp << " ec: " << ec.message() << "]\n";
+			<< endp << " ec: " << ec.message() << " socket: " << s->type_name() << "]\n";
 #endif
 
 		if (ec)
@@ -2559,6 +2559,13 @@ namespace aux {
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
 		TORRENT_ASSERT(is_network_thread());
+
+#ifdef TORRENT_USE_OPENSSL
+		// add the current time to the PRNG, to add more unpredictability
+		boost::uint64_t now = total_microseconds(time_now_hires() - min_time());
+		// assume 12 bits of entropy (i.e. about 8 milliseconds)
+		RAND_add(&now, 8, 1.5);
+#endif
 
 		if (m_paused)
 		{
@@ -2584,7 +2591,8 @@ namespace aux {
 		TORRENT_ASSERT(endp.address() != address_v4::any());
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp << "\n";
+		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp
+			<< " type: " << s->type_name() << "\n";
 #endif
 
 		if (m_alerts.should_post<incoming_connection_alert>())

@@ -339,7 +339,10 @@
 <li><a class="reference internal" href="#prefer-whole-pieces" id="id260">prefer whole pieces</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#ssl-torrents" id="id261">SSL torrents</a></li>
+<li><a class="reference internal" href="#ssl-torrents" id="id261">SSL torrents</a><ul>
+<li><a class="reference internal" href="#testing" id="id262">testing</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -8684,7 +8687,7 @@ as much space as has been downloaded.</p>
 </div>
 <div class="section" id="full-allocation">
 <h2>full allocation</h2>
-<p>When a torrent is started in full allocation mode, the disk-io thread (see <a href="#id262"><span class="problematic" id="id263">threads_</span></a>)
+<p>When a torrent is started in full allocation mode, the disk-io thread (see <a href="#id263"><span class="problematic" id="id264">threads_</span></a>)
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
 This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
@@ -9078,6 +9081,14 @@ different port. It defaults to port 4433. This setting is only taken into accoun
 normal listen socket is opened (i.e. just changing this setting won't necessarily close
 and re-open the SSL socket). To not listen on an SSL socket at all, set <tt class="docutils literal"><span class="pre">ssl_listen</span></tt> to 0.</p>
 <p>This feature is only available if libtorrent is build with openssl support (<tt class="docutils literal"><span class="pre">TORRENT_USE_OPENSSL</span></tt>).</p>
+<p>Peer certificates must have at least one <em>SubjectAltName</em> field of type dNSName. At least
+one of the fields must <em>exactly</em> match the name of the torrent. This is a byte-by-byte comparison,
+the UTF-8 encoding must be identical (i.e. there's no unicode normalization going on). This
+the recommended way of verifying certificates for HTTPS servers according to <a class="reference external" href="http://www.ietf.org/rfc/rfc2818.txt">RFC 2818</a>. Note
+the difference that for torrents only <em>dNSName</em> fields are taken into account (not IP address fields)
+and that only <em>SubjectAltNames</em> are taken into account, not the <em>Common Name</em> fields.</p>
+<div class="section" id="testing">
+<h2>testing</h2>
 <p>To test incoming SSL connections to an SSL torrent, one can use the following <em>openssl</em> command:</p>
 <pre class="literal-block">
 openssl s_client -cert &lt;peer-certificate&gt;.pem -key &lt;peer-private-key&gt;.pem -CAfile &lt;torrent-cert&gt;.pem -debug -connect 127.0.0.1:4433 -tls1 -servername &lt;info-hash&gt;
@@ -9097,10 +9108,11 @@ the pem file to include in the .torrent file.</p>
 <p>The peer's certificate is located in <tt class="docutils literal"><span class="pre">./newcert.pem</span></tt> and the certificate's
 private key in <tt class="docutils literal"><span class="pre">./newkey.pem</span></tt>.</p>
 </div>
+</div>
 <div class="system-messages section">
 <h1>Docutils System Messages</h1>
-<div class="system-message" id="id262">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8686); <em><a href="#id263">backlink</a></em></p>
+<div class="system-message" id="id263">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8686); <em><a href="#id264">backlink</a></em></p>
 Unknown target name: &quot;threads&quot;.</div>
 </div>
     </div>
