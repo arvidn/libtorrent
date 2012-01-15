@@ -1024,7 +1024,8 @@ void print_piece(libtorrent::partial_piece_info* pp
 		else
 		{
 #ifdef ANSI_TERMINAL_COLORS
-			if (cs && cs->blocks[j]) color = esc("36;7");
+			if (cs && cs->blocks[j] && pp->blocks[j].state != block_info::finished)
+				color = esc("36;7");
 			else if (pp->blocks[j].bytes_progress > 0
 					&& pp->blocks[j].state == block_info::requested)
 			{

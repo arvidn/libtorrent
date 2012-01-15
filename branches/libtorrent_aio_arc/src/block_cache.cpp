@@ -165,35 +165,29 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 	// if we have this piece anywhere in L1 or L2, it's a "hit"
 	// and it should be bumped to the highest priority in L2
 	// i.e. "frequently used"
-	if (p->cache_state >= cached_piece_entry::read_lru1
-		&& p->cache_state <= cached_piece_entry::read_lru2_ghost)
+	if (p->cache_state < cached_piece_entry::read_lru1
+		|| p->cache_state > cached_piece_entry::read_lru2_ghost)
+		return;
+	// if we got a cache hit in a ghost list, that indicates the proper
+	// list is too small. Record which ghost list we got the hit in and
+	// it will be used to determine which end of the cache we'll evict
+	// from, next time we need to reclaim blocks
+	if (p->cache_state == cached_piece_entry::read_lru1_ghost)
 	{
-		// if we got a cache hit in a ghost list, that indicates the proper
-		// list is too small. Record which ghost list we got the hit in and
-		// it will be used to determine which end of the cache we'll evict
-		// from, next time we need to reclaim blocks
-		if (p->cache_state == cached_piece_entry::read_lru1_ghost)
-		{
-			m_last_cache_op = ghost_hit_lru1;
-			p->storage->add_piece(p);
-		}
-		else if (p->cache_state == cached_piece_entry::read_lru2_ghost)
-		{
-			m_last_cache_op = ghost_hit_lru2;
-			p->storage->add_piece(p);
-		}
+		m_last_cache_op = ghost_hit_lru1;
+		p->storage->add_piece(p);
+	}
+	else if (p->cache_state == cached_piece_entry::read_lru2_ghost)
+	{
+		m_last_cache_op = ghost_hit_lru2;
+		p->storage->add_piece(p);
+	}
 
-		// move into L2 (frequently used)
-		m_lru[p->cache_state].erase(p);
-		m_lru[cached_piece_entry::read_lru2].push_back(p);
-		p->cache_state = cached_piece_entry::read_lru2;
-		p->expire = time_now();
-	}
-	else
-	{
-		// where did this piece come from?
-		TORRENT_ASSERT(false);
-	}
+	// move into L2 (frequently used)
+	m_lru[p->cache_state].erase(p);
+	m_lru[cached_piece_entry::read_lru2].push_back(p);
+	p->cache_state = cached_piece_entry::read_lru2;
+	p->expire = time_now();
 }
 
 // this is used to move pieces primarily from the write cache
