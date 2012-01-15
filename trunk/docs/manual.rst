@@ -9057,7 +9057,29 @@ different port. It defaults to port 4433. This setting is only taken into accoun
 normal listen socket is opened (i.e. just changing this setting won't necessarily close
 and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
-This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``).
+This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``)
+and requires at least openSSL version 1.0, since it needs SNI support.
+
+Peer certificates must have at least one *SubjectAltName* field of type dNSName. At least
+one of the fields must *exactly* match the name of the torrent. This is a byte-by-byte comparison,
+the UTF-8 encoding must be identical (i.e. there's no unicode normalization going on). This is
+the recommended way of verifying certificates for HTTPS servers according to `RFC 2818`_. Note
+the difference that for torrents only *dNSName* fields are taken into account (not IP address fields).
+The most specific (i.e. last) *Common Name* field is also taken into account if no *SubjectAltName*
+did not match.
+
+If any of these fields contain a single asterisk ("*"), the certificate is considered covering
+any torrent, allowing it to be reused for any torrent.
+
+The purpose of matching the torrent name with the fields in the peer certificate is to allow
+a publisher to have a single root certificate for all torrents it distributes, and issue
+separate peer certificates for each torrent. A peer receiving a certificate will not necessarily
+be able to access all torrents published by this root certificate (only if it has a "star cert").
+
+.. _`RFC 2818`: http://www.ietf.org/rfc/rfc2818.txt
+
+testing
+-------
 
 To test incoming SSL connections to an SSL torrent, one can use the following *openssl* command::
 

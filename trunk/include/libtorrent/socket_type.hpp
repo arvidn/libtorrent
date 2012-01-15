@@ -181,6 +181,8 @@ namespace libtorrent
 		io_service& get_io_service() const;
 		bool is_open() const;
 
+		char const* type_name() const;
+
 #ifndef BOOST_NO_EXCEPTIONS
 		void open(protocol_type const& p);
 		void close();
@@ -196,7 +198,7 @@ namespace libtorrent
 		endpoint_type remote_endpoint(error_code& ec) const;
 		void bind(endpoint_type const& endpoint, error_code& ec);
 		std::size_t available(error_code& ec) const;
-		int type();
+		int type() const;
 
 
 		template <class Mutable_Buffers>
@@ -292,6 +294,9 @@ namespace libtorrent
 
 		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};
+
+	bool is_ssl(socket_type const& s);
+
 }
 
 #endif

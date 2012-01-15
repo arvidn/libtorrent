@@ -229,7 +229,7 @@ namespace libtorrent
 		if (key.size() == 32) out_enc_policy = pe_settings::disabled;
 
 		// never try an encrypted connection when already using SSL
-		if (get_socket()->get<ssl_stream<stream_socket> >() || get_socket()->get<ssl_stream<utp_stream> >())
+		if (is_ssl(*get_socket()))
 			out_enc_policy = pe_settings::disabled;
 #endif
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2946,8 +2946,7 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-				if (get_socket()->get<ssl_stream<stream_socket> >()
-					|| get_socket()->get<ssl_stream<utp_stream> >())
+				if (is_ssl(*get_socket()))
 				{
 #ifdef TORRENT_VERBOSE_LOGGING
 					peer_log("*** SSL peers are not allowed to use any other encryption");
@@ -3030,9 +3029,10 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				TORRENT_ASSERT(m_state != read_pe_dhkey);
 
-				if (!is_local() && 
-					(m_ses.get_pe_settings().in_enc_policy == pe_settings::forced) &&
-					!m_encrypted) 
+				if (!is_local()
+					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::forced
+					&& !m_encrypted
+					&& !is_ssl(*get_socket()))
 				{
 					disconnect(errors::no_incoming_regular);
 					return;
