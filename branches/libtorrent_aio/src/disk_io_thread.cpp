@@ -1077,7 +1077,7 @@ namespace libtorrent
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
 		{
-			evict -= m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+			evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
 			if (evict > 0) try_flush_write_blocks(evict);
 		}
 
@@ -2718,7 +2718,7 @@ namespace libtorrent
 			int evict = m_disk_cache.num_to_evict(0);
 			if (evict > 0)
 			{
-				evict -= m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+				evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
 				if (evict > 0) try_flush_write_blocks(evict);
 			}
 
