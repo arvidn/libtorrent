@@ -8683,7 +8683,7 @@ as much space as has been downloaded.
 full allocation
 ---------------
 
-When a torrent is started in full allocation mode, the disk-io thread (see threads_)
+When a torrent is started in full allocation mode, the disk-io thread
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
 This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
