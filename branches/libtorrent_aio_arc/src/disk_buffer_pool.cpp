@@ -186,6 +186,12 @@ namespace libtorrent
 	}
 #endif
 
+	void disk_buffer_pool::subscribe_to_disk(boost::function<void()> const& cb)
+	{
+		mutex::scoped_lock l(m_pool_mutex);
+		m_callbacks.push_back(cb);
+	}
+
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);

@@ -934,25 +934,7 @@ namespace libtorrent
 		piece_manager* m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
-		// TODO: in order to save space, stick the ssl context
-		// and the listen_socket_t in a single struct and have
-		// a shared_pointer to that (or intrusive_ptr even)
-
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
-
-		// listen socket used to accept incoming ssl connections
-		boost::shared_ptr<listen_socket_t> m_ssl_acceptor;
-
-		// SSL torrents have their own listen socket, so that
-		// we know which certificate to use for incoming connections
-		// these function are used for handling the torrent specific
-		// listen socket
-		void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
-
-		void on_accept_ssl_connection(boost::shared_ptr<socket_type> const& s
-			, boost::weak_ptr<socket_acceptor> listen_socket, error_code const& e);
-
-		void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 
 		void init_ssl(std::string const& cert);
 #endif

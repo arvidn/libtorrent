@@ -130,7 +130,7 @@ namespace libtorrent
 
 	struct listen_socket_t
 	{
-		listen_socket_t(): external_port(0) {}
+		listen_socket_t(): external_port(0), ssl(false) {}
 
 		// this is typically empty but can be set
 		// to the WAN IP address of NAT-PMP or UPnP router
@@ -144,6 +144,9 @@ namespace libtorrent
 		// to be published to peers, since this is the port
 		// the client is reachable through.
 		int external_port;
+
+		// set to true if this is an SSL listen socket
+		bool ssl;
 
 		// the actual socket
 		boost::shared_ptr<socket_acceptor> sock;
@@ -243,9 +246,9 @@ namespace libtorrent
 			tcp::endpoint get_ipv6_interface() const;
 			tcp::endpoint get_ipv4_interface() const;
 
-			void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
+			void async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> listener, error_code const& e);
+				, boost::weak_ptr<socket_acceptor> listener, error_code const& e, bool ssl);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 
@@ -385,7 +388,8 @@ namespace libtorrent
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			address listen_address() const;
-			unsigned short listen_port() const;
+			boost::uint16_t listen_port() const;
+			boost::uint16_t ssl_listen_port() const;
 			
 			void abort();
 			
@@ -473,6 +477,9 @@ namespace libtorrent
 
 			char* allocate_buffer();
 			void free_buffer(char* buf);
+
+			void subscribe_to_disk(boost::function<void()> const& cb)
+			{ return m_disk_thread.subscribe_to_disk(cb); }
 
 			char* allocate_disk_buffer(char const* category);
 			char* allocate_disk_buffer(bool& exceeded
@@ -629,6 +636,8 @@ namespace libtorrent
 			mutable io_service m_io_service;
 
 #ifdef TORRENT_USE_OPENSSL
+			// this is a generic SSL context used when talking to
+			// unauthenticated HTTPS servers
 			asio::ssl::context m_ssl_ctx;
 #endif
 
@@ -761,6 +770,10 @@ namespace libtorrent
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
+
+#ifdef TORRENT_USE_OPENSSL
+			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
+#endif
 
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection
@@ -928,9 +941,17 @@ namespace libtorrent
 			boost::intrusive_ptr<upnp> m_upnp;
 			boost::intrusive_ptr<lsd> m_lsd;
 
+			// mask is a bitmask of which protocols to remap on:
+			// 1: NAT-PMP
+			// 2: UPnP
+			void remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port);
+
 			// 0 is natpmp 1 is upnp
 			int m_tcp_mapping[2];
 			int m_udp_mapping[2];
+#ifdef TORRENT_USE_OPENSSL
+			int m_ssl_mapping[2];
+#endif
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
