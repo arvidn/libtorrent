@@ -168,6 +168,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 	if (p->cache_state < cached_piece_entry::read_lru1
 		|| p->cache_state > cached_piece_entry::read_lru2_ghost)
 		return;
+
 	// if we got a cache hit in a ghost list, that indicates the proper
 	// list is too small. Record which ghost list we got the hit in and
 	// it will be used to determine which end of the cache we'll evict
@@ -385,6 +386,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 		{
 			TORRENT_ASSERT(pe->num_dirty > 0);
 			--pe->num_dirty;
+			pe->blocks[i].dirty = false;
 			TORRENT_ASSERT(m_write_cache_size > 0);
 			--m_write_cache_size;
 		}
