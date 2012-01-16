@@ -1134,6 +1134,7 @@ int main(int argc, char* argv[])
 			"  -S <limit>            limits the upload slots\n"
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -H                    Don't start DHT\n"
+			"  -X                    Don't start local peer discovery\n"
 			"  -n                    announce to trackers in all tiers\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -B <seconds>          sets the peer timeout\n"
@@ -1196,6 +1197,7 @@ int main(int argc, char* argv[])
 	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
+	bool start_lsd = true;
 
 	std::deque<std::string> events;
 
@@ -1402,6 +1404,7 @@ int main(int argc, char* argv[])
 				break;
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
+			case 'X': start_lsd = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
@@ -1421,7 +1424,9 @@ int main(int argc, char* argv[])
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
-	ses.start_lsd();
+	if (start_lsd)
+		ses.start_lsd();
+
 	if (start_upnp)
 	{
 		ses.start_upnp();

@@ -39,6 +39,25 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	bool is_ssl(socket_type const& s)
+	{
+#ifdef TORRENT_USE_OPENSSL
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value:
+		switch (s.type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+				return true;
+			default: return false;
+		};
+#undef CASE
+#else
+		return false;
+#endif
+	}
+
 	void socket_type::destruct()
 	{
 		switch (m_type)
@@ -131,6 +150,32 @@ namespace libtorrent
 		m_type = type;
 	}
 
+	char const* socket_type::type_name() const
+	{
+		static char const* const names[] =
+		{
+			"uninitialized",
+			"TCP",
+			"Socks5",
+			"HTTP",
+			"uTP",
+#if TORRENT_USE_I2P
+			"I2P",
+#else
+			"",
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			"SSL/TCP",
+			"SSL/Socks5",
+			"SSL/HTTP",
+			"SSL/uTP"
+#else
+			"","","",""
+#endif
+		};
+		return names[m_type];
+	}
+
 	io_service& socket_type::get_io_service() const
 	{ return m_io_service; }
 
@@ -164,7 +209,7 @@ namespace libtorrent
 	std::size_t socket_type::available(error_code& ec) const
 	{ TORRENT_SOCKTYPE_FORWARD_RET(available(ec), 0) }
 
-	int socket_type::type() { return m_type; }
+	int socket_type::type() const { return m_type; }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void socket_type::open(protocol_type const& p)
