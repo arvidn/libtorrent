@@ -242,16 +242,12 @@ namespace libtorrent
 		error_code ec;
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
-		peer_log(">>> %s [ ep: %s transport: %s seed: %d p: %p ]"
-			, outgoing ? "OUTGOING_CONNECTION" : "INCOMING CONNECTION"
+		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
+			, outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
-			,
-#ifdef TORRENT_USE_OPENSSL
-				m_socket->get<ssl_stream<stream_socket> >() ? "SSL/TCP" :
-				m_socket->get<ssl_stream<utp_stream> >() ? "SSL/uTP" :
-#endif
-				m_socket->get<utp_stream>() ? "uTP" : "TCP"
-			, m_peer_info ? m_peer_info->seed : 0, m_peer_info);
+			, m_socket->type_name()
+			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
+			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
 #endif
 #ifdef TORRENT_DEBUG
 		piece_failed = false;
@@ -395,10 +391,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
-		peer_log("<<< %s [ ep: %s transport: %s ]"
-			, outgoing ? "OUTGOING_CONNECTION" : "INCOMING CONNECTION"
+		peer_log("%s [ ep: %s type: %s local: %s]"
+			, outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
-			, (m_socket->get<utp_stream>()) ? "uTP connection" : "TCP connection");
+			, m_socket->type_name()
+			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
 #endif
 		
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -5645,7 +5642,7 @@ namespace libtorrent
 #endif
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
-		m_connect = time_now();
+		m_connect = time_now_hires();
 		m_statistics.sent_syn(m_remote.address().is_v6());
 
 		if (t->alerts().should_post<peer_connect_alert>())
@@ -5653,6 +5650,9 @@ namespace libtorrent
 			t->alerts().post_alert(peer_connect_alert(
 				t->get_handle(), remote(), pid()));
 		}
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());
+#endif
 	}
 	
 	void peer_connection::on_connection_complete(error_code const& e)
@@ -5660,13 +5660,20 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_connection_complete");
 #endif
-		ptime completed = time_now();
+		ptime completed = time_now_hires();
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		INVARIANT_CHECK;
 
 		m_rtt = total_milliseconds(completed - m_connect);
+
+#ifdef TORRENT_USE_OPENSSL
+		// add this RTT to the PRNG seed, to add more unpredictability
+		boost::uint64_t now = total_microseconds(completed - m_connect);
+		// assume 12 bits of entropy (i.e. about 8 milliseconds)
+		RAND_add(&now, 8, 1.5);
+#endif
 		
 		if (m_disconnecting) return;
 

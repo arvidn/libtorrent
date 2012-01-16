@@ -1244,12 +1244,92 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-/*
-	bool verify_function(bool preverified, boost::asio::ssl::verify_context& ctx)
+
+	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
-		return true;
+		// if the cert wasn't signed by the correct CA, fail the verification
+		if (!preverified) return false;
+
+		// we're only interested in checking the certificate at the end of the chain.
+		int depth = X509_STORE_CTX_get_error_depth(ctx.native_handle());
+		if (depth > 0) return true;
+
+		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+
+		// Go through the alternate names in the certificate looking for matching DNS entries
+		GENERAL_NAMES* gens = static_cast<GENERAL_NAMES*>(
+			X509_get_ext_d2i(cert, NID_subject_alt_name, 0, 0));
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		std::string names;
+		bool match = false;
+#endif
+		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
+		{
+			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
+			if (gen->type != GEN_DNS) continue;
+			ASN1_IA5STRING* domain = gen->d.dNSName;
+			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
+			const char* torrent_name = reinterpret_cast<const char*>(domain->data);
+			std::size_t name_length = domain->length;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			if (i > 1) names += " | n: ";
+			names.append(torrent_name, name_length);
+#endif
+			if (strncmp(torrent_name, "*", name_length) == 0
+				|| strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+			{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+				match = true;
+				// if we're logging, keep looping over all names,
+				// for completeness of the log
+				continue;
+#endif
+				return true;
+			}
+		}
+
+		// no match in the alternate names, so try the common names. We should only
+		// use the "most specific" common name, which is the last one in the list.
+		X509_NAME* name = X509_get_subject_name(cert);
+		int i = -1;
+		ASN1_STRING* common_name = 0;
+		while ((i = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
+		{
+			X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, i);
+			common_name = X509_NAME_ENTRY_get_data(name_entry);
+		}
+		if (common_name && common_name->data && common_name->length)
+		{
+			const char* torrent_name = reinterpret_cast<const char*>(common_name->data);
+			std::size_t name_length = common_name->length;
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			if (!names.empty()) names += " | n: ";
+			names.append(torrent_name, name_length);
+#endif
+
+			if (strncmp(torrent_name, "*", name_length) == 0
+				|| strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+			{
+#if !defined(TORRENT_VERBOSE_LOGGING) && !defined(TORRENT_LOGGING)
+				return true;
+#else
+				match = true;
+#endif
+			}
+		}
+
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+		(*m_ses.m_logger) << time_now_string() << " <== INCOMING SSL CONNECTION [ torrent: "
+			<< m_torrent_file->name() << " | n: " << names << " | match: " << (match?"yes":"no")
+			<<  " ]\n";
+		return match;
+#endif
+
+		return false;
 	}
-*/
 
 	void torrent::init_ssl(std::string const& cert)
 	{
@@ -1258,8 +1338,12 @@ namespace libtorrent
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		// TODO: come up with something better
-		RAND_seed(&info_hash()[0], 20);
+		boost::uint64_t now = total_microseconds(time_now_hires() - min_time());
+		// assume 9 bits of entropy (i.e. about 1 millisecond)
+		RAND_add(&now, 8, 1.125);
+		RAND_add(&info_hash()[0], 20, 3);
+		// entropy is also added on incoming and completed connection attempts
+
 		TORRENT_ASSERT(RAND_status() == 1);
 
 		// create the SSL context for this torrent. We need to
@@ -1290,17 +1374,17 @@ namespace libtorrent
 			return;
 		}
 
-		// this is used for debugging			
-		/*
-#error there's a bug where the async_handshake on the ssl_stream always succeeds, regardless of the certificate failing. It's not a trivial bug in asio, that's been tested with a small repro program.
-		ctx->set_verify_callback(verify_function, ec);
+		// the verification function verifies the distinguished name
+		// of a peer certificate to make sure it matches the info-hash
+		// of the torrent, or that it's a "star-cert"
+		ctx->set_verify_callback(boost::bind(&torrent::verify_peer_cert, this, _1, _2), ec);
 		if (ec)
 		{
 			set_error(ec, "SSL verify callback");
 			pause();
 			return;
 		}
-		*/
+
 		SSL_CTX* ssl_ctx = ctx->impl();
 		// create a new x.509 certificate store
 		X509_STORE* cert_store = X509_STORE_new();

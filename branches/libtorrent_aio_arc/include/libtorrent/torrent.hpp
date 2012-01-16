@@ -936,6 +936,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
 
+		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
 		void init_ssl(std::string const& cert);
 #endif
 

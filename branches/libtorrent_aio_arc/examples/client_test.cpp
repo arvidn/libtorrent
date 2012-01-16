@@ -1136,6 +1136,7 @@ int main(int argc, char* argv[])
 			"  -S <limit>            limits the upload slots\n"
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -H                    Don't start DHT\n"
+			"  -X                    Don't start local peer discovery\n"
 			"  -n                    announce to trackers in all tiers\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -B <seconds>          sets the peer timeout\n"
@@ -1178,6 +1179,7 @@ int main(int argc, char* argv[])
 			"  -O                    Disallow disk job reordering\n"
 			"  -j                    disable disk read-ahead\n"
 			"  -z                    disable piece hash checks (used for benchmarking)\n"
+			"  -Z <file>             mmap the disk cache to the specified file, should be an SSD\n"
 			"  -0                    disable disk I/O, read garbage and don't flush to disk\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -1198,6 +1200,7 @@ int main(int argc, char* argv[])
 	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
+	bool start_lsd = true;
 
 	std::deque<std::string> events;
 
@@ -1404,7 +1407,9 @@ int main(int argc, char* argv[])
 				break;
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
+			case 'X': start_lsd = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
+			case 'Z': settings.mmap_cache = arg; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
@@ -1423,7 +1428,9 @@ int main(int argc, char* argv[])
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
-	ses.start_lsd();
+	if (start_lsd)
+		ses.start_lsd();
+
 	if (start_upnp)
 	{
 		ses.start_upnp();
