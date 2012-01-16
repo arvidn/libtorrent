@@ -2205,8 +2205,8 @@ int main(int argc, char* argv[])
 				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
 					< boost::bind(&partial_piece_info::piece_index, _2));
 
-				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::last_use, _1)
-					> boost::bind(&cached_piece_info::last_use, _2));
+				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
+					> boost::bind(&cached_piece_info::piece, _2));
 
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
 					i != cs.pieces.end(); ++i)
