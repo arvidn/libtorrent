@@ -5535,7 +5535,7 @@ specified will be created and truncated to the disk cache size (``cache_size``).
 Any existing file with the same name will be replaced.
 
 Since this setting sets a hard upper limit on cache usage, it cannot be combined
-with ``session_settings::contiguous_recv_buffers``, since that feature treats the
+with ``session_settings::contiguous_recv_buffer``, since that feature treats the
 ``cache_size`` setting as a soft (but still pretty hard) limit. The result of combining
 the two is peers being disconnected after failing to allocate more disk buffers.
 

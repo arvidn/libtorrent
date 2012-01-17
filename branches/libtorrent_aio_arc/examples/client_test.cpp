@@ -294,7 +294,10 @@ bool compare_torrent(torrent_status const* lhs, torrent_status const* rhs)
 	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
 	{
 		// both are seeding, sort by seed-rank
-		return lhs->seed_rank > rhs->seed_rank;
+		if (lhs->seed_rank != rhs->seed_rank)
+			return lhs->seed_rank > rhs->seed_rank;
+
+		return lhs->info_hash < rhs->info_hash;
 	}
 
 	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
@@ -1409,7 +1412,7 @@ int main(int argc, char* argv[])
 			case 'N': start_upnp = false; --i; break;
 			case 'X': start_lsd = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
-			case 'Z': settings.mmap_cache = arg; break;
+			case 'Z': settings.mmap_cache = arg; settings.contiguous_recv_buffer = false; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
