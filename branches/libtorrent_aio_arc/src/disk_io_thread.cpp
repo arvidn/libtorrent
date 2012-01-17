@@ -1975,24 +1975,23 @@ namespace libtorrent
 
 		if (j->storage)
 		{
+			ret->pieces.resize(j->storage->num_pieces());
+			int counter = 0;
+
 			for (boost::unordered_set<cached_piece_entry*>::iterator i
 				= j->storage->cached_pieces().begin(), end(j->storage->cached_pieces().end());
-				i != end; ++i)
-			{
-				ret->pieces.push_back(cached_piece_info());
-				get_cache_info(ret->pieces.back(), *i, block_size);
-			}
+				i != end; ++i, ++counter)
+				get_cache_info(ret->pieces[counter], *i, block_size);
 		}
 		else
 		{
+			ret->pieces.resize(m_disk_cache.num_pieces());
+			int counter = 0;
 			std::pair<block_cache::iterator, block_cache::iterator> range
 				= m_disk_cache.all_pieces();
 
-			for (block_cache::iterator i = range.first; i != range.second; ++i)
-			{
-				ret->pieces.push_back(cached_piece_info());
-				get_cache_info(ret->pieces.back(), &*i, block_size);
-			}
+			for (block_cache::iterator i = range.first; i != range.second; ++i, ++counter)
+				get_cache_info(ret->pieces[counter], &*i, block_size);
 		}
 		return 0;
 	}

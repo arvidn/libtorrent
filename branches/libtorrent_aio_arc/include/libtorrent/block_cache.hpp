@@ -247,6 +247,7 @@ namespace libtorrent
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
 		std::pair<iterator, iterator> all_pieces();
+		int num_pieces() const { return m_pieces.size(); }
 
 		list_iterator write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
