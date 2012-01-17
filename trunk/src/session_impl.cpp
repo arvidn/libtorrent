@@ -1201,6 +1201,11 @@ namespace aux {
 			":no memory peer errors"
 			":too many peers"
 			":transport timeout peers"
+			":uTP idle"
+			":uTP syn-sent"
+			":uTP connected"
+			":uTP fin-sent"
+			":uTP close-wait"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3654,6 +3659,7 @@ namespace aux {
 		if (m_stats_logger)
 		{
 			cache_status cs = m_disk_thread.status();
+			session_status sst = status();
 
 			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
 			m_write_ops.add_sample((cs.writes - m_last_cache_status.writes) * 1000.0 / float(tick_interval_ms));
@@ -3815,6 +3821,12 @@ namespace aux {
 			STAT_LOG(d, m_no_memory_peers);
 			STAT_LOG(d, m_too_many_peers);
 			STAT_LOG(d, m_transport_timeout_peers);
+
+			STAT_LOG(d, sst.utp_stats.num_idle);
+			STAT_LOG(d, sst.utp_stats.num_syn_sent);
+			STAT_LOG(d, sst.utp_stats.num_connected);
+			STAT_LOG(d, sst.utp_stats.num_fin_sent);
+			STAT_LOG(d, sst.utp_stats.num_close_wait);
 
 			fprintf(m_stats_logger, "\n");
 
