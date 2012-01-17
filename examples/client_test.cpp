@@ -292,7 +292,10 @@ bool compare_torrent(torrent_status const* lhs, torrent_status const* rhs)
 	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
 	{
 		// both are seeding, sort by seed-rank
-		return lhs->seed_rank > rhs->seed_rank;
+		if (lhs->seed_rank != rhs->seed_rank)
+			return lhs->seed_rank > rhs->seed_rank;
+
+		return lhs->info_hash < rhs->info_hash;
 	}
 
 	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
