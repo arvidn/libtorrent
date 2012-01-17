@@ -1407,7 +1407,7 @@ int main(int argc, char* argv[])
 			case 'N': start_upnp = false; --i; break;
 			case 'X': start_lsd = false; --i; break;
 			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
-			case 'Z': settings.mmap_cache = arg; break;
+			case 'Z': settings.mmap_cache = arg; settings.contiguous_recv_buffer = false; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
