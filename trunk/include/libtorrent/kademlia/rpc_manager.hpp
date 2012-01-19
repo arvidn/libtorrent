@@ -65,7 +65,7 @@ struct null_observer : public observer
 
 class routing_table;
 
-class rpc_manager
+class TORRENT_EXPORT rpc_manager
 {
 public:
 	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
