@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
 #endif
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #endif
@@ -52,9 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
+#define PRIu32 "u"
 #else
 #define PRId64 "lld"
 #define PRIu64 "llu"
+#define PRIu32 "u"
 #endif
 #endif
 
