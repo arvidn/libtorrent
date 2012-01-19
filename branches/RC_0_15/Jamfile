@@ -94,6 +94,11 @@ rule linking ( properties * )
 		result += <library>librt ;
 	}
 
+	if <iconv>on in $(properties)
+	{
+		result += <library>libiconv ;
+	}
+
 	if <tcmalloc>yes in $(properties)
 	{
 		result += <library>tcmalloc ;
@@ -231,6 +236,10 @@ feature need-librt : no yes : composite propagated link-incompatible ;
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
 
+feature iconv : auto on off : composite propagated ;
+feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
+feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
+
 feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
 
@@ -311,6 +320,9 @@ lib advapi32 : : <name>Advapi32 ;
 lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+
+# when using iconv
+lib libiconv : : <name>iconv <link>shared ;
 
 local boost-library-search-path =
   <search>/opt/local/lib
