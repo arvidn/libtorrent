@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
 #endif
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #endif
@@ -57,8 +57,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // MinGW uses microsofts runtime
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
+#define PRIu64 "I64u"
+#define PRIu32 "u"
 #else
 #define PRId64 "lld"
+#define PRIu64 "llu"
+#define PRIu32 "u"
 #endif
 #endif
 
@@ -261,7 +265,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_LOCALE 1
 #endif
-#define TORRENT_ICONV_ARG (const char**)
 #define TORRENT_USE_RLIMIT 0
 #if TORRENT_USE_DEFAULT_IO
 # define TORRENT_USE_OVERLAPPED 1
