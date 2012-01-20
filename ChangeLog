@@ -1,3 +1,5 @@
+	* fix connection queue issue causing shutdown delays
+	* fixed mingw build
 	* fix overflow bug in progress_ppm field
 	* don't filter local peers received from a non-local tracker
 	* fix python deadlock when using python extensions
