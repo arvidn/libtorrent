@@ -1182,6 +1182,7 @@ int main(int argc, char* argv[])
 	std::set<torrent_handle> non_files;
 
 	int counters[torrents_max];
+	memset(counters, 0, sizeof(counters));
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins
