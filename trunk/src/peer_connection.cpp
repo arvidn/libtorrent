@@ -3441,8 +3441,11 @@ namespace libtorrent
 		return;
 	}
 
-	void close_socket(boost::shared_ptr<socket_type> const& s)
+	void on_close_socket(boost::shared_ptr<socket_type> const& s)
 	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("on_close_socket");
+#endif
 		error_code ec;
 		s->close(ec);
 	}
@@ -3614,8 +3617,14 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		// for SSL connections, first do an async_shutdown, before closing the socket
+#if defined TORRENT_ASIO_DEBUGGING
+#define MAYBE_ASIO_DEBUGGING add_outstanding_async("on_close_socket");
+#else
+#define MAYBE_ASIO_DEBUGGING
+#endif
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		m_socket->get<ssl_stream<t> >()->async_shutdown(boost::bind(&close_socket, m_socket)); \
+		MAYBE_ASIO_DEBUGGING \
+		m_socket->get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, m_socket)); \
 		break;
 		switch(m_socket->type())
 		{
