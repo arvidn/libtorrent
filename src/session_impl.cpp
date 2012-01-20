@@ -4548,6 +4548,10 @@ namespace aux {
 	
 	void session_impl::post_torrent_updates()
 	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(is_network_thread());
+
 		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		alert->status.reserve(m_state_updates.size());
 
@@ -4557,8 +4561,8 @@ namespace aux {
 			boost::shared_ptr<torrent> t = i->lock();
 			if (!t) continue;
 			alert->status.push_back(torrent_status());
-			t->clear_in_state_update();
 			t->status(&alert->status.back(), 0xffffffff);
+			t->clear_in_state_update();
 		}
 		m_state_updates.clear();
 
