@@ -124,7 +124,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		mutex_t::scoped_lock l(m_mutex);
-		m_timer.cancel(ec);
+		if (m_num_connecting == 0) m_timer.cancel(ec);
 		m_abort = true;
 
 		std::list<entry> to_keep;
