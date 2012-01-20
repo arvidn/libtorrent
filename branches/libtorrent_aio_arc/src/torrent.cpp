@@ -8341,15 +8341,22 @@ namespace libtorrent
 
 	void torrent::state_updated()
 	{
-		// we're either not subscribing to this torrent, or
-		// it has already been updated this round, no need to
-		// add it to the list twice
-		if (!m_state_subscription
-			|| m_links[aux::session_impl::torrent_state_updates].in_list()) return;
+		// we're not subscribing to this torrent, don't add it
+		if (!m_state_subscription) return;
 
-		m_links[aux::session_impl::torrent_state_updates]
-			.insert(m_ses.m_torrent_lists[aux::session_impl::torrent_state_updates]
-				, this);
+		std::vector<torrent*>& list = m_ses.m_torrent_lists[aux::session_impl::torrent_state_updates];
+
+		// if it has already been updated this round, no need to
+		// add it to the list twice
+		if (m_links[aux::session_impl::torrent_state_updates].in_list())
+		{
+			TORRENT_ASSERT(find(list.begin(), list.end(), this) != list.end());
+			return;
+		}
+
+		TORRENT_ASSERT(find(list.begin(), list.end(), this) == list.end());
+
+		m_links[aux::session_impl::torrent_state_updates].insert(list, this);
 	}
 
 	void torrent::status(torrent_status* st, boost::uint32_t flags)

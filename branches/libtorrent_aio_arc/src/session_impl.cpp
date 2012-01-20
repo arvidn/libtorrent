@@ -4701,6 +4701,10 @@ namespace aux {
 	
 	void session_impl::post_torrent_updates()
 	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(is_network_thread());
+
 		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		std::vector<torrent*>& state_updates
 			= m_torrent_lists[aux::session_impl::torrent_state_updates];
@@ -4713,8 +4717,8 @@ namespace aux {
 			torrent* t = *i;
 			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
 			alert->status.push_back(torrent_status());
-			t->clear_in_state_update();
 			t->status(&alert->status.back(), 0xffffffff);
+			t->clear_in_state_update();
 		}
 		state_updates.clear();
 

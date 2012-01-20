@@ -1120,8 +1120,8 @@ int main(int argc, char* argv[])
 			"  -s <path>             sets the save path for downloads\n"
 			"  -m <path>             sets the .torrent monitor directory\n"
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
-			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
-			"                        seconds between screen refreshes.\n"
+			"  -F <milliseconds>     sets the UI refresh rate. This is the number of\n"
+			"                        milliseconds between screen refreshes.\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
 			"                        this is useful for scripting tests\n"
 			"  -k                    enable high performance settings. This overwrites any other\n"
@@ -1221,6 +1221,7 @@ int main(int argc, char* argv[])
 	std::set<torrent_handle> non_files;
 
 	int counters[torrents_max];
+	memset(counters, 0, sizeof(counters));
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins

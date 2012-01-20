@@ -42,7 +42,7 @@ rule linking ( properties * )
 			result += <library>gdi32 ;
 		}
 
-		if <target-os>windows in $(properties) && ! <toolset>gcc in $(properties)
+		if <target-os>windows in $(properties)
 		{
 			result += <library>ssleay32
 				<library>libeay32
