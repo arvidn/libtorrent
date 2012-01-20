@@ -502,6 +502,14 @@ namespace libtorrent
 				--m_disk_queues[channel];
 			}
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool in_state_updates(boost::shared_ptr<torrent> t)
+			{
+				return std::find_if(m_state_updates.begin(), m_state_updates.end()
+					, boost::bind(&boost::weak_ptr<torrent>::lock, _1) == t) != m_state_updates.end();
+			}
+#endif
+
 			void add_to_update_queue(boost::weak_ptr<torrent> t)
 			{
 				TORRENT_ASSERT(std::find_if(m_state_updates.begin(), m_state_updates.end()

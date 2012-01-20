@@ -8002,8 +8002,7 @@ namespace libtorrent
 		if (!m_state_subscription) return;
 		if (m_in_state_updates)
 		{
-			TORRENT_ASSERT(std::find_if(m_ses.m_state_updates.begin(), m_ses.m_state_updates.end()
-				, boost::bind(&boost::weak_ptr<torrent>::lock, _1) == shared_from_this()) != m_ses.m_state_updates.end());
+			TORRENT_ASSERT(m_ses.in_state_updates(shared_from_this()));
 			return;
 		}
 
