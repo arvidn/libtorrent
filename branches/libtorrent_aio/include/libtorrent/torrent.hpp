@@ -837,7 +837,10 @@ namespace libtorrent
 		void predicted_have_piece(int index, int milliseconds);
 
 		void clear_in_state_update()
-		{ m_links[aux::session_impl::torrent_state_updates].clear(); }
+		{
+			TORRENT_ASSERT(m_links[aux::session_impl::torrent_state_updates].in_list());
+			m_links[aux::session_impl::torrent_state_updates].clear();
+		}
 
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
