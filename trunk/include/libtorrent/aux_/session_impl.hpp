@@ -503,7 +503,11 @@ namespace libtorrent
 			}
 
 			void add_to_update_queue(boost::weak_ptr<torrent> t)
-			{ m_state_updates.push_back(t); }
+			{
+				TORRENT_ASSERT(std::find_if(m_state_updates.begin(), m_state_updates.end()
+					, boost::bind(&boost::weak_ptr<torrent>::lock, _1) == t.lock()) == m_state_updates.end());
+				m_state_updates.push_back(t);
+			}
 
 //		private:
 

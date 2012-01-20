@@ -7999,7 +7999,13 @@ namespace libtorrent
 		// we're either not subscribing to this torrent, or
 		// it has already been updated this round, no need to
 		// add it to the list twice
-		if (!m_state_subscription || m_in_state_updates) return;
+		if (!m_state_subscription) return;
+		if (m_in_state_updates)
+		{
+			TORRENT_ASSERT(std::find_if(m_ses.m_state_updates.begin(), m_ses.m_state_updates.end()
+				, boost::bind(&boost::weak_ptr<torrent>::lock, _1) == shared_from_this()) != m_ses.m_state_updates.end());
+			return;
+		}
 
 		m_ses.add_to_update_queue(shared_from_this());
 		m_in_state_updates = true;
