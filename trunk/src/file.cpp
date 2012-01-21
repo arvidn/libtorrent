@@ -1812,13 +1812,24 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		error_code ec;
 		size_type file_size = get_size(ec);
 		if (ec) return start;
-		in.FileOffset.QuadPart = start;
-		in.Length.QuadPart = file_size - start;
+
+		if (m_open_mode & no_buffer)
+		{
+			boost::uint64_t mask = size_alignment()-1;
+			in.FileOffset.QuadPart = start & (~mask);
+			in.Length.QuadPart = ((file_size + mask) & ~mask) - in.FileOffset.QuadPart;
+			TORRENT_ASSERT((in.Length.QuadPart & mask) == 0);
+		}
+		else
+		{
+			in.FileOffset.QuadPart = start;
+			in.Length.QuadPart = file_size - start;
+		}
+
 		if (!DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
 			, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 			, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 		{
-			int err = GetLastError();
 			if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return start;
 		}
 
