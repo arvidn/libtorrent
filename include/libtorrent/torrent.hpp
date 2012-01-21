@@ -955,6 +955,12 @@ namespace libtorrent
 	public:
 #endif
 		std::set<peer_connection*> m_connections;
+		// of all peers in m_connections, this is the number
+		// of peers that are outgoing and still waiting to
+		// complete the connection. This is used to possibly
+		// kick out these connections when we get incoming
+		// connections (if we've reached the connection limit)
+		int m_num_connecting;
 #ifdef TORRENT_DEBUG
 	private:
 #endif
