@@ -72,6 +72,9 @@ namespace libtorrent
 	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
 		std::string const& url, std::string argument, size_t* out_pos = 0);
 
+	// replaces \ with /
+	TORRENT_EXPORT void convert_path_to_posix(std::string& path);
+
 	TORRENT_EXPORT std::string read_until(char const*& str, char delim, char const* end);
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
 	TORRENT_EXPORT bool is_hex(char const *in, int len);
