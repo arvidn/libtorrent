@@ -99,8 +99,7 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo
-			, bool outgoing = false);
+			, policy::peer* peerinfo);
 
 		void start();
 

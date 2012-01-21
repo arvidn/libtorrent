@@ -180,8 +180,7 @@ namespace libtorrent
 			aux::session_impl& ses
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo
-			, bool outgoing = false);
+			, policy::peer* peerinfo);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
