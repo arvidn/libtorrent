@@ -246,6 +246,13 @@ namespace libtorrent
 		return false;
 	}
 	
+	void convert_path_to_posix(std::string& path)
+	{
+		for (std::string::iterator i = path.begin()
+			, end(path.end()); i != end; ++i)
+			if (*i == '\\') *i = '/';
+	}
+
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
