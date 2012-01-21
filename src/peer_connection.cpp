@@ -244,7 +244,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
-			, outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
@@ -265,8 +265,7 @@ namespace libtorrent
 		session_impl& ses
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& endp
-		, policy::peer* peerinfo
-		, bool outgoing)
+		, policy::peer* peerinfo)
 		:
 #ifdef TORRENT_DEBUG
 		m_last_choke(time_now() - hours(1))
@@ -324,7 +323,7 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
-		, m_active(outgoing)
+		, m_active(false)
 		, m_received_listen_port(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -335,8 +334,8 @@ namespace libtorrent
 		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
-		, m_connecting(outgoing)
-		, m_queued(outgoing)
+		, m_connecting(false)
+		, m_queued(false)
 		, m_request_large_blocks(false)
 		, m_share_mode(false)
 		, m_upload_only(false)
@@ -355,14 +354,6 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		// if t is NULL, we better not be connecting, since
-		// we can't decrement the connecting counter
-		TORRENT_ASSERT(t || !m_connecting);
-		if (m_connecting && t)
-		{
-			++t->m_num_connecting;
-		}
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -400,7 +391,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s local: %s]"
-			, outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
@@ -5368,13 +5359,15 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		m_queued = false;
-		TORRENT_ASSERT(m_connecting);
 
 		if (!t)
 		{
+			TORRENT_ASSERT(!m_connecting);
 			disconnect(errors::torrent_aborted);
 			return;
 		}
+
+		TORRENT_ASSERT(m_connecting);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		peer_log(">>> OPEN [ protocol: %s ]", (m_remote.address().is_v4()?"IPv4":"IPv6"));

@@ -153,9 +153,8 @@ namespace libtorrent
 		session_impl& ses
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, policy::peer* peerinfo
-		, bool outgoing)
-		: peer_connection(ses, s, remote, peerinfo, outgoing)
+		, policy::peer* peerinfo)
+		: peer_connection(ses, s, remote, peerinfo)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
