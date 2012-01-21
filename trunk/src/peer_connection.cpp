@@ -200,6 +200,14 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		// if t is NULL, we better not be connecting, since
+		// we can't decrement the connecting counter
+		TORRENT_ASSERT(t || !m_connecting);
+		if (m_connecting && t)
+		{
+			++t->m_num_connecting;
+		}
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -347,6 +355,14 @@ namespace libtorrent
 		, m_received_in_piece(0)
 #endif
 	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		// if t is NULL, we better not be connecting, since
+		// we can't decrement the connecting counter
+		TORRENT_ASSERT(t || !m_connecting);
+		if (m_connecting && t)
+		{
+			++t->m_num_connecting;
+		}
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -910,6 +926,22 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
 
+		// defensive
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		// if t is NULL, we better not be connecting, since
+		// we can't decrement the connecting counter
+		TORRENT_ASSERT(t || !m_connecting);
+
+		// we should really have dealt with this already
+		TORRENT_ASSERT(!m_connecting);
+		if (m_connecting && t)
+		{
+			TORRENT_ASSERT(t->m_num_connecting > 0);
+			--t->m_num_connecting;
+			m_connecting = false;
+		}
+
 		m_disk_recv_buffer_size = 0;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -928,8 +960,6 @@ namespace libtorrent
 			TORRENT_ASSERT(!i->second->has_peer(this));
 		if (m_peer_info)
 			TORRENT_ASSERT(m_peer_info->connection == 0);
-
-		boost::shared_ptr<torrent> t = m_torrent.lock();
 #endif
 	}
 
@@ -3396,10 +3426,17 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_connecting);
 
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (m_connecting)
+		{
+			TORRENT_ASSERT(t->m_num_connecting > 0);
+			--t->m_num_connecting;
+			m_connecting = false;
+		}
+
 		if (m_connection_ticket != -1)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
-			m_connecting = false;
 		}
 
 		// a connection attempt using uTP just failed
@@ -3523,13 +3560,19 @@ namespace libtorrent
 			m_channel_state[download_channel] &= ~peer_info::bw_disk;
 		}
 
-		if (m_connecting && m_connection_ticket >= 0)
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (m_connecting)
+		{
+			TORRENT_ASSERT(t->m_num_connecting > 0);
+			--t->m_num_connecting;
+			m_connecting = false;
+		}
+		if (m_connection_ticket >= 0)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
 			m_connection_ticket = -1;
 		}
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
 		torrent_handle handle;
 		if (t) handle = t->get_handle();
 
@@ -4052,7 +4095,14 @@ namespace libtorrent
 		if (!t || m_disconnecting)
 		{
 			m_ses.m_half_open.done(m_connection_ticket);
-			m_connecting = false;
+			if (m_connection_ticket >= -1) m_connection_ticket = -1;
+			TORRENT_ASSERT(t || !m_connecting);
+			if (m_connecting && t)
+			{
+				TORRENT_ASSERT(t->m_num_connecting > 0);
+				--t->m_num_connecting;
+				m_connecting = false;
+			}
 			disconnect(errors::torrent_aborted);
 			return;
 		}
@@ -5427,7 +5477,16 @@ namespace libtorrent
 			return;
 		}
 
-		m_connecting = false;
+		// if t is NULL, we better not be connecting, since
+		// we can't decrement the connecting counter
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t || !m_connecting);
+		if (m_connecting && t)
+		{
+			TORRENT_ASSERT(t->m_num_connecting > 0);
+			--t->m_num_connecting;
+			m_connecting = false;
+		}
 		m_ses.m_half_open.done(m_connection_ticket);
 
 		if (m_disconnecting) return;
@@ -5469,7 +5528,6 @@ namespace libtorrent
 		{
 			// if the remote endpoint is the same as the local endpoint, we're connected
 			// to ourselves
-			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (m_peer_info && t) t->get_policy().ban_peer(m_peer_info);
 			disconnect(errors::self_connection, 1);
 			return;

@@ -1164,7 +1164,7 @@ namespace libtorrent
 		// buffer messages up in the application layer send
 		// buffer, and send it once we're uncorked.
 		bool m_corked:1;
-		
+
 		template <std::size_t Size>
 		struct handler_storage
 		{

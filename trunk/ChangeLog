@@ -1,3 +1,4 @@
+	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
 	* improved peer exchange performance by sharing incoming connections which advertize listen port 
 	* deprecate set_ratio(), and per-peer rate limits

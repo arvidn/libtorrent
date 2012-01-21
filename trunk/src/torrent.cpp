@@ -352,6 +352,7 @@ namespace libtorrent
 		, m_total_downloaded(0)
 		, m_started(time_now())
 		, m_storage(0)
+		, m_num_connecting(0)
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackerid(p.trackerid)
@@ -5649,8 +5650,27 @@ namespace libtorrent
 
 		if (m_connections.size() >= m_max_connections)
 		{
-			p->disconnect(errors::too_many_connections);
-			return false;
+			// if more than 10% of the connections are outgoing
+			// connection attempts that haven't completed yet,
+			// disconnect one of them and let this incoming
+			// connection through.
+			if (m_num_connecting < m_max_connections / 10)
+			{
+				p->disconnect(errors::too_many_connections);
+				return false;
+			}
+
+			// find one of the connecting peers and disconnect it
+			// TODO: ideally, we would disconnect the oldest connection
+			// i.e. the one that has waited the longest to connect.
+			for (std::set<peer_connection*>::iterator i = m_connections.begin()
+				, end(m_connections.end()); i != end; ++i)
+			{
+				peer_connection* p = *i;
+				if (!p->is_connecting()) continue;
+				p->disconnect(errors::too_many_connections);
+				break;
+			}
 		}
 
 		TORRENT_TRY
