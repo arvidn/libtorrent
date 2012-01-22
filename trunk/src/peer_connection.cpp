@@ -3395,7 +3395,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		TORRENT_ASSERT(m_connecting);
 		connect_failed(errors::timed_out);
 	}
 	
