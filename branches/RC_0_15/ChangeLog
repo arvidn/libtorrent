@@ -1,3 +1,5 @@
+0.15.10 release
+
 	* fix invalid-parameter error on windows when disabling filesystem disk cache
 	* fix connection queue issue causing shutdown delays
 	* fixed mingw build
