@@ -103,6 +103,7 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+	* fix invalid-parameter error on windows when disabling filesystem disk cache
 	* fix connection queue issue causing shutdown delays
 	* fixed mingw build
 	* fix overflow bug in progress_ppm field
