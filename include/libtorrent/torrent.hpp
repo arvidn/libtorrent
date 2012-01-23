@@ -852,6 +852,13 @@ namespace libtorrent
 		void clear_in_state_update()
 		{ m_in_state_updates = false; }
 
+		void inc_num_connecting()
+		{ ++m_num_connecting; }
+		void dec_num_connecting()
+		{
+			TORRENT_ASSERT(m_num_connecting > 0);
+			--m_num_connecting;
+		}
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -955,15 +962,16 @@ namespace libtorrent
 	public:
 #endif
 		std::set<peer_connection*> m_connections;
+#ifdef TORRENT_DEBUG
+	private:
+#endif
+
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to
 		// complete the connection. This is used to possibly
 		// kick out these connections when we get incoming
 		// connections (if we've reached the connection limit)
 		int m_num_connecting;
-#ifdef TORRENT_DEBUG
-	private:
-#endif
 
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set

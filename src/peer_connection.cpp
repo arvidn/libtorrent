@@ -204,10 +204,7 @@ namespace libtorrent
 		// if t is NULL, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
-		if (m_connecting && t)
-		{
-			++t->m_num_connecting;
-		}
+		if (m_connecting && t) t->inc_num_connecting();
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -928,8 +925,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_connecting);
 		if (m_connecting && t)
 		{
-			TORRENT_ASSERT(t->m_num_connecting > 0);
-			--t->m_num_connecting;
+			t->dec_num_connecting();
 			m_connecting = false;
 		}
 
@@ -3419,8 +3415,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (m_connecting)
 		{
-			TORRENT_ASSERT(t->m_num_connecting > 0);
-			--t->m_num_connecting;
+			t->dec_num_connecting();
 			m_connecting = false;
 		}
 
@@ -3553,8 +3548,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (m_connecting)
 		{
-			TORRENT_ASSERT(t->m_num_connecting > 0);
-			--t->m_num_connecting;
+			t->dec_num_connecting();
 			m_connecting = false;
 		}
 		if (m_connection_ticket >= 0)
@@ -4089,8 +4083,7 @@ namespace libtorrent
 			TORRENT_ASSERT(t || !m_connecting);
 			if (m_connecting && t)
 			{
-				TORRENT_ASSERT(t->m_num_connecting > 0);
-				--t->m_num_connecting;
+				t->dec_num_connecting();
 				m_connecting = false;
 			}
 			disconnect(errors::torrent_aborted);
@@ -5475,8 +5468,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t || !m_connecting);
 		if (m_connecting && t)
 		{
-			TORRENT_ASSERT(t->m_num_connecting > 0);
-			--t->m_num_connecting;
+			t->dec_num_connecting();
 			m_connecting = false;
 		}
 		m_ses.m_half_open.done(m_connection_ticket);
