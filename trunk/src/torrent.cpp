@@ -6613,16 +6613,16 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		enum flags
 		{
-			seed_ratio_not_met = 0x400000,
-			recently_started = 0x200000,
-			no_seeds = 0x100000,
-			prio_mask = 0xfffff
+			seed_ratio_not_met = 0x40000000,
+			no_seeds = 0x20000000,
+			recently_started = 0x10000000,
+			prio_mask = 0x0fffffff
 		};
 
 		if (!is_finished()) return 0;
 
-		int scale = 100;
-		if (!is_seed()) scale = 50;
+		int scale = 1000;
+		if (!is_seed()) scale = 500;
 
 		int ret = 0;
 
@@ -6665,7 +6665,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret |= (downloaders * scale / seeds) & prio_mask;
+			ret |= ((1 + downloaders) * scale / seeds) & prio_mask;
 		}
 
 		return ret;
