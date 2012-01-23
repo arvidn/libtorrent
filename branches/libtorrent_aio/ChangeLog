@@ -12,6 +12,7 @@
 
 0.16 release
 
+	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
 	* improved peer exchange performance by sharing incoming connections which advertize listen port 
 	* deprecate set_ratio(), and per-peer rate limits
@@ -116,6 +117,9 @@
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
 
+0.15.10 release
+
+	* fix invalid-parameter error on windows when disabling filesystem disk cache
 	* fix connection queue issue causing shutdown delays
 	* fixed mingw build
 	* fix overflow bug in progress_ppm field
