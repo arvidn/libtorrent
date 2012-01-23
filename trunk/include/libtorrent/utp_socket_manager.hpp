@@ -82,6 +82,7 @@ namespace libtorrent
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
+		int num_sockets() const { return m_utp_sockets.size(); }
 
 	private:
 		udp_socket& m_sock;
