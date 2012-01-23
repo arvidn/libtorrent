@@ -1789,7 +1789,6 @@ namespace aux {
 		}
 		m_dht_announce_timer.cancel(ec);
 #endif
-		m_timer.cancel(ec);
 		m_lsd_announce_timer.cancel(ec);
 
 		// close the listen sockets

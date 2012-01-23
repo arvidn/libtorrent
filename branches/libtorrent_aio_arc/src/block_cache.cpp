@@ -448,7 +448,7 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 	// evicting from there. The lru_list is an array of two lists, these
 	// are the two ends to evict from, ordered by preference.
 
-	linked_list* lru_list[2];
+	linked_list* lru_list[4];
 	if (m_last_cache_op == cache_miss || ghost_hit_lru1)
 	{
 		// when we insert new items or move things from L1 to L2
@@ -463,7 +463,15 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 		lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
 	}
 
-	for (int end = 0; num > 0 && end < 2; ++end)
+	// if we can't evict enough blocks from the read cache, also
+	// look at write cache pieces for blocks that have already
+	// been written to disk and can be evicted
+	// the first pass, we only evict blocks that have
+	// been hashed, the second pass we flush anything
+	lru_list[2] = &m_lru[cached_piece_entry::write_lru];
+	lru_list[3] = &m_lru[cached_piece_entry::write_lru];
+
+	for (int end = 0; num > 0 && end < 4; ++end)
 	{
 		// iterate over all blocks in order of last being used (oldest first) and as
 		// long as we still have blocks to evict
@@ -502,6 +510,15 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 			for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
 			{
 				cached_block_entry& b = pe->blocks[j];
+
+				// end == 2 means that it's the first pass of evicting
+				// blocks from write pieces. As soon as the 'j' counter
+				// reaches the offset up to where we have hashed, abort
+				// eviciting from this piece, since we would have to
+				// read it back in against to complete the hash.
+				if (end == 2 && pe->hash && j >= pe->hash->offset / block_size())
+					break;
+
 				TORRENT_ASSERT(b.dirty == false);
 				if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
 
