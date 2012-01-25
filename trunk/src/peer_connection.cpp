@@ -3396,7 +3396,6 @@ namespace libtorrent
 	
 	void peer_connection::connect_failed(error_code const& e)
 	{
-		TORRENT_ASSERT(m_connecting);
 		TORRENT_ASSERT(e);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -3410,10 +3409,9 @@ namespace libtorrent
 		++m_ses.m_connect_timeouts;
 #endif
 
-		TORRENT_ASSERT(m_connecting);
-
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (m_connecting)
+		TORRENT_ASSERT(!m_connecting || t);
+		if (m_connecting && t)
 		{
 			t->dec_num_connecting();
 			m_connecting = false;
