@@ -41,19 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iterator>
 #include <algorithm>
-#include <set>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/bind.hpp>
-#include <boost/assert.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp" // is_space
@@ -64,6 +51,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/bind.hpp>
+#include <boost/assert.hpp>
+#if TORRENT_HAS_BOOST_UNORDERED
+#include <boost/unordered_set.hpp>
+#else
+#include <set>
+#endif
+
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
@@ -329,9 +333,46 @@ namespace libtorrent
 		return true;
 	}
 
+#if TORRENT_HAS_BOOST_UNORDERED
+	struct string_hash_no_case
+	{
+		size_t operator()(std::string const& s) const
+		{
+			char const* s1 = s.c_str();
+			size_t ret = 5381;
+			int c;
+
+			while ((c = *s1++))
+				ret = (ret * 33) ^ c;
+
+			return ret;
+		}
+	};
+
+	struct string_eq_no_case
+	{
+		bool operator()(std::string const& lhs, std::string const& rhs) const
+		{
+			char c1, c2;
+			char const* s1 = lhs.c_str();
+			char const* s2 = rhs.c_str();
+	
+			while (*s1 != 0 && *s2 != 0)
+			{
+				c1 = to_lower(*s1);
+				c2 = to_lower(*s2);
+				if (c1 != c2) return false;
+				++s1;
+				++s2;
+			}
+			return *s1 == *s2;
+		}
+	};
+
+#else
 	struct string_less_no_case
 	{
-		bool operator()(std::string const& lhs, std::string const& rhs)
+		bool operator()(std::string const& lhs, std::string const& rhs) const
 		{
 			char c1, c2;
 			char const* s1 = lhs.c_str();
@@ -349,6 +390,7 @@ namespace libtorrent
 			return false;
 		}
 	};
+#endif
 
 	bool extract_files(lazy_entry const& list, file_storage& target
 		, std::string const& root_dir, ptrdiff_t info_ptr_diff)
@@ -369,7 +411,12 @@ namespace libtorrent
 			// done once the torrent is loaded, and the original
 			// filenames should be preserved!
 			int cnt = 0;
+
+#if TORRENT_HAS_BOOST_UNORDERED
+			boost::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
+#else
 			std::set<std::string, string_less_no_case> files;
+#endif
 
 			// as long as this file already exists
 			// increase the counter
