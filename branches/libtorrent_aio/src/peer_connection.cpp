@@ -5075,77 +5075,78 @@ namespace libtorrent
 		// save more time from avoiding copying data from the socket
 		if ((m_ses.m_settings.contiguous_recv_buffer || m_download_queue.empty()) && !m_disk_recv_buffer)
 		{
-			if (s == read_async)
-			{
-				TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
-				m_channel_state[download_channel] |= peer_info::bw_network;
-#ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("<<< ASYNC_READ      [ ]");
-#endif
-
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("peer_connection::on_receive_data");
-#endif
-				m_socket->async_read_some(asio::null_buffers(), make_read_handler(
-					boost::bind(&peer_connection::on_receive_data, self(), _1, _2, true)));
-				return 0;
-			}
-		}
-		else
-		{
-			TORRENT_ASSERT(m_packet_size > 0);
-			TORRENT_ASSERT(max_receive >= 0);
-   
-			if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
-			if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
-				max_receive = m_soft_packet_size - m_recv_pos;
-			int quota_left = m_quota[download_channel];
-			if (max_receive > quota_left)
-				max_receive = quota_left;
-   
-			if (max_receive == 0)
+			if (s == read_sync)
 			{
 				ec = asio::error::would_block;
 				return 0;
 			}
-   
-			TORRENT_ASSERT(m_recv_pos >= 0);
-			TORRENT_ASSERT(m_packet_size > 0);
-   
-			int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
-   
-			if (int(m_recv_buffer.size()) < regular_buffer_size)
-				m_recv_buffer.resize(round_up8(regular_buffer_size));
-   
-			if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
-			{
-				// only receive into regular buffer
-				TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
-				vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos], max_receive);
-				num_bufs = 1;
-			}
-			else if (m_recv_pos >= regular_buffer_size)
-			{
-				// only receive into disk buffer
-				TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
-				TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
-				vec[0] = asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size, max_receive);
-				num_bufs = 1;
-			}
-			else
-			{
-				// receive into both regular and disk buffer
-				TORRENT_ASSERT(max_receive + m_recv_pos > regular_buffer_size);
-				TORRENT_ASSERT(m_recv_pos < regular_buffer_size);
-				TORRENT_ASSERT(max_receive - regular_buffer_size
-					+ m_recv_pos <= m_disk_recv_buffer_size);
-   
-				vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
-					, regular_buffer_size - m_recv_pos);
-				vec[1] = asio::buffer(m_disk_recv_buffer.get()
-					, max_receive - regular_buffer_size + m_recv_pos);
-				num_bufs = 2;
-			}
+
+			TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+			m_channel_state[download_channel] |= peer_info::bw_network;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<<< ASYNC_READ      [ ]");
+#endif
+
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("peer_connection::on_receive_data");
+#endif
+			m_socket->async_read_some(asio::null_buffers(), make_read_handler(
+				boost::bind(&peer_connection::on_receive_data, self(), _1, _2, true)));
+			return 0;
+		}
+
+		TORRENT_ASSERT(m_packet_size > 0);
+		TORRENT_ASSERT(max_receive >= 0);
+
+		if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
+		if (m_soft_packet_size && max_receive > m_soft_packet_size - m_recv_pos)
+			max_receive = m_soft_packet_size - m_recv_pos;
+		int quota_left = m_quota[download_channel];
+		if (max_receive > quota_left)
+			max_receive = quota_left;
+
+		if (max_receive == 0)
+		{
+			ec = asio::error::would_block;
+			return 0;
+		}
+
+		TORRENT_ASSERT(m_recv_pos >= 0);
+		TORRENT_ASSERT(m_packet_size > 0);
+
+		int regular_buffer_size = m_packet_size - m_disk_recv_buffer_size;
+
+		if (int(m_recv_buffer.size()) < regular_buffer_size)
+			m_recv_buffer.resize(round_up8(regular_buffer_size));
+
+		if (!m_disk_recv_buffer || regular_buffer_size >= m_recv_pos + max_receive)
+		{
+			// only receive into regular buffer
+			TORRENT_ASSERT(m_recv_pos + max_receive <= int(m_recv_buffer.size()));
+			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos], max_receive);
+			num_bufs = 1;
+		}
+		else if (m_recv_pos >= regular_buffer_size)
+		{
+			// only receive into disk buffer
+			TORRENT_ASSERT(m_recv_pos - regular_buffer_size >= 0);
+			TORRENT_ASSERT(m_recv_pos - regular_buffer_size + max_receive <= m_disk_recv_buffer_size);
+			vec[0] = asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buffer_size, max_receive);
+			num_bufs = 1;
+		}
+		else
+		{
+			// receive into both regular and disk buffer
+			TORRENT_ASSERT(max_receive + m_recv_pos > regular_buffer_size);
+			TORRENT_ASSERT(m_recv_pos < regular_buffer_size);
+			TORRENT_ASSERT(max_receive - regular_buffer_size
+				+ m_recv_pos <= m_disk_recv_buffer_size);
+
+			vec[0] = asio::buffer(&m_recv_buffer[m_recv_pos]
+				, regular_buffer_size - m_recv_pos);
+			vec[1] = asio::buffer(m_disk_recv_buffer.get()
+				, max_receive - regular_buffer_size + m_recv_pos);
+			num_bufs = 2;
 		}
 
 		if (s == read_async)
