@@ -64,6 +64,14 @@ rule linking ( properties * )
 
 	}
 
+	if <target-os>windows in $(properties)
+		&& ( <asserts>on in $(properties)
+			|| <variant>debug in $(properties)
+			|| <asio-debugging>on in $(properties) )
+	{
+		result += <library>dbghelp ;
+	}
+
 	# gcrypt libraries, if enabled
 	if <encryption>gcrypt in $(properties) || <encryption>openssl in $(properties)
 	{
@@ -187,10 +195,8 @@ rule building ( properties * )
 {
 	local result ;
 
-	if ( <target-os>linux in $(properties)
-		|| <target-os>darwin in $(properties) )
-		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties) )
+	if ( <variant>debug in $(properties)
+		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
 	}
@@ -345,6 +351,7 @@ lib advapi32 : : <name>Advapi32 ;
 lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+lib dbghelp : : <name>dbghelp ;
 
 # required for networking on beos
 lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
