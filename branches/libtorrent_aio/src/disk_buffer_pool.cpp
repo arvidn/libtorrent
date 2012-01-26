@@ -443,10 +443,13 @@ namespace libtorrent
 			TORRENT_ASSERT(buf <  m_cache_pool + boost::uint64_t(m_max_use) * 0x4000);
 			int slot_index = (buf - m_cache_pool) / 0x4000;
 			m_free_list.push_back(slot_index);
-			// this turned out to be very expensive on mac OS. The intention was
-			// to prevent synchronizations with the disk when it's unnecessary. It
-			// seems to have had the opposite effect
-//			msync(buf, 0x4000, MS_INVALIDATE);
+#ifdef MADV_FREE
+			// tell the virtual memory system that we don't actually care
+			// about the data in these pages anymore. If this block was
+			// swapped out to the SSD, it (hopefully) means it won't have
+			// to be read back in once we start writing our new data to it
+			madvise(buf, 0x4000, MADV_FREE);
+#endif
 		}
 		else
 #endif
