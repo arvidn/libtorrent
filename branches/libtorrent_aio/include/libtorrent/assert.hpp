@@ -46,9 +46,8 @@ extern char const* libtorrent_assert_log;
 
 #include <string>
 
-#ifdef __GNUC__
 std::string demangle(char const* name);
-#endif
+void print_backtrace(char* out, int len);
 
 #if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 
