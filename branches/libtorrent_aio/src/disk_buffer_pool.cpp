@@ -377,9 +377,12 @@ namespace libtorrent
 			}
 			else
 			{
+#ifndef MAP_NOCACHE
+#define MAP_NOCACHE 0
+#endif
 				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
 				m_cache_pool = (char*)mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
-					, MAP_SHARED, m_cache_fd, 0);
+					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0);
 				if (intptr_t(m_cache_pool) == -1)
 				{
 					if (m_post_alert)
@@ -443,12 +446,17 @@ namespace libtorrent
 			TORRENT_ASSERT(buf <  m_cache_pool + boost::uint64_t(m_max_use) * 0x4000);
 			int slot_index = (buf - m_cache_pool) / 0x4000;
 			m_free_list.push_back(slot_index);
-#ifdef MADV_FREE
+#if defined MADV_FREE
 			// tell the virtual memory system that we don't actually care
 			// about the data in these pages anymore. If this block was
 			// swapped out to the SSD, it (hopefully) means it won't have
 			// to be read back in once we start writing our new data to it
 			madvise(buf, 0x4000, MADV_FREE);
+#elif defined MADV_DONTNEED && defined TORRENT_LINUX
+			// rumor has it that MADV_DONTNEED is in fact destructive
+			// on linux (i.e. it won't flush it to disk or re-read from disk)
+			// http://kerneltrap.org/mailarchive/linux-kernel/2007/5/1/84410
+			madvise(buf, 0x4000, MADV_DONTNEED);
 #endif
 		}
 		else
