@@ -3870,7 +3870,7 @@ namespace libtorrent
 		for (file_storage::iterator i = m_torrent_file->files().begin()
 			, end(m_torrent_file->files().end()); i != end; ++i, ++index)
 		{
-			if (i >= m_torrent_file->num_files()) break;
+			if (index >= m_torrent_file->num_files()) break;
 			size_type start = position;
 			size_type size = m_torrent_file->files().file_size(*i);
 			if (size == 0) continue;
