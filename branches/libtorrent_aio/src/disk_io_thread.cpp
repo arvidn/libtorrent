@@ -1954,6 +1954,7 @@ namespace libtorrent
 
 		ptime now = time_now();
 
+		// TODO: this is potentially pretty expensive, allow cache info jobs to not ask for this full list
 		for (block_cache::iterator i = range.first; i != range.second; ++i)
 		{
 			ret->pieces.push_back(cached_piece_info());
