@@ -1880,7 +1880,8 @@ namespace aux {
 	}
 
 	// #error should this be a function on torrent_handle?
-	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m)
+	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret
+		, int flags, bool* done, condition* e, mutex* m)
 	{
 		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t || !t->valid_storage())
@@ -1893,6 +1894,7 @@ namespace aux {
 		disk_io_job* j = m_disk_thread.aiocbs()->allocate_job(disk_io_job::get_cache_info);
 		j->storage = st;
 		j->buffer = (char*)ret;
+		j->flags = (flags & session::disk_cache_no_pieces) ? disk_io_job::no_pieces : 0;
 		j->callback = boost::bind(&get_cache_info_done, _1, m, e, done);
 		m_disk_thread.add_job(j);
 	}

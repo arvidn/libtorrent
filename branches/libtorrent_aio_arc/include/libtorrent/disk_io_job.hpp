@@ -124,6 +124,11 @@ namespace libtorrent
 			// than getting a reference to the block already in
 			// the cache.
 			force_copy = 0x800,
+
+			// only applicable to get_cache_info. This makes the
+			// response not include the list of all pieces. The
+			// operation is considerably faster with this flag set.
+			no_pieces = 0x1000,
 		};
 
 		// the time when this job was queued. This is used to
@@ -140,6 +145,8 @@ namespace libtorrent
 		// with malloc()
 		// an entry* for save_resume_data
 		// for aiocb_complete this points to the aiocb that completed
+		// for get_cache_info this points to a cache_status object which
+		// is filled in
 		char* buffer;
 
 		// the disk storage this job applies to (if applicable)

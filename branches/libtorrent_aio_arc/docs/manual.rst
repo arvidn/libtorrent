@@ -908,9 +908,12 @@ get_cache_info()
 
 	::
 
-		void get_cache_info(sha1_hash const& ih, cache_status* ret) const;
+		enum { disk_cache_no_pieces = 1 };
+		void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags) const;
 
 Fills in the cache_status struct with information about the given info-hash (``ih``).
+If ``flags`` is ``session::disk_cache_no_pieces`` the ``cache_status::pieces`` field
+will not be set. This may significantly reduce the cost of this call.
 
 	::
 

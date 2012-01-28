@@ -2047,12 +2047,17 @@ int main(int argc, char* argv[])
 		}
 
 		sha1_hash ih(0);
+		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
-		if (h.is_valid()) ih = h.info_hash();
+		if (h.is_valid())
+		{
+			ih = h.info_hash();
+			cache_flags = 0;
+		}
 
 		cache_status cs;
-		ses.get_cache_info(ih, &cs);
+		ses.get_cache_info(ih, &cs, cache_flags);
 
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
