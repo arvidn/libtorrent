@@ -449,7 +449,24 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 	// are the two ends to evict from, ordered by preference.
 
 	linked_list* lru_list[4];
-	if (m_last_cache_op == cache_miss || ghost_hit_lru1)
+	if (m_last_cache_op == cache_miss)
+	{
+		// when there was a cache miss, evict from the largest
+		// list, to tend to keep the lists of equal size when
+		// we don't know which one is performing better
+		if (m_lru[cached_piece_entry::read_lru2].size()
+			> m_lru[cached_piece_entry::read_lru1].size())
+		{
+			lru_list[0] = &m_lru[cached_piece_entry::read_lru2];
+			lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+		}
+		else
+		{
+			lru_list[0] = &m_lru[cached_piece_entry::read_lru1];
+			lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+		}
+	}
+	else if (m_last_cache_op == ghost_hit_lru1)
 	{
 		// when we insert new items or move things from L1 to L2
 		// evict blocks from L2
