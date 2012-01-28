@@ -255,8 +255,9 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		cache_status get_cache_status() const TORRENT_DEPRECATED;
 #endif
+		enum { disk_cache_no_pieces = 1 };
 		void get_cache_info(sha1_hash const& ih
-			, cache_status* ret) const;
+			, cache_status* ret, int flags = 0) const;
 
 		feed_handle add_feed(feed_settings const& feed);
 		void remove_feed(feed_handle h);

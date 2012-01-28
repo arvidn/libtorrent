@@ -1950,6 +1950,9 @@ namespace libtorrent
 
 		cache_status* ret = (cache_status*)j->buffer;
 		get_disk_metrics(*ret);
+
+		if (j->flags & disk_io_job::no_pieces) return 0;
+
 		int block_size = m_disk_cache.block_size();
 
 		ptime now = time_now();

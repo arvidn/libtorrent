@@ -355,7 +355,7 @@ namespace libtorrent
 
 			alert const* wait_for_alert(time_duration max_wait);
 
-			void get_cache_info(sha1_hash const& ih, cache_status* ret, bool* done, condition* e, mutex* m);
+			void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags, bool* done, condition* e, mutex* m);
 
 #ifndef TORRENT_NO_DEPRECATE
 			int upload_rate_limit() const;
