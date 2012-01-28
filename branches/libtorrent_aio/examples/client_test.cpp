@@ -2045,7 +2045,7 @@ int main(int argc, char* argv[])
 		}
 
 		sha1_hash ih(0);
-		int cache_flags = session::disk_cache_no_pieces;
+		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
 		if (h.is_valid())
