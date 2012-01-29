@@ -2038,7 +2038,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		m_net_interfaces.clear();
 
-		char* str = &net_interfaces[0];
+		char* str = strdup(net_interfaces.c_str());
 
 		while (str)
 		{
@@ -2050,6 +2050,7 @@ namespace libtorrent
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
+		free(str);
 	}
 
 	tcp::endpoint torrent::get_interface() const
