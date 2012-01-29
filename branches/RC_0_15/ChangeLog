@@ -1,5 +1,6 @@
 0.15.10 release
 
+	* fixed peer_tos (type of service) setting
 	* fixed crash when loading resume file with more files than the torrent in it
 	* fix invalid-parameter error on windows when disabling filesystem disk cache
 	* fix connection queue issue causing shutdown delays
