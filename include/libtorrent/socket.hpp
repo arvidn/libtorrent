@@ -257,16 +257,21 @@ namespace libtorrent
 
 	struct type_of_service
 	{
+#ifdef WIN32
+		typedef DWORD tos_t;
+#else
+		typedef int tos_t;
+#endif
 		type_of_service(char val): m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
 		int name(Protocol const&) const { return IP_TOS; }
 		template<class Protocol>
-		char const* data(Protocol const&) const { return &m_value; }
+		tos_t const* data(Protocol const&) const { return &m_value; }
 		template<class Protocol>
 		size_t size(Protocol const&) const { return sizeof(m_value); }
-		char m_value;
+		tos_t m_value;
 	};
 }
 
