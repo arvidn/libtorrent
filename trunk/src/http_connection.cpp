@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/rfc2818_verification.hpp>
+#endif
+
 #include <boost/bind.hpp>
 #include <string>
 #include <algorithm>
@@ -335,6 +339,29 @@ void http_connection::start(std::string const& hostname, std::string const& port
 				return;
 			}
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		// for SSL connections, make sure to authenticate the hostname
+		// of the certificate
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+		m_sock.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
+		break;
+
+		switch(m_sock.type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+		}
+
+		if (ec)
+		{
+			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+				, me, ec, (char*)0, 0));
+			return;
+		}
+#endif
 
 #if TORRENT_USE_I2P
 		if (is_i2p)

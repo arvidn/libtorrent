@@ -65,6 +65,10 @@ public:
 	void set_host_name(std::string name)
 	{ SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str()); }
 
+	template <class T>
+	void set_verify_callback(T const& fun, error_code& ec)
+	{ m_sock.set_verify_callback(fun, ec); }
+
 	SSL* native_handle() { return m_sock.native_handle(); }
 
 	typedef boost::function<void(error_code const&)> handler_type;
