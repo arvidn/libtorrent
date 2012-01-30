@@ -89,7 +89,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
-//#include <boost/asio/ssl/verify_context.hpp>
+#include <boost/asio/ssl/rfc2818_verification.hpp>
+#include <boost/asio/ssl/verify_context.hpp>
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2064,7 +2065,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		m_net_interfaces.clear();
 
-		char* str = &net_interfaces[0];
+		char* str = strdup(net_interfaces.c_str());
 
 		while (str)
 		{
@@ -2076,6 +2077,7 @@ namespace libtorrent
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
+		free(str);
 	}
 
 	tcp::endpoint torrent::get_interface() const
@@ -4874,13 +4876,23 @@ namespace libtorrent
 		TORRENT_ASSERT(ret);
 
 		proxy_settings const& ps = m_ses.proxy();
-		if ((ps.type == proxy_settings::http
-			|| ps.type == proxy_settings::http_pw)
-			&& !ssl)
+		if (s->get<http_stream>())
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
 			s->get<http_stream>()->set_no_connect(true);
+		}
+
+		using boost::tuples::ignore;
+		std::string hostname;
+		error_code ec;
+		boost::tie(ignore, ignore, hostname, ignore, ignore)
+			= parse_url_components(web->url, ec);
+		if (ec)
+		{
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, ec));
+			return;
 		}
 
 		if (ps.proxy_hostnames
@@ -4896,13 +4908,30 @@ namespace libtorrent
 				s->get<socks5_stream>();
 			TORRENT_ASSERT(str);
 
-			using boost::tuples::ignore;
-			std::string hostname;
-			error_code ec;
-			boost::tie(ignore, ignore, hostname, ignore, ignore)
-				= parse_url_components(web->url, ec);
 			str->set_dst_name(hostname);
 		}
+
+#ifdef TORRENT_USE_OPENSSL
+		// for SSL connections, make sure to authenticate the hostname
+		// of the certificate
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+		s->get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
+		break;
+
+		switch(s->type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+		}
+		if (ec)
+		{
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, ec));
+			return;
+		}
+#endif
 
 		boost::intrusive_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)

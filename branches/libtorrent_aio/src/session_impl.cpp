@@ -2052,6 +2052,15 @@ namespace aux {
 		if (m_settings.network_threads != s.network_threads)
 			m_net_thread_pool.set_num_threads(s.network_threads);
 
+		if (m_settings.peer_tos != s.peer_tos)
+		{
+			error_code ec;
+			m_udp_socket.set_option(type_of_service(s.peer_tos), ec);
+#if defined TORRENT_VERBOSE_LOGGING
+			(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << s.peer_tos << " e: " << ec.message() << " ]\n";
+#endif
+		}
+
 		m_settings = s;
 
 		if (m_settings.cache_buffer_chunk_size <= 0)
@@ -2362,6 +2371,12 @@ namespace aux {
 			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
 			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
 		}
+
+		m_udp_socket.set_option(type_of_service(m_settings.peer_tos), ec);
+#if defined TORRENT_VERBOSE_LOGGING
+		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
+#endif
+		ec.clear();
 
 		open_new_incoming_socks_connection();
 #if TORRENT_USE_I2P

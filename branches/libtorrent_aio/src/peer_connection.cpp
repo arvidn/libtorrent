@@ -3757,6 +3757,8 @@ namespace libtorrent
 			default: m_socket->close(e); break;
 		}
 #undef CASE
+#else
+	m_socket->close(e);
 #endif // TORRENT_USE_OPENSSL
 
 		m_ses.close_connection(this, ec);
