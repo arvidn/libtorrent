@@ -330,11 +330,13 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_BROKEN_UNIONS 0
 #endif
 
+#ifndef TORRENT_USE_WSTRING
 #if defined UNICODE && !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
 #else
 #define TORRENT_USE_WSTRING 0
 #endif // UNICODE
+#endif // TORRENT_USE_WSTRING
 
 #ifndef TORRENT_HAS_FALLOCATE
 #define TORRENT_HAS_FALLOCATE 1
@@ -384,10 +386,12 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_NO_FPU 0
 #endif
 
-#if !defined TORRENT_USE_IOSTREAM && !defined BOOST_NO_IOSTREAM
+#ifndef TORRENT_USE_IOSTREAM
+#ifndef BOOST_NO_IOSTREAM
 #define TORRENT_USE_IOSTREAM 1
 #else
 #define TORRENT_USE_IOSTREAM 0
+#endif
 #endif
 
 #ifndef TORRENT_USE_I2P
