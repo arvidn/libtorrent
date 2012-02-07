@@ -299,6 +299,7 @@ namespace libtorrent
 		, std::time_t mtime, std::string const& symlink_path)
 	{
 		TORRENT_ASSERT(size >= 0);
+		if (size < 0) size = 0;
 		if (!has_parent_path(file))
 		{
 			// you have already added at least one file with a
