@@ -193,6 +193,7 @@ namespace libtorrent
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
 		, m_corked(false)
+		, m_has_metadata(true)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -1100,7 +1101,9 @@ namespace libtorrent
 
 	void peer_connection::received_valid_data(int index)
 	{
-		INVARIANT_CHECK;
+		// this fails because we haven't had time to disconnect
+		// seeds yet, and we might have just become one
+//		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1562,6 +1565,12 @@ namespace libtorrent
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
 	
+		// if the peer is ready to download stuff, it must have metadata		
+		m_has_metadata = true;
+
+		disconnect_if_redundant();
+		if (is_disconnecting()) return;
+
 		if (is_choked())
 		{
 			if (ignore_unchoke_slots())
@@ -1710,7 +1719,7 @@ namespace libtorrent
 
 		if (!t->valid_metadata() && index >= int(m_have_piece.size()))
 		{
-			if (index < 65536)
+			if (index < 131072)
 			{
 				// if we don't have metadata
 				// and we might not have received a bitfield
@@ -1776,7 +1785,10 @@ namespace libtorrent
 			// update bytes downloaded since last timer
 			m_remote_bytes_dled += t->torrent_file().piece_size(index);
 		}
-		
+
+		// if the peer is downloading stuff, it must have metadata		
+		m_has_metadata = true;
+
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -1993,6 +2005,12 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
+
+		// if we don't have the metadata yet, don't disconnect
+		// also, if the peer doesn't have metadata we shouldn't
+		// disconnect it, since it may want to request the
+		// metadata from us
+		if (!t->valid_metadata() || !has_metadata()) return;
 
 		// don't close connections in share mode, we don't know if we need them
 		if (t->share_mode()) return;

@@ -480,6 +480,9 @@ namespace libtorrent
 		void incoming_allowed_fast(int index);
 		void incoming_suggest(int index);
 
+		void set_has_metadata(bool m) { m_has_metadata = m; }
+		bool has_metadata() const { return m_has_metadata; }
+
 		// the following functions appends messages
 		// to the send buffer
 		bool send_choke();
@@ -1163,6 +1166,10 @@ namespace libtorrent
 		// buffer messages up in the application layer send
 		// buffer, and send it once we're uncorked.
 		bool m_corked:1;
+
+		// set to true if this peer has metadata, and false
+		// otherwise.
+		bool m_has_metadata:1;
 
 		template <std::size_t Size>
 		struct handler_storage
