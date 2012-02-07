@@ -5644,7 +5644,7 @@ namespace libtorrent
 #endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);
-		TORRENT_ASSERT(!p->is_local());
+		TORRENT_ASSERT(!p->is_outgoing());
 
 		m_has_incoming = true;
 

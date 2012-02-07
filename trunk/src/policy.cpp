@@ -730,7 +730,7 @@ namespace libtorrent
 
 	bool policy::new_connection(peer_connection& c, int session_time)
 	{
-		TORRENT_ASSERT(!c.is_local());
+		TORRENT_ASSERT(!c.is_outgoing());
 
 		INVARIANT_CHECK;
 
@@ -848,7 +848,7 @@ namespace libtorrent
 					i->connection->disconnect(ec2);
 					TORRENT_ASSERT(i->connection == 0);
 				}
-				else if (!i->connection->is_connecting() || c.is_local())
+				else if (!i->connection->is_connecting() || c.is_outgoing())
 				{
 					c.disconnect(errors::duplicate_peer_id);
 					return false;
