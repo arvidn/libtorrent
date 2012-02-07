@@ -132,7 +132,7 @@ namespace libtorrent { namespace
 
 		void metadata_size(int size)
 		{
-			if (m_metadata_size > 0 || size <= 0 || size > 2 * 1024 * 1024) return;
+			if (m_metadata_size > 0 || size <= 0 || size > 4 * 1024 * 1024) return;
 			m_metadata_size = size;
 			m_metadata.reset(new char[size]);
 			m_requested_metadata.resize(div_round_up(size, 16 * 1024));
@@ -206,6 +206,9 @@ namespace libtorrent { namespace
 			int metadata_size = h.dict_find_int_value("metadata_size");
 			if (metadata_size > 0)
 				m_tp.metadata_size(metadata_size);
+			else
+				m_pc.set_has_metadata(false);
+
 			maybe_send_request();
 			return true;
 		}
