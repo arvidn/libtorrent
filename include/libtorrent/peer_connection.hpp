@@ -399,7 +399,7 @@ namespace libtorrent
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
-		bool is_local() const { return m_active; }
+		bool is_outgoing() const { return m_outgoing; }
 
 		bool received_listen_port() const { return m_received_listen_port; }
 		void received_listen_port()
@@ -1054,7 +1054,7 @@ namespace libtorrent
 		// is true if it was we that connected to the peer
 		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
-		bool m_active:1;
+		bool m_outgoing:1;
 
 		// is true if we learn the incoming connections listening
 		// during the extended handshake

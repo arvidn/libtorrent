@@ -169,7 +169,7 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
-		, m_active(outgoing)
+		, m_outgoing(outgoing)
 		, m_received_listen_port(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -241,7 +241,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
-			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
@@ -320,7 +320,7 @@ namespace libtorrent
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
 		, m_fast_reconnect(false)
-		, m_active(false)
+		, m_outgoing(false)
 		, m_received_listen_port(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -388,7 +388,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s local: %s]"
-			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
@@ -578,7 +578,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (!m_active)
+		if (!m_outgoing)
 		{
 			tcp::socket::non_blocking_io ioc(true);
 			error_code ec;
