@@ -742,7 +742,7 @@ namespace libtorrent
 
 		int request_upload_bandwidth();
 		int request_download_bandwidth(int bytes = 0);
-
+		int request_bandwidth(int channel, int priority, int bytes);
 		// keep the io_service running as long as we
 		// have peer connections
 		io_service::work m_work;

@@ -4718,29 +4718,6 @@ namespace libtorrent
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
-		int max_channels = num_classes() + t->num_classes() + 2;
-		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
-		peer_class_pool& classes = m_ses.m_classes;
-
-		// collect the pointers to all bandwidth channels
-		// that apply to this torrent
-		int c = 0;
-
-		c += copy_pertinent_channels(m_ses.m_classes, *this, upload_channel
-			, channels + c, max_channels - c);
-		c += copy_pertinent_channels(m_ses.m_classes, *t, upload_channel
-			, channels + c, max_channels - c);
-
-#ifdef TORRENT_DEBUG
-		// make sure we don't have duplicates
-		std::set<bandwidth_channel*> unique_classes;
-		for (int i = 0; i < c; ++i)
-		{
-			TORRENT_ASSERT(unique_classes.count(channels[i]) == 0);
-			unique_classes.insert(channels[i]);
-		}
-#endif
-
 		int priority;
 		if (m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
 			&& t && !t->upload_mode() && !t->is_upload_only())
@@ -4767,40 +4744,46 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(priority < 0xffff);
 
-		// peers that we are not interested in are non-prioritized
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
-			"num_channels: %d ]", int(m_send_buffer.size()), priority, c);
-#endif
-		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
-
 		int bytes = (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
 				/ (1000 / m_ses.m_settings.tick_interval));
 
-		int ret = m_ses.m_upload_rate.request_bandwidth(self()
-			, bytes, priority, channels, c);
-
-		if (ret == 0) m_channel_state[upload_channel] |= peer_info::bw_limit;
-
-		return ret;
+		// peers that we are not interested in are non-prioritized
+		return request_bandwidth(upload_channel, priority, bytes);
 	}
 
 	int peer_connection::request_download_bandwidth(int bytes)
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
+		TORRENT_ASSERT(m_priority <= 255);
+		int priority = m_priority + (t ? (t->priority() << 8) : 0);
+
+		TORRENT_ASSERT(m_outstanding_bytes >= 0);
+
+		if (bytes == 0)
+		{
+			bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
+				, m_statistics.download_rate() * 2
+				/ (1000 / m_ses.m_settings.tick_interval));
+		}
+		return request_bandwidth(download_channel, priority, bytes);
+	}
+
+	int peer_connection::request_bandwidth(int channel, int priority, int bytes)
+	{
+		shared_ptr<torrent> t = m_torrent.lock();
+
 		int max_channels = num_classes() + t->num_classes() + 2;
 		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
-
 		peer_class_pool& classes = m_ses.m_classes;
 
 		// collect the pointers to all bandwidth channels
 		// that apply to this torrent
 		int c = 0;
 
-		c += copy_pertinent_channels(m_ses.m_classes, *this, download_channel
+		c += copy_pertinent_channels(m_ses.m_classes, *this, channel
 			, channels + c, max_channels - c);
-		c += copy_pertinent_channels(m_ses.m_classes, *t, download_channel
+		c += copy_pertinent_channels(m_ses.m_classes, *t, channel
 			, channels + c, max_channels - c);
 
 #ifdef TORRENT_DEBUG
@@ -4814,25 +4797,24 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
-			"num_channels: %d ]", int(m_download_queue.size() * 16 * 1024 + 30), m_priority, c);
+		if (channel == download_channel)
+		{
+			peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
+				"num_channels: %d ]", int(m_download_queue.size() * 16 * 1024 + 30), priority, c);
+		}
+		else
+		{
+			peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
+				"num_channels: %d ]", int(m_send_buffer.size()), priority, c);
+		}
 #endif
 
-		TORRENT_ASSERT(m_priority <= 255);
-		int priority = m_priority + (t ? (t->priority() << 8) : 0);
+		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
 
-		TORRENT_ASSERT(m_outstanding_bytes >= 0);
-		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
-		if (bytes == 0)
-		{
-			bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
-				, m_statistics.download_rate() * 2
-				/ (1000 / m_ses.m_settings.tick_interval));
-		}
-		int ret = m_ses.m_download_rate.request_bandwidth(self()
+		int ret = m_ses.m_upload_rate.request_bandwidth(self()
 			, bytes, priority, channels, c);
 
-		if (ret == 0) m_channel_state[download_channel] |= peer_info::bw_limit;
+		if (ret == 0) m_channel_state[channel] |= peer_info::bw_limit;
 
 		return ret;
 	}
