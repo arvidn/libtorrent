@@ -132,21 +132,6 @@ namespace libtorrent
 		m_in_constructor = false;
 #endif
 		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
-
-#ifdef TORRENT_USE_OPENSSL
-		boost::shared_ptr<torrent> t = tor.lock();
-		std::string const key = t->torrent_file().encryption_key();
-		if (key.size() == 32)
-		{
-			m_enc_handler.reset(new aes256_handler);
-			m_enc_handler->set_incoming_key((const unsigned char*)key.c_str(), key.size());
-			m_encrypted = true;
-			m_rc4_encrypted = true;
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** encrypted torrent. enabling AES-256 encryption");
-#endif
-		}
-#endif
 	}
 
 	bt_peer_connection::bt_peer_connection(
@@ -221,12 +206,6 @@ namespace libtorrent
 		pe_settings::enc_policy out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
 #ifdef TORRENT_USE_OPENSSL
-		// if this torrent is using AES-256 encryption, don't
-		// also enable the normal encryption
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		std::string const key = t->torrent_file().encryption_key();
-		if (key.size() == 32) out_enc_policy = pe_settings::disabled;
-
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(*get_socket()))
 			out_enc_policy = pe_settings::disabled;
@@ -2571,12 +2550,6 @@ namespace libtorrent
 			{
 				torrent const& ti = *i->second;
 
-#ifdef TORRENT_USE_OPENSSL
-				// don't consider encrypted torrents (since that would
-				// open up a hole to connecting to them without the key)
-				if (ti.torrent_file().encryption_key().size() == 32) continue;
-#endif
-
 				sha1_hash const& skey_hash = ti.obfuscated_hash();
 				sha1_hash obfs_hash = m_dh_key_exchange->get_hash_xor_mask();
 				obfs_hash ^= skey_hash;
@@ -2955,69 +2928,30 @@ namespace libtorrent
 				}
 #endif // TORRENT_USE_OPENSSL
 
-				bool found_encrypted_torrent = false;
-#ifdef TORRENT_USE_OPENSSL
-				if (!is_outgoing())
-				{
-					std::auto_ptr<encryption_handler> handler(new aes256_handler);
-					boost::uint8_t temp_pad[20];
-
-					for (std::set<boost::shared_ptr<torrent> >::iterator i = m_ses.m_encrypted_torrents.begin()
-						, end(m_ses.m_encrypted_torrents.end()); i != end; ++i)
-					{
-						boost::shared_ptr<torrent> t = *i;
-						std::string const key = t->torrent_file().encryption_key();
-						TORRENT_ASSERT(key.size() == 32);
-						handler->set_incoming_key((const unsigned char*)key.c_str(), key.size());
-						std::memcpy(temp_pad, recv_buffer.begin, 20);
-						handler->decrypt((char*)temp_pad, 20);
-						if (memcmp(temp_pad, protocol_string, 20) != 0) continue;
-
-						// we found the key that could decrypt it
-						m_rc4_encrypted = true;
-						m_encrypted = true;
-						m_enc_handler.reset(handler.release());
-						found_encrypted_torrent = true;
-#ifdef TORRENT_VERBOSE_LOGGING
-						peer_log("*** found encrypted torrent");
-#endif
-						TORRENT_ASSERT(recv_buffer.left() == 20);
-//						handler->decrypt((char*)recv_buffer.begin + 20, recv_buffer.left() - 20);
-						break;
-					}
-				}
-#endif
-
-				if (!found_encrypted_torrent)
-				{
-
-					if (!is_outgoing()
+				if (!is_outgoing()
 					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
-					{
-						disconnect(errors::no_incoming_encrypted);
-						return;
-					}
-
-					// Don't attempt to perform an encrypted handshake
-					// within an encrypted connection. For local connections,
-					// we're expected to already have passed the encrypted
-					// handshake by this point
-					if (m_encrypted || is_outgoing())
-					{
-						disconnect(errors::invalid_info_hash, 1);
-						return;
-					}
-
-#ifdef TORRENT_VERBOSE_LOGGING
- 					peer_log("*** attempting encrypted connection");
-#endif
- 					m_state = read_pe_dhkey;
-					cut_receive_buffer(0, dh_key_len);
-					TORRENT_ASSERT(!packet_finished());
+				{
+					disconnect(errors::no_incoming_encrypted);
 					return;
 				}
-				
-				TORRENT_ASSERT((!is_outgoing() && m_encrypted) || is_outgoing());
+
+				// Don't attempt to perform an encrypted handshake
+				// within an encrypted connection. For local connections,
+				// we're expected to already have passed the encrypted
+				// handshake by this point
+				if (m_encrypted || is_outgoing())
+				{
+					disconnect(errors::invalid_info_hash, 1);
+					return;
+				}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** attempting encrypted connection");
+#endif
+				m_state = read_pe_dhkey;
+				cut_receive_buffer(0, dh_key_len);
+				TORRENT_ASSERT(!packet_finished());
+				return;
 #else
 				disconnect(errors::invalid_info_hash, 1);
 				return;
