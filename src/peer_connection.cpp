@@ -839,11 +839,10 @@ namespace libtorrent
 
 			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
-				if (m_have_piece[i])
-				{
-					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
-						interesting = true;
-				}
+				if (!m_have_piece[i]) continue;
+				if (t->have_piece(i) || t->picker().piece_priority(i) == 0) continue;
+				interesting = true;
+				break;
 			}
 		}
 
