@@ -198,6 +198,7 @@ namespace libtorrent
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
 		, m_initialized(false)
+		, m_in_use(1337)
 		, m_received_in_piece(0)
 #endif
 	{
@@ -349,6 +350,7 @@ namespace libtorrent
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
 		, m_initialized(false)
+		, m_in_use(1337)
 		, m_received_in_piece(0)
 #endif
 	{
@@ -914,6 +916,10 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
 		TORRENT_ASSERT(m_disconnect_started);
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_in_use = 0;
+#endif
 
 		// defensive
 
@@ -5650,6 +5656,7 @@ namespace libtorrent
 
 	void peer_connection::check_invariant() const
 	{
+		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));

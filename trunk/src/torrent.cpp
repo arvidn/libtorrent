@@ -3140,12 +3140,17 @@ namespace libtorrent
 		{
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
+			TORRENT_ASSERT(p->in_use);
 			p->on_parole = false;
 			int trust_points = p->trust_points;
 			++trust_points;
 			if (trust_points > 8) trust_points = 8;
 			p->trust_points = trust_points;
-			if (p->connection) p->connection->received_valid_data(index);
+			if (p->connection)
+			{
+				TORRENT_ASSERT(p->connection->m_in_use == 1337);
+				p->connection->received_valid_data(index);
+			}
 		}
 
 		if (settings().max_sparse_regions > 0

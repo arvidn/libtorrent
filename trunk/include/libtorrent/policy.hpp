@@ -311,7 +311,7 @@ namespace libtorrent
 			// we have been connected via uTP at least once
 			bool confirmed_supports_utp:1;
 			bool supports_holepunch:1;
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use:1;
 #endif
 		};

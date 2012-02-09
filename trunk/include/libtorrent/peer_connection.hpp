@@ -1261,6 +1261,7 @@ namespace libtorrent
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;
 		bool m_initialized:1;
+		int m_in_use;
 		int m_received_in_piece;
 #endif
 	};
