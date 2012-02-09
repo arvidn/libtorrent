@@ -201,6 +201,8 @@ void test_reject_fast()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 	error_code ec;
 	add_torrent_params p;
+	p.paused = false;
+	p.auto_managed = false;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
 
@@ -209,7 +211,7 @@ void test_reject_fast()
 	ec.clear();
 	ses1.add_torrent(p, ec);
 
-	test_sleep(2000);
+	test_sleep(300);
 
 	io_service ios;
 	stream_socket s(ios);
@@ -263,6 +265,8 @@ void test_respect_suggest()
 
 	error_code ec;
 	add_torrent_params p;
+	p.paused = false;
+	p.auto_managed = false;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
 
@@ -271,7 +275,7 @@ void test_respect_suggest()
 	ec.clear();
 	ses1.add_torrent(p, ec);
 
-	test_sleep(2000);
+	test_sleep(300);
 
 	io_service ios;
 	stream_socket s(ios);
