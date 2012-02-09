@@ -1363,12 +1363,6 @@ namespace libtorrent
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
-
-		// set to true if this torrent has been added to the session
-		// global list for encrypted torrents. When the torrent is
-		// paused it's removed and when it's started again, it's
-		// re-added
-		bool m_in_encrypted_list:1;
 		
 		// state subscription. If set, a pointer to this torrent
 		// will be added to the m_state_updates set in session_impl

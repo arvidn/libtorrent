@@ -428,7 +428,6 @@ namespace libtorrent
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
-		, m_in_encrypted_list(false)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
 		, m_in_state_updates(false)
 	{
@@ -1489,14 +1488,6 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		std::string cert = m_torrent_file->ssl_cert();
 		if (!cert.empty()) init_ssl(cert);
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-		if (m_torrent_file->encryption_key().size() == 32 && !m_in_encrypted_list)
-		{
-			m_ses.m_encrypted_torrents.insert(shared_from_this());
-			m_in_encrypted_list = true;
-		}
 #endif
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
@@ -3368,14 +3359,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_abort) return;
-
-#ifdef TORRENT_USE_OPENSSL
-		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && m_in_encrypted_list)
-		{
-			m_ses.m_encrypted_torrents.erase(shared_from_this());
-			m_in_encrypted_list = false;
-		}
-#endif
 
 		m_abort = true;
 		// if the torrent is paused, it doesn't need
@@ -6813,14 +6796,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!is_paused()) return;
 
-#ifdef TORRENT_USE_OPENSSL
-		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && m_in_encrypted_list)
-		{
-			m_ses.m_encrypted_torrents.erase(shared_from_this());
-			m_in_encrypted_list = false;
-		}
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -6971,14 +6946,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) return;
-
-#ifdef TORRENT_USE_OPENSSL
-		if (m_torrent_file->is_valid() && m_torrent_file->encryption_key().size() == 32 && !m_in_encrypted_list)
-		{
-			m_ses.m_encrypted_torrents.insert(shared_from_this());
-			m_in_encrypted_list = true;
-		}
-#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
