@@ -1218,14 +1218,6 @@ namespace libtorrent
 			return;
 		}
 
-#ifdef TORRENT_USE_OPENSSL
-		if (t->torrent_file().encryption_key().size() == 32 && !allow_encrypted)
-		{
-			disconnect(errors::invalid_info_hash, 2);
-			return;
-		}
-#endif
-
 		if (t->is_paused() && (!t->is_auto_managed()
 			|| !m_ses.m_settings.incoming_starts_queued_torrents))
 		{

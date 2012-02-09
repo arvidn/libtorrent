@@ -665,12 +665,6 @@ namespace libtorrent
 			torrent_map m_torrents;
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
 
-			// these are all the torrents using full AES-256 encryption of
-			// all peer connections. When receiving a handshake that's encrypred
-			// these are the torrents we need to try to decrypt it with to
-			// find the decryption key
-			std::set<boost::shared_ptr<torrent> > m_encrypted_torrents;
-
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this has all torrents that wants to be checked in it

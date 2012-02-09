@@ -830,7 +830,6 @@ namespace aux {
 		PRINT_OFFSETOF(torrent_info, m_created_by)
 #ifdef TORRENT_USE_OPENSSL
 		PRINT_OFFSETOF(torrent_info, m_ssl_root_cert)
-		PRINT_OFFSETOF(torrent_info, m_aes_key)
 #endif
 		PRINT_OFFSETOF(torrent_info, m_info_dict)
 		PRINT_OFFSETOF(torrent_info, m_creation_date)
