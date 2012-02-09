@@ -5756,12 +5756,18 @@ namespace libtorrent
 		if (m_ses.settings().close_redundant_connections && !t->share_mode())
 		{
 			// make sure upload only peers are disconnected
-			if (t->is_upload_only() && m_upload_only)
+			if (t->is_upload_only()
+				&& m_upload_only
+				&& t->valid_metadata()
+				&& has_metadata())
 				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
+
 			if (m_upload_only
 				&& !m_interesting
 				&& m_bitfield_received
-				&& t->are_files_checked())
+				&& t->are_files_checked()
+				&& t->valid_metadata()
+				&& has_metadata())
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 
