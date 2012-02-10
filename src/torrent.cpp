@@ -5579,6 +5579,14 @@ namespace libtorrent
 		// any of the peers.
 		m_override_resume_data = true;
 
+		// disconnect redundant peers
+		for (std::set<peer_connection*>::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end;)
+		{
+			std::set<peer_connection*>::iterator p = i++;
+			(*p)->disconnect_if_redundant();
+		}
+
 		init();
 
 		return true;
@@ -6844,7 +6852,10 @@ namespace libtorrent
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 				if (p->is_disconnecting())
+				{
 					m_connections.erase(j);
+					continue;
+				}
 
 				if (p->outstanding_bytes() > 0)
 				{
