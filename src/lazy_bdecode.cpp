@@ -51,6 +51,12 @@ namespace libtorrent
 #define TORRENT_FAIL_BDECODE(code) \
 	{ \
 		ec = code; \
+		while (!stack.empty()) { \
+			top = stack.back(); \
+			fprintf(stderr, "top->type: %d\n", top->type()); \
+			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
+			stack.pop_back(); \
+		} \
 		if (error_pos) *error_pos = start - orig_start; \
 		return -1; \
 	}
@@ -176,7 +182,11 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!is_digit(t)) TORRENT_FAIL_BDECODE(errors::expected_value);
+					if (!is_digit(t))
+					{
+						int a = 0;
+						TORRENT_FAIL_BDECODE(errors::expected_value);
+					}
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);
@@ -232,6 +242,11 @@ namespace libtorrent
 		lazy_dict_entry& ret = m_data.dict[m_size++];
 		ret.name = name;
 		return &ret.val;
+	}
+
+	void lazy_entry::pop()
+	{
+		if (m_size > 0) --m_size;
 	}
 
 	namespace

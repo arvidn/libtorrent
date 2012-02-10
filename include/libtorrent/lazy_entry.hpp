@@ -155,6 +155,7 @@ namespace libtorrent
 		}
 
 		lazy_entry* dict_append(char const* name);
+		void pop();
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
