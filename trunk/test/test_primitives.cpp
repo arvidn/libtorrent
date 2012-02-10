@@ -499,6 +499,21 @@ int test_main()
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
 
+	// test empty strings [ { "":1 }, "" ]
+	char const test_msg6[] = "ld0:i1ee0:e";
+	lazy_bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	TEST_CHECK(ent.type() == lazy_entry::list_t);
+	if (ent.type() == lazy_entry::list_t)
+	{
+		TEST_CHECK(ent.list_size() == 2);
+		if (ent.list_size() == 2)
+		{
+			TEST_CHECK(ent.list_at(0)->dict_find_int_value("") == 1);
+			TEST_CHECK(ent.list_at(1)->string_value() == "");
+		}
+	}
+
 	// test external ip voting
 	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
 		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
