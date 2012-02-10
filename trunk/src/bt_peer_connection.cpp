@@ -1617,6 +1617,7 @@ namespace libtorrent
 		if (extended_id == 0)
 		{
 			on_extended_handshake();
+			disconnect_if_redundant();
 			return;
 		}
 
