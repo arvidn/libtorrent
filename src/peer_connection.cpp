@@ -829,6 +829,9 @@ namespace libtorrent
 		on_metadata();
 		if (m_disconnecting) return;
 
+		disconnect_if_redundant();
+		if (m_disconnecting) return;
+
 		// let the torrent know which pieces the
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
