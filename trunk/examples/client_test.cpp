@@ -313,6 +313,7 @@ void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
 		filtered_handles.push_back(&*i);
 	}
 	if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
+	else if (active_torrent == -1 && !filtered_handles.empty()) active_torrent = 0;
 	std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
 }
 
@@ -983,6 +984,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
+		bool need_filter_update = false;
 		for (std::vector<torrent_status>::iterator i = p->status.begin();
 			i != p->status.end(); ++i)
 		{
@@ -990,8 +992,14 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			// don't add new entries here, that's done in the handler
 			// for add_torrent_alert
 			if (j == all_handles.end()) continue;
+			if (j->state != i->state
+				|| j->paused != i->paused
+				|| j->auto_managed != i->auto_managed)
+				need_filter_update = true;
 			((torrent_status&)*j) = *i;
 		}
+		if (need_filter_update)
+			update_filtered_torrents(all_handles, filtered_handles, counters);
 
 		return true;
 	}
