@@ -8068,6 +8068,11 @@ of bytes. All access is done by writing and reading whole or partial
 slots. One slot is one piece in the torrent, but the data in the slot
 does not necessarily correspond to the piece with the same index (in
 compact allocation mode it won't).</p>
+<p>libtorrent comes with two built-in storage implementations; <tt class="docutils literal"><span class="pre">default_storage</span></tt>
+and <tt class="docutils literal"><span class="pre">disabled_storage</span></tt>. Their constructor functions are called <tt class="docutils literal"><span class="pre">default_storage_constructor</span></tt>
+and <tt class="docutils literal"><span class="pre">disabled_storage_constructor</span></tt> respectively. The disabled storage does
+just what it sounds like. It throws away data that's written, and it
+reads garbage. It's useful mostly for benchmarking and profiling purpose.</p>
 <p>The interface looks like this:</p>
 <pre class="literal-block">
 struct storage_interface
