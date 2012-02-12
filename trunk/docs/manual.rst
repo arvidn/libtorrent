@@ -8057,6 +8057,13 @@ slots. One slot is one piece in the torrent, but the data in the slot
 does not necessarily correspond to the piece with the same index (in
 compact allocation mode it won't).
 
+libtorrent comes with two built-in storage implementations; ``default_storage``
+and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
+and ``disabled_storage_constructor`` respectively. The disabled storage does
+just what it sounds like. It throws away data that's written, and it
+reads garbage. It's useful mostly for benchmarking and profiling purpose.
+
+
 The interface looks like this::
 
 	struct storage_interface
