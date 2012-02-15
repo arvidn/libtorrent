@@ -4530,9 +4530,9 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.m_io_service));
 		if (!s) return;
 	
-		bool ssl = string_begins_no_case("https://", web->url.c_str());
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
+		bool ssl = string_begins_no_case("https://", web->url.c_str());
 		if (ssl)
 		{
 			userdata = m_ssl_ctx.get();
@@ -5731,7 +5731,7 @@ namespace libtorrent
 			return false;
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
-		peer_iterator ci = m_connections.insert(p).first;
+		m_connections.insert(p).first;
 #ifdef TORRENT_DEBUG
 		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
@@ -7127,8 +7127,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
-		ptime now = time_now();
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -7548,7 +7546,6 @@ namespace libtorrent
 
 		std::vector<cached_piece_info> ret;
 		m_ses.m_disk_thread.get_cache_info(info_hash(), ret);
-		ptime now = time_now();
 
 		// remove write cache entries
 		ret.erase(std::remove_if(ret.begin(), ret.end()
