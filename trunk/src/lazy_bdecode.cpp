@@ -183,10 +183,7 @@ namespace libtorrent
 				default:
 				{
 					if (!is_digit(t))
-					{
-						int a = 0;
 						TORRENT_FAIL_BDECODE(errors::expected_value);
-					}
 
 					boost::int64_t len = t - '0';
 					start = parse_int(start, end, ':', len);

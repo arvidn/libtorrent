@@ -672,9 +672,9 @@ void natpmp::close_impl(mutex::scoped_lock& l)
 	log("closing", l);
 #ifdef NATPMP_LOG
 	std::cout << time_now_string() << " close" << std::endl;
+	ptime now = time_now();
 #endif
 	if (m_disabled) return;
-	ptime now = time_now();
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
