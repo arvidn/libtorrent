@@ -543,8 +543,14 @@ lib torrent
 
 # hide non-external symbols
 	<toolset>darwin:<cflags>-fvisibility=hidden
+	<toolset>darwin:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>darwin:<linkflags>-W1,-Bsymbolic
 	<toolset>gcc:<cflags>-fvisibility=hidden
+	<toolset>gcc:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>gcc:<linkflags>-W1,-Bsymbolic
 	<toolset>llvm:<cflags>-fvisibility=hidden
+	<toolset>llvm:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>llvm:<linkflags>-W1,-Bsymbolic
 
 	$(usage-requirements)
 

@@ -97,7 +97,8 @@ AS_ECHO "Checking for posix thread support:"
 AX_PTHREAD()
 
 LIBS="$PTHREAD_LIBS $LIBS"
-CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
+CFLAGS="$PTHREAD_CFLAGS $CFLAGS -fvisibility=hidden"
+CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
 CC="$PTHREAD_CC"
 
 AS_ECHO
