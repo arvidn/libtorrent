@@ -2100,16 +2100,11 @@ namespace libtorrent
 		// increase the trust point of all peers that sent
 		// parts of this piece.
 		std::set<void*> peers;
+
+		// these policy::peer pointers are owned by m_policy and they may be
+		// invalidated if a peer disconnects. We cannot keep them across any
+		// significant operations, but we should use them right away
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
-
-		we_have(index);
-
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
-		{
-			intrusive_ptr<peer_connection> p = *i;
-			++i;
-			p->announce_piece(index);
-		}
 
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
@@ -2122,6 +2117,20 @@ namespace libtorrent
 			if (trust_points > 8) trust_points = 8;
 			p->trust_points = trust_points;
 			if (p->connection) p->connection->received_valid_data(index);
+		}
+
+		// announcing a piece may invalidate the policy::peer pointers
+		// so we can't use them anymore
+		downloaders.clear();
+		peers.clear();
+
+		we_have(index);
+
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
+		{
+			intrusive_ptr<peer_connection> p = *i;
+			++i;
+			p->announce_piece(index);
 		}
 
 		if (settings().max_sparse_regions > 0
