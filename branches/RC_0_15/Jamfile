@@ -310,9 +310,6 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
-feature visibility : default hidden : composite propagated link-incompatible ;
-feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
-
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;
@@ -502,6 +499,12 @@ lib torrent
 	<zlib>shipped:<source>zlib/$(ZLIB_SOURCES).c
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
+
+# hide non-external symbols
+	<toolset>darwin:<cflags>-fvisibility=hidden
+	<toolset>gcc:<cflags>-fvisibility=hidden
+	<toolset>llvm:<cflags>-fvisibility=hidden
+
 	$(usage-requirements)
 
 	: # default build
