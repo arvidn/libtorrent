@@ -71,7 +71,7 @@ namespace libtorrent
 	struct peer_list_entry;
 	struct torrent_status;
 
-	std::size_t hash_value(torrent_status const& ts);
+	TORRENT_EXPORT std::size_t hash_value(torrent_status const& ts);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// for compatibility with 0.14
