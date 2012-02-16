@@ -5731,7 +5731,7 @@ namespace libtorrent
 			return false;
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
-		m_connections.insert(p).first;
+		m_connections.insert(p);
 #ifdef TORRENT_DEBUG
 		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
