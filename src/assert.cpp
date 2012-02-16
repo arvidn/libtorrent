@@ -244,7 +244,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 
 #else
 
-void assert_fail(char const* expr, int line, char const* file, char const* function) {}
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file, char const* function) {}
 
 #endif
 
