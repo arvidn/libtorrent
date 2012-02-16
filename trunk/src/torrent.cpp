@@ -3115,21 +3115,19 @@ namespace libtorrent
 		// increase the trust point of all peers that sent
 		// parts of this piece.
 		std::set<void*> peers;
-		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
-		we_have(index);
-
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
-		{
-			intrusive_ptr<peer_connection> p = *i;
-			++i;
-			p->announce_piece(index);
-		}
+		// these policy::peer pointers are owned by m_policy and they may be
+		// invalidated if a peer disconnects. We cannot keep them across any
+		// significant operations, but we should use them right away
+		// ignore NULL pointers
+		std::remove_copy(downloaders.begin(), downloaders.end()
+			, std::inserter(peers, peers.begin()), (policy::peer*)0);
 
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
 		{
 			policy::peer* p = static_cast<policy::peer*>(*i);
+			TORRENT_ASSERT(p != 0);
 			if (p == 0) continue;
 			TORRENT_ASSERT(p->in_use);
 			p->on_parole = false;
@@ -3142,6 +3140,21 @@ namespace libtorrent
 				TORRENT_ASSERT(p->connection->m_in_use == 1337);
 				p->connection->received_valid_data(index);
 			}
+		}
+
+		// announcing a piece may invalidate the policy::peer pointers
+		// so we can't use them anymore
+
+		downloaders.clear();
+		peers.clear();
+
+		we_have(index);
+
+		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
+		{
+			intrusive_ptr<peer_connection> p = *i;
+			++i;
+			p->announce_piece(index);
 		}
 
 		if (settings().max_sparse_regions > 0
@@ -5579,6 +5592,11 @@ namespace libtorrent
 		// any of the peers.
 		m_override_resume_data = true;
 
+		// we have to initialize the torrent before we start
+		// disconnecting redundant peers, otherwise we'll think
+		// we're a seed, because we have all 0 pieces
+		init();
+
 		// disconnect redundant peers
 		for (std::set<peer_connection*>::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end;)
@@ -5586,8 +5604,6 @@ namespace libtorrent
 			std::set<peer_connection*>::iterator p = i++;
 			(*p)->disconnect_if_redundant();
 		}
-
-		init();
 
 		return true;
 	}
