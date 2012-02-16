@@ -2815,7 +2815,7 @@ namespace libtorrent
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
 		for (int i = 0; i < int(m_file_priority.size()); ++i)
 		{
-			if (index >= m_torrent_file->num_files()) break;
+			if (i >= m_torrent_file->num_files()) break;
 			size_type start = position;
 			size_type size = m_torrent_file->files().at(i).size;
 			if (size == 0) continue;
