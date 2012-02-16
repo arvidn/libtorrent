@@ -80,7 +80,7 @@ namespace libtorrent
 			un /= 10;
 		} while (un);
 		if (n < 0) *--p = '-';
-		std::memmove(&ret[0], p, &ret.back() - p);
+		std::memmove(&ret[0], p, &ret.back() - p + 1);
 		return ret;
 	}
 
