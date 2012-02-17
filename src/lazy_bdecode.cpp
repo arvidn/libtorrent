@@ -53,7 +53,6 @@ namespace libtorrent
 		ec = code; \
 		while (!stack.empty()) { \
 			top = stack.back(); \
-			fprintf(stderr, "top->type: %d\n", top->type()); \
 			if (top->type() == lazy_entry::dict_t || top->type() == lazy_entry::list_t) top->pop(); \
 			stack.pop_back(); \
 		} \
