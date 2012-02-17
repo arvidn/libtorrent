@@ -2813,14 +2813,20 @@ namespace libtorrent
 			{
 				if (!i->pad_file) continue;
 				peer_request p = files.map_file(fileno, 0, i->size);
-				for (int j = p.piece; p.length > 0; ++j, p.length -= piece_size)
+				for (int j = p.piece; p.length > 0; ++j)
 				{
-					int deduction = (std::min)(p.length, piece_size);
+					int deduction = (std::min)(p.length, piece_size - p.start);
 					bool done = m_picker->have_piece(j);
 					bool wanted = m_picker->piece_priority(j) > 0;
 					if (done) st.total_done -= deduction;
 					if (wanted) st.total_wanted -= deduction;
 					if (wanted && done) st.total_wanted_done -= deduction;
+					TORRENT_ASSERT(st.total_done >= 0);
+					TORRENT_ASSERT(st.total_wanted >= 0);
+					TORRENT_ASSERT(st.total_wanted_done >= 0);
+					p.length -= piece_size - p.start;
+					p.start = 0;
+					++p.piece;
 				}
 			}
 		}
