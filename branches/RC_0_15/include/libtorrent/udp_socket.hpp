@@ -117,12 +117,12 @@ namespace libtorrent
 
 		udp::socket m_ipv4_sock;
 		udp::endpoint m_v4_ep;
-		char m_v4_buf[1600];
+		char m_v4_buf[2000];
 
 #if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
 		udp::endpoint m_v6_ep;
-		char m_v6_buf[1600];
+		char m_v6_buf[2000];
 #endif
 
 		boost::uint16_t m_bind_port;
