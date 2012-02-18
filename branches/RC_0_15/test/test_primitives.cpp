@@ -858,7 +858,7 @@ int test_main()
 
 	parse_state xml_s;
 	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
-	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
+	xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
 		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
@@ -870,7 +870,7 @@ int test_main()
 	TEST_CHECK(xml_s.model == "D-Link Router");
 
 	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
-	xml_parse((char*)upnp_xml2, (char*)upnp_xml2 + sizeof(upnp_xml2)
+	xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
 		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
