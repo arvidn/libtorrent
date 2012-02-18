@@ -65,7 +65,7 @@ namespace libtorrent
 			char const* val_start = 0;
 			int token;
 			// look for tag start
-			for(; *p != '<' && p != end; ++p);
+			for(; p != end && *p != '<'; ++p);
 
 			if (p != start)
 			{
