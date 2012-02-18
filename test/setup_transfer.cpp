@@ -335,7 +335,6 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// they should not use the same save dir, because the
 	// file pool will complain if two torrents are trying to
 	// use the same files
-	sha1_hash info_hash = t->info_hash();
 	add_torrent_params param;
 	param.paused = false;
 	param.auto_managed = false;

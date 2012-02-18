@@ -394,14 +394,14 @@ namespace libtorrent
 		, m_need_save_resume_data(true)
 		, m_seeding_time(0)
 		, m_time_scaler(0)
-		, m_max_uploads(~0)
+		, m_max_uploads((1<<24)-1)
 		, m_deficit_counter(0)
 		, m_num_uploads(0)
 		, m_block_size_shift(root2(block_size))
 		, m_has_incoming(false)
 		, m_files_checked(false)
 		, m_queued_for_checking(false)
-		, m_max_connections(~0)
+		, m_max_connections((1<<24)-1)
 		, m_padding(0)
 		, m_complete(0xffffff)
 		, m_priority(0)
@@ -6452,7 +6452,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_uploads != limit) state_updated();
 		m_max_uploads = limit;
 	}
@@ -6461,7 +6461,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_connections != limit) state_updated();
 		m_max_connections = limit;
 
@@ -8176,9 +8176,9 @@ namespace libtorrent
 		}
 
 		st->num_uploads = m_num_uploads;
-		st->uploads_limit = m_max_uploads;
+		st->uploads_limit = m_max_uploads == (1<<24)-1 ? -1 : m_max_uploads;
 		st->num_connections = int(m_connections.size());
-		st->connections_limit = m_max_connections;
+		st->connections_limit = m_max_connections == (1<<24)-1 ? -1 : m_max_connections;
 		// if we don't have any metadata, stop here
 
 		st->queue_position = queue_position();
