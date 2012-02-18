@@ -668,8 +668,11 @@ namespace libtorrent
 		rc4->encrypt(buf, len);
 	}
 
-	void bt_peer_connection::send_buffer(char const* buf, int size, int flags)
+	void bt_peer_connection::send_buffer(char const* buf, int size, int flags
+			, void (*f)(char*, int, void*), void* ud)
 	{
+		TORRENT_ASSERT(f == 0);
+		TORRENT_ASSERT(ud == 0);
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
 		

@@ -140,7 +140,7 @@ namespace
 			return false;
 		}
 
-		virtual bool on_bitfield(std::vector<bool> const& bitfield)
+		virtual bool on_bitfield(bitfield const& bitfield_)
 		{
 			log_timestamp();
 			m_file << "<== BITFIELD\n";
@@ -157,7 +157,7 @@ namespace
 			return false;
 		}
 
-		virtual bool on_piece(peer_request const& r, char const*)
+		virtual bool on_piece(peer_request const& r, disk_buffer_holder& data)
 		{
 			log_timestamp();
 			m_file << "<== PIECE [ piece: " << r.piece << " | s: " << r.start
