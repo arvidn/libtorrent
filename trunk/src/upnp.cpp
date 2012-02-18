@@ -357,15 +357,14 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		}
 		else
 		{
-			char msg[200];
+			char msg[400];
 			int num_chars = snprintf(msg, sizeof(msg)
 				, "ignoring response from: %s. IP is not on local network. "
 				, print_endpoint(from).c_str());
-			log(msg, l);
 
 			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
 			for (std::vector<ip_interface>::const_iterator i = net.begin()
-				, end(net.end()); i != end; ++i)
+				, end(net.end()); i != end && num_chars < sizeof(msg); ++i)
 			{
 				num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 					, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
@@ -396,9 +395,8 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				int num_chars = snprintf(msg, sizeof(msg), "ignoring response from: %s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
-					, end(routes.end()); i != end; ++i)
+					, end(routes.end()); i != end && num_chars < sizeof(msg); ++i)
 				{
-					if (num_chars >= int(sizeof(msg)-1)) break;
 					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
