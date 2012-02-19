@@ -70,7 +70,7 @@ def build_stage_dirs():
 	return ret
 
 # make sure we have all the binaries available
-binaries = ['client_test', 'connection_tester', 'fragmentation_test', 'parse_access_log']
+binaries = ['client_test', 'connection_tester', 'fragmentation_test']
 for b in build_stage_dirs():
 	for i in binaries:
 		p = os.path.join(b, i)
@@ -199,14 +199,12 @@ def run_test(config):
 	shutil.copy('fragmentation.log', 'session_stats/')
 	shutil.copy('fragmentation.png', 'session_stats/')
 	shutil.copy('fragmentation.gnuplot', 'session_stats/')
-	shutil.copy('file_access.log', 'session_stats/')
 
 	os.chdir('session_stats')
 
 	# parse session stats
 	print 'parsing session log'
 	os.system('python ../../parse_session_stats.py *.0000.log')
-	os.system('../stage_%s/parse_access_log file_access.log %s' % (config['build'], os.path.join('..', config['save-path'], 'stress_test_file')))
 
 	os.chdir('..')
 
