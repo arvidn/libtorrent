@@ -922,7 +922,7 @@ void test_rename_file_in_fastresume(path const& test_path)
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			test_sleep(1000);
 			torrent_status s = h.status();
-			if (s.state == torrent_status::seeding && renamed) return;
+			if (s.state == torrent_status::seeding && renamed) break;
 		}
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();

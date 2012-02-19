@@ -4859,6 +4859,23 @@ namespace libtorrent
 				? m_url : m_uuid, me));
 		}
 
+		// TODO: make this more generic to not just work if files have been
+		// renamed, but also if they have been merged into a single file for instance
+		// maybe use the same format as .torrent files and reuse some code from torrent_info
+		// The mapped_files needs to be read both in the network thread
+		// and in the disk thread, since they both have their own mapped files structures
+		// which are kept in sync
+		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
+		if (mapped_files && mapped_files->list_size() == m_torrent_file->num_files())
+		{
+			for (int i = 0; i < m_torrent_file->num_files(); ++i)
+			{
+				std::string new_filename = mapped_files->list_string_value_at(i);
+				if (new_filename.empty()) continue;
+				m_torrent_file->rename_file(i, new_filename);
+			}
+		}
+		
 		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
 		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
