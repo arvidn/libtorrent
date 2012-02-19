@@ -716,12 +716,6 @@ namespace libtorrent
 			// to clear the undead peers
 			boost::optional<io_service::work> m_work;
 
-			// these are all the torrents using full AES-256 encryption of
-			// all peer connections. When receiving a handshake that's encrypred
-			// these are the torrents we need to try to decrypt it with to
-			// find the decryption key
-			std::set<boost::shared_ptr<torrent> > m_encrypted_torrents;
-
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this maps sockets to their peer_connection

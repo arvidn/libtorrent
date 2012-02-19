@@ -359,9 +359,6 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
-feature visibility : default hidden : composite propagated link-incompatible ;
-feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
-
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;
@@ -567,6 +564,18 @@ lib torrent
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
+
+# hide non-external symbols
+	<toolset>darwin:<cflags>-fvisibility=hidden
+	<toolset>darwin:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>darwin:<linkflags>-W1,-Bsymbolic
+	<toolset>gcc:<cflags>-fvisibility=hidden
+	<toolset>gcc:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>gcc:<linkflags>-W1,-Bsymbolic
+	<toolset>llvm:<cflags>-fvisibility=hidden
+	<toolset>llvm:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>llvm:<linkflags>-W1,-Bsymbolic
+
 	$(usage-requirements)
 
 	: # default build

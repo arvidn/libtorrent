@@ -174,7 +174,7 @@ namespace libtorrent
 		, m_choke_rejects(0)
 		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
-		, m_active(outgoing)
+		, m_outgoing(outgoing)
 		, m_received_listen_port(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -199,10 +199,12 @@ namespace libtorrent
 		, m_ignore_stats(false)
 		, m_corked(false)
 		, m_need_interest_update(false)
+		, m_has_metadata(true)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
 		, m_initialized(false)
+		, m_in_use(1337)
 		, m_received_in_piece(0)
 		, m_destructed(false)
 #endif
@@ -248,7 +250,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(m_remote.address().to_string(ec) + "_"
 			+ to_string(m_remote.port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
-			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
@@ -327,7 +329,7 @@ namespace libtorrent
 		, m_choke_rejects(0)
 		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
-		, m_active(false)
+		, m_outgoing(false)
 		, m_received_listen_port(false)
 		, m_peer_interested(false)
 		, m_peer_choked(true)
@@ -355,6 +357,7 @@ namespace libtorrent
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
 		, m_initialized(false)
+		, m_in_use(1337)
 		, m_received_in_piece(0)
 		, m_destructed(false)
 #endif
@@ -396,7 +399,7 @@ namespace libtorrent
 		m_logger = m_ses.create_log(remote().address().to_string(ec) + "_"
 			+ to_string(remote().port()).elems, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s local: %s]"
-			, m_active ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
+			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
 			, print_endpoint(m_socket->local_endpoint(ec)).c_str());
@@ -586,7 +589,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
-		if (!m_active)
+		if (!m_outgoing)
 		{
 			tcp::socket::non_blocking_io ioc(true);
 			error_code ec;
@@ -842,6 +845,9 @@ namespace libtorrent
 		on_metadata();
 		if (m_disconnecting) return;
 
+		disconnect_if_redundant();
+		if (m_disconnecting) return;
+
 		// let the torrent know which pieces the
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
@@ -852,11 +858,10 @@ namespace libtorrent
 
 			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
-				if (m_have_piece[i])
-				{
-					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
-						interesting = true;
-				}
+				if (!m_have_piece[i]) continue;
+				if (t->have_piece(i) || t->picker().piece_priority(i) == 0) continue;
+				interesting = true;
+				break;
 			}
 		}
 
@@ -935,6 +940,10 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_in_use = 0;
+#endif
 
 		// defensive
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -1140,7 +1149,9 @@ namespace libtorrent
 
 	void peer_connection::received_valid_data(int index)
 	{
-		INVARIANT_CHECK;
+		// this fails because we haven't had time to disconnect
+		// seeds yet, and we might have just become one
+//		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1236,14 +1247,6 @@ namespace libtorrent
 			disconnect(errors::invalid_info_hash, 1);
 			return;
 		}
-
-#ifdef TORRENT_USE_OPENSSL
-		if (t->torrent_file().encryption_key().size() == 32 && !allow_encrypted)
-		{
-			disconnect(errors::invalid_info_hash, 2);
-			return;
-		}
-#endif
 
 		if (t->is_paused() && (!t->is_auto_managed()
 			|| !m_ses.m_settings.incoming_starts_queued_torrents))
@@ -1590,6 +1593,12 @@ namespace libtorrent
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
 	
+		// if the peer is ready to download stuff, it must have metadata		
+		m_has_metadata = true;
+
+		disconnect_if_redundant();
+		if (is_disconnecting()) return;
+
 		if (is_choked())
 		{
 			if (ignore_unchoke_slots())
@@ -1710,7 +1719,7 @@ namespace libtorrent
 
 		if (!t->valid_metadata() && index >= int(m_have_piece.size()))
 		{
-			if (index < 65536)
+			if (index < 131072)
 			{
 				// if we don't have metadata
 				// and we might not have received a bitfield
@@ -1776,7 +1785,10 @@ namespace libtorrent
 			// update bytes downloaded since last timer
 			m_remote_bytes_dled += t->torrent_file().piece_size(index);
 		}
-		
+
+		// if the peer is downloading stuff, it must have metadata		
+		m_has_metadata = true;
+
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -1993,6 +2005,12 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
+
+		// if we don't have the metadata yet, don't disconnect
+		// also, if the peer doesn't have metadata we shouldn't
+		// disconnect it, since it may want to request the
+		// metadata from us
+		if (!t->valid_metadata() || !has_metadata()) return;
 
 		// don't close connections in share mode, we don't know if we need them
 		if (t->share_mode()) return;
@@ -5907,6 +5925,7 @@ namespace libtorrent
 
 	void peer_connection::check_invariant() const
 	{
+		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
@@ -6012,12 +6031,18 @@ namespace libtorrent
 		if (m_ses.settings().close_redundant_connections && !t->share_mode())
 		{
 			// make sure upload only peers are disconnected
-			if (t->is_upload_only() && m_upload_only)
+			if (t->is_upload_only()
+				&& m_upload_only
+				&& t->valid_metadata()
+				&& has_metadata())
 				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
+
 			if (m_upload_only
 				&& !m_interesting
 				&& m_bitfield_received
-				&& t->are_files_checked())
+				&& t->are_files_checked()
+				&& t->valid_metadata()
+				&& has_metadata())
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 

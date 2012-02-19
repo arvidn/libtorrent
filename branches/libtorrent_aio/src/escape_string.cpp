@@ -71,7 +71,7 @@ namespace libtorrent
 	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
 	{
 		boost::array<char, 3 + std::numeric_limits<size_type>::digits10> ret;
-		char *p = &ret.back();;
+		char *p = &ret.back();
 		*p = '\0';
 		unsigned_size_type un = n;
 		if (n < 0)  un = -un;
@@ -80,7 +80,7 @@ namespace libtorrent
 			un /= 10;
 		} while (un);
 		if (n < 0) *--p = '-';
-		std::memmove(&ret.front(), p, sizeof(ret.elems));
+		std::memmove(&ret[0], p, &ret.back() - p + 1);
 		return ret;
 	}
 

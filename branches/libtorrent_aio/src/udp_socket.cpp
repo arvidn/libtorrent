@@ -91,10 +91,10 @@ udp_socket::udp_socket(asio::io_service& ios
 #endif
 #endif
 
-	m_v4_buf_size = 1600;
+	m_v4_buf_size = 2000;
 	m_v4_buf = (char*)malloc(m_v4_buf_size);
 #if TORRENT_USE_IPV6
-	m_v6_buf_size = 1600;
+	m_v6_buf_size = 2000;
 	m_v6_buf = (char*)malloc(m_v6_buf_size);
 #endif
 }
@@ -303,6 +303,10 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::connection_refused
 			&& e != asio::error::connection_aborted
 			&& e != asio::error::operation_aborted
+#ifdef WIN32
+			// ERROR_MORE_DATA means the same thing as EMSGSIZE
+			&& e != error_code(ERROR_MORE_DATA, get_system_category())
+#endif
 			&& e != asio::error::message_size)
 		{
 			maybe_clear_callback();

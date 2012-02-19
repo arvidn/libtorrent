@@ -75,7 +75,7 @@ namespace libtorrent { namespace
 		// don't send out those peers that we haven't connected to
 		// (that have connected to us) and that aren't sharing their
 		// listening port 
-		if (!p.is_local() && !p.received_listen_port()) return false;
+		if (!p.is_outgoing() && !p.received_listen_port()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
 		return true;
@@ -156,7 +156,7 @@ namespace libtorrent { namespace
 					// use that port. But only if we didn't connect to the peer.
 					// if we connected to it, use the port we know works
 					policy::peer *pi = 0;
-					if (!p->is_local() && (pi = peer->peer_info_struct()) && pi->port > 0)
+					if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
 						remote.port(pi->port);
 
 					// no supported flags to set yet
@@ -527,7 +527,7 @@ namespace libtorrent { namespace
 				tcp::endpoint remote = peer->remote();
 
 				policy::peer *pi = 0;
-				if (!p->is_local() && (pi = peer->peer_info_struct()) && pi->port > 0)
+				if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
 					remote.port(pi->port);
 
 				// i->first was added since the last time

@@ -132,21 +132,6 @@ namespace libtorrent
 		m_in_constructor = false;
 #endif
 		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
-
-#ifdef TORRENT_USE_OPENSSL
-		boost::shared_ptr<torrent> t = tor.lock();
-		std::string const key = t->torrent_file().encryption_key();
-		if (key.size() == 32)
-		{
-			m_enc_handler.reset(new aes256_handler);
-			m_enc_handler->set_incoming_key((const unsigned char*)key.c_str(), key.size());
-			m_encrypted = true;
-			m_rc4_encrypted = true;
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** encrypted torrent. enabling AES-256 encryption");
-#endif
-		}
-#endif
 	}
 
 	bt_peer_connection::bt_peer_connection(
@@ -221,12 +206,6 @@ namespace libtorrent
 		pe_settings::enc_policy out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
 #ifdef TORRENT_USE_OPENSSL
-		// if this torrent is using AES-256 encryption, don't
-		// also enable the normal encryption
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
-		std::string const key = t->torrent_file().encryption_key();
-		if (key.size() == 32) out_enc_policy = pe_settings::disabled;
-
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(*get_socket()))
 			out_enc_policy = pe_settings::disabled;
@@ -419,7 +398,7 @@ namespace libtorrent
 		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
 		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
-		if (is_local()) p.flags |= peer_info::local_connection;
+		if (is_outgoing()) p.flags |= peer_info::local_connection;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
@@ -458,7 +437,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_sent_handshake);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		if (is_local())
+		if (is_outgoing())
 			peer_log("*** initiating encrypted handshake");
 #endif
 
@@ -496,7 +475,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_encrypted);
 		TORRENT_ASSERT(!m_rc4_encrypted);
-		TORRENT_ASSERT(is_local());
+		TORRENT_ASSERT(is_outgoing());
 		TORRENT_ASSERT(!m_sent_handshake);
 		
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -568,7 +547,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(!is_local());
+		TORRENT_ASSERT(!is_outgoing());
 		TORRENT_ASSERT(!m_encrypted);
 		TORRENT_ASSERT(!m_rc4_encrypted);
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
@@ -602,8 +581,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
 		// vc,crypto_field,len(pad),pad, (len(ia))
-		TORRENT_ASSERT((len >= 8+4+2+pad_size+2 && is_local())
-			|| (len >= 8+4+2+pad_size && !is_local()));
+		TORRENT_ASSERT((len >= 8+4+2+pad_size+2 && is_outgoing())
+			|| (len >= 8+4+2+pad_size && !is_outgoing()));
 		TORRENT_ASSERT(!m_sent_handshake);
 
 		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
@@ -621,7 +600,7 @@ namespace libtorrent
 		write_buf += pad_size;
 
 		// append len(ia) if we are initiating
-		if (is_local())
+		if (is_outgoing())
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
  	}
 
@@ -639,7 +618,7 @@ namespace libtorrent
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
 		
-		if (is_local()) h.update(keyA, 4); else h.update(keyB, 4);
+		if (is_outgoing()) h.update(keyA, 4); else h.update(keyB, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash local_key = h.final();
@@ -650,7 +629,7 @@ namespace libtorrent
 		// outgoing connection : hash ('keyB',S,SKEY)
 		// incoming connection : hash ('keyA',S,SKEY)
 		
-		if (is_local()) h.update(keyB, 4); else h.update(keyA, 4);
+		if (is_outgoing()) h.update(keyB, 4); else h.update(keyA, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
@@ -707,8 +686,11 @@ namespace libtorrent
 		rc4->encrypt(buf, len);
 	}
 
-	void bt_peer_connection::send_buffer(char const* buf, int size, int flags)
+	void bt_peer_connection::send_buffer(char const* buf, int size, int flags
+			, void (*f)(char*, int, void*), void* ud)
 	{
+		TORRENT_ASSERT(f == 0);
+		TORRENT_ASSERT(ud == 0);
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(size > 0);
 		
@@ -1671,6 +1653,7 @@ namespace libtorrent
 		if (extended_id == 0)
 		{
 			on_extended_handshake();
+			disconnect_if_redundant();
 			return;
 		}
 
@@ -2178,7 +2161,7 @@ namespace libtorrent
 		// our listen port
 		if (!m_ses.m_settings.anonymous_mode)
 		{
-			if (is_local()) handshake["p"] = m_ses.listen_port();
+			if (is_outgoing()) handshake["p"] = m_ses.listen_port();
 			handshake["v"] = m_ses.settings().user_agent;
 		}
 
@@ -2496,7 +2479,7 @@ namespace libtorrent
 			
 			// write our dh public key. m_dh_key_exchange is
 			// initialized in write_pe1_2_dhkey()
-			if (!is_local()) write_pe1_2_dhkey();
+			if (!is_outgoing()) write_pe1_2_dhkey();
 			if (is_disconnecting()) return;
 			
 			// read dh key, generate shared secret
@@ -2517,7 +2500,7 @@ namespace libtorrent
 			// possible to ensure we do not overshoot the standard
 			// handshake.
 
-			if (is_local())
+			if (is_outgoing())
 			{
 				m_state = read_pe_syncvc;
 				write_pe3_sync();
@@ -2551,7 +2534,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(!is_local());
+			TORRENT_ASSERT(!is_outgoing());
 			TORRENT_ASSERT(recv_buffer == receive_buffer());
 		   
  			if (recv_buffer.left() < 20)
@@ -2629,7 +2612,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(!is_local());
+			TORRENT_ASSERT(!is_outgoing());
 			TORRENT_ASSERT(packet_size() == 28);
 
 			if (!packet_finished()) return;
@@ -2645,12 +2628,6 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(!is_disconnecting());
 				torrent const& ti = *i->second;
-
-#ifdef TORRENT_USE_OPENSSL
-				// don't consider encrypted torrents (since that would
-				// open up a hole to connecting to them without the key)
-				if (ti.torrent_file().encryption_key().size() == 32) continue;
-#endif
 
 				TORRENT_ASSERT(!is_disconnecting());
 				sha1_hash const& skey_hash = ti.obfuscated_hash();
@@ -2708,7 +2685,7 @@ namespace libtorrent
 		// cannot fall through into
 		if (m_state == read_pe_syncvc)
 		{
-			TORRENT_ASSERT(is_local());
+			TORRENT_ASSERT(is_outgoing());
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
  			TORRENT_ASSERT(recv_buffer == receive_buffer());
@@ -2799,12 +2776,12 @@ namespace libtorrent
 
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** crypto %s : [%s%s ]"
-				, is_local() ? "select" : "provide"
+				, is_outgoing() ? "select" : "provide"
 				, (crypto_field & 1) ? " plaintext" : ""
 				, (crypto_field & 2) ? " rc4" : "");
 #endif
 
-			if (!is_local())
+			if (!is_outgoing())
 			{
 				// select a crypto method
 				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
@@ -2840,7 +2817,7 @@ namespace libtorrent
 				// write the pe4 step
 				write_pe4_sync(crypto_select);
 			}
-			else // is_local()
+			else // is_outgoing()
 			{
 				// check if crypto select is valid
 				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
@@ -2867,7 +2844,7 @@ namespace libtorrent
 			}
 			
 			m_state = read_pe_pad;
-			if (!is_local())
+			if (!is_outgoing())
 				reset_recv_buffer(len_pad + 2); // len(IA) at the end of pad
 			else
 			{
@@ -2888,14 +2865,14 @@ namespace libtorrent
 			bytes_transferred = 0;
 			if (!packet_finished()) return;
 
-			int pad_size = is_local() ? packet_size() : packet_size() - 2;
+			int pad_size = is_outgoing() ? packet_size() : packet_size() - 2;
 
 			buffer::interval wr_buf = wr_recv_buffer();
 			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
 			recv_buffer = receive_buffer();
 				
-			if (!is_local())
+			if (!is_outgoing())
 			{
 				recv_buffer.begin += pad_size;
 				int len_ia = detail::read_int16(recv_buffer.begin);
@@ -2921,7 +2898,7 @@ namespace libtorrent
 					reset_recv_buffer(len_ia);
 				}
 			}
-			else // is_local()
+			else // is_outgoing()
 			{
 				// everything that arrives after this is Encrypt2
 				m_encrypted = true;
@@ -2933,7 +2910,7 @@ namespace libtorrent
 		{
 			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
-			TORRENT_ASSERT(!is_local());
+			TORRENT_ASSERT(!is_outgoing());
 			TORRENT_ASSERT(!m_encrypted);
 
 			if (!packet_finished()) return;
@@ -2991,7 +2968,7 @@ namespace libtorrent
 
 			// encrypted portion of handshake completed, toggle
 			// peer_info pe_support flag back to true
-			if (is_local() &&
+			if (is_outgoing() &&
 				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
 				policy::peer* pi = peer_info_struct();
@@ -3034,69 +3011,30 @@ namespace libtorrent
 				}
 #endif // TORRENT_USE_OPENSSL
 
-				bool found_encrypted_torrent = false;
-#ifdef TORRENT_USE_OPENSSL
-				if (!is_local())
-				{
-					std::auto_ptr<encryption_handler> handler(new aes256_handler);
-					boost::uint8_t temp_pad[20];
-
-					for (std::set<boost::shared_ptr<torrent> >::iterator i = m_ses.m_encrypted_torrents.begin()
-						, end(m_ses.m_encrypted_torrents.end()); i != end; ++i)
-					{
-						boost::shared_ptr<torrent> t = *i;
-						std::string const key = t->torrent_file().encryption_key();
-						TORRENT_ASSERT(key.size() == 32);
-						handler->set_incoming_key((const unsigned char*)key.c_str(), key.size());
-						std::memcpy(temp_pad, recv_buffer.begin, 20);
-						handler->decrypt((char*)temp_pad, 20);
-						if (memcmp(temp_pad, protocol_string, 20) != 0) continue;
-
-						// we found the key that could decrypt it
-						m_rc4_encrypted = true;
-						m_encrypted = true;
-						m_enc_handler.reset(handler.release());
-						found_encrypted_torrent = true;
-#ifdef TORRENT_VERBOSE_LOGGING
-						peer_log("*** found encrypted torrent");
-#endif
-						TORRENT_ASSERT(recv_buffer.left() == 20);
-//						handler->decrypt((char*)recv_buffer.begin + 20, recv_buffer.left() - 20);
-						break;
-					}
-				}
-#endif
-
-				if (!found_encrypted_torrent)
-				{
-
-					if (!is_local()
+				if (!is_outgoing()
 					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
-					{
-						disconnect(errors::no_incoming_encrypted);
-						return;
-					}
-
-					// Don't attempt to perform an encrypted handshake
-					// within an encrypted connection. For local connections,
-					// we're expected to already have passed the encrypted
-					// handshake by this point
-					if (m_encrypted || is_local())
-					{
-						disconnect(errors::invalid_info_hash, 1);
-						return;
-					}
-
-#ifdef TORRENT_VERBOSE_LOGGING
- 					peer_log("*** attempting encrypted connection");
-#endif
- 					m_state = read_pe_dhkey;
-					cut_receive_buffer(0, dh_key_len);
-					TORRENT_ASSERT(!packet_finished());
+				{
+					disconnect(errors::no_incoming_encrypted);
 					return;
 				}
-				
-				TORRENT_ASSERT((!is_local() && m_encrypted) || is_local());
+
+				// Don't attempt to perform an encrypted handshake
+				// within an encrypted connection. For local connections,
+				// we're expected to already have passed the encrypted
+				// handshake by this point
+				if (m_encrypted || is_outgoing())
+				{
+					disconnect(errors::invalid_info_hash, 1);
+					return;
+				}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** attempting encrypted connection");
+#endif
+				m_state = read_pe_dhkey;
+				cut_receive_buffer(0, dh_key_len);
+				TORRENT_ASSERT(!packet_finished());
+				return;
 #else
 				disconnect(errors::invalid_info_hash, 1);
 				return;
@@ -3107,7 +3045,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 				TORRENT_ASSERT(m_state != read_pe_dhkey);
 
-				if (!is_local()
+				if (!is_outgoing()
 					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::forced
 					&& !m_encrypted
 					&& !is_ssl(*get_socket()))
@@ -3210,7 +3148,7 @@ namespace libtorrent
 			
 			// if this is a local connection, we have already
 			// sent the handshake
-			if (!is_local()) write_handshake();
+			if (!is_outgoing()) write_handshake();
 //			if (t->valid_metadata())
 //				write_bitfield();
 			TORRENT_ASSERT(m_sent_handshake);
@@ -3276,7 +3214,7 @@ namespace libtorrent
 					// initiate connections. So, if our peer-id is greater than
 					// the others, we should close the incoming connection,
 					// if not, we should close the outgoing one.
-					if (pid < m_ses.get_peer_id() && is_local())
+					if (pid < m_ses.get_peer_id() && is_outgoing())
 					{
 						(*i)->connection->disconnect(errors::duplicate_peer_id);
 					}
@@ -3336,7 +3274,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			// Toggle pe_support back to false if this is a
 			// standard successful connection
-			if (is_local() && !m_encrypted &&
+			if (is_outgoing() && !m_encrypted &&
 				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
 				policy::peer* pi = peer_info_struct();
@@ -3508,7 +3446,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
-				|| !is_local());
+				|| !is_outgoing());
 
 		TORRENT_ASSERT(!m_rc4_encrypted || m_enc_handler.get());
 #endif

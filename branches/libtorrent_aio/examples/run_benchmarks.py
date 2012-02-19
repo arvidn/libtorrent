@@ -80,7 +80,7 @@ def build_stage_dirs():
 	return ret
 
 # make sure we have all the binaries available
-binaries = ['client_test', 'connection_tester', 'fragmentation_test', 'parse_access_log']
+binaries = ['client_test', 'connection_tester', 'fragmentation_test']
 for b in build_stage_dirs():
 	for i in binaries:
 		p = os.path.join(b, i)

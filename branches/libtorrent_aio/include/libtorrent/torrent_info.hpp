@@ -335,8 +335,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		std::string const& ssl_cert() const { return m_ssl_root_cert; }
-
-		std::string const& encryption_key() const { return m_aes_key; }
 #endif
 
 		bool is_valid() const { return m_files.is_valid(); }
@@ -473,9 +471,6 @@ namespace libtorrent
 		// certificate, in .pem format (i.e. ascii
 		// base64 encoded with head and tails)
 		std::string m_ssl_root_cert;
-
-		// used to encrypt the peer connections
-		std::string m_aes_key;
 #endif
 
 		// the info section parsed. points into m_info_section

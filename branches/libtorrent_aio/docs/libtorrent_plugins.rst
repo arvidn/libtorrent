@@ -216,8 +216,8 @@ checked. If there are no files to check, this function is called immediately.
 i.e. This function is always called when the torrent is in a state where it
 can start downloading.
 
-on_files_checked()
-------------------
+on_add_peer()
+-------------
 
 ::
 
@@ -315,4 +315,52 @@ A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
 
 ``buffer()`` returns the pointer without transferring responsibility. If
 this buffer has been released, ``buffer()`` will return 0.
+
+custom alerts
+=============
+
+Since plugins are running within internal libtorrent threads, one convenient
+way to communicate with the client is to post custom alerts.
+
+The expected interface of any alert, apart from deriving from the ``alert``
+base class, looks like this:
+
+.. parsed-literal::
+
+	const static int alert_type = *<unique alert ID>*;
+	virtual int type() const { return alert_type; }
+
+	virtual std::string message() const;
+
+	virtual std::auto_ptr<alert> clone() const
+	{ return std::auto_ptr<alert>(new name(\*this)); }
+
+	const static int static_category = *<bitmask of alert::category_t flags>*;
+	virtual int category() const { return static_category; }
+
+	virtual char const* what() const { return *<string literal of the name of this alert>*; }
+
+The ``alert_type`` is used for the type-checking in ``alert_cast``. It must not collide with
+any other alert. The built-in alerts in libtorrent will not use alert type IDs greater than
+``user_alert_id``. When defining your own alert, make sure it's greater than this constant.
+
+``type()`` is the run-time equivalence of the ``alert_type``.
+
+The ``message()`` virtual function is expected to construct a useful string representation
+of the alert and the event or data it represents. Something convenient to put in a log file
+for instance.
+
+``clone()`` is used internally to copy alerts. The suggested implementation of simply
+allocating a new instance as a copy of ``*this`` is all that's expected.
+
+The static category is required for checking wether or not the category for a specific alert
+is enabled or not, without instantiating the alert. The ``category`` virtual function is
+the run-time equivalence.
+
+The ``what()`` virtual function may simply be a string literal of the class name of
+your alert.
+
+For more information, see the alert section in the `main manual`_.
+
+.. _`main manual`: manual.html
 

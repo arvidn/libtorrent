@@ -250,7 +250,6 @@ public:
 	{
 		if (!endpoint.address().is_v4())
 		{
-			error_code ec = asio::error::operation_not_supported;
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}

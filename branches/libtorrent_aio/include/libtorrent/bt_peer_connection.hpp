@@ -297,7 +297,8 @@ public:
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, boost::function<void(char*)> const& destructor = &nop);
 
-		void send_buffer(char const* buf, int size, int flags = 0);
+		virtual void send_buffer(char const* begin, int size, int flags = 0
+			, void (*fun)(char*, int, void*) = 0, void* userdata = 0);
 		virtual void append_send_buffer(char* buffer, int size, boost::function<void(char*)> const& destructor);
 
 private:

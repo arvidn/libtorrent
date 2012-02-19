@@ -427,9 +427,6 @@ namespace libtorrent
 		if (!m_root_cert.empty())
 			info["ssl-cert"] = m_root_cert;
 
-		if (!m_encryption_key.empty())
-			info["encryption-key"] = m_encryption_key;
-
 		if (m_private) info["private"] = 1;
 
 		if (!m_multifile)
@@ -617,11 +614,6 @@ namespace libtorrent
 	{
 		if (str == 0) m_comment.clear();
 		else m_comment = str;
-	}
-
-	void create_torrent::set_encryption_key(std::string const& key)
-	{
-		m_encryption_key = key;
 	}
 
 	void create_torrent::set_creator(char const* str)

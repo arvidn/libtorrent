@@ -544,7 +544,6 @@ namespace libtorrent
 		, m_created_by(t.m_created_by)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_root_cert(t.m_ssl_root_cert)
-		, m_aes_key(t.m_aes_key)
 #endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
@@ -835,7 +834,6 @@ namespace libtorrent
 		m_created_by.swap(ti.m_created_by);
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert.swap(ti.m_ssl_root_cert);
-		m_aes_key.swap(ti.m_aes_key);
 #endif
 		boost::uint32_t tmp;
 		SWAP(m_multifile, ti.m_multifile);
@@ -1011,8 +1009,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
-
-		m_aes_key = info.dict_find_string_value("encryption-key");
 #endif
 
 		return true;
