@@ -63,6 +63,9 @@ namespace libtorrent
 {
 	class peer_connection;
 
+	// exposed for the unit test
+	TORRENT_EXPORT void sanitize_append_path_element(std::string& path, char const* element, int element_len);
+
 	enum
 	{
 		// wait 60 seconds before retrying a failed tracker

@@ -261,7 +261,7 @@ namespace libtorrent
 		char* m_piece;
 	};
 
-	void set_piece_hashes(create_torrent& t, std::string const& p
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
 		, boost::function<void(int i)> const& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
