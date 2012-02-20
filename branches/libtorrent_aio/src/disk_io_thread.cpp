@@ -333,10 +333,10 @@ namespace libtorrent
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
-		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
 		, m_hash_thread(this)
 		, m_disk_cache(block_size, m_hash_thread, ios, post_alert)
+		, m_last_stats_flip(time_now())
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -1954,8 +1954,6 @@ namespace libtorrent
 		if (j->flags & disk_io_job::no_pieces) return 0;
 
 		int block_size = m_disk_cache.block_size();
-
-		ptime now = time_now();
 
 		// TODO: this is potentially pretty expensive, allow cache info jobs to not ask for this full list
 		for (block_cache::iterator i = range.first; i != range.second; ++i)

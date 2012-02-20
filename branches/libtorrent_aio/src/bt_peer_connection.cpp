@@ -671,8 +671,9 @@ namespace libtorrent
 	}
 
 	void bt_peer_connection::append_send_buffer(char* buffer, int size
-		, boost::function<void(char*)> const& destructor)
+		, boost::function<void(char*)> const& destructor, bool encrypted)
 	{
+		TORRENT_ASSERT(encrypted == false);
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_rc4_encrypted)
 			m_enc_handler->encrypt(buffer, size);

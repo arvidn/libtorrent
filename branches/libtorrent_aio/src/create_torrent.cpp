@@ -52,7 +52,7 @@ namespace libtorrent
 	int merkle_get_parent(int);
 	int merkle_get_sibling(int);
 
-	struct alert;
+	class alert;
 
 	namespace detail
 	{

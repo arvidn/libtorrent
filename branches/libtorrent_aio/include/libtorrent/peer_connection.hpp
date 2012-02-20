@@ -147,8 +147,8 @@ namespace libtorrent
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
-	friend class network_thread_pool;
-	friend struct torrent;
+	friend struct network_thread_pool;
+	friend class torrent;
 	public:
 
 		enum connection_type

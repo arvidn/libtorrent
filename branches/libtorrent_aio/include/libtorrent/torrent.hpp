@@ -1377,15 +1377,15 @@ namespace libtorrent
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
 		
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
-		// whenever this torrent's state changes (any state).
-		bool m_state_subscription:1;
-
 		// this is set to true while we have an outstanding
 		// disk cache request to refresh the suggest pieces
 		// don't keep more than one out outstanding request
 		bool m_refreshing_suggest_pieces:1;
+
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

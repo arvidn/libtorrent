@@ -3250,9 +3250,6 @@ namespace libtorrent
 
 		remove_time_critical_piece(index, true);
 
-		bool was_finished = m_picker->num_filtered() + num_have()
-			== torrent_file().num_pieces();
-
 		std::vector<void*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
 
@@ -6831,7 +6828,6 @@ namespace libtorrent
 		}
 		else if (p > m_sequence_number)
 		{
-			int max_seq = 0;
 			for (session_impl::torrent_map::iterator i = torrents.begin()
 				, end(torrents.end()); i != end; ++i)
 			{
@@ -6976,7 +6972,6 @@ namespace libtorrent
 	void torrent::set_error(error_code const& ec, std::string const& error_file)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		bool checking_files = should_check_files();
 		m_error = ec;
 		m_error_file = error_file;
 
