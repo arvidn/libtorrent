@@ -2085,7 +2085,7 @@ namespace aux {
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
 		if (ep.port() == 0)
-			ep.port(s->sock->local_endpoint().port());
+			ep.port(s->sock->local_endpoint(ec).port());
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));

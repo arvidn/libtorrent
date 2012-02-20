@@ -921,8 +921,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 					*port++ = 0;
 					char const* ip = peer.c_str();
 					int peer_port = atoi(port);
+					error_code ec;
 					if (peer_port > 0)
-						h.connect_peer(tcp::endpoint(address::from_string(ip), peer_port));
+						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), peer_port));
 				}
 			}
 
@@ -1044,7 +1045,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			{
 				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
 				else color = esc("33;7");
-				chr = '0' + (pp->blocks[j].bytes_progress / float(pp->blocks[j].block_size) * 10);
+				chr = '0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size);
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
