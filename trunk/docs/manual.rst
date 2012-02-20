@@ -1165,6 +1165,7 @@ appear. The feed is defined by the ``feed_settings`` object::
 	
    	std::string url;
 		bool auto_download;
+		bool auto_map_handles;
 		int default_ttl;
 		add_torrent_params add_args;
 	};
@@ -1174,11 +1175,19 @@ the feed will be downloaded. Set this to false in order to manually
 add torrents to the session. You may react to the rss_alert_ when
 a feed has been updated to poll it for the new items in the feed
 when adding torrents manually. When torrents are added automatically,
-you have to call ``session::get_torrents()`` to get the handles to
-the new torrents.
+an add_torrent_alert_ is posted which includes the torrent handle
+as well as the error code if it failed to be added. You may also call
+``session::get_torrents()`` to get the handles to the new torrents.
 
 Before adding the feed, you must set the ``url`` field to the
 feed's url. It may point to an RSS or an atom feed.
+
+``auto_map_handles`` defaults to true and determines whether or
+not to set the ``handle`` field in the ``feed_item``, returned
+as the feed status. If auto-download is enabled, this setting
+is ignored. If auto-download is not set, setting this to false
+will save one pass through all the feed items trying to find
+corresponding torrents in the session.
 
 The ``default_ttl`` is the default interval for refreshing a feed.
 This may be overridden by the feed itself (by specifying the ``<ttl>``
