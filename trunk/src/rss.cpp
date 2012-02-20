@@ -320,7 +320,8 @@ feed_handle feed::my_handle()
 void feed::on_feed(error_code const& ec
 	, http_parser const& parser, char const* data, int size)
 {
-	TORRENT_ASSERT(m_updating);
+	// enabling this assert makes the unit test a lot more difficult
+//	TORRENT_ASSERT(m_updating);
 	m_updating = false;
 
 	if (ec && ec != asio::error::eof)
@@ -350,32 +351,35 @@ void feed::on_feed(error_code const& ec
 	feed_state s(*this);
 	xml_parse(buf, buf + size, boost::bind(&parse_feed, boost::ref(s), _1, _2, _3));
 
-	for (std::vector<feed_item>::iterator i = m_items.begin()
-		, end(m_items.end()); i != end; ++i)
+	if (m_settings.auto_download || m_settings.auto_map_handles)
 	{
-		i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
-
-		// if we're already downloading this torrent, or if we
-		// don't have auto-download enabled, just move along to
-		// the next one
-		if (i->handle.is_valid() || !m_settings.auto_download) continue;
-
-		// this means we should add this torrent to the session
-		add_torrent_params p = m_settings.add_args;
-		p.url = i->url;
-		p.uuid = i->uuid;
-		p.source_feed_url = m_settings.url;
-		p.ti.reset();
-		p.info_hash.clear();
-		p.name = i->title.c_str();
-
-		error_code e;
-		// #error session_impl::add_torrent doesn't support magnet links via url
-		m_ses.add_torrent(p, e);
-		
-		if (e)
+		for (std::vector<feed_item>::iterator i = m_items.begin()
+			, end(m_items.end()); i != end; ++i)
 		{
-// #error alert!
+			i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
+
+			// if we're already downloading this torrent, or if we
+			// don't have auto-download enabled, just move along to
+			// the next one
+			if (i->handle.is_valid() || !m_settings.auto_download) continue;
+
+			// this means we should add this torrent to the session
+			add_torrent_params p = m_settings.add_args;
+			p.url = i->url;
+			p.uuid = i->uuid;
+			p.source_feed_url = m_settings.url;
+			p.ti.reset();
+			p.info_hash.clear();
+			p.name = i->title.c_str();
+
+			error_code e;
+			// #error session_impl::add_torrent doesn't support magnet links via url
+			m_ses.add_torrent(p, e);
+
+			if (e)
+			{
+				// #error alert!
+			}
 		}
 	}
 

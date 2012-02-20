@@ -1718,9 +1718,7 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
 #endif
-		// closing all the connections needs to be done from a callback,
-		// when the session mutex is not held
-		m_io_service.post(boost::bind(&connection_queue::close, &m_half_open));
+		m_half_open.close();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";

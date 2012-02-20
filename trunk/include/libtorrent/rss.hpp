@@ -75,12 +75,18 @@ namespace libtorrent
 	{
 		feed_settings()
 			: auto_download(true)
+			, auto_map_handles(true)
 			, default_ttl(30)
 		{}
 
    	std::string url;
 
+		// automatically add torrents to session from
 		bool auto_download;
+
+		// automatically find existing torrents and set
+		// the torrent_handle in the feed item
+		bool auto_map_handles;
 
 		// in minutes
 		int default_ttl;
