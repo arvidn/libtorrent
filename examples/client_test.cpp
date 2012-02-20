@@ -842,7 +842,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files
+	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
 	, int* counters, boost::unordered_set<torrent_status>& all_handles
 	, std::vector<torrent_status const*>& filtered_handles
 	, bool& need_resort)
@@ -902,6 +902,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 			if (!filename.empty())
 				files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+			else
+				non_files.insert(h);
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
@@ -1841,9 +1843,8 @@ int main(int argc, char* argv[])
 
 				feed_status st = i->get_feed_status();
 				if (st.url.size() > 70) st.url.resize(70);
-				snprintf(str, sizeof(str), "%-70s %c %4d (%2d) %s\n", st.url.c_str()
-					, st.updating? 'u' : '-'
-					, st.next_update
+				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
+					, st.updating ? "updating" : to_string(st.next_update).elems
 					, int(st.items.size())
 					, st.error ? st.error.message().c_str() : "");
 				out += str;

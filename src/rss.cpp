@@ -374,12 +374,8 @@ void feed::on_feed(error_code const& ec
 
 			error_code e;
 			// #error session_impl::add_torrent doesn't support magnet links via url
-			m_ses.add_torrent(p, e);
-
-			if (e)
-			{
-				// #error alert!
-			}
+			torrent_handle h = m_ses.add_torrent(p, e);
+			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
 		}
 	}
 
@@ -402,6 +398,7 @@ void feed::on_feed(error_code const& ec
 	{
 		TORRENT_SETTING(std_string, url)
 		TORRENT_SETTING(boolean, auto_download)
+		TORRENT_SETTING(boolean, auto_map_handles)
 		TORRENT_SETTING(integer, default_ttl)
 	};
 #undef TORRENT_SETTING
@@ -505,6 +502,7 @@ void feed::update_feed()
 	if (m_updating) return;
 
 	m_last_attempt = time(0);
+	m_last_update = 0;
 
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
@@ -536,7 +534,7 @@ void feed::get_feed_status(feed_status* ret) const
 
 int feed::next_update(time_t now) const
 {
-	if (m_last_update == 0) return INT_MAX;
+	if (m_last_update == 0) return m_last_attempt + 60 * 5 - now;
 	int ttl = m_ttl == -1 ? m_settings.default_ttl : m_ttl;
 	TORRENT_ASSERT((m_last_update + ttl * 60) - now < INT_MAX);
 	return int((m_last_update + ttl * 60) - now);

@@ -1414,8 +1414,8 @@ namespace aux {
 			m_feeds.reserve(settings->list_size());
 			for (int i = 0; i < settings->list_size(); ++i)
 			{
-				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
 				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
+				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
 				f->load_state(*settings->list_at(i));
 				f->update_feed();
 				m_feeds.push_back(f);
@@ -3000,6 +3000,9 @@ namespace aux {
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
+
+		// don't do any of the following while we're shutting down
+		if (m_abort) return;
 
 		// --------------------------------------------------------------
 		// RSS feeds
