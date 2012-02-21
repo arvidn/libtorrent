@@ -615,9 +615,7 @@ namespace libtorrent
 		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
 		int socket_type = mapping[m_socket->type()];
 		// filter peer classes based on type
-		peer_class_mask &= m_ses.m_peer_class_type_mask[socket_type];
-		// add peer classes based on type
-		peer_class_mask |= m_ses.m_peer_class_type[socket_type];
+		peer_class_mask = m_ses.m_peer_class_type_filter.apply(socket_type, peer_class_mask);
 
 		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
 		{

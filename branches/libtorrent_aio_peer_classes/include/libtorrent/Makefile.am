@@ -78,6 +78,7 @@ nobase_include_HEADERS = \
   peer.hpp                     \
   peer_class.hpp               \
   peer_class_set.hpp           \
+  peer_class_type_filter.hpp   \
   peer_id.hpp                  \
   peer_info.hpp                \
   peer_request.hpp             \

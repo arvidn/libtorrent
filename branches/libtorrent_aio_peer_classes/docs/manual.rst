@@ -211,6 +211,7 @@ The ``session`` class has the following synopsis::
 		void set_peer_class(int cid, peer_class_info const& pci);
 
 		void set_peer_class_filter(ip_filter const& f);
+		void set_peer_class_type_filter(peer_class_type_filter const& f);
 
 		bool is_listening() const;
 		unsigned short listen_port() const;
@@ -1171,6 +1172,71 @@ This function is limited to only peer class 0-31, since there are only 32 bits i
 mapping. Only the set bits matter; no peer class will be removed from a peer as a result of
 this call, peer classes are only added.
 
+The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
+peer classes in the ``peer_class_filter`` are 32 bits.
+
+For more information, see `peer classes`_.
+
+set_peer_class_type_filter() get_peer_class_type_filter()
+---------------------------------------------------------
+
+::
+
+		void set_peer_class_type_filter(peer_class_type_filter const& f);
+		peer_class_type_filter get_peer_class_type_filter();
+
+
+Sets and gets the *peer class type filter*. This is controls automatic peer class
+assignments to peers based on what kind of socket it is.
+
+It does not only support assigning peer classes, it also supports removing peer
+classes based on socket type.
+
+The ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
+peer-classes from peers. It is applied *after* the peer class filter is applied (which
+is based on the peer's IP address). It has the following synopsis::
+
+	struct peer_class_type_filter
+	{
+		peer_class_type_filter();
+
+		enum socket_type_t
+		{
+			tcp_socket = 0,
+			utp_socket,
+			ssl_tcp_socket,
+			ssl_utp_socket,
+			i2p_socket,
+			num_socket_types
+		};
+		void add(socket_type_t st, int peer_class);
+		void remove(socket_type_t st, int peer_class);
+
+		void disallow(socket_type_t st, int peer_class);
+		void allow(socket_type_t st, int peer_class);
+		boost::uint32_t apply(int st, boost::uint32_t peer_class_mask);
+	};
+
+``add()`` and ``remove()`` adds and removes a peer class to be added
+to new peers based on socket type.
+
+``disallow`` and ``allow()`` adds and removes a peer class to be
+removed from new peers based on socket type.
+
+The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
+peer classes in the ``peer_class_type_filter`` are 32 bits.
+
+``apply()`` takes a bitmask of peer classes and returns a new bitmask of
+peer classes after the rules have been applied, based on the socket type argument
+(``st``).
+
+The order of these rules being applied are:
+
+1. peer-class IP filter
+2. peer-class type filter, removing classes
+2. peer-class type filter, adding classes
+
+For more information, see `peer classes`_.
 
 is_listening() listen_port() listen_on()
 ----------------------------------------

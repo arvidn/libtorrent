@@ -94,6 +94,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
+#include "libtorrent/peer_class_type_filter.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -329,10 +330,13 @@ namespace libtorrent
 			int create_peer_class(char const* name);
 			void delete_peer_class(int cid);
 			void set_peer_class_filter(ip_filter const& f);
+			ip_filter const& get_peer_class_filter() const;
+			
+			void set_peer_class_type_filter(peer_class_type_filter f);
+			peer_class_type_filter get_peer_class_type_filter();
+
 			peer_class_info get_peer_class(int cid);
 			void set_peer_class(int cid, peer_class_info const& pci);
-
-			ip_filter const& get_peer_class_filter() const;
 
 			void  listen_on(
 				std::pair<int, int> const& port_range
@@ -739,17 +743,8 @@ namespace libtorrent
 			// remote endpoint
 			ip_filter m_peer_class_filter;
 
-			// maps socket type to a bitmask that's used to filter out
-			// (mask) bits from the m_peer_class_filter. The different
-			// types are:
-			// 0: TCP
-			// 1: uTP
-			// 2: SSL/TCP
-			// 3: SSL/uTP
-			// 4: I2P 
-			boost::uint32_t m_peer_class_type_mask[5];
-			// peer class bitfield added based on socket type
-			boost::uint32_t m_peer_class_type[5];
+			// maps socket types to peer classes
+			peer_class_type_filter m_peer_class_type_filter;
 
 			// filters incoming connections
 			ip_filter m_ip_filter;

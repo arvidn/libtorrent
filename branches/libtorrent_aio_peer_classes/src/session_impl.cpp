@@ -834,14 +834,10 @@ namespace aux {
 
 		init_peer_class_filter(true);
 
-		memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
-		memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
-
 		// TCP, SSL/TCP and I2P connections should be assigned the TCP peer class
-		boost::uint32_t tfilter = 1 << m_tcp_peer_class;
-		m_peer_class_type[0] = tfilter;
-		m_peer_class_type[2] = tfilter;
-		m_peer_class_type[4] = tfilter;
+		m_peer_class_type_filter.add(peer_class_type_filter::tcp_socket, m_tcp_peer_class);
+		m_peer_class_type_filter.add(peer_class_type_filter::ssl_tcp_socket, m_tcp_peer_class);
+		m_peer_class_type_filter.add(peer_class_type_filter::i2p_socket, m_tcp_peer_class);
 
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
@@ -1984,7 +1980,6 @@ namespace aux {
 		pc->set_info(&pci);
 	}
 
-#error allow setting m_peer_class_type_mask and m_peer_class_type as well
 	void session_impl::set_peer_class_filter(ip_filter const& f)
 	{
 		INVARIANT_CHECK;
@@ -1994,6 +1989,16 @@ namespace aux {
 	ip_filter const& session_impl::get_peer_class_filter() const
 	{
 		return m_peer_class_filter;
+	}
+
+	void session_impl::set_peer_class_type_filter(peer_class_type_filter f)
+	{
+		m_peer_class_type_filter = f;
+	}
+
+	peer_class_type_filter session_impl::get_peer_class_type_filter()
+	{
+		return m_peer_class_type_filter;
 	}
 
 	void session_impl::set_settings(session_settings const& s)
@@ -2057,14 +2062,26 @@ namespace aux {
 			if (s.rate_limit_utp)
 			{
 				// allow the global or local peer class to limit uTP peers
-				m_peer_class_type_mask[1] |= filter;
-				m_peer_class_type_mask[3] |= filter;
+				m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
+					, m_global_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
+					, m_global_class);
 			}
 			else
 			{
 				// don't add the global or local peer class to limit uTP peers
-				m_peer_class_type_mask[1] &= ~filter;
-				m_peer_class_type_mask[3] &= ~filter;
+				m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
+					, m_global_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
+					, m_global_class);
 			}
 		}
 
@@ -2741,8 +2758,9 @@ namespace aux {
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
 			return;
 		}
-
+/*
 #error instead of using ignore_local_limits_on_local_network. add another field to the peer_class saying it is allowed to exceed the connection limit (by some factor maybe) and change this code to resolve which peer classes the peer would belong to and go through those for this flag
+*/
 		// don't allow more connections than the max setting
 		bool reject = false;
 
