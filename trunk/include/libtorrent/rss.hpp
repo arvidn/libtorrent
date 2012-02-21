@@ -165,7 +165,21 @@ namespace libtorrent
 
 		error_code m_error;
 		std::vector<feed_item> m_items;
+
+		// these are all the URLs we've seen in the items list.
+		// it's used to avoid adding duplicate entries to the actual
+		// item vector
 		std::set<std::string> m_urls;
+
+		// these are URLs that have been added to the session
+		// once. If we see them again, and they're not in the
+		// session, don't add them again, since it means they
+		// were removed from the session. It maps URLs to the
+		// posix time when they were added. The timestamp is
+		// used to prune this list by removing the oldest ones
+		// when the size gets too big
+		std::map<std::string, time_t> m_added;
+
 		std::string m_title;
    	std::string m_description;
 		time_t m_last_attempt;
