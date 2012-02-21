@@ -134,27 +134,30 @@ namespace libtorrent
 		if (m_num_connecting == 0) m_timer.cancel(ec);
 		m_abort = true;
 
-		std::list<entry> to_keep;
-		while (!m_queue.empty())
+		std::list<entry> tmp;
+		tmp.swap(m_queue);
+		m_num_connecting = 0;
+
+		// we don't want to call the timeout callback while we're locked
+		// since that is a recipie for dead-locks
+		l.unlock();
+
+		while (!tmp.empty())
 		{
-			// we don't want to call the timeout callback while we're locked
-			// since that is a recipie for dead-locks
-			entry e = m_queue.front();
-			m_queue.pop_front();
+			entry& e = tmp.front();
 			if (e.priority > 1)
 			{
-				to_keep.push_back(e);
+				mutex_t::scoped_lock ll(m_mutex);
+				if (e.connecting) ++m_num_connecting;
+				m_queue.push_back(e);
+				tmp.pop_front();
 				continue;
 			}
-			if (e.connecting) --m_num_connecting;
-			l.unlock();
 			TORRENT_TRY {
 				e.on_timeout();
 			} TORRENT_CATCH(std::exception&) {}
-			l.lock();
+			tmp.pop_front();
 		}
-
-		m_queue.swap(to_keep);
 	}
 
 	void connection_queue::limit(int limit)
