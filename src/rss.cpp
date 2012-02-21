@@ -40,6 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp" // for rss_alert
 
 #include <boost/bind.hpp>
+#include <set>
+#include <map>
+#include <algorithm>
 
 namespace libtorrent {
 
@@ -133,7 +136,8 @@ struct feed_state
 
 	bool is_size(char const* tag) const
 	{
-		return string_equal_no_case(tag, "size");
+		return string_equal_no_case(tag, "size")
+		 || string_equal_no_case(tag, "contentlength");
 	}
 
 	bool is_hash(char const* tag) const
@@ -351,6 +355,8 @@ void feed::on_feed(error_code const& ec
 	feed_state s(*this);
 	xml_parse(buf, buf + size, boost::bind(&parse_feed, boost::ref(s), _1, _2, _3));
 
+	time_t now = time(NULL);
+
 	if (m_settings.auto_download || m_settings.auto_map_handles)
 	{
 		for (std::vector<feed_item>::iterator i = m_items.begin()
@@ -362,6 +368,9 @@ void feed::on_feed(error_code const& ec
 			// don't have auto-download enabled, just move along to
 			// the next one
 			if (i->handle.is_valid() || !m_settings.auto_download) continue;
+
+			// has this already been added?
+			if (m_added.find(i->url) != m_added.end()) continue;
 
 			// this means we should add this torrent to the session
 			add_torrent_params p = m_settings.add_args;
@@ -376,10 +385,26 @@ void feed::on_feed(error_code const& ec
 			// #error session_impl::add_torrent doesn't support magnet links via url
 			torrent_handle h = m_ses.add_torrent(p, e);
 			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
+			m_added.insert(make_pair(i->url, now));
 		}
 	}
 
-	m_last_update = time(0);
+	m_last_update = now;
+
+	// keep history of the typical feed size times 5
+	int max_history = (std::max)(int(m_items.size()) * 5, 100);
+
+	// this is not very efficient, but that's probably OK for now
+	while (int(m_added.size()) > max_history)
+	{
+		// loop over all elements and find the one with the lowest timestamp
+		// i.e. it was added the longest ago, then remove it
+		std::map<std::string, time_t>::iterator i = std::min_element(
+			m_added.begin(), m_added.end()
+			, boost::bind(&std::pair<const std::string, time_t>::second, _1)
+			< boost::bind(&std::pair<const std::string, time_t>::second, _2));
+		m_added.erase(i);
+	}
 
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
@@ -465,11 +490,34 @@ void feed::load_state(lazy_entry const& rd)
 		load_struct(*e, &m_settings.add_args, add_torrent_map
 			, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]));
 	}
+
+	e = rd.dict_find_list("history");
+	if (e)
+	{
+		for (int i = 0; i < e->list_size(); ++i)
+		{
+			if (e->list_at(i)->type() != lazy_entry::list_t) continue;
+
+			lazy_entry const* item = e->list_at(i);
+
+			if (item->list_size() != 2
+				|| item->list_at(0)->type() != lazy_entry::string_t
+				|| item->list_at(1)->type() != lazy_entry::int_t)
+				continue;
+
+			m_added.insert(std::pair<std::string, time_t>(
+				item->list_at(0)->string_value()
+				, item->list_at(1)->int_value()));
+		}
+	}
 }
 
 void feed::save_state(entry& rd) const
 {
+	// feed properties
 	save_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
+
+	// items
 	entry::list_type& items = rd["items"].list();
 	for (std::vector<feed_item>::const_iterator i = m_items.begin()
 		, end(m_items.end()); i != end; ++i)
@@ -478,6 +526,8 @@ void feed::save_state(entry& rd) const
 		entry& item = items.back();
 		save_struct(item, &*i, feed_item_map, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
 	}
+	
+	// settings
 	feed_settings sett_def;
 	save_struct(rd, &m_settings, feed_settings_map
 		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]), &sett_def);
@@ -485,6 +535,16 @@ void feed::save_state(entry& rd) const
 	add_torrent_params add_def;
 	save_struct(add, &m_settings.add_args, add_torrent_map
 		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
+
+	entry::list_type& history = rd["history"].list();
+	for (std::map<std::string, time_t>::const_iterator i = m_added.begin()
+		, end(m_added.end()); i != end; ++i)
+	{
+		history.push_back(entry());
+		entry::list_type& item = history.back().list();
+		item.push_back(entry(i->first));
+		item.push_back(entry(i->second));
+	}
 }
 
 void feed::add_item(feed_item const& item)

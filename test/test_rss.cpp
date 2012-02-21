@@ -40,68 +40,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-char rss1[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-"<!DOCTYPE torrent PUBLIC \"-//bitTorrent//DTD torrent 0.1//EN\" \"http://xmlns.ezrss.it/0.1/dtd/\">\n"
-"<rss version=\"2.0\">\n"
-"	<channel>\n"
-"		<title>ezRSS - Search Results</title>\n"
-"		<ttl>15</ttl>\n"
-"		<link>http://ezrss.it/search/index.php?show_name=daily+show&amp;date=&amp;quality=&amp;release_group=&amp;mode=rss</link>\n"
-"		<image>\n"
-"			<title>ezRSS - Search Results</title>\n"
-"			<url>http://ezrss.it/images/ezrssit.png</url>\n"
-"			<link>http://ezrss.it/search/index.php?show_name=daily+show&amp;date=&amp;quality=&amp;release_group=&amp;mode=rss</link>\n"
-"		</image>\n"
-"		<description>Custom RSS feed based off search filters.</description>\n"
-"		<item>\n"
-"			<title><![CDATA[The Daily Show 2012-02-16 [HDTV - LMAO]]]></title>\n"
-"			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent</link>\n"
-"			<category domain=\"http://eztv.it/shows/67/the-daily-show/\"><![CDATA[TV Show / The Daily Show]]></category>\n"
-"			<pubDate>Thu, 16 Feb 2012 22:54:01 -0500</pubDate>\n"
-"			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-16]]></description>\n"
-"			<enclosure url=\"http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent\" length=\"183442338\" type=\"application/x-bittorrent\" />\n"
-"			<comments>http://eztv.it/forum/discuss/33253/</comments>\n"
-"			<guid>http://eztv.it/ep/33253/the-daily-show-2012-02-16-hdtv-lmao/</guid>\n"
-"			<torrent xmlns=\"http://xmlns.ezrss.it/0.1/\">\n"
-"				<fileName><![CDATA[The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent]]></fileName>\n"
-"				<contentLength>183442338</contentLength>\n"
-"				<infoHash>1F270E0BCC87575748362788CD5775EFB59C8E1F</infoHash>\n"
-"				<magnetURI><![CDATA[magnet:?xt=urn:btih:1F270E0BCC87575748362788CD5775EFB59C8E1F&dn=The.Daily.Show.2012.02.16.(HDTV-LMAO)]]></magnetURI>\n"
-"			</torrent>\n"
-"		</item>\n"
-"		<item>\n"
-"			<title><![CDATA[The Daily Show 2012-02-15 [HDTV - FQM]]]></title>\n"
-"			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent</link>\n"
-"			<category domain=\"http://eztv.it/shows/67/the-daily-show/\"><![CDATA[TV Show / The Daily Show]]></category>\n"
-"			<pubDate>Wed, 15 Feb 2012 23:13:45 -0500</pubDate>\n"
-"			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-15]]></description>\n"
-"			<enclosure url=\"http://torrent.zoink.it/The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent\" length=\"183790660\" type=\"application/x-bittorrent\" />\n"
-"			<comments>http://eztv.it/forum/discuss/33226/</comments>\n"
-"			<guid>http://eztv.it/ep/33226/the-daily-show-2012-02-15-hdtv-fqm/</guid>\n"
-"			<torrent xmlns=\"http://xmlns.ezrss.it/0.1/\">\n"
-"				<fileName><![CDATA[The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent]]></fileName>\n"
-"				<contentLength>183790660</contentLength>\n"
-"				<infoHash>94200845B30F888DD0DFF518F7AA52363A299EF9</infoHash>\n"
-"				<magnetURI><![CDATA[magnet:?xt=urn:btih:94200845B30F888DD0DFF518F7AA52363A299EF9&dn=The.Daily.Show.2012.02.15.(HDTV-FQM)]]></magnetURI>\n"
-"			</torrent>\n"
-"		</item>\n"
-"	</channel>\n"
-"</rss>\n";
-
-
 void print_feed(feed_status const& f)
 {
-	printf("FEED: %s\n",f.url.c_str());
+	fprintf(stderr, "FEED: %s\n",f.url.c_str());
 	if (f.error)
-		printf("ERROR: %s\n", f.error.message().c_str());
+		fprintf(stderr, "ERROR: %s\n", f.error.message().c_str());
 
-	printf("   %s\n   %s\n", f.title.c_str(), f.description.c_str());
-	printf("   ttl: %d minutes\n", f.ttl);
+	fprintf(stderr, "   %s\n   %s\n", f.title.c_str(), f.description.c_str());
+	fprintf(stderr, "   ttl: %d minutes\n", f.ttl);
+	fprintf(stderr, "   num items: %d\n", int(f.items.size()));
 
 	for (std::vector<feed_item>::const_iterator i = f.items.begin()
 		, end(f.items.end()); i != end; ++i)
 	{
-		printf("\033[32m%s\033[0m\n------------------------------------------------------\n"
+		fprintf(stderr, "\033[32m%s\033[0m\n------------------------------------------------------\n"
 			"   url: %s\n   size: %"PRId64"\n   info-hash: %s\n   uuid: %s\n   description: %s\n"
 			"   comment: %s\n   category: %s\n"
 			, i->title.c_str(), i->url.c_str(), i->size
@@ -110,11 +62,27 @@ void print_feed(feed_status const& f)
 	}
 }
 
-int test_main()
+struct rss_expect
 {
+	rss_expect(int nitems, std::string url, std::string title, size_type size)
+		: num_items(nitems), first_url(url), first_title(title), first_size(size)
+	{}
 
-	char* buf = rss1;
-	int len = sizeof(rss1);
+	int num_items;
+	std::string first_url;
+	std::string first_title;
+	size_type first_size;
+};
+
+void test_feed(std::string const& filename, rss_expect const& expect)
+{
+	std::vector<char> buffer;
+	error_code ec;
+	load_file(filename, buffer, ec);
+	TEST_CHECK(!ec);
+
+	char* buf = &buffer[0];
+	int len = buffer.size();
 
 	char const header[] = "HTTP/1.1 200 OK\r\n"
 		"\r\n";
@@ -143,18 +111,31 @@ int test_main()
 	TEST_CHECK(!st.error);
 
 	print_feed(st);
-	
-	TEST_CHECK(st.items.size() == 2);
-	if (st.items.size() == 2)
-	{
-		TEST_CHECK(st.items[0].url == "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent");
-		TEST_CHECK(st.items[0].size == 183442338);
-		TEST_CHECK(st.items[0].title == "The Daily Show 2012-02-16 [HDTV - LMAO]");
 
-		TEST_CHECK(st.items[1].url == "http://torrent.zoink.it/The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent");
-		TEST_CHECK(st.items[1].size == 183790660);
-		TEST_CHECK(st.items[1].title == "The Daily Show 2012-02-15 [HDTV - FQM]");
+	TEST_CHECK(st.items.size() == expect.num_items);
+	if (st.items.size() > 0)
+	{
+		TEST_CHECK(st.items[0].url == expect.first_url);
+		TEST_CHECK(st.items[0].size == expect.first_size);
+		TEST_CHECK(st.items[0].title == expect.first_title);
 	}
+
+	entry state;
+	f->save_state(state);
+
+	fprintf(stderr, "feed_state:\n");
+	state.print(std::cerr);
+
+	// TODO: verify some key state is saved in 'state'
+}
+
+int test_main()
+{
+	test_feed("eztv.xml", rss_expect(30, "http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent", "The Daily Show 2012-02-16 [HDTV - LMAO]", 183442338));
+	test_feed("cb.xml", rss_expect(50, "http://www.clearbits.net/get/1911-norbergfestival-2011.torrent", "Norbergfestival 2011", 1160773632));
+	test_feed("kat.xml", rss_expect(25, "http://kat.ph/torrents/benito-di-paula-1975-benito-di-paula-lp-rip-ogg-at-500-jarax4u-t6194897/", "Benito Di Paula - 1975 - Benito Di Paula (LP Rip OGG at 500) [jarax4u]", 168773863));
+	test_feed("mn.xml", rss_expect(20, "http://www.mininova.org/get/13203100", "Dexcell - January TwentyTwelve Mix", 137311179));
+	test_feed("pb.xml", rss_expect(60, "magnet:?xt=urn:btih:FD4CDDB7BBE722D17A018EFD875EB0695ED7159C&dn=Thompson+Twins+-+1989+-+Big+Trash+%5BMP3%5D", "Thompson Twins - 1989 - Big Trash [MP3]", 100160904));
 	return 0;
 }
 
