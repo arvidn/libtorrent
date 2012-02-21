@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/time.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 using boost::bind;
 
@@ -883,7 +884,26 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
-	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
+	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
+	{
+		// if we have a monitor dir, save the .torrent file we just received in it
+		// also, add it to the files map, and remove it from the non_files list
+		// to keep the scan dir logic in sync so it's not removed, or added twice
+		torrent_handle h = p->handle;
+		if (h.is_valid()) {
+			torrent_info const& ti = h.get_torrent_info();
+			create_torrent ct(ti);
+			entry te = ct.generate();
+			std::vector<char> buffer;
+			bencode(std::back_inserter(buffer), te);
+			std::string filename = ti.name() + "." + to_hex(ti.info_hash().to_string()) + ".torrent";
+			save_file(combine_path(monitor_dir, filename), buffer);
+
+			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
+			non_files.erase(h);
+		}
+	}
+	else if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
 	{
 		std::string filename;
 		if (p->params.userdata)
