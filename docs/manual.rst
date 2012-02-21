@@ -7071,6 +7071,23 @@ only those that needs to download it from peers (when utilizing the libtorrent e
 
 There are no additional data members in this alert.
 
+Typically, when receiving this alert, you would want to save the torrent file in order
+to load it back up again when the session is restarted. Here's an example snippet of
+code to do that::
+
+	torrent_handle h = alert->handle();
+	if (h.is_valid()) {
+		torrent_info const& ti = h.get_torrent_info();
+		create_torrent ct(ti);
+		entry te = ct.generate();
+		std::vector<char> buffer;
+		bencode(std::back_inserter(buffer), te);
+		FILE* f = fopen((to_hex(ti.info_hash().to_string()) + ".torrent").c_str(), "w+");
+		if (f) {
+			fwrite(&buffer[0], 1, buffer.size(), f);
+			fclose(f);
+		}
+	}
 
 fastresume_rejected_alert
 -------------------------
