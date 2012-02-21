@@ -163,7 +163,7 @@ namespace libtorrent
 
 		peer_request ret;
 		ret.piece = int(offset / piece_length());
-		ret.start = int(offset - ret.piece * piece_length());
+		ret.start = int(offset % piece_length());
 		ret.length = size;
 		return ret;
 	}
