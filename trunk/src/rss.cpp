@@ -50,11 +50,13 @@ struct feed_state
 {
 	feed_state(feed& r)
 		: in_item(false)
+		, num_items(0)
 		, type(none)
 		, ret(r)
 	{}
 
 	bool in_item;
+	int num_items;
 	std::string current_tag;
 	enum feed_type
 	{
@@ -215,7 +217,10 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				f.in_item = false;
 				if (!f.current_item.title.empty()
 					&& !f.current_item.url.empty())
+				{
 					f.ret.add_item(f.current_item);
+					++f.num_items;
+				}
 				f.current_item = feed_item();
 			}
 			f.current_tag = "";
@@ -263,7 +268,6 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 		case xml_declaration_tag: return;
 		case xml_comment: return;
 	}
-	
 }
 
 torrent_handle add_feed_item(session& s, feed_item const& fi
@@ -300,6 +304,7 @@ feed::feed(aux::session_impl& ses, feed_settings const& sett)
 	: m_last_attempt(0)
 	, m_last_update(0)
 	, m_ttl(-1)
+	, m_failures(0)
 	, m_updating(false)
 	, m_settings(sett)
 	, m_ses(ses)
@@ -330,6 +335,7 @@ void feed::on_feed(error_code const& ec
 
 	if (ec && ec != asio::error::eof)
 	{
+		++m_failures;
 		m_error = ec;
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
@@ -341,6 +347,7 @@ void feed::on_feed(error_code const& ec
 
 	if (parser.status_code() != 200)
 	{
+		++m_failures;
 		m_error = error_code(parser.status_code(), get_http_category());
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
@@ -349,6 +356,8 @@ void feed::on_feed(error_code const& ec
 		}
 		return;
 	}
+
+	m_failures = 0;
 
 	char* buf = const_cast<char*>(data);
 
@@ -392,7 +401,7 @@ void feed::on_feed(error_code const& ec
 	m_last_update = now;
 
 	// keep history of the typical feed size times 5
-	int max_history = (std::max)(int(m_items.size()) * 5, 100);
+	int max_history = (std::max)(s.num_items * 5, 100);
 
 	// this is not very efficient, but that's probably OK for now
 	while (int(m_added.size()) > max_history)
@@ -557,9 +566,10 @@ void feed::add_item(feed_item const& item)
 	m_items.push_back(item);
 }
 
-void feed::update_feed()
+// returns the number of seconds until trying again
+int feed::update_feed()
 {
-	if (m_updating) return;
+	if (m_updating) return 60;
 
 	m_last_attempt = time(0);
 	m_last_update = 0;
@@ -577,6 +587,8 @@ void feed::update_feed()
 
 	m_updating = true;
 	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+
+	return 60 + m_failures * m_failures * 60;
 }
 
 void feed::get_feed_status(feed_status* ret) const

@@ -3880,10 +3880,8 @@ namespace aux {
 			feed& f = **i;
 			int delta = f.next_update(now_posix);
 			if (delta <= 0)
-			{
-				f.update_feed();
-				continue;
-			}
+				delta = f.update_feed();
+			TORRENT_ASSERT(delta >= 0);
 			ptime next_update = now + seconds(delta);
 			if (next_update < min_update) min_update = next_update;
 		}
