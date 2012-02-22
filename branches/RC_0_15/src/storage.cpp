@@ -1492,7 +1492,7 @@ ret:
 
 		const int size = bufs_size(bufs, num_bufs);
 		const int start_adjust = file_offset & pos_align;
-		const int aligned_start = file_offset - start_adjust;
+		const size_type aligned_start = file_offset - start_adjust;
 		const int aligned_size = ((size+start_adjust) & size_align)
 			? ((size+start_adjust) & ~size_align) + size_align + 1 : size + start_adjust;
 		const int num_blocks = (aligned_size + block_size - 1) / block_size;
