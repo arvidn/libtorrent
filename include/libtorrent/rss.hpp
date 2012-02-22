@@ -144,7 +144,7 @@ namespace libtorrent
 		void on_feed(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 	
-		void update_feed();
+		int update_feed();
 	
 		aux::session_impl& session() const { return m_ses; }
 	
@@ -186,6 +186,8 @@ namespace libtorrent
    	time_t m_last_update;
 		// refresh rate of this feed in minutes
 		int m_ttl;
+		// the number of update failures in a row
+		int m_failures;
 		// true while waiting for the server to respond
 		bool m_updating;
 		feed_settings m_settings;
