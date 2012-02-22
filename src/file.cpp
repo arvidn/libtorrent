@@ -952,6 +952,12 @@ namespace libtorrent
 				}
 				return true;
 			}
+
+			// couldn't find ntdll or NtSetFileInformation function
+			// and the file is opened in unbuffered mode! There's
+			// nothing we can do! (short of re-opening the file, but
+			// that introduces all sorts of nasty race conditions)
+			return false;
 		}
 
 		LARGE_INTEGER offs;
