@@ -50,7 +50,7 @@ Set the version to the version of python you have installed or want to use. If
 you've installed python in a non-standard location, you have to add the prefix
 path used when you installed python as a second option. Like this::
 
-	using python : 2.6 : /usr/bin/python2.6 : /usr/include/python2.6 : /usr/lib/python2.6 ;
+	using python : 2.3 : /usr ;
 
 The bindings require *at least* python version 2.2.
 
@@ -97,14 +97,6 @@ a list of entries.
 
 ``create_torrent::add_node()`` takes two arguments, one string and one integer,
 instead of a pair. The string is the address and the integer is the port.
-
-``session::set_settings()`` not only accepts a ``session_settings`` object, but also
-a dictionary with keys matching the names of the members of the ``session_settings`` struct.
-When calling ``set_settings``, the dictionary does not need to have every settings set,
-keys that are not present, are set to their default value.
-
-For backwards compatibility, ``session::settings()`` still returns a ``session_settings``
-struct. To get a python dictionary of the settings, call ``session::get_settings``.
 
 .. _`main library reference`: manual.html
 

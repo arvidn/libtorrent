@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
-#include <boost/limits.hpp>
+#include <limits>
+#include <boost/optional.hpp>
 #include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/size_type.hpp"
@@ -43,17 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	TORRENT_EXPORT boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
-	TORRENT_EXPORT bool is_alpha(char c);
 	TORRENT_EXPORT bool is_digit(char c);
 	TORRENT_EXPORT bool is_print(char c);
 	TORRENT_EXPORT bool is_space(char c);
 	TORRENT_EXPORT char to_lower(char c);
 
-	TORRENT_EXPORT int split_string(char const** tags, int buf_size, char* in);
 	TORRENT_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
 	TORRENT_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
-
-	TORRENT_EXPORT void url_random(char* begin, char* end);
 
 	TORRENT_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
@@ -68,13 +65,12 @@ namespace libtorrent
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXPORT std::string base64encode(std::string const& s);
-	TORRENT_EXPORT std::string base64decode(std::string const& s);
 	// encodes a string using the base32 scheme
 	TORRENT_EXPORT std::string base32encode(std::string const& s);
 	TORRENT_EXPORT std::string base32decode(std::string const& s);
 
-	TORRENT_EXPORT std::string url_has_argument(
-		std::string const& url, std::string argument, std::string::size_type* out_pos = 0);
+	TORRENT_EXPORT boost::optional<std::string> url_has_argument(
+		std::string const& url, std::string argument, size_t* out_pos = 0);
 
 	// replaces \ with /
 	TORRENT_EXPORT void convert_path_to_posix(std::string& path);
@@ -85,18 +81,16 @@ namespace libtorrent
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if TORRENT_USE_WPATH
 	TORRENT_EXPORT std::wstring convert_to_wstring(std::string const& s);
-	TORRENT_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif
 	
-#if TORRENT_USE_ICONV || TORRENT_USE_LOCALE
+#if defined TORRENT_WINDOWS || TORRENT_USE_LOCALE_FILENAMES
 	TORRENT_EXPORT std::string convert_to_native(std::string const& s);
-	TORRENT_EXPORT std::string convert_from_native(std::string const& s);
 #else
 	inline std::string const& convert_to_native(std::string const& s) { return s; }
-	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #endif		
+	
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

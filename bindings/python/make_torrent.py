@@ -25,3 +25,4 @@ libtorrent.set_piece_hashes(t, os.path.split(input)[0], lambda x: sys.stderr.wri
 sys.stderr.write('\n')
 
 print libtorrent.bencode(t.generate())
+

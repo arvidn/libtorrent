@@ -36,41 +36,49 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
+#include <boost/filesystem/convenience.hpp>
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 
-char const* pe_policy(libtorrent::pe_settings::enc_policy policy)
+void display_pe_policy(libtorrent::pe_settings::enc_policy policy)
 {
 	using namespace libtorrent;
+	using std::cerr;
 	
-	if (policy == pe_settings::disabled) return "disabled";
-	else if (policy == pe_settings::enabled) return "enabled";
-	else if (policy == pe_settings::forced) return "forced";
-	return "unknown";
+	if (policy == pe_settings::disabled) cerr << "disabled ";
+	else if (policy == pe_settings::enabled) cerr << "enabled ";
+	else if (policy == pe_settings::forced) cerr << "forced ";
 }
 
 void display_pe_settings(libtorrent::pe_settings s)
 {
 	using namespace libtorrent;
+	using std::cerr;
 	
-	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
-		, pe_policy(s.out_enc_policy), pe_policy(s.in_enc_policy));
+	cerr << "out_enc_policy - ";
+	display_pe_policy(s.out_enc_policy);
+	cerr << "\tin_enc_policy - ";
+	display_pe_policy(s.in_enc_policy);
 	
-	fprintf(stderr, "enc_level - %s\t\tprefer_rc4 - %s\n"
-		, s.allowed_enc_level == pe_settings::plaintext ? "plaintext"
-		: s.allowed_enc_level == pe_settings::rc4 ? "rc4"
-		: s.allowed_enc_level == pe_settings::both ? "both" : "unknown"
-		, s.prefer_rc4 ? "true": "false");
+	cerr << "\nenc_level - ";
+	if (s.allowed_enc_level == pe_settings::plaintext) cerr << "plaintext ";
+	else if (s.allowed_enc_level == pe_settings::rc4) cerr << "rc4 ";
+	else if (s.allowed_enc_level == pe_settings::both) cerr << "both ";
+	
+	cerr << "\t\tprefer_rc4 - ";
+	(s.prefer_rc4) ? cerr << "true" : cerr << "false";
+	cerr << "\n\n";
 }
 
 void test_transfer(libtorrent::pe_settings::enc_policy policy,
 		   libtorrent::pe_settings::enc_level level = libtorrent::pe_settings::both,
-		   bool pref_rc4 = false, bool encrypted_torrent = false)
+		   bool pref_rc4 = false)
 {
 	using namespace libtorrent;
+	using std::cerr;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
@@ -88,69 +96,42 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	s.prefer_rc4 = pref_rc4;
 	ses1.set_pe_settings(s);
 
-	s = ses1.get_pe_settings();
-	fprintf(stderr, " Session1 \n");
-	display_pe_settings(s);
-	s = ses2.get_pe_settings();
-	fprintf(stderr, " Session2 \n");
-	display_pe_settings(s);
+// 	s = ses1.get_pe_settings();
+// 	cerr << " Session1 \n";
+// 	display_pe_settings(s);
+// 	s = ses2.get_pe_settings();
+// 	cerr << " Session2 \n";
+// 	display_pe_settings(s);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
 	using boost::tuples::ignore;
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true
-		, "_pe", 16 * 1024, 0, false, 0, true, encrypted_torrent);	
+	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true, "_pe");	
 
-	fprintf(stderr, "waiting for transfer to complete\n");
+	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < 50; ++i)
 	{
-		torrent_status s = tor2.status();
+		tor2.status();
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 
-		if (s.is_seeding) break;
+		if (tor2.is_seed()) break;
 		test_sleep(1000);
 	}
 
-	TEST_CHECK(tor2.status().is_seeding);
- 	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
+	TEST_CHECK(tor2.is_seed());
+ 	if (tor2.is_seed()) std::cerr << "done\n";
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
-	error_code ec;
-	remove_all("./tmp1_pe", ec);
-	remove_all("./tmp2_pe", ec);
-	remove_all("./tmp3_pe", ec);
+	using boost::filesystem::remove_all;
+	remove_all("./tmp1_pe");
+	remove_all("./tmp2_pe");
+	remove_all("./tmp3_pe");
 }
 
-void test_enc_handler(libtorrent::encryption_handler* a, libtorrent::encryption_handler* b)
-{
-	int repcount = 128;
-	for (int rep = 0; rep < repcount; ++rep)
-	{
-		std::size_t buf_len = rand() % (512 * 1024);
-		char* buf = new char[buf_len];
-		char* cmp_buf = new char[buf_len];
-		
-		std::generate(buf, buf + buf_len, &std::rand);
-		std::memcpy(cmp_buf, buf, buf_len);
-		
-		a->encrypt(buf, buf_len);
-		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		b->decrypt(buf, buf_len);
-		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
-		
-		b->encrypt(buf, buf_len);
-		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		a->decrypt(buf, buf_len);
-		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
-		
-		delete[] buf;
-		delete[] cmp_buf;
-	}
-}
 
 int test_main()
 {
@@ -176,31 +157,31 @@ int test_main()
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	fprintf(stderr, "testing RC4 handler\n");
-	rc4_handler rc41;
-	rc41.set_incoming_key(&test2_key[0], 20);
-	rc41.set_outgoing_key(&test1_key[0], 20);
-	rc4_handler rc42;
-	rc42.set_incoming_key(&test1_key[0], 20);
-	rc42.set_outgoing_key(&test2_key[0], 20);
-	test_enc_handler(&rc41, &rc42);
+	RC4_handler RC41(test2_key, test1_key);
+	RC4_handler RC42(test1_key, test2_key);
+
+	for (int rep = 0; rep < repcount; ++rep)
+	{
+		std::size_t buf_len = rand() % (512 * 1024);
+		char* buf = new char[buf_len];
+		char* zero_buf = new char[buf_len];
+		
+		std::fill(buf, buf + buf_len, 0);
+		std::fill(zero_buf, zero_buf + buf_len, 0);
+		
+		RC41.encrypt(buf, buf_len);
+		RC42.decrypt(buf, buf_len);
+		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
+		
+		RC42.encrypt(buf, buf_len);
+		RC41.decrypt(buf, buf_len);
+		TEST_CHECK(std::equal(buf, buf + buf_len, zero_buf));
+		
+		delete[] buf;
+		delete[] zero_buf;
+	}
+
 	
-#ifdef TORRENT_USE_OPENSSL
-	fprintf(stderr, "testing AES-256 handler\n");
-	char key1[32];
-	std::generate(key1, key1 + 32, &std::rand);
-	aes256_handler aes1;
-	aes1.set_incoming_key((const unsigned char*)key1, 32);
-	aes256_handler aes2;
-	aes2.set_incoming_key((const unsigned char*)key1, 32);
-	test_enc_handler(&aes1, &aes2);
-#endif
-
-	test_transfer(pe_settings::enabled, pe_settings::both, false, true);
-	test_transfer(pe_settings::enabled, pe_settings::both, true, true);
-
-	return 0;
-
 	test_transfer(pe_settings::disabled);
 
 	test_transfer(pe_settings::forced, pe_settings::plaintext);
@@ -220,7 +201,7 @@ int test_main()
 
 int test_main()
 {
-	fprintf(stderr, "PE test not run because it's disabled\n");
+	std::cerr << "PE test not run because it's disabled" << std::endl;
 	return 0;
 }
 

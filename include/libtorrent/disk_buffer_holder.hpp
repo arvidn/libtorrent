@@ -47,10 +47,11 @@ namespace libtorrent
 	{
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
 		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf);
+		disk_buffer_holder(disk_buffer_pool& disk_pool, char* buf, int num_blocks);
 		~disk_buffer_holder();
 		char* release();
 		char* get() const { return m_buf; }
-		void reset(char* buf = 0);
+		void reset(char* buf = 0, int num_blocks = 1);
 		void swap(disk_buffer_holder& h)
 		{
 			TORRENT_ASSERT(&h.m_disk_pool == &m_disk_pool);
@@ -64,6 +65,7 @@ namespace libtorrent
 	private:
 		disk_buffer_pool& m_disk_pool;
 		char* m_buf;
+		int m_num_blocks;
 	};
 
 }

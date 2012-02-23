@@ -36,19 +36,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/thread.hpp"
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <fstream>
-#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
+using namespace boost::filesystem;
 using namespace libtorrent;
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
-	, int proxy, int port, char const* protocol, bool url_seed, bool chunked_encoding)
+	, int proxy, int port, char const* protocol, bool url_seed)
 {
 	using namespace libtorrent;
 
@@ -56,17 +57,14 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	session_settings settings;
 	settings.max_queued_disk_bytes = 256 * 1024;
 	ses.set_settings(settings);
-	ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
-	error_code ec;
-	ses.listen_on(std::make_pair(51000, 52000), ec);
-	if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
-
-	remove_all("./tmp2_web_seed", ec);
+	ses.set_alert_mask(~alert::progress_notification);
+	ses.listen_on(std::make_pair(51000, 52000));
+	remove_all("./tmp2_web_seed");
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s ==== seed: %s === transfer-encoding: %s\n\n\n"
-		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed", chunked_encoding ? "chunked": "none");
+	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== %s ==== %s ===\n\n\n"
+		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed");
 	
 	if (proxy)
 	{
@@ -77,16 +75,14 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy;
-		ses.set_proxy(ps);
+		ses.set_web_seed_proxy(ps);
 	}
 
 	add_torrent_params p;
-	p.auto_managed = false;
-	p.paused = false;
 	p.ti = torrent_file;
 	p.save_path = "./tmp2_web_seed";
 	p.storage_mode = storage_mode_compact;
-	torrent_handle th = ses.add_torrent(p, ec);
+	torrent_handle th = ses.add_torrent(p);
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
@@ -98,14 +94,6 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	cache_status cs;
 
-	file_storage const& fs = torrent_file->files();
-	uint pad_file_size = 0;
-	for (int i = 0; i < fs.num_files(); ++i)
-	{
-		file_entry f = fs.at(i);
-		if (f.pad_file) pad_file_size += f.size;
-	}
-
 	for (int i = 0; i < 30; ++i)
 	{
 		torrent_status s = th.status();
@@ -116,7 +104,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		cs = ses.get_cache_status();
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
-/*
+
 		std::cerr << (s.progress * 100.f) << " %"
 			<< " torrent rate: " << (s.download_rate / 1000.f) << " kB/s"
 			<< " session rate: " << (ss.download_rate / 1000.f) << " kB/s"
@@ -127,23 +115,24 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 			<< " rcache: " << cs.read_cache_size
 			<< " buffers: " << cs.total_used_buffers
 			<< std::endl;
-*/
-		print_alerts(ses, "  >>  ses", false, false, false, 0, true);
 
-		if (s.is_seeding /* && ss.download_rate == 0.f*/)
+		print_alerts(ses, "  >>  ses");
+
+		if (th.is_seed()/* && ss.download_rate == 0.f*/)
 		{
-			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
+			torrent_status st = th.status();
+			TEST_CHECK(st.total_payload_download - st.total_redundant_bytes == total_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
 			test_sleep(1000);
-			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
-				, total_size - pad_file_size);
+			TEST_CHECK(ses.status().total_payload_download - ses.status().total_redundant_bytes
+				== total_size);
 			break;
 		}
 		test_sleep(500);
 	}
 
-	TEST_EQUAL(cs.cache_size, 0);
-	TEST_EQUAL(cs.total_used_buffers, 0);
+	TEST_CHECK(cs.cache_size == 0);
+	TEST_CHECK(cs.total_used_buffers == 0);
 
 	std::cerr << "total_size: " << total_size
 		<< " rate_sum: " << rate_sum
@@ -157,13 +146,12 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 //	TEST_CHECK(fabs(rate_sum - total_size) < total_size * .1f);
 //	TEST_CHECK(fabs(ses_rate_sum - total_size) < total_size * .1f);
 
-	TEST_CHECK(th.status().is_seeding);
+	TEST_CHECK(th.is_seed());
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists(combine_path("./tmp2_web_seed", torrent_file->files().file_path(
-		torrent_file->file_at(0)))));
-	remove_all("./tmp2_web_seed", ec);
+	TEST_CHECK(exists("./tmp2_web_seed" / torrent_file->file_at(0).path));
+	remove_all("./tmp2_web_seed");
 }
 
 void save_file(char const* filename, char const* data, int size)
@@ -187,34 +175,30 @@ void save_file(char const* filename, char const* data, int size)
 
 }
 
-sha1_hash file_hash(std::string const& name)
-{
-	std::vector<char> buf;
-	error_code ec;
-	load_file(name, buf, ec);
-	if (buf.empty()) return sha1_hash(0);
-	hasher h(&buf[0], buf.size());
-	return h.final();
-}
-
 // test_url_seed determines whether to use url-seed or http-seed
-int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
+int run_suite(char const* protocol, bool test_url_seed)
 {
 	using namespace libtorrent;
+	using namespace boost::filesystem;
 
-	error_code ec;
-	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
+	try {
+		create_directory("./tmp1_web_seed");
+	} catch (std::exception&) {}
+
+	try {
+		create_directory("./tmp1_web_seed/test_torrent_dir");
+	} catch (std::exception&) {}
 
 	file_storage fs;
-	std::srand(10);
-	int piece_size = 0x4000;
+	int piece_size = 16;
 	if (test_url_seed)
 	{
 		int file_sizes[] =
-		{ 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
+		{ 5, 16 - 5, 16, 17, 10, 30, 30, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+			,1,1,1,1,1,1,13,65,34,75,2,3,4,5,23,9,43,4,43,6, 4};
 
 		char* random_data = (char*)malloc(300000);
+		std::srand(10);
 		for (int i = 0; i != sizeof(file_sizes)/sizeof(file_sizes[0]); ++i)
 		{
 			std::generate(random_data, random_data + 300000, &std::rand);
@@ -229,19 +213,17 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	else
 	{
 		piece_size = 64 * 1024;
-		char* random_data = (char*)malloc(64 * 1024 * 25);
-		std::generate(random_data, random_data + 64 * 1024 * 25, &std::rand);
-		save_file("./tmp1_web_seed/seed", random_data, 64 * 1024 * 25);
-		fs.add_file("seed", 64 * 1024 * 25);
+		char* random_data = (char*)malloc(64 * 1024 * 50);
+		std::srand(10);
+		std::generate(random_data, random_data + 64 * 1024 * 50, &std::rand);
+		save_file("./tmp1_web_seed/seed", random_data, 64 * 1024 * 50);
+		fs.add_file("seed", 64 * 1024 * 50);
 		free(random_data);
 	}
 
-	int port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding);
+	int port = start_web_server();
 
-	// generate a torrent with pad files to make sure they
-	// are not requested web seeds
-	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize
-		| libtorrent::create_torrent::calculate_file_hashes);
+	libtorrent::create_torrent t(fs, piece_size);
 	char tmp[512];
 	if (test_url_seed)
 	{
@@ -250,19 +232,11 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	}
 	else
 	{
-		snprintf(tmp, sizeof(tmp), "%s://127.0.0.1:%d/seed", protocol, port);
+		snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/seed", port);
 		t.add_http_seed(tmp);
 	}
-	fprintf(stderr, "testing: %s\n", tmp);
 
-	for (int i = 0; i < fs.num_files(); ++i)
-	{
-		file_entry f = fs.at(i);
-		fprintf(stderr, "  %04x: %d %s\n", int(f.offset), f.pad_file, f.path.c_str());
-	}
-
-//	for (int i = 0; i < 1000; ++i) sleep(1000);
-
+	error_code ec;
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "./tmp1_web_seed", ec);
 
@@ -278,29 +252,17 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	bencode(std::back_inserter(buf), t.generate());
 	boost::intrusive_ptr<torrent_info> torrent_file(new torrent_info(&buf[0], buf.size(), ec));
 
-	// verify that the file hashes are correct
-	for (int i = 0; i < torrent_file->num_files(); ++i)
-	{
-		sha1_hash h1 = torrent_file->file_at(i).filehash;
-		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed"
-			, torrent_file->file_at(i).path));
-//		fprintf(stderr, "%s: %s == %s\n"
-//			, torrent_file->file_at(i).path.c_str()
-//			, to_hex(h1.to_string()).c_str(), to_hex(h2.to_string()).c_str());
-		TEST_EQUAL(h1, h2);
-	}
-
 	for (int i = 0; i < 6; ++i)
-		test_transfer(torrent_file, i, port, protocol, test_url_seed, chunked_encoding);
+		test_transfer(torrent_file, i, port, protocol, test_url_seed);
 	
 	if (test_url_seed)
 	{
 		torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
-		test_transfer(torrent_file, 0, port, protocol, test_url_seed, chunked_encoding);
+		test_transfer(torrent_file, 0, port, protocol, test_url_seed);
 	}
 
 	stop_web_server();
-	remove_all("./tmp1_web_seed", ec);
+	remove_all("./tmp1_web_seed");
 	return 0;
 }
 
@@ -309,13 +271,7 @@ int test_main()
 	int ret = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		for (int j = 0; j < 2; ++j)
-		{
-#ifdef TORRENT_USE_OPENSSL
-			run_suite("https", i, j);
-#endif
-			run_suite("http", i, j);
-		}
+		run_suite("http", i);
 	}
 	return ret;
 }

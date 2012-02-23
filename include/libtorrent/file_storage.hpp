@@ -37,14 +37,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <ctime>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/filesystem/path.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/peer_id.hpp"
 
 namespace libtorrent
 {
-	struct file;
+	namespace fs = boost::filesystem;
 
 	struct TORRENT_EXPORT file_entry
 	{
@@ -54,7 +63,7 @@ namespace libtorrent
 			, symlink_attribute(false)
 		{}
 
-		std::string path;
+		fs::path path;
 		size_type offset; // the offset of this file inside the torrent
 		size_type size; // the size of this file
 		// the offset in the file where the storage starts.
@@ -62,97 +71,11 @@ namespace libtorrent
 		// compressed into a single file, such as a so-called part file.
 		size_type file_base;
 		std::time_t mtime;
-		sha1_hash filehash;
 		bool pad_file:1;
 		bool hidden_attribute:1;
 		bool executable_attribute:1;
 		bool symlink_attribute:1;
-		std::string symlink_path;
-	};
-
-	// this is used internally to hold the file entry
-	// it's smaller and optimized for smaller memory
-	// footprint, as opposed to file_entry, which is
-	// optimized for convenience
-	struct TORRENT_EXPORT internal_file_entry
-	{
-		friend class file_storage;
-#ifdef TORRENT_DEBUG
-		// for torrent_info::invariant_check
-		friend class torrent_info;
-#endif
-		internal_file_entry()
-			: name(0)
-			, offset(0)
-			, symlink_index(-1)
-			, size(0)
-			, name_len(0)
-			, pad_file(false)
-			, hidden_attribute(false)
-			, executable_attribute(false)
-			, symlink_attribute(false)
-			, path_index(-1)
-		{}
-
-		internal_file_entry(file_entry const& e)
-			: name(0)
-			, offset(e.offset)
-			, symlink_index(-1)
-			, size(e.size)
-			, name_len(0)
-			, pad_file(e.pad_file)
-			, hidden_attribute(e.hidden_attribute)
-			, executable_attribute(e.executable_attribute)
-			, symlink_attribute(e.symlink_attribute)
-			, path_index(-1)
-		{
-			set_name(e.path.c_str());
-		}
-
-		internal_file_entry(internal_file_entry const& fe);
-		internal_file_entry& operator=(internal_file_entry const& fe);
-
-		~internal_file_entry();
-
-		void set_name(char const* n, int borrow_chars = 0);
-		std::string filename() const;
-
-		// make it available for logging
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
-	private:
-#endif
-		// This string is not necessarily null terminated!
-		// that's why it's private, to keep people away from it
-		char const* name;
-	public:
-
-		// the offset of this file inside the torrent
-		size_type offset:48;
-
-		// index into file_storage::m_symlinks or -1
-		// if this is not a symlink
-		size_type symlink_index:16;
-
-		// the size of this file
-		size_type size:48;
-
-		// the number of characters in the name. If this is
-		// 0, name is null terminated and owned by this object
-		// (i.e. it should be freed in the destructor). If
-		// the len is > 0, the name pointer doesn not belong
-		// to this object, and it's not null terminated
-		size_type name_len:10;
-		bool pad_file:1;
-		bool hidden_attribute:1;
-		bool executable_attribute:1;
-		bool symlink_attribute:1;
-		// the index into file_storage::m_paths. To get
-		// the full path to this file, concatenate the path
-		// from that array with the 'name' field in
-		// this struct
-		int path_index;
+		fs::path symlink_path;
 	};
 
 	struct TORRENT_EXPORT file_slice
@@ -179,18 +102,12 @@ namespace libtorrent
 			attribute_symlink = 8
 		};
 
-		void reserve(int num_files);
-
-		void add_file(file_entry const& e, char const* filehash = 0);
-
-		void add_file(std::string const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
-
+		void add_file(file_entry const& e);
+		void add_file(fs::path const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::string const& new_filename);
 
-#if TORRENT_USE_WSTRING
-		void add_file(std::wstring const& p, size_type size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
+		void add_file(fs::wpath const& p, size_type size, int flags = 0, std::time_t mtime = 0, fs::path const& s_p = "");
 		void rename_file(int index, std::wstring const& new_filename);
 		void set_name(std::wstring const& n);
 #endif
@@ -199,8 +116,8 @@ namespace libtorrent
 			, int size) const;
 		peer_request map_file(int file, size_type offset, int size) const;
 		
-		typedef std::vector<internal_file_entry>::const_iterator iterator;
-		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
+		typedef std::vector<file_entry>::const_iterator iterator;
+		typedef std::vector<file_entry>::const_reverse_iterator reverse_iterator;
 
 		iterator file_at_offset(size_type offset) const;
 		iterator begin() const { return m_files.begin(); }
@@ -210,15 +127,12 @@ namespace libtorrent
 		int num_files() const
 		{ return int(m_files.size()); }
 
-		file_entry at(int index) const;
-		file_entry at(iterator i) const;
-		internal_file_entry const& internal_at(int index) const
+		file_entry const& at(int index) const
 		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < int(m_files.size()));
+			TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 			return m_files[index];
 		}
-
+		
 		size_type total_size() const { return m_total_size; }
 		void set_num_pieces(int n) { m_num_pieces = n; }
 		int num_pieces() const { TORRENT_ASSERT(m_piece_length > 0); return m_num_pieces; }
@@ -232,16 +146,11 @@ namespace libtorrent
 		void swap(file_storage& ti)
 		{
 			using std::swap;
+			swap(ti.m_piece_length, m_piece_length);
 			swap(ti.m_files, m_files);
-			swap(ti.m_file_hashes, m_file_hashes);
-			swap(ti.m_symlinks, m_symlinks);
-			swap(ti.m_mtime, m_mtime);
-			swap(ti.m_file_base, m_file_base);
-			swap(ti.m_paths, m_paths);
-			swap(ti.m_name, m_name);
 			swap(ti.m_total_size, m_total_size);
 			swap(ti.m_num_pieces, m_num_pieces);
-			swap(ti.m_piece_length, m_piece_length);
+			swap(ti.m_name, m_name);
 		}
 
 		// if pad_file_limit >= 0, files larger than
@@ -249,66 +158,18 @@ namespace libtorrent
 		// not add any padding
 		void optimize(int pad_file_limit = -1);
 
-		sha1_hash hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
-		std::string file_path(internal_file_entry const& fe) const;
-		size_type file_size(internal_file_entry const& fe) const;
-
-#if !defined TORRENT_VERBOSE_LOGGING \
-	&& !defined TORRENT_LOGGING \
-	&& !defined TORRENT_ERROR_LOGGING
 	private:
-#endif
-
-		void update_path_index(internal_file_entry& e);
-		void reorder_file(int index, int dst);
+		int m_piece_length;
 
 		// the list of files that this torrent consists of
-		std::vector<internal_file_entry> m_files;
-
-		// if there are sha1 hashes for each individual file
-		// there are as many entries in this array as the
-		// m_files array. Each entry in m_files has a corresponding
-		// hash pointer in this array. The reason to split it up
-		// in separate arrays is to save memory in case the torrent
-		// doesn't have file hashes
-		std::vector<char const*> m_file_hashes;
-
-		// for files that are symlinks, the symlink
-		// path_index in the internal_file_entry indexes
-		// this vector of strings
-		std::vector<std::string> m_symlinks;
-
-		// the modification times of each file. This vector
-		// is empty if no file have a modification time.
-		// each element corresponds to the file with the same
-		// index in m_files
-		std::vector<time_t> m_mtime;
-
-		// if any file has a non-zero file base (i.e. multiple
-		// files residing in the same physical file at different
-		// offsets)
-		std::vector<size_type> m_file_base;
-
-		// all unique paths files have. The internal_file_entry::path_index
-		// points into this array
-		std::vector<std::string> m_paths;
-
-		// name of torrent. For multi-file torrents
-		// this is always the root directory
-		std::string m_name;
+		std::vector<file_entry> m_files;
 
 		// the sum of all filesizes
 		size_type m_total_size;
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
-
-		int m_piece_length;
+		std::string m_name;
 	};
 }
 

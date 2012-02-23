@@ -1,108 +1,3 @@
-	* don't let hung outgoing connection attempts block incoming connections
-	* improve SSL torrent support by using SNI and a single SSL listen socket
-	* improved peer exchange performance by sharing incoming connections which advertize listen port 
-	* deprecate set_ratio(), and per-peer rate limits
-	* add web seed support for torrents with pad files
-	* introduced a more scalable API for torrent status updates (post_torrent_updates()) and updated client_test to use it
-	* updated the API to add_torrent_params turning all bools into flags of a flags field
-	* added async_add_torrent() function to significantly improve performance when
-	  adding many torrents
-	* change peer_states to be a bitmask (bw_limit, bw_network, bw_disk)
-	* changed semantics of send_buffer_watermark_factor to be specified as a percentage
-	* add incoming_connection_alert for logging all successful incoming connections
-	* feature to encrypt peer connections with a secret AES-256 key stored in .torrent file
-	* deprecated compact storage allocation
-	* close files in separate thread on systems where close() may block (Mac OS X for instance)
-	* don't create all directories up front when adding torrents
-	* support DHT scrape
-	* added support for fadvise/F_RDADVISE for improved disk read performance
-	* introduced pop_alerts() which pops the entire alert queue in a single call
-	* support saving metadata in resume file, enable it by default for magnet links
-	* support for receiving multi announce messages for local peer discovery
-	* added session::listen_no_system_port flag to prevent libtorrent from ever binding the listen socket to port 0
-	* added option to not recheck on missing or incomplete resume data
-	* extended stats logging with statistics=on builds
-	* added new session functions to more efficiently query torrent status
-	* added alerts for added and removed torrents
-	* expanded plugin interface to support session wide states
-	* made the metadata block requesting algorithm more robust against hash check failures
-	* support a separate option to use proxies for peers or not
-	* pausing the session now also pauses checking torrents
-	* moved alert queue size limit into session_settings
-	* added support for DHT rss feeds (storing only)
-	* added support for RSS feeds
-	* fixed up some edge cases in DHT routing table and improved unit test of it
-	* added error category and error codes for HTTP errors
-	* made the DHT implementation slightly more robust against routing table poisoning and node ID spoofing
-	* support chunked encoding in http downloads (http_connection)
-	* support adding torrents by url to the .torrent file
-	* support CDATA tags in xml parser
-	* use a python python dictionary for settings instead of session_settings object (in python bindings)
-	* optimized metadata transfer (magnet link) startup time (shaved off about 1 second)
-	* optimized swarm startup time (shaved off about 1 second)
-	* support DHT name lookup
-	* optimized memory usage of torrent_info and file_storage, forcing some API changes
-	  around file_storage and file_entry
-	* support trackerid tracker extension
-	* graceful peer disconnect mode which finishes transactions before disconnecting peers
-	* support chunked encoding for web seeds
-	* uTP protocol support
-	* resistance towards certain flood attacks
-	* support chunked encoding for web seeds (only for BEP 19, web seeds)
-	* optimized session startup time
-	* support SSL for web seeds, through all proxies
-	* support extending web seeds with custom authorization and extra headers
-	* settings that are not changed from the default values are not saved
-	  in the session state
-	* made seeding choking algorithm configurable
-	* deprecated setters for max connections, max half-open, upload and download
-	  rates and unchoke slots. These are now set through session_settings
-	* added functions to query an individual peer's upload and download limit
-	* full support for BEP 21 (event=paused)
-	* added share-mode feature for improving share ratios
-	* merged all proxy settings into a single one
-	* improved SOCKS5 support by proxying hostname lookups
-	* improved support for multi-homed clients
-	* added feature to not count downloaded bytes from web seeds in stats
-	* added alert for incoming local service discovery messages
-	* added option to set file priorities when adding torrents
-	* removed the session mutex for improved performance
-	* added upload and download activity timer stats for torrents
-	* made the reuse-address flag configurable on the listen socket
-	* moved UDP trackers over to use a single socket
-	* added feature to make asserts log to a file instead of breaking the process
-	  (production asserts)
-	* optimized disk I/O cache clearing
-	* added feature to ask a torrent if it needs to save its resume data or not
-	* added setting to ignore file modification time when loading resume files
-	* support more fine-grained torrent states between which peer sources it
-	  announces to
-	* supports calculating sha1 file-hashes when creating torrents
-	* made the send_buffer_watermark performance warning more meaningful
-	* supports complete_ago extension
-	* dropped zlib as a dependency and builds using puff.c instead
-	* made the default cache size depend on available physical RAM
-	* added flags to torrent::status() that can filter which values are calculated
-	* support 'explicit read cache' which keeps a specific set of pieces
-	  in the read cache, without implicitly caching other pieces
-	* support sending suggest messages based on what's in the read cache
-	* clear sparse flag on files that complete on windows
-	* support retry-after header for web seeds
-	* replaced boost.filesystem with custom functions
-	* replaced dependency on boost.thread by asio's internal thread primitives
-	* added support for i2p torrents
-	* cleaned up usage of MAX_PATH and related macros
-	* made it possible to build libtorrent without RTTI support
-	* added support to build with libgcrypt and a shipped version of libtommath
-	* optimized DHT routing table memory usage
-	* optimized disk cache to work with large caches
-	* support variable number of optimistic unchoke slots and to dynamically
-	  adjust based on the total number of unchoke slots
-	* support for BitTyrant choker algorithm
-	* support for automatically start torrents when they receive an
-	  incoming connection
-	* added more detailed instrumentation of the disk I/O thread
-
 0.15.10 release
 
 	* fix 'parameter incorrect' issue when using unbuffered IO on windows
@@ -119,6 +14,7 @@
 
 0.15.9 release
 
+	* fixed https crash
 	* added some functions missing from the python binding
 	* fixed rare piece picker bug
 	* fixed invalid torrent_status::finished_time
@@ -131,6 +27,7 @@
 	* fix UPnP issue for routers with multiple PPPoE connections
 	* fix issue where event=stopped announces wouldn't be sent when closing session
 	* fix possible hang in file::readv() on windows
+	* fix crash when using broken SOCKS5 proxies
 	* fix CPU busy loop issue in tracker announce logic
 	* honor IOV_MAX when using writev and readv
 	* don't post 'operation aborted' UDP errors when changing listen port
@@ -174,6 +71,7 @@
 	* fixed bug in torrent_info::remap_files
 	* fix python binding for wait_for_alert
 	* only apply privileged port filter to DHT-only peers
+	* fixed build with deprecated functions disabled
 
 0.15.5 release
 
@@ -209,7 +107,7 @@
 	* fixed NAT-PMP issue when adding the same mapping multiple times
 	* no peers from tracker when stopping is no longer an error
 	* improved web seed retry behavior
-	* fixed announce issue
+	* fixed announce issue which could cause high CPU and memory usage
 
 0.15.3 release
 
@@ -360,6 +258,7 @@
 release 0.14.10
 
 	* fixed udp tracker race condition
+	* fixed error handling with torrents with invalid piece sizes
 	* added support for torrents with odd piece sizes
 	* fixed issue with disk read cache not being cleared when removing torrents
 	* made the DHT socket bind to the same interface as the session

@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <cstring>
 
-#include "libtorrent/escape_string.hpp"
-
 namespace libtorrent
 {
 	enum
@@ -49,10 +47,7 @@ namespace libtorrent
 		xml_string,
 		xml_attribute,
 		xml_comment,
-		xml_parse_error,
-		// used for tags that don't follow the convention of
-		// key-value pairs inside the tag brackets. Like !DOCTYPE
-		xml_tag_content
+		xml_parse_error
 	};
 
 	// callback(int type, char const* name, char const* val)
@@ -85,30 +80,7 @@ namespace libtorrent
 			if (p == end) break;
 		
 			// skip '<'
-			++p;
-			if (p != end && p+8 < end && string_begins_no_case("![CDATA[", p))
-			{
-				// CDATA. match '![CDATA['
-				p += 8;
-				start = p;
-				while (p != end && !string_begins_no_case("]]>", p-2)) ++p;
-
-				// parse error
-				if (p == end)
-				{
-					token = xml_parse_error;
-					start = "unexpected end of file";
-					callback(token, start, val_start);
-					break;
-				}
-			
-				token = xml_string;
-				char tmp = p[-2];
-				p[-2] = 0;
-				callback(token, start, val_start);
-				p[-2] = tmp;
-				continue;
-			}
+			++p;	
 
 			// parse the name of the tag.
 			for (start = p; p != end && *p != '>' && !is_space(*p); ++p);
@@ -188,12 +160,11 @@ namespace libtorrent
 				// look for equality sign
 				for (; i != tag_end && *i != '='; ++i);
 
-				// no equality sign found. Report this as xml_tag_content
-				// instead of a series of key value pairs
 				if (i == tag_end)
 				{
-					token = xml_tag_content;
+					token = xml_parse_error;
 					val_start = 0;
+					start = "garbage inside element brackets";
 					callback(token, start, val_start);
 					break;
 				}
@@ -231,6 +202,7 @@ namespace libtorrent
 				*i = save;
 			}
 		}
+	
 	}
 
 }

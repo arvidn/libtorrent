@@ -45,24 +45,65 @@ struct TORRENT_EXPORT bandwidth_channel
 {
 	static const int inf = boost::integer_traits<int>::const_max;
 
-	bandwidth_channel();
+	bandwidth_channel()
+		: tmp(0)
+		, distribute_quota(0)
+		, m_quota_left(0)
+		, m_limit(0)
+	{}
 
 	// 0 means infinite
-	void throttle(int limit);
+	void throttle(int limit)
+	{
+		TORRENT_ASSERT(limit >= 0);
+		// if the throttle is more than this, we might overflow
+		TORRENT_ASSERT(limit < INT_MAX / 31);
+		m_limit = limit;
+	}
+	
 	int throttle() const
 	{
-		TORRENT_ASSERT_VAL(m_limit < INT_MAX, m_limit);
-		return int(m_limit);
+		return m_limit;
 	}
 
-	int quota_left() const;
-	void update_quota(int dt_milliseconds);
+	int quota_left() const
+	{
+		if (m_limit == 0) return inf;
+		return (std::max)(m_quota_left, boost::int64_t(0));
+	}
+
+	void update_quota(int dt_milliseconds)
+	{
+		if (m_limit == 0) return;
+		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
+		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
+		distribute_quota = (std::max)(m_quota_left, boost::int64_t(0));
+//		fprintf(stderr, "%p: [%d]: + %"PRId64" limit: %"PRId64" quota_left: %"PRId64"\n", this
+//			, dt_milliseconds, (m_limit * dt_milliseconds + 500) / 1000, m_limit
+//			, m_quota_left);
+	}
 
 	// this is used when connections disconnect with
 	// some quota left. It's returned to its bandwidth
 	// channels.
-	void return_quota(int amount);
-	void use_quota(int amount);
+	void return_quota(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		if (m_limit == 0) return;
+		TORRENT_ASSERT(m_quota_left <= m_quota_left + amount);
+		m_quota_left += amount;
+	}
+
+	void use_quota(int amount)
+	{
+		TORRENT_ASSERT(amount >= 0);
+		TORRENT_ASSERT(m_limit >= 0);
+		if (m_limit == 0) return;
+
+//		fprintf(stderr, "%p: - %"PRId64" limit: %"PRId64" quota_left: %"PRId64"\n", this
+//			, amount, m_limit, m_quota_left);
+		m_quota_left -= amount;
+	}
 
 	// used as temporary storage while distributing
 	// bandwidth

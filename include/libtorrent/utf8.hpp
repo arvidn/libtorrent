@@ -35,17 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-// on windows we need these functions for
-// convert_to_native and convert_from_native
-#if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
+#if !defined BOOST_FILESYSTEM_NARROW_ONLY || defined TORRENT_WINDOWS
 
 #include <string>
 #include <cwchar>
-
 #include "libtorrent/ConvertUTF.h"
 
 namespace libtorrent
 {
+
 	inline int utf8_wchar(const std::string &utf8, std::wstring &wide)
 	{
 		// allocate space for worst-case
@@ -105,7 +103,7 @@ namespace libtorrent
 		}
 	}
 }
-#endif // !BOOST_NO_STD_WSTRING
+#endif
 
 #endif
 

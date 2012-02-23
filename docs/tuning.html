@@ -8,17 +8,17 @@
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
+  <script type="text/javascript">
+  /* <![CDATA[ */
+      (function() {
+          var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+          s.type = 'text/javascript';
+          s.async = true;
+          s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+          t.parentNode.insertBefore(s, t);
+      })();
+  /* ]]> */
+  </script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.0</td></tr>
+<td>0.15.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -64,27 +64,23 @@
 <li><a class="reference internal" href="#send-buffer-watermark" id="id7">send buffer watermark</a></li>
 <li><a class="reference internal" href="#optimize-hashing-for-memory-usage" id="id8">optimize hashing for memory usage</a></li>
 <li><a class="reference internal" href="#reduce-executable-size" id="id9">reduce executable size</a></li>
-<li><a class="reference internal" href="#reduce-statistics" id="id10">reduce statistics</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#play-nice-with-the-disk" id="id11">play nice with the disk</a></li>
-<li><a class="reference internal" href="#high-performance-seeding" id="id12">high performance seeding</a><ul>
-<li><a class="reference internal" href="#file-pool" id="id13">file pool</a></li>
-<li><a class="reference internal" href="#disk-cache" id="id14">disk cache</a></li>
-<li><a class="reference internal" href="#utp-tcp-mixed-mode" id="id15">uTP-TCP mixed mode</a></li>
-<li><a class="reference internal" href="#send-buffer-low-watermark" id="id16">send buffer low watermark</a></li>
-<li><a class="reference internal" href="#peers" id="id17">peers</a></li>
-<li><a class="reference internal" href="#torrent-limits" id="id18">torrent limits</a></li>
+<li><a class="reference internal" href="#play-nice-with-the-disk" id="id10">play nice with the disk</a></li>
+<li><a class="reference internal" href="#high-performance-seeding" id="id11">high performance seeding</a><ul>
+<li><a class="reference internal" href="#file-pool" id="id12">file pool</a></li>
+<li><a class="reference internal" href="#disk-cache" id="id13">disk cache</a></li>
+<li><a class="reference internal" href="#send-buffer-low-watermark" id="id14">send buffer low watermark</a></li>
+<li><a class="reference internal" href="#peers" id="id15">peers</a></li>
+<li><a class="reference internal" href="#torrent-limits" id="id16">torrent limits</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#scalability" id="id19">scalability</a></li>
-<li><a class="reference internal" href="#benchmarking" id="id20">benchmarking</a><ul>
-<li><a class="reference internal" href="#disk-metrics" id="id21">disk metrics</a></li>
-<li><a class="reference internal" href="#session-stats" id="id22">session stats</a></li>
+<li><a class="reference internal" href="#benchmarking" id="id17">benchmarking</a><ul>
+<li><a class="reference internal" href="#disk-metrics" id="id18">disk metrics</a></li>
+<li><a class="reference internal" href="#session-stats" id="id19">session stats</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#understanding-the-disk-thread" id="id23">understanding the disk thread</a></li>
-<li><a class="reference internal" href="#contributions" id="id24">contributions</a></li>
+<li><a class="reference internal" href="#contributions" id="id20">contributions</a></li>
 </ul>
 </div>
 <div class="section" id="tuning-libtorrent">
@@ -217,24 +213,6 @@ of C++ exceptions. By disabling exceptions (-fno-exceptions on GCC), you can
 reduce the executable size with up to 45%. In order to build without exception
 support, you need to patch parts of boost.</p>
 <p>Also make sure to optimize for size when compiling.</p>
-<p>Another way of reducing the executable size is to disable code that isn't used.
-There are a number of <tt class="docutils literal"><span class="pre">TORRENT_*</span></tt> macros that control which features are included
-in libtorrent. If these macros are used to strip down libtorrent, make sure the same
-macros are defined when building libtorrent as when linking against it. If these
-are different the structures will look different from the libtorrent side and from
-the client side and memory corruption will follow.</p>
-<p>One, probably, safe macro to define is <tt class="docutils literal"><span class="pre">TORRENT_NO_DEPRECATE</span></tt> which removes all
-deprecated functions and struct members. As long as no deprecated functions are
-relied upon, this should be a simple way to eliminate a little bit of code.</p>
-<p>For all available options, see the <a class="reference external" href="building.html">building libtorrent</a> secion.</p>
-</div>
-<div class="section" id="reduce-statistics">
-<h2>reduce statistics</h2>
-<p>You can save some memory for each connection and each torrent by reducing the
-number of separate rates kept track of by libtorrent. If you build with <tt class="docutils literal"><span class="pre">full-stats=off</span></tt>
-(or <tt class="docutils literal"><span class="pre">-DTORRENT_DISABLE_FULL_STATS</span></tt>) you will save a few hundred bytes for each
-connection and torrent. It might make a difference if you have a very large number
-of peers or torrents.</p>
 </div>
 </div>
 <div class="section" id="play-nice-with-the-disk">
@@ -279,54 +257,6 @@ to true.</p>
 <p>In order to increase the possibility of read cache hits, set the
 <tt class="docutils literal"><span class="pre">session_settings::cache_expiry</span></tt> to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.</p>
-<p>In order to increase the disk cache hit rate, you can enable suggest messages based on
-what's in the read cache. To do this, set <tt class="docutils literal"><span class="pre">session_settings::suggest_mode</span></tt> to
-<tt class="docutils literal"><span class="pre">session_settings::suggest_read_cache</span></tt>. This will send suggest messages to peers
-for the most recently used pieces in the read cache. This is especially useful if you
-also enable explicit read cache, by settings <tt class="docutils literal"><span class="pre">session_settings::explicit_read_cache</span></tt>
-to the number of pieces to keep in the cache. The explicit read cache will make the
-disk read cache stick, and not be evicted by cache misses. The explicit read cache
-will automatically pull in the rarest pieces in the read cache.</p>
-<p>Assuming that you seed much more data than you can keep in the cache, to a large
-numbers of peers (so that the read cache wouldn't be useful anyway), this may be a
-good idea.</p>
-<p>When peers first connect, libtorrent will send them a number of allow-fast messages,
-which lets the peers download certain pieces even when they are choked, since peers
-are choked by default, this often triggers immediate requests for those pieces. In the
-case of using explicit read cache and suggesting those pieces, allowing fast pieces
-should be disabled, to not systematically trigger requests for pieces that are not cached
-for all peers. You can turn off allow-fast by settings <tt class="docutils literal"><span class="pre">session_settings::allowed_fast_set_size</span></tt>
-to 0.</p>
-<p>As an alternative to the explicit cache and suggest messages, there's a <em>guided cache</em>
-mode. This means the size of the read cache line that's stored in the cache is determined
-based on the upload rate to the peer that triggered the read operation. The idea being
-that slow peers don't use up a disproportional amount of space in the cache. This
-is enabled through <tt class="docutils literal"><span class="pre">session_settings::guided_read_cache</span></tt>.</p>
-<p>In cases where the assumption is that the cache is only used as a read-ahead, and that no
-other peer will ever request the same block while it's still in the cache, the read
-cache can be set to be <em>volatile</em>. This means that every block that is requested out of
-the read cache is removed immediately. This saves a significant amount of cache space
-which can be used as read-ahead for other peers. This mode should <strong>never</strong> be combined
-with either <tt class="docutils literal"><span class="pre">explicit_read_cache</span></tt> or <tt class="docutils literal"><span class="pre">suggest_read_cache</span></tt>, since those uses opposite
-strategies for the read cache. You don't want to on one hand attract peers to request
-the same pieces, and on the other hand assume that they won't request the same pieces
-and drop them when the first peer requests it. To enable volatile read cache, set
-<tt class="docutils literal"><span class="pre">session_settings::volatile_read_cache</span></tt> to true.</p>
-</div>
-<div class="section" id="utp-tcp-mixed-mode">
-<h2>uTP-TCP mixed mode</h2>
-<p>libtorrent supports <a class="reference external" href="utp.html">uTP</a>, which has a delay based congestion controller. In order to
-avoid having a single TCP bittorrent connection completely starve out any uTP connection,
-there is a mixed mode algorithm. This attempts to detect congestion on the uTP peers and
-throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth resources
-between the two protocols. When running on a network where the bandwidth is in such an
-abundance that it's virtually infinite, this algorithm is no longer necessary, and might
-even be harmful to throughput. It is adviced to experiment with the
-<tt class="docutils literal"><span class="pre">session_setting::mixed_mode_algorithm</span></tt>, setting it to <tt class="docutils literal"><span class="pre">session_settings::prefer_tcp</span></tt>.
-This setting entirely disables the balancing and unthrottles all connections. On a typical
-home connection, this would mean that none of the benefits of uTP would be preserved
-(the modem's send buffer would be full at all times) and uTP connections would for the most
-part be squashed by the TCP traffic.</p>
 </div>
 <div class="section" id="send-buffer-low-watermark">
 <h2>send buffer low watermark</h2>
@@ -363,37 +293,9 @@ number via <tt class="docutils literal"><span class="pre">session::set_max_uploa
 and <tt class="docutils literal"><span class="pre">session_settings::active_seeds</span></tt>.</p>
 </div>
 </div>
-<div class="section" id="scalability">
-<h1>scalability</h1>
-<p>In order to make more efficient use of the libtorrent interface when running a large
-number of torrents simultaneously, one can use the <tt class="docutils literal"><span class="pre">session::get_torrent_status()</span></tt> call
-together with <tt class="docutils literal"><span class="pre">session::refresh_torrent_status()</span></tt>. Keep in mind that every call into
-libtorrent that return some value have to block your thread while posting a message to
-the main network thread and then wait for a response (calls that don't return any data
-will simply post the message and then immediately return). The time this takes might
-become significant once you reach a few hundred torrents (depending on how many calls
-you make to each torrent and how often). <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt> lets you query the
-status of all torrents in a single call. This will actually loop through all torrents
-and run a provided predicate function to determine whether or not to include it in
-the returned vector. If you have a lot of torrents, you might want to update the status
-of only certain torrents. For instance, you might only be interested in torrents that
-are being downloaded.</p>
-<p>The intended use of these functions is to start off by calling <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
-to get a list of all torrents that match your criteria. Then call <tt class="docutils literal"><span class="pre">refresh_torrent_status</span></tt>
-on that list. This will only refresh the status for the torrents in your list, and thus
-ignore all other torrents you might be running. This may save a significant amount of
-time, especially if the number of torrents you're interested in is small. In order to
-keep your list of interested torrents up to date, you can either call <tt class="docutils literal"><span class="pre">get_torrent_status</span></tt>
-from time to time, to include torrents you might have become interested in since the last
-time. In order to stop refreshing a certain torrent, simply remove it from the list.</p>
-<p>A more efficient way however, would be to subscribe to status alert notifications, and
-update your list based on these alerts. There are alerts for when torrents are added, removed,
-paused, resumed, completed etc. Doing this ensures that you only query status for the
-minimal set of torrents you are actually interested in.</p>
-</div>
 <div class="section" id="benchmarking">
 <h1>benchmarking</h1>
-<p>There is a bunch of built-in instrumentation of libtorrent that can be used to get an insight
+<p>There are a bunch of built-in instrumentation of libtorrent that can be used to get an insight
 into what it's doing and how well it performs. This instrumentation is enabled by defining
 preprocessor symbols when building.</p>
 <p>There are also a number of scripts that parses the log files and generates graphs (requires
@@ -523,9 +425,10 @@ file, <tt class="docutils literal"><span class="pre">disk_access.gnuplot</span><
 </div>
 <div class="section" id="session-stats">
 <h2>session stats</h2>
-<p>By defining <tt class="docutils literal"><span class="pre">TORRENT_STATS</span></tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats/&lt;pid&gt;.&lt;sequence&gt;.log</span></tt> which
+<p>By defining <tt class="docutils literal"><span class="pre">TORRENT_STATS</span></tt> libtorrent will write a log file called <tt class="docutils literal"><span class="pre">session_stats.log</span></tt> which
 is in a format ready to be passed directly into gnuplot. The parser script <tt class="docutils literal"><span class="pre">parse_session_stats.py</span></tt>
-generates a report in <tt class="docutils literal"><span class="pre">session_stats_report/index.html</span></tt>.</p>
+will however parse out the field names and generate 3 different views of the data. This script
+is easy to modify to generate the particular view you're interested in.</p>
 <p>The first line in the log contains all the field names, separated by colon:</p>
 <pre class="literal-block">
 second:upload rate:download rate:downloading torrents:seeding torrents:peers...
@@ -589,18 +492,6 @@ peers approaches the limit (50). It also shows how the total peer list slowly bu
 grows over time. This list is plotted against the right axis, as it has a different scale
 as the other fields.</p>
 </div>
-</div>
-<div class="section" id="understanding-the-disk-thread">
-<h1>understanding the disk thread</h1>
-<p>All disk operations are funneled through a separate thread, referred to as the disk thread.
-The main interface to the disk thread is a queue where disk jobs are posted, and the results
-of these jobs are then posted back on the main thread's io_service.</p>
-<p>A disk job is essentially one of:</p>
-<ol class="arabic simple">
-<li>write this block to disk, i.e. a write job. For the most part this is just a matter of sticking the block in the disk cache, but if we've run out of cache space or completed a whole piece, we'll also flush blocks to disk. This is typically very fast, since the OS just sticks these buffers in its write cache which will be flushed at a later time, presumably when the drive head will pass the place on the platter where the blocks go.</li>
-<li>read this block from disk. The first thing that happens is we look in the cache to see if the block is already in RAM. If it is, we'll return immediately with this block. If it's a cache miss, we'll have to hit the disk. Here we decide to defer this job. We find the physical offset on the drive for this block and insert the job in an ordere queue, sorted by the physical location. At a later time, once we don't have any more non-read jobs left in the queue, we pick one read job out of the ordered queue and service it. The order we pick jobs out of the queue is according to an elevator cursor moving up and down along the ordered queue of read jobs. If we have enough space in the cache we'll read read_cache_line_size number of blocks and stick those in the cache. This defaults to 32 blocks.</li>
-</ol>
-<p>Other disk job consist of operations that needs to be synchronized with the disk I/O, like renaming files, closing files, flushing the cache, updating the settings etc. These are relatively rare though.</p>
 </div>
 <div class="section" id="contributions">
 <h1>contributions</h1>
