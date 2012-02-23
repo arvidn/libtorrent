@@ -810,7 +810,11 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_UNC_PATHS
+#if TORRENT_USE_WSTRING
+		m_path = L"\\\\?\\" + m_path;
+#else
 		m_path = "\\\\?\\" + m_path;
+#endif // TORRENT_USE_WSTRING
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
