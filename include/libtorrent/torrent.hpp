@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -954,7 +955,10 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
 
+#if BOOST_VERSION > 104600
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
+#endif
+
 		void init_ssl(std::string const& cert);
 #endif
 
