@@ -220,6 +220,28 @@ namespace libtorrent
 		for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 		{
 			std::string pe = e;
+#if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
+			// if we're not using UNC paths on windows, there
+			// are certain filenames we're not allowed to use
+			const static char const* reserved_names[] =
+			{
+				"con", "prn", "aux", "clock$", "nul",
+				"com0", "com1", "com2", "com3", "com4",
+				"com5", "com6", "com7", "com8", "com9",
+				"lpt0", "lpt1", "lpt2", "lpt3", "lpt4",
+				"lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
+			};
+			int num_names = sizeof(reserved_names)/sizeof(reserved_names[0]);
+
+			char const* file_end = strrchr(pe.c_str(), '.');
+			std::string name(pe.c_str(), file_end);
+			std::transform(name.begin(), name.end(), name.begin(), &to_lower);
+			char const* str = std::find(reserved_names, reserved_names + num_names, name);
+			if (str != reserved + num_names)
+			{
+				pe += "_";
+			}
+#endif
 			if (!valid_path_element(pe)) continue;
 			trim_path_element(pe);
 			new_path = combine_path(new_path, pe);
