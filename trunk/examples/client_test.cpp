@@ -897,7 +897,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), te);
 			std::string filename = ti.name() + "." + to_hex(ti.info_hash().to_string()) + ".torrent";
-			save_file(combine_path(monitor_dir, filename), buffer);
+			filename = combine_path(monitor_dir, filename);
+			save_file(filename, buffer);
 
 			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
 			non_files.erase(h);
