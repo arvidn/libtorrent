@@ -278,7 +278,7 @@ namespace aux {
 
 #define TORRENT_SETTING(t, x) {#x, offsetof(session_settings,x), t},
 
-	TORRENT_EXPORT bencode_map_entry session_settings_map[] =
+	bencode_map_entry session_settings_map[] =
 	{
 		TORRENT_SETTING(std_string, user_agent)
 		TORRENT_SETTING(integer, tracker_completion_timeout)
