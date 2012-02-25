@@ -1477,7 +1477,7 @@ namespace libtorrent
 		// tell the client we need a cert for this torrent
 		alerts().post_alert(torrent_need_cert_alert(get_handle()));
 #else
-		set_error(asio::error::not_supported, "x.509 certificate");
+		set_error(asio::error::operation_not_supported, "x.509 certificate");
 		pause();
 #endif
 	}
@@ -4606,7 +4606,7 @@ namespace libtorrent
 			str->set_dst_name(hostname);
 		}
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION > 104600
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
@@ -4626,6 +4626,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, ec));
 			return;
 		}
+#undef CASE
 #endif
 
 		boost::intrusive_ptr<peer_connection> c;
@@ -5494,7 +5495,7 @@ namespace libtorrent
 			(void)ret;
 			TORRENT_ASSERT(ret);
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION > 104600
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
@@ -5512,6 +5513,7 @@ namespace libtorrent
 					default: break;
 				};
 			}
+#undef CASE
 #endif
 		}
 
@@ -5644,6 +5646,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
+#if BOOST_VERSION > 104600
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -5684,6 +5687,13 @@ namespace libtorrent
 				return false;
 			}
 		}
+#else // BOOST_VERSION
+		if (is_ssl_torrent())
+		{
+			p->disconnect(asio::error::operation_not_supported);
+			return false;
+		}
+#endif
 #endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);
