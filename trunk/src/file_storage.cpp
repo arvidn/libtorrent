@@ -341,6 +341,7 @@ namespace libtorrent
 
 	void file_storage::add_file(file_entry const& ent, char const* filehash)
 	{
+		TORRENT_ASSERT(ent.size >= 0);
 		if (!has_parent_path(ent.path))
 		{
 			// you have already added at least one file with a
@@ -358,8 +359,9 @@ namespace libtorrent
 		internal_file_entry ife(ent);
 		m_files.push_back(ife);
 		internal_file_entry& e = m_files.back();
+		if (e.size < 0) e.size = 0;
 		e.offset = m_total_size;
-		m_total_size += ent.size;
+		m_total_size += e.size;
 		if (filehash)
 		{
 			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
