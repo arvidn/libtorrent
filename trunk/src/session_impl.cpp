@@ -3341,7 +3341,10 @@ namespace aux {
 				torrent& t = *m_next_connect_torrent->second;
 				if (t.want_more_peers())
 				{
-					int connect_points = 100;
+					// 133 is so that the average of downloaders with
+					// more than average peers and less than average
+					// peers will end up being 100 (i.e. 133 / 2 = 66)
+					int connect_points = 133;
 					// have a bias against torrents with more peers
 					// than average
 					if (!t.is_seed() && t.num_peers() > average_peers)
