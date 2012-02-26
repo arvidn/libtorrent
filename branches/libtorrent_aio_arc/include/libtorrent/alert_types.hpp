@@ -53,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+	// user defined alerts should use IDs greater than this
+	const static int user_alert_id = 10000;
+
 	struct TORRENT_EXPORT torrent_alert: alert
 	{
 		torrent_alert(torrent_handle const& h)
@@ -1355,6 +1359,9 @@ namespace libtorrent
 
 		error_code error;
 	};
+
+#undef TORRENT_DEFINE_ALERT
+
 }
 
 

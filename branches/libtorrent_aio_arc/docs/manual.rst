@@ -1212,6 +1212,7 @@ appear. The feed is defined by the ``feed_settings`` object::
 	
    	std::string url;
 		bool auto_download;
+		bool auto_map_handles;
 		int default_ttl;
 		add_torrent_params add_args;
 	};
@@ -1221,11 +1222,19 @@ the feed will be downloaded. Set this to false in order to manually
 add torrents to the session. You may react to the rss_alert_ when
 a feed has been updated to poll it for the new items in the feed
 when adding torrents manually. When torrents are added automatically,
-you have to call ``session::get_torrents()`` to get the handles to
-the new torrents.
+an add_torrent_alert_ is posted which includes the torrent handle
+as well as the error code if it failed to be added. You may also call
+``session::get_torrents()`` to get the handles to the new torrents.
 
 Before adding the feed, you must set the ``url`` field to the
 feed's url. It may point to an RSS or an atom feed.
+
+``auto_map_handles`` defaults to true and determines whether or
+not to set the ``handle`` field in the ``feed_item``, returned
+as the feed status. If auto-download is enabled, this setting
+is ignored. If auto-download is not set, setting this to false
+will save one pass through all the feed items trying to find
+corresponding torrents in the session.
 
 The ``default_ttl`` is the default interval for refreshing a feed.
 This may be overridden by the feed itself (by specifying the ``<ttl>``
@@ -7206,6 +7215,23 @@ only those that needs to download it from peers (when utilizing the libtorrent e
 
 There are no additional data members in this alert.
 
+Typically, when receiving this alert, you would want to save the torrent file in order
+to load it back up again when the session is restarted. Here's an example snippet of
+code to do that::
+
+	torrent_handle h = alert->handle();
+	if (h.is_valid()) {
+		torrent_info const& ti = h.get_torrent_info();
+		create_torrent ct(ti);
+		entry te = ct.generate();
+		std::vector<char> buffer;
+		bencode(std::back_inserter(buffer), te);
+		FILE* f = fopen((to_hex(ti.info_hash().to_string()) + ".torrent").c_str(), "w+");
+		if (f) {
+			fwrite(&buffer[0], 1, buffer.size(), f);
+			fclose(f);
+		}
+	}
 
 fastresume_rejected_alert
 -------------------------
@@ -8212,6 +8238,13 @@ of bytes. All access is done by writing and reading whole or partial
 slots. One slot is one piece in the torrent, but the data in the slot
 does not necessarily correspond to the piece with the same index (in
 compact allocation mode it won't).
+
+libtorrent comes with two built-in storage implementations; ``default_storage``
+and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
+and ``disabled_storage_constructor`` respectively. The disabled storage does
+just what it sounds like. It throws away data that's written, and it
+reads garbage. It's useful mostly for benchmarking and profiling purpose.
+
 
 The interface looks like this::
 

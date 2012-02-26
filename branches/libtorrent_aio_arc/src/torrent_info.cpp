@@ -207,6 +207,33 @@ namespace libtorrent
 			added_separator = 1;
 		}
 
+#if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
+		// if we're not using UNC paths on windows, there
+		// are certain filenames we're not allowed to use
+		const static char const* reserved_names[] =
+		{
+			"con", "prn", "aux", "clock$", "nul",
+			"com0", "com1", "com2", "com3", "com4",
+			"com5", "com6", "com7", "com8", "com9",
+			"lpt0", "lpt1", "lpt2", "lpt3", "lpt4",
+			"lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
+		};
+		int num_names = sizeof(reserved_names)/sizeof(reserved_names[0]);
+
+		// this is not very efficient, but it only affects some specific
+		// windows builds for now anyway (not even the default windows build)
+		std::string pe(element, element_len);
+		char const* file_end = strrchr(pe.c_str(), '.');
+		std::string name(pe.c_str(), file_end);
+		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
+		char const* str = std::find(reserved_names, reserved_names + num_names, name);
+		if (str != reserved + num_names)
+		{
+			pe = "_" + pe;
+			element = pe.c_str();
+			element_len = pe.size();
+		}
+#endif
 		int added = 0;
 		// the number of dots we've added
 		char num_dots = 0;
@@ -544,7 +571,6 @@ namespace libtorrent
 		, m_created_by(t.m_created_by)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_root_cert(t.m_ssl_root_cert)
-		, m_aes_key(t.m_aes_key)
 #endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
@@ -835,7 +861,6 @@ namespace libtorrent
 		m_created_by.swap(ti.m_created_by);
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert.swap(ti.m_ssl_root_cert);
-		m_aes_key.swap(ti.m_aes_key);
 #endif
 		boost::uint32_t tmp;
 		SWAP(m_multifile, ti.m_multifile);
@@ -1011,8 +1036,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
-
-		m_aes_key = info.dict_find_string_value("encryption-key");
 #endif
 
 		return true;

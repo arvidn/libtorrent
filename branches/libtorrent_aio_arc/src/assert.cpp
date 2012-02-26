@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
-
 #include "libtorrent/config.hpp"
+
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -244,7 +244,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 
 #else
 
-void assert_fail(char const* expr, int line, char const* file, char const* function) {}
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file, char const* function) {}
 
 #endif
 

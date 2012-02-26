@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 using boost::bind;
 
@@ -315,6 +316,7 @@ void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
 		filtered_handles.push_back(&*i);
 	}
 	if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
+	else if (active_torrent == -1 && !filtered_handles.empty()) active_torrent = 0;
 	std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
 }
 
@@ -855,7 +857,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files
+	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
 	, int* counters, boost::unordered_set<torrent_status>& all_handles
 	, std::vector<torrent_status const*>& filtered_handles
 	, bool& need_resort)
@@ -896,7 +898,27 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
-	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
+	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
+	{
+		// if we have a monitor dir, save the .torrent file we just received in it
+		// also, add it to the files map, and remove it from the non_files list
+		// to keep the scan dir logic in sync so it's not removed, or added twice
+		torrent_handle h = p->handle;
+		if (h.is_valid()) {
+			torrent_info const& ti = h.get_torrent_info();
+			create_torrent ct(ti);
+			entry te = ct.generate();
+			std::vector<char> buffer;
+			bencode(std::back_inserter(buffer), te);
+			std::string filename = ti.name() + "." + to_hex(ti.info_hash().to_string()) + ".torrent";
+			filename = combine_path(monitor_dir, filename);
+			save_file(filename, buffer);
+
+			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
+			non_files.erase(h);
+		}
+	}
+	else if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
 	{
 		std::string filename;
 		if (p->params.userdata)
@@ -915,6 +937,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 			if (!filename.empty())
 				files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+			else
+				non_files.insert(h);
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
@@ -934,8 +958,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 					*port++ = 0;
 					char const* ip = peer.c_str();
 					int peer_port = atoi(port);
+					error_code ec;
 					if (peer_port > 0)
-						h.connect_peer(tcp::endpoint(address::from_string(ip), peer_port));
+						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), peer_port));
 				}
 			}
 
@@ -997,6 +1022,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
+		bool need_filter_update = false;
 		for (std::vector<torrent_status>::iterator i = p->status.begin();
 			i != p->status.end(); ++i)
 		{
@@ -1004,8 +1030,14 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			// don't add new entries here, that's done in the handler
 			// for add_torrent_alert
 			if (j == all_handles.end()) continue;
+			if (j->state != i->state
+				|| j->paused != i->paused
+				|| j->auto_managed != i->auto_managed)
+				need_filter_update = true;
 			((torrent_status&)*j) = *i;
 		}
+		if (need_filter_update)
+			update_filtered_torrents(all_handles, filtered_handles, counters);
 
 		return true;
 	}
@@ -1051,7 +1083,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			{
 				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
 				else color = esc("33;7");
-				chr = '0' + (pp->blocks[j].bytes_progress / float(pp->blocks[j].block_size) * 10);
+				chr = '0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size);
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
@@ -1888,9 +1920,8 @@ int main(int argc, char* argv[])
 
 				feed_status st = i->get_feed_status();
 				if (st.url.size() > 70) st.url.resize(70);
-				snprintf(str, sizeof(str), "%-70s %c %4d (%2d) %s\n", st.url.c_str()
-					, st.updating? 'u' : '-'
-					, st.next_update
+				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
+					, st.updating ? "updating" : to_string(st.next_update).elems
 					, int(st.items.size())
 					, st.error ? st.error.message().c_str() : "");
 				out += str;

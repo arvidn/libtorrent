@@ -90,7 +90,6 @@ namespace libtorrent
 		void add_node(std::pair<std::string, int> const& node);
 		void add_tracker(std::string const& url, int tier = 0);
 		void set_root_cert(std::string const& pem);
-		void set_encryption_key(std::string const& key);
 		void set_priv(bool p) { m_private = p; }
 
 		int num_pieces() const { return m_files.num_pieces(); }
@@ -149,11 +148,6 @@ namespace libtorrent
 
 		// this is the root cert for SSL torrents
 		std::string m_root_cert;
-
-		// if this is an encrypted torrent, this is the
-		// symmetric encryption key every stream is
-		// encrypted by
-		std::string m_encryption_key;
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible
@@ -267,7 +261,7 @@ namespace libtorrent
 		char* m_piece;
 	};
 
-	void set_piece_hashes(create_torrent& t, std::string const& p
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
 		, boost::function<void(int i)> const& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS

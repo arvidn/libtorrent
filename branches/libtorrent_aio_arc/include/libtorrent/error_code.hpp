@@ -420,14 +420,15 @@ namespace libtorrent
 			async_readv,
 			async_writev,
 			read,
-			write
+			write,
+			fallocate
 		};
 
 		char const* operation_str() const
 		{
 			char const* ops[] =
 			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write"
+				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write", "fallocate"
 			};
 			return ops[operation];
 		}

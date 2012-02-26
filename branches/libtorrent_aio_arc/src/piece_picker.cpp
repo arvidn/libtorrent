@@ -2856,8 +2856,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			// TEMP!
-			piece_pos prev_p = p;
 			int prio = p.priority(this);
 			erase_download_piece(i);
 			if (!m_dirty)

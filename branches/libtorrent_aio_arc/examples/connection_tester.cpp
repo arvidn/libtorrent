@@ -593,7 +593,7 @@ void generate_torrent(std::vector<char>& buf, int size)
 
 	size_type s = total_size;
 	int i = 0;
-	int file_size = total_size / 9;
+	size_type file_size = total_size / 9;
 	while (s > 0)
 	{
 		char buf[100];
@@ -700,7 +700,7 @@ int main(int argc, char* argv[])
 			{
 				char file_name[100];
 				snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", name, i, j);
-				fs.add_file(file_name, (j + i + 1) * 251);
+				fs.add_file(file_name, size_type(j + i + 1) * 251);
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;

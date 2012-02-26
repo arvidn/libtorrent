@@ -18,7 +18,7 @@ int test_main()
 		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 	}
 	ptime stop(time_now());
 

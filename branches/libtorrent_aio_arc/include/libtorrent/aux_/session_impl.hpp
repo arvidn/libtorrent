@@ -186,13 +186,19 @@ namespace libtorrent
 			initialize_timer();
 		};
 
-		std::pair<bencode_map_entry*, int> settings_map();
+		TORRENT_EXPORT std::pair<bencode_map_entry*, int> settings_map();
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct TORRENT_EXPORT session_impl: boost::noncopyable, initialize_timer
 			, boost::enable_shared_from_this<session_impl>
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			// this needs to be destructed last, since other components may log
+			// things as they are being destructed. That's why it's declared at
+			// the top of session_impl
+			boost::shared_ptr<logger> m_logger;
+#endif
 
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size = 128 };
@@ -716,12 +722,6 @@ namespace libtorrent
 			// to clear the undead peers
 			boost::optional<io_service::work> m_work;
 
-			// these are all the torrents using full AES-256 encryption of
-			// all peer connections. When receiving a handshake that's encrypred
-			// these are the torrents we need to try to decrypt it with to
-			// find the decryption key
-			std::set<boost::shared_ptr<torrent> > m_encrypted_torrents;
-
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this maps sockets to their peer_connection
@@ -1106,8 +1106,6 @@ namespace libtorrent
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
 			std::string m_logpath;
-		public:
-			boost::shared_ptr<logger> m_logger;
 			FILE* m_request_logger;
 
 		private:

@@ -147,8 +147,8 @@ namespace libtorrent
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
-	friend class network_thread_pool;
-	friend struct torrent;
+	friend struct network_thread_pool;
+	friend class torrent;
 	public:
 
 		enum connection_type
@@ -393,7 +393,7 @@ namespace libtorrent
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
-		bool is_local() const { return m_active; }
+		bool is_outgoing() const { return m_outgoing; }
 
 		bool received_listen_port() const { return m_received_listen_port; }
 		void received_listen_port()
@@ -473,6 +473,9 @@ namespace libtorrent
 		void incoming_have_none();
 		void incoming_allowed_fast(int index);
 		void incoming_suggest(int index);
+
+		void set_has_metadata(bool m) { m_has_metadata = m; }
+		bool has_metadata() const { return m_has_metadata; }
 
 		// the following functions appends messages
 		// to the send buffer
@@ -1047,7 +1050,7 @@ namespace libtorrent
 		// is true if it was we that connected to the peer
 		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
-		bool m_active:1;
+		bool m_outgoing:1;
 
 		// is true if we learn the incoming connections listening
 		// during the extended handshake
@@ -1165,6 +1168,10 @@ namespace libtorrent
 		// the actual computation is done in do_update_interest().
 		bool m_need_interest_update:1;
 		
+		// set to true if this peer has metadata, and false
+		// otherwise.
+		bool m_has_metadata:1;
+
 		template <std::size_t Size>
 		struct handler_storage
 		{
@@ -1255,6 +1262,7 @@ namespace libtorrent
 		bool m_in_constructor:1;
 		bool m_disconnect_started:1;
 		bool m_initialized:1;
+		int m_in_use;
 		int m_received_in_piece;
 		bool m_destructed;
 #endif

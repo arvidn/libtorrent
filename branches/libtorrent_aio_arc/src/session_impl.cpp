@@ -555,7 +555,7 @@ namespace aux {
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
@@ -714,8 +714,10 @@ namespace aux {
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
+#if BOOST_VERSION >= 104700
 		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
 		SSL_CTX_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
+#endif // BOOST_VERSION
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -874,7 +876,6 @@ namespace aux {
 		PRINT_OFFSETOF(torrent_info, m_created_by)
 #ifdef TORRENT_USE_OPENSSL
 		PRINT_OFFSETOF(torrent_info, m_ssl_root_cert)
-		PRINT_OFFSETOF(torrent_info, m_aes_key)
 #endif
 		PRINT_OFFSETOF(torrent_info, m_info_dict)
 		PRINT_OFFSETOF(torrent_info, m_creation_date)
@@ -1526,8 +1527,8 @@ namespace aux {
 			m_feeds.reserve(settings->list_size());
 			for (int i = 0; i < settings->list_size(); ++i)
 			{
-				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
 				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
+				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
 				f->load_state(*settings->list_at(i));
 				f->update_feed();
 				m_feeds.push_back(f);
@@ -1828,9 +1829,7 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
 #endif
-		// closing all the connections needs to be done from a callback,
-		// when the session mutex is not held
-		m_io_service.post(boost::bind(&connection_queue::close, &m_half_open));
+		m_half_open.close();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
@@ -2218,7 +2217,7 @@ namespace aux {
 		// if we asked the system to listen on port 0, which
 		// socket did it end up choosing?
 		if (ep.port() == 0)
-			ep.port(s->sock->local_endpoint().port());
+			ep.port(s->sock->local_endpoint(ec).port());
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.post_alert(listen_succeeded_alert(ep));
@@ -3123,6 +3122,9 @@ namespace aux {
 		}
 #endif
 
+		// don't do any of the following while we're shutting down
+		if (m_abort) return;
+
 		// --------------------------------------------------------------
 		// RSS feeds
 		// --------------------------------------------------------------
@@ -3430,7 +3432,10 @@ namespace aux {
 				torrent& t = *want_peers[m_next_connect_torrent];
 				TORRENT_ASSERT(t.want_more_peers());
 
-				int connect_points = 100;
+				// 133 is so that the average of downloaders with
+				// more than average peers and less than average
+				// peers will end up being 100 (i.e. 133 / 2 = 66)
+				int connect_points = 133;
 				// if this is a seed and there is a torrent that
 				// is downloading, lower the rate at which this
 				// torrent gets connections.
@@ -4001,10 +4006,8 @@ namespace aux {
 			feed& f = **i;
 			int delta = f.next_update(now_posix);
 			if (delta <= 0)
-			{
-				f.update_feed();
-				continue;
-			}
+				delta = f.update_feed();
+			TORRENT_ASSERT(delta >= 0);
 			ptime next_update = now + seconds(delta);
 			if (next_update < min_update) min_update = next_update;
 		}

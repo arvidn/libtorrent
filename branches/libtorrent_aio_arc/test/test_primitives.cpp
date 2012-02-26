@@ -567,6 +567,21 @@ int test_main()
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
 
+	// test empty strings [ { "":1 }, "" ]
+	char const test_msg6[] = "ld0:i1ee0:e";
+	lazy_bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	TEST_CHECK(ent.type() == lazy_entry::list_t);
+	if (ent.type() == lazy_entry::list_t)
+	{
+		TEST_CHECK(ent.list_size() == 2);
+		if (ent.list_size() == 2)
+		{
+			TEST_CHECK(ent.list_at(0)->dict_find_int_value("") == 1);
+			TEST_CHECK(ent.list_at(1)->string_value() == "");
+		}
+	}
+
 	// test external ip voting
 	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
 		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
@@ -1452,7 +1467,7 @@ int test_main()
 
 	parse_state xml_s;
 	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
-	xml_parse((char*)upnp_xml, (char*)upnp_xml + sizeof(upnp_xml)
+	xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
 		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
@@ -1464,7 +1479,7 @@ int test_main()
 	TEST_CHECK(xml_s.model == "D-Link Router");
 
 	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
-	xml_parse((char*)upnp_xml2, (char*)upnp_xml2 + sizeof(upnp_xml2)
+	xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
 		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;

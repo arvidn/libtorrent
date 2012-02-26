@@ -127,7 +127,7 @@ node_id generate_id_impl(address const& ip, boost::uint32_t r)
 
 	while (num_octets)
 	{
-		seed *= p[num_octets];
+		seed *= p[num_octets-1];
 		seed &= (modulus-1);
 		modulus <<= mod_shift;
 		--num_octets;

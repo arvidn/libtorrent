@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -946,7 +947,10 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
 
+#if BOOST_VERSION >= 104700
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
+#endif
+
 		void init_ssl(std::string const& cert);
 #endif
 
@@ -1376,22 +1380,16 @@ namespace libtorrent
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
-
-		// set to true if this torrent has been added to the session
-		// global list for encrypted torrents. When the torrent is
-		// paused it's removed and when it's started again, it's
-		// re-added
-		bool m_in_encrypted_list:1;
 		
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
-		// whenever this torrent's state changes (any state).
-		bool m_state_subscription:1;
-
 		// this is set to true while we have an outstanding
 		// disk cache request to refresh the suggest pieces
 		// don't keep more than one out outstanding request
 		bool m_refreshing_suggest_pieces:1;
+
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

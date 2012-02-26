@@ -40,6 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp" // for rss_alert
 
 #include <boost/bind.hpp>
+#include <set>
+#include <map>
+#include <algorithm>
 
 namespace libtorrent {
 
@@ -47,11 +50,13 @@ struct feed_state
 {
 	feed_state(feed& r)
 		: in_item(false)
+		, num_items(0)
 		, type(none)
 		, ret(r)
 	{}
 
 	bool in_item;
+	int num_items;
 	std::string current_tag;
 	enum feed_type
 	{
@@ -133,7 +138,8 @@ struct feed_state
 
 	bool is_size(char const* tag) const
 	{
-		return string_equal_no_case(tag, "size");
+		return string_equal_no_case(tag, "size")
+		 || string_equal_no_case(tag, "contentlength");
 	}
 
 	bool is_hash(char const* tag) const
@@ -211,7 +217,10 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				f.in_item = false;
 				if (!f.current_item.title.empty()
 					&& !f.current_item.url.empty())
+				{
 					f.ret.add_item(f.current_item);
+					++f.num_items;
+				}
 				f.current_item = feed_item();
 			}
 			f.current_tag = "";
@@ -259,7 +268,6 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 		case xml_declaration_tag: return;
 		case xml_comment: return;
 	}
-	
 }
 
 torrent_handle add_feed_item(session& s, feed_item const& fi
@@ -296,6 +304,7 @@ feed::feed(aux::session_impl& ses, feed_settings const& sett)
 	: m_last_attempt(0)
 	, m_last_update(0)
 	, m_ttl(-1)
+	, m_failures(0)
 	, m_updating(false)
 	, m_settings(sett)
 	, m_ses(ses)
@@ -320,11 +329,13 @@ feed_handle feed::my_handle()
 void feed::on_feed(error_code const& ec
 	, http_parser const& parser, char const* data, int size)
 {
-	TORRENT_ASSERT(m_updating);
+	// enabling this assert makes the unit test a lot more difficult
+//	TORRENT_ASSERT(m_updating);
 	m_updating = false;
 
 	if (ec && ec != asio::error::eof)
 	{
+		++m_failures;
 		m_error = ec;
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
@@ -336,6 +347,7 @@ void feed::on_feed(error_code const& ec
 
 	if (parser.status_code() != 200)
 	{
+		++m_failures;
 		m_error = error_code(parser.status_code(), get_http_category());
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
@@ -345,41 +357,63 @@ void feed::on_feed(error_code const& ec
 		return;
 	}
 
+	m_failures = 0;
+
 	char* buf = const_cast<char*>(data);
 
 	feed_state s(*this);
 	xml_parse(buf, buf + size, boost::bind(&parse_feed, boost::ref(s), _1, _2, _3));
 
-	for (std::vector<feed_item>::iterator i = m_items.begin()
-		, end(m_items.end()); i != end; ++i)
+	time_t now = time(NULL);
+
+	if (m_settings.auto_download || m_settings.auto_map_handles)
 	{
-		i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
-
-		// if we're already downloading this torrent, or if we
-		// don't have auto-download enabled, just move along to
-		// the next one
-		if (i->handle.is_valid() || !m_settings.auto_download) continue;
-
-		// this means we should add this torrent to the session
-		add_torrent_params p = m_settings.add_args;
-		p.url = i->url;
-		p.uuid = i->uuid;
-		p.source_feed_url = m_settings.url;
-		p.ti.reset();
-		p.info_hash.clear();
-		p.name = i->title.c_str();
-
-		error_code e;
-		// #error session_impl::add_torrent doesn't support magnet links via url
-		m_ses.add_torrent(p, e);
-		
-		if (e)
+		for (std::vector<feed_item>::iterator i = m_items.begin()
+			, end(m_items.end()); i != end; ++i)
 		{
-// #error alert!
+			i->handle = torrent_handle(m_ses.find_torrent(i->uuid.empty() ? i->url : i->uuid));
+
+			// if we're already downloading this torrent, or if we
+			// don't have auto-download enabled, just move along to
+			// the next one
+			if (i->handle.is_valid() || !m_settings.auto_download) continue;
+
+			// has this already been added?
+			if (m_added.find(i->url) != m_added.end()) continue;
+
+			// this means we should add this torrent to the session
+			add_torrent_params p = m_settings.add_args;
+			p.url = i->url;
+			p.uuid = i->uuid;
+			p.source_feed_url = m_settings.url;
+			p.ti.reset();
+			p.info_hash.clear();
+			p.name = i->title.c_str();
+
+			error_code e;
+			// #error session_impl::add_torrent doesn't support magnet links via url
+			torrent_handle h = m_ses.add_torrent(p, e);
+			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
+			m_added.insert(make_pair(i->url, now));
 		}
 	}
 
-	m_last_update = time(0);
+	m_last_update = now;
+
+	// keep history of the typical feed size times 5
+	int max_history = (std::max)(s.num_items * 5, 100);
+
+	// this is not very efficient, but that's probably OK for now
+	while (int(m_added.size()) > max_history)
+	{
+		// loop over all elements and find the one with the lowest timestamp
+		// i.e. it was added the longest ago, then remove it
+		std::map<std::string, time_t>::iterator i = std::min_element(
+			m_added.begin(), m_added.end()
+			, boost::bind(&std::pair<const std::string, time_t>::second, _1)
+			< boost::bind(&std::pair<const std::string, time_t>::second, _2));
+		m_added.erase(i);
+	}
 
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
@@ -398,6 +432,7 @@ void feed::on_feed(error_code const& ec
 	{
 		TORRENT_SETTING(std_string, url)
 		TORRENT_SETTING(boolean, auto_download)
+		TORRENT_SETTING(boolean, auto_map_handles)
 		TORRENT_SETTING(integer, default_ttl)
 	};
 #undef TORRENT_SETTING
@@ -464,11 +499,34 @@ void feed::load_state(lazy_entry const& rd)
 		load_struct(*e, &m_settings.add_args, add_torrent_map
 			, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]));
 	}
+
+	e = rd.dict_find_list("history");
+	if (e)
+	{
+		for (int i = 0; i < e->list_size(); ++i)
+		{
+			if (e->list_at(i)->type() != lazy_entry::list_t) continue;
+
+			lazy_entry const* item = e->list_at(i);
+
+			if (item->list_size() != 2
+				|| item->list_at(0)->type() != lazy_entry::string_t
+				|| item->list_at(1)->type() != lazy_entry::int_t)
+				continue;
+
+			m_added.insert(std::pair<std::string, time_t>(
+				item->list_at(0)->string_value()
+				, item->list_at(1)->int_value()));
+		}
+	}
 }
 
 void feed::save_state(entry& rd) const
 {
+	// feed properties
 	save_struct(rd, this, feed_map, sizeof(feed_map)/sizeof(feed_map[0]));
+
+	// items
 	entry::list_type& items = rd["items"].list();
 	for (std::vector<feed_item>::const_iterator i = m_items.begin()
 		, end(m_items.end()); i != end; ++i)
@@ -477,6 +535,8 @@ void feed::save_state(entry& rd) const
 		entry& item = items.back();
 		save_struct(item, &*i, feed_item_map, sizeof(feed_item_map)/sizeof(feed_item_map[0]));
 	}
+	
+	// settings
 	feed_settings sett_def;
 	save_struct(rd, &m_settings, feed_settings_map
 		, sizeof(feed_settings_map)/sizeof(feed_settings_map[0]), &sett_def);
@@ -484,6 +544,16 @@ void feed::save_state(entry& rd) const
 	add_torrent_params add_def;
 	save_struct(add, &m_settings.add_args, add_torrent_map
 		, sizeof(add_torrent_map)/sizeof(add_torrent_map[0]), &add_def);
+
+	entry::list_type& history = rd["history"].list();
+	for (std::map<std::string, time_t>::const_iterator i = m_added.begin()
+		, end(m_added.end()); i != end; ++i)
+	{
+		history.push_back(entry());
+		entry::list_type& item = history.back().list();
+		item.push_back(entry(i->first));
+		item.push_back(entry(i->second));
+	}
 }
 
 void feed::add_item(feed_item const& item)
@@ -496,11 +566,13 @@ void feed::add_item(feed_item const& item)
 	m_items.push_back(item);
 }
 
-void feed::update_feed()
+// returns the number of seconds until trying again
+int feed::update_feed()
 {
-	if (m_updating) return;
+	if (m_updating) return 60;
 
 	m_last_attempt = time(0);
+	m_last_update = 0;
 
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
@@ -515,6 +587,8 @@ void feed::update_feed()
 
 	m_updating = true;
 	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+
+	return 60 + m_failures * m_failures * 60;
 }
 
 void feed::get_feed_status(feed_status* ret) const
@@ -532,7 +606,7 @@ void feed::get_feed_status(feed_status* ret) const
 
 int feed::next_update(time_t now) const
 {
-	if (m_last_update == 0) return INT_MAX;
+	if (m_last_update == 0) return m_last_attempt + 60 * 5 - now;
 	int ttl = m_ttl == -1 ? m_settings.default_ttl : m_ttl;
 	TORRENT_ASSERT((m_last_update + ttl * 60) - now < INT_MAX);
 	return int((m_last_update + ttl * 60) - now);
