@@ -127,6 +127,7 @@ namespace
 		a = b = c = d = e = 0;
 	}
 
+#ifdef VERBOSE
 	void SHAPrintContext(SHA_CTX *context, char *msg)
 	{
 		using namespace std;
@@ -139,6 +140,7 @@ namespace
 			, (unsigned int)context->state[3]
 			, (unsigned int)context->state[4]);
 	}
+#endif
 
 	template <class BlkFun>
 	void internal_update(SHA_CTX* context, u8 const* data, u32 len)
@@ -172,11 +174,13 @@ namespace
 #endif
 	}
 
+#if !defined __BIG_ENDIAN__ && !defined __LITTLE_ENDIAN__
 	bool is_big_endian()
 	{
 		u32 test = 1;
 		return *reinterpret_cast<u8*>(&test) == 0;
 	}
+#endif
 }
 
 // SHA1Init - Initialize new context

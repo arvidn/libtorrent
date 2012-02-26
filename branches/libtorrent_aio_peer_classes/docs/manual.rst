@@ -917,9 +917,12 @@ get_cache_info()
 
 	::
 
-		void get_cache_info(sha1_hash const& ih, cache_status* ret) const;
+		enum { disk_cache_no_pieces = 1 };
+		void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags) const;
 
 Fills in the cache_status struct with information about the given info-hash (``ih``).
+If ``flags`` is ``session::disk_cache_no_pieces`` the ``cache_status::pieces`` field
+will not be set. This may significantly reduce the cost of this call.
 
 	::
 
@@ -1389,6 +1392,7 @@ appear. The feed is defined by the ``feed_settings`` object::
 	
    	std::string url;
 		bool auto_download;
+		bool auto_map_handles;
 		int default_ttl;
 		add_torrent_params add_args;
 	};
@@ -1398,11 +1402,19 @@ the feed will be downloaded. Set this to false in order to manually
 add torrents to the session. You may react to the rss_alert_ when
 a feed has been updated to poll it for the new items in the feed
 when adding torrents manually. When torrents are added automatically,
-you have to call ``session::get_torrents()`` to get the handles to
-the new torrents.
+an add_torrent_alert_ is posted which includes the torrent handle
+as well as the error code if it failed to be added. You may also call
+``session::get_torrents()`` to get the handles to the new torrents.
 
 Before adding the feed, you must set the ``url`` field to the
 feed's url. It may point to an RSS or an atom feed.
+
+``auto_map_handles`` defaults to true and determines whether or
+not to set the ``handle`` field in the ``feed_item``, returned
+as the feed status. If auto-download is enabled, this setting
+is ignored. If auto-download is not set, setting this to false
+will save one pass through all the feed items trying to find
+corresponding torrents in the session.
 
 The ``default_ttl`` is the default interval for refreshing a feed.
 This may be overridden by the feed itself (by specifying the ``<ttl>``
@@ -4808,6 +4820,8 @@ session_settings
 		int network_threads;
 
 		std::string mmap_cache;
+
+		int ssl_listen;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5717,12 +5731,19 @@ specified will be created and truncated to the disk cache size (``cache_size``).
 Any existing file with the same name will be replaced.
 
 Since this setting sets a hard upper limit on cache usage, it cannot be combined
-with ``session_settings::contiguous_recv_buffers``, since that feature treats the
+with ``session_settings::contiguous_recv_buffer``, since that feature treats the
 ``cache_size`` setting as a soft (but still pretty hard) limit. The result of combining
 the two is peers being disconnected after failing to allocate more disk buffers.
 
 This feature requires the ``mmap`` system call, on systems that don't have ``mmap``
 this setting is ignored.
+
+``ssl_listen`` sets the listen port for SSL connections. If this is set to 0,
+no SSL listen port is opened. Otherwise a socket is opened on this port. This
+setting is only taken into account when opening the regular listen port, and
+won't re-open the listen socket simply by changing this setting.
+
+It defaults to port 4433.
 
 pe_settings
 ===========
@@ -7378,6 +7399,23 @@ only those that needs to download it from peers (when utilizing the libtorrent e
 
 There are no additional data members in this alert.
 
+Typically, when receiving this alert, you would want to save the torrent file in order
+to load it back up again when the session is restarted. Here's an example snippet of
+code to do that::
+
+	torrent_handle h = alert->handle();
+	if (h.is_valid()) {
+		torrent_info const& ti = h.get_torrent_info();
+		create_torrent ct(ti);
+		entry te = ct.generate();
+		std::vector<char> buffer;
+		bencode(std::back_inserter(buffer), te);
+		FILE* f = fopen((to_hex(ti.info_hash().to_string()) + ".torrent").c_str(), "w+");
+		if (f) {
+			fwrite(&buffer[0], 1, buffer.size(), f);
+			fclose(f);
+		}
+	}
 
 fastresume_rejected_alert
 -------------------------
@@ -8116,6 +8154,12 @@ code   symbol                                    description
 110    invalid_dont_have                         The peer sent an invalid ``dont_have`` message. The dont have
                                                  message is an extension to allow peers to advertise that the
                                                  no longer has a piece they previously had.                      
+------ ----------------------------------------- -----------------------------------------------------------------
+111    requires_ssl_connection                   The peer tried to connect to an SSL torrent without connecting
+                                                 over SSL.
+------ ----------------------------------------- -----------------------------------------------------------------
+112    invalid_ssl_cert                          The peer tried to connect to a torrent with a certificate
+                                                 for a different torrent.
 ====== ========================================= =================================================================
 
 NAT-PMP errors:
@@ -8378,6 +8422,13 @@ of bytes. All access is done by writing and reading whole or partial
 slots. One slot is one piece in the torrent, but the data in the slot
 does not necessarily correspond to the piece with the same index (in
 compact allocation mode it won't).
+
+libtorrent comes with two built-in storage implementations; ``default_storage``
+and ``disabled_storage``. Their constructor functions are called ``default_storage_constructor``
+and ``disabled_storage_constructor`` respectively. The disabled storage does
+just what it sounds like. It throws away data that's written, and it
+reads garbage. It's useful mostly for benchmarking and profiling purpose.
+
 
 The interface looks like this::
 
@@ -9010,7 +9061,7 @@ as much space as has been downloaded.
 full allocation
 ---------------
 
-When a torrent is started in full allocation mode, the disk-io thread (see threads_)
+When a torrent is started in full allocation mode, the disk-io thread
 will make sure that the entire storage is allocated, and fill any gaps with zeros.
 This will be skipped if the filesystem supports sparse files or automatic zero filling.
 It will of course still check for existing pieces and fast resume data. The main
@@ -9392,20 +9443,25 @@ The protocols are layered like this::
 	+-----------+-----------+
 
 During the SSL handshake, both peers need to authenticate by providing a certificate
-that is signed by the private counterpart of the CA certificate found in the
-.torrent file. These peer certificates are expected to be privided to peers through
-some other means than bittorrent. Typically by a peer generating a certificate request
-which is sent to the publisher of the torrent, and the publisher returning a signed
-certificate.
+that is signed by the CA certificate found in the .torrent file. These peer
+certificates are expected to be privided to peers through some other means than 
+bittorrent. Typically by a peer generating a certificate request which is sent to
+the publisher of the torrent, and the publisher returning a signed certificate.
 
 In libtorrent, `set_ssl_certificate()`_ in torrent_handle_ is used to tell libtorrent where
 to find the peer certificate and the private key for it. When an SSL torrent is loaded,
 the torrent_need_cert_alert_ is posted to remind the user to provide a certificate.
 
-In order for the client to know which torrent an incoming connection belongs to, in order
-to provide the correct certificate, each SSL torrent opens their own dedicated listen socket.
+A peer connecting to an SSL torrent MUST provide the *SNI* TLS extension (server name
+indication). The server name is the hex encoded info-hash of the torrent to connect to.
+This is required for the client accepting the connection to know which certificate to
+present.
 
-This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``).
+SSL connections are accepted on a separate socket from normal bittorrent connections. To
+pick which port the SSL socket should bind to, set ``session_settings::ssl_listen`` to a
+different port. It defaults to port 4433. This setting is only taken into account when the
+normal listen socket is opened (i.e. just changing this setting won't necessarily close
+and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
 
 peer classes
 ============
@@ -9436,4 +9492,48 @@ Custom peer classes can be assigned to torrents, with the ??? call, in which cas
 peers will belong to the class. They can also be assigned based on the peer's IP address.
 See `set_peer_class_filter()`_ for more information.
 
+This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``)
+and requires at least openSSL version 1.0, since it needs SNI support.
+
+Peer certificates must have at least one *SubjectAltName* field of type dNSName. At least
+one of the fields must *exactly* match the name of the torrent. This is a byte-by-byte comparison,
+the UTF-8 encoding must be identical (i.e. there's no unicode normalization going on). This is
+the recommended way of verifying certificates for HTTPS servers according to `RFC 2818`_. Note
+the difference that for torrents only *dNSName* fields are taken into account (not IP address fields).
+The most specific (i.e. last) *Common Name* field is also taken into account if no *SubjectAltName*
+did not match.
+
+If any of these fields contain a single asterisk ("*"), the certificate is considered covering
+any torrent, allowing it to be reused for any torrent.
+
+The purpose of matching the torrent name with the fields in the peer certificate is to allow
+a publisher to have a single root certificate for all torrents it distributes, and issue
+separate peer certificates for each torrent. A peer receiving a certificate will not necessarily
+be able to access all torrents published by this root certificate (only if it has a "star cert").
+
+.. _`RFC 2818`: http://www.ietf.org/rfc/rfc2818.txt
+
+testing
+-------
+
+To test incoming SSL connections to an SSL torrent, one can use the following *openssl* command::
+
+	openssl s_client -cert <peer-certificate>.pem -key <peer-private-key>.pem -CAfile <torrent-cert>.pem -debug -connect 127.0.0.1:4433 -tls1 -servername <info-hash>
+
+To create a root certificate, the Distinguished Name (*DN*) is not taken into account
+by bittorrent peers. You still need to specify something, but from libtorrent's point of
+view, it doesn't matter what it is. libtorrent only makes sure the peer certificates are
+signed by the correct root certificate.
+
+One way to create the certificates is to use the ``CA.sh`` script that comes with openssl, like thisi (don't forget to enter a common Name for the certificate)::
+
+	CA.sh -newca
+	CA.sh -newreq
+	CA.sh -sign
+
+The torrent certificate is located in ``./demoCA/private/demoCA/cacert.pem``, this is
+the pem file to include in the .torrent file.
+
+The peer's certificate is located in ``./newcert.pem`` and the certificate's
+private key in ``./newkey.pem``.
 

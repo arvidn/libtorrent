@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/version.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -838,8 +839,18 @@ namespace libtorrent
 		void predicted_have_piece(int index, int milliseconds);
 
 		void clear_in_state_update()
-		{ m_links[aux::session_impl::torrent_state_updates].clear(); }
+		{
+			TORRENT_ASSERT(m_links[aux::session_impl::torrent_state_updates].in_list());
+			m_links[aux::session_impl::torrent_state_updates].clear();
+		}
 
+		void inc_num_connecting()
+		{ ++m_num_connecting; }
+		void dec_num_connecting()
+		{
+			TORRENT_ASSERT(m_num_connecting > 0);
+			--m_num_connecting;
+		}
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -943,25 +954,11 @@ namespace libtorrent
 		piece_manager* m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
-		// TODO: in order to save space, stick the ssl context
-		// and the listen_socket_t in a single struct and have
-		// a shared_pointer to that (or intrusive_ptr even)
-
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
 
-		// listen socket used to accept incoming ssl connections
-		boost::shared_ptr<listen_socket_t> m_ssl_acceptor;
-
-		// SSL torrents have their own listen socket, so that
-		// we know which certificate to use for incoming connections
-		// these function are used for handling the torrent specific
-		// listen socket
-		void async_accept(boost::shared_ptr<socket_acceptor> const& listener);
-
-		void on_accept_ssl_connection(boost::shared_ptr<socket_type> const& s
-			, boost::weak_ptr<socket_acceptor> listen_socket, error_code const& e);
-
-		void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
+#if BOOST_VERSION >= 104700
+		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
+#endif
 
 		void init_ssl(std::string const& cert);
 #endif
@@ -975,6 +972,13 @@ namespace libtorrent
 #endif
 
 		void setup_peer_class();
+
+		// of all peers in m_connections, this is the number
+		// of peers that are outgoing and still waiting to
+		// complete the connection. This is used to possibly
+		// kick out these connections when we get incoming
+		// connections (if we've reached the connection limit)
+		int m_num_connecting;
 
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set
@@ -1387,22 +1391,16 @@ namespace libtorrent
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
-
-		// set to true if this torrent has been added to the session
-		// global list for encrypted torrents. When the torrent is
-		// paused it's removed and when it's started again, it's
-		// re-added
-		bool m_in_encrypted_list:1;
 		
-		// state subscription. If set, a pointer to this torrent
-		// will be added to the m_state_updates set in session_impl
-		// whenever this torrent's state changes (any state).
-		bool m_state_subscription:1;
-
 		// this is set to true while we have an outstanding
 		// disk cache request to refresh the suggest pieces
 		// don't keep more than one out outstanding request
 		bool m_refreshing_suggest_pieces:1;
+
+		// state subscription. If set, a pointer to this torrent
+		// will be added to the m_state_updates set in session_impl
+		// whenever this torrent's state changes (any state).
+		bool m_state_subscription:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

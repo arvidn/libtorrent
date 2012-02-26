@@ -273,7 +273,7 @@ namespace
 			void* ptr = node.m_rpc.allocate_observer();
 			if (ptr == 0) return;
 			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			o->m_in_constructor = false;
 #endif
 			entry e;
@@ -310,7 +310,7 @@ void node_impl::add_node(udp::endpoint node)
 	boost::intrusive_ptr<traversal_algorithm> algo(
 		new traversal_algorithm(*this, (node_id::min)()));
 	observer_ptr o(new (ptr) null_observer(algo, node, node_id(0)));
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	entry e;

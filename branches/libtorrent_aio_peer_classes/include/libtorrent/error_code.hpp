@@ -168,8 +168,8 @@ namespace libtorrent
 			too_frequent_pex,
 			no_metadata,
 			invalid_dont_have,
-			reserved111,
-			reserved112,
+			requires_ssl_connection,
+			invalid_ssl_cert,
 			reserved113,
 			reserved114,
 			reserved115,
@@ -420,14 +420,15 @@ namespace libtorrent
 			async_readv,
 			async_writev,
 			read,
-			write
+			write,
+			fallocate
 		};
 
 		char const* operation_str() const
 		{
 			char const* ops[] =
 			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write"
+				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write", "fallocate"
 			};
 			return ops[operation];
 		}

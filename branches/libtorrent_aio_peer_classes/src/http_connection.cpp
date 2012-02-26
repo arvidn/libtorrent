@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+#include <boost/asio/ssl/rfc2818_verification.hpp>
+#endif
+
 #include <boost/bind.hpp>
 #include <string>
 #include <algorithm>
@@ -69,6 +73,7 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_filter_handler(fh)
 	, m_timer(ios)
 	, m_last_receive(time_now())
+	, m_start_time(time_now())
 	, m_bottled(bottled)
 	, m_called(false)
 #ifdef TORRENT_USE_OPENSSL
@@ -221,9 +226,10 @@ void http_connection::start(std::string const& hostname, std::string const& port
 	// deletes this object
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
-	m_timeout = timeout;
+	m_completion_timeout = timeout;
+	m_read_timeout = (std::max)(seconds(5), timeout / 5);
 	error_code ec;
-	m_timer.expires_from_now(m_timeout, ec);
+	m_timer.expires_from_now(m_completion_timeout, ec);
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_timeout");
 #endif
@@ -269,7 +275,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			m_i2p_conn = i2p_conn;
 			// quadruple the timeout for i2p destinations
 			// because i2p is sloooooow
-			m_timeout *= 4;
+			m_completion_timeout *= 4;
+			m_read_timeout *= 4;
 		}
 #endif
 
@@ -332,6 +339,31 @@ void http_connection::start(std::string const& hostname, std::string const& port
 				return;
 			}
 		}
+
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+		// for SSL connections, make sure to authenticate the hostname
+		// of the certificate
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+		m_sock.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
+		break;
+
+		switch(m_sock.type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+		}
+
+		if (ec)
+		{
+			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+				, me, ec, (char*)0, 0));
+			return;
+		}
+#undef CASE
+
+#endif
 
 #if TORRENT_USE_I2P
 		if (is_i2p)
@@ -400,7 +432,10 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	if (e == asio::error::operation_aborted) return;
 
-	if (c->m_last_receive + c->m_timeout < time_now_hires())
+	ptime now = time_now_hires();
+
+	if (c->m_start_time + c->m_completion_timeout < now
+		|| c->m_last_receive + c->m_read_timeout < now)
 	{
 		if (c->m_connection_ticket > -1 && !c->m_endpoints.empty())
 		{
@@ -409,7 +444,9 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 #endif
 			error_code ec;
 			c->m_sock.close(ec);
-			c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
+			c->m_timer.expires_at((std::min)(
+				c->m_last_receive + c->m_read_timeout
+				, c->m_start_time + c->m_completion_timeout), ec);
 			c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 		}
 		else
@@ -425,7 +462,9 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	add_outstanding_async("http_connection::on_timeout");
 #endif
 	error_code ec;
-	c->m_timer.expires_at(c->m_last_receive + c->m_timeout, ec);
+	c->m_timer.expires_at((std::min)(
+		c->m_last_receive + c->m_read_timeout
+		, c->m_start_time + c->m_completion_timeout), ec);
 	c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
 }
 
@@ -526,7 +565,7 @@ void http_connection::queue_connect()
 
 	m_cc.enqueue(boost::bind(&http_connection::connect, shared_from_this(), _1, target)
 		, boost::bind(&http_connection::on_connect_timeout, shared_from_this())
-		, m_timeout, m_priority);
+		, m_read_timeout, m_priority);
 }
 
 void http_connection::connect(int ticket, tcp::endpoint target_address)
@@ -570,6 +609,7 @@ void http_connection::on_connect(error_code const& e)
 	}
 
 	m_last_receive = time_now_hires();
+	m_start_time = m_last_receive;
 	if (!e)
 	{ 
 		if (m_connect_handler) m_connect_handler(*this);
@@ -773,7 +813,7 @@ void http_connection::on_read(error_code const& e
 					= parse_url_components(location, ec);
 				if (!ec)
 				{
-					get(location, m_timeout, m_priority, &m_proxy, m_redirects - 1
+					get(location, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
 						, m_user_agent, m_bind_addr
 #if TORRENT_USE_I2P
 						, m_i2p_conn
@@ -794,7 +834,7 @@ void http_connection::on_read(error_code const& e
 						url += '/';
 					url += location;
 
-					get(url, m_timeout, m_priority, &m_proxy, m_redirects - 1
+					get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
 						, m_user_agent, m_bind_addr
 #if TORRENT_USE_I2P
 						, m_i2p_conn

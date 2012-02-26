@@ -260,6 +260,7 @@ struct utp_socket_impl
 		, m_nagle(true)
 		, m_slow_start(false)
 		, m_cwnd_full(false)
+		, m_null_buffers(false)
 	{
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
@@ -268,7 +269,7 @@ struct utp_socket_impl
 
 	~utp_socket_impl();
 
-	void tick(ptime const& now);
+	void tick(ptime now);
 	void init_mtu(int link_mtu, int utp_mtu);
 	bool incoming_packet(char const* buf, int size
 		, udp::endpoint const& ep, ptime receive_time);
@@ -601,6 +602,12 @@ struct utp_socket_impl
 	// this is true as long as we have as many packets in
 	// flight as allowed by the congestion window (cwnd)
 	bool m_cwnd_full:1;
+
+	// this is set to one if the current read operation
+	// has a null-buffer. i.e. we're not reading into a user-provided
+	// buffer, we're just signalling when there's something
+	// to read from our internal receive buffer
+	bool m_null_buffers:1;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -629,7 +636,7 @@ bool should_delete(utp_socket_impl* s)
 	return s->should_delete();
 }
 
-void tick_utp_impl(utp_socket_impl* s, ptime const& now)
+void tick_utp_impl(utp_socket_impl* s, ptime now)
 {
 	s->tick(now);
 }
@@ -723,7 +730,7 @@ void utp_stream::close()
 
 std::size_t utp_stream::available() const
 {
-	return m_impl->available();
+	return m_impl ? m_impl->available() : 0;
 }
 
 utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
@@ -780,7 +787,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 		, int(bytes_transferred), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_read_handler);
-	TORRENT_ASSERT(bytes_transferred > 0 || ec);
+	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
 	if (kill && s->m_impl)
@@ -882,6 +889,9 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 void utp_stream::set_read_handler(handler_t h)
 {
 	TORRENT_ASSERT(m_impl->m_userdata);
+
+	m_impl->m_null_buffers = m_impl->m_read_buffer_size == 0;
+
 	m_impl->m_read_handler = h;
 	if (m_impl->test_socket_state()) return;
 
@@ -977,7 +987,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		 m_impl->m_read_buffer_size = 0;
 		 m_impl->m_read_buffer.clear();
 	}
-	TORRENT_ASSERT(ret > 0);
+	TORRENT_ASSERT(ret > 0 || m_impl->m_null_buffers);
 	return ret;
 }
 
@@ -1071,10 +1081,15 @@ bool utp_socket_impl::should_delete() const
 
 void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
 {
-	// nothing has been read or there's no outstanding read operation
-	if (m_read == 0 || m_read_handler == 0) return;
+	if (m_read_handler == 0) return;
 
-	if (m_read > m_read_buffer_size / 2 || now >= m_read_timeout)
+	// nothing has been read or there's no outstanding read operation
+	if (m_null_buffers && m_receive_buffer_size == 0) return;
+	else if (!m_null_buffers && m_read == 0) return;
+
+	if (m_read > m_read_buffer_size / 2
+		|| now >= m_read_timeout
+		|| m_receive_buffer_size > 16 * 1024)
 	{
 		UTP_LOGV("%8p: calling read handler read:%d\n", this, m_read);
 		m_read_handler(m_userdata, m_read, m_error, false);
@@ -1890,6 +1905,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 {
 	while (!m_read_buffer.empty())
 	{
+		UTP_LOGV("%8p: incoming: have user buffer (%d)\n", this, m_read_buffer_size);
 		if (p)
 		{
 			buf = p->buf + p->header_size;
@@ -1937,10 +1953,16 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 		p->header_size = 0;
 		memcpy(p->buf, buf, size);
 	}
-	if (m_receive_buffer_size == 0) m_read_timeout = now + milliseconds(100);
+	if (m_receive_buffer_size == 0)
+	{
+		m_read_timeout = now + milliseconds(100);
+		UTP_LOGV("%8p: setting read timeout to 100 ms from now\n", this);
+	}
 	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
+
+	UTP_LOGV("%8p: incoming: saving packet in receive buffer (%d)\n", this, m_receive_buffer_size);
 
 	check_receive_buffers();
 }
@@ -2839,10 +2861,13 @@ int utp_socket_impl::packet_timeout() const
 
 	int timeout = (std::max)(m_sm->min_timeout(), m_rtt.mean() + m_rtt.avg_deviation() * 2);
 	if (m_num_timeouts > 0) timeout += (1 << (int(m_num_timeouts) - 1)) * 1000;
+
+	// timeouts over 1 minute are capped
+	if (timeout > 60000) timeout = 60000;
 	return timeout;
 }
 
-void utp_socket_impl::tick(ptime const& now)
+void utp_socket_impl::tick(ptime now)
 {
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: tick:%s r: %d (%s) w: %d (%s)\n"

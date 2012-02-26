@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct session_settings;
-	struct alert;
+	class alert;
 
 	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
 	{
@@ -70,6 +70,7 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
+		void subscribe_to_disk(boost::function<void()> const& cb);
 		char* allocate_buffer(char const* category);
 		char* allocate_buffer(bool& exceeded, bool& trigger_trim
 			, boost::function<void()> const& cb, char const* category);

@@ -42,7 +42,7 @@ rule linking ( properties * )
 			result += <library>gdi32 ;
 		}
 
-		if <target-os>windows in $(properties) && ! <toolset>gcc in $(properties)
+		if <target-os>windows in $(properties)
 		{
 			result += <library>ssleay32
 				<library>libeay32
@@ -62,6 +62,14 @@ rule linking ( properties * )
 			result += <library>dl ;
 		}
 
+	}
+
+	if <target-os>windows in $(properties)
+		&& ( <asserts>on in $(properties)
+			|| <variant>debug in $(properties)
+			|| <asio-debugging>on in $(properties) )
+	{
+		result += <library>dbghelp ;
 	}
 
 	# gcrypt libraries, if enabled
@@ -195,10 +203,8 @@ rule building ( properties * )
 {
 	local result ;
 
-	if ( <target-os>linux in $(properties)
-		|| <target-os>darwin in $(properties) )
-		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties) )
+	if ( <variant>debug in $(properties)
+		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
 	}
@@ -353,9 +359,6 @@ feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
 
-feature visibility : default hidden : composite propagated link-incompatible ;
-feature.compose <visibility>hidden : <cflags>-fvisibility=hidden ;
-
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
 lib libeay32 : : <name>libeay32 ;
@@ -363,6 +366,7 @@ lib advapi32 : : <name>Advapi32 ;
 lib user32 : : <name>User32 ;
 lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
+lib dbghelp : : <name>dbghelp ;
 
 # required for networking on beos
 lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
@@ -389,7 +393,7 @@ lib boost_system : : <name>boost_system ;
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib z : : <link>shared <name>z <search>/lib ;
 lib crypto : : <name>crypto <search>/lib <use>z ;
-lib ssl : : <name>ssl <link>shared <use>crypto ;
+lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 lib aio : : <link>shared <name>aio ;
 
@@ -562,6 +566,18 @@ lib torrent
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
+
+# hide non-external symbols
+	<toolset>darwin:<cflags>-fvisibility=hidden
+	<toolset>darwin:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>darwin:<linkflags>-W1,-Bsymbolic
+	<toolset>gcc:<cflags>-fvisibility=hidden
+	<toolset>gcc:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>gcc:<linkflags>-W1,-Bsymbolic
+	<toolset>llvm:<cflags>-fvisibility=hidden
+	<toolset>llvm:<cxxflags>-fvisibility-inlines-hidden
+	<toolset>llvm:<linkflags>-W1,-Bsymbolic
+
 	$(usage-requirements)
 
 	: # default build

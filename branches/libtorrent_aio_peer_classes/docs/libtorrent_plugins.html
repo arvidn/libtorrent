@@ -2,25 +2,23 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<script type="text/javascript">
-/* <![CDATA[ */
-    (function() {
-        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
-        
-        s.type = 'text/javascript';
-        s.async = true;
-        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
-        
-        t.parentNode.insertBefore(s, t);
-    })();
-/* ]]> */
-</script>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title></title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
 <link rel="stylesheet" type="text/css" href="../../css/rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
 <link rel="stylesheet" href="style.css" type="text/css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
@@ -57,23 +55,24 @@
 <div class="contents topic" id="contents">
 <p class="topic-title first">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#libtorrent-plugins" id="id2">libtorrent plugins</a><ul>
-<li><a class="reference internal" href="#a-word-of-caution" id="id3">a word of caution</a></li>
+<li><a class="reference internal" href="#libtorrent-plugins" id="id1">libtorrent plugins</a><ul>
+<li><a class="reference internal" href="#a-word-of-caution" id="id2">a word of caution</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#plugin-interface" id="id4">plugin interface</a></li>
-<li><a class="reference internal" href="#plugin" id="id5">plugin</a></li>
-<li><a class="reference internal" href="#torrent-plugin" id="id6">torrent_plugin</a><ul>
-<li><a class="reference internal" href="#new-connection" id="id7">new_connection()</a></li>
-<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id8">on_piece_pass() on_piece_fail()</a></li>
-<li><a class="reference internal" href="#tick" id="id9">tick()</a></li>
-<li><a class="reference internal" href="#on-pause-on-resume" id="id10">on_pause() on_resume()</a></li>
-<li><a class="reference internal" href="#on-files-checked" id="id11">on_files_checked()</a></li>
-<li><a class="reference internal" href="#id1" id="id12">on_files_checked()</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id3">plugin interface</a></li>
+<li><a class="reference internal" href="#plugin" id="id4">plugin</a></li>
+<li><a class="reference internal" href="#torrent-plugin" id="id5">torrent_plugin</a><ul>
+<li><a class="reference internal" href="#new-connection" id="id6">new_connection()</a></li>
+<li><a class="reference internal" href="#on-piece-pass-on-piece-fail" id="id7">on_piece_pass() on_piece_fail()</a></li>
+<li><a class="reference internal" href="#tick" id="id8">tick()</a></li>
+<li><a class="reference internal" href="#on-pause-on-resume" id="id9">on_pause() on_resume()</a></li>
+<li><a class="reference internal" href="#on-files-checked" id="id10">on_files_checked()</a></li>
+<li><a class="reference internal" href="#on-add-peer" id="id11">on_add_peer()</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#peer-plugin" id="id13">peer_plugin</a></li>
-<li><a class="reference internal" href="#disk-buffer-holder" id="id14">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#peer-plugin" id="id12">peer_plugin</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id13">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#custom-alerts" id="id14">custom alerts</a></li>
 </ul>
 </div>
 <p>libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -252,8 +251,8 @@ checked. If there are no files to check, this function is called immediately.</p
 <p>i.e. This function is always called when the torrent is in a state where it
 can start downloading.</p>
 </div>
-<div class="section" id="id1">
-<h2>on_files_checked()</h2>
+<div class="section" id="on-add-peer">
+<h2>on_add_peer()</h2>
 <pre class="literal-block">
 enum flags_t {
         first_time = 1,
@@ -343,6 +342,42 @@ buffer and transferres ownership and responsibility to free it to the caller.</p
 <p>A disk buffer is freed by passing it to <tt class="docutils literal"><span class="pre">session_impl::free_disk_buffer()</span></tt>.</p>
 <p><tt class="docutils literal"><span class="pre">buffer()</span></tt> returns the pointer without transferring responsibility. If
 this buffer has been released, <tt class="docutils literal"><span class="pre">buffer()</span></tt> will return 0.</p>
+</div>
+<div class="section" id="custom-alerts">
+<h1>custom alerts</h1>
+<p>Since plugins are running within internal libtorrent threads, one convenient
+way to communicate with the client is to post custom alerts.</p>
+<p>The expected interface of any alert, apart from deriving from the <tt class="docutils literal"><span class="pre">alert</span></tt>
+base class, looks like this:</p>
+<pre class="literal-block">
+const static int alert_type = <em>&lt;unique alert ID&gt;</em>;
+virtual int type() const { return alert_type; }
+
+virtual std::string message() const;
+
+virtual std::auto_ptr&lt;alert&gt; clone() const
+{ return std::auto_ptr&lt;alert&gt;(new name(*this)); }
+
+const static int static_category = <em>&lt;bitmask of alert::category_t flags&gt;</em>;
+virtual int category() const { return static_category; }
+
+virtual char const* what() const { return <em>&lt;string literal of the name of this alert&gt;</em>; }
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">alert_type</span></tt> is used for the type-checking in <tt class="docutils literal"><span class="pre">alert_cast</span></tt>. It must not collide with
+any other alert. The built-in alerts in libtorrent will not use alert type IDs greater than
+<tt class="docutils literal"><span class="pre">user_alert_id</span></tt>. When defining your own alert, make sure it's greater than this constant.</p>
+<p><tt class="docutils literal"><span class="pre">type()</span></tt> is the run-time equivalence of the <tt class="docutils literal"><span class="pre">alert_type</span></tt>.</p>
+<p>The <tt class="docutils literal"><span class="pre">message()</span></tt> virtual function is expected to construct a useful string representation
+of the alert and the event or data it represents. Something convenient to put in a log file
+for instance.</p>
+<p><tt class="docutils literal"><span class="pre">clone()</span></tt> is used internally to copy alerts. The suggested implementation of simply
+allocating a new instance as a copy of <tt class="docutils literal"><span class="pre">*this</span></tt> is all that's expected.</p>
+<p>The static category is required for checking wether or not the category for a specific alert
+is enabled or not, without instantiating the alert. The <tt class="docutils literal"><span class="pre">category</span></tt> virtual function is
+the run-time equivalence.</p>
+<p>The <tt class="docutils literal"><span class="pre">what()</span></tt> virtual function may simply be a string literal of the class name of
+your alert.</p>
+<p>For more information, see the alert section in the <a class="reference external" href="manual.html">main manual</a>.</p>
 </div>
     </div>
     <div id="footer">

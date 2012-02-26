@@ -49,7 +49,10 @@ namespace libtorrent
 		xml_string,
 		xml_attribute,
 		xml_comment,
-		xml_parse_error
+		xml_parse_error,
+		// used for tags that don't follow the convention of
+		// key-value pairs inside the tag brackets. Like !DOCTYPE
+		xml_tag_content
 	};
 
 	// callback(int type, char const* name, char const* val)
@@ -65,7 +68,7 @@ namespace libtorrent
 			char const* val_start = 0;
 			int token;
 			// look for tag start
-			for(; *p != '<' && p != end; ++p);
+			for(; p != end && *p != '<'; ++p);
 
 			if (p != start)
 			{
@@ -185,11 +188,12 @@ namespace libtorrent
 				// look for equality sign
 				for (; i != tag_end && *i != '='; ++i);
 
+				// no equality sign found. Report this as xml_tag_content
+				// instead of a series of key value pairs
 				if (i == tag_end)
 				{
-					token = xml_parse_error;
+					token = xml_tag_content;
 					val_start = 0;
-					start = "garbage inside element brackets";
 					callback(token, start, val_start);
 					break;
 				}

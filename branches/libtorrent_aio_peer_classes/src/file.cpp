@@ -918,6 +918,14 @@ namespace libtorrent
 		m_path = convert_to_native(path);
 #endif
 
+#if TORRENT_USE_UNC_PATHS
+#if TORRENT_USE_WSTRING
+		m_path = L"\\\\?\\" + m_path;
+#else
+		m_path = "\\\\?\\" + m_path;
+#endif // TORRENT_USE_WSTRING
+#endif
+
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
 		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
@@ -2153,6 +2161,12 @@ done:
 				}
 				return true;
 			}
+
+			// couldn't find ntdll or NtSetFileInformation function
+			// and the file is opened in unbuffered mode! There's
+			// nothing we can do! (short of re-opening the file, but
+			// that introduces all sorts of nasty race conditions)
+			return false;
 		}
 
 		LARGE_INTEGER offs;
@@ -2355,13 +2369,24 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		error_code ec;
 		size_type file_size = get_size(ec);
 		if (ec) return start;
-		in.FileOffset.QuadPart = start;
-		in.Length.QuadPart = file_size - start;
+
+		if (m_open_mode & no_buffer)
+		{
+			boost::uint64_t mask = size_alignment()-1;
+			in.FileOffset.QuadPart = start & (~mask);
+			in.Length.QuadPart = ((file_size + mask) & ~mask) - in.FileOffset.QuadPart;
+			TORRENT_ASSERT((in.Length.QuadPart & mask) == 0);
+		}
+		else
+		{
+			in.FileOffset.QuadPart = start;
+			in.Length.QuadPart = file_size - start;
+		}
+
 		if (!DeviceIoControl(native_handle(), FSCTL_QUERY_ALLOCATED_RANGES
 			, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 			, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 		{
-			int err = GetLastError();
 			if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return start;
 		}
 

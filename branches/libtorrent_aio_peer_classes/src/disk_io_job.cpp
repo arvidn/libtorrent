@@ -38,9 +38,9 @@ namespace libtorrent
 	disk_io_job::disk_io_job()
 		: buffer(0)
 		, piece(0)
-		, flags(0)
 		, action(read)
 		, ret(0)
+		, flags(0)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, in_use(false)
 		, callback_called(false)

@@ -333,10 +333,10 @@ namespace libtorrent
 		, m_pending_buffer_size(0)
 		, m_queue_buffer_size(0)
 		, m_last_file_check(time_now_hires())
-		, m_last_stats_flip(time_now())
 		, m_file_pool(40)
 		, m_hash_thread(this)
 		, m_disk_cache(block_size, m_hash_thread, ios, post_alert)
+		, m_last_stats_flip(time_now())
 		, m_in_progress(0)
 		, m_to_issue(0)
 		, m_to_issue_end(0)
@@ -1077,7 +1077,7 @@ namespace libtorrent
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
 		{
-			evict -= m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+			evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
 			if (evict > 0) try_flush_write_blocks(evict);
 		}
 
@@ -1950,10 +1950,12 @@ namespace libtorrent
 
 		cache_status* ret = (cache_status*)j->buffer;
 		get_disk_metrics(*ret);
+
+		if (j->flags & disk_io_job::no_pieces) return 0;
+
 		int block_size = m_disk_cache.block_size();
 
-		ptime now = time_now();
-
+		// TODO: this is potentially pretty expensive, allow cache info jobs to not ask for this full list
 		for (block_cache::iterator i = range.first; i != range.second; ++i)
 		{
 			ret->pieces.push_back(cached_piece_info());
@@ -2718,7 +2720,7 @@ namespace libtorrent
 			int evict = m_disk_cache.num_to_evict(0);
 			if (evict > 0)
 			{
-				evict -= m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+				evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
 				if (evict > 0) try_flush_write_blocks(evict);
 			}
 

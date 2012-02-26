@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/create_torrent.hpp"
 
 using boost::bind;
 
@@ -294,7 +295,10 @@ bool compare_torrent(torrent_status const* lhs, torrent_status const* rhs)
 	else if (lhs->queue_position == -1 && rhs->queue_position == -1)
 	{
 		// both are seeding, sort by seed-rank
-		return lhs->seed_rank > rhs->seed_rank;
+		if (lhs->seed_rank != rhs->seed_rank)
+			return lhs->seed_rank > rhs->seed_rank;
+
+		return lhs->info_hash < rhs->info_hash;
 	}
 
 	return (lhs->queue_position == -1) < (rhs->queue_position == -1);
@@ -312,6 +316,7 @@ void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
 		filtered_handles.push_back(&*i);
 	}
 	if (active_torrent >= int(filtered_handles.size())) active_torrent = filtered_handles.size() - 1;
+	else if (active_torrent == -1 && !filtered_handles.empty()) active_torrent = 0;
 	std::sort(filtered_handles.begin(), filtered_handles.end(), &compare_torrent);
 }
 
@@ -680,6 +685,9 @@ void signal_handler(int signo)
 	loop_limit = 1;
 }
 
+// if non-empty, a peer that will be added to all torrents
+std::string peer;
+
 using boost::bind;
 
 // monitored_dir is true if this torrent is added because
@@ -848,7 +856,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
-	, handles_t& files, std::set<libtorrent::torrent_handle> const& non_files
+	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files
 	, int* counters, boost::unordered_set<torrent_status>& all_handles
 	, std::vector<torrent_status const*>& filtered_handles
 	, bool& need_resort)
@@ -884,12 +892,32 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
 		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", time_now_string(), msg);
 
-		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "test");
+		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
 		h.resume();
 	}
 #endif
 
-	if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
+	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
+	{
+		// if we have a monitor dir, save the .torrent file we just received in it
+		// also, add it to the files map, and remove it from the non_files list
+		// to keep the scan dir logic in sync so it's not removed, or added twice
+		torrent_handle h = p->handle;
+		if (h.is_valid()) {
+			torrent_info const& ti = h.get_torrent_info();
+			create_torrent ct(ti);
+			entry te = ct.generate();
+			std::vector<char> buffer;
+			bencode(std::back_inserter(buffer), te);
+			std::string filename = ti.name() + "." + to_hex(ti.info_hash().to_string()) + ".torrent";
+			filename = combine_path(monitor_dir, filename);
+			save_file(filename, buffer);
+
+			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
+			non_files.erase(h);
+		}
+	}
+	else if (add_torrent_alert* p = alert_cast<add_torrent_alert>(a))
 	{
 		std::string filename;
 		if (p->params.userdata)
@@ -908,6 +936,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 			if (!filename.empty())
 				files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+			else
+				non_files.insert(h);
 
 			h.set_max_connections(max_connections_per_torrent);
 			h.set_max_uploads(-1);
@@ -917,6 +947,21 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
+
+			// if we have a peer specified, connect to it
+			if (!peer.empty())
+			{
+				char* port = (char*) strrchr((char*)peer.c_str(), ':');
+				if (port > 0)
+				{
+					*port++ = 0;
+					char const* ip = peer.c_str();
+					int peer_port = atoi(port);
+					error_code ec;
+					if (peer_port > 0)
+						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), peer_port));
+				}
+			}
 
 			boost::unordered_set<torrent_status>::iterator j
 				= all_handles.insert(h.status()).first;
@@ -976,6 +1021,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
+		bool need_filter_update = false;
 		for (std::vector<torrent_status>::iterator i = p->status.begin();
 			i != p->status.end(); ++i)
 		{
@@ -983,8 +1029,14 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			// don't add new entries here, that's done in the handler
 			// for add_torrent_alert
 			if (j == all_handles.end()) continue;
+			if (j->state != i->state
+				|| j->paused != i->paused
+				|| j->auto_managed != i->auto_managed)
+				need_filter_update = true;
 			((torrent_status&)*j) = *i;
 		}
+		if (need_filter_update)
+			update_filtered_torrents(all_handles, filtered_handles, counters);
 
 		return true;
 	}
@@ -1029,7 +1081,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			{
 				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
 				else color = esc("33;7");
-				chr = '0' + (pp->blocks[j].bytes_progress / float(pp->blocks[j].block_size) * 10);
+				chr = '0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size);
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
@@ -1098,8 +1150,8 @@ int main(int argc, char* argv[])
 			"  -s <path>             sets the save path for downloads\n"
 			"  -m <path>             sets the .torrent monitor directory\n"
 			"  -t <seconds>          sets the scan interval of the monitor dir\n"
-			"  -F <seconds>          sets the UI refresh rate. This is the number of\n"
-			"                        seconds between screen refreshes.\n"
+			"  -F <milliseconds>     sets the UI refresh rate. This is the number of\n"
+			"                        milliseconds between screen refreshes.\n"
 			"  -q <num loops>        automatically quit the client after <num loops> of refreshes\n"
 			"                        this is useful for scripting tests\n"
 			"  -k                    enable high performance settings. This overwrites any other\n"
@@ -1117,12 +1169,14 @@ int main(int argc, char* argv[])
 			"  -S <limit>            limits the upload slots\n"
 			"  -A <num pieces>       allowed pieces set size\n"
 			"  -H                    Don't start DHT\n"
+			"  -X                    Don't start local peer discovery\n"
 			"  -n                    announce to trackers in all tiers\n"
 			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
 			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
 			"  -K                    enable piece suggestions of read cache\n"
+			"  -r <IP:port>          connect to specified peer\n"
 			"  -e                    force encrypted bittorrent connections\n"
 			"\n QUEING OPTIONS\n"
 			"  -v <limit>            Set the max number of active downloads\n"
@@ -1158,6 +1212,7 @@ int main(int argc, char* argv[])
 			"  -O                    Disallow disk job reordering\n"
 			"  -j                    disable disk read-ahead\n"
 			"  -z                    disable piece hash checks (used for benchmarking)\n"
+			"  -Z <file>             mmap the disk cache to the specified file, should be an SSD\n"
 			"  -0                    disable disk I/O, read garbage and don't flush to disk\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -1178,6 +1233,7 @@ int main(int argc, char* argv[])
 	int refresh_delay = 1000;
 	bool start_dht = true;
 	bool start_upnp = true;
+	bool start_lsd = true;
 
 	std::deque<std::string> events;
 
@@ -1195,6 +1251,7 @@ int main(int argc, char* argv[])
 	std::set<torrent_handle> non_files;
 
 	int counters[torrents_max];
+	memset(counters, 0, sizeof(counters));
 
 	session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 		, session::add_default_plugins
@@ -1348,6 +1405,7 @@ int main(int argc, char* argv[])
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
 			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
+			case 'r': peer = arg; break;
 			case 'P':
 				{
 					char* port = (char*) strrchr(arg, ':');
@@ -1395,6 +1453,8 @@ int main(int argc, char* argv[])
 					ses.set_peer_class_filter(pcf);
 					break;
 				}
+			case 'X': start_lsd = false; --i; break;
+			case 'Z': settings.mmap_cache = arg; settings.contiguous_recv_buffer = false; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
 				break;
@@ -1413,7 +1473,9 @@ int main(int argc, char* argv[])
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
-	ses.start_lsd();
+	if (start_lsd)
+		ses.start_lsd();
+
 	if (start_upnp)
 	{
 		ses.start_upnp();
@@ -1867,9 +1929,8 @@ int main(int argc, char* argv[])
 
 				feed_status st = i->get_feed_status();
 				if (st.url.size() > 70) st.url.resize(70);
-				snprintf(str, sizeof(str), "%-70s %c %4d (%2d) %s\n", st.url.c_str()
-					, st.updating? 'u' : '-'
-					, st.next_update
+				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
+					, st.updating ? "updating" : to_string(st.next_update).elems
 					, int(st.items.size())
 					, st.error ? st.error.message().c_str() : "");
 				out += str;
@@ -2026,12 +2087,17 @@ int main(int argc, char* argv[])
 		}
 
 		sha1_hash ih(0);
+		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
-		if (h.is_valid()) ih = h.info_hash();
+		if (h.is_valid())
+		{
+			ih = h.info_hash();
+			cache_flags = 0;
+		}
 
 		cache_status cs;
-		ses.get_cache_info(ih, &cs);
+		ses.get_cache_info(ih, &cs, cache_flags);
 
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;

@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/thread.hpp"
 
-#include <execinfo.h>
 #include <map>
 
 std::string demangle(char const* name);
@@ -62,18 +61,9 @@ namespace libtorrent
 		async_t& a = _async_ops[name];
 		if (a.stack.empty())
 		{
-			void* stack[50];
-			int size = backtrace(stack, 50);
-			char** symbols = backtrace_symbols(stack, size);
-
-			for (int i = 1; i < size; ++i)
-			{
-				char str[200];
-				snprintf(str, sizeof(str), "%d: %s\n", i, demangle(symbols[i]).c_str());
-				a.stack += str;
-			}
-
-			free(symbols);
+			char stack_text[10000];
+			print_backtrace(stack_text, sizeof(stack_text));
+			a.stack = stack_text;
 		}
 		++a.refs;
 	}

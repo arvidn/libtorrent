@@ -225,8 +225,6 @@ namespace libtorrent
 			return utp_incoming_packet(m_last_socket, p, size, ep, receive_time);
 		}
 
-		socket_map_t::iterator i = m_utp_sockets.find(id);
-
 		std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
 			m_utp_sockets.equal_range(id);
 

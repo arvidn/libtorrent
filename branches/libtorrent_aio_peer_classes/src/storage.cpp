@@ -319,11 +319,17 @@ namespace libtorrent
 				}
 				ec.ec.clear();
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, 0, ec.ec);
-				if (!ec.ec && f) f->set_size(file_iter->size, ec.ec);
-				if (ec)
+				if (ec || !f)
 				{
 					ec.file = file_index;
 					ec.operation = storage_error::open;
+					return;
+				}
+				f->set_size(file_iter->size, ec.ec);
+				if (ec)
+				{
+					ec.file = file_index;
+					ec.operation = storage_error::fallocate;
 					break;
 				}
 			}

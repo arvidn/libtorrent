@@ -1202,7 +1202,7 @@ namespace libtorrent
 	{
 		piece_pos& p = m_piece_map[index];
 		int state = p.state;
-		if (state != piece_pos::piece_open) return;
+		if (state == piece_pos::piece_open) return;
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
@@ -2320,8 +2320,8 @@ namespace libtorrent
 #endif
 		if (!m_dirty)
 		{
-			if (prio == -1) add(dp_info.index);
-			else update(prio, p.index);
+			if (prio == -1 && p.priority(this) != -1) add(dp_info.index);
+			else if (prio != -1) update(prio, p.index);
 		}
 
 		return i;
@@ -2661,7 +2661,7 @@ namespace libtorrent
 
 		piece_pos& p = m_piece_map[block.piece_index];
 
-		if (p.downloading() == false)
+		if (p.state == piece_pos::piece_open)
 		{
 			// if we already have this piece, just ignore this
 			if (have_piece(block.piece_index)) return;
@@ -2683,12 +2683,10 @@ namespace libtorrent
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);
 			TORRENT_ASSERT(info.num_peers == 0);
-			if (info.state != block_info::state_finished)
-			{
-				++dp.finished;
-//				sort_piece(m_downloads.end() - 1);
-			}
+			++dp.finished;
 			info.state = block_info::state_finished;
+			// dp may be invalid after this call
+			update_piece_state(find_dl_piece(0, dp.index));
 		}
 		else
 		{
@@ -2720,6 +2718,8 @@ namespace libtorrent
 //				sort_piece(i);
 			}
 
+			 i = update_piece_state(i);
+	
 			if (i->passed_hash_check && i->finished == blocks_in_piece(i->index))
 				we_have(i->index);
 		}
@@ -2856,8 +2856,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			// TEMP!
-			piece_pos prev_p = p;
 			int prio = p.priority(this);
 			erase_download_piece(i);
 			if (!m_dirty)

@@ -41,19 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iterator>
 #include <algorithm>
-#include <set>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/bind.hpp>
-#include <boost/assert.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/escape_string.hpp" // is_space
@@ -64,6 +51,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
+#include <boost/bind.hpp>
+#include <boost/assert.hpp>
+#if TORRENT_HAS_BOOST_UNORDERED
+#include <boost/unordered_set.hpp>
+#else
+#include <set>
+#endif
+
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
@@ -203,6 +207,33 @@ namespace libtorrent
 			added_separator = 1;
 		}
 
+#if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
+		// if we're not using UNC paths on windows, there
+		// are certain filenames we're not allowed to use
+		const static char const* reserved_names[] =
+		{
+			"con", "prn", "aux", "clock$", "nul",
+			"com0", "com1", "com2", "com3", "com4",
+			"com5", "com6", "com7", "com8", "com9",
+			"lpt0", "lpt1", "lpt2", "lpt3", "lpt4",
+			"lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
+		};
+		int num_names = sizeof(reserved_names)/sizeof(reserved_names[0]);
+
+		// this is not very efficient, but it only affects some specific
+		// windows builds for now anyway (not even the default windows build)
+		std::string pe(element, element_len);
+		char const* file_end = strrchr(pe.c_str(), '.');
+		std::string name(pe.c_str(), file_end);
+		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
+		char const* str = std::find(reserved_names, reserved_names + num_names, name);
+		if (str != reserved + num_names)
+		{
+			pe = "_" + pe;
+			element = pe.c_str();
+			element_len = pe.size();
+		}
+#endif
 		int added = 0;
 		// the number of dots we've added
 		char num_dots = 0;
@@ -329,9 +360,46 @@ namespace libtorrent
 		return true;
 	}
 
+#if TORRENT_HAS_BOOST_UNORDERED
+	struct string_hash_no_case
+	{
+		size_t operator()(std::string const& s) const
+		{
+			char const* s1 = s.c_str();
+			size_t ret = 5381;
+			int c;
+
+			while ((c = *s1++))
+				ret = (ret * 33) ^ c;
+
+			return ret;
+		}
+	};
+
+	struct string_eq_no_case
+	{
+		bool operator()(std::string const& lhs, std::string const& rhs) const
+		{
+			char c1, c2;
+			char const* s1 = lhs.c_str();
+			char const* s2 = rhs.c_str();
+	
+			while (*s1 != 0 && *s2 != 0)
+			{
+				c1 = to_lower(*s1);
+				c2 = to_lower(*s2);
+				if (c1 != c2) return false;
+				++s1;
+				++s2;
+			}
+			return *s1 == *s2;
+		}
+	};
+
+#else
 	struct string_less_no_case
 	{
-		bool operator()(std::string const& lhs, std::string const& rhs)
+		bool operator()(std::string const& lhs, std::string const& rhs) const
 		{
 			char c1, c2;
 			char const* s1 = lhs.c_str();
@@ -349,6 +417,7 @@ namespace libtorrent
 			return false;
 		}
 	};
+#endif
 
 	bool extract_files(lazy_entry const& list, file_storage& target
 		, std::string const& root_dir, ptrdiff_t info_ptr_diff)
@@ -369,7 +438,12 @@ namespace libtorrent
 			// done once the torrent is loaded, and the original
 			// filenames should be preserved!
 			int cnt = 0;
+
+#if TORRENT_HAS_BOOST_UNORDERED
+			boost::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
+#else
 			std::set<std::string, string_less_no_case> files;
+#endif
 
 			// as long as this file already exists
 			// increase the counter
@@ -497,7 +571,6 @@ namespace libtorrent
 		, m_created_by(t.m_created_by)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_root_cert(t.m_ssl_root_cert)
-		, m_aes_key(t.m_aes_key)
 #endif
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
@@ -788,7 +861,6 @@ namespace libtorrent
 		m_created_by.swap(ti.m_created_by);
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert.swap(ti.m_ssl_root_cert);
-		m_aes_key.swap(ti.m_aes_key);
 #endif
 		boost::uint32_t tmp;
 		SWAP(m_multifile, ti.m_multifile);
@@ -964,8 +1036,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
-
-		m_aes_key = info.dict_find_string_value("encryption-key");
 #endif
 
 		return true;

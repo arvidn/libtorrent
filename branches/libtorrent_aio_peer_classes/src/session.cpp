@@ -807,11 +807,12 @@ namespace libtorrent
 #endif
 
 	void session::get_cache_info(sha1_hash const& ih
-		, cache_status* ret) const
+		, cache_status* ret, int flags) const
 	{
 		bool done = false;
 		mutex::scoped_lock l(m_impl->mut);
-		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info, m_impl.get(), ih, ret, &done, &m_impl->cond, &m_impl->mut));
+		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info
+			, m_impl.get(), ih, ret, flags, &done, &m_impl->cond, &m_impl->mut));
 		do { m_impl->cond.wait(l); } while(!done);
 	}
 

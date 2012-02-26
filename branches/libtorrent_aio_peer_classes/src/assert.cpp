@@ -30,9 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
-
 #include "libtorrent/config.hpp"
+
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING || TORRENT_RELEASE_ASSERTS
 
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -85,6 +85,21 @@ std::string demangle(char const* name)
 	free(unmangled);
 	return ret;
 }
+#elif defined WIN32
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501 // XP
+
+#include "windows.h"
+#include "dbghelp.h"
+
+std::string demangle(char const* name) 
+{ 
+	char demangled_name[256];
+	if (UnDecorateSymbolName(name, demangled_name, sizeof(demangled_name), UNDNAME_NO_THROW_SIGNATURES) == 0)
+		demangled_name[0] = 0;
+	return demangled_name;
+}
 
 #else
 std::string demangle(char const* name) { return name; }
@@ -114,6 +129,69 @@ void print_backtrace(char* out, int len)
 
 	free(symbols);
 }
+
+#elif defined WIN32
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501 // XP
+
+#include "windows.h"
+#include "libtorrent/utf8.hpp"
+
+#include "winbase.h"
+#include "dbghelp.h"
+
+void print_backtrace(char* out, int len)
+{
+	typedef USHORT (*RtlCaptureStackBackTrace_t)(
+		__in ULONG FramesToSkip,
+		__in ULONG FramesToCapture,
+		__out PVOID *BackTrace,
+		__out_opt PULONG BackTraceHash);
+
+	static RtlCaptureStackBackTrace_t RtlCaptureStackBackTrace = 0;
+
+	if (RtlCaptureStackBackTrace == 0)
+	{
+		// we don't actually have to free this library, everyone has it loaded
+		HMODULE lib = LoadLibrary(TEXT("kernel32.dll"));
+		RtlCaptureStackBackTrace = (RtlCaptureStackBackTrace_t)GetProcAddress(lib, "RtlCaptureStackBackTrace");
+		if (RtlCaptureStackBackTrace == 0)
+		{
+			out[0] = 0;
+			return;
+		}
+	}
+
+	int i;
+	void* stack[50];
+	int size = CaptureStackBackTrace(0, 50, stack, 0);
+
+	SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR), 1);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+	HANDLE p = GetCurrentProcess();
+	static bool sym_initialized = false;
+	if (!sym_initialized)
+	{
+		sym_initialized = true;
+		SymInitialize(p, NULL, true);
+	}
+	for (i = 0; i < size && len > 0; ++i)
+	{
+		int ret;
+		if (SymFromAddr(p, uintptr_t(stack[i]), 0, symbol))
+			ret = snprintf(out, len, "%d: %s\n", i, symbol->Name);
+		else
+			ret = snprintf(out, len, "%d: <unknown>\n", i);
+
+		out += ret;
+		len -= ret;
+	}
+	free(symbol);
+}
+
 #else
 
 void print_backtrace(char* out, int len) { out[0] = 0; }
@@ -166,7 +244,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 
 #else
 
-void assert_fail(char const* expr, int line, char const* file, char const* function) {}
+TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file, char const* function) {}
 
 #endif
 

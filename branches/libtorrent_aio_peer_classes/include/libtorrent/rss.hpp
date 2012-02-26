@@ -75,12 +75,18 @@ namespace libtorrent
 	{
 		feed_settings()
 			: auto_download(true)
+			, auto_map_handles(true)
 			, default_ttl(30)
 		{}
 
    	std::string url;
 
+		// automatically add torrents to session from
 		bool auto_download;
+
+		// automatically find existing torrents and set
+		// the torrent_handle in the feed item
+		bool auto_map_handles;
 
 		// in minutes
 		int default_ttl;
@@ -138,7 +144,7 @@ namespace libtorrent
 		void on_feed(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
 	
-		void update_feed();
+		int update_feed();
 	
 		aux::session_impl& session() const { return m_ses; }
 	
@@ -159,13 +165,29 @@ namespace libtorrent
 
 		error_code m_error;
 		std::vector<feed_item> m_items;
+
+		// these are all the URLs we've seen in the items list.
+		// it's used to avoid adding duplicate entries to the actual
+		// item vector
 		std::set<std::string> m_urls;
+
+		// these are URLs that have been added to the session
+		// once. If we see them again, and they're not in the
+		// session, don't add them again, since it means they
+		// were removed from the session. It maps URLs to the
+		// posix time when they were added. The timestamp is
+		// used to prune this list by removing the oldest ones
+		// when the size gets too big
+		std::map<std::string, time_t> m_added;
+
 		std::string m_title;
    	std::string m_description;
 		time_t m_last_attempt;
    	time_t m_last_update;
 		// refresh rate of this feed in minutes
 		int m_ttl;
+		// the number of update failures in a row
+		int m_failures;
 		// true while waiting for the server to respond
 		bool m_updating;
 		feed_settings m_settings;

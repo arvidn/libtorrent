@@ -290,6 +290,7 @@ namespace libtorrent
 			, aio_threads(2)
 			, aio_max(300)
 			, network_threads(0)
+			, ssl_listen(4433)
 		{}
 
 		// libtorrent version. Used for forward binary compatibility
@@ -1148,6 +1149,9 @@ namespace libtorrent
 		// between RAM and hard drives. Typically you would point
 		// this to an SSD drive.
 		std::string mmap_cache;
+
+		// open an ssl listen socket for ssl torrents on this port
+		int ssl_listen;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

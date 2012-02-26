@@ -62,6 +62,17 @@ public:
 	typedef typename Stream::endpoint_type endpoint_type;
 	typedef typename Stream::protocol_type protocol_type;
 
+	void set_host_name(std::string name)
+	{ SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str()); }
+
+	template <class T>
+	void set_verify_callback(T const& fun, error_code& ec)
+	{ m_sock.set_verify_callback(fun, ec); }
+
+#if BOOST_VERSION >= 104700
+	SSL* native_handle() { return m_sock.native_handle(); }
+#endif
+
 	typedef boost::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
@@ -97,8 +108,7 @@ public:
 	template <class Handler>
 	void async_shutdown(Handler const& handler)
 	{
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
-		m_sock.async_shutdown( boost::bind(&ssl_stream::on_shutdown, this, _1, h));
+		m_sock.async_shutdown(handler);
 	}
 
 	void shutdown(error_code& ec)
