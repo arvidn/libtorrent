@@ -8107,7 +8107,7 @@ namespace libtorrent
 	void torrent::give_connect_points(int points)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(points <= 100);
+		TORRENT_ASSERT(points <= 200);
 		TORRENT_ASSERT(points > 0);
 		TORRENT_ASSERT(want_more_peers());
 		m_deficit_counter += points;
