@@ -537,7 +537,7 @@ namespace aux {
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION > 104600
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
@@ -684,7 +684,7 @@ namespace aux {
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
 		SSL_CTX_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
 #endif // BOOST_VERSION

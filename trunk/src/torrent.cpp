@@ -85,7 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
 #endif // BOOST_VERSION
@@ -1289,7 +1289,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION > 104700
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
@@ -1392,7 +1392,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(RAND_status() == 1);
 
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
@@ -4606,7 +4606,7 @@ namespace libtorrent
 			str->set_dst_name(hostname);
 		}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION > 104600
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
@@ -5495,7 +5495,7 @@ namespace libtorrent
 			(void)ret;
 			TORRENT_ASSERT(ret);
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION > 104600
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
@@ -5646,7 +5646,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
