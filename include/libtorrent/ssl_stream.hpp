@@ -69,7 +69,7 @@ public:
 	void set_verify_callback(T const& fun, error_code& ec)
 	{ m_sock.set_verify_callback(fun, ec); }
 
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 	SSL* native_handle() { return m_sock.native_handle(); }
 #endif
 

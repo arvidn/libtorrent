@@ -955,7 +955,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
 
-#if BOOST_VERSION > 104600
+#if BOOST_VERSION >= 104700
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
 #endif
 
