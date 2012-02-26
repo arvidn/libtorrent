@@ -1970,7 +1970,7 @@ namespace libtorrent
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
 		bool interesting = false;
-		if (!t->is_seed())
+		if (!t->is_upload_only())
 		{
 			t->peer_has(bits);
 

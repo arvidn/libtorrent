@@ -73,7 +73,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <encryption>gcrypt in $(properties) || <encryption>openssl in $(properties)
+	if <encryption>gcrypt in $(properties)
 	{
 		# on mac os x, adding the /opt/local/include path
 		# would include openssl headers incompatible with

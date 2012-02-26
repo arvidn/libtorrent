@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
@@ -340,7 +340,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
@@ -361,6 +361,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 				, me, ec, (char*)0, 0));
 			return;
 		}
+#undef CASE
+
 #endif
 
 #if TORRENT_USE_I2P

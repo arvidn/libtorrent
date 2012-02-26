@@ -89,9 +89,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
+#if BOOST_VERSION >= 104700
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
-#endif
+#endif // BOOST_VERSION
+#endif // TORRENT_USE_OPENSSL
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/struct_debug.hpp"
@@ -1246,6 +1248,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 
+#if BOOST_VERSION > 104700
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
@@ -1331,6 +1334,7 @@ namespace libtorrent
 
 		return false;
 	}
+#endif // BOOST_VERSION
 
 	void torrent::init_ssl(std::string const& cert)
 	{
@@ -1347,6 +1351,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(RAND_status() == 1);
 
+#if BOOST_VERSION >= 104700
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
@@ -1428,9 +1433,12 @@ namespace libtorrent
 #endif
 		// if all went well, set the torrent ssl context to this one
 		m_ssl_ctx = ctx;
-
 		// tell the client we need a cert for this torrent
 		alerts().post_alert(torrent_need_cert_alert(get_handle()));
+#else
+		set_error(asio::error::operation_not_supported, "x.509 certificate");
+		pause();
+#endif
 	}
 
 #endif // TORRENT_OPENSSL
@@ -4914,7 +4922,7 @@ namespace libtorrent
 			str->set_dst_name(hostname);
 		}
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
@@ -4934,6 +4942,7 @@ namespace libtorrent
 				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, ec));
 			return;
 		}
+#undef CASE
 #endif
 
 		boost::intrusive_ptr<peer_connection> c;
@@ -5812,7 +5821,7 @@ namespace libtorrent
 			(void)ret;
 			TORRENT_ASSERT(ret);
 
-#ifdef TORRENT_USE_OPENSSL
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
@@ -5830,6 +5839,7 @@ namespace libtorrent
 					default: break;
 				};
 			}
+#undef CASE
 #endif
 		}
 
@@ -5969,6 +5979,7 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
+#if BOOST_VERSION >= 104700
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -6009,6 +6020,13 @@ namespace libtorrent
 				return false;
 			}
 		}
+#else // BOOST_VERSION
+		if (is_ssl_torrent())
+		{
+			p->disconnect(asio::error::operation_not_supported);
+			return false;
+		}
+#endif
 #endif // TORRENT_USE_OPENSSL
 
 		TORRENT_ASSERT(p != 0);
@@ -6790,7 +6808,11 @@ namespace libtorrent
 				, end(torrents.end()); i != end; ++i)
 			{
 				torrent* t = i->second.get();
-				if (t->m_sequence_number >= p) ++t->m_sequence_number;
+				if (t->m_sequence_number >= p)
+				{
+					++t->m_sequence_number;
+					t->state_updated();
+				}
 				if (t->m_sequence_number >= p) ++t->m_sequence_number;
 			}
 			++max_queue_pos;
@@ -6807,7 +6829,10 @@ namespace libtorrent
 				if (t == this) continue;
 				if (t->m_sequence_number == -1) continue;
 				if (t->m_sequence_number >= m_sequence_number)
+				{
 					--t->m_sequence_number;
+					t->state_updated();
+				}
 			}
 			--max_queue_pos;
 			m_sequence_number = p;
@@ -6822,7 +6847,10 @@ namespace libtorrent
 				if (t->m_sequence_number == -1) continue;
 				if (t->m_sequence_number >= p 
 					&& t->m_sequence_number < m_sequence_number)
+				{
 					++t->m_sequence_number;
+					t->state_updated();
+				}
 			}
 			m_sequence_number = p;
 		}
@@ -6839,7 +6867,10 @@ namespace libtorrent
 				if (pos <= p
 						&& pos > m_sequence_number
 						&& pos != -1)
+				{
 					--t->m_sequence_number;
+					t->state_updated();
+				}
 
 			}
 			m_sequence_number = (std::min)(max_queue_pos, p);

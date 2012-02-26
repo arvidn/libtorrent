@@ -273,6 +273,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
+#define TORRENT_USE_UNC_PATHS 1
 
 // ==== WINDOWS ===
 #elif defined WIN32
@@ -292,6 +293,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_DEFAULT_IO
 # define TORRENT_USE_OVERLAPPED 1
 #endif
+#define TORRENT_USE_UNC_PATHS 1
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
@@ -529,6 +531,10 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
+#endif
+
+#ifndef TORRENT_USE_UNC_PATHS
+#define TORRENT_USE_UNC_PATHS 0
 #endif
 
 #ifndef TORRENT_USE_RLIMIT
