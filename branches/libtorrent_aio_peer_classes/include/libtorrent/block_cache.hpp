@@ -33,11 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOCK_CACHE
 #define TORRENT_BLOCK_CACHE
 
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/mem_fun.hpp>
-#include <boost/multi_index/composite_key.hpp>
+#include <boost/unordered_set.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_array.hpp>
@@ -51,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/tailqueue.hpp"
+#include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 
 namespace libtorrent
@@ -61,15 +58,6 @@ namespace libtorrent
 	struct cache_status;
 	struct hash_thread;
 	struct block_cache_reference;
-	struct tailqueue;
-
-	using boost::multi_index::multi_index_container;
-	using boost::multi_index::ordered_non_unique;
-	using boost::multi_index::ordered_unique;
-	using boost::multi_index::indexed_by;
-	using boost::multi_index::member;
-	using boost::multi_index::const_mem_fun;
-	using boost::multi_index::composite_key;
 
 	struct partial_hash
 	{
@@ -139,7 +127,9 @@ namespace libtorrent
 #endif
 	};
 
-	struct cached_piece_entry
+	// list_node is here to be able to link this cache entry
+	// into one of the LRU lists
+	struct cached_piece_entry : list_node
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
@@ -150,12 +140,20 @@ namespace libtorrent
 		int get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
 
+		bool operator==(cached_piece_entry const& rhs) const
+		{ return storage.get() == rhs.storage.get() && piece == rhs.piece; }
+
 		// if this is set, we'll be calculating the hash
 		// for this piece. This member stores the interim
 		// state while we're calulcating the hash.
 		partial_hash* hash;
 
-		// the pointers to the block data
+		// set to a unique identifier of a peer that last
+		// requested from this piece.
+		void* last_requester;
+
+		// the pointers to the block data. If this is a ghost
+		// cache entry, there won't be any data here
 		boost::shared_array<cached_block_entry> blocks;
 		
 		// these are outstanding jobs, waiting to be
@@ -172,7 +170,7 @@ namespace libtorrent
 		// to stay in the cache
 		ptime expire;
 
-		boost::uint64_t piece:18;
+		boost::uint64_t piece:22;
 
 		// the number of dirty blocks in this piece
 		boost::uint64_t num_dirty:14;
@@ -180,30 +178,56 @@ namespace libtorrent
 		// the number of blocks in the cache for this piece
 		boost::uint64_t num_blocks:14;
 
-		// if this is true, whenever refcount hits 0, 
-		// this piece should be deleted
-		boost::uint64_t marked_for_deletion:1;
-
-		// this is set to true once we flush blocks past
-		// the hash cursor. Once this happens, there's
-		// no point in keeping cache blocks around for
-		// it in avoid_readback mode
-		boost::uint64_t need_readback:1;
-
 		// the total number of blocks in this piece (and the number
 		// of elements in the blocks array)
 		boost::uint64_t blocks_in_piece:14;
+
+		// ---- 64 bit boundary ----
 
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to the first block
 		// in the range that is being hashed. When the operation
 		// returns, this is set to -1. -1 means there's no
 		// outstanding hash operation running
-		boost::int32_t hashing;
+		enum { not_hashing = 0x3fff };
+		boost::uint32_t hashing:14;
+
+		// if this is true, whenever refcount hits 0, 
+		// this piece should be deleted
+		boost::uint32_t marked_for_deletion:1;
+
+		// this is set to true once we flush blocks past
+		// the hash cursor. Once this happens, there's
+		// no point in keeping cache blocks around for
+		// it in avoid_readback mode
+		boost::uint32_t need_readback:1;
+
+		// indicates which LRU list this piece is chained into
+		enum cache_state_t
+		{
+			write_lru,
+			read_lru1,
+			read_lru1_ghost,
+			read_lru2,
+			read_lru2_ghost,
+			num_lrus
+		};
+
+		boost::uint32_t cache_state:5;
+
+		// unused
+		boost::uint32_t padding:11;
+
+		//	---- 32 bit boundary ---
 
 		// the sum of all refcounts in all blocks
 		boost::uint32_t refcount;	
 	};
+
+	inline std::size_t hash_value(cached_piece_entry const& p)
+	{
+		return std::size_t(p.storage.get()) + p.piece;
+	}
 
 	struct block_cache : disk_buffer_pool
 	{
@@ -212,46 +236,21 @@ namespace libtorrent
 
 	private:
 
-		typedef multi_index_container<
-			cached_piece_entry, indexed_by<
-				// first index. Ordered by storage pointer and piece index
-				ordered_unique<
-					composite_key<cached_piece_entry,
-						const_mem_fun<cached_piece_entry, void*, &cached_piece_entry::get_storage>,
-						const_mem_fun<cached_piece_entry, int, &cached_piece_entry::get_piece>
-					>
-				>
-				// second index. Ordered by expiration time
-				, ordered_non_unique<member<cached_piece_entry, ptime
-					, &cached_piece_entry::expire> >
-				> 
-			> cache_t;
-
-		typedef cache_t::nth_index<0>::type cache_piece_index_t;
-		typedef cache_t::nth_index<1>::type cache_lru_index_t;
+		typedef boost::unordered_set<cached_piece_entry> cache_t;
 
 	public:
 
-		typedef cache_piece_index_t::iterator iterator;
-		typedef cache_lru_index_t::iterator lru_iterator;
+		typedef cache_t::iterator iterator;
 
 		void reclaim_block(block_cache_reference const& ref, tailqueue& jobs);
-
-		// returns the range of all pieces that belongs to the
-		// given storage
-		std::pair<iterator, iterator> pieces_for_storage(void* st);
 
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
 		std::pair<iterator, iterator> all_pieces();
+		int num_pieces() const { return m_pieces.size(); }
 
-		// returns a range of all pieces, in LRU order
-		std::pair<lru_iterator, lru_iterator> all_lru_pieces();
-
-		iterator map_iterator(lru_iterator it)
-		{
-			return m_pieces.project<0>(it);
-		}
+		list_iterator write_lru_pieces() const
+		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
 		// deletes all pieces in the cache. asserts that there
 		// are no outstanding jobs
@@ -260,33 +259,52 @@ namespace libtorrent
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
-		void mark_for_deletion(iterator i);
+		void mark_for_deletion(cached_piece_entry* p);
 
-		// simialr to  mark_for_deletion, except for actually marking the
+		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(iterator i);
+		bool evict_piece(cached_piece_entry* p);
+
+		// if this piece is in L1 or L2 proper, move it to
+		// its respective ghost list
+		void move_to_ghost(cached_piece_entry* p);
 
 		// returns the number of bytes read on success (cache hit)
 		// -1 on cache miss
 		int try_read(disk_io_job* j);
 
+		// called when we're reading and we found the piece we're
+		// reading from in the hash table (not necessarily that we
+		// hit the block we needed)
+		void cache_hit(cached_piece_entry* p, void* requester);
+
+		// erase a piece (typically from the ghost list). Reclaim all
+		// its blocks and unlink it and free it.
+		void erase_piece(cached_piece_entry* p);
+
+		// bump the piece 'p' to the back of the LRU list it's
+		// in (back == MRU)
+		// this is only used for the write cache
+		void bump_lru(cached_piece_entry* p);
+
+		// move p into the correct lru queue
+		void update_cache_state(cached_piece_entry* p);
+
 		// if the piece is marked for deletion and has a refcount
 		// of 0, this function will post any sync jobs and
 		// delete the piece from the cache
-		bool maybe_free_piece(iterator p, tailqueue& jobs);
+		bool maybe_free_piece(cached_piece_entry* p, tailqueue& jobs);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
-		block_cache::iterator allocate_piece(disk_io_job const* j);
+		cached_piece_entry* allocate_piece(disk_io_job const* j, int cache_state);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
-		block_cache::iterator find_piece(block_cache_reference const& ref);
-		block_cache::iterator find_piece(disk_io_job const* j);
-		block_cache::iterator find_piece(cached_piece_entry const* pe);
-
-		block_cache::iterator end();
+		cached_piece_entry* find_piece(block_cache_reference const& ref);
+		cached_piece_entry* find_piece(disk_io_job const* j);
+		cached_piece_entry* find_piece(cached_piece_entry const* pe);
 
 		// allocates and marks the covered blocks as pending to
 		// be filled in. This should be followed by issuing an
@@ -294,7 +312,7 @@ namespace libtorrent
 		// returns the number of blocks that were allocated. If
 		// it's less than the requested, it means the cache is
 		// full and there's no space left
-		int allocate_pending(iterator p
+		int allocate_pending(cached_piece_entry* p
 			, int start, int end, disk_io_job* j
 			, int prio = 0, bool force = false);
 
@@ -306,7 +324,7 @@ namespace libtorrent
 		// all jobs for this piece are dispatched with the error
 		// code. The io_service passed in is where the jobs are
 		// dispatched
-		void mark_as_done(iterator p, int begin, int end
+		void mark_as_done(cached_piece_entry* p, int begin, int end
 			, tailqueue& jobs, storage_error const& ec);
 
 		// this is called by the hasher thread when hashing of
@@ -316,12 +334,12 @@ namespace libtorrent
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
-		void abort_dirty(iterator p, tailqueue& jobs);
+		void abort_dirty(cached_piece_entry* p, tailqueue& jobs);
 
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is
 		// flushed, the callback is posted
-		block_cache::iterator add_dirty_block(disk_io_job* j);
+		cached_piece_entry* add_dirty_block(disk_io_job* j);
 	
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
@@ -331,7 +349,7 @@ namespace libtorrent
 		// pick the least recently used ones first
 		// return the number of blocks that was requested to be evicted
 		// that couldn't be
-		int try_evict_blocks(int num, int prio, iterator ignore);
+		int try_evict_blocks(int num, int prio, cached_piece_entry* ignore = 0);
 
 		void get_stats(cache_status* ret) const;
 
@@ -350,24 +368,52 @@ namespace libtorrent
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
+		void set_settings(session_settings const& sett);
+
 	private:
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 
-		void reap_piece_jobs(iterator p, storage_error const& ec
+		void reap_piece_jobs(cached_piece_entry* pe, storage_error const& ec
 			, int hash_start, int hash_end, tailqueue& jobs
 			, bool reap_hash_jobs);
 
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
-		int copy_from_piece(iterator p, disk_io_job* j);
+		int copy_from_piece(cached_piece_entry* p, disk_io_job* j);
 
-		void free_piece(iterator i);
+		void free_piece(cached_piece_entry* p);
 		int drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf);
 
 		// block container
 		cache_t m_pieces;
+
+		// linked list of all elements in m_pieces, in usage order
+		// the most recently used are in the tail. iterating from head
+		// to tail gives the least recently used entries first
+		// the read-list is for read blocks and the write-list is for
+		// dirty blocks that needs flushing before being evicted
+		// [0] = write-LRU
+		// [1] = read-LRU1
+		// [2] = read-LRU1-ghost
+		// [3] = read-LRU2
+		// [4] = read-LRU2-ghost
+		linked_list m_lru[cached_piece_entry::num_lrus];
+
+		// this is used to determine whether to evict blocks from
+		// L1 or L2.
+		enum cache_op_t
+		{
+			cache_miss,
+			ghost_hit_lru1,
+			ghost_hit_lru2
+		};
+		int m_last_cache_op;
+
+		// the number of pieces to keep in the ARC ghost lists
+		// this is determined by being a fraction of the cache size
+		int m_ghost_size;
 
 		// the number of blocks in the cache
 		// that are in the read cache

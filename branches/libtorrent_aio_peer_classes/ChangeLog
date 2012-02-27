@@ -1,4 +1,5 @@
 	* allow setting rate limits for arbitrary peer groups. Generalizes per-torrent rate limits, and local peer limits
+	* improved disk cache complexity O(1) instead of O(log(n))
 	* add feature to allow storing disk cache blocks in an mmapped file (presumably on an SSD)
 	* optimize peer connection distribution logic across torrents to scale better with many torrents
 	* replaced std::map with boost::unordered_map for torrent list, to scale better with many torrents

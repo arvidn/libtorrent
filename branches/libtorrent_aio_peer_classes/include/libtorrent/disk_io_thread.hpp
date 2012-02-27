@@ -123,6 +123,10 @@ namespace libtorrent
 			, num_jobs(0)
 			, num_read_jobs(0)
 			, num_write_jobs(0)
+			, arc_mru_size(0)
+			, arc_mru_ghost_size(0)
+			, arc_mfu_size(0)
+			, arc_mfu_ghost_size(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -221,6 +225,15 @@ namespace libtorrent
 
 		// total number of disk write job objects allocated right now
 		int num_write_jobs;
+
+		// ARC cache stats. All of these counters are in number of pieces
+		// not blocks. A piece does not necessarily correspond to a certain
+		// number of blocks. The pieces in the ghost list never have any
+		// blocks in them
+		int arc_mru_size;
+		int arc_mru_ghost_size;
+		int arc_mfu_size;
+		int arc_mfu_ghost_size;
 	};
 	
 #if TORRENT_USE_SUBMIT_THREADS
@@ -404,9 +417,9 @@ namespace libtorrent
 		void perform_async_job(disk_io_job* j);
 		void submit_jobs_impl();
 
-		void on_disk_write(block_cache::iterator p, int begin
+		void on_disk_write(cached_piece_entry* p, int begin
 			, int end, int to_write, async_handler* handler);
-		void on_disk_read(block_cache::iterator p, int begin
+		void on_disk_read(cached_piece_entry* p, int begin
 			, int end, async_handler* handler);
 
 		enum op_t
@@ -415,17 +428,18 @@ namespace libtorrent
 			op_write = 1
 		};
 
-		int io_range(block_cache::iterator p, int start, int end, int readwrite, int flags);
+		int io_range(cached_piece_entry* p, int start, int end, int readwrite, int flags);
 
 		enum flush_flags_t { flush_read_cache = 1, flush_write_cache = 2, flush_delete_cache = 4 };
 		int flush_cache(disk_io_job* j, boost::uint32_t flags);
 		void flush_expired_write_blocks();
+		void flush_piece(cached_piece_entry* pe, int flags, int& ret);
 
 		void on_write_one_buffer(async_handler* handler, disk_io_job* j);
 		void on_read_one_buffer(async_handler* handler, disk_io_job* j);
 
-		int try_flush_contiguous(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
-		int try_flush_hashed(block_cache::iterator p, int cont_blocks, int num = INT_MAX);
+		int try_flush_contiguous(cached_piece_entry* p, int cont_blocks, int num = INT_MAX);
+		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, int num = INT_MAX);
 		void try_flush_write_blocks(int num);
 
 		bool m_abort;

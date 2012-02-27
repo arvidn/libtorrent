@@ -122,7 +122,7 @@ namespace libtorrent
 		{
 			storage->async_hash(*piece_counter, file::sequential_access
 				, boost::bind(&on_hash, _1, _2, t, storage, iothread
-				, piece_counter, completed_piece, ec));
+				, piece_counter, completed_piece, ec), (void*)1);
 			++(*piece_counter);
 		}
 		iothread->submit_jobs();
@@ -212,7 +212,7 @@ namespace libtorrent
 			{
 				storage->async_hash(i, file::sequential_access
 					, boost::bind(&on_hash, _1, _2, &t, storage, &disk_thread
-					, &piece_counter, &completed_piece, &ec));
+					, &piece_counter, &completed_piece, &ec), (void*)1);
 				++piece_counter;
 				if (piece_counter >= t.num_pieces()) break;
 			}

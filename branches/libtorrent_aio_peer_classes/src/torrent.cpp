@@ -897,7 +897,7 @@ namespace libtorrent
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
 			filesystem().async_read(r, boost::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, _2, r, rp));
+				, shared_from_this(), _1, _2, r, rp), (void*)1);
 			++rp->blocks_left;
 		}
 	}
@@ -1250,7 +1250,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 
-#if BOOST_VERSION > 104700
+#if BOOST_VERSION >= 104700
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
@@ -1961,7 +1961,7 @@ namespace libtorrent
 			m_storage->async_hash(m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2));
+					, shared_from_this(), _1, _2), (void*)1);
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 	}
@@ -2045,7 +2045,7 @@ namespace libtorrent
 			m_storage->async_hash(m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2));
+					, shared_from_this(), _1, _2), (void*)1);
 			return;
 		}
 
@@ -8162,7 +8162,8 @@ namespace libtorrent
 #endif
 
 		m_storage->async_hash(piece_index, 0
-			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, f));
+			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, f)
+			, (void*)1);
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif

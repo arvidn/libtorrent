@@ -39,7 +39,8 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 	out = open('session_stats.gnuplot', 'wb')
 	print >>out, "set term png size 1200,700"
 	print >>out, 'set output "%s"' % filename
-	print >>out, 'set yrange [0:*]'
+	if 'allow-negative' in options:
+		print >>out, 'set yrange [0:*]'
 	print >>out, "set tics nomirror"
 	print >>out, "set key box"
 	if options['type'] == 'histogram':
@@ -165,6 +166,7 @@ reports = [
 		'disk_counter']),
 	('send_buffer_sizes', 'num', '', '', ['up 8', 'up 16', 'up 32', 'up 64', 'up 128', 'up 256', 'up 512', 'up 1024', 'up 2048', 'up 4096', 'up 8192', 'up 16384', 'up 32768', 'up 65536', 'up 131072', 'up 262144']),
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', 'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', 'down 32768', 'down 65536', 'down 131072', 'down 262144']),
+	('ARC', 'num pieces', '', '', ['arc LRU pieces', 'arc LRU ghost pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats

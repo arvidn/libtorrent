@@ -48,8 +48,8 @@ namespace libtorrent
 	// and false if it was processed immediately
 	bool hash_thread::async_hash(cached_piece_entry* p, int start, int end)
 	{
-		TORRENT_ASSERT(p->hashing == -1);
-		if (p->hashing != -1) return false;
+		TORRENT_ASSERT(p->hashing == cached_piece_entry::not_hashing);
+		if (p->hashing != cached_piece_entry::not_hashing) return false;
 		TORRENT_ASSERT(p->hash != 0);
 
 		hash_queue_entry e;

@@ -449,7 +449,8 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	return bar;
 }
 
-std::string const& progress_bar(int progress, int width, char const* code = "33")
+std::string const& progress_bar(int progress, int width, char const* code = "33"
+	, char fill = '#', char bg = '-')
 {
 	static std::string bar;
 	bar.clear();
@@ -457,8 +458,8 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 
 	int progress_chars = (progress * width + 500) / 1000;
 	bar = esc(code);
-	std::fill_n(std::back_inserter(bar), progress_chars, '#');
-	std::fill_n(std::back_inserter(bar), width - progress_chars, '-');
+	std::fill_n(std::back_inserter(bar), progress_chars, fill);
+	std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
 	bar += esc("0");
 	return bar;
 }
@@ -1075,7 +1076,8 @@ void print_piece(libtorrent::partial_piece_info* pp
 		else
 		{
 #ifdef ANSI_TERMINAL_COLORS
-			if (cs && cs->blocks[j]) color = esc("36;7");
+			if (cs && cs->blocks[j] && pp->blocks[j].state != block_info::finished)
+				color = esc("36;7");
 			else if (pp->blocks[j].bytes_progress > 0
 					&& pp->blocks[j].state == block_info::requested)
 			{
@@ -2201,6 +2203,31 @@ int main(int argc, char* argv[])
 				, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size, cs.write_cache_size, cs.pinned_blocks
 				, int(cs.queued_bytes / 0x4000));
 			out += str;
+
+			int mru_size = cs.arc_mru_size + cs.arc_mru_ghost_size;
+			int mfu_size = cs.arc_mfu_size + cs.arc_mfu_ghost_size;
+			int arc_size = mru_size + mfu_size;
+
+			snprintf(str, sizeof(str), "LRU: (%d) %d LFU: %d (%d)\n"
+				, cs.arc_mru_ghost_size, cs.arc_mru_size
+				, cs.arc_mfu_size, cs.arc_mfu_ghost_size);
+			out += str;
+			if (arc_size > 0)
+			{
+				out += ' ';
+				if (mru_size > 0)
+				{
+					out += progress_bar(cs.arc_mru_ghost_size * 1000 / mru_size
+						, mru_size * (terminal_width-3) / arc_size, "33", '-', '#');
+				}
+				out += '|';
+				if (mfu_size)
+				{
+					out += progress_bar(cs.arc_mfu_size * 1000 / mfu_size
+						, mfu_size * (terminal_width-3) / arc_size, "32", '=', '-');
+				}
+			}
+			out += "\n";
 		}
 
 		if (print_utp_stats)
@@ -2255,8 +2282,8 @@ int main(int argc, char* argv[])
 				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
 					< boost::bind(&partial_piece_info::piece_index, _2));
 
-				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::last_use, _1)
-					> boost::bind(&cached_piece_info::last_use, _2));
+				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
+					> boost::bind(&cached_piece_info::piece, _2));
 
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
 					i != cs.pieces.end(); ++i)

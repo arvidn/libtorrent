@@ -908,12 +908,13 @@ namespace aux {
 		PRINT_SIZEOF(piece_picker::piece_pos)
 
 		PRINT_SIZEOF(cached_piece_entry)
+		PRINT_OFFSETOF(cached_piece_entry, prev)
+		PRINT_OFFSETOF(cached_piece_entry, next)
 		PRINT_OFFSETOF(cached_piece_entry, storage)
 		PRINT_OFFSETOF(cached_piece_entry, hash)
 		PRINT_OFFSETOF(cached_piece_entry, blocks)
 		PRINT_OFFSETOF(cached_piece_entry, jobs)
 		PRINT_OFFSETOF(cached_piece_entry, expire)
-		PRINT_OFFSETOF(cached_piece_entry, hashing)
 		PRINT_OFFSETOF(cached_piece_entry, refcount)
 		PRINT_OFFSETOF_END(cached_piece_entry)
 
@@ -1374,6 +1375,12 @@ namespace aux {
 			":no memory peer errors"
 			":too many peers"
 			":transport timeout peers"
+			
+			":arc LRU pieces"
+			":arc LRU ghost pieces"
+			":arc LFU pieces"
+			":arc LFU ghost pieces"
+
 			":uTP idle"
 			":uTP syn-sent"
 			":uTP connected"
@@ -1851,7 +1858,6 @@ namespace aux {
 		}
 		m_dht_announce_timer.cancel(ec);
 #endif
-		m_timer.cancel(ec);
 		m_lsd_announce_timer.cancel(ec);
 
 		// close the listen sockets
@@ -4176,6 +4182,11 @@ namespace aux {
 			STAT_LOG(d, m_no_memory_peers);
 			STAT_LOG(d, m_too_many_peers);
 			STAT_LOG(d, m_transport_timeout_peers);
+
+			STAT_LOG(d, cs.arc_mru_size);
+			STAT_LOG(d, cs.arc_mru_size + cs.arc_mru_ghost_size);
+			STAT_LOG(d, -cs.arc_mfu_size);
+			STAT_LOG(d, -cs.arc_mfu_size - cs.arc_mfu_ghost_size);
 
 			STAT_LOG(d, sst.utp_stats.num_idle);
 			STAT_LOG(d, sst.utp_stats.num_syn_sent);

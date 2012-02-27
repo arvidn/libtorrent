@@ -96,7 +96,7 @@ namespace
 				if (i->first.block_index == pb.block_index)
 				{
 					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_ok_block
-						, shared_from_this(), *i, _1, _2));
+						, shared_from_this(), *i, _1, _2), (void*)1);
 					m_block_hashes.erase(i++);
 				}
 				else
@@ -151,7 +151,7 @@ namespace
 					// downloaded one very soon, and to get a block by reference would fail, since the
 					// block read will have been deleted by the time it gets back to the gui thread
 					m_torrent.filesystem().async_read(r, boost::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2), disk_io_job::force_copy);
+						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1, _2), (void*)1, disk_io_job::force_copy);
 				}
 
 				r.start += 16*1024;
