@@ -192,9 +192,12 @@ namespace libtorrent
 				// instead of a series of key value pairs
 				if (i == tag_end)
 				{
+					char tmp = *i;
+					*i = 0; // null terminate the content string
 					token = xml_tag_content;
 					val_start = 0;
 					callback(token, start, val_start);
+					*i = tmp;
 					break;
 				}
 

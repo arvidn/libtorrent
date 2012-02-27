@@ -119,6 +119,7 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 		case xml_string: out += "S"; break;
 		case xml_attribute: out += "A"; break;
 		case xml_parse_error: out += "P"; break;
+		case xml_tag_content: out += "T"; break;
 		default: TEST_CHECK(false);
 	}
 	out += s;
@@ -1461,7 +1462,7 @@ int test_main()
 	xml_parse(xml4, xml4 + sizeof(xml4) - 1, boost::bind(&parser_callback
 		, boost::ref(out4), _1, _2, _3));
 	std::cerr << out4 << std::endl;
-	TEST_CHECK(out4 == "BaPgarbage inside element bracketsSfooFaPgarbage inside element brackets");
+	TEST_CHECK(out4 == "BaTfSfooFaTv  ");
 
 	// test upnp xml parser
 
