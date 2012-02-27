@@ -530,7 +530,7 @@ namespace libtorrent
 
 	// flush blocks of 'cont_block' contiguous blocks, and if at least 'num'
 	// blocks are flushed, stop.
-	int disk_io_thread::try_flush_contiguous(block_cache::iterator p, int cont_block, int num)
+	int disk_io_thread::try_flush_contiguous(cached_piece_entry* p, int cont_block, int num)
 	{
 		int start_of_run = 0;
 		int i = 0;
@@ -577,7 +577,7 @@ namespace libtorrent
 
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
-	int disk_io_thread::try_flush_hashed(block_cache::iterator p, int cont_block, int num)
+	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block, int num)
 	{
 		TORRENT_ASSERT(cont_block > 0);
 		if (p->hash == 0)
@@ -643,32 +643,30 @@ namespace libtorrent
 	// issues read or write operations for blocks in the given
 	// range on the given piece. Returns the number of blocks operations
 	// were actually issued for
-	int disk_io_thread::io_range(block_cache::iterator p, int start, int end
+	int disk_io_thread::io_range(cached_piece_entry* pe, int start, int end
 		, int readwrite, int flags)
 	{
 		INVARIANT_CHECK;
 
 		DLOG(stderr, "[%p] io_range: readwrite=%d piece=%d [%d, %d)\n"
-			, this, readwrite, int(p->piece), start, end);
-		TORRENT_ASSERT(p != m_disk_cache.end());
+			, this, readwrite, int(pe->piece), start, end);
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
-		end = (std::min)(end, int(p->blocks_in_piece));
+		end = (std::min)(end, int(pe->blocks_in_piece));
 
-		cached_piece_entry const& pe = *p;
-		int piece_size = pe.storage->files()->piece_size(pe.piece);
+		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		TORRENT_ASSERT(piece_size > 0);
 		
 		int buffer_size = 0;
 
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe.blocks_in_piece);
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
 		int iov_counter = 0;
 		int ret = 0;
 
-		end = (std::min)(end, int(pe.blocks_in_piece));
+		end = (std::min)(end, int(pe->blocks_in_piece));
 
 #ifdef DEBUG_STORAGE
-		DLOG(stderr, "[%p] io_range: piece: %d [", this, int(p->piece));
+		DLOG(stderr, "[%p] io_range: piece: %d [", this, int(pe->piece));
 		for (int i = 0; i < start; ++i) DLOG(stderr, ".");
 #endif
 
@@ -680,12 +678,12 @@ namespace libtorrent
 			// don't flush blocks that are empty (buf == 0), not dirty
 			// (read cache blocks), or pending (already being written)
 			if (i == end
-				|| pe.blocks[i].buf == 0
+				|| pe->blocks[i].buf == 0
 				// if we're writing and the block is already pending, it
 				// means we're already writing it, skip it!
-				|| pe.blocks[i].pending
-				|| (!pe.blocks[i].dirty && readwrite == op_write)
-				|| (!pe.blocks[i].uninitialized && readwrite == op_read))
+				|| pe->blocks[i].pending
+				|| (!pe->blocks[i].dirty && readwrite == op_write)
+				|| (!pe->blocks[i].uninitialized && readwrite == op_read))
 			{
 /*				if (i == end)
 				{
@@ -694,7 +692,7 @@ namespace libtorrent
 				else
 				{
 					DLOG(stderr, "[%p] io_range: skipping block=%d end: %d buf=%p pending=%d dirty=%d\n"
-						, this, i, end, pe.blocks[i].buf, pe.blocks[i].pending, pe.blocks[i].dirty);
+						, this, i, end, pe->blocks[i].buf, pe->blocks[i].pending, pe->blocks[i].dirty);
 				}
 */				if (buffer_size == 0)
 				{
@@ -720,25 +718,25 @@ namespace libtorrent
 				if (readwrite == op_write)
 				{
 //					DLOG(stderr, "[%p] io_range: write piece=%d start_block=%d end_block=%d\n"
-//						, this, int(pe.piece), range_start, i);
+//						, this, int(pe->piece), range_start, i);
 					m_pending_buffer_size += to_write;
-					a->handler = boost::bind(&disk_io_thread::on_disk_write, this, p
+					a->handler = boost::bind(&disk_io_thread::on_disk_write, this, pe
 						, range_start, i, to_write, _1);
 
-					aios = p->storage->get_storage_impl()->async_writev(iov, iov_counter
-						, pe.piece, to_write, flags, a);
+					aios = pe->storage->get_storage_impl()->async_writev(iov, iov_counter
+						, pe->piece, to_write, flags, a);
 					m_cache_stats.blocks_written += i - range_start;
 					++m_cache_stats.writes;
 				}
 				else
 				{
 //					DLOG(stderr, "[%p] io_range: read piece=%d start_block=%d end_block=%d\n"
-//						, this, int(pe.piece), range_start, i);
+//						, this, int(pe->piece), range_start, i);
 					++m_outstanding_jobs;
-					a->handler = boost::bind(&disk_io_thread::on_disk_read, this, p
+					a->handler = boost::bind(&disk_io_thread::on_disk_read, this, pe
 						, range_start, i, _1);
-					aios = pe.storage->get_storage_impl()->async_readv(iov, iov_counter
-						, pe.piece, range_start * block_size, flags, a);
+					aios = pe->storage->get_storage_impl()->async_readv(iov, iov_counter
+						, pe->piece, range_start * block_size, flags, a);
 					m_cache_stats.blocks_read += i - range_start;
 					++m_cache_stats.reads;
 				}
@@ -779,25 +777,25 @@ namespace libtorrent
 			int block_size = m_disk_cache.block_size();
 			block_size = (std::min)(piece_size - i * block_size, block_size);
 			TORRENT_ASSERT_VAL(i < end, i);
-			iov[iov_counter].iov_base = pe.blocks[i].buf;
+			iov[iov_counter].iov_base = pe->blocks[i].buf;
 			iov[iov_counter].iov_len = block_size;
 #ifdef TORRENT_DEBUG
 			if (readwrite == op_write)
-				TORRENT_ASSERT(pe.blocks[i].dirty == true);
+				TORRENT_ASSERT(pe->blocks[i].dirty == true);
 			else
-				TORRENT_ASSERT(pe.blocks[i].dirty == false);
+				TORRENT_ASSERT(pe->blocks[i].dirty == false);
 #endif
-			TORRENT_ASSERT(pe.blocks[i].pending == false);
-			pe.blocks[i].uninitialized = false;
-			if (!pe.blocks[i].pending)
+			TORRENT_ASSERT(pe->blocks[i].pending == false);
+			pe->blocks[i].uninitialized = false;
+			if (!pe->blocks[i].pending)
 			{
-				TORRENT_ASSERT(pe.blocks[i].buf);
-				pe.blocks[i].pending = true;
-				if (pe.blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
-				++pe.blocks[i].refcount;
-				TORRENT_ASSERT(pe.blocks[i].refcount > 0); // make sure it didn't wrap
-				++const_cast<cached_piece_entry&>(pe).refcount;
-				TORRENT_ASSERT(pe.refcount > 0); // make sure it didn't wrap
+				TORRENT_ASSERT(pe->blocks[i].buf);
+				pe->blocks[i].pending = true;
+				if (pe->blocks[i].refcount == 0) m_disk_cache.pinned_change(1);
+				++pe->blocks[i].refcount;
+				TORRENT_ASSERT(pe->blocks[i].refcount > 0); // make sure it didn't wrap
+				++pe->refcount;
+				TORRENT_ASSERT(pe->refcount > 0); // make sure it didn't wrap
 			}
 			++iov_counter;
 			++ret;
@@ -807,14 +805,14 @@ namespace libtorrent
 		if (m_outstanding_jobs > m_peak_outstanding) m_peak_outstanding = m_outstanding_jobs;
 
 #ifdef DEBUG_STORAGE
-		for (int i = end; i < int(pe.blocks_in_piece); ++i) DLOG(stderr, ".");
+		for (int i = end; i < int(pe->blocks_in_piece); ++i) DLOG(stderr, ".");
 		DLOG(stderr, "] ret = %d\n", ret);
 #endif
 
 		return ret;
 	}
 
-	void disk_io_thread::on_disk_write(block_cache::iterator p, int begin
+	void disk_io_thread::on_disk_write(cached_piece_entry* pe, int begin
 		, int end, int to_write, async_handler* handler)
 	{
 		if (!handler->error.ec)
@@ -828,8 +826,8 @@ namespace libtorrent
 		m_pending_buffer_size -= to_write;
 
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
-			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_completed_jobs, handler->error);
+			, this, int(pe->piece), begin, end);
+		m_disk_cache.mark_as_done(pe, begin, end, m_completed_jobs, handler->error);
 
 		if (!handler->error)
 		{
@@ -839,7 +837,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::on_disk_read(block_cache::iterator p, int begin
+	void disk_io_thread::on_disk_read(cached_piece_entry* pe, int begin
 		, int end, async_handler* handler)
 	{
 		if (!handler->error.ec)
@@ -850,20 +848,20 @@ namespace libtorrent
 		}
 
 		file::iovec_t* vec = TORRENT_ALLOCA(file::iovec_t, end - begin);
-		int piece_size = p->storage->files()->piece_size(p->piece);
+		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		int block_size = m_disk_cache.block_size();
 		for (int i = begin, k = 0; i < end; ++i, ++k)
 		{
-			vec[k].iov_base = (file::iovec_base_t)p->blocks[i].buf;
+			vec[k].iov_base = (file::iovec_base_t)pe->blocks[i].buf;
 			vec[k].iov_len = (std::min)(piece_size - i * block_size, block_size);
 		}
 
-		p->storage->get_storage_impl()->readv_done(vec, end - begin
-			, p->piece, begin * block_size);
+		pe->storage->get_storage_impl()->readv_done(vec, end - begin
+			, pe->piece, begin * block_size);
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
-			, this, int(p->piece), begin, end);
-		m_disk_cache.mark_as_done(p, begin, end, m_completed_jobs
+			, this, int(pe->piece), begin, end);
+		m_disk_cache.mark_as_done(pe, begin, end, m_completed_jobs
 			, handler->error);
 
 		if (!handler->error)
@@ -877,55 +875,66 @@ namespace libtorrent
 		--m_outstanding_jobs;
 	}
 
+	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags, int& ret)
+	{
+		if (flags & flush_delete_cache)
+		{
+			// delete dirty blocks and post handlers with
+			// operation_aborted error code
+			m_disk_cache.abort_dirty(pe, m_completed_jobs);
+		}
+		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
+		{
+			// issue write commands
+			io_range(pe, 0, INT_MAX, op_write, 0);
+
+			// if we're also flushing the read cache, this piece
+			// should be removed as soon as all write jobs finishes
+			// otherwise it will turn into a read piece
+		}
+
+		// we need to count read jobs as well
+		// because we can't close files with
+		// any outstanding jobs
+		ret += pe->jobs.size();
+
+		// mark_for_deletion may erase the piece from the cache, that's
+		// why we don't have the 'i' iterator referencing it at this point
+		if (flags & (flush_read_cache | flush_delete_cache))
+			m_disk_cache.mark_for_deletion(pe);
+	}
+
 	// returns the number of outstanding jobs on the pieces. If this is 0
 	// it indicates that files can be closed without interrupting any operation
 	int disk_io_thread::flush_cache(disk_io_job* j, boost::uint32_t flags)
 	{
 		int ret = 0;
 
-		void* storage = j->storage.get();
+		piece_manager* storage = j->storage.get();
 
 		std::pair<block_cache::iterator, block_cache::iterator> range;
 
 		if (storage)
-			range = m_disk_cache.pieces_for_storage(j->storage.get());
-		else
-			range = m_disk_cache.all_pieces();
-
-		// range is now all of the pieces belonging to this storage.
-		// iterate over all blocks and issue writes for the ones
-		// that have dirty blocks (i.e. needs to be written)
-		for (block_cache::iterator i = range.first; i != range.second;)
 		{
-			block_cache::iterator p = i++;
-			TORRENT_ASSERT(storage == 0 || p->storage == j->storage);
-
-			if (flags & flush_delete_cache)
+			// iterate over all blocks and issue writes for the ones
+			// that have dirty blocks (i.e. needs to be written)
+			for (boost::unordered_set<cached_piece_entry*>::iterator i
+				= storage->cached_pieces().begin(), end(storage->cached_pieces().end()); i != end;)
 			{
-				// delete dirty blocks and post handlers with
-				// operation_aborted error code
-				m_disk_cache.abort_dirty(p, m_completed_jobs);
+				cached_piece_entry* pe = *i;
+				++i;
+				TORRENT_ASSERT(pe->storage == j->storage);
+				flush_piece(pe, flags, ret);
 			}
-			else if ((flags & flush_write_cache) && p->num_dirty > 0)
+		}
+		else
+		{
+			for (block_cache::iterator i = range.first; i != range.second;)
 			{
-				// issue write commands
-				io_range(p, 0, INT_MAX, op_write, 0);
-
-				// if we're also flushing the read cache, this piece
-				// should be removed as soon as all write jobs finishes
-				// otherwise it will turn into a read piece
+				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
+				++i;
+				flush_piece(pe, flags, ret);
 			}
-
-			// we need to count read jobs as well
-			// because we can't close files with
-			// any outstanding jobs
-			ret += p->jobs.size();
-
-			// mark_for_deletion may erase the piece from the cache, that's
-			// why we don't have the 'i' iterator referencing it at this point
-			if (flags & (flush_read_cache | flush_delete_cache))
-				m_disk_cache.mark_for_deletion(p);
-
 		}
 		return ret;
 	}
@@ -938,32 +947,30 @@ namespace libtorrent
 	{
 		DLOG(stderr, "[%p] try_flush_write_blocks: %d\n", this, num);
 
-		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
-			= m_disk_cache.all_lru_pieces();
+		list_iterator range = m_disk_cache.write_lru_pieces();
 
 		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
 
 		if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
 		{
-			for (block_cache::lru_iterator p = range.first;
-				p != range.second && num > 0; ++p)
+			for (list_iterator p = range; p.get() && num > 0; p.next())
 			{
-				if (p->num_dirty == 0) continue;
+				cached_piece_entry* e = (cached_piece_entry*)p.get();
+				if (e->num_dirty == 0) continue;
 
 				// prefer contiguous blocks. If we won't find any, we'll
 				// start over but actually flushing single blocks
-				num -= try_flush_contiguous(m_disk_cache.map_iterator(p)
-					, m_settings.write_cache_line_size, num);
+				num -= try_flush_contiguous(e, m_settings.write_cache_line_size, num);
 			}
 		}
 		else if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
 		{
-			for (block_cache::lru_iterator p = range.first;
-				p != range.second && num > 0; ++p)
+			for (list_iterator p = range; p.get() && num > 0; p.next())
 			{
-				if (p->num_dirty == 0) continue;
+				cached_piece_entry* e = (cached_piece_entry*)p.get();
+				if (e->num_dirty == 0) continue;
 
-				num -= try_flush_hashed(m_disk_cache.map_iterator(p), 1, num);
+				num -= try_flush_hashed(e, 1, num);
 			}
 		}
 
@@ -971,12 +978,12 @@ namespace libtorrent
 		// everything in LRU order (degrade to lru cache eviction)
 		if (num > 0)
 		{
-			for (block_cache::lru_iterator p = range.first;
-				p != range.second && num > 0; ++p)
+			for (list_iterator p = range; p.get() && num > 0; p.next())
 			{
-				if (p->num_dirty == 0) continue;
+				cached_piece_entry* e = (cached_piece_entry*)p.get();
+				if (e->num_dirty == 0) continue;
 
-				num -= try_flush_contiguous(m_disk_cache.map_iterator(p), 1, num);
+				num -= try_flush_contiguous(e, 1, num);
 			}
 		}
 	}
@@ -985,29 +992,29 @@ namespace libtorrent
 	{
 		DLOG(stderr, "[%p] flush_expired_write_blocks\n", this);
 
-		std::pair<block_cache::lru_iterator, block_cache::lru_iterator> range
-			= m_disk_cache.all_lru_pieces();
-
 		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
-#ifdef TORRENT_DEBUG
-		ptime timeout = min_time();
-#endif
 
 		ptime now = time_now();
 		time_duration expiration_limit = seconds(m_settings.cache_expiry);
 
-		for (block_cache::lru_iterator p = range.first; p != range.second; ++p)
-		{
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(p->expire >= timeout);
-			timeout = p->expire;
+		ptime timeout = min_time();
 #endif
+
+		for (list_iterator p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
+		{
+			cached_piece_entry* e = (cached_piece_entry*)p.get();
+#ifdef TORRENT_DEBUG
+			TORRENT_ASSERT(e->expire >= timeout);
+			timeout = e->expire;
+#endif
+
 			// since we're iterating in order of last use, if this piece
 			// shouldn't be evicted, none of the following ones will either
-			if (now - p->expire < expiration_limit) break;
-			if (p->num_dirty == 0) continue;
+			if (now - e->expire < expiration_limit) break;
+			if (e->num_dirty == 0) continue;
 
-			io_range(m_disk_cache.map_iterator(p), 0, INT_MAX, op_write, 0);
+			io_range(e, 0, INT_MAX, op_write, 0);
 		}
 	}
 
@@ -1072,12 +1079,13 @@ namespace libtorrent
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
 	{
+		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->next == 0);
 
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
 		{
-			evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+			evict = m_disk_cache.try_evict_blocks(evict, 1);
 			if (evict > 0) try_flush_write_blocks(evict);
 		}
 
@@ -1184,8 +1192,8 @@ namespace libtorrent
 			// cache the piece, unless we're using an explicit cache
 			if (!m_settings.explicit_read_cache)
 			{
-				block_cache::iterator p = m_disk_cache.allocate_piece(j);
-				if (p != m_disk_cache.end())
+				cached_piece_entry* p = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+				if (p)
 				{
 					int start_block = j->d.io.offset / block_size;
 					int end_block = (std::min)(int(p->blocks_in_piece)
@@ -1296,9 +1304,9 @@ namespace libtorrent
 
 		if (m_settings.cache_size > 0)
 		{
-			block_cache::iterator p = m_disk_cache.add_dirty_block(j);
+			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
 
-			if (p == m_disk_cache.end())
+			if (pe == 0)
 			{
 				m_disk_cache.free_buffer(j->buffer);
 				j->buffer = 0;
@@ -1306,19 +1314,22 @@ namespace libtorrent
 				return disk_operation_failed;
 			}
 
-			cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
-			if (pe->hash == 0 && !m_settings.disable_hash_checks) pe->hash = new partial_hash;
+			if (pe->hash == 0 && !m_settings.disable_hash_checks)
+			{
+				pe->hash = new partial_hash;
+				m_disk_cache.update_cache_state(pe);
+			}
 
 			// flushes the piece to disk in case
 			// it satisfies the condition for a write
 			// piece to be flushed
 			if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
 			{
-				try_flush_hashed(p, m_settings.write_cache_line_size);
+				try_flush_hashed(pe, m_settings.write_cache_line_size);
 			}
 			else
 			{
-				try_flush_contiguous(p, m_settings.write_cache_line_size);
+				try_flush_contiguous(pe, m_settings.write_cache_line_size);
 			}
 
 			// if we have more blocks in the cache than allowed by
@@ -1331,7 +1342,7 @@ namespace libtorrent
 			if (m_settings.cache_size <= current_size - num_pending_write_blocks)
 			{
 				int left = current_size - m_settings.cache_size;
-				left = m_disk_cache.try_evict_blocks(left, 1, m_disk_cache.end());
+				left = m_disk_cache.try_evict_blocks(left, 1);
 				if (left > 0 && !m_settings.dont_flush_write_cache)
 					try_flush_write_blocks(left);
 			}
@@ -1399,7 +1410,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		block_cache::iterator p = m_disk_cache.find_piece(j);
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 
 		int ret = defer_handler;
 
@@ -1407,25 +1418,24 @@ namespace libtorrent
 		if (m_settings.disable_hash_checks)
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning piece: %d\n"
-				, this, int(p->piece));
+				, this, int(pe ? pe->piece : -1));
 			return 0;
 		}
 
 		int block_size = m_disk_cache.block_size();
-		cached_piece_entry* pe = 0;
 
 		int start_block = 0;
 		bool need_read = false;
 
 		// potentially allocate and issue read commands for blocks we don't have, but
 		// need in order to calculate the hash
-		if (p == m_disk_cache.end())
+		if (pe == 0)
 		{
 			DLOG(stderr, "[%p] do_hash: allocating a new piece: %d\n"
 				, this, int(j->piece));
 
-			p = m_disk_cache.allocate_piece(j);
-			if (p == m_disk_cache.end())
+			pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+			if (pe == 0)
 			{
 				TORRENT_ASSERT(j->buffer == 0);
 				j->error.ec = error::no_memory;
@@ -1433,7 +1443,7 @@ namespace libtorrent
 			}
 
 			// allocate_pending will add the job to the piece
-			ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j, 2);
+			ret = m_disk_cache.allocate_pending(pe, 0, pe->blocks_in_piece, j, 2);
 			DLOG(stderr, "[%p] do_hash: allocate_pending ret=%d\n", this, ret);
 			job_added = true;
 
@@ -1447,28 +1457,26 @@ namespace libtorrent
 			else if (ret == -1)
 			{
 				// allocation failed
-				m_disk_cache.mark_for_deletion(p);
+				m_disk_cache.mark_for_deletion(pe);
 				TORRENT_ASSERT(j->buffer == 0);
 				j->error.ec = error::no_memory;
 				return disk_operation_failed;
 			}
 			else if (ret < -1)
 			{
-				m_disk_cache.mark_for_deletion(p);
+				m_disk_cache.mark_for_deletion(pe);
 				// this shouldn't happen
 				TORRENT_ASSERT(false);
 			}
 			ret = defer_handler;
-			pe = const_cast<cached_piece_entry*>(&*p);
 		}
 		else
 		{
-			pe = const_cast<cached_piece_entry*>(&*p);
-
 			// issue read commands to read those blocks in
 			if (pe->hash)
 			{
-				if (pe->hashing != -1) start_block = pe->hashing;
+				if (pe->hashing != cached_piece_entry::not_hashing)
+					start_block = pe->hashing;
 				else start_block = (pe->hash->offset + block_size - 1) / block_size;
 			}
 
@@ -1480,15 +1488,16 @@ namespace libtorrent
 				&& pe->blocks[end].buf
 				&& (!pe->blocks[end].pending || pe->blocks[end].dirty)) ++end;
 
-			if (end > start_block && pe->hashing == -1)
+			if (end > start_block && pe->hashing == cached_piece_entry::not_hashing)
 			{
 				// do we need the partial hash object?
 				if (pe->hash == 0)
 				{
 					DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
-						, this, int(p->piece));
+						, this, int(pe->piece));
 					// TODO: maybe the partial_hash objects should be pool allocated
 					pe->hash = new partial_hash;
+					m_disk_cache.update_cache_state(pe);
 				}
 
 				m_hash_thread.async_hash(pe, start_block, end);
@@ -1497,11 +1506,11 @@ namespace libtorrent
 			// deal with read-back. i.e. blocks that have already been flushed to disk
 			// and are no longer in the cache, we need to read those back in order to hash
 			// them
-			if (end < p->blocks_in_piece)
+			if (end < pe->blocks_in_piece)
 			{
-				ret = m_disk_cache.allocate_pending(p, end, p->blocks_in_piece, j, 2);
+				ret = m_disk_cache.allocate_pending(pe, end, pe->blocks_in_piece, j, 2);
 				DLOG(stderr, "[%p] do_hash: allocate_pending() = %d piece: %d\n"
-					, this, ret, int(p->piece));
+					, this, ret, int(pe->piece));
 				if (ret >= 0)
 				{
 					// if allocate_pending succeeds, it adds the job as well
@@ -1513,14 +1522,14 @@ namespace libtorrent
 				else if (ret == -1)
 				{
 					// allocation failed
-					m_disk_cache.mark_for_deletion(p);
+					m_disk_cache.mark_for_deletion(pe);
 					TORRENT_ASSERT(j->buffer == 0);
 					j->error.ec = error::no_memory;
 					return disk_operation_failed;
 				}
 				ret = defer_handler;
 			}
-			else if (pe->hashing == -1)
+			else if (pe->hashing == cached_piece_entry::not_hashing)
 			{
 				// we get here if the hashing is already complete
 				// in the pe->hash object. We just need to finalize
@@ -1542,6 +1551,7 @@ namespace libtorrent
 				}
 				delete pe->hash;
 				pe->hash = 0;
+				m_disk_cache.update_cache_state(pe);
 				return ret;
 			}
 		}
@@ -1550,9 +1560,10 @@ namespace libtorrent
 		if (pe->hash == 0)
 		{
 			DLOG(stderr, "[%p] do_hash: creating hash object piece: %d\n"
-				, this, int(p->piece));
+				, this, int(pe->piece));
 			// TODO: maybe the partial_hash objects should be pool allocated
 			pe->hash = new partial_hash;
+			m_disk_cache.update_cache_state(pe);
 		}
 
 		// increase the refcount for all blocks the hash job needs in
@@ -1575,15 +1586,15 @@ namespace libtorrent
 		if (!job_added)
 		{
 			DLOG(stderr, "[%p] do_hash: adding job piece: %d\n"
-				, this, int(p->piece));
+				, this, int(pe->piece));
 			TORRENT_ASSERT(j->piece == pe->piece);
 			pe->jobs.push_back(j);
 		}
 
 		if (need_read)
 		{
-			m_cache_stats.total_read_back += io_range(p, start_block
-				, p->blocks_in_piece, op_read, j->flags);
+			m_cache_stats.total_read_back += io_range(pe, start_block
+				, pe->blocks_in_piece, op_read, j->flags);
 		}
 #if DEBUG_STORAGE
 		DLOG(stderr, "[%p] do_hash: jobs [", this);
@@ -1786,9 +1797,7 @@ namespace libtorrent
 
 		m_disk_cache.release_memory();
 
-		std::pair<block_cache::iterator, block_cache::iterator>  range
-			= m_disk_cache.pieces_for_storage(j->storage.get());
-		if (range.first == range.second) return 0;
+		if (j->storage->num_pieces() == 0) return 0;
 
 		// there are some blocks left, we cannot post the completion
 		// for this job yet.
@@ -1862,7 +1871,7 @@ namespace libtorrent
 		int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
 		int current_size = m_disk_cache.in_use();
 		if (current_size - num_pending_write_blocks > m_settings.cache_size)
-			m_disk_cache.try_evict_blocks(current_size - m_settings.cache_size, 0, m_disk_cache.end());
+			m_disk_cache.try_evict_blocks(current_size - m_settings.cache_size, 0);
 
 		return 0;
 	}
@@ -1872,17 +1881,17 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer == 0);
 
-		block_cache::iterator p = m_disk_cache.allocate_piece(j);
-		if (p == m_disk_cache.end())
+		cached_piece_entry* pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		if (pe == 0)
 		{
 			j->error.ec = errors::no_memory;
 			return disk_operation_failed;
 		}
-		int ret = m_disk_cache.allocate_pending(p, 0, p->blocks_in_piece, j);
+		int ret = m_disk_cache.allocate_pending(pe, 0, pe->blocks_in_piece, j);
 
 		if (ret >= 0)
 		{
-			if (ret > 0) io_range(p, 0, INT_MAX, op_read, j->flags);
+			if (ret > 0) io_range(pe, 0, INT_MAX, op_read, j->flags);
 			return defer_handler;
 		}
 		else if (ret == -1)
@@ -1940,14 +1949,26 @@ namespace libtorrent
 		m_last_stats_flip = time_now();
 	}
 
+	void get_cache_info(cached_piece_info& info, cached_piece_entry const* i, int block_size)
+	{
+		info.piece = i->piece;
+		info.last_use = i->expire;
+		info.need_readback = i->need_readback;
+		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
+		info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
+		int blocks_in_piece = i->blocks_in_piece;
+		info.blocks.resize(blocks_in_piece);
+		for (int b = 0; b < blocks_in_piece; ++b)
+			info.blocks[b] = i->blocks[b].buf != 0;
+		// count the number of jobs hanging off of this piece, keep
+		// separate counts per type of job
+		memset(info.num_jobs, 0, sizeof(info.num_jobs));
+		for (tailqueue_iterator iter = i->jobs.iterate(); iter.get(); iter.next())
+			++info.num_jobs[((disk_io_job*)iter.get())->action];
+	}
+
 	int disk_io_thread::do_get_cache_info(disk_io_job* j)
 	{
-		std::pair<block_cache::iterator, block_cache::iterator> range;
-		if (j->storage)
-			range = m_disk_cache.pieces_for_storage(j->storage.get());
-		else
-			range = m_disk_cache.all_pieces();
-
 		cache_status* ret = (cache_status*)j->buffer;
 		get_disk_metrics(*ret);
 
@@ -1956,24 +1977,25 @@ namespace libtorrent
 		int block_size = m_disk_cache.block_size();
 
 		// TODO: this is potentially pretty expensive, allow cache info jobs to not ask for this full list
-		for (block_cache::iterator i = range.first; i != range.second; ++i)
+		if (j->storage)
 		{
-			ret->pieces.push_back(cached_piece_info());
-			cached_piece_info& info = ret->pieces.back();
-			info.piece = i->piece;
-			info.last_use = i->expire;
-			info.need_readback = i->need_readback;
-			info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
-			info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
-			int blocks_in_piece = i->blocks_in_piece;
-			info.blocks.resize(blocks_in_piece);
-			for (int b = 0; b < blocks_in_piece; ++b)
-				info.blocks[b] = i->blocks[b].buf != 0;
-			// count the number of jobs hanging off of this piece, keep
-			// separate counts per type of job
-			memset(info.num_jobs, 0, sizeof(info.num_jobs));
-			for (tailqueue_iterator iter = i->jobs.iterate(); iter.get(); iter.next())
-				++info.num_jobs[((disk_io_job*)iter.get())->action];
+			ret->pieces.resize(j->storage->num_pieces());
+			int counter = 0;
+
+			for (boost::unordered_set<cached_piece_entry*>::iterator i
+				= j->storage->cached_pieces().begin(), end(j->storage->cached_pieces().end());
+				i != end; ++i, ++counter)
+				get_cache_info(ret->pieces[counter], *i, block_size);
+		}
+		else
+		{
+			ret->pieces.resize(m_disk_cache.num_pieces());
+			int counter = 0;
+			std::pair<block_cache::iterator, block_cache::iterator> range
+				= m_disk_cache.all_pieces();
+
+			for (block_cache::iterator i = range.first; i != range.second; ++i, ++counter)
+				get_cache_info(ret->pieces[counter], &*i, block_size);
 		}
 		return 0;
 	}
@@ -2008,15 +2030,14 @@ namespace libtorrent
 
 	int disk_io_thread::do_clear_piece(disk_io_job* j)
 	{
-		block_cache::iterator p = m_disk_cache.find_piece(j);
-		if (p == m_disk_cache.end()) return 0;
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
+		if (pe == 0) return 0;
 
 		// cancel all jobs (at least the ones that haven't
 		// started yet).
 		storage_error e;
 		e.ec = error_code(boost::system::errc::operation_canceled, get_system_category());
 
-		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
 		disk_io_job* k = (disk_io_job*)pe->jobs.get_all();
 		while (k)
 		{
@@ -2046,7 +2067,7 @@ namespace libtorrent
 			m_completed_jobs.push_back(j);
 		}
 
-		m_disk_cache.evict_piece(p);
+		m_disk_cache.evict_piece(pe);
 		return 0;
 	}
 
@@ -2057,25 +2078,24 @@ namespace libtorrent
 	// piece no longer have any outstanding operations
 	int disk_io_thread::do_sync_piece(disk_io_job* j)
 	{
-		block_cache::iterator p = m_disk_cache.find_piece(j);
-		if (p == m_disk_cache.end()) return 0;
-		cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*p);
-		if (p->refcount == 0) return 0;
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
+		if (pe == 0) return 0;
+		if (pe->refcount == 0) return 0;
 		pe->jobs.push_back(j);
 		return defer_handler;
 	}
 
 	int disk_io_thread::do_flush_piece(disk_io_job* j)
 	{
-		block_cache::iterator p = m_disk_cache.find_piece(j);
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 
 		// flush the write jobs for this piece
-		if (p != m_disk_cache.end() && p->num_dirty > 0)
+		if (pe != 0 && pe->num_dirty > 0)
 		{
 			DLOG(stderr, "[%p] do_flush_piece: flushing %d dirty blocks piece: %d\n"
-				, this, int(p->num_dirty), int(p->piece));
+				, this, int(pe->num_dirty), int(pe->piece));
 			// issue write commands
-			io_range(p, 0, INT_MAX, op_write, j->flags);
+			io_range(pe, 0, INT_MAX, op_write, j->flags);
 		}
 		return 0;
 	}
@@ -2720,7 +2740,7 @@ namespace libtorrent
 			int evict = m_disk_cache.num_to_evict(0);
 			if (evict > 0)
 			{
-				evict = m_disk_cache.try_evict_blocks(evict, 1, m_disk_cache.end());
+				evict = m_disk_cache.try_evict_blocks(evict, 1);
 				if (evict > 0) try_flush_write_blocks(evict);
 			}
 

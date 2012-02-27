@@ -1204,6 +1204,23 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
+	void piece_manager::add_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
+		m_cached_pieces.insert(p);
+	}
+
+	bool piece_manager::has_piece(cached_piece_entry* p) const
+	{
+		return m_cached_pieces.count(p) > 0;
+	}
+
+	void piece_manager::remove_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
+		m_cached_pieces.erase(p);
+	}
+
 	// TODO: it doesn't make any sense for the piece_manager to
 	// contain this wrapper around posting jobs to the disk thread
 	// piece_manager can probably be removed
@@ -1352,9 +1369,11 @@ namespace libtorrent
 	void piece_manager::async_read(
 		peer_request const& r
 		, boost::function<void(int, disk_io_job const&)> const& handler
+		, void* requester
 		, int flags
 		, int cache_line_size)
 	{
+		TORRENT_ASSERT(requester != 0);
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
 		j->storage = this;
 		j->piece = r.piece;
@@ -1363,6 +1382,7 @@ namespace libtorrent
 		j->buffer = 0;
 		j->d.io.max_cache_line = cache_line_size;
 		j->flags = flags;
+		j->requester = requester;
 
 		// if a buffer is not specified, only one block can be read
 		// since that is the size of the pool allocator's buffers
@@ -1395,13 +1415,16 @@ namespace libtorrent
 	}
 
 	void piece_manager::async_hash(int piece, int flags
-		, boost::function<void(int, disk_io_job const&)> const& handler)
+		, boost::function<void(int, disk_io_job const&)> const& handler
+		, void* requester)
 	{
+		TORRENT_ASSERT(requester != 0);
 		TORRENT_ASSERT(piece >= 0 && piece < files()->num_pieces());
 		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::hash);
 		j->flags = flags;
 		j->storage = this;
 		j->piece = piece;
+		j->requester = requester;
 		j->callback = handler;
 		j->d.io.buffer_size = 0;
 		m_io_thread.add_job(j);

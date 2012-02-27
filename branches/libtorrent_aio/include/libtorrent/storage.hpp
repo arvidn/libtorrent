@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/unordered_set.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -75,6 +76,7 @@ namespace libtorrent
 	struct cache_status;
 	struct aiocb_pool;
 	struct session_settings;
+	struct cached_piece_entry;
 
 	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j);
 
@@ -371,6 +373,7 @@ namespace libtorrent
 		void async_read(
 			peer_request const& r
 			, boost::function<void(int, disk_io_job const&)> const& handler
+			, void* requester
 			, int flags = 0
 			, int cache_line_size = 0);
 
@@ -384,7 +387,8 @@ namespace libtorrent
 			, int flags = 0);
 
 		void async_hash(int piece, int flags
-			, boost::function<void(int, disk_io_job const&)> const& f);
+			, boost::function<void(int, disk_io_job const&)> const& f
+			, void* requester);
 
 		void async_release_files(
 			boost::function<void(int, disk_io_job const&)> const& handler
@@ -427,6 +431,13 @@ namespace libtorrent
 		storage_interface* get_storage_impl() { return m_storage.get(); }
 
 		void write_resume_data(entry& rd, storage_error& ec) const;
+
+		void add_piece(cached_piece_entry* p);
+		void remove_piece(cached_piece_entry* p);
+		bool has_piece(cached_piece_entry* p) const;
+		int num_pieces() const { return m_cached_pieces.size(); }
+		boost::unordered_set<cached_piece_entry*> const& cached_pieces()
+		{ return m_cached_pieces; }
 
 	private:
 
@@ -475,6 +486,9 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
+
+		// these are cached pieces belonging to this storage
+		boost::unordered_set<cached_piece_entry*> m_cached_pieces;
 	};
 
 }
