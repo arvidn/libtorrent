@@ -2859,6 +2859,9 @@ int utp_socket_impl::packet_timeout() const
 	// have an RTT estimate yet, make a conservative guess
 	if (m_state == UTP_STATE_NONE) return 3000;
 
+	// avoid overflow by simply capping based on number of timeouts as well
+	if (m_num_timeouts >= 7) return 60000;
+
 	int timeout = (std::max)(m_sm->min_timeout(), m_rtt.mean() + m_rtt.avg_deviation() * 2);
 	if (m_num_timeouts > 0) timeout += (1 << (int(m_num_timeouts) - 1)) * 1000;
 
