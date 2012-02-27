@@ -1289,7 +1289,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 
-#if BOOST_VERSION > 104700
+#if BOOST_VERSION >= 104700
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
