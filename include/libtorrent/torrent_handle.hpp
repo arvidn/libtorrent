@@ -296,6 +296,8 @@ namespace libtorrent
 		bool is_sequential_download() const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		bool has_metadata() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool super_seeding() const TORRENT_DEPRECATED;
 
 		// deprecated in 0.13
 		// marks the piece with the given index as filtered
@@ -402,7 +404,6 @@ namespace libtorrent
 		void rename_file(int index, std::wstring const& new_name) const;
 #endif
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 		sha1_hash info_hash() const;
@@ -486,6 +487,7 @@ namespace libtorrent
 			, seed_mode(false)
 			, upload_mode(false)
 			, share_mode(false)
+			, super_seeding(false)
 			, priority(0)
 			, added_time(0)
 			, completed_time(0)
@@ -689,6 +691,9 @@ namespace libtorrent
 
 		// this is true if the torrent is in share-mode
 		bool share_mode;
+
+		// true if the torrent is in super seeding mode
+		bool super_seeding;
 
 		// the priority of this torrent
 		int priority;

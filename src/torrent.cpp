@@ -8165,6 +8165,7 @@ namespace libtorrent
 		st->sequential_download = m_sequential_download;
 		st->is_seeding = is_seed();
 		st->is_finished = is_finished();
+		st->super_seeding = m_super_seeding;
 		st->has_metadata = valid_metadata();
 		bytes_done(*st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st->total_wanted_done >= 0);
