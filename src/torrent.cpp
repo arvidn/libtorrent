@@ -8096,6 +8096,12 @@ namespace libtorrent
 
 	void torrent::state_updated()
 	{
+		// if this fails, this function is probably called 
+		// from within the torrent constructor, which it
+		// shouldn't be. Whichever function ends up calling
+		// this should probably be moved to torrent::start()
+		TORRENT_ASSERT(shared_from_this());
+
 		// we're either not subscribing to this torrent, or
 		// it has already been updated this round, no need to
 		// add it to the list twice
