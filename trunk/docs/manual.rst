@@ -2359,7 +2359,6 @@ Its declaration looks like this::
 		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 		enum flags_t { overwrite_existing = 1 };
@@ -2586,12 +2585,10 @@ super_seeding()
 
 	::
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 Enables or disabled super seeding/initial seeding for this torrent. The torrent
-needs to be a seed for this to take effect. The overload that returns a bool
-tells you of super seeding is enabled or not.
+needs to be a seed for this to take effect.
 
 add_piece()
 -----------
@@ -3479,6 +3476,7 @@ It contains the following fields::
 		bool seed_mode;
 		bool upload_mode;
 		bool share_mode;
+		bool super_seeding;
 
 		int priority;
 
@@ -3749,6 +3747,8 @@ torrent_handle_.
 
 ``share_mode`` is true if the torrent is currently in share-mode, i.e.
 not downloading the torrent, but just helping the swarm out.
+
+``super_seeding`` is true if the torrent is in super seeding mode.
 
 ``added_time`` is the posix-time when this torrent was added. i.e. what
 ``time(NULL)`` returned at the time.
