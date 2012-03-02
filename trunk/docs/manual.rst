@@ -4867,6 +4867,12 @@ allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
 
+.. warning:: setting outgoing ports will limit the ability to keep multiple
+	connections to the same client, even for different torrents. It is not
+	recommended to change this setting. Its main purpose is to use as an
+	escape hatch for cheap routers with QoS capability but can only classify
+	flows based on port numbers.
+
 ``peer_tos`` determines the TOS byte set in the IP header of every packet
 sent to peers (including web seeds). The default value for this is ``0x0``
 (no marking). One potentially useful TOS mark is ``0x20``, this represents
