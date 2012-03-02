@@ -1207,6 +1207,27 @@ namespace aux {
 			":uTP connected"
 			":uTP fin-sent"
 			":uTP close-wait"
+
+			":tcp peers"
+			":utp peers"
+
+			":connection refused peers"
+			":connection aborted peers"
+			":permission denied peers"
+			":no buffer peers"
+			":host unreachable peers"
+			":broken pipe peers"
+			":address in use peers"
+			":access denied peers"
+			":invalid argument peers"
+			":operation aborted peers"
+
+			":error incoming peers"
+			":error outgoing peers"
+			":error rc4 peers"
+			":error encrypted peers"
+			":error tcp peers"
+			":error utp peers"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3492,10 +3513,34 @@ namespace aux {
 
 	void session_impl::reset_stat_counters()
 	{
-		m_error_peers = 0;
+		// make these cumulative for easier reading of graphs
+/*		m_error_peers = 0;
 		m_disconnected_peers = 0;
 		m_eof_peers = 0;
 		m_connreset_peers = 0;
+		m_connrefused_peers = 0;
+		m_connaborted_peers = 0;
+		m_perm_peers = 0;
+		m_buffer_peers = 0;
+		m_unreachable_peers = 0;
+		m_broken_pipe_peers = 0;
+		m_addrinuse_peers = 0;
+		m_no_access_peers = 0;
+		m_invalid_arg_peers = 0;
+		m_aborted_peers = 0;
+		m_error_incoming_peers = 0;
+		m_error_outgoing_peers = 0;
+		m_error_rc4_peers = 0;
+		m_error_encrypted_peers = 0;
+		m_error_tcp_peers = 0;
+		m_error_utp_peers = 0;
+		m_connect_timeouts = 0;
+		m_uninteresting_peers = 0;
+		m_transport_timeout_peers = 0;
+		m_timeout_peers = 0;
+		m_no_memory_peers = 0;
+		m_too_many_peers = 0;
+*/
 		m_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
 		m_piece_picks = 0;
@@ -3505,12 +3550,6 @@ namespace aux {
 		m_incoming_piece_picks = 0;
 		m_end_game_piece_picks = 0;
 		m_snubbed_piece_picks = 0;
-		m_connect_timeouts = 0;
-		m_uninteresting_peers = 0;
-		m_transport_timeout_peers = 0;
-		m_timeout_peers = 0;
-		m_no_memory_peers = 0;
-		m_too_many_peers = 0;
 		m_connection_attempts = 0;
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
@@ -3591,6 +3630,8 @@ namespace aux {
 		int utp_peak_recv_delay = 0;
 		boost::uint64_t utp_send_delay_sum = 0;
 		boost::uint64_t utp_recv_delay_sum = 0;
+		int num_utp_peers = 0;
+		int num_tcp_peers = 0;
 		int utp_num_delay_sockets = 0;
 		int utp_num_recv_delay_sockets = 0;
 		int num_complete_connections = 0;
@@ -3662,11 +3703,13 @@ namespace aux {
 					utp_recv_delay_sum += recv_delay;
 					++utp_num_recv_delay_sockets;
 				}
+				++num_utp_peers;
 			}
 			else
 			{
 				tcp_up_rate += ul_rate;
 				tcp_down_rate += dl_rate;
+				++num_tcp_peers;
 			}
 
 		}
@@ -3856,6 +3899,27 @@ namespace aux {
 			STAT_LOG(d, sst.utp_stats.num_connected);
 			STAT_LOG(d, sst.utp_stats.num_fin_sent);
 			STAT_LOG(d, sst.utp_stats.num_close_wait);
+
+			STAT_LOG(d, num_tcp_peers);
+			STAT_LOG(d, num_utp_peers);
+
+			STAT_LOG(d, m_connrefused_peers);
+			STAT_LOG(d, m_connaborted_peers);
+			STAT_LOG(d, m_perm_peers);
+			STAT_LOG(d, m_buffer_peers);
+			STAT_LOG(d, m_unreachable_peers);
+			STAT_LOG(d, m_broken_pipe_peers);
+			STAT_LOG(d, m_addrinuse_peers);
+			STAT_LOG(d, m_no_access_peers);
+			STAT_LOG(d, m_invalid_arg_peers);
+			STAT_LOG(d, m_aborted_peers);
+
+			STAT_LOG(d, m_error_incoming_peers);
+			STAT_LOG(d, m_error_outgoing_peers);
+			STAT_LOG(d, m_error_rc4_peers);
+			STAT_LOG(d, m_error_encrypted_peers);
+			STAT_LOG(d, m_error_tcp_peers);
+			STAT_LOG(d, m_error_utp_peers);
 
 			fprintf(m_stats_logger, "\n");
 
