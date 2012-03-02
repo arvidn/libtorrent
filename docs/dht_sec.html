@@ -135,7 +135,7 @@ uint32_t seed = rand &amp; 0x7;
 int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
 while (num_octets)
 {
-        seed = (uint64_t(seed) * ip[num_octets]) &amp; (modulus-1);
+        seed = (uint64_t(seed) * ip[num_octets-1]) &amp; (modulus-1);
         modulus &lt;&lt;= mod_shift;
         --num_octets;
 }
@@ -159,7 +159,7 @@ uint32_t seed = node_id[19] &amp; 0x7;
 int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
 while (num_octets)
 {
-        seed = (uint64_t(seed) * ip[num_octets]) &amp; (modulus-1);
+        seed = (uint64_t(seed) * ip[num_octets-1]) &amp; (modulus-1);
         modulus &lt;&lt;= mod_shift;
         --num_octets;
 }

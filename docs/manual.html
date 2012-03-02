@@ -1392,6 +1392,7 @@ struct feed_settings
 
 std::string url;
         bool auto_download;
+        bool auto_map_handles;
         int default_ttl;
         add_torrent_params add_args;
 };
@@ -1401,10 +1402,17 @@ the feed will be downloaded. Set this to false in order to manually
 add torrents to the session. You may react to the <a class="reference internal" href="#rss-alert">rss_alert</a> when
 a feed has been updated to poll it for the new items in the feed
 when adding torrents manually. When torrents are added automatically,
-you have to call <tt class="docutils literal"><span class="pre">session::get_torrents()</span></tt> to get the handles to
-the new torrents.</p>
+an <a class="reference internal" href="#add-torrent-alert">add_torrent_alert</a> is posted which includes the torrent handle
+as well as the error code if it failed to be added. You may also call
+<tt class="docutils literal"><span class="pre">session::get_torrents()</span></tt> to get the handles to the new torrents.</p>
 <p>Before adding the feed, you must set the <tt class="docutils literal"><span class="pre">url</span></tt> field to the
 feed's url. It may point to an RSS or an atom feed.</p>
+<p><tt class="docutils literal"><span class="pre">auto_map_handles</span></tt> defaults to true and determines whether or
+not to set the <tt class="docutils literal"><span class="pre">handle</span></tt> field in the <tt class="docutils literal"><span class="pre">feed_item</span></tt>, returned
+as the feed status. If auto-download is enabled, this setting
+is ignored. If auto-download is not set, setting this to false
+will save one pass through all the feed items trying to find
+corresponding torrents in the session.</p>
 <p>The <tt class="docutils literal"><span class="pre">default_ttl</span></tt> is the default interval for refreshing a feed.
 This may be overridden by the feed itself (by specifying the <tt class="docutils literal"><span class="pre">&lt;ttl&gt;</span></tt>
 tag) and defaults to 30 minutes. The field specifies the number of
@@ -2466,7 +2474,6 @@ struct torrent_handle
         void rename_file(int index, boost::filesystem::wpath) const;
         storage_interface* get_storage_impl() const;
 
-        bool super_seeding() const;
         void super_seeding(bool on) const;
 
         enum flags_t { overwrite_existing = 1 };
@@ -2676,13 +2683,11 @@ storage contructor function that was passed to <tt class="docutils literal"><spa
 <h2>super_seeding()</h2>
 <blockquote>
 <pre class="literal-block">
-bool super_seeding() const;
 void super_seeding(bool on) const;
 </pre>
 </blockquote>
 <p>Enables or disabled super seeding/initial seeding for this torrent. The torrent
-needs to be a seed for this to take effect. The overload that returns a bool
-tells you of super seeding is enabled or not.</p>
+needs to be a seed for this to take effect.</p>
 </div>
 <div class="section" id="add-piece">
 <h2>add_piece()</h2>
@@ -3532,6 +3537,7 @@ struct torrent_status
         bool seed_mode;
         bool upload_mode;
         bool share_mode;
+        bool super_seeding;
 
         int priority;
 
@@ -3765,6 +3771,7 @@ take it out of the upload mode by calling <a class="reference internal" href="#s
 <a class="reference internal" href="#torrent-handle">torrent_handle</a>.</p>
 <p><tt class="docutils literal"><span class="pre">share_mode</span></tt> is true if the torrent is currently in share-mode, i.e.
 not downloading the torrent, but just helping the swarm out.</p>
+<p><tt class="docutils literal"><span class="pre">super_seeding</span></tt> is true if the torrent is in super seeding mode.</p>
 <p><tt class="docutils literal"><span class="pre">added_time</span></tt> is the posix-time when this torrent was added. i.e. what
 <tt class="docutils literal"><span class="pre">time(NULL)</span></tt> returned at the time.</p>
 <p><tt class="docutils literal"><span class="pre">completed_time</span></tt> is the posix-time when this torrent was finished. If
@@ -4819,6 +4826,14 @@ used to bind outgoing sockets to. This may be useful for users whose router
 allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in <tt class="docutils literal"><span class="pre">TIME_WAIT</span></tt> state.</p>
+<div class="warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">setting outgoing ports will limit the ability to keep multiple
+connections to the same client, even for different torrents. It is not
+recommended to change this setting. Its main purpose is to use as an
+escape hatch for cheap routers with QoS capability but can only classify
+flows based on port numbers.</p>
+</div>
 <p><tt class="docutils literal"><span class="pre">peer_tos</span></tt> determines the TOS byte set in the IP header of every packet
 sent to peers (including web seeds). The default value for this is <tt class="docutils literal"><span class="pre">0x0</span></tt>
 (no marking). One potentially useful TOS mark is <tt class="docutils literal"><span class="pre">0x20</span></tt>, this represents
@@ -6466,7 +6481,7 @@ struct peer_disconnected_alert: peer_alert
 <div class="section" id="invalid-request-alert">
 <h2>invalid_request_alert</h2>
 <p>This is a debug alert that is generated by an incoming invalid piece request.
-<tt class="docutils literal"><span class="pre">Ïp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
+<tt class="docutils literal"><span class="pre">ìp</span></tt> is the address of the peer and the <tt class="docutils literal"><span class="pre">request</span></tt> is the actual incoming
 request from the peer.</p>
 <pre class="literal-block">
 struct invalid_request_alert: peer_alert
@@ -6721,6 +6736,24 @@ torrent-less download, with the metadata extension provided by libtorrent.</p>
 can start downloading. It is not generated on torrents that are started with metadata, but
 only those that needs to download it from peers (when utilizing the libtorrent extension).</p>
 <p>There are no additional data members in this alert.</p>
+<p>Typically, when receiving this alert, you would want to save the torrent file in order
+to load it back up again when the session is restarted. Here's an example snippet of
+code to do that:</p>
+<pre class="literal-block">
+torrent_handle h = alert-&gt;handle();
+if (h.is_valid()) {
+        torrent_info const&amp; ti = h.get_torrent_info();
+        create_torrent ct(ti);
+        entry te = ct.generate();
+        std::vector&lt;char&gt; buffer;
+        bencode(std::back_inserter(buffer), te);
+        FILE* f = fopen((to_hex(ti.info_hash().to_string()) + &quot;.torrent&quot;).c_str(), &quot;w+&quot;);
+        if (f) {
+                fwrite(&amp;buffer[0], 1, buffer.size(), f);
+                fclose(f);
+        }
+}
+</pre>
 </div>
 <div class="section" id="fastresume-rejected-alert">
 <h2>fastresume_rejected_alert</h2>
@@ -8029,13 +8062,13 @@ std::string error_code_to_string(boost::system::error_code const&amp; ec)
         static const char const* swedish[] =
         {
                 &quot;inget fel&quot;,
-                &quot;en fil i torrenten kolliderar med en fil frÂn en annan torrent&quot;,
+                &quot;en fil i torrenten kolliderar med en fil från en annan torrent&quot;,
                 &quot;hash check misslyckades&quot;,
-                &quot;torrent filen ‰r inte en dictionary&quot;,
-                &quot;'info'-nyckeln saknas eller ‰r korrupt i torrentfilen&quot;,
-                &quot;'info'-f‰ltet ‰r inte en dictionary&quot;,
-                &quot;'piece length' f‰ltet saknas eller ‰r korrupt i torrentfilen&quot;,
-                &quot;torrentfilen saknar namnf‰ltet&quot;,
+                &quot;torrent filen är inte en dictionary&quot;,
+                &quot;'info'-nyckeln saknas eller är korrupt i torrentfilen&quot;,
+                &quot;'info'-fältet är inte en dictionary&quot;,
+                &quot;'piece length' fältet saknas eller är korrupt i torrentfilen&quot;,
+                &quot;torrentfilen saknar namnfältet&quot;,
                 &quot;ogiltigt namn i torrentfilen (kan vara en attack)&quot;,
                 // ... more strings here
         };
