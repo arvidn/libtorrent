@@ -3516,15 +3516,26 @@ namespace libtorrent
 		++m_ses.m_disconnected_peers;
 		if (error == 2) ++m_ses.m_error_peers;
 		if (ec == error::connection_reset) ++m_ses.m_connreset_peers;
-		if (ec == error::eof) ++m_ses.m_eof_peers;
-		if (ec == error_code(errors::upload_upload_connection)
+		else if (ec == error::eof) ++m_ses.m_eof_peers;
+		else if (ec == error::connection_refused) ++m_ses.m_connrefused_peers;
+		else if (ec == error::connection_aborted) ++m_ses.m_connaborted_peers;
+		else if (ec == error::no_permission) ++m_ses.m_perm_peers;
+		else if (ec == error::no_buffer_space) ++m_ses.m_buffer_peers;
+		else if (ec == error::host_unreachable) ++m_ses.m_unreachable_peers;
+		else if (ec == error::broken_pipe) ++m_ses.m_broken_pipe_peers;
+		else if (ec == error::address_in_use) ++m_ses.m_addrinuse_peers;
+		else if (ec == error::access_denied) ++m_ses.m_no_access_peers;
+		else if (ec == error::invalid_argument) ++m_ses.m_invalid_arg_peers;
+		else if (ec == error::operation_aborted) ++m_ses.m_aborted_peers;
+		else if (ec == error_code(errors::upload_upload_connection)
 			|| ec == error_code(errors::uninteresting_upload_peer)
 			|| ec == error_code(errors::torrent_aborted)
 			|| ec == error_code(errors::self_connection)
 			|| ec == error_code(errors::torrent_paused))
 			++m_ses.m_uninteresting_peers;
 
-		if (ec == error_code(errors::timed_out))
+		if (ec == error_code(errors::timed_out)
+			|| ec == error::timed_out)
 			++m_ses.m_transport_timeout_peers;
 		
 		if (ec == error_code(errors::timed_out_inactivity)
@@ -3540,6 +3551,22 @@ namespace libtorrent
 
 		if (ec == error_code(errors::timed_out_no_handshake))
 			++m_ses.m_connect_timeouts;
+
+		if (m_socket->get<utp_stream>()) ++m_ses.m_error_utp_peers;
+		else ++m_ses.m_error_tcp_peers;
+
+		if (m_outgoing) ++m_ses.m_error_outgoing_peers;
+		else ++m_ses.m_error_incoming_peers;
+
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (type() == bittorrent_connection)
+		{
+			bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
+			if (bt->supports_encryption()) ++m_ses.m_error_encrypted_peers;
+			if (bt->rc4_encrypted() && bt->supports_encryption()) ++m_ses.m_error_rc4_peers;
+		}
+#endif // TORRENT_DISABLE_ENCRYPTION
 #endif
 
 		// we cannot do this in a constructor
