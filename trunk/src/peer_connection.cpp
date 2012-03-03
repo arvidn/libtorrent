@@ -3603,6 +3603,14 @@ namespace libtorrent
 		torrent_handle handle;
 		if (t) handle = t->get_handle();
 
+		if (ec == error::address_in_use
+			&& m_ses.m_settings.outgoing_ports.first != 0)
+		{
+			if (m_ses.m_alerts.should_post<performance_alert>())
+				m_ses.m_alerts.post_alert(performance_alert(
+					handle, performance_alert::too_few_outgoing_ports));
+		}
+
 		if (ec)
 		{
 			if ((error > 1 || ec.category() == socks_category)

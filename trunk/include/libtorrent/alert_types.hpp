@@ -225,7 +225,7 @@ namespace libtorrent
 			too_many_optimistic_unchoke_slots,
 			bittyrant_with_no_uplimit,
 			too_high_disk_queue_limit,
-
+			too_few_outgoing_ports,
 
 
 			num_warnings
