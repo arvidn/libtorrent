@@ -6969,7 +6969,8 @@ upload or download rate performance.
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
-			too_high_disk_queue_limit
+			too_high_disk_queue_limit,
+			too_few_outgoing_ports
 		};
 
 		performance_warning_t warning_code;
@@ -7038,6 +7039,12 @@ too_high_disk_queue_limit
 	left for the actual cache. This causes the disk cache to oscillate in evicting large
 	portions of the cache before allowing peers to download any more, onto the disk write
 	queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
+
+too_few_outgoing_ports
+	This is generated if outgoing peer connections are failing because of *address in use*
+	errors, indicating that ``session_settings::outgoing_ports`` is set and is too small of
+	a range. Consider not using the ``outgoing_ports`` setting at all, or widen the range to
+	include more ports.
 
 state_changed_alert
 -------------------
