@@ -609,16 +609,19 @@ namespace libtorrent
 				int piece_size = int(m_piece.size());
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
-				m_piece.resize(piece_size + copy_size);
-				TORRENT_ASSERT(copy_size > 0);
-				std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
-				recv_buffer.begin += copy_size;
-				m_received_body += copy_size;
-				m_body_start += copy_size;
-				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
-				incoming_piece_fragment(copy_size);
+				if (copy_size > 0)
+				{
+					m_piece.resize(piece_size + copy_size);
+					TORRENT_ASSERT(copy_size > 0);
+					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
+					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					recv_buffer.begin += copy_size;
+					m_received_body += copy_size;
+					m_body_start += copy_size;
+					TORRENT_ASSERT(m_received_body <= range_end - range_start);
+					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
+					incoming_piece_fragment(copy_size);
+				}
 				if (int(m_piece.size()) == front_request.length)
 				{
 					// each call to incoming_piece() may result in us becoming
