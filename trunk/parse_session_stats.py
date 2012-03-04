@@ -150,7 +150,7 @@ reports = [
 	('disk_iops', 'operations/s', '', 'number of disk operations per second', ['read ops/s', 'write ops/s', 'smooth read ops/s', 'smooth write ops/s']),
 	('disk pending reads', 'Bytes', '', 'number of bytes peers are waiting for to be read from the disk', ['pending reading bytes']),
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
-	('connection_type', '', 'num', 'peers by transport protocol', ['utp peers','tcp peers']),
+	('connection_type', 'num', '', 'peers by transport protocol', ['utp peers','tcp peers']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),
 	('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP', ['uTP avg send delay'], True),
 	('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP', ['uTP avg recv delay'], True),
