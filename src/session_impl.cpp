@@ -2532,8 +2532,7 @@ namespace aux {
 
 					if (i != m_torrents.end())
 					{
-						error_code ec;
-						i->second->disconnect_peers(1, ec);
+						i->second->disconnect_peers(1, e);
 					}
 
 					m_settings.connections_limit = m_connections.size();
