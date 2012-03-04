@@ -1124,6 +1124,25 @@ int test_main()
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
 
+	// file class
+	file f;
+#if TORRENT_USE_UNC_PATHS || !defined WIN32
+	TEST_CHECK(f.open("con", file::read_write, ec));
+#else
+	TEST_CHECK(f.open("test_file", file::read_write, ec));
+#endif
+	TEST_CHECK(!ec);
+	file::iovec_t b = {"test", 4};
+	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	char test_buf[5] = {0};
+	b.iov_base = test_buf;
+	b.iov_len = 4;
+	TEST_CHECK(f.readv(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	f.close();
+
 	// HTTP request parser
 	http_parser parser;
 	boost::tuple<int, int, bool> received;
