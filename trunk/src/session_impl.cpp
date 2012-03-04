@@ -1074,6 +1074,36 @@ namespace aux {
 			fclose(m_stats_logger);
 		}
 
+		// make these cumulative for easier reading of graphs
+		// reset them every time the log is rotated though,
+		// to make them cumulative per one-hour graph
+		m_error_peers = 0;
+		m_disconnected_peers = 0;
+		m_eof_peers = 0;
+		m_connreset_peers = 0;
+		m_connrefused_peers = 0;
+		m_connaborted_peers = 0;
+		m_perm_peers = 0;
+		m_buffer_peers = 0;
+		m_unreachable_peers = 0;
+		m_broken_pipe_peers = 0;
+		m_addrinuse_peers = 0;
+		m_no_access_peers = 0;
+		m_invalid_arg_peers = 0;
+		m_aborted_peers = 0;
+		m_error_incoming_peers = 0;
+		m_error_outgoing_peers = 0;
+		m_error_rc4_peers = 0;
+		m_error_encrypted_peers = 0;
+		m_error_tcp_peers = 0;
+		m_error_utp_peers = 0;
+		m_connect_timeouts = 0;
+		m_uninteresting_peers = 0;
+		m_transport_timeout_peers = 0;
+		m_timeout_peers = 0;
+		m_no_memory_peers = 0;
+		m_too_many_peers = 0;
+
 		error_code ec;
 		char filename[100];
 		create_directory("session_stats", ec);
@@ -1228,6 +1258,8 @@ namespace aux {
 			":error encrypted peers"
 			":error tcp peers"
 			":error utp peers"
+
+			":total peers"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -2530,6 +2562,10 @@ namespace aux {
 						, m_torrents.end(), boost::bind(&torrent::num_peers
 							, boost::bind(&torrent_map::value_type::second, _1)));
 
+					if (m_alerts.should_post<performance_alert>())
+						m_alerts.post_alert(performance_alert(
+							torrent_handle(), performance_alert::too_few_file_descriptors));
+
 					if (i != m_torrents.end())
 					{
 						i->second->disconnect_peers(1, e);
@@ -3512,34 +3548,6 @@ namespace aux {
 
 	void session_impl::reset_stat_counters()
 	{
-		// make these cumulative for easier reading of graphs
-/*		m_error_peers = 0;
-		m_disconnected_peers = 0;
-		m_eof_peers = 0;
-		m_connreset_peers = 0;
-		m_connrefused_peers = 0;
-		m_connaborted_peers = 0;
-		m_perm_peers = 0;
-		m_buffer_peers = 0;
-		m_unreachable_peers = 0;
-		m_broken_pipe_peers = 0;
-		m_addrinuse_peers = 0;
-		m_no_access_peers = 0;
-		m_invalid_arg_peers = 0;
-		m_aborted_peers = 0;
-		m_error_incoming_peers = 0;
-		m_error_outgoing_peers = 0;
-		m_error_rc4_peers = 0;
-		m_error_encrypted_peers = 0;
-		m_error_tcp_peers = 0;
-		m_error_utp_peers = 0;
-		m_connect_timeouts = 0;
-		m_uninteresting_peers = 0;
-		m_transport_timeout_peers = 0;
-		m_timeout_peers = 0;
-		m_no_memory_peers = 0;
-		m_too_many_peers = 0;
-*/
 		m_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
 		m_piece_picks = 0;
@@ -3919,6 +3927,8 @@ namespace aux {
 			STAT_LOG(d, m_error_encrypted_peers);
 			STAT_LOG(d, m_error_tcp_peers);
 			STAT_LOG(d, m_error_utp_peers);
+
+			STAT_LOG(d, int(m_connections.size()));
 
 			fprintf(m_stats_logger, "\n");
 

@@ -125,9 +125,9 @@ def gen_html(reports, generations):
 
 reports = [
 	('torrents', 'num', '', 'number of torrents in different torrent states', ['downloading torrents', 'seeding torrents', 'checking torrents', 'stopped torrents', 'upload-only torrents', 'error torrents']),
-	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers']),
-	('peers_max', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections']),
-	('peer_churn', 'num', '', 'connecting and disconnecting peers', ['connecting peers', 'connection attempts', 'error peers']),
+	('peers', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'total peers']),
+	('peers_max', 'num', '', 'num connected peers', ['peers', 'connecting peers', 'connection attempts', 'banned peers', 'max connections', 'total peers']),
+	('peer_churn', 'num', '', 'connecting and disconnecting peers', ['connecting peers', 'connection attempts']),
 	('connect_candidates', 'num', '', 'number of peers we know of that we can connect to', ['connect candidates']),
 	('peers_list_size', 'num', '', 'number of known peers (not necessarily connected)', ['num list peers']),
 	('overall_rates', 'rate', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),

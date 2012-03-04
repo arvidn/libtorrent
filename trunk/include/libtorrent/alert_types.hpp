@@ -226,6 +226,12 @@ namespace libtorrent
 			bittyrant_with_no_uplimit,
 			too_high_disk_queue_limit,
 			too_few_outgoing_ports,
+			too_few_file_descriptors,
+
+
+
+
+
 
 
 			num_warnings
