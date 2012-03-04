@@ -38,9 +38,6 @@ void bind_create_torrent()
 {
     void (file_storage::*add_file0)(file_entry const&) = &file_storage::add_file;
     void (file_storage::*add_file1)(fs::path const&, size_type, int, std::time_t, fs::path const&) = &file_storage::add_file;
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-    void (file_storage::*add_file2)(fs::wpath const&, size_type, int, std::time_t, fs::path const&) = &file_storage::add_file;
-#endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
@@ -52,9 +49,6 @@ void bind_create_torrent()
         .def("is_valid", &file_storage::is_valid)
         .def("add_file", add_file0)
         .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
-#ifndef BOOST_FILESYSTEM_NARROW_ONLY
-        .def("add_file", add_file2, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
-#endif
         .def("num_files", &file_storage::num_files)
         .def("at", &file_storage::at, return_internal_reference<>())
         .def("total_size", &file_storage::total_size)
