@@ -803,7 +803,10 @@ namespace libtorrent
 
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
-		std::string p = "\\\\?\\" + (is_complete(path) ? path : combine_path(current_working_directory(), path));
+		std::string p;
+		// network paths are not supported by UNC paths
+		if (path.substr(0,2) == "\\\\") p = path;
+		else p = "\\\\?\\" + (is_complete(path) ? path : combine_path(current_working_directory(), path));
 #else
 		std::string const& p = path;
 #endif
