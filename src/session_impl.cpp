@@ -3399,43 +3399,42 @@ namespace aux {
 				torrent& t = *m_next_connect_torrent->second;
 				if (t.want_more_peers())
 				{
-					// 133 is so that the average of downloaders with
-					// more than average peers and less than average
-					// peers will end up being 100 (i.e. 133 / 2 = 66)
-					int connect_points = 133;
-					// have a bias against torrents with more peers
-					// than average
-					if (!t.is_seed() && t.num_peers() > average_peers)
-						connect_points /= 2;
-					// if this is a seed and there is a torrent that
-					// is downloading, lower the rate at which this
-					// torrent gets connections.
-					// dividing by num_seeds will have the effect
-					// that all seed will get as many connections
-					// together, as a single downloading torrent.
-					if (t.is_seed() && num_downloads > 0)
-						connect_points /= num_seeds + 1;
-					if (connect_points <= 0) connect_points = 1;
-					t.give_connect_points(connect_points);
-					TORRENT_TRY
+					// have a bias to give more connection attempts
+					// to downloading torrents than seed, and even
+					// more to downloading torrents with less than
+					// average number of connections
+					int num_attempts = 1;
+					if (!t.is_seed())
 					{
-						if (t.try_connect_peer())
-						{
-							--max_connections;
-							--free_slots;
-							steps_since_last_connect = 0;
-#ifdef TORRENT_STATS
-							++m_connection_attempts;
-#endif
-						}
+						++num_attempts;
+						if (t.num_peers() < average_peers)
+							++num_attempts;
 					}
-					TORRENT_CATCH(std::bad_alloc&)
+					for (int i = 0; i < num_attempts; ++i)
 					{
-						// we ran out of memory trying to connect to a peer
-						// lower the global limit to the number of peers
-						// we already have
-						m_settings.connections_limit = num_connections();
-						if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
+						TORRENT_TRY
+						{
+							if (t.try_connect_peer())
+							{
+								--max_connections;
+								--free_slots;
+								steps_since_last_connect = 0;
+#ifdef TORRENT_STATS
+								++m_connection_attempts;
+#endif
+							}
+						}
+						TORRENT_CATCH(std::bad_alloc&)
+						{
+							// we ran out of memory trying to connect to a peer
+							// lower the global limit to the number of peers
+							// we already have
+							m_settings.connections_limit = num_connections();
+							if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
+						}
+						if (free_slots <= -m_half_open.limit()) break;
+						if (max_connections == 0) break;
+						if (num_connections() >= m_settings.connections_limit) break;
 					}
 				}
 
