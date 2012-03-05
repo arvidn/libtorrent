@@ -295,7 +295,6 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_seeding_time:24)
 		PRINT_OFFSETOF(torrent, m_time_scaler)
 //		PRINT_OFFSETOF(torrent, m_max_uploads:24)
-		PRINT_OFFSETOF(torrent, m_deficit_counter)
 //		PRINT_OFFSETOF(torrent, m_num_uploads:24)
 //		PRINT_OFFSETOF(torrent, m_block_size_shift:5)
 //		PRINT_OFFSETOF(torrent, m_has_incoming:1)
@@ -397,7 +396,7 @@ namespace libtorrent
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
-		, m_deficit_counter(0)
+		, m_save_resume_flags(0)
 		, m_num_uploads(0)
 		, m_block_size_shift(root2(block_size))
 		, m_has_incoming(false)
@@ -423,7 +422,6 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
-		, m_save_resume_flags(0)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
@@ -7796,19 +7794,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(want_more_peers());
-		if (m_deficit_counter < 100) return false;
-		m_deficit_counter -= 100;
 		bool ret = m_policy.connect_one_peer(m_ses.session_time());
 		return ret;
-	}
-
-	void torrent::give_connect_points(int points)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(points <= 200);
-		TORRENT_ASSERT(points > 0);
-		TORRENT_ASSERT(want_more_peers());
-		m_deficit_counter += points;
 	}
 
 	void torrent::add_peer(tcp::endpoint const& adr, int source)
