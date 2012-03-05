@@ -138,6 +138,7 @@ reports = [
 	('peer_errors_incoming', 'num', '', 'number of peers by incoming or outgoing connection', ['error incoming peers', 'error outgoing peers']),
 	('peer_errors_transport', 'num', '', 'number of peers by transport protocol', ['error tcp peers', 'error utp peers']),
 	('peer_errors_encryption', 'num', '', 'number of peers by encryption level', ['error encrypted peers', 'error rc4 peers', 'error peers']),
+	('incoming requests', 'num', '', 'incoming 16kiB block requests', ['pending incoming block requests', 'average pending incoming block requests']),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes']),
 	('waste by source', '% of all wasted bytes', '%%', 'what\' causing the waste', [ 'redundant timed-out', 'redundant cancelled', 'redundant unknown', 'redundant seed', 'redundant end-game', 'redundant closing']),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk hash time', 'disk job time', 'disk sort time']),

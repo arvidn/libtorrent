@@ -1260,6 +1260,8 @@ namespace aux {
 			":error utp peers"
 
 			":total peers"
+			":pending incoming block requests"
+			":average pending incoming block requests"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3647,6 +3649,7 @@ namespace aux {
 		int peers_up_unchoked = 0;
 		int num_end_game_peers = 0;
 		int reading_bytes = 0;
+		int pending_incoming_reqs = 0;
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3667,6 +3670,8 @@ namespace aux {
 				++peers_up_requests;
 			if (p->endgame()) ++num_end_game_peers;
 			reading_bytes += p->num_reading_bytes();
+		
+			pending_incoming_reqs += int(p->upload_queue().size());
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -3929,6 +3934,8 @@ namespace aux {
 			STAT_LOG(d, m_error_utp_peers);
 
 			STAT_LOG(d, int(m_connections.size()));
+			STAT_LOG(d, pending_incoming_reqs);
+			STAT_LOG(f, num_complete_connections == 0 ? 0.f : (float(pending_incoming_reqs) / num_complete_connections));
 
 			fprintf(m_stats_logger, "\n");
 

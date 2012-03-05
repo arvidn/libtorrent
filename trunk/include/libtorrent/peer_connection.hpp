@@ -870,7 +870,8 @@ namespace libtorrent
 		bitfield m_have_piece;
 
 		// the queue of requests we have got
-		// from this peer
+		// from this peer that haven't been issued
+		// to the disk thread yet
 		std::vector<peer_request> m_requests;
 
 		// the blocks we have reserved in the piece
