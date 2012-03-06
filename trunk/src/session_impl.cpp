@@ -3432,6 +3432,7 @@ namespace aux {
 							m_settings.connections_limit = num_connections();
 							if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
 						}
+						if (!t.want_more_peers()) break;
 						if (free_slots <= -m_half_open.limit()) break;
 						if (max_connections == 0) break;
 						if (num_connections() >= m_settings.connections_limit) break;
