@@ -1137,25 +1137,6 @@ namespace libtorrent
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
-		if (is_disconnecting()) return;
-
-		if (peer_info_struct())
-		{
-			if (m_ses.settings().use_parole_mode)
-				peer_info_struct()->on_parole = true;
-
-			int hashfails = peer_info_struct()->hashfails;
-			int trust_points = peer_info_struct()->trust_points;
-
-			// we decrease more than we increase, to keep the
-			// allowed failed/passed ratio low.
-			trust_points -= 2;
-			++hashfails;
-			if (trust_points < -7) trust_points = -7;
-			peer_info_struct()->trust_points = trust_points;
-			if (hashfails > 255) hashfails = 255;
-			peer_info_struct()->hashfails = hashfails;
-		}
 	}
 	
 	size_type peer_connection::total_free_upload() const
@@ -3511,6 +3492,13 @@ namespace libtorrent
 			break;
 		}
 #endif
+
+		// for incoming connections, we get invalid argument errors
+		// when asking for the remote endpoint and the socket already
+		// closed, which is an edge case, but possible to happen when
+		// a peer makes a TCP and uTP connection in parallel.
+		// for outgoing connections however, why would we get this?
+		TORRENT_ASSERT(ec != error::invalid_argument || !m_outgoing);
 
 #ifdef TORRENT_STATS
 		++m_ses.m_disconnected_peers;
