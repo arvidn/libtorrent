@@ -3112,7 +3112,6 @@ namespace libtorrent
 				, index));
 		}
 
-		state_updated();
 		m_need_save_resume_data = true;
 		state_updated();
 
@@ -3285,7 +3284,27 @@ namespace libtorrent
 		{
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
-			if (p->connection) p->connection->received_invalid_data(index);
+			TORRENT_ASSERT(p->in_use);
+			if (p->connection)
+			{
+				TORRENT_ASSERT(p->connection->m_in_use == 1337);
+				p->connection->received_invalid_data(index);
+			}
+
+			if (m_ses.settings().use_parole_mode)
+				p->on_parole = true;
+
+			int hashfails = p->hashfails;
+			int trust_points = p->trust_points;
+
+			// we decrease more than we increase, to keep the
+			// allowed failed/passed ratio low.
+			trust_points -= 2;
+			++hashfails;
+			if (trust_points < -7) trust_points = -7;
+			p->trust_points = trust_points;
+			if (hashfails > 255) hashfails = 255;
+			p->hashfails = hashfails;
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
