@@ -1262,6 +1262,9 @@ namespace aux {
 			":total peers"
 			":pending incoming block requests"
 			":average pending incoming block requests"
+
+			":torrents want more peers"
+			":average peers per limit"
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3591,6 +3594,14 @@ namespace aux {
 		int peers_up_requests = 0;
 		int peers_down_requests = 0;
 
+		// number of torrents that want more peers
+		int num_want_more_peers = 0;
+
+		// number of peers among torrents with a peer limit
+		int num_limited_peers = 0;
+		// sum of limits of all torrents with a peer limit
+		int total_peers_limit = 0;
+
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -3599,6 +3610,14 @@ namespace aux {
 			int candidates = i->second->get_policy().num_connect_candidates();
 			connect_candidates += (std::min)(candidates, connection_slots);
 			num_peers += i->second->get_policy().num_peers();
+
+			if (i->second->want_more_peers()) ++num_want_more_peers;
+			if (i->second->max_connections() > 0)
+			{
+				num_limited_peers += i->second->num_peers();
+				num_limited_peers += i->second->max_connections();
+			}
+
 			if (i->second->is_seed())
 				++seeding_torrents;
 			else
@@ -3936,6 +3955,9 @@ namespace aux {
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOG(d, pending_incoming_reqs);
 			STAT_LOG(f, num_complete_connections == 0 ? 0.f : (float(pending_incoming_reqs) / num_complete_connections));
+
+			STAT_LOG(d, num_want_more_peers);
+			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
 
 			fprintf(m_stats_logger, "\n");
 
