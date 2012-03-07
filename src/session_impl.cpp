@@ -320,6 +320,7 @@ namespace aux {
 #endif
 		TORRENT_SETTING(boolean, free_torrent_hashes)
 		TORRENT_SETTING(boolean, upnp_ignore_nonrouters)
+ 		TORRENT_SETTING(integer, send_buffer_low_watermark)
  		TORRENT_SETTING(integer, send_buffer_watermark)
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, auto_upload_slots)
