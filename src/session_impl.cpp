@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 #if defined TORRENT_STATS && defined __MACH__
 #include <mach/task.h>
@@ -4724,25 +4725,41 @@ namespace aux {
 		torrent_handle handle = add_torrent(*params, ec);
 		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
 		delete params->resume_data;
-		free((char*)params->tracker_url);
-		free((char*)params->name);
 		delete params;
 	}
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& params
+	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
-		TORRENT_ASSERT(!params.save_path.empty());
+		TORRENT_ASSERT(!p.save_path.empty());
 
 #ifndef TORRENT_NO_DEPRECATE
-		params.update_flags();
+		p.update_flags();
 #endif
+
+		add_torrent_params params = p;
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			parse_magnet_uri(params.url, params, ec);
+			if (ec) return torrent_handle();
+			params.url.clear();
+		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
 			return torrent_handle();
 		}
+
+#ifndef TORRENT_DISABLE_DHT	
+		// add p.dht_nodes to the DHT, if enabled
+		if (m_dht && !p.dht_nodes.empty())
+		{
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
+				, end(p.dht_nodes.end()); i != end; ++i)
+				m_dht->add_node(*i);
+		}
+#endif
 
 //		INVARIANT_CHECK;
 

@@ -391,7 +391,6 @@ void feed::on_feed(error_code const& ec
 			p.name = i->title.c_str();
 
 			error_code e;
-			// #error session_impl::add_torrent doesn't support magnet links via url
 			torrent_handle h = m_ses.add_torrent(p, e);
 			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
 			m_added.insert(make_pair(i->url, now));
