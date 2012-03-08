@@ -262,11 +262,16 @@ namespace libtorrent
 
 		~torrent_info();
 
-		file_storage const& files() const { return m_files; }
-		file_storage const& orig_files() const { return m_orig_files ? *m_orig_files : m_files; }
+		file_storage const& files() const { TORRENT_ASSERT(is_loaded()); return m_files; }
+		file_storage const& orig_files() const
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_orig_files ? *m_orig_files : m_files;
+		}
 
 		void rename_file(int index, std::string const& new_filename)
 		{
+			TORRENT_ASSERT(is_loaded());
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
@@ -274,6 +279,7 @@ namespace libtorrent
 #if TORRENT_USE_WSTRING
 		void rename_file(int index, std::wstring const& new_filename)
 		{
+			TORRENT_ASSERT(is_loaded());
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}
@@ -325,7 +331,10 @@ namespace libtorrent
 		{ return m_files.map_block(piece, offset, size); }
 		peer_request map_file(int file, size_type offset, int size) const
 		{ return m_files.map_file(file, offset, size); }
-		
+
+		// this is essentially the opposite of parse_torrent_file()
+		void unload();
+
 #ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 // these functions will be removed in a future version
@@ -374,6 +383,8 @@ namespace libtorrent
 			}
 		}
 
+		bool is_loaded() const { m_piece_hashes; }
+
 		boost::optional<time_t> creation_date() const;
 
 		const std::string& creator() const
@@ -415,6 +426,8 @@ namespace libtorrent
 		std::map<int, sha1_hash> build_merkle_list(int piece) const;
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
+		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
+
 		// if we're logging member offsets, we need access to them
 #if defined TORRENT_DEBUG \
 		&& !defined TORRENT_LOGGING \
@@ -427,7 +440,6 @@ namespace libtorrent
 		torrent_info const& operator=(torrent_info const&);
 
 		void copy_on_write();
-		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
 
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored

@@ -604,6 +604,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(is_loaded());
 		// the new specified file storage must have the exact
 		// same size as the current file storage
 		TORRENT_ASSERT(m_files.total_size() == f.total_size());
@@ -832,6 +833,25 @@ namespace libtorrent
 	torrent_info::~torrent_info()
 	{}
 
+	void torrent_info::unload()
+	{
+		m_info_section.reset();
+		m_info_secton_size = 0;
+
+		// if we have orig_files, we have to keep
+		// m_files around, since it means we have
+		// remapped files, and we won't be able to
+		// restore that from just reloading the
+		// torrent file
+		if (m_orig_files) m_orig_files.reset();
+		else m_files.unload();
+
+		m_piece_hashes = 0;
+		std::vector<web_seed_entry>().swap(m_web_seeds);
+
+		TORRENT_ASSERT(!is_loaded());
+	}
+
 	void torrent_info::copy_on_write()
 	{
 		INVARIANT_CHECK;
@@ -909,7 +929,8 @@ namespace libtorrent
 			ec = errors::torrent_missing_piece_length;
 			return false;
 		}
-		m_files.set_piece_length(piece_length);
+		file_storage files;
+		files.set_piece_length(piece_length);
 
 		// extract file name (or the directory name if it's a multifile libtorrent)
 		lazy_entry const* name_ent = info.dict_find_string("name.utf-8");
@@ -974,26 +995,26 @@ namespace libtorrent
 				ec = errors::torrent_invalid_length;
 				return false;
 			}
-			m_files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
+			files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
 			m_multifile = false;
 		}
 		else
 		{
-			if (!extract_files(*i, m_files, name, info_ptr_diff))
+			if (!extract_files(*i, files, name, info_ptr_diff))
 			{
 				ec = errors::torrent_file_parse_failed;
 				return false;
 			}
 			m_multifile = true;
 		}
-		m_files.set_name(name);
+		files.set_name(name);
 
 		// extract sha-1 hashes for all pieces
 		// we want this division to round upwards, that's why we have the
 		// extra addition
 
-		m_files.set_num_pieces(int((m_files.total_size() + m_files.piece_length() - 1)
-			/ m_files.piece_length()));
+		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
+			/ files.piece_length()));
 
 		lazy_entry const* pieces = info.dict_find("pieces");
 		lazy_entry const* root_hash = info.dict_find("root hash");
@@ -1006,7 +1027,7 @@ namespace libtorrent
 		
 		if (pieces)
 		{
-			if (pieces->string_length() != m_files.num_pieces() * 20)
+			if (pieces->string_length() != files.num_pieces() * 20)
 			{
 				ec = errors::torrent_invalid_hashes;
 				return false;
@@ -1024,7 +1045,7 @@ namespace libtorrent
 				ec = errors::torrent_invalid_hashes;
 				return false;
 			}
-			int num_leafs = merkle_num_leafs(m_files.num_pieces());
+			int num_leafs = merkle_num_leafs(files.num_pieces());
 			int num_nodes = merkle_num_nodes(num_leafs);
 			m_merkle_first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
@@ -1038,6 +1059,21 @@ namespace libtorrent
 		m_ssl_root_cert = info.dict_find_string_value("ssl-cert");
 #endif
 
+		// now, commit the files structure we just parsed out
+		// into the torrent_info object.
+		// if we already have an m_files that's populated, it
+		// indicates that we unloaded this torrent_info ones
+		// and we had modifications to the files, so we unloaded
+		// the orig_files. In that case, the orig files is what
+		// needs to be restored
+		if (m_files.is_loaded()) {
+			m_orig_files.reset(new file_storage);
+			m_orig_files->swap(files);
+		}
+		else
+		{
+			m_files.swap(files);
+		}
 		return true;
 	}
 
