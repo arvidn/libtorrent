@@ -1132,7 +1132,7 @@ int test_main()
 	TEST_CHECK(f.open("test_file", file::read_write, ec));
 #endif
 	TEST_CHECK(!ec);
-	file::iovec_t b = {"test", 4};
+	file::iovec_t b = {(void*)"test", 4};
 	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
 	TEST_CHECK(!ec);
 	char test_buf[5] = {0};

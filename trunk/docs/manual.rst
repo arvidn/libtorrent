@@ -399,10 +399,14 @@ async_add_torrent() add_torrent()
 
 			int version;
 			boost::intrusive_ptr<torrent_info> ti;
+		#ifndef TORRENT_NO_DEPRECATE
 			char const* tracker_url;
+		#endif
+			std::vector<std::string> trackers;
+			std::vector<std::pair<std::string, int> > dht_nodes;
 			sha1_hash info_hash;
-			char const* name;
-			fs::path save_path;
+			std::string name;
+			std::string save_path;
 			std::vector<char>* resume_data;
 			storage_mode_t storage_mode;
 			storage_constructor_type storage;
@@ -438,18 +442,22 @@ torrent file), the ``info_hash`` (the info hash of the torrent) or the ``url``
 info-hash, the torrent file will be downloaded from peers, which requires them to
 support the metadata extension. For the metadata extension to work, libtorrent must
 be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
-defined). It also takes an optional ``name`` argument. This may be 0 in case no
-name should be assigned to the torrent. In case it's not 0, the name is used for
+defined). It also takes an optional ``name`` argument. This may be left empty in case no
+name should be assigned to the torrent. In case it's not, the name is used for
 the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
 
 If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
-``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
-torrent.
+``trackers`` (or the deprecated ``tracker_url``) can specify tracker urls that
+for the torrent.
 
 If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
 until the .torrent file has been downloaded. If there's any error while downloading,
 the torrent will be stopped and the torrent error state (``torrent_status::error``)
-will indicate what went wrong. The ``url`` may also refer to a magnet link.
+will indicate what went wrong. The ``url`` may refer to a magnet link or a regular
+http URL.
+
+``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
+added to the session (if DHT is enabled). The hostname may be an IP address.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
@@ -6031,6 +6039,8 @@ it will throw libtorrent_exception_.
 add_magnet_uri()
 ----------------
 
+*deprecated*
+
 	::
 
 		torrent_handle add_magnet_uri(session& ses, std::string const& uri
@@ -6051,6 +6061,16 @@ A simpler way to add a magnet link to a session is to pass in the
 link through ``add_torrent_params::url`` argument to ``session::add_torrent()``.
 
 For more information about magnet links, see `magnet links`_.
+
+parse_magnet_uri()
+------------------
+
+	::
+
+		void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
+
+This function parses out information from the magnet link and populates the
+``add_torrent_params`` object.
 
 make_magnet_uri()
 -----------------

@@ -520,7 +520,7 @@ namespace libtorrent
 		}
 		else
 		{
-			if (p.name) m_name.reset(new std::string(p.name));
+			if (!p.name.empty()) m_name.reset(new std::string(p.name));
 		}
 
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
@@ -554,12 +554,23 @@ namespace libtorrent
 
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
 		{
 			m_trackers.push_back(announce_entry(p.tracker_url));
 			m_trackers.back().fail_limit = 0;
 			m_trackers.back().source = announce_entry::source_magnet_link;
 			m_torrent_file->add_tracker(p.tracker_url);
+		}
+#endif
+
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+		{
+			m_trackers.push_back(announce_entry(*i));
+			m_trackers.back().fail_limit = 0;
+			m_trackers.back().source = announce_entry::source_magnet_link;
+			m_torrent_file->add_tracker(*i);
 		}
 
 		if (settings().prefer_udp_trackers)
