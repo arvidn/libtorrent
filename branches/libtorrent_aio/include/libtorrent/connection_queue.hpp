@@ -74,9 +74,7 @@ public:
 
 private:
 
-	typedef mutex mutex_t;
-
-	void try_connect(mutex_t::scoped_lock& l);
+	void try_connect();
 	void on_timeout(error_code const& e);
 	void on_try_connect();
 
@@ -110,7 +108,24 @@ private:
 
 	deadline_timer m_timer;
 
-	mutable mutex_t m_mutex;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		bool is_network_thread() const
+		{
+#if defined BOOST_HAS_PTHREADS
+			if (m_network_thread == 0)
+			{
+				m_network_thread = pthread_self();
+				return true;
+			}
+			return m_network_thread == pthread_self();
+#endif
+			return true;
+		}
+#endif
+
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+		mutable pthread_t m_network_thread;
+#endif
 
 #ifdef TORRENT_DEBUG
 	bool m_in_timeout_function;

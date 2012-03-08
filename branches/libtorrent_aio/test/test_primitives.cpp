@@ -590,6 +590,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -602,7 +603,7 @@ int test_main()
 		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
@@ -613,6 +614,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -626,7 +628,7 @@ int test_main()
 		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
