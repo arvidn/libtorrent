@@ -1260,7 +1260,7 @@ int main(int argc, char* argv[])
 				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 				if (disable_storage) p.storage = disabled_storage_constructor;
 				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-				p.tracker_url = argv[i] + 41;
+				p.trackers.push_back(argv[i] + 41);
 				p.info_hash = info_hash;
 				p.save_path = save_path;
 				p.storage_mode = (storage_mode_t)allocation_mode;
