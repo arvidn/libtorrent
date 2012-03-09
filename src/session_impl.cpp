@@ -1275,6 +1275,8 @@ namespace aux {
 			":cancelled piece requests"
 			":piece rejects"
 
+			":peers up send buffer"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3610,6 +3612,7 @@ namespace aux {
 		int peers_down_interesting = 0;
 		int peers_up_requests = 0;
 		int peers_down_requests = 0;
+		int peers_up_send_buffer = 0;
 
 		// number of torrents that want more peers
 		int num_want_more_peers = 0;
@@ -3686,6 +3689,7 @@ namespace aux {
 		int num_end_game_peers = 0;
 		int reading_bytes = 0;
 		int pending_incoming_reqs = 0;
+
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3731,6 +3735,16 @@ namespace aux {
 
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
+
+			boost::uint64_t upload_rate = int(p->statistics().upload_rate());
+			int buffer_size_watermark = upload_rate
+				* m_settings.send_buffer_watermark_factor / 100;
+			if (buffer_size_watermark < m_settings.send_buffer_low_watermark)
+				buffer_size_watermark = m_settings.send_buffer_low_watermark;
+			else if (buffer_size_watermark > m_settings.send_buffer_watermark)
+				buffer_size_watermark = m_settings.send_buffer_watermark;
+			if (p->send_buffer_size() + p->num_reading_bytes() >= buffer_size_watermark)
+				++peers_up_send_buffer;
 
 			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
 			if (utp_socket)
@@ -3982,6 +3996,8 @@ namespace aux {
 			STAT_LOG(d, m_choked_piece_requests);
 			STAT_LOG(d, m_cancelled_piece_requests);
 			STAT_LOG(d, m_piece_rejects);
+
+			STAT_LOG(d, peers_up_send_buffer);
 
 			fprintf(m_stats_logger, "\n");
 
