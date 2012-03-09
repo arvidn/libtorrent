@@ -4751,7 +4751,7 @@ namespace libtorrent
 	{
 		if (m_disconnecting) return;
 
-		if (m_channel_state[upload_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
+		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
 
@@ -4829,6 +4829,12 @@ namespace libtorrent
 						, performance_alert::send_buffer_watermark_too_low));
 				}
 			}
+		}
+		else
+		{
+			if (m_channel_state[upload_channel] & peer_info::bw_disk)
+				m_ses.dec_disk_queue(upload_channel);
+			m_channel_state[upload_channel] &= ~peer_info::bw_disk;
 		}
 
 		if (!can_write())
