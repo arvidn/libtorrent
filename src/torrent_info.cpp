@@ -237,7 +237,7 @@ namespace libtorrent
 			std::string name(pe.c_str(), file_end);
 			std::transform(name.begin(), name.end(), name.begin(), &to_lower);
 			char const** str = std::find(reserved_names, reserved_names + num_names, name);
-			if (str != reserved + num_names)
+			if (str != reserved_names + num_names)
 			{
 				pe += "_";
 			}
