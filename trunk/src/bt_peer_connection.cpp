@@ -331,6 +331,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+#ifdef TORRENT_STATS
+		++m_ses.m_piece_rejects;
+#endif
+
 		if (!m_supports_fast) return;
 
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);

@@ -1267,6 +1267,14 @@ namespace aux {
 
 			":torrents want more peers"
 			":average peers per limit"
+
+			":piece requests"
+			":max piece requests"
+			":invalid piece requests"
+			":choked piece requests"
+			":cancelled piece requests"
+			":piece rejects"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -3568,6 +3576,13 @@ namespace aux {
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
 
+		m_piece_requests = 0;
+		m_max_piece_requests = 0;
+		m_invalid_piece_requests = 0;
+		m_choked_piece_requests = 0;
+		m_cancelled_piece_requests = 0;
+		m_piece_rejects = 0;
+
 		memset(m_num_messages, 0, sizeof(m_num_messages));
 		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
 		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
@@ -3960,6 +3975,13 @@ namespace aux {
 
 			STAT_LOG(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
+
+			STAT_LOG(d, m_piece_requests);
+			STAT_LOG(d, m_max_piece_requests);
+			STAT_LOG(d, m_invalid_piece_requests);
+			STAT_LOG(d, m_choked_piece_requests);
+			STAT_LOG(d, m_cancelled_piece_requests);
+			STAT_LOG(d, m_piece_rejects);
 
 			fprintf(m_stats_logger, "\n");
 
