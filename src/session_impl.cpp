@@ -3687,7 +3687,7 @@ namespace aux {
 			if (!p->download_queue().empty()) ++peers_down_requests;
 			if (p->is_peer_interested()) ++peers_up_interested;
 			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
+			if (p->send_buffer_size() > 100 || !p->upload_queue().empty() || p->num_reading_bytes() > 0)
 				++peers_up_requests;
 			if (p->endgame()) ++num_end_game_peers;
 			reading_bytes += p->num_reading_bytes();
@@ -3912,13 +3912,13 @@ namespace aux {
 			for (int i = 0; i < num_max; ++i)
 				STAT_LOG(d, m_recv_buffer_sizes[i]);
 
-			STAT_LOG(f, total_milliseconds(cur_cpu_usage.user_time
-				- m_network_thread_cpu_usage.user_time) * 100.0 / double(tick_interval_ms));
-			STAT_LOG(f, (total_milliseconds(cur_cpu_usage.system_time
+			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time
+				- m_network_thread_cpu_usage.user_time) / double(tick_interval_ms * 10));
+			STAT_LOG(f, (total_microseconds(cur_cpu_usage.system_time
 					- m_network_thread_cpu_usage.system_time)
-				+ total_milliseconds(cur_cpu_usage.user_time
-					- m_network_thread_cpu_usage.user_time)) * 100.0
-				/ double(tick_interval_ms));
+				+ total_microseconds(cur_cpu_usage.user_time
+					- m_network_thread_cpu_usage.user_time))
+				/ double(tick_interval_ms * 10));
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes));
