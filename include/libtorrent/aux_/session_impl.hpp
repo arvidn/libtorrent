@@ -976,6 +976,13 @@ namespace libtorrent
 			int m_invalid_arg_peers;
 			int m_aborted_peers;
 
+			int m_piece_requests;
+			int m_max_piece_requests;
+			int m_invalid_piece_requests;
+			int m_choked_piece_requests;
+			int m_cancelled_piece_requests;
+			int m_piece_rejects;
+
 			int m_error_incoming_peers;
 			int m_error_outgoing_peers;
 			int m_error_rc4_peers;

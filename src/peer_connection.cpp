@@ -2023,6 +2023,10 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+#ifdef TORRENT_STATS
+		++m_ses.m_piece_requests;
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log("<== REQUEST [ piece: %d s: %d l: %d ]"
 			, r.piece, r.start, r.length);
@@ -2031,6 +2035,9 @@ namespace libtorrent
 		if (m_superseed_piece != -1
 			&& r.piece != m_superseed_piece)
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_invalid_piece_requests;
+#endif
 			++m_num_invalid_requests;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ piece not superseeded "
@@ -2066,6 +2073,9 @@ namespace libtorrent
 
 		if (!t->valid_metadata())
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_invalid_piece_requests;
+#endif
 			// if we don't have valid metadata yet,
 			// we shouldn't get a request
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2079,6 +2089,9 @@ namespace libtorrent
 
 		if (int(m_requests.size()) > m_ses.settings().max_allowed_in_request_queue)
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_max_piece_requests;
+#endif
 			// don't allow clients to abuse our
 			// memory consumption.
 			// ignore requests if the client
@@ -2116,6 +2129,9 @@ namespace libtorrent
 				peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
 					, r.piece, r.start, r.length);
 #endif
+#ifdef TORRENT_STATS
+				++m_ses.m_choked_piece_requests;
+#endif
 				write_reject_request(r);
 				++m_choke_rejects;
 
@@ -2148,6 +2164,9 @@ namespace libtorrent
 		}
 		else
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_invalid_piece_requests;
+#endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ "
 				"i: %d t: %d n: %d h: %d block_limit: %d ]"
@@ -2682,6 +2701,9 @@ namespace libtorrent
 
 		if (i != m_requests.end())
 		{
+#ifdef TORRENT_STATS
+			++m_ses.m_cancelled_piece_requests;
+#endif
 			m_requests.erase(i);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
@@ -3142,6 +3164,9 @@ namespace libtorrent
 				continue;
 			}
 			peer_request const& r = *i;
+#ifdef TORRENT_STATS
+			++m_ses.m_choked_piece_requests;
+#endif
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
 				, r.piece , r.start , r.length);
