@@ -4751,7 +4751,7 @@ namespace libtorrent
 	{
 		if (m_disconnecting) return;
 
-		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
+		if (m_channel_state[upload_channel] & (peer_info::bw_network | peer_info::bw_limit)) return;
 		
 		shared_ptr<torrent> t = m_torrent.lock();
 
