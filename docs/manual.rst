@@ -4526,6 +4526,7 @@ session_settings
 		int utp_connect_timeout;
 		int utp_delayed_ack;
 		bool utp_dynamic_sock_buf;
+		int utp_loss_multiplier;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -5348,6 +5349,11 @@ or ethernet jumbo frames). This defaults to true and might improve uTP throughpu
 For RAM constrained systems, disabling this typically saves around 30kB in user space
 and probably around 400kB in kernel socket buffers (it adjusts the send and receive
 buffer size on the kernel socket, both for IPv4 and IPv6).
+
+``utp_loss_multiplier`` controls how the congestion window is changed when a packet
+loss is experienced. It's specified as a percentage multiplier for ``cwnd``. By default
+it's set to 50 (i.e. cut in half). Do not change this value unless you know what
+you're doing. Never set it higher than 100.
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
