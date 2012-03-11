@@ -64,7 +64,7 @@ void bind_create_torrent()
 
     class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())
-        .def(init<file_storage&, torrent_info const&>(arg("ti")))
+        .def(init<torrent_info const&>(arg("ti")))
         .def(init<file_storage&, int, int, int>((arg("storage"), arg("piece_size") = 0
             , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize))))
 
