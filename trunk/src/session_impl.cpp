@@ -1122,7 +1122,11 @@ namespace aux {
 		fputs("second:uploaded bytes:downloaded bytes:downloading torrents:seeding torrents"
 			":peers:connecting peers:disk block buffers:num list peers"
 			":peer allocations:peer storage bytes"
-			":checking torrents:stopped torrents:upload-only torrents"
+			":checking torrents"
+			":stopped torrents"
+			":upload-only torrents"
+			":queued seed torrents"
+			":queued download torrents"
 			":peers bw-up:peers bw-down:peers disk-up:peers disk-down"
 			":upload rate:download rate:disk write queued bytes"
 			":peers down 0:peers down 0-2:peers down 2-5:peers down 5-10:peers down 10-50"
@@ -3593,12 +3597,16 @@ namespace aux {
 	void session_impl::print_log_line(int tick_interval_ms, ptime now)
 	{
 		int connect_candidates = 0;
-		int downloading_torrents = 0;
-		int seeding_torrents = 0;
+
 		int checking_torrents = 0;
 		int stopped_torrents = 0;
-		int error_torrents = 0;
 		int upload_only_torrents = 0;
+		int downloading_torrents = 0;
+		int seeding_torrents = 0;
+		int queued_seed_torrents = 0;
+		int queued_download_torrents = 0;
+		int error_torrents = 0;
+
 		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
 		int peer_ul_rate_buckets[7];
@@ -3626,31 +3634,48 @@ namespace aux {
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			int connection_slots = (std::max)(i->second->max_connections() - i->second->num_peers(), 0);
-			int candidates = i->second->get_policy().num_connect_candidates();
+			torrent* t = i->second.get();
+			int connection_slots = (std::max)(t->max_connections() - t->num_peers(), 0);
+			int candidates = t->get_policy().num_connect_candidates();
 			connect_candidates += (std::min)(candidates, connection_slots);
-			num_peers += i->second->get_policy().num_peers();
+			num_peers += t->get_policy().num_peers();
 
-			if (i->second->want_more_peers()) ++num_want_more_peers;
-			if (i->second->max_connections() > 0)
+			if (t->want_more_peers()) ++num_want_more_peers;
+			if (t->max_connections() > 0)
 			{
-				num_limited_peers += i->second->num_peers();
-				num_limited_peers += i->second->max_connections();
+				num_limited_peers += t->num_peers();
+				num_limited_peers += t->max_connections();
 			}
 
-			if (i->second->is_seed())
-				++seeding_torrents;
-			else
-				++downloading_torrents;
-			if (i->second->state() == torrent_status::checking_files
-				|| i->second->state() == torrent_status::queued_for_checking)
-				++checking_torrents;
-			if (i->second->is_paused())
-				++stopped_torrents;
-			if (i->second->is_upload_only())
-				++upload_only_torrents;
-			if (i->second->has_error())
+			if (t->has_error())
 				++error_torrents;
+			else
+			{
+				if (t->is_paused())
+				{
+					if (!t->is_auto_managed())
+						++stopped_torrents;
+					else
+					{
+						if (t->is_seed())
+							++queued_seed_torrents;
+						else
+							++queued_download_torrents;
+					}
+				}
+				else
+				{
+					if (i->second->state() == torrent_status::checking_files
+						|| i->second->state() == torrent_status::queued_for_checking)
+						++checking_torrents;
+					else if (i->second->is_seed())
+						++seeding_torrents;
+					else if (i->second->is_upload_only())
+						++upload_only_torrents;
+					else
+						++downloading_torrents;
+				}
+			}
 
 			dq.clear();
 			i->second->get_download_queue(&dq);
@@ -3818,6 +3843,8 @@ namespace aux {
 			STAT_LOG(d, checking_torrents);
 			STAT_LOG(d, stopped_torrents);
 			STAT_LOG(d, upload_only_torrents);
+			STAT_LOG(d, queued_seed_torrents);
+			STAT_LOG(d, queued_download_torrents);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
 			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
