@@ -63,6 +63,11 @@ namespace
         return result;
     }
 
+    std::string hash_for_piece(torrent_info const& ti, int i)
+    {
+        return ti.hash_for_piece(i).to_string();
+    }
+
     std::string metadata(torrent_info const& ti) {
         std::string result(ti.metadata().get(), ti.metadata_size());
         return result;
@@ -131,7 +136,7 @@ void bind_torrent_info()
 #ifndef TORRENT_NO_DEPRECATE
         .def("info_hash", &torrent_info::info_hash, copy)
 #endif
-        .def("hash_for_piece", &torrent_info::hash_for_piece)
+        .def("hash_for_piece", &hash_for_piece)
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
