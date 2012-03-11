@@ -245,7 +245,7 @@ namespace libtorrent
 			, unchoke_slots_limit(8)
 			, half_open_limit(0)
 			, connections_limit(200)
-			, utp_target_delay(75) // milliseconds
+			, utp_target_delay(100) // milliseconds
 			, utp_gain_factor(1500) // bytes per rtt
 			, utp_min_timeout(500) // milliseconds
 			, utp_syn_resends(2)
@@ -254,6 +254,7 @@ namespace libtorrent
 			, utp_connect_timeout(3000) // milliseconds
 			, utp_delayed_ack(0) // milliseconds
 			, utp_dynamic_sock_buf(true)
+			, utp_loss_multiplier(50) // specified in percent
 			, mixed_mode_algorithm(peer_proportional)
 			, rate_limit_utp(false)
 			, listen_queue_size(5)
@@ -1007,6 +1008,11 @@ namespace libtorrent
 		// and improves uTP performance for networks with larger frame sizes
 		// including loopback
 		bool utp_dynamic_sock_buf;
+
+		// what to multiply the congestion window by on packet loss.
+		// it's specified as a percent. The default is 50, i.e. cut
+		// in half
+		int utp_loss_multiplier;
 
 		enum bandwidth_mixed_algo_t
 		{
