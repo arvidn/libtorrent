@@ -1,3 +1,8 @@
+0.15.11 release
+
+	* restored ABI compatibility with 0.15.9
+	* added missing python bindings for create_torrent and torrent_info
+
 0.15.10 release
 
 	* fix 'parameter incorrect' issue when using unbuffered IO on windows
