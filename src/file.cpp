@@ -486,8 +486,8 @@ namespace libtorrent
 	std::string combine_path(std::string const& lhs, std::string const& rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty()) return rhs;
-		if (rhs.empty()) return lhs;
+		if (lhs.empty() || lhs == ".") return rhs;
+		if (rhs.empty() || rhs == ".") return lhs;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
