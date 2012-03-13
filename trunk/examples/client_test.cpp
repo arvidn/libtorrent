@@ -712,7 +712,7 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, ".resume/" + to_hex(t->info_hash().to_string()) + ".resume");
+	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
@@ -979,7 +979,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
@@ -1418,7 +1418,7 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
-	create_directory(combine_path(save_path, ".resume/"), ec);
+	create_directory(combine_path(save_path, ".resume"), ec);
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
@@ -1498,8 +1498,8 @@ int main(int argc, char* argv[])
 				if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
 				else info_hash.assign(base32decode(btih.substr(9)));
 
-				std::string filename = combine_path(save_path, ".resume/"
-					+ to_hex(info_hash.to_string()) + ".resume");
+				std::string filename = combine_path(save_path, combine_path(".resume"
+					, to_hex(info_hash.to_string()) + ".resume"));
 
 				if (load_file(filename.c_str(), buf, ec) == 0)
 					p.resume_data = &buf;
@@ -2331,7 +2331,7 @@ int main(int argc, char* argv[])
 			torrent_handle h = rd->handle;
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
 		}
 	}
 
