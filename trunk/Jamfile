@@ -161,6 +161,15 @@ rule linking ( properties * )
 	{
 		if <boost-link>static in $(properties)
 		{
+			if <link>shared in $(properties)
+			{
+				# if libtorrent is being built as a shared library
+				# but we're linking against boost statically, we still
+				# need to make boost think it's being built as a shared
+				# library, so that it properly exports its symbols
+				result += <define>BOOST_ALL_DYN_LINK ;
+			}
+
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
 			{
 				result += <fpic>on ;
