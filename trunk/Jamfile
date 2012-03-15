@@ -37,6 +37,10 @@ rule linking ( properties * )
 		# and imported
 		result += <define>BOOST_ASIO_DYN_LINK ;
 	}
+	else
+	{
+		result += <define>BOOST_ASIO_SEPARATE_COMPILATION ;
+	}
 
 	# openssl libraries, if enabled
 	if <encryption>openssl in $(properties)
@@ -142,11 +146,6 @@ rule linking ( properties * )
 		result += <library>tcmalloc ;
 	}
 
-	if <boost>system in $(properties)
-	{
-		result += <library>boost_system ;
-	}
-
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
 		&& (<variant>debug in $(properties)
@@ -169,6 +168,11 @@ rule linking ( properties * )
 				# need to make boost think it's being built as a shared
 				# library, so that it properly exports its symbols
 				result += <define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			}
+			else
+			{
+				result += <library>/boost/system//boost_system/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
@@ -176,7 +180,6 @@ rule linking ( properties * )
 				result += <fpic>on ;
 			}
 
-			result += <library>/boost/system//boost_system/<link>static ;
 		}
 		else
 		{
@@ -184,9 +187,10 @@ rule linking ( properties * )
 		}
 		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 	}
-
-	if <boost>system in $(properties)
+	else
 	{
+		result += <library>boost_system ;
+
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
 		# on open indiana, boost is install at /usr/g++/include
