@@ -31,6 +31,13 @@ rule linking ( properties * )
 {
 	local result ;
 
+	if <link>shared in $(properties)
+	{
+		# make sure asio symbols are properly exported
+		# and imported
+		result += <define>BOOST_ASIO_DYN_LINK ;
+	}
+
 	# openssl libraries, if enabled
 	if <encryption>openssl in $(properties)
 	{
@@ -61,7 +68,6 @@ rule linking ( properties * )
 			# linker library on linux, required when using openssl
 			result += <library>dl ;
 		}
-
 	}
 
 	if <target-os>windows in $(properties)
@@ -81,11 +87,6 @@ rule linking ( properties * )
 		# if we're not using openssl (which we're most
 		# likely not if we're using libgcrypt)
 		result += <library>gcrypt <include>/opt/local/include ;
-	}
-
-	if <encryption>tommath in $(properties)
-	{
-		result += <source>src/mpi.c ;
 	}
 
 	if <geoip>shared in $(properties)
@@ -210,6 +211,11 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
+	if <encryption>tommath in $(properties)
+	{
+		result += <source>src/mpi.c ;
+	}
+
 	if <geoip>static in $(properties)
 	{
 		result += <source>src/GeoIP.c ;
@@ -224,6 +230,19 @@ rule building ( properties * )
 	if ! ( <encryption>off in $(properties) )
 	{
 		result += <source>src/pe_crypto.cpp ;
+	}
+
+	if ( <toolset>darwin in $(properties)
+		|| <toolset>gcc in $(properties)
+		|| <toolset>clang in $(propertoes) )
+		&& <link>shared in $(properties)
+	{
+		# hide non-external symbols
+		# use ms-compat because boost.asio (as of 1.47.0
+		# appears to have some types not fulle exported)
+		result += <cflags>-fvisibility-ms-compat ;
+		result += <cxxflags>-fvisibility-inlines-hidden ;
+		result += <linkflags>-W1,-Bsymbolic ;
 	}
 
 	return $(result) ;
@@ -406,6 +425,7 @@ lib iphlpapi : : <name>iphlpapi <link>shared ;
 SOURCES =
 	alert
 	allocator
+	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -550,16 +570,8 @@ lib torrent
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 
-# hide non-external symbols
-	<toolset>darwin:<cflags>-fvisibility=hidden
-	<toolset>darwin:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>darwin:<linkflags>-W1,-Bsymbolic
-	<toolset>gcc:<cflags>-fvisibility=hidden
-	<toolset>gcc:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>gcc:<linkflags>-W1,-Bsymbolic
-	<toolset>llvm:<cflags>-fvisibility=hidden
-	<toolset>llvm:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>llvm:<linkflags>-W1,-Bsymbolic
+	# tell asio to export its symbols
+	<link>shared:<define>BOOST_ASIO_SOURCE
 
 	$(usage-requirements)
 

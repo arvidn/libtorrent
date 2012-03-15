@@ -98,7 +98,7 @@ AX_PTHREAD()
 
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS -fvisibility=hidden"
-CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden"
 CC="$PTHREAD_CC"
 
 AS_ECHO
@@ -159,7 +159,7 @@ AC_CHECK_FUNCS([clock_gettime], [],
 
 
 dnl Pass some build options to setup.py and .pc file
-COMPILETIME_OPTIONS=""
+COMPILETIME_OPTIONS="-DBOOST_ASIO_DYN_LINK "
 
 
 ###############################################################################
