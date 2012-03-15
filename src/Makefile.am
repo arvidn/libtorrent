@@ -20,6 +20,7 @@ libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp     \
   alert.cpp                       \
   allocator.cpp                   \
+  asio.cpp                        \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
