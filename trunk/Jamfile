@@ -570,9 +570,6 @@ lib torrent
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
 
-	# tell asio to export its symbols
-	<link>shared:<define>BOOST_ASIO_SOURCE
-
 	$(usage-requirements)
 
 	: # default build
