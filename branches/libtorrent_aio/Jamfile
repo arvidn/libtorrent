@@ -223,6 +223,11 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
+	if <encryption>openssl in $(properties)
+	{
+		result += <source>src/asio_ssl.cpp ;
+	}
+
 	if <encryption>tommath in $(properties)
 	{
 		result += <source>src/mpi.c ;
