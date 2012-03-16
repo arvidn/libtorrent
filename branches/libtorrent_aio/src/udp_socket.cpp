@@ -518,7 +518,7 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 	m_callback(e, sender, p, size - (p - buf));
 }
 
-#ifndef BOOST_ASIO_ENABLE_CANCELIO
+#if !defined BOOST_ASIO_ENABLE_CANCELIO && defined TORRENT_WINDOWS
 #error BOOST_ASIO_ENABLE_CANCELIO needs to be defined when building libtorrent to enable cancel() in asio on windows
 #endif
 

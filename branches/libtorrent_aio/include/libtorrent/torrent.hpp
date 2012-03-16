@@ -439,7 +439,6 @@ namespace libtorrent
 		void update_want_scrape();
 
 		bool try_connect_peer();
-		void give_connect_points(int points);
 		void add_peer(tcp::endpoint const& adr, int source);
 
 		// the number of peers that belong to this torrent
@@ -1238,19 +1237,9 @@ namespace libtorrent
 		// the maximum number of uploads for this torrent
 		unsigned int m_max_uploads:24;
 
-		// this is the deficit counter in the Deficit Round Robin
-		// used to determine which torrent gets the next
-		// connection attempt. See:
-		// http://www.ecs.umass.edu/ece/wolf/courses/ECE697J/papers/DRR.pdf
-		// The quanta assigned to each torrent depends on the torrents
-		// priority, whether it's a seed and the number of connected
-		// peers it has. This has the effect that some torrents
-		// will have more connection attempts than other. Each
-		// connection attempt costs 100 points from the deficit
-		// counter. points are deducted in try_connect_peer and
-		// increased in give_connect_points. Outside of the
-		// torrent object, these points are called connect_points.
-		boost::uint8_t m_deficit_counter;
+		// these are the flags sent in on a call to save_resume_data
+		// we need to save them to check them in write_resume_data
+		boost::uint8_t m_save_resume_flags;
 
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
@@ -1346,10 +1335,6 @@ namespace libtorrent
 
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
-
-		// these are the flags sent in on a call to save_resume_data
-		// we need to save them to check them in write_resume_data
-		boost::uint8_t m_save_resume_flags;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests

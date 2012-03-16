@@ -541,8 +541,8 @@ namespace libtorrent
 	std::string combine_path(std::string const& lhs, std::string const& rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty()) return rhs;
-		if (rhs.empty()) return lhs;
+		if (lhs.empty() || lhs == ".") return rhs;
+		if (rhs.empty() || rhs == ".") return lhs;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
@@ -910,20 +910,22 @@ namespace libtorrent
 			FILE_SHARE_READ,
 		};
 
-#if TORRENT_USE_WSTRING
-#define CreateFile_ CreateFileW
-		m_path = convert_to_wstring(path);
+#if TORRENT_USE_UNC_PATHS
+		// UNC paths must be absolute
+		std::string p;
+		// network paths are not supported by UNC paths
+		if (path.substr(0,2) == "\\\\") p = path;
+		else p = "\\\\?\\" + (is_complete(path) ? path : combine_path(current_working_directory(), path));
 #else
-#define CreateFile_ CreateFileA
-		m_path = convert_to_native(path);
+		std::string const& p = path;
 #endif
 
-#if TORRENT_USE_UNC_PATHS
 #if TORRENT_USE_WSTRING
-		m_path = L"\\\\?\\" + m_path;
+#define CreateFile_ CreateFileW
+		m_path = convert_to_wstring(p);
 #else
-		m_path = "\\\\?\\" + m_path;
-#endif // TORRENT_USE_WSTRING
+#define CreateFile_ CreateFileA
+		m_path = convert_to_native(p);
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));

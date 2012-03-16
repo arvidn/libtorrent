@@ -116,6 +116,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
+		bool rc4_encrypted() const
+		{ return m_rc4_encrypted; }
 #endif
 
 		virtual int type() const { return peer_connection::bittorrent_connection; }

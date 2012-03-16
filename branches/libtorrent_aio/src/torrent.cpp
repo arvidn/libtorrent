@@ -232,7 +232,6 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_seeding_time:24)
 		PRINT_OFFSETOF(torrent, m_time_scaler)
 //		PRINT_OFFSETOF(torrent, m_max_uploads:24)
-		PRINT_OFFSETOF(torrent, m_deficit_counter)
 //		PRINT_OFFSETOF(torrent, m_num_uploads:24)
 //		PRINT_OFFSETOF(torrent, m_block_size_shift:5)
 //		PRINT_OFFSETOF(torrent, m_has_incoming:1)
@@ -333,7 +332,7 @@ namespace libtorrent
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
-		, m_deficit_counter(0)
+		, m_save_resume_flags(0)
 		, m_num_uploads(0)
 		, m_block_size_shift(root2(block_size))
 		, m_has_incoming(false)
@@ -358,7 +357,6 @@ namespace libtorrent
 		, m_last_upload(0)
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
-		, m_save_resume_flags(0)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
@@ -458,7 +456,7 @@ namespace libtorrent
 		}
 		else
 		{
-			if (p.name) m_name.reset(new std::string(p.name));
+			if (!p.name.empty()) m_name.reset(new std::string(p.name));
 		}
 
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
@@ -498,12 +496,23 @@ namespace libtorrent
 
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
 		{
 			m_trackers.push_back(announce_entry(p.tracker_url));
 			m_trackers.back().fail_limit = 0;
 			m_trackers.back().source = announce_entry::source_magnet_link;
 			m_torrent_file->add_tracker(p.tracker_url);
+		}
+#endif
+
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+		{
+			m_trackers.push_back(announce_entry(*i));
+			m_trackers.back().fail_limit = 0;
+			m_trackers.back().source = announce_entry::source_magnet_link;
+			m_torrent_file->add_tracker(*i);
 		}
 
 		if (settings().prefer_udp_trackers)
@@ -3253,7 +3262,6 @@ namespace libtorrent
 			add_suggest_piece(index);
 		}
 
-		state_updated();
 		m_need_save_resume_data = true;
 
 		remove_time_critical_piece(index, true);
@@ -3414,7 +3422,27 @@ namespace libtorrent
 		{
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
-			if (p->connection) p->connection->received_invalid_data(index);
+			TORRENT_ASSERT(p->in_use);
+			if (p->connection)
+			{
+				TORRENT_ASSERT(p->connection->m_in_use == 1337);
+				p->connection->received_invalid_data(index);
+			}
+
+			if (m_ses.settings().use_parole_mode)
+				p->on_parole = true;
+
+			int hashfails = p->hashfails;
+			int trust_points = p->trust_points;
+
+			// we decrease more than we increase, to keep the
+			// allowed failed/passed ratio low.
+			trust_points -= 2;
+			++hashfails;
+			if (trust_points < -7) trust_points = -7;
+			p->trust_points = trust_points;
+			if (hashfails > 255) hashfails = 255;
+			p->hashfails = hashfails;
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
@@ -8098,19 +8126,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(want_more_peers());
-		if (m_deficit_counter < 100) return false;
-		m_deficit_counter -= 100;
 		bool ret = m_policy.connect_one_peer(m_ses.session_time());
 		return ret;
-	}
-
-	void torrent::give_connect_points(int points)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(points <= 200);
-		TORRENT_ASSERT(points > 0);
-		TORRENT_ASSERT(want_more_peers());
-		m_deficit_counter += points;
 	}
 
 	void torrent::add_peer(tcp::endpoint const& adr, int source)
@@ -8434,6 +8451,12 @@ namespace libtorrent
 
 	void torrent::state_updated()
 	{
+		// if this fails, this function is probably called 
+		// from within the torrent constructor, which it
+		// shouldn't be. Whichever function ends up calling
+		// this should probably be moved to torrent::start()
+		TORRENT_ASSERT(shared_from_this());
+
 		// we're not subscribing to this torrent, don't add it
 		if (!m_state_subscription) return;
 
@@ -8507,6 +8530,7 @@ namespace libtorrent
 		st->sequential_download = m_sequential_download;
 		st->is_seeding = is_seed();
 		st->is_finished = is_finished();
+		st->super_seeding = m_super_seeding;
 		st->has_metadata = valid_metadata();
 		bytes_done(*st, flags & torrent_handle::query_accurate_download_counters);
 		TORRENT_ASSERT(st->total_wanted_done >= 0);

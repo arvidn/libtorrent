@@ -224,7 +224,9 @@ namespace libtorrent
 		// windows builds for now anyway (not even the default windows build)
 		std::string pe(element, element_len);
 		char const* file_end = strrchr(pe.c_str(), '.');
-		std::string name(pe.c_str(), file_end);
+		std::string name;
+		if (file_end) name.assign(pe.c_str(), file_end);
+		else name = pe;
 		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
 		char const* str = std::find(reserved_names, reserved_names + num_names, name);
 		if (str != reserved + num_names)

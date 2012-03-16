@@ -293,12 +293,16 @@ namespace libtorrent
 
 		// of 500 ms, and a send rate of 4 MB/s, the upper
 		// limit should be 2 MB
-		set.send_buffer_watermark = 2 * 1024 * 1024;
+		set.send_buffer_watermark = 3 * 1024 * 1024;
 
 		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
 		set.send_buffer_watermark_factor = 150;
+
+		// always stuff at least 1 MiB down each peer
+		// pipe, to quickly ramp up send rates
+ 		set.send_buffer_low_watermark = 1 * 1024 * 1024;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
@@ -622,13 +626,6 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p);
-		}
-
 		error_code ec;
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
@@ -639,13 +636,6 @@ namespace libtorrent
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
 		ec.clear();
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p, ec);
-		}
-
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		return r;
 	}
@@ -654,8 +644,6 @@ namespace libtorrent
 	{
 		add_torrent_params* p = new add_torrent_params(params);
 		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
-		if (params.tracker_url) p->tracker_url = strdup(params.tracker_url);
-		if (params.name) p->name = strdup(params.name);
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 

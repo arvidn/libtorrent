@@ -398,10 +398,14 @@ async_add_torrent() add_torrent()
 
 			int version;
 			boost::intrusive_ptr<torrent_info> ti;
+		#ifndef TORRENT_NO_DEPRECATE
 			char const* tracker_url;
+		#endif
+			std::vector<std::string> trackers;
+			std::vector<std::pair<std::string, int> > dht_nodes;
 			sha1_hash info_hash;
-			char const* name;
-			fs::path save_path;
+			std::string name;
+			std::string save_path;
 			std::vector<char>* resume_data;
 			storage_mode_t storage_mode;
 			storage_constructor_type storage;
@@ -437,18 +441,22 @@ torrent file), the ``info_hash`` (the info hash of the torrent) or the ``url``
 info-hash, the torrent file will be downloaded from peers, which requires them to
 support the metadata extension. For the metadata extension to work, libtorrent must
 be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
-defined). It also takes an optional ``name`` argument. This may be 0 in case no
-name should be assigned to the torrent. In case it's not 0, the name is used for
+defined). It also takes an optional ``name`` argument. This may be left empty in case no
+name should be assigned to the torrent. In case it's not, the name is used for
 the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
 
 If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
-``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
-torrent.
+``trackers`` (or the deprecated ``tracker_url``) can specify tracker urls that
+for the torrent.
 
 If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
 until the .torrent file has been downloaded. If there's any error while downloading,
 the torrent will be stopped and the torrent error state (``torrent_status::error``)
-will indicate what went wrong. The ``url`` may also refer to a magnet link.
+will indicate what went wrong. The ``url`` may refer to a magnet link or a regular
+http URL.
+
+``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
+added to the session (if DHT is enabled). The hostname may be an IP address.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
@@ -2407,7 +2415,6 @@ Its declaration looks like this::
 		void rename_file(int index, boost::filesystem::wpath) const;
 		storage_interface* get_storage_impl() const;
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 		enum flags_t { overwrite_existing = 1 };
@@ -2681,12 +2688,10 @@ super_seeding()
 
 	::
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 Enables or disabled super seeding/initial seeding for this torrent. The torrent
-needs to be a seed for this to take effect. The overload that returns a bool
-tells you of super seeding is enabled or not.
+needs to be a seed for this to take effect.
 
 add_piece()
 -----------
@@ -3574,6 +3579,7 @@ It contains the following fields::
 		bool seed_mode;
 		bool upload_mode;
 		bool share_mode;
+		bool super_seeding;
 
 		int priority;
 
@@ -3849,6 +3855,8 @@ torrent_handle_.
 
 ``share_mode`` is true if the torrent is currently in share-mode, i.e.
 not downloading the torrent, but just helping the swarm out.
+
+``super_seeding`` is true if the torrent is in super seeding mode.
 
 ``added_time`` is the posix-time when this torrent was added. i.e. what
 ``time(NULL)`` returned at the time.
@@ -4609,6 +4617,7 @@ session_settings
 		int utp_connect_timeout;
 		int utp_delayed_ack;
 		bool utp_dynamic_sock_buf;
+		int utp_loss_multiplier;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -4964,6 +4973,12 @@ used to bind outgoing sockets to. This may be useful for users whose router
 allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
+
+.. warning:: setting outgoing ports will limit the ability to keep multiple
+	connections to the same client, even for different torrents. It is not
+	recommended to change this setting. Its main purpose is to use as an
+	escape hatch for cheap routers with QoS capability but can only classify
+	flows based on port numbers.
 
 ``peer_tos`` determines the TOS byte set in the IP header of every packet
 sent to peers (including web seeds). The default value for this is ``0x0``
@@ -5432,6 +5447,11 @@ or ethernet jumbo frames). This defaults to true and might improve uTP throughpu
 For RAM constrained systems, disabling this typically saves around 30kB in user space
 and probably around 400kB in kernel socket buffers (it adjusts the send and receive
 buffer size on the kernel socket, both for IPv4 and IPv6).
+
+``utp_loss_multiplier`` controls how the congestion window is changed when a packet
+loss is experienced. It's specified as a percentage multiplier for ``cwnd``. By default
+it's set to 50 (i.e. cut in half). Do not change this value unless you know what
+you're doing. Never set it higher than 100.
 
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
@@ -6165,6 +6185,8 @@ it will throw libtorrent_exception_.
 add_magnet_uri()
 ----------------
 
+*deprecated*
+
 	::
 
 		torrent_handle add_magnet_uri(session& ses, std::string const& uri
@@ -6185,6 +6207,16 @@ A simpler way to add a magnet link to a session is to pass in the
 link through ``add_torrent_params::url`` argument to ``session::add_torrent()``.
 
 For more information about magnet links, see `magnet links`_.
+
+parse_magnet_uri()
+------------------
+
+	::
+
+		void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
+
+This function parses out information from the magnet link and populates the
+``add_torrent_params`` object.
 
 make_magnet_uri()
 -----------------
@@ -7107,7 +7139,8 @@ upload or download rate performance.
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
-			too_high_disk_queue_limit
+			too_high_disk_queue_limit,
+			too_few_outgoing_ports
 		};
 
 		performance_warning_t warning_code;
@@ -7176,6 +7209,12 @@ too_high_disk_queue_limit
 	left for the actual cache. This causes the disk cache to oscillate in evicting large
 	portions of the cache before allowing peers to download any more, onto the disk write
 	queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
+
+too_few_outgoing_ports
+	This is generated if outgoing peer connections are failing because of *address in use*
+	errors, indicating that ``session_settings::outgoing_ports`` is set and is too small of
+	a range. Consider not using the ``outgoing_ports`` setting at all, or widen the range to
+	include more ports.
 
 state_changed_alert
 -------------------

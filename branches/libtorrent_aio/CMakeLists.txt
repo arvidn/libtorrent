@@ -6,6 +6,7 @@ set(sources
 	aiocb_pool
 	alert
 	allocator
+	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -145,6 +146,7 @@ else (dht)
 endif (dht)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fvisibility-inlines-hidden")
 
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
@@ -160,7 +162,7 @@ include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
 # this works around a bug in asio in boost-1.39
-add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021)
+add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 -DBOOST_ASIO_DYN_LINK)
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)

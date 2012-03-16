@@ -1032,6 +1032,30 @@ namespace libtorrent
 			int m_disconnected_peers;
 			int m_eof_peers;
 			int m_connreset_peers;
+			int m_connrefused_peers;
+			int m_connaborted_peers;
+			int m_perm_peers;
+			int m_buffer_peers;
+			int m_unreachable_peers;
+			int m_broken_pipe_peers;
+			int m_addrinuse_peers;
+			int m_no_access_peers;
+			int m_invalid_arg_peers;
+			int m_aborted_peers;
+
+			int m_piece_requests;
+			int m_max_piece_requests;
+			int m_invalid_piece_requests;
+			int m_choked_piece_requests;
+			int m_cancelled_piece_requests;
+			int m_piece_rejects;
+
+			int m_error_incoming_peers;
+			int m_error_outgoing_peers;
+			int m_error_rc4_peers;
+			int m_error_encrypted_peers;
+			int m_error_tcp_peers;
+			int m_error_utp_peers;
 			// the number of times the piece picker fell through
 			// to the end-game mode
 			int m_end_game_piece_picker_blocks;

@@ -99,7 +99,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	cache_status cs;
 
 	file_storage const& fs = torrent_file->files();
-	uint pad_file_size = 0;
+	int pad_file_size = 0;
 	for (int i = 0; i < fs.num_files(); ++i)
 	{
 		file_entry f = fs.at(i);

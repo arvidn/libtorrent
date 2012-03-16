@@ -46,23 +46,31 @@ namespace libtorrent
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 
-#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_EXCEPTIONS
 	// deprecated in 0.14
+	TORRENT_DEPRECATED_PREFIX
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
 		, storage_mode_t storage_mode = storage_mode_sparse
 		, bool paused = false
 		, storage_constructor_type sc = default_storage_constructor
 		, void* userdata = 0) TORRENT_DEPRECATED;
+
+	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
+	TORRENT_DEPRECATED_PREFIX
+	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+		, add_torrent_params p) TORRENT_DEPRECATED;
 #endif
 
+	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
+	TORRENT_DEPRECATED_PREFIX
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p);
+		, add_torrent_params p, error_code& ec) TORRENT_DEPRECATED;
+
 #endif
 
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec);
+	TORRENT_EXPORT void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
 }
 
 #endif

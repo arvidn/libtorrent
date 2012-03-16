@@ -109,6 +109,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_DEFAULT_IO 0
 #endif
 
+#if defined TORRENT_BUILDING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
+#elif defined TORRENT_LINKING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
+#endif
+
 // ======= GCC =========
 
 #if defined __GNUC__
@@ -117,23 +123,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 # endif
 
-// GCC pre 4.0 did not have support for the visibility attribute
-# if __GNUC__ >= 4
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  endif
-# endif
-
-
 // ======= SUNPRO =========
 
 #elif defined __SUNPRO_CC
-
-# if __SUNPRO_CC >= 0x550
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __global
-#  endif
-# endif
 
 // SunPRO seems to have an overly-strict
 // definition of POD types and doesn't
@@ -154,12 +146,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
 #pragma warning(disable: 4996)
 #define strdup _strdup
-
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 

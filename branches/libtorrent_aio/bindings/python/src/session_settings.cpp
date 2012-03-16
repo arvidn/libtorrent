@@ -52,6 +52,7 @@ void bind_session_settings()
 #endif
         .def_readwrite("free_torrent_hashes", &session_settings::free_torrent_hashes)
         .def_readwrite("upnp_ignore_nonrouters", &session_settings::upnp_ignore_nonrouters)
+        .def_readwrite("send_buffer_low_watermark", &session_settings::send_buffer_low_watermark)
         .def_readwrite("send_buffer_watermark", &session_settings::send_buffer_watermark)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("auto_upload_slots", &session_settings::auto_upload_slots)

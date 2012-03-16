@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
 
+#ifndef BOOST_NO_EXCEPTIONS
+#include <boost/system/system_error.hpp>
+#endif
+
 #define CCONTROL_TARGET 100
 
 namespace libtorrent

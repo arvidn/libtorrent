@@ -1817,7 +1817,7 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr, ACK_MASK)) return;
 	
 	// cut window size in 2
-	m_cwnd = (std::max)(m_cwnd / 2, boost::int64_t(m_mtu << 16));
+	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
 	m_loss_seq_nr = m_seq_nr;
 	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", this, seq_nr);
 

@@ -626,6 +626,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(filter_files, files);
 	}
 
+	bool torrent_handle::super_seeding() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(bool, false, super_seeding);
+		return r;
+	}
+
 // ============ end deprecation ===============
 #endif
 
@@ -820,13 +827,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL(scrape_tracker);
-	}
-
-	bool torrent_handle::super_seeding() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(bool, false, super_seeding);
-		return r;
 	}
 
 	void torrent_handle::super_seeding(bool on) const

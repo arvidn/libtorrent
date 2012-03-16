@@ -21,6 +21,7 @@ libtorrent_rasterbar_la_SOURCES = \
   aiocb_pool.cpp                  \
   alert.cpp                       \
   allocator.cpp                   \
+  asio.cpp                        \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \

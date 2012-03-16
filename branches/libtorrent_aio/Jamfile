@@ -31,6 +31,17 @@ rule linking ( properties * )
 {
 	local result ;
 
+	if <link>shared in $(properties)
+	{
+		# make sure asio symbols are properly exported
+		# and imported
+		result += <define>BOOST_ASIO_DYN_LINK ;
+	}
+	else
+	{
+		result += <define>BOOST_ASIO_SEPARATE_COMPILATION ;
+	}
+
 	# openssl libraries, if enabled
 	if <encryption>openssl in $(properties)
 	{
@@ -61,7 +72,6 @@ rule linking ( properties * )
 			# linker library on linux, required when using openssl
 			result += <library>dl ;
 		}
-
 	}
 
 	if <target-os>windows in $(properties)
@@ -81,11 +91,6 @@ rule linking ( properties * )
 		# if we're not using openssl (which we're most
 		# likely not if we're using libgcrypt)
 		result += <library>gcrypt <include>/opt/local/include ;
-	}
-
-	if <encryption>tommath in $(properties)
-	{
-		result += <source>src/mpi.c ;
 	}
 
 	if <geoip>shared in $(properties)
@@ -141,11 +146,6 @@ rule linking ( properties * )
 		result += <library>tcmalloc ;
 	}
 
-	if <boost>system in $(properties)
-	{
-		result += <library>boost_system ;
-	}
-
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
 		&& (<variant>debug in $(properties)
@@ -161,12 +161,25 @@ rule linking ( properties * )
 	{
 		if <boost-link>static in $(properties)
 		{
+			if <link>shared in $(properties)
+			{
+				# if libtorrent is being built as a shared library
+				# but we're linking against boost statically, we still
+				# need to make boost think it's being built as a shared
+				# library, so that it properly exports its symbols
+				result += <define>BOOST_ALL_DYN_LINK ;
+				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			}
+			else
+			{
+				result += <library>/boost/system//boost_system/<link>static ;
+			}
+
 			if <toolset>gcc in $(properties) && <link>shared in $(properties)
 			{
 				result += <fpic>on ;
 			}
 
-			result += <library>/boost/system//boost_system/<link>static ;
 		}
 		else
 		{
@@ -174,9 +187,10 @@ rule linking ( properties * )
 		}
 		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
 	}
-
-	if <boost>system in $(properties)
+	else
 	{
+		result += <library>boost_system ;
+
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
 		# on open indiana, boost is install at /usr/g++/include
@@ -209,6 +223,11 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
+	if <encryption>tommath in $(properties)
+	{
+		result += <source>src/mpi.c ;
+	}
+
 	if <geoip>static in $(properties)
 	{
 		result += <source>src/GeoIP.c ;
@@ -223,6 +242,19 @@ rule building ( properties * )
 	if ! ( <encryption>off in $(properties) )
 	{
 		result += <source>src/pe_crypto.cpp ;
+	}
+
+	if ( <toolset>darwin in $(properties)
+		|| <toolset>gcc in $(properties)
+		|| <toolset>clang in $(propertoes) )
+		&& <link>shared in $(properties)
+	{
+		# hide non-external symbols
+		# use ms-compat because boost.asio (as of 1.47.0
+		# appears to have some types not fulle exported)
+		result += <cflags>-fvisibility-ms-compat ;
+		result += <cxxflags>-fvisibility-inlines-hidden ;
+		result += <linkflags>-W1,-Bsymbolic ;
 	}
 
 	return $(result) ;
@@ -417,6 +449,7 @@ SOURCES =
 	aiocb_pool
 	alert
 	allocator
+	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -564,17 +597,6 @@ lib torrent
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
 	<boost>system:<cxxflags>$(CXXFLAGS)
-
-# hide non-external symbols
-	<toolset>darwin:<cflags>-fvisibility=hidden
-	<toolset>darwin:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>darwin:<linkflags>-W1,-Bsymbolic
-	<toolset>gcc:<cflags>-fvisibility=hidden
-	<toolset>gcc:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>gcc:<linkflags>-W1,-Bsymbolic
-	<toolset>llvm:<cflags>-fvisibility=hidden
-	<toolset>llvm:<cxxflags>-fvisibility-inlines-hidden
-	<toolset>llvm:<linkflags>-W1,-Bsymbolic
 
 	$(usage-requirements)
 
