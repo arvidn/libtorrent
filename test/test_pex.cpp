@@ -154,15 +154,15 @@ int test_main()
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	remove_all("tmp1_pex", ec);
+	remove_all("tmp2_pex", ec);
+	remove_all("tmp3_pex", ec);
 
 	test_pex();
 	
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	remove_all("tmp1_pex", ec);
+	remove_all("tmp2_pex", ec);
+	remove_all("tmp3_pex", ec);
 
 	return 0;
 }

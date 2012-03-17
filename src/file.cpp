@@ -139,6 +139,16 @@ BOOST_STATIC_ASSERT((libtorrent::file::no_buffer & libtorrent::file::attribute_m
 
 namespace libtorrent
 {
+
+#ifdef TORRENT_WINDOWS
+	std::string convert_separators(std::string p)
+	{
+		for (int i = 0; i < p.size(); ++i)
+			if (p[i] == '/') p[i] = '\\';
+		return p;
+	}
+#endif
+
 	void stat_file(std::string inf, file_status* s
 		, error_code& ec, int flags)
 	{
@@ -641,8 +651,8 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		// the path passed to FindFirstFile() must be
 		// a pattern
-		std::string f = path;
-		if (!f.empty() && (f[f.size()-1] != '/' && f[f.size()-1] != '\\')) f += "\\*";
+		std::string f = convert_separators(path);
+		if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
 		else f += "*";
 #if TORRENT_USE_WSTRING
 #define FindFirstFile_ FindFirstFileW
@@ -803,12 +813,12 @@ namespace libtorrent
 
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
-		std::string p;
+		std::string p = convert_separators(path);
 		// network paths are not supported by UNC paths
 		if (path.substr(0,2) == "\\\\") p = path;
-		else p = "\\\\?\\" + (is_complete(path) ? path : combine_path(current_working_directory(), path));
+		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
 #else
-		std::string const& p = path;
+		std::string p = convert_separators(path);
 #endif
 
 #if TORRENT_USE_WSTRING
