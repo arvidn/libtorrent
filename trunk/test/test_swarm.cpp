@@ -48,9 +48,9 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_swarm", ec);
-	remove_all("./tmp2_swarm", ec);
-	remove_all("./tmp3_swarm", ec);
+	remove_all("tmp1_swarm", ec);
+	remove_all("tmp2_swarm", ec);
+	remove_all("tmp3_swarm", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49000, 50000), "0.0.0.0", 0);
@@ -196,13 +196,13 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	TEST_CHECK(time_now_hires() - start < seconds(3));
 	TEST_CHECK(time_now_hires() - start >= seconds(2));
 
-	TEST_CHECK(!exists("./tmp1_swarm/temporary"));
-	TEST_CHECK(!exists("./tmp2_swarm/temporary"));
-	TEST_CHECK(!exists("./tmp3_swarm/temporary"));
+	TEST_CHECK(!exists("tmp1_swarm/temporary"));
+	TEST_CHECK(!exists("tmp2_swarm/temporary"));
+	TEST_CHECK(!exists("tmp3_swarm/temporary"));
 
-	remove_all("./tmp1_swarm", ec);
-	remove_all("./tmp2_swarm", ec);
-	remove_all("./tmp3_swarm", ec);
+	remove_all("tmp1_swarm", ec);
+	remove_all("tmp2_swarm", ec);
+	remove_all("tmp3_swarm", ec);
 }
 
 int test_main()

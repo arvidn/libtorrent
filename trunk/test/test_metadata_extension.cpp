@@ -110,9 +110,9 @@ void test_transfer(bool clear_files, bool disconnect
 	if (tor2.status().is_seeding) std::cerr << "done\n";
 
 	error_code ec;
-	remove_all("./tmp1_meta", ec);
-	remove_all("./tmp2_meta", ec);
-	remove_all("./tmp3_meta", ec);
+	remove_all("tmp1_meta", ec);
+	remove_all("tmp2_meta", ec);
+	remove_all("tmp3_meta", ec);
 }
 
 int test_main()
@@ -134,8 +134,8 @@ int test_main()
 	test_transfer(false, false, &create_ut_metadata_plugin);
 
 	error_code ec;
-	remove_all("./tmp1", ec);
-	remove_all("./tmp2", ec);
+	remove_all("tmp1", ec);
+	remove_all("tmp2", ec);
 
 	return 0;
 }
