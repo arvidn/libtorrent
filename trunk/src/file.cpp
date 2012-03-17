@@ -642,7 +642,7 @@ namespace libtorrent
 		// the path passed to FindFirstFile() must be
 		// a pattern
 		std::string f = path;
-		if (!f.empty() && (f[f.size()-1] != '/' || f[f.size()-1] != '\\')) f += "\\*";
+		if (!f.empty() && (f[f.size()-1] != '/' && f[f.size()-1] != '\\')) f += "\\*";
 		else f += "*";
 #if TORRENT_USE_WSTRING
 #define FindFirstFile_ FindFirstFileW
