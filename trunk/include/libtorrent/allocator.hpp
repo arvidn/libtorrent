@@ -39,9 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	TORRENT_EXPORT int page_size();
+	TORRENT_EXTRA_EXPORT int page_size();
 
-	struct TORRENT_EXPORT page_aligned_allocator
+	struct TORRENT_EXTRA_EXPORT page_aligned_allocator
 	{
 		typedef std::size_t size_type;
 		typedef std::ptrdiff_t difference_type;
@@ -50,7 +50,7 @@ namespace libtorrent
 		static void free(char* const block);
 	};
 
-	struct TORRENT_EXPORT aligned_holder
+	struct TORRENT_EXTRA_EXPORT aligned_holder
 	{
 		aligned_holder(): m_buf(0) {}
 		aligned_holder(int size): m_buf(page_aligned_allocator::malloc(size)) {}

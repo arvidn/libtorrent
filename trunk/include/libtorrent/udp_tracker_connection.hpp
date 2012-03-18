@@ -61,7 +61,7 @@ namespace libtorrent
 {
 	namespace aux { struct session_impl; }
 
-	class TORRENT_EXPORT udp_tracker_connection: public tracker_connection
+	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
 	public:

@@ -63,7 +63,7 @@ namespace libtorrent {
 typedef asio::error::error_category socks_error_category;
 #else
 
-struct TORRENT_EXPORT socks_error_category : boost::system::error_category
+struct TORRENT_EXTRA_EXPORT socks_error_category : boost::system::error_category
 {
 	virtual const char* name() const;
 	virtual std::string message(int ev) const;

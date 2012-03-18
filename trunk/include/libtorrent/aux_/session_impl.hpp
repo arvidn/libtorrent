@@ -181,7 +181,7 @@ namespace libtorrent
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct TORRENT_EXPORT session_impl: boost::noncopyable, initialize_timer
+		struct TORRENT_EXTRA_EXPORT session_impl: boost::noncopyable, initialize_timer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

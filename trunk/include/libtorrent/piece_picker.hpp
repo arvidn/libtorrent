@@ -60,7 +60,7 @@ namespace libtorrent
 	class peer_connection;
 	struct bitfield;
 
-	struct TORRENT_EXPORT piece_block
+	struct TORRENT_EXTRA_EXPORT piece_block
 	{
 		const static piece_block invalid;
 
@@ -90,7 +90,7 @@ namespace libtorrent
 
 	};
 
-	class TORRENT_EXPORT piece_picker
+	class TORRENT_EXTRA_EXPORT piece_picker
 	{
 	public:
 

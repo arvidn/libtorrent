@@ -125,7 +125,7 @@ namespace libtorrent {
 		ptime m_timestamp;
 	};
 
-	class TORRENT_EXPORT alert_manager
+	class TORRENT_EXTRA_EXPORT alert_manager
 	{
 	public:
 		alert_manager(io_service& ios, int queue_limit

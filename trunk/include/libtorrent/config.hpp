@@ -66,6 +66,20 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
 #endif
 
+// when this is specified, export a bunch of extra
+// symbols, mostly for the unit tests to reach
+#if TORRENT_EXPORT_EXTRA
+# if defined TORRENT_BUILDING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
+# elif defined TORRENT_LINKING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_IMPORT
+# endif
+#endif
+
+#ifndef TORRENT_EXTRA_EXPORT
+# define TORRENT_EXTRA_EXPORT
+#endif
+
 // ======= GCC =========
 
 #if defined __GNUC__
@@ -199,13 +213,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 0
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
-#endif
-#if __GNUCC__ == 2
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 #endif
 
 // ==== GNU/Hurd ===

@@ -174,7 +174,7 @@ struct count_peers
 	}
 };
 	
-class TORRENT_EXPORT node_impl : boost::noncopyable
+class TORRENT_EXTRA_EXPORT node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;

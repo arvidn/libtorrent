@@ -190,54 +190,9 @@ namespace libtorrent
 		int TORRENT_EXPORT get_file_attributes(std::string const& p);
 		std::string TORRENT_EXPORT get_symlink_path(std::string const& p);
 
-		template <class Pred>
-		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, Pred pred, boost::uint32_t flags)
-		{
-			std::string f = combine_path(p, l);
-			if (!pred(f)) return;
-			error_code ec;
-			file_status s;
-			stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
-			if (ec) return;
-
-			// recurse into directories
-			bool recurse = (s.mode & file_status::directory) != 0;
-
-			// if the file is not a link or we're following links, and it's a directory
-			// only then should we recurse
-#ifndef TORRENT_WINDOWS
-			if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
-				recurse = false;
-#endif
-
-			if (recurse)
-			{
-				for (directory i(f, ec); !i.done(); i.next(ec))
-				{
-					std::string leaf = i.file();
-					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
-				}
-			}
-			else
-			{
-				// #error use the fields from s
-				int file_flags = get_file_attributes(f);
-
-				// mask all bits to check if the file is a symlink
-				if ((file_flags & file_storage::attribute_symlink)
-					&& (flags & create_torrent::symlinks)) 
-				{
-					std::string sym_path = get_symlink_path(f);
-					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
-				}
-				else
-				{
-					fs.add_file(l, s.file_size, file_flags, s.mtime);
-				}
-			}
-		}
+		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
+			, std::string const& l, boost::function<bool(std::string)> pred
+			, boost::uint32_t flags);
 	}
 
 	template <class Pred>
@@ -252,75 +207,8 @@ namespace libtorrent
 			, detail::default_pred, flags);
 	}
 	
-	struct piece_holder
-	{
-		piece_holder(int bytes): m_piece(page_aligned_allocator::malloc(bytes)) {}
-		~piece_holder() { page_aligned_allocator::free(m_piece); }
-		char* bytes() { return m_piece; }
-	private:
-		char* m_piece;
-	};
-
-	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f
-		, error_code& ec)
-	{
-		file_pool fp;
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
-			, std::vector<boost::uint8_t>()));
-
-		// if we're calculating file hashes as well, use this hasher
-		hasher filehash;
-		int file_idx = 0;
-		size_type left_in_file = t.files().at(0).size;
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		piece_holder buf(t.piece_length());
-		for (int i = 0; i < num; ++i)
-		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			st->read(buf.bytes(), i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
-			
-			if (t.should_add_file_hashes())
-			{
-				int left_in_piece = t.piece_size(i);
-				int this_piece_size = left_in_piece;
-				// the number of bytes from this file we just read
-				while (left_in_piece > 0)
-				{
-					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
-					if (to_hash_for_file > 0)
-					{
-						int offset = this_piece_size - left_in_piece;
-						filehash.update(buf.bytes() + offset, to_hash_for_file);
-					}
-					left_in_file -= to_hash_for_file;
-					left_in_piece -= to_hash_for_file;
-					if (left_in_file == 0)
-					{
-						if (!t.files().at(file_idx).pad_file)
-							t.set_file_hash(file_idx, filehash.final());
-						filehash.reset();
-						file_idx++;
-						if (file_idx >= t.files().num_files()) break;
-						left_in_file = t.files().at(file_idx).size;
-					}
-				}
-			}
-
-			hasher h(buf.bytes(), t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
-		}
-	}
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
+		, boost::function<void(int)> f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>

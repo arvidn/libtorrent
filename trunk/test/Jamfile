@@ -9,7 +9,7 @@ explicit test_natpmp ;
 
 project
    : requirements
-	<library>/torrent//torrent/<link>shared/<boost-link>shared
+	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
 	<source>main.cpp
 	<source>setup_transfer.cpp
    : default-build

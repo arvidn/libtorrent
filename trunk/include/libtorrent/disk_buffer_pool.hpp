@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

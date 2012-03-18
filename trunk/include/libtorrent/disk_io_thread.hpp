@@ -225,7 +225,7 @@ namespace libtorrent
 	
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXPORT disk_io_thread : disk_buffer_pool
+	struct TORRENT_EXTRA_EXPORT disk_io_thread : disk_buffer_pool
 	{
 		disk_io_thread(io_service& ios
 			, boost::function<void()> const& queue_callback

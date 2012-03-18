@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class TORRENT_EXPORT stat_channel
+	class TORRENT_EXTRA_EXPORT stat_channel
 	{
 	public:
 
@@ -118,7 +118,7 @@ namespace libtorrent
 		size_type m_total_counter;
 	};
 
-	class TORRENT_EXPORT stat
+	class TORRENT_EXTRA_EXPORT stat
 	{
 	friend class invariant_access;
 	public:
