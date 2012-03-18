@@ -41,7 +41,7 @@ namespace libtorrent {
 
 // timestamp history keeps a history of the lowest timestamps we've
 // seen in the last 20 minutes
-struct TORRENT_EXPORT timestamp_history
+struct TORRENT_EXTRA_EXPORT timestamp_history
 {
 	enum { history_size = 20 };
 

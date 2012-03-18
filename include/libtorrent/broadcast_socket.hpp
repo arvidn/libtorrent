@@ -50,12 +50,12 @@ namespace libtorrent
 	TORRENT_EXPORT bool is_multicast(address const& addr);
 	TORRENT_EXPORT bool is_any(address const& addr);
 	TORRENT_EXPORT bool is_teredo(address const& addr);
-	TORRENT_EXPORT int cidr_distance(address const& a1, address const& a2);
+	TORRENT_EXTRA_EXPORT int cidr_distance(address const& a1, address const& a2);
 
 	// determines if the operating system supports IPv6
 	TORRENT_EXPORT bool supports_ipv6();
 
-	TORRENT_EXPORT int common_bits(unsigned char const* b1
+	TORRENT_EXTRA_EXPORT int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
 	TORRENT_EXPORT address guess_local_address(io_service&);
@@ -63,7 +63,7 @@ namespace libtorrent
 	typedef boost::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
 
-	class TORRENT_EXPORT broadcast_socket
+	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{
 	public:
 		broadcast_socket(io_service& ios, udp::endpoint const& multicast_endpoint

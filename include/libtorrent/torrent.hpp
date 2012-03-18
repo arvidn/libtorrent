@@ -106,7 +106,7 @@ namespace libtorrent
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
-	class TORRENT_EXPORT torrent: public request_callback
+	class TORRENT_EXTRA_EXPORT torrent: public request_callback
 		, public boost::enable_shared_from_this<torrent>
 	{
 	public:

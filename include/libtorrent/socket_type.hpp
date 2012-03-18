@@ -170,7 +170,7 @@ namespace libtorrent
 	{ enum { value = 9 }; };
 #endif
 
-	struct TORRENT_EXPORT socket_type
+	struct TORRENT_EXTRA_EXPORT socket_type
 	{
 		typedef stream_socket::endpoint_type endpoint_type;
 		typedef stream_socket::protocol_type protocol_type;

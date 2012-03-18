@@ -166,7 +166,7 @@ int socket_impl_size();
 // will keep the utp_stream object around for.
 // for more details, see utp_socket_impl, which is analogous
 // to the kernel state for a socket. It's defined in utp_stream.cpp
-class TORRENT_EXPORT utp_stream
+class TORRENT_EXTRA_EXPORT utp_stream
 {
 public:
 

@@ -6,6 +6,7 @@ set(sources
 	alert
 	allocator
 	asio
+	asio_ssl
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -240,7 +241,7 @@ endforeach (s)
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
-string (COMPARE EQUAL ${CMAKE_SIZEOF_VOID_P} "8" IS64BITS)
+string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 
 if (IS64BITS AND RESPECTLIB64)
 	set (LIBDIR "lib64")
