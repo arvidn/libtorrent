@@ -39,7 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits.h> // for IOV_MAX
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
-#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
+#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators with TORRENT_DISABLE_POOL_ALLOCATOR
+#endif
+
+#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
+#error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
+	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
+	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
+	build, to automatically apply these defines
 #endif
 
 #ifndef _MSC_VER
