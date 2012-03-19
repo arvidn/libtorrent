@@ -71,8 +71,7 @@ namespace
 			error_code ec;
 			std::string dir = complete("libtorrent_ext_logs");
 			if (!exists(dir)) create_directories(dir, ec);
-			m_file.open(combine_path(dir, filename).c_str()
-				, std::ios_base::out | std::ios_base::out);
+			m_file.open(combine_path(dir, filename).c_str(), std::ios_base::out);
 			m_file << "\n\n\n";
 			log_timestamp();
 			m_file << "*** starting log ***\n";
