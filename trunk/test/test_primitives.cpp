@@ -727,25 +727,25 @@ int test_main()
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+	p.url = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43";
-	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
+	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
-	const char* magnet_uri2 = "magnet:"
+	p.url = "magnet:"
 		"?tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43"
 		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
-	torrent_handle t2 = add_magnet_uri(*s, magnet_uri2, p, ec);
+	torrent_handle t2 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
-	const char* magnet_uri3 = "magnet:"
+	p.url = "magnet:"
 		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
 		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07&dn=Ubuntu+11.04+%28Final%29";
-	torrent_handle t3 = add_magnet_uri(*s, magnet_uri3, p, ec);
+	torrent_handle t3 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 

@@ -42,8 +42,8 @@ int test_main()
 	t->add_tracker(tracker_url, 1);
 
 	add_torrent_params addp;
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
 	addp.save_path = "./tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
@@ -107,8 +107,8 @@ int test_main()
 	prev_udp_announces = g_udp_tracker_requests;
 	prev_http_announces = g_http_tracker_requests;
 
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
 	addp.save_path = "./tmp2_tracker";
 	h = s->add_torrent(addp);
