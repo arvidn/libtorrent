@@ -44,7 +44,7 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 	struct disk_io_thread;
 
-	struct TORRENT_EXPORT disk_buffer_holder
+	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
 		disk_buffer_holder(aux::session_impl& ses, char* buf);
 		disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j);

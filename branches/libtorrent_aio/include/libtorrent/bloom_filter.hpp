@@ -41,9 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	TORRENT_EXPORT void set_bits(boost::uint8_t const* b, boost::uint8_t* bits, int len);
-	TORRENT_EXPORT bool has_bits(boost::uint8_t const* b, boost::uint8_t const* bits, int len);
-	TORRENT_EXPORT int count_zero_bits(boost::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT void set_bits(boost::uint8_t const* b, boost::uint8_t* bits, int len);
+	TORRENT_EXTRA_EXPORT bool has_bits(boost::uint8_t const* b, boost::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT int count_zero_bits(boost::uint8_t const* bits, int len);
 
 	template <int N>
 	struct bloom_filter

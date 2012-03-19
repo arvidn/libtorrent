@@ -31,17 +31,6 @@ rule linking ( properties * )
 {
 	local result ;
 
-	if <link>shared in $(properties)
-	{
-		# make sure asio symbols are properly exported
-		# and imported
-		result += <define>BOOST_ASIO_DYN_LINK ;
-	}
-	else
-	{
-		result += <define>BOOST_ASIO_SEPARATE_COMPILATION ;
-	}
-
 	# openssl libraries, if enabled
 	if <encryption>openssl in $(properties)
 	{
@@ -217,6 +206,15 @@ rule building ( properties * )
 {
 	local result ;
 
+	if <link>shared in $(properties) && <export-extra>on in $(properties)
+	{
+		# export some internal libtorrent functions
+		# in order to me able to unit test them.
+		# this is off by default to keep the export
+		# symbol table reasonably small
+		result += <define>TORRENT_EXPORT_EXTRA ;
+	}
+
 	if ( <variant>debug in $(properties)
 		|| <asserts>on in $(properties) )
 	{
@@ -257,7 +255,7 @@ rule building ( properties * )
 		# hide non-external symbols
 		# use ms-compat because boost.asio (as of 1.47.0
 		# appears to have some types not fulle exported)
-		result += <cflags>-fvisibility-ms-compat ;
+		result += <cflags>-fvisibility=hidden ;
 		result += <cxxflags>-fvisibility-inlines-hidden ;
 		result += <linkflags>-W1,-Bsymbolic ;
 	}
@@ -395,6 +393,10 @@ feature test-coverage : off on : composite propagated ;
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
+
+# controls whether or not to export some internal
+# libtorrent functions. Used for unit testing
+feature export-extra : off on : composite propagated ;
 
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;
@@ -584,6 +586,10 @@ local usage-requirements =
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
 	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
+# make sure asio symbols are properly exported
+# and imported
+	<link>shared:<define>BOOST_ASIO_DYN_LINK
+	<link>static:<define>BOOST_ASIO_SEPARATE_COMPILATION
 	<tag>@tag
 	;
 

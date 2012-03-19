@@ -58,7 +58,7 @@ namespace libtorrent
 	struct session_settings;
 	class alert;
 
-	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
 			, boost::function<void(alert*)> const& post_alert);

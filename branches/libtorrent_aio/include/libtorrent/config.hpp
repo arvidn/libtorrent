@@ -45,7 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // __linux
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
-#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
+#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators with TORRENT_DISABLE_POOL_ALLOCATOR
+#endif
+
+#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
+#error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
+	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
+	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
+	build, to automatically apply these defines
 #endif
 
 #ifndef _MSC_VER
@@ -113,6 +120,20 @@ POSSIBILITY OF SUCH DAMAGE.
 # define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
 #elif defined TORRENT_LINKING_SHARED
 # define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
+#endif
+
+// when this is specified, export a bunch of extra
+// symbols, mostly for the unit tests to reach
+#if TORRENT_EXPORT_EXTRA
+# if defined TORRENT_BUILDING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
+# elif defined TORRENT_LINKING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_IMPORT
+# endif
+#endif
+
+#ifndef TORRENT_EXTRA_EXPORT
+# define TORRENT_EXTRA_EXPORT
 #endif
 
 // ======= GCC =========
@@ -307,13 +328,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 0
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
-#endif
-#if __GNUCC__ == 2
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 #endif
 
 // ==== GNU/Hurd ===

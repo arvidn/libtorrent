@@ -411,6 +411,10 @@ namespace libtorrent
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	TORRENT_WAIT
 
+#ifndef TORRENT_CFG
+#error TORRENT_CFG is not defined!
+#endif
+
 	// this is a dummy function that's exported and named based
 	// on the configuration. The session.hpp file will reference
 	// it and if the library and the client are built with different

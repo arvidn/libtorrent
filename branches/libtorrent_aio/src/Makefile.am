@@ -16,6 +16,10 @@ if WITH_SHIPPED_GEOIP
 GEOIP_SOURCES = GeoIP.c
 endif
 
+if WITH_OPENSSL
+ASIO_OPENSSL_SOURCES = asio_ssl.cpp
+endif
+
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   aiocb_pool.cpp                  \
@@ -100,7 +104,8 @@ libtorrent_rasterbar_la_SOURCES = \
   web_peer_connection.cpp         \
   \
   $(KADEMLIA_SOURCES)             \
-  $(GEOIP_SOURCES)
+  $(GEOIP_SOURCES)                \
+  $(ASIO_OPENSSL_SOURCES)
 
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)

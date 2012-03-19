@@ -71,7 +71,7 @@ namespace libtorrent
 
 	TORRENT_EXPORT void sleep(int milliseconds);
 
-	struct TORRENT_EXPORT condition
+	struct TORRENT_EXTRA_EXPORT condition
 	{
 		condition();
 		~condition();

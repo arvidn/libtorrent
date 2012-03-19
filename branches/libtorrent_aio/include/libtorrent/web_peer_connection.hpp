@@ -70,7 +70,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT web_peer_connection
+	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
 	friend class invariant_access;

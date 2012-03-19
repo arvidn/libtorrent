@@ -80,26 +80,18 @@ namespace libtorrent
 
 	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j);
 
-	TORRENT_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
+	TORRENT_EXTRA_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
 		, std::string const& p);
 
-	TORRENT_EXPORT bool match_filesizes(
+	TORRENT_EXTRA_EXPORT bool match_filesizes(
 		file_storage const& t
 		, std::string const& p
 		, std::vector<std::pair<size_type, std::time_t> > const& sizes
 		, bool compact_mode
 		, std::string* error = 0);
 
-	TORRENT_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
-
-	struct TORRENT_EXPORT file_allocation_failed: std::exception
-	{
-		file_allocation_failed(const char* error_msg): m_msg(error_msg) {}
-		virtual const char* what() const throw() { return m_msg.c_str(); }
-		virtual ~file_allocation_failed() throw() {}
-		std::string m_msg;
-	};
+	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
 
 	struct TORRENT_EXPORT storage_interface
 	{
@@ -308,7 +300,7 @@ namespace libtorrent
 
 	struct disk_io_thread;
 
-	class TORRENT_EXPORT piece_manager
+	class TORRENT_EXTRA_EXPORT piece_manager
 		: public intrusive_ptr_base<piece_manager>
 		, boost::noncopyable
 	{

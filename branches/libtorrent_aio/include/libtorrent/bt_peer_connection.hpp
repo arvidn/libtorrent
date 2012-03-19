@@ -76,7 +76,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT bt_peer_connection
+	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection
 	{
 	friend class invariant_access;

@@ -190,54 +190,9 @@ namespace libtorrent
 		int TORRENT_EXPORT get_file_attributes(std::string const& p);
 		std::string TORRENT_EXPORT get_symlink_path(std::string const& p);
 
-		template <class Pred>
-		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, Pred pred, boost::uint32_t flags)
-		{
-			std::string f = combine_path(p, l);
-			if (!pred(f)) return;
-			error_code ec;
-			file_status s;
-			stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
-			if (ec) return;
-
-			// recurse into directories
-			bool recurse = (s.mode & file_status::directory) != 0;
-
-			// if the file is not a link or we're following links, and it's a directory
-			// only then should we recurse
-#ifndef TORRENT_WINDOWS
-			if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
-				recurse = false;
-#endif
-
-			if (recurse)
-			{
-				for (directory i(f, ec); !i.done(); i.next(ec))
-				{
-					std::string leaf = i.file();
-					if (ignore_subdir(leaf)) continue;
-					add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
-				}
-			}
-			else
-			{
-				// #error use the fields from s
-				int file_flags = get_file_attributes(f);
-
-				// mask all bits to check if the file is a symlink
-				if ((file_flags & file_storage::attribute_symlink)
-					&& (flags & create_torrent::symlinks)) 
-				{
-					std::string sym_path = get_symlink_path(f);
-					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
-				}
-				else
-				{
-					fs.add_file(l, s.file_size, file_flags, s.mtime);
-				}
-			}
-		}
+		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
+			, std::string const& l, boost::function<bool(std::string)> pred
+			, boost::uint32_t flags);
 	}
 
 	template <class Pred>
@@ -252,17 +207,8 @@ namespace libtorrent
 			, detail::default_pred, flags);
 	}
 	
-	struct piece_holder
-	{
-		piece_holder(int bytes): m_piece(page_aligned_allocator::malloc(bytes)) {}
-		~piece_holder() { page_aligned_allocator::free(m_piece); }
-		char* bytes() { return m_piece; }
-	private:
-		char* m_piece;
-	};
-
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int i)> const& f, error_code& ec);
+		, boost::function<void(int)> const& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	inline void set_piece_hashes(create_torrent& t, std::string const& p

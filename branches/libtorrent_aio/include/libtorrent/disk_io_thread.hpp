@@ -330,7 +330,7 @@ namespace libtorrent
 
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXPORT disk_io_thread
+	struct TORRENT_EXTRA_EXPORT disk_io_thread
 	{
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);

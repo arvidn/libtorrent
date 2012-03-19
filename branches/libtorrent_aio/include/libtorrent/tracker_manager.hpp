@@ -76,9 +76,9 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
-	TORRENT_EXPORT int gzip_header(const char* buf, int size);
+	TORRENT_EXTRA_EXPORT int gzip_header(const char* buf, int size);
 
-	struct TORRENT_EXPORT tracker_request
+	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
 		tracker_request()
 			: kind(announce_request)
@@ -136,7 +136,7 @@ namespace libtorrent
 #endif
 	};
 
-	struct TORRENT_EXPORT request_callback
+	struct TORRENT_EXTRA_EXPORT request_callback
 	{
 		friend class tracker_manager;
 		request_callback(): m_manager(0) {}
@@ -174,7 +174,7 @@ namespace libtorrent
 		tracker_manager* m_manager;
 	};
 
-	struct TORRENT_EXPORT timeout_handler
+	struct TORRENT_EXTRA_EXPORT timeout_handler
 		: intrusive_ptr_base<timeout_handler>
 		, boost::noncopyable
 	{
@@ -216,7 +216,7 @@ namespace libtorrent
 		bool m_abort;
 	};
 
-	struct TORRENT_EXPORT tracker_connection
+	struct TORRENT_EXTRA_EXPORT tracker_connection
 		: timeout_handler
 	{
 		tracker_connection(tracker_manager& man
@@ -263,7 +263,7 @@ namespace libtorrent
 		const tracker_request m_req;
 	};
 
-	class TORRENT_EXPORT tracker_manager: boost::noncopyable
+	class TORRENT_EXTRA_EXPORT tracker_manager: boost::noncopyable
 	{
 	public:
 

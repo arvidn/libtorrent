@@ -98,7 +98,7 @@ namespace libtorrent
 
 	void request_a_block(torrent& t, peer_connection& c);
 
-	class TORRENT_EXPORT policy
+	class TORRENT_EXTRA_EXPORT policy
 	{
 	public:
 
@@ -159,7 +159,7 @@ namespace libtorrent
 // 23     2     1         <padding>
 // 24
 
-		struct TORRENT_EXPORT peer
+		struct TORRENT_EXTRA_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
 
@@ -306,7 +306,7 @@ namespace libtorrent
 #endif
 		};
 
-		struct TORRENT_EXPORT ipv4_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv4_peer : peer
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
@@ -314,7 +314,7 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_I2P
-		struct TORRENT_EXPORT i2p_peer : peer
+		struct TORRENT_EXTRA_EXPORT i2p_peer : peer
 		{
 			i2p_peer(char const* destination, bool connectable, int src);
 			~i2p_peer();
@@ -324,7 +324,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_IPV6
-		struct TORRENT_EXPORT ipv6_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv6_peer : peer
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 

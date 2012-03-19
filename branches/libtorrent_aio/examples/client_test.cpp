@@ -1289,8 +1289,8 @@ int main(int argc, char* argv[])
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
 				&& is_hex(argv[i], 40)
-				&& (string_begins_no_case(argv[i] + 40, "@http://")
-					|| string_begins_no_case(argv[i] + 40, "@udp://")))
+				&& (strncmp(argv[i] + 40, "@http://", 8) == 0
+					|| strncmp(argv[i] + 40, "@udp://", 7) == 0))
 			{
 				sha1_hash info_hash;
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
@@ -1530,18 +1530,13 @@ int main(int argc, char* argv[])
 			std::vector<char> buf;
 			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 			{
-				std::string btih = url_has_argument(*i, "xt");
-				if (btih.empty()) continue;
+				add_torrent_params tmp;
+				parse_magnet_uri(*i, tmp, ec);
 
-				if (btih.compare(0, 9, "urn:btih:") != 0)
-					continue;
-
-				sha1_hash info_hash;
-				if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
-				else info_hash.assign(base32decode(btih.substr(9)));
+				if (ec) continue;
 
 				std::string filename = combine_path(save_path, combine_path(".resume"
-					, to_hex(info_hash.to_string()) + ".resume"));
+					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
 				if (load_file(filename.c_str(), buf, ec) == 0)
 					p.resume_data = &buf;
@@ -1920,8 +1915,11 @@ int main(int argc, char* argv[])
 
 				feed_status st = i->get_feed_status();
 				if (st.url.size() > 70) st.url.resize(70);
+
+				char update_timer[20];
+				snprintf(update_timer, sizeof(update_timer), "%d", st.next_update);
 				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
-					, st.updating ? "updating" : to_string(st.next_update).elems
+					, st.updating ? "updating" : update_timer
 					, int(st.items.size())
 					, st.error ? st.error.message().c_str() : "");
 				out += str;

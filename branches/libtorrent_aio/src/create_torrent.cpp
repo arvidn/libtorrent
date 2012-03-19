@@ -104,6 +104,54 @@ namespace libtorrent
 			return get_symlink_path_impl(p.c_str());
 #endif
 		}
+
+		void add_files_impl(file_storage& fs, std::string const& p
+			, std::string const& l, boost::function<bool(std::string)> pred, boost::uint32_t flags)
+		{
+			std::string f = combine_path(p, l);
+			if (!pred(f)) return;
+			error_code ec;
+			file_status s;
+			stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : 0);
+			if (ec) return;
+
+			// recurse into directories
+			bool recurse = (s.mode & file_status::directory) != 0;
+
+			// if the file is not a link or we're following links, and it's a directory
+			// only then should we recurse
+#ifndef TORRENT_WINDOWS
+			if ((s.mode & file_status::link) && (flags & create_torrent::symlinks))
+				recurse = false;
+#endif
+
+			if (recurse)
+			{
+				for (directory i(f, ec); !i.done(); i.next(ec))
+				{
+					std::string leaf = i.file();
+					if (ignore_subdir(leaf)) continue;
+					add_files_impl(fs, p, combine_path(l, leaf), pred, flags);
+				}
+			}
+			else
+			{
+				// #error use the fields from s
+				int file_flags = get_file_attributes(f);
+
+				// mask all bits to check if the file is a symlink
+				if ((file_flags & file_storage::attribute_symlink)
+					&& (flags & create_torrent::symlinks)) 
+				{
+					std::string sym_path = get_symlink_path(f);
+					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
+				}
+				else
+				{
+					fs.add_file(l, s.file_size, file_flags, s.mtime);
+				}
+			}
+		}
 	} // detail namespace
 
 	void on_hash(int ret, disk_io_job const& j, create_torrent* t
@@ -129,105 +177,47 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int i)> const& f, error_code& ec)
+		, boost::function<void(int)> const& f, error_code& ec)
 	{
-/*
-		if (t.should_add_file_hashes())
+		// optimized path
+		io_service ios;
+		// dummy torrent object pointer
+		boost::shared_ptr<char> dummy(new char);
+		disk_io_thread disk_thread(ios, boost::function<void(alert*)>(), 0);
+		boost::intrusive_ptr<piece_manager> storage = new piece_manager(
+			dummy, (file_storage*)&t.files(), 0, p, disk_thread, default_storage_constructor
+			, storage_mode_sparse, std::vector<boost::uint8_t>());
+
+		session_settings sett;
+		sett.cache_size = 0;
+		sett.hashing_threads = 2;
+
+		disk_thread.set_settings(&sett);
+
+		int piece_counter = 0;
+		int completed_piece = 0;
+		int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
+		if (piece_read_ahead < 1) piece_read_ahead = 1;
+
+		for (int i = 0; i < piece_read_ahead; ++i)
 		{
-			// slow path, where we hash filenames as well as pieces
-			file_pool fp;
-			boost::scoped_ptr<storage_interface> st(
-				default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
-				, std::vector<boost::uint8_t>()));
-
-			// if we're calculating file hashes as well, use this hasher
-			hasher filehash;
-			int file_idx = 0;
-			size_type left_in_file = t.files().at(0).size;
-
-			// calculate the hash for all pieces
-			int num = t.num_pieces();
-			piece_holder buf(t.piece_length());
-			for (int i = 0; i < num; ++i)
-			{
-				// read hits the disk and will block. Progress should
-				// be updated in between reads
-				storage_error se;
-				st->read(buf.bytes(), i, 0, t.piece_size(i), file::sequential_access, se);
-				if (se.ec) { ec = se.ec; return; }
-			
-				int left_in_piece = t.piece_size(i);
-				int this_piece_size = left_in_piece;
-				// the number of bytes from this file we just read
-				while (left_in_piece > 0)
-				{
-					int to_hash_for_file = int((std::min)(size_type(left_in_piece), left_in_file));
-					if (to_hash_for_file > 0)
-					{
-						int offset = this_piece_size - left_in_piece;
-						filehash.update(buf.bytes() + offset, to_hash_for_file);
-					}
-					left_in_file -= to_hash_for_file;
-					left_in_piece -= to_hash_for_file;
-					if (left_in_file == 0)
-					{
-						if (!t.files().at(file_idx).pad_file)
-							t.set_file_hash(file_idx, filehash.final());
-						filehash.reset();
-						file_idx++;
-						if (file_idx >= t.files().num_files()) break;
-						left_in_file = t.files().at(file_idx).size;
-					}
-				}
-
-				hasher h(buf.bytes(), t.piece_size(i));
-				t.set_hash(i, h.final());
-				f(i);
-			}
+			storage->async_hash(i, file::sequential_access
+				, boost::bind(&on_hash, _1, _2, &t, storage, &disk_thread
+				, &piece_counter, &completed_piece, &ec), (void*)1);
+			++piece_counter;
+			if (piece_counter >= t.num_pieces()) break;
 		}
-		else
-*/
+		disk_thread.submit_jobs();
+
+		while (completed_piece < t.num_pieces())
 		{
-			// optimized path
-			io_service ios;
-			// dummy torrent object pointer
-			boost::shared_ptr<char> dummy(new char);
-			disk_io_thread disk_thread(ios, boost::function<void(alert*)>(), 0);
-			boost::intrusive_ptr<piece_manager> storage = new piece_manager(
-				dummy, (file_storage*)&t.files(), 0, p, disk_thread, default_storage_constructor
-				, storage_mode_sparse, std::vector<boost::uint8_t>());
-
-			session_settings sett;
-			sett.cache_size = 0;
-			sett.hashing_threads = 2;
-
-			disk_thread.set_settings(&sett);
-
-			int piece_counter = 0;
-			int completed_piece = 0;
-			int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
-			if (piece_read_ahead < 1) piece_read_ahead = 1;
-
-			for (int i = 0; i < piece_read_ahead; ++i)
-			{
-				storage->async_hash(i, file::sequential_access
-					, boost::bind(&on_hash, _1, _2, &t, storage, &disk_thread
-					, &piece_counter, &completed_piece, &ec), (void*)1);
-				++piece_counter;
-				if (piece_counter >= t.num_pieces()) break;
-			}
-			disk_thread.submit_jobs();
-
-			while (completed_piece < t.num_pieces())
-			{
-				ios.run_one(ec);
-				if (ec) return;
-				f(completed_piece);
-			}
-
-			disk_thread.abort();
-			disk_thread.join();
+			ios.run_one(ec);
+			if (ec) return;
+			f(completed_piece);
 		}
+
+		disk_thread.abort();
+		disk_thread.join();
 	}
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)

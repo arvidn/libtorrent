@@ -100,7 +100,7 @@ namespace libtorrent
 			return int(val.length());
 		}
 
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
+		TORRENT_EXTRA_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val);
 
 		template <class OutIt>
 		int write_integer(OutIt& out, entry::integer_type val)

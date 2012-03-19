@@ -61,7 +61,7 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	ses.listen_on(std::make_pair(51000, 52000), ec);
 	if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
 
-	remove_all("./tmp2_web_seed", ec);
+	remove_all("tmp2_web_seed", ec);
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -81,10 +81,10 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	}
 
 	add_torrent_params p;
-	p.auto_managed = false;
-	p.paused = false;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = torrent_file;
-	p.save_path = "./tmp2_web_seed";
+	p.save_path = "tmp2_web_seed";
 	p.storage_mode = storage_mode_compact;
 	torrent_handle th = ses.add_torrent(p, ec);
 
@@ -162,9 +162,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 	if (proxy) stop_proxy(8002);
 
-	TEST_CHECK(exists(combine_path("./tmp2_web_seed", torrent_file->files().file_path(
+	TEST_CHECK(exists(combine_path("tmp2_web_seed", torrent_file->files().file_path(
 		torrent_file->file_at(0)))));
-	remove_all("./tmp2_web_seed", ec);
+	remove_all("tmp2_web_seed", ec);
 }
 
 void save_file(char const* filename, char const* data, int size)
@@ -204,7 +204,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	using namespace libtorrent;
 
 	error_code ec;
-	create_directories("./tmp1_web_seed/test_torrent_dir", ec);
+	create_directories("tmp1_web_seed/test_torrent_dir", ec);
 
 	file_storage fs;
 	std::srand(10);
@@ -220,11 +220,11 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 		{
 			std::generate(random_data, random_data + 300000, &std::rand);
 			char filename[200];
-			snprintf(filename, sizeof(filename), "./tmp1_web_seed/test_torrent_dir/test%d", i);
+			snprintf(filename, sizeof(filename), "tmp1_web_seed/test_torrent_dir/test%d", i);
 			save_file(filename, random_data, file_sizes[i]);
 		}
 
-		add_files(fs, "./tmp1_web_seed/test_torrent_dir");
+		add_files(fs, "tmp1_web_seed/test_torrent_dir");
 		free(random_data);
 	}
 	else
@@ -232,7 +232,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 		piece_size = 64 * 1024;
 		char* random_data = (char*)malloc(64 * 1024 * 25);
 		std::generate(random_data, random_data + 64 * 1024 * 25, &std::rand);
-		save_file("./tmp1_web_seed/seed", random_data, 64 * 1024 * 25);
+		save_file("tmp1_web_seed/seed", random_data, 64 * 1024 * 25);
 		fs.add_file("seed", 64 * 1024 * 25);
 		free(random_data);
 	}
@@ -265,7 +265,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 //	for (int i = 0; i < 1000; ++i) sleep(1000);
 
 	// calculate the hash for all pieces
-	set_piece_hashes(t, "./tmp1_web_seed", ec);
+	set_piece_hashes(t, "tmp1_web_seed", ec);
 
 	if (ec)
 	{
@@ -283,7 +283,7 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	for (int i = 0; i < torrent_file->num_files(); ++i)
 	{
 		sha1_hash h1 = torrent_file->file_at(i).filehash;
-		sha1_hash h2 = file_hash(combine_path("./tmp1_web_seed"
+		sha1_hash h2 = file_hash(combine_path("tmp1_web_seed"
 			, torrent_file->file_at(i).path));
 //		fprintf(stderr, "%s: %s == %s\n"
 //			, torrent_file->file_at(i).path.c_str()
@@ -296,12 +296,12 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 	
 	if (test_url_seed)
 	{
-		torrent_file->rename_file(0, "./tmp2_web_seed/test_torrent_dir/renamed_test1");
+		torrent_file->rename_file(0, "tmp2_web_seed/test_torrent_dir/renamed_test1");
 		test_transfer(torrent_file, 0, port, protocol, test_url_seed, chunked_encoding);
 	}
 
 	stop_web_server();
-	remove_all("./tmp1_web_seed", ec);
+	remove_all("tmp1_web_seed", ec);
 	return 0;
 }
 
