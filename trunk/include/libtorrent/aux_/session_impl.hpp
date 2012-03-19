@@ -1078,7 +1078,7 @@ namespace libtorrent
 				bool operator<(external_ip_t const& rhs) const
 				{
 					if (num_votes < rhs.num_votes) return true;
-					if (rhs.num_votes > num_votes) return false;
+					if (num_votes > rhs.num_votes) return false;
 					return sources < rhs.sources;
 				}
 
