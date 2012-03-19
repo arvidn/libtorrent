@@ -201,8 +201,8 @@ void test_reject_fast()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 	error_code ec;
 	add_torrent_params p;
-	p.paused = false;
-	p.auto_managed = false;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
 
@@ -265,8 +265,8 @@ void test_respect_suggest()
 
 	error_code ec;
 	add_torrent_params p;
-	p.paused = false;
-	p.auto_managed = false;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
 

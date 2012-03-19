@@ -327,8 +327,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	add_torrent_params addp(&test_storage_constructor);
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses1");
@@ -505,8 +505,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		std::cout << "re-adding" << std::endl;
 		add_torrent_params p;
-		p.paused = false;
-		p.auto_managed = false;
+		p.flags &= ~add_torrent_params::flag_paused;
+		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = t;
 		p.save_path = "tmp2_transfer_moved";
 		p.resume_data = &resume_data;
