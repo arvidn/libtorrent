@@ -46,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+feed_item::feed_item(): size(-1) {}
+feed_item::~feed_item() {}
+
 struct feed_state
 {
 	feed_state(feed& r)

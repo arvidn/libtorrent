@@ -48,11 +48,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0)
-			, mtime(0), pad_file(false), hidden_attribute(false)
-			, executable_attribute(false)
-			, symlink_attribute(false)
-		{}
+		file_entry();
+		~file_entry();
 
 		std::string path;
 		size_type offset; // the offset of this file inside the torrent
