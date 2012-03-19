@@ -45,9 +45,10 @@ namespace libtorrent
 	namespace aux
 	{ struct session_impl; }
 
-	struct feed_item
+	struct TORRENT_EXPORT feed_item
 	{
-		feed_item(): size(-1) {}
+		feed_item();
+		~feed_item();
 		std::string url;
 		std::string uuid;
 		std::string title;

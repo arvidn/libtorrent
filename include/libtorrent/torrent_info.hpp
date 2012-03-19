@@ -74,20 +74,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT announce_entry
 	{
-		announce_entry(std::string const& u)
-			: url(u)
-			, next_announce(min_time())
-			, min_announce(min_time())
-			, tier(0)
-			, fail_limit(0)
-			, fails(0)
-			, updating(false)
-			, source(0)
-			, verified(false)
-			, start_sent(false)
-			, complete_sent(false)
-			, send_stats(true)
-		{}
+		announce_entry(std::string const& u);
+		~announce_entry();
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
