@@ -83,7 +83,7 @@ struct routing_table_node
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
 
-class TORRENT_EXPORT routing_table
+class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
 	routing_table(node_id const& id, int bucket_size

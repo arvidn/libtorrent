@@ -48,8 +48,8 @@ struct msg;
 struct traversal_algorithm;
 
 // defined in rpc_manager.cpp
-TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
-TORRENT_EXPORT void intrusive_ptr_release(observer const*);
+TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
+TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
 
 // intended struct layout (on 32 bit architectures)
 // offset size  alignment field
@@ -64,8 +64,8 @@ TORRENT_EXPORT void intrusive_ptr_release(observer const*);
 
 struct observer : boost::noncopyable
 {
-	friend TORRENT_EXPORT void intrusive_ptr_add_ref(observer const*);
-	friend TORRENT_EXPORT void intrusive_ptr_release(observer const*);
+	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
+	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
 
 	observer(boost::intrusive_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)

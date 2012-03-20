@@ -92,7 +92,7 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	TORRENT_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
 		bool valid_encoding = true;
@@ -213,7 +213,7 @@ namespace libtorrent
 		}
 	}
 
-	TORRENT_EXPORT std::string sanitize_path(std::string const& p)
+	TORRENT_EXTRA_EXPORT std::string sanitize_path(std::string const& p)
 	{
 		std::string new_path;
 		std::string split = split_path(p);

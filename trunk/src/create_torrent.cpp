@@ -160,8 +160,39 @@ namespace libtorrent
 		char* m_piece;
 	};
 
-	void set_piece_hashes(create_torrent& t, std::string const& p, boost::function<void(int)> f
-		, error_code& ec)
+#if TORRENT_USE_WSTRING
+	void set_piece_hashes(create_torrent& t, std::wstring const& p
+		, boost::function<void(int)> const& f, error_code& ec)
+	{
+		file_pool fp;
+		std::string utf8;
+		wchar_utf8(p, utf8);
+		boost::scoped_ptr<storage_interface> st(
+			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
+			, std::vector<boost::uint8_t>()));
+
+		// calculate the hash for all pieces
+		int num = t.num_pieces();
+		std::vector<char> buf(t.piece_length());
+		for (int i = 0; i < num; ++i)
+		{
+			// read hits the disk and will block. Progress should
+			// be updated in between reads
+			st->read(&buf[0], i, 0, t.piece_size(i));
+			if (st->error())
+			{
+				ec = st->error();
+				return;
+			}
+			hasher h(&buf[0], t.piece_size(i));
+			t.set_hash(i, h.final());
+			f(i);
+		}
+	}
+#endif
+
+	void set_piece_hashes(create_torrent& t, std::string const& p
+		, boost::function<void(int)> f, error_code& ec)
 	{
 		file_pool fp;
 		boost::scoped_ptr<storage_interface> st(
