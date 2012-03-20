@@ -115,7 +115,7 @@ enum
 // into account. if lhs is close to UINT_MAX and rhs
 // is close to 0, lhs is assumed to have wrapped and
 // considered smaller
-TORRENT_EXPORT bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask)
+TORRENT_EXTRA_EXPORT bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask)
 {
 	// distance walking from lhs to rhs, downwards
 	boost::uint32_t dist_down = (lhs - rhs) & mask;

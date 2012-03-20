@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
@@ -188,8 +187,8 @@ namespace libtorrent
 
 		inline void nop(int i) {}
 
-		int TORRENT_EXPORT get_file_attributes(std::string const& p);
-		std::string TORRENT_EXPORT get_symlink_path(std::string const& p);
+		int get_file_attributes(std::string const& p);
+		std::string get_symlink_path(std::string const& p);
 
 		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
 			, std::string const& l, boost::function<bool(std::string)> pred
@@ -253,35 +252,8 @@ namespace libtorrent
 			, filename(utf8), detail::default_pred, flags);
 	}
 	
-	template <class Fun>
-	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f
-		, error_code& ec)
-	{
-		file_pool fp;
-		std::string utf8;
-		wchar_utf8(p, utf8);
-		boost::scoped_ptr<storage_interface> st(
-			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
-			, std::vector<boost::uint8_t>()));
-
-		// calculate the hash for all pieces
-		int num = t.num_pieces();
-		std::vector<char> buf(t.piece_length());
-		for (int i = 0; i < num; ++i)
-		{
-			// read hits the disk and will block. Progress should
-			// be updated in between reads
-			st->read(&buf[0], i, 0, t.piece_size(i));
-			if (st->error())
-			{
-				ec = st->error();
-				return;
-			}
-			hasher h(&buf[0], t.piece_size(i));
-			t.set_hash(i, h.final());
-			f(i);
-		}
-	}
+	void TORRENT_EXPORT set_piece_hashes(create_torrent& t, std::wstring const& p
+		, boost::function<void(int)> const& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>

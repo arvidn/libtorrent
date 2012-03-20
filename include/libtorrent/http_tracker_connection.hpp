@@ -61,7 +61,7 @@ namespace libtorrent
 	struct session_settings;
 	namespace aux { struct session_impl; }
 
-	class TORRENT_EXPORT http_tracker_connection
+	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
 	{
 	friend class tracker_manager;

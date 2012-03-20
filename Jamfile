@@ -492,6 +492,7 @@ SOURCES =
 	timestamp_history
 	udp_socket
 	upnp
+	utf8
 	utp_socket_manager
 	utp_stream
 	logger
