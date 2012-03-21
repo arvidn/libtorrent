@@ -157,17 +157,18 @@ namespace libtorrent
 
 		// parse trackers out of the magnet link
 		std::string::size_type pos = std::string::npos;
-		do
+		std::string url = url_has_argument(uri, "tr", &pos);
+		while (pos != std::string::npos)
 		{
+			error_code e;
+			url = unescape_string(url, e);
+			if (e) continue;
+			p.trackers.push_back(url);
 			pos = uri.find("&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
-			error_code e;
-			std::string url = unescape_string(uri.substr(pos, uri.find('&', pos) - pos), e);
-			if (e) continue;
-			p.trackers.push_back(url);
+			url = uri.substr(pos, uri.find('&', pos) - pos);
 		}
-		while (pos != std::string::npos);
 	
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
