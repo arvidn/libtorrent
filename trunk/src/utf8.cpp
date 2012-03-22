@@ -98,7 +98,7 @@ namespace libtorrent
 			return sourceIllegal;
 		}
 	}
-#endif
-
 }
+
+#endif
 
