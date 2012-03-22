@@ -220,7 +220,17 @@ int run_suite(char const* protocol, bool test_url_seed, bool chunked_encoding)
 			std::generate(random_data, random_data + 300000, &std::rand);
 			char filename[200];
 			snprintf(filename, sizeof(filename), "tmp1_web_seed/test_torrent_dir/test%d", i);
-			save_file(filename, random_data, file_sizes[i]);
+			int to_write = file_sizes[i];
+			file f(filename, file::write_only, ec);
+			size_type offset = 0;
+			while (to_write > 0)
+			{
+				int s = (std::min)(to_write, 300000);
+				file::iovec_t b = { random_data, s};
+				f.writev(offset, &b, 1, ec);
+				offset += s;
+				to_write -= s;
+			}
 		}
 
 		add_files(fs, "tmp1_web_seed/test_torrent_dir");

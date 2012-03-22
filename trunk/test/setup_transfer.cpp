@@ -956,6 +956,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
+			fprintf(stderr, "%s\n", path.c_str());
 
 			if (path == "/redirect")
 			{
@@ -1098,6 +1099,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				char eh[400];
 				snprintf(eh, sizeof(eh), "Content-Range: bytes %d-%d\r\n", start, end);
 				extra_header[1] = eh;
+				if (end - start + 1 >= 1000)
+				{
+					fprintf(stderr, "request size: %.2f kB\n", int(end - start + 1)/1000.f);
+				}
+				else
+				{
+					fprintf(stderr, "request size: %d Bytes\n", int(end - start + 1));
+				}
 				send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
 				if (!file_buf.empty())
 				{
