@@ -32,6 +32,9 @@ namespace
     {
         ct.add_node(std::make_pair(addr, port));
     }
+
+    char const* filestorage_name(file_storage const& fs)
+    { return fs.name().c_str(); }
 }
 
 void bind_create_torrent()
@@ -40,7 +43,11 @@ void bind_create_torrent()
     void (file_storage::*add_file1)(fs::path const&, size_type, int, std::time_t, fs::path const&) = &file_storage::add_file;
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
+    void (file_storage::*rename_file0)(int, std::string const&) = &file_storage::rename_file;
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
+    void (file_storage::*rename_file1)(int, std::wstring const&) = &file_storage::rename_file;
+#endif
 
     void (*set_piece_hashes0)(create_torrent&, boost::filesystem::path const&) = &set_piece_hashes;
     void (*add_files0)(file_storage&, boost::filesystem::path const&, boost::uint32_t) = add_files;
@@ -58,8 +65,12 @@ void bind_create_torrent()
         .def("piece_length", &file_storage::piece_length)
         .def("piece_size", &file_storage::piece_size)
         .def("set_name", set_name0)
+        .def("rename_file", rename_file0)
+#ifndef BOOST_FILESYSTEM_NARROW_ONLY
         .def("set_name", set_name1)
-        .def("name", &file_storage::name, return_internal_reference<>())
+        .def("rename_file", rename_file1)
+#endif
+        .def("name", &filestorage_name)
         ;
 
     class_<create_torrent>("create_torrent", no_init)
