@@ -2821,7 +2821,9 @@ ret:
 
 		if (m_storage_mode != internal_storage_mode_compact_deprecated) return piece_index;
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
+#endif
 
 		TORRENT_ASSERT(piece_index >= 0);
 		TORRENT_ASSERT(piece_index < (int)m_piece_to_slot.size());
