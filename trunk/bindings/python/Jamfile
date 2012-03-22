@@ -14,10 +14,12 @@ rule libtorrent_linking ( properties * )
         result += <fpic>on ;
     }
 
-#    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
-#    {
-#        result += <visibility>hidden ;
-#    }
+    if <toolset>gcc in $(properties)
+		|| <toolset>darwin in $(properties)
+		|| <toolset>clang in $(properties)
+    {
+        result += <cxxflags>-fvisibility=hidden ;
+    }
 
     # when building peer_plugin.cpp on msvc-7.1 it fails
     # running out of internal heap space. Don't add it
@@ -35,11 +37,11 @@ rule libtorrent_linking ( properties * )
     {
         if <boost-link>static in $(properties) || <link>static in $(properties)
         {
-            result += <library>/boost/python//boost_python/<boost-link>static ;
+            result += <library>/boost/python//boost_python/<link>static ;
         }
         else
         {
-            result += <library>/boost/python//boost_python/<boost-link>shared ;
+            result += <library>/boost/python//boost_python/<link>shared ;
         }
     }
     else

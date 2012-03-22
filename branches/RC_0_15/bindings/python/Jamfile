@@ -16,7 +16,7 @@ rule libtorrent_linking ( properties * )
 
 #    if <toolset>gcc in $(properties) || <toolset>darwin in $(properties)
 #    {
-#        result += <visibility>hidden ;
+#        result += <cxxflags>-fvisibility=hidden ;
 #    }
 
     # when building peer_plugin.cpp on msvc-7.1 it fails
