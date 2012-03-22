@@ -38,10 +38,12 @@ rule libtorrent_linking ( properties * )
         if <boost-link>static in $(properties) || <link>static in $(properties)
         {
             result += <library>/boost/python//boost_python/<link>static ;
+            result += <library>/torrent//torrent/<link>static ;
         }
         else
         {
             result += <library>/boost/python//boost_python/<link>shared ;
+            result += <library>/torrent//torrent/<link>shared ;
         }
     }
     else
@@ -75,8 +77,9 @@ python-extension libtorrent
     src/magnet_uri.cpp
     src/error_code.cpp
   : <include>src
-    <library>/torrent//torrent
     <conditional>@libtorrent_linking
+  : 
+    <boost-link>static
   ;
 
 install stage_module : libtorrent : <location>. ;

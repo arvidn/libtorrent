@@ -2,6 +2,10 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#ifdef __GNUC__
+#define BOOST_PYTHON_USE_GCC_SYMBOL_VISIBILITY 1
+#endif
+
 #include <boost/python/module.hpp>
 
 void bind_utility();
