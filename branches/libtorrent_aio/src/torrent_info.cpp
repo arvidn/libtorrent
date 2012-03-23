@@ -96,7 +96,7 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	TORRENT_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
 		tmp_path.reserve(target.size()+5);
@@ -525,6 +525,23 @@ namespace libtorrent
 		if (ec) return -3;
 		return 0;
 	}
+
+	announce_entry::announce_entry(std::string const& u)
+		: url(u)
+		, next_announce(min_time())
+		, min_announce(min_time())
+		, tier(0)
+		, fail_limit(0)
+		, fails(0)
+		, updating(false)
+		, source(0)
+		, verified(false)
+		, start_sent(false)
+		, complete_sent(false)
+		, send_stats(true)
+	{}
+
+	announce_entry::~announce_entry() {}
 
 	int announce_entry::next_announce_in() const
 	{ return total_seconds(next_announce - time_now()); }

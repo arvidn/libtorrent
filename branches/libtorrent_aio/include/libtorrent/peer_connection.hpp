@@ -142,7 +142,7 @@ namespace libtorrent
 
 	inline void nop(char*) {}
 
-	class TORRENT_EXPORT peer_connection
+	class TORRENT_EXTRA_EXPORT peer_connection
 		: public bandwidth_socket
 		, public boost::noncopyable
 	{

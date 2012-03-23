@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
@@ -77,6 +76,7 @@ namespace libtorrent
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize);
 		create_torrent(torrent_info const& ti);
+		~create_torrent();
 		entry generate() const;
 
 		file_storage const& files() const { return m_files; }
@@ -187,8 +187,8 @@ namespace libtorrent
 
 		inline void nop(int i) {}
 
-		int TORRENT_EXPORT get_file_attributes(std::string const& p);
-		std::string TORRENT_EXPORT get_symlink_path(std::string const& p);
+		int get_file_attributes(std::string const& p);
+		std::string get_symlink_path(std::string const& p);
 
 		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
 			, std::string const& l, boost::function<bool(std::string)> pred

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/file_pool.hpp"
 
 #include <boost/bind.hpp>
 

@@ -60,6 +60,8 @@ namespace libtorrent
 			&& http_status < 400;
 	}
 
+	http_parser::~http_parser() {}
+
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
 		, m_status_code(-1)

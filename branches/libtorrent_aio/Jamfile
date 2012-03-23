@@ -251,6 +251,12 @@ rule building ( properties * )
 		|| <toolset>gcc in $(properties)
 		|| <toolset>clang in $(propertoes) )
 		&& <link>shared in $(properties)
+		# on GCC, enabling debugging in libstdc++
+		# breaks the ABI and its ability to appear
+		# in shared object interfaces, so when it's
+		# enabled, just export everything (since we're)
+		# probably not a production build anyway
+		&& !<debug-iterators>on in $(properties)
 	{
 		# hide non-external symbols
 		# use ms-compat because boost.asio (as of 1.47.0
@@ -516,6 +522,7 @@ SOURCES =
 	timestamp_history
 	udp_socket
 	upnp
+	utf8
 	utp_socket_manager
 	utp_stream
 	logger

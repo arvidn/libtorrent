@@ -68,8 +68,8 @@ namespace libtorrent { namespace dht
 
 	struct dht_tracker;
 
-	TORRENT_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
-	TORRENT_EXPORT void intrusive_ptr_release(dht_tracker const*);	
+	TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
+	TORRENT_EXTRA_EXPORT void intrusive_ptr_release(dht_tracker const*);	
 
 	struct dht_tracker
 	{

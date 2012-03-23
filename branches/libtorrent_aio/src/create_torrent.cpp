@@ -220,6 +220,8 @@ namespace libtorrent
 		disk_thread.join();
 	}
 
+	create_torrent::~create_torrent() {}
+
 	create_torrent::create_torrent(file_storage& fs, int piece_size, int pad_file_limit, int flags)
 		: m_files(fs)
 		, m_creation_date(time(0))

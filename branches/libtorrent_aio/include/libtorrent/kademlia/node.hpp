@@ -93,7 +93,7 @@ struct key_desc_t
 	}; 
 };
 
-bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
+bool TORRENT_EXTRA_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
 	, lazy_entry const* ret[], int size , char* error, int error_size);
 
 // this is the entry for every peer

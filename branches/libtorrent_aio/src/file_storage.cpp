@@ -107,6 +107,14 @@ namespace libtorrent
 		}
 	}
 
+	file_entry::file_entry(): offset(0), size(0), file_base(0)
+		, mtime(0), pad_file(false), hidden_attribute(false)
+		, executable_attribute(false)
+		, symlink_attribute(false)
+	{}
+
+	file_entry::~file_entry() {}
+
 	internal_file_entry::~internal_file_entry() { if (name_len == 0) free((void*)name); }
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
