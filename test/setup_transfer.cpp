@@ -105,17 +105,20 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
-		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.status().is_seeding)
-			|| pea->error.message() == "connecting to peer"
-			|| pea->error.message() == "closing connection to ourself"
-			|| pea->error.message() == "duplicate connection"
-			|| pea->error.message() == "duplicate peer-id"
-			|| pea->error.message() == "upload to upload connection"
-			|| pea->error.message() == "stopping torrent"
-			|| (allow_disconnects && pea->error.message() == "Broken pipe")
-			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
-			|| (allow_disconnects && pea->error.message() == "End of file."));
+		if (pea)
+		{
+			fprintf(stderr, "peer error: %s\n", pea->error.message().c_str());
+			TEST_CHECK((!handles.empty() && h.status().is_seeding)
+				|| pea->error.message() == "connecting to peer"
+				|| pea->error.message() == "closing connection to ourself"
+				|| pea->error.message() == "duplicate connection"
+				|| pea->error.message() == "duplicate peer-id"
+				|| pea->error.message() == "upload to upload connection"
+				|| pea->error.message() == "stopping torrent"
+				|| (allow_disconnects && pea->error.message() == "Broken pipe")
+				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+				|| (allow_disconnects && pea->error.message() == "End of file."));
+		}
 		delete *i;
 	}
 	return ret;
