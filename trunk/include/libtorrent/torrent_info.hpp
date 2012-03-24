@@ -66,8 +66,8 @@ namespace libtorrent
 
 	enum
 	{
-		// wait 60 seconds before retrying a failed tracker
-		tracker_retry_delay_min = 10
+		// wait at least 5 seconds before retrying a failed tracker
+		tracker_retry_delay_min = 5
 		// when tracker_failed_max trackers
 		// has failed, wait 60 minutes instead
 		, tracker_retry_delay_max = 60 * 60

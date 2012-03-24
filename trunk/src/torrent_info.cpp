@@ -473,8 +473,10 @@ namespace libtorrent
 	void announce_entry::failed(int retry_interval)
 	{
 		++fails;
+		// the exponential back-off ends up being:
+		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min, int(tracker_retry_delay_max));
+			* tracker_retry_delay_min / 2, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
 		next_announce = time_now() + seconds(delay);
 		updating = false;

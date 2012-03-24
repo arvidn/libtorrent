@@ -396,6 +396,20 @@ int test_main()
 	error_code ec;
 	int ret = 0;
 
+	// make sure the retry interval keeps growing
+	// on failing announces
+	announce_entry ae("dummy");
+	int last = 0;
+	for (int i = 0; i < 10; ++i)
+	{
+		ae.failed(5);
+		int delay = ae.next_announce_in();
+		TEST_CHECK(delay > last);
+		last = delay;
+		fprintf(stderr, "%d, ", delay);
+	}
+	fprintf(stderr, "\n");
+
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
 	char private_key[1192];

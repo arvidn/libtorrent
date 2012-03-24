@@ -1,3 +1,4 @@
+	* lower the default tracker retry intervals
 	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
