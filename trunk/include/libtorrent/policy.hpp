@@ -162,7 +162,7 @@ namespace libtorrent
 // 40     1     1         fast_reconnects, trust_points
 // 41     1     1         source, pe_support, is_v6_addr
 // 42     1     1         on_parole, banned, added_to_dht, supports_utp,
-//                        supports_holepunch
+//                        supports_holepunch, web_seed
 // 43     1     1         <padding>
 // 44
 		struct TORRENT_EXTRA_EXPORT peer
@@ -311,6 +311,12 @@ namespace libtorrent
 			// we have been connected via uTP at least once
 			bool confirmed_supports_utp:1;
 			bool supports_holepunch:1;
+			// this is set to one for web seeds. Web seeds
+			// are not stored in the policy m_peers list,
+			// and are excempt from connect candidate bookkeeping
+			// so, any peer with the web_seed bit set, is
+			// never considered a connect candidate
+			bool web_seed:1;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use:1;
 #endif

@@ -590,6 +590,7 @@ namespace libtorrent
 	{
 		if (p.connection
 			|| p.banned
+			|| p.web_seed
 			|| !p.connectable
 			|| (p.seed && finished)
 			|| int(p.failcount) >= m_torrent->settings().max_failcount)
@@ -1061,6 +1062,7 @@ namespace libtorrent
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
 		}
 
+		if (p->web_seed) return;
 		if (s) ++m_num_seeds;
 		else --m_num_seeds;
 		TORRENT_ASSERT(m_num_seeds >= 0);
@@ -1408,15 +1410,18 @@ namespace libtorrent
 
 		peer* p = c.peer_info_struct();
 
-		TORRENT_ASSERT((std::find_if(
-			m_peers.begin()
-			, m_peers.end()
-			, match_peer_connection(c))
-			!= m_peers.end()) == (p != 0));
-		
 		// if we couldn't find the connection in our list, just ignore it.
 		if (p == 0) return;
 
+		// web seeds are special, they're not connected via the peer list
+		// so they're not kept in m_peers
+		TORRENT_ASSERT(p->web_seed
+			|| std::find_if(
+				m_peers.begin()
+				, m_peers.end()
+				, match_peer_connection(c))
+				!= m_peers.end());
+		
 		TORRENT_ASSERT(p->connection == &c);
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 
@@ -1616,6 +1621,9 @@ namespace libtorrent
 				policy::peer* p = static_cast<policy::peer*>(*i);
 				if (p == 0) continue;
 				if (p->connection == 0) continue;
+				// web seeds are special, they're not connected via the peer list
+				// so they're not kept in m_peers
+				if (p->connection->type() != peer_connection::bittorrent_connection) continue;
 				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
 					, match_peer_connection_or_endpoint(*p->connection)) != m_peers.end());
 			}
@@ -1677,6 +1685,7 @@ namespace libtorrent
 		, supports_utp(true) // assume peers support utp
 		, confirmed_supports_utp(false)
 		, supports_holepunch(false)
+		, web_seed(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, in_use(false)
 #endif

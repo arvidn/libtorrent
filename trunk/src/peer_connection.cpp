@@ -3503,6 +3503,8 @@ namespace libtorrent
 		m_disconnect_started = true;
 #endif
 
+		if (m_disconnecting) return;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		switch (error)
 		{
@@ -3585,7 +3587,6 @@ namespace libtorrent
 		// we cannot do this in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
 		if (error > 0) m_failed = true;
-		if (m_disconnecting) return;
 		boost::intrusive_ptr<peer_connection> me(this);
 
 		INVARIANT_CHECK;
@@ -5884,7 +5885,7 @@ namespace libtorrent
 			}
 		}
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		if (m_peer_info)
+		if (m_peer_info && type() == bittorrent_connection)
 		{
 			policy::const_iterator i = t->get_policy().begin_peer();
 			policy::const_iterator end = t->get_policy().end_peer();
