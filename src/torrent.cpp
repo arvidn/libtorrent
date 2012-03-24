@@ -4353,6 +4353,22 @@ namespace libtorrent
 			remove_web_seed(web);
 			return;
 		}
+
+		if (web->peer_info.banned)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			(*m_ses.m_logger) << time_now_string() << "banned web seed: " << web->url << "\n";
+#endif
+			if (m_ses.m_alerts.should_post<url_seed_alert>())
+			{
+				m_ses.m_alerts.post_alert(
+					url_seed_alert(get_handle(), web->url
+						, error_code(libtorrent::errors::peer_banned, get_libtorrent_category())));
+			}
+			// never try it again
+			remove_web_seed(web);
+			return;
+		}
 		
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol != "http" && protocol != "https")
@@ -4575,7 +4591,7 @@ namespace libtorrent
 		}
 		
 		TORRENT_ASSERT(web->resolving == false);
-		TORRENT_ASSERT(web->connection == 0);
+		TORRENT_ASSERT(web->peer_info.connection == 0);
 
 		web->endpoint = a;
 
@@ -4661,13 +4677,13 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
 				web->auth, web->extra_headers);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, 0, // TODO: pass in web
+				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
 				web->auth, web->extra_headers);
 		}
 		if (!c) return;
@@ -4692,9 +4708,16 @@ namespace libtorrent
 			m_connections.insert(boost::get_pointer(c));
 			m_ses.m_connections.insert(c);
 
-			TORRENT_ASSERT(!web->connection);
-			web->connection = c.get();
+			TORRENT_ASSERT(!web->peer_info.connection);
+			web->peer_info.connection = c.get();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			web->peer_info.in_use = true;
+#endif
 
+			c->add_stat(size_type(web->peer_info.prev_amount_download) << 10
+				, size_type(web->peer_info.prev_amount_upload) << 10);
+			web->peer_info.prev_amount_download = 0;
+			web->peer_info.prev_amount_upload = 0;
 #if defined TORRENT_VERBOSE_LOGGING 
 			(*m_ses.m_logger) << time_now_string() << " web seed connection started " << web->url << "\n";
 #endif
@@ -7355,7 +7378,7 @@ namespace libtorrent
 				i != m_web_seeds.end();)
 			{
 				std::list<web_seed_entry>::iterator w = i++;
-				if (w->connection) continue;
+				if (w->peer_info.connection) continue;
 				if (w->retry > time_now()) continue;
 				if (w->resolving) continue;
 
@@ -7808,11 +7831,46 @@ namespace libtorrent
 		return ret;
 	}
 
+	void torrent::remove_web_seed(std::string const& url, web_seed_entry::type_t type)
+	{
+		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+			, (boost::bind(&web_seed_entry::url, _1)
+				== url && boost::bind(&web_seed_entry::type, _1) == type));
+		if (i != m_web_seeds.end()) remove_web_seed(i);
+	}
+
+	void torrent::disconnect_web_seed(peer_connection* p)
+	{
+		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+		// this happens if the web server responded with a redirect
+		// or with something incorrect, so that we removed the web seed
+		// immediately, before we disconnected
+		if (i == m_web_seeds.end()) return;
+
+		TORRENT_ASSERT(i->resolving == false);
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
+#endif
+		TORRENT_ASSERT(i->peer_info.connection);
+		i->peer_info.connection = 0;
+	}
+
+	void torrent::remove_web_seed(peer_connection* p)
+	{
+		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
+			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+		TORRENT_ASSERT(i != m_web_seeds.end());
+		if (i == m_web_seeds.end()) return;
+		m_web_seeds.erase(i);
+	}
+
 	void torrent::retry_web_seed(peer_connection* p, int retry)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&web_seed_entry::connection, _1) == p));
+			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;

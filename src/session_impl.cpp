@@ -6093,7 +6093,7 @@ namespace aux {
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
 			}
-			if (t && p->peer_info_struct())
+			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
 			{
 				TORRENT_ASSERT(t->get_policy().has_connection(p));
 			}

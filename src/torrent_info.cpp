@@ -498,6 +498,17 @@ namespace libtorrent
 			url.erase(url.begin());
 	}
 
+	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
+		, std::string const& auth_
+		, headers_t const& extra_headers_)
+		: url(url_), type(type_)
+		, auth(auth_), extra_headers(extra_headers_)
+		, retry(time_now()), resolving(false), removed(false)
+		, peer_info(0, true, 0)
+	{
+		peer_info.web_seed = true;
+	}
+
 	torrent_info::torrent_info(torrent_info const& t, int flags)
 		: m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_files(t.m_files)

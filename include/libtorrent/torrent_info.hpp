@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/policy.hpp" // for policy::peer
 
 namespace libtorrent
 {
@@ -171,12 +172,7 @@ namespace libtorrent
 
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
-			, headers_t const& extra_headers_ = headers_t())
-			: url(url_), type(type_)
-			, auth(auth_), extra_headers(extra_headers_)
-			, retry(time_now()), resolving(false), removed(false)
-			, connection(0)
-		{}
+			, headers_t const& extra_headers_ = headers_t());
 
 		bool operator==(web_seed_entry const& e) const
 		{ return url == e.url && type == e.type; }
@@ -208,7 +204,11 @@ namespace libtorrent
 
 		tcp::endpoint endpoint;
 
-		peer_connection* connection;
+		// this is the peer_info field used for the
+		// connection, just to count hash failures
+		// it's also used to hold the peer_connection
+		// pointer, when the web seed is connected
+		policy::peer peer_info;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
