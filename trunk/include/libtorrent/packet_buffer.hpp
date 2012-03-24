@@ -101,6 +101,9 @@ namespace libtorrent
 	private:
 		void** m_storage;
 		std::size_t m_capacity;
+
+		// this is the total number of elements that are occupied
+		// in the array
 		std::size_t m_size;
 
 		// This defines the first index that is part of the m_storage.

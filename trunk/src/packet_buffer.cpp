@@ -123,10 +123,10 @@ namespace libtorrent {
 		void* old_value = m_storage[idx & (m_capacity - 1)];
 		m_storage[idx & (m_capacity - 1)] = value;
 
-		if (m_size++ == 0)
-		{
-			m_first = idx;
-		}
+		if (m_size == 0) m_first = idx;
+		// if we're just replacing an old value, the number
+		// of elements in the buffer doesn't actually increase
+		if (old_value == 0) ++m_size;
 
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
