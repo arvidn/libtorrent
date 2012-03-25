@@ -647,6 +647,11 @@ int test_main()
 		TEST_EQUAL(pb.span(), 501 - 123);
 		TEST_EQUAL(pb.capacity(), 512);
 
+		pb.insert(500, (void*)501);
+		TEST_EQUAL(pb.size(), 3);
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
+
 		TEST_CHECK(pb.remove(123) == (void*)123);
 		TEST_EQUAL(pb.size(), 2);
 		TEST_EQUAL(pb.span(), 501 - 125);
