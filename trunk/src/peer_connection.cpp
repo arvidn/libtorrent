@@ -2379,9 +2379,12 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== PIECE        [ piece: %d | s: %d | l: %d | ds: %d | qs: %d | q: %d ]"
+		hasher h;
+		h.update(data.get(), p.length);
+		peer_log("<== PIECE        [ piece: %d | s: %d | l: %d | ds: %d | qs: %d | q: %d | hash: %s ]"
 			, p.piece, p.start, p.length, statistics().download_rate()
-			, int(m_desired_queue_size), int(m_download_queue.size()));
+			, int(m_desired_queue_size), int(m_download_queue.size())
+			, to_hex(h.final().to_string()).c_str());
 #endif
 
 		if (p.length == 0)
