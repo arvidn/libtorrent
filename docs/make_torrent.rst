@@ -59,15 +59,15 @@ add_files
 	::
 	
 		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::path const& path, Pred p
+		void add_files(file_storage& fs, std::string const& path, Pred p
 			, boost::uint32_t flags = 0);
 		template <class Pred>
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path, Pred p
+		void add_files(file_storage& fs, std::wstring const& path, Pred p
 			, boost::uint32_t flags = 0);
 
-		void add_files(file_storage& fs, boost::filesystem::path const& path
+		void add_files(file_storage& fs, std::string const& path
 			, boost::uint32_t flags = 0);
-		void add_files(file_storage& fs, boost::filesystem::wpath const& path
+		void add_files(file_storage& fs, std::wstring const& path
 			, boost::uint32_t flags = 0);
 
 Adds the file specified by ``path`` to the ``file_storage`` object. In case ``path``
@@ -77,11 +77,11 @@ If specified, the predicate ``p`` is called once for every file and directory th
 is encountered. files for which ``p`` returns true are added, and directories for
 which ``p`` returns true are traversed. ``p`` must have the following signature::
 
-	bool Pred(boost::filesystem::path const& p);
+	bool Pred(std::string const& p);
 
-and for the wpath version::
+and for the wide string version::
 
-	bool Pred(boost::filesystem::wpath const& p);
+	bool Pred(std::wstring const& p);
 
 The path that is passed in to the predicate is the full path of the file or
 directory. If no predicate is specified, all files are added, and all directories
@@ -98,21 +98,21 @@ set_piece_hashes()
 	::
 
 		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f);
+		void set_piece_hashes(create_torrent& t, std::string const& p, Fun f);
 		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f);
+		void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f);
 		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p, Fun f
+		void set_piece_hashes(create_torrent& t, std::string const& p, Fun f
 			, error_code& ec);
 		template <class Fun>
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p, Fun f
+		void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f
 			, error_code& ec);
 
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::path const& p
+		void set_piece_hashes(create_torrent& t, std::string const& p);
+		void set_piece_hashes(create_torrent& t, std::wstring const& p);
+		void set_piece_hashes(create_torrent& t, std::string const& p
 			, error_code& ec);
-		void set_piece_hashes(create_torrent& t, boost::filesystem::wpath const& p
+		void set_piece_hashes(create_torrent& t, std::wstring const& p
 			, error_code& ec);
 
 This function will assume that the files added to the torrent file exists at path
@@ -146,8 +146,8 @@ file structure. Its synopsis::
 		};
 
 		void add_file(file_entry const& e);
-		void add_file(fs::path const& p, size_type size, int flags = 0);
-		void add_file(fs::wpath const& p, size_type size, int flags = 0);
+		void add_file(std::string const& p, size_type size, int flags = 0);
+		void add_file(std::wstring const& p, size_type size, int flags = 0);
 		void rename_file(int index, std::string const& new_filename);
 		void rename_file(int index, std::wstring const& new_filename);
 
@@ -155,8 +155,8 @@ file structure. Its synopsis::
 			, int size) const;
 		peer_request map_file(int file, size_type offset, int size) const;
 		
-		typedef std::vector<file_entry>::const_iterator iterator;
-		typedef std::vector<file_entry>::const_reverse_iterator reverse_iterator;
+		typedef std::vector<internal_file_entry>::const_iterator iterator;
+		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
 
 		iterator begin() const;
 		iterator end() const;
@@ -164,7 +164,7 @@ file structure. Its synopsis::
 		reverse_iterator rend() const;
 		int num_files() const;
 
-		file_entry const& at(int index) const;
+		file_entry at(int index) const;
 		
 		size_type total_size() const;
 		void set_num_pieces(int n);
@@ -173,12 +173,12 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
-		sha1_hash const& hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
+		sha1_hash const& hash(int index) const;
+		std::string const& symlink(int index) const;
+		time_t mtime(int index) const;
+		int file_index(int index) const;
+		size_type file_base(int index) const;
+		void set_file_base(int index, size_type off);
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
@@ -219,18 +219,13 @@ hash() symlink() mtime() file_index()
 
 	::
 
-		sha1_hash hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
+		sha1_hash hash(int index) const;
+		std::string const& symlink(int index) const;
+		time_t mtime(int index) const;
+		int file_index(int index) const;
 
 These functions are used to query the symlink, file hash,
-modification time and the file-index from a ``internal_file_entry``,
-which typically would be acquired from an iterator.
-
-For these functions to function, the file entry must be an
-actual object from this same ``file_storage`` object. It may
-not be a copy.
+modification time and the file-index from a file index.
 
 The file hash is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
@@ -247,8 +242,8 @@ file_base() set_file_base()
 
 	::
 
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
+		size_type file_base(int index) const;
+		void set_file_base(int index, size_type off);
 
 The file base of a file is the offset within the file on the filsystem
 where it starts to write. For the most part, this is always 0. It's
