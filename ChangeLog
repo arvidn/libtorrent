@@ -1,3 +1,6 @@
+
+0.16 release
+
 	* lower the default tracker retry intervals
 	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
