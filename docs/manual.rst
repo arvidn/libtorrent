@@ -6,7 +6,7 @@ libtorrent API Documentation
 :Version: 0.16.0
 
 .. contents:: Table of contents
-  :depth: 2
+  :depth: 1
   :backlinks: none
 
 overview
@@ -1679,8 +1679,8 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
-		torrent_info(boost::filesystem::path const& filename, int flags = 0);
-		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
+		torrent_info(std::wstring const& filename, int flags = 0);
 
 		// these constructors sets the error code on error
 		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
@@ -1754,8 +1754,8 @@ torrent_info()
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
-		torrent_info(boost::filesystem::path const& filename, int flags = 0);
-		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
+		torrent_info(std::wstring const& filename, int flags = 0);
 
 		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
@@ -2360,11 +2360,11 @@ Its declaration looks like this::
 
 		bool set_metadata(char const* buf, int size) const;
 
-		boost::filesystem::path save_path() const;
-		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
-		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
+		std::string save_path() const;
+		void move_storage(std::string const& save_path) const;
+		void move_storage(std::wstring const& save_path) const;
+		void rename_file(int index, std::string) const;
+		void rename_file(int index, std::wstring) const;
 		storage_interface* get_storage_impl() const;
 
 		void super_seeding(bool on) const;
@@ -2543,7 +2543,7 @@ save_path()
 
 	::
 
-		boost::filesystem::path save_path() const;
+		std::string save_path() const;
 
 ``save_path()`` returns the path that was given to `async_add_torrent() add_torrent()`_ when this torrent
 was started.
@@ -2553,8 +2553,8 @@ move_storage()
 
 	::
 
-		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
+		void move_storage(std::string const& save_path) const;
+		void move_storage(std::wstring const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. If
 the given ``save_path`` is not located on the same drive as the original save path,
@@ -2572,8 +2572,8 @@ rename_file()
 
 	::
 
-		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
+		void rename_file(int index, std::string) const;
+		void rename_file(int index, std::wstring) const;
 
 Renames the file with the given index asynchronously. The rename operation is complete
 when either a ``file_renamed_alert`` or ``file_rename_failed_alert`` is posted.
@@ -3175,8 +3175,8 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		boost::filesystem::ofstream out(h.save_path()
-			/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
+		std::ofstream out((h.save_path() + "/" + h.get_torrent_info().name() + ".fastresume").c_str()
+			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
 		--outstanding_resume_data;
@@ -4252,6 +4252,7 @@ feed_item
 =========
 
 The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``.
+
 	::
 
 		struct feed_item
@@ -7592,7 +7593,7 @@ error_code
 ==========
 
 libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-its own error category (``libtorrent::libtorrent_category``) whith the following error
+its own error category (``libtorrent::get_libtorrent_category()``) whith the following error
 codes:
 
 ====== ========================================= =================================================================
@@ -8059,7 +8060,7 @@ for system errors. That is, errors that belong to the generic or system category
 
 Errors that belong to the libtorrent error category are not localized however, they
 are only available in english. In order to translate libtorrent errors, compare the
-error category of the ``error_code`` object against ``libtorrent::libtorrent_category``,
+error category of the ``error_code`` object against ``libtorrent::get_libtorrent_category()``,
 and if matches, you know the error code refers to the list above. You can provide
 your own mapping from error code to string, which is localized. In this case, you
 cannot rely on ``error_code::message()`` to generate your strings.
@@ -8071,7 +8072,7 @@ Here's a simple example of how to translate error codes::
 
 	std::string error_code_to_string(boost::system::error_code const& ec)
 	{
-		if (ec.category() != libtorrent::libtorrent_category)
+		if (ec.category() != libtorrent::get_libtorrent_category())
 		{
 			return ec.message();
 		}
@@ -8154,7 +8155,7 @@ The interface looks like this::
 		// non virtual functions
 
 		disk_buffer_pool* disk_pool();
-		void set_error(boost::filesystem::path const& file, error_code const& ec) const;
+		void set_error(std::string const& file, error_code const& ec) const;
 		error_code const& error() const;
 		std::string const& error_file() const;
 		void clear_error();
@@ -8804,14 +8805,14 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
 The benefits though, are:
 
- * No startup delay, since the files doesn't need allocating.
+ * No startup delay, since the files don't need allocating.
 
  * The download will not use unnecessary disk space.
 
  * Disk caches perform much better than in full allocation and raises the download
    speed limit imposed by the disk.
 
- * Works well on filesystems that doesn't support sparse files.
+ * Works well on filesystems that don't support sparse files.
 
 The algorithm that is used when allocating pieces and slots isn't very complicated.
 For the interested, a description follows.
