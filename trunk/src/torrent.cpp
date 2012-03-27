@@ -6133,12 +6133,15 @@ namespace libtorrent
 		
 		// calling pause will also trigger the auto managed
 		// recalculation
-		if (m_auto_managed) pause();
-
-		// if this is an auto managed torrent, force a recalculation
-		// of which torrents to have active
+		// if we just got here by downloading the metadata,
+		// just keep going, no need to disconnect all peers just
+		// to restart the torrent in a second
 		if (m_auto_managed)
+		{
+			// if this is an auto managed torrent, force a recalculation
+			// of which torrents to have active
 			m_ses.m_auto_manage_time_scaler = 2;
+		}
 
 		if (!is_seed())
 		{
