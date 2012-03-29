@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class peer_connection;
+	struct session_settings;
 
 	enum
 	{
@@ -144,7 +145,7 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed(int retry_interval = 0);
+		void failed(session_settings const& sett, int retry_interval = 0);
 
 		bool will_announce(ptime now) const
 		{
