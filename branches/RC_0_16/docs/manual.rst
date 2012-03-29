@@ -4556,6 +4556,8 @@ session_settings
 		bool lock_files;
 
 		int ssl_listen;
+
+		int tracker_backoff;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5441,6 +5443,17 @@ setting is only taken into account when opening the regular listen port, and
 won't re-open the listen socket simply by changing this setting.
 
 It defaults to port 4433.
+
+``tracker_backoff`` determines how aggressively to back off from retrying
+failing trackers. This value determines *x* in the following formula, determining
+the number of seconds to wait until the next retry:
+
+	delay = 5 + 5 * x / 100 * fails^2
+
+It defaults to 250.
+
+This setting may be useful to make libtorrent more or less aggressive in hitting
+trackers.
 
 pe_settings
 ===========
