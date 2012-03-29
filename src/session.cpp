@@ -1276,6 +1276,7 @@ namespace libtorrent
 		, use_disk_read_ahead(true)
 		, lock_files(false)
 		, ssl_listen(4433)
+		, tracker_backoff(250)
 	{}
 
 	session_settings::~session_settings() {}
