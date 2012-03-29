@@ -441,6 +441,8 @@ namespace aux {
 		TORRENT_SETTING(integer, read_job_every)
 		TORRENT_SETTING(boolean, use_disk_read_ahead)
 		TORRENT_SETTING(boolean, lock_files)
+		TORRENT_SETTING(integer, ssl_listen)
+		TORRENT_SETTING(integer, tracker_backoff)
 	};
 
 #undef TORRENT_SETTING

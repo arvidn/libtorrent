@@ -8454,7 +8454,7 @@ namespace libtorrent
 			announce_entry* ae = find_tracker(r);
 			if (ae)
 			{
-				ae->failed(retry_interval);
+				ae->failed(settings(), retry_interval);
 				ae->last_error = ec;
 				ae->message = msg;
 				int tracker_index = ae - &m_trackers[0];
