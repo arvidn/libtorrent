@@ -136,7 +136,7 @@ namespace libtorrent
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
 #endif
