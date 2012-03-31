@@ -964,6 +964,14 @@ namespace libtorrent
 
 		// open an ssl listen socket for ssl torrents on this port
 		int ssl_listen;
+
+		// this is the factor X in the formula to calculate the
+		// next tracker timeout:
+		// delay = 5 + X/100 * fails^2
+		// so, it's an exponential back-off, and this factor
+		// determines how fast the back-off happens. Default
+		// is 250
+		int tracker_backoff;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

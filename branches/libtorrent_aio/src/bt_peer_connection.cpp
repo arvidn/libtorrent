@@ -197,6 +197,7 @@ namespace libtorrent
 
 	bt_peer_connection::~bt_peer_connection()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 	}
 
 	void bt_peer_connection::on_connected()

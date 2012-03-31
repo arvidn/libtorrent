@@ -13,6 +13,10 @@
 
 0.16 release
 
+	* make tracker back-off configurable
+	* don't restart the swarm after downloading metadata from magnet links
+	* lower the default tracker retry intervals
+	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
 	* improved peer exchange performance by sharing incoming connections which advertize listen port 

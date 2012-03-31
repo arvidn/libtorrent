@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 #DISTCHECK_CONFIGURE_FLAGS = --enable-tests
 
-SUBDIRS = include/libtorrent src examples test bindings
+SUBDIRS = include/libtorrent src examples test bindings tools
 
 DOCS_IMAGES = \
   docs/arctic_thumb.png           \

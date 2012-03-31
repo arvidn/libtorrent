@@ -938,6 +938,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_destructed = true;
 #endif
+		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
@@ -971,7 +972,7 @@ namespace libtorrent
 //		TORRENT_ASSERT(!m_ses.has_peer(this));
 		TORRENT_ASSERT(m_request_queue.empty());
 		TORRENT_ASSERT(m_download_queue.empty());
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		for (aux::session_impl::torrent_map::const_iterator i = m_ses.m_torrents.begin()
 			, end(m_ses.m_torrents.end()); i != end; ++i)
 			TORRENT_ASSERT(!i->second->has_peer(this));
@@ -2418,9 +2419,12 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== PIECE        [ piece: %d | s: %d | l: %d | ds: %d | qs: %d | q: %d ]"
+		hasher h;
+		h.update(data.get(), p.length);
+		peer_log("<== PIECE        [ piece: %d | s: %d | l: %d | ds: %d | qs: %d | q: %d | hash: %s ]"
 			, p.piece, p.start, p.length, statistics().download_rate()
-			, int(m_desired_queue_size), int(m_download_queue.size()));
+			, int(m_desired_queue_size), int(m_download_queue.size())
+			, to_hex(h.final().to_string()).c_str());
 #endif
 
 		if (p.length == 0)
@@ -3590,6 +3594,8 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_disconnect_started = true;
 #endif
+
+		if (m_disconnecting) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		switch (error)
@@ -6157,7 +6163,7 @@ namespace libtorrent
 			}
 		}
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		if (m_peer_info)
+		if (m_peer_info && type() == bittorrent_connection)
 		{
 			policy::const_iterator i = t->get_policy().begin_peer();
 			policy::const_iterator end = t->get_policy().end_peer();

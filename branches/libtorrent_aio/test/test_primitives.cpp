@@ -464,6 +464,22 @@ int test_main()
 	}
 #endif
 
+	// make sure the retry interval keeps growing
+	// on failing announces
+	announce_entry ae("dummy");
+	int last = 0;
+	session_settings sett;
+	sett.tracker_backoff = 250;
+	for (int i = 0; i < 10; ++i)
+	{
+		ae.failed(sett, 5);
+		int delay = ae.next_announce_in();
+		TEST_CHECK(delay > last);
+		last = delay;
+		fprintf(stderr, "%d, ", delay);
+	}
+	fprintf(stderr, "\n");
+
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
 	char private_key[1192];
@@ -702,6 +718,11 @@ int test_main()
 		TEST_EQUAL(pb.size(), 3);
 		TEST_EQUAL(pb.span(), 501 - 123);
 		TEST_EQUAL(pb.capacity(), 512);
+
+		pb.insert(500, (void*)501);
+		TEST_EQUAL(pb.size(), 3);
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
 
 		TEST_CHECK(pb.remove(123) == (void*)123);
 		TEST_EQUAL(pb.size(), 2);

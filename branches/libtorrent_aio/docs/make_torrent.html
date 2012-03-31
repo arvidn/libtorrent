@@ -127,15 +127,15 @@ bencode(std::ostream_iterator&lt;char&gt;(out), t.generate());
 <blockquote>
 <pre class="literal-block">
 template &lt;class Pred&gt;
-void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path, Pred p
+void add_files(file_storage&amp; fs, std::string const&amp; path, Pred p
         , boost::uint32_t flags = 0);
 template &lt;class Pred&gt;
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path, Pred p
+void add_files(file_storage&amp; fs, std::wstring const&amp; path, Pred p
         , boost::uint32_t flags = 0);
 
-void add_files(file_storage&amp; fs, boost::filesystem::path const&amp; path
+void add_files(file_storage&amp; fs, std::string const&amp; path
         , boost::uint32_t flags = 0);
-void add_files(file_storage&amp; fs, boost::filesystem::wpath const&amp; path
+void add_files(file_storage&amp; fs, std::wstring const&amp; path
         , boost::uint32_t flags = 0);
 </pre>
 </blockquote>
@@ -145,11 +145,11 @@ refers to a diretory, files will be added recursively from the directory.</p>
 is encountered. files for which <tt class="docutils literal"><span class="pre">p</span></tt> returns true are added, and directories for
 which <tt class="docutils literal"><span class="pre">p</span></tt> returns true are traversed. <tt class="docutils literal"><span class="pre">p</span></tt> must have the following signature:</p>
 <pre class="literal-block">
-bool Pred(boost::filesystem::path const&amp; p);
+bool Pred(std::string const&amp; p);
 </pre>
-<p>and for the wpath version:</p>
+<p>and for the wide string version:</p>
 <pre class="literal-block">
-bool Pred(boost::filesystem::wpath const&amp; p);
+bool Pred(std::wstring const&amp; p);
 </pre>
 <p>The path that is passed in to the predicate is the full path of the file or
 directory. If no predicate is specified, all files are added, and all directories
@@ -163,21 +163,21 @@ constructor.</p>
 <blockquote>
 <pre class="literal-block">
 template &lt;class Fun&gt;
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f);
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p, Fun f);
 template &lt;class Fun&gt;
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p, Fun f);
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p, Fun f);
 template &lt;class Fun&gt;
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p, Fun f
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p, Fun f
         , error_code&amp; ec);
 template &lt;class Fun&gt;
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p, Fun f
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p, Fun f
         , error_code&amp; ec);
 
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p);
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p);
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::path const&amp; p
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p);
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p);
+void set_piece_hashes(create_torrent&amp; t, std::string const&amp; p
         , error_code&amp; ec);
-void set_piece_hashes(create_torrent&amp; t, boost::filesystem::wpath const&amp; p
+void set_piece_hashes(create_torrent&amp; t, std::wstring const&amp; p
         , error_code&amp; ec);
 </pre>
 </blockquote>
@@ -211,8 +211,8 @@ public:
         };
 
         void add_file(file_entry const&amp; e);
-        void add_file(fs::path const&amp; p, size_type size, int flags = 0);
-        void add_file(fs::wpath const&amp; p, size_type size, int flags = 0);
+        void add_file(std::string const&amp; p, size_type size, int flags = 0);
+        void add_file(std::wstring const&amp; p, size_type size, int flags = 0);
         void rename_file(int index, std::string const&amp; new_filename);
         void rename_file(int index, std::wstring const&amp; new_filename);
 
@@ -220,8 +220,8 @@ public:
                 , int size) const;
         peer_request map_file(int file, size_type offset, int size) const;
 
-        typedef std::vector&lt;file_entry&gt;::const_iterator iterator;
-        typedef std::vector&lt;file_entry&gt;::const_reverse_iterator reverse_iterator;
+        typedef std::vector&lt;internal_file_entry&gt;::const_iterator iterator;
+        typedef std::vector&lt;internal_file_entry&gt;::const_reverse_iterator reverse_iterator;
 
         iterator begin() const;
         iterator end() const;
@@ -229,7 +229,7 @@ public:
         reverse_iterator rend() const;
         int num_files() const;
 
-        file_entry const&amp; at(int index) const;
+        file_entry at(int index) const;
 
         size_type total_size() const;
         void set_num_pieces(int n);
@@ -238,12 +238,12 @@ public:
         int piece_length() const;
         int piece_size(int index) const;
 
-        sha1_hash const&amp; hash(internal_file_entry const&amp; fe) const;
-        std::string const&amp; symlink(internal_file_entry const&amp; fe) const;
-        time_t mtime(internal_file_entry const&amp; fe) const;
-        int file_index(internal_file_entry const&amp; fe) const;
-        size_type file_base(internal_file_entry const&amp; fe) const;
-        void set_file_base(internal_file_entry const&amp; fe, size_type off);
+        sha1_hash const&amp; hash(int index) const;
+        std::string const&amp; symlink(int index) const;
+        time_t mtime(int index) const;
+        int file_index(int index) const;
+        size_type file_base(int index) const;
+        void set_file_base(int index, size_type off);
 
         void set_name(std::string const&amp; n);
         void set_name(std::wstring const&amp; n);
@@ -281,18 +281,14 @@ make sure this requirement is fulfilled.</p>
 <h2>hash() symlink() mtime() file_index()</h2>
 <blockquote>
 <pre class="literal-block">
-sha1_hash hash(internal_file_entry const&amp; fe) const;
-std::string const&amp; symlink(internal_file_entry const&amp; fe) const;
-time_t mtime(internal_file_entry const&amp; fe) const;
-int file_index(internal_file_entry const&amp; fe) const;
+sha1_hash hash(int index) const;
+std::string const&amp; symlink(int index) const;
+time_t mtime(int index) const;
+int file_index(int index) const;
 </pre>
 </blockquote>
 <p>These functions are used to query the symlink, file hash,
-modification time and the file-index from a <tt class="docutils literal"><span class="pre">internal_file_entry</span></tt>,
-which typically would be acquired from an iterator.</p>
-<p>For these functions to function, the file entry must be an
-actual object from this same <tt class="docutils literal"><span class="pre">file_storage</span></tt> object. It may
-not be a copy.</p>
+modification time and the file-index from a file index.</p>
 <p>The file hash is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
 join a bittorrent network with other file sharing networks.</p>
@@ -305,8 +301,8 @@ file as they are ordered in the torrent file.</p>
 <h2>file_base() set_file_base()</h2>
 <blockquote>
 <pre class="literal-block">
-size_type file_base(internal_file_entry const&amp; fe) const;
-void set_file_base(internal_file_entry const&amp; fe, size_type off);
+size_type file_base(int index) const;
+void set_file_base(int index, size_type off);
 </pre>
 </blockquote>
 <p>The file base of a file is the offset within the file on the filsystem

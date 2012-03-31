@@ -56,7 +56,7 @@ namespace libtorrent
 
 	namespace detail
 	{
-		int TORRENT_EXPORT get_file_attributes(std::string const& p)
+		int get_file_attributes(std::string const& p)
 		{
 #ifdef TORRENT_WINDOWS
 
@@ -95,7 +95,7 @@ namespace libtorrent
 		}
 #endif
 
-		std::string TORRENT_EXPORT get_symlink_path(std::string const& p)
+		std::string get_symlink_path(std::string const& p)
 		{
 #if defined TORRENT_WINDOWS
 			return "";

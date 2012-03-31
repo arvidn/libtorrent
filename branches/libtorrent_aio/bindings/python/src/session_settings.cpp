@@ -173,6 +173,8 @@ void bind_session_settings()
         .def_readwrite("enable_incoming_tcp", &session_settings::enable_incoming_tcp)
         .def_readwrite("enable_outgoing_utp", &session_settings::enable_outgoing_utp)
         .def_readwrite("enable_incoming_utp", &session_settings::enable_incoming_utp)
+        .def_readwrite("ssl_listen", &session_settings::ssl_listen)
+        .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
     ;
 
     enum_<proxy_settings::proxy_type>("proxy_type")

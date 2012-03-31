@@ -1342,6 +1342,7 @@ namespace libtorrent
 		, aio_max(300)
 		, network_threads(0)
 		, ssl_listen(4433)
+		, tracker_backoff(250)
 	{}
 
 	session_settings::~session_settings() {}

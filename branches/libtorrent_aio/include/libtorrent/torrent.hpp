@@ -137,7 +137,7 @@ namespace libtorrent
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
 #endif
@@ -369,42 +369,12 @@ namespace libtorrent
 			m_web_seeds.push_back(web_seed_entry(url, type, auth, extra_headers));
 		}
 	
-		void remove_web_seed(std::string const& url, web_seed_entry::type_t type)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::url, _1)
-					== url && boost::bind(&web_seed_entry::type, _1) == type));
-			if (i != m_web_seeds.end()) remove_web_seed(i);
-		}
-
-		void disconnect_web_seed(peer_connection* p)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			// this happens if the web server responded with a redirect
-			// or with something incorrect, so that we removed the web seed
-			// immediately, before we disconnected
-			if (i == m_web_seeds.end()) return;
-
-			TORRENT_ASSERT(i->resolving == false);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
-#endif
-			TORRENT_ASSERT(i->connection);
-			i->connection = 0;
-		}
+		void remove_web_seed(std::string const& url, web_seed_entry::type_t type);
+		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
 
-		void remove_web_seed(peer_connection* p)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			TORRENT_ASSERT(i != m_web_seeds.end());
-			if (i == m_web_seeds.end()) return;
-			m_web_seeds.erase(i);
-		}
+		void remove_web_seed(peer_connection* p);
 
 		std::list<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }

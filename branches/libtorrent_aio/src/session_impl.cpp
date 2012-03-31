@@ -459,6 +459,8 @@ namespace aux {
 		TORRENT_SETTING(integer, checking_mem_usage)
 		TORRENT_SETTING(integer, predictive_piece_announce)
 		TORRENT_SETTING(boolean, contiguous_recv_buffer)
+		TORRENT_SETTING(integer, ssl_listen)
+		TORRENT_SETTING(integer, tracker_backoff)
 	};
 
 #undef TORRENT_SETTING
@@ -6256,7 +6258,7 @@ namespace aux {
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
 			}
-			if (t && p->peer_info_struct())
+			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
 			{
 				TORRENT_ASSERT(t->get_policy().has_connection(p));
 			}
