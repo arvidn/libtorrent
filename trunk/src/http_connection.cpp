@@ -694,6 +694,9 @@ void http_connection::on_write(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_write");
 #endif
+
+	if (e == asio::error::operation_aborted) return;
+
 	if (e)
 	{
 		boost::shared_ptr<http_connection> me(shared_from_this());
@@ -741,6 +744,8 @@ void http_connection::on_read(error_code const& e
 		m_download_quota -= bytes_transferred;
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
+
+	if (e == asio::error::operation_aborted) return;
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
