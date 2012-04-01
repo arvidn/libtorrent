@@ -269,7 +269,11 @@ namespace libtorrent
 
 	void piece_picker::check_invariant(const torrent* t) const
 	{
+#if TORRENT_COMPACT_PICKER
 		TORRENT_ASSERT(sizeof(piece_pos) == 4);
+#else
+		TORRENT_ASSERT(sizeof(piece_pos) == 8);
+#endif
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 		TORRENT_ASSERT(m_num_filtered >= 0);
