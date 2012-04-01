@@ -399,6 +399,12 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif
 
+// if set to true, piece picker will use less RAM
+// but only support up to ~260000 pieces in a torrent
+#ifndef TORRENT_COMPACT_PICKER
+#define TORRENT_COMPACT_PICKER 0
+#endif
+
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
 #endif

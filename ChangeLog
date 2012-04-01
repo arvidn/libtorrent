@@ -1,6 +1,7 @@
 
 0.16 release
 
+	* support torrents with more than 262000 pieces
 	* make tracker back-off configurable
 	* don't restart the swarm after downloading metadata from magnet links
 	* lower the default tracker retry intervals
