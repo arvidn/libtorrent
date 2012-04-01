@@ -387,11 +387,15 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-			unsigned peer_count : 9;
+#if TORRENT_COMPACT_PICKER
+			boost::uint32_t peer_count : 9;
+#else
+			boost::uint32_t peer_count : 16;
+#endif
 			// is 1 if the piece is marked as being downloaded
-			unsigned downloading : 1;
+			boost::uint32_t downloading : 1;
 			// set when downloading, but no free blocks to request left
-			unsigned full : 1;
+			boost::uint32_t full : 1;
 			// is 0 if the piece is filtered (not to be downloaded)
 			// 1 is normal priority (default)
 			// 2 is higher priority than pieces at the same availability level
@@ -399,20 +403,32 @@ namespace libtorrent
 			// 4 is higher priority than partial pieces
 			// 5 and 6 same priority as availability 1 (ignores availability)
 			// 7 is maximum priority (ignores availability)
-			unsigned piece_priority : 3;
+			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
-			unsigned index : 18;
+#if TORRENT_COMPACT_PICKER
+			boost::uint32_t index : 18;
+#else
+			boost::uint32_t index;
+#endif
 
 			enum
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
+#if TORRENT_COMPACT_PICKER
 				we_have_index = 0x3ffff,
+#else
+				we_have_index = 0xffffffff,
+#endif
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
+#if TORRENT_COMPACT_PICKER
 				max_peer_count = 0x1ff
+#else
+				max_peer_count = 0xffff
+#endif
 			};
 			
 			bool have() const { return index == we_have_index; }
@@ -469,7 +485,11 @@ namespace libtorrent
 
 	private:
 
+#if TORRENT_COMPACT_PICKER
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+#else
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+#endif
 
 		void update_pieces() const;
 
