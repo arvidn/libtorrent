@@ -429,7 +429,7 @@ namespace libtorrent
 			}
 
 			// if no interval is specified, default to 30 minutes
-			if (interval == 0) interval == 1800;
+			if (interval == 0) interval = 1800;
 
 			int complete = int(scrape_data->dict_find_int_value("complete", -1));
 			int incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));

@@ -114,7 +114,7 @@ std::string demangle(char const* name) { return name; }
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
-void print_backtrace(char* out, int len)
+void print_backtrace(char* out, int len, int max_depth)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
@@ -125,6 +125,7 @@ void print_backtrace(char* out, int len)
 		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
+		if (i - 1 == max_depth && max_depth > 0) break;
 	}
 
 	free(symbols);
@@ -141,7 +142,7 @@ void print_backtrace(char* out, int len)
 #include "winbase.h"
 #include "dbghelp.h"
 
-void print_backtrace(char* out, int len)
+void print_backtrace(char* out, int len, int max_depth)
 {
 	typedef USHORT (*RtlCaptureStackBackTrace_t)(
 		__in ULONG FramesToSkip,
@@ -188,13 +189,15 @@ void print_backtrace(char* out, int len)
 
 		out += ret;
 		len -= ret;
+		if (i == max_depth && max_depth > 0) break;
 	}
 	free(symbol);
 }
 
 #else
 
-void print_backtrace(char* out, int len) { out[0] = 0; }
+void print_backtrace(char* out, int len, int max_depth)
+{ out[0] = 0; }
 
 #endif
 
@@ -213,7 +216,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 #endif
 
 	char stack[8192];
-	print_backtrace(stack, sizeof(stack));
+	print_backtrace(stack, sizeof(stack), 0);
 
 	fprintf(out, "assertion failed. Please file a bugreport at "
 		"http://code.rasterbar.com/libtorrent/newticket\n"
