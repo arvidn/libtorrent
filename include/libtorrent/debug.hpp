@@ -62,7 +62,7 @@ namespace libtorrent
 		if (a.stack.empty())
 		{
 			char stack_text[10000];
-			print_backtrace(stack_text, sizeof(stack_text));
+			print_backtrace(stack_text, sizeof(stack_text), 9);
 			a.stack = stack_text;
 		}
 		++a.refs;
