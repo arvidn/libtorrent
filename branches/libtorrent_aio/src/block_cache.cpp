@@ -222,6 +222,11 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 
 	TORRENT_ASSERT(cache_state < cached_piece_entry::num_lrus);
 
+	// we're assuming we're not allocating a ghost piece
+	// a bit further down
+	TORRENT_ASSERT(cache_state != cached_piece_entry::read_lru1_ghost
+		&& cache_state != cached_piece_entry::read_lru2_ghost);
+
 	cached_piece_entry* p = find_piece(j);
 	if (p == 0)
 	{
@@ -259,7 +264,9 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		// we want to retain the piece now
 		p->marked_for_deletion = false;
 
-		if (p->cache_state != cache_state)
+		// only allow changing the cache state downwards. i.e. turn a ghost
+		// piece into a non-ghost, or a read piece into a write piece
+		if (p->cache_state > cache_state)
 		{
 			// this can happen for instance if a piece fails the hash check
 			// first it's in the write cache, then it completes and is moved

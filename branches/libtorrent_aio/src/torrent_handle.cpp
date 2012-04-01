@@ -855,10 +855,10 @@ namespace libtorrent
 		return r;
 	}
 
-	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source) const
+	void torrent_handle::connect_peer(tcp::endpoint const& adr, int source, int flags) const
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL2(add_peer, adr, source);
+		TORRENT_ASYNC_CALL3(add_peer, adr, source, flags);
 	}
 
 	void torrent_handle::force_reannounce(

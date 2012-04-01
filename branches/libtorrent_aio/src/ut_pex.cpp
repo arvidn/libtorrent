@@ -335,7 +335,6 @@ namespace libtorrent { namespace
 				char const* in = p->string_ptr();
 				char const* fin = pf->string_ptr();
 
-				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -352,7 +351,7 @@ namespace libtorrent { namespace
 					// do we already know about this peer?
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
-					p.add_peer(adr, pid, peer_info::pex, flags);
+					m_torrent.add_peer(adr, peer_info::pex, flags);
 				} 
 			}
 
@@ -391,7 +390,6 @@ namespace libtorrent { namespace
 				char const* in = p6->string_ptr();
 				char const* fin = p6f->string_ptr();
 
-				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -406,7 +404,7 @@ namespace libtorrent { namespace
 					// do we already know about this peer?
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
-					p.add_peer(adr, pid, peer_info::pex, flags);
+					m_torrent.add_peer(adr, peer_info::pex, flags);
 				} 
 			}
 #endif

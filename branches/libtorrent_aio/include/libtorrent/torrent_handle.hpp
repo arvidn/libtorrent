@@ -390,7 +390,7 @@ namespace libtorrent
 		void set_sequential_download(bool sd) const;
 
 		// manually connect a peer
-		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 		std::string save_path() const;
 

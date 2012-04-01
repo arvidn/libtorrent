@@ -409,7 +409,7 @@ namespace libtorrent
 		void update_want_scrape();
 
 		bool try_connect_peer();
-		void add_peer(tcp::endpoint const& adr, int source);
+		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }

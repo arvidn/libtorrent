@@ -7877,6 +7877,8 @@ namespace libtorrent
 		if (prio_updated)
 			m_policy.recalculate_connect_candidates();
 
+		update_want_more_peers();
+
 		// now, rarest_pieces is a list of all pieces that are the rarest ones.
 		// and rarest_rarity is the number of peers that have the rarest pieces
 
@@ -7899,6 +7901,7 @@ namespace libtorrent
 		update_peer_interest(was_finished);
 
 		m_policy.recalculate_connect_candidates();
+		update_want_more_peers();
 	}
 
 	void torrent::refresh_explicit_cache(int cache_size)
@@ -8188,10 +8191,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(want_more_peers());
 		bool ret = m_policy.connect_one_peer(m_ses.session_time());
+		update_want_more_peers();
 		return ret;
 	}
 
-	void torrent::add_peer(tcp::endpoint const& adr, int source)
+	void torrent::add_peer(tcp::endpoint const& adr, int source, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		peer_id id(0);

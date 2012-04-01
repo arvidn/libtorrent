@@ -2856,11 +2856,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(prev_prio < int(m_priority_boundries.size())
 				|| m_dirty);
-			int prio = p.priority(this);
 			erase_download_piece(i);
+			int prio = p.priority(this);
 			if (!m_dirty)
 			{
-				TORRENT_ASSERT(prev_prio >= 0);
 				if (prev_prio == -1 && prio >= 0) add(block.piece_index);
 				else if (prev_prio >= 0) update(prev_prio, p.index);
 			}

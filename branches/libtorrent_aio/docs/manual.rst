@@ -2335,7 +2335,7 @@ Its declaration looks like this::
 		void force_dht_announce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
 		void scrape_tracker() const;
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -2780,7 +2780,7 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
@@ -2790,6 +2790,22 @@ will throw libtorrent_exception_. The second (optional) argument will be bitwise
 the source mask of this peer. Typically this is one of the source flags in peer_info_.
 i.e. ``tracker``, ``pex``, ``dht`` etc.
 
+``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
+
+==== ==========================================
+0x01 peer supports encryption
+
+0x02 peer is a seed
+
+0x04 supports uTP. This is only a positive flags
+     passing 0 doesn't mean the peer doesn't
+     support uTP
+
+0x08 supports holepunching protocol. If this
+     flag is received from a peer, it can be
+     used as a rendezvous point in case direct
+     connections to the peer fail
+==== ==========================================
 
 name()
 ------
