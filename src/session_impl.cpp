@@ -5502,7 +5502,7 @@ namespace aux {
 		{
 			sleep(1000);
 			++counter;
-			printf("\n==== Waiting to shut down: %d ==== \n\n", counter);
+			printf("\n==== Waiting to shut down: %d ==== conn-queue: %d\n\n", counter, m_half_open.size());
 		}
 		async_dec_threads();
 #endif
