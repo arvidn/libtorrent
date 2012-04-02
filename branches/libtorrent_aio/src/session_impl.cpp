@@ -4019,9 +4019,9 @@ namespace aux {
 			STAT_LOG(d, m_connect_timeouts);
 			STAT_LOG(d, m_uninteresting_peers);
 			STAT_LOG(d, m_timeout_peers);
-			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()));
-			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download()));
-			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()));
+			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
+			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
+			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_queue_time) / 1000000.f);
@@ -4118,7 +4118,7 @@ namespace aux {
 				/ double(tick_interval_ms * 10));
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
-				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes));
+				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
 
 			STAT_LOG(d, m_no_memory_peers);
 			STAT_LOG(d, m_too_many_peers);

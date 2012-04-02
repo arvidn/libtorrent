@@ -438,7 +438,11 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
+#if TORRENT_COMPACT_PICKER
 			boost::uint32_t peer_count : 9;
+#else
+			boost::uint32_t peer_count : 16;
+#endif
 
 			// state of this piece.
 			enum state_t
@@ -465,18 +469,30 @@ namespace libtorrent
 			// 7 is maximum priority (ignores availability)
 			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
+#if TORRENT_COMPACT_PICKER
 			boost::uint32_t index : 18;
+#else
+			boost::uint32_t index;
+#endif
 
 			enum
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
+#if TORRENT_COMPACT_PICKER
 				we_have_index = 0x3ffff,
+#else
+				we_have_index = 0xffffffff,
+#endif
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
+#if TORRENT_COMPACT_PICKER
 				max_peer_count = 0x1ff
+#else
+				max_peer_count = 0xffff
+#endif
 			};
 			
 			bool have() const { return index == we_have_index; }
@@ -535,7 +551,11 @@ namespace libtorrent
 
 	private:
 
+#if TORRENT_COMPACT_PICKER
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+#else
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+#endif
 
 		void update_pieces() const;
 
@@ -647,7 +667,11 @@ namespace libtorrent
 		mutable bool m_dirty;
 	public:
 
+#if TORRENT_COMPACT_PICKER
 		enum { max_pieces = piece_pos::we_have_index - 1 };
+#else
+		enum { max_pieces = INT_MAX };
+#endif
 
 	};
 }
