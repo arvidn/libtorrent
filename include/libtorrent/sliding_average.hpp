@@ -88,7 +88,7 @@ struct average_accumulator
 	{
 		int ret;
 		if (m_num_samples == 0) ret = 0;
-		else ret = m_sample_sum / m_num_samples;
+		else ret = int(m_sample_sum / m_num_samples);
 		m_num_samples = 0;
 		m_sample_sum = 0;
 		return ret;
