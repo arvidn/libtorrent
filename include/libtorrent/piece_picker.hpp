@@ -595,7 +595,11 @@ namespace libtorrent
 		mutable bool m_dirty;
 	public:
 
+#if TORRENT_COMPACT_PICKER
 		enum { max_pieces = piece_pos::we_have_index - 1 };
+#else
+		enum { max_pieces = INT_MAX };
+#endif
 
 	};
 }
