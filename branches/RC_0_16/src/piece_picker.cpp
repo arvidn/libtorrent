@@ -606,6 +606,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!m_dirty);
 		TORRENT_ASSERT(priority >= 0);
+		TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+		TORRENT_ASSERT(elem_index >= 0);
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "remove " << m_pieces[elem_index] << " (" << priority << ")" << std::endl;
