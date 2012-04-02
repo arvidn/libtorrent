@@ -2011,6 +2011,10 @@ namespace libtorrent
 			disconnect(errors::uninteresting_upload_peer);
 			return;
 		}
+
+#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 	}
 
 	// -----------------------------

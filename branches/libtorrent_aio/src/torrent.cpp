@@ -944,7 +944,12 @@ namespace libtorrent
 			bt_peer_connection* p = (bt_peer_connection*)*i;
 			++i;
 			if (p->type() == peer_connection::bittorrent_connection)
+			{
+				boost::intrusive_ptr<peer_connection> me(p);
+				p->send_not_interested();
+				if (p->is_disconnecting()) continue;
 				p->write_upload_only();
+			}
 			p->disconnect_if_redundant();
 		}
 #endif
