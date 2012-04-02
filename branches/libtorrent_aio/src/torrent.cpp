@@ -856,6 +856,13 @@ namespace libtorrent
 			m_apply_ip_filter = true;
 		}
 
+		TORRENT_ASSERT(m_abort);
+
+		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
+		{
+			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
+		}
+
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
