@@ -849,21 +849,15 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
-		if (!m_apply_ip_filter)
-		{
-			TORRENT_ASSERT(m_ses.m_non_filtered_torrents > 0);
-			--m_ses.m_non_filtered_torrents;
-			m_apply_ip_filter = true;
-		}
-
 		TORRENT_ASSERT(m_abort);
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
 		{
 			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
 		}
+#endif
 
-		TORRENT_ASSERT(m_ses.is_network_thread());
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
 		// reset, which means that all its peers already have an
@@ -885,6 +879,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_abort);
+		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
 			disconnect_all(errors::torrent_aborted);
 	}
@@ -3786,6 +3781,20 @@ namespace libtorrent
 		
 		m_owning_storage = 0;
 		m_ses.m_host_resolver.cancel();
+
+		if (!m_apply_ip_filter)
+		{
+			TORRENT_ASSERT(m_ses.m_non_filtered_torrents > 0);
+			--m_ses.m_non_filtered_torrents;
+			m_apply_ip_filter = true;
+		}
+
+		m_allow_peers = false;
+		m_auto_managed = false;
+		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
+		{
+			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
+		}
 	}
 
 	void torrent::super_seeding(bool on)
@@ -4910,6 +4919,8 @@ namespace libtorrent
 	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+		if (m_abort) return;
+
 		if (m_apply_ip_filter
 			&& m_ses.m_ip_filter.access(a.address()) & ip_filter::blocked)
 		{
@@ -5806,6 +5817,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(peerinfo);
 		TORRENT_ASSERT(peerinfo->connection == 0);
+
+		if (m_abort) return false;
 
 		peerinfo->last_connected = m_ses.session_time();
 #ifdef TORRENT_DEBUG

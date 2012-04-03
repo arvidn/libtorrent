@@ -237,6 +237,7 @@ namespace libtorrent
 			async_handler* handler;
 			// used to keep the file alive while
 			// waiting for the async operation
+			// TODO: could this be moved into the handler?
 			boost::intrusive_ptr<file> file_ptr;
 
 			// when coalescing reads/writes, this is the buffer
