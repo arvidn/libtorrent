@@ -521,7 +521,6 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 				continue;
 			}
 
-			TORRENT_ASSERT(pe->num_dirty == 0);
 			// all blocks in this piece are dirty
 			if (pe->num_dirty == pe->num_blocks)
 			{
