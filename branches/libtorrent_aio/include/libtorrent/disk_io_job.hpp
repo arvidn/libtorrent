@@ -217,6 +217,8 @@ namespace libtorrent
 #endif
 	};
 
+	bool is_job_immediate(int type);
+
 }
 
 #endif // TORRENT_DISK_IO_JOB_HPP

@@ -1097,7 +1097,9 @@ namespace libtorrent
 		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
 
 		// is the fence up for this storage?
-		if (j->storage && j->storage->has_fence())
+		// jobs that are instantaneous are not affected by the fence
+		if (j->storage && j->storage->has_fence()
+			&& !is_job_immediate(j->action))
 		{
 			DLOG(stderr, "[%p]   perform_async_job: blocked\n", this);
 			// Yes it is! We're not allowed
@@ -2263,9 +2265,9 @@ namespace libtorrent
 
 	void disk_io_thread::signal_handler(int signal, siginfo_t* si, void*)
 	{
-		if (signal != TORRENT_AIO_SIGNAL) return;
+		DLOG(stderr, "*** signal_handler: %d siginfo: %p\n", signal, si->si_value.sival_ptr);
 
-		DLOG(stderr, "*** signal_handler\n");
+		if (signal != TORRENT_AIO_SIGNAL) return;
 
 		++g_completed_aios;
 		// wake up the disk thread to
@@ -2389,7 +2391,9 @@ namespace libtorrent
 		sa.sa_sigaction = &disk_io_thread::signal_handler;
 		sigemptyset(&sa.sa_mask);
 
-		if (sigaction(TORRENT_AIO_SIGNAL, &sa, 0) == -1)
+		int ret = sigaction(TORRENT_AIO_SIGNAL, &sa, 0);
+		DLOG(stderr, "[%p] sigaction() = %d\n", this, ret);
+		if (ret == -1)
 		{
 			TORRENT_ASSERT(false);
 		}
