@@ -369,7 +369,7 @@ namespace libtorrent
 #ifndef O_EXLOCK
 #define O_EXLOCK 0
 #endif
-			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC);
+			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0 && m_post_alert)
 			{
 				error_code ec(errno, boost::system::get_posix_category());

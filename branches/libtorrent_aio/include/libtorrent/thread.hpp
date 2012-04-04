@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
+#include <boost/cstdint.hpp>
 
 #if TORRENT_USE_POSIX_SEMAPHORE
 #include <semaphore.h>      // sem_*
