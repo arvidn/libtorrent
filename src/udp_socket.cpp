@@ -1243,7 +1243,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
-	if (m_quota < m_rate_limit) m_quota += m_rate_limit * total_milliseconds(delta) / 1000;
+	if (m_quota < m_rate_limit) m_quota += boost::uint64_t(m_rate_limit) * total_milliseconds(delta) / 1000;
 
 	if (m_queue.empty()) return;
 
