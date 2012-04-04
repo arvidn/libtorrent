@@ -71,11 +71,11 @@ namespace libtorrent
 			: piece_index(p_index)
 			, block_index(b_index)
 		{
-			TORRENT_ASSERT(p_index < (1 << 18));
-			TORRENT_ASSERT(b_index < (1 << 14));
+			TORRENT_ASSERT(p_index < (1 << 19));
+			TORRENT_ASSERT(b_index < (1 << 13));
 		}
-		boost::uint32_t piece_index:18;
-		boost::uint32_t block_index:14;
+		boost::uint32_t piece_index:19;
+		boost::uint32_t block_index:13;
 
 		bool operator<(piece_block const& b) const
 		{
@@ -670,7 +670,8 @@ namespace libtorrent
 #if TORRENT_COMPACT_PICKER
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 #else
-		enum { max_pieces = INT_MAX };
+		// still limited by piece_block
+		enum { max_pieces = (1 << 19) - 2 };
 #endif
 
 	};
