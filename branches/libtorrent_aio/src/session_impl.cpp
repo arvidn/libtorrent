@@ -3110,12 +3110,13 @@ namespace aux {
 
 		// we have to keep ticking the utp socket manager
 		// until they're all closed
-		if (m_abort && m_utp_socket_manager.num_sockets() == 0)
+		if (m_abort)
 		{
+			if (m_utp_socket_manager.num_sockets() == 0)
+				return;
 #if defined TORRENT_ASIO_DEBUGGING
 			fprintf(stderr, "uTP sockets left: %d\n", m_utp_socket_manager.num_sockets());
 #endif
-			return;
 		}
 
 		if (e == asio::error::operation_aborted) return;
