@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_IOSUBMIT
 #include <libaio.h>
+#include <sys/eventfd.h>
 #endif
 
 
