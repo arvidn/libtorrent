@@ -86,7 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
 #if BOOST_VERSION >= 104700
-#include <boost/asio/ssl/rfc2818_verification.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
 #endif // BOOST_VERSION
 #endif // TORRENT_USE_OPENSSL
@@ -4655,28 +4654,13 @@ namespace libtorrent
 			str->set_dst_name(hostname);
 		}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
-		// for SSL connections, make sure to authenticate the hostname
-		// of the certificate
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		s->get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
-		break;
-
-		switch(s->type())
-		{
-			CASE(stream_socket)
-			CASE(socks5_stream)
-			CASE(http_stream)
-			CASE(utp_stream)
-		}
+		setup_ssl_hostname(*s, hostname, ec);
 		if (ec)
 		{
 			if (m_ses.m_alerts.should_post<url_seed_alert>())
 				m_ses.m_alerts.post_alert(url_seed_alert(get_handle(), web->url, ec));
 			return;
 		}
-#undef CASE
-#endif
 
 		boost::intrusive_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
