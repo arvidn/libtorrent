@@ -34,6 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
+
+#if BOOST_VERSION >= 104700
+#include <boost/asio/ssl/rfc2818_verification.hpp>
+#endif
+
 #endif
 
 namespace libtorrent
@@ -56,6 +61,76 @@ namespace libtorrent
 #else
 		return false;
 #endif
+	}
+
+	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
+	{
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+		// for SSL connections, make sure to authenticate the hostname
+		// of the certificate
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+		s.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
+		ctx = SSL_get_SSL_CTX(s.get<ssl_stream<t> >()->native_handle()); \
+		break;
+
+		SSL_CTX* ctx = 0;
+
+		switch(s.type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+		}
+#undef CASE
+
+		if (ctx)
+		{
+			SSL_CTX_set_tlsext_servername_callback(ctx, 0);
+			SSL_CTX_set_tlsext_servername_arg(ctx, 0);
+		}
+#endif
+	}
+
+	void on_close_socket(socket_type* s, boost::shared_ptr<void> holder)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("on_close_socket");
+#endif
+		error_code ec;
+		s->close(ec);
+	}
+
+	// the second argument is a shared pointer to an object that
+	// will keep the socket (s) alive for the duration of the async operation
+	void async_shutdown(socket_type& s, boost::shared_ptr<void> holder)
+	{
+		error_code e;
+
+#ifdef TORRENT_USE_OPENSSL
+		// for SSL connections, first do an async_shutdown, before closing the socket
+#if defined TORRENT_ASIO_DEBUGGING
+#define MAYBE_ASIO_DEBUGGING add_outstanding_async("on_close_socket");
+#else
+#define MAYBE_ASIO_DEBUGGING
+#endif
+#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+	MAYBE_ASIO_DEBUGGING \
+	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \
+	break;
+
+		switch(s.type())
+		{
+			CASE(stream_socket)
+			CASE(socks5_stream)
+			CASE(http_stream)
+			CASE(utp_stream)
+			default: s.close(e); break;
+		}
+#undef CASE
+#else
+		s.close(e);
+#endif // TORRENT_USE_OPENSSL
 	}
 
 	void socket_type::destruct()
