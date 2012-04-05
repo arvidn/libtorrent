@@ -37,13 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/socket_type.hpp" // for async_shutdown
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
-
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
-#include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
 #include <boost/bind.hpp>
@@ -92,10 +89,6 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
-	// TODO: if we were handed an SSL context, we should really
-	// verify the hostname of the web server as well. This is supported
-	// in boost starting with version 1.47.0. See ssl::rfc2818_verification
-	// and ssl::context::set_verify_callback
 }
 
 http_connection::~http_connection()
@@ -262,7 +255,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		m_ssl = ssl;
 		m_bind_addr = bind_addr;
 		error_code ec;
-		m_sock.close(ec);
+		if (m_sock.is_open()) m_sock.close(ec);
 
 #if TORRENT_USE_I2P
 		bool is_i2p = false;
@@ -340,30 +333,13 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
-		// for SSL connections, make sure to authenticate the hostname
-		// of the certificate
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		m_sock.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
-		break;
-
-		switch(m_sock.type())
-		{
-			CASE(stream_socket)
-			CASE(socks5_stream)
-			CASE(http_stream)
-			CASE(utp_stream)
-		}
-
+		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
 			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 				, me, ec, (char*)0, 0));
 			return;
 		}
-#undef CASE
-
-#endif
 
 #if TORRENT_USE_I2P
 		if (is_i2p)
@@ -443,7 +419,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 			add_outstanding_async("http_connection::on_timeout");
 #endif
 			error_code ec;
-			c->m_sock.close(ec);
+			async_shutdown(c->m_sock, c);
 			c->m_timer.expires_at((std::min)(
 				c->m_last_receive + c->m_read_timeout
 				, c->m_start_time + c->m_completion_timeout), ec);
@@ -470,11 +446,15 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 void http_connection::close()
 {
+	if (m_abort) return;
+
 	error_code ec;
 	m_timer.cancel(ec);
 	m_resolver.cancel();
 	m_limiter_timer.cancel(ec);
-	m_sock.close(ec);
+
+	async_shutdown(m_sock, shared_from_this());
+
 	m_hostname.clear();
 	m_port.clear();
 	m_handler.clear();
@@ -812,6 +792,10 @@ void http_connection::on_read(error_code const& e
 				}
 
 				error_code ec;
+				// it would be nice to gracefully shut down SSL here
+				// but then we'd have to do all the reconnect logic
+				// in its handler. For now, just kill the connection.
+//				async_shutdown(m_sock, shared_from_this());
 				m_sock.close(ec);
 				using boost::tuples::ignore;
 				boost::tie(ignore, ignore, ignore, ignore, ignore)

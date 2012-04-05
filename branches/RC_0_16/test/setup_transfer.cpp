@@ -600,7 +600,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 		system("echo test city >> tmp");
 		system("echo test company >> tmp");
 		system("echo test department >> tmp");
-		system("echo tester >> tmp");
+		system("echo 127.0.0.1 >> tmp");
 		system("echo test@test.com >> tmp");   
 		system("openssl req -new -x509 -keyout server.pem -out server.pem "
 			"-days 365 -nodes <tmp");
@@ -876,7 +876,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				s.async_read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), boost::bind(&on_read, _1, _2, &received, &ec, &done));
 				deadline_timer timer(ios);
-				timer.expires_at(time_now_hires() + seconds(100));
+				timer.expires_at(time_now_hires() + seconds(2));
 				timer.async_wait(boost::bind(&on_read_timeout, _1, &timed_out));
 
 				while (!done && !timed_out)
