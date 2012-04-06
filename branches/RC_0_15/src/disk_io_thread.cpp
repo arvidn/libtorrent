@@ -1589,20 +1589,22 @@ namespace libtorrent
 					m_log << log_time() << " update_settings " << std::endl;
 #endif
 					TORRENT_ASSERT(j.buffer);
-					session_settings const& s = *((session_settings*)j.buffer);
-					TORRENT_ASSERT(s.cache_size >= 0);
-					TORRENT_ASSERT(s.cache_expiry > 0);
+					session_settings const* s = ((session_settings*)j.buffer);
+					TORRENT_ASSERT(s->cache_size >= 0);
+					TORRENT_ASSERT(s->cache_expiry > 0);
 
 #if defined TORRENT_WINDOWS
-					if (m_settings.low_prio_disk != s.low_prio_disk)
+					if (m_settings.low_prio_disk != s->low_prio_disk)
 					{
-						m_file_pool.set_low_prio_io(s.low_prio_disk);
+						m_file_pool.set_low_prio_io(s->low_prio_disk);
 						// we need to close all files, since the prio
 						// only takes affect when files are opened
 						m_file_pool.release(0);
 					}
 #endif
-					m_settings = s;
+					m_settings = *s;
+					delete s;
+
 					m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 					setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
