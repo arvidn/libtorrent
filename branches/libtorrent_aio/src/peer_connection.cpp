@@ -3579,15 +3579,6 @@ namespace libtorrent
 		return;
 	}
 
-	void on_close_socket(boost::shared_ptr<socket_type> const& s)
-	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("on_close_socket");
-#endif
-		error_code ec;
-		s->close(ec);
-	}
-
 	// the error argument defaults to 0, which means deliberate disconnect
 	// 1 means unexpected disconnect/error
 	// 2 protocol error (client sent something invalid)
@@ -3813,29 +3804,7 @@ namespace libtorrent
 		m_disconnecting = true;
 		error_code e;
 
-#ifdef TORRENT_USE_OPENSSL
-		// for SSL connections, first do an async_shutdown, before closing the socket
-#if defined TORRENT_ASIO_DEBUGGING
-#define MAYBE_ASIO_DEBUGGING add_outstanding_async("on_close_socket");
-#else
-#define MAYBE_ASIO_DEBUGGING
-#endif
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		MAYBE_ASIO_DEBUGGING \
-		m_socket->get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, m_socket)); \
-		break;
-		switch(m_socket->type())
-		{
-			CASE(stream_socket)
-			CASE(socks5_stream)
-			CASE(http_stream)
-			CASE(utp_stream)
-			default: m_socket->close(e); break;
-		}
-#undef CASE
-#else
-	m_socket->close(e);
-#endif // TORRENT_USE_OPENSSL
+		async_shutdown(*m_socket, m_socket);
 
 		m_ses.close_connection(this, ec);
 
