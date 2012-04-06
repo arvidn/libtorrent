@@ -317,7 +317,7 @@ void run_elevator_test()
 		session_settings set;
 		set.use_read_cache = false;
 		disk_io_job j;
-		j.buffer = (char*)&set;
+		j.buffer = (char*)new session_settings(set);
 		j.action = disk_io_job::update_settings;
 		dio.add_job(j);
 
@@ -382,7 +382,7 @@ void run_elevator_test()
 
 		// test disabling disk-reordering
 		set.allow_reordered_disk_operations = false;
-		j.buffer = (char*)&set;
+		j.buffer = (char*)new session_settings(set);
 		j.action = disk_io_job::update_settings;
 		dio.add_job(j);
 
