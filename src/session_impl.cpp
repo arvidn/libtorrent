@@ -1222,7 +1222,7 @@ namespace aux {
 	void session_impl::update_disk_thread_settings()
 	{
 		disk_io_job j;
-		j.buffer = (char*)&m_settings;
+		j.buffer = (char*)new session_settings(m_settings);
 		j.action = disk_io_job::update_settings;
 		m_disk_thread.add_job(j);
 	}
