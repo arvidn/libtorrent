@@ -341,7 +341,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(session_settings* sett);
+		void set_settings(session_settings const& sett);
 		void reclaim_block(block_cache_reference ref);
 		void abort();
 		void join();

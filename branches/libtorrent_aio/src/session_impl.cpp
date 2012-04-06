@@ -1593,7 +1593,7 @@ namespace aux {
 
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 
-		m_disk_thread.set_settings(&m_settings);
+		m_disk_thread.set_settings(m_settings);
 
 		settings = e->dict_find_list("feeds");
 		if (settings)
@@ -2172,7 +2172,7 @@ namespace aux {
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
-			m_disk_thread.set_settings(&m_settings);
+			m_disk_thread.set_settings(m_settings);
 
 		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{

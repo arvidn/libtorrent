@@ -192,7 +192,7 @@ namespace libtorrent
 		sett.cache_size = 0;
 		sett.hashing_threads = 2;
 
-		disk_thread.set_settings(&sett);
+		disk_thread.set_settings(sett);
 
 		int piece_counter = 0;
 		int completed_piece = 0;

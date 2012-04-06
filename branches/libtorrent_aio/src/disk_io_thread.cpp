@@ -509,10 +509,10 @@ namespace libtorrent
 		add_job(j, true);
 	}
 
-	void disk_io_thread::set_settings(session_settings* sett)
+	void disk_io_thread::set_settings(session_settings const& sett)
 	{
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::update_settings);
-		j->buffer = (char*)sett;
+		j->buffer = (char*)new session_settings(sett);
 		add_job(j);
 	}
 
@@ -1813,41 +1813,43 @@ namespace libtorrent
 	int disk_io_thread::do_update_settings(disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->buffer);
-		session_settings const& s = *((session_settings*)j->buffer);
-		TORRENT_ASSERT(s.cache_size >= 0);
-		TORRENT_ASSERT(s.cache_expiry > 0);
+		session_settings* s = ((session_settings*)j->buffer);
+		TORRENT_ASSERT(s->cache_size >= 0);
+		TORRENT_ASSERT(s->cache_expiry > 0);
 		int block_size = m_disk_cache.block_size();
 
 #if defined TORRENT_WINDOWS
-		if (m_settings.low_prio_disk != s.low_prio_disk)
+		if (m_settings.low_prio_disk != s->low_prio_disk)
 		{
-			m_file_pool.set_low_prio_io(s.low_prio_disk);
+			m_file_pool.set_low_prio_io(s->low_prio_disk);
 			// we need to close all files, since the prio
 			// only takes affect when files are opened
 			m_file_pool.release(0);
 		}
 #endif
-		if (m_settings.hashing_threads != s.hashing_threads)
-			m_hash_thread.set_num_threads(s.hashing_threads);
+		if (m_settings.hashing_threads != s->hashing_threads)
+			m_hash_thread.set_num_threads(s->hashing_threads);
 
 #if TORRENT_USE_AIOINIT
-		if (m_settings.aio_threads != s.aio_threads
-			|| m_settings.aio_max != s.aio_max)
+		if (m_settings.aio_threads != s->aio_threads
+			|| m_settings.aio_max != s->aio_max)
 		{
 			aioinit a;
 			memset(&a, 0, sizeof(a));
-			a.aio_threads = s.aio_threads;
-			a.aio_num = s.aio_max;
+			a.aio_threads = s->aio_threads;
+			a.aio_num = s->aio_max;
 			aio_init(&a);
 		}
 #endif
 
 #if TORRENT_USE_SYNCIO
-		if (m_settings.aio_threads != s.aio_threads)
-			m_worker_thread.set_num_threads(s.aio_threads);
+		if (m_settings.aio_threads != s->aio_threads)
+			m_worker_thread.set_num_threads(s->aio_threads);
 #endif
 
-		m_settings = s;
+		m_settings = *s;
+		delete s;
+
 		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
