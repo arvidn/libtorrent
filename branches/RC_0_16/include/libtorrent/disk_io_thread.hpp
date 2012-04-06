@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include <deque>
 #include "libtorrent/config.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 
