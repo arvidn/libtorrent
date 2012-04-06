@@ -328,10 +328,18 @@ namespace libtorrent
 		int copy_from_piece(cached_piece_entry& p, bool& hit
 			, disk_io_job const& j, mutex::scoped_lock& l);
 
+		struct ignore_t
+		{
+			ignore_t(): piece(-1), storage(0) {}
+			ignore_t(int idx, piece_manager* st): piece(idx), storage(st) {}
+			int piece;
+			piece_manager* storage;
+		};
+
 		// write cache operations
 		enum options_t { dont_flush_write_blocks = 1, ignore_cache_size = 2 };
 		int flush_cache_blocks(mutex::scoped_lock& l
-			, int blocks, int ignore = -1, int options = 0);
+			, int blocks, ignore_t ignore = ignore_t(), int options = 0);
 		void flush_expired_pieces();
 		int flush_contiguous_blocks(cached_piece_entry& p
 			, mutex::scoped_lock& l, int lower_limit = 0, bool avoid_readback = false);
@@ -342,7 +350,7 @@ namespace libtorrent
 			, mutex::scoped_lock& l);
 
 		// read cache operations
-		int clear_oldest_read_piece(int num_blocks, int ignore
+		int clear_oldest_read_piece(int num_blocks, ignore_t ignore
 			, mutex::scoped_lock& l);
 		int read_into_piece(cached_piece_entry& p, int start_block
 			, int options, int num_blocks, mutex::scoped_lock& l);
