@@ -1316,13 +1316,15 @@ namespace aux {
 		listen_socket_t s;
 		s.sock.reset(new socket_acceptor(m_io_service));
 		s.sock->open(ep.protocol(), ec);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		if (ec)
 		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
 				<< ": " << ec.message() << "\n" << "\n";
-		}
 #endif
+			s.sock.reset();
+			return s;
+		}
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
