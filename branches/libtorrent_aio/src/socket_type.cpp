@@ -84,11 +84,14 @@ namespace libtorrent
 		}
 #undef CASE
 
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
 		if (ctx)
 		{
 			SSL_CTX_set_tlsext_servername_callback(ctx, 0);
 			SSL_CTX_set_tlsext_servername_arg(ctx, 0);
 		}
+#endif // OPENSSL_VERSION_NUMBER
+
 #endif
 	}
 
