@@ -1436,6 +1436,8 @@ namespace libtorrent
 		// add cert to cert_store
 		X509_STORE_add_cert(cert_store, certificate);
 
+		X509_free(certificate);
+
 		// and lastly, replace the default cert store with ours
 		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
 #if 0
