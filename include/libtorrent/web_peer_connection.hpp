@@ -122,6 +122,8 @@ namespace libtorrent
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
+		// TODO: if we make this be a disk_buffer_holder instead
+		// we would save a copy sometimes
 		std::vector<char> m_piece;
 		
 		// the number of bytes received in the current HTTP
