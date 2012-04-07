@@ -55,6 +55,11 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
+	enum
+	{
+		request_size_overhead = 5000
+	};
+
 	web_peer_connection::web_peer_connection(
 		session_impl& ses
 		, boost::weak_ptr<torrent> t
@@ -299,7 +304,7 @@ namespace libtorrent
 		if (associated_torrent().expired()) return false;
 		TORRENT_ASSERT(m_block_pos >= front_request.length);
 		m_block_pos -= front_request.length;
-		cut_receive_buffer(m_body_start, t->block_size() + 5000);
+		cut_receive_buffer(m_body_start, t->block_size() + request_size_overhead);
 		m_body_start = 0;
 		recv_buffer = receive_buffer();
 //		TORRENT_ASSERT(m_received_body <= range_end - range_start);
@@ -615,7 +620,7 @@ namespace libtorrent
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
 					TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
-					cut_receive_buffer(header_size, t->block_size() + 5000, int(m_body_start + m_chunk_pos));
+					cut_receive_buffer(header_size, t->block_size() + request_size_overhead, int(m_body_start + m_chunk_pos));
 					recv_buffer = receive_buffer();
 					recv_buffer.begin += m_body_start;
 					m_chunk_pos += chunk_size;
@@ -712,6 +717,7 @@ namespace libtorrent
 				if (copy_size > m_chunk_pos && m_chunk_pos > 0) copy_size = m_chunk_pos;
 				if (copy_size > 0)
 				{
+					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 					m_piece.resize(piece_size + copy_size);
 					std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
 					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
@@ -726,6 +732,7 @@ namespace libtorrent
 					TORRENT_ASSERT(m_received_body <= range_end - range_start);
 					TORRENT_ASSERT(int(m_piece.size()) <= front_request.length);
 					incoming_piece_fragment(copy_size);
+					TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 				}
 
 				if (maybe_harvest_block())
@@ -750,7 +757,7 @@ namespace libtorrent
 				m_received_body += r.length;
 				TORRENT_ASSERT(receive_buffer().begin + m_body_start == recv_buffer.begin);
 				TORRENT_ASSERT(m_received_body <= range_end - range_start);
-				cut_receive_buffer(m_body_start + r.length, t->block_size() + 5000);
+				cut_receive_buffer(m_body_start + r.length, t->block_size() + request_size_overhead);
 				if (m_chunk_pos > 0)
 				{
 					TORRENT_ASSERT(m_chunk_pos >= r.length);
@@ -774,11 +781,14 @@ namespace libtorrent
 					TORRENT_ASSERT(copy_size >= 0);
 					if (copy_size > 0)
 					{
+						TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 						m_piece.resize(piece_size + copy_size);
 						std::memcpy(&m_piece[0] + piece_size, recv_buffer.begin, copy_size);
 						recv_buffer.begin += copy_size;
 						m_received_body += copy_size;
 						m_body_start += copy_size;
+						incoming_piece_fragment(copy_size);
+						TORRENT_ASSERT(m_piece.size() == m_received_in_piece);
 					}
 					TORRENT_ASSERT(m_received_body == range_end - range_start);
 				}
@@ -797,7 +807,7 @@ namespace libtorrent
 				TORRENT_ASSERT(receive_buffer().left() < size_to_cut + 1
 					|| receive_buffer()[size_to_cut] == 'H');
 
-				cut_receive_buffer(size_to_cut, t->block_size() + 5000);
+				cut_receive_buffer(size_to_cut, t->block_size() + request_size_overhead);
 				if (m_chunk_pos > 0)
 				{
 					TORRENT_ASSERT(m_chunk_pos >= size_to_cut);
