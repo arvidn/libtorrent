@@ -338,7 +338,7 @@ namespace libtorrent
 
 	// returns the number of blocks that were freed
 	int disk_io_thread::clear_oldest_read_piece(
-		int num_blocks, int ignore, mutex::scoped_lock& l)
+		int num_blocks, ignore_t ignore, mutex::scoped_lock& l)
 	{
 		INVARIANT_CHECK;
 
@@ -346,7 +346,7 @@ namespace libtorrent
 		if (idx.empty()) return 0;
 
 		cache_lru_index_t::iterator i = idx.begin();
-		if (i->piece == ignore)
+		if (i->piece == ignore.piece && i->storage == ignore.storage)
 		{
 			++i;
 			if (i == idx.end()) return 0;
@@ -480,7 +480,7 @@ namespace libtorrent
 
 	// flushes 'blocks' blocks from the cache
 	int disk_io_thread::flush_cache_blocks(mutex::scoped_lock& l
-		, int blocks, int ignore, int options)
+		, int blocks, ignore_t ignore, int options)
 	{
 		// first look if there are any read cache entries that can
 		// be cleared
@@ -893,7 +893,8 @@ namespace libtorrent
 		if (in_use() + blocks_to_read > m_settings.cache_size)
 		{
 			int clear = in_use() + blocks_to_read - m_settings.cache_size;
-			if (flush_cache_blocks(l, clear, j.piece, dont_flush_write_blocks) < clear)
+			if (flush_cache_blocks(l, clear, ignore_t(j.piece, j.storage.get())
+				, dont_flush_write_blocks) < clear)
 				return -2;
 		}
 
@@ -1187,7 +1188,8 @@ namespace libtorrent
 			if (in_use() + blocks_to_read > m_settings.cache_size)
 			{
 				int clear = in_use() + blocks_to_read - m_settings.cache_size;
-				if (flush_cache_blocks(l, clear, p.piece, dont_flush_write_blocks) < clear)
+				if (flush_cache_blocks(l, clear, ignore_t(p.piece, p.storage.get())
+					, dont_flush_write_blocks) < clear)
 					return -2;
 			}
 
