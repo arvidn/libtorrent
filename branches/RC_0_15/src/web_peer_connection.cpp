@@ -683,6 +683,7 @@ namespace libtorrent
 						recv_buffer.begin += copy_size;
 						m_received_body += copy_size;
 						m_body_start += copy_size;
+						incoming_piece_fragment(copy_size);
 					}
 					TORRENT_ASSERT(m_received_body == range_end - range_start);
 				}

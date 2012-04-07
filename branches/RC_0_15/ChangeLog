@@ -1,5 +1,6 @@
 0.15.11 release
 
+	* fixed web seed bug, sometimes causing infinite loops
 	* fixed race condition when setting session_settings immediately after creating session
 	* give up immediately when failing to open a listen socket (report the actual error)
 	* restored ABI compatibility with 0.15.9
