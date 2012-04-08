@@ -73,7 +73,10 @@ namespace
 		{}
 
 		bool operator()(policy::peer const* p) const
-		{ return p->address() == m_ep.address() && p->port == m_ep.port(); }
+		{
+			TORRENT_ASSERT(p->in_use);
+			return p->address() == m_ep.address() && p->port == m_ep.port();
+		}
 
 		tcp::endpoint const& m_ep;
 	};
@@ -84,7 +87,10 @@ namespace
 		match_peer_connection(peer_connection const& c) : m_conn(c) {}
 
 		bool operator()(policy::peer const* p) const
-		{ return p->connection == &m_conn; }
+		{
+			TORRENT_ASSERT(p->in_use);
+			return p->connection == &m_conn;
+		}
 
 		peer_connection const& m_conn;
 	};
@@ -95,6 +101,7 @@ namespace
 
 		bool operator()(policy::peer const* p) const
 		{
+			TORRENT_ASSERT(p->in_use);
 			return p->connection == &m_conn
 				|| (p->ip() == m_conn.remote()
 					&& p->connectable);
@@ -396,6 +403,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(p->in_use);
+
 		std::pair<iterator, iterator> range = find_peers(p->address());
 		iterator iter = std::find_if(range.first, range.second, match_peer_endpoint(p->ip()));
 		if (iter == range.second) return;
@@ -459,11 +468,13 @@ namespace libtorrent
 
 	bool policy::should_erase_immediately(peer const& p) const
 	{
+		TORRENT_ASSERT(p.in_use);
 		return p.source == peer_info::resume_data;
 	}
 
 	bool policy::is_erase_candidate(peer const& pe, bool finished) const
 	{
+		TORRENT_ASSERT(pe.in_use);
 		if (pe.connection) return false;
 		if (is_connect_candidate(pe, finished)) return false;
 
@@ -473,6 +484,7 @@ namespace libtorrent
 
 	bool policy::is_force_erase_candidate(peer const& pe) const
 	{
+		TORRENT_ASSERT(pe.in_use);
 		return pe.connection == 0;
 	}
 
@@ -505,6 +517,7 @@ namespace libtorrent
 			if (round_robin == int(m_peers.size())) round_robin = 0;
 
 			peer& pe = *m_peers[round_robin];
+			TORRENT_ASSERT(pe.in_use);
 			int current = round_robin;
 
 			if (is_erase_candidate(pe, m_finished)
@@ -550,6 +563,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(p->in_use);
 		if (is_connect_candidate(*p, m_finished))
 			--m_num_connect_candidates;
 
@@ -566,6 +580,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(p->in_use);
 		TORRENT_ASSERT(c);
 
 		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
@@ -577,6 +592,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(p->in_use);
 		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->failcount = f;
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
@@ -588,6 +604,7 @@ namespace libtorrent
 
 	bool policy::is_connect_candidate(peer const& p, bool finished) const
 	{
+		TORRENT_ASSERT(p.in_use);
 		if (p.connection
 			|| p.banned
 			|| p.web_seed
@@ -648,6 +665,7 @@ namespace libtorrent
 			if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
 			peer& pe = *m_peers[m_round_robin];
+			TORRENT_ASSERT(pe.in_use);
 			int current = m_round_robin;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -808,6 +826,7 @@ namespace libtorrent
 			i = *iter;
 			TORRENT_ASSERT(i->connection != &c);
 
+			TORRENT_ASSERT(i->in_use);
 			if (i->banned)
 			{
 				c.disconnect(errors::peer_banned);
@@ -918,7 +937,7 @@ namespace libtorrent
 				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return false;
 
-//			TORRENT_ASSERT(p->in_use == false);
+			TORRENT_ASSERT(p->in_use == false);
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
@@ -983,6 +1002,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(p->connection);
+		TORRENT_ASSERT(p->in_use);
 
 		INVARIANT_CHECK;
 
@@ -997,6 +1017,7 @@ namespace libtorrent
 			if (i != range.second)
 			{
 				policy::peer& pp = **i;
+				TORRENT_ASSERT(pp.in_use);
 				if (pp.connection)
 				{
 					bool was_conn_cand = is_connect_candidate(pp, m_finished);
@@ -1040,6 +1061,7 @@ namespace libtorrent
 	// pointer. see smart_ban.cpp
 	bool policy::has_peer(policy::peer const* p) const
 	{
+		TORRENT_ASSERT(p->in_use);
 		// find p in m_peers
 		for (const_iterator i = m_peers.begin()
 			, end(m_peers.end()); i != end; ++i)
@@ -1052,6 +1074,7 @@ namespace libtorrent
 	void policy::set_seed(policy::peer* p, bool s)
 	{
 		if (p == 0) return;
+		TORRENT_ASSERT(p->in_use);
 		if (p->seed == s) return;
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->seed = s;
@@ -1072,6 +1095,7 @@ namespace libtorrent
 	bool policy::insert_peer(policy::peer* p, iterator iter, int flags)
 	{
 		TORRENT_ASSERT(p);
+		TORRENT_ASSERT(p->in_use);
 
 		int max_peerlist_size = m_torrent->is_paused()
 			?m_torrent->settings().max_paused_peerlist_size
@@ -1139,6 +1163,7 @@ namespace libtorrent
 	{
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 
+		TORRENT_ASSERT(p->in_use);
 		p->connectable = true;
 
 		TORRENT_ASSERT(p->address() == remote.address());
@@ -1364,6 +1389,7 @@ namespace libtorrent
 		else
 		{
 			p = *iter;
+			TORRENT_ASSERT(p->in_use);
 			update_peer(p, src, flags, remote, 0);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, 0);
@@ -1382,6 +1408,7 @@ namespace libtorrent
 		iterator i = find_connect_candidate(session_time);
 		if (i == m_peers.end()) return false;
 		peer& p = **i;
+		TORRENT_ASSERT(p.in_use);
 
 		TORRENT_ASSERT(!p.banned);
 		TORRENT_ASSERT(!p.connection);
@@ -1412,6 +1439,8 @@ namespace libtorrent
 
 		// if we couldn't find the connection in our list, just ignore it.
 		if (p == 0) return;
+
+		TORRENT_ASSERT(p->in_use);
 
 		// web seeds are special, they're not connected via the peer list
 		// so they're not kept in m_peers
@@ -1555,6 +1584,7 @@ namespace libtorrent
 					TORRENT_ASSERT((*prev)->address() < (*i)->address());
 			}
 			peer const& p = **i;
+			TORRENT_ASSERT(p.in_use);
 			if (is_connect_candidate(p, m_finished)) ++connect_candidates;
 #ifndef TORRENT_DISABLE_GEO_IP
 			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
@@ -1620,6 +1650,7 @@ namespace libtorrent
 			{
 				policy::peer* p = static_cast<policy::peer*>(*i);
 				if (p == 0) continue;
+				TORRENT_ASSERT(p->in_use);
 				if (p->connection == 0) continue;
 				// web seeds are special, they're not connected via the peer list
 				// so they're not kept in m_peers
