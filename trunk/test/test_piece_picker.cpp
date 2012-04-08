@@ -303,6 +303,24 @@ int test_main()
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
+	p->mark_as_downloading(piece_block(0, 2), (void*)1337, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 2), (void*)1337);
+	p->abort_download(piece_block(0, 2), (void*)1337);
+	p->mark_as_downloading(piece_block(0, 2), (void*)7, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 2), (void*)7);
+
+	std::vector<void*> d;
+	p->get_downloaders(d, 0);
+	TEST_CHECK(d[2] == (void*)7);
+
+	p->mark_as_downloading(piece_block(0, 3), (void*)1337, piece_picker::fast);
+	p->abort_download(piece_block(0, 3), (void*)1337);
+	p->mark_as_downloading(piece_block(0, 3), (void*)7, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 3), (void*)7);
+
+	p->get_downloaders(d, 0);
+	TEST_CHECK(d[3] == (void*)7);
+
 // ========================================================
 
 	// make sure the block that is picked is from piece 1, since it
