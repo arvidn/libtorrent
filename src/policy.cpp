@@ -695,7 +695,6 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
-						--m_round_robin;
 						erase_peer(m_peers.begin() + current);
 						continue;
 					}
