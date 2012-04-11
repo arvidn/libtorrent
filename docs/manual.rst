@@ -4558,6 +4558,8 @@ session_settings
 		int ssl_listen;
 
 		int tracker_backoff;
+
+		bool ban_web_seeds;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5454,6 +5456,9 @@ It defaults to 250.
 
 This setting may be useful to make libtorrent more or less aggressive in hitting
 trackers.
+
+``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
+corrupt data are banned.
 
 pe_settings
 ===========

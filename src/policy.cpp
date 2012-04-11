@@ -564,6 +564,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p->in_use);
+
+		if (!m_torrent->settings().ban_web_seeds && p->web_seed)
+			return;
+
 		if (is_connect_candidate(*p, m_finished))
 			--m_num_connect_candidates;
 
