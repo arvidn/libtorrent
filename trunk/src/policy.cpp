@@ -1768,10 +1768,6 @@ namespace libtorrent
 		if (lhs.connectable != rhs.connectable)
 			return lhs.connectable < rhs.connectable;
 
-		// prefer peers with higher failcount
-		if (lhs.failcount != rhs.failcount)
-			return lhs.failcount > rhs.failcount;
-
 		return lhs.trust_points < rhs.trust_points;
 	}
 
