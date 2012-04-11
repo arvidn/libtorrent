@@ -1277,6 +1277,7 @@ namespace libtorrent
 		, lock_files(false)
 		, ssl_listen(4433)
 		, tracker_backoff(250)
+		, ban_web_seeds(true)
 	{}
 
 	session_settings::~session_settings() {}
