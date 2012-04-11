@@ -7858,6 +7858,7 @@ namespace libtorrent
 			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
+		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
 	}
 
