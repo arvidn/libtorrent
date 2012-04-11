@@ -4317,6 +4317,7 @@ namespace libtorrent
 			web->removed = true;
 			return;
 		}
+		if (has_picker()) picker().clear_peer(&web->peer_info);
 		m_web_seeds.erase(web);
 	}
 
