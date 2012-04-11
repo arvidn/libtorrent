@@ -636,6 +636,7 @@ AC_CONFIG_FILES(
   [include/libtorrent/Makefile]
   [examples/Makefile]
   [test/Makefile]
+  [tools/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
   [bindings/python/setup.py]
