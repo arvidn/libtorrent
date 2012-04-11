@@ -1,0 +1,20 @@
+digraph downloading {
+	label=""
+	node [shape=box];
+
+	subgraph user_space {
+		rank=same;
+		"receive buffer" -> "plain text buffer" [label="decrypt in-place (no copy)" style=dashed];
+		"plain text buffer" -> "disk cache" [label="move buffer reference (no copy)" style=dashed]
+	}
+
+	subgraph kernel {
+		rank=same;
+		"socket kernel buffer";
+		"kernel page cache"
+	}
+
+	"socket kernel buffer" -> "receive buffer" [label="read() on socket (copy)"];
+	"disk cache" -> "kernel page cache" [label="write() to file (copy)"]
+}
+
