@@ -4503,6 +4503,14 @@ namespace libtorrent
 
 		if (m_ses.is_aborted()) return;
 
+#ifndef TORRENT_DISABLE_GEO_IP
+		int as = m_ses.as_for_ip(host->endpoint().address());
+#ifdef TORRENT_DEBUG
+		web->peer_info.inet_as_num = as;
+#endif
+		web->peer_info.inet_as = m_ses.lookup_as(as);
+#endif
+
 		if (int(m_connections.size()) >= m_max_connections
 			|| m_ses.num_connections() >= m_ses.settings().connections_limit)
 			return;
@@ -5351,6 +5359,7 @@ namespace libtorrent
 			i != end(); ++i)
 		{
 			peer_connection* peer = *i;
+			TORRENT_ASSERT(peer->m_in_use == 1337);
 
 			// incoming peers that haven't finished the handshake should
 			// not be included in this list
