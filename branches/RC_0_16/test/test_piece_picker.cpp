@@ -221,13 +221,18 @@ int test_pick(boost::shared_ptr<piece_picker> const& p, int options = piece_pick
 
 int test_main()
 {
-
-	int tmp1;
-	int tmp2;
-	int tmp3;
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
+	policy::ipv4_peer tmp1(endp, false, 0);
+	policy::ipv4_peer tmp2(endp, false, 0);
+	policy::ipv4_peer tmp3(endp, false, 0);
 	policy::ipv4_peer peer_struct(endp, true, 0);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	tmp1.in_use = true;
+	tmp2.in_use = true;
+	tmp3.in_use = true;
+	peer_struct.in_use = true;
+#endif
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
 	const std::vector<int> empty_vector;
@@ -303,23 +308,23 @@ int test_main()
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
-	p->mark_as_downloading(piece_block(0, 2), (void*)1337, piece_picker::fast);
-	p->mark_as_writing(piece_block(0, 2), (void*)1337);
-	p->abort_download(piece_block(0, 2), (void*)1337);
-	p->mark_as_downloading(piece_block(0, 2), (void*)7, piece_picker::fast);
-	p->mark_as_writing(piece_block(0, 2), (void*)7);
+	p->mark_as_downloading(piece_block(0, 2), &tmp1, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 2), &tmp1);
+	p->abort_download(piece_block(0, 2), &tmp1);
+	p->mark_as_downloading(piece_block(0, 2), &tmp2, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 2), &tmp2);
 
 	std::vector<void*> d;
 	p->get_downloaders(d, 0);
-	TEST_CHECK(d[2] == (void*)7);
+	TEST_CHECK(d[2] == &tmp2);
 
-	p->mark_as_downloading(piece_block(0, 3), (void*)1337, piece_picker::fast);
-	p->abort_download(piece_block(0, 3), (void*)1337);
-	p->mark_as_downloading(piece_block(0, 3), (void*)7, piece_picker::fast);
-	p->mark_as_writing(piece_block(0, 3), (void*)7);
+	p->mark_as_downloading(piece_block(0, 3), &tmp1, piece_picker::fast);
+	p->abort_download(piece_block(0, 3), &tmp1);
+	p->mark_as_downloading(piece_block(0, 3), &tmp2, piece_picker::fast);
+	p->mark_as_writing(piece_block(0, 3), &tmp2);
 
 	p->get_downloaders(d, 0);
-	TEST_CHECK(d[3] == (void*)7);
+	TEST_CHECK(d[3] == &tmp2);
 
 // ========================================================
 
