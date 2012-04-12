@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_DEBUG
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/policy.hpp" // for policy::peer
 #endif
 
 #include "libtorrent/invariant_check.hpp"
@@ -308,6 +309,7 @@ namespace libtorrent
 			for (int k = 0; k < num_blocks; ++k)
 			{
 				TORRENT_ASSERT(i->info[k].piece_index == i->index);
+				TORRENT_ASSERT(i->info[k].peer == 0 || static_cast<policy::peer*>(i->info[k].peer)->in_use);
 				if (i->info[k].state == block_info::state_finished)
 				{
 					++num_finished;
@@ -1372,6 +1374,8 @@ namespace libtorrent
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers) const
 	{
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
+
 		// prevent the number of partial pieces to grow indefinitely
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
@@ -1618,6 +1622,7 @@ namespace libtorrent
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				block_info const& info = i->info[j];
+				TORRENT_ASSERT(info.peer == 0 || static_cast<policy::peer*>(info.peer)->in_use);
 				TORRENT_ASSERT(info.piece_index == i->index);
 				if (info.state != block_info::state_requested
 					|| info.peer == peer)
@@ -1744,7 +1749,10 @@ namespace libtorrent
 	{
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(i->peer == 0 || static_cast<policy::peer*>(i->peer)->in_use);
 			if (i->peer == peer) i->peer = 0;
+		}
 	}
 
 	namespace
@@ -1761,6 +1769,7 @@ namespace libtorrent
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				piece_picker::block_info const& info = p.info[j];
+				TORRENT_ASSERT(info.peer == 0 || static_cast<policy::peer*>(info.peer)->in_use);
 				TORRENT_ASSERT(info.piece_index == p.index);
 				if (info.state != piece_picker::block_info::state_none
 					&& info.peer != peer)
@@ -2081,6 +2090,7 @@ namespace libtorrent
 	bool piece_picker::mark_as_downloading(piece_block block
 		, void* peer, piece_state_t state)
 	{
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 		TORRENT_ASSERT(state != piece_picker::none);
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
@@ -2173,6 +2183,8 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
+
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
@@ -2286,6 +2298,7 @@ namespace libtorrent
 
 	void piece_picker::mark_as_finished(piece_block block, void* peer)
 	{
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -2365,6 +2378,7 @@ namespace libtorrent
 		d.clear();
 		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
 		{
+			TORRENT_ASSERT(i->info[j].peer == 0 || static_cast<policy::peer*>(i->info[j].peer)->in_use);
 			d.push_back(i->info[j].peer);
 		}
 	}
@@ -2381,7 +2395,9 @@ namespace libtorrent
 		if (i->info[block.block_index].state == block_info::state_none)
 			return 0;
 
-		return i->info[block.block_index].peer;
+		void* peer = i->info[block.block_index].peer;
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
+		return peer;
 	}
 
 	// this is called when a request is rejected or when
@@ -2391,6 +2407,8 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
+
+		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
@@ -2407,6 +2425,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_downloads.end());
 
 		block_info& info = i->info[block.block_index];
+		TORRENT_ASSERT(info.peer == 0 || static_cast<policy::peer*>(info.peer)->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 
 		TORRENT_ASSERT(info.state != block_info::state_none);
@@ -2434,7 +2453,7 @@ namespace libtorrent
 			info.state = block_info::state_none;
 			--i->requested;
 			update_full(*i);
-		}	
+		}
 
 		// if there are no other blocks in this piece
 		// that's being downloaded, remove it from the list
