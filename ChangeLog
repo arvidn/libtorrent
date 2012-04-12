@@ -1,4 +1,7 @@
 
+	* fixed unchoke logic when using web seeds
+	* fixed compatibility with older versions of boost (down to boost 1.40)
+
 0.16 release
 
 	* support torrents with more than 262000 pieces
