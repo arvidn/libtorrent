@@ -1407,7 +1407,6 @@ namespace libtorrent
 			if (GetLastError() != ERROR_IO_PENDING)
 			{
 				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
-				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
 				ec.assign(GetLastError(), get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
