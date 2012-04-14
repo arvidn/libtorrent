@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/socket_type.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
@@ -39,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
+#endif
+
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
 #endif
 
 namespace libtorrent
