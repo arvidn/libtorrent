@@ -4317,7 +4317,14 @@ namespace libtorrent
 			web->removed = true;
 			return;
 		}
+		peer_connection * peer = web->peer_info.connection;
+		if (peer) {
+			TORRENT_ASSERT(peer->m_in_use == 1337);
+			peer->set_peer_info(0);
+		}
 		if (has_picker()) picker().clear_peer(&web->peer_info);
+					
+
 		m_web_seeds.erase(web);
 	}
 
@@ -7867,6 +7874,7 @@ namespace libtorrent
 			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
+		p->set_peer_info(0);
 		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
 	}
