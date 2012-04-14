@@ -1,4 +1,5 @@
 
+	* fixed web seed performance issue whith pieces > 1 MiB
 	* fixed unchoke logic when using web seeds
 	* fixed compatibility with older versions of boost (down to boost 1.40)
 
