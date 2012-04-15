@@ -455,8 +455,10 @@ namespace libtorrent
 		// the default value for share ratio is 2
 		// the default seed time ratio is 7, because that's a common
 		// asymmetry ratio on connections
-		float share_ratio_limit;
-		float seed_time_ratio_limit;
+		// these are specified as percentages
+		int share_ratio_limit;
+		int seed_time_ratio_limit;
+		// seed time limit is specified in seconds
 		int seed_time_limit;
 
 		// the interval (in seconds) between optimistic disconnects
@@ -466,14 +468,15 @@ namespace libtorrent
 
 		// the percentage of peers to disconnect every
 		// turnoever interval (if we're at the peer limit)
-		// defaults to 2/50:th
-		float peer_turnover;
+		// defaults to 4%
+		// this is specified in percent
+		int peer_turnover;
 
 		// when we are connected to more than
 		// limit * peer_turnover_cutoff peers
 		// disconnect peer_turnover fraction
-		// of the peers
-		float peer_turnover_cutoff;
+		// of the peers. It is specified in percent
+		int peer_turnover_cutoff;
 
 		// if this is true (default) connections where both
 		// ends have no utility in keeping the connection open

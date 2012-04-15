@@ -4525,12 +4525,12 @@ session_settings
 		bool auto_manage_prefer_seeds;
 		bool dont_count_slow_torrents;
 		int auto_manage_interval;
-		float share_ratio_limit;
-		float seed_time_ratio_limit;
+		int share_ratio_limit;
+		int seed_time_ratio_limit;
 		int seed_time_limit;
 		int peer_turnover_interval;
-		float peer_turnover;
-		float peer_turnover_cutoff;
+		int peer_turnover;
+		int peer_turnover_cutoff;
 		bool close_redundant_connections;
 
 		int auto_scrape_interval;
@@ -5033,10 +5033,12 @@ any connections.
 is updated, and rotated.
 
 ``share_ratio_limit`` is the upload / download ratio limit for considering a
-seeding torrent have met the seed limit criteria. See queuing_.
+seeding torrent have met the seed limit criteria. See queuing_. This is specified
+as percent.
 
 ``seed_time_ratio_limit`` is the seeding time / downloading time ratio limit
 for considering a seeding torrent to have met the seed limit criteria. See queuing_.
+This is specified as percent.
 
 ``seed_time_limit`` is the limit on the time a torrent has been an active seed
 (specified in seconds) before it is considered having met the seed limit criteria.
@@ -5048,12 +5050,12 @@ the interval of this optimistic disconnect. It defaults to every 5 minutes, and
 is specified in seconds.
 
 ``peer_turnover`` Is the fraction of the peers that are disconnected. This is
-a float where 1.f represents all peers an 0 represents no peers. It defaults to
-4% (i.e. 0.04f)
+specified in percent, where 100 represents all peers an 0 represents no peers. It defaults to
+4%.
 
 ``peer_turnover_cutoff`` is the cut off trigger for optimistic unchokes. If a torrent
 has more than this fraction of its connection limit, the optimistic unchoke is
-triggered. This defaults to 90% (i.e. 0.9f).
+triggered. It is specified in percent, and defaults to 90%.
 
 ``close_redundant_connections`` specifies whether libtorrent should close
 connections where both ends have no utility in keeping the connection open.

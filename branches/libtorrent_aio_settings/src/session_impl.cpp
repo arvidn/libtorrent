@@ -554,14 +554,6 @@ namespace aux {
 		SET(contiguous_recv_buffer, true, 0),
 	};
 
-	float_setting_entry_t float_settings[settings_pack::num_float_settings] =
-	{
-		SET(share_ratio_limit, 2.f, 0),
-		SET(seed_time_ratio_limit, 7.f, 0),
-		SET(peer_turnover, 2 / 50.f, 0),
-		SET(peer_turnover_cutoff, .9f, 0),
-	};
-
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
 	{
 		SET(tracker_completion_timeout, 60, 0),
@@ -678,6 +670,10 @@ namespace aux {
 		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
+		SET(share_ratio_limit, 200, 0),
+		SET(seed_time_ratio_limit, 700, 0),
+		SET(peer_turnover, 200 / 50, 0),
+		SET(peer_turnover_cutoff, 90, 0),
 	};
 
 #undef SET
@@ -1585,12 +1581,6 @@ namespace aux {
 			sett[bool_settings[i].name] = m_settings.m_bools[i];
 		}
 
-		for (int i = 0; i < settings_pack::num_float_settings; ++i)
-		{
-			if (default_settings.m_floats[i] == m_settings.m_floats[i]) continue;
-			sett[float_settings[i].name] = boost::int64_t(m_settings.m_floats[i] * 1000.f);
-		}
-
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht && (flags & session::save_dht_state))
 		{
@@ -1700,14 +1690,6 @@ namespace aux {
 						{
 							if (key != bool_settings[k].name) continue;
 							pack->set_bool(settings_pack::bool_type_base + k, val->int_value());
-							found = true;
-							break;
-						}
-						if (found) continue;
-						for (int k = 0; k < sizeof(float_settings)/sizeof(float_settings[0]); ++k)
-						{
-							if (key != float_settings[k].name) continue;
-							pack->set_float(settings_pack::float_type_base + k, val->int_value() / 1000.f);
 							break;
 						}
 					}
@@ -2178,9 +2160,6 @@ namespace aux {
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
-
-		for (int i = 0; i < settings_pack::num_float_settings; ++i)
-			s.set_float(settings_pack::float_type_base + i, float_settings[i].default_value);
 	}
 
 	// session_impl is responsible for deleting 'pack', but it
@@ -2219,23 +2198,6 @@ namespace aux {
 
 			m_settings.set_int(i->first, i->second);
 			int_setting_entry_t const& sa = int_settings[i->first & settings_pack::index_mask];
-			if (sa.fun) (this->*sa.fun)();
-		}
-
-		for (std::vector<std::pair<int, float> >::const_iterator i = pack->m_floats.begin()
-			, end(pack->m_floats.end()); i != end; ++i)
-		{
-			// disregard setting indices that are not string types
-			if ((i->first & settings_pack::type_mask) != settings_pack::float_type_base)
-				continue;
-		
-			// ignore settings that are out of bounds
-			int index = i->first & settings_pack::index_mask;
-			if (index < 0 || index >= settings_pack::num_float_settings)
-				continue;
-
-			m_settings.set_float(i->first, i->second);
-			float_setting_entry_t const& sa = float_settings[i->first & settings_pack::index_mask];
 			if (sa.fun) (this->*sa.fun)();
 		}
 
@@ -2292,14 +2254,6 @@ namespace aux {
 			p->set_bool(setting_name, val);
 		}
 
-		for (int i = 0; i < settings_pack::num_float_settings; ++i)
-		{
-			float& val = *(float*)(((char*)&s) + float_settings[i].offset);
-			int setting_name = settings_pack::float_type_base + i;
-			if (val == m_settings.get_float(setting_name)) continue;
-			p->set_float(setting_name, val);
-		}
-
 		apply_settings_pack(p);
 	}
 
@@ -2325,11 +2279,6 @@ namespace aux {
 			val = m_settings.get_bool(settings_pack::bool_type_base + i);
 		}
 
-		for (int i = 0; i < settings_pack::num_float_settings; ++i)
-		{
-			float& val = *(float*)(((char*)&ret) + float_settings[i].offset);
-			val = m_settings.get_float(settings_pack::float_type_base + i);
-		}
 		return ret;
 	}
 #endif
@@ -3767,7 +3716,7 @@ namespace aux {
 			m_disconnect_time_scaler = m_settings.get_int(settings_pack::peer_turnover_interval);
 
 			if (num_connections() >= m_settings.get_int(settings_pack::connections_limit)
-				* m_settings.get_float(settings_pack::peer_turnover_cutoff)
+				* m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100
 				&& !m_torrents.empty())
 			{
 				// every 90 seconds, disconnect the worst peers
@@ -3778,7 +3727,7 @@ namespace aux {
 			
 				TORRENT_ASSERT(i != m_torrents.end());
 				int peers_to_disconnect = (std::min)((std::max)(
-					int(i->second->num_peers() * m_settings.get_float(settings_pack::peer_turnover)), 1)
+					int(i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
 					, i->second->get_policy().num_connect_candidates());
 				i->second->disconnect_peers(peers_to_disconnect
 					, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
@@ -3791,11 +3740,11 @@ namespace aux {
 					, end(m_torrents.end()); i != end; ++i)
 				{
 					boost::shared_ptr<torrent> t = i->second;
-					if (t->num_peers() < t->max_connections() * m_settings.get_float(settings_pack::peer_turnover_cutoff))
+					if (t->num_peers() < t->max_connections() * m_settings.get_int(settings_pack::peer_turnover_cutoff) / 100)
 						continue;
 
 					int peers_to_disconnect = (std::min)((std::max)(int(i->second->num_peers()
-						* m_settings.get_float(settings_pack::peer_turnover)), 1)
+						* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
 						, i->second->get_policy().num_connect_candidates());
 					t->disconnect_peers(peers_to_disconnect
 						, error_code(errors::optimistic_disconnect, get_libtorrent_category()));

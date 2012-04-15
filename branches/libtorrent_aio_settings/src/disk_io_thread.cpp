@@ -1825,6 +1825,10 @@ namespace libtorrent
 		settings_pack* s = ((settings_pack*)j->buffer);
 		int block_size = m_disk_cache.block_size();
 
+#if TORRENT_USE_AIOINIT
+		bool init_aio = false;
+#endif
+
 		for (std::vector<std::pair<int, bool> >::iterator i = s->m_bools.begin()
 			, end(s->m_bools.end()); i != end; ++i)
 		{
@@ -1855,11 +1859,7 @@ namespace libtorrent
 #if TORRENT_USE_AIOINIT
 				case settings_pack::aio_threads:
 				case settings_pack::aio_max:
-					aioinit a;
-					memset(&a, 0, sizeof(a));
-					a.aio_threads = s->aio_threads;
-					a.aio_num = s->aio_max;
-					aio_init(&a);
+					init_aio = true;
 					break;
 #endif
 #if TORRENT_USE_SYNCIO
@@ -1881,13 +1881,18 @@ namespace libtorrent
 			m_settings.set_str(i->first, i->second);
 		}
 
-		for (std::vector<std::pair<int, float> >::iterator i = s->m_floats.begin()
-			, end(s->m_floats.end()); i != end; ++i)
-		{
-			m_settings.set_float(i->first, i->second);
-		}
-
 		delete s;
+
+#if TORRENT_USE_AIOINIT
+		if (init_aio)
+		{
+			aioinit a;
+			memset(&a, 0, sizeof(a));
+			a.aio_threads = m_settings.get_int(settings_pack::aio_threads);
+			a.aio_num = m_settings.get_int(settings_pack::aio_max);
+			aio_init(&a);
+		}
+#endif
 
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD

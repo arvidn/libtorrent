@@ -7148,8 +7148,8 @@ namespace libtorrent
 
 		ptime now = time_now();
 
-		int finished_time = m_finished_time;
-		int download_time = int(m_active_time) - finished_time;
+		size_type finished_time = m_finished_time;
+		size_type download_time = int(m_active_time) - finished_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
@@ -7157,9 +7157,9 @@ namespace libtorrent
 		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (finished_time < s.get_int(settings_pack::seed_time_limit)
 			&& (download_time > 1
-				&& finished_time / float(download_time) < s.get_float(settings_pack::seed_time_ratio_limit))
+				&& finished_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
 			&& downloaded > 0
-			&& m_total_uploaded / float(downloaded) < s.get_float(settings_pack::share_ratio_limit))
+			&& m_total_uploaded * 100 / downloaded < s.get_int(settings_pack::share_ratio_limit))
 			ret |= seed_ratio_not_met;
 
 		// if this torrent is running, and it was started less

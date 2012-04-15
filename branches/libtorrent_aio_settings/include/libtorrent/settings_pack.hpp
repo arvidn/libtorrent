@@ -37,7 +37,6 @@ namespace libtorrent
 {
 	namespace aux { struct session_impl; }
 	// #error add an API to query a settings_pack as well
-	// #error convert all float types into int-types and remove float
 	// #error maybe convert all bool types into int-types as well
 	struct settings_pack
 	{
@@ -46,7 +45,6 @@ namespace libtorrent
 
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
-		void set_float(int name, float val);
 		void set_bool(int name, bool val);
 	
 		enum type_bases
@@ -54,7 +52,6 @@ namespace libtorrent
 			string_type_base = 0x10000000,
 			int_type_base =    0x20000000,
 			bool_type_base =   0x30000000,
-			float_type_base =  0x40000000,
 			type_mask =        0xf0000000,
 			index_mask =       0x0fffffff,
 		};
@@ -136,17 +133,6 @@ namespace libtorrent
 
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
-		};
-
-		enum float_types
-		{
-			share_ratio_limit = float_type_base,
-			seed_time_ratio_limit,
-			peer_turnover,
-			peer_turnover_cutoff,
-
-			max_float_setting_internal,
-			num_float_settings = max_float_setting_internal - float_type_base
 		};
 
 		enum int_types
@@ -261,6 +247,10 @@ namespace libtorrent
 			network_threads,
 			ssl_listen,
 			tracker_backoff,
+			share_ratio_limit,
+			seed_time_ratio_limit,
+			peer_turnover,
+			peer_turnover_cutoff,
 
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
@@ -301,14 +291,12 @@ namespace libtorrent
 			// does not throttle uTP, throttles TCP to the same proportion
 			// of throughput as there are TCP connections
 			peer_proportional = 1
-
 		};
 
 	private:
 
 		std::vector<std::pair<int, std::string> > m_strings;
 		std::vector<std::pair<int, int> > m_ints;
-		std::vector<std::pair<int, float> > m_floats;
 		std::vector<std::pair<int, bool> > m_bools;
 	};
 }

@@ -65,14 +65,6 @@ namespace libtorrent
 		insort_replace(m_ints, v);
 	}
 
-	void settings_pack::set_float(int name, float val)
-	{
-		TORRENT_ASSERT((name & type_mask) == float_type_base);
-		if ((name & type_mask) != float_type_base) return;
-		std::pair<int, float> v(name, val);
-		insort_replace(m_floats, v);
-	}
-
 	void settings_pack::set_bool(int name, bool val)
 	{
 		TORRENT_ASSERT((name & type_mask) == bool_type_base);

@@ -66,15 +66,12 @@ namespace libtorrent { namespace aux
 		int get_int(int name) const { GET(int, 0); }
 		void set_bool(int name, bool value) { SET(bool); }
 		bool get_bool(int name) const { GET(bool, false); }
-		void set_float(int name, float value) { SET(float); }
-		float get_float(int name) const { GET(float, 0.f); }
 
 		session_settings() { initialize_default_settings(*this); }
 
 	private:
 		std::string m_strings[settings_pack::num_string_settings];
 		int m_ints[settings_pack::num_int_settings];
-		float m_floats[settings_pack::num_float_settings];
 		bool m_bools[settings_pack::num_bool_settings];
 	};
 
