@@ -587,6 +587,13 @@ lib torrent
 	<define>BOOST_THREAD_USE_LIB
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
+
+	# on windows, when linking statically against asio
+	# but producing a DLL, everything inside the DLL needs
+	# to declare the symbol as being exported
+	<link>shared,<boost-link>static:<define>BOOST_ASIO_SOURCE
+	<link>shared,<boost-link>static:<define>BOOST_SYSTEM_SOURCE
+
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<conditional>@building
