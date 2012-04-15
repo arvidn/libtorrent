@@ -4659,6 +4659,14 @@ namespace libtorrent
 			web->removed = true;
 			return;
 		}
+		peer_connection * peer = web->peer_info.connection;
+		if (peer) {
+			TORRENT_ASSERT(peer->m_in_use == 1337);
+			peer->set_peer_info(0);
+		}
+		if (has_picker()) picker().clear_peer(&web->peer_info);
+					
+
 		m_web_seeds.erase(web);
 	}
 
@@ -4843,6 +4851,14 @@ namespace libtorrent
 		}
 
 		if (m_ses.is_aborted()) return;
+
+#ifndef TORRENT_DISABLE_GEO_IP
+		int as = m_ses.as_for_ip(host->endpoint().address());
+#ifdef TORRENT_DEBUG
+		web->peer_info.inet_as_num = as;
+#endif
+		web->peer_info.inet_as = m_ses.lookup_as(as);
+#endif
 
 		if (int(m_connections.size()) >= m_max_connections
 			|| m_ses.num_connections() >= m_ses.settings().get_int(settings_pack::connections_limit))
@@ -5704,6 +5720,7 @@ namespace libtorrent
 			i != end(); ++i)
 		{
 			peer_connection* peer = *i;
+			TORRENT_ASSERT(peer->m_in_use == 1337);
 
 			// incoming peers that haven't finished the handshake should
 			// not be included in this list
@@ -8194,6 +8211,8 @@ namespace libtorrent
 			, (boost::bind(&policy::peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
+		p->set_peer_info(0);
+		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
 	}
 

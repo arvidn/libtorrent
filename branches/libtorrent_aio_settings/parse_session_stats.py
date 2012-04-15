@@ -203,7 +203,8 @@ reports = [
 	('overall_rates', 'rate', 'B/s', 'download and upload rates', ['uploaded bytes', 'downloaded bytes', 'upload rate', 'download rate', 'smooth upload rate', 'smooth download rate']),
 	('disk_write_queue', 'Bytes', 'B', 'bytes queued up by peers, to be written to disk', ['disk write queued bytes']),
 	('peers_requests', 'num', '', 'incoming piece request rate', ['piece requests', 'piece rejects', 'max piece requests', 'invalid piece requests', 'choked piece requests', 'cancelled piece requests']),
-	('peers_upload', 'num', '', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers up send buffer', 'peers bw-up', 'max unchoked']),
+	('peers_upload_max', 'num', '', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers up send buffer', 'peers bw-up', 'max unchoked']),
+	('peers_upload', 'num', '', 'number of peers by state wrt. uploading', ['peers up interested', 'peers up unchoked', 'peers up requests', 'peers disk-up', 'peers up send buffer', 'peers bw-up']),
 	('peers_download', 'num', '', 'number of peers by state wrt. downloading', ['peers down interesting', 'peers down unchoked', 'peers down requests', 'peers disk-down', 'peers bw-down','num end-game peers']),
 	('peer_errors', 'num', '', 'number of peers by error that disconnected them', ['error peers', 'peer disconnects', 'peers eof', 'peers connection reset', 'connect timeouts', 'uninteresting peers disconnect', 'banned for hash failure', 'no memory peer errors', 'too many peers', 'transport timeout peers', 'connection refused peers', 'connection aborted peers', 'permission denied peers', 'no buffer peers', 'host unreachable peers', 'broken pipe peers', 'address in use peers', 'access denied peers', 'invalid argument peers', 'operation aborted peers']),
 	('peer_errors_incoming', 'num', '', 'number of peers by incoming or outgoing connection', ['error incoming peers', 'error outgoing peers']),
@@ -260,8 +261,8 @@ reports = [
 	('piece_picker', 'blocks', '', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
 	('piece_picker_loops', 'num checked pieces', '', '', ['piece picker loops']),
 	('picker_partials', 'pieces', '', '', ['num partial pieces', 'num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces']),
-	('picker_full_partials_distribution', 'full pieces', 'count', '', ['num full partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120}),
-	('picker_partials_distribution', 'partial pieces', 'count', '', ['num downloading partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120})
+	('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120}),
+	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120})
 ]
 
 print 'generating graphs'

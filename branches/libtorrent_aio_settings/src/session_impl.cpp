@@ -4573,6 +4573,7 @@ namespace aux {
 			TORRENT_ASSERT(p);
 			policy::peer* pi = p->peer_info_struct();
 			if (!pi) continue;
+			if (pi->web_seed) continue;
 			torrent* t = p->associated_torrent().lock().get();
 			if (!t) continue;
 			if (t->is_paused()) continue;
@@ -4670,7 +4671,8 @@ namespace aux {
 			torrent* t = p->associated_torrent().lock().get();
 			policy::peer* pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || t->is_paused()) continue;
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || pi->web_seed || t->is_paused())
+				continue;
 
 			if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker)
 			{

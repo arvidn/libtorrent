@@ -119,6 +119,10 @@ namespace libtorrent
 			// the state of this block
 			enum { state_none, state_requested, state_writing, state_finished };
 			unsigned state:2;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			// to allow verifying the invariant of blocks belonging to the right piece
+			int piece_index;
+#endif
 		};
 
 		// the peers that are downloading this piece

@@ -126,6 +126,9 @@ nobase_include_HEADERS = \
   xml_parse.hpp                \
   \
   $(GEOIP_H) \
+  tommath.h \
+  tommath_class.h \
+  tommath_superclass.h \
   \
   aux_/session_impl.hpp        \
   aux_/internal_session_settings.hpp\

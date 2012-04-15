@@ -4665,6 +4665,8 @@ session_settings
 		int ssl_listen;
 
 		int tracker_backoff;
+
+		bool ban_web_seeds;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5466,7 +5468,7 @@ the connections are TCP. This works best if uTP connections are not rate limited
 the global rate limiter (which they aren't by default).
 
 ``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are not, since uTP manages its own rate.
+limiter or not. By default they are.
 
 ``listen_queue_size`` is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
@@ -5594,6 +5596,9 @@ It defaults to 250.
 
 This setting may be useful to make libtorrent more or less aggressive in hitting
 trackers.
+
+``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
+corrupt data are banned.
 
 pe_settings
 ===========

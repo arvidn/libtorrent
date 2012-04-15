@@ -4407,6 +4407,8 @@ struct session_settings
         int ssl_listen;
 
         int tracker_backoff;
+
+        bool ban_web_seeds;
 };
 </pre>
 <p><tt class="docutils literal"><span class="pre">version</span></tt> is automatically set to the libtorrent version you're using
@@ -5191,6 +5193,8 @@ delay = 5 + 5 * x / 100 * fails^2</blockquote>
 <p>It defaults to 250.</p>
 <p>This setting may be useful to make libtorrent more or less aggressive in hitting
 trackers.</p>
+<p><tt class="docutils literal"><span class="pre">ban_web_seeds</span></tt> enables banning web seeds. By default, web seeds that send
+corrupt data are banned.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">

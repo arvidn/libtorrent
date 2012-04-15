@@ -353,6 +353,7 @@ namespace libtorrent
 		, m_holepunch_mode(false)
 		, m_ignore_stats(false)
 		, m_corked(false)
+		, m_has_metadata(true)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -3925,13 +3926,14 @@ namespace libtorrent
 		if (peer_info_struct())
 		{
 			policy::peer* pi = peer_info_struct();
+			TORRENT_ASSERT(pi->in_use);
 			p.source = pi->source;
 			p.failcount = pi->failcount;
 			p.num_hashfails = pi->hashfails;
 			p.flags |= pi->on_parole ? peer_info::on_parole : 0;
 			p.flags |= pi->optimistically_unchoked ? peer_info::optimistic_unchoke : 0;
 #ifndef TORRENT_DISABLE_GEO_IP
-			p.inet_as = pi->inet_as->first;
+			p.inet_as = pi->inet_as ? pi->inet_as->first : 0xffff;
 #endif
 		}
 		else
