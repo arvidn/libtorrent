@@ -1261,7 +1261,7 @@ namespace libtorrent
 		, utp_dynamic_sock_buf(true)
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
-		, rate_limit_utp(false)
+		, rate_limit_utp(true)
 		, listen_queue_size(5)
 		, announce_double_nat(false)
 		, torrent_connect_boost(10)
