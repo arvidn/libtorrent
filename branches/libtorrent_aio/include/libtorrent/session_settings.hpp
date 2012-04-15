@@ -972,6 +972,9 @@ namespace libtorrent
 		// determines how fast the back-off happens. Default
 		// is 250
 		int tracker_backoff;
+
+		// when true, web seeds sending bad data will be banned
+		bool ban_web_seeds;
 	};
 
 #ifndef TORRENT_DISABLE_DHT

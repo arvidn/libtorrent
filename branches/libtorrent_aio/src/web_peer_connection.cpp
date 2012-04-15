@@ -84,9 +84,10 @@ namespace libtorrent
 		shared_ptr<torrent> tor = t.lock();
 		TORRENT_ASSERT(tor);
 
-		// we always prefer downloading 1 MB chunks
-		// from web seeds
-		prefer_whole_pieces((1024 * 1024) / tor->torrent_file().piece_length());
+		// we always prefer downloading 1 MiB chunks
+		// from web seeds, or whole pieces if pieces
+		// are larger than a MiB
+		prefer_whole_pieces((std::min)((1024 * 1024) / tor->torrent_file().piece_length(), 1));
 		
 		// we want large blocks as well, so
 		// we can request more bytes at once

@@ -2332,7 +2332,14 @@ namespace libtorrent
 		// sizing the disk cache size when it's set to
 		// automatic.
 #ifdef TORRENT_BSD
+#ifdef HW_MEMSIZE
 		int mib[2] = { CTL_HW, HW_MEMSIZE };
+#else
+		// not entirely sure this sysctl supports 64
+		// bit return values, but it's probably better
+		// than not building
+		int mib[2] = { CTL_HW, HW_PHYSMEM };
+#endif
 		size_t len = sizeof(m_physical_ram);
 		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
 			m_physical_ram = 0;

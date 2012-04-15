@@ -1320,7 +1320,7 @@ namespace libtorrent
 		, utp_dynamic_sock_buf(true)
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
-		, rate_limit_utp(false)
+		, rate_limit_utp(true)
 		, listen_queue_size(5)
 		, announce_double_nat(false)
 		, torrent_connect_boost(10)
@@ -1343,6 +1343,7 @@ namespace libtorrent
 		, network_threads(0)
 		, ssl_listen(4433)
 		, tracker_backoff(250)
+		, ban_web_seeds(true)
 	{}
 
 	session_settings::~session_settings() {}

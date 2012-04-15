@@ -568,6 +568,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p->in_use);
+
+		if (!m_torrent->settings().ban_web_seeds && p->web_seed)
+			return;
+
 		if (is_connect_candidate(*p, m_finished))
 			--m_num_connect_candidates;
 
@@ -699,8 +703,8 @@ namespace libtorrent
 					{
 						if (erase_candidate > current) --erase_candidate;
 						if (candidate > current) --candidate;
-						--m_round_robin;
 						erase_peer(m_peers.begin() + current);
+						continue;
 					}
 					else
 					{
@@ -940,8 +944,6 @@ namespace libtorrent
 #endif
 				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
 			if (p == 0) return false;
-
-			TORRENT_ASSERT(p->in_use == false);
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
@@ -1248,7 +1250,7 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 
-				m_torrent->session().m_i2p_peer_pool.free((i2p_peer*)p);
+				m_torrent->session().m_i2p_peer_pool.destroy((i2p_peer*)p);
 				return 0;
 			}
 		}
@@ -1373,10 +1375,10 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 #if TORRENT_USE_IPV6
-				if (is_v6) m_torrent->session().m_ipv6_peer_pool.free((ipv6_peer*)p);
+				if (is_v6) m_torrent->session().m_ipv6_peer_pool.destroy((ipv6_peer*)p);
 				else
 #endif
-				m_torrent->session().m_ipv4_peer_pool.free((ipv4_peer*)p);
+				m_torrent->session().m_ipv4_peer_pool.destroy((ipv4_peer*)p);
 				return 0;
 			}
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1760,10 +1762,6 @@ namespace libtorrent
 
 		if (lhs.connectable != rhs.connectable)
 			return lhs.connectable < rhs.connectable;
-
-		// prefer peers with higher failcount
-		if (lhs.failcount != rhs.failcount)
-			return lhs.failcount > rhs.failcount;
 
 		return lhs.trust_points < rhs.trust_points;
 	}

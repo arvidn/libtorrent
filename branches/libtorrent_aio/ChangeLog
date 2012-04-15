@@ -11,6 +11,13 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* change default of rate_limit_utp to true
+	* fixed DLL export issue on windows (when building a shared library linking statically against boost)
+	* fixed FreeBSD build
+	* fixed web seed performance issue whith pieces > 1 MiB
+	* fixed unchoke logic when using web seeds
+	* fixed compatibility with older versions of boost (down to boost 1.40)
+
 0.16 release
 
 	* support torrents with more than 262000 pieces
