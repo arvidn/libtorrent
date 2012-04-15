@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // backwards compatibility with older versions of boost
 #if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
-# ifdef _MSC_VER
+# if defined _MSC_VER || defined __MINGW32__
 #  define BOOST_SYMBOL_EXPORT __declspec(dllexport)
 #  define BOOST_SYMBOL_IMPORT __declspec(dllimport)
 # elif __GNU__ >= 4
