@@ -128,6 +128,7 @@ nobase_include_HEADERS = \
   $(GEOIP_H) \
   \
   aux_/session_impl.hpp        \
+  aux_/internal_session_settings.hpp\
   \
   extensions/logger.hpp             \
   extensions/lt_trackers.hpp        \

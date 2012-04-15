@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/version.hpp"
 
 #include <string>
+#include <vector>
+#include <utility>
 
 namespace libtorrent
 {
@@ -92,6 +93,7 @@ namespace libtorrent
 		bool proxy_peer_connections;
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
@@ -321,12 +323,6 @@ namespace libtorrent
 		// 100. The default is 50.
 		int send_buffer_watermark_factor;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
-		bool auto_upload_slots;
-		bool auto_upload_slots_rate_based;
-#endif
-
 		enum choking_algorithm_t
 		{
 			fixed_slots_choker,
@@ -410,7 +406,8 @@ namespace libtorrent
 		// outgoing connections will be bound to. This
 		// is useful for users that have routers that
 		// allow QoS settings based on local port.
-		std::pair<int, int> outgoing_ports;
+		int outgoing_port;
+		int num_outgoing_ports;
 
 		// the TOS byte of all peer traffic (including
 		// web seeds) is set to this value. The default
@@ -973,6 +970,7 @@ namespace libtorrent
 		// is 250
 		int tracker_backoff;
 	};
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 	struct dht_settings

@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/thread.hpp"
 
 #include <boost/intrusive_ptr.hpp> // atomic_count
@@ -341,7 +341,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(session_settings const& sett);
+		void set_settings(settings_pack* sett);
 		void reclaim_block(block_cache_reference ref);
 		void abort();
 		void join();
@@ -444,7 +444,7 @@ namespace libtorrent
 
 		bool m_abort;
 
-		session_settings m_settings;
+		aux::session_settings m_settings;
 
 		// userdata pointer for the complete_job function, which
 		// is posted to the network thread when jobs complete

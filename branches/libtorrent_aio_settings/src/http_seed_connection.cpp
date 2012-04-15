@@ -70,7 +70,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!ses.settings().report_web_seed_downloads)
+		if (!ses.settings().get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
 		shared_ptr<torrent> tor = t.lock();
@@ -79,7 +79,7 @@ namespace libtorrent
 
 		// multiply with the blocks per piece since that many requests are
 		// merged into one http request
-		m_max_out_request_queue = ses.settings().urlseed_pipeline_size
+		m_max_out_request_queue = ses.settings().get_int(settings_pack::urlseed_pipeline_size)
 			* blocks_per_piece;
 
 		prefer_whole_pieces(1);

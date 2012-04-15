@@ -170,7 +170,7 @@ namespace libtorrent
 		if (prefer_whole_pieces == 0)
 		{
 			prefer_whole_pieces = c.statistics().download_payload_rate()
-				* t.settings().whole_pieces_threshold
+				* t.settings().get_int(settings_pack::whole_pieces_threshold)
 				> t.torrent_file().piece_length() ? 1 : 0;
 		}
 	
@@ -240,7 +240,7 @@ namespace libtorrent
 		// and we're not strictly speaking in end-game mode yet
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
-		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
+		bool dont_pick_busy_blocks = (ses.m_settings.get_bool(settings_pack::strict_end_game_mode)
 			&& p.num_have() + p.get_download_queue_size()
 				< t.torrent_file().num_pieces())
 			|| dq.size() + rq.size() > 0;
@@ -497,8 +497,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int max_peerlist_size = m_torrent->is_paused()
-			? m_torrent->settings().max_paused_peerlist_size
-			: m_torrent->settings().max_peerlist_size;
+			? m_torrent->settings().get_int(settings_pack::max_paused_peerlist_size)
+			: m_torrent->settings().get_int(settings_pack::max_peerlist_size);
 
 		if (max_peerlist_size == 0 || m_peers.empty()) return;
 
@@ -614,7 +614,7 @@ namespace libtorrent
 			|| p.web_seed
 			|| !p.connectable
 			|| (p.seed && finished)
-			|| int(p.failcount) >= m_torrent->settings().max_failcount)
+			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
 			return false;
 		
 		aux::session_impl const& ses = m_torrent->session();
@@ -623,7 +623,7 @@ namespace libtorrent
 
 		// only apply this to peers we've only heard
 		// about from the DHT
-		if (ses.m_settings.no_connect_privileged_ports
+		if (ses.m_settings.get_bool(settings_pack::no_connect_privileged_ports)
 			&& p.port < 1024
 			&& p.source == peer_info::dht)
 			return false;
@@ -640,7 +640,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
-		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
+		int min_reconnect_time = m_torrent->settings().get_int(settings_pack::min_reconnect_time);
 		address external_ip = m_torrent->session().external_address();
 
 		// don't bias any particular peers when seeding
@@ -660,8 +660,8 @@ namespace libtorrent
 #endif
 
 		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
+			?m_torrent->settings().get_int(settings_pack::max_paused_peerlist_size)
+			:m_torrent->settings().get_int(settings_pack::max_peerlist_size);
 
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
@@ -770,7 +770,7 @@ namespace libtorrent
 		aux::session_impl& ses = m_torrent->session();
 		
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
-			&& ses.num_connections() >= ses.settings().connections_limit
+			&& ses.num_connections() >= ses.settings().get_int(settings_pack::connections_limit)
 			&& c.remote().address() != m_torrent->current_tracker().address())
 		{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -780,9 +780,9 @@ namespace libtorrent
 				" torrent peers: " << m_torrent->num_peers() <<
 				" torrent limit: " << m_torrent->max_connections() <<
 				" global peers: " << ses.num_connections() <<
-				" global limit: " << ses.settings().connections_limit <<
+				" global limit: " << ses.settings().get_int(settings_pack::connections_limit) <<
 				" global list peers " << int(m_peers.size()) <<
-				" global list limit: " << m_torrent->settings().max_peerlist_size <<
+				" global list limit: " << m_torrent->settings().get_int(settings_pack::max_peerlist_size) <<
 				" ]\n";
 #endif
 			c.disconnect(errors::too_many_connections);
@@ -800,7 +800,7 @@ namespace libtorrent
 		peer* i = 0;
 
 		bool found = false;
-		if (m_torrent->settings().allow_multiple_connections_per_ip)
+		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 		{
 			tcp::endpoint remote = c.remote();
 			std::pair<iterator, iterator> range = find_peers(remote.address());
@@ -903,11 +903,11 @@ namespace libtorrent
 			error_code ec;
 			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
-			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+			if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 			{
 				// this may invalidate our iterator!
 				erase_peers(force_erase);
-				if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+				if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 					(*m_torrent->session().m_logger) << time_now_string()
@@ -916,9 +916,9 @@ namespace libtorrent
 						" torrent peers: " << m_torrent->num_peers() <<
 						" torrent limit: " << m_torrent->max_connections() <<
 						" global peers: " << ses.num_connections() <<
-						" global limit: " << ses.settings().connections_limit <<
+						" global limit: " << ses.settings().get_int(settings_pack::connections_limit) <<
 						" global list peers " << int(m_peers.size()) <<
-						" global list limit: " << m_torrent->settings().max_peerlist_size <<
+						" global list limit: " << m_torrent->settings().get_int(settings_pack::max_peerlist_size) <<
 						" ]\n";
 #endif
 					c.disconnect(errors::too_many_connections);
@@ -1005,7 +1005,7 @@ namespace libtorrent
 
 		if (p->port == port) return true;
 
-		if (m_torrent->settings().allow_multiple_connections_per_ip)
+		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 		{
 			tcp::endpoint remote(p->address(), port);
 			std::pair<iterator, iterator> range = find_peers(remote.address());
@@ -1095,8 +1095,8 @@ namespace libtorrent
 		TORRENT_ASSERT(p->in_use);
 
 		int max_peerlist_size = m_torrent->is_paused()
-			?m_torrent->settings().max_paused_peerlist_size
-			:m_torrent->settings().max_peerlist_size;
+			?m_torrent->settings().get_int(settings_pack::max_paused_peerlist_size)
+			:m_torrent->settings().get_int(settings_pack::max_peerlist_size);
 
 		if (max_peerlist_size
 			&& int(m_peers.size()) >= max_peerlist_size)
@@ -1275,7 +1275,8 @@ namespace libtorrent
 
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
-		if (!ses.m_settings.allow_i2p_mixed && m_torrent->torrent_file().is_i2p())
+		if (!ses.m_settings.get_bool(settings_pack::allow_i2p_mixed)
+			&& m_torrent->torrent_file().is_i2p())
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
@@ -1293,7 +1294,8 @@ namespace libtorrent
 			return 0;
 		}
 
-		if (ses.m_settings.no_connect_privileged_ports && remote.port() < 1024)
+		if (ses.m_settings.get_bool(settings_pack::no_connect_privileged_ports)
+			&& remote.port() < 1024)
 		{
 			if (ses.m_alerts.should_post<peer_blocked_alert>())
 				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
@@ -1319,7 +1321,7 @@ namespace libtorrent
 		peer* p = 0;
 
 		bool found = false;
-		if (m_torrent->settings().allow_multiple_connections_per_ip)
+		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 		{
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
@@ -1487,7 +1489,7 @@ namespace libtorrent
 		// port, we don't really know which peer it was. In order
 		// to avoid adding one entry for every single connection
 		// the peer makes to us, don't save this entry
-		if (m_torrent->settings().allow_multiple_connections_per_ip
+		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip)
 			&& !p->connectable)
 		{
 			erase_peer(p);
@@ -1571,7 +1573,7 @@ namespace libtorrent
 			if (i == m_peers.begin() + 1) prev = m_peers.begin();
 			if (prev != m_peers.end())
 			{
-				if (m_torrent->settings().allow_multiple_connections_per_ip)
+				if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 					TORRENT_ASSERT(!((*i)->address() < (*prev)->address()));
 				else
 					TORRENT_ASSERT((*prev)->address() < (*i)->address());
@@ -1582,7 +1584,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_GEO_IP
 			TORRENT_ASSERT(p.inet_as == 0 || p.inet_as->first == p.inet_as_num);
 #endif
-			if (!m_torrent->settings().allow_multiple_connections_per_ip)
+			if (!m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
 				std::pair<const_iterator, const_iterator> range = find_peers(p.address());
 				TORRENT_ASSERT(range.second - range.first == 1);

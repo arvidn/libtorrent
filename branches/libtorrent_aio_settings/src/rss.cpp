@@ -588,7 +588,8 @@ int feed::update_feed()
 			, _1, _2, _3, _4)));
 
 	m_updating = true;
-	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+	feed->get(m_settings.url, seconds(30), 0, 0, 5
+		, m_ses.m_settings.get_str(settings_pack::user_agent));
 
 	return 60 + m_failures * m_failures * 60;
 }

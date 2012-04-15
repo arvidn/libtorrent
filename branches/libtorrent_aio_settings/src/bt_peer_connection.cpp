@@ -1126,7 +1126,7 @@ namespace libtorrent
 				}
 
 				TORRENT_ASSERT(!has_disk_receive_buffer());
-				if (!m_ses.m_settings.contiguous_recv_buffer)
+				if (!m_ses.settings().get_bool(settings_pack::contiguous_recv_buffer))
 				{
 					if (!allocate_disk_receive_buffer(packet_size() - 13 - list_size))
 					{
@@ -1148,7 +1148,7 @@ namespace libtorrent
 					return;
 				}
 
-				if (!m_ses.m_settings.contiguous_recv_buffer)
+				if (!m_ses.settings().get_bool(settings_pack::contiguous_recv_buffer))
 				{
 					if (!allocate_disk_receive_buffer(packet_size() - 9))
 					{
@@ -1158,7 +1158,7 @@ namespace libtorrent
 				}
 			}
 		}
-		TORRENT_ASSERT(m_ses.m_settings.contiguous_recv_buffer || has_disk_receive_buffer() || packet_size() == 9);
+		TORRENT_ASSERT(m_ses.settings().get_bool(settings_pack::contiguous_recv_buffer) || has_disk_receive_buffer() || packet_size() == 9);
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		int piece_bytes = 0;
@@ -1224,7 +1224,7 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 		}
 
-		TORRENT_ASSERT(m_ses.m_settings.contiguous_recv_buffer || has_disk_receive_buffer() || packet_size() == header_size);
+		TORRENT_ASSERT(m_ses.settings().get_bool(settings_pack::contiguous_recv_buffer) || has_disk_receive_buffer() || packet_size() == header_size);
 
 		incoming_piece_fragment(piece_bytes);
 		if (!packet_finished()) return;
@@ -1851,7 +1851,7 @@ namespace libtorrent
 		// if we're finished and this peer is uploading only
 		// disconnect it
 		if (t->is_finished() && upload_only()
-			&& t->settings().close_redundant_connections
+			&& m_ses.settings().get_bool(settings_pack::close_redundant_connections)
 			&& !t->share_mode())
 			disconnect(errors::upload_upload_connection);
 	}
@@ -2059,7 +2059,7 @@ namespace libtorrent
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
 
-		if (t->is_seed() && m_ses.settings().lazy_bitfields
+		if (t->is_seed() && m_ses.settings().get_bool(settings_pack::lazy_bitfields)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			&& !m_encrypted
 #endif
@@ -2165,17 +2165,17 @@ namespace libtorrent
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
 		// our listen port
-		if (!m_ses.m_settings.anonymous_mode)
+		if (!m_ses.settings().get_bool(settings_pack::anonymous_mode))
 		{
 			if (is_outgoing()) handshake["p"] = m_ses.listen_port();
-			handshake["v"] = m_ses.settings().user_agent;
+			handshake["v"] = m_ses.settings().get_str(settings_pack::user_agent);
 		}
 
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
 		handshake["yourip"] = remote_address;
-		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
+		handshake["reqq"] = m_ses.settings().get_int(settings_pack::max_allowed_in_request_queue);
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
@@ -2200,7 +2200,7 @@ namespace libtorrent
 		if (t->is_upload_only()
 			&& !t->share_mode()
 			&& !t->super_seeding()
-			&& (!m_ses.settings().lazy_bitfields
+			&& (!m_ses.settings().get_bool(settings_pack::lazy_bitfields)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			|| m_encrypted
 #endif
@@ -2210,7 +2210,7 @@ namespace libtorrent
 		if (t->share_mode())
 			handshake["share_mode"] = 1;
 
-		if (!m_ses.m_settings.anonymous_mode)
+		if (!m_ses.m_settings.get_bool(settings_pack::anonymous_mode))
 		{
 			tcp::endpoint ep = m_ses.get_ipv6_interface();
 			if (!is_any(ep.address()))
@@ -3204,7 +3204,7 @@ namespace libtorrent
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
 			set_pid(pid);
  
-			if (t->settings().allow_multiple_connections_per_ip)
+			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{
 				// now, let's see if this connection should be closed
 				policy& p = t->get_policy();

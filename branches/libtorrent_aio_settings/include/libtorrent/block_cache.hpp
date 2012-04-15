@@ -58,6 +58,7 @@ namespace libtorrent
 	struct cache_status;
 	struct hash_thread;
 	struct block_cache_reference;
+	namespace aux { struct session_settings; }
 
 	struct partial_hash
 	{
@@ -368,7 +369,7 @@ namespace libtorrent
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
-		void set_settings(session_settings const& sett);
+		void set_settings(aux::session_settings const& sett);
 
 	private:
 

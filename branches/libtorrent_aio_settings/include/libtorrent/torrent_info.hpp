@@ -65,6 +65,7 @@ namespace libtorrent
 	class peer_connection;
 	struct session_settings;
 
+	namespace aux { struct session_settings; }
 	// exposed for the unit test
 	TORRENT_EXPORT void sanitize_append_path_element(std::string& path, char const* element, int element_len);
 
@@ -148,7 +149,7 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed(session_settings const& sett, int retry_interval = 0);
+		void failed(aux::session_settings const& sett, int retry_interval = 0);
 
 		bool will_announce(ptime now) const
 		{

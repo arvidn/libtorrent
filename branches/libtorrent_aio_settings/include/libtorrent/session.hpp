@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/build_config.hpp"
 
 #include "libtorrent/storage.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #ifdef _MSC_VER
 #	include <eh.h>
@@ -84,8 +85,10 @@ namespace libtorrent
 	class upnp;
 	class alert;
 
+#ifndef TORRENT_NO_DEPRECATE
 	TORRENT_EXPORT session_settings min_memory_usage();
 	TORRENT_EXPORT session_settings high_performance_seed();
+#endif
 
 #ifndef TORRENT_CFG
 #error TORRENT_CFG is not defined!
@@ -373,8 +376,16 @@ namespace libtorrent
 
 		void remove_torrent(const torrent_handle& h, int options = none);
 
-		void set_settings(session_settings const& s);
-		session_settings settings() const;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in aio-branch
+		TORRENT_DEPRECATED_PREFIX
+		void set_settings(session_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		session_settings settings() const TORRENT_DEPRECATED;
+#endif
+
+		void apply_settings(settings_pack const& s);
+		aux::session_settings get_settings() const;
 
 		void set_proxy(proxy_settings const& s);
 		proxy_settings proxy() const;

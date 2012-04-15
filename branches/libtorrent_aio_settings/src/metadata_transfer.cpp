@@ -423,7 +423,7 @@ namespace libtorrent { namespace
 						<< " ]\n";
 #endif
 
-					if (total_size > m_torrent.session().settings().max_metadata_size)
+					if (total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 					{
 						m_pc.disconnect(errors::metadata_too_large, 2);
 						return true;

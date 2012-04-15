@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct session_settings;
+	namespace aux { struct session_settings; }
 	class alert;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
@@ -90,7 +90,7 @@ namespace libtorrent
 		boost::uint32_t num_to_evict(int num_needed = 0);
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
-		void set_settings(session_settings const& sett);
+		void set_settings(aux::session_settings const& sett);
 
 	protected:
 

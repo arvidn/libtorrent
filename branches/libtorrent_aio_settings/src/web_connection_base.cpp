@@ -79,7 +79,7 @@ namespace libtorrent
 		
 		// since this is a web seed, change the timeout
 		// according to the settings.
-		set_timeout(ses.settings().urlseed_timeout);
+		set_timeout(ses.settings().get_int(settings_pack::urlseed_timeout));
 
 		std::string protocol;
 		error_code ec;
@@ -127,9 +127,9 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_ses.settings().always_send_user_agent) {
+		if (m_first_request || m_ses.settings().get_bool(settings_pack::always_send_user_agent)) {
 			request += "\r\nUser-Agent: ";
-			request += m_ses.settings().user_agent;
+			request += m_ses.settings().get_str(settings_pack::user_agent);
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";

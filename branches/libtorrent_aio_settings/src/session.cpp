@@ -98,6 +98,7 @@ namespace libtorrent
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
+#ifndef TORRENT_NO_DEPRECATE
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
 	// usage, with no consideration of performance.
@@ -329,6 +330,7 @@ namespace libtorrent
 
 		return set;
 	}
+#endif
 
 	// wrapper around a function that's executed in the network thread
 	// ans synchronized in the client thread
@@ -876,6 +878,7 @@ namespace libtorrent
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_settings(session_settings const& s)
 	{
 		TORRENT_ASYNC_CALL1(set_settings, s);
@@ -883,7 +886,20 @@ namespace libtorrent
 
 	session_settings session::settings() const
 	{
-		TORRENT_SYNC_CALL_RET(session_settings, settings);
+		TORRENT_SYNC_CALL_RET(session_settings, deprecated_settings);
+		return r;
+	}
+#endif
+
+	void session::apply_settings(settings_pack const& s)
+	{
+		settings_pack* copy = new settings_pack(s);
+		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
+	}
+
+	aux::session_settings session::get_settings() const
+	{
+		TORRENT_SYNC_CALL_RET(aux::session_settings, settings);
 		return r;
 	}
 
@@ -1151,6 +1167,7 @@ namespace libtorrent
 		return m_impl->m_half_open;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
 		: version(LIBTORRENT_VERSION_NUM)
 		, user_agent(user_agent_)
@@ -1198,11 +1215,6 @@ namespace libtorrent
 		, send_buffer_low_watermark(512)
 		, send_buffer_watermark(500 * 1024)
 		, send_buffer_watermark_factor(50)
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
-		, auto_upload_slots(true)
-		, auto_upload_slots_rate_based(true)
-#endif
 		, choking_algorithm(fixed_slots_choker)
 		, seed_choking_algorithm(round_robin)
 		, use_parole_mode(true)
@@ -1211,13 +1223,14 @@ namespace libtorrent
 		, cache_expiry(300)
 		, use_read_cache(true)
 		, dont_flush_write_cache(false)
-		, explicit_read_cache(0)
+		, explicit_read_cache(false)
 		, explicit_cache_interval(30)
 		, disk_io_write_mode(0)
 		, disk_io_read_mode(0)
 		, coalesce_reads(false)
 		, coalesce_writes(false)
-		, outgoing_ports(0,0)
+		, outgoing_port(0)
+		, num_outgoing_ports(0)
 		, peer_tos(0)
 		, active_downloads(3)
 		, active_seeds(5)
@@ -1346,5 +1359,7 @@ namespace libtorrent
 	{}
 
 	session_settings::~session_settings() {}
+#endif // TORRENT_NO_DEPRECATE
+
 }
 

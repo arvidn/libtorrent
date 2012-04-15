@@ -78,7 +78,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!ses.settings().report_web_seed_downloads)
+		if (!ses.settings().get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
 		shared_ptr<torrent> tor = t.lock();

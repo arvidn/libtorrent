@@ -335,13 +335,13 @@ namespace libtorrent { namespace
 				char const* in = p->string_ptr();
 				char const* fin = pf->string_ptr();
 
-				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
 
-					if (int(m_peers.size()) >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
+						break;
 
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
@@ -397,7 +397,8 @@ namespace libtorrent { namespace
 					char flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
-					if (int(m_peers6.size()) >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
+						break;
 
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
 					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
@@ -611,7 +612,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent* t, void*)
 	{
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
-			&& !t->settings().allow_i2p_mixed))
+			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}

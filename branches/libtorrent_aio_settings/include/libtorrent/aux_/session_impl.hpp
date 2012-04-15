@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -155,6 +156,9 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_impl;
+		struct session_settings;
+
+		void initialize_default_settings(aux::session_settings& s);
 
 #if defined TORRENT_STATS && !defined __MACH__
 		struct vm_statistics_data_t
@@ -282,7 +286,12 @@ namespace libtorrent
 
 			void close_connection(peer_connection* p, error_code const& ec);
 
-			void set_settings(session_settings const& s);
+#ifndef TORRENT_NO_DEPRECATE
+			void set_settings(libtorrent::session_settings const& s);
+			libtorrent::session_settings deprecated_settings() const;
+#endif
+
+			void apply_settings_pack(settings_pack* pack);
 			session_settings const& settings() const { return m_settings; }
 
 #ifndef TORRENT_DISABLE_DHT	
@@ -569,15 +578,32 @@ namespace libtorrent
 
 			void disk_performance_warning(alert* a);
 
-			void update_connections_limit();
-			void update_unchoke_limit();
+			void update_peer_tos();
+			void update_user_agent();
+			void update_choking_algorithm();
+			void update_connection_speed();
+			void update_alert_queue_size();
+			void upate_dht_upload_rate_limit();
+			void update_network_threads();
+			void update_cache_buffer_chunk_size();
+			void update_report_web_seed_downloads();
+			void reset_auto_manage_timer();
+			void update_dht_announce_interval();
+			void update_anonymous_mode();
 			void update_rate_settings();
+			void update_half_open();
+			void update_local_download_rate();
+			void update_local_upload_rate();
+			void update_download_rate();
+			void update_upload_rate();
+			void update_connections_limit();
+			void update_dht_upload_rate_limit();
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
 
 			// the settings for the client
-			session_settings m_settings;
+			aux::session_settings m_settings;
 
 			// this is a shared pool where policy_peer objects
 			// are allocated. It's a pool since we're likely

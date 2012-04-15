@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/allocator.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -321,14 +321,14 @@ namespace libtorrent
 		free_buffer_impl(buf, l);
 	}
 
-	void disk_buffer_pool::set_settings(session_settings const& sett)
+	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
 		// proportional to the total disk cache size)
-		m_cache_buffer_chunk_size = sett.cache_buffer_chunk_size;
-		m_lock_disk_cache = sett.lock_disk_cache;
+		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
+		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
 
 		// if we've already allocated an mmap, we can't change
 		// anything unless there are no allocations in use
@@ -336,10 +336,10 @@ namespace libtorrent
 
 		// only allow changing size if we're not using mmapped
 		// cache, or if we're just about to turn it off
-		if (m_cache_pool == 0 || sett.mmap_cache.empty())
+		if (m_cache_pool == 0 || sett.get_str(settings_pack::mmap_cache).empty())
 		{
-			m_max_use = sett.cache_size;
-			m_low_watermark = m_max_use - (std::max)(16, sett.max_queued_disk_bytes / 0x4000);
+			m_max_use = sett.get_int(settings_pack::cache_size);
+			m_low_watermark = m_max_use - (std::max)(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
 			if (m_low_watermark < 0) m_low_watermark = 0;
 			if (m_in_use >= m_max_use) m_exceeded_max_size = true;
 		}
@@ -350,7 +350,7 @@ namespace libtorrent
 
 #if TORRENT_HAVE_MMAP
 		// #error support resizing the map
-		if (m_cache_pool && sett.mmap_cache.empty())
+		if (m_cache_pool && sett.get_str(settings_pack::mmap_cache).empty())
 		{
 			TORRENT_ASSERT(m_in_use == 0);
 			munmap(m_cache_pool, boost::uint64_t(m_max_use) * 0x4000);
@@ -362,14 +362,14 @@ namespace libtorrent
 			m_cache_fd = -1;
 			std::vector<int>().swap(m_free_list);
 		}
-		else if (m_cache_pool == 0 && !sett.mmap_cache.empty())
+		else if (m_cache_pool == 0 && !sett.get_str(settings_pack::mmap_cache).empty())
 		{
 			// O_TRUNC here is because we don't actually care about what's
 			// in the file now, there's no need to ever read that into RAM
 #ifndef O_EXLOCK
 #define O_EXLOCK 0
 #endif
-			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
+			m_cache_fd = open(sett.get_str(settings_pack::mmap_cache).c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0 && m_post_alert)
 			{
 				error_code ec(errno, boost::system::get_posix_category());

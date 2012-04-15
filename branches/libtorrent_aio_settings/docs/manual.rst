@@ -4478,11 +4478,6 @@ session_settings
 		int send_buffer_watermark;
 		int send_buffer_watermark_factor;
 
-	#ifndef TORRENT_NO_DEPRECATE
-		bool auto_upload_slots;
-		bool auto_upload_slots_rate_based;
-	#endif
-
 		enum choking_algorithm_t
 		{
 			fixed_slots_choker,
@@ -4870,21 +4865,8 @@ upper limit. This defaults to 50. For high capacity connections, setting this
 higher can improve upload performance and disk throughput. Setting it too
 high may waste RAM and create a bias towards read jobs over write jobs.
 
-``auto_upload_slots`` defaults to true. When true, if there is a global upload
-limit set and the current upload rate is less than 90% of that, another upload
-slot is opened. If the upload rate has been saturated for an extended period
-of time, on upload slot is closed. The number of upload slots will never be
-less than what has been set by ``session::set_max_uploads()``. To query the
-current number of upload slots, see ``session_status::allowed_upload_slots``.
-
-When ``auto_upload_slots_rate_based`` is set, and ``auto_upload_slots`` is set,
-the max upload slots setting is used as a minimum number of unchoked slots.
-This algorithm is designed to prevent the peer from spreading its upload
-capacity too thin, but still open more slots in order to utilize the full capacity.
-
 ``choking_algorithm`` specifies which algorithm to use to determine which peers
-to unchoke. This setting replaces the deprecated settings ``auto_upload_slots``
-and ``auto_upload_slots_rate_based``.
+to unchoke.
 
 The options for choking algorithms are:
 
@@ -4893,7 +4875,7 @@ The options for choking algorithms are:
 
 * ``auto_expand_choker`` opens at least the number of slots as specified by
   ``session::set_max_uploads()`` but opens up more slots if the upload capacity
-  is not saturated. This unchoker will work just like the ``fixed_slot_choker``
+  is not saturated. This unchoker will work just like the ``fixed_slots_choker``
   if there's no global upload rate limit set.
 
 * ``rate_based_choker`` opens up unchoke slots based on the upload rate
