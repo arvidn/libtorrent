@@ -569,7 +569,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p->in_use);
 
-		if (!m_torrent->settings().ban_web_seeds && p->web_seed)
+		if (!m_torrent->settings().get_bool(settings_pack::ban_web_seeds) && p->web_seed)
 			return;
 
 		if (is_connect_candidate(*p, m_finished))

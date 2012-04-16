@@ -552,6 +552,7 @@ namespace aux {
 		SET(use_disk_read_ahead, true, 0),
 		SET(lock_files, false, 0),
 		SET(contiguous_recv_buffer, true, 0),
+		SET(ban_web_seeds, true, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =

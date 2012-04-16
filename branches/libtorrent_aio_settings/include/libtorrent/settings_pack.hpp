@@ -130,6 +130,7 @@ namespace libtorrent
 			use_disk_read_ahead,
 			lock_files,
 			contiguous_recv_buffer,
+			ban_web_seeds,
 
 			max_bool_setting_internal,
 			num_bool_settings = max_bool_setting_internal - bool_type_base
