@@ -469,7 +469,6 @@ int test_main()
 	announce_entry ae("dummy");
 	int last = 0;
 	aux::session_settings sett;
-	aux::initialize_default_settings(sett);
 	sett.set_int(settings_pack::tracker_backoff, 250);
 	for (int i = 0; i < 10; ++i)
 	{

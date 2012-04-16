@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	struct session_settings;
-
-	// defined in session_impl.cpp
-	void initialize_default_settings(session_settings& s);
 
 #define SET(type) \
 	TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack:: type ## _type_base); \
@@ -59,7 +55,9 @@ namespace libtorrent { namespace aux
 
 	struct session_settings
 	{
-		friend class libtorrent::aux::session_impl;
+		friend void libtorrent::save_settings_to_dict(
+			aux::session_settings const& s, entry::dictionary_type& sett);
+
 		void set_str(int name, std::string const& value) { SET(string); }
 		std::string const& get_str(int name) const { GET(string, m_strings[0]); }
 		void set_int(int name, int value) { SET(int); }

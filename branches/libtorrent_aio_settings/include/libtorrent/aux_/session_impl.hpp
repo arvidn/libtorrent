@@ -158,8 +158,6 @@ namespace libtorrent
 		struct session_impl;
 		struct session_settings;
 
-		void initialize_default_settings(aux::session_settings& s);
-
 #if defined TORRENT_STATS && !defined __MACH__
 		struct vm_statistics_data_t
 		{

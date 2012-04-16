@@ -33,15 +33,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SETTINGS_PACK_HPP_INCLUDED
 #define TORRENT_SETTINGS_PACK_HPP_INCLUDED
 
+#include "libtorrent/entry.hpp"
+
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
+	namespace aux { struct session_impl; struct session_settings; }
+
+	struct settings_pack;
+	struct lazy_entry;
+
+	settings_pack* load_pack_from_dict(lazy_entry const* settings);
+	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
+	void initialize_default_settings(aux::session_settings& s);
+	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+
+#ifndef TORRENT_NO_DEPRECATE
+	struct session_settings;
+	settings_pack* load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
+	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
+#endif
+
 	// #error add an API to query a settings_pack as well
 	// #error maybe convert all bool types into int-types as well
 	struct settings_pack
 	{
-		friend struct aux::session_impl;
 		friend struct disk_io_thread;
+		friend void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
 
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
