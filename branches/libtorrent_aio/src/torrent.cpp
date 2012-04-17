@@ -4031,21 +4031,26 @@ namespace libtorrent
 					read_piece(i->piece);
 				}
 
-				// update the average download time and average
-				// download time deviation
-				int dl_time = total_milliseconds(time_now() - i->first_requested);
-
-				if (m_average_piece_time == 0)
+				// if first_requested is min_time(), it wasn't requested as a critical piece
+				// and we shouldn't adjust any average download times
+				if (i->first_requested != min_time())
 				{
-					m_average_piece_time = dl_time;
-				}
-				else
-				{
-					int diff = abs(int(dl_time - m_average_piece_time));
-					if (m_piece_time_deviation == 0) m_piece_time_deviation = diff;
-					else m_piece_time_deviation = (m_piece_time_deviation * 6 + diff * 4) / 10;
-
-					m_average_piece_time = (m_average_piece_time * 6 + dl_time * 4) / 10;
+					// update the average download time and average
+					// download time deviation
+					int dl_time = total_milliseconds(time_now() - i->first_requested);
+   
+					if (m_average_piece_time == 0)
+					{
+						m_average_piece_time = dl_time;
+					}
+					else
+					{
+						int diff = abs(int(dl_time - m_average_piece_time));
+						if (m_piece_time_deviation == 0) m_piece_time_deviation = diff;
+						else m_piece_time_deviation = (m_piece_time_deviation * 6 + diff * 4) / 10;
+   
+						m_average_piece_time = (m_average_piece_time * 6 + dl_time * 4) / 10;
+					}
 				}
 			}
 			m_time_critical_pieces.erase(i);
