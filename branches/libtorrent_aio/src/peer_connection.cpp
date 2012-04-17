@@ -2753,18 +2753,20 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
-#ifdef TORRENT_DEBUG
-		const std::vector<piece_picker::downloading_piece>& q
-			= picker.get_download_queue();
-
-		for (std::vector<piece_picker::downloading_piece>::const_iterator
-			i = q.begin(), end(q.end()); i != end; ++i)
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		if (t->has_picker())
 		{
-			if (i->index != block_finished.piece_index) continue;
-			piece_picker::downloading_piece const& p = *i;
-			TORRENT_ASSERT(p.info[block_finished.block_index].state == piece_picker::block_info::state_finished);
-		}
+			const std::vector<piece_picker::downloading_piece>& q
+				= picker.get_download_queue();
 
+			for (std::vector<piece_picker::downloading_piece>::const_iterator
+				i = q.begin(), end(q.end()); i != end; ++i)
+			{
+				if (i->index != block_finished.piece_index) continue;
+				piece_picker::downloading_piece const& p = *i;
+				TORRENT_ASSERT(p.info[block_finished.block_index].state == piece_picker::block_info::state_finished);
+			}
+		}
 #endif
 		if (t->is_aborted()) return;
 	}
