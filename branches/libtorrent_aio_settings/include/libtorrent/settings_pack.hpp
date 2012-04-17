@@ -47,6 +47,9 @@ namespace libtorrent
 	void initialize_default_settings(aux::session_settings& s);
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
 
+	int setting_by_name(std::string const& name);
+	char const* name_for_setting(int s);
+
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
 	settings_pack* load_pack_from_struct(aux::session_settings const& current, session_settings const& s);

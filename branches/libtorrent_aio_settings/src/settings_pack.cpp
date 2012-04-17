@@ -290,6 +290,39 @@ namespace libtorrent
 
 #undef SET
 
+	int setting_by_name(std::string const& key)
+	{
+		for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
+		{
+			if (key != str_settings[k].name) continue;
+			return settings_pack::string_type_base + k;
+		}
+		for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
+		{
+			if (key != int_settings[k].name) continue;
+			return settings_pack::int_type_base + k;
+		}
+		for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
+		{
+			if (key != bool_settings[k].name) continue;
+			return settings_pack::bool_type_base + k;
+		}
+		return -1;
+	}
+
+	char const* name_for_setting(int s)
+	{
+		switch (s & settings_pack::type_mask)
+		{
+			case settings_pack::string_type_base:
+				return str_settings[s - settings_pack::string_type_base].name;
+			case settings_pack::int_type_base:
+				return int_settings[s - settings_pack::int_type_base].name;
+			case settings_pack::bool_type_base:
+				return bool_settings[s - settings_pack::bool_type_base].name;
+		};
+		return "";
+	}
 
 	settings_pack* load_pack_from_dict(lazy_entry const* settings)
 	{
