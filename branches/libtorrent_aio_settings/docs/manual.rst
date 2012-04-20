@@ -167,8 +167,15 @@ The ``session`` class has the following synopsis::
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags) const;
 
+
+	#ifndef TORRENT_NO_DEPRECATE
 		void set_settings(session_settings const& settings);
 		session_settings settings() const;
+	#endif
+
+		void apply_settings(settings_pack const& s);
+		aux::session_settings get_settings() const;
+
 		void set_pe_settings(pe_settings const& settings);
 
 		void set_upload_rate_limit(int bytes_per_second);
@@ -295,7 +302,7 @@ The destructor of session will notify all trackers that our torrents have been s
 If some trackers are down, they will time out. All this before the destructor of session
 returns. So, it's advised that any kind of interface (such as windows) are closed before
 destructing the session object. Because it can take a few second for it to finish. The
-timeout can be set with ``set_settings()``.
+timeout can be set with `apply_settings()`_.
 
 load_state() save_state()
 -------------------------
@@ -601,7 +608,7 @@ that are downloaded, when pieces are decided to be downloaded. This affects the 
 bar, which might be set to "100% finished" most of the time. Do not change file or piece
 priorities for torrents in share mode, it will make it not work.
 
-The share mode has one setting, the share ratio target, see ``session_settings::share_mode_target``
+The share mode has one setting, the share ratio target, see share_mode_target_.
 for more info.
 
 
@@ -1198,7 +1205,7 @@ can be called and it can pop the alert independently.
 In the python binding, ``wait_for_alert`` takes the number of milliseconds to wait as an integer.
 
 To control the max number of alerts that's queued by the session, see
-``session_settings::alert_queue_size``.
+alert_queue_size_.
 
 ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
 of the alert mask.
@@ -1344,11 +1351,23 @@ set_settings() set_pe_settings()
 
 		void set_settings(session_settings const& settings);
 		void set_pe_settings(pe_settings const& settings);
-		
-Sets the session settings and the packet encryption settings respectively.
-See session_settings_ and pe_settings_ for more information on available
-options.
 
+Sets the session settings and the packet encryption settings respectively.
+See pe_settings_ for more information on available options.
+
+``set_settings()`` is deprecated. Use `apply_settings()`_ and the settings_pack_
+instead.
+
+apply_settings()
+----------------
+
+	::
+
+		void apply_settings(settings_pack const& s);
+
+Applies the settings specified by the settings_pack_ ``s``. This is an
+asynchronous operation that will return immediately and actually apply
+the settings to the main thread of libtorrent some time later.
 
 set_proxy() proxy()
 -------------------
@@ -2927,7 +2946,7 @@ set_upload_mode()
 
 Explicitly sets the upload mode of the torrent. In upload mode, the torrent will not
 request any pieces. If the torrent is auto managed, it will automatically be taken out
-of upload mode periodically (see ``session_settings::optimistic_disk_retry``). Torrents
+of upload mode periodically (see optimistic_disk_retry_). Torrents
 are automatically put in upload mode whenever they encounter a disk write error.
 
 ``m`` should be true to enter upload mode, and false to leave it.
@@ -4168,7 +4187,7 @@ receive. -1 means it's unlimited.
 to this peer and since any transfer occurred with this peer, respectively.
 
 ``request_timeout`` is the number of seconds until the current front piece request
-will time out. This timeout can be adjusted through ``session_settings::request_timeout``.
+will time out. This timeout can be adjusted through request_timeout_.
 -1 means that there is not outstanding request.
 
 ``send_buffer_size`` and ``used_send_buffer`` is the number of bytes allocated
@@ -4391,9 +4410,11 @@ those fields.
 session customization
 =====================
 
-You have some control over session configuration through the ``session_settings`` object. You
-create it and fill it with your settings and then use ``session::set_settings()``
-to apply them.
+You have some control over session configuration through the ``session::apply_settings()``
+member function. To change one or more configuration options, create a settings_pack_.
+object and fill it with the settings to be set and pass it in to ``session::apply_settings()``.
+
+see `apply_settings()`_.
 
 You have control over proxy and authorization settings and also the user-agent
 that will be sent to the tracker. The user-agent will also be used to identify the
@@ -4409,8 +4430,8 @@ fit your needs better.
 
 ::
 
-	session_settings min_memory_usage();
-	session_settings high_performance_seed();
+	settings_pack min_memory_usage();
+	settings_pack high_performance_seed();
 
 ``min_memory_usage`` returns settings that will use the minimal amount of RAM, at the
 potential expense of upload and download performance. It adjusts the socket buffer sizes,
@@ -4428,55 +4449,20 @@ and that doesn't do any downloading. It has a 128 MB disk cache and has a limit 
 in its file pool. It support fast upload rates by allowing large send buffers.
 
 
-session_settings
-----------------
+settings_pack
+-------------
 
-::
+.. parsed-literal::
 
-	struct session_settings
+	struct settings_pack
 	{
-		session_settings();
-		int version;
-		std::string user_agent;
-		int tracker_completion_timeout;
-		int tracker_receive_timeout;
-		int stop_tracker_timeout;
-		int tracker_maximum_response_length;
+		void set_str(int name, std::string val);
+		void set_int(int name, int val);
+		void set_bool(int name, bool val);
 
-		int piece_timeout;
-		float request_queue_time;
-		int max_allowed_in_request_queue;
-		int max_out_request_queue;
-		int whole_pieces_threshold;
-		int peer_timeout;
-		int urlseed_timeout;
-		int urlseed_pipeline_size;
-		int file_pool_size;
-		bool allow_multiple_connections_per_ip;
-		int max_failcount;
-		int min_reconnect_time;
-		int peer_connect_timeout;
-		bool ignore_limits_on_local_network;
-		int connection_speed;
-		bool send_redundant_have;
-		bool lazy_bitfields;
-		int inactivity_timeout;
-		int unchoke_interval;
-		int optimistic_unchoke_interval;
-		std::string announce_ip;
-		int num_want;
-		int initial_picker_threshold;
-		int allowed_fast_set_size;
+		*all settings enums, see below*
 
 		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
-		int suggest_mode;
-		int max_queued_disk_bytes;
-		int handshake_timeout;
-		bool use_dht_as_fallback;
-		bool free_torrent_hashes;
-		bool upnp_ignore_nonrouters;
-		int send_buffer_watermark;
-		int send_buffer_watermark_factor;
 
 		enum choking_algorithm_t
 		{
@@ -4486,8 +4472,6 @@ session_settings
 			bittyrant_choker
 		};
 
-		int choking_algorithm;
-		
 		enum seed_choking_algorithm_t
 		{
 			round_robin,
@@ -4495,1110 +4479,32 @@ session_settings
 			anti_leech
 		};
 
-		int seed_choking_algorithm;
-
-		bool use_parole_mode;
-		int cache_size;
-		int cache_buffer_chunk_size;
-		int cache_expiry;
-		bool use_read_cache;
-		bool explicit_read_cache;
-		int explicit_cache_interval;
-
 		enum io_buffer_mode_t
 		{
 			enable_os_cache = 0,
 			disable_os_cache_for_aligned_files = 1,
 			disable_os_cache = 2
 		};
-		int disk_io_write_mode;
-		int disk_io_read_mode;
-
-		std::pair<int, int> outgoing_ports;
-		char peer_tos;
-
-		int active_downloads;
-		int active_seeds;
-		int active_dht_limit;
-		int active_tracker_limit;
-		int active_limit;
-		bool auto_manage_prefer_seeds;
-		bool dont_count_slow_torrents;
-		int auto_manage_interval;
-		int share_ratio_limit;
-		int seed_time_ratio_limit;
-		int seed_time_limit;
-		int peer_turnover_interval;
-		int peer_turnover;
-		int peer_turnover_cutoff;
-		bool close_redundant_connections;
-
-		int auto_scrape_interval;
-		int auto_scrape_min_interval;
-
-		int max_peerlist_size;
-
-		int min_announce_interval;
-
-		bool prioritize_partial_pieces;
-		int auto_manage_startup;
-
-		bool rate_limit_ip_overhead;
-
-		bool announce_to_all_trackers;
-		bool announce_to_all_tiers;
-
-		bool prefer_udp_trackers;
-		bool strict_super_seeding;
-
-		int seeding_piece_quota;
-
-		int max_sparse_regions;
-
-		bool lock_disk_cache;
-
-		int max_rejects;
-
-		int recv_socket_buffer_size;
-		int send_socket_buffer_size;
-
-		bool optimize_hashing_for_speed;
-
-		int file_checks_delay_per_block;
 
 		enum disk_cache_algo_t
 		{ lru, largest_contiguous, avoid_readback };
-
-		disk_cache_algo_t disk_cache_algorithm;
-
-		int read_cache_line_size;
-		int write_cache_line_size;
-
-		int optimistic_disk_retry;
-		bool disable_hash_check;
-
-		int max_suggest_pieces;
-
-		bool drop_skipped_requests;
-
-		bool low_prio_disk;
-		int local_service_announce_interval;
-		int dht_announce_interval;
-
-		int udp_tracker_token_expiry;
-		bool volatile_read_cache;
-		bool guided_read_cache;
-		bool default_min_cache_age;
-
-		int num_optimistic_unchoke_slots;
-		bool no_atime_storage;
-		int default_est_reciprocation_rate;
-		int increase_est_reciprocation_rate;
-		int decrease_est_reciprocation_rate;
-		bool incoming_starts_queued_torrents;
-		bool report_true_downloaded;
-		bool strict_end_game_mode;
-
-		bool broadcast_lsd;
-
-		bool enable_outgoing_utp;
-		bool enable_incoming_utp;
-		bool enable_outgoing_tcp;
-		bool enable_incoming_tcp;
-		int max_pex_peers;
-		bool ignore_resume_timestamps;
-		bool no_recheck_incomplete_resume;
-		bool anonymous_mode;
-		int tick_interval;
-		int share_mode_target;
-
-		int upload_rate_limit;
-		int download_rate_limit;
-		int local_upload_rate_limit;
-		int local_download_rate_limit;
-		int dht_upload_rate_limit;
-		int unchoke_slots_limit;
-		int half_open_limit;
-		int connections_limit;
-
-		int utp_target_delay;
-		int utp_gain_factor;
-		int utp_min_timeout;
-		int utp_syn_resends;
-		int utp_num_resends;
-		int utp_connect_timeout;
-		int utp_delayed_ack;
-		bool utp_dynamic_sock_buf;
-		int utp_loss_multiplier;
 
 		enum bandwidth_mixed_algo_t
 		{
 			prefer_tcp = 0,
 			peer_proportional = 1
-
 		};
-		int mixed_mode_algorithm;
-		bool rate_limit_utp;
-
-		int listen_queue_size;
-
-		bool announce_double_nat;
-
-		int torrent_connect_boost;
-		bool seeding_outgoing_connections;
-
-		bool no_connect_privileged_ports;
-		int alert_queue_size;
-		int max_metadata_size;
-		bool smooth_connects;
-		bool always_send_user_agent;
-		bool apply_ip_filter_to_trackers;
-		int read_job_every;
-		bool use_disk_read_ahead;
-		bool lock_files;
-		int hashing_threads;
-		int contiguous_recv_buffer;
-		int network_threads;
-
-		std::string mmap_cache;
-
-		int ssl_listen;
-
-		int tracker_backoff;
-
-		bool ban_web_seeds;
 	};
 
-``version`` is automatically set to the libtorrent version you're using
-in order to be forward binary compatible. This field should not be changed.
+The ``settings_pack`` struct, contains the names of all settings as
+enum values. These values are passed in to the ``set_str()``,
+``set_int()``, ``set_bool()`` functions, to specify the setting to
+change.
 
-``user_agent`` this is the client identification to the tracker.
-The recommended format of this string is:
-"ClientName/ClientVersion libtorrent/libtorrentVersion".
-This name will not only be used when making HTTP requests, but also when
-sending extended headers to peers that support that extension.
+These are the available settings:
 
-``tracker_completion_timeout`` is the number of seconds the tracker
-connection will wait from when it sent the request until it considers the
-tracker to have timed-out. Default value is 60 seconds.
+.. include:: settings.rst
 
-``tracker_receive_timeout`` is the number of seconds to wait to receive
-any data from the tracker. If no data is received for this number of
-seconds, the tracker will be considered as having timed out. If a tracker
-is down, this is the kind of timeout that will occur. The default value
-is 20 seconds.
-
-``stop_tracker_timeout`` is the time to wait for tracker responses when
-shutting down the session object. This is given in seconds. Default is
-10 seconds.
-
-``tracker_maximum_response_length`` is the maximum number of bytes in a
-tracker response. If a response size passes this number it will be rejected
-and the connection will be closed. On gzipped responses this size is measured
-on the uncompressed data. So, if you get 20 bytes of gzip response that'll
-expand to 2 megs, it will be interrupted before the entire response has been
-uncompressed (given your limit is lower than 2 megs). Default limit is
-1 megabyte.
-
-``piece_timeout`` controls the number of seconds from a request is sent until
-it times out if no piece response is returned.
-
-``request_queue_time`` is the length of the request queue given in the number
-of seconds it should take for the other end to send all the pieces. i.e. the
-actual number of requests depends on the download rate and this number.
-	
-``max_allowed_in_request_queue`` is the number of outstanding block requests
-a peer is allowed to queue up in the client. If a peer sends more requests
-than this (before the first one has been handled) the last request will be
-dropped. The higher this is, the faster upload speeds the client can get to a
-single peer.
-
-``max_out_request_queue`` is the maximum number of outstanding requests to
-send to a peer. This limit takes precedence over ``request_queue_time``. i.e.
-no matter the download speed, the number of outstanding requests will never
-exceed this limit.
-
-``whole_pieces_threshold`` is a limit in seconds. if a whole piece can be
-downloaded in at least this number of seconds from a specific peer, the
-peer_connection will prefer requesting whole pieces at a time from this peer.
-The benefit of this is to better utilize disk caches by doing localized
-accesses and also to make it easier to identify bad peers if a piece fails
-the hash check.
-
-``peer_timeout`` is the number of seconds the peer connection should
-wait (for any activity on the peer connection) before closing it due
-to time out. This defaults to 120 seconds, since that's what's specified
-in the protocol specification. After half the time out, a keep alive message
-is sent.
-
-``urlseed_timeout`` is the same as ``peer_timeout`` but applies only to
-url seeds. This value defaults to 20 seconds.
-
-``urlseed_pipeline_size`` controls the pipelining with the web server. When
-using persistent connections to HTTP 1.1 servers, the client is allowed to
-send more requests before the first response is received. This number controls
-the number of outstanding requests to use with url-seeds. Default is 5.
-
-``file_pool_size`` is the the upper limit on the total number of files this
-session will keep open. The reason why files are left open at all is that
-some anti virus software hooks on every file close, and scans the file for
-viruses. deferring the closing of the files will be the difference between
-a usable system and a completely hogged down system. Most operating systems
-also has a limit on the total number of file descriptors a process may have
-open. It is usually a good idea to find this limit and set the number of
-connections and the number of files limits so their sum is slightly below it.
-
-``allow_multiple_connections_per_ip`` determines if connections from the
-same IP address as existing connections should be rejected or not. Multiple
-connections from the same IP address is not allowed by default, to prevent
-abusive behavior by peers. It may be useful to allow such connections in
-cases where simulations are run on the same machie, and all peers in a
-swarm has the same IP address.
-
-``max_failcount`` is the maximum times we try to connect to a peer before
-stop connecting again. If a peer succeeds, the failcounter is reset. If
-a peer is retrieved from a peer source (other than DHT) the failcount is
-decremented by one, allowing another try.
-
-``min_reconnect_time`` is the time to wait between connection attempts. If
-the peer fails, the time is multiplied by fail counter.
-
-``peer_connect_timeout`` the number of seconds to wait after a connection
-attempt is initiated to a peer until it is considered as having timed out.
-The default is 10 seconds. This setting is especially important in case
-the number of half-open connections are limited, since stale half-open
-connection may delay the connection of other peers considerably.
-
-``ignore_limits_on_local_network``, if set to true, upload, download and
-unchoke limits are ignored for peers on the local network.
-
-``connection_speed`` is the number of connection attempts that
-are made per second. If a number < 0 is specified, it will default to
-200 connections per second. If 0 is specified, it means don't make
-outgoing connections at all.
-
-``send_redundant_have`` controls if have messages will be sent
-to peers that already have the piece. This is typically not necessary,
-but it might be necessary for collecting statistics in some cases.
-Default is false.
-
-``lazy_bitfields`` prevents outgoing bitfields from being full. If the
-client is seed, a few bits will be set to 0, and later filled in with
-have-messages. This is to prevent certain ISPs from stopping people
-from seeding.
-
-``inactivity_timeout``, if a peer is uninteresting and uninterested
-for longer than this number of seconds, it will be disconnected.
-Default is 10 minutes
-
-``unchoke_interval`` is the number of seconds between chokes/unchokes.
-On this interval, peers are re-evaluated for being choked/unchoked. This
-is defined as 30 seconds in the protocol, and it should be significantly
-longer than what it takes for TCP to ramp up to it's max rate.
-
-``optimistic_unchoke_interval`` is the number of seconds between
-each *optimistic* unchoke. On this timer, the currently optimistically
-unchoked peer will change.
-
-``announce_ip`` is the ip address passed along to trackers as the ``&ip=`` parameter.
-If left as the default (an empty string), that parameter is omitted.
-
-``num_want`` is the number of peers we want from each tracker request. It defines
-what is sent as the ``&num_want=`` parameter to the tracker.
-
-``initial_picker_threshold`` specifies the number of pieces we need before we
-switch to rarest first picking. This defaults to 4, which means the 4 first
-pieces in any torrent are picked at random, the following pieces are picked
-in rarest first order.
-
-``allowed_fast_set_size`` is the number of pieces we allow peers to download
-from us without being unchoked.
-
-``suggest_mode`` controls whether or not libtorrent will send out suggest
-messages to create a bias of its peers to request certain pieces. The modes
-are:
-
-* ``no_piece_suggestsions`` which is the default and will not send out suggest
-  messages.
-* ``suggest_read_cache`` which will send out suggest messages for the most
-  recent pieces that are in the read cache.
-
-``max_queued_disk_bytes`` is the number maximum number of bytes, to be
-written to disk, that can wait in the disk I/O thread queue. This queue
-is only for waiting for the disk I/O thread to receive the job and either
-write it to disk or insert it in the write cache. When this limit is reached,
-the peer connections will stop reading data from their sockets, until the disk
-thread catches up. Setting this too low will severly limit your download rate.
-
-``handshake_timeout`` specifies the number of seconds we allow a peer to
-delay responding to a protocol handshake. If no response is received within
-this time, the connection is closed.
-
-``use_dht_as_fallback`` determines how the DHT is used. If this is true,
-the DHT will only be used for torrents where all trackers in its tracker
-list has failed. Either by an explicit error message or a time out. This
-is false by default, which means the DHT is used by default regardless of
-if the trackers fail or not.
-
-``free_torrent_hashes`` determines whether or not the torrent's piece hashes
-are kept in memory after the torrent becomes a seed or not. If it is set to
-``true`` the hashes are freed once the torrent is a seed (they're not
-needed anymore since the torrent won't download anything more). If it's set
-to false they are not freed. If they are freed, the torrent_info_ returned
-by get_torrent_info() will return an object that may be incomplete, that
-cannot be passed back to `async_add_torrent() add_torrent()`_ for instance.
-
-``upnp_ignore_nonrouters`` indicates whether or not the UPnP implementation
-should ignore any broadcast response from a device whose address is not the
-configured router for this machine. i.e. it's a way to not talk to other
-people's routers by mistake.
-
-``send_buffer_watermark`` is the upper limit of the send buffer low-watermark.
-if the send buffer has fewer bytes than this, we'll read another 16kB block
-onto it. If set too small, upload rate capacity will suffer. If set too high,
-memory will be wasted. The actual watermark may be lower than this in case
-the upload rate is low, this is the upper limit.
-
-``send_buffer_watermark_factor`` is multiplied to the peer's upload rate
-to determine the low-watermark for the peer. It is specified as a percentage,
-which means 100 represents a factor of 1.
-The low-watermark is still clamped to not exceed the ``send_buffer_watermark``
-upper limit. This defaults to 50. For high capacity connections, setting this
-higher can improve upload performance and disk throughput. Setting it too
-high may waste RAM and create a bias towards read jobs over write jobs.
-
-``choking_algorithm`` specifies which algorithm to use to determine which peers
-to unchoke.
-
-The options for choking algorithms are:
-
-* ``fixed_slots_choker`` is the traditional choker with a fixed number of unchoke
-  slots (as specified by ``session::set_max_uploads()``).
-
-* ``auto_expand_choker`` opens at least the number of slots as specified by
-  ``session::set_max_uploads()`` but opens up more slots if the upload capacity
-  is not saturated. This unchoker will work just like the ``fixed_slots_choker``
-  if there's no global upload rate limit set.
-
-* ``rate_based_choker`` opens up unchoke slots based on the upload rate
-  achieved to peers. The more slots that are opened, the marginal upload
-  rate required to open up another slot increases.
-
-* ``bittyrant_choker`` attempts to optimize download rate by finding the
-  reciprocation rate of each peer individually and prefers peers that gives
-  the highest *return on investment*. It still allocates all upload capacity,
-  but shuffles it around to the best peers first. For this choker to be
-  efficient, you need to set a global upload rate limit
-  (``session::set_upload_rate_limit()``). For more information about this
-  choker, see the paper_.
-
-.. _paper: http://bittyrant.cs.washington.edu/#papers
-
-``seed_choking_algorithm`` controls the seeding unchoke behavior. The available
-options are:
-
-* ``round_robin`` which round-robins the peers that are unchoked when seeding. This
-  distributes the upload bandwidht uniformly and fairly. It minimizes the ability
-  for a peer to download everything without redistributing it.
-
-* ``fastest_upload`` unchokes the peers we can send to the fastest. This might be
-  a bit more reliable in utilizing all available capacity.
-
-* ``anti_leech`` prioritizes peers who have just started or are just about to finish
-  the download. The intention is to force peers in the middle of the download to
-  trade with each other.
-
-``use_parole_mode`` specifies if parole mode should be used. Parole mode means
-that peers that participate in pieces that fail the hash check are put in a mode
-where they are only allowed to download whole pieces. If the whole piece a peer
-in parole mode fails the hash check, it is banned. If a peer participates in a
-piece that passes the hash check, it is taken out of parole mode.
-
-``cache_size`` is the disk write and read  cache. It is specified in units of
-16 KiB blocks. Buffers that are part of a peer's send or receive buffer also
-count against this limit. Send and receive buffers will never be denied to be
-allocated, but they will cause the actual cached blocks to be flushed or evicted.
-If this is set to -1, the cache size is automatically set to the amount
-of physical RAM available in the machine divided by 8. If the amount of physical
-RAM cannot be determined, it's set to 1024 (= 16 MiB).
-
-Disk buffers are allocated using a pool allocator, the number of blocks that
-are allocated at a time when the pool needs to grow can be specified in
-``cache_buffer_chunk_size``. Lower numbers saves memory at the expense of more
-heap allocations. If it is set to 0, the effective chunk size is proportional
-to the total cache size, attempting to strike a good balance between performance
-and memory usage. It defaults to 0.
-
-``cache_expiry`` is the number of seconds from the last cached write to a piece
-in the write cache, to when it's forcefully flushed to disk. Default is 60 second.
-
-``use_read_cache``, is set to true (default), the disk cache is also used to
-cache pieces read from disk. Blocks for writing pieces takes presedence.
-
-``explicit_read_cache`` defaults to 0. If set to something greater than 0, the
-disk read cache will not be evicted by cache misses and will explicitly be
-controlled based on the rarity of pieces. Rare pieces are more likely to be
-cached. This would typically be used together with ``suggest_mode`` set to
-``suggest_read_cache``. The value is the number of pieces to keep in the read
-cache. If the actual read cache can't fit as many, it will essentially be clamped.
-
-``explicit_cache_interval`` is the number of seconds in between each refresh of
-a part of the explicit read cache. Torrents take turns in refreshing and this
-is the time in between each torrent refresh. Refreshing a torrent's explicit
-read cache means scanning all pieces and picking a random set of the rarest ones.
-There is an affinity to pick pieces that are already in the cache, so that
-subsequent refreshes only swaps in pieces that are rarer than whatever is in
-the cache at the time.
-
-``disk_io_write_mode`` and ``disk_io_read_mode`` determines how files are
-opened when they're in read only mode versus read and write mode. The options
-are:
-
-	* enable_os_cache
-		This is the default and files are opened normally, with the OS caching
-		reads and writes.
-	* disable_os_cache_for_aligned_files
-		This will open files in unbuffered mode for files where every read and
-		write would be sector aligned. Using aligned disk offsets is a requirement
-		on some operating systems.
-	* disable_os_cache
-		This opens all files in unbuffered mode (if allowed by the operating system).
-		Linux and Windows, for instance, require disk offsets to be sector aligned,
-		and in those cases, this option is the same as ``disable_os_caches_for_aligned_files``.
-
-One reason to disable caching is that it may help the operating system from growing
-its file cache indefinitely. Since some OSes only allow aligned files to be opened
-in unbuffered mode, It is recommended to make the largest file in a torrent the first
-file (with offset 0) or use pad files to align all files to piece boundries.
-
-``outgoing_ports``, if set to something other than (0, 0) is a range of ports
-used to bind outgoing sockets to. This may be useful for users whose router
-allows them to assign QoS classes to traffic based on its local port. It is
-a range instead of a single port because of the problems with failing to reconnect
-to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
-
-.. warning:: setting outgoing ports will limit the ability to keep multiple
-	connections to the same client, even for different torrents. It is not
-	recommended to change this setting. Its main purpose is to use as an
-	escape hatch for cheap routers with QoS capability but can only classify
-	flows based on port numbers.
-
-``peer_tos`` determines the TOS byte set in the IP header of every packet
-sent to peers (including web seeds). The default value for this is ``0x0``
-(no marking). One potentially useful TOS mark is ``0x20``, this represents
-the *QBone scavenger service*. For more details, see QBSS_.
-
-.. _`QBSS`: http://qbone.internet2.edu/qbss/
-
-``active_downloads`` and ``active_seeds`` controls how many active seeding and
-downloading torrents the queuing mechanism allows. The target number of active
-torrents is ``min(active_downloads + active_seeds, active_limit)``.
-``active_downloads`` and ``active_seeds`` are upper limits on the number of
-downloading torrents and seeding torrents respectively. Setting the value to
--1 means unlimited.
-
-For example if there are 10 seeding torrents and 10 downloading torrents, and
-``active_downloads`` is 4 and ``active_seeds`` is 4, there will be 4 seeds
-active and 4 downloading torrents. If the settings are ``active_downloads`` = 2
-and ``active_seeds`` = 4, then there will be 2 downloading torrents and 4 seeding
-torrents active. Torrents that are not auto managed are also counted against these
-limits. If there are non-auto managed torrents that use up all the slots, no
-auto managed torrent will be activated.
-
-``auto_manage_prefer_seeds`` specifies if libtorrent should prefer giving seeds
-active slots or downloading torrents.  The default is ``false``.
-
-if ``dont_count_slow_torrents`` is true, torrents without any payload transfers are
-not subject to the ``active_seeds`` and ``active_downloads`` limits. This is intended
-to make it more likely to utilize all available bandwidth, and avoid having torrents
-that don't transfer anything block the active slots.
-
-``active_limit`` is a hard limit on the number of active torrents. This applies even to
-slow torrents.
-
-``active_dht_limit`` is the max number of torrents to announce to the DHT. By default
-this is set to 88, which is no more than one DHT announce every 10 seconds.
-
-``active_tracker_limit`` is the max number of torrents to announce to their trackers.
-By default this is 360, which is no more than one announce every 5 seconds.
-
-``active_lsd_limit`` is the max number of torrents to announce to the local network
-over the local service discovery protocol. By default this is 80, which is no more
-than one announce every 5 seconds (assuming the default announce interval of 5 minutes).
-
-You can have more torrents *active*, even though they are not announced to the DHT,
-lsd or their tracker. If some peer knows about you for any reason and tries to connect,
-it will still be accepted, unless the torrent is paused, which means it won't accept
-any connections.
-
-``auto_manage_interval`` is the number of seconds between the torrent queue
-is updated, and rotated.
-
-``share_ratio_limit`` is the upload / download ratio limit for considering a
-seeding torrent have met the seed limit criteria. See queuing_. This is specified
-as percent.
-
-``seed_time_ratio_limit`` is the seeding time / downloading time ratio limit
-for considering a seeding torrent to have met the seed limit criteria. See queuing_.
-This is specified as percent.
-
-``seed_time_limit`` is the limit on the time a torrent has been an active seed
-(specified in seconds) before it is considered having met the seed limit criteria.
-See queuing_.
-
-``peer_turnover_interval`` controls a feature where libtorrent periodically can disconnect
-the least useful peers in the hope of connecting to better ones. This settings controls
-the interval of this optimistic disconnect. It defaults to every 5 minutes, and
-is specified in seconds.
-
-``peer_turnover`` Is the fraction of the peers that are disconnected. This is
-specified in percent, where 100 represents all peers an 0 represents no peers. It defaults to
-4%.
-
-``peer_turnover_cutoff`` is the cut off trigger for optimistic unchokes. If a torrent
-has more than this fraction of its connection limit, the optimistic unchoke is
-triggered. It is specified in percent, and defaults to 90%.
-
-``close_redundant_connections`` specifies whether libtorrent should close
-connections where both ends have no utility in keeping the connection open.
-For instance if both ends have completed their downloads, there's no point
-in keeping it open. This defaults to ``true``.
-
-``auto_scrape_interval`` is the number of seconds between scrapes of
-queued torrents (auto managed and paused torrents). Auto managed
-torrents that are paused, are scraped regularly in order to keep
-track of their downloader/seed ratio. This ratio is used to determine
-which torrents to seed and which to pause.
-
-``auto_scrape_min_interval`` is the minimum number of seconds between any
-automatic scrape (regardless of torrent). In case there are a large number
-of paused auto managed torrents, this puts a limit on how often a scrape
-request is sent.
-
-``max_peerlist_size`` is the maximum number of peers in the list of
-known peers. These peers are not necessarily connected, so this number
-should be much greater than the maximum number of connected peers.
-Peers are evicted from the cache when the list grows passed 90% of
-this limit, and once the size hits the limit, peers are no longer
-added to the list. If this limit is set to 0, there is no limit on
-how many peers we'll keep in the peer list.
-
-``max_paused_peerlist_size`` is the max peer list size used for torrents
-that are paused. This default to the same as ``max_peerlist_size``, but
-can be used to save memory for paused torrents, since it's not as
-important for them to keep a large peer list.
-
-``min_announce_interval`` is the minimum allowed announce interval
-for a tracker. This is specified in seconds, defaults to 5 minutes and
-is used as a sanity check on what is returned from a tracker. It
-mitigates hammering misconfigured trackers.
-
-If ``prioritize_partial_pieces`` is true, partial pieces are picked
-before pieces that are more rare. If false, rare pieces are always
-prioritized, unless the number of partial pieces is growing out of
-proportion.
-
-``auto_manage_startup`` is the number of seconds a torrent is considered
-active after it was started, regardless of upload and download speed. This
-is so that newly started torrents are not considered inactive until they
-have a fair chance to start downloading.
-
-If ``rate_limit_ip_overhead`` is set to true, the estimated TCP/IP overhead is
-drained from the rate limiters, to avoid exceeding the limits with the total traffic
-
-``announce_to_all_trackers`` controls how multi tracker torrents are
-treated. If this is set to true, all trackers in the same tier are
-announced to in parallel. If all trackers in tier 0 fails, all trackers
-in tier 1 are announced as well. If it's set to false, the behavior is as
-defined by the multi tracker specification. It defaults to false, which
-is the same behavior previous versions of libtorrent has had as well.
-
-``announce_to_all_tiers`` also controls how multi tracker torrents are
-treated. When this is set to true, one tracker from each tier is announced
-to. This is the uTorrent behavior. This is false by default in order
-to comply with the multi-tracker specification.
-
-``prefer_udp_trackers`` is true by default. It means that trackers may
-be rearranged in a way that udp trackers are always tried before http
-trackers for the same hostname. Setting this to fails means that the
-trackers' tier is respected and there's no preference of one protocol
-over another.
-
-``strict_super_seeding`` when this is set to true, a piece has to
-have been forwarded to a third peer before another one is handed out.
-This is the traditional definition of super seeding.
-
-``seeding_piece_quota`` is the number of pieces to send to a peer,
-when seeding, before rotating in another peer to the unchoke set.
-It defaults to 3 pieces, which means that when seeding, any peer we've
-sent more than this number of pieces to will be unchoked in favour of
-a choked peer.
-
-``max_sparse_regions`` is a limit of the number of *sparse regions* in
-a torrent. A sparse region is defined as a hole of pieces we have not
-yet downloaded, in between pieces that have been downloaded. This is
-used as a hack for windows vista which has a bug where you cannot
-write files with more than a certain number of sparse regions. This
-limit is not hard, it will be exceeded. Once it's exceeded, pieces
-that will maintain or decrease the number of sparse regions are
-prioritized. To disable this functionality, set this to 0. It defaults
-to 0 on all platforms except windows.
-
-``lock_disk_cache`` if lock disk cache is set to true the disk cache
-that's in use, will be locked in physical memory, preventing it from
-being swapped out.
-
-``max_rejects`` is the number of piece requests we will reject in a row
-while a peer is choked before the peer is considered abusive and is
-disconnected.
-
-
-``recv_socket_buffer_size`` and ``send_socket_buffer_size`` specifies
-the buffer sizes set on peer sockets. 0 (which is the default) means
-the OS default (i.e. don't change the buffer sizes). The socket buffer
-sizes are changed using setsockopt() with SOL_SOCKET/SO_RCVBUF and
-SO_SNDBUFFER.
-
-``optimize_hashing_for_speed`` chooses between two ways of reading back
-piece data from disk when its complete and needs to be verified against
-the piece hash. This happens if some blocks were flushed to the disk
-out of order. Everything that is flushed in order is hashed as it goes
-along. Optimizing for speed will allocate space to fit all the the
-remaingin, unhashed, part of the piece, reads the data into it in a single
-call and hashes it. This is the default. If ``optimizing_hashing_for_speed``
-is false, a single block will be allocated (16 kB), and the unhashed parts
-of the piece are read, one at a time, and hashed in this single block. This
-is appropriate on systems that are memory constrained.
-
-``file_checks_delay_per_block`` is the number of milliseconds to sleep
-in between disk read operations when checking torrents. This defaults
-to 0, but can be set to higher numbers to slow down the rate at which
-data is read from the disk while checking. This may be useful for
-background tasks that doesn't matter if they take a bit longer, as long
-as they leave disk I/O time for other processes.
-
-``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-algorithm to use. The default algorithm is largest_contiguous. This
-flushes the entire piece, in the write cache, that was least recently
-written to. This is specified by the ``session_settings::lru`` enum
-value. ``session_settings::largest_contiguous`` will flush the largest
-sequences of contiguous blocks from the write cache, regarless of the
-piece's last use time. ``session_settings::avoid_readback`` will prioritize
-flushing blocks that will avoid having to read them back in to verify
-the hash of the piece once it's done. This is especially useful for high
-throughput setups, where reading from the disk is especially expensive.
-
-``read_cache_line_size`` is the number of blocks to read into the read
-cache when a read cache miss occurs. Setting this to 0 is essentially
-the same thing as disabling read cache. The number of blocks read
-into the read cache is always capped by the piece boundry.
-
-When a piece in the write cache has ``write_cache_line_size`` contiguous
-blocks in it, they will be flushed. Setting this to 1 effectively
-disables the write cache.
-
-``optimistic_disk_retry`` is the number of seconds from a disk write
-errors occur on a torrent until libtorrent will take it out of the
-upload mode, to test if the error condition has been fixed.
-
-libtorrent will only do this automatically for auto managed torrents.
-
-You can explicitly take a torrent out of upload only mode using
-`set_upload_mode()`_.
-
-``disable_hash_check`` controls if downloaded pieces are verified against
-the piece hashes in the torrent file or not. The default is false, i.e.
-to verify all downloaded data. It may be useful to turn this off for performance
-profiling and simulation scenarios. Do not disable the hash check for regular
-bittorrent clients.
-
-``max_suggest_pieces`` is the max number of suggested piece indices received
-from a peer that's remembered. If a peer floods suggest messages, this limit
-prevents libtorrent from using too much RAM. It defaults to 10.
-
-If ``drop_skipped_requests`` is set to true (it defaults to false), piece
-requests that have been skipped enough times when piece messages
-are received, will be considered lost. Requests are considered skipped
-when the returned piece messages are re-ordered compared to the order
-of the requests. This was an attempt to get out of dead-locks caused by
-BitComet peers silently ignoring some requests. It may cause problems
-at high rates, and high level of reordering in the uploading peer, that's
-why it's disabled by default.
-
-``low_prio_disk`` determines if the disk I/O should use a normal
-or low priority policy. This defaults to true, which means that
-it's low priority by default. Other processes doing disk I/O will
-normally take priority in this mode. This is meant to improve the
-overall responsiveness of the system while downloading in the
-background. For high-performance server setups, this might not
-be desirable.
-
-``local_service_announce_interval`` is the time between local
-network announces for a torrent. By default, when local service
-discovery is enabled a torrent announces itself every 5 minutes.
-This interval is specified in seconds.
-
-``dht_announce_interval`` is the number of seconds between announcing
-torrents to the distributed hash table (DHT). This is specified to
-be 15 minutes which is its default.
-
-``dht_max_torrents`` is the max number of torrents we will track
-in the DHT.
-
-``udp_tracker_token_expiry`` is the number of seconds libtorrent
-will keep UDP tracker connection tokens around for. This is specified
-to be 60 seconds, and defaults to that. The higher this value is, the
-fewer packets have to be sent to the UDP tracker. In order for higher
-values to work, the tracker needs to be configured to match the
-expiration time for tokens.
-
-``volatile_read_cache``, if this is set to true, read cache blocks
-that are hit by peer read requests are removed from the disk cache
-to free up more space. This is useful if you don't expect the disk
-cache to create any cache hits from other peers than the one who
-triggered the cache line to be read into the cache in the first place.
-
-``guided_read_cache`` enables the disk cache to adjust the size
-of a cache line generated by peers to depend on the upload rate
-you are sending to that peer. The intention is to optimize the RAM
-usage of the cache, to read ahead further for peers that you're
-sending faster to.
-
-``default_min_cache_age`` is the minimum number of seconds any read
-cache line is kept in the cache. This defaults to one second but
-may be greater if ``guided_read_cache`` is enabled. Having a lower
-bound on the time a cache line stays in the cache is an attempt
-to avoid swapping the same pieces in and out of the cache in case
-there is a shortage of spare cache space.
-
-``num_optimistic_unchoke_slots`` is the number of optimistic unchoke
-slots to use. It defaults to 0, which means automatic. Having a higher
-number of optimistic unchoke slots mean you will find the good peers
-faster but with the trade-off to use up more bandwidth. When this is
-set to 0, libtorrent opens up 20% of your allowed upload slots as
-optimistic unchoke slots.
-
-``no_atime_storage`` this is a linux-only option and passes in the
-``O_NOATIME`` to ``open()`` when opening files. This may lead to
-some disk performance improvements.
-
-``default_est_reciprocation_rate`` is the assumed reciprocation rate
-from peers when using the BitTyrant choker. This defaults to 14 kiB/s.
-If set too high, you will over-estimate your peers and be more altruistic
-while finding the true reciprocation rate, if it's set too low, you'll
-be too stingy and waste finding the true reciprocation rate.
-
-``increase_est_reciprocation_rate`` specifies how many percent the
-extimated reciprocation rate should be increased by each unchoke
-interval a peer is still choking us back. This defaults to 20%.
-This only applies to the BitTyrant choker.
-
-``decrease_est_reciprocation_rate`` specifies how many percent the
-estimated reciprocation rate should be decreased by each unchoke
-interval a peer unchokes us. This default to 3%.
-This only applies to the BitTyrant choker.
-
-``incoming_starts_queued_torrents`` defaults to false. If a torrent
-has been paused by the auto managed feature in libtorrent, i.e.
-the torrent is paused and auto managed, this feature affects whether
-or not it is automatically started on an incoming connection. The
-main reason to queue torrents, is not to make them unavailable, but
-to save on the overhead of announcing to the trackers, the DHT and to
-avoid spreading one's unchoke slots too thin. If a peer managed to
-find us, even though we're no in the torrent anymore, this setting
-can make us start the torrent and serve it.
-
-When ``report_true_downloaded`` is true, the ``&downloaded=`` argument
-sent to trackers will include redundant downloaded bytes. It defaults
-to ``false``, which means redundant bytes are not reported to the tracker.
-
-``strict_end_game_mode`` defaults to true, and controls when a block
-may be requested twice. If this is ``true``, a block may only be requested
-twice when there's ay least one request to every piece that's left to
-download in the torrent. This may slow down progress on some pieces
-sometimes, but it may also avoid downloading a lot of redundant bytes.
-If this is ``false``, libtorrent attempts to use each peer connection
-to its max, by always requesting something, even if it means requesting
-something that has been requested from another peer already.
-
-if ``broadcast_lsd`` is set to true, the local peer discovery
-(or Local Service Discovery) will not only use IP multicast, but also
-broadcast its messages. This can be useful when running on networks
-that don't support multicast. Since broadcast messages might be
-expensive and disruptive on networks, only every 8th announce uses
-broadcast.
-
-``enable_outgoing_utp``, ``enable_incoming_utp``, ``enable_outgoing_tcp``,
-``enable_incoming_tcp`` all determines if libtorrent should attempt to make
-outgoing connections of the specific type, or allow incoming connection. By
-default all of them are enabled.
-
-``ignore_resume_timestamps`` determines if the storage, when loading
-resume data files, should verify that the file modification time
-with the timestamps in the resume data. This defaults to false, which
-means timestamps are taken into account, and resume data is less likely
-to accepted (torrents are more likely to be fully checked when loaded).
-It might be useful to set this to true if your network is faster than your
-disk, and it would be faster to redownload potentially missed pieces than
-to go through the whole storage to look for them.
-
-``no_recheck_incomplete_resume`` determines if the storage should check
-the whole files when resume data is incomplete or missing or whether
-it should simply assume we don't have any of the data. By default, this
-is determined by the existance of any of the files. By setting this setting
-to true, the files won't be checked, but will go straight to download
-mode.
-
-``anonymous_mode`` defaults to false. When set to true, the client tries
-to hide its identity to a certain degree. The peer-ID will no longer
-include the client's fingerprint. The user-agent will be reset to an
-empty string. Trackers will only be used if they are using a proxy
-server. The listen sockets are closed, and incoming connections will
-only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
-is run on the same machine as the tracker proxy). Since no incoming connections
-are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
-when this setting is enabled.
-
-If you're using I2P, it might make sense to enable anonymous mode as well.
-
-``tick_interval`` specifies the number of milliseconds between internal
-ticks. This is the frequency with which bandwidth quota is distributed to
-peers. It should not be more than one second (i.e. 1000 ms). Setting this
-to a low value (around 100) means higher resolution bandwidth quota distribution,
-setting it to a higher value saves CPU cycles.
-
-``share_mode_target`` specifies the target share ratio for share mode torrents.
-This defaults to 3, meaning we'll try to upload 3 times as much as we download.
-Setting this very high, will make it very conservative and you might end up
-not downloading anything ever (and not affecting your share ratio). It does
-not make any sense to set this any lower than 2. For instance, if only 3 peers
-need to download the rarest piece, it's impossible to download a single piece
-and upload it more than 3 times. If the share_mode_target is set to more than 3,
-nothing is downloaded.
-
-``upload_rate_limit``, ``download_rate_limit``, ``local_upload_rate_limit``
-and ``local_download_rate_limit`` sets the session-global limits of upload
-and download rate limits, in bytes per second. The local rates refer to peers
-on the local network. By default peers on the local network are not rate limited.
-
-These rate limits are only used for local peers (peers within the same subnet as
-the client itself) and it is only used when ``session_settings::ignore_limits_on_local_network``
-is set to true (which it is by default). These rate limits default to unthrottled,
-but can be useful in case you want to treat local peers preferentially, but not
-quite unthrottled.
-
-A value of 0 means unlimited.
-
-``dht_upload_rate_limit`` sets the rate limit on the DHT. This is specified in
-bytes per second and defaults to 4000. For busy boxes with lots of torrents
-that requires more DHT traffic, this should be raised.
-
-``unchoke_slots_limit`` is the mac number of unchoked peers in the session.
-
-The number of unchoke slots may be ignored depending on what
-``choking_algorithm`` is set to.
-
-``half_open_limit`` sets the maximum number of half-open connections
-libtorrent will have when connecting to peers. A half-open connection is one
-where connect() has been called, but the connection still hasn't been established
-(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
-the number of half-open connections to 10. So, this limit can be used to work
-nicer together with other network applications on that system. The default is
-to have no limit, and passing -1 as the limit, means to have no limit. When
-limiting the number of simultaneous connection attempts, peers will be put in
-a queue waiting for their turn to get connected.
-
-``connections_limit`` sets a global limit on the number of connections
-opened. The number of connections is set to a hard minimum of at least two per
-torrent, so if you set a too low connections limit, and open too many torrents,
-the limit will not be met.
-
-``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
-value will make uTP connections more aggressive and cause longer queues in the upload
-bottleneck. It cannot be too low, since the noise in the measurements would cause
-it to send too slow. The default is 50 milliseconds.
-
-``utp_gain_factor`` is the number of bytes the uTP congestion window can increase
-at the most in one RTT. This defaults to 300 bytes. If this is set too high,
-the congestion controller reacts too hard to noise and will not be stable, if it's
-set too low, it will react slow to congestion and not back off as fast.
-
-``utp_min_timeout`` is the shortest allowed uTP socket timeout, specified in milliseconds.
-This defaults to 500 milliseconds. The timeout depends on the RTT of the connection, but
-is never smaller than this value. A connection times out when every packet in a window
-is lost, or when a packet is lost twice in a row (i.e. the resent packet is lost as well).
-
-The shorter the timeout is, the faster the connection will recover from this situation,
-assuming the RTT is low enough.
-
-``utp_syn_resends`` is the number of SYN packets that are sent (and timed out) before
-giving up and closing the socket.
-
-``utp_num_resends`` is the number of times a packet is sent (and lossed or timed out)
-before giving up and closing the connection.
-
-``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
-packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
-
-``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
-significantly helps reducing the amount of protocol overhead in the reverse direction
-from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
-and every incoming payload packet is ACKed. The granularity of this timer is capped by
-the tick interval (as specified by ``tick_interval``).
-
-``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
-the socket buffer if a network interface with a large MTU is used (such as loopback
-or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
-For RAM constrained systems, disabling this typically saves around 30kB in user space
-and probably around 400kB in kernel socket buffers (it adjusts the send and receive
-buffer size on the kernel socket, both for IPv4 and IPv6).
-
-``utp_loss_multiplier`` controls how the congestion window is changed when a packet
-loss is experienced. It's specified as a percentage multiplier for ``cwnd``. By default
-it's set to 50 (i.e. cut in half). Do not change this value unless you know what
-you're doing. Never set it higher than 100.
-
-The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
-uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
-when using swarms that have both TCP and uTP connections. If nothing is done, uTP
-connections would often be starved out for bandwidth by the TCP connections. This mode
-is ``prefer_tcp``. The ``peer_proportional`` mode simply looks at the current throughput
-and rate limits all TCP connections to their proportional share based on how many of
-the connections are TCP. This works best if uTP connections are not rate limited by
-the global rate limiter (which they aren't by default).
-
-``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are.
-
-``listen_queue_size`` is the value passed in to listen() for the listen socket.
-It is the number of outstanding incoming connections to queue up while we're not
-actively waiting for a connection to be accepted. The default is 5 which should
-be sufficient for any normal client. If this is a high performance server which
-expects to receive a lot of connections, or used in a simulator or test, it
-might make sense to raise this number. It will not take affect until listen_on()
-is called again (or for the first time).
-
-if ``announce_double_nat`` is true, the ``&ip=`` argument in tracker requests
-(unless otherwise specified) will be set to the intermediate IP address, if the
-user is double NATed. If ther user is not double NATed, this option has no affect.
-
-``torrent_connect_boost`` is the number of peers to try to connect to immediately
-when the first tracker response is received for a torrent. This is a boost to
-given to new torrents to accelerate them starting up. The normal connect scheduler
-is run once every second, this allows peers to be connected immediately instead
-of waiting for the session tick to trigger connections.
-
-``seeding_outgoing_connections`` determines if seeding (and finished) torrents
-should attempt to make outgoing connections or not. By default this is true. It
-may be set to false in very specific applications where the cost of making
-outgoing connections is high, and there are no or small benefits of doing so.
-For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
-make outgoing connections.
-
-if ``no_connect_privileged_ports`` is true (which is the default), libtorrent
-will not connect to any peers on priviliged ports (<= 1023). This can mitigate
-using bittorrent swarms for certain DDoS attacks.
-
-``alert_queue_size`` is the maximum number of alerts queued up internally. If
-alerts are not popped, the queue will eventually fill up to this level. This
-defaults to 1000.
-
-``max_metadata_size`` is the maximum allowed size (in bytes) to be received
-by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
-
-``smooth_connects`` is true by default, which means the number of connection
-attempts per second may be limited to below the ``connection_speed``, in case
-we're close to bump up against the limit of number of connections. The intention
-of this setting is to more evenly distribute our connection attempts over time,
-instead of attempting to connectin in batches, and timing them out in batches.
-
-``always_send_user_agent`` defaults to false. When set to true, web connections
-will include a user-agent with every request, as opposed to just the first
-request in a connection.
-
-``apply_ip_filter_to_trackers`` defaults to true. It determines whether the
-IP filter applies to trackers as well as peers. If this is set to false,
-trackers are exempt from the IP filter (if there is one). If no IP filter
-is set, this setting is irrelevant.
-
-``read_job_every`` is used to avoid starvation of read jobs in the disk I/O
-thread. By default, read jobs are deferred, sorted by physical disk location
-and serviced once all write jobs have been issued. In scenarios where the
-download rate is enough to saturate the disk, there's a risk the read jobs will
-never be serviced. With this setting, every *x* write job, issued in a row, will
-instead pick one read job off of the sorted queue, where *x* is ``read_job_every``.
-
-``use_disk_read_ahead`` defaults to true and will attempt to optimize disk reads
-by giving the operating system heads up of disk read requests as they are queued
-in the disk job queue. This gives a significant performance boost for seeding.
-
-``lock_files`` determines whether or not to lock files which libtorrent is downloading
-to or seeding from. This is implemented using ``fcntl(F_SETLK)`` on unix systems and
-by not passing in ``SHARE_READ`` and ``SHARE_WRITE`` on windows. This might prevent
-3rd party processes from corrupting the files under libtorrent's feet.
-
-``hashing_threads`` is the number of threads to use for piece hash verification. It
-defaults to 1. For very high download rates, on machines with multiple cores, this
-could be incremented. Setting it higher than the number of CPU cores would presumably
-not provide any benefit of setting it to the number of cores. If it's set to 0,
-hashing is done in the disk thread.
-
-``contiguous_recv_buffer`` determines whether or not libtorrent should receive
-data from peers into a contiguous intermediate buffer, to then copy blocks into
-disk buffers from, or to make many smaller calls to ``read()``, each time passing
-in the specific buffer the data belongs in. When downloading at high rates, the latter
-may save some time copying data. When seeding at high rates, all incoming traffic
-consists of a very large number of tiny packets, and enabling ``contiguous_recv_buffer``
-will provide higher performance. When this is enabled, it will only be used when
-seeding to peers, since that's when it provides performance improvements.
-
-``network_threads`` is the number of threads to use to call ``async_write_some``
-(i.e. send) on peer connection sockets. When seeding at extremely high rates,
-this may become a bottleneck, and setting this to 2 or more may parallelize
-that cost. When using SSL torrents, all encryption for outgoing traffic is
-done withint the socket send functions, and this will help parallelizing the
-cost of SSL encryption as well.
-
-``mmap_cache`` may be set to a filename where the disk cache will be mmapped
-to. This could be useful, for instance, to map the disk cache from regular
-rotating hard drives onto an SSD drive. Doing that effectively introduces
-a second layer of caching, allowing the disk cache to be as big as can
-fit on an SSD drive (probably about one order of magnitude more than the
-available RAM). The intention of this setting is to set it up once at the
-start up and not change it while running. The setting may not be changed
-as long as there are any disk buffers in use. This default to the empty
-string, which means use regular RAM allocations for the disk cache. The file
-specified will be created and truncated to the disk cache size (``cache_size``).
-Any existing file with the same name will be replaced.
-
-Since this setting sets a hard upper limit on cache usage, it cannot be combined
-with ``session_settings::contiguous_recv_buffer``, since that feature treats the
-``cache_size`` setting as a soft (but still pretty hard) limit. The result of combining
-the two is peers being disconnected after failing to allocate more disk buffers.
-
-This feature requires the ``mmap`` system call, on systems that don't have ``mmap``
-this setting is ignored.
-
-``ssl_listen`` sets the listen port for SSL connections. If this is set to 0,
-no SSL listen port is opened. Otherwise a socket is opened on this port. This
-setting is only taken into account when opening the regular listen port, and
-won't re-open the listen socket simply by changing this setting.
-
-It defaults to port 4433.
-
-``tracker_backoff`` determines how aggressively to back off from retrying
-failing trackers. This value determines *x* in the following formula, determining
-the number of seconds to wait until the next retry:
-
-	delay = 5 + 5 * x / 100 * fails^2
-
-It defaults to 250.
-
-This setting may be useful to make libtorrent more or less aggressive in hitting
-trackers.
-
-``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
-corrupt data are banned.
 
 pe_settings
 ===========
@@ -7167,7 +6073,7 @@ upload or download rate performance.
 
 outstanding_disk_buffer_limit_reached
 	This warning means that the number of bytes queued to be written to disk
-	exceeds the max disk byte queue setting (``session_settings::max_queued_disk_bytes``).
+	exceeds the max disk byte queue setting (``settings_pack::max_queued_disk_bytes``).
 	This might restrict the download rate, by not queuing up enough write jobs
 	to the disk I/O thread. When this alert is posted, peer connections are
 	temporarily stopped from downloading, until the queued disk bytes have fallen
@@ -7176,9 +6082,9 @@ outstanding_disk_buffer_limit_reached
 
 outstanding_request_limit_reached
 	This is posted when libtorrent would like to send more requests to a peer,
-	but it's limited by ``session_settings::max_out_request_queue``. The queue length
+	but it's limited by max_out_request_queue_. The queue length
 	libtorrent is trying to achieve is determined by the download rate and the
-	assumed round-trip-time (``session_settings::request_queue_time``). The assumed
+	assumed round-trip-time (request_queue_time_). The assumed
 	rount-trip-time is not limited to just the network RTT, but also the remote disk
 	access time and message handling time. It defaults to 3 seconds. The target number
 	of outstanding requests is set to fill the bandwidth-delay product (assumed RTT
@@ -7231,9 +6137,9 @@ too_high_disk_queue_limit
 
 too_few_outgoing_ports
 	This is generated if outgoing peer connections are failing because of *address in use*
-	errors, indicating that ``session_settings::outgoing_ports`` is set and is too small of
-	a range. Consider not using the ``outgoing_ports`` setting at all, or widen the range to
-	include more ports.
+	errors, indicating that num_outgoing_ports_ is set and is too small of
+	a range. Consider not using the num_outgoing_ports_ setting at all,
+	or widen the range to include more ports.
 
 state_changed_alert
 -------------------
@@ -8677,9 +7583,9 @@ limits. To make a torrent auto managed, set ``auto_managed`` to true when adding
 torrent (see `async_add_torrent() add_torrent()`_).
 
 The limits of the number of downloading and seeding torrents are controlled via
-``active_downloads``, ``active_seeds`` and ``active_limit`` in session_settings_. 
+active_downloads_, active_seeds_ and active_limit_ settings.
 These limits takes non auto managed torrents into account as well. If there are 
-more non-auto managed torrents being downloaded than the ``active_downloads`` 
+more non-auto managed torrents being downloaded than the active_downloads_
 setting, any auto managed torrents will be queued until torrents are removed so 
 that the number drops below the limit.
 
@@ -8687,7 +7593,7 @@ The default values are 8 active downloads and 5 active seeds.
 
 At a regular interval, torrents are checked if there needs to be any re-ordering of
 which torrents are active and which are queued. This interval can be controlled via
-``auto_manage_interval`` in session_settings_. It defaults to every 30 seconds.
+auto_manage_interval_ setting.
 
 For queuing to work, resume data needs to be saved and restored for all torrents.
 See `save_resume_data()`_.
@@ -8719,8 +7625,8 @@ seeding. A seed cycle is completed when a torrent meets either the share ratio l
 (uploaded bytes / downloaded bytes), the share time ratio (time seeding / time
 downloaing) or seed time limit (time seeded).
 
-The relevant settings to control these limits are ``share_ratio_limit``,
-``seed_time_ratio_limit`` and ``seed_time_limit`` in session_settings_.
+The relevant settings to control these limits are share_ratio_limit_,
+seed_time_ratio_limit_ and seed_time_limit_.
 
 
 fast resume
@@ -9207,7 +8113,7 @@ the client from getting started into the normal tit-for-tat mode of
 bittorrent, and will result in a long ramp-up time. The heuristic to
 mitigate this problem is to, for the first few pieces, pick random pieces
 rather than rare pieces. The threshold for when to leave this initial
-picker mode is determined by ``session_settings::initial_picker_threshold``.
+picker mode is determined by initial_picker_threshold_.
 
 reverse order
 -------------
@@ -9226,7 +8132,7 @@ parole mode
 Peers that have participated in a piece that failed the hash check, may be
 put in *parole mode*. This means we prefer downloading a full piece  from this
 peer, in order to distinguish which peer is sending corrupt data. Whether to
-do this is or not is controlled by ``session_settings::use_parole_mode``.
+do this is or not is controlled by use_parole_mode_.
 
 In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
@@ -9240,7 +8146,7 @@ be preferred over other pieces. The benefit of doing this is that the number of
 partial pieces is minimized (and hence the turn-around time for downloading a block
 until it can be uploaded to others is minimized). It also puts less stress on the
 disk cache, since fewer partial pieces need to be kept in the cache. Whether or
-not to enable this is controlled by ``session_settings::prioritize_partial_pieces``.
+not to enable this is controlled by prioritize_partial_pieces_.
 
 The main benefit of not prioritizing partial pieces is that the rarest first
 algorithm gets to have more influence on which pieces are picked. The picker is
@@ -9266,7 +8172,7 @@ threshold. The main advantage is that these peers will better utilize the
 other peer's disk cache, by requesting all blocks in a single piece, from
 the same peer.
 
-This threshold is controlled by ``session_settings::whole_pieces_threshold``.
+This threshold is controlled by the whole_pieces_threshold_ setting.
 
 *TODO: piece affinity by speed category*
 *TODO: piece priorities*
@@ -9332,7 +8238,7 @@ This is required for the client accepting the connection to know which certifica
 present.
 
 SSL connections are accepted on a separate socket from normal bittorrent connections. To
-pick which port the SSL socket should bind to, set ``session_settings::ssl_listen`` to a
+pick which port the SSL socket should bind to, set ssl_listen_ to a
 different port. It defaults to port 4433. This setting is only taken into account when the
 normal listen socket is opened (i.e. just changing this setting won't necessarily close
 and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.

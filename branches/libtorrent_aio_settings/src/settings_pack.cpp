@@ -205,8 +205,8 @@ namespace libtorrent
 		SET(cache_buffer_chunk_size, 0, &session_impl::update_cache_buffer_chunk_size),
 		SET(cache_expiry, 300, 0),
 		SET(explicit_cache_interval, 30, 0),
-		SET(disk_io_write_mode, 0, 0),
-		SET(disk_io_read_mode, 0, 0),
+		SET(disk_io_write_mode, settings_pack::enable_os_cache, 0),
+		SET(disk_io_read_mode, settings_pack::enable_os_cache, 0),
 		SET(outgoing_port, 0, 0),
 		SET(num_outgoing_ports, 0, 0),
 		SET(peer_tos, 0, &session_impl::update_peer_tos),
@@ -218,7 +218,6 @@ namespace libtorrent
 		SET(active_limit, 15, &session_impl::reset_auto_manage_timer),
 		SET(auto_manage_interval, 30, 0),
 		SET(seed_time_limit, 24 * 60 * 60, 0),
-		SET(peer_turnover_interval, 300, 0),
 		SET(auto_scrape_interval, 1800, 0),
 		SET(auto_scrape_min_interval, 300, 0),
 		SET(max_peerlist_size, 4000, 0),
@@ -284,8 +283,9 @@ namespace libtorrent
 		SET(tracker_backoff, 250, 0),
 		SET(share_ratio_limit, 200, 0),
 		SET(seed_time_ratio_limit, 700, 0),
-		SET(peer_turnover, 200 / 50, 0),
+		SET(peer_turnover, 4, 0),
 		SET(peer_turnover_cutoff, 90, 0),
+		SET(peer_turnover_interval, 300, 0),
 	};
 
 #undef SET

@@ -3446,7 +3446,7 @@ namespace libtorrent
 				p->connection->received_invalid_data(index);
 			}
 
-			if (m_ses.settings().get_int(settings_pack::use_parole_mode))
+			if (m_ses.settings().get_bool(settings_pack::use_parole_mode))
 				p->on_parole = true;
 
 			int hashfails = p->hashfails;
