@@ -3266,15 +3266,6 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		if (settings().suggest_mode == session_settings::suggest_read_cache)
-		{
-			// we just got a new piece. Chances are that it's actually the
-			// rarest piece (since we're likely to download pieces rarest first)
-			// if it's rarer than any other piece that we currently suggest, insert
-			// it in the suggest set and pop the last one out
-			add_suggest_piece(index);
-		}
-
 		m_need_save_resume_data = true;
 
 		remove_time_critical_piece(index, true);
@@ -3320,6 +3311,15 @@ namespace libtorrent
 		// make the disk cache flush the piece to disk
 		m_storage->async_flush_piece(index);
 		m_picker->piece_passed(index);
+
+		if (settings().suggest_mode == session_settings::suggest_read_cache)
+		{
+			// we just got a new piece. Chances are that it's actually the
+			// rarest piece (since we're likely to download pieces rarest first)
+			// if it's rarer than any other piece that we currently suggest, insert
+			// it in the suggest set and pop the last one out
+			add_suggest_piece(index);
+		}
 
 		// if all blocks have been written to disk already, we can
 		// declare this piece as 'have'. If they haven't only announce
@@ -3717,6 +3717,9 @@ namespace libtorrent
 		for (std::vector<cached_piece_info>::iterator i = cs->pieces.begin()
 			, end(cs->pieces.end()); i != end; ++i)
 		{
+			// we might have flushed this to disk, but not yet completed the
+			// hash check. We'll add it as a suggest piece once we do though
+			if (!have_piece(i->piece)) continue;
 			suggest_piece_t p;
 			p.piece_index = i->piece;
 			if (has_picker())
