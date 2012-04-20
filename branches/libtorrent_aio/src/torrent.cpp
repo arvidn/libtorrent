@@ -3719,7 +3719,22 @@ namespace libtorrent
 		{
 			suggest_piece_t p;
 			p.piece_index = i->piece;
-			p.num_peers = m_picker->get_availability(i->piece);
+			if (has_picker())
+			{
+				p.num_peers = m_picker->get_availability(i->piece);
+			}
+			else
+			{
+				// TODO: really, we should just keep the picker around
+				// in this case to maintain the availability counters
+				p.num_peers = 0;
+				for (std::set<peer_connection*>::const_iterator i = m_connections.begin()
+					, end(m_connections.end()); i != end; ++i)
+				{
+					peer_connection* peer = *i;
+					if (peer->has_piece(p.piece_index)) ++p.num_peers;
+				}
+			}
 			pieces.push_back(p);
 		}
 
