@@ -1029,6 +1029,14 @@ namespace libtorrent
 					pp.source |= src;
 					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
 						++m_num_connect_candidates;
+					// calling disconnect() on a peer, may actually end
+					// up "garbage collecting" its policy::peer entry
+					// as well, if it's considered useless (which this specific)
+					// case will, since it was an incoming peer that just disconnected
+					// and we allow multiple connections per IP. Because of that,
+					// we need to make sure we don't let it do that, by unlinking
+					// the peer_connection from the policy::peer first.
+					p->connection->set_peer_info(0);
 					p->connection->disconnect(errors::duplicate_peer_id);
 					erase_peer(p);
 					return false;
