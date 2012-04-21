@@ -3683,6 +3683,8 @@ namespace libtorrent
 		if (settings().suggest_mode == session_settings::no_piece_suggestions)
 			return;
 
+		if (!valid_metadata()) return;
+
 		if (m_refreshing_suggest_pieces) return;
 		m_refreshing_suggest_pieces = true;
 
