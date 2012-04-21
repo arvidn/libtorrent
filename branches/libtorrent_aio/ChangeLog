@@ -11,6 +11,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed possible crash when enabling multiple connections per IP
+	* fixed typo in win vista specific code, breaking the build
 	* change default of rate_limit_utp to true
 	* fixed DLL export issue on windows (when building a shared library linking statically against boost)
 	* fixed FreeBSD build

@@ -138,7 +138,7 @@ rule linking ( properties * )
 	if <toolset>gcc in $(properties)
 		&& <target-os>linux in $(properties)
 		&& (<variant>debug in $(properties)
-			|| <asserts>release in $(properties)
+			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties))
 	{
 		# for backtraces in assertion failures
