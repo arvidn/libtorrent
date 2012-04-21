@@ -519,7 +519,9 @@ namespace libtorrent
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
-			return has_picker()?m_picker->have_piece(index):true;
+			if (!valid_metadata()) return false;
+			if (!has_picker()) return true;
+			return m_picker->have_piece(index);
 		}
 
 		// a predictive piece is a piece that we might
