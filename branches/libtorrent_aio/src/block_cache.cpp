@@ -592,7 +592,7 @@ int block_cache::try_evict_blocks(int num, int prio, cached_piece_entry* ignore)
 				if (end == 2 && pe->hash && j >= pe->hash->offset / block_size())
 					break;
 
-				TORRENT_ASSERT(b.dirty == false);
+				TORRENT_ASSERT(b.dirty == false || b.pending);
 				if (b.buf == 0 || b.refcount > 0 || b.dirty || b.uninitialized || b.pending) continue;
 
 				to_delete[num_to_delete++] = b.buf;
