@@ -316,22 +316,42 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	TORRENT_ASSERT(pe->blocks[block].refcount == 0);
 
+	cached_block_entry& b = pe->blocks[block];
+
 	// we might have a left-over read block from
 	// hash checking
-	if (pe->blocks[block].buf != 0)
+	// we might also have a previous dirty block which
+	// we're still waiting for to be written
+	if (b.buf != 0)
 	{
-		free_buffer(pe->blocks[block].buf);
-		pe->blocks[block].buf = 0;
-		TORRENT_ASSERT(pe->blocks[block].dirty == 0);
-		TORRENT_ASSERT(pe->num_blocks > 0);
-		--pe->num_blocks;
-		TORRENT_ASSERT(m_read_cache_size > 0);
-		--m_read_cache_size;
+		if (b.refcount == 0 && !b.pending)
+		{
+			// this is the simple case. Whatever
+			// block is here right now, is not
+			// pinned or in use right now, so we
+			// can simply replace it
+			free_block(pe, block);
+		}
+		else
+		{
+			// this is a much more complicated case.
+			// the block is already here, and it's in
+			// use by someone. For instance, it might
+			// have been submitted in an io_submit() call,
+			// and not returned yet. In this case, we can't
+			// free the buffer, and we're not really supposed
+			// to copy data into it either.
+			// in this case, just defer the job and retry it
+			// later, when something completes on the piece
+			pe->deferred_jobs.push_back(j);
+			return pe;
+		}
+		TORRENT_ASSERT(b.dirty == 0);
 	}
 
-	pe->blocks[block].buf = j->buffer;
+	b.buf = j->buffer;
 
-	pe->blocks[block].dirty = true;
+	b.dirty = true;
 	++pe->num_blocks;
 	++pe->num_dirty;
 	++m_write_cache_size;
@@ -368,6 +388,36 @@ void block_cache::clear()
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
 		m_lru[i].get_all();
 	m_pieces.clear();
+}
+
+void block_cache::free_block(cached_piece_entry* pe, int block)
+{
+	TORRENT_ASSERT(pe != 0);
+	TORRENT_ASSERT(block < pe->blocks_in_piece);
+	TORRENT_ASSERT(block >= 0);
+
+	cached_block_entry& b = pe->blocks[block];
+
+	TORRENT_ASSERT(b.refcount == 0);
+	TORRENT_ASSERT(!b.pending);
+	TORRENT_ASSERT(b.buf);
+
+	if (b.dirty)
+	{
+		--pe->num_dirty;
+		b.dirty = false;
+		TORRENT_ASSERT(m_write_cache_size > 0);
+		--m_write_cache_size;
+	}
+	else
+	{
+		TORRENT_ASSERT(m_read_cache_size > 0);
+		--m_read_cache_size;
+	}
+	TORRENT_ASSERT(pe->num_blocks > 0);
+	--pe->num_blocks;
+	free_buffer(b.buf);
+	b.buf = 0;
 }
 
 bool block_cache::evict_piece(cached_piece_entry* pe)
@@ -721,7 +771,7 @@ int block_cache::allocate_pending(cached_piece_entry* pe
 }
 
 void block_cache::mark_as_done(cached_piece_entry* pe, int begin, int end
-		, tailqueue& jobs, storage_error const& ec)
+		, tailqueue& jobs, tailqueue& restart_jobs, storage_error const& ec)
 {
 	INVARIANT_CHECK;
 
@@ -735,6 +785,9 @@ void block_cache::mark_as_done(cached_piece_entry* pe, int begin, int end
 #if DEBUG_CACHE
 	log_refcounts(pe);
 #endif
+
+	TORRENT_ASSERT(restart_jobs.empty());
+	restart_jobs.swap(pe->deferred_jobs);
 
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
@@ -1259,6 +1312,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe, tailqueue& jobs)
 	{
 		if (!pe->blocks[i].dirty || pe->blocks[i].refcount > 0) continue;
 		TORRENT_ASSERT(!pe->blocks[i].pending);
+		TORRENT_ASSERT(pe->blocks[i].dirty);
 		free_buffer(pe->blocks[i].buf);
 		pe->blocks[i].buf = 0;
 		TORRENT_ASSERT(pe->num_blocks > 0);
@@ -1566,7 +1620,9 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;
-		// #error disabled because it breaks if there are multiple requests to the same block
+		// TODO: this can be implemented in reclaim block, for volatile blocks, whenever they
+		// are reclaimed and refcount == 0, the could be evicted right away
+		// disabled because it breaks if there are multiple requests to the same block
 		// the first request will go through, but the second one will read a NULL pointer
 /*
 		if (j->flags & disk_io_job::volatile_read)

@@ -154,8 +154,13 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
+		// TODO: could this be a scoped_array instead? does cached_piece_entry need to be copyable?
 		boost::shared_array<cached_block_entry> blocks;
-		
+
+		// jobs that cannot be performed right now are put on
+		// this queue and retried whenever something completes on this piece
+		tailqueue deferred_jobs;
+
 		// these are outstanding jobs, waiting to be
 		// handled for this piece. For read pieces, these
 		// are the write jobs that will be dispatched back
@@ -168,6 +173,7 @@ namespace libtorrent
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
+		// TODO: now that there's a proper ARC cache, is this still necessary?
 		ptime expire;
 
 		boost::uint64_t piece:22;
@@ -279,6 +285,9 @@ namespace libtorrent
 		// hit the block we needed)
 		void cache_hit(cached_piece_entry* p, void* requester);
 
+		// free block from piece entry
+		void free_block(cached_piece_entry* pe, int block);
+
 		// erase a piece (typically from the ghost list). Reclaim all
 		// its blocks and unlink it and free it.
 		void erase_piece(cached_piece_entry* p);
@@ -325,7 +334,7 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(cached_piece_entry* p, int begin, int end
-			, tailqueue& jobs, storage_error const& ec);
+			, tailqueue& jobs, tailqueue& restart_jobs, storage_error const& ec);
 
 		// this is called by the hasher thread when hashing of
 		// a range of block is complete.

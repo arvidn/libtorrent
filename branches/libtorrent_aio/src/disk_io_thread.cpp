@@ -828,7 +828,21 @@ namespace libtorrent
 
 		DLOG(stderr, "[%p] on_disk_write piece: %d start: %d end: %d\n"
 			, this, int(pe->piece), begin, end);
-		m_disk_cache.mark_as_done(pe, begin, end, m_completed_jobs, handler->error);
+
+		tailqueue retry_jobs;
+		m_disk_cache.mark_as_done(pe, begin, end, m_completed_jobs, retry_jobs, handler->error);
+		if (!retry_jobs.empty())
+		{
+			mutex::scoped_lock l(m_job_mutex);
+			disk_io_job* i = (disk_io_job*)retry_jobs.get_all();
+			while (i)
+			{
+				disk_io_job* j = i;
+				i = (disk_io_job*)i->next;
+				j->next = 0;
+				m_queued_jobs.push_back(j);
+			}
+		}
 
 		if (!handler->error)
 		{
@@ -862,8 +876,23 @@ namespace libtorrent
 
 		DLOG(stderr, "[%p] on_disk_read piece: %d start: %d end: %d\n"
 			, this, int(pe->piece), begin, end);
+
+		tailqueue retry_jobs;
 		m_disk_cache.mark_as_done(pe, begin, end, m_completed_jobs
-			, handler->error);
+			, retry_jobs, handler->error);
+
+		if (!retry_jobs.empty())
+		{
+			mutex::scoped_lock l(m_job_mutex);
+			disk_io_job* i = (disk_io_job*)retry_jobs.get_all();
+			while (i)
+			{
+				disk_io_job* j = i;
+				i = (disk_io_job*)i->next;
+				j->next = 0;
+				m_queued_jobs.push_back(j);
+			}
+		}
 
 		if (!handler->error)
 		{
@@ -1382,7 +1411,7 @@ namespace libtorrent
 			a = 0;
 		}
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// make sure we're not already requesting this same block
 		file::aiocb_t* i = aios;
 		while (i)

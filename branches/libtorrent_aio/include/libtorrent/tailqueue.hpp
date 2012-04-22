@@ -111,6 +111,18 @@ namespace libtorrent
 		}
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
+		void swap(tailqueue& rhs)
+		{
+			tailqueue_node* tmp = m_first;
+			m_first = rhs.m_first;
+			rhs.m_first = tmp;
+			tmp = m_last;
+			m_last = rhs.m_last;
+			rhs.m_last = tmp;
+			int tmp2 = m_size;
+			m_size = rhs.m_size;
+			rhs.m_size = tmp2;
+		}
 	private:
 		tailqueue_node* m_first;
 		tailqueue_node* m_last;
