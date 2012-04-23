@@ -338,6 +338,10 @@ namespace libtorrent
 
 		if (!m_supports_fast) return;
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+			, r.piece, r.start, r.length);
+#endif
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
@@ -1989,9 +1993,9 @@ namespace libtorrent
 			m_sent_bitfield = true;
 #endif
 
-			// bootstrap superseeding by sending one have message
-			superseed_piece(t->get_piece_to_super_seed(
-				get_bitfield()));
+			// bootstrap superseeding by sending two have message
+			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
+			superseed_piece(-1, t->get_piece_to_super_seed(get_bitfield()));
 			return;
 		}
 		else if (m_supports_fast && t->is_seed())
