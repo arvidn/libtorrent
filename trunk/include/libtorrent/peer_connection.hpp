@@ -275,8 +275,12 @@ namespace libtorrent
 		
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
-		void superseed_piece(int index);
-		int superseed_piece() const { return m_superseed_piece; }
+		void superseed_piece(int replace_piece, int new_piece);
+		bool super_seeded_piece(int index) const
+		{
+			return m_superseed_piece[0] == index
+				|| m_superseed_piece[1] == index;
+		}
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -993,12 +997,12 @@ namespace libtorrent
 		// once the connection completes
 		int m_connection_ticket;
 
-		// if this is -1, superseeding is not active. If it is >= 0
+		// if [0] is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
-		// this piece can be downloaded from us by this peer.
+		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece;
+		int m_superseed_piece[2];
 
 		// bytes downloaded since last second
 		// timer timeout; used for determining 
