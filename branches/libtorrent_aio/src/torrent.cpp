@@ -1961,6 +1961,10 @@ namespace libtorrent
 			/ m_torrent_file->piece_length();
 		if (num_outstanding <= 0) num_outstanding = 1;
 
+		// we maight already have some outstanding jobs, if we were paused and
+		// resumed quickly, before the outstanding jobs completed
+		if (m_checking_piece >= m_torrent_file->num_pieces()) return;
+
 		// subtract the number of pieces we already have outstanding
 		num_outstanding -= (m_checking_piece - m_num_checked_pieces);
 		if (num_outstanding < 0) num_outstanding = 0;
