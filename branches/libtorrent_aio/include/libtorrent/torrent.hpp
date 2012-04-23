@@ -511,7 +511,10 @@ namespace libtorrent
 		{ return m_suggested_pieces; }
 
 		bool super_seeding() const
-		{ return m_super_seeding; }
+		{
+			// we're not super seeding if we're not a seed
+			return m_super_seeding && is_seed();
+		}
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);

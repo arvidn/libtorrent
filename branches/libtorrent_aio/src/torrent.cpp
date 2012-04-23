@@ -866,17 +866,6 @@ namespace libtorrent
 		// been closed by the time the torrent is destructed. And they are
 		// supposed to be closed. So we can still do the invariant check.
 
-		// however, the torrent object may be destructed from the main
-		// thread when shutting down, if the disk cache has references to it.
-		// this means that the invariant check that this is called from the
-		// network thread cannot be maintained
-
-		TORRENT_ASSERT(m_connections.empty());
-		
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
-		log_to_all_peers("DESTRUCTING TORRENT");
-#endif
-
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -3837,7 +3826,7 @@ namespace libtorrent
 		// disable super seeding for all peers
 		for (peer_iterator i = begin(); i != end(); ++i)
 		{
-			(*i)->superseed_piece(-1);
+			(*i)->superseed_piece(-1, -1);
 		}
 	}
 
@@ -3858,7 +3847,7 @@ namespace libtorrent
 			int availability = 0;
 			for (const_peer_iterator j = begin(); j != end(); ++j)
 			{
-				if ((*j)->superseed_piece() == i)
+				if ((*j)->super_seeded_piece(i))
 				{
 					// avoid superseeding the same piece to more than one
 					// peer if we can avoid it. Do this by artificially

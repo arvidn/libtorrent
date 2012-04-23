@@ -162,7 +162,6 @@ namespace libtorrent
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
-		, m_superseed_piece(-1)
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
 		, m_outstanding_writing_bytes(0)
@@ -209,6 +208,8 @@ namespace libtorrent
 		, m_destructed(false)
 #endif
 	{
+		m_superseed_piece[0] = -1;
+		m_superseed_piece[1] = -1;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		// if t is NULL, we better not be connecting, since
 		// we can't decrement the connecting counter
@@ -317,7 +318,6 @@ namespace libtorrent
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
-		, m_superseed_piece(-1)
 		, m_remote_bytes_dled(0)
 		, m_remote_dl_rate(0)
 		, m_outstanding_writing_bytes(0)
@@ -363,6 +363,8 @@ namespace libtorrent
 		, m_destructed(false)
 #endif
 	{
+		m_superseed_piece[0] = -1;
+		m_superseed_piece[1] = -1;
 		m_est_reciprocation_rate = m_ses.m_settings.default_est_reciprocation_rate;
 
 #if TORRENT_USE_I2P
@@ -1661,11 +1663,11 @@ namespace libtorrent
 			}
 		}
 
-		if (t->super_seeding() && m_superseed_piece != -1)
+		if (t->super_seeding())
 		{
-			// assume the peer has the piece we're superseeding to it
-			// and give it another one
-		  	if (!m_have_piece[m_superseed_piece]) incoming_have(m_superseed_piece);
+			// maybe we need to try another piece, to see if the peer
+			// is interested in us then
+			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
 		}
 	}
 
@@ -1733,9 +1735,9 @@ namespace libtorrent
 			// if the peer optimizes out redundant have messages
 			// this will be handled when the peer sends not-interested
 			// instead.
-			if (m_superseed_piece == index)
+			if (super_seeded_piece(index))
 			{
-				superseed_piece(t->get_piece_to_super_seed(m_have_piece));
+				superseed_piece(index, t->get_piece_to_super_seed(m_have_piece));
 			}
 		}
 
@@ -1798,15 +1800,15 @@ namespace libtorrent
 		// a new piece to that peer
 		if (t->super_seeding()
 			&& m_ses.settings().strict_super_seeding
-			&& (index != m_superseed_piece || t->num_peers() == 1))
+			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
 			for (torrent::peer_iterator i = t->begin()
 				, end(t->end()); i != end; ++i)
 			{
 				peer_connection* p = *i;
-				if (p->superseed_piece() != index) continue;
+				if (!p->super_seeded_piece(index)) continue;
 				if (!p->has_piece(index)) continue;
-				p->superseed_piece(t->get_piece_to_super_seed(p->get_bitfield()));
+				p->superseed_piece(index, t->get_piece_to_super_seed(p->get_bitfield()));
 			}
 		}
 	}
@@ -2038,8 +2040,8 @@ namespace libtorrent
 			, r.piece, r.start, r.length);
 #endif
 
-		if (m_superseed_piece != -1
-			&& r.piece != m_superseed_piece)
+		if (t->super_seeding()
+			&& !super_seeded_piece(r.piece))
 		{
 #ifdef TORRENT_STATS
 			++m_ses.m_invalid_piece_requests;
@@ -2047,13 +2049,16 @@ namespace libtorrent
 			++m_num_invalid_requests;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ piece not superseeded "
-				"i: %d t: %d n: %d h: %d ss: %d ]"
+				"i: %d t: %d n: %d h: %d ss1: %d ss2: %d ]"
 				, m_peer_interested
 				, int(t->torrent_file().piece_size(r.piece))
 				, t->torrent_file().num_pieces()
 				, t->have_piece(r.piece)
-				, m_superseed_piece);
+				, m_superseed_piece[0]
+				, m_superseed_piece[1]);
 #endif
+
+			write_reject_request(r);
 
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
@@ -4071,7 +4076,6 @@ namespace libtorrent
 		m_packet_size = packet_size;
 	}
 
-	
 	void peer_connection::normalize_receive_buffer()
 	{
 		if (m_recv_start == 0) return;
@@ -4086,12 +4090,13 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::superseed_piece(int index)
+	void peer_connection::superseed_piece(int replace_piece, int new_piece)
 	{
-		if (index == -1)
+		if (new_piece == -1)
 		{
-			if (m_superseed_piece == -1) return;
-			m_superseed_piece = -1;
+			if (m_superseed_piece[0] == -1) return;
+			m_superseed_piece[0] = -1;
+			m_superseed_piece[1] = -1;
 			
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** ending super seed mode");
@@ -4099,6 +4104,7 @@ namespace libtorrent
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			assert(t);
 
+			// TODO: we should probably just send a HAVE_ALL here
 			for (int i = 0; i < int(m_have_piece.size()); ++i)
 			{
 				if (m_have_piece[i] || !t->have_piece(i)) continue;
@@ -4111,13 +4117,22 @@ namespace libtorrent
 			return;
 		}
 
-		assert(!has_piece(index));
+		assert(!has_piece(new_piece));
 		
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> HAVE    [ piece: %d ] (super seed)", index);
+		peer_log("==> HAVE    [ piece: %d ] (super seed)", new_piece);
 #endif
-		write_have(index);
-		m_superseed_piece = index;
+		write_have(new_piece);
+
+		if (replace_piece >= 0)
+		{
+			// move the piece we're replacing to the tail
+			if (m_superseed_piece[0] == replace_piece)
+				std::swap(m_superseed_piece[0], m_superseed_piece[1]);
+		}
+
+		m_superseed_piece[1] = m_superseed_piece[0];
+		m_superseed_piece[0] = new_piece;
 	}
 
 	void peer_connection::update_desired_queue_size()
