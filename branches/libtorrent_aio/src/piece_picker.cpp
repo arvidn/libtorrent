@@ -1919,6 +1919,7 @@ namespace libtorrent
 				if (have_piece(i)) continue;
 
 				int state = m_piece_map[i].state;
+				if (state == 0) continue;
 				std::vector<downloading_piece>::const_iterator k = find_dl_piece(state - 1, i);
 
 				TORRENT_ASSERT(k != m_downloads[state-1].end());
