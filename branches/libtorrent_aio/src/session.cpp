@@ -318,7 +318,8 @@ namespace libtorrent
 
 		// the number of threads to use to call async_write_some
 		// on peer sockets
-		set.network_threads = 3;
+		// TODO: this doesn't actually fully work yet. There appears to be some race condition involved
+		set.network_threads = 0;
 
 		// number of disk threads for low level file operations
 		set.aio_threads = 4;
