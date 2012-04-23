@@ -866,6 +866,11 @@ namespace libtorrent
 		// been closed by the time the torrent is destructed. And they are
 		// supposed to be closed. So we can still do the invariant check.
 
+		// however, the torrent object may be destructed from the main
+		// thread when shutting down, if the disk cache has references to it.
+		// this means that the invariant check that this is called from the
+		// network thread cannot be maintained
+
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
