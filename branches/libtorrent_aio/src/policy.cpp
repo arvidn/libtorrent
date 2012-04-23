@@ -428,10 +428,7 @@ namespace libtorrent
 			m_torrent->picker().clear_peer(*i);
 		if ((*i)->seed) --m_num_seeds;
 		if (is_connect_candidate(**i, m_finished))
-		{
-			TORRENT_ASSERT(m_num_connect_candidates > 0);
-			--m_num_connect_candidates;
-		}
+			update_connect_candidates(-1);
 		TORRENT_ASSERT(m_num_connect_candidates < int(m_peers.size()));
 		if (m_round_robin > i - m_peers.begin()) --m_round_robin;
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
@@ -573,7 +570,7 @@ namespace libtorrent
 			return;
 
 		if (is_connect_candidate(*p, m_finished))
-			--m_num_connect_candidates;
+			update_connect_candidates(-1);
 
 #ifdef TORRENT_STATS
 		aux::session_impl& ses = m_torrent->session();
@@ -593,7 +590,7 @@ namespace libtorrent
 
 		const bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->connection = c;
-		if (was_conn_cand) --m_num_connect_candidates;
+		if (was_conn_cand) update_connect_candidates(-1);
 	}
 
 	void policy::set_failcount(policy::peer* p, int f)
@@ -605,8 +602,7 @@ namespace libtorrent
 		p->failcount = f;
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
-			if (was_conn_cand) --m_num_connect_candidates;
-			else ++m_num_connect_candidates;
+			update_connect_candidates(was_conn_cand ? -1 : 1);
 		}
 	}
 
@@ -894,11 +890,7 @@ namespace libtorrent
 			}
 
 			if (is_connect_candidate(*i, m_finished))
-			{
-				m_num_connect_candidates--;
-				TORRENT_ASSERT(m_num_connect_candidates >= 0);
-				if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
-			}
+				update_connect_candidates(-1);
 		}
 		else
 		{
@@ -1025,7 +1017,7 @@ namespace libtorrent
 					pp.connectable = true;
 					pp.source |= src;
 					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
-						++m_num_connect_candidates;
+						update_connect_candidates(1);
 					// calling disconnect() on a peer, may actually end
 					// up "garbage collecting" its policy::peer entry
 					// as well, if it's considered useless (which this specific)
@@ -1055,11 +1047,7 @@ namespace libtorrent
 		p->connectable = true;
 
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
-		{
-			m_num_connect_candidates += was_conn_cand ? -1 : 1;
-			TORRENT_ASSERT(m_num_connect_candidates >= 0);
-			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
-		}
+			update_connect_candidates(was_conn_cand ? -1 : 1);
 		return true;
 	}
 
@@ -1086,11 +1074,7 @@ namespace libtorrent
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
 		p->seed = s;
 		if (was_conn_cand && !is_connect_candidate(*p, m_finished))
-		{
-			--m_num_connect_candidates;
-			TORRENT_ASSERT(m_num_connect_candidates >= 0);
-			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
-		}
+			update_connect_candidates(-1);
 
 		if (p->web_seed) return;
 		if (s) ++m_num_seeds;
@@ -1158,7 +1142,9 @@ namespace libtorrent
 		p->inet_as = m_torrent->session().lookup_as(as);
 #endif
 		if (is_connect_candidate(*p, m_finished))
-			++m_num_connect_candidates;
+		{
+			update_connect_candidates(1);
+		}
 
 		m_torrent->state_updated();
 
@@ -1218,8 +1204,29 @@ namespace libtorrent
 
 		if (was_conn_cand != is_connect_candidate(*p, m_finished))
 		{
-			m_num_connect_candidates += was_conn_cand ? -1 : 1;
+			update_connect_candidates(was_conn_cand ? -1 : 1);
+		}
+	}
+
+	void policy::update_connect_candidates(int delta)
+	{
+		if (delta == 0) return;
+		m_num_connect_candidates += delta;
+		if (delta > 0)
+		{
+			// if we went from 0 to > 0, we need to
+			// update 'want-more-peers' state
+			if (m_num_connect_candidates == delta)
+				m_torrent->update_want_more_peers();
+		}
+		else
+		{
+			TORRENT_ASSERT(m_num_connect_candidates >= 0);
 			if (m_num_connect_candidates < 0) m_num_connect_candidates = 0;
+			// if we went from > 0 to 0, we also need
+			// to update 'want-more-peers' state
+			if (m_num_connect_candidates == 0)
+				m_torrent->update_want_more_peers();
 		}
 	}
 
@@ -1429,7 +1436,7 @@ namespace libtorrent
 			const bool was_conn_cand = is_connect_candidate(p, m_finished);
 			if (p.failcount < 31) ++p.failcount;
 			if (was_conn_cand && !is_connect_candidate(p, m_finished))
-				--m_num_connect_candidates;
+				update_connect_candidates(-1);
 			return false;
 		}
 		TORRENT_ASSERT(p.connection);
@@ -1477,7 +1484,7 @@ namespace libtorrent
 		}
 
 		if (is_connect_candidate(*p, m_finished))
-			++m_num_connect_candidates;
+			update_connect_candidates(1);
 
 		// if we're already a seed, it's not as important
 		// to keep all the possibly stale peers
@@ -1529,11 +1536,18 @@ namespace libtorrent
 
 		m_num_connect_candidates = 0;
 		m_finished = is_finished;
+		int prev_candidates = m_num_connect_candidates;
+
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			m_num_connect_candidates += is_connect_candidate(**i, m_finished);
 		}
+
+		// if we dropped to 0 or increased from 0, we need to update
+		// the 'want_more_peers' state of the torrent
+		if ((prev_candidates == 0) != (m_num_connect_candidates == 0))
+			m_torrent->update_want_more_peers();
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
