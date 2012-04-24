@@ -42,7 +42,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <iostream>
 
-void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode = false, bool time_critical = false)
+enum test_flags_t
+{
+	super_seeding = 1,
+	strict_super_seeding = 2,
+	seed_mode = 4,
+	time_critical = 8,
+	suggest = 16,
+	explicit_cache = 32
+};
+
+void test_swarm(int flags = 0)
 {
 	using namespace libtorrent;
 
@@ -64,7 +74,21 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	session_settings settings;
 	settings.allow_multiple_connections_per_ip = true;
 	settings.ignore_limits_on_local_network = false;
-	settings.strict_super_seeding = strict;
+
+	if (flags & strict_super_seeding)
+		settings.strict_super_seeding = true;
+
+	if (flags & suggest)
+		settings.suggest_mode = session_settings::suggest_read_cache;
+
+	if (flags & explicit_cache)
+		settings.explicit_read_cache = true;
+
+	if (flags & explicit_cache)
+	{
+		settings.explicit_read_cache = true;
+		settings.explicit_cache_interval = 5;
+	}
 
 	settings.upload_rate_limit = rate_limit;
 	ses1.set_settings(settings);
@@ -88,10 +112,10 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	torrent_handle tor3;
 
 	add_torrent_params p;
-	p.flags |= add_torrent_params::flag_seed_mode;
+	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 32 * 1024, 0, super_seeding, &p);
+		, false, true, "_swarm", 32 * 1024, 0, flags & super_seeding, &p);
 
 	int mask = alert::all_categories
 		& ~(alert::progress_notification
@@ -101,7 +125,7 @@ void test_swarm(bool super_seeding = false, bool strict = false, bool seed_mode 
 	ses2.set_alert_mask(mask);
 	ses3.set_alert_mask(mask);
 
-	if (time_critical)
+	if (flags & time_critical)
 	{
 		tor2.set_piece_deadline(2, 0);
 		tor2.set_piece_deadline(5, 1000);
@@ -213,18 +237,23 @@ int test_main()
 	using namespace libtorrent;
 
 	// with time critical pieces
-	test_swarm(false, false, false, true);
+	test_swarm(time_critical);
 
 	// with seed mode
-	test_swarm(false, false, true);
+	test_swarm(seed_mode);
 
 	test_swarm();
 
 	// with super seeding
-	test_swarm(true);
+	test_swarm(super_seeding);
 	
 	// with strict super seeding
-	test_swarm(true, true);
+	test_swarm(super_seeding | strict_super_seeding);
+	
+	// with suggest pieces
+	test_swarm(suggest);
+
+	test_swarm(suggest | explicit_cache);
 
 	return 0;
 }

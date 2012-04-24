@@ -2696,19 +2696,22 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** FILE ASYNC WRITE COMPLETE [ ret: %d | piece: %d | s: %d | l: %d | e: %s ]"
+			, ret, p.piece, p.start, p.length, j.error.ec.message().c_str());
+#endif
+
+		m_outstanding_writing_bytes -= p.length;
+
+		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
+
+		if (m_disconnecting) return;
+	
 		// flush send buffer at the end of
 		// this burst of disk events
 		m_ses.cork_burst(this);
 
 		INVARIANT_CHECK;
-
-		m_outstanding_writing_bytes -= p.length;
-		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("*** FILE ASYNC WRITE COMPLETE [ ret: %d | piece: %d | s: %d | l: %d | e: %s ]"
-			, ret, p.piece, p.start, p.length, j.error.ec.message().c_str());
-#endif
 
 		if (!t)
 		{
@@ -4712,10 +4715,6 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		// flush send buffer at the end of
-		// this burst of disk events
-		m_ses.cork_burst(this);
-
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4726,6 +4725,19 @@ namespace libtorrent
 			, j.error.ec.message().c_str());
 #endif
 		m_reading_bytes -= r.length;
+
+		if (m_disconnecting) return;
+
+		// flush send buffer at the end of
+		// this burst of disk events
+		m_ses.cork_burst(this);
+
+		if (ret < 0)
+		{
+			// TODO: send reject_piece here instead?
+			disconnect(j.error.ec);
+			return;
+		}
 
 		disk_buffer_holder buffer(m_ses, j);
 

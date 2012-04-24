@@ -377,6 +377,7 @@ namespace libtorrent
 		
 		void pinned_change(int diff) { m_disk_cache.pinned_change(diff); }
 
+		// TODO: move this to disk_io_job and reuse it in block_cache
 		enum return_code_t
 		{
 			// the error is stored in disk_io_job::error
@@ -554,6 +555,7 @@ namespace libtorrent
 		// the main thread.
 		io_service& m_ios;
 
+		// TODO: this list should be moved into the storage objects themselves, that way it's much more efficient to lower a fence
 		// Jobs that are blocked by the fence are put in this
 		// list. Each time a storage is taken out of the fence,
 		// this list is gone through and jobs belonging to the

@@ -931,7 +931,7 @@ namespace libtorrent
 		// mark_for_deletion may erase the piece from the cache, that's
 		// why we don't have the 'i' iterator referencing it at this point
 		if (flags & (flush_read_cache | flush_delete_cache))
-			m_disk_cache.mark_for_deletion(pe);
+			m_disk_cache.mark_for_deletion(pe, m_completed_jobs);
 	}
 
 	// returns the number of outstanding jobs on the pieces. If this is 0
@@ -1250,7 +1250,7 @@ namespace libtorrent
 					else if (ret == -1)
 					{
 						// allocation failed
-						m_disk_cache.mark_for_deletion(p);
+						m_disk_cache.mark_for_deletion(p, m_completed_jobs);
 						j->buffer = 0;
 						j->error.ec = error::no_memory;
 						return disk_operation_failed;
@@ -1261,7 +1261,7 @@ namespace libtorrent
 					// if the cache is full. Then fall through and issue the
 					// read circumventing the cache
 
-					m_disk_cache.mark_for_deletion(p);
+					m_disk_cache.mark_for_deletion(p, m_completed_jobs);
 				}
 			}
 		}
@@ -1489,14 +1489,14 @@ namespace libtorrent
 			else if (ret == -1)
 			{
 				// allocation failed
-				m_disk_cache.mark_for_deletion(pe);
+				m_disk_cache.mark_for_deletion(pe, m_completed_jobs);
 				TORRENT_ASSERT(j->buffer == 0);
 				j->error.ec = error::no_memory;
 				return disk_operation_failed;
 			}
 			else if (ret < -1)
 			{
-				m_disk_cache.mark_for_deletion(pe);
+				m_disk_cache.mark_for_deletion(pe, m_completed_jobs);
 				// this shouldn't happen
 				TORRENT_ASSERT(false);
 			}
@@ -1554,7 +1554,7 @@ namespace libtorrent
 				else if (ret == -1)
 				{
 					// allocation failed
-					m_disk_cache.mark_for_deletion(pe);
+					m_disk_cache.mark_for_deletion(pe, m_completed_jobs);
 					TORRENT_ASSERT(j->buffer == 0);
 					j->error.ec = error::no_memory;
 					return disk_operation_failed;
@@ -1666,7 +1666,7 @@ namespace libtorrent
 		// When blocks are reference counted, even read operation would force cache pieces to linger
 		// raise the fence to block new async. operations
 		j->flags |= disk_io_job::need_uncork;
-		DLOG(stderr, "[%p] raising fence ret: %d\n", this, ret);
+		DLOG(stderr, "[%p] raising fence [%p] ret: %d\n", this, j->storage.get(), ret);
 		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -1689,7 +1689,7 @@ namespace libtorrent
 
 		// raise the fence to block new async. operations
 		j->flags |= disk_io_job::need_uncork;
-		DLOG(stderr, "[%p] raising fence ret: %d\n", this, ret);
+		DLOG(stderr, "[%p] raising fence [%p] ret: %d\n", this, j->storage.get(), ret);
 		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -1722,7 +1722,7 @@ namespace libtorrent
 
 		// raise the fence to block new
 		j->flags |= disk_io_job::need_uncork;
-		DLOG(stderr, "[%p] raising fence\n", this);
+		DLOG(stderr, "[%p] raising [%p] fence\n", this, j->storage.get());
 		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
 		return defer_handler;
 	}
@@ -1771,7 +1771,10 @@ namespace libtorrent
 
 		for (std::set<piece_manager*>::iterator i = fences.begin()
 			, end(fences.end()); i != end; ++i)
+		{
+			DLOG(stderr, "[%p] lowering fence [%p]\n", this, *i);
 			(*i)->lower_fence();
+		}
 
 		return 0;
 	}
@@ -1812,6 +1815,7 @@ namespace libtorrent
 			}
 
 			k->error.ec = error::operation_aborted;
+			k->ret = disk_operation_failed;
 			TORRENT_ASSERT(k->callback);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(k->callback_called == false);
@@ -1825,7 +1829,11 @@ namespace libtorrent
 		// the fence function will issue all blocked jobs, but we
 		// just cleared them all from m_blocked_jobs anyway
 		// lowering the fence will at least allow new jobs
-		if (j->storage->has_fence()) j->storage->lower_fence();
+		if (j->storage->has_fence())
+		{
+			DLOG(stderr, "[%p] lowering fence [%p]\n", this, j->storage.get());
+			j->storage->lower_fence();
+		}
 
 		m_disk_cache.release_memory();
 
@@ -2235,7 +2243,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
-			|| j->action == disk_io_job::hash_complete);
+			|| j->action == disk_io_job::hash_complete
+			|| j->action == disk_io_job::flush_piece);
 
 /*
 		if (m_abort && j->action != disk_io_job::hash_complete
@@ -2876,7 +2885,13 @@ namespace libtorrent
 
 		m_hash_thread.stop();
 
-		m_disk_cache.clear();
+		m_disk_cache.clear(m_completed_jobs);
+
+		if (!m_completed_jobs.empty())
+		{
+			disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+			m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
+		}
 
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.

@@ -260,17 +260,17 @@ namespace libtorrent
 
 		// deletes all pieces in the cache. asserts that there
 		// are no outstanding jobs
-		void clear();
+		void clear(tailqueue& jobs);
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
-		void mark_for_deletion(cached_piece_entry* p);
+		void mark_for_deletion(cached_piece_entry* p, tailqueue& jobs);
 
 		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p);
+		bool evict_piece(cached_piece_entry* p, tailqueue* jobs = 0);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list
@@ -380,6 +380,12 @@ namespace libtorrent
 		void set_settings(session_settings const& sett);
 
 	private:
+
+		bool need_lowering_fence(piece_manager* storage);
+
+		// post operation-aborted errors for all jobs associated
+		// with this piece
+		void drain_jobs(cached_piece_entry* pe, tailqueue& jobs);
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 

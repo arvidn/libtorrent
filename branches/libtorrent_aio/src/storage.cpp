@@ -1201,6 +1201,7 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
+		TORRENT_ASSERT(!has_fence());
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
