@@ -1160,7 +1160,7 @@ namespace libtorrent
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		// avoid crash trying to access the picker when there is none
-		if (is_seed()) return;
+		if (!has_picker()) return;
 
 		if (picker().have_piece(piece)
 			&& (flags & torrent::overwrite_existing) == 0)
@@ -1204,8 +1204,6 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		if (is_seed()) return;
-
 		if (m_abort)
 		{
 			piece_block block_finished(p.piece, p.start / block_size());
@@ -1219,6 +1217,8 @@ namespace libtorrent
 			handle_disk_error(j);
 			return;
 		}
+
+		if (!has_picker()) return;
 
 		// if we already have this block, just ignore it.
 		// this can happen if the same block is passed in through
@@ -3733,7 +3733,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed())
+		if (!has_picker())
 		{
 			avail.clear();
 			return;
@@ -5137,7 +5137,7 @@ namespace libtorrent
 
 		// if this torrent is a seed, we won't have a piece picker
 		// and there will be no half-finished pieces.
-		if (!is_seed())
+		if (has_picker())
 		{
 			const std::vector<piece_picker::downloading_piece>& q
 				= m_picker->get_download_queue();
@@ -5394,7 +5394,7 @@ namespace libtorrent
 		std::vector<block_info>& blk = m_ses.m_block_info_storage;
 		blk.clear();
 
-		if (!valid_metadata() || is_seed()) return;
+		if (!valid_metadata() || !has_picker()) return;
 		piece_picker const& p = picker();
 		std::vector<piece_picker::downloading_piece> const& q
 			= p.get_download_queue();
@@ -6443,7 +6443,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(block_size() > 0);
 		}
-//		if (is_seed()) TORRENT_ASSERT(m_picker.get() == 0);
 
 
 		for (std::vector<size_type>::const_iterator i = m_file_progress.begin()

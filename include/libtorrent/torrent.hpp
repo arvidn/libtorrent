@@ -522,9 +522,8 @@ namespace libtorrent
 		// when we get a have message, this is called for that piece
 		void peer_has(int index)
 		{
-			if (m_picker.get())
+			if (has_picker())
 			{
-				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
@@ -538,9 +537,8 @@ namespace libtorrent
 		// when we get a bitfield message, this is called for that piece
 		void peer_has(bitfield const& bits)
 		{
-			if (m_picker.get())
+			if (has_picker())
 			{
-				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
@@ -553,9 +551,8 @@ namespace libtorrent
 
 		void peer_has_all()
 		{
-			if (m_picker.get())
+			if (has_picker())
 			{
-				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount_all();
 			}
 #ifdef TORRENT_DEBUG
@@ -568,9 +565,8 @@ namespace libtorrent
 
 		void peer_lost(int index)
 		{
-			if (m_picker.get())
+			if (has_picker())
 			{
-				TORRENT_ASSERT(!is_seed());
 				m_picker->dec_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
