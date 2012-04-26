@@ -549,7 +549,7 @@ namespace libtorrent
 
 		// when we get a have message, this is called for that piece
 		void peer_has(int index);
-		
+
 		// when we get a bitfield message, this is called for that piece
 		void peer_has(bitfield const& bits);
 

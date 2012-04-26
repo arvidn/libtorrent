@@ -3414,7 +3414,7 @@ namespace libtorrent
 			// if we're a seed, we don't have a piece picker
 			// so we don't have to worry about invariants getting
 			// out of sync with it
-			if (t->is_seed()) continue;
+			if (!t->has_picker()) continue;
 
 			// this can happen if a block times out, is re-requested and
 			// then arrives "unexpectedly"
