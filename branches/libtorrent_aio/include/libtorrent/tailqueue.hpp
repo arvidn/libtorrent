@@ -71,6 +71,29 @@ namespace libtorrent
 		tailqueue_iterator iterate() const
 		{ return tailqueue_iterator(m_first); }
 
+		void append(tailqueue& rhs)
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			TORRENT_ASSERT(rhs.m_last == 0 || rhs.m_last->next == 0);
+
+			if (rhs.m_first == 0) return;
+
+			if (m_first == 0)
+			{
+				swap(rhs);
+				return;
+			}
+
+			m_last->next = rhs.m_first;
+			m_last = rhs.m_last;
+			m_size += rhs.m_size;
+			rhs.m_first = 0;
+			rhs.m_last = 0;
+			rhs.m_size = 0;
+
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+		}
+
 		tailqueue_node* pop_front()
 		{
 			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);

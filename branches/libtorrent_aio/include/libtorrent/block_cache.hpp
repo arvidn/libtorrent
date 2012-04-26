@@ -381,8 +381,6 @@ namespace libtorrent
 
 	private:
 
-		bool need_lowering_fence(piece_manager* storage);
-
 		// post operation-aborted errors for all jobs associated
 		// with this piece
 		void drain_jobs(cached_piece_entry* pe, tailqueue& jobs);

@@ -1723,6 +1723,9 @@ namespace libtorrent
 		// if we got an invalid message, abort
 		if (index >= int(m_have_piece.size()) || index < 0)
 		{
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** ERROR: [ have-metadata have_piece.size: %d ]", index, int(m_have_piece.size()));
+#endif
 			disconnect(errors::invalid_have, 2);
 			return;
 		}
@@ -4733,20 +4736,24 @@ namespace libtorrent
 #endif
 		m_reading_bytes -= r.length;
 
-		if (m_disconnecting) return;
-
-		// flush send buffer at the end of
-		// this burst of disk events
-		m_ses.cork_burst(this);
-
 		if (ret < 0)
 		{
+			TORRENT_ASSERT(j.buffer == 0);
 			// TODO: send reject_piece here instead?
 			disconnect(j.error.ec);
 			return;
 		}
 
+		// even if we're disconnecting, we need to free this block
+		// otherwise the disk thread will hang, waiting for the network
+		// thread to be done with it
 		disk_buffer_holder buffer(m_ses, j);
+
+		if (m_disconnecting) return;
+
+		// flush send buffer at the end of
+		// this burst of disk events
+		m_ses.cork_burst(this);
 
 #if TORRENT_BUFFER_STATS
 		if (j.buffer && j.ref.storage == 0)

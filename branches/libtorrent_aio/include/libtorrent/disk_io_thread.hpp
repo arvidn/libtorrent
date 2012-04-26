@@ -358,6 +358,7 @@ namespace libtorrent
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool high_priority = false);
+		void prepend_jobs(tailqueue& jobs);
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -555,12 +556,11 @@ namespace libtorrent
 		// the main thread.
 		io_service& m_ios;
 
-		// TODO: this list should be moved into the storage objects themselves, that way it's much more efficient to lower a fence
-		// Jobs that are blocked by the fence are put in this
-		// list. Each time a storage is taken out of the fence,
-		// this list is gone through and jobs belonging to the
-		// storage are issued.
-		tailqueue m_blocked_jobs;
+		// the number of jobs that have been blocked by a fence. These
+		// jobs are queued up in their respective storage, waiting for
+		// the fence to be lowered. This counter is just used to know
+		// when it's OK to exit the main loop of the disk thread
+		int m_num_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that

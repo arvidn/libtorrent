@@ -352,6 +352,7 @@ namespace libtorrent
 #endif
 		, m_physical_ram(0)
 		, m_ios(ios)
+		, m_num_blocked_jobs(0)
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
 		, m_post_alert(post_alert)
@@ -834,14 +835,7 @@ namespace libtorrent
 		if (!retry_jobs.empty())
 		{
 			mutex::scoped_lock l(m_job_mutex);
-			disk_io_job* i = (disk_io_job*)retry_jobs.get_all();
-			while (i)
-			{
-				disk_io_job* j = i;
-				i = (disk_io_job*)i->next;
-				j->next = 0;
-				m_queued_jobs.push_back(j);
-			}
+			m_queued_jobs.append(retry_jobs);
 		}
 
 		if (!handler->error)
@@ -1079,7 +1073,7 @@ namespace libtorrent
 		&disk_io_thread::do_aiocb_complete,
 	};
 
-	static const char* job_action_name[] =
+	const char* job_action_name[] =
 	{
 		"read",
 		"write",
@@ -1127,14 +1121,14 @@ namespace libtorrent
 		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
 
 		// is the fence up for this storage?
-		// jobs that are instantaneous are not affected by the fence
-		if (j->storage && j->storage->has_fence()
-			&& !is_job_immediate(j->action))
+		// jobs that are instantaneous are not affected by the fence, is_blocked()
+		// will take ownership of the job and queue it up, in case the fence is up
+		if (!is_job_immediate(j->action) && j->storage && j->storage->is_blocked(j))
 		{
-			DLOG(stderr, "[%p]   perform_async_job: blocked\n", this);
-			// Yes it is! We're not allowed
-			// to issue this job. Queue it up
-			m_blocked_jobs.push_back(j);
+			++m_num_blocked_jobs;
+			DLOG(stderr, "[%p] blocked job: %s (torrent: %d total: %d)\n"
+				, this, job_action_name[j->action], j->storage->num_blocked()
+				, m_num_blocked_jobs);
 			return;
 		}
 
@@ -1160,26 +1154,6 @@ namespace libtorrent
 #endif
 			j->ret = ret;
 			m_completed_jobs.push_back(j);
-		}
-
-		// if this job actually completed (as opposed to deferred the handler)
-		// and it's a job that raises the fence (like move storage, release
-		// files, etc.), we may have to uncork the jobs that were blocked by it.
-		if (ret != defer_handler && (j->flags & disk_io_job::need_uncork))
-		{
-			DLOG(stderr, "[%p]   uncorking\n", this);
-			// we should only uncork if the storage doesn't
-			// have a fence up anymore
-			TORRENT_ASSERT(!j->storage->has_fence());
-			disk_io_job* k = (disk_io_job*)m_blocked_jobs.get_all();
-
-			while (k)
-			{
-				disk_io_job* j = k;
-				k = (disk_io_job*)k->next;
-				j->next = 0;
-				perform_async_job(j);
-			}
 		}
 	}
 
@@ -1282,6 +1256,7 @@ namespace libtorrent
 			j->error.ec = error::no_memory;
 			return disk_operation_failed;
 		}
+		j->storage->new_job(j);
 		a->handler = boost::bind(&disk_io_thread::on_read_one_buffer, this, _1, j);
 		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
 		file::aiocb_t* aios = j->storage->get_storage_impl()->async_readv(&b, 1
@@ -1394,6 +1369,7 @@ namespace libtorrent
 			j->error.ec = error::no_memory;
 			return disk_operation_failed;
 		}
+		j->storage->new_job(j);
 		a->handler = boost::bind(&disk_io_thread::on_write_one_buffer, this, _1, j);
 		file::aiocb_t* aios = j->storage->get_storage_impl()->async_writev(&b, 1
 			, j->piece, j->d.io.offset, j->flags, a);
@@ -1620,6 +1596,7 @@ namespace libtorrent
 			DLOG(stderr, "[%p] do_hash: adding job piece: %d\n"
 				, this, int(pe->piece));
 			TORRENT_ASSERT(j->piece == pe->piece);
+			pe->storage->new_job(j);
 			pe->jobs.push_back(j);
 		}
 
@@ -1665,9 +1642,9 @@ namespace libtorrent
 		// this fence have to block both read and write operations and let read operations
 		// When blocks are reference counted, even read operation would force cache pieces to linger
 		// raise the fence to block new async. operations
-		j->flags |= disk_io_job::need_uncork;
 		DLOG(stderr, "[%p] raising fence [%p] ret: %d\n", this, j->storage.get(), ret);
-		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
+		j->storage->raise_fence(j);
+		++m_num_blocked_jobs;
 		return defer_handler;
 	}
 
@@ -1688,9 +1665,9 @@ namespace libtorrent
 		}
 
 		// raise the fence to block new async. operations
-		j->flags |= disk_io_job::need_uncork;
 		DLOG(stderr, "[%p] raising fence [%p] ret: %d\n", this, j->storage.get(), ret);
-		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
+		j->storage->raise_fence(j);
+		++m_num_blocked_jobs;
 		return defer_handler;
 	}
 
@@ -1721,9 +1698,9 @@ namespace libtorrent
 //#error this fence would only have to block write operations and could let read operations through
 
 		// raise the fence to block new
-		j->flags |= disk_io_job::need_uncork;
 		DLOG(stderr, "[%p] raising [%p] fence\n", this, j->storage.get());
-		j->storage->raise_fence(boost::bind(&disk_io_thread::perform_async_job, this, j));
+		j->storage->raise_fence(j);
+		++m_num_blocked_jobs;
 		return defer_handler;
 	}
 
@@ -1740,42 +1717,6 @@ namespace libtorrent
 		// and clear all read jobs
 		flush_cache(j, flush_read_cache | flush_write_cache);
 		m_abort = true;
-
-		std::set<piece_manager*> fences;
-		std::vector<char*> to_free;
-		// we're aborting. Cancel all jobs that are blocked or
-		// have been deferred as well
-		disk_io_job* i = (disk_io_job*)m_blocked_jobs.get_all();
-		while (i)
-		{
-			disk_io_job* k = i;
-			i = (disk_io_job*)i->next;
-			k->next = 0;
-
-			if (k->buffer) to_free.push_back(k->buffer);
-			k->buffer = 0;
-			if (k->storage->has_fence()) fences.insert(k->storage.get());
-			k->error.ec = error::operation_aborted;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			TORRENT_ASSERT(k->callback_called == false);
-			k->callback_called = true;
-#endif
-			m_completed_jobs.push_back(k);
-			k = (disk_io_job*)k->next;
-		}
-		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
-
-		// if there is a storage that has a fence up
-		// it's going to get left hanging here.
-		// lower all fences
-
-		for (std::set<piece_manager*>::iterator i = fences.begin()
-			, end(fences.end()); i != end; ++i)
-		{
-			DLOG(stderr, "[%p] lowering fence [%p]\n", this, *i);
-			(*i)->lower_fence();
-		}
-
 		return 0;
 	}
 
@@ -1790,50 +1731,6 @@ namespace libtorrent
 		// issue write commands for all dirty blocks
 		// and clear all read jobs
 		flush_cache(j, flush_read_cache | flush_write_cache);
-
-		std::vector<char*> to_free;
-		// we're aborting. Cancel all jobs that are blocked or
-		// have been deferred as well
-		disk_io_job* i = (disk_io_job*)m_blocked_jobs.get_all();
-		while (i)
-		{
-			disk_io_job* k = i;
-			i = (disk_io_job*)i->next;
-			k->next = 0;
-			if (k->storage != j->storage)
-			{
-				// not ours, put it back
-				m_blocked_jobs.push_back(postinc(k));
-				continue;
-			}
-
-			if ((k->action == disk_io_job::read || k->action == disk_io_job::write)
-				&& k->buffer)
-			{
-				to_free.push_back(k->buffer);
-				k->buffer = 0;
-			}
-
-			k->error.ec = error::operation_aborted;
-			k->ret = disk_operation_failed;
-			TORRENT_ASSERT(k->callback);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			TORRENT_ASSERT(k->callback_called == false);
-			k->callback_called = true;
-#endif
-			m_completed_jobs.push_back(k);
-		}
-
-		if (!to_free.empty()) m_disk_cache.free_multiple_buffers(&to_free[0], to_free.size());
-
-		// the fence function will issue all blocked jobs, but we
-		// just cleared them all from m_blocked_jobs anyway
-		// lowering the fence will at least allow new jobs
-		if (j->storage->has_fence())
-		{
-			DLOG(stderr, "[%p] lowering fence [%p]\n", this, j->storage.get());
-			j->storage->lower_fence();
-		}
 
 		m_disk_cache.release_memory();
 
@@ -1931,9 +1828,9 @@ namespace libtorrent
 		}
 		int ret = m_disk_cache.allocate_pending(pe, 0, pe->blocks_in_piece, j);
 
-		if (ret >= 0)
+		if (ret > 0)
 		{
-			if (ret > 0) io_range(pe, 0, INT_MAX, op_read, j->flags);
+			io_range(pe, 0, INT_MAX, op_read, j->flags);
 			return defer_handler;
 		}
 		else if (ret == -1)
@@ -1964,7 +1861,7 @@ namespace libtorrent
 #endif
 		ret.queued_bytes = m_pending_buffer_size + m_queue_buffer_size;
 
-		ret.blocked_jobs = m_blocked_jobs.size();
+		ret.blocked_jobs = m_num_blocked_jobs;
 		ret.queued_jobs = m_num_to_issue;
 		ret.peak_queued = m_peak_num_to_issue;
 		ret.pending_jobs = m_outstanding_jobs;
@@ -2070,6 +1967,7 @@ namespace libtorrent
 		return 0;
 	}
 
+	// TODO: does this function belong to block_cache?
 	int disk_io_thread::do_clear_piece(disk_io_job* j)
 	{
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
@@ -2123,6 +2021,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == 0) return 0;
 		if (pe->refcount == 0) return 0;
+		pe->storage->new_job(j);
 		pe->jobs.push_back(j);
 		return defer_handler;
 	}
@@ -2239,22 +2138,13 @@ namespace libtorrent
 	{
 		j->start_time = time_now_hires();
 
-		mutex::scoped_lock l(m_job_mutex);
-
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete
 			|| j->action == disk_io_job::flush_piece);
 
-/*
-		if (m_abort && j->action != disk_io_job::hash_complete
-			&& j->action != disk_io_job::reclaim_block)
-		{
-			l.unlock();
-			m_aiocb_pool.free_job(j);
-			return;
-		}
-*/
+		mutex::scoped_lock l(m_job_mutex);
+
 		if (high_priority)
 			m_queued_jobs.push_front(j);
 		else
@@ -2269,6 +2159,14 @@ namespace libtorrent
 
 		// high priority jobs tries to wake up the disk thread immediately
 		if (high_priority) submit_jobs_impl();
+	}
+
+	void disk_io_thread::prepend_jobs(tailqueue& jobs)
+	{
+		mutex::scoped_lock l(m_job_mutex);
+		jobs.append(m_queued_jobs);
+		m_queued_jobs.swap(jobs);
+		submit_jobs_impl();
 	}
 
 	void disk_io_thread::submit_jobs()
@@ -2457,6 +2355,8 @@ namespace libtorrent
 			bool new_job = false;
 			bool iocbs_reaped = false;
 
+			// TODO: this large portion of code that's platform and io-backend
+			// dependent should really be factored out into separate functions
 #if TORRENT_USE_OVERLAPPED
 			TORRENT_ASSERT(m_completion_port != INVALID_HANDLE_VALUE);
 			file::aiocb_t* aio = 0;
@@ -2733,6 +2633,8 @@ namespace libtorrent
 			ptime now = time_now_hires();
 			if (now > m_last_cache_expiry + seconds(5))
 			{
+				DLOG(stderr, "[%p] blocked_jobs: %d queued_jobs: %d abort: %d\n"
+					, this, m_num_blocked_jobs, m_queued_jobs.size(), m_abort);
 				m_last_cache_expiry = now;
 				flush_expired_write_blocks();
 			}
@@ -2744,61 +2646,61 @@ namespace libtorrent
 			}
 #endif
 
-			// if didn't receive a message waking us up because we have new jobs
-			// another reason to keep going is if we just reaped some aiocbs and
-			// we have outstanding iocbs waiting to be submitted
-			// go back to sleep waiting for more io completion events
-			if (!new_job && (!iocbs_reaped || m_to_issue == 0))
+			// if we have new jobs, pop them and run them
+			if (new_job)
 			{
-				if (!m_completed_jobs.empty())
+				// keep the mutex locked for as short as possible
+				// while we swap out all the jobs in the queue
+				// we can then go through the queue without having
+				// to block the mutex
+				mutex::scoped_lock l(m_job_mutex);
+				disk_io_job* j = (disk_io_job*)m_queued_jobs.get_all();
+				l.unlock();
+				if (j)
 				{
-					disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
-					m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
+					DLOG(stderr, "[%p] new jobs\n", this);
 				}
 
-				continue;
-			}
-
-			// keep the mutex locked for as short as possible
-			// while we swap out all the jobs in the queue
-			// we can then go through the queue without having
-			// to block the mutex
-			mutex::scoped_lock l(m_job_mutex);
-			disk_io_job* j = (disk_io_job*)m_queued_jobs.get_all();
-			l.unlock();
-			if (j)
-			{
-				DLOG(stderr, "[%p] new jobs\n", this);
-			}
-
-			// go through list of newly submitted jobs
-			// and perform the appropriate action
-			while (j)
-			{
-				if (j->action == disk_io_job::write)
+				// go through list of newly submitted jobs
+				// and perform the appropriate action
+				while (j)
 				{
-					mutex::scoped_lock l(m_job_mutex);
-					TORRENT_ASSERT(m_queue_buffer_size >= j->d.io.buffer_size);
-					m_queue_buffer_size -= j->d.io.buffer_size;
-					l.unlock();
-				}
-	
-				disk_io_job* job = j;
-				j = (disk_io_job*)j->next;
-				job->next = 0;
-				perform_async_job(job);
-			}
+					if (j->action == disk_io_job::write)
+					{
+						mutex::scoped_lock l(m_job_mutex);
+						TORRENT_ASSERT(m_queue_buffer_size >= j->d.io.buffer_size);
+						m_queue_buffer_size -= j->d.io.buffer_size;
+						l.unlock();
+					}
 
-			int evict = m_disk_cache.num_to_evict(0);
-			if (evict > 0)
-			{
-				evict = m_disk_cache.try_evict_blocks(evict, 1);
-				if (evict > 0) try_flush_write_blocks(evict);
+					disk_io_job* job = j;
+					j = (disk_io_job*)j->next;
+					job->next = 0;
+					perform_async_job(job);
+				}
+
+				int evict = m_disk_cache.num_to_evict(0);
+				if (evict > 0)
+				{
+					evict = m_disk_cache.try_evict_blocks(evict, 1);
+					if (evict > 0) try_flush_write_blocks(evict);
+				}
 			}
 
 			if (!m_completed_jobs.empty())
 			{
+				DLOG(stderr, "[%p] posting %d completed jobs\n", this, m_completed_jobs.size());
 				disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+				for (disk_io_job* i = j; i != NULL; i = (disk_io_job*)i->next)
+				{
+					if ((i->flags & disk_io_job::async_operation) && i->storage)
+					{
+						int ret = i->storage->job_complete(i);
+						if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
+						TORRENT_ASSERT(m_num_blocked_jobs >= ret);
+						m_num_blocked_jobs -= ret;
+					}
+				}
 				m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 			}
 
@@ -2881,6 +2783,7 @@ namespace libtorrent
 			// is has jobs in it as well
 		
 		} while (!m_abort || m_in_progress || m_to_issue
+			|| m_completed_jobs.size() > 0 || m_num_blocked_jobs > 0
 			|| m_hash_thread.num_pending_jobs() || m_disk_cache.pinned_blocks() > 0);
 
 		m_hash_thread.stop();
@@ -2889,9 +2792,22 @@ namespace libtorrent
 
 		if (!m_completed_jobs.empty())
 		{
+			DLOG(stderr, "[%p] posting %d completed jobs\n", this, m_completed_jobs.size());
 			disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+			for (disk_io_job* i = j; i != NULL; i = (disk_io_job*)i->next)
+			{
+				if ((i->flags & disk_io_job::async_operation) && i->storage)
+				{
+					int ret = i->storage->job_complete(i);
+					if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
+					TORRENT_ASSERT(m_num_blocked_jobs >= ret);
+					m_num_blocked_jobs -= ret;
+				}
+			}
 			m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 		}
+
+		TORRENT_ASSERT(m_queued_jobs.empty());
 
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.

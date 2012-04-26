@@ -357,6 +357,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	++m_write_cache_size;
 	j->buffer = 0;
 	TORRENT_ASSERT(j->piece == pe->piece);
+	pe->storage->new_job(j);
 	pe->jobs.push_back(j);
 
 	update_cache_state(pe);
@@ -391,13 +392,6 @@ void block_cache::drain_jobs(cached_piece_entry* pe, tailqueue& jobs)
 #endif
 		j->ret = -1;
 		jobs.push_back(j);
-	}
-
-	boost::intrusive_ptr<piece_manager> storage = pe->storage;
-	if (need_lowering_fence(storage.get()))
-	{
-		DLOG(stderr, "[%p] lowering fence for [%p]\n", this, storage.get());
-		storage->lower_fence();
 	}
 }
 
@@ -781,7 +775,11 @@ int block_cache::allocate_pending(cached_piece_entry* pe
 			pe->marked_for_deletion = false;
 		}
 		TORRENT_ASSERT(j->piece == pe->piece);
-		pe->jobs.push_back(j);
+		if (ret > 0)
+		{
+			pe->storage->new_job(j);
+			pe->jobs.push_back(j);
+		}
 
 		// if this piece is in a ghost list, move it out
 		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
@@ -926,49 +924,6 @@ void block_cache::mark_as_done(cached_piece_entry* pe, int begin, int end
 #if DEBUG_CACHE
 	log_refcounts(pe);
 #endif
-
-	boost::intrusive_ptr<piece_manager> storage = pe->storage;
-	bool lower_fence = need_lowering_fence(storage.get());
-
-	DLOG(stderr, "[%p] block_cache mark_done mark-for-deletion: %d "
-		"piece: %d refcount: %d\n", this, int(pe->marked_for_deletion)
-		, int(pe->piece), int(pe->refcount));
-
-	maybe_free_piece(pe, jobs);
-
-	// lower the fence after we deleted the piece from the cache
-	// to avoid inconsistent states when new jobs are issued
-	if (lower_fence)
-	{
-		DLOG(stderr, "[%p] lowering fence for [%p]\n", this, storage.get());
-		storage->lower_fence();
-	}
-}
-
-bool block_cache::need_lowering_fence(piece_manager* storage)
-{
-	// TODO: this could be made a lot more efficient by keeping track of the number of issued but not complete (outstanding) jobs per storage. Whenever the count reaches 0 and there is a fence, the fence should be lowered
-	if (!storage->has_fence()) return false;
-
-	DLOG(stderr, "[%p] piece out of jobs. Count total jobs\n", this);
-	// this piece doesn't have any outstanding jobs anymore
-	// and we have a fence on the storage. Are all outstanding
-	// jobs complete for this storage?
-
-	for (boost::unordered_set<cached_piece_entry*>::iterator i
-		= storage->cached_pieces().begin()
-		, end(storage->cached_pieces().end()); i != end; ++i)
-	{
-		cached_piece_entry* pe = *i;
-		if (pe->jobs.empty()) continue;
-		DLOG(stderr, "[%p] Found %d jobs on piece %d\n", this
-			, int(pe->jobs.size()), int(pe->piece));
-		return false;
-	}
-
-	DLOG(stderr, "[%p] no more jobs. lower fence\n", this);
-	// yes, all outstanding jobs are done, lower the fence
-	return true;
 }
 
 void block_cache::kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end)

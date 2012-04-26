@@ -56,6 +56,15 @@ void test_swarm(int flags = 0)
 {
 	using namespace libtorrent;
 
+	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s%s ===\n\n\n"
+		, (flags & super_seeding) ? "super-seeding ": ""
+		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
+		, (flags & seed_mode) ? "seed-mode ": ""
+		, (flags & time_critical) ? "time-critical ": ""
+		, (flags & suggest) ? "suggest ": ""
+		, (flags & explicit_cache) ? "explicit-cache ": ""
+		);
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_swarm", ec);
@@ -253,6 +262,7 @@ int test_main()
 	// with suggest pieces
 	test_swarm(suggest);
 
+	// test explicit cache
 	test_swarm(suggest | explicit_cache);
 
 	return 0;
