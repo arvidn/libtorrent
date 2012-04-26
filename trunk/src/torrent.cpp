@@ -1547,6 +1547,23 @@ namespace libtorrent
 			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
 		}
 
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			for (torrent::peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
+			{
+				peer_connection* pc = *i;
+				++i;
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
+				pc->init();
+			}
+		}
+
 		// in case file priorities were passed in via the add_torrent_params
 		// ans also in the case of share mode, we need to update the priorities
 		update_piece_priorities();
