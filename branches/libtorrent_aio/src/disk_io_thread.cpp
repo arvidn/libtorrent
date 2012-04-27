@@ -2020,7 +2020,7 @@ namespace libtorrent
 	{
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == 0) return 0;
-		if (pe->refcount == 0) return 0;
+		if (pe->jobs.empty()) return 0;
 		pe->storage->new_job(j);
 		pe->jobs.push_back(j);
 		return defer_handler;
