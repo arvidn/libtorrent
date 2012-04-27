@@ -2735,7 +2735,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (t->is_seed()) return;
+		if (!t->has_picker()) return;
 
 		piece_picker& picker = t->picker();
 
