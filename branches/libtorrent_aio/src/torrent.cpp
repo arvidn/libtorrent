@@ -3081,7 +3081,7 @@ namespace libtorrent
 		// if we're a seed we don't have a picker
 		// and we also don't have to do anything because
 		// we already have this piece
-		if (is_seed()) return;
+		if (!has_picker()) return;
 
 		if (passed_hash_check == 0)
 		{

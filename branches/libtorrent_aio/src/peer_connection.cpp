@@ -2708,8 +2708,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
-		if (m_disconnecting) return;
-	
 		// flush send buffer at the end of
 		// this burst of disk events
 		m_ses.cork_burst(this);
