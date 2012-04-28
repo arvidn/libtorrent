@@ -54,9 +54,13 @@ namespace libtorrent
 		TORRENT_ASSERT(assigned < request_size);
 		int quota = request_size - assigned;
 		TORRENT_ASSERT(quota >= 0);
+		--ttl;
+		if (quota == 0) return quota;
+
 		for (int j = 0; j < 5 && channel[j]; ++j)
 		{
 			if (channel[j]->throttle() == 0) continue;
+			if (channel[j]->tmp == 0) continue;
 			quota = (std::min)(int(boost::int64_t(channel[j]->distribute_quota)
 				* priority / channel[j]->tmp), quota);
 		}
@@ -64,7 +68,6 @@ namespace libtorrent
 		for (int j = 0; j < 5 && channel[j]; ++j)
 			channel[j]->use_quota(quota);
 		TORRENT_ASSERT(assigned <= request_size);
-		--ttl;
 		return quota;
 	}
 }

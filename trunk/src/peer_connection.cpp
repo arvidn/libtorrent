@@ -4702,7 +4702,13 @@ namespace libtorrent
 				// assume 20 kB/s
 				upload_capacity = (std::max)(20000, m_ses.m_peak_up_rate + 10000);
 			}
-			priority = (boost::uint64_t(m_est_reciprocation_rate) << 10) / upload_capacity;
+			int estimated_reciprocation_rate = m_est_reciprocation_rate;
+			// we cannot send faster than our upload rate anyway
+			if (estimated_reciprocation_rate < upload_capacity)
+				estimated_reciprocation_rate = upload_capacity;
+
+			priority = (boost::uint64_t(estimated_reciprocation_rate) << 14) / upload_capacity;
+			if (priority > 0xffff) priority = 0xffff;
 		}
 		else
 		{
@@ -4710,7 +4716,7 @@ namespace libtorrent
 			if (priority > 255) priority = 255;
 			priority += t->priority() << 8;
 		}
-		TORRENT_ASSERT(priority < 0xffff);
+		TORRENT_ASSERT(priority <= 0xffff);
 
 		// peers that we are not interested in are non-prioritized
 		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
