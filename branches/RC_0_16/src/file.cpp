@@ -536,6 +536,69 @@ namespace libtorrent
 #endif
 	}
 
+#if TORRENT_USE_UNC_PATHS
+	std::string canonicalize_path(std::string const& f)
+	{
+		std::string ret;
+		ret.resize(f.size());
+		char* write_cur = &ret[0];
+		char* last_write_sep = write_cur;
+
+		char const* read_cur = f.c_str();
+		char const* last_read_sep = read_cur;
+
+		// the last_*_sep pointers point to one past
+		// the last path separator encountered and is
+		// initializes to the first character in the path
+		while (*read_cur)
+		{
+			if (*read_cur != '\\')
+			{
+				*write_cur++ = *read_cur++;
+				continue;
+			}
+			int element_len = read_cur - last_read_sep;
+			if (element_len == 1 && memcmp(last_read_sep, ".", 1) == 0)
+			{
+				--write_cur;
+				++read_cur;
+				last_read_sep = read_cur;
+				continue;
+			}
+			if (element_len == 2 && memcmp(last_read_sep, "..", 2) == 0)
+			{
+				// find the previous path separator
+				if (last_write_sep > &ret[0])
+				{
+					--last_write_sep;
+					while (last_write_sep > &ret[0]
+						&& last_write_sep[-1] != '\\')
+						--last_write_sep;
+				}
+				write_cur = last_write_sep;
+				// find the previous path separator
+				if (last_write_sep > &ret[0])
+				{
+					--last_write_sep;
+					while (last_write_sep > &ret[0]
+						&& last_write_sep[-1] != '\\')
+						--last_write_sep;
+				}
+				++read_cur;
+				last_read_sep = read_cur;
+				continue;
+			}
+			*write_cur++ = *read_cur++;
+			last_write_sep = write_cur;
+			last_read_sep = read_cur;
+		}
+		// terminate destination string
+		*write_cur = 0;
+		ret.resize(write_cur - &ret[0]);
+		return ret;
+	}
+#endif	
+
 	size_type file_size(std::string const& f)
 	{
 		error_code ec;
@@ -811,14 +874,12 @@ namespace libtorrent
 			FILE_SHARE_READ,
 		};
 
+		std::string p = convert_separators(path);
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
-		std::string p = convert_separators(path);
-		// network paths are not supported by UNC paths
+		// network paths are already UNC paths
 		if (path.substr(0,2) == "\\\\") p = path;
 		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
-#else
-		std::string p = convert_separators(path);
 #endif
 
 #if TORRENT_USE_WSTRING
