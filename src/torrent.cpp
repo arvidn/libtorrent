@@ -433,6 +433,10 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 #endif
+#if TORRENT_USE_UNC_PATHS
+		m_save_path = canonicalize_path(m_save_path);
+#endif
+
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
 		if (!p.ti || !p.ti->is_valid())

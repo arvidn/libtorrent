@@ -167,6 +167,9 @@ namespace libtorrent
 		file_pool fp;
 		std::string utf8;
 		wchar_utf8(p, utf8);
+#if TORRENT_USE_UNC_PATHS
+		p = canonicalize_path(p);
+#endif
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, utf8, fp
 			, std::vector<boost::uint8_t>()));
@@ -195,6 +198,9 @@ namespace libtorrent
 		, boost::function<void(int)> f, error_code& ec)
 	{
 		file_pool fp;
+#if TORRENT_USE_UNC_PATHS
+		p = canonicalize_path(p);
+#endif
 		boost::scoped_ptr<storage_interface> st(
 			default_storage_constructor(const_cast<file_storage&>(t.files()), 0, p, fp
 			, std::vector<boost::uint8_t>()));
