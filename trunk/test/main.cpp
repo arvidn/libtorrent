@@ -51,11 +51,15 @@ void sig_handler(int sig)
 	{
 #define SIG(x) case x: sig_name = #x; break
 		SIG(SIGSEGV);
+#ifdef SIGBUS
 		SIG(SIGBUS);
+#endif
 		SIG(SIGILL);
 		SIG(SIGABRT);
 		SIG(SIGFPE);
+#ifdef SIGSYS
 		SIG(SIGSYS);
+#endif
 #undef SIG
 	};
 	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
@@ -75,11 +79,15 @@ int main()
 #endif
 
 	signal(SIGSEGV, &sig_handler);
+#ifdef SIGBUS
 	signal(SIGBUS, &sig_handler);
+#endif
 	signal(SIGILL, &sig_handler);
 	signal(SIGABRT, &sig_handler);
 	signal(SIGFPE, &sig_handler);
+#ifdef SIGSYS
 	signal(SIGSYS, &sig_handler);
+#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
 	try
