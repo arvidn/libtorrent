@@ -153,7 +153,7 @@ namespace
         , std::vector<char>& rd, std::list<std::string>& string_storage)
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
-        if (params.has_key("ti"))
+        if (params.has_key("ti") && !params.get("ti").is_none())
             p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
