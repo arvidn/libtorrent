@@ -372,7 +372,7 @@ namespace libtorrent
 			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0 && m_post_alert)
 			{
-				error_code ec(errno, boost::system::get_posix_category());
+				error_code ec(errno, boost::system::get_generic_category());
 				m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
 			}
 			else
@@ -387,7 +387,7 @@ namespace libtorrent
 				{
 					if (m_post_alert)
 					{
-						error_code ec(errno, boost::system::get_posix_category());
+						error_code ec(errno, boost::system::get_generic_category());
 						m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
 					}
 					m_cache_pool = 0;
