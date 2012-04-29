@@ -6246,12 +6246,22 @@ namespace libtorrent
 
 		if (m_owning_storage.get())
 		{
-			m_owning_storage->async_move_storage(save_path
+#if TORRENT_USE_UNC_PATHS
+			std::string path = canonicalize_path(save_path);
+#else
+			std::string const& path = save_path;
+#endif
+			m_owning_storage->async_move_storage(path
 				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2));
 		}
 		else
 		{
+#if TORRENT_USE_UNC_PATHS
+			m_save_path = canonicalize_path(save_path);
+#else
+
 			m_save_path = save_path;
+#endif
 			if (alerts().should_post<storage_moved_alert>())
 			{
 				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path));
