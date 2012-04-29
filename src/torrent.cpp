@@ -6274,6 +6274,9 @@ namespace libtorrent
 		{
 #if TORRENT_USE_UNC_PATHS
 			m_save_path = canonicalize_path(save_path);
+#else
+
+			m_save_path = save_path;
 #endif
 			if (alerts().should_post<storage_moved_alert>())
 			{
