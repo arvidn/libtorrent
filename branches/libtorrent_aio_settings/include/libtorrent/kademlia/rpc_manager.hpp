@@ -56,6 +56,8 @@ namespace libtorrent { namespace dht
 TORRENT_DECLARE_LOG(rpc);
 #endif
 
+struct udp_socket_interface;
+
 struct null_observer : public observer
 {
 	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
@@ -64,16 +66,16 @@ struct null_observer : public observer
 };
 
 class routing_table;
+struct dht_observer;
 
 class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
-	typedef bool (*send_fun)(void* userdata, entry&, udp::endpoint const&, int);
 	typedef boost::function3<void, address, int, address> external_ip_fun;
 
 	rpc_manager(node_id const& our_id
-		, routing_table& table, send_fun const& sf
-		, void* userdata, external_ip_fun ext_ip);
+		, routing_table& table, udp_socket_interface* sock
+		, dht_observer* observer);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -109,15 +111,14 @@ private:
 	typedef std::list<observer_ptr> transactions_t;
 	transactions_t m_transactions;
 	
-	send_fun m_send;
-	void* m_userdata;
+	udp_socket_interface* m_sock;
 	node_id m_our_id;
 	routing_table& m_table;
 	ptime m_timer;
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
-	external_ip_fun m_ext_ip;
+	dht_observer* m_observer;
 };
 
 } } // namespace libtorrent::dht

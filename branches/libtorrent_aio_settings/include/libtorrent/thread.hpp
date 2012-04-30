@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_POSIX_SEMAPHORE
 #include <semaphore.h>      // sem_*
+#include <errno.h>
 #endif
 
 #if TORRENT_USE_MACH_SEMAPHORE

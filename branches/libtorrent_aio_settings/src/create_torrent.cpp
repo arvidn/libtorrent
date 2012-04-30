@@ -183,7 +183,7 @@ namespace libtorrent
 		io_service ios;
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy(new char);
-		disk_io_thread disk_thread(ios, boost::function<void(alert*)>(), 0);
+		disk_io_thread disk_thread(ios, 0, 0);
 		boost::intrusive_ptr<piece_manager> storage = new piece_manager(
 			dummy, (file_storage*)&t.files(), 0, p, disk_thread, default_storage_constructor
 			, storage_mode_sparse, std::vector<boost::uint8_t>());

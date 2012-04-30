@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,45 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/cstdint.hpp>
-#include "libtorrent/bandwidth_queue_entry.hpp"
-#include <cstring>
-#include <algorithm>
+#include "libtorrent/block_cache.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/hash_thread.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/storage.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
 
-namespace libtorrent
+using namespace libtorrent;
+
+struct print_alert : alert_dispatcher
 {
-	bw_request::bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio)
-		: peer(pe)
-		, priority(prio)
-		, assigned(0)
-		, request_size(blk)
-		, ttl(20)
+	virtual bool post_alert(alert* a)
 	{
-		TORRENT_ASSERT(priority > 0);
-		std::memset(channel, 0, sizeof(channel));
+		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
+		delete a;
+		return true;
 	}
+};
 
-	int bw_request::assign_bandwidth()
+struct dummy_hash_thread : hash_thread_interface
+{
+	virtual bool async_hash(cached_piece_entry* p, int start, int end)
 	{
-		TORRENT_ASSERT(assigned < request_size);
-		int quota = request_size - assigned;
-		TORRENT_ASSERT(quota >= 0);
-		--ttl;
-		if (quota == 0) return quota;
-
-		for (int j = 0; j < 5 && channel[j]; ++j)
-		{
-			if (channel[j]->throttle() == 0) continue;
-			if (channel[j]->tmp == 0) continue;
-			quota = (std::min)(int(boost::int64_t(channel[j]->distribute_quota)
-				* priority / channel[j]->tmp), quota);
-		}
-		assigned += quota;
-		for (int j = 0; j < 5 && channel[j]; ++j)
-			channel[j]->use_quota(quota);
-		TORRENT_ASSERT(assigned <= request_size);
-		return quota;
+		return false;
 	}
+};
+
+int test_main()
+{
+	io_service ios;
+	dummy_hash_thread h;
+	print_alert ad;
+	block_cache bc(0x4000, h, ios, &ad);
+
+	disk_io_job j;
+	j.piece = 0;
+//	j.storage = ...
+//	cached_piece_entry* p = bc.allocate_piece(&j, 0);
+	return 0;
 }
 

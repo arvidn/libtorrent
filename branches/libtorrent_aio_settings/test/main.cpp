@@ -39,6 +39,29 @@ int test_main();
 
 extern bool tests_failure;
 
+#include "libtorrent/assert.hpp"
+#include <signal.h>
+
+void sig_handler(int sig)
+{
+	char stack_text[10000];
+	print_backtrace(stack_text, sizeof(stack_text), 30);
+	char const* sig_name = 0;
+	switch (sig)
+	{
+#define SIG(x) case x: sig_name = #x; break
+		SIG(SIGSEGV);
+		SIG(SIGBUS);
+		SIG(SIGILL);
+		SIG(SIGABRT);
+		SIG(SIGFPE);
+		SIG(SIGSYS);
+#undef SIG
+	};
+	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+	exit(138);
+}
+
 int main()
 {
 #ifdef O_NONBLOCK
@@ -50,6 +73,13 @@ int main()
 	flags = fcntl(fileno(stderr), F_GETFL, 0);
 	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
 #endif
+
+	signal(SIGSEGV, &sig_handler);
+	signal(SIGBUS, &sig_handler);
+	signal(SIGILL, &sig_handler);
+	signal(SIGABRT, &sig_handler);
+	signal(SIGFPE, &sig_handler);
+	signal(SIGSYS, &sig_handler);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	try

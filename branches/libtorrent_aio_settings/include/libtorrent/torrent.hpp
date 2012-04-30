@@ -510,7 +510,10 @@ namespace libtorrent
 		{ return m_suggested_pieces; }
 
 		bool super_seeding() const
-		{ return m_super_seeding; }
+		{
+			// we're not super seeding if we're not a seed
+			return m_super_seeding && is_seed();
+		}
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
@@ -518,7 +521,9 @@ namespace libtorrent
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
-			return has_picker()?m_picker->have_piece(index):true;
+			if (!valid_metadata()) return false;
+			if (!has_picker()) return true;
+			return m_picker->have_piece(index);
 		}
 
 		// a predictive piece is a piece that we might
@@ -543,7 +548,7 @@ namespace libtorrent
 
 		// when we get a have message, this is called for that piece
 		void peer_has(int index);
-		
+
 		// when we get a bitfield message, this is called for that piece
 		void peer_has(bitfield const& bits);
 

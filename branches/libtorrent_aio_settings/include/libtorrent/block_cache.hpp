@@ -56,9 +56,10 @@ namespace libtorrent
 	class piece_manager;
 	struct disk_buffer_pool;
 	struct cache_status;
-	struct hash_thread;
+	struct hash_thread_interface;
 	struct block_cache_reference;
 	namespace aux { struct session_settings; }
+	struct alert_dispatcher;
 
 	struct partial_hash
 	{
@@ -155,8 +156,13 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
+		// TODO: could this be a scoped_array instead? does cached_piece_entry need to be copyable?
 		boost::shared_array<cached_block_entry> blocks;
-		
+
+		// jobs that cannot be performed right now are put on
+		// this queue and retried whenever something completes on this piece
+		tailqueue deferred_jobs;
+
 		// these are outstanding jobs, waiting to be
 		// handled for this piece. For read pieces, these
 		// are the write jobs that will be dispatched back
@@ -169,6 +175,7 @@ namespace libtorrent
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
+		// TODO: now that there's a proper ARC cache, is this still necessary?
 		ptime expire;
 
 		boost::uint64_t piece:22;
@@ -232,8 +239,8 @@ namespace libtorrent
 
 	struct block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, hash_thread& h, io_service& ios
-			, boost::function<void(alert*)> const& post_alert);
+		block_cache(int block_size, hash_thread_interface& h, io_service& ios
+			, alert_dispatcher* alert_disp);
 
 	private:
 
@@ -255,17 +262,17 @@ namespace libtorrent
 
 		// deletes all pieces in the cache. asserts that there
 		// are no outstanding jobs
-		void clear();
+		void clear(tailqueue& jobs);
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
-		void mark_for_deletion(cached_piece_entry* p);
+		void mark_for_deletion(cached_piece_entry* p, tailqueue& jobs);
 
 		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p);
+		bool evict_piece(cached_piece_entry* p, tailqueue* jobs = 0);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list
@@ -279,6 +286,9 @@ namespace libtorrent
 		// reading from in the hash table (not necessarily that we
 		// hit the block we needed)
 		void cache_hit(cached_piece_entry* p, void* requester);
+
+		// free block from piece entry
+		void free_block(cached_piece_entry* pe, int block);
 
 		// erase a piece (typically from the ghost list). Reclaim all
 		// its blocks and unlink it and free it.
@@ -299,6 +309,7 @@ namespace libtorrent
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
+		// cache_state is one of cache_state_t enum
 		cached_piece_entry* allocate_piece(disk_io_job const* j, int cache_state);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
@@ -326,7 +337,7 @@ namespace libtorrent
 		// code. The io_service passed in is where the jobs are
 		// dispatched
 		void mark_as_done(cached_piece_entry* p, int begin, int end
-			, tailqueue& jobs, storage_error const& ec);
+			, tailqueue& jobs, tailqueue& restart_jobs, storage_error const& ec);
 
 		// this is called by the hasher thread when hashing of
 		// a range of block is complete.
@@ -372,6 +383,10 @@ namespace libtorrent
 		void set_settings(aux::session_settings const& sett);
 
 	private:
+
+		// post operation-aborted errors for all jobs associated
+		// with this piece
+		void drain_jobs(cached_piece_entry* pe, tailqueue& jobs);
 
 		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
 
@@ -445,7 +460,8 @@ namespace libtorrent
 		// they may not be evicted
 		int m_pinned_blocks;
 
-		hash_thread& m_hash_thread;
+		// this is the object hash jobs are posted to
+		hash_thread_interface& m_hash_thread;
 	};
 
 }

@@ -300,8 +300,56 @@ namespace libtorrent
 
 	struct disk_io_thread;
 
+	// implements the disk I/O job fence used by the piece_manager
+	// to provide to the disk thread. Whenever a disk job needs
+	// exclusive access to the storage for that torrent, it raises
+	// the fence, blocking all new jobs, until there are no longer
+	// any outstanding jobs on the torrent, then the fence is lowered
+	// and it can be performed, along with the backlog of jobs that
+	// accrued while the fence was up
+	struct disk_job_fence
+	{
+		disk_job_fence();
+
+		void raise_fence(disk_io_job* j);
+		bool has_fence() const { return m_has_fence; }
+
+		void new_job(disk_io_job* j);
+		// called whenever a job completes and is posted back to the
+		// main network thread. the tailqueue of jobs will have the
+		// backed-up jobs prepended to it in case this resulted in the
+		// fence being lowered.
+		int job_complete(disk_io_job* j, tailqueue& job_queue);
+		bool has_outstanding_jobs() const { return m_outstanding_jobs; }
+
+		// if there is a fence up, returns true and adds the job
+		// to the queue of blocked jobs
+		bool is_blocked(disk_io_job* j);
+		
+		// the number of blocked jobs
+		int num_blocked() const { return m_blocked_jobs.size(); }
+
+	private:
+		// when set, this storage is blocked for new async
+		// operations until all outstanding jobs have completed.
+		// at that point, the m_blocked_jobs are issued
+		bool m_has_fence;
+
+		// when there's a fence up, jobs are queued up in here
+		// until the fence is lowered
+		tailqueue m_blocked_jobs;
+
+		// the number of disk_io_job objects there are, belonging
+		// to this torrent, currently pending, hanging off of
+		// cached_piece_entry objects. This is used to determine
+		// when the fence can be lowered
+		int m_outstanding_jobs;
+
+	};
+
 	class TORRENT_EXTRA_EXPORT piece_manager
 		: public intrusive_ptr_base<piece_manager>
+		, public disk_job_fence
 		, boost::noncopyable
 	{
 	friend class invariant_access;
@@ -319,20 +367,6 @@ namespace libtorrent
 			, std::vector<boost::uint8_t> const& file_prio);
 
 		~piece_manager();
-
-		void raise_fence(boost::function0<void> const& f)
-		{
-			TORRENT_ASSERT(!m_fence_fun);
-			m_fence_fun = f;
-		}
-		bool has_fence() const { return m_fence_fun; }
-		void lower_fence()
-		{
-			TORRENT_ASSERT(m_fence_fun);
-			boost::function0<void> f;
-			f.swap(m_fence_fun);
-			f();
-		}
 
 		void set_abort_job(disk_io_job* j)
 		{
@@ -451,10 +485,6 @@ namespace libtorrent
 		file_storage const& m_files;
 
 		boost::scoped_ptr<storage_interface> m_storage;
-
-		// when set, this storage is blocked for new async
-		// operations
-		boost::function0<void> m_fence_fun;
 
 		// abort jobs synchronize with all pieces being evicted
 		// for a certain torrent. If some pieces cannot be evicted

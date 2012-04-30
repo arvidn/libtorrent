@@ -413,6 +413,8 @@ namespace libtorrent
 
 	private:
 
+		void update_connect_candidates(int delta);
+
 		void update_peer(policy::peer* p, int src, int flags
 		, tcp::endpoint const& remote, char const* destination);
 		bool insert_peer(policy::peer* p, iterator iter, int flags);

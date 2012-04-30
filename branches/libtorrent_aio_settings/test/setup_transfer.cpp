@@ -119,6 +119,13 @@ bool print_alerts(libtorrent::session& ses, char const* name
 				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
 				|| (allow_disconnects && pea->error.message() == "End of file."));
 		}
+
+		invalid_request_alert* ira = alert_cast<invalid_request_alert>(*i);
+		if (ira)
+		{
+			fprintf(stderr, "peer error: %s\n", ira->message().c_str());
+			TEST_CHECK(false);
+		}
 		delete *i;
 	}
 	return ret;

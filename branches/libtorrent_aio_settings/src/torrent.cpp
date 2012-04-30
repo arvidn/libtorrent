@@ -871,12 +871,6 @@ namespace libtorrent
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
-		TORRENT_ASSERT(m_connections.empty());
-		
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
-		log_to_all_peers("DESTRUCTING TORRENT");
-#endif
-
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -1120,7 +1114,7 @@ namespace libtorrent
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		// avoid crash trying to access the picker when there is none
-		if (is_seed()) return;
+		if (!has_picker()) return;
 
 		if (picker().have_piece(piece)
 			&& (flags & torrent::overwrite_existing) == 0)
@@ -1168,8 +1162,6 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		if (is_seed()) return;
-
 		if (m_abort)
 		{
 			piece_block block_finished(p.piece, p.start / block_size());
@@ -1184,6 +1176,8 @@ namespace libtorrent
 			return;
 		}
 
+		if (!has_picker()) return;
+
 		// if we already have this block, just ignore it.
 		// this can happen if the same block is passed in through
 		// add_piece() multiple times
@@ -1197,6 +1191,10 @@ namespace libtorrent
 	
 	void torrent::on_disk_cache_complete(int ret, disk_io_job const& j)
 	{
+		TORRENT_ASSERT(have_piece(j.piece));
+
+		if (ret < 0) return;
+
 		// suggest this piece to all peers
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
@@ -1515,6 +1513,23 @@ namespace libtorrent
 		{
 			// in share mode, all pieces have their priorities initialized to 0
 			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
+		}
+
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			for (torrent::peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
+			{
+				peer_connection* pc = *i;
+				++i;
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
+				pc->init();
+			}
 		}
 
 		// in case file priorities were passed in via the add_torrent_params
@@ -1966,6 +1981,10 @@ namespace libtorrent
 		int num_outstanding = m_ses.m_settings.get_int(settings_pack::checking_mem_usage) * block_size()
 			/ m_torrent_file->piece_length();
 		if (num_outstanding <= 0) num_outstanding = 1;
+
+		// we maight already have some outstanding jobs, if we were paused and
+		// resumed quickly, before the outstanding jobs completed
+		if (m_checking_piece >= m_torrent_file->num_pieces()) return;
 
 		// subtract the number of pieces we already have outstanding
 		num_outstanding -= (m_checking_piece - m_num_checked_pieces);
@@ -3066,7 +3085,7 @@ namespace libtorrent
 		// if we're a seed we don't have a picker
 		// and we also don't have to do anything because
 		// we already have this piece
-		if (is_seed()) return;
+		if (!has_picker()) return;
 
 		if (passed_hash_check == 0)
 		{
@@ -3107,6 +3126,7 @@ namespace libtorrent
 	// 'index', and it has been fully written to disk and its hash
 	// has been verified. It's also called during initial file check
 	// when we find a piece whose hash is correct
+	// TODO: we really need to announce the piece before it's written to disk.
 	void torrent::we_have(int index)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -3189,6 +3209,15 @@ namespace libtorrent
 			p->update_interest();
 		}
 
+		if (settings().get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache)
+		{
+			// we just got a new piece. Chances are that it's actually the
+			// rarest piece (since we're likely to download pieces rarest first)
+			// if it's rarer than any other piece that we currently suggest, insert
+			// it in the suggest set and pop the last one out
+			add_suggest_piece(index);
+		}
+
 		m_need_save_resume_data = true;
 		state_updated();
 
@@ -3269,15 +3298,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
-
-		if (settings().get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache)
-		{
-			// we just got a new piece. Chances are that it's actually the
-			// rarest piece (since we're likely to download pieces rarest first)
-			// if it's rarer than any other piece that we currently suggest, insert
-			// it in the suggest set and pop the last one out
-			add_suggest_piece(index);
-		}
 
 		m_need_save_resume_data = true;
 
@@ -3622,6 +3642,8 @@ namespace libtorrent
 	{
 		int num_peers = m_picker->get_availability(index);
 
+		TORRENT_ASSERT(have_piece(index));
+
 		// in order to avoid unnecessary churn in the suggested pieces
 		// the new piece has to beat the existing piece by at least one
 		// peer in availability.
@@ -3688,6 +3710,8 @@ namespace libtorrent
 			== settings_pack::no_piece_suggestions)
 			return;
 
+		if (!valid_metadata()) return;
+
 		if (m_refreshing_suggest_pieces) return;
 		m_refreshing_suggest_pieces = true;
 
@@ -3722,9 +3746,27 @@ namespace libtorrent
 		for (std::vector<cached_piece_info>::iterator i = cs->pieces.begin()
 			, end(cs->pieces.end()); i != end; ++i)
 		{
+			// we might have flushed this to disk, but not yet completed the
+			// hash check. We'll add it as a suggest piece once we do though
+			if (!have_piece(i->piece)) continue;
 			suggest_piece_t p;
 			p.piece_index = i->piece;
-			p.num_peers = m_picker->get_availability(i->piece);
+			if (has_picker())
+			{
+				p.num_peers = m_picker->get_availability(i->piece);
+			}
+			else
+			{
+				// TODO: really, we should just keep the picker around
+				// in this case to maintain the availability counters
+				p.num_peers = 0;
+				for (std::set<peer_connection*>::const_iterator i = m_connections.begin()
+					, end(m_connections.end()); i != end; ++i)
+				{
+					peer_connection* peer = *i;
+					if (peer->has_piece(p.piece_index)) ++p.num_peers;
+				}
+			}
 			pieces.push_back(p);
 		}
 
@@ -3822,7 +3864,7 @@ namespace libtorrent
 		// disable super seeding for all peers
 		for (peer_iterator i = begin(); i != end(); ++i)
 		{
-			(*i)->superseed_piece(-1);
+			(*i)->superseed_piece(-1, -1);
 		}
 	}
 
@@ -3843,7 +3885,7 @@ namespace libtorrent
 			int availability = 0;
 			for (const_peer_iterator j = begin(); j != end(); ++j)
 			{
-				if ((*j)->superseed_piece() == i)
+				if ((*j)->super_seeded_piece(i))
 				{
 					// avoid superseeding the same piece to more than one
 					// peer if we can avoid it. Do this by artificially
@@ -4083,7 +4125,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed())
+		if (!has_picker())
 		{
 			avail.clear();
 			return;
@@ -5491,7 +5533,7 @@ namespace libtorrent
 
 		// if this torrent is a seed, we won't have a piece picker
 		// and there will be no half-finished pieces.
-		if (!is_seed())
+		if (has_picker())
 		{
 			std::vector<piece_picker::downloading_piece> q
 				= m_picker->get_download_queue();
@@ -5749,7 +5791,7 @@ namespace libtorrent
 		std::vector<block_info>& blk = m_ses.m_block_info_storage;
 		blk.clear();
 
-		if (!valid_metadata() || is_seed()) return;
+		if (!valid_metadata() || !has_picker()) return;
 		piece_picker const& p = picker();
 		std::vector<piece_picker::downloading_piece> q
 			= p.get_download_queue();
@@ -7953,14 +7995,18 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!ready_for_connections()) return;
-		// rotate the cached pieces
 
+		if (m_abort) return;
+
+		// rotate the cached pieces
 		filesystem().async_get_cache_info(new cache_status
 			, boost::bind(&torrent::refresh_explicit_cache_impl, shared_from_this(), _1, _2, cache_size));
 	}
 
 	void torrent::refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size)
 	{
+		if (m_abort) return;
+
 		cache_status* status = (cache_status*)j.buffer;
 
 		// add blocks_per_piece / 2 in order to round to closest whole piece

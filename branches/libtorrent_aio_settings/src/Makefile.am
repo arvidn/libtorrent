@@ -88,6 +88,7 @@ libtorrent_rasterbar_la_SOURCES = \
   socks5_stream.cpp               \
   stat.cpp                        \
   storage.cpp                     \
+  tailqueue.cpp                   \
   thread.cpp                      \
   torrent.cpp                     \
   torrent_handle.cpp              \

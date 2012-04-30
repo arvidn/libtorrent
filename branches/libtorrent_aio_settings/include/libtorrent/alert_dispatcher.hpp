@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <boost/cstdint.hpp>
-#include "libtorrent/bandwidth_queue_entry.hpp"
-#include <cstring>
-#include <algorithm>
+#ifndef TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
+#define TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
 
 namespace libtorrent
 {
-	bw_request::bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio)
-		: peer(pe)
-		, priority(prio)
-		, assigned(0)
-		, request_size(blk)
-		, ttl(20)
-	{
-		TORRENT_ASSERT(priority > 0);
-		std::memset(channel, 0, sizeof(channel));
-	}
+	struct alert;
 
-	int bw_request::assign_bandwidth()
+	struct alert_dispatcher
 	{
-		TORRENT_ASSERT(assigned < request_size);
-		int quota = request_size - assigned;
-		TORRENT_ASSERT(quota >= 0);
-		--ttl;
-		if (quota == 0) return quota;
-
-		for (int j = 0; j < 5 && channel[j]; ++j)
-		{
-			if (channel[j]->throttle() == 0) continue;
-			if (channel[j]->tmp == 0) continue;
-			quota = (std::min)(int(boost::int64_t(channel[j]->distribute_quota)
-				* priority / channel[j]->tmp), quota);
-		}
-		assigned += quota;
-		for (int j = 0; j < 5 && channel[j]; ++j)
-			channel[j]->use_quota(quota);
-		TORRENT_ASSERT(assigned <= request_size);
-		return quota;
-	}
+		// return true if the alert was swallowed (i.e.
+		// ownership was taken over). In this case, the
+		// alert will not be passed on to any one else
+		virtual bool post_alert(alert* a) = 0;
+	};
 }
+
+#endif
 
