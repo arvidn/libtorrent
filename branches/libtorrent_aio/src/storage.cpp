@@ -1528,6 +1528,9 @@ namespace libtorrent
 		--m_outstanding_jobs;
 		j->flags &= ~disk_io_job::async_operation;
 
+		// there are still outstanding jobs, even if we have a
+		// fence, it's not time to lower it yet
+		// also, if we don't have a fence, we're done
 		if (m_outstanding_jobs > 0 || !m_has_fence) return 0;
 
 		int ret = m_blocked_jobs.size();
