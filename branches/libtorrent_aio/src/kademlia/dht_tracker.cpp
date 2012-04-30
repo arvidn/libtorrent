@@ -203,8 +203,7 @@ namespace libtorrent { namespace dht
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 		, dht_settings const& settings, entry const* state)
 		: m_dht(&ses, this, settings, extract_node_id(state)
-			, ses.external_address()
-			, boost::bind(&aux::session_impl::set_external_address, &ses, _1, _2, _3))
+			, ses.external_address(), &ses)
 		, m_sock(sock)
 		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(sock.get_io_service())
