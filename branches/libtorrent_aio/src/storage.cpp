@@ -1189,8 +1189,6 @@ namespace libtorrent
 		, std::vector<boost::uint8_t> const& file_prio)
 		: m_files(*files)
 		, m_storage(sc(*files, orig_files, save_path, io.files(), file_prio))
-		, m_has_fence(false)
-		, m_outstanding_jobs(0)
 		, m_abort_job(0)
 		, m_storage_mode(sm)
 		, m_storage_constructor(sc)
@@ -1508,15 +1506,21 @@ namespace libtorrent
 		return check_init_storage(ec);
 	}
 
-	void piece_manager::new_job(disk_io_job* j)
+	// ====== disk_job_fence implementation ========
+
+	disk_job_fence::disk_job_fence()
+		: m_has_fence(false)
+		, m_outstanding_jobs(0)
+	{}
+
+	void disk_job_fence::new_job(disk_io_job* j)
 	{
 		++m_outstanding_jobs;
 		TORRENT_ASSERT((j->flags & disk_io_job::async_operation) == 0);
 		j->flags |= disk_io_job::async_operation;
-//		fprintf(stderr, "[%p] new job: %d\n", &m_io_thread, m_outstanding_jobs);
 	}
 
-	int piece_manager::job_complete(disk_io_job* j)
+	int disk_job_fence::job_complete(disk_io_job* j, tailqueue& jobs)
 	{
 		TORRENT_ASSERT(j->storage);
 		TORRENT_ASSERT(j->flags & disk_io_job::async_operation);
@@ -1524,29 +1528,22 @@ namespace libtorrent
 		--m_outstanding_jobs;
 		j->flags &= ~disk_io_job::async_operation;
 
-//		extern const char* job_action_name[];
-//		fprintf(stderr, "[%p] completed job: %s (%d)\n", &m_io_thread
-//			, job_action_name[j->action], m_outstanding_jobs);
-
 		if (m_outstanding_jobs > 0 || !m_has_fence) return 0;
-
-		// we have a fence and the number of outstanding jobs just reached 0!
-//		fprintf(stderr, "[%p] lowering fence. Issuing %d jobs\n", &m_io_thread, m_blocked_jobs.size());
 
 		int ret = m_blocked_jobs.size();
 		m_has_fence = false;
-		if (m_blocked_jobs.size()) m_io_thread.prepend_jobs(m_blocked_jobs);
+		if (m_blocked_jobs.size()) jobs.prepend(m_blocked_jobs);
 		return ret;
 	}
 
-	bool piece_manager::is_blocked(disk_io_job* j)
+	bool disk_job_fence::is_blocked(disk_io_job* j)
 	{
 		if (!has_fence()) return false;
 		m_blocked_jobs.push_back(j);
 		return true;
 	}
 
-	void piece_manager::raise_fence(disk_io_job* j)
+	void disk_job_fence::raise_fence(disk_io_job* j)
 	{
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		m_has_fence = true;

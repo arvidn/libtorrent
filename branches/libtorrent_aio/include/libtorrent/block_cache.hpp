@@ -56,8 +56,9 @@ namespace libtorrent
 	class piece_manager;
 	struct disk_buffer_pool;
 	struct cache_status;
-	struct hash_thread;
+	struct hash_thread_interface;
 	struct block_cache_reference;
+	struct alert_dispatcher;
 
 	struct partial_hash
 	{
@@ -237,8 +238,8 @@ namespace libtorrent
 
 	struct block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, hash_thread& h, io_service& ios
-			, boost::function<void(alert*)> const& post_alert);
+		block_cache(int block_size, hash_thread_interface& h, io_service& ios
+			, alert_dispatcher* alert_disp);
 
 	private:
 
@@ -307,6 +308,7 @@ namespace libtorrent
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
+		// cache_state is one of cache_state_t enum
 		cached_piece_entry* allocate_piece(disk_io_job const* j, int cache_state);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
@@ -457,7 +459,8 @@ namespace libtorrent
 		// they may not be evicted
 		int m_pinned_blocks;
 
-		hash_thread& m_hash_thread;
+		// this is the object hash jobs are posted to
+		hash_thread_interface& m_hash_thread;
 	};
 
 }

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
 
 #define DEBUG_CACHE 0
 
@@ -96,10 +97,10 @@ cached_piece_entry::~cached_piece_entry()
 	delete hash;
 }
 
-block_cache::block_cache(int block_size, hash_thread& h
+block_cache::block_cache(int block_size, hash_thread_interface& h
 	, io_service& ios
-	, boost::function<void(alert*)> const& post_alert)
-	: disk_buffer_pool(block_size, ios, post_alert)
+	, alert_dispatcher* alert_disp)
+	: disk_buffer_pool(block_size, ios, alert_disp)
 	, m_last_cache_op(cache_miss)
 	, m_ghost_size(8)
 	, m_read_cache_size(0)

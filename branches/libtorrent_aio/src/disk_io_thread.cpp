@@ -325,7 +325,7 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
-		, boost::function<void(alert*)> const& post_alert
+		, alert_dispatcher* alert_disp
 		, void* userdata
 		, int block_size)
 		: m_abort(false)
@@ -336,7 +336,7 @@ namespace libtorrent
 		, m_last_file_check(time_now_hires())
 		, m_file_pool(40)
 		, m_hash_thread(this)
-		, m_disk_cache(block_size, m_hash_thread, ios, post_alert)
+		, m_disk_cache(block_size, m_hash_thread, ios, alert_disp)
 		, m_last_stats_flip(time_now())
 		, m_in_progress(0)
 		, m_to_issue(0)
@@ -355,7 +355,7 @@ namespace libtorrent
 		, m_num_blocked_jobs(0)
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
-		, m_post_alert(post_alert)
+		, m_post_alert(alert_disp)
 #if TORRENT_USE_SYNCIO
 		, m_worker_thread(this)
 #endif
@@ -2161,14 +2161,6 @@ namespace libtorrent
 		if (high_priority) submit_jobs_impl();
 	}
 
-	void disk_io_thread::prepend_jobs(tailqueue& jobs)
-	{
-		mutex::scoped_lock l(m_job_mutex);
-		jobs.append(m_queued_jobs);
-		m_queued_jobs.swap(jobs);
-		submit_jobs_impl();
-	}
-
 	void disk_io_thread::submit_jobs()
 	{
 		mutex::scoped_lock l (m_job_mutex);
@@ -2695,7 +2687,8 @@ namespace libtorrent
 				{
 					if ((i->flags & disk_io_job::async_operation) && i->storage)
 					{
-						int ret = i->storage->job_complete(i);
+						int ret = i->storage->job_complete(i, m_queued_jobs);
+						if (ret > 0) submit_jobs_impl();
 						if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
 						TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 						m_num_blocked_jobs -= ret;
@@ -2761,8 +2754,8 @@ namespace libtorrent
 						// there were some jobs that couldn't be posted
 						// the the kernel. This limits the performance of
 						// the disk throughput, issue a performance warning
-						m_ios.post(boost::bind(m_post_alert, new performance_alert(
-							torrent_handle(), performance_alert::aio_limit_reached)));
+						m_ios.post(boost::bind(alert_callback, m_post_alert
+							, new performance_alert(torrent_handle(), performance_alert::aio_limit_reached)));
 						m_last_disk_aio_performance_warning = now;
 					}
 				}
@@ -2798,7 +2791,8 @@ namespace libtorrent
 			{
 				if ((i->flags & disk_io_job::async_operation) && i->storage)
 				{
-					int ret = i->storage->job_complete(i);
+					int ret = i->storage->job_complete(i, m_queued_jobs);
+					if (ret > 0) submit_jobs_impl();
 					if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
 					TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 					m_num_blocked_jobs -= ret;

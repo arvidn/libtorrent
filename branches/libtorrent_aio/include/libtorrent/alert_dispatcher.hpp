@@ -30,45 +30,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/block_cache.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/hash_thread.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/disk_io_thread.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
+#ifndef TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
+#define TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
 
-using namespace libtorrent;
-
-struct print_alert : alert_dispatcher
+namespace libtorrent
 {
-	virtual bool post_alert(alert* a)
+	struct alert;
+
+	struct alert_dispatcher
 	{
-		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
-		delete a;
-		return true;
-	}
-};
-
-struct dummy_hash_thread : hash_thread_interface
-{
-	virtual bool async_hash(cached_piece_entry* p, int start, int end)
-	{
-		return false;
-	}
-};
-
-int test_main()
-{
-	io_service ios;
-	dummy_hash_thread h;
-	print_alert ad;
-	block_cache bc(0x4000, h, ios, &ad);
-
-	disk_io_job j;
-	j.piece = 0;
-//	j.storage = ...
-//	cached_piece_entry* p = bc.allocate_piece(&j, 0);
-	return 0;
+		// return true if the alert was swallowed (i.e.
+		// ownership was taken over). In this case, the
+		// alert will not be passed on to any one else
+		virtual bool post_alert(alert* a) = 0;
+	};
 }
+
+#endif
 

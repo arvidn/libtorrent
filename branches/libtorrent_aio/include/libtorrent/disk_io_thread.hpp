@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class alert;
+	struct alert_dispatcher;
 
 	struct cached_piece_info
 	{
@@ -336,7 +337,7 @@ namespace libtorrent
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 
 		disk_io_thread(io_service& ios
-			, boost::function<void(alert*)> const& post_alert
+			, alert_dispatcher* alert_disp
 			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
@@ -358,7 +359,6 @@ namespace libtorrent
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool high_priority = false);
-		void prepend_jobs(tailqueue& jobs);
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -589,7 +589,7 @@ namespace libtorrent
 
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)
-		boost::function<void(alert*)> m_post_alert;
+		alert_dispatcher* m_post_alert;
 
 		// pool used to allocate the aiocb_t elements
 		// used by the async operations on files

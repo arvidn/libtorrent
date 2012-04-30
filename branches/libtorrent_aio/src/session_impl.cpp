@@ -620,8 +620,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
-		, m_disk_thread(m_io_service
-			, boost::bind(&session_impl::disk_performance_warning, this, _1), this)
+		, m_disk_thread(m_io_service, this, this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -3024,11 +3023,12 @@ namespace aux {
 		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 	}
 
-	void session_impl::disk_performance_warning(alert* a)
+	// implements alert_dispatcher
+	bool session_impl::post_alert(alert* a)
 	{
-		if (m_alerts.should_post(a))
-			m_alerts.post_alert(*a);
-		delete a;
+		if (!m_alerts.should_post(a)) return false;
+		m_alerts.post_alert_ptr(a);
+		return true;
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
