@@ -260,8 +260,6 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 //	TEST_CHECK(items_num.find(3) != items_num.end());
 }
 
-void nop(address, int, address) {}
-
 struct print_alert : alert_dispatcher
 {
 	virtual bool post_alert(alert* a)
@@ -280,7 +278,7 @@ int test_main()
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
 	print_alert ad;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3));
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;

@@ -187,11 +187,9 @@ typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
 typedef std::map<rsa_key, dht_mutable_item> dht_mutable_table_t;
 
 public:
-	typedef boost::function3<void, address, int, address> external_ip_fun;
-
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, dht_settings const& settings, node_id nid, address const& external_address
-		, external_ip_fun ext_ip);
+		, dht_observer* observer);
 
 	virtual ~node_impl() {}
 
