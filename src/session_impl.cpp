@@ -2888,6 +2888,14 @@ namespace aux {
 		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 	}
 
+	// implements alert_dispatcher
+	bool session_impl::post_alert(alert* a)
+	{
+		if (!m_alerts.should_post(a)) return false;
+		m_alerts.post_alert_ptr(a);
+		return true;
+	}
+
 	void session_impl::set_peer_id(peer_id const& id)
 	{
 		m_peer_id = id;

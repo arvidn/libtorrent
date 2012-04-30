@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
+#include "libtorrent/alert_dispatcher.hpp"
 #include <iostream>
 
 #include "test.hpp"
@@ -47,11 +48,14 @@ using namespace libtorrent::dht;
 
 std::list<std::pair<udp::endpoint, entry> > g_responses;
 
-bool our_send(void* user, entry& msg, udp::endpoint const& ep, int flags)
+struct mock_socket : udp_socket_interface
 {
-	g_responses.push_back(std::make_pair(ep, msg));
-	return true;
-}
+	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
+	{
+		g_responses.push_back(std::make_pair(ep, msg));
+		return true;
+	}
+};
 
 address rand_v4()
 {
@@ -258,15 +262,25 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 
 void nop(address, int, address) {}
 
+struct print_alert : alert_dispatcher
+{
+	virtual bool post_alert(alert* a)
+	{
+		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
+		delete a;
+		return true;
+	}
+};
+
 int test_main()
 {
-	io_service ios;
-	alert_manager al(ios, 100);
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	address ext = address::from_string("236.0.0.1");
-	dht::node_impl node(al, &our_send, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3), 0);
+	mock_socket s;
+	print_alert ad;
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3));
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;
