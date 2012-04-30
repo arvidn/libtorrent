@@ -869,6 +869,7 @@ namespace libtorrent
 
 		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(!m_initialized);
 		m_initialized = true;
 #endif
 		// now that we have a piece_picker,
