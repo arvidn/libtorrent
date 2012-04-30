@@ -160,12 +160,10 @@ enum { observer_size = max3<
 };
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, routing_table& table, send_fun const& sf
-	, void* userdata
+	, routing_table& table, udp_socket_interface* sock
 	, external_ip_fun ext_ip)
 	: m_pool_allocator(observer_size, 10)
-	, m_send(sf)
-	, m_userdata(userdata)
+	, m_sock(sock)
 	, m_our_id(our_id)
 	, m_table(table)
 	, m_timer(time_now())
@@ -310,7 +308,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 #endif
 		entry e;
 		incoming_error(e, "invalid transaction id");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -325,7 +323,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'r' key");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -334,7 +332,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'id' key");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -468,7 +466,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 		<< e["q"].string() << " -> " << target_addr;
 #endif
 
-	if (m_send(m_userdata, e, target_addr, 1))
+	if (m_sock->send_packet(e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
