@@ -821,55 +821,8 @@ namespace libtorrent
 			}
 			i = m_suggested_pieces.erase(i);
 		}
-		
-		if (m_num_pieces == int(m_have_piece.size()))
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** on_metadata(): THIS IS A SEED [ p: %p ]", m_peer_info);
-#endif
-			// if this is a web seed. we don't have a peer_info struct
-			t->get_policy().set_seed(m_peer_info, true);
-			m_upload_only = true;
-
-			t->peer_has_all();
-			disconnect_if_redundant();
-			if (m_disconnecting) return;
-
-			on_metadata();
-			if (m_disconnecting) return;
-
-			if (!t->is_upload_only())
-				t->get_policy().peer_is_interesting(*this);
-
-			return;
-		}
-		TORRENT_ASSERT(!m_have_all);
-
 		on_metadata();
 		if (m_disconnecting) return;
-
-		disconnect_if_redundant();
-		if (m_disconnecting) return;
-
-		// let the torrent know which pieces the
-		// peer has
-		// if we're a seed, we don't keep track of piece availability
-		bool interesting = false;
-		if (!t->is_seed())
-		{
-			t->peer_has(m_have_piece);
-
-			for (int i = 0; i < (int)m_have_piece.size(); ++i)
-			{
-				if (!m_have_piece[i]) continue;
-				if (t->have_piece(i) || t->picker().piece_priority(i) == 0) continue;
-				interesting = true;
-				break;
-			}
-		}
-
-		if (interesting) t->get_policy().peer_is_interesting(*this);
-		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
 	void peer_connection::init()
@@ -885,6 +838,7 @@ namespace libtorrent
 
 		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(!m_initialized);
 		m_initialized = true;
 #endif
 		// now that we have a piece_picker,

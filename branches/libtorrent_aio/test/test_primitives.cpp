@@ -942,6 +942,15 @@ int test_main()
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
 #endif
 
+#if TORRENT_USE_UNC_PATHS
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
+#endif
+
 	TEST_EQUAL(extension("blah"), "");
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");

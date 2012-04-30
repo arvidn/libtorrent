@@ -181,11 +181,18 @@ namespace libtorrent
 	{
 		// optimized path
 		io_service ios;
+
+#if TORRENT_USE_UNC_PATHS
+		std::string path = canonicalize_path(p);
+#else
+		std::string const& path = p;
+#endif
+
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy(new char);
 		disk_io_thread disk_thread(ios, 0, 0);
 		boost::intrusive_ptr<piece_manager> storage = new piece_manager(
-			dummy, (file_storage*)&t.files(), 0, p, disk_thread, default_storage_constructor
+			dummy, (file_storage*)&t.files(), 0, path, disk_thread, default_storage_constructor
 			, storage_mode_sparse, std::vector<boost::uint8_t>());
 
 		session_settings sett;
