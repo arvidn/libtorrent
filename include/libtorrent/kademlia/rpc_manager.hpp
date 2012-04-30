@@ -66,6 +66,7 @@ struct null_observer : public observer
 };
 
 class routing_table;
+struct dht_observer;
 
 class TORRENT_EXTRA_EXPORT rpc_manager
 {
@@ -74,7 +75,7 @@ public:
 
 	rpc_manager(node_id const& our_id
 		, routing_table& table, udp_socket_interface* sock
-		, external_ip_fun ext_ip);
+		, dht_observer* observer);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -117,7 +118,7 @@ private:
 	node_id m_random_number;
 	int m_allocated_observers;
 	bool m_destructing;
-	external_ip_fun m_ext_ip;
+	dht_observer* m_observer;
 };
 
 } } // namespace libtorrent::dht

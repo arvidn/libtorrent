@@ -133,6 +133,7 @@ nobase_include_HEADERS = \
   extensions/ut_pex.hpp             \
   \
   kademlia/dht_tracker.hpp          \
+  kademlia/dht_observer.hpp         \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \

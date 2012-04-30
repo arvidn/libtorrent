@@ -91,11 +91,11 @@ void nop() {}
 node_impl::node_impl(alert_dispatcher* alert_disp
 	, udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid, address const& external_address
-	, external_ip_fun ext_ip)
+	, dht_observer* observer)
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, sock, ext_ip)
+	, m_rpc(m_id, m_table, sock, observer)
 	, m_last_tracker_tick(time_now())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
