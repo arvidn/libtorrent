@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/alloca.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -144,6 +145,27 @@ void send_unchoke(stream_socket& s)
 	char msg[] = "\0\0\0\x01\x01";
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
+		, libtorrent::asio::transfer_all(), ec);
+}
+
+void send_bitfield(stream_socket& s, char const* bits)
+{
+	using namespace libtorrent::detail;
+
+	int num_pieces = strlen(bits);
+	int packet_size = (num_pieces+7)/8 + 5;
+	char* msg = (char*)TORRENT_ALLOCA(char, packet_size);
+	memset(msg, 0, packet_size);
+	char* ptr = msg;
+	write_int32(packet_size-4, ptr);
+	write_int8(5, ptr);
+	std::cout << time_now_string() << " ==> bitfield [" << bits << "]" << std::endl;;
+	for (int i = 0; i < num_pieces; ++i)
+	{
+		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
+	}
+	error_code ec;
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, packet_size)
 		, libtorrent::asio::transfer_all(), ec);
 }
 
@@ -327,10 +349,54 @@ void test_respect_suggest()
 	TEST_CHECK(fail_counter > 0);
 }
 
+void test_multiple_bitfields()
+{
+	std::cerr << " === test multiple bitfields ===" << std::endl;
+
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
+	sha1_hash ih = t->info_hash();
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
+	error_code ec;
+	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.ti = t;
+	p.save_path = "./tmp1_fast";
+
+	remove("./tmp1_fast/temporary", ec);
+	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
+	ec.clear();
+	ses1.add_torrent(p, ec);
+
+	test_sleep(300);
+
+	io_service ios;
+	stream_socket s(ios);
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	std::string bitfield;
+	bitfield.resize(t->num_pieces(), '0');
+	send_bitfield(s, bitfield.c_str());
+	bitfield[0] = '1';
+	send_bitfield(s, bitfield.c_str());
+	bitfield[1] = '1';
+	send_bitfield(s, bitfield.c_str());
+	bitfield[2] = '1';
+	send_bitfield(s, bitfield.c_str());
+	
+	s.close();
+
+	test_sleep(1000);
+}
+
 int test_main()
 {
 	test_reject_fast();
 	test_respect_suggest();
+	test_multiple_bitfields();
 	return 0;
 }
 
