@@ -1126,7 +1126,7 @@ namespace libtorrent
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
-		picker().inc_refcount(piece);
+		picker().inc_refcount(piece, 0);
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			if (picker().is_finished(piece_block(piece, i))
@@ -1138,7 +1138,7 @@ namespace libtorrent
 			// out of memory
 			if (buffer == 0)
 			{
-				picker().dec_refcount(piece);
+				picker().dec_refcount(piece, 0);
 				return;
 			}
 			disk_buffer_holder holder(m_ses, buffer);
@@ -1152,7 +1152,7 @@ namespace libtorrent
 		picker().mark_as_checking(piece);
 		async_verify_piece(piece, boost::bind(&torrent::piece_finished
 			, shared_from_this(), piece, _1));
-		picker().dec_refcount(piece);
+		picker().dec_refcount(piece, 0);
 	}
 
 	void torrent::on_disk_write_complete(int ret, disk_io_job const& j
@@ -3577,11 +3577,11 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::peer_has(int index)
+	void torrent::peer_has(int index, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount(index);
+			m_picker->inc_refcount(index, peer);
 			update_suggest_piece(index, 1);
 		}
 #ifdef TORRENT_DEBUG
@@ -3593,11 +3593,11 @@ namespace libtorrent
 	}
 		
 	// when we get a bitfield message, this is called for that piece
-	void torrent::peer_has(bitfield const& bits)
+	void torrent::peer_has(bitfield const& bits, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount(bits);
+			m_picker->inc_refcount(bits, peer);
 			refresh_suggest_pieces();
 		}
 #ifdef TORRENT_DEBUG
@@ -3608,11 +3608,11 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent::peer_has_all()
+	void torrent::peer_has_all(peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount_all();
+			m_picker->inc_refcount_all(peer);
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -3622,11 +3622,11 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent::peer_lost(int index)
+	void torrent::peer_lost(int index, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->dec_refcount(index);
+			m_picker->dec_refcount(index, peer);
 			update_suggest_piece(index, -1);
 		}
 #ifdef TORRENT_DEBUG
@@ -4657,7 +4657,7 @@ namespace libtorrent
 			{
 				if (m_picker.get())
 				{
-					m_picker->dec_refcount_all();
+					m_picker->dec_refcount_all(p);
 				}
 			}
 			else
@@ -4666,7 +4666,7 @@ namespace libtorrent
 				{
 					bitfield const& pieces = p->get_bitfield();
 					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
-					m_picker->dec_refcount(pieces);
+					m_picker->dec_refcount(pieces, p);
 				}
 			}
 		}

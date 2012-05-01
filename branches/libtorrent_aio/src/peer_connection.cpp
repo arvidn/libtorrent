@@ -855,16 +855,16 @@ namespace libtorrent
 			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 
-			t->peer_has_all();
+			t->peer_has_all(this);
 			if (t->is_upload_only()) send_not_interested();
 			else t->get_policy().peer_is_interesting(*this);
 			return;
 		}
 
 		// if we're a seed, we don't keep track of piece availability
-		if (!t->is_seed())
+		if (t->has_picker())
 		{
-			t->peer_has(m_have_piece);
+			t->peer_has(m_have_piece, this);
 			bool interesting = false;
 			for (int i = 0; i < int(m_have_piece.size()); ++i)
 			{
@@ -1715,7 +1715,7 @@ namespace libtorrent
 		// we won't have a piece picker)
 		if (!t->valid_metadata()) return;
 
-		t->peer_has(index);
+		t->peer_has(index, this);
 
 		// this will disregard all have messages we get within
 		// the first two seconds. Since some clients implements
@@ -1823,7 +1823,7 @@ namespace libtorrent
 		// we won't have a piece picker)
 		if (!t->valid_metadata()) return;
 
-		t->peer_lost(index);
+		t->peer_lost(index, this);
 
 		if (was_seed)
 			t->get_policy().set_seed(m_peer_info, false);
@@ -1899,7 +1899,7 @@ namespace libtorrent
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
-			t->peer_has_all();
+			t->peer_has_all(this);
 			if (!t->is_upload_only())
 				t->get_policy().peer_is_interesting(*this);
 
@@ -1914,7 +1914,7 @@ namespace libtorrent
 		bool interesting = false;
 		if (!t->is_upload_only())
 		{
-			t->peer_has(bits);
+			t->peer_has(bits, this);
 
 			for (int i = 0; i < (int)m_have_piece.size(); ++i)
 			{
@@ -1927,7 +1927,7 @@ namespace libtorrent
 				else if (!have && m_have_piece[i])
 				{
 					// this should probably not be allowed
-					t->peer_lost(i);
+					t->peer_lost(i, this);
 				}
 			}
 		}
@@ -2854,7 +2854,7 @@ namespace libtorrent
 		m_have_piece.set_all();
 		m_num_pieces = m_have_piece.size();
 		
-		t->peer_has_all();
+		t->peer_has_all(this);
 
 		// if we're finished, we're not interested
 		if (t->is_upload_only()) send_not_interested();
