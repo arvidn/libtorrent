@@ -30,21 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
-#define TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
+#ifndef DHT_OBSERVER_HPP
+#define DHT_OBSERVER_HPP
 
-namespace libtorrent
+#include "libtorrent/address.hpp"
+
+namespace libtorrent { namespace dht
 {
-	class alert;
-
-	struct alert_dispatcher
+	struct dht_observer
 	{
-		// return true if the alert was swallowed (i.e.
-		// ownership was taken over). In this case, the
-		// alert will not be passed on to any one else
-		virtual bool post_alert(alert* a) = 0;
+		virtual void set_external_address(address const& addr
+			, int source_type, address const& source) = 0;
 	};
-}
+}}
 
 #endif
 
