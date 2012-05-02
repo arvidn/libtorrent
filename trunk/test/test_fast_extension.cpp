@@ -148,6 +148,24 @@ void send_unchoke(stream_socket& s)
 		, libtorrent::asio::transfer_all(), ec);
 }
 
+void send_have_all(stream_socket& s)
+{
+	std::cout << time_now_string() << " ==> have_all" << std::endl;
+	char msg[] = "\0\0\0\x01\x0e"; // have_all
+	error_code ec;
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
+		, libtorrent::asio::transfer_all(), ec);
+}
+
+void send_have_none(stream_socket& s)
+{
+	std::cout << time_now_string() << " ==> have_none" << std::endl;
+	char msg[] = "\0\0\0\x01\x0f"; // have_none
+	error_code ec;
+	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
+		, libtorrent::asio::transfer_all(), ec);
+}
+
 void send_bitfield(stream_socket& s, char const* bits)
 {
 	using namespace libtorrent::detail;
@@ -173,10 +191,8 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 {
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
 		"                    " // space for info-hash
-		"aaaaaaaaaaaaaaaaaaaa" // peer-id
-		"\0\0\0\x01\x0e"; // have_all
+		"aaaaaaaaaaaaaaaaaaaa"; // peer-id
 	std::cout << time_now_string() << " ==> handshake" << std::endl;
-	std::cout << time_now_string() << " ==> have_all" << std::endl;
 	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
 	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1)
@@ -212,15 +228,11 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
 }
 
-// makes sure that pieces that are allowed and then
-// rejected aren't requested again
-void test_reject_fast()
+boost::intrusive_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih, boost::shared_ptr<session>& ses)
 {
-	std::cerr << " === test reject ===" << std::endl;
-
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
-	sha1_hash ih = t->info_hash();
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
+	ih = t->info_hash();
+	ses.reset(new session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0));
 	error_code ec;
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
@@ -231,16 +243,29 @@ void test_reject_fast()
 	remove("./tmp1_fast/temporary", ec);
 	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
 	ec.clear();
-	ses1.add_torrent(p, ec);
+	ses->add_torrent(p, ec);
 
 	test_sleep(300);
 
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+	return t;
+}
+
+// makes sure that pieces that are allowed and then
+// rejected aren't requested again
+void test_reject_fast()
+{
+	std::cerr << " === test reject ===" << std::endl;
+
+	sha1_hash ih;
+	boost::shared_ptr<session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
 	
 	std::vector<int> allowed_fast;
 	allowed_fast.push_back(0);
@@ -276,35 +301,23 @@ void test_reject_fast()
 		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
 			, libtorrent::asio::transfer_all(), ec);
 	}
+	s.close();
+	test_sleep(500);
 }
 
 void test_respect_suggest()
 {
 	std::cerr << " === test suggest ===" << std::endl;
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
-	sha1_hash ih = t->info_hash();
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
 
-	error_code ec;
-	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.ti = t;
-	p.save_path = "./tmp1_fast";
-
-	remove("./tmp1_fast/temporary", ec);
-	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
-	ec.clear();
-	ses1.add_torrent(p, ec);
-
-	test_sleep(300);
-
+	sha1_hash ih;
+	boost::shared_ptr<session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
 	
 	std::vector<int> suggested;
 	suggested.push_back(0);
@@ -347,38 +360,26 @@ void test_respect_suggest()
 			, libtorrent::asio::transfer_all(), ec);
 	}
 	TEST_CHECK(fail_counter > 0);
+
+	s.close();
+	test_sleep(500);
 }
 
 void test_multiple_bitfields()
 {
 	std::cerr << " === test multiple bitfields ===" << std::endl;
 
-	boost::intrusive_ptr<torrent_info> t = ::create_torrent();
-	sha1_hash ih = t->info_hash();
-	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0);
-	error_code ec;
-	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.ti = t;
-	p.save_path = "./tmp1_fast";
-
-	remove("./tmp1_fast/temporary", ec);
-	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
-	ec.clear();
-	ses1.add_torrent(p, ec);
-
-	test_sleep(300);
-
+	sha1_hash ih;
+	boost::shared_ptr<session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	boost::intrusive_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
 
 	std::string bitfield;
-	bitfield.resize(t->num_pieces(), '0');
+	bitfield.resize(ti->num_pieces(), '0');
 	send_bitfield(s, bitfield.c_str());
 	bitfield[0] = '1';
 	send_bitfield(s, bitfield.c_str());
@@ -388,8 +389,29 @@ void test_multiple_bitfields()
 	send_bitfield(s, bitfield.c_str());
 	
 	s.close();
+	test_sleep(500);
+}
 
-	test_sleep(1000);
+void test_multiple_have_all()
+{
+	std::cerr << " === test multiple have_all ===" << std::endl;
+
+	sha1_hash ih;
+	boost::shared_ptr<session> ses;
+	io_service ios;
+	stream_socket s(ios);
+	boost::intrusive_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	send_have_all(s);
+	send_have_all(s);
+	send_have_none(s);
+	send_have_all(s);
+	
+	s.close();
+	test_sleep(500);
 }
 
 int test_main()
@@ -397,6 +419,7 @@ int test_main()
 	test_reject_fast();
 	test_respect_suggest();
 	test_multiple_bitfields();
+	test_multiple_have_all();
 	return 0;
 }
 

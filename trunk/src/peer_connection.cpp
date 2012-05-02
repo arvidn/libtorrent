@@ -1869,7 +1869,7 @@ namespace libtorrent
 			// if we've already received a bitfield message
 			// we first need to count down all the pieces
 			// we believe the peer has first
-			t->peer_lost(bits);
+			t->peer_lost(m_have_piece);
 		}
 
 		m_bitfield_received = true;
@@ -2718,6 +2718,9 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 
+		if (m_bitfield_received)
+			t->peer_lost(m_have_piece);
+
 		m_have_all = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2781,8 +2784,15 @@ namespace libtorrent
 		}
 #endif
 		if (is_disconnecting()) return;
+
+		if (m_bitfield_received)
+			t->peer_lost(m_have_piece);
+
 		t->get_policy().set_seed(m_peer_info, false);
 		m_bitfield_received = true;
+
+		m_have_piece.clear_all();
+		m_num_pieces = 0;
 
 		// we're never interested in a peer that doesn't have anything
 		send_not_interested();
