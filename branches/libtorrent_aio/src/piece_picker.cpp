@@ -968,12 +968,9 @@ namespace libtorrent
 			m_dirty = true;
 		}
 #else
-		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i)
+		for (int i = 0; i < int(m_piece_map.size()); ++i)
 		{
-			TORRENT_ASSERT(i->have_peers.count(peer) == 0);
-			i->have_peers.insert(peer);
-			++i->peer_count;
+			inc_refcount(i, peer);
 		}
 #endif
 
