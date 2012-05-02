@@ -563,6 +563,20 @@ namespace libtorrent
 #endif
 		}
 
+		void peer_lost(bitfield const& bits)
+		{
+			if (has_picker())
+			{
+				m_picker->dec_refcount(bits);
+			}
+#ifdef TORRENT_DEBUG
+			else
+			{
+				TORRENT_ASSERT(is_seed());
+			}
+#endif
+		}
+
 		void peer_lost(int index)
 		{
 			if (has_picker())
