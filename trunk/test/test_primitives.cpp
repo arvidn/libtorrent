@@ -1797,6 +1797,7 @@ int test_main()
 	test1.set_bit(1);
 	test1.set_bit(9);
 	TEST_CHECK(test1.count() == 3);
+	TEST_CHECK(test1.all_set() == false);
 	test1.clear_bit(2);
 	TEST_CHECK(test1.count() == 2);
 	int distance = std::distance(test1.begin(), test1.end());
@@ -1818,6 +1819,9 @@ int test_main()
 	test1.set_bit(1);
 	test1.resize(1);
 	TEST_CHECK(test1.count() == 1);
+
+	test1.resize(100, true);
+	TEST_CHECK(test1.all_set() == true);
 	return 0;
 }
 

@@ -539,7 +539,10 @@ namespace libtorrent
 		{
 			if (has_picker())
 			{
-				m_picker->inc_refcount(bits);
+				if (bits.all_set())
+					m_picker->inc_refcount_all();
+				else
+					m_picker->inc_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -567,7 +570,10 @@ namespace libtorrent
 		{
 			if (has_picker())
 			{
-				m_picker->dec_refcount(bits);
+				if (bits.all_set())
+					m_picker->dec_refcount_all();
+				else
+					m_picker->dec_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
