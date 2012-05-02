@@ -556,6 +556,7 @@ namespace libtorrent
 		void peer_has_all(peer_connection const* peer);
 
 		void peer_lost(int index, peer_connection const* peer);
+		void peer_lost(bitfield const& bits, peer_connection const* peer);
 
 		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
 		peer_request to_req(piece_block const& p) const;

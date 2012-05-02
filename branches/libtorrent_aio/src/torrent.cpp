@@ -3622,6 +3622,21 @@ namespace libtorrent
 #endif
 	}
 
+	void torrent::peer_lost(bitfield const& bits, peer_connection const* peer)
+	{
+		if (has_picker())
+		{
+			// TODO: update suggest_piece?
+			m_picker->dec_refcount(bits, peer);
+		}
+#ifdef TORRENT_DEBUG
+		else
+		{
+			TORRENT_ASSERT(is_seed());
+		}
+#endif
+	}
+
 	void torrent::peer_lost(int index, peer_connection const* peer)
 	{
 		if (m_picker.get())
