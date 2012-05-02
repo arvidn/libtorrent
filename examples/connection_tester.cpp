@@ -809,7 +809,6 @@ int main(int argc, char* argv[])
 		peer_conn* p = *i;
 		int time = total_milliseconds(p->end_time - p->start_time);
 		if (time == 0) time = 1;
-		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
 		down += (boost::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
