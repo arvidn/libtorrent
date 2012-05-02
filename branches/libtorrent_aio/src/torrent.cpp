@@ -3597,7 +3597,10 @@ namespace libtorrent
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount(bits, peer);
+			if (bits.all_set())
+				m_picker->inc_refcount_all(peer);
+			else
+				m_picker->inc_refcount(bits, peer);
 			refresh_suggest_pieces();
 		}
 #ifdef TORRENT_DEBUG
@@ -3626,8 +3629,11 @@ namespace libtorrent
 	{
 		if (has_picker())
 		{
+			if (bits.all_set())
+				m_picker->dec_refcount_all(peer);
+			else
+				m_picker->dec_refcount(bits, peer);
 			// TODO: update suggest_piece?
-			m_picker->dec_refcount(bits, peer);
 		}
 #ifdef TORRENT_DEBUG
 		else
