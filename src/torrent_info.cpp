@@ -643,7 +643,8 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(std::string const& filename, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
@@ -695,7 +696,8 @@ namespace libtorrent
 #endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
