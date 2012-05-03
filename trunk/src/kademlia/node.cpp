@@ -193,7 +193,7 @@ int node_impl::bucket_size(int bucket)
 void node_impl::new_write_key()
 {
 	m_secret[1] = m_secret[0];
-	m_secret[0] = std::rand();
+	m_secret[0] = random();
 }
 
 void node_impl::unreachable(udp::endpoint const& ep)
