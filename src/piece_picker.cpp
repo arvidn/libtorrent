@@ -2046,8 +2046,8 @@ namespace libtorrent
 
 	bool piece_picker::is_requested(piece_block block) const
 	{
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].downloading == 0) return false;
@@ -2060,8 +2060,8 @@ namespace libtorrent
 
 	bool piece_picker::is_downloaded(piece_block block) const
 	{
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
@@ -2075,8 +2075,8 @@ namespace libtorrent
 
 	bool piece_picker::is_finished(piece_block block) const
 	{
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
 		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index) return true;
@@ -2092,8 +2092,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 		TORRENT_ASSERT(state != piece_picker::none);
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 		TORRENT_ASSERT(!m_piece_map[block.piece_index].have());
@@ -2150,8 +2150,8 @@ namespace libtorrent
 
 	int piece_picker::num_peers(piece_block block) const
 	{
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
@@ -2186,8 +2186,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
@@ -2389,7 +2389,7 @@ namespace libtorrent
 
 		if (i == m_downloads.end()) return 0;
 
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 
 		TORRENT_ASSERT(i->info[block.block_index].piece_index == block.piece_index);
 		if (i->info[block.block_index].state == block_info::state_none)
@@ -2410,8 +2410,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(peer == 0 || static_cast<policy::peer*>(peer)->in_use);
 
-		TORRENT_ASSERT(block.piece_index >= 0);
-		TORRENT_ASSERT(block.block_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
 
