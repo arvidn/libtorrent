@@ -288,9 +288,9 @@ namespace libtorrent
 		}
 
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == 0 || expect2 == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
 
 		int result = 0;
 		char const* message = 0;
