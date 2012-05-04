@@ -753,8 +753,7 @@ namespace libtorrent
 
 		// make sure the passed in elem_index actually lives in the specified
 		// priority bucket. If it doesn't, it means this piece changed
-		// state without the corresponding entry in the pieces list was
-		// updated
+		// state without updating the corresponding entry in the pieces list
 		TORRENT_ASSERT(m_priority_boundries[priority] >= elem_index);
 		TORRENT_ASSERT(priority == 0 || m_priority_boundries[priority-1] <= elem_index);
 		TORRENT_ASSERT(priority + 1 == m_priority_boundries.size() || m_priority_boundries[priority+1] > elem_index);
