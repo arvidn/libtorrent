@@ -368,6 +368,9 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
 #endif
+#if TORRENT_USE_UNC_PATHS
+		m_save_path = canonicalize_path(m_save_path);
+#endif
 
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
@@ -1123,7 +1126,7 @@ namespace libtorrent
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
-		picker().inc_refcount(piece);
+		picker().inc_refcount(piece, 0);
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			if (picker().is_finished(piece_block(piece, i))
@@ -1135,7 +1138,7 @@ namespace libtorrent
 			// out of memory
 			if (buffer == 0)
 			{
-				picker().dec_refcount(piece);
+				picker().dec_refcount(piece, 0);
 				return;
 			}
 			disk_buffer_holder holder(m_ses, buffer);
@@ -1149,7 +1152,7 @@ namespace libtorrent
 		picker().mark_as_checking(piece);
 		async_verify_piece(piece, boost::bind(&torrent::piece_finished
 			, shared_from_this(), piece, _1));
-		picker().dec_refcount(piece);
+		picker().dec_refcount(piece, 0);
 	}
 
 	void torrent::on_disk_write_complete(int ret, disk_io_job const& j
@@ -3578,11 +3581,11 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::peer_has(int index)
+	void torrent::peer_has(int index, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount(index);
+			m_picker->inc_refcount(index, peer);
 			update_suggest_piece(index, 1);
 		}
 #ifdef TORRENT_DEBUG
@@ -3594,11 +3597,14 @@ namespace libtorrent
 	}
 		
 	// when we get a bitfield message, this is called for that piece
-	void torrent::peer_has(bitfield const& bits)
+	void torrent::peer_has(bitfield const& bits, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount(bits);
+			if (bits.all_set())
+				m_picker->inc_refcount_all(peer);
+			else
+				m_picker->inc_refcount(bits, peer);
 			refresh_suggest_pieces();
 		}
 #ifdef TORRENT_DEBUG
@@ -3609,11 +3615,11 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent::peer_has_all()
+	void torrent::peer_has_all(peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->inc_refcount_all();
+			m_picker->inc_refcount_all(peer);
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -3623,11 +3629,29 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent::peer_lost(int index)
+	void torrent::peer_lost(bitfield const& bits, peer_connection const* peer)
+	{
+		if (has_picker())
+		{
+			if (bits.all_set())
+				m_picker->dec_refcount_all(peer);
+			else
+				m_picker->dec_refcount(bits, peer);
+			// TODO: update suggest_piece?
+		}
+#ifdef TORRENT_DEBUG
+		else
+		{
+			TORRENT_ASSERT(is_seed());
+		}
+#endif
+	}
+
+	void torrent::peer_lost(int index, peer_connection const* peer)
 	{
 		if (m_picker.get())
 		{
-			m_picker->dec_refcount(index);
+			m_picker->dec_refcount(index, peer);
 			update_suggest_piece(index, -1);
 		}
 #ifdef TORRENT_DEBUG
@@ -4659,7 +4683,7 @@ namespace libtorrent
 			{
 				if (m_picker.get())
 				{
-					m_picker->dec_refcount_all();
+					m_picker->dec_refcount_all(p);
 				}
 			}
 			else
@@ -4668,7 +4692,7 @@ namespace libtorrent
 				{
 					bitfield const& pieces = p->get_bitfield();
 					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
-					m_picker->dec_refcount(pieces);
+					m_picker->dec_refcount(pieces, p);
 				}
 			}
 		}
@@ -6725,12 +6749,22 @@ namespace libtorrent
 
 		if (m_owning_storage.get())
 		{
-			m_owning_storage->async_move_storage(save_path
+#if TORRENT_USE_UNC_PATHS
+			std::string path = canonicalize_path(save_path);
+#else
+			std::string const& path = save_path;
+#endif
+			m_owning_storage->async_move_storage(path
 				, boost::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2));
 		}
 		else
 		{
+#if TORRENT_USE_UNC_PATHS
+			m_save_path = canonicalize_path(save_path);
+#else
+
 			m_save_path = save_path;
+#endif
 			if (alerts().should_post<storage_moved_alert>())
 			{
 				alerts().post_alert(storage_moved_alert(get_handle(), m_save_path));

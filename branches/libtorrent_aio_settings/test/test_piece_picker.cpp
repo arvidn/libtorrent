@@ -80,7 +80,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 		const int avail = availability[i] - '0';
 		assert(avail >= 0);
 		
-		for (int j = 0; j < avail; ++j) p->inc_refcount(i);
+		for (int j = 0; j < avail; ++j) p->inc_refcount(i, 0);
 	}
 
 	bitfield have = string2vec(have_str);
@@ -798,15 +798,15 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount_all();
+	p->inc_refcount_all(0);
 	dc = p->distributed_copies();
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
-	p->dec_refcount_all();
+	p->dec_refcount_all(0);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount(0);
-	p->dec_refcount_all();
+	p->inc_refcount(0, 0);
+	p->dec_refcount_all(0);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(0, 6000 / 7));
@@ -820,7 +820,7 @@ int test_main()
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
-	p->inc_refcount_all();
+	p->inc_refcount_all(0);
 	dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
@@ -833,24 +833,24 @@ int test_main()
 	p = setup_picker("1233333", "     * ", "", "");
 	TEST_CHECK(test_pick(p) == 0);
 
-	p->dec_refcount(0);
+	p->dec_refcount(0, 0);
 	TEST_CHECK(test_pick(p) == 1);
 
-	p->dec_refcount(4);
-	p->dec_refcount(4);
+	p->dec_refcount(4, 0);
+	p->dec_refcount(4, 0);
 	TEST_CHECK(test_pick(p) == 4);
 
 	// decrease refcount on something that's not in the piece list
-	p->dec_refcount(5);
-	p->inc_refcount(5);
+	p->dec_refcount(5, 0);
+	p->inc_refcount(5, 0);
 	
 	bitfield bits(7);
 	bits.clear_all();
 	bits.set_bit(0);
-	p->inc_refcount(bits);
+	p->inc_refcount(bits, 0);
 	bits.clear_all();
 	bits.set_bit(4);
-	p->dec_refcount(bits);
+	p->dec_refcount(bits, 0);
 	TEST_CHECK(test_pick(p) == 0);
 
 // ========================================================

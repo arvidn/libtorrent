@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct alert;
+	class alert;
 
 	struct alert_dispatcher
 	{

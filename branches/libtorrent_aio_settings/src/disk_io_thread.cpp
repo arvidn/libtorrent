@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
 
 #if TORRENT_USE_AIO_SIGNALFD
 #include <sys/signalfd.h>
@@ -93,6 +93,13 @@ namespace libtorrent
 	struct async_handler;
 
 	bool same_sign(size_type a, size_type b) { return ((a < 0) == (b < 0)) || (a == 0) || (b == 0); }
+
+	// this is posted to the network thread and run from there
+	static void alert_callback(alert_dispatcher* disp, alert* a)
+	{
+		if (disp && disp->post_alert(a)) return;
+		delete a;
+	}
 
 	bool between(size_type v, size_type b1, size_type b2)
 	{

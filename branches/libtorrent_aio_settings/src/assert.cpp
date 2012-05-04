@@ -114,7 +114,7 @@ std::string demangle(char const* name) { return name; }
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
-void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
@@ -142,7 +142,7 @@ void print_backtrace(char* out, int len, int max_depth)
 #include "winbase.h"
 #include "dbghelp.h"
 
-void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 {
 	typedef USHORT (*RtlCaptureStackBackTrace_t)(
 		__in ULONG FramesToSkip,
@@ -196,7 +196,7 @@ void print_backtrace(char* out, int len, int max_depth)
 
 #else
 
-void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 { out[0] = 0; }
 
 #endif

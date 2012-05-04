@@ -824,55 +824,8 @@ namespace libtorrent
 			}
 			i = m_suggested_pieces.erase(i);
 		}
-		
-		if (m_num_pieces == int(m_have_piece.size()))
-		{
-#ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** on_metadata(): THIS IS A SEED [ p: %p ]", m_peer_info);
-#endif
-			// if this is a web seed. we don't have a peer_info struct
-			t->get_policy().set_seed(m_peer_info, true);
-			m_upload_only = true;
-
-			t->peer_has_all();
-			disconnect_if_redundant();
-			if (m_disconnecting) return;
-
-			on_metadata();
-			if (m_disconnecting) return;
-
-			if (!t->is_upload_only())
-				t->get_policy().peer_is_interesting(*this);
-
-			return;
-		}
-		TORRENT_ASSERT(!m_have_all);
-
 		on_metadata();
 		if (m_disconnecting) return;
-
-		disconnect_if_redundant();
-		if (m_disconnecting) return;
-
-		// let the torrent know which pieces the
-		// peer has
-		// if we're a seed, we don't keep track of piece availability
-		bool interesting = false;
-		if (!t->is_seed())
-		{
-			t->peer_has(m_have_piece);
-
-			for (int i = 0; i < (int)m_have_piece.size(); ++i)
-			{
-				if (!m_have_piece[i]) continue;
-				if (t->have_piece(i) || t->picker().piece_priority(i) == 0) continue;
-				interesting = true;
-				break;
-			}
-		}
-
-		if (interesting) t->get_policy().peer_is_interesting(*this);
-		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
 	void peer_connection::init()
@@ -888,6 +841,7 @@ namespace libtorrent
 
 		if (m_have_all) m_num_pieces = t->torrent_file().num_pieces();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(!m_initialized);
 		m_initialized = true;
 #endif
 		// now that we have a piece_picker,
@@ -904,16 +858,16 @@ namespace libtorrent
 			t->get_policy().set_seed(m_peer_info, true);
 			m_upload_only = true;
 
-			t->peer_has_all();
+			t->peer_has_all(this);
 			if (t->is_upload_only()) send_not_interested();
 			else t->get_policy().peer_is_interesting(*this);
 			return;
 		}
 
 		// if we're a seed, we don't keep track of piece availability
-		if (!t->is_seed())
+		if (t->has_picker())
 		{
-			t->peer_has(m_have_piece);
+			t->peer_has(m_have_piece, this);
 			bool interesting = false;
 			for (int i = 0; i < int(m_have_piece.size()); ++i)
 			{
@@ -1766,7 +1720,7 @@ namespace libtorrent
 		// we won't have a piece picker)
 		if (!t->valid_metadata()) return;
 
-		t->peer_has(index);
+		t->peer_has(index, this);
 
 		// this will disregard all have messages we get within
 		// the first two seconds. Since some clients implements
@@ -1874,7 +1828,7 @@ namespace libtorrent
 		// we won't have a piece picker)
 		if (!t->valid_metadata()) return;
 
-		t->peer_lost(index);
+		t->peer_lost(index, this);
 
 		if (was_seed)
 			t->get_policy().set_seed(m_peer_info, false);
@@ -1918,6 +1872,14 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_bitfield_received)
+		{
+			// if we've already received a bitfield message
+			// we first need to count down all the pieces
+			// we believe the peer has first
+			t->peer_lost(m_have_piece, this);
+		}
+
 		m_bitfield_received = true;
 
 		// if we don't have metadata yet
@@ -1950,7 +1912,7 @@ namespace libtorrent
 
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
-			t->peer_has_all();
+			t->peer_has_all(this);
 			if (!t->is_upload_only())
 				t->get_policy().peer_is_interesting(*this);
 
@@ -1963,25 +1925,7 @@ namespace libtorrent
 		// peer has
 		// if we're a seed, we don't keep track of piece availability
 		bool interesting = false;
-		if (!t->is_upload_only())
-		{
-			t->peer_has(bits);
-
-			for (int i = 0; i < (int)m_have_piece.size(); ++i)
-			{
-				bool have = bits[i];
-				if (have && !m_have_piece[i])
-				{
-					if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
-						interesting = true;
-				}
-				else if (!have && m_have_piece[i])
-				{
-					// this should probably not be allowed
-					t->peer_lost(i);
-				}
-			}
-		}
+		t->peer_has(bits, this);
 
 		m_have_piece = bits;
 		m_num_pieces = num_pieces;
@@ -2874,6 +2818,9 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 
+		if (m_bitfield_received)
+			t->peer_lost(m_have_piece, this);
+
 		m_have_all = true;
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -2905,7 +2852,7 @@ namespace libtorrent
 		m_have_piece.set_all();
 		m_num_pieces = m_have_piece.size();
 		
-		t->peer_has_all();
+		t->peer_has_all(this);
 
 		// if we're finished, we're not interested
 		if (t->is_upload_only()) send_not_interested();
@@ -2937,8 +2884,15 @@ namespace libtorrent
 		}
 #endif
 		if (is_disconnecting()) return;
+
+		if (m_bitfield_received)
+			t->peer_lost(m_have_piece, this);
+
 		t->get_policy().set_seed(m_peer_info, false);
 		m_bitfield_received = true;
+
+		m_have_piece.clear_all();
+		m_num_pieces = 0;
 
 		// we're never interested in a peer that doesn't have anything
 		send_not_interested();

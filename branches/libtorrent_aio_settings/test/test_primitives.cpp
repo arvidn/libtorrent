@@ -942,6 +942,15 @@ int test_main()
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
 #endif
 
+#if TORRENT_USE_UNC_PATHS
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
+#endif
+
 	TEST_EQUAL(extension("blah"), "");
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
@@ -1902,6 +1911,7 @@ int test_main()
 	test1.set_bit(1);
 	test1.set_bit(9);
 	TEST_CHECK(test1.count() == 3);
+	TEST_CHECK(test1.all_set() == false);
 	test1.clear_bit(2);
 	TEST_CHECK(test1.count() == 2);
 	int distance = std::distance(test1.begin(), test1.end());
@@ -1923,6 +1933,9 @@ int test_main()
 	test1.set_bit(1);
 	test1.resize(1);
 	TEST_CHECK(test1.count() == 1);
+
+	test1.resize(100, true);
+	TEST_CHECK(test1.all_set() == true);
 	return 0;
 }
 

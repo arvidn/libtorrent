@@ -162,6 +162,9 @@ namespace libtorrent
 	TORRENT_EXPORT std::string complete(std::string const& f);
 	TORRENT_EXPORT bool is_complete(std::string const& f);
 	TORRENT_EXPORT std::string current_working_directory();
+#if TORRENT_USE_UNC_PATHS
+	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
+#endif
 
 	class TORRENT_EXPORT directory : public boost::noncopyable
 	{

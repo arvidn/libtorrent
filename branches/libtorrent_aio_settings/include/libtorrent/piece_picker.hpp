@@ -54,6 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 
 //#define TORRENT_PICKER_LOG
+//#define TORRENT_DEBUG_REFCOUNTS
+
+#ifdef TORRENT_DEBUG_REFCOUNTS
+#include <set>
+#endif
 
 namespace libtorrent
 {
@@ -211,21 +216,21 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
-		void inc_refcount(int index);
-		void dec_refcount(int index);
+		void inc_refcount(int index, const void* peer);
+		void dec_refcount(int index, const void* peer);
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
-		void inc_refcount(bitfield const& bitmask);
+		void inc_refcount(bitfield const& bitmask, const void* peer);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
-		void dec_refcount(bitfield const& bitmask);
+		void dec_refcount(bitfield const& bitmask, const void* peer);
 		
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
-		void inc_refcount_all();
-		void dec_refcount_all();
+		void inc_refcount_all(const void* peer);
+		void dec_refcount_all(const void* peer);
 
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
@@ -479,6 +484,11 @@ namespace libtorrent
 			boost::uint32_t index;
 #endif
 
+#ifdef TORRENT_DEBUG_REFCOUNTS
+			// all the peers that have this piece
+			std::set<const void*> have_peers;
+#endif
+
 			enum
 			{
 				// index is set to this to indicate that we have the
@@ -555,10 +565,12 @@ namespace libtorrent
 
 	private:
 
+#ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_COMPACT_PICKER
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 #else
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+#endif
 #endif
 
 		void update_pieces() const;

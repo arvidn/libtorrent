@@ -547,14 +547,15 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index);
+		void peer_has(int index, peer_connection const* peer);
 
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits);
+		void peer_has(bitfield const& bits, peer_connection const* peer);
 
-		void peer_has_all();
+		void peer_has_all(peer_connection const* peer);
 
-		void peer_lost(int index);
+		void peer_lost(int index, peer_connection const* peer);
+		void peer_lost(bitfield const& bits, peer_connection const* peer);
 
 		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
 		peer_request to_req(piece_block const& p) const;
