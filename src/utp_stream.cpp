@@ -2882,6 +2882,16 @@ void utp_socket_impl::tick(ptime const& now)
 
 		m_cwnd = boost::int64_t(m_mtu) << 16;
 		if (m_outbuf.size()) ++m_num_timeouts;
+
+		if (m_num_timeouts > m_sm->num_resends())
+		{
+			// the connection is dead
+			m_error = asio::error::timed_out;
+			m_state = UTP_STATE_ERROR_WAIT;
+			test_socket_state();
+			return;
+		}
+
 		m_timeout = now + milliseconds(packet_timeout());
 	
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"
