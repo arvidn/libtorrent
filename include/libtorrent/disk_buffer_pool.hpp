@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #endif
 
+#ifdef TORRENT_DISK_STATS
+#include <fstream>
+#endif
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #include <map>
 #endif
