@@ -113,8 +113,8 @@ size_type routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (1 << deepest_bucket) * m_bucket_size;
-	else return (2 << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (size_type(1) << deepest_bucket) * m_bucket_size;
+	else return (size_type(2) << deepest_bucket) * deepest_size;
 }
 
 #if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
