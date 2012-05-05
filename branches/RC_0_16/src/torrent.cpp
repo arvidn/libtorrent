@@ -3638,7 +3638,7 @@ namespace libtorrent
 			}
 			while (i != m_time_critical_pieces.begin() && i->deadline < boost::prior(i)->deadline)
 			{
-				std::iter_swap(i, boost::next(i));
+				std::iter_swap(i, boost::prior(i));
 				--i;
 			}
 			return;
