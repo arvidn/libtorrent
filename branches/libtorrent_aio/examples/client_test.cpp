@@ -2057,7 +2057,8 @@ int main(int argc, char* argv[])
 				++lines_printed;
 			}
 
-			if (print_piece_bar && (s.state != torrent_status::seeding || s.seed_mode))
+			// don't print the piece bar if we don't have any piece, or if we have all
+			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
