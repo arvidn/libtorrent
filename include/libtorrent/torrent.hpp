@@ -1077,8 +1077,14 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
-		time_t m_last_seen_complete;
 		time_t m_last_saved_resume;
+
+		// this was the last time _we_ saw a seed in this swarm
+		time_t m_last_seen_complete;
+
+		// this is the time last any of our peers saw a seed
+		// in this swarm
+		time_t m_swarm_last_seen_complete;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
