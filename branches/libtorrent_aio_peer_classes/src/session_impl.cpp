@@ -580,7 +580,7 @@ namespace aux {
 		const static class_mapping v4_classes[] =
 		{
 			// everything
-			{"0.0.0.0", "255.255.255", gfilter},
+			{"0.0.0.0", "255.255.255.255", gfilter},
 			// local networks
 			{"10.0.0.0", "10.255.255.255", lfilter},
 			{"172.16.0.0", "172.16.255.255", lfilter},
@@ -606,16 +606,22 @@ namespace aux {
 		if (!unlimited_local) len = 1;
 		for (int i = 0; i < len; ++i)
 		{
-			m_peer_class_filter.add_rule(address_v4::from_string(p[i].first)
-				, address_v4::from_string(p[i].last), p[i].filter);
+			error_code ec;
+			address_v4 begin = address_v4::from_string(p[i].first, ec);
+			address_v4 end = address_v4::from_string(p[i].last, ec);
+			if (ec) continue;
+			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
 		p = v6_classes;
 		len = sizeof(v6_classes) / sizeof(v6_classes[0]);
 		if (!unlimited_local) len = 1;
 		for (int i = 0; i < len; ++i)
 		{
-			m_peer_class_filter.add_rule(address_v6::from_string(p[i].first)
-				, address_v6::from_string(p[i].last), p[i].filter);
+			error_code ec;
+			address_v6 begin = address_v6::from_string(p[i].first, ec);
+			address_v6 end = address_v6::from_string(p[i].last, ec);
+			if (ec) continue;
+			m_peer_class_filter.add_rule(begin, end, p[i].filter);
 		}
 	}
 
