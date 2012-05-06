@@ -79,7 +79,7 @@ static boost::detail::atomic_count num_seeds(0);
 // a client and dual uploads and downloads from a client
 // at the same time (this is presumably the most realistic
 // test)
-enum { none, upload_test, download_test, dual_test } test_mode = none;
+static enum { none, upload_test, download_test, dual_test } test_mode = none;
 
 // the number of suggest messages received (total across all peers)
 boost::detail::atomic_count num_suggest(0);
