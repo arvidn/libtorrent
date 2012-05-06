@@ -108,7 +108,7 @@ namespace libtorrent
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
-	class TORRENT_EXPORT torrent
+	class TORRENT_EXTRA_EXPORT torrent
 		: public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
@@ -140,7 +140,7 @@ namespace libtorrent
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_peer(peer_connection* p) const
 		{ return m_connections.find(p) != m_connections.end(); }
 #endif
@@ -380,42 +380,12 @@ namespace libtorrent
 			m_web_seeds.push_back(web_seed_entry(url, type, auth, extra_headers));
 		}
 	
-		void remove_web_seed(std::string const& url, web_seed_entry::type_t type)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::url, _1)
-					== url && boost::bind(&web_seed_entry::type, _1) == type));
-			if (i != m_web_seeds.end()) remove_web_seed(i);
-		}
-
-		void disconnect_web_seed(peer_connection* p)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			// this happens if the web server responded with a redirect
-			// or with something incorrect, so that we removed the web seed
-			// immediately, before we disconnected
-			if (i == m_web_seeds.end()) return;
-
-			TORRENT_ASSERT(i->resolving == false);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_ses.m_logger) << time_now_string() << " disconnect_web_seed: " << i->url << "\n";
-#endif
-			TORRENT_ASSERT(i->connection);
-			i->connection = 0;
-		}
+		void remove_web_seed(std::string const& url, web_seed_entry::type_t type);
+		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
 
-		void remove_web_seed(peer_connection* p)
-		{
-			std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-				, (boost::bind(&web_seed_entry::connection, _1) == p));
-			TORRENT_ASSERT(i != m_web_seeds.end());
-			if (i == m_web_seeds.end()) return;
-			m_web_seeds.erase(i);
-		}
+		void remove_web_seed(peer_connection* p);
 
 		std::list<web_seed_entry> web_seeds() const
 		{ return m_web_seeds; }
@@ -450,8 +420,7 @@ namespace libtorrent
 		void update_want_scrape();
 
 		bool try_connect_peer();
-		void give_connect_points(int points);
-		void add_peer(tcp::endpoint const& adr, int source);
+		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
 
 		// the number of peers that belong to this torrent
 		int num_peers() const { return (int)m_connections.size(); }
@@ -553,7 +522,10 @@ namespace libtorrent
 		{ return m_suggested_pieces; }
 
 		bool super_seeding() const
-		{ return m_super_seeding; }
+		{
+			// we're not super seeding if we're not a seed
+			return m_super_seeding && is_seed();
+		}
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
@@ -561,7 +533,9 @@ namespace libtorrent
 		// returns true if we have downloaded the given piece
 		bool have_piece(int index) const
 		{
-			return has_picker()?m_picker->have_piece(index):true;
+			if (!valid_metadata()) return false;
+			if (!has_picker()) return true;
+			return m_picker->have_piece(index);
 		}
 
 		// a predictive piece is a piece that we might
@@ -585,14 +559,15 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index);
-		
+		void peer_has(int index, peer_connection const* peer);
+
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits);
+		void peer_has(bitfield const& bits, peer_connection const* peer);
 
-		void peer_has_all();
+		void peer_has_all(peer_connection const* peer);
 
-		void peer_lost(int index);
+		void peer_lost(int index, peer_connection const* peer);
+		void peer_lost(bitfield const& bits, peer_connection const* peer);
 
 		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
 		peer_request to_req(piece_block const& p) const;
@@ -1249,19 +1224,9 @@ namespace libtorrent
 		// the maximum number of uploads for this torrent
 		unsigned int m_max_uploads:24;
 
-		// this is the deficit counter in the Deficit Round Robin
-		// used to determine which torrent gets the next
-		// connection attempt. See:
-		// http://www.ecs.umass.edu/ece/wolf/courses/ECE697J/papers/DRR.pdf
-		// The quanta assigned to each torrent depends on the torrents
-		// priority, whether it's a seed and the number of connected
-		// peers it has. This has the effect that some torrents
-		// will have more connection attempts than other. Each
-		// connection attempt costs 100 points from the deficit
-		// counter. points are deducted in try_connect_peer and
-		// increased in give_connect_points. Outside of the
-		// torrent object, these points are called connect_points.
-		boost::uint8_t m_deficit_counter;
+		// these are the flags sent in on a call to save_resume_data
+		// we need to save them to check them in write_resume_data
+		boost::uint8_t m_save_resume_flags;
 
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
@@ -1357,10 +1322,6 @@ namespace libtorrent
 
 		// round-robin index into m_interfaces
 		mutable boost::uint8_t m_interface_index;
-
-		// these are the flags sent in on a call to save_resume_data
-		// we need to save them to check them in write_resume_data
-		boost::uint8_t m_save_resume_flags;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests

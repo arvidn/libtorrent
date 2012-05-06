@@ -78,6 +78,7 @@ namespace libtorrent
 		int connect_timeout() const { return m_sett.utp_connect_timeout; }
 		int delayed_ack() const { return m_sett.utp_delayed_ack; }
 		int min_timeout() const { return m_sett.utp_min_timeout; }
+		int loss_multiplier() const { return m_sett.utp_loss_multiplier; }
 		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);

@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/rsa.hpp" // for generate_rsa_keys and sign_rsa
+#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
+#include "libtorrent/alert_dispatcher.hpp"
 #include <iostream>
 
 #include "test.hpp"
@@ -46,11 +48,14 @@ using namespace libtorrent::dht;
 
 std::list<std::pair<udp::endpoint, entry> > g_responses;
 
-bool our_send(void* user, entry& msg, udp::endpoint const& ep, int flags)
+struct mock_socket : udp_socket_interface
 {
-	g_responses.push_back(std::make_pair(ep, msg));
-	return true;
-}
+	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
+	{
+		g_responses.push_back(std::make_pair(ep, msg));
+		return true;
+	}
+};
 
 address rand_v4()
 {
@@ -255,17 +260,25 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 //	TEST_CHECK(items_num.find(3) != items_num.end());
 }
 
-void nop(address, int, address) {}
+struct print_alert : alert_dispatcher
+{
+	virtual bool post_alert(alert* a)
+	{
+		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
+		delete a;
+		return true;
+	}
+};
 
 int test_main()
 {
-	io_service ios;
-	alert_manager al(ios, 100);
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	address ext = address::from_string("236.0.0.1");
-	dht::node_impl node(al, &our_send, sett, node_id(0), ext, boost::bind(nop, _1, _2, _3), 0);
+	mock_socket s;
+	print_alert ad;
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
 
 	// DHT should be running on port 48199 now
 	lazy_entry response;
@@ -447,22 +460,33 @@ int test_main()
 		test.set(iphash);
 	}
 
-	for (int i = 0; i < 0x3E8; ++i)
+	if (supports_ipv6())
 	{
-		char adr[50];
-		snprintf(adr, 50, "2001:db8::%x", i);
-		address a = address::from_string(adr);
-		sha1_hash iphash;
-		hash_address(a, iphash);
-		test.set(iphash);
+		for (int i = 0; i < 0x3E8; ++i)
+		{
+			char adr[50];
+			snprintf(adr, 50, "2001:db8::%x", i);
+			address a = address::from_string(adr);
+			sha1_hash iphash;
+			hash_address(a, iphash);
+			test.set(iphash);
+		}
 	}
 
 	// these are test vectors from BEP 33
 	// http://www.bittorrent.org/beps/bep_0033.html
 	fprintf(stderr, "test.size: %f\n", test.size());
-	TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
 	fprintf(stderr, "%s\n", to_hex(test.to_string()).c_str());
-	TEST_CHECK(to_hex(test.to_string()) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
+	if (supports_ipv6())
+	{
+		TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
+		TEST_CHECK(to_hex(test.to_string()) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
+	}
+	else
+	{
+		TEST_CHECK(fabs(test.size() - 257.854f) < 0.001);
+		TEST_CHECK(to_hex(test.to_string()) == "24c0004020043000102012743e00480037110820422110008000c0e302854835a05401a4045021302a306c060001881002d8a0a3a8001901b40a800900310008d2108110c2496a0028700010d804188b01415200082004088026411104a804048002002000080680828c400080cc40020c042c0494447280928041402104080d4240040414a41f0205654800b0811830d2020042b002c5800004a71d0204804a0028120a004c10017801490b834004044106005421000c86900a0020500203510060144e900100924a1018141a028012913f0041802250042280481200002004430804210101c08111c10801001080002038008211004266848606b035001048");
+	}
 
 	response.clear();
 

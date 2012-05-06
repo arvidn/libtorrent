@@ -6,6 +6,8 @@ set(sources
 	aiocb_pool
 	alert
 	allocator
+	asio
+	asio_ssl
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -57,6 +59,7 @@ set(sources
 	torrent_info
 	tracker_manager
 	http_tracker_connection
+	utf8
 	udp_tracker_connection
 	udp_socket
 	upnp
@@ -145,6 +148,7 @@ else (dht)
 endif (dht)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fvisibility-inlines-hidden")
 
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
@@ -160,7 +164,7 @@ include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
 # this works around a bug in asio in boost-1.39
-add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021)
+add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 -DBOOST_ASIO_DYN_LINK)
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
@@ -241,7 +245,7 @@ endforeach (s)
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
-string (COMPARE EQUAL ${CMAKE_SIZEOF_VOID_P} "8" IS64BITS)
+string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 
 if (IS64BITS AND RESPECTLIB64)
 	set (LIBDIR "lib64")

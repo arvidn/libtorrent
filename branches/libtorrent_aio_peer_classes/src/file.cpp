@@ -181,6 +181,15 @@ namespace libtorrent
 	}
 #endif
 
+#ifdef TORRENT_WINDOWS
+	std::string convert_separators(std::string p)
+	{
+		for (int i = 0; i < p.size(); ++i)
+			if (p[i] == '/') p[i] = '\\';
+		return p;
+	}
+#endif
+
 	void stat_file(std::string inf, file_status* s
 		, error_code& ec, int flags)
 	{
@@ -541,8 +550,8 @@ namespace libtorrent
 	std::string combine_path(std::string const& lhs, std::string const& rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty()) return rhs;
-		if (rhs.empty()) return lhs;
+		if (lhs.empty() || lhs == ".") return rhs;
+		if (rhs.empty() || rhs == ".") return lhs;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
@@ -580,6 +589,69 @@ namespace libtorrent
 		return convert_from_native(cwd);
 #endif
 	}
+
+#if TORRENT_USE_UNC_PATHS
+	std::string canonicalize_path(std::string const& f)
+	{
+		std::string ret;
+		ret.resize(f.size());
+		char* write_cur = &ret[0];
+		char* last_write_sep = write_cur;
+
+		char const* read_cur = f.c_str();
+		char const* last_read_sep = read_cur;
+
+		// the last_*_sep pointers point to one past
+		// the last path separator encountered and is
+		// initializes to the first character in the path
+		while (*read_cur)
+		{
+			if (*read_cur != '\\')
+			{
+				*write_cur++ = *read_cur++;
+				continue;
+			}
+			int element_len = read_cur - last_read_sep;
+			if (element_len == 1 && memcmp(last_read_sep, ".", 1) == 0)
+			{
+				--write_cur;
+				++read_cur;
+				last_read_sep = read_cur;
+				continue;
+			}
+			if (element_len == 2 && memcmp(last_read_sep, "..", 2) == 0)
+			{
+				// find the previous path separator
+				if (last_write_sep > &ret[0])
+				{
+					--last_write_sep;
+					while (last_write_sep > &ret[0]
+						&& last_write_sep[-1] != '\\')
+						--last_write_sep;
+				}
+				write_cur = last_write_sep;
+				// find the previous path separator
+				if (last_write_sep > &ret[0])
+				{
+					--last_write_sep;
+					while (last_write_sep > &ret[0]
+						&& last_write_sep[-1] != '\\')
+						--last_write_sep;
+				}
+				++read_cur;
+				last_read_sep = read_cur;
+				continue;
+			}
+			*write_cur++ = *read_cur++;
+			last_write_sep = write_cur;
+			last_read_sep = read_cur;
+		}
+		// terminate destination string
+		*write_cur = 0;
+		ret.resize(write_cur - &ret[0]);
+		return ret;
+	}
+#endif	
 
 	size_type file_size(std::string const& f)
 	{
@@ -696,8 +768,8 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		// the path passed to FindFirstFile() must be
 		// a pattern
-		std::string f = path;
-		if (!f.empty() && (f[f.size()-1] != '/' || f[f.size()-1] != '\\')) f += "\\*";
+		std::string f = convert_separators(path);
+		if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
 		else f += "*";
 #if TORRENT_USE_WSTRING
 #define FindFirstFile_ FindFirstFileW
@@ -910,20 +982,20 @@ namespace libtorrent
 			FILE_SHARE_READ,
 		};
 
-#if TORRENT_USE_WSTRING
-#define CreateFile_ CreateFileW
-		m_path = convert_to_wstring(path);
-#else
-#define CreateFile_ CreateFileA
-		m_path = convert_to_native(path);
+		std::string p = convert_separators(path);
+#if TORRENT_USE_UNC_PATHS
+		// UNC paths must be absolute
+		// network paths are already UNC paths
+		if (path.substr(0,2) == "\\\\") p = path;
+		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
 #endif
 
-#if TORRENT_USE_UNC_PATHS
 #if TORRENT_USE_WSTRING
-		m_path = L"\\\\?\\" + m_path;
+#define CreateFile_ CreateFileW
+		m_path = convert_to_wstring(p);
 #else
-		m_path = "\\\\?\\" + m_path;
-#endif // TORRENT_USE_WSTRING
+#define CreateFile_ CreateFileA
+		m_path = convert_to_native(p);
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));

@@ -518,7 +518,7 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 	m_callback(e, sender, p, size - (p - buf));
 }
 
-#ifndef BOOST_ASIO_ENABLE_CANCELIO
+#if !defined BOOST_ASIO_ENABLE_CANCELIO && defined TORRENT_WINDOWS
 #error BOOST_ASIO_ENABLE_CANCELIO needs to be defined when building libtorrent to enable cancel() in asio on windows
 #endif
 
@@ -1243,7 +1243,7 @@ void rate_limited_udp_socket::on_tick(error_code const& e)
 
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
-	if (m_quota < m_rate_limit) m_quota += m_rate_limit * total_milliseconds(delta) / 1000;
+	if (m_quota < m_rate_limit) m_quota += boost::uint64_t(m_rate_limit) * total_milliseconds(delta) / 1000;
 
 	if (m_queue.empty()) return;
 

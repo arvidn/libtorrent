@@ -464,6 +464,22 @@ int test_main()
 	}
 #endif
 
+	// make sure the retry interval keeps growing
+	// on failing announces
+	announce_entry ae("dummy");
+	int last = 0;
+	session_settings sett;
+	sett.tracker_backoff = 250;
+	for (int i = 0; i < 10; ++i)
+	{
+		ae.failed(sett, 5);
+		int delay = ae.next_announce_in();
+		TEST_CHECK(delay > last);
+		last = delay;
+		fprintf(stderr, "%d, ", delay);
+	}
+	fprintf(stderr, "\n");
+
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
 	char private_key[1192];
@@ -590,6 +606,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -602,7 +619,7 @@ int test_main()
 		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
@@ -613,6 +630,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -626,7 +644,7 @@ int test_main()
 		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
@@ -700,6 +718,11 @@ int test_main()
 		TEST_EQUAL(pb.size(), 3);
 		TEST_EQUAL(pb.span(), 501 - 123);
 		TEST_EQUAL(pb.capacity(), 512);
+
+		pb.insert(500, (void*)501);
+		TEST_EQUAL(pb.size(), 3);
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
 
 		TEST_CHECK(pb.remove(123) == (void*)123);
 		TEST_EQUAL(pb.size(), 2);
@@ -796,25 +819,13 @@ int test_main()
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43";
-	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
-
-	const char* magnet_uri2 = "magnet:"
-		"?tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43"
-		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
-	torrent_handle t2 = add_magnet_uri(*s, magnet_uri2, p, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
-
-	const char* magnet_uri3 = "magnet:"
-		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
-		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
-		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
-		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07&dn=Ubuntu+11.04+%28Final%29";
-	torrent_handle t3 = add_magnet_uri(*s, magnet_uri3, p, ec);
+	p.url = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=http://1"
+		"&tr=http://2"
+		"&tr=http://3"
+		"&dn=foo"
+		"&dht=127.0.0.1:43";
+	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
@@ -833,6 +844,47 @@ int test_main()
 	if (trackers.size() > 2)
 	{
 		TEST_EQUAL(trackers[2].url, "http://3");
+		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
+	}
+
+	p.url = "magnet:"
+		"?tr=http://1"
+		"&tr=http://2"
+		"&dn=foo"
+		"&dht=127.0.0.1:43"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
+	torrent_handle t2 = s->add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	trackers = t2.trackers();
+	TEST_EQUAL(trackers.size(), 2);
+
+	p.url = "magnet:"
+		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
+		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07"
+		"&dn=Ubuntu+11.04+%28Final%29";
+	torrent_handle t3 = s->add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	trackers = t3.trackers();
+	TEST_EQUAL(trackers.size(), 3);
+	if (trackers.size() > 0)
+	{
+		TEST_EQUAL(trackers[0].url, "udp://tracker.openbittorrent.com:80");
+		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
+	}
+	if (trackers.size() > 1)
+	{
+		TEST_EQUAL(trackers[1].url, "udp://tracker.publicbt.com:80");
+		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
+	}
+	if (trackers.size() > 2)
+	{
+		TEST_EQUAL(trackers[2].url, "udp://tracker.ccc.de:80");
 		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 
@@ -888,6 +940,15 @@ int test_main()
 	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
 #else
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
+#endif
+
+#if TORRENT_USE_UNC_PATHS
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
 #endif
 
 	TEST_EQUAL(extension("blah"), "");
@@ -1239,6 +1300,25 @@ int test_main()
 	test = "filename=4";
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
+
+	// file class
+	file f;
+#if TORRENT_USE_UNC_PATHS || !defined WIN32
+	TEST_CHECK(f.open("con", file::read_write, ec));
+#else
+	TEST_CHECK(f.open("test_file", file::read_write, ec));
+#endif
+	TEST_CHECK(!ec);
+	file::iovec_t b = {(void*)"test", 4};
+	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	char test_buf[5] = {0};
+	b.iov_base = test_buf;
+	b.iov_len = 4;
+	TEST_CHECK(f.readv(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	f.close();
 
 	// HTTP request parser
 	http_parser parser;
@@ -1831,6 +1911,7 @@ int test_main()
 	test1.set_bit(1);
 	test1.set_bit(9);
 	TEST_CHECK(test1.count() == 3);
+	TEST_CHECK(test1.all_set() == false);
 	test1.clear_bit(2);
 	TEST_CHECK(test1.count() == 2);
 	int distance = std::distance(test1.begin(), test1.end());
@@ -1852,6 +1933,9 @@ int test_main()
 	test1.set_bit(1);
 	test1.resize(1);
 	TEST_CHECK(test1.count() == 1);
+
+	test1.resize(100, true);
+	TEST_CHECK(test1.all_set() == true);
 	return 0;
 }
 

@@ -98,7 +98,7 @@ namespace libtorrent
 
 	void request_a_block(torrent& t, peer_connection& c);
 
-	class TORRENT_EXPORT policy
+	class TORRENT_EXTRA_EXPORT policy
 	{
 	public:
 
@@ -155,11 +155,11 @@ namespace libtorrent
 // 20     1     1         fast_reconnects, trust_points
 // 21     1     1         source, pe_support, is_v6_addr
 // 22     1     1         on_parole, banned, added_to_dht, supports_utp,
-//                        supports_holepunch
+//                        supports_holepunch, web_seed
 // 23     2     1         <padding>
 // 24
 
-		struct TORRENT_EXPORT peer
+		struct TORRENT_EXTRA_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
 
@@ -301,12 +301,18 @@ namespace libtorrent
 			// we have been connected via uTP at least once
 			bool confirmed_supports_utp:1;
 			bool supports_holepunch:1;
+			// this is set to one for web seeds. Web seeds
+			// are not stored in the policy m_peers list,
+			// and are excempt from connect candidate bookkeeping
+			// so, any peer with the web_seed bit set, is
+			// never considered a connect candidate
+			bool web_seed:1;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use:1;
 #endif
 		};
 
-		struct TORRENT_EXPORT ipv4_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv4_peer : peer
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
@@ -314,7 +320,7 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_I2P
-		struct TORRENT_EXPORT i2p_peer : peer
+		struct TORRENT_EXTRA_EXPORT i2p_peer : peer
 		{
 			i2p_peer(char const* destination, bool connectable, int src);
 			~i2p_peer();
@@ -324,7 +330,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_IPV6
-		struct TORRENT_EXPORT ipv6_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv6_peer : peer
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 
@@ -406,6 +412,8 @@ namespace libtorrent
 		void erase_peer(iterator i);
 
 	private:
+
+		void update_connect_candidates(int delta);
 
 		void update_peer(policy::peer* p, int src, int flags
 		, tcp::endpoint const& remote, char const* destination);

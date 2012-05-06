@@ -110,25 +110,30 @@ namespace libtorrent
 			// these flags coexist with flags from file class
 			volatile_read = 0x100,
 
-			// when this job completes, make sure to uncorks all
-			// the backed up jobs that were put on hold waiting for
-			// this job. This is used for jobs that cannot be done
-			// in parallel, like moving files around.
-			need_uncork = 0x200,
-
 			// this flag is set on a job when a read operation did
 			// not hit the disk, but found the data in the read cache.
-			cache_hit = 0x400,
+			cache_hit = 0x200,
 
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
 			// the cache.
-			force_copy = 0x800,
+			force_copy = 0x400,
 
 			// only applicable to get_cache_info. This makes the
 			// response not include the list of all pieces. The
 			// operation is considerably faster with this flag set.
-			no_pieces = 0x1000,
+			no_pieces = 0x800,
+
+			// when this is set, it means the job was not performed
+			// immediately within the disk thread, but was in fact an
+			// asynchronous operation that needs to decrement the
+			// outstanding jobs counter in the storage when it completes
+			async_operation = 0x1000,
+
+			// if this bit is set, it means we need to decrement the
+			// m_queue_buffer_size by the buffer size of this jobs
+			// when it completes
+			counts_towards_queue_size = 0x2000,
 		};
 
 		// the time when this job was queued. This is used to
@@ -216,6 +221,8 @@ namespace libtorrent
 		bool callback_called:1;
 #endif
 	};
+
+	bool is_job_immediate(int type);
 
 }
 

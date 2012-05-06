@@ -72,7 +72,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT http_seed_connection
+	class TORRENT_EXTRA_EXPORT http_seed_connection
 		: public web_connection_base
 	{
 	friend class invariant_access;
@@ -117,10 +117,10 @@ namespace libtorrent
 		// this is const since it's used as a key in the web seed list in the torrent
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;
-			
+
 		// the number of bytes left to receive of the response we're
 		// currently parsing
-		size_type m_response_left;		
+		size_type m_response_left;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.

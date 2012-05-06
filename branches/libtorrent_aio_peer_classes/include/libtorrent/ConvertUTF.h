@@ -97,7 +97,6 @@ typedef boost::uint16_t UTF16;
 typedef boost::uint8_t  UTF8;
 extern "C" {
 #else
-#define TORRENT_EXPORT
 #ifdef _MSC_VER
 // msvc doesn't seem to have stdint.h
 typedef unsigned __int32 UTF32;
@@ -132,19 +131,19 @@ typedef enum {
 	lenientConversion
 } ConversionFlags;
 
-TORRENT_EXPORT ConversionResult ConvertUTF8toUTF16 (
+ConversionResult ConvertUTF8toUTF16 (
 		const UTF8** sourceStart, const UTF8* sourceEnd, 
 		UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
 
-TORRENT_EXPORT ConversionResult ConvertUTF16toUTF8 (
+ConversionResult ConvertUTF16toUTF8 (
 		const UTF16** sourceStart, const UTF16* sourceEnd, 
 		UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
 		
-TORRENT_EXPORT ConversionResult ConvertUTF8toUTF32 (
+ConversionResult ConvertUTF8toUTF32 (
 		const UTF8** sourceStart, const UTF8* sourceEnd, 
 		UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
-TORRENT_EXPORT ConversionResult ConvertUTF32toUTF8 (
+ConversionResult ConvertUTF32toUTF8 (
 		const UTF32** sourceStart, const UTF32* sourceEnd, 
 		UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
 		

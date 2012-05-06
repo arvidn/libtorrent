@@ -107,6 +107,14 @@ namespace libtorrent
 		}
 	}
 
+	file_entry::file_entry(): offset(0), size(0), file_base(0)
+		, mtime(0), pad_file(false), hidden_attribute(false)
+		, executable_attribute(false)
+		, symlink_attribute(false)
+	{}
+
+	file_entry::~file_entry() {}
+
 	internal_file_entry::~internal_file_entry() { if (name_len == 0) free((void*)name); }
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)
@@ -280,18 +288,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string file_storage::file_path(internal_file_entry const& fe) const
-	{
-		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
-		if (fe.path_index == -1) return fe.filename();
-		return combine_path(m_paths[fe.path_index], fe.filename());
-	}
-
-	size_type file_storage::file_size(internal_file_entry const& fe) const
-	{
-		return fe.size;
-	}
-
 	peer_request file_storage::map_file(int file_index, size_type file_offset
 		, int size) const
 	{
@@ -392,6 +388,60 @@ namespace libtorrent
 		update_path_index(e);
 	}
 
+	sha1_hash file_storage::hash(int index) const
+	{
+		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
+		return sha1_hash(m_file_hashes[index]);
+	}
+	
+	std::string const& file_storage::symlink(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		internal_file_entry const& fe = m_files[index];
+		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
+		return m_symlinks[fe.symlink_index];
+	}
+
+	time_t file_storage::mtime(int index) const
+	{
+		if (index >= int(m_mtime.size())) return 0;
+		return m_mtime[index];
+	}
+
+	int file_storage::file_index(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		return index;
+	}
+
+	void file_storage::set_file_base(int index, size_type off)
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index);
+		m_file_base[index] = off;
+	}
+
+	size_type file_storage::file_base(int index) const
+	{
+		if (index >= int(m_file_base.size())) return 0;
+		return m_file_base[index];
+	}
+
+	std::string file_storage::file_path(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		internal_file_entry const& fe = m_files[index];
+		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
+		if (fe.path_index == -1) return fe.filename();
+		return combine_path(m_paths[fe.path_index], fe.filename());
+	}
+
+	size_type file_storage::file_size(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		return m_files[index].size;
+	}
+
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
@@ -432,6 +482,18 @@ namespace libtorrent
 		int index = &fe - &m_files[0];
 		if (index >= int(m_file_base.size())) return 0;
 		return m_file_base[index];
+	}
+
+	std::string file_storage::file_path(internal_file_entry const& fe) const
+	{
+		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
+		if (fe.path_index == -1) return fe.filename();
+		return combine_path(m_paths[fe.path_index], fe.filename());
+	}
+
+	size_type file_storage::file_size(internal_file_entry const& fe) const
+	{
+		return fe.size;
 	}
 
 	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)

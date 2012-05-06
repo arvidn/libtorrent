@@ -115,7 +115,7 @@ enum
 // into account. if lhs is close to UINT_MAX and rhs
 // is close to 0, lhs is assumed to have wrapped and
 // considered smaller
-TORRENT_EXPORT bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask)
+TORRENT_EXTRA_EXPORT bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask)
 {
 	// distance walking from lhs to rhs, downwards
 	boost::uint32_t dist_down = (lhs - rhs) & mask;
@@ -1817,7 +1817,7 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr, ACK_MASK)) return;
 	
 	// cut window size in 2
-	m_cwnd = (std::max)(m_cwnd / 2, boost::int64_t(m_mtu << 16));
+	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
 	m_loss_seq_nr = m_seq_nr;
 	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", this, seq_nr);
 
@@ -2905,6 +2905,16 @@ void utp_socket_impl::tick(ptime now)
 
 		m_cwnd = boost::int64_t(m_mtu) << 16;
 		if (m_outbuf.size()) ++m_num_timeouts;
+
+		if (m_num_timeouts > m_sm->num_resends())
+		{
+			// the connection is dead
+			m_error = asio::error::timed_out;
+			m_state = UTP_STATE_ERROR_WAIT;
+			test_socket_state();
+			return;
+		}
+
 		m_timeout = now + milliseconds(packet_timeout());
 	
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"

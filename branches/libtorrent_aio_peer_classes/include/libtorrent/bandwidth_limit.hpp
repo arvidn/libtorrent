@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 // member of peer_connection
-struct TORRENT_EXPORT bandwidth_channel
+struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
 	static const int inf = boost::integer_traits<int>::const_max;
 

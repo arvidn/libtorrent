@@ -62,11 +62,12 @@ namespace libtorrent
 	// return true if the status code is a redirect
 	bool is_redirect(int http_status);
 
-	class TORRENT_EXPORT http_parser
+	class TORRENT_EXTRA_EXPORT http_parser
 	{
 	public:
 		enum flags_t { dont_parse_chunks = 1 };
 		http_parser(int flags = 0);
+		~http_parser();
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;

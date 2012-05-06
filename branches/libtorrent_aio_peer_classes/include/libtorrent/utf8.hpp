@@ -42,68 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cwchar>
 
-#include "libtorrent/ConvertUTF.h"
-
 namespace libtorrent
 {
-	inline int utf8_wchar(const std::string &utf8, std::wstring &wide)
-	{
-		// allocate space for worst-case
-		wide.resize(utf8.size());
-		wchar_t const* dst_start = wide.c_str();
-		char const* src_start = utf8.c_str();
-		ConversionResult ret;
-		if (sizeof(wchar_t) == sizeof(UTF32))
-		{
-			ret = ConvertUTF8toUTF32((const UTF8**)&src_start, (const UTF8*)src_start
-				+ utf8.size(), (UTF32**)&dst_start, (UTF32*)dst_start + wide.size()
-				, lenientConversion);
-			wide.resize(dst_start - wide.c_str());
-			return ret;
-		}
-		else if (sizeof(wchar_t) == sizeof(UTF16))
-		{
-			ret = ConvertUTF8toUTF16((const UTF8**)&src_start, (const UTF8*)src_start
-				+ utf8.size(), (UTF16**)&dst_start, (UTF16*)dst_start + wide.size()
-				, lenientConversion);
-			wide.resize(dst_start - wide.c_str());
-			return ret;
-		}
-		else
-		{
-			return sourceIllegal;
-		}
-	}
-
-	inline int wchar_utf8(const std::wstring &wide, std::string &utf8)
-	{
-		// allocate space for worst-case
-		utf8.resize(wide.size() * 6);
-		if (wide.empty()) return 0;
-		char* dst_start = &utf8[0];
-		wchar_t const* src_start = wide.c_str();
-		ConversionResult ret;
-		if (sizeof(wchar_t) == sizeof(UTF32))
-		{
-			ret = ConvertUTF32toUTF8((const UTF32**)&src_start, (const UTF32*)src_start
-				+ wide.size(), (UTF8**)&dst_start, (UTF8*)dst_start + utf8.size()
-				, lenientConversion);
-			utf8.resize(dst_start - &utf8[0]);
-			return ret;
-		}
-		else if (sizeof(wchar_t) == sizeof(UTF16))
-		{
-			ret = ConvertUTF16toUTF8((const UTF16**)&src_start, (const UTF16*)src_start
-				+ wide.size(), (UTF8**)&dst_start, (UTF8*)dst_start + utf8.size()
-				, lenientConversion);
-			utf8.resize(dst_start - &utf8[0]);
-			return ret;
-		}
-		else
-		{
-			return sourceIllegal;
-		}
-	}
+	TORRENT_EXPORT int utf8_wchar(const std::string &utf8, std::wstring &wide);
+	TORRENT_EXPORT int wchar_utf8(const std::wstring &wide, std::string &utf8);
 }
 #endif // !BOOST_NO_STD_WSTRING
 

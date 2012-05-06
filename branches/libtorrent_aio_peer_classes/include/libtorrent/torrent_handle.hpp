@@ -306,6 +306,8 @@ namespace libtorrent
 		bool is_sequential_download() const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		bool has_metadata() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		bool super_seeding() const TORRENT_DEPRECATED;
 
 		// deprecated in 0.13
 		// marks the piece with the given index as filtered
@@ -388,7 +390,7 @@ namespace libtorrent
 		void set_sequential_download(bool sd) const;
 
 		// manually connect a peer
-		void connect_peer(tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 		std::string save_path() const;
 
@@ -412,7 +414,6 @@ namespace libtorrent
 		void rename_file(int index, std::wstring const& new_name) const;
 #endif
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 		sha1_hash info_hash() const;
@@ -441,73 +442,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT torrent_status
 	{
-		torrent_status()
-			: state(checking_resume_data)
-			, paused(false)
-			, auto_managed(false)
-			, sequential_download(false)
-			, is_seeding(false)
-			, is_finished(false)
-			, has_metadata(false)
-			, progress(0.f)
-			, progress_ppm(0)
-			, total_download(0)
-			, total_upload(0)
-			, total_payload_download(0)
-			, total_payload_upload(0)
-			, total_failed_bytes(0)
-			, total_redundant_bytes(0)
-			, download_rate(0)
-			, upload_rate(0)
-			, download_payload_rate(0)
-			, upload_payload_rate(0)
-			, num_seeds(0)
-			, num_peers(0)
-			, num_complete(-1)
-			, num_incomplete(-1)
-			, list_seeds(0)
-			, list_peers(0)
-			, connect_candidates(0)
-			, num_pieces(0)
-			, total_done(0)
-			, total_wanted_done(0)
-			, total_wanted(0)
-			, distributed_full_copies(0)
-			, distributed_fraction(0)
-			, distributed_copies(0.f)
-			, block_size(0)
-			, num_uploads(0)
-			, num_connections(0)
-			, num_undead_peers(0)
-			, uploads_limit(0)
-			, connections_limit(0)
-			, storage_mode(storage_mode_sparse)
-			, up_bandwidth_queue(0)
-			, down_bandwidth_queue(0)
-			, all_time_upload(0)
-			, all_time_download(0)
-			, active_time(0)
-			, finished_time(0)
-			, seeding_time(0)
-			, seed_rank(0)
-			, last_scrape(0)
-			, has_incoming(false)
-			, sparse_regions(0)
-			, seed_mode(false)
-			, upload_mode(false)
-			, share_mode(false)
-			, priority(0)
-			, added_time(0)
-			, completed_time(0)
-			, last_seen_complete(0)
-			, time_since_upload(0)
-			, time_since_download(0)
-			, queue_position(0)
-			, need_save_resume(false)
-			, ip_filter_applies(true)
-			, info_hash(0)
-			, listen_port(0)
-		{}
+		torrent_status();
+		~torrent_status();
 
 		bool operator==(torrent_status const& st) const
 		{ return handle == st.handle; }
@@ -704,6 +640,9 @@ namespace libtorrent
 
 		// this is true if the torrent is in share-mode
 		bool share_mode;
+
+		// true if the torrent is in super seeding mode
+		bool super_seeding;
 
 		// the priority of this torrent
 		int priority;

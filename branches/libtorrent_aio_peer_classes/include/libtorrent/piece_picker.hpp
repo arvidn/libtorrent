@@ -54,6 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 
 //#define TORRENT_PICKER_LOG
+//#define TORRENT_DEBUG_REFCOUNTS
+
+#ifdef TORRENT_DEBUG_REFCOUNTS
+#include <set>
+#endif
 
 namespace libtorrent
 {
@@ -62,7 +67,7 @@ namespace libtorrent
 	class peer_connection;
 	struct bitfield;
 
-	struct TORRENT_EXPORT piece_block
+	struct TORRENT_EXTRA_EXPORT piece_block
 	{
 		const static piece_block invalid;
 
@@ -71,11 +76,11 @@ namespace libtorrent
 			: piece_index(p_index)
 			, block_index(b_index)
 		{
-			TORRENT_ASSERT(p_index < (1 << 18));
-			TORRENT_ASSERT(b_index < (1 << 14));
+			TORRENT_ASSERT(p_index < (1 << 19));
+			TORRENT_ASSERT(b_index < (1 << 13));
 		}
-		boost::uint32_t piece_index:18;
-		boost::uint32_t block_index:14;
+		boost::uint32_t piece_index:19;
+		boost::uint32_t block_index:13;
 
 		bool operator<(piece_block const& b) const
 		{
@@ -92,7 +97,7 @@ namespace libtorrent
 
 	};
 
-	class TORRENT_EXPORT piece_picker
+	class TORRENT_EXTRA_EXPORT piece_picker
 	{
 	public:
 
@@ -119,6 +124,10 @@ namespace libtorrent
 			// the state of this block
 			enum { state_none, state_requested, state_writing, state_finished };
 			unsigned state:2;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			// to allow verifying the invariant of blocks belonging to the right piece
+			int piece_index;
+#endif
 		};
 
 		// the peers that are downloading this piece
@@ -207,21 +216,21 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
-		void inc_refcount(int index);
-		void dec_refcount(int index);
+		void inc_refcount(int index, const void* peer);
+		void dec_refcount(int index, const void* peer);
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
-		void inc_refcount(bitfield const& bitmask);
+		void inc_refcount(bitfield const& bitmask, const void* peer);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
-		void dec_refcount(bitfield const& bitmask);
+		void dec_refcount(bitfield const& bitmask, const void* peer);
 		
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
-		void inc_refcount_all();
-		void dec_refcount_all();
+		void inc_refcount_all(const void* peer);
+		void dec_refcount_all(const void* peer);
 
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
@@ -438,7 +447,11 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
+#if TORRENT_COMPACT_PICKER
 			boost::uint32_t peer_count : 9;
+#else
+			boost::uint32_t peer_count : 16;
+#endif
 
 			// state of this piece.
 			enum state_t
@@ -465,18 +478,35 @@ namespace libtorrent
 			// 7 is maximum priority (ignores availability)
 			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
+#if TORRENT_COMPACT_PICKER
 			boost::uint32_t index : 18;
+#else
+			boost::uint32_t index;
+#endif
+
+#ifdef TORRENT_DEBUG_REFCOUNTS
+			// all the peers that have this piece
+			std::set<const void*> have_peers;
+#endif
 
 			enum
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
+#if TORRENT_COMPACT_PICKER
 				we_have_index = 0x3ffff,
+#else
+				we_have_index = 0xffffffff,
+#endif
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
+#if TORRENT_COMPACT_PICKER
 				max_peer_count = 0x1ff
+#else
+				max_peer_count = 0xffff
+#endif
 			};
 			
 			bool have() const { return index == we_have_index; }
@@ -535,7 +565,13 @@ namespace libtorrent
 
 	private:
 
+#ifndef TORRENT_DEBUG_REFCOUNTS
+#if TORRENT_COMPACT_PICKER
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+#else
+		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+#endif
+#endif
 
 		void update_pieces() const;
 
@@ -647,7 +683,12 @@ namespace libtorrent
 		mutable bool m_dirty;
 	public:
 
+#if TORRENT_COMPACT_PICKER
 		enum { max_pieces = piece_pos::we_have_index - 1 };
+#else
+		// still limited by piece_block
+		enum { max_pieces = (1 << 19) - 2 };
+#endif
 
 	};
 }

@@ -98,7 +98,7 @@ AX_PTHREAD()
 
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS -fvisibility=hidden"
-CXXFLAGS="$CXXFLAGS -fvisibility=hidden -fvisibility-inlines-hidden"
+CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden"
 CC="$PTHREAD_CC"
 
 AS_ECHO
@@ -581,6 +581,7 @@ AM_CONDITIONAL([ENABLE_TESTS], [test "x$ARG_ENABLE_TESTS" = "xyes"])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDING], [test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"])
 
 AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
+AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$ARG_ENABLE_ENCRYPTION" = "xon" ])
 
 
 ###############################################################################
@@ -597,6 +598,9 @@ COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 
 AC_DEFINE([BOOST_ASIO_ENABLE_CANCELIO],[1],[Define to enable cancel support in asio on windows XP and older.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_ENABLE_CANCELIO "
+
+AC_DEFINE([BOOST_ASIO_DYN_LINK],[1],[make asio export its symbols])
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_DYN_LINK"
 
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])
@@ -632,6 +636,7 @@ AC_CONFIG_FILES(
   [include/libtorrent/Makefile]
   [examples/Makefile]
   [test/Makefile]
+  [tools/Makefile]
   [bindings/Makefile]
   [bindings/python/Makefile]
   [bindings/python/setup.py]

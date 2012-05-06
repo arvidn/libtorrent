@@ -59,5 +59,13 @@ namespace libtorrent
 		if (action == save_resume_data)
 			delete (entry*)buffer;
 	}
+
+	bool is_job_immediate(int type)
+	{
+		return type == disk_io_job::get_cache_info
+			|| type == disk_io_job::update_settings
+			|| type == disk_io_job::aiocb_complete
+			|| type == disk_io_job::sync_piece;
+	}
 }
 

@@ -45,9 +45,10 @@ namespace libtorrent
 	namespace aux
 	{ struct session_impl; }
 
-	struct feed_item
+	struct TORRENT_EXPORT feed_item
 	{
-		feed_item(): size(-1) {}
+		feed_item();
+		~feed_item();
 		std::string url;
 		std::string uuid;
 		std::string title;
@@ -135,7 +136,7 @@ namespace libtorrent
 	// RSS feed. All user interaction with this object
 	// goes through the feed_handle, which makes sure all calls
 	// are posted to the network thread
-	struct TORRENT_EXPORT feed : boost::enable_shared_from_this<feed>
+	struct TORRENT_EXTRA_EXPORT feed : boost::enable_shared_from_this<feed>
 	{
 		friend void parse_feed(feed_state& f, int token, char const* name, char const* val);
 

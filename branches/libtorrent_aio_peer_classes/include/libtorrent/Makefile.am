@@ -8,6 +8,7 @@ nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
+  alert_dispatcher.hpp         \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
@@ -129,6 +130,9 @@ nobase_include_HEADERS = \
   xml_parse.hpp                \
   \
   $(GEOIP_H) \
+  tommath.h \
+  tommath_class.h \
+  tommath_superclass.h \
   \
   aux_/session_impl.hpp        \
   \
@@ -140,6 +144,7 @@ nobase_include_HEADERS = \
   extensions/ut_pex.hpp             \
   \
   kademlia/dht_tracker.hpp          \
+  kademlia/dht_observer.hpp         \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \

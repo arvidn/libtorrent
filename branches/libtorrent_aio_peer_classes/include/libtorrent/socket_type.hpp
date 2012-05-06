@@ -47,6 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ssl_stream.hpp"
 #endif
 
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
 #if TORRENT_USE_I2P
 
 #define TORRENT_SOCKTYPE_I2P_FORWARD(x) \
@@ -170,7 +174,7 @@ namespace libtorrent
 	{ enum { value = 9 }; };
 #endif
 
-	struct TORRENT_EXPORT socket_type
+	struct TORRENT_EXTRA_EXPORT socket_type
 	{
 		typedef stream_socket::endpoint_type endpoint_type;
 		typedef stream_socket::protocol_type protocol_type;
@@ -295,8 +299,15 @@ namespace libtorrent
 		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};
 
+	// returns true if this socket is an SSL socket
 	bool is_ssl(socket_type const& s);
 
+	// assuming the socket_type s is an ssl socket, make sure it
+	// verifies the hostname in its SSL handshake
+	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec);
+
+	// properly shuts down SSL sockets. holder keeps s alive
+	void async_shutdown(socket_type& s, boost::shared_ptr<void> holder);
 }
 
 #endif

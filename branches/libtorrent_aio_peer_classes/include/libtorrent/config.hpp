@@ -45,7 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // __linux
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
-#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
+#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators with TORRENT_DISABLE_POOL_ALLOCATOR
+#endif
+
+#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
+#error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
+	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
+	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
+	build, to automatically apply these defines
 #endif
 
 #ifndef _MSC_VER
@@ -109,6 +116,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_DEFAULT_IO 0
 #endif
 
+// backwards compatibility with older versions of boost
+#if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
+# if defined _MSC_VER || defined __MINGW32__
+#  define BOOST_SYMBOL_EXPORT __declspec(dllexport)
+#  define BOOST_SYMBOL_IMPORT __declspec(dllimport)
+# elif __GNU__ >= 4
+#  define BOOST_SYMBOL_EXPORT __attribute__((visibility("default")))
+#  define BOOST_SYMBOL_IMPORT __attribute__((visibility("default")))
+# else
+#  define BOOST_SYMBOL_EXPORT
+#  define BOOST_SYMBOL_IMPORT
+# endif
+#endif
+
+#if defined TORRENT_BUILDING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
+#elif defined TORRENT_LINKING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
+#endif
+
+// when this is specified, export a bunch of extra
+// symbols, mostly for the unit tests to reach
+#if TORRENT_EXPORT_EXTRA
+# if defined TORRENT_BUILDING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
+# elif defined TORRENT_LINKING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_IMPORT
+# endif
+#endif
+
+#ifndef TORRENT_EXTRA_EXPORT
+# define TORRENT_EXTRA_EXPORT
+#endif
+
 // ======= GCC =========
 
 #if defined __GNUC__
@@ -117,23 +158,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 # endif
 
-// GCC pre 4.0 did not have support for the visibility attribute
-# if __GNUC__ >= 4
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  endif
-# endif
-
-
 // ======= SUNPRO =========
 
 #elif defined __SUNPRO_CC
-
-# if __SUNPRO_CC >= 0x550
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __global
-#  endif
-# endif
 
 // SunPRO seems to have an overly-strict
 // definition of POD types and doesn't
@@ -154,12 +181,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
 #pragma warning(disable: 4996)
 #define strdup _strdup
-
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
@@ -202,6 +223,8 @@ POSSIBILITY OF SUCH DAMAGE.
 # endif
 # define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
+// FreeBSD has a reasonable iconv signature
+# define TORRENT_ICONV_ARG (const char**)
 # define TORRENT_USE_POSIX_SEMAPHORE 1
 #endif // __APPLE__
 
@@ -273,7 +296,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
+#ifndef TORRENT_USE_UNC_PATHS
 #define TORRENT_USE_UNC_PATHS 1
+#endif
 
 // ==== WINDOWS ===
 #elif defined WIN32
@@ -293,7 +318,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_DEFAULT_IO
 # define TORRENT_USE_OVERLAPPED 1
 #endif
+#ifndef TORRENT_USE_UNC_PATHS
 #define TORRENT_USE_UNC_PATHS 1
+#endif
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
@@ -321,13 +348,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 0
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
-#endif
-#if __GNUCC__ == 2
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 #endif
 
 // ==== GNU/Hurd ===
@@ -577,6 +597,12 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif
 
+// if set to true, piece picker will use less RAM
+// but only support up to ~260000 pieces in a torrent
+#ifndef TORRENT_COMPACT_PICKER
+#define TORRENT_COMPACT_PICKER 0
+#endif
+
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
 #endif
@@ -598,11 +624,11 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# define TORRENT_READ_HANDLER_MAX_SIZE 256
+# define TORRENT_READ_HANDLER_MAX_SIZE 300
 #endif
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# define TORRENT_WRITE_HANDLER_MAX_SIZE 256
+# define TORRENT_WRITE_HANDLER_MAX_SIZE 300
 #endif
 
 #if defined _MSC_VER && _MSC_VER <= 1200

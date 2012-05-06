@@ -16,11 +16,16 @@ if WITH_SHIPPED_GEOIP
 GEOIP_SOURCES = GeoIP.c
 endif
 
+if WITH_OPENSSL
+ASIO_OPENSSL_SOURCES = asio_ssl.cpp
+endif
+
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   aiocb_pool.cpp                  \
   alert.cpp                       \
   allocator.cpp                   \
+  asio.cpp                        \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
@@ -61,6 +66,7 @@ libtorrent_rasterbar_la_SOURCES = \
   lt_trackers.cpp                 \
   magnet_uri.cpp                  \
   metadata_transfer.cpp           \
+  mpi.c                           \
   natpmp.cpp                      \
   parse_url.cpp                   \
   pe_crypto.cpp                   \
@@ -84,6 +90,7 @@ libtorrent_rasterbar_la_SOURCES = \
   socks5_stream.cpp               \
   stat.cpp                        \
   storage.cpp                     \
+  tailqueue.cpp                   \
   thread.cpp                      \
   torrent.cpp                     \
   torrent_handle.cpp              \
@@ -96,12 +103,14 @@ libtorrent_rasterbar_la_SOURCES = \
   upnp.cpp                        \
   ut_metadata.cpp                 \
   ut_pex.cpp                      \
+  utf8.cpp                        \
   utp_socket_manager.cpp          \
   utp_stream.cpp                  \
   web_peer_connection.cpp         \
   \
   $(KADEMLIA_SOURCES)             \
-  $(GEOIP_SOURCES)
+  $(GEOIP_SOURCES)                \
+  $(ASIO_OPENSSL_SOURCES)
 
 #libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)

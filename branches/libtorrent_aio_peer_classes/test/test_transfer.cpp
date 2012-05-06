@@ -56,10 +56,10 @@ void test_rate()
 {
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, mask);
@@ -67,8 +67,8 @@ void test_rate()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
-	std::ofstream file("./tmp1_transfer/temporary");
+	create_directory("tmp1_transfer", ec);
+	std::ofstream file("tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
 
@@ -198,10 +198,10 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
@@ -267,8 +267,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
-	std::ofstream file("./tmp1_transfer/temporary");
+	create_directory("tmp1_transfer", ec);
+	std::ofstream file("tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
@@ -286,8 +286,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	add_torrent_params addp(&test_storage_constructor);
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses1");
@@ -350,8 +350,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		if (!test_move_storage && st2.progress > 0.25f)
 		{
 			test_move_storage = true;
-			tor1.move_storage("./tmp1_transfer_moved");
-			tor2.move_storage("./tmp2_transfer_moved");
+			tor1.move_storage("tmp1_transfer_moved");
+			tor2.move_storage("tmp2_transfer_moved");
 			std::cerr << "moving storage" << std::endl;
 		}
 
@@ -477,10 +477,10 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		std::cout << "re-adding" << std::endl;
 		add_torrent_params p;
-		p.paused = false;
-		p.auto_managed = false;
+		p.flags &= ~add_torrent_params::flag_paused;
+		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = t;
-		p.save_path = "./tmp2_transfer_moved";
+		p.save_path = "tmp2_transfer_moved";
 		p.resume_data = &resume_data;
 		tor2 = ses2.add_torrent(p, ec);
 		ses2.set_alert_mask(mask);
@@ -577,10 +577,10 @@ int test_main()
 	test_transfer(0, false, true, true);
 	
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	return 0;
 }

@@ -36,25 +36,33 @@ int test_main()
 
 	char tracker_url[200];
 	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
-	t->add_tracker(tracker_url);
+	t->add_tracker(tracker_url, 0);
 
 	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
-	t->add_tracker(tracker_url);
+	t->add_tracker(tracker_url, 1);
 
 	add_torrent_params addp;
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
 	addp.save_path = "./tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
-	test_sleep(2000);
+	for (int i = 0; i < 100; ++i)
+	{
+		print_alerts(*s, "s");
+		test_sleep(100);
+		if (g_udp_tracker_requests == prev_udp_announces + 1
+			&& g_http_tracker_requests == prev_http_announces + 1) break;
+	}
 
 	// we should have announced to the tracker by now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces + 1);
 
+	fprintf(stderr, "destructing session\n");
 	delete s;
+	fprintf(stderr, "done\n");
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 2);
@@ -99,8 +107,8 @@ int test_main()
 	prev_udp_announces = g_udp_tracker_requests;
 	prev_http_announces = g_http_tracker_requests;
 
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.ti = t;
 	addp.save_path = "./tmp2_tracker";
 	h = s->add_torrent(addp);
@@ -117,7 +125,9 @@ int test_main()
 	TEST_EQUAL(g_udp_tracker_requests, prev_udp_announces + 1);
 	TEST_EQUAL(g_http_tracker_requests, prev_http_announces);
 
+	fprintf(stderr, "destructing session\n");
 	delete s;
+	fprintf(stderr, "done\n");
 
 	stop_tracker();
 	stop_web_server();

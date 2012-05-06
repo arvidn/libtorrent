@@ -105,17 +105,27 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
-		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.status().is_seeding)
-			|| pea->error.message() == "connecting to peer"
-			|| pea->error.message() == "closing connection to ourself"
-			|| pea->error.message() == "duplicate connection"
-			|| pea->error.message() == "duplicate peer-id"
-			|| pea->error.message() == "upload to upload connection"
-			|| pea->error.message() == "stopping torrent"
-			|| (allow_disconnects && pea->error.message() == "Broken pipe")
-			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
-			|| (allow_disconnects && pea->error.message() == "End of file."));
+		if (pea)
+		{
+			fprintf(stderr, "peer error: %s\n", pea->error.message().c_str());
+			TEST_CHECK((!handles.empty() && h.status().is_seeding)
+				|| pea->error.message() == "connecting to peer"
+				|| pea->error.message() == "closing connection to ourself"
+				|| pea->error.message() == "duplicate connection"
+				|| pea->error.message() == "duplicate peer-id"
+				|| pea->error.message() == "upload to upload connection"
+				|| pea->error.message() == "stopping torrent"
+				|| (allow_disconnects && pea->error.message() == "Broken pipe")
+				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+				|| (allow_disconnects && pea->error.message() == "End of file."));
+		}
+
+		invalid_request_alert* ira = alert_cast<invalid_request_alert>(*i);
+		if (ira)
+		{
+			fprintf(stderr, "peer error: %s\n", ira->message().c_str());
+			TEST_CHECK(false);
+		}
 		delete *i;
 	}
 	return ret;
@@ -336,22 +346,22 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	add_torrent_params param;
-	param.paused = false;
-	param.auto_managed = false;
+	param.flags &= ~add_torrent_params::flag_paused;
+	param.flags &= ~add_torrent_params::flag_auto_managed;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
 	param.save_path = "./tmp1" + suffix;
-	param.seed_mode = true;
+	param.flags |= add_torrent_params::flag_seed_mode;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
-	param.seed_mode = false;
+
+	// the downloader cannot use seed_mode
+	param.flags &= ~add_torrent_params::flag_seed_mode;
+
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
-
-	// the downloader cannot use seed_mode
-	param.seed_mode = false;
 
 	if (ses3)
 	{
@@ -597,7 +607,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 		system("echo test city >> tmp");
 		system("echo test company >> tmp");
 		system("echo test department >> tmp");
-		system("echo tester >> tmp");
+		system("echo 127.0.0.1 >> tmp");
 		system("echo test@test.com >> tmp");   
 		system("openssl req -new -x509 -keyout server.pem -out server.pem "
 			"-days 365 -nodes <tmp");
@@ -881,7 +891,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				s.async_read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), boost::bind(&on_read, _1, _2, &received, &ec, &done));
 				deadline_timer timer(ios);
-				timer.expires_at(time_now_hires() + seconds(100));
+				timer.expires_at(time_now_hires() + seconds(2));
 				timer.async_wait(boost::bind(&on_read_timeout, _1, &timed_out));
 
 				while (!done && !timed_out)
@@ -965,6 +975,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
+			fprintf(stderr, "%s\n", path.c_str());
 
 			if (path == "/redirect")
 			{
@@ -1107,6 +1118,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				char eh[400];
 				snprintf(eh, sizeof(eh), "Content-Range: bytes %d-%d\r\n", start, end);
 				extra_header[1] = eh;
+				if (end - start + 1 >= 1000)
+				{
+					fprintf(stderr, "request size: %.2f kB\n", int(end - start + 1)/1000.f);
+				}
+				else
+				{
+					fprintf(stderr, "request size: %d Bytes\n", int(end - start + 1));
+				}
 				send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
 				if (!file_buf.empty())
 				{

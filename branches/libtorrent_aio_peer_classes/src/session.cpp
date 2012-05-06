@@ -293,12 +293,16 @@ namespace libtorrent
 
 		// of 500 ms, and a send rate of 4 MB/s, the upper
 		// limit should be 2 MB
-		set.send_buffer_watermark = 2 * 1024 * 1024;
+		set.send_buffer_watermark = 3 * 1024 * 1024;
 
 		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
 		set.send_buffer_watermark_factor = 150;
+
+		// always stuff at least 1 MiB down each peer
+		// pipe, to quickly ramp up send rates
+ 		set.send_buffer_low_watermark = 1 * 1024 * 1024;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
@@ -314,7 +318,8 @@ namespace libtorrent
 
 		// the number of threads to use to call async_write_some
 		// on peer sockets
-		set.network_threads = 3;
+		// TODO: this doesn't actually fully work yet. There appears to be some race condition involved
+		set.network_threads = 0;
 
 		// number of disk threads for low level file operations
 		set.aio_threads = 4;
@@ -406,6 +411,10 @@ namespace libtorrent
 	type r; \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	TORRENT_WAIT
+
+#ifndef TORRENT_CFG
+#error TORRENT_CFG is not defined!
+#endif
 
 	// this is a dummy function that's exported and named based
 	// on the configuration. The session.hpp file will reference
@@ -622,13 +631,6 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p);
-		}
-
 		error_code ec;
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
@@ -639,13 +641,6 @@ namespace libtorrent
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
 		ec.clear();
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p, ec);
-		}
-
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		return r;
 	}
@@ -654,8 +649,6 @@ namespace libtorrent
 	{
 		add_torrent_params* p = new add_torrent_params(params);
 		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
-		if (params.tracker_url) p->tracker_url = strdup(params.tracker_url);
-		if (params.name) p->name = strdup(params.name);
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
@@ -1183,5 +1176,208 @@ namespace libtorrent
 	{
 		return m_impl->m_half_open;
 	}
+
+	session_settings::session_settings(std::string const& user_agent_)
+		: version(LIBTORRENT_VERSION_NUM)
+		, user_agent(user_agent_)
+		, tracker_completion_timeout(60)
+		, tracker_receive_timeout(40)
+		, stop_tracker_timeout(5)
+		, tracker_maximum_response_length(1024*1024)
+		, piece_timeout(20)
+		, request_timeout(50)
+		, request_queue_time(3)
+		, max_allowed_in_request_queue(250)
+		, max_out_request_queue(200)
+		, whole_pieces_threshold(20)
+		, peer_timeout(120)
+		, urlseed_timeout(20)
+		, urlseed_pipeline_size(5)
+		, urlseed_wait_retry(30)
+		, file_pool_size(40)
+		, allow_multiple_connections_per_ip(false)
+		, max_failcount(3)
+		, min_reconnect_time(60)
+		, peer_connect_timeout(15)
+#ifndef TORRENT_NO_DEPRECATE
+		  // deprecated in 0.17
+		, ignore_limits_on_local_network(true)
+#endif
+		, connection_speed(6)
+		, send_redundant_have(true)
+		, lazy_bitfields(true)
+		, inactivity_timeout(600)
+		, unchoke_interval(15)
+		, optimistic_unchoke_interval(30)
+		, num_want(200)
+		, initial_picker_threshold(4)
+		, allowed_fast_set_size(10)
+		, suggest_mode(no_piece_suggestions)
+		, max_queued_disk_bytes(1024 * 1024)
+#ifndef TORRENT_NO_DEPRECATE
+		// this is no longer used
+		, max_queued_disk_bytes_low_watermark(0)
+#endif
+		, handshake_timeout(10)
+#ifndef TORRENT_DISABLE_DHT
+		, use_dht_as_fallback(false)
+#endif
+		, free_torrent_hashes(true)
+		, upnp_ignore_nonrouters(false)
+		, send_buffer_low_watermark(512)
+		, send_buffer_watermark(500 * 1024)
+		, send_buffer_watermark_factor(50)
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.16
+		, auto_upload_slots(true)
+		, auto_upload_slots_rate_based(true)
+#endif
+		, choking_algorithm(fixed_slots_choker)
+		, seed_choking_algorithm(round_robin)
+		, use_parole_mode(true)
+		, cache_size(1024)
+		, cache_buffer_chunk_size(0)
+		, cache_expiry(300)
+		, use_read_cache(true)
+		, dont_flush_write_cache(false)
+		, explicit_read_cache(0)
+		, explicit_cache_interval(30)
+		, disk_io_write_mode(0)
+		, disk_io_read_mode(0)
+		, coalesce_reads(false)
+		, coalesce_writes(false)
+		, outgoing_ports(0,0)
+		, peer_tos(0)
+		, active_downloads(3)
+		, active_seeds(5)
+		, active_dht_limit(88) // don't announce more than once every 40 seconds
+		, active_tracker_limit(360) // don't announce to trackers more than once every 5 seconds
+		, active_lsd_limit(60) // don't announce to local network more than once every 5 seconds
+		, active_limit(15)
+		, auto_manage_prefer_seeds(false)
+		, dont_count_slow_torrents(true)
+		, auto_manage_interval(30)
+		, share_ratio_limit(2.f)
+		, seed_time_ratio_limit(7.f)
+		, seed_time_limit(24 * 60 * 60) // 24 hours
+		, peer_turnover_interval(300)
+		, peer_turnover(2 / 50.f)
+		, peer_turnover_cutoff(.9f)
+		, close_redundant_connections(true)
+		, auto_scrape_interval(1800)
+		, auto_scrape_min_interval(300)
+		, max_peerlist_size(4000)
+		, max_paused_peerlist_size(4000)
+		, min_announce_interval(5 * 60)
+		, prioritize_partial_pieces(false)
+		, auto_manage_startup(120)
+		, rate_limit_ip_overhead(true)
+		, announce_to_all_trackers(false)
+		, announce_to_all_tiers(false)
+		, prefer_udp_trackers(true)
+		, strict_super_seeding(false)
+		, seeding_piece_quota(20)
+#ifdef TORRENT_WINDOWS
+		, max_sparse_regions(30000)
+#else
+		, max_sparse_regions(0)
+#endif
+#ifndef TORRENT_DISABLE_MLOCK
+		, lock_disk_cache(false)
+#endif
+		, max_rejects(50)
+		, recv_socket_buffer_size(0)
+		, send_socket_buffer_size(0)
+		, optimize_hashing_for_speed(true)
+		, file_checks_delay_per_block(0)
+		, disk_cache_algorithm(avoid_readback)
+		, read_cache_line_size(32)
+		, write_cache_line_size(16)
+		, optimistic_disk_retry(10 * 60)
+		, disable_hash_checks(false)
+#if TORRENT_USE_AIO || TORRENT_USE_OVERLAPPED
+		, allow_reordered_disk_operations(false)
+#else
+		, allow_reordered_disk_operations(true)
+#endif
+		, allow_i2p_mixed(false)
+		, max_suggest_pieces(10)
+		, drop_skipped_requests(false)
+		, low_prio_disk(true)
+		, local_service_announce_interval(5 * 60)
+		, dht_announce_interval(15 * 60)
+		, udp_tracker_token_expiry(60)
+		, volatile_read_cache(false)
+		, guided_read_cache(false)
+		, default_cache_min_age(1)
+		, num_optimistic_unchoke_slots(0)
+		, no_atime_storage(true)
+		, default_est_reciprocation_rate(16000)
+		, increase_est_reciprocation_rate(20)
+		, decrease_est_reciprocation_rate(3)
+		, incoming_starts_queued_torrents(false)
+		, report_true_downloaded(false)
+		, strict_end_game_mode(true)
+		, broadcast_lsd(true)
+		, enable_outgoing_utp(true)
+		, enable_incoming_utp(true)
+		, enable_outgoing_tcp(true)
+		, enable_incoming_tcp(true)
+		, max_pex_peers(50)
+		, ignore_resume_timestamps(false)
+		, no_recheck_incomplete_resume(false)
+		, anonymous_mode(false)
+		, tick_interval(100)
+		, report_web_seed_downloads(true)
+		, share_mode_target(3)
+		, upload_rate_limit(0)
+		, download_rate_limit(0)
+		, local_upload_rate_limit(0)
+		, local_download_rate_limit(0)
+		, dht_upload_rate_limit(4000)
+		, unchoke_slots_limit(8)
+		, half_open_limit(0)
+		, connections_limit(200)
+		, utp_target_delay(100) // milliseconds
+		, utp_gain_factor(1500) // bytes per rtt
+		, utp_min_timeout(500) // milliseconds
+		, utp_syn_resends(2)
+		, utp_fin_resends(2)
+		, utp_num_resends(6)
+		, utp_connect_timeout(3000) // milliseconds
+		, utp_delayed_ack(0) // milliseconds
+		, utp_dynamic_sock_buf(true)
+		, utp_loss_multiplier(50) // specified in percent
+		, mixed_mode_algorithm(peer_proportional)
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.17
+		, rate_limit_utp(false)
+#endif
+		, listen_queue_size(5)
+		, announce_double_nat(false)
+		, torrent_connect_boost(10)
+		, seeding_outgoing_connections(true)
+		, no_connect_privileged_ports(true)
+		, alert_queue_size(1000)
+		, max_metadata_size(3*1024*1024)
+		, smooth_connects(true)
+		, always_send_user_agent(false)
+		, apply_ip_filter_to_trackers(true)
+		, read_job_every(10)
+		, use_disk_read_ahead(true)
+		, lock_files(false)
+		, hashing_threads(1)
+		, checking_mem_usage(200)
+		, predictive_piece_announce(0)
+		, contiguous_recv_buffer(true)
+		, aio_threads(2)
+		, aio_max(300)
+		, network_threads(0)
+		, ssl_listen(4433)
+		, tracker_backoff(250)
+		, ban_web_seeds(true)
+	{}
+
+	session_settings::~session_settings() {}
 }
 

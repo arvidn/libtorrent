@@ -726,7 +726,7 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, ".resume/" + to_hex(t->info_hash().to_string()) + ".resume");
+	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
 
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
@@ -993,7 +993,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()
@@ -1289,8 +1289,8 @@ int main(int argc, char* argv[])
 			// match it against the <hash>@<tracker> format
 			if (strlen(argv[i]) > 45
 				&& is_hex(argv[i], 40)
-				&& (string_begins_no_case(argv[i] + 40, "@http://")
-					|| string_begins_no_case(argv[i] + 40, "@udp://")))
+				&& (strncmp(argv[i] + 40, "@http://", 8) == 0
+					|| strncmp(argv[i] + 40, "@udp://", 7) == 0))
 			{
 				sha1_hash info_hash;
 				from_hex(argv[i], 40, (char*)&info_hash[0]);
@@ -1299,7 +1299,7 @@ int main(int argc, char* argv[])
 				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 				if (disable_storage) p.storage = disabled_storage_constructor;
 				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-				p.tracker_url = argv[i] + 41;
+				p.trackers.push_back(argv[i] + 41);
 				p.info_hash = info_hash;
 				p.save_path = save_path;
 				p.storage_mode = (storage_mode_t)allocation_mode;
@@ -1471,7 +1471,7 @@ int main(int argc, char* argv[])
 	}
 
 	// create directory for resume files
-	create_directory(combine_path(save_path, ".resume/"), ec);
+	create_directory(combine_path(save_path, ".resume"), ec);
 	if (ec)
 		fprintf(stderr, "failed to create resume file directory: %s\n", ec.message().c_str());
 
@@ -1541,18 +1541,13 @@ int main(int argc, char* argv[])
 			std::vector<char> buf;
 			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 			{
-				std::string btih = url_has_argument(*i, "xt");
-				if (btih.empty()) continue;
+				add_torrent_params tmp;
+				parse_magnet_uri(*i, tmp, ec);
 
-				if (btih.compare(0, 9, "urn:btih:") != 0)
-					continue;
+				if (ec) continue;
 
-				sha1_hash info_hash;
-				if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
-				else info_hash.assign(base32decode(btih.substr(9)));
-
-				std::string filename = combine_path(save_path, ".resume/"
-					+ to_hex(info_hash.to_string()) + ".resume");
+				std::string filename = combine_path(save_path, combine_path(".resume"
+					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
 				if (load_file(filename.c_str(), buf, ec) == 0)
 					p.resume_data = &buf;
@@ -1931,8 +1926,11 @@ int main(int argc, char* argv[])
 
 				feed_status st = i->get_feed_status();
 				if (st.url.size() > 70) st.url.resize(70);
+
+				char update_timer[20];
+				snprintf(update_timer, sizeof(update_timer), "%d", st.next_update);
 				snprintf(str, sizeof(str), "%-70s %s (%2d) %s\n", st.url.c_str()
-					, st.updating ? "updating" : to_string(st.next_update).elems
+					, st.updating ? "updating" : update_timer
 					, int(st.items.size())
 					, st.error ? st.error.message().c_str() : "");
 				out += str;
@@ -2012,25 +2010,6 @@ int main(int argc, char* argv[])
 			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 			else downloaders = s.list_peers - s.list_seeds;
 
-			snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-				"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-				, (!s.paused && !s.auto_managed)?"[F] ":""
-				, (s.paused && !s.auto_managed)?"paused":
-				  (s.paused && s.auto_managed)?"queued":
-					(s.upload_mode)?"upload mode":
-				  state_str[s.state]
-				, esc("32"), add_suffix(s.total_download).c_str(), term
-				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
-				, esc("31"), add_suffix(s.total_upload).c_str(), term
-				, downloaders, seeds
-				, s.up_bandwidth_queue, s.down_bandwidth_queue
-				, esc("32"), add_suffix(s.all_time_download).c_str(), term
-				, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
-			out += str;
-			++lines_printed;
-
-			if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
 			char const* progress_bar_color = "33"; // yellow
 			if (s.state == torrent_status::downloading_metadata)
 			{
@@ -2045,15 +2024,52 @@ int main(int argc, char* argv[])
 				progress_bar_color = "32"; // green
 			}
 
-			snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
-				, s.sequential_download?"sequential":"progress"
-				, esc("32"), s.total_done, esc("0")
-				, s.progress_ppm / 10000.f
-				, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
-			out += str;
-			++lines_printed;
+			if ((!s.paused && s.state != torrent_status::seeding) || torrent_index == active_torrent)
+			{
+				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
+					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
+					  state_str[s.state]
+					, esc("32"), add_suffix(s.total_download).c_str(), term
+					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
+					, esc("31"), add_suffix(s.total_upload).c_str(), term
+					, downloaders, seeds
+					, s.up_bandwidth_queue, s.down_bandwidth_queue
+					, esc("32"), add_suffix(s.all_time_download).c_str(), term
+					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
+					, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
+				out += str;
+				++lines_printed;
 
-			if (print_piece_bar && (s.state != torrent_status::seeding || s.seed_mode))
+				if (s.state != torrent_status::seeding)
+				{
+					snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
+						, s.sequential_download?"sequential":"progress"
+						, esc("32"), s.total_done, esc("0")
+						, s.progress_ppm / 10000.f
+						, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
+					out += str;
+					++lines_printed;
+				}
+			}
+			else
+			{
+				snprintf(str, sizeof(str), "%s%-13s %s\n"
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
+					  state_str[s.state]
+					, progress_bar(s.progress_ppm / 1000, terminal_width - 63, progress_bar_color).c_str());
+				out += str;
+				++lines_printed;
+			}
+
+			// don't print the piece bar if we don't have any piece, or if we have all
+			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
@@ -2068,24 +2084,23 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (s.state != torrent_status::checking_files)
-			{
-				boost::posix_time::time_duration t = s.next_announce;
-				snprintf(str, sizeof(str)
-					, "     peers: %s%d%s (%s%d%s) seeds: %s%d%s distributed copies: %s%4.2f%s "
-					"sparse regions: %d download: %s%s%s next announce: %s%02d:%02d:%02d%s "
-					"tracker: %s%s%s\n"
-					, esc("37"), s.num_peers, esc("0")
-					, esc("37"), s.connect_candidates, esc("0")
-					, esc("37"), s.num_seeds, esc("0")
-					, esc("37"), s.distributed_copies, esc("0")
-					, s.sparse_regions
-					, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
-					, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
-					, esc("36"), s.current_tracker.c_str(), esc("0"));
-				out += str;
-				++lines_printed;
-			}
+			if (torrent_index != active_torrent) continue;
+
+			boost::posix_time::time_duration t = s.next_announce;
+			snprintf(str, sizeof(str)
+				, "     peers: %s%d%s (%s%d%s) seeds: %s%d%s distributed copies: %s%4.2f%s "
+				"sparse regions: %d download: %s%s%s next announce: %s%02d:%02d:%02d%s "
+				"tracker: %s%s%s\n"
+				, esc("37"), s.num_peers, esc("0")
+				, esc("37"), s.connect_candidates, esc("0")
+				, esc("37"), s.num_seeds, esc("0")
+				, esc("37"), s.distributed_copies, esc("0")
+				, s.sparse_regions
+				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
+				, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
+				, esc("36"), s.current_tracker.c_str(), esc("0"));
+			out += str;
+			++lines_printed;
 		}
 
 		sha1_hash ih(0);
@@ -2467,7 +2482,7 @@ int main(int argc, char* argv[])
 			torrent_handle h = rd->handle;
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(combine_path(h.save_path(), ".resume/" + to_hex(h.info_hash().to_string()) + ".resume"), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
 		}
 	}
 

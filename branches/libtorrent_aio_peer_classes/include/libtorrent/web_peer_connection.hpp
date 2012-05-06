@@ -70,7 +70,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT web_peer_connection
+	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
 	friend class invariant_access;
@@ -122,6 +122,8 @@ namespace libtorrent
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
+		// TODO: if we make this be a disk_buffer_holder instead
+		// we would save a copy sometimes
 		std::vector<char> m_piece;
 		
 		// the number of bytes received in the current HTTP

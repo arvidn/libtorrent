@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
 
 #include <algorithm>
 #include <boost/bind.hpp>
@@ -52,9 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	// this is posted to the network thread
-	void watermark_callback(std::vector<boost::function<void()> >* cbs)
+	static void watermark_callback(std::vector<boost::function<void()> >* cbs)
 	{
 		for (std::vector<boost::function<void()> >::iterator i = cbs->begin()
 			, end(cbs->end()); i != end; ++i)
@@ -64,8 +64,15 @@ namespace libtorrent
 		delete cbs;
 	}
 
+	// this is posted to the network thread and run from there
+	static void alert_callback(alert_dispatcher* disp, alert* a)
+	{
+		if (disp && disp->post_alert(a)) return;
+		delete a;
+	}
+
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
-		, boost::function<void(alert*)> const& post_alert)
+		, alert_dispatcher* alert_disp)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)
@@ -81,7 +88,7 @@ namespace libtorrent
 		, m_cache_fd(-1)
 		, m_cache_pool(0)
 #endif
-		, m_post_alert(post_alert)
+		, m_post_alert(alert_disp)
 	{
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		m_allocations = 0;
@@ -369,11 +376,11 @@ namespace libtorrent
 #ifndef O_EXLOCK
 #define O_EXLOCK 0
 #endif
-			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC);
+			m_cache_fd = open(sett.mmap_cache.c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0 && m_post_alert)
 			{
-				error_code ec(errno, boost::system::get_posix_category());
-				m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
+				error_code ec(errno, boost::system::get_generic_category());
+				m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 			}
 			else
 			{
@@ -387,8 +394,8 @@ namespace libtorrent
 				{
 					if (m_post_alert)
 					{
-						error_code ec(errno, boost::system::get_posix_category());
-						m_ios.post(boost::bind(m_post_alert, new mmap_cache_alert(ec)));
+						error_code ec(errno, boost::system::get_generic_category());
+						m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
 					}
 					m_cache_pool = 0;
 					// attempt to make MacOS not flush this to disk, making close()

@@ -9,7 +9,7 @@ explicit test_natpmp ;
 
 project
    : requirements
-	<library>/torrent//torrent
+	<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on
 	<source>main.cpp
 	<source>setup_transfer.cpp
    : default-build
@@ -20,6 +20,7 @@ project
 
 test-suite libtorrent : 	
 	[ run test_threads.cpp ]
+	[ run test_tailqueue.cpp ]
 	[ run test_rss.cpp ]
 	[ run test_bandwidth_limiter.cpp ]
 	[ run test_buffer.cpp ]
@@ -30,6 +31,7 @@ test-suite libtorrent :
 	[ run test_ip_filter.cpp ]
 	[ run test_hasher.cpp ]
 	[ run test_dht.cpp ]
+	[ run test_block_cache.cpp ]
 #	[ run test_storage.cpp ]
 	[ run test_upnp.cpp ]
 

@@ -6,7 +6,7 @@ libtorrent API Documentation
 :Version: 0.16.0
 
 .. contents:: Table of contents
-  :depth: 2
+  :depth: 1
   :backlinks: none
 
 overview
@@ -407,10 +407,14 @@ async_add_torrent() add_torrent()
 
 			int version;
 			boost::intrusive_ptr<torrent_info> ti;
+		#ifndef TORRENT_NO_DEPRECATE
 			char const* tracker_url;
+		#endif
+			std::vector<std::string> trackers;
+			std::vector<std::pair<std::string, int> > dht_nodes;
 			sha1_hash info_hash;
-			char const* name;
-			fs::path save_path;
+			std::string name;
+			std::string save_path;
 			std::vector<char>* resume_data;
 			storage_mode_t storage_mode;
 			storage_constructor_type storage;
@@ -446,18 +450,22 @@ torrent file), the ``info_hash`` (the info hash of the torrent) or the ``url``
 info-hash, the torrent file will be downloaded from peers, which requires them to
 support the metadata extension. For the metadata extension to work, libtorrent must
 be built with extensions enabled (``TORRENT_DISABLE_EXTENSIONS`` must not be
-defined). It also takes an optional ``name`` argument. This may be 0 in case no
-name should be assigned to the torrent. In case it's not 0, the name is used for
+defined). It also takes an optional ``name`` argument. This may be left empty in case no
+name should be assigned to the torrent. In case it's not, the name is used for
 the torrent as long as it doesn't have metadata. See ``torrent_handle::name``.
 
 If the torrent doesn't have a tracker, but relies on the DHT to find peers, the
-``tracker_url`` can be 0, otherwise you might specify a tracker url that tracks this
-torrent.
+``trackers`` (or the deprecated ``tracker_url``) can specify tracker urls that
+for the torrent.
 
 If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
 until the .torrent file has been downloaded. If there's any error while downloading,
 the torrent will be stopped and the torrent error state (``torrent_status::error``)
-will indicate what went wrong. The ``url`` may also refer to a magnet link.
+will indicate what went wrong. The ``url`` may refer to a magnet link or a regular
+http URL.
+
+``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
+added to the session (if DHT is enabled). The hostname may be an IP address.
 
 If the torrent you are trying to add already exists in the session (is either queued
 for checking, being checked or downloading) ``add_torrent()`` will throw
@@ -1898,8 +1906,8 @@ The ``torrent_info`` has the following synopsis::
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
-		torrent_info(boost::filesystem::path const& filename, int flags = 0);
-		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
+		torrent_info(std::wstring const& filename, int flags = 0);
 
 		// these constructors sets the error code on error
 		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
@@ -1973,8 +1981,8 @@ torrent_info()
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
-		torrent_info(boost::filesystem::path const& filename, int flags = 0);
-		torrent_info(boost::filesystem::wpath const& filename, int flags = 0);
+		torrent_info(std::string const& filename, int flags = 0);
+		torrent_info(std::wstring const& filename, int flags = 0);
 
 		torrent_info(sha1_hash const& info_hash, error_code& ec, int flags = 0);
 		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
@@ -2507,7 +2515,7 @@ Its declaration looks like this::
 		void force_dht_announce() const;
 		void force_reannounce(boost::posix_time::time_duration) const;
 		void scrape_tracker() const;
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 		void set_tracker_login(std::string const& username
 			, std::string const& password) const;
@@ -2580,14 +2588,13 @@ Its declaration looks like this::
 
 		bool set_metadata(char const* buf, int size) const;
 
-		boost::filesystem::path save_path() const;
-		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
-		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
+		std::string save_path() const;
+		void move_storage(std::string const& save_path) const;
+		void move_storage(std::wstring const& save_path) const;
+		void rename_file(int index, std::string) const;
+		void rename_file(int index, std::wstring) const;
 		storage_interface* get_storage_impl() const;
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 		enum flags_t { overwrite_existing = 1 };
@@ -2811,7 +2818,7 @@ save_path()
 
 	::
 
-		boost::filesystem::path save_path() const;
+		std::string save_path() const;
 
 ``save_path()`` returns the path that was given to `async_add_torrent() add_torrent()`_ when this torrent
 was started.
@@ -2821,8 +2828,8 @@ move_storage()
 
 	::
 
-		void move_storage(boost::filesystem::path const& save_path) const;
-		void move_storage(boost::filesystem::wpath const& save_path) const;
+		void move_storage(std::string const& save_path) const;
+		void move_storage(std::wstring const& save_path) const;
 
 Moves the file(s) that this torrent are currently seeding from or downloading to. If
 the given ``save_path`` is not located on the same drive as the original save path,
@@ -2840,8 +2847,8 @@ rename_file()
 
 	::
 
-		void rename_file(int index, boost::filesystem::path) const;
-		void rename_file(int index, boost::filesystem::wpath) const;
+		void rename_file(int index, std::string) const;
+		void rename_file(int index, std::wstring) const;
 
 Renames the file with the given index asynchronously. The rename operation is complete
 when either a ``file_renamed_alert`` or ``file_rename_failed_alert`` is posted.
@@ -2861,12 +2868,10 @@ super_seeding()
 
 	::
 
-		bool super_seeding() const;
 		void super_seeding(bool on) const;
 
 Enables or disabled super seeding/initial seeding for this torrent. The torrent
-needs to be a seed for this to take effect. The overload that returns a bool
-tells you of super seeding is enabled or not.
+needs to be a seed for this to take effect.
 
 add_piece()
 -----------
@@ -2955,7 +2960,7 @@ connect_peer()
 
 	::
 
-		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0) const;
+		void connect_peer(asio::ip::tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
 ``connect_peer()`` is a way to manually connect to peers that one believe is a part of the
 torrent. If the peer does not respond, or is not a member of this torrent, it will simply
@@ -2965,6 +2970,22 @@ will throw libtorrent_exception_. The second (optional) argument will be bitwise
 the source mask of this peer. Typically this is one of the source flags in peer_info_.
 i.e. ``tracker``, ``pex``, ``dht`` etc.
 
+``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
+
+==== ==========================================
+0x01 peer supports encryption
+
+0x02 peer is a seed
+
+0x04 supports uTP. This is only a positive flags
+     passing 0 doesn't mean the peer doesn't
+     support uTP
+
+0x08 supports holepunching protocol. If this
+     flag is received from a peer, it can be
+     used as a rendezvous point in case direct
+     connections to the peer fail
+==== ==========================================
 
 name()
 ------
@@ -3445,8 +3466,8 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		boost::filesystem::ofstream out(h.save_path()
-			/ (h.get_torrent_info().name() + ".fastresume"), std::ios_base::binary);
+		std::ofstream out((h.save_path() + "/" + h.get_torrent_info().name() + ".fastresume").c_str()
+			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
 		--outstanding_resume_data;
@@ -3754,6 +3775,7 @@ It contains the following fields::
 		bool seed_mode;
 		bool upload_mode;
 		bool share_mode;
+		bool super_seeding;
 
 		int priority;
 
@@ -4029,6 +4051,8 @@ torrent_handle_.
 
 ``share_mode`` is true if the torrent is currently in share-mode, i.e.
 not downloading the torrent, but just helping the swarm out.
+
+``super_seeding`` is true if the torrent is in super seeding mode.
 
 ``added_time`` is the posix-time when this torrent was added. i.e. what
 ``time(NULL)`` returned at the time.
@@ -4515,6 +4539,7 @@ feed_item
 =========
 
 The ``feed_item`` struct is defined in ``<libtorrent/rss.hpp>``.
+
 	::
 
 		struct feed_item
@@ -4789,6 +4814,7 @@ session_settings
 		int utp_connect_timeout;
 		int utp_delayed_ack;
 		bool utp_dynamic_sock_buf;
+		int utp_loss_multiplier;
 
 		enum bandwidth_mixed_algo_t
 		{
@@ -4822,6 +4848,10 @@ session_settings
 		std::string mmap_cache;
 
 		int ssl_listen;
+
+		int tracker_backoff;
+
+		bool ban_web_seeds;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5146,6 +5176,12 @@ used to bind outgoing sockets to. This may be useful for users whose router
 allows them to assign QoS classes to traffic based on its local port. It is
 a range instead of a single port because of the problems with failing to reconnect
 to peers if a previous socket to that peer and port is in ``TIME_WAIT`` state.
+
+.. warning:: setting outgoing ports will limit the ability to keep multiple
+	connections to the same client, even for different torrents. It is not
+	recommended to change this setting. Its main purpose is to use as an
+	escape hatch for cheap routers with QoS capability but can only classify
+	flows based on port numbers.
 
 ``peer_tos`` determines the TOS byte set in the IP header of every packet
 sent to peers (including web seeds). The default value for this is ``0x0``
@@ -5615,6 +5651,11 @@ For RAM constrained systems, disabling this typically saves around 30kB in user 
 and probably around 400kB in kernel socket buffers (it adjusts the send and receive
 buffer size on the kernel socket, both for IPv4 and IPv6).
 
+``utp_loss_multiplier`` controls how the congestion window is changed when a packet
+loss is experienced. It's specified as a percentage multiplier for ``cwnd``. By default
+it's set to 50 (i.e. cut in half). Do not change this value unless you know what
+you're doing. Never set it higher than 100.
+
 The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are
 uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
 when using swarms that have both TCP and uTP connections. If nothing is done, uTP
@@ -5625,7 +5666,7 @@ the connections are TCP. This works best if uTP connections are not rate limited
 the global rate limiter (which they aren't by default).
 
 ``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are not, since uTP manages its own rate.
+limiter or not. By default they are.
 
 This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 
@@ -5744,6 +5785,20 @@ setting is only taken into account when opening the regular listen port, and
 won't re-open the listen socket simply by changing this setting.
 
 It defaults to port 4433.
+
+``tracker_backoff`` determines how aggressively to back off from retrying
+failing trackers. This value determines *x* in the following formula, determining
+the number of seconds to wait until the next retry:
+
+	delay = 5 + 5 * x / 100 * fails^2
+
+It defaults to 250.
+
+This setting may be useful to make libtorrent more or less aggressive in hitting
+trackers.
+
+``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
+corrupt data are banned.
 
 pe_settings
 ===========
@@ -6349,6 +6404,8 @@ it will throw libtorrent_exception_.
 add_magnet_uri()
 ----------------
 
+*deprecated*
+
 	::
 
 		torrent_handle add_magnet_uri(session& ses, std::string const& uri
@@ -6369,6 +6426,16 @@ A simpler way to add a magnet link to a session is to pass in the
 link through ``add_torrent_params::url`` argument to ``session::add_torrent()``.
 
 For more information about magnet links, see `magnet links`_.
+
+parse_magnet_uri()
+------------------
+
+	::
+
+		void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec);
+
+This function parses out information from the magnet link and populates the
+``add_torrent_params`` object.
 
 make_magnet_uri()
 -----------------
@@ -7291,7 +7358,8 @@ upload or download rate performance.
 			download_limit_too_low,
 			send_buffer_watermark_too_low,
 			too_many_optimistic_unchoke_slots,
-			too_high_disk_queue_limit
+			too_high_disk_queue_limit,
+			too_few_outgoing_ports
 		};
 
 		performance_warning_t warning_code;
@@ -7360,6 +7428,12 @@ too_high_disk_queue_limit
 	left for the actual cache. This causes the disk cache to oscillate in evicting large
 	portions of the cache before allowing peers to download any more, onto the disk write
 	queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
+
+too_few_outgoing_ports
+	This is generated if outgoing peer connections are failing because of *address in use*
+	errors, indicating that ``session_settings::outgoing_ports`` is set and is too small of
+	a range. Consider not using the ``outgoing_ports`` setting at all, or widen the range to
+	include more ports.
 
 state_changed_alert
 -------------------
@@ -7893,7 +7967,7 @@ error_code
 ==========
 
 libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-its own error category (``libtorrent::libtorrent_category``) whith the following error
+its own error category (``libtorrent::get_libtorrent_category()``) whith the following error
 codes:
 
 ====== ========================================= =================================================================
@@ -8360,7 +8434,7 @@ for system errors. That is, errors that belong to the generic or system category
 
 Errors that belong to the libtorrent error category are not localized however, they
 are only available in english. In order to translate libtorrent errors, compare the
-error category of the ``error_code`` object against ``libtorrent::libtorrent_category``,
+error category of the ``error_code`` object against ``libtorrent::get_libtorrent_category()``,
 and if matches, you know the error code refers to the list above. You can provide
 your own mapping from error code to string, which is localized. In this case, you
 cannot rely on ``error_code::message()`` to generate your strings.
@@ -8372,7 +8446,7 @@ Here's a simple example of how to translate error codes::
 
 	std::string error_code_to_string(boost::system::error_code const& ec)
 	{
-		if (ec.category() != libtorrent::libtorrent_category)
+		if (ec.category() != libtorrent::get_libtorrent_category())
 		{
 			return ec.message();
 		}
@@ -9110,14 +9184,14 @@ download has all its pieces in the correct place). So, the main drawbacks are:
 
 The benefits though, are:
 
- * No startup delay, since the files doesn't need allocating.
+ * No startup delay, since the files don't need allocating.
 
  * The download will not use unnecessary disk space.
 
  * Disk caches perform much better than in full allocation and raises the download
    speed limit imposed by the disk.
 
- * Works well on filesystems that doesn't support sparse files.
+ * Works well on filesystems that don't support sparse files.
 
 The algorithm that is used when allocating pieces and slots isn't very complicated.
 For the interested, a description follows.

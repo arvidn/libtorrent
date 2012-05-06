@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class alert;
+	struct alert_dispatcher;
 
 	struct cached_piece_info
 	{
@@ -330,18 +331,18 @@ namespace libtorrent
 
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXPORT disk_io_thread
+	struct TORRENT_EXTRA_EXPORT disk_io_thread
 	{
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 
 		disk_io_thread(io_service& ios
-			, boost::function<void(alert*)> const& post_alert
+			, alert_dispatcher* alert_disp
 			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(session_settings* sett);
+		void set_settings(session_settings const& sett);
 		void reclaim_block(block_cache_reference ref);
 		void abort();
 		void join();
@@ -377,6 +378,7 @@ namespace libtorrent
 		
 		void pinned_change(int diff) { m_disk_cache.pinned_change(diff); }
 
+		// TODO: move this to disk_io_job and reuse it in block_cache
 		enum return_code_t
 		{
 			// the error is stored in disk_io_job::error
@@ -554,11 +556,11 @@ namespace libtorrent
 		// the main thread.
 		io_service& m_ios;
 
-		// Jobs that are blocked by the fence are put in this
-		// list. Each time a storage is taken out of the fence,
-		// this list is gone through and jobs belonging to the
-		// storage are issued.
-		tailqueue m_blocked_jobs;
+		// the number of jobs that have been blocked by a fence. These
+		// jobs are queued up in their respective storage, waiting for
+		// the fence to be lowered. This counter is just used to know
+		// when it's OK to exit the main loop of the disk thread
+		int m_num_blocked_jobs;
 
 		// this keeps the io_service::run() call blocked from
 		// returning. When shutting down, it's possible that
@@ -587,7 +589,7 @@ namespace libtorrent
 
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)
-		boost::function<void(alert*)> m_post_alert;
+		alert_dispatcher* m_post_alert;
 
 		// pool used to allocate the aiocb_t elements
 		// used by the async operations on files

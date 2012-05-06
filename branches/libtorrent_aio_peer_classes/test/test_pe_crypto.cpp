@@ -104,7 +104,7 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 
 	fprintf(stderr, "waiting for transfer to complete\n");
 
-	for (int i = 0; i < 20; ++i)
+	for (int i = 0; i < 25; ++i)
 	{
 		torrent_status s = tor2.status();
 		print_alerts(ses1, "ses1");
@@ -120,9 +120,9 @@ void test_transfer(libtorrent::pe_settings::enc_policy policy,
 	ses2.remove_torrent(tor2);
 
 	error_code ec;
-	remove_all("./tmp1_pe", ec);
-	remove_all("./tmp2_pe", ec);
-	remove_all("./tmp3_pe", ec);
+	remove_all("tmp1_pe", ec);
+	remove_all("tmp2_pe", ec);
+	remove_all("tmp3_pe", ec);
 }
 
 void test_enc_handler(libtorrent::encryption_handler* a, libtorrent::encryption_handler* b)

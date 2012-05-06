@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 	class alert_manager;
+	struct alert_dispatcher;
 }
 
 namespace libtorrent { namespace dht
@@ -93,7 +94,7 @@ struct key_desc_t
 	}; 
 };
 
-bool TORRENT_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
+bool TORRENT_EXTRA_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
 	, lazy_entry const* ret[], int size , char* error, int error_size);
 
 // this is the entry for every peer
@@ -115,7 +116,7 @@ struct torrent_entry
 
 struct dht_immutable_item
 {
-	dht_immutable_item() : value(0), num_announcers(0) {}
+	dht_immutable_item() : value(0), num_announcers(0), size(0) {}
 	// malloced space for the actual value
 	char* value;
 	// this counts the number of IPs we have seen
@@ -173,20 +174,22 @@ struct count_peers
 		count += t.second.peers.size();
 	}
 };
-	
-class TORRENT_EXPORT node_impl : boost::noncopyable
+
+struct udp_socket_interface
+{
+	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
+};
+
+class TORRENT_EXTRA_EXPORT node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
 typedef std::map<rsa_key, dht_mutable_item> dht_mutable_table_t;
 
 public:
-	typedef boost::function3<void, address, int, address> external_ip_fun;
-
-	node_impl(libtorrent::alert_manager& alerts
-		, bool (*f)(void*, entry&, udp::endpoint const&, int)
+	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, dht_settings const& settings, node_id nid, address const& external_address
-		, external_ip_fun ext_ip, void* userdata);
+		, dht_observer* observer);
 
 	virtual ~node_impl() {}
 
@@ -298,9 +301,8 @@ private:
 	// secret random numbers used to create write tokens
 	int m_secret[2];
 
-	libtorrent::alert_manager& m_alerts;
-	bool (*m_send)(void*, entry&, udp::endpoint const&, int);
-	void* m_userdata;
+	alert_dispatcher* m_post_alert;
+	udp_socket_interface* m_sock;
 };
 
 

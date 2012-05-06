@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 #if defined TORRENT_STATS && defined __MACH__
 #include <mach/task.h>
@@ -336,6 +337,7 @@ namespace aux {
 #endif
 		TORRENT_SETTING(boolean, free_torrent_hashes)
 		TORRENT_SETTING(boolean, upnp_ignore_nonrouters)
+ 		TORRENT_SETTING(integer, send_buffer_low_watermark)
  		TORRENT_SETTING(integer, send_buffer_watermark)
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, auto_upload_slots)
@@ -461,6 +463,8 @@ namespace aux {
 		TORRENT_SETTING(integer, checking_mem_usage)
 		TORRENT_SETTING(integer, predictive_piece_announce)
 		TORRENT_SETTING(boolean, contiguous_recv_buffer)
+		TORRENT_SETTING(integer, ssl_listen)
+		TORRENT_SETTING(integer, tracker_backoff)
 	};
 
 #undef TORRENT_SETTING
@@ -615,7 +619,7 @@ namespace aux {
 		}
 	}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700 && OPENSSL_VERSION_NUMBER >= 0x90812f
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
@@ -676,8 +680,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_io_service, m_settings.alert_queue_size, alert_mask)
-		, m_disk_thread(m_io_service
-			, boost::bind(&session_impl::disk_performance_warning, this, _1), this)
+		, m_disk_thread(m_io_service, this, this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -775,8 +778,10 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
 #if BOOST_VERSION >= 104700
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
 		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
 		SSL_CTX_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
+#endif // OPENSSL_VERSION_NUMBER
 #endif // BOOST_VERSION
 #endif
 
@@ -1204,6 +1209,36 @@ namespace aux {
 			fclose(m_stats_logger);
 		}
 
+		// make these cumulative for easier reading of graphs
+		// reset them every time the log is rotated though,
+		// to make them cumulative per one-hour graph
+		m_error_peers = 0;
+		m_disconnected_peers = 0;
+		m_eof_peers = 0;
+		m_connreset_peers = 0;
+		m_connrefused_peers = 0;
+		m_connaborted_peers = 0;
+		m_perm_peers = 0;
+		m_buffer_peers = 0;
+		m_unreachable_peers = 0;
+		m_broken_pipe_peers = 0;
+		m_addrinuse_peers = 0;
+		m_no_access_peers = 0;
+		m_invalid_arg_peers = 0;
+		m_aborted_peers = 0;
+		m_error_incoming_peers = 0;
+		m_error_outgoing_peers = 0;
+		m_error_rc4_peers = 0;
+		m_error_encrypted_peers = 0;
+		m_error_tcp_peers = 0;
+		m_error_utp_peers = 0;
+		m_connect_timeouts = 0;
+		m_uninteresting_peers = 0;
+		m_transport_timeout_peers = 0;
+		m_timeout_peers = 0;
+		m_no_memory_peers = 0;
+		m_too_many_peers = 0;
+
 		error_code ec;
 		char filename[100];
 		create_directory("session_stats", ec);
@@ -1231,6 +1266,8 @@ namespace aux {
 			":checking torrents"
 			":stopped torrents"
 			":upload-only torrents"
+			":queued seed torrents"
+			":queued download torrents"
 			":peers bw-up"
 			":peers bw-down"
 			":peers disk-up"
@@ -1386,6 +1423,44 @@ namespace aux {
 			":uTP connected"
 			":uTP fin-sent"
 			":uTP close-wait"
+
+			":tcp peers"
+			":utp peers"
+
+			":connection refused peers"
+			":connection aborted peers"
+			":permission denied peers"
+			":no buffer peers"
+			":host unreachable peers"
+			":broken pipe peers"
+			":address in use peers"
+			":access denied peers"
+			":invalid argument peers"
+			":operation aborted peers"
+
+			":error incoming peers"
+			":error outgoing peers"
+			":error rc4 peers"
+			":error encrypted peers"
+			":error tcp peers"
+			":error utp peers"
+
+			":total peers"
+			":pending incoming block requests"
+			":average pending incoming block requests"
+
+			":torrents want more peers"
+			":average peers per limit"
+
+			":piece requests"
+			":max piece requests"
+			":invalid piece requests"
+			":choked piece requests"
+			":cancelled piece requests"
+			":piece rejects"
+
+			":peers up send buffer"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -1587,7 +1662,7 @@ namespace aux {
 
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
 
-		m_disk_thread.set_settings(&m_settings);
+		m_disk_thread.set_settings(m_settings);
 
 		settings = e->dict_find_list("feeds");
 		if (settings)
@@ -2267,7 +2342,7 @@ namespace aux {
  		if (m_settings.connection_speed < 0) m_settings.connection_speed = 200;
  
 		if (update_disk_io_thread)
-			m_disk_thread.set_settings(&m_settings);
+			m_disk_thread.set_settings(m_settings);
 
 		if (m_settings.num_optimistic_unchoke_slots >= m_allowed_upload_slots / 2)
 		{
@@ -2810,10 +2885,13 @@ namespace aux {
 						, m_torrents.end(), boost::bind(&torrent::num_peers
 							, boost::bind(&torrent_map::value_type::second, _1)));
 
+					if (m_alerts.should_post<performance_alert>())
+						m_alerts.post_alert(performance_alert(
+							torrent_handle(), performance_alert::too_few_file_descriptors));
+
 					if (i != m_torrents.end())
 					{
-						error_code ec;
-						i->second->disconnect_peers(1, ec);
+						i->second->disconnect_peers(1, e);
 					}
 
 					m_settings.connections_limit = m_connections.size();
@@ -3117,11 +3195,12 @@ namespace aux {
 		if (m_next_disk_peer == m_connections.end()) m_next_disk_peer = m_connections.begin();
 	}
 
-	void session_impl::disk_performance_warning(alert* a)
+	// implements alert_dispatcher
+	bool session_impl::post_alert(alert* a)
 	{
-		if (m_alerts.should_post(a))
-			m_alerts.post_alert(*a);
-		delete a;
+		if (!m_alerts.should_post(a)) return false;
+		m_alerts.post_alert_ptr(a);
+		return true;
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
@@ -3245,12 +3324,13 @@ namespace aux {
 
 		// we have to keep ticking the utp socket manager
 		// until they're all closed
-		if (m_abort && m_utp_socket_manager.num_sockets() == 0)
+		if (m_abort)
 		{
+			if (m_utp_socket_manager.num_sockets() == 0)
+				return;
 #if defined TORRENT_ASIO_DEBUGGING
 			fprintf(stderr, "uTP sockets left: %d\n", m_utp_socket_manager.num_sockets());
 #endif
-			return;
 		}
 
 		if (e == asio::error::operation_aborted) return;
@@ -3638,6 +3718,16 @@ namespace aux {
 			&& m_settings.connection_speed > 0
 			&& max_connections > 0)
 		{
+			// this is the maximum number of connections we will
+			// attempt this tick
+			// approximate the average number of peers per torrent
+			// as the total number of connections divided by the
+			// number of torrents that are interested in connecting
+			// to more peers (i.e. not idle)
+			int average_peers = 0;
+			if (want_peers.size() > 0)
+				average_peers = m_connections.size() / want_peers.size();
+
 			if (m_next_connect_torrent >= int(want_peers.size()))
 				m_next_connect_torrent = 0;
 
@@ -3648,30 +3738,45 @@ namespace aux {
 				torrent& t = *want_peers[m_next_connect_torrent];
 				TORRENT_ASSERT(t.want_more_peers());
 
-				// 133 is so that the average of downloaders with
-				// more than average peers and less than average
-				// peers will end up being 100 (i.e. 133 / 2 = 66)
-				int connect_points = 133;
-				// if this is a seed and there is a torrent that
-				// is downloading, lower the rate at which this
-				// torrent gets connections.
-				// dividing by num_seeds will have the effect
-				// that all seed will get as many connections
-				// together, as a single downloading torrent.
-				if (t.is_seed() && m_num_downloaders > 0)
-					connect_points /= m_num_finished + 1;
-				if (connect_points <= 0) connect_points = 1;
-				t.give_connect_points(connect_points);
 				TORRENT_TRY
 				{
-					if (t.try_connect_peer())
+					// have a bias to give more connection attempts
+					// to downloading torrents than seed, and even
+					// more to downloading torrents with less than
+					// average number of connections
+					int num_attempts = 1;
+					if (!t.is_seed())
 					{
-						--max_connections;
-						--free_slots;
-						steps_since_last_connect = 0;
+						++num_attempts;
+						if (t.num_peers() < average_peers)
+							++num_attempts;
+					}
+					for (int i = 0; i < num_attempts; ++i)
+					{
+						TORRENT_TRY
+						{
+							if (t.try_connect_peer())
+							{
+								--max_connections;
+								--free_slots;
+								steps_since_last_connect = 0;
 #ifdef TORRENT_STATS
-						++m_connection_attempts;
+								++m_connection_attempts;
 #endif
+							}
+						}
+						TORRENT_CATCH(std::bad_alloc&)
+						{
+							// we ran out of memory trying to connect to a peer
+							// lower the global limit to the number of peers
+							// we already have
+							m_settings.connections_limit = num_connections();
+							if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
+						}
+						if (!t.want_more_peers()) break;
+						if (free_slots <= -m_half_open.limit()) break;
+						if (max_connections == 0) break;
+						if (num_connections() >= m_settings.connections_limit) break;
 					}
 				}
 				TORRENT_CATCH(std::bad_alloc&)
@@ -3795,10 +3900,6 @@ namespace aux {
 
 	void session_impl::reset_stat_counters()
 	{
-		m_error_peers = 0;
-		m_disconnected_peers = 0;
-		m_eof_peers = 0;
-		m_connreset_peers = 0;
 		m_end_game_piece_picker_blocks = 0;
 		m_piece_picker_blocks = 0;
 		m_piece_picker_loops = 0;
@@ -3809,15 +3910,16 @@ namespace aux {
 		m_incoming_piece_picks = 0;
 		m_end_game_piece_picks = 0;
 		m_snubbed_piece_picks = 0;
-		m_connect_timeouts = 0;
-		m_uninteresting_peers = 0;
-		m_transport_timeout_peers = 0;
-		m_timeout_peers = 0;
-		m_no_memory_peers = 0;
-		m_too_many_peers = 0;
 		m_connection_attempts = 0;
 		m_num_banned_peers = 0;
 		m_banned_for_hash_failure = 0;
+
+		m_piece_requests = 0;
+		m_max_piece_requests = 0;
+		m_invalid_piece_requests = 0;
+		m_choked_piece_requests = 0;
+		m_cancelled_piece_requests = 0;
+		m_piece_rejects = 0;
 
 		memset(m_num_messages, 0, sizeof(m_num_messages));
 		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
@@ -3827,12 +3929,16 @@ namespace aux {
 	void session_impl::print_log_line(int tick_interval_ms, ptime now)
 	{
 		int connect_candidates = 0;
-		int downloading_torrents = 0;
-		int seeding_torrents = 0;
+
 		int checking_torrents = 0;
 		int stopped_torrents = 0;
-		int error_torrents = 0;
 		int upload_only_torrents = 0;
+		int downloading_torrents = 0;
+		int seeding_torrents = 0;
+		int queued_seed_torrents = 0;
+		int queued_download_torrents = 0;
+		int error_torrents = 0;
+
 		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
 		int peer_ul_rate_buckets[7];
@@ -3846,11 +3952,20 @@ namespace aux {
 		int peers_down_interesting = 0;
 		int peers_up_requests = 0;
 		int peers_down_requests = 0;
+		int peers_up_send_buffer = 0;
 
 		int partial_pieces = 0;
 		int partial_downloading_pieces = 0;
 		int partial_full_pieces = 0;
 		int partial_finished_pieces = 0;
+
+		// number of torrents that want more peers
+		int num_want_more_peers = 0;
+
+		// number of peers among torrents with a peer limit
+		int num_limited_peers = 0;
+		// sum of limits of all torrents with a peer limit
+		int total_peers_limit = 0;
 
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -3862,18 +3977,43 @@ namespace aux {
 			int candidates = t->get_policy().num_connect_candidates();
 			connect_candidates += (std::min)(candidates, connection_slots);
 			num_peers += t->get_policy().num_peers();
-			if (t->is_seed())
-				++seeding_torrents;
-			else
-				++downloading_torrents;
-			if (t->state() == torrent_status::checking_files)
-				++checking_torrents;
-			if (t->is_paused())
-				++stopped_torrents;
-			if (t->is_upload_only())
-				++upload_only_torrents;
+
+			if (t->want_more_peers()) ++num_want_more_peers;
+			if (t->max_connections() > 0)
+			{
+				num_limited_peers += t->num_peers();
+				num_limited_peers += t->max_connections();
+			}
+
 			if (t->has_error())
 				++error_torrents;
+			else
+			{
+				if (t->is_paused())
+				{
+					if (!t->is_auto_managed())
+						++stopped_torrents;
+					else
+					{
+						if (t->is_seed())
+							++queued_seed_torrents;
+						else
+							++queued_download_torrents;
+					}
+				}
+				else
+				{
+					if (i->second->state() == torrent_status::checking_files
+						|| i->second->state() == torrent_status::queued_for_checking)
+						++checking_torrents;
+					else if (i->second->is_seed())
+						++seeding_torrents;
+					else if (i->second->is_upload_only())
+						++upload_only_torrents;
+					else
+						++downloading_torrents;
+				}
+			}
 
 			if (t->has_picker())
 			{
@@ -3912,6 +4052,8 @@ namespace aux {
 		int utp_peak_recv_delay = 0;
 		boost::uint64_t utp_send_delay_sum = 0;
 		boost::uint64_t utp_recv_delay_sum = 0;
+		int num_utp_peers = 0;
+		int num_tcp_peers = 0;
 		int utp_num_delay_sockets = 0;
 		int utp_num_recv_delay_sockets = 0;
 		int num_complete_connections = 0;
@@ -3920,6 +4062,8 @@ namespace aux {
 		int peers_up_unchoked = 0;
 		int num_end_game_peers = 0;
 		int reading_bytes = 0;
+		int pending_incoming_reqs = 0;
+
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3936,10 +4080,12 @@ namespace aux {
 			if (!p->download_queue().empty()) ++peers_down_requests;
 			if (p->is_peer_interested()) ++peers_up_interested;
 			if (p->is_interesting()) ++peers_down_interesting;
-			if (p->send_buffer_size() > 100 || !p->upload_queue().empty())
+			if (p->send_buffer_size() > 100 || !p->upload_queue().empty() || p->num_reading_bytes() > 0)
 				++peers_up_requests;
 			if (p->endgame()) ++num_end_game_peers;
 			reading_bytes += p->num_reading_bytes();
+		
+			pending_incoming_reqs += int(p->upload_queue().size());
 
 			int dl_bucket = 0;
 			int dl_rate = p->statistics().download_payload_rate();
@@ -3964,6 +4110,16 @@ namespace aux {
 			++peer_dl_rate_buckets[dl_bucket];
 			++peer_ul_rate_buckets[ul_bucket];
 
+			boost::uint64_t upload_rate = int(p->statistics().upload_rate());
+			int buffer_size_watermark = upload_rate
+				* m_settings.send_buffer_watermark_factor / 100;
+			if (buffer_size_watermark < m_settings.send_buffer_low_watermark)
+				buffer_size_watermark = m_settings.send_buffer_low_watermark;
+			else if (buffer_size_watermark > m_settings.send_buffer_watermark)
+				buffer_size_watermark = m_settings.send_buffer_watermark;
+			if (p->send_buffer_size() + p->num_reading_bytes() >= buffer_size_watermark)
+				++peers_up_send_buffer;
+
 			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
 			if (utp_socket)
 			{
@@ -3983,11 +4139,13 @@ namespace aux {
 					utp_recv_delay_sum += recv_delay;
 					++utp_num_recv_delay_sockets;
 				}
+				++num_utp_peers;
 			}
 			else
 			{
 				tcp_up_rate += ul_rate;
 				tcp_down_rate += dl_rate;
+				++num_tcp_peers;
 			}
 
 		}
@@ -4031,6 +4189,8 @@ namespace aux {
 			STAT_LOG(d, checking_torrents);
 			STAT_LOG(d, stopped_torrents);
 			STAT_LOG(d, upload_only_torrents);
+			STAT_LOG(d, queued_seed_torrents);
+			STAT_LOG(d, queued_download_torrents);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
 			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
@@ -4078,9 +4238,9 @@ namespace aux {
 			STAT_LOG(d, m_connect_timeouts);
 			STAT_LOG(d, m_uninteresting_peers);
 			STAT_LOG(d, m_timeout_peers);
-			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / m_stat.total_payload_download()));
-			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / m_stat.total_payload_download()));
-			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / m_stat.total_download()));
+			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
+			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
+			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_queue_time) / 1000000.f);
@@ -4168,16 +4328,16 @@ namespace aux {
 			for (int i = 0; i < num_max; ++i)
 				STAT_LOG(d, m_recv_buffer_sizes[i]);
 
-			STAT_LOG(f, total_milliseconds(cur_cpu_usage.user_time
-				- m_network_thread_cpu_usage.user_time) * 100.0 / double(tick_interval_ms));
-			STAT_LOG(f, (total_milliseconds(cur_cpu_usage.system_time
+			STAT_LOG(f, total_microseconds(cur_cpu_usage.user_time
+				- m_network_thread_cpu_usage.user_time) / double(tick_interval_ms * 10));
+			STAT_LOG(f, (total_microseconds(cur_cpu_usage.system_time
 					- m_network_thread_cpu_usage.system_time)
-				+ total_milliseconds(cur_cpu_usage.user_time
-					- m_network_thread_cpu_usage.user_time)) * 100.0
-				/ double(tick_interval_ms));
+				+ total_microseconds(cur_cpu_usage.user_time
+					- m_network_thread_cpu_usage.user_time))
+				/ double(tick_interval_ms * 10));
 
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
-				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes));
+				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
 
 			STAT_LOG(d, m_no_memory_peers);
 			STAT_LOG(d, m_too_many_peers);
@@ -4193,6 +4353,43 @@ namespace aux {
 			STAT_LOG(d, sst.utp_stats.num_connected);
 			STAT_LOG(d, sst.utp_stats.num_fin_sent);
 			STAT_LOG(d, sst.utp_stats.num_close_wait);
+
+			STAT_LOG(d, num_tcp_peers);
+			STAT_LOG(d, num_utp_peers);
+
+			STAT_LOG(d, m_connrefused_peers);
+			STAT_LOG(d, m_connaborted_peers);
+			STAT_LOG(d, m_perm_peers);
+			STAT_LOG(d, m_buffer_peers);
+			STAT_LOG(d, m_unreachable_peers);
+			STAT_LOG(d, m_broken_pipe_peers);
+			STAT_LOG(d, m_addrinuse_peers);
+			STAT_LOG(d, m_no_access_peers);
+			STAT_LOG(d, m_invalid_arg_peers);
+			STAT_LOG(d, m_aborted_peers);
+
+			STAT_LOG(d, m_error_incoming_peers);
+			STAT_LOG(d, m_error_outgoing_peers);
+			STAT_LOG(d, m_error_rc4_peers);
+			STAT_LOG(d, m_error_encrypted_peers);
+			STAT_LOG(d, m_error_tcp_peers);
+			STAT_LOG(d, m_error_utp_peers);
+
+			STAT_LOG(d, int(m_connections.size()));
+			STAT_LOG(d, pending_incoming_reqs);
+			STAT_LOG(f, num_complete_connections == 0 ? 0.f : (float(pending_incoming_reqs) / num_complete_connections));
+
+			STAT_LOG(d, num_want_more_peers);
+			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
+
+			STAT_LOG(d, m_piece_requests);
+			STAT_LOG(d, m_max_piece_requests);
+			STAT_LOG(d, m_invalid_piece_requests);
+			STAT_LOG(d, m_choked_piece_requests);
+			STAT_LOG(d, m_cancelled_piece_requests);
+			STAT_LOG(d, m_piece_rejects);
+
+			STAT_LOG(d, peers_up_send_buffer);
 
 			fprintf(m_stats_logger, "\n");
 
@@ -4495,6 +4692,7 @@ namespace aux {
 			TORRENT_ASSERT(p);
 			policy::peer* pi = p->peer_info_struct();
 			if (!pi) continue;
+			if (pi->web_seed) continue;
 			torrent* t = p->associated_torrent().lock().get();
 			if (!t) continue;
 			if (t->is_paused()) continue;
@@ -4592,7 +4790,8 @@ namespace aux {
 			torrent* t = p->associated_torrent().lock().get();
 			policy::peer* pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || t->is_paused()) continue;
+			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || pi->web_seed || t->is_paused())
+				continue;
 
 			if (m_settings.choking_algorithm == session_settings::bittyrant_choker)
 			{
@@ -4996,25 +5195,41 @@ namespace aux {
 		torrent_handle handle = add_torrent(*params, ec);
 		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
 		delete params->resume_data;
-		free((char*)params->tracker_url);
-		free((char*)params->name);
 		delete params;
 	}
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& params
+	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
-		TORRENT_ASSERT(!params.save_path.empty());
+		TORRENT_ASSERT(!p.save_path.empty());
 
 #ifndef TORRENT_NO_DEPRECATE
-		params.update_flags();
+		p.update_flags();
 #endif
+
+		add_torrent_params params = p;
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			parse_magnet_uri(params.url, params, ec);
+			if (ec) return torrent_handle();
+			params.url.clear();
+		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
 			return torrent_handle();
 		}
+
+#ifndef TORRENT_DISABLE_DHT	
+		// add p.dht_nodes to the DHT, if enabled
+		if (m_dht && !p.dht_nodes.empty())
+		{
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
+				, end(p.dht_nodes.end()); i != end; ++i)
+				m_dht->add_node(*i);
+		}
+#endif
 
 //		INVARIANT_CHECK;
 
@@ -5260,8 +5475,7 @@ namespace aux {
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
-		if (m_socks_listen_socket && m_socks_listen_socket->is_open()
-			&& m_proxy.hostname == m_proxy.hostname)
+		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 			return m_socks_listen_port;
 
 		// if not, don't tell the tracker anything if we're in anonymous
@@ -5665,7 +5879,7 @@ namespace aux {
 		{
 			sleep(1000);
 			++counter;
-			printf("\n==== Waiting to shut down: %d ==== \n\n", counter);
+			printf("\n==== Waiting to shut down: %d ==== conn-queue: %d\n\n", counter, m_half_open.size());
 		}
 		async_dec_threads();
 #endif
@@ -6266,7 +6480,7 @@ namespace aux {
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
 			}
-			if (t && p->peer_info_struct())
+			if (t && p->peer_info_struct() && !p->peer_info_struct()->web_seed)
 			{
 				TORRENT_ASSERT(t->get_policy().has_connection(p));
 			}

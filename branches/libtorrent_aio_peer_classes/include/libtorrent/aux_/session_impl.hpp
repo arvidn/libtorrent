@@ -95,6 +95,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/kademlia/dht_observer.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -192,7 +194,11 @@ namespace libtorrent
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct TORRENT_EXPORT session_impl: boost::noncopyable, initialize_timer
+		struct TORRENT_EXTRA_EXPORT session_impl
+			: alert_dispatcher
+			, dht::dht_observer
+			, boost::noncopyable
+			, initialize_timer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -531,7 +537,8 @@ namespace libtorrent
 				source_router = 8
 			};
 
-			void set_external_address(address const& ip
+			// implements dht_observer
+			virtual void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
@@ -593,7 +600,8 @@ namespace libtorrent
 
 //		private:
 
-			void disk_performance_warning(alert* a);
+			// implements alert_dispatcher
+			virtual bool post_alert(alert* a);
 
 			void update_connections_limit();
 			void update_unchoke_limit();
@@ -1058,6 +1066,30 @@ namespace libtorrent
 			int m_disconnected_peers;
 			int m_eof_peers;
 			int m_connreset_peers;
+			int m_connrefused_peers;
+			int m_connaborted_peers;
+			int m_perm_peers;
+			int m_buffer_peers;
+			int m_unreachable_peers;
+			int m_broken_pipe_peers;
+			int m_addrinuse_peers;
+			int m_no_access_peers;
+			int m_invalid_arg_peers;
+			int m_aborted_peers;
+
+			int m_piece_requests;
+			int m_max_piece_requests;
+			int m_invalid_piece_requests;
+			int m_choked_piece_requests;
+			int m_cancelled_piece_requests;
+			int m_piece_rejects;
+
+			int m_error_incoming_peers;
+			int m_error_outgoing_peers;
+			int m_error_rc4_peers;
+			int m_error_encrypted_peers;
+			int m_error_tcp_peers;
+			int m_error_utp_peers;
 			// the number of times the piece picker fell through
 			// to the end-game mode
 			int m_end_game_piece_picker_blocks;
@@ -1148,7 +1180,7 @@ namespace libtorrent
 				bool operator<(external_ip_t const& rhs) const
 				{
 					if (num_votes < rhs.num_votes) return true;
-					if (rhs.num_votes > num_votes) return false;
+					if (num_votes > rhs.num_votes) return false;
 					return sources < rhs.sources;
 				}
 

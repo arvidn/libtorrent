@@ -1201,6 +1201,7 @@ namespace libtorrent
 
 	piece_manager::~piece_manager()
 	{
+		TORRENT_ASSERT(!has_fence());
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
@@ -1503,6 +1504,53 @@ namespace libtorrent
 			return check_no_fastresume(ec);
 
 		return check_init_storage(ec);
+	}
+
+	// ====== disk_job_fence implementation ========
+
+	disk_job_fence::disk_job_fence()
+		: m_has_fence(false)
+		, m_outstanding_jobs(0)
+	{}
+
+	void disk_job_fence::new_job(disk_io_job* j)
+	{
+		++m_outstanding_jobs;
+		TORRENT_ASSERT((j->flags & disk_io_job::async_operation) == 0);
+		j->flags |= disk_io_job::async_operation;
+	}
+
+	int disk_job_fence::job_complete(disk_io_job* j, tailqueue& jobs)
+	{
+		TORRENT_ASSERT(j->storage);
+		TORRENT_ASSERT(j->flags & disk_io_job::async_operation);
+		TORRENT_ASSERT(m_outstanding_jobs > 0);
+		--m_outstanding_jobs;
+		j->flags &= ~disk_io_job::async_operation;
+
+		// there are still outstanding jobs, even if we have a
+		// fence, it's not time to lower it yet
+		// also, if we don't have a fence, we're done
+		if (m_outstanding_jobs > 0 || !m_has_fence) return 0;
+
+		int ret = m_blocked_jobs.size();
+		m_has_fence = false;
+		if (m_blocked_jobs.size()) jobs.prepend(m_blocked_jobs);
+		return ret;
+	}
+
+	bool disk_job_fence::is_blocked(disk_io_job* j)
+	{
+		if (!has_fence()) return false;
+		m_blocked_jobs.push_back(j);
+		return true;
+	}
+
+	void disk_job_fence::raise_fence(disk_io_job* j)
+	{
+		TORRENT_ASSERT(m_outstanding_jobs > 0);
+		m_has_fence = true;
+		m_blocked_jobs.push_back(j);
 	}
 
 #ifdef TORRENT_DEBUG

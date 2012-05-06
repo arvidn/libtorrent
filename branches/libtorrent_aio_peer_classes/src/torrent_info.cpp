@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/session_settings.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -96,7 +97,7 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	TORRENT_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
 	{
 		std::string tmp_path;
 		tmp_path.reserve(target.size()+5);
@@ -224,7 +225,9 @@ namespace libtorrent
 		// windows builds for now anyway (not even the default windows build)
 		std::string pe(element, element_len);
 		char const* file_end = strrchr(pe.c_str(), '.');
-		std::string name(pe.c_str(), file_end);
+		std::string name;
+		if (file_end) name.assign(pe.c_str(), file_end);
+		else name = pe;
 		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
 		char const* str = std::find(reserved_names, reserved_names + num_names, name);
 		if (str != reserved + num_names)
@@ -524,17 +527,38 @@ namespace libtorrent
 		return 0;
 	}
 
+	announce_entry::announce_entry(std::string const& u)
+		: url(u)
+		, next_announce(min_time())
+		, min_announce(min_time())
+		, tier(0)
+		, fail_limit(0)
+		, fails(0)
+		, updating(false)
+		, source(0)
+		, verified(false)
+		, start_sent(false)
+		, complete_sent(false)
+		, send_stats(true)
+	{}
+
+	announce_entry::~announce_entry() {}
+
 	int announce_entry::next_announce_in() const
 	{ return total_seconds(next_announce - time_now()); }
 
 	int announce_entry::min_announce_in() const
 	{ return total_seconds(min_announce - time_now()); }
 
-	void announce_entry::failed(int retry_interval)
+	void announce_entry::failed(session_settings const& sett, int retry_interval)
 	{
 		++fails;
+		// the exponential back-off ends up being:
+		// 7, 15, 27, 45, 95, 127, 165, ... seconds
+		// with the default tracker_backoff of 250
 		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min, int(tracker_retry_delay_max));
+			* tracker_retry_delay_min * sett.tracker_backoff / 100
+			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
 		next_announce = time_now() + seconds(delay);
 		updating = false;
@@ -556,6 +580,17 @@ namespace libtorrent
 	{
 		while (!url.empty() && is_space(url[0]))
 			url.erase(url.begin());
+	}
+
+	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
+		, std::string const& auth_
+		, headers_t const& extra_headers_)
+		: url(url_), type(type_)
+		, auth(auth_), extra_headers(extra_headers_)
+		, retry(time_now()), resolving(false), removed(false)
+		, peer_info(0, true, 0)
+	{
+		peer_info.web_seed = true;
 	}
 
 	torrent_info::torrent_info(torrent_info const& t, int flags)
@@ -687,7 +722,8 @@ namespace libtorrent
 	}
 
 	torrent_info::torrent_info(std::string const& filename, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
 		, m_multifile(false)
@@ -739,7 +775,8 @@ namespace libtorrent
 #endif
 
 	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags)
-		: m_piece_hashes(0)
+		: m_merkle_first_leaf(0)
+		, m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_info_section_size(0)
 		, m_multifile(false)

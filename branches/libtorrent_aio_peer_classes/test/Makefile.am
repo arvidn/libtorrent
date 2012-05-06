@@ -4,6 +4,7 @@ test_programs = \
   test_bdecode_performance   \
   test_bencoding             \
   test_buffer                \
+  test_block_cache           \
   test_fast_extension        \
   test_hasher                \
   test_http_connection       \
@@ -18,6 +19,7 @@ test_programs = \
   test_primitives            \
   test_storage               \
   test_swarm                 \
+  test_tailqueue             \
   test_torrent               \
   test_trackers_extension    \
   test_transfer              \

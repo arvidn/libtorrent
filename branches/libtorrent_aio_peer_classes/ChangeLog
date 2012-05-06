@@ -12,8 +12,25 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed piece sorting bug of deadline pieces
+	* fixed python binding build on Mac OS and BSD
+	* fixed UNC path normalization (on windows, unless UNC paths are disabled)
+	* fixed possible crash when enabling multiple connections per IP
+	* fixed typo in win vista specific code, breaking the build
+	* change default of rate_limit_utp to true
+	* fixed DLL export issue on windows (when building a shared library linking statically against boost)
+	* fixed FreeBSD build
+	* fixed web seed performance issue whith pieces > 1 MiB
+	* fixed unchoke logic when using web seeds
+	* fixed compatibility with older versions of boost (down to boost 1.40)
+
 0.16 release
 
+	* support torrents with more than 262000 pieces
+	* make tracker back-off configurable
+	* don't restart the swarm after downloading metadata from magnet links
+	* lower the default tracker retry intervals
+	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
 	* improved peer exchange performance by sharing incoming connections which advertize listen port 
@@ -118,6 +135,14 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+0.15.11 release
+
+	* fixed web seed bug, sometimes causing infinite loops
+	* fixed race condition when setting session_settings immediately after creating session
+	* give up immediately when failing to open a listen socket (report the actual error)
+	* restored ABI compatibility with 0.15.9
+	* added missing python bindings for create_torrent and torrent_info
 
 0.15.10 release
 

@@ -2,9 +2,9 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <boost/python.hpp>
 #include <list>
 #include <string>
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/torrent.hpp>
@@ -151,15 +151,9 @@ namespace
         , std::vector<char>& rd, std::list<std::string>& string_storage)
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
-        if (params.has_key("ti"))
+        if (params.has_key("ti") && !params.get("ti").is_none())
             p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
 
-        std::string url;
-        if (params.has_key("tracker_url"))
-        {
-            string_storage.push_back(extract<std::string>(params["tracker_url"]));
-            p.tracker_url = string_storage.back().c_str();
-        }
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
         if (params.has_key("name"))
@@ -179,7 +173,28 @@ namespace
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
 
+        if (params.has_key("tracker_url"))
+        {
+            list l = extract<list>(params["trackers"]);
+            int n = boost::python::len(l);
+            for(int i = 0; i < n; i++)
+                p.trackers.push_back(extract<std::string>(l[i]));
+        }
+
+        if (params.has_key("dht_nodes"))
+        {
+            list l = extract<list>(params["dht_nodes"]);
+            int n = boost::python::len(l);
+            for(int i = 0; i < n; i++)
+                p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
+        }
 #ifndef TORRENT_NO_DEPRECATE
+        std::string url;
+        if (params.has_key("tracker_url"))
+        {
+            string_storage.push_back(extract<std::string>(params["tracker_url"]));
+            p.tracker_url = string_storage.back().c_str();
+        }
         if (params.has_key("seed_mode"))
             p.seed_mode = params["seed_mode"];
         if (params.has_key("upload_mode"))

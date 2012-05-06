@@ -49,10 +49,16 @@ namespace libtorrent
 		int end;
 	};
 
-	struct hash_thread : thread_pool<hash_queue_entry>
+	struct hash_thread_interface
+	{
+		virtual bool async_hash(cached_piece_entry* p, int start, int end) = 0;
+		virtual ~hash_thread_interface() {}
+	};
+
+	struct hash_thread : thread_pool<hash_queue_entry>, hash_thread_interface
 	{
 		hash_thread(disk_io_thread* d) : m_outstanding_jobs(0), m_disk_thread(d) {}
-		bool async_hash(cached_piece_entry* p, int start, int end);
+		virtual bool async_hash(cached_piece_entry* p, int start, int end);
 
 		int num_pending_jobs() const { return m_outstanding_jobs; }
 		void hash_job_done() { TORRENT_ASSERT(m_outstanding_jobs > 0); --m_outstanding_jobs; }

@@ -61,6 +61,55 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 
+//#define TORRENT_LOG_HASH_FAILURES
+
+#ifdef TORRENT_LOG_HASH_FAILURES
+
+#include "libtorrent/peer_id.hpp" // sha1_hash
+#include "libtorrent/escape_string.hpp" // to_hex
+
+void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
+	, libtorrent::address a, char const* bytes, int len, bool corrupt)
+{
+	using namespace libtorrent;
+
+	mkdir("hash_failures", 0755);
+
+	if (*f == NULL)
+	{
+		char filename[1024];
+		snprintf(filename, sizeof(filename), "hash_failures/%s.log"
+			, to_hex(t.info_hash().to_string()).c_str());
+		*f = fopen(filename, "w");
+	}
+
+	file_storage const& fs = t.torrent_file().files();
+	std::vector<file_slice> files = fs.map_block(piece, block * 0x4000, len);
+	
+	std::string fn = fs.file_path(fs.internal_at(files[0].file_index));
+
+	char filename[4094];
+	int offset = 0;
+	for (int i = 0; i < files.size(); ++i)
+	{
+		offset += snprintf(filename+offset, sizeof(filename)-offset
+			, "%s[%"PRId64",%d]", libtorrent::filename(fn).c_str(), files[i].offset, int(files[i].size));
+		if (offset >= sizeof(filename)) break;
+	}
+
+	fprintf(*f, "%s\t%04d\t%04d\t%s\t%s\t%s\n", to_hex(t.info_hash().to_string()).c_str(), piece
+		, block, corrupt ? " bad" : "good", print_address(a).c_str(), filename);
+
+	snprintf(filename, sizeof(filename), "hash_failures/%s_%d_%d_%s.block"
+		, to_hex(t.info_hash().to_string()).c_str(), piece, block, corrupt ? "bad" : "good");
+	FILE* data = fopen(filename, "w+");
+	fwrite(bytes, 1, len, data);
+	fclose(data);
+}
+
+#endif
+
+
 namespace libtorrent {
 
 	class torrent;
@@ -74,7 +123,15 @@ namespace
 			: m_torrent(t)
 			, m_salt(random())
 		{
+#ifdef TORRENT_LOG_HASH_FAILURES
+			m_log_file = NULL;
+#endif
 		}
+
+#ifdef TORRENT_LOG_HASH_FAILURES
+		~smart_ban_plugin()
+		{ fclose(m_log_file); }
+#endif
 
 		void on_piece_pass(int p)
 		{
@@ -194,6 +251,11 @@ namespace
 			policy::peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
+#ifdef TORRENT_LOG_HASH_FAILURES
+			log_hash_block(&m_log_file, m_torrent, b.piece_index
+				, b.block_index, p->address(), j.buffer, j.buffer_size, true);
+#endif
+
 			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
 
 			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
@@ -267,9 +329,14 @@ namespace
 			h.update((char const*)&m_salt, sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 
+			policy::peer* p = b.second.peer;
+
 			if (b.second.digest == ok_digest) return;
 
-			policy::peer* p = b.second.peer;
+#ifdef TORRENT_LOG_HASH_FAILURES
+			log_hash_block(&m_log_file, m_torrent, b.first.piece_index
+				, b.first.block_index, p->address(), j.buffer, j.buffer_size, false);
+#endif
 
 			if (p == 0) return;
 			if (!m_torrent.get_policy().has_peer(p)) return;
@@ -306,6 +373,10 @@ namespace
 		// the salt is required to avoid attacks where bad data is sent
 		// that is forged to match the CRC of the good data.
 		int m_salt;
+
+#ifdef TORRENT_LOG_HASH_FAILURES
+		FILE* m_log_file;
+#endif
 	};
 
 } }

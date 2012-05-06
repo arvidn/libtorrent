@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/rss.hpp"
 #include "libtorrent/peer_class.hpp"
+#include "libtorrent/build_config.hpp"
 
 #include "libtorrent/storage.hpp"
 
@@ -86,6 +87,10 @@ namespace libtorrent
 
 	TORRENT_EXPORT session_settings min_memory_usage();
 	TORRENT_EXPORT session_settings high_performance_seed();
+
+#ifndef TORRENT_CFG
+#error TORRENT_CFG is not defined!
+#endif
 
 	void TORRENT_EXPORT TORRENT_CFG();
 

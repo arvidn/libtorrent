@@ -48,11 +48,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT file_entry
 	{
-		file_entry(): offset(0), size(0), file_base(0)
-			, mtime(0), pad_file(false), hidden_attribute(false)
-			, executable_attribute(false)
-			, symlink_attribute(false)
-		{}
+		file_entry();
+		~file_entry();
 
 		std::string path;
 		size_type offset; // the offset of this file inside the torrent
@@ -247,6 +244,15 @@ namespace libtorrent
 		// that limit will be padded, default is to
 		// not add any padding
 		void optimize(int pad_file_limit = -1);
+
+		sha1_hash hash(int index) const;
+		std::string const& symlink(int index) const;
+		time_t mtime(int index) const;
+		int file_index(int index) const;
+		size_type file_base(int index) const;
+		void set_file_base(int index, size_type off);
+		std::string file_path(int index) const;
+		size_type file_size(int index) const;
 
 		sha1_hash hash(internal_file_entry const& fe) const;
 		std::string const& symlink(internal_file_entry const& fe) const;

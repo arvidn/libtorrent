@@ -52,6 +52,9 @@ namespace
     {
        ct.add_file(fe);
     }
+
+    char const* filestorage_name(file_storage const& fs)
+    { return fs.name().c_str(); }
 }
 
 void bind_create_torrent()
@@ -62,8 +65,10 @@ void bind_create_torrent()
 #endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
+    void (file_storage::*rename_file0)(int, std::string const&) = &file_storage::rename_file;
 #if TORRENT_USE_WSTRING
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
+    void (file_storage::*rename_file1)(int, std::wstring const&) = &file_storage::rename_file;
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -95,14 +100,17 @@ void bind_create_torrent()
         .def("piece_length", &file_storage::piece_length)
         .def("piece_size", &file_storage::piece_size)
         .def("set_name", set_name0)
+        .def("rename_file", rename_file0)
 #if TORRENT_USE_WSTRING
         .def("set_name", set_name1)
+        .def("rename_file", rename_file1)
 #endif
-        .def("name", &file_storage::name, return_internal_reference<>())
+        .def("name", &filestorage_name)
         ;
 
     class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())
+        .def(init<torrent_info const&>(arg("ti")))
         .def(init<file_storage&, int, int, int>((arg("storage"), arg("piece_size") = 0
             , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize))))
 

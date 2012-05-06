@@ -124,7 +124,9 @@ void test_feed(std::string const& filename, rss_expect const& expect)
 	f->save_state(state);
 
 	fprintf(stderr, "feed_state:\n");
+#ifdef TORRENT_DEBUG
 	state.print(std::cerr);
+#endif
 
 	// TODO: verify some key state is saved in 'state'
 }

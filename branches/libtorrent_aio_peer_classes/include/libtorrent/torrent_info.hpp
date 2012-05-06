@@ -58,18 +58,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/policy.hpp" // for policy::peer
 
 namespace libtorrent
 {
 	class peer_connection;
+	struct session_settings;
 
 	// exposed for the unit test
 	TORRENT_EXPORT void sanitize_append_path_element(std::string& path, char const* element, int element_len);
 
 	enum
 	{
-		// wait 60 seconds before retrying a failed tracker
-		tracker_retry_delay_min = 10
+		// wait at least 5 seconds before retrying a failed tracker
+		tracker_retry_delay_min = 5
 		// when tracker_failed_max trackers
 		// has failed, wait 60 minutes instead
 		, tracker_retry_delay_max = 60 * 60
@@ -77,20 +79,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT announce_entry
 	{
-		announce_entry(std::string const& u)
-			: url(u)
-			, next_announce(min_time())
-			, min_announce(min_time())
-			, tier(0)
-			, fail_limit(0)
-			, fails(0)
-			, updating(false)
-			, source(0)
-			, verified(false)
-			, start_sent(false)
-			, complete_sent(false)
-			, send_stats(true)
-		{}
+		announce_entry(std::string const& u);
+		~announce_entry();
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
@@ -158,7 +148,7 @@ namespace libtorrent
 			min_announce = min_time();
 		}
 
-		void failed(int retry_interval = 0);
+		void failed(session_settings const& sett, int retry_interval = 0);
 
 		bool will_announce(ptime now) const
 		{
@@ -186,12 +176,7 @@ namespace libtorrent
 
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
-			, headers_t const& extra_headers_ = headers_t())
-			: url(url_), type(type_)
-			, auth(auth_), extra_headers(extra_headers_)
-			, retry(time_now()), resolving(false), removed(false)
-			, connection(0)
-		{}
+			, headers_t const& extra_headers_ = headers_t());
 
 		bool operator==(web_seed_entry const& e) const
 		{ return url == e.url && type == e.type; }
@@ -223,7 +208,11 @@ namespace libtorrent
 
 		tcp::endpoint endpoint;
 
-		peer_connection* connection;
+		// this is the peer_info field used for the
+		// connection, just to count hash failures
+		// it's also used to hold the peer_connection
+		// pointer, when the web seed is connected
+		policy::peer peer_info;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
