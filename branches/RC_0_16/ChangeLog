@@ -1,4 +1,5 @@
 
+	* fixed semantics of rate_limit_utp to also ignore per-torrent limits
 	* fixed piece sorting bug of deadline pieces
 	* fixed python binding build on Mac OS and BSD
 	* fixed UNC path normalization (on windows, unless UNC paths are disabled)
