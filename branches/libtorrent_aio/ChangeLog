@@ -11,6 +11,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed piece sorting bug of deadline pieces
+	* fixed python binding build on Mac OS and BSD
 	* fixed UNC path normalization (on windows, unless UNC paths are disabled)
 	* fixed possible crash when enabling multiple connections per IP
 	* fixed typo in win vista specific code, breaking the build

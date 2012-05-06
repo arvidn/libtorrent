@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/random.hpp" // for random
 
 namespace libtorrent { namespace dht
 {
@@ -137,7 +138,7 @@ node_id generate_id_impl(address const& ip, boost::uint32_t r)
 
 	node_id id = hasher((const char*)&seed, sizeof(seed)).final();
 
-	for (int i = 4; i < 19; ++i) id[i] = rand();
+	for (int i = 4; i < 19; ++i) id[i] = random();
 
 	id[19] = r;
 
@@ -147,7 +148,7 @@ node_id generate_id_impl(address const& ip, boost::uint32_t r)
 node_id generate_random_id()
 {
 	char random[20];
-	for (int i = 0; i < 20; ++i) random[i] = rand();
+	for (int i = 0; i < 20; ++i) random[i] = libtorrent::random();
 	return hasher(random, 20).final();
 }
 
@@ -165,7 +166,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, rand());
+	return generate_id_impl(ip, random());
 }
 
 } }  // namespace libtorrent::dht

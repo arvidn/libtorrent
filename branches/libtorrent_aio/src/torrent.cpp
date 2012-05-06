@@ -2104,14 +2104,15 @@ namespace libtorrent
 		m_net_interfaces.clear();
 
 		char* str = strdup(net_interfaces.c_str());
+		char* ptr = str;
 
-		while (str)
+		while (ptr)
 		{
-			char* space = strchr(str, ',');
+			char* space = strchr(ptr, ',');
 			if (space) *space++ = 0;
 			error_code ec;
-			address a(address::from_string(str, ec));
-			str = space;
+			address a(address::from_string(ptr, ec));
+			ptr = space;
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
@@ -4043,7 +4044,7 @@ namespace libtorrent
 			}
 			while (i != m_time_critical_pieces.begin() && i->deadline < boost::prior(i)->deadline)
 			{
-				std::iter_swap(i, boost::next(i));
+				std::iter_swap(i, boost::prior(i));
 				--i;
 			}
 			return;
@@ -6236,9 +6237,9 @@ namespace libtorrent
 			for (std::set<peer_connection*>::iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
 			{
-				peer_connection* p = *i;
-				if (!p->is_connecting()) continue;
-				p->disconnect(errors::too_many_connections);
+				peer_connection* peer = *i;
+				if (!peer->is_connecting()) continue;
+				peer->disconnect(errors::too_many_connections);
 				break;
 			}
 		}
