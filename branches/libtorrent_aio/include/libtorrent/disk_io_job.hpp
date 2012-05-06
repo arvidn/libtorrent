@@ -129,6 +129,11 @@ namespace libtorrent
 			// asynchronous operation that needs to decrement the
 			// outstanding jobs counter in the storage when it completes
 			async_operation = 0x1000,
+
+			// if this bit is set, it means we need to decrement the
+			// m_queue_buffer_size by the buffer size of this jobs
+			// when it completes
+			counts_towards_queue_size = 0x2000,
 		};
 
 		// the time when this job was queued. This is used to
