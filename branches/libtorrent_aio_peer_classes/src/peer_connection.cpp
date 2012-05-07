@@ -4913,7 +4913,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
 
-		int ret = m_ses.m_upload_rate.request_bandwidth(self()
+		bandwidth_manager* manager = (channel == download_channel
+			? &m_ses.m_download_rate : &m_ses.m_upload_rate);
+
+		int ret = manager->request_bandwidth(self()
 			, bytes, priority, channels, c);
 
 		if (ret == 0) m_channel_state[channel] |= peer_info::bw_limit;

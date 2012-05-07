@@ -92,6 +92,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(priority > 0);
+
+		// if this assert is hit, the peer is requesting more bandwidth before
+		// being assigned bandwidth for an already outstanding request
 		TORRENT_ASSERT(!is_queued(peer.get()));
 
 		if (num_channels == 0)
