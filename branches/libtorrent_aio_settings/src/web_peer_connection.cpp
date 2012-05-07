@@ -46,11 +46,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/aux_/session_interface.hpp"
 
 using boost::shared_ptr;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
@@ -60,10 +61,7 @@ namespace libtorrent
 	};
 
 	web_peer_connection::web_peer_connection(
-		aux::session_interface& ses
-		, aux::session_settings& sett
-		, buffer_allocator_interface& allocator
-		, io_service& ios
+		session_impl& ses
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
@@ -71,7 +69,7 @@ namespace libtorrent
 		, policy::peer* peerinfo
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
-		: web_connection_base(ses, sett, allocator, ios, t, s, remote, url, peerinfo, auth, extra_headers)
+		: web_connection_base(ses, t, s, remote, url, peerinfo, auth, extra_headers)
 		, m_url(url)
 		, m_range_pos(0)
 		, m_block_pos(0)
@@ -80,7 +78,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
+		if (!ses.settings().get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
 		shared_ptr<torrent> tor = t.lock();
@@ -433,9 +431,9 @@ namespace libtorrent
 					t->retry_web_seed(this, retry_time);
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
-					if (t->alerts().should_post<url_seed_alert>())
+					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
-						t->alerts().post_alert(url_seed_alert(t->get_handle(), m_url
+						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), m_url
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);

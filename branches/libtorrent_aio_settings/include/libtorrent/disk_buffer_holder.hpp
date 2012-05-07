@@ -44,19 +44,11 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 	struct disk_io_thread;
 
-	struct buffer_allocator_interface
-	{
-		virtual char* allocate_disk_buffer(char const* category) = 0;
-		virtual void free_disk_buffer(char* b) = 0;
-		virtual void reclaim_block(block_cache_reference ref) = 0;
-		virtual char* allocate_disk_buffer(bool& exceeded, boost::function<void()> const& cb
-			, char const* category);
-	};
-
 	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
-		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
-		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j);
+		disk_buffer_holder(aux::session_impl& ses, char* buf);
+		disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j);
+		disk_buffer_holder(disk_io_thread& disk_pool, disk_io_job const& j);
 		~disk_buffer_holder();
 		char* release();
 		char* get() const { return m_buf; }
@@ -64,7 +56,7 @@ namespace libtorrent
 		void reset(char* buf = 0);
 		void swap(disk_buffer_holder& h)
 		{
-			TORRENT_ASSERT(&h.m_allocator == &m_allocator);
+			TORRENT_ASSERT(&h.m_disk_thread == &m_disk_thread);
 			std::swap(h.m_buf, m_buf);
 			std::swap(h.m_ref, m_ref);
 		}
@@ -76,7 +68,7 @@ namespace libtorrent
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
 	private:
-		buffer_allocator_interface& m_allocator;
+		disk_io_thread& m_disk_thread;
 		char* m_buf;
 		block_cache_reference m_ref;
 	};

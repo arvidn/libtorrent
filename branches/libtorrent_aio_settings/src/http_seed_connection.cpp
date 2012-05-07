@@ -55,10 +55,7 @@ using libtorrent::aux::session_impl;
 namespace libtorrent
 {
 	http_seed_connection::http_seed_connection(
-		aux::session_interface& ses
-		, aux::session_settings& sett
-		, buffer_allocator_interface& allocator
-		, io_service& ios
+		session_impl& ses
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
@@ -66,15 +63,14 @@ namespace libtorrent
 		, policy::peer* peerinfo
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
-		: web_connection_base(ses, sett, allocator, ios, t
-			, s, remote, url, peerinfo, auth, extra_headers)
+		: web_connection_base(ses, t, s, remote, url, peerinfo, auth, extra_headers)
 		, m_url(url)
 		, m_chunk_pos(0)
 		, m_partial_chunk_header(0)
 	{
 		INVARIANT_CHECK;
 
-		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
+		if (!ses.settings().get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
 		shared_ptr<torrent> tor = t.lock();
@@ -83,7 +79,7 @@ namespace libtorrent
 
 		// multiply with the blocks per piece since that many requests are
 		// merged into one http request
-		m_max_out_request_queue = m_settings.get_int(settings_pack::urlseed_pipeline_size)
+		m_max_out_request_queue = ses.settings().get_int(settings_pack::urlseed_pipeline_size)
 			* blocks_per_piece;
 
 		prefer_whole_pieces(1);
@@ -279,9 +275,9 @@ namespace libtorrent
 
 					std::string error_msg = to_string(m_parser.status_code()).elems
 						+ (" " + m_parser.message());
-					if (t->alerts().should_post<url_seed_alert>())
+					if (m_ses.m_alerts.should_post<url_seed_alert>())
 					{
-						t->alerts().post_alert(url_seed_alert(t->get_handle(), url()
+						m_ses.m_alerts.post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
 					m_statistics.received_bytes(0, bytes_transferred);

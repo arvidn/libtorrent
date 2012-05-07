@@ -331,7 +331,7 @@ namespace libtorrent
 
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXTRA_EXPORT disk_io_thread : buffer_allocator_interface
+	struct TORRENT_EXTRA_EXPORT disk_io_thread
 	{
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
@@ -343,20 +343,17 @@ namespace libtorrent
 		~disk_io_thread();
 
 		void set_settings(settings_pack* sett);
+		void reclaim_block(block_cache_reference ref);
 		void abort();
 		void join();
 
 		void subscribe_to_disk(boost::function<void()> const& cb)
 		{ m_disk_cache.subscribe_to_disk(cb); }
-
-		// implements buffer_allocator_interface
-		void reclaim_block(block_cache_reference ref);
-		void free_disk_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
-		char* allocate_disk_buffer(char const* category)
-		{ return m_disk_cache.allocate_buffer(category); }
-		char* allocate_disk_buffer(bool& exceeded, boost::function<void()> const& cb
+		void free_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
+		char* allocate_buffer(bool& exceeded, boost::function<void()> const& cb
 			, char const* category);
-
+		char* allocate_buffer(char const* category)
+		{ return m_disk_cache.allocate_buffer(category); }
 		bool exceeded_cache_use() const
 		{ return m_disk_cache.exceeded_max_size(); }
 

@@ -443,7 +443,7 @@ namespace aux {
 		, m_ipv6_peer_pool(500)
 #endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_send_buffers(send_buffer_size())
+		, m_send_buffers(send_buffer_size)
 #endif
 		, m_io_service()
 #ifdef TORRENT_USE_OPENSSL
@@ -2604,8 +2604,7 @@ namespace aux {
 		setup_socket_buffers(*s);
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, m_settings
-				, *this, m_io_service, s, endp, 0));
+			new bt_peer_connection(*this, s, endp, 0));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -5511,12 +5510,6 @@ namespace aux {
 		m_net_thread_pool.set_num_threads(m_settings.get_int(settings_pack::network_threads));
 	}
 
-	void session_impl::post_socket_write_job(write_some_job& j)
-	{
-		m_net_thread_pool.post_job(j);
-	}
-
-
 	void session_impl::update_cache_buffer_chunk_size()
 	{
 		if (m_settings.get_int(settings_pack::cache_buffer_chunk_size) <= 0)
@@ -5941,6 +5934,11 @@ namespace aux {
 #endif
 	}
 
+	void session_impl::free_disk_buffer(char* buf)
+	{
+		m_disk_thread.free_buffer(buf);
+	}
+
 	// decrement the refcount of the block in the disk cache
 	// since the network thread doesn't need it anymore
 	void session_impl::reclaim_block(block_cache_reference ref)
@@ -5950,19 +5948,14 @@ namespace aux {
 
 	char* session_impl::allocate_disk_buffer(char const* category)
 	{
-		return m_disk_thread.allocate_disk_buffer(category);
-	}
-
-	void session_impl::free_disk_buffer(char* buf)
-	{
-		m_disk_thread.free_disk_buffer(buf);
+		return m_disk_thread.allocate_buffer(category);
 	}
 	
 	char* session_impl::allocate_disk_buffer(bool& exceeded
 		, boost::function<void()> const& cb
 		, char const* category)
 	{
-		return m_disk_thread.allocate_disk_buffer(exceeded, cb, category);
+		return m_disk_thread.allocate_buffer(exceeded, cb, category);
 	}
 	
 	char* session_impl::allocate_buffer()
