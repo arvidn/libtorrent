@@ -4737,6 +4737,7 @@ namespace libtorrent
 					
 
 		m_web_seeds.erase(web);
+		update_want_tick();
 	}
 
 	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
@@ -7730,6 +7731,7 @@ namespace libtorrent
 
 	void torrent::second_tick(stat& accumulator, int tick_interval_ms)
 	{
+		TORRENT_ASSERT(want_tick());
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
@@ -8309,6 +8311,7 @@ namespace libtorrent
 		p->set_peer_info(0);
 		if (has_picker()) picker().clear_peer(&i->peer_info);
 		m_web_seeds.erase(i);
+		update_want_tick();
 	}
 
 	void torrent::retry_web_seed(peer_connection* p, int retry)
