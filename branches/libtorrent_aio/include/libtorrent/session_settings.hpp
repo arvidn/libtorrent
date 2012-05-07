@@ -208,9 +208,12 @@ namespace libtorrent
 		// connection is dropped. The time is specified in seconds.
 		int peer_connect_timeout;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use set_peer_class_filter() instead
 		// if set to true, upload, download and unchoke limits
 		// are ignored for peers on the local network.
 		bool ignore_limits_on_local_network;
+#endif
 
 		// the number of connection attempts that
 		// are made per second.
@@ -857,9 +860,12 @@ namespace libtorrent
 		// connections and uTP connections
 		int mixed_mode_algorithm;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use set_peer_class_filter() instead
 		// set to true if uTP connections should be rate limited
 		// defaults to false
 		bool rate_limit_utp;
+#endif
 
 		// this is the number passed in to listen(). i.e.
 		// the number of connections to accept while we're

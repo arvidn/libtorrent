@@ -91,8 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
+#include "libtorrent/peer_class.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
+#include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 
@@ -234,6 +236,8 @@ namespace libtorrent
 			void init();
 			void start_session();
 
+			void init_peer_class_filter(bool unlimited_local);
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
@@ -336,6 +340,19 @@ namespace libtorrent
 			
 			void set_port_filter(port_filter const& f);
 
+			// ==== peer class operations ====
+
+			int create_peer_class(char const* name);
+			void delete_peer_class(int cid);
+			void set_peer_class_filter(ip_filter const& f);
+			ip_filter const& get_peer_class_filter() const;
+			
+			void set_peer_class_type_filter(peer_class_type_filter f);
+			peer_class_type_filter get_peer_class_type_filter();
+
+			peer_class_info get_peer_class(int cid);
+			void set_peer_class(int cid, peer_class_info const& pci);
+
 			void  listen_on(
 				std::pair<int, int> const& port_range
 				, error_code& ec
@@ -386,8 +403,15 @@ namespace libtorrent
 			int max_connections() const;
 			int max_uploads() const;
 			int max_half_open_connections() const;
-
 #endif
+
+			int upload_rate_limit(peer_class_t c) const;
+			int download_rate_limit(peer_class_t c) const;
+			void set_upload_rate_limit(peer_class_t c, int limit);
+			void set_download_rate_limit(peer_class_t c, int limit);
+
+			void set_rate_limit(peer_class_t c, int channel, int limit);
+			int rate_limit(peer_class_t c, int channel) const;
 
 			int num_uploads() const { return m_num_unchoked; }
 			int num_connections() const
@@ -572,6 +596,8 @@ namespace libtorrent
 			int m_num_finished;
 			int m_num_downloaders;
 
+			peer_class_pool m_classes;
+
 //		private:
 
 			// implements alert_dispatcher
@@ -685,28 +711,20 @@ namespace libtorrent
 			bandwidth_manager m_download_rate;
 			bandwidth_manager m_upload_rate;
 
-			// the global rate limiter bandwidth channels
-			bandwidth_channel m_download_channel;
-			bandwidth_channel m_upload_channel;
+			// the peer class that all peers belong to by default
+			peer_class_t m_global_class;
 
-			// bandwidth channels for local peers when
-			// rate limits are ignored. They are only
-			// throttled by these global rate limiters
-			// and they don't have a rate limit set by
-			// default
-			bandwidth_channel m_local_download_channel;
-			bandwidth_channel m_local_upload_channel;
-
+			// the peer class all TCP peers belong to by default
 			// all tcp peer connections are subject to these
 			// bandwidth limits. Local peers are excempted
 			// from this limit. The purpose is to be able to
 			// throttle TCP that passes over the internet
 			// bottleneck (i.e. modem) to avoid starving out
 			// uTP connections.
-			bandwidth_channel m_tcp_download_channel;
-			bandwidth_channel m_tcp_upload_channel;
+			peer_class_t m_tcp_peer_class;
 
-			bandwidth_channel* m_bandwidth_channel[2];
+			// peer class for local peers
+			peer_class_t m_local_peer_class;
 
 			// the number of peer connections that are waiting
 			// for the disk. one for each channel.
@@ -737,6 +755,14 @@ namespace libtorrent
 			// peers.
 			connection_map m_connections;
 			
+			// maps IP ranges to bitfields representing peer class IDs
+			// to assign peers matching a specific IP range based on its
+			// remote endpoint
+			ip_filter m_peer_class_filter;
+
+			// maps socket types to peer classes
+			peer_class_type_filter m_peer_class_type_filter;
+
 			// filters incoming connections
 			ip_filter m_ip_filter;
 

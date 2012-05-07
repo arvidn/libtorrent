@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/rss.hpp"
+#include "libtorrent/peer_class.hpp"
 #include "libtorrent/build_config.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -322,7 +323,12 @@ namespace libtorrent
 		void set_key(int key);
 		peer_id id() const;
 
-		bool is_listening() const;
+		// peer class API
+		void set_peer_class_filter(ip_filter const& f);
+		int create_peer_class(char const* name);
+		void delete_peer_class(int cid);
+		peer_class_info get_peer_class(int cid);
+		void set_peer_class(int cid, peer_class_info const& pci);
 
 		// if the listen port failed in some way
 		// you can retry to listen on another port-
@@ -358,6 +364,7 @@ namespace libtorrent
 
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
+		bool is_listening() const;
 
 		enum options_t
 		{

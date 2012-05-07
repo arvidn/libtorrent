@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
+#include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
@@ -107,7 +108,9 @@ namespace libtorrent
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
-	class TORRENT_EXTRA_EXPORT torrent: public request_callback
+	class TORRENT_EXTRA_EXPORT torrent
+		: public request_callback
+		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 	{
 	public:
@@ -345,9 +348,17 @@ namespace libtorrent
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
-		bandwidth_channel m_bandwidth_channel[2];
+		void set_upload_limit(int limit);
+		int upload_limit() const;
+		void set_download_limit(int limit);
+		int download_limit() const;
 
-		int bandwidth_throttle(int channel) const;
+		peer_class_t peer_class() const { return m_peer_class; }
+
+		void set_max_uploads(int limit);
+		int max_uploads() const { return m_max_uploads; }
+		void set_max_connections(int limit);
+		int max_connections() const { return m_max_connections; }
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -708,16 +719,6 @@ namespace libtorrent
 // --------------------------------------------
 		// RESOURCE MANAGEMENT
 
-		void set_upload_limit(int limit);
-		int upload_limit() const;
-		void set_download_limit(int limit);
-		int download_limit() const;
-
-		void set_max_uploads(int limit);
-		int max_uploads() const { return m_max_uploads; }
-		void set_max_connections(int limit);
-		int max_connections() const { return m_max_connections; }
-
 		void move_storage(std::string const& save_path);
 
 		// renames the file with the given index to the new name
@@ -847,6 +848,10 @@ namespace libtorrent
 		void on_piece_verified(int ret, disk_io_job const& j
 			, boost::function<void(int)> f);
 	
+		// upload and download rate limits for the torrent
+		void set_limit_impl(int limit, int channel);
+		int limit_impl(int channel) const;
+
 		void refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size);
 
 		int prioritize_tracker(int tracker_index);
@@ -894,6 +899,10 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
+		// for torrents who have a bandwidth limit, this is != 0
+		// and refers to a peer_class in the session.
+		peer_class_t m_peer_class;
+
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet.
@@ -936,6 +945,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	private:
 #endif
+
+		void setup_peer_class();
 
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to

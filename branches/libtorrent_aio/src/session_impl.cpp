@@ -316,7 +316,9 @@ namespace aux {
 		TORRENT_SETTING(integer, max_failcount)
 		TORRENT_SETTING(integer, min_reconnect_time)
 		TORRENT_SETTING(integer, peer_connect_timeout)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, ignore_limits_on_local_network)
+#endif
 		TORRENT_SETTING(integer, connection_speed)
 		TORRENT_SETTING(boolean, send_redundant_have)
 		TORRENT_SETTING(boolean, lazy_bitfields)
@@ -441,7 +443,9 @@ namespace aux {
 		TORRENT_SETTING(integer, utp_delayed_ack)
 		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
 		TORRENT_SETTING(integer, mixed_mode_algorithm)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, rate_limit_utp)
+#endif
 		TORRENT_SETTING(integer, listen_queue_size)
 		TORRENT_SETTING(boolean, announce_double_nat)
 		TORRENT_SETTING(integer, torrent_connect_boost)
@@ -558,6 +562,68 @@ namespace aux {
 	int session_impl::logging_allocator::allocations = 0;
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
+
+	void session_impl::init_peer_class_filter(bool unlimited_local)
+	{
+		// set the default peer_class_filter to use the local peer class
+		// for peers on local networks
+		boost::uint32_t lfilter = 1 << m_local_peer_class;
+		boost::uint32_t gfilter = 1 << m_global_class;
+
+		struct class_mapping
+		{
+			char const* first;
+			char const* last;
+			boost::uint32_t filter;
+		};
+
+		const static class_mapping v4_classes[] =
+		{
+			// everything
+			{"0.0.0.0", "255.255.255.255", gfilter},
+			// local networks
+			{"10.0.0.0", "10.255.255.255", lfilter},
+			{"172.16.0.0", "172.16.255.255", lfilter},
+			{"192.168.0.0", "192.168.255.255", lfilter},
+			// link-local
+			{"169.254.0.0", "169.254.255.255", lfilter},
+			// loop-back
+			{"127.0.0.0", "127.255.255.255", lfilter},
+		};
+
+		const static class_mapping v6_classes[] =
+		{
+			// everything
+			{"::0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", gfilter},
+			// link-local
+			{"fe80::", "febf::ffff:ffff:ffff:ffff:ffff:ffff:ffff", lfilter},
+			// loop-back
+			{"::1", "::1", lfilter},
+		};
+
+		class_mapping const* p = v4_classes;
+		int len = sizeof(v4_classes) / sizeof(v4_classes[0]);
+		if (!unlimited_local) len = 1;
+		for (int i = 0; i < len; ++i)
+		{
+			error_code ec;
+			address_v4 begin = address_v4::from_string(p[i].first, ec);
+			address_v4 end = address_v4::from_string(p[i].last, ec);
+			if (ec) continue;
+			m_peer_class_filter.add_rule(begin, end, p[i].filter);
+		}
+		p = v6_classes;
+		len = sizeof(v6_classes) / sizeof(v6_classes[0]);
+		if (!unlimited_local) len = 1;
+		for (int i = 0; i < len; ++i)
+		{
+			error_code ec;
+			address_v6 begin = address_v6::from_string(p[i].first, ec);
+			address_v6 end = address_v6::from_string(p[i].last, ec);
+			if (ec) continue;
+			m_peer_class_filter.add_rule(begin, end, p[i].filter);
+		}
+	}
 
 #if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700 && OPENSSL_VERSION_NUMBER >= 0x90812f
 	// when running bittorrent over SSL, the SNI (server name indication)
@@ -819,8 +885,16 @@ namespace aux {
 		m_settings.half_open_limit = m_half_open.limit();
 #endif
 
-		m_bandwidth_channel[peer_connection::download_channel] = &m_download_channel;
-		m_bandwidth_channel[peer_connection::upload_channel] = &m_upload_channel;
+		m_global_class = m_classes.new_peer_class("global");
+		m_tcp_peer_class = m_classes.new_peer_class("tcp");
+		m_local_peer_class = m_classes.new_peer_class("local");
+
+		init_peer_class_filter(true);
+
+		// TCP, SSL/TCP and I2P connections should be assigned the TCP peer class
+		m_peer_class_type_filter.add(peer_class_type_filter::tcp_socket, m_tcp_peer_class);
+		m_peer_class_type_filter.add(peer_class_type_filter::ssl_tcp_socket, m_tcp_peer_class);
+		m_peer_class_type_filter.add(peer_class_type_filter::i2p_socket, m_tcp_peer_class);
 
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
@@ -1997,6 +2071,73 @@ namespace aux {
 		return m_ip_filter;
 	}
 
+	int session_impl::create_peer_class(char const* name)
+	{
+		return m_classes.new_peer_class(name);
+	}
+
+	void session_impl::delete_peer_class(int cid)
+	{
+		// if you hit this assert, you're deleting a non-existent peer class
+		TORRENT_ASSERT(m_classes.at(cid));
+		if (m_classes.at(cid) == 0) return;
+		m_classes.decref(cid);
+	}
+
+	peer_class_info session_impl::get_peer_class(int cid)
+	{
+		peer_class_info ret;
+		peer_class* pc = m_classes.at(cid);
+		// if you hit this assert, you're passing in an invalid cid
+		TORRENT_ASSERT(pc);
+		if (pc == 0)
+		{
+#ifdef TORRENT_DEBUG
+			// make it obvious that the return value is undefined
+			ret.upload_limit = rand();
+			ret.download_limit = rand();
+			ret.label.resize(20);
+			url_random(&ret.label[0], &ret.label[0] + 20);
+			ret.ignore_unchoke_slots = false;
+#endif
+			return ret;
+		}
+
+		pc->get_info(&ret);
+		return ret;
+	}
+
+	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		peer_class* pc = m_classes.at(cid);
+		// if you hit this assert, you're passing in an invalid cid
+		TORRENT_ASSERT(pc);
+		if (pc == 0) return;
+
+		pc->set_info(&pci);
+	}
+
+	void session_impl::set_peer_class_filter(ip_filter const& f)
+	{
+		INVARIANT_CHECK;
+		m_peer_class_filter = f;
+	}
+
+	ip_filter const& session_impl::get_peer_class_filter() const
+	{
+		return m_peer_class_filter;
+	}
+
+	void session_impl::set_peer_class_type_filter(peer_class_type_filter f)
+	{
+		m_peer_class_type_filter = f;
+	}
+
+	peer_class_type_filter session_impl::get_peer_class_type_filter()
+	{
+		return m_peer_class_type_filter;
+	}
+
 	void session_impl::set_settings(session_settings const& s)
 	{
 		INVARIANT_CHECK;
@@ -2051,6 +2192,40 @@ namespace aux {
 				m_settings.choking_algorithm = session_settings::auto_expand_choker;
 			else if (!s.auto_upload_slots)
 				m_settings.choking_algorithm = session_settings::fixed_slots_choker;
+		}
+
+		if (s.rate_limit_utp != m_settings.rate_limit_utp)
+		{
+			const int filter = (1 << m_local_peer_class) | (1 << m_global_class);
+			if (s.rate_limit_utp)
+			{
+				// allow the global or local peer class to limit uTP peers
+				m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::utp_socket
+					, m_global_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.add(peer_class_type_filter::ssl_utp_socket
+					, m_global_class);
+			}
+			else
+			{
+				// don't add the global or local peer class to limit uTP peers
+				m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::utp_socket
+					, m_global_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
+					, m_local_peer_class);
+				m_peer_class_type_filter.remove(peer_class_type_filter::ssl_utp_socket
+					, m_global_class);
+			}
+		}
+
+		if (s.ignore_limits_on_local_network != m_settings.ignore_limits_on_local_network)
+		{
+			init_peer_class_filter(s.ignore_limits_on_local_network);
 		}
 #endif
 
@@ -2871,9 +3046,12 @@ namespace aux {
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
 			return;
 		}
-
+/*
+#error instead of using ignore_local_limits_on_local_network. add another field to the peer_class saying it is allowed to exceed the connection limit (by some factor maybe) and change this code to resolve which peer classes the peer would belong to and go through those for this flag
+*/
 		// don't allow more connections than the max setting
 		bool reject = false;
+
 		if (m_settings.ignore_limits_on_local_network && is_local(endp.address()))
 			reject = m_settings.connections_limit < INT_MAX / 12
 				&& num_connections() >= m_settings.connections_limit * 12 / 10;
@@ -3087,6 +3265,46 @@ namespace aux {
 		g_current_time = time_now_hires();
 	}
 
+	int session_impl::rate_limit(peer_class_t c, int channel) const
+	{
+		TORRENT_ASSERT(channel >= 0 && channel <= 1);
+		peer_class const* pc = m_classes.at(c);
+		if (pc == 0) return 0;
+		return pc->channel[channel].throttle();
+	}
+
+	int session_impl::upload_rate_limit(peer_class_t c) const
+	{
+		return rate_limit(c, peer_connection::upload_channel);
+	}
+
+	int session_impl::download_rate_limit(peer_class_t c) const
+	{
+		return rate_limit(c, peer_connection::download_channel);
+	}
+
+	void session_impl::set_rate_limit(peer_class_t c, int channel, int limit)
+	{
+		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(limit >= -1);
+		TORRENT_ASSERT(channel >= 0 && channel <= 1);
+
+		peer_class* pc = m_classes.at(c);
+		if (pc == 0) return;
+		if (limit <= 0) limit = 0;
+		pc->channel[channel].throttle(limit);
+	}
+
+	void session_impl::set_upload_rate_limit(peer_class_t c, int limit)
+	{
+		set_rate_limit(c, peer_connection::upload_channel, limit);
+	}
+
+	void session_impl::set_download_rate_limit(peer_class_t c, int limit)
+	{
+		set_rate_limit(c, peer_connection::download_channel, limit);
+	}
+
 	void session_impl::on_tick(error_code const& e)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -3214,8 +3432,8 @@ namespace aux {
 		switch (m_settings.mixed_mode_algorithm)
 		{
 			case session_settings::prefer_tcp:
-				m_tcp_upload_channel.throttle(0);
-				m_tcp_download_channel.throttle(0);
+				set_upload_rate_limit(m_tcp_peer_class, 0);
+				set_download_rate_limit(m_tcp_peer_class, 0);
 				break;
 			case session_settings::peer_proportional:
 				{
@@ -3234,7 +3452,8 @@ namespace aux {
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
-					bandwidth_channel* tcp_channel[] = { &m_tcp_upload_channel, &m_tcp_download_channel };
+					peer_class* pc = m_classes.at(m_tcp_peer_class);
+					bandwidth_channel* tcp_channel = pc->channel;
 					int stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
 					// never throttle below this
 					int lower_limit[] = {5000, 30000};
@@ -3244,7 +3463,7 @@ namespace aux {
 						// if there are no uploading uTP peers, don't throttle TCP up
 						if (num_peers[1][i] == 0)
 						{
-							tcp_channel[i]->throttle(0);
+							tcp_channel[i].throttle(0);
 						}
 						else
 						{
@@ -3253,7 +3472,7 @@ namespace aux {
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
 							boost::uint64_t rate = (std::max)(stat_rate[i], lower_limit[i]);
-							tcp_channel[i]->throttle(int(rate * num_peers[0][i] / total_peers));
+							tcp_channel[i].throttle(int(rate * num_peers[0][i] / total_peers));
 						}
 					}
 				}
@@ -3318,22 +3537,25 @@ namespace aux {
 		}
 #endif
 
+		// #error this should apply to all bandwidth channels
 		if (m_settings.rate_limit_ip_overhead)
 		{
-			m_download_channel.use_quota(
+			peer_class* gpc = m_classes.at(m_global_class);
+
+			gpc->channel[peer_connection::download_channel].use_quota(
 #ifndef TORRENT_DISABLE_DHT
 				m_stat.download_dht() +
 #endif
 				m_stat.download_tracker());
 
-			m_upload_channel.use_quota(
+			gpc->channel[peer_connection::upload_channel].use_quota(
 #ifndef TORRENT_DISABLE_DHT
 				m_stat.upload_dht() +
 #endif
 				m_stat.upload_tracker());
 
-			int up_limit = m_upload_channel.throttle();
-			int down_limit = m_download_channel.throttle();
+			int up_limit = upload_rate_limit(m_global_class);
+			int down_limit = download_rate_limit(m_global_class);
 
 			if (down_limit > 0
 				&& m_stat.download_ip_overhead() >= down_limit
@@ -4066,8 +4288,8 @@ namespace aux {
 			STAT_LOG(d, num_end_game_peers);
 			STAT_LOG(d, tcp_up_rate);
 			STAT_LOG(d, tcp_down_rate);
-			STAT_LOG(d, int(m_tcp_upload_channel.throttle()));
-			STAT_LOG(d, int(m_tcp_download_channel.throttle()));
+			STAT_LOG(d, int(rate_limit(m_tcp_peer_class, peer_connection::upload_channel)));
+			STAT_LOG(d, int(rate_limit(m_tcp_peer_class, peer_connection::download_channel)));
 			STAT_LOG(d, utp_up_rate);
 			STAT_LOG(d, utp_down_rate);
 			STAT_LOG(f, float(utp_peak_send_delay) / 1000000.f);
@@ -4679,7 +4901,8 @@ namespace aux {
 		}
 
 		// auto unchoke
-		int upload_limit = m_bandwidth_channel[peer_connection::upload_channel]->throttle();
+		peer_class* gpc = m_classes.at(m_global_class);
+		int upload_limit = gpc->channel[peer_connection::upload_channel].throttle();
 		if (m_settings.choking_algorithm == session_settings::auto_expand_choker
 			&& upload_limit > 0)
 		{
@@ -4708,7 +4931,7 @@ namespace aux {
 		int upload_capacity_left = 0;
 		if (m_settings.choking_algorithm == session_settings::bittyrant_choker)
 		{
-			upload_capacity_left = m_upload_channel.throttle();
+			upload_capacity_left = upload_rate_limit(m_global_class);
 			if (upload_capacity_left == 0)
 			{
 				// we don't know at what rate we can upload. If we have a
@@ -5749,22 +5972,22 @@ namespace aux {
 
 	int session_impl::local_upload_rate_limit() const
 	{
-		return m_local_upload_channel.throttle();
+		return upload_rate_limit(m_local_peer_class);
 	}
 
 	int session_impl::local_download_rate_limit() const
 	{
-		return m_local_download_channel.throttle();
+		return download_rate_limit(m_local_peer_class);
 	}
 
 	int session_impl::upload_rate_limit() const
 	{
-		return m_upload_channel.throttle();
+		return upload_rate_limit(m_global_class);
 	}
 
 	int session_impl::download_rate_limit() const
 	{
-		return m_download_channel.throttle();
+		return download_rate_limit(m_global_class);
 	}
 #endif
 
@@ -5790,19 +6013,19 @@ namespace aux {
 
 		if (m_settings.local_download_rate_limit < 0)
 			m_settings.local_download_rate_limit = 0;
-		m_local_download_channel.throttle(m_settings.local_download_rate_limit);
+		set_download_rate_limit(m_local_peer_class, m_settings.local_download_rate_limit);
 
 		if (m_settings.local_upload_rate_limit < 0)
 			m_settings.local_upload_rate_limit = 0;
-		m_local_upload_channel.throttle(m_settings.local_upload_rate_limit);
+		set_upload_rate_limit(m_local_peer_class, m_settings.local_upload_rate_limit);
 
 		if (m_settings.download_rate_limit < 0)
 			m_settings.download_rate_limit = 0;
-		m_download_channel.throttle(m_settings.download_rate_limit);
+		set_download_rate_limit(m_global_class, m_settings.download_rate_limit);
 
 		if (m_settings.upload_rate_limit < 0)
 			m_settings.upload_rate_limit = 0;
-		m_upload_channel.throttle(m_settings.upload_rate_limit);
+		set_upload_rate_limit(m_global_class, m_settings.upload_rate_limit);
 	}
 
 	void session_impl::update_connections_limit()

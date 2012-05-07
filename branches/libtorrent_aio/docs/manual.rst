@@ -204,6 +204,15 @@ The ``session`` class has the following synopsis::
 
 		session_status status() const;
 
+		int create_peer_class();
+		void delete_peer_class(int cid);
+
+		peer_class_info get_peer_class(int cid);
+		void set_peer_class(int cid, peer_class_info const& pci);
+
+		void set_peer_class_filter(ip_filter const& f);
+		void set_peer_class_type_filter(peer_class_type_filter const& f);
+
 		bool is_listening() const;
 		unsigned short listen_port() const;
 
@@ -1068,6 +1077,182 @@ consecutive values. Keep in mind that one low level job is typically 16 kiB, how
 some back-ends support vector I/O, in which case a job may represent a lot more than
 that.
 
+create_peer_class()
+-------------------
+
+	::
+
+		int create_peer_class(char const* name);
+
+Creates a new peer class (see `peer classes`_) with the given name. The returned integer
+is the new peer class' identifier. Peer classes may have the same name, so each invocation
+of this function creates a new class and returns a unique identifier.
+
+Identifiers are assigned from low numbers to higher. So if you plan on using certain peer
+classes in a call to `set_peer_class_filter()`_, make sure to create those early on, to get
+low identifiers.
+
+For more information on peer classes, see `peer classes`_.
+
+delete_peer_class()
+-------------------
+
+	::
+
+		void delete_peer_class(int cid);
+
+This call dereferences the reference count of the specified peer class. When creating a peer
+class it's automatically referenced by 1. If you want to recycle a peer class, you may call
+this function. You may only call this function **once** per peer class you create. Calling it
+more than once for the same class will lead to memory corruption.
+
+Since peer classes are reference counted, this function will not remove the peer class if it's
+still assigned to torrents or peers. It will however remove it once the last peer and torrent
+drops their references to it.
+
+There is no need to call this function for custom peer classes. All peer classes will be properly
+destructed when the session object destructs.
+
+For more information on peer classes, see `peer classes`_.
+
+set_peer_class() get_peer_class()
+---------------------------------
+
+	::
+
+		peer_class_info get_peer_class(int cid);
+		void set_peer_class(int cid, peer_class_info const& pci);
+
+These functions queries information from a peer class and updates the configuration
+of a peer class, respectively.
+
+``cid`` must refer to an existing peer class. If it does not, the return value of
+``get_peer_class()`` is undefined.
+
+``set_peer_class()`` sets all the information in the ``peer_class_info`` object in
+the specified peer class. There is no option to only update a single property.
+
+The ``peer_class_info`` struct has the following fields::
+
+	struct peer_class_info
+	{
+		bool ignore_unchoke_slots;
+		std::string label;
+		int upload_limit;
+		int download_limit;
+	};
+
+``ignore_unchoke_slots`` determines whether peers should always unchoke a peer,
+regardless of the choking algorithm, or if it should honor the unchoke slot limits.
+It's used for local peers by default. If *any* of the peer classes a peer belongs to
+has this set to true, that peer will be unchoked at all times.
+
+``label`` is not used by libtorrent. It's intended as a potentially user-facing identifier
+of this peer class.
+
+``upload_limit`` and ``download_limit`` are transfer rates limits for the whole peer class.
+They are specified in bytes per second and apply to the sum of all peers that are
+members of this class.
+
+For more information, see `peer classes`_.
+
+set_peer_class_filter()
+-----------------------
+
+	::
+
+		void set_peer_class_filter(ip_filter const& f);
+
+Sets the peer class filter for this session. All new peer connections will take this
+into account and be added to the peer classes specified by this filter, based on
+the peer's IP address.
+
+The ip-filter essentially maps an IP -> uint32. Each bit in that 32 bit integer represents
+a peer class. The least significant bit represents class 0, the next bit class 1 and so on.
+
+For more info, see ip_filter_.
+
+For example, to make all peers in the range 200.1.1.0 - 200.1.255.255 belong to their own
+peer class, apply the following filter::
+
+	ip_filter f;
+	int my_class = ses.create_peer_class("200.1.x.x IP range");
+	f.add_rule(address_v4::from_string("200.1.1.0")
+		, address_v4::from_string("200.1.255.255")
+		, 1 << my_class);
+	ses.set_peer_class_filter(f);
+
+This setting only applies to new connections, it won't affect existing peer connections.
+
+This function is limited to only peer class 0-31, since there are only 32 bits in the IP range
+mapping. Only the set bits matter; no peer class will be removed from a peer as a result of
+this call, peer classes are only added.
+
+The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
+peer classes in the ``peer_class_filter`` are 32 bits.
+
+For more information, see `peer classes`_.
+
+set_peer_class_type_filter() get_peer_class_type_filter()
+---------------------------------------------------------
+
+::
+
+		void set_peer_class_type_filter(peer_class_type_filter const& f);
+		peer_class_type_filter get_peer_class_type_filter();
+
+
+Sets and gets the *peer class type filter*. This is controls automatic peer class
+assignments to peers based on what kind of socket it is.
+
+It does not only support assigning peer classes, it also supports removing peer
+classes based on socket type.
+
+The ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
+peer-classes from peers. It is applied *after* the peer class filter is applied (which
+is based on the peer's IP address). It has the following synopsis::
+
+	struct peer_class_type_filter
+	{
+		peer_class_type_filter();
+
+		enum socket_type_t
+		{
+			tcp_socket = 0,
+			utp_socket,
+			ssl_tcp_socket,
+			ssl_utp_socket,
+			i2p_socket,
+			num_socket_types
+		};
+		void add(socket_type_t st, int peer_class);
+		void remove(socket_type_t st, int peer_class);
+
+		void disallow(socket_type_t st, int peer_class);
+		void allow(socket_type_t st, int peer_class);
+		boost::uint32_t apply(int st, boost::uint32_t peer_class_mask);
+	};
+
+``add()`` and ``remove()`` adds and removes a peer class to be added
+to new peers based on socket type.
+
+``disallow`` and ``allow()`` adds and removes a peer class to be
+removed from new peers based on socket type.
+
+The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
+peer classes in the ``peer_class_type_filter`` are 32 bits.
+
+``apply()`` takes a bitmask of peer classes and returns a new bitmask of
+peer classes after the rules have been applied, based on the socket type argument
+(``st``).
+
+The order of these rules being applied are:
+
+1. peer-class IP filter
+2. peer-class type filter, removing classes
+2. peer-class type filter, adding classes
+
+For more information, see `peer classes`_.
 
 is_listening() listen_port() listen_on()
 ----------------------------------------
@@ -4777,6 +4962,8 @@ connection may delay the connection of other peers considerably.
 ``ignore_limits_on_local_network``, if set to true, upload, download and
 unchoke limits are ignored for peers on the local network.
 
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+
 ``connection_speed`` is the number of connection attempts that
 are made per second. If a number < 0 is specified, it will default to
 200 connections per second. If 0 is specified, it means don't make
@@ -5485,6 +5672,8 @@ the global rate limiter (which they aren't by default).
 
 ``rate_limit_utp`` determines if uTP connections should be throttled by the global rate
 limiter or not. By default they are.
+
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 
 ``listen_queue_size`` is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
@@ -9314,6 +9503,35 @@ more states and more complicated transitions. For instance, a piece could be:
 
 Once a piece is fully downloaded, the hash check could complete before any of
 the write operations or it could complete after all write operations are complete.
+
+peer classes
+============
+
+The peer classes feature in libtorrent allows a client to define custom groups of peers
+and rate limit them individually. Each such group is called a *peer class*. There are a few
+default peer classes that are always created:
+
+* global - all peers belong to this class, except peers on the local network
+* local peers - all peers on the local network belongs to this class
+* TCP peers - all peers connected over TCP belong to this class
+
+The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to throttle TCP
+peers. The global and local classes are used to adjust the global rate limits.
+
+When the rate limits are adjusted for a specific torrent, a class is created implicitly for
+that torrent.
+
+A peer class can be considered a more general form of *lables* that some clients have. Peer
+classes however are not just applied to torrents, but ultimately the peers.
+
+Peer classes can be created with the `create_peer_class()`_ call (on the session object), and
+deleted with the `delete_peer_class()`_ call.
+
+Peer classes are configured with the `set_peer_class() get_peer_class()`_ calls.
+
+Custom peer classes can be assigned to torrents, with the ??? call, in which case all its
+peers will belong to the class. They can also be assigned based on the peer's IP address.
+See `set_peer_class_filter()`_ for more information.
 
 SSL torrents
 ============
