@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/peer_request.hpp"

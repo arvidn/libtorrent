@@ -4635,6 +4635,9 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
+		// we're using the piece hashes here, we need the torrent to be loaded
+		t->need_loaded();
+
 		if (!t->settings().disable_hash_checks
 			&& sha1_hash(j.d.piece_hash) != t->torrent_file().hash_for_piece(j.piece))
 		{

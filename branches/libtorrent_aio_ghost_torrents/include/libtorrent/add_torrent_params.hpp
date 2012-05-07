@@ -104,6 +104,7 @@ namespace libtorrent
 			flag_duplicate_is_error = 0x080,
 			flag_merge_resume_trackers = 0x100,
 			flag_update_subscribe = 0x200,
+			flag_pinned = 0x400,
 
 			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 #ifndef TORRENT_NO_DEPRECATE

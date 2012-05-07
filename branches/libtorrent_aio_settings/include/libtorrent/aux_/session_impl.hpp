@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/session_interface.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -195,7 +196,9 @@ namespace libtorrent
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct TORRENT_EXTRA_EXPORT session_impl
-			: alert_dispatcher
+			: session_interface
+			, alert_dispatcher
+			, buffer_allocator_interface
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
@@ -209,7 +212,7 @@ namespace libtorrent
 #endif
 
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size = 128 };
+			enum { send_buffer_size_impl = 128 };
 
 #ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
@@ -402,6 +405,10 @@ namespace libtorrent
 
 			void unchoke_peer(peer_connection& c);
 			void choke_peer(peer_connection& c);
+			void trigger_unchoke()
+			{ m_unchoke_time_scaler = 0; }
+			void trigger_optimistic_unchoke()
+			{ m_optimistic_unchoke_time_scaler = 0; }
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -438,6 +445,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return m_dht; }
+			int external_udp_port() const { return m_external_udp_port; }
 #endif
 
 #if TORRENT_USE_I2P
@@ -496,21 +504,21 @@ namespace libtorrent
 
 			char* allocate_buffer();
 			void free_buffer(char* buf);
+			int send_buffer_size() const { return send_buffer_size_impl; }
 
 			void subscribe_to_disk(boost::function<void()> const& cb)
 			{ return m_disk_thread.subscribe_to_disk(cb); }
 
+			// implements buffer_allocator_interface
+			void free_disk_buffer(char* buf);
 			char* allocate_disk_buffer(char const* category);
 			char* allocate_disk_buffer(bool& exceeded
 				, boost::function<void()> const& cb
 				, char const* category);
-			void free_disk_buffer(char* buf);
+			void reclaim_block(block_cache_reference ref);
+	
 			bool exceeded_cache_use() const
 			{ return m_disk_thread.exceeded_cache_use(); }
-
-			// decrement the refcounts for the blocks
-			// in the disk cache
-			void reclaim_block(block_cache_reference ref);
 
 			enum
 			{
@@ -550,6 +558,10 @@ namespace libtorrent
 			// uncork all peers added to the delayed uncork queue
 			void do_delayed_uncork();
 
+			void post_socket_write_job(write_some_job& j);
+
+//		private:
+
 			enum torrent_list_index
 			{
 				// this is the set of (subscribed) torrents that have changed
@@ -578,8 +590,6 @@ namespace libtorrent
 			// ones
 			int m_num_finished;
 			int m_num_downloaders;
-
-//		private:
 
 			// implements alert_dispatcher
 			virtual bool post_alert(alert* a);

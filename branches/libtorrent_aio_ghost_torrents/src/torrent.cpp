@@ -367,6 +367,7 @@ namespace libtorrent
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_refreshing_suggest_pieces(false)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
+		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -1624,6 +1625,24 @@ namespace libtorrent
 		update_want_more_peers();
 	}
 
+	void torrent::need_loaded()
+	{
+		TORRENT_ASSERT(false);
+		if (m_torrent_file->is_loaded()) return;
+
+//		#error should the API request the client to load the file based in info-hash?
+	}
+
+	// this is called when this torrent hasn't been active in long enough
+	// to warrant swapping it out, in favor of a more active torrent.
+	void torrent::unload()
+	{
+		// pinned torrents are not allowed to be swapped out
+		TORRENT_ASSERT(!m_pinned);
+#error m_pinned should be a refcounter. Some disk_io_jobs need to increment the refcount to keep the torernt loaded (like, probably most of them). In fact, maybe we could just check for the number of outstanding disk jobs right here, and not unload it if there are any
+		m_torrent_file->unload();
+	}
+
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2017,6 +2036,9 @@ namespace libtorrent
 		}
 
 		m_progress_ppm = size_type(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
+
+		// we're using the piece hashes here, we need the torrent to be loaded
+		need_loaded();
 
 		if (m_ses.m_settings.disable_hash_checks
 			|| sha1_hash(j.d.piece_hash) == m_torrent_file->hash_for_piece(j.piece))
@@ -6622,6 +6644,9 @@ namespace libtorrent
 
 	piece_manager& torrent::filesystem()
 	{
+		// we'll most likely need the torrent to be loaded here
+		need_loaded();
+
 		TORRENT_ASSERT(m_owning_storage.get());
 		TORRENT_ASSERT(m_storage);
 		return *m_storage;
@@ -8165,6 +8190,9 @@ namespace libtorrent
 		else
 		{
 			if (ret == -1) handle_disk_error(j);
+
+			// we're using the piece hashes here, we need the torrent to be loaded
+			need_loaded();
 
 			if (sha1_hash(j.d.piece_hash) != m_torrent_file->hash_for_piece(j.piece))
 				ret = -2;

@@ -93,9 +93,9 @@ namespace libtorrent
 	struct peer_plugin;
 #endif
 
-	namespace detail
+	namespace aux
 	{
-		struct session_impl;
+		struct session_interface;
 	}
 
 	struct pending_block
@@ -171,7 +171,10 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		peer_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
@@ -181,7 +184,10 @@ namespace libtorrent
 		// with this constructor we have been contacted and we still don't
 		// know which torrent the connection belongs to
 		peer_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, io_service& ios
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo);
@@ -698,7 +704,16 @@ namespace libtorrent
 
 		// a back reference to the session
 		// the peer belongs to.
-		aux::session_impl& m_ses;
+		aux::session_interface& m_ses;
+
+		// settings that apply to this peer
+		aux::session_settings& m_settings;
+		
+		// used to allocate and free disk buffers
+		buffer_allocator_interface& m_allocator;
+
+		// io service
+		io_service& m_ios;
 
 		// called from the main loop when this connection has any
 		// work to do.

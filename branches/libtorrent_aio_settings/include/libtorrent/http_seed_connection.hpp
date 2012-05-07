@@ -82,7 +82,10 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		http_seed_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote

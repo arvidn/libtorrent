@@ -226,7 +226,7 @@ namespace libtorrent
 	{
 		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
-		TORRENT_ASSERT(m_files.begin() != m_files.end());
+		TORRENT_ASSERT(m_files.num_files() > 0);
 		m_save_path = complete(path);
 	}
 

@@ -854,6 +854,7 @@ namespace libtorrent
 
 	void torrent_info::copy_on_write()
 	{
+		TORRENT_ASSERT(is_loaded());
 		INVARIANT_CHECK;
 
 		if (m_orig_files) return;

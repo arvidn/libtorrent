@@ -146,6 +146,11 @@ namespace libtorrent
 		// it will initialize the storage and the piece-picker
 		void init();
 
+		// called every time we actually need the torrent_info
+		// object to be fully loaded. If it isn't, this triggers
+		// loading it from disk
+		void need_loaded();
+
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
 		// can send a rendezvous connect message
@@ -1390,6 +1395,10 @@ namespace libtorrent
 		// will be added to the m_state_updates set in session_impl
 		// whenever this torrent's state changes (any state).
 		bool m_state_subscription:1;
+
+		// pinned torrents are locked in RAM and won't be unloaded
+		// in favor of more active torrents
+		bool m_pinned:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
