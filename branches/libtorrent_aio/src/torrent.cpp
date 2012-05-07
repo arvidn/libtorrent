@@ -203,8 +203,9 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_storage_constructor)
 		PRINT_OFFSETOF(torrent, m_added_time)
 		PRINT_OFFSETOF(torrent, m_completed_time)
-		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_last_saved_resume)
+		PRINT_OFFSETOF(torrent, m_last_seen_complete)
+		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
 #endif
@@ -302,8 +303,9 @@ namespace libtorrent
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
 		, m_completed_time(0)
-		, m_last_seen_complete(0)
 		, m_last_saved_resume(time(0))
+		, m_last_seen_complete(0)
+		, m_swarm_last_seen_complete(0)
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
 		, m_average_piece_time(0)
@@ -7849,11 +7851,15 @@ namespace libtorrent
 			}
 		}
 		
+		m_swarm_last_seen_complete = m_last_seen_complete;
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
 			peer_connection* p = *i;
 			++i;
+
+			// look for the peer that saw a seed most recently
+			m_swarm_last_seen_complete = (std::max)(p->last_seen_complete(), m_swarm_last_seen_complete);
 
 			if (!p->ignore_stats())
 				m_stat += p->statistics();
@@ -8708,8 +8714,7 @@ namespace libtorrent
 		st->down_bandwidth_queue = 0;
 		st->priority = m_priority;
 
-		st->num_peers = (int)std::count_if(m_connections.begin(), m_connections.end()
-			, !boost::bind(&peer_connection::is_connecting, _1));
+		st->num_peers = int(m_connections.size()) - m_num_connecting;
 
 		st->list_peers = m_policy.num_peers();
 		st->list_seeds = m_policy.num_seeds();
@@ -8873,20 +8878,7 @@ namespace libtorrent
 			st->distributed_copies = -1.f;
 		}
 
-		if (flags & torrent_handle::query_last_seen_complete)
-		{
-			time_t last = last_seen_complete();
-			for (std::set<peer_connection*>::const_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
-			{
-				last = (std::max)(last, (*i)->last_seen_complete());
-			}
-			st->last_seen_complete = last;
-		}
-		else
-		{
-			st->last_seen_complete = 0;
-		}
+		st->last_seen_complete = m_swarm_last_seen_complete;
 	}
 
 	void torrent::add_redundant_bytes(int b, torrent::wasted_reason_t reason)
