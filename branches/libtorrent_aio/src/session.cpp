@@ -322,7 +322,10 @@ namespace libtorrent
 		set.network_threads = 0;
 
 		// number of disk threads for low level file operations
-		set.aio_threads = 4;
+		// TODO: the file object is not thread safe when using blocking
+		// vector operations (the file position relies on the underlying file state).
+		// So, leave this at 1 for now
+		set.aio_threads = 1;
 
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file
@@ -1370,7 +1373,7 @@ namespace libtorrent
 		, checking_mem_usage(200)
 		, predictive_piece_announce(0)
 		, contiguous_recv_buffer(true)
-		, aio_threads(2)
+		, aio_threads(1)
 		, aio_max(300)
 		, network_threads(0)
 		, ssl_listen(4433)
