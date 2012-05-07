@@ -1092,6 +1092,7 @@ Identifiers are assigned from low numbers to higher. So if you plan on using cer
 classes in a call to `set_peer_class_filter()`_, make sure to create those early on, to get
 low identifiers.
 
+For more information on peer classes, see `peer classes`_.
 
 delete_peer_class()
 -------------------
@@ -1111,6 +1112,8 @@ drops their references to it.
 
 There is no need to call this function for custom peer classes. All peer classes will be properly
 destructed when the session object destructs.
+
+For more information on peer classes, see `peer classes`_.
 
 set_peer_class() get_peer_class()
 ---------------------------------
@@ -1150,6 +1153,8 @@ of this peer class.
 ``upload_limit`` and ``download_limit`` are transfer rates limits for the whole peer class.
 They are specified in bytes per second and apply to the sum of all peers that are
 members of this class.
+
+For more information, see `peer classes`_.
 
 set_peer_class_filter()
 -----------------------
@@ -9499,6 +9504,35 @@ more states and more complicated transitions. For instance, a piece could be:
 Once a piece is fully downloaded, the hash check could complete before any of
 the write operations or it could complete after all write operations are complete.
 
+peer classes
+============
+
+The peer classes feature in libtorrent allows a client to define custom groups of peers
+and rate limit them individually. Each such group is called a *peer class*. There are a few
+default peer classes that are always created:
+
+* global - all peers belong to this class, except peers on the local network
+* local peers - all peers on the local network belongs to this class
+* TCP peers - all peers connected over TCP belong to this class
+
+The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to throttle TCP
+peers. The global and local classes are used to adjust the global rate limits.
+
+When the rate limits are adjusted for a specific torrent, a class is created implicitly for
+that torrent.
+
+A peer class can be considered a more general form of *lables* that some clients have. Peer
+classes however are not just applied to torrents, but ultimately the peers.
+
+Peer classes can be created with the `create_peer_class()`_ call (on the session object), and
+deleted with the `delete_peer_class()`_ call.
+
+Peer classes are configured with the `set_peer_class() get_peer_class()`_ calls.
+
+Custom peer classes can be assigned to torrents, with the ??? call, in which case all its
+peers will belong to the class. They can also be assigned based on the peer's IP address.
+See `set_peer_class_filter()`_ for more information.
+
 SSL torrents
 ============
 
@@ -9536,35 +9570,6 @@ pick which port the SSL socket should bind to, set ``session_settings::ssl_liste
 different port. It defaults to port 4433. This setting is only taken into account when the
 normal listen socket is opened (i.e. just changing this setting won't necessarily close
 and re-open the SSL socket). To not listen on an SSL socket at all, set ``ssl_listen`` to 0.
-
-peer classes
-============
-
-The peer classes feature in libtorrent allows a client to define custom groups of peers
-and rate limit them individually. Each such group is called a *peer class*. There are a few
-default peer classes that are always created:
-
-* global - all peers belong to this class, except peers on the local network
-* local peers - all peers on the local network belongs to this class
-* TCP peers - all peers connected over TCP belong to this class
-
-The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to throttle TCP
-peers. The global and local classes are used to adjust the global rate limits.
-
-When the rate limits are adjusted for a specific torrent, a class is created implicitly for
-that torrent.
-
-A peer class can be considered a more general form of *lables* that some clients have. Peer
-classes however are not just applied to torrents, but ultimately the peers.
-
-Peer classes can be created with the `create_peer_class()`_ call (on the session object), and
-deleted with the `delete_peer_class()`_ call.
-
-Peer classes are configured with the `set_peer_class() get_peer_class()`_ calls.
-
-Custom peer classes can be assigned to torrents, with the ??? call, in which case all its
-peers will belong to the class. They can also be assigned based on the peer's IP address.
-See `set_peer_class_filter()`_ for more information.
 
 This feature is only available if libtorrent is build with openssl support (``TORRENT_USE_OPENSSL``)
 and requires at least openSSL version 1.0, since it needs SNI support.

@@ -323,7 +323,12 @@ namespace libtorrent
 		void set_key(int key);
 		peer_id id() const;
 
-		bool is_listening() const;
+		// peer class API
+		void set_peer_class_filter(ip_filter const& f);
+		int create_peer_class(char const* name);
+		void delete_peer_class(int cid);
+		peer_class_info get_peer_class(int cid);
+		void set_peer_class(int cid, peer_class_info const& pci);
 
 		// if the listen port failed in some way
 		// you can retry to listen on another port-
@@ -342,12 +347,6 @@ namespace libtorrent
 			listen_no_system_port = 0x02
 		};
 
-		void set_peer_class_filter(ip_filter const& f);
-		int create_peer_class(char const* name);
-		void delete_peer_class(int cid);
-		peer_class_info get_peer_class(int cid);
-		void set_peer_class(int cid, peer_class_info const& pci);
-
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16
 		TORRENT_DEPRECATED_PREFIX
@@ -365,6 +364,7 @@ namespace libtorrent
 
 		// returns the port we ended up listening on
 		unsigned short listen_port() const;
+		bool is_listening() const;
 
 		enum options_t
 		{
