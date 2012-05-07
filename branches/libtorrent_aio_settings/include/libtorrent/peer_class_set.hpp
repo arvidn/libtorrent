@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2011, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,43 +30,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
-#define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
+#ifndef TORRENT_PEER_CLASS_SET_HPP_INCLUDED
+#define TORRENT_PEER_CLASS_SET_HPP_INCLUDED
 
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/bandwidth_socket.hpp"
+#include "libtorrent/peer_class.hpp"
+#include <vector>
 
 namespace libtorrent {
 
-struct TORRENT_EXTRA_EXPORT bw_request
-{
-	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
-		, int blk, int prio);
+	// this represents an object that can have many peer classes applied
+	// to it. Most notably, peer connections and torrents derive from this.
+	struct peer_class_set
+	{
+		void add_class(peer_class_pool& pool, peer_class_t c);
+		bool has_class(peer_class_t c) const;
+		void remove_class(peer_class_pool& pool, peer_class_t c);
+		int num_classes() const { return m_class.size(); }
+		peer_class_t class_at(int i) const
+		{
+			TORRENT_ASSERT(i >= 0 && i < int(m_class.size()));
+			return m_class[i];
+		}
 
-	boost::intrusive_ptr<bandwidth_socket> peer;
-	// 1 is normal prio
-	int priority;
-	// the number of bytes assigned to this request so far
-	int assigned;
-	// once assigned reaches this, we dispatch the request function
-	int request_size;
+	private:
 
-	// the max number of rounds for this request to survive
-	// this ensures that requests gets responses at very low
-	// rate limits, when the requested size would take a long
-	// time to satisfy
-	int ttl;
-
-	// loops over the bandwidth channels and assigns bandwidth
-	// from the most limiting one
-	int assign_bandwidth();
-
-	// we don't actually support more than 10 channels per peer
-	bandwidth_channel* channel[10];
-};
-
+		// if this object belongs to any peer-class, this
+		// vector contains all class IDs. Each ID refers
+		// to a an entry in m_ses.m_peer_classes which
+		// holds the metadata about the class. Classes
+		// affect bandwidth limits among other things
+		std::vector<peer_class_t> m_class;
+	};
 }
 
-#endif
+#endif // TORRENT_PEER_CLASS_SET_HPP_INCLUDED
 

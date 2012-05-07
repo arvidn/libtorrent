@@ -873,6 +873,31 @@ namespace libtorrent
 	}
 #endif
 
+	void session::set_peer_class_filter(ip_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
+	}
+
+	int session::create_peer_class(char const* name)
+	{
+		TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);
+	}
+
+	void session::delete_peer_class(int cid)
+	{
+		TORRENT_ASYNC_CALL1(delete_peer_class, cid);
+	}
+
+	peer_class_info session::get_peer_class(int cid)
+	{
+		TORRENT_SYNC_CALL_RET1(peer_class_info, get_peer_class, cid);
+	}
+
+	void session::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		TORRENT_ASYNC_CALL2(set_peer_class, cid, pci);
+	}
+
 	bool session::is_listening() const
 	{
 		TORRENT_SYNC_CALL_RET(bool, is_listening);
@@ -1191,7 +1216,10 @@ namespace libtorrent
 		, max_failcount(3)
 		, min_reconnect_time(60)
 		, peer_connect_timeout(15)
+#ifndef TORRENT_NO_DEPRECATE
+		  // deprecated in 0.17
 		, ignore_limits_on_local_network(true)
+#endif
 		, connection_speed(6)
 		, send_redundant_have(true)
 		, lazy_bitfields(true)
@@ -1334,7 +1362,10 @@ namespace libtorrent
 		, utp_dynamic_sock_buf(true)
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
-		, rate_limit_utp(true)
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 0.17
+		, rate_limit_utp(false)
+#endif
 		, listen_queue_size(5)
 		, announce_double_nat(false)
 		, torrent_connect_boost(10)

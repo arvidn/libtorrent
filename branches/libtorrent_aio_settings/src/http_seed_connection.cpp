@@ -65,6 +65,7 @@ namespace libtorrent
 		, web_seed_entry::headers_t const& extra_headers)
 		: web_connection_base(ses, t, s, remote, url, peerinfo, auth, extra_headers)
 		, m_url(url)
+		, m_response_left(0)
 		, m_chunk_pos(0)
 		, m_partial_chunk_header(0)
 	{

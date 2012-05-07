@@ -538,6 +538,8 @@ SOURCES =
 	parse_url
 	ConvertUTF
 	thread
+	peer_class
+	peer_class_set
 
 # -- extensions --
 	metadata_transfer

@@ -72,14 +72,14 @@ bool verify_downloads = false;
 
 // number of seeds we've spawned. The test is terminated
 // when this reaches zero, for dual tests
-boost::detail::atomic_count num_seeds(0);
+static boost::detail::atomic_count num_seeds(0);
 
 // the kind of test to run. Upload sends data to a
 // bittorrent client, download requests data from
 // a client and dual uploads and downloads from a client
 // at the same time (this is presumably the most realistic
 // test)
-enum { none, upload_test, download_test, dual_test } test_mode = none;
+static enum { none, upload_test, download_test, dual_test } test_mode = none;
 
 // the number of suggest messages received (total across all peers)
 boost::detail::atomic_count num_suggest(0);
@@ -636,10 +636,10 @@ void generate_torrent(std::vector<char>& buf, int size)
 	size_type file_size = total_size / 9;
 	while (s > 0)
 	{
-		char buf[100];
-		snprintf(buf, sizeof(buf), "t/stress_test%d", i);
+		char b[100];
+		snprintf(b, sizeof(b), "t/stress_test%d", i);
 		++i;
-		fs.add_file(buf, (std::min)(s, size_type(file_size)));
+		fs.add_file(b, (std::min)(s, size_type(file_size)));
 		s -= file_size;
 		file_size += 200;
 	}
@@ -854,7 +854,6 @@ int main(int argc, char* argv[])
 	{
 		peer_conn* p = *i;
 		int time = total_milliseconds(p->end_time - p->start_time);
-		if (time == 0) time = 1;
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;

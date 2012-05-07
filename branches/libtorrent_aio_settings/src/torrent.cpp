@@ -85,6 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/gzip.hpp" // for inflate_gzip
 #include "libtorrent/random.hpp"
+#include "libtorrent/peer_class.hpp" // for peer_class
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -288,6 +289,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
+		, m_peer_class(0)
 		, m_storage(0)
 		, m_num_connecting(0)
 		, m_tracker_timer(ses.m_io_service)
@@ -2104,14 +2106,15 @@ namespace libtorrent
 		m_net_interfaces.clear();
 
 		char* str = strdup(net_interfaces.c_str());
+		char* ptr = str;
 
-		while (str)
+		while (ptr)
 		{
-			char* space = strchr(str, ',');
+			char* space = strchr(ptr, ',');
 			if (space) *space++ = 0;
 			error_code ec;
-			address a(address::from_string(str, ec));
-			str = space;
+			address a(address::from_string(ptr, ec));
+			ptr = space;
 			if (ec) continue;
 			m_net_interfaces.push_back(tcp::endpoint(a, 0));
 		}
@@ -4048,7 +4051,7 @@ namespace libtorrent
 			}
 			while (i != m_time_critical_pieces.begin() && i->deadline < boost::prior(i)->deadline)
 			{
-				std::iter_swap(i, boost::next(i));
+				std::iter_swap(i, boost::prior(i));
 				--i;
 			}
 			return;
@@ -6242,9 +6245,9 @@ namespace libtorrent
 			for (std::set<peer_connection*>::iterator i = m_connections.begin()
 				, end(m_connections.end()); i != end; ++i)
 			{
-				peer_connection* p = *i;
-				if (!p->is_connecting()) continue;
-				p->disconnect(errors::too_many_connections);
+				peer_connection* peer = *i;
+				if (!peer->is_connecting()) continue;
+				peer->disconnect(errors::too_many_connections);
 				break;
 			}
 		}
@@ -6476,11 +6479,6 @@ namespace libtorrent
 		}
 
 		return ret;
-	}
-
-	int torrent::bandwidth_throttle(int channel) const
-	{
-		return m_bandwidth_channel[channel].throttle();
 	}
 
 	// called when torrent is finished (all interesting
@@ -7079,38 +7077,57 @@ namespace libtorrent
 
 	void torrent::set_upload_limit(int limit)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		TORRENT_ASSERT(limit >= -1);
-		if (limit <= 0) limit = 0;
-		if (m_bandwidth_channel[peer_connection::upload_channel].throttle() != limit)
-			state_updated();
-		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
-	}
-
-	int torrent::upload_limit() const
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		int limit = m_bandwidth_channel[peer_connection::upload_channel].throttle();
-		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
-		return limit;
+		set_limit_impl(limit, peer_connection::upload_channel);
 	}
 
 	void torrent::set_download_limit(int limit)
 	{
+		set_limit_impl(limit, peer_connection::download_channel);
+	}
+
+	void torrent::set_limit_impl(int limit, int channel)
+	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
-		if (m_bandwidth_channel[peer_connection::download_channel].throttle() != limit)
+
+		if (m_peer_class == 0 && limit == 0) return;
+
+		if (m_peer_class == 0)
+			setup_peer_class();
+
+		struct peer_class* tpc = m_ses.m_classes.at(m_peer_class);
+		TORRENT_ASSERT(tpc);
+		if (tpc->channel[channel].throttle() != limit)
 			state_updated();
-		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
+		tpc->channel[channel].throttle(limit);
+	}
+
+	void torrent::setup_peer_class()
+	{
+		TORRENT_ASSERT(m_peer_class == 0);
+		m_peer_class = m_ses.m_classes.new_peer_class(name());
+		add_class(m_ses.m_classes, m_peer_class);
+	}
+
+	int torrent::limit_impl(int channel) const
+	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		if (m_peer_class == 0) return -1;
+		int limit = m_ses.m_classes.at(m_peer_class)->channel[channel].throttle();
+		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
+		return limit;
+	}
+
+	int torrent::upload_limit() const
+	{
+		return limit_impl(peer_connection::download_channel);
 	}
 
 	int torrent::download_limit() const
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-		int limit = m_bandwidth_channel[peer_connection::download_channel].throttle();
-		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
-		return limit;
+		return limit_impl(peer_connection::download_channel);
 	}
 
 	void torrent::delete_files()
@@ -7778,8 +7795,8 @@ namespace libtorrent
 
 		if (settings().get_bool(settings_pack::rate_limit_ip_overhead))
 		{
-			int up_limit = m_bandwidth_channel[peer_connection::upload_channel].throttle();
-			int down_limit = m_bandwidth_channel[peer_connection::download_channel].throttle();
+			int up_limit = upload_limit();
+			int down_limit = download_limit();
 
 			if (down_limit > 0
 				&& m_stat.download_ip_overhead() >= down_limit

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,71 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/pch.hpp"
-
-#include "libtorrent/ip_filter.hpp"
-#include <boost/utility.hpp>
-
+#include "libtorrent/peer_class_set.hpp"
+#include "libtorrent/peer_class.hpp"
+#include <vector>
 
 namespace libtorrent
 {
-	void ip_filter::add_rule(address first, address last, boost::uint32_t flags)
+	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{
-		if (first.is_v4())
-		{
-			TORRENT_ASSERT(last.is_v4());
-			m_filter4.add_rule(first.to_v4().to_bytes(), last.to_v4().to_bytes(), flags);
-		}
-#if TORRENT_USE_IPV6
-		else if (first.is_v6())
-		{
-			TORRENT_ASSERT(last.is_v6());
-			m_filter6.add_rule(first.to_v6().to_bytes(), last.to_v6().to_bytes(), flags);
-		}
-#endif
-		else
-			TORRENT_ASSERT(false);
+		if (std::find(m_class.begin(), m_class.end(), c) != m_class.end()) return;
+		m_class.push_back(c);
+		pool.incref(c);
 	}
 
-	int ip_filter::access(address const& addr) const
+	bool peer_class_set::has_class(peer_class_t c) const
 	{
-		if (addr.is_v4())
-			return m_filter4.access(addr.to_v4().to_bytes());
-#if TORRENT_USE_IPV6
-		TORRENT_ASSERT(addr.is_v6());
-		return m_filter6.access(addr.to_v6().to_bytes());
-#else
-		return 0;
-#endif
+		return std::find(m_class.begin(), m_class.end(), c) != m_class.end();
 	}
 
-	ip_filter::filter_tuple_t ip_filter::export_filter() const
+	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
 	{
-#if TORRENT_USE_IPV6
-		return boost::make_tuple(m_filter4.export_filter<address_v4>()
-			, m_filter6.export_filter<address_v6>());
-#else
-		return m_filter4.export_filter<address_v4>();
-#endif
+		std::vector<peer_class_t>::iterator i = std::find(m_class.begin(), m_class.end(), c);
+		if (i == m_class.end()) return;
+		m_class.erase(i);
+		pool.decref(c);
 	}
-	
-	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags)
-	{
-		m_filter.add_rule(first, last, flags);
-	}
-
-	int port_filter::access(boost::uint16_t port) const
-	{
-		return m_filter.access(port);
-	}
-/*
-	void ip_filter::print() const
-	{
-		for (range_t::iterator i =  m_access_list.begin(); i != m_access_list.end(); ++i)
-		{
-			std::cout << i->start.as_string() << " " << i->access << "\n";
-		}
-	}
-*/
 }
 

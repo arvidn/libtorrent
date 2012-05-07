@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/error.hpp"
+#include "libtorrent/alloca.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -180,8 +181,6 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_failed(false)
-		, m_ignore_bandwidth_limits(false)
-		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
 		, m_connecting(outgoing)
@@ -336,8 +335,6 @@ namespace libtorrent
 		, m_interesting(false)
 		, m_choked(true)
 		, m_failed(false)
-		, m_ignore_bandwidth_limits(false)
-		, m_ignore_unchoke_slots(false)
 		, m_have_all(false)
 		, m_disconnecting(false)
 		, m_connecting(false)
@@ -619,6 +616,27 @@ namespace libtorrent
 				peer_log(">>> SET_TOS[ tos: %d e: %s ]", m_ses.settings().get_int(settings_pack::peer_tos), ec.message().c_str());
 #endif
 			}
+		}
+
+		// add peer classes based on IP
+		boost::uint32_t peer_class_mask = m_ses.m_peer_class_filter.access(m_remote.address());
+
+		// assign peer class based on socket type
+		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
+		int socket_type = mapping[m_socket->type()];
+		// filter peer classes based on type
+		peer_class_mask = m_ses.m_peer_class_type_filter.apply(socket_type, peer_class_mask);
+
+		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
+		{
+			if ((peer_class_mask & 1) == 0) continue;
+
+			// if you hit this assert, your peer class filter contains
+			// a bitmask referencing a non-existent peer class
+			TORRENT_ASSERT(m_ses.m_classes.at(i));
+
+			if (m_ses.m_classes.at(i) == 0) continue;
+			add_class(m_ses.m_classes, i);
 		}
 
 		if (t && t->ready_for_connections())
@@ -3009,9 +3027,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_disconnecting);
 		TORRENT_ASSERT(t->valid_metadata());
-		TORRENT_ASSERT(block.piece_index >= 0);
+
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(int(block.piece_index) < t->torrent_file().num_pieces());
-		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(int(block.block_index) < t->torrent_file().piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
@@ -3148,9 +3167,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(t->valid_metadata());
 
-		TORRENT_ASSERT(block.piece_index >= 0);
+		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
+		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(int(block.piece_index) < t->torrent_file().num_pieces());
-		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(int(block.block_index) < t->torrent_file().piece_size(block.piece_index));
 
 		// if all the peers that requested this block has been
@@ -3792,12 +3811,29 @@ namespace libtorrent
 		TORRENT_ASSERT(refcount() > 0);
 	}
 
+	bool ignore_unchoke_slots_set(peer_class_pool& pool, peer_class_set const& set)
+	{
+		int num = set.num_classes();
+		for (int i = 0; i < num; ++i)
+		{
+			peer_class* pc = pool.at(set.class_at(i));
+			if (pc == 0) continue;
+			if (pc->ignore_unchoke_slots) return true;
+		}
+		return false;
+	}
+
 	bool peer_connection::ignore_unchoke_slots() const
 	{
-		return m_ignore_unchoke_slots
-			|| (m_ses.settings().get_bool(settings_pack::ignore_limits_on_local_network)
-			&& on_local_network()
-			&& m_ses.m_local_upload_channel.throttle() == 0);
+		if (num_classes() == 0) return true;
+
+		if (ignore_unchoke_slots_set(m_ses.m_classes, *this)) return true;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (t && ignore_unchoke_slots_set(m_ses.m_classes, *t)) return true;
+		return false;
+
+//		return m_ses.settings().ignore_limits_on_local_network
+//			&& on_local_network();
 	}
 
 	// defined in upnp.cpp
@@ -4138,6 +4174,37 @@ namespace libtorrent
 			m_desired_queue_size = min_request_queue;
 	}
 
+	void use_quota_overhead(boost::shared_ptr<torrent> t, bandwidth_channel* ch
+		, int channel, int amount)
+	{
+		ch->use_quota(amount);
+
+		if (ch->throttle() > 0
+			&& ch->throttle() < amount
+			&& t->alerts().should_post<performance_alert>())
+		{
+			t->alerts().post_alert(performance_alert(t->get_handle()
+				, channel == peer_connection::download_channel
+					? performance_alert::download_limit_too_low
+					: performance_alert::upload_limit_too_low));
+		}
+	}
+
+	void use_quota_overhead(boost::shared_ptr<torrent> t, peer_class_pool& pool
+		, peer_class_set& set, int amount_down, int amount_up)
+	{
+		int num = set.num_classes();
+		for (int i = 0; i < num; ++i)
+		{
+			peer_class* p = pool.at(set.class_at(i));
+			if (p == 0) continue;
+			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
+			use_quota_overhead(t, ch, peer_connection::download_channel, amount_down);
+			ch = &p->channel[peer_connection::upload_channel];
+			use_quota_overhead(t, ch, peer_connection::upload_channel, amount_up);
+		}
+	}
+
 	void peer_connection::second_tick(int tick_interval_ms)
 	{
 		ptime now = time_now();
@@ -4150,50 +4217,17 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		// drain the IP overhead from the bandwidth limiters
-		if (m_ses.settings().get_bool(settings_pack::rate_limit_ip_overhead))
+		if (m_ses.settings().get_bool(settings_pack::rate_limit_ip_overhead) && t)
 		{
 			int download_overhead = m_statistics.download_ip_overhead();
 			int upload_overhead = m_statistics.upload_ip_overhead();
 
-			bandwidth_channel* upc = 0;
-			bandwidth_channel* downc = 0;
-			if (m_ignore_bandwidth_limits)
-			{
-				upc = &m_ses.m_local_upload_channel;
-				downc = &m_ses.m_local_download_channel;
-			}
-			else
-			{
-				upc = &m_ses.m_upload_channel;
-				downc = &m_ses.m_download_channel;
-			}
-	
-			if (t && !m_ignore_bandwidth_limits)
-			{
-				t->m_bandwidth_channel[download_channel].use_quota(download_overhead);
-				t->m_bandwidth_channel[upload_channel].use_quota(upload_overhead);
-
-				int down_limit = t->m_bandwidth_channel[download_channel].throttle();
-				int up_limit = t->m_bandwidth_channel[upload_channel].throttle();
-
-				if (down_limit > 0
-					&& download_overhead >= down_limit
-					&& t->alerts().should_post<performance_alert>())
-				{
-					t->alerts().post_alert(performance_alert(t->get_handle()
-						, performance_alert::download_limit_too_low));
-				}
-
-				if (up_limit > 0
-					&& upload_overhead >= up_limit
-					&& t->alerts().should_post<performance_alert>())
-				{
-					t->alerts().post_alert(performance_alert(t->get_handle()
-						, performance_alert::upload_limit_too_low));
-				}
-			}
-			downc->use_quota(download_overhead);
-			upc->use_quota(upload_overhead);
+			use_quota_overhead(t, m_ses.m_classes, *this
+				, m_statistics.download_ip_overhead()
+				, m_statistics.upload_ip_overhead());
+			use_quota_overhead(t, m_ses.m_classes, *t
+				, m_statistics.download_ip_overhead()
+				, m_statistics.upload_ip_overhead());
 		}
 
 		if (!t || m_disconnecting)
@@ -4337,9 +4371,6 @@ namespace libtorrent
 		// if we haven't sent something in too long, send a keep-alive
 		keep_alive();
 
-		m_ignore_bandwidth_limits = m_ses.settings().get_bool(settings_pack::ignore_limits_on_local_network)
-			&& on_local_network();
-
 		m_statistics.second_tick(tick_interval_ms);
 
 		if (m_statistics.upload_payload_rate() > m_upload_rate_peak)
@@ -4372,20 +4403,6 @@ namespace libtorrent
 		}
 
 		int piece_timeout = m_ses.settings().get_int(settings_pack::piece_timeout);
-		int rate_limit = INT_MAX;
-		if (t->bandwidth_throttle(download_channel) > 0)
-			rate_limit = (std::min)(t->bandwidth_throttle(download_channel) / t->num_peers(), rate_limit);
-		if (m_ses.m_download_channel.throttle() > 0)
-			rate_limit = (std::min)(m_ses.m_download_channel.throttle()
-				/ m_ses.num_connections(), rate_limit);
-
-		// rate_limit is an approximation of what this connection is
-		// allowed to download. If it is impossible to beat the piece
-		// timeout at this rate, adjust it to be realistic
-
-		const int block_size = t->block_size();
-		int rate_limit_timeout = rate_limit / block_size;
-		if (piece_timeout < rate_limit_timeout) piece_timeout = rate_limit_timeout;
 
 		if (!m_download_queue.empty()
 			&& m_quota[download_channel] > 0
@@ -4775,45 +4792,44 @@ namespace libtorrent
 		}
 	}
 
+	// copies pointers to bandwidth channels from the peer classes
+	// into the array. Only bandwidth channels with a bandwidth limit
+	// is considered pertinent and copied
+	// returns the number of pointers copied
+	// channel is upload_channel or download_channel
+	int copy_pertinent_channels(peer_class_pool& classes, peer_class_set const& set
+		, int channel, bandwidth_channel** dst, int max)
+	{
+		int num_channels = set.num_classes();
+		int num_copied = 0;
+		for (int i = 0; i < num_channels; ++i)
+		{
+			peer_class* pc = classes.at(set.class_at(i));
+			TORRENT_ASSERT(pc);
+			if (pc == 0) continue;
+			bandwidth_channel* chan = &pc->channel[channel];
+			// no need to include channels that don't have any bandwidth limits
+			if (chan->throttle() == 0) continue;
+			dst[num_copied] = chan;
+			++num_copied;
+			if (num_copied == max) break;
+		}
+		return num_copied;
+	}
+
 	int peer_connection::request_upload_bandwidth()
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
-		bandwidth_channel* bwc1 = 0;
-		bandwidth_channel* bwc2 = 0;
-		bandwidth_channel* bwc3 = 0;
-		bandwidth_channel* bwc4 = 0;
-
-		if (!m_ignore_bandwidth_limits)
-		{
-			bool utp = m_socket->get<utp_stream>() != 0;
-
-			// in this case, we have data to send, but no
-			// bandwidth. So, we simply request bandwidth
-			// from the bandwidth manager
-			bwc1 = (m_ses.settings().get_bool(settings_pack::rate_limit_utp) || !utp) ? &m_ses.m_upload_channel : 0;
-			bwc2 = t ? &t->m_bandwidth_channel[upload_channel] : 0;
-			bwc3 = !utp ? &m_ses.m_tcp_upload_channel : 0;
-		}
-		else
-		{
-			// in this case, we're a local peer, and the settings
-			// are set to ignore rate limits for local peers. So,
-			// instead we rate limit ourself against the special
-			// global bandwidth channel for local peers, which defaults
-			// to unthrottled
-			bwc1 = &m_ses.m_local_upload_channel;
-		}
-
 		int priority;
-		if (m_ses.settings().get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker
+		if (m_ses.m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker
 			&& t && !t->upload_mode() && !t->is_upload_only())
 		{
 			// when we use the bittyrant choker, the priority of a peer
 			// is decided based on the estimated reciprocation rate and
 			// the share it represents of the total upload rate capacity
 			// the torrent priority is taken into account when unchoking peers
-			int upload_capacity = m_ses.settings().get_int(settings_pack::upload_rate_limit);
+			int upload_capacity = m_ses.m_settings.get_int(settings_pack::upload_rate_limit);
 			if (upload_capacity == 0)
 			{
 				// we don't know at what rate we can upload. If we have a
@@ -4837,87 +4853,80 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(priority <= 0xffff);
 
+		int bytes = (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
+				/ (1000 / m_ses.m_settings.get_int(settings_pack::tick_interval)));
+
 		// peers that we are not interested in are non-prioritized
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
-			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
-			, int(m_send_buffer.size()), priority
-			, bwc1, bwc2, bwc3, bwc4
-			, (bwc1?bwc1->throttle():0)
-			, (bwc2?bwc2->throttle():0)
-			, (bwc3?bwc3->throttle():0)
-			, (bwc4?bwc4->throttle():0)
-			, m_ignore_bandwidth_limits);
-#endif
-		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_limit) == 0);
-		int ret = m_ses.m_upload_rate.request_bandwidth(self()
-			, (std::max)(m_send_buffer.size(), m_statistics.upload_rate() * 2
-				/ (1000 / m_ses.settings().get_int(settings_pack::tick_interval)))
-			, priority
-			, bwc1, bwc2, bwc3, bwc4);
-
-		if (ret == 0) m_channel_state[upload_channel] |= peer_info::bw_limit;
-
-		return ret;
+		return request_bandwidth(upload_channel, priority, bytes);
 	}
 
 	int peer_connection::request_download_bandwidth(int bytes)
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
-		bandwidth_channel* bwc1 = 0;
-		bandwidth_channel* bwc2 = 0;
-		bandwidth_channel* bwc3 = 0;
-		bandwidth_channel* bwc4 = 0;
-
-		if (!m_ignore_bandwidth_limits)
-		{
-			bool utp = m_socket->get<utp_stream>() != 0;
-
-			// in this case, we have outstanding data to
-			// receive, but no bandwidth quota. So, we simply
-			// request bandwidth from the bandwidth manager
-			bwc1 = (m_ses.settings().get_bool(settings_pack::rate_limit_utp) || !utp) ? &m_ses.m_download_channel : 0;
-			bwc2 = t ? &t->m_bandwidth_channel[download_channel] : 0;
-			bwc3 = !utp ? &m_ses.m_tcp_download_channel : 0;
-		}
-		else
-		{
-			// in this case, we're a local peer, and the settings
-			// are set to ignore rate limits for local peers. So,
-			// instead we rate limit ourself against the special
-			// global bandwidth channel for local peers, which defaults
-			// to unthrottled
-			bwc1 = &m_ses.m_local_download_channel;
-		}
-
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
-			"channels: %p %p %p %p limits: %d %d %d %d ignore: %d ]"
-			, int(m_download_queue.size() * 16 * 1024 + 30), m_priority
-			, bwc1, bwc2, bwc3, bwc4
-			, (bwc1?bwc1->throttle():0)
-			, (bwc2?bwc2->throttle():0)
-			, (bwc3?bwc3->throttle():0)
-			, (bwc4?bwc4->throttle():0)
-			, m_ignore_bandwidth_limits);
-#endif
-
 		TORRENT_ASSERT(m_priority <= 255);
 		int priority = m_priority + (t ? (t->priority() << 8) : 0);
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
-		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
+
 		if (bytes == 0)
 		{
 			bytes = (std::max)((std::max)(m_outstanding_bytes, m_packet_size - m_recv_pos) + 30
 				, m_statistics.download_rate() * 2
-				/ (1000 / m_ses.settings().get_int(settings_pack::tick_interval)));
+				/ (1000 / m_ses.m_settings.get_int(settings_pack::tick_interval)));
 		}
-		int ret = m_ses.m_download_rate.request_bandwidth(self()
-			, bytes, priority, bwc1, bwc2, bwc3, bwc4);
+		return request_bandwidth(download_channel, priority, bytes);
+	}
 
-		if (ret == 0) m_channel_state[download_channel] |= peer_info::bw_limit;
+	int peer_connection::request_bandwidth(int channel, int priority, int bytes)
+	{
+		shared_ptr<torrent> t = m_torrent.lock();
+
+		int max_channels = num_classes() + t->num_classes() + 2;
+		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
+		peer_class_pool& classes = m_ses.m_classes;
+
+		// collect the pointers to all bandwidth channels
+		// that apply to this torrent
+		int c = 0;
+
+		c += copy_pertinent_channels(m_ses.m_classes, *this, channel
+			, channels + c, max_channels - c);
+		c += copy_pertinent_channels(m_ses.m_classes, *t, channel
+			, channels + c, max_channels - c);
+
+#ifdef TORRENT_DEBUG
+		// make sure we don't have duplicates
+		std::set<bandwidth_channel*> unique_classes;
+		for (int i = 0; i < c; ++i)
+		{
+			TORRENT_ASSERT(unique_classes.count(channels[i]) == 0);
+			unique_classes.insert(channels[i]);
+		}
+#endif
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (channel == download_channel)
+		{
+			peer_log("<<< REQUEST_BANDWIDTH [ download: %d prio: %d "
+				"num_channels: %d ]", int(m_download_queue.size() * 16 * 1024 + 30), priority, c);
+		}
+		else
+		{
+			peer_log(">>> REQUEST_BANDWIDTH [ upload: %d prio: %d "
+				"num_channels: %d ]", int(m_send_buffer.size()), priority, c);
+		}
+#endif
+
+		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
+
+		bandwidth_manager* manager = (channel == download_channel
+			? &m_ses.m_download_rate : &m_ses.m_upload_rate);
+
+		int ret = manager->request_bandwidth(self()
+			, bytes, priority, channels, c);
+
+		if (ret == 0) m_channel_state[channel] |= peer_info::bw_limit;
 
 		return ret;
 	}
@@ -5005,16 +5014,16 @@ namespace libtorrent
 			if (m_send_buffer.empty())
 			{
 				peer_log(">>> SEND BUFFER DEPLETED ["
-					" quota: %d ignore: %s buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
-					, m_quota[upload_channel], m_ignore_bandwidth_limits?"yes":"no"
+					" quota: %d buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
+					, m_quota[upload_channel]
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
 					, m_disconnecting?"yes":"no", m_reading_bytes);
 			}
 			else
 			{
 				peer_log(">>> CANNOT WRITE ["
-					" quota: %d ignore: %s buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
-					, m_quota[upload_channel], m_ignore_bandwidth_limits?"yes":"no"
+					" quota: %d buf: %d connecting: %s disconnecting: %s pending_disk: %d ]"
+					, m_quota[upload_channel]
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
 					, m_disconnecting?"yes":"no", m_reading_bytes);
 			}
@@ -5099,10 +5108,9 @@ namespace libtorrent
 		if (!can_read())
 		{
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("<<< CANNOT READ [ quota: %d ignore: %s "
+			peer_log("<<< CANNOT READ [ quota: %d  "
 				"can-write-to-disk: %s queue-limit: %d disconnecting: %s ]"
 				, m_quota[download_channel]
-				, (m_ignore_bandwidth_limits?"yes":"no")
 				, ((m_channel_state[download_channel] & peer_info::bw_disk)?"no":"yes")
 				, m_ses.settings().get_int(settings_pack::max_queued_disk_bytes)
 				, (m_disconnecting?"yes":"no"));

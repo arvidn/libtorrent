@@ -128,7 +128,12 @@ namespace libtorrent
 
 			// if set to true, upload, download and unchoke limits
 			// are ignored for peers on the local network.
+			// This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+#ifndef TORRENT_NO_DEPRECATE
 			ignore_limits_on_local_network,
+#else
+			deprecated1
+#endif
 
 			// ``send_redundant_have`` controls if have messages will be sent
 			// to peers that already have the piece. This is typically not necessary,
@@ -409,8 +414,12 @@ namespace libtorrent
 			utp_dynamic_sock_buf,
 
 			// set to true if uTP connections should be rate limited
-			// defaults to false
+			// This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
+#ifndef TORRENT_NO_DEPRECATE
 			rate_limit_utp,
+#else
+			deprecated2
+#endif
 
 			// if this is true, the ``&ip=`` argument in tracker requests
 			// (unless otherwise specified) will be set to the intermediate

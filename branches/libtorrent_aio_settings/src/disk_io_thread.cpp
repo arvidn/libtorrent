@@ -2201,7 +2201,16 @@ namespace libtorrent
 			m_queued_jobs.push_back(j);
 
 		if (j->action == disk_io_job::write)
+		{
+			j->flags |= disk_io_job::counts_towards_queue_size;
 			m_queue_buffer_size += j->d.io.buffer_size;
+		}
+		else
+		{
+			// just in case it was set when the job was passed in
+			TORRENT_ASSERT((j->flags & disk_io_job::counts_towards_queue_size) == 0);
+			j->flags &= ~disk_io_job::counts_towards_queue_size;
+		}
 
 		l.unlock();
 
@@ -2707,12 +2716,14 @@ namespace libtorrent
 				// and perform the appropriate action
 				while (j)
 				{
-					if (j->action == disk_io_job::write)
+					if (j->flags & disk_io_job::counts_towards_queue_size)
 					{
 						mutex::scoped_lock l(m_job_mutex);
 						TORRENT_ASSERT(m_queue_buffer_size >= j->d.io.buffer_size);
 						m_queue_buffer_size -= j->d.io.buffer_size;
 						l.unlock();
+						// clear the flag so we don't do this again
+						j->flags &= ~disk_io_job::counts_towards_queue_size;
 					}
 
 					disk_io_job* job = j;

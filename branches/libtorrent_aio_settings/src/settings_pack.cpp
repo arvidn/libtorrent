@@ -110,7 +110,7 @@ namespace libtorrent
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
 	{
 		SET(allow_multiple_connections_per_ip, false, 0),
-		SET(ignore_limits_on_local_network, true, 0),
+		SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, 0),
 		SET(lazy_bitfields, true, 0),
 		SET(use_dht_as_fallback, false, 0),
@@ -153,7 +153,7 @@ namespace libtorrent
 		SET(anonymous_mode, false, 0),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		SET(utp_dynamic_sock_buf, true, 0),
-		SET(rate_limit_utp, false, 0),
+		SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
 		SET(announce_double_nat, false, 0),
 		SET(seeding_outgoing_connections, true, 0),
 		SET(no_connect_privileged_ports, true, 0),

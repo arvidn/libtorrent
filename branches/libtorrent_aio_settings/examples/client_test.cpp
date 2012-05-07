@@ -1443,8 +1443,19 @@ int main(int argc, char* argv[])
 				break;
 			case 'I': outgoing_interface = arg; break;
 			case 'N': start_upnp = false; --i; break;
+			case 'Y':
+				{
+					--i;
+					ip_filter pcf;
+					// 1 is the global peer class. This should be done properly in the future
+					pcf.add_rule(address_v4::from_string("0.0.0.0")
+						, address_v4::from_string("255.255.255.255"), 1);
+					pcf.add_rule(address_v6::from_string("::")
+						, address_v4::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+					ses.set_peer_class_filter(pcf);
+					break;
+				}
 			case 'X': start_lsd = false; --i; break;
-			case 'Y': settings.ignore_limits_on_local_network = false; --i; break;
 			case 'Z': settings.mmap_cache = arg; settings.contiguous_recv_buffer = false; break;
 			case 'v': settings.active_downloads = atoi(arg);
 				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
@@ -1999,25 +2010,6 @@ int main(int argc, char* argv[])
 			if (s.num_incomplete >= 0) downloaders = s.num_incomplete;
 			else downloaders = s.list_peers - s.list_seeds;
 
-			snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-				"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-				, (!s.paused && !s.auto_managed)?"[F] ":""
-				, (s.paused && !s.auto_managed)?"paused":
-				  (s.paused && s.auto_managed)?"queued":
-					(s.upload_mode)?"upload mode":
-				  state_str[s.state]
-				, esc("32"), add_suffix(s.total_download).c_str(), term
-				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
-				, esc("31"), add_suffix(s.total_upload).c_str(), term
-				, downloaders, seeds
-				, s.up_bandwidth_queue, s.down_bandwidth_queue
-				, esc("32"), add_suffix(s.all_time_download).c_str(), term
-				, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
-			out += str;
-			++lines_printed;
-
-			if (torrent_index != active_torrent && s.state == torrent_status::seeding) continue;
 			char const* progress_bar_color = "33"; // yellow
 			if (s.state == torrent_status::downloading_metadata)
 			{
@@ -2032,15 +2024,52 @@ int main(int argc, char* argv[])
 				progress_bar_color = "32"; // green
 			}
 
-			snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
-				, s.sequential_download?"sequential":"progress"
-				, esc("32"), s.total_done, esc("0")
-				, s.progress_ppm / 10000.f
-				, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
-			out += str;
-			++lines_printed;
+			if ((!s.paused && s.state != torrent_status::seeding) || torrent_index == active_torrent)
+			{
+				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
+					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
+					  state_str[s.state]
+					, esc("32"), add_suffix(s.total_download).c_str(), term
+					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
+					, esc("31"), add_suffix(s.total_upload).c_str(), term
+					, downloaders, seeds
+					, s.up_bandwidth_queue, s.down_bandwidth_queue
+					, esc("32"), add_suffix(s.all_time_download).c_str(), term
+					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
+					, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
+				out += str;
+				++lines_printed;
 
-			if (print_piece_bar && (s.state != torrent_status::seeding || s.seed_mode))
+				if (s.state != torrent_status::seeding)
+				{
+					snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
+						, s.sequential_download?"sequential":"progress"
+						, esc("32"), s.total_done, esc("0")
+						, s.progress_ppm / 10000.f
+						, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
+					out += str;
+					++lines_printed;
+				}
+			}
+			else
+			{
+				snprintf(str, sizeof(str), "%s%-13s %s\n"
+					, (!s.paused && !s.auto_managed)?"[F] ":""
+					, (s.paused && !s.auto_managed)?"paused":
+					  (s.paused && s.auto_managed)?"queued":
+						(s.upload_mode)?"upload mode":
+					  state_str[s.state]
+					, progress_bar(s.progress_ppm / 1000, terminal_width - 63, progress_bar_color).c_str());
+				out += str;
+				++lines_printed;
+			}
+
+			// don't print the piece bar if we don't have any piece, or if we have all
+			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
 			{
 				out += "     ";
 				out += piece_bar(s.pieces, terminal_width - 7);
@@ -2055,24 +2084,23 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			if (s.state != torrent_status::checking_files)
-			{
-				boost::posix_time::time_duration t = s.next_announce;
-				snprintf(str, sizeof(str)
-					, "     peers: %s%d%s (%s%d%s) seeds: %s%d%s distributed copies: %s%4.2f%s "
-					"sparse regions: %d download: %s%s%s next announce: %s%02d:%02d:%02d%s "
-					"tracker: %s%s%s\n"
-					, esc("37"), s.num_peers, esc("0")
-					, esc("37"), s.connect_candidates, esc("0")
-					, esc("37"), s.num_seeds, esc("0")
-					, esc("37"), s.distributed_copies, esc("0")
-					, s.sparse_regions
-					, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
-					, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
-					, esc("36"), s.current_tracker.c_str(), esc("0"));
-				out += str;
-				++lines_printed;
-			}
+			if (torrent_index != active_torrent) continue;
+
+			boost::posix_time::time_duration t = s.next_announce;
+			snprintf(str, sizeof(str)
+				, "     peers: %s%d%s (%s%d%s) seeds: %s%d%s distributed copies: %s%4.2f%s "
+				"sparse regions: %d download: %s%s%s next announce: %s%02d:%02d:%02d%s "
+				"tracker: %s%s%s\n"
+				, esc("37"), s.num_peers, esc("0")
+				, esc("37"), s.connect_candidates, esc("0")
+				, esc("37"), s.num_seeds, esc("0")
+				, esc("37"), s.distributed_copies, esc("0")
+				, s.sparse_regions
+				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), esc("0")
+				, esc("37"), int(t.hours()), int(t.minutes()), int(t.seconds()), esc("0")
+				, esc("36"), s.current_tracker.c_str(), esc("0"));
+			out += str;
+			++lines_printed;
 		}
 
 		sha1_hash ih(0);
