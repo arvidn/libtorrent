@@ -192,7 +192,7 @@ public:
 	void io_control(IO_Control_Command& ioc, error_code& ec) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void bind(endpoint_type const& endpoint) {}
+	void bind(endpoint_type const& /*endpoint*/) {}
 #endif
 
 	void bind(endpoint_type const& endpoint, error_code& ec);
@@ -206,7 +206,7 @@ public:
 	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
 
 	void close();
-	void close(error_code const& ec) { close(); }
+	void close(error_code const& /*ec*/) { close(); }
 	bool is_open() const { return m_open; }
 
 	int read_buffer_size() const;
@@ -245,7 +245,7 @@ public:
 	endpoint_type remote_endpoint(error_code& ec) const;
 
 	std::size_t available() const;
-	std::size_t available(error_code& ec) const { return available(); }
+	std::size_t available(error_code& /*ec*/) const { return available(); }
 
 	asio::io_service& get_io_service() { return m_io_service; }
 

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 #include <vector>
+#include <string>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
 

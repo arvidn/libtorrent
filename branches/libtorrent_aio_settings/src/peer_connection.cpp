@@ -4882,7 +4882,7 @@ namespace libtorrent
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
-		int max_channels = num_classes() + t->num_classes() + 2;
+		int max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
 		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
 		peer_class_pool& classes = m_ses.m_classes;
 
@@ -4892,8 +4892,11 @@ namespace libtorrent
 
 		c += copy_pertinent_channels(m_ses.m_classes, *this, channel
 			, channels + c, max_channels - c);
-		c += copy_pertinent_channels(m_ses.m_classes, *t, channel
-			, channels + c, max_channels - c);
+		if (t)
+		{
+			c += copy_pertinent_channels(m_ses.m_classes, *t, channel
+				, channels + c, max_channels - c);
+		}
 
 #ifdef TORRENT_DEBUG
 		// make sure we don't have duplicates
