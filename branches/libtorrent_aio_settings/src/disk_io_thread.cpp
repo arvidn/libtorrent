@@ -2878,7 +2878,7 @@ namespace libtorrent
 #endif
 	}
 
-	char* disk_io_thread::allocate_buffer(bool& exceeded
+	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
 		, boost::function<void()> const& cb
 		, char const* category)
 	{

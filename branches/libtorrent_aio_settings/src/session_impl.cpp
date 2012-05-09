@@ -505,7 +505,7 @@ namespace aux {
 		, m_ipv6_peer_pool(500)
 #endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_send_buffers(send_buffer_size)
+		, m_send_buffers(send_buffer_size())
 #endif
 		, m_io_service()
 #ifdef TORRENT_USE_OPENSSL
@@ -576,6 +576,7 @@ namespace aux {
 #endif
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
+		, m_deferred_submit_disk_jobs(false)
 		, m_writing_bytes(0)
 #if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
@@ -1002,7 +1003,7 @@ namespace aux {
 				, int(rl.rlim_cur * 8 / 10)));
 			// 20% goes towards regular files (see disk_io_thread)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << "   max connections: " << m_settings.connections_limit << "\n";
+			(*m_logger) << time_now_string() << "   max connections: " << m_settings.get_int(settings_pack::connections_limit) << "\n";
 			(*m_logger) << time_now_string() << "   max files: " << int(rl.rlim_cur * 2 / 10) << "\n";
 #endif
 		}
@@ -1049,32 +1050,7 @@ namespace aux {
 		// make these cumulative for easier reading of graphs
 		// reset them every time the log is rotated though,
 		// to make them cumulative per one-hour graph
-		m_error_peers = 0;
-		m_disconnected_peers = 0;
-		m_eof_peers = 0;
-		m_connreset_peers = 0;
-		m_connrefused_peers = 0;
-		m_connaborted_peers = 0;
-		m_perm_peers = 0;
-		m_buffer_peers = 0;
-		m_unreachable_peers = 0;
-		m_broken_pipe_peers = 0;
-		m_addrinuse_peers = 0;
-		m_no_access_peers = 0;
-		m_invalid_arg_peers = 0;
-		m_aborted_peers = 0;
-		m_error_incoming_peers = 0;
-		m_error_outgoing_peers = 0;
-		m_error_rc4_peers = 0;
-		m_error_encrypted_peers = 0;
-		m_error_tcp_peers = 0;
-		m_error_utp_peers = 0;
-		m_connect_timeouts = 0;
-		m_uninteresting_peers = 0;
-		m_transport_timeout_peers = 0;
-		m_timeout_peers = 0;
-		m_no_memory_peers = 0;
-		m_too_many_peers = 0;
+		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 
 		error_code ec;
 		char filename[100];
@@ -1668,6 +1644,11 @@ namespace aux {
 
 		if (m_dht) m_dht->add_node(n);
 	}
+
+	bool session_impl::has_dht() const
+	{
+		return m_dht;
+	}
 #endif
 
 	feed_handle session_impl::add_feed(feed_settings const& sett)
@@ -1969,6 +1950,110 @@ namespace aux {
 	peer_class_type_filter session_impl::get_peer_class_type_filter()
 	{
 		return m_peer_class_type_filter;
+	}
+
+	void session_impl::set_peer_classes(peer_class_set* s, address const& a, int st)
+	{
+		boost::uint32_t peer_class_mask = m_peer_class_filter.access(a);
+
+		// assign peer class based on socket type
+		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
+		int socket_type = mapping[st];
+		// filter peer classes based on type
+		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
+
+		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
+		{
+			if ((peer_class_mask & 1) == 0) continue;
+
+			// if you hit this assert, your peer class filter contains
+			// a bitmask referencing a non-existent peer class
+			TORRENT_ASSERT(m_classes.at(i));
+
+			if (m_classes.at(i) == 0) continue;
+			s->add_class(m_classes, i);
+		}
+	}
+
+	bool session_impl::ignore_unchoke_slots_set(peer_class_set const& set) const
+	{
+		int num = set.num_classes();
+		for (int i = 0; i < num; ++i)
+		{
+			peer_class const* pc = m_classes.at(set.class_at(i));
+			if (pc == 0) continue;
+			if (pc->ignore_unchoke_slots) return true;
+		}
+		return false;
+	}
+
+	bandwidth_manager* session_impl::get_bandwidth_manager(int channel)
+	{
+		return (channel == peer_connection::download_channel)
+			? &m_download_rate : &m_upload_rate;
+	}
+
+	void session_impl::deferred_submit_jobs()
+	{
+		if (m_deferred_submit_disk_jobs) return;
+		m_deferred_submit_disk_jobs = true;
+		m_io_service.post(boost::bind(&session_impl::submit_disk_jobs, this));
+	}
+
+	void session_impl::submit_disk_jobs()
+	{
+		TORRENT_ASSERT(m_deferred_submit_disk_jobs);
+		m_deferred_submit_disk_jobs = false;
+		m_disk_thread.submit_jobs();
+	}
+
+	// copies pointers to bandwidth channels from the peer classes
+	// into the array. Only bandwidth channels with a bandwidth limit
+	// is considered pertinent and copied
+	// returns the number of pointers copied
+	// channel is upload_channel or download_channel
+	int session_impl::copy_pertinent_channels(peer_class_set const& set
+		, int channel, bandwidth_channel** dst, int max)
+	{
+		int num_channels = set.num_classes();
+		int num_copied = 0;
+		for (int i = 0; i < num_channels; ++i)
+		{
+			peer_class* pc = m_classes.at(set.class_at(i));
+			TORRENT_ASSERT(pc);
+			if (pc == 0) continue;
+			bandwidth_channel* chan = &pc->channel[channel];
+			// no need to include channels that don't have any bandwidth limits
+			if (chan->throttle() == 0) continue;
+			dst[num_copied] = chan;
+			++num_copied;
+			if (num_copied == max) break;
+		}
+		return num_copied;
+	}
+
+	bool session_impl::use_quota_overhead(bandwidth_channel* ch, int channel, int amount)
+	{
+		ch->use_quota(amount);
+		return (ch->throttle() > 0 && ch->throttle() < amount);
+	}
+
+	int session_impl::use_quota_overhead(peer_class_set& set, int amount_down, int amount_up)
+	{
+		int ret = 0;
+		int num = set.num_classes();
+		for (int i = 0; i < num; ++i)
+		{
+			peer_class* p = m_classes.at(set.class_at(i));
+			if (p == 0) continue;
+			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
+			if (use_quota_overhead(ch, peer_connection::download_channel, amount_down))
+				ret |= 1 << peer_connection::download_channel;
+			ch = &p->channel[peer_connection::upload_channel];
+			if (use_quota_overhead(ch, peer_connection::upload_channel, amount_up))
+				ret |= 1 << peer_connection::upload_channel;
+		}
+		return ret;
 	}
 
 	// session_impl is responsible for deleting 'pack', but it
@@ -2383,7 +2468,7 @@ namespace aux {
 		, udp::endpoint const& ep, char const* buf, int len)
 	{
 #ifdef TORRENT_STATS
-		++m_num_messages[on_udp_counter];
+		inc_stats_counter(on_udp_counter);
 #endif
 		if (e)
 		{
@@ -2471,7 +2556,7 @@ namespace aux {
 		complete_async("session_impl::on_accept_connection");
 #endif
 #ifdef TORRENT_STATS
-		++m_num_messages[on_accept_counter];
+		inc_stats_counter(on_accept_counter);
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
@@ -2743,7 +2828,8 @@ namespace aux {
 		setup_socket_buffers(*s);
 
 		boost::intrusive_ptr<peer_connection> c(
-			new bt_peer_connection(*this, s, endp, 0));
+			new bt_peer_connection(*this, m_settings
+				, *this, m_io_service, s, endp, 0));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -2937,19 +3023,37 @@ namespace aux {
 		set_rate_limit(c, peer_connection::download_channel, limit);
 	}
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	bool session_impl::has_peer(peer_connection const* p) const
+	{
+		TORRENT_ASSERT(is_network_thread());
+		return std::find_if(m_connections.begin(), m_connections.end()
+			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
+			!= m_connections.end();
+	}
+
+	bool session_impl::any_torrent_has_peer(peer_connection const* p) const
+	{
+		for (aux::session_impl::torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			if (i->second->has_peer(p)) return true;
+		return false;
+	}
+#endif
+
 	void session_impl::on_tick(error_code const& e)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
 #ifdef TORRENT_STATS
-		++m_num_messages[on_tick_counter];
+		inc_stats_counter(on_tick_counter);
 #endif
 
 		TORRENT_ASSERT(is_network_thread());
 
 		// submit all disk jobs when we leave this function
-		deferred_submit_jobs sj(m_disk_thread);
+		deferred_submit_jobs();
 
 		ptime now = time_now_hires();
 		aux::g_current_time = now;
@@ -3401,7 +3505,7 @@ namespace aux {
 								--free_slots;
 								steps_since_last_connect = 0;
 #ifdef TORRENT_STATS
-								++m_connection_attempts;
+								inc_stats_counter(connection_attempts);
 #endif
 							}
 						}
@@ -3541,30 +3645,29 @@ namespace aux {
 		}
 	}
 
+	void session_impl::received_buffer(int s)
+	{
+		int size = 8;
+		int index = 0;
+		while (s > size) { size <<= 1; ++index; }
+		int num_max = sizeof(m_recv_buffer_sizes)/sizeof(m_recv_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_recv_buffer_sizes[index];
+	}
+
+	void session_impl::sent_buffer(int s)
+	{
+		int size = 8;
+		int index = 0;
+		while (s > size + 13) { size <<= 1; ++index; }
+		int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
+		if (index >= num_max) index = num_max - 1;
+		++m_send_buffer_sizes[index];
+	}
+
 	void session_impl::reset_stat_counters()
 	{
-		m_end_game_piece_picker_blocks = 0;
-		m_piece_picker_blocks = 0;
-		m_piece_picker_loops = 0;
-		m_piece_picks = 0;
-		m_reject_piece_picks = 0;
-		m_unchoke_piece_picks = 0;
-		m_incoming_redundant_piece_picks = 0;
-		m_incoming_piece_picks = 0;
-		m_end_game_piece_picks = 0;
-		m_snubbed_piece_picks = 0;
-		m_connection_attempts = 0;
-		m_num_banned_peers = 0;
-		m_banned_for_hash_failure = 0;
-
-		m_piece_requests = 0;
-		m_max_piece_requests = 0;
-		m_invalid_piece_requests = 0;
-		m_choked_piece_requests = 0;
-		m_cancelled_piece_requests = 0;
-		m_piece_rejects = 0;
-
-		memset(m_num_messages, 0, sizeof(m_num_messages));
+		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
 		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
 	}
@@ -3855,32 +3958,32 @@ namespace aux {
 			STAT_LOG(d, peer_ul_rate_buckets[4]);
 			STAT_LOG(d, peer_ul_rate_buckets[5]);
 			STAT_LOG(d, peer_ul_rate_buckets[6]);
-			STAT_LOG(d, m_error_peers);
+			STAT_LOG(d, m_stats_counter[session_interface::error_peers]);
 			STAT_LOG(d, peers_down_interesting);
 			STAT_LOG(d, peers_down_unchoked);
 			STAT_LOG(d, peers_down_requests);
 			STAT_LOG(d, peers_up_interested);
 			STAT_LOG(d, peers_up_unchoked);
 			STAT_LOG(d, peers_up_requests);
-			STAT_LOG(d, m_disconnected_peers);
-			STAT_LOG(d, m_eof_peers);
-			STAT_LOG(d, m_connreset_peers);
+			STAT_LOG(d, m_stats_counter[session_interface::disconnected_peers]);
+			STAT_LOG(d, m_stats_counter[session_interface::eof_peers]);
+			STAT_LOG(d, m_stats_counter[session_interface::connreset_peers]);
 			STAT_LOG(d, outstanding_requests);
 			STAT_LOG(d, outstanding_end_game_requests);
 			STAT_LOG(d, outstanding_write_blocks);
-			STAT_LOG(d, m_end_game_piece_picker_blocks);
-			STAT_LOG(d, m_piece_picker_blocks);
-			STAT_LOG(d, m_piece_picker_loops);
-			STAT_LOG(d, m_piece_picks);
-			STAT_LOG(d, m_reject_piece_picks);
-			STAT_LOG(d, m_unchoke_piece_picks);
-			STAT_LOG(d, m_incoming_redundant_piece_picks);
-			STAT_LOG(d, m_incoming_piece_picks);
-			STAT_LOG(d, m_end_game_piece_picks);
-			STAT_LOG(d, m_snubbed_piece_picks);
-			STAT_LOG(d, m_connect_timeouts);
-			STAT_LOG(d, m_uninteresting_peers);
-			STAT_LOG(d, m_timeout_peers);
+			STAT_LOG(d, m_stats_counter[end_game_piece_picker_blocks]);
+			STAT_LOG(d, m_stats_counter[piece_picker_blocks]);
+			STAT_LOG(d, m_stats_counter[piece_picker_loops]);
+			STAT_LOG(d, m_stats_counter[piece_picks]);
+			STAT_LOG(d, m_stats_counter[reject_piece_picks]);
+			STAT_LOG(d, m_stats_counter[unchoke_piece_picks]);
+			STAT_LOG(d, m_stats_counter[incoming_redundant_piece_picks]);
+			STAT_LOG(d, m_stats_counter[incoming_piece_picks]);
+			STAT_LOG(d, m_stats_counter[end_game_piece_picks]);
+			STAT_LOG(d, m_stats_counter[snubbed_piece_picks]);
+			STAT_LOG(d, m_stats_counter[connect_timeouts]);
+			STAT_LOG(d, m_stats_counter[uninteresting_peers]);
+			STAT_LOG(d, m_stats_counter[timeout_peers]);
 			STAT_LOG(f, (float(m_total_failed_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_total_redundant_bytes) * 100.f / (m_stat.total_payload_download() == 0 ? 1 : m_stat.total_payload_download())));
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
@@ -3902,13 +4005,13 @@ namespace aux {
 			STAT_LOG(f, float(cs.average_job_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_sort_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_issue_time) / 1000000.f);
-			STAT_LOG(d, m_connection_attempts);
-			STAT_LOG(d, m_num_banned_peers);
-			STAT_LOG(d, m_banned_for_hash_failure);
+			STAT_LOG(d, m_stats_counter[connection_attempts]);
+			STAT_LOG(d, m_stats_counter[num_banned_peers]);
+			STAT_LOG(d, m_stats_counter[banned_for_hash_failure]);
 			STAT_LOG(d, m_settings.get_int(settings_pack::cache_size));
 			STAT_LOG(d, m_settings.get_int(settings_pack::connections_limit));
 			STAT_LOG(d, connect_candidates);
-			STAT_LOG(d, int(m_settings.get_int(settings_pack::cache_size
+			STAT_LOG(d, int(m_settings.get_int(settings_pack::cache_size)
 				- m_settings.get_int(settings_pack::max_queued_disk_bytes) / 0x4000));
 			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
@@ -3963,8 +4066,9 @@ namespace aux {
 
 			STAT_LOG(d, reading_bytes);
 
-			for (int i = 0; i < max_messages; ++i)
-				STAT_LOG(d, m_num_messages[i]);
+			for (int i = on_read_counter; i <= on_disk_counter; ++i)
+				STAT_LOG(d, m_stats_counter[i]);
+
 			int num_max = sizeof(m_send_buffer_sizes)/sizeof(m_send_buffer_sizes[0]);
 			for (int i = 0; i < num_max; ++i)
 				STAT_LOG(d, m_send_buffer_sizes[i]);
@@ -3983,9 +4087,9 @@ namespace aux {
 			for (int i = 0; i < torrent::waste_reason_max; ++i)
 				STAT_LOG(f, (m_redundant_bytes[i] * 100.) / double(m_total_redundant_bytes == 0 ? 1 : m_total_redundant_bytes));
 
-			STAT_LOG(d, m_no_memory_peers);
-			STAT_LOG(d, m_too_many_peers);
-			STAT_LOG(d, m_transport_timeout_peers);
+			STAT_LOG(d, m_stats_counter[no_memory_peers]);
+			STAT_LOG(d, m_stats_counter[too_many_peers]);
+			STAT_LOG(d, m_stats_counter[transport_timeout_peers]);
 
 			STAT_LOG(d, cs.arc_mru_size);
 			STAT_LOG(d, cs.arc_mru_size + cs.arc_mru_ghost_size);
@@ -4001,23 +4105,23 @@ namespace aux {
 			STAT_LOG(d, num_tcp_peers);
 			STAT_LOG(d, num_utp_peers);
 
-			STAT_LOG(d, m_connrefused_peers);
-			STAT_LOG(d, m_connaborted_peers);
-			STAT_LOG(d, m_perm_peers);
-			STAT_LOG(d, m_buffer_peers);
-			STAT_LOG(d, m_unreachable_peers);
-			STAT_LOG(d, m_broken_pipe_peers);
-			STAT_LOG(d, m_addrinuse_peers);
-			STAT_LOG(d, m_no_access_peers);
-			STAT_LOG(d, m_invalid_arg_peers);
-			STAT_LOG(d, m_aborted_peers);
+			STAT_LOG(d, m_stats_counter[connrefused_peers]);
+			STAT_LOG(d, m_stats_counter[connaborted_peers]);
+			STAT_LOG(d, m_stats_counter[perm_peers]);
+			STAT_LOG(d, m_stats_counter[buffer_peers]);
+			STAT_LOG(d, m_stats_counter[unreachable_peers]);
+			STAT_LOG(d, m_stats_counter[broken_pipe_peers]);
+			STAT_LOG(d, m_stats_counter[addrinuse_peers]);
+			STAT_LOG(d, m_stats_counter[no_access_peers]);
+			STAT_LOG(d, m_stats_counter[invalid_arg_peers]);
+			STAT_LOG(d, m_stats_counter[aborted_peers]);
 
-			STAT_LOG(d, m_error_incoming_peers);
-			STAT_LOG(d, m_error_outgoing_peers);
-			STAT_LOG(d, m_error_rc4_peers);
-			STAT_LOG(d, m_error_encrypted_peers);
-			STAT_LOG(d, m_error_tcp_peers);
-			STAT_LOG(d, m_error_utp_peers);
+			STAT_LOG(d, m_stats_counter[error_incoming_peers]);
+			STAT_LOG(d, m_stats_counter[error_outgoing_peers]);
+			STAT_LOG(d, m_stats_counter[error_rc4_peers]);
+			STAT_LOG(d, m_stats_counter[error_encrypted_peers]);
+			STAT_LOG(d, m_stats_counter[error_tcp_peers]);
+			STAT_LOG(d, m_stats_counter[error_utp_peers]);
 
 			STAT_LOG(d, int(m_connections.size()));
 			STAT_LOG(d, pending_incoming_reqs);
@@ -4026,12 +4130,12 @@ namespace aux {
 			STAT_LOG(d, num_want_more_peers);
 			STAT_LOG(f, total_peers_limit == 0 ? 0 : float(num_limited_peers) / total_peers_limit);
 
-			STAT_LOG(d, m_piece_requests);
-			STAT_LOG(d, m_max_piece_requests);
-			STAT_LOG(d, m_invalid_piece_requests);
-			STAT_LOG(d, m_choked_piece_requests);
-			STAT_LOG(d, m_cancelled_piece_requests);
-			STAT_LOG(d, m_piece_rejects);
+			STAT_LOG(d, m_stats_counter[piece_requests]);
+			STAT_LOG(d, m_stats_counter[max_piece_requests]);
+			STAT_LOG(d, m_stats_counter[invalid_piece_requests]);
+			STAT_LOG(d, m_stats_counter[choked_piece_requests]);
+			STAT_LOG(d, m_stats_counter[cancelled_piece_requests]);
+			STAT_LOG(d, m_stats_counter[piece_rejects]);
 
 			STAT_LOG(d, peers_up_send_buffer);
 
@@ -4111,7 +4215,7 @@ namespace aux {
 		complete_async("session_impl::on_lsd_announce");
 #endif
 #ifdef TORRENT_STATS
-		++m_num_messages[on_lsd_counter];
+		inc_stats_counter(on_lsd_counter);
 #endif
 		TORRENT_ASSERT(is_network_thread());
 		if (e) return;
@@ -4742,6 +4846,25 @@ namespace aux {
 		return boost::weak_ptr<torrent>();
 	}
 
+	torrent const* session_impl::find_encrypted_torrent(sha1_hash const& info_hash
+		, sha1_hash const& xor_mask)
+	{
+		aux::session_impl::torrent_map::const_iterator i;
+
+		for (i = m_torrents.begin(); i != m_torrents.end(); ++i)
+		{
+			torrent const& ti = *i->second;
+
+			sha1_hash const& skey_hash = ti.obfuscated_hash();
+			sha1_hash obfs_hash = xor_mask;
+			obfs_hash ^= skey_hash;
+
+			if (info_hash == obfs_hash)
+				return &ti;
+		}
+		return NULL;
+	}
+
 	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
 	{
 		TORRENT_ASSERT(is_network_thread());
@@ -4758,6 +4881,30 @@ namespace aux {
 	{
 		// current options are file_logger, cout_logger and null_logger
 		return boost::shared_ptr<logger>(new logger(m_logpath, name + ".log", instance, append));
+	}
+
+	void session_impl::session_log(char const* fmt, ...) const
+	{
+		if (!m_logger) return;
+
+		va_list v;	
+		va_start(v, fmt);
+	
+		char usr[400];
+		vsnprintf(usr, sizeof(usr), fmt, v);
+		va_end(v);
+		char buf[450];
+		snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
+		(*m_logger) << buf;
+	}
+
+	void session_impl::log_all_torrents(peer_connection* p)
+	{
+		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			p->peer_log("   %s", to_hex(i->second->torrent_file().info_hash().to_string()).c_str());
+		}
 	}
 #endif
 
@@ -5165,7 +5312,7 @@ namespace aux {
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
 #ifdef TORRENT_STATS
-		++m_num_messages[on_lsd_peer_counter];
+		inc_stats_counter(on_lsd_peer_counter);
 #endif
 		TORRENT_ASSERT(is_network_thread());
 
@@ -5635,7 +5782,7 @@ namespace aux {
 		error_code ec;
 		m_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
 #if defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.get_int(settings_pack::.peer_tos)
+		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.get_int(settings_pack::peer_tos)
 			<< " e: " << ec.message() << " ]\n";
 #endif
 	}
@@ -5693,6 +5840,12 @@ namespace aux {
 	{
 		m_net_thread_pool.set_num_threads(m_settings.get_int(settings_pack::network_threads));
 	}
+
+	void session_impl::post_socket_write_job(write_some_job& j)
+	{
+		m_net_thread_pool.post_job(j);
+	}
+
 
 	void session_impl::update_cache_buffer_chunk_size()
 	{
@@ -6156,11 +6309,6 @@ namespace aux {
 #endif
 	}
 
-	void session_impl::free_disk_buffer(char* buf)
-	{
-		m_disk_thread.free_buffer(buf);
-	}
-
 	// decrement the refcount of the block in the disk cache
 	// since the network thread doesn't need it anymore
 	void session_impl::reclaim_block(block_cache_reference ref)
@@ -6170,14 +6318,19 @@ namespace aux {
 
 	char* session_impl::allocate_disk_buffer(char const* category)
 	{
-		return m_disk_thread.allocate_buffer(category);
+		return m_disk_thread.allocate_disk_buffer(category);
+	}
+
+	void session_impl::free_disk_buffer(char* buf)
+	{
+		m_disk_thread.free_disk_buffer(buf);
 	}
 	
 	char* session_impl::allocate_disk_buffer(bool& exceeded
 		, boost::function<void()> const& cb
 		, char const* category)
 	{
-		return m_disk_thread.allocate_buffer(exceeded, cb, category);
+		return m_disk_thread.allocate_disk_buffer(exceeded, cb, category);
 	}
 	
 	char* session_impl::allocate_buffer()

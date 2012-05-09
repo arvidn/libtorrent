@@ -121,6 +121,8 @@ namespace libtorrent
 {
 	// DEBUG API
 	
+	// TODO: rewrite this class to use FILE* instead and
+	// have a printf-like interface
 	struct logger
 	{
 #if TORRENT_USE_IOSTREAM

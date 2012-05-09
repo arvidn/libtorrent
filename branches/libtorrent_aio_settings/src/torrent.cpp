@@ -3508,7 +3508,7 @@ namespace libtorrent
 				m_policy.ban_peer(p);
 				update_want_more_peers();
 #ifdef TORRENT_STATS
-				++m_ses.m_banned_for_hash_failure;
+				m_ses.inc_stats_counter(aux::session_interface::banned_for_hash_failure);
 #endif
 
 				if (p->connection)
@@ -5105,14 +5105,16 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
-				web->auth, web->extra_headers);
+				m_ses, m_ses.m_settings, m_ses, m_ses.m_io_service
+				, shared_from_this(), s, a, web->url, &web->peer_info // TODO: pass in web
+				, web->auth, web->extra_headers);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
-				web->auth, web->extra_headers);
+				m_ses, m_ses.m_settings, m_ses, m_ses.m_io_service
+				, shared_from_this(), s, a, web->url, &web->peer_info // TODO: pass in web
+				, web->auth, web->extra_headers);
 		}
 		if (!c) return;
 
@@ -5825,6 +5827,7 @@ namespace libtorrent
 		piece_picker const& p = picker();
 		std::vector<piece_picker::downloading_piece> q
 			= p.get_download_queue();
+		if (q.empty()) return;
 
 		const int blocks_per_piece = m_picker->blocks_in_piece(0);
 		blk.resize(q.size() * blocks_per_piece);
@@ -6013,7 +6016,8 @@ namespace libtorrent
 		m_ses.setup_socket_buffers(*s);
 
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
-			m_ses, shared_from_this(), s, a, peerinfo));
+			m_ses, m_ses.m_settings, m_ses, m_ses.m_io_service
+			, shared_from_this(), s, a, peerinfo));
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;

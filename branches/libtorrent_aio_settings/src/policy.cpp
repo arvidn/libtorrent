@@ -221,13 +221,24 @@ namespace libtorrent
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
+#ifdef TORRENT_STATS
+		int loop_counter = 0;
+#endif
 		p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_whole_pieces, c.peer_info_struct()
 			, state, c.picker_options(), suggested, t.num_peers()
 #ifdef TORRENT_STATS
-			, ses.m_piece_picker_loops
+			, loop_counter
 #endif
 			);
+
+#ifdef TORRENT_STATS
+		while (loop_counter)
+		{
+			--loop_counter;
+			ses.inc_stats_counter(aux::session_interface::piece_picker_loops);
+		}
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
@@ -253,7 +264,7 @@ namespace libtorrent
 			i != interesting_pieces.end(); ++i)
 		{
 #ifdef TORRENT_STATS
-			++ses.m_piece_picker_blocks;
+			ses.inc_stats_counter(aux::session_interface::piece_picker_blocks);
 #endif
 
 			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
@@ -331,7 +342,7 @@ namespace libtorrent
 		}
 
 #ifdef TORRENT_STATS
-		++ses.m_end_game_piece_picker_blocks;
+		ses.inc_stats_counter(aux::session_interface::end_game_piece_picker_blocks);
 #endif
 
 #ifdef TORRENT_DEBUG
@@ -574,7 +585,7 @@ namespace libtorrent
 
 #ifdef TORRENT_STATS
 		aux::session_impl& ses = m_torrent->session();
-		++ses.m_num_banned_peers;
+		ses.inc_stats_counter(aux::session_interface::num_banned_peers);
 #endif
 
 		p->banned = true;

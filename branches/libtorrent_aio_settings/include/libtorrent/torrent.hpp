@@ -141,8 +141,8 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool has_peer(peer_connection* p) const
-		{ return m_connections.find(p) != m_connections.end(); }
+		bool has_peer(peer_connection const* p) const
+		{ return m_connections.find((peer_connection*)p) != m_connections.end(); }
 #endif
 
 		// this is called when the torrent has metadata.

@@ -102,7 +102,7 @@ namespace libtorrent
 	{
 		aux::session_impl* ses = (aux::session_impl*)user;
 #ifdef TORRENT_STATS
-		if (ses) ++ses->m_num_messages[aux::session_impl::on_disk_counter];
+		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
 #endif
 		while (j)
 		{
