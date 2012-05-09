@@ -65,6 +65,7 @@ namespace libtorrent
 		return type == disk_io_job::get_cache_info
 			|| type == disk_io_job::update_settings
 			|| type == disk_io_job::aiocb_complete
+			|| type == disk_io_job::hash_complete
 			|| type == disk_io_job::sync_piece;
 	}
 }
