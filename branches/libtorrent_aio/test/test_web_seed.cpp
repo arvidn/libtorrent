@@ -70,7 +70,11 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	
 	if (proxy)
 	{
-		start_proxy(8002, proxy);
+		if (!start_proxy(8002, proxy))
+		{
+			fprintf(stderr, "failed to start proxy");
+			return;
+		}
 		proxy_settings ps;
 		ps.hostname = "127.0.0.1";
 		ps.port = 8002;
@@ -141,12 +145,12 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 		{
 			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
 			// we need to sleep here a bit to let the session sync with the torrent stats
-			test_sleep(1000);
+//			test_sleep(1000);
 			TEST_EQUAL(ses.status().total_payload_download - ses.status().total_redundant_bytes
 				, total_size - pad_file_size);
 			break;
 		}
-		test_sleep(500);
+//		test_sleep(500);
 	}
 
 	// for test_ban tests, make sure we removed

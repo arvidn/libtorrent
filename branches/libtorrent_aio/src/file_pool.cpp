@@ -104,7 +104,8 @@ namespace libtorrent
 				// none of the files are ready to be closed yet
 				// because they're still in use by other threads
 				// hold off for a while
-				sleep(1000);
+				// TODO: use a condition variable here instead
+				sleep(200);
 			}
 			else
 			{
