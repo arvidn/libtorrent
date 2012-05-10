@@ -72,6 +72,7 @@ namespace libtorrent
 		enum { max_iovec = min<64, TORRENT_IOV_MAX>::value };
 
 		aiocb_pool();
+		~aiocb_pool();
 
 		disk_io_job* allocate_job(int type);
 		void free_job(disk_io_job* j);

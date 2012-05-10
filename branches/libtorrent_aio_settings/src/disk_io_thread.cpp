@@ -1729,6 +1729,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_abort_thread(disk_io_job* j)
 	{
+		DLOG(stderr, "[%p] do_abort_thread\n", this);
 		// issue write commands for all dirty blocks
 		// and clear all read jobs
 		flush_cache(j, flush_read_cache | flush_write_cache);
@@ -2191,6 +2192,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_abort
 			|| j->action == disk_io_job::reclaim_block
 			|| j->action == disk_io_job::hash_complete
+			|| j->action == disk_io_job::aiocb_complete
 			|| j->action == disk_io_job::flush_piece);
 
 		mutex::scoped_lock l(m_job_mutex);
@@ -2284,6 +2286,7 @@ namespace libtorrent
 
 	void disk_io_thread::thread_fun()
 	{
+		DLOG(stderr, "[%p] started disk thread\n", this);
 #if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
 		m_file_pool.set_thread_owner();
 #endif
@@ -2744,17 +2747,16 @@ namespace libtorrent
 			{
 				DLOG(stderr, "[%p] posting %d completed jobs\n", this, m_completed_jobs.size());
 				disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+				int ret = 0;
 				for (disk_io_job* i = j; i != NULL; i = (disk_io_job*)i->next)
 				{
 					if ((i->flags & disk_io_job::async_operation) && i->storage)
-					{
-						int ret = i->storage->job_complete(i, m_queued_jobs);
-						if (ret > 0) submit_jobs_impl();
-						if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
-						TORRENT_ASSERT(m_num_blocked_jobs >= ret);
-						m_num_blocked_jobs -= ret;
-					}
+						ret += i->storage->job_complete(i, m_queued_jobs);
 				}
+				if (ret > 0) submit_jobs_impl();
+				if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
+				TORRENT_ASSERT(m_num_blocked_jobs >= ret);
+				m_num_blocked_jobs -= ret;
 				m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 			}
 
@@ -2797,8 +2799,8 @@ namespace libtorrent
 				TORRENT_ASSERT(m_num_to_issue >= num_issued);
 				m_num_to_issue -= num_issued;
 				TORRENT_ASSERT(m_num_to_issue == count_aios(m_to_issue));
-				DLOG(stderr, "[%p] prepend aios (%p) to m_in_progress (%p)\n"
-					, this, pending, m_in_progress);
+				DLOG(stderr, "[%p] prepend aios (%p) to m_in_progress (%p) num_issued: %d\n"
+					, this, pending, m_in_progress, num_issued);
 
 				prepend_aios(m_in_progress, pending);
 
@@ -2848,17 +2850,16 @@ namespace libtorrent
 		{
 			DLOG(stderr, "[%p] posting %d completed jobs\n", this, m_completed_jobs.size());
 			disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+			int ret = 0;
 			for (disk_io_job* i = j; i != NULL; i = (disk_io_job*)i->next)
 			{
 				if ((i->flags & disk_io_job::async_operation) && i->storage)
-				{
-					int ret = i->storage->job_complete(i, m_queued_jobs);
-					if (ret > 0) submit_jobs_impl();
-					if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
-					TORRENT_ASSERT(m_num_blocked_jobs >= ret);
-					m_num_blocked_jobs -= ret;
-				}
+					ret += i->storage->job_complete(i, m_queued_jobs);
 			}
+			if (ret > 0) submit_jobs_impl();
+			if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
+			TORRENT_ASSERT(m_num_blocked_jobs >= ret);
+			m_num_blocked_jobs -= ret;
 			m_ios.post(boost::bind(&complete_job, m_userdata, &m_aiocb_pool, j));
 		}
 

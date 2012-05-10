@@ -61,6 +61,12 @@ namespace libtorrent
 #endif
 	}
 
+	aiocb_pool::~aiocb_pool()
+	{
+		TORRENT_ASSERT(m_in_use == 0);
+		TORRENT_ASSERT(m_jobs_in_use == 0);
+	}
+
 	disk_io_job* aiocb_pool::allocate_job(int type)
 	{
 		mutex::scoped_lock l(m_job_mutex);
