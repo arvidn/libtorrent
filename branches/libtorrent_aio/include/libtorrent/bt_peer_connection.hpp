@@ -90,22 +90,11 @@ namespace libtorrent
 			, aux::session_settings& sett
 			, buffer_allocator_interface& allocator
 			, io_service& ios
-			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo
-			, bool outgoing = true);
-
-		// with this constructor we have been contacted and we still don't
-		// know which torrent the connection belongs to
-		bt_peer_connection(
-			aux::session_interface& ses
-			, aux::session_settings& sett
-			, buffer_allocator_interface& allocator
-			, io_service& ios
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
+			, bool outgoing = false);
 
 		void start();
 

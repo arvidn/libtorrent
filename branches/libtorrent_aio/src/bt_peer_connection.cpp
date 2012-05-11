@@ -98,10 +98,10 @@ namespace libtorrent
 		, aux::session_settings& sett
 		, buffer_allocator_interface& allocator
 		, io_service& ios
-		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo
+		, boost::weak_ptr<torrent> tor
 		, bool outgoing)
 		: peer_connection(ses, sett, allocator, ios, tor, s, remote, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
@@ -127,60 +127,6 @@ namespace libtorrent
 	{
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** bt_peer_connection");
-#endif
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		m_in_constructor = false;
-#endif
-		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
-	}
-
-	bt_peer_connection::bt_peer_connection(
-		aux::session_interface& ses
-		, aux::session_settings& sett
-		, buffer_allocator_interface& allocator
-		, io_service& ios
-		, boost::shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
-		, policy::peer* peerinfo)
-		: peer_connection(ses, sett, allocator, ios, s, remote, peerinfo)
-		, m_state(read_protocol_identifier)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		, m_upload_only_id(0)
-		, m_holepunch_id(0)
-		, m_dont_have_id(0)
-		, m_share_mode_id(0)
-		, m_supports_extensions(false)
-#endif
-		, m_supports_dht_port(false)
-		, m_supports_fast(false)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		, m_encrypted(false)
-		, m_rc4_encrypted(false)
-		, m_sync_bytes_read(0)
-#endif		
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		, m_sent_bitfield(false)
-		, m_in_constructor(true)
-		, m_sent_handshake(false)
-#endif
-	{
-
-		// we are not attached to any torrent yet.
-		// we have to wait for the handshake to see
-		// which torrent the connector want's to connect to
-
-
-		// upload bandwidth will only be given to connections
-		// that are part of a torrent. Since this is an incoming
-		// connection, we have to give it some initial bandwidth
-		// to send the handshake.
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		m_quota[download_channel] = 2048;
-		m_quota[upload_channel] = 2048;
-#else
-		m_quota[download_channel] = 80;
-		m_quota[upload_channel] = 80;
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

@@ -6017,7 +6017,7 @@ namespace libtorrent
 
 		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, m_ses.m_settings, m_ses, m_ses.m_io_service
-			, shared_from_this(), s, a, peerinfo));
+			, s, a, peerinfo, shared_from_this(), true));
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;

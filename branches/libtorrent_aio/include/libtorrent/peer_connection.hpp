@@ -180,17 +180,6 @@ namespace libtorrent
 			, policy::peer* peerinfo
 			, bool outgoing = true);
 
-		// with this constructor we have been contacted and we still don't
-		// know which torrent the connection belongs to
-		peer_connection(
-			aux::session_interface& ses
-			, aux::session_settings& sett
-			, buffer_allocator_interface& allocator
-			, io_service& ios
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
-
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
 		// and schedule events with references to itself (that is not safe to
