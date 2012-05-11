@@ -2206,7 +2206,7 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 		tcp::endpoint ssl_interface = m_listen_interface;
-		ssl_interface.port(m_settings.ssl_listen);
+		ssl_interface.port(m_settings.get_int(settings_pack::ssl_listen));
 #endif
 	
 		if (is_any(m_listen_interface.address()))
@@ -2230,7 +2230,7 @@ namespace aux {
 			}
 
 #ifdef TORRENT_USE_OPENSSL
-			if (m_settings.ssl_listen)
+			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
 				listen_socket_t s;
 				s.ssl = true;
@@ -2258,7 +2258,7 @@ namespace aux {
 				}
 
 #ifdef TORRENT_USE_OPENSSL
-				if (m_settings.ssl_listen)
+				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
 					listen_socket_t s;
 					s.ssl = true;
@@ -2308,7 +2308,7 @@ namespace aux {
 			}
 
 #ifdef TORRENT_USE_OPENSSL
-			if (m_settings.ssl_listen)
+			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
 				listen_socket_t s;
 				s.ssl = true;
