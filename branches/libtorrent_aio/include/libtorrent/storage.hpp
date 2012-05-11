@@ -75,7 +75,7 @@ namespace libtorrent
 	struct disk_buffer_pool;
 	struct cache_status;
 	struct aiocb_pool;
-	struct session_settings;
+	namespace aux { struct session_settings; }
 	struct cached_piece_entry;
 
 	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j);
@@ -146,7 +146,7 @@ namespace libtorrent
 
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		aiocb_pool* aiocbs() { return m_aiocb_pool; }
-		session_settings const& settings() const { return *m_settings; }
+		aux::session_settings const& settings() const { return *m_settings; }
 
 		virtual ~storage_interface() {}
 
@@ -154,7 +154,7 @@ namespace libtorrent
 		disk_buffer_pool* m_disk_pool;
 		aiocb_pool* m_aiocb_pool;
 		// initialized in disk_io_thread::perform_async_job
-		session_settings* m_settings;
+		aux::session_settings* m_settings;
 	};
 
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable

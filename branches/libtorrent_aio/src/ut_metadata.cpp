@@ -473,7 +473,7 @@ namespace libtorrent { namespace
 		if (!m_metadata)
 		{
 			// verify the total_size
-			if (total_size <= 0 || total_size > m_torrent.session().settings().max_metadata_size)
+			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 			{
 #ifdef TORRENT_VERBOSE_LOGGING
 				source.m_pc.peer_log("*** UT_METADATA [ metadata size too big: %d ]", total_size);				

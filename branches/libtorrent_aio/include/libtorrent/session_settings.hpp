@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/version.hpp"
 
 #include <string>
+#include <vector>
+#include <utility>
 
 namespace libtorrent
 {
@@ -92,6 +93,7 @@ namespace libtorrent
 		bool proxy_peer_connections;
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	struct TORRENT_EXPORT session_settings
 	{
 		session_settings(std::string const& user_agent_ = "libtorrent/"
@@ -324,12 +326,6 @@ namespace libtorrent
 		// 100. The default is 50.
 		int send_buffer_watermark_factor;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 0.16
-		bool auto_upload_slots;
-		bool auto_upload_slots_rate_based;
-#endif
-
 		enum choking_algorithm_t
 		{
 			fixed_slots_choker,
@@ -413,7 +409,8 @@ namespace libtorrent
 		// outgoing connections will be bound to. This
 		// is useful for users that have routers that
 		// allow QoS settings based on local port.
-		std::pair<int, int> outgoing_ports;
+		int outgoing_port;
+		int num_outgoing_ports;
 
 		// the TOS byte of all peer traffic (including
 		// web seeds) is set to this value. The default
@@ -461,8 +458,10 @@ namespace libtorrent
 		// the default value for share ratio is 2
 		// the default seed time ratio is 7, because that's a common
 		// asymmetry ratio on connections
-		float share_ratio_limit;
-		float seed_time_ratio_limit;
+		// these are specified as percentages
+		int share_ratio_limit;
+		int seed_time_ratio_limit;
+		// seed time limit is specified in seconds
 		int seed_time_limit;
 
 		// the interval (in seconds) between optimistic disconnects
@@ -472,14 +471,15 @@ namespace libtorrent
 
 		// the percentage of peers to disconnect every
 		// turnoever interval (if we're at the peer limit)
-		// defaults to 2/50:th
-		float peer_turnover;
+		// defaults to 4%
+		// this is specified in percent
+		int peer_turnover;
 
 		// when we are connected to more than
 		// limit * peer_turnover_cutoff peers
 		// disconnect peer_turnover fraction
-		// of the peers
-		float peer_turnover_cutoff;
+		// of the peers. It is specified in percent
+		int peer_turnover_cutoff;
 
 		// if this is true (default) connections where both
 		// ends have no utility in keeping the connection open
@@ -982,6 +982,7 @@ namespace libtorrent
 		// when true, web seeds sending bad data will be banned
 		bool ban_web_seeds;
 	};
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 	struct dht_settings

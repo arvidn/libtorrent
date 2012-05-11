@@ -33,6 +33,12 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
 all: html
 
+settings.rst: ../include/libtorrent/settings_pack.hpp
+	python gen_settings_doc.py
+
+manual.rst: settings.rst
+	touch manual.rst
+
 %.pdf:%.rst
 	rst2pdf $? -o $@ --stylesheets stylesheet
 

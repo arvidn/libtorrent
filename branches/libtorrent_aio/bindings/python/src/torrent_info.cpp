@@ -201,7 +201,6 @@ void bind_torrent_info()
         .add_property("send_stats", &get_send_stats)
 
         .def("reset", &announce_entry::reset)
-        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)

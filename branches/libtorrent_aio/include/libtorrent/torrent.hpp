@@ -141,8 +141,8 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool has_peer(peer_connection* p) const
-		{ return m_connections.find(p) != m_connections.end(); }
+		bool has_peer(peer_connection const* p) const
+		{ return m_connections.find((peer_connection*)p) != m_connections.end(); }
 #endif
 
 		// this is called when the torrent has metadata.
@@ -179,7 +179,7 @@ namespace libtorrent
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }
 		bool is_upload_only() const { return is_finished() || upload_mode(); }
 
-		int seed_rank(session_settings const& s) const;
+		int seed_rank(aux::session_settings const& s) const;
 
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0);
@@ -214,8 +214,7 @@ namespace libtorrent
 		torrent_status::state_t state() const { return (torrent_status::state_t)m_state; }
 		void set_state(torrent_status::state_t s);
 
-		session_settings const& settings() const;
-		
+		aux::session_settings const& settings() const;
 		aux::session_impl& session() { return m_ses; }
 		
 		void set_sequential_download(bool sd);
@@ -341,7 +340,7 @@ namespace libtorrent
 
 		bool resolving_countries() const
 		{
-			return m_resolve_countries && !m_ses.settings().anonymous_mode;
+			return m_resolve_countries && !m_ses.settings().get_bool(settings_pack::anonymous_mode);
 		}
 #endif
 

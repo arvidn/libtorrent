@@ -1410,13 +1410,14 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->arc_mfu_ghost_size = m_lru[cached_piece_entry::read_lru2_ghost].size();
 }
 
-void block_cache::set_settings(session_settings const& sett)
+void block_cache::set_settings(aux::session_settings const& sett)
 {
 	// the ghost size is the number of pieces to keep track of
 	// after they are evicted. Since cache_size is blocks, the
 	// assumption is that there are about 128 blocks per piece,
 	// and there are two ghost lists, so divide by 2.
-	m_ghost_size = (std::max)(8, sett.cache_size / (std::max)(sett.read_cache_line_size, 4) / 2);
+	m_ghost_size = (std::max)(8, sett.get_int(settings_pack::cache_size)
+		/ (std::max)(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
 	disk_buffer_pool::set_settings(sett);
 }
 

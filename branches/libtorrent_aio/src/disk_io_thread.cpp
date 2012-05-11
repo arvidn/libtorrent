@@ -518,10 +518,11 @@ namespace libtorrent
 		add_job(j, true);
 	}
 
-	void disk_io_thread::set_settings(session_settings const& sett)
+	// disk_io_thread takes over ownership of the settings_pack
+	void disk_io_thread::set_settings(settings_pack* pack)
 	{
 		disk_io_job* j = m_aiocb_pool.allocate_job(disk_io_job::update_settings);
-		j->buffer = (char*)new session_settings(sett);
+		j->buffer = (char*)pack; // this will be deleted in the disk thread
 		add_job(j);
 	}
 
@@ -712,7 +713,8 @@ namespace libtorrent
 
 				int elevator_direction = 0;
 #if TORRENT_USE_SYNCIO
-				elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+				elevator_direction = m_settings.get_bool(settings_pack::allow_reordered_disk_operations)
+					? m_elevator_direction : 0;
 #endif
 
 				int block_size = m_disk_cache.block_size();
@@ -981,9 +983,11 @@ namespace libtorrent
 
 		list_iterator range = m_disk_cache.write_lru_pieces();
 
-		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
+		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
+			== settings_pack::avoid_readback);
 
-		if (m_settings.disk_cache_algorithm == session_settings::largest_contiguous)
+		if (m_settings.get_int(settings_pack::disk_cache_algorithm)
+			== settings_pack::largest_contiguous)
 		{
 			for (list_iterator p = range; p.get() && num > 0; p.next())
 			{
@@ -992,10 +996,11 @@ namespace libtorrent
 
 				// prefer contiguous blocks. If we won't find any, we'll
 				// start over but actually flushing single blocks
-				num -= try_flush_contiguous(e, m_settings.write_cache_line_size, num);
+				num -= try_flush_contiguous(e, m_settings.get_int(settings_pack::write_cache_line_size), num);
 			}
 		}
-		else if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+		else if (m_settings.get_int(settings_pack::disk_cache_algorithm)
+			== settings_pack::avoid_readback)
 		{
 			for (list_iterator p = range; p.get() && num > 0; p.next())
 			{
@@ -1024,10 +1029,10 @@ namespace libtorrent
 	{
 		DLOG(stderr, "[%p] flush_expired_write_blocks\n", this);
 
-		TORRENT_ASSERT(m_settings.disk_cache_algorithm == session_settings::avoid_readback);
-
+		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
+			== settings_pack::avoid_readback);
 		ptime now = time_now();
-		time_duration expiration_limit = seconds(m_settings.cache_expiry);
+		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 
 #ifdef TORRENT_DEBUG
 		ptime timeout = min_time();
@@ -1180,7 +1185,7 @@ namespace libtorrent
 		// this logic should be changed to apply to aiocb_t objects instead of disk_io_job, and once
 		// sorted, the first X aiocb_t object should have the hint_read called on them. That way the
 		// number of read-ahead-bytes is limited
-		if (m_settings.use_disk_read_ahead)
+		if (m_settings.get_bool(settings_pack::use_disk_read_ahead))
 		{
 			j->storage->get_storage_impl()->hint_read(j->piece, j->d.io.offset, j->d.io.buffer_size);
 		}
@@ -1188,7 +1193,7 @@ namespace libtorrent
 
 		int block_size = m_disk_cache.block_size();
 
-		if (m_settings.use_read_cache)
+		if (m_settings.get_bool(settings_pack::use_read_cache))
 		{
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
@@ -1204,14 +1209,14 @@ namespace libtorrent
 			}
 
 			// cache the piece, unless we're using an explicit cache
-			if (!m_settings.explicit_read_cache)
+			if (!m_settings.get_bool(settings_pack::explicit_read_cache))
 			{
 				cached_piece_entry* p = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
 				if (p)
 				{
 					int start_block = j->d.io.offset / block_size;
 					int end_block = (std::min)(int(p->blocks_in_piece)
-							, start_block + m_settings.read_cache_line_size);
+							, start_block + m_settings.get_int(settings_pack::read_cache_line_size));
 					// this will also add the job to the pending job list in this piece
 					// unless it fails and returns -1
 					int ret = m_disk_cache.allocate_pending(p, start_block, end_block, j, 0, true);
@@ -1298,7 +1303,8 @@ namespace libtorrent
 
 		int elevator_direction = 0;
 #if TORRENT_USE_SYNCIO
-		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+		elevator_direction = m_settings.get_bool(settings_pack::allow_reordered_disk_operations)
+			? m_elevator_direction : 0;
 #endif
 		m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
 		if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
@@ -1317,7 +1323,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
 		int block_size = m_disk_cache.block_size();
 
-		if (m_settings.cache_size > 0)
+		if (m_settings.get_int(settings_pack::cache_size) > 0)
 		{
 			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
 
@@ -1329,7 +1335,7 @@ namespace libtorrent
 				return disk_operation_failed;
 			}
 
-			if (pe->hash == 0 && !m_settings.disable_hash_checks)
+			if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
 				pe->hash = new partial_hash;
 				m_disk_cache.update_cache_state(pe);
@@ -1338,13 +1344,14 @@ namespace libtorrent
 			// flushes the piece to disk in case
 			// it satisfies the condition for a write
 			// piece to be flushed
-			if (m_settings.disk_cache_algorithm == session_settings::avoid_readback)
+			if (m_settings.get_int(settings_pack::disk_cache_algorithm)
+				== settings_pack::avoid_readback)
 			{
-				try_flush_hashed(pe, m_settings.write_cache_line_size);
+				try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size));
 			}
 			else
 			{
-				try_flush_contiguous(pe, m_settings.write_cache_line_size);
+				try_flush_contiguous(pe, m_settings.get_int(settings_pack::write_cache_line_size));
 			}
 
 			// if we have more blocks in the cache than allowed by
@@ -1354,11 +1361,11 @@ namespace libtorrent
 			// async.
 			int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
 			int current_size = m_disk_cache.in_use();
-			if (m_settings.cache_size <= current_size - num_pending_write_blocks)
+			if (m_settings.get_int(settings_pack::cache_size) <= current_size - num_pending_write_blocks)
 			{
-				int left = current_size - m_settings.cache_size;
+				int left = current_size - m_settings.get_int(settings_pack::cache_size);
 				left = m_disk_cache.try_evict_blocks(left, 1);
-				if (left > 0 && !m_settings.dont_flush_write_cache)
+				if (left > 0 && !m_settings.get_bool(settings_pack::dont_flush_write_cache))
 					try_flush_write_blocks(left);
 			}
 
@@ -1410,7 +1417,8 @@ namespace libtorrent
 
 		int elevator_direction = 0;
 #if TORRENT_USE_SYNCIO
-		elevator_direction = m_settings.allow_reordered_disk_operations ? m_elevator_direction : 0;
+		elevator_direction = m_settings.get_bool(settings_pack::allow_reordered_disk_operations)
+			? m_elevator_direction : 0;
 #endif
 		m_num_to_issue += append_aios(m_to_issue, m_to_issue_end, aios, elevator_direction, this);
 		if (m_num_to_issue > m_peak_num_to_issue) m_peak_num_to_issue = m_num_to_issue;
@@ -1431,7 +1439,7 @@ namespace libtorrent
 		int ret = defer_handler;
 
 		bool job_added = false;
-		if (m_settings.disable_hash_checks)
+		if (m_settings.get_bool(settings_pack::disable_hash_checks))
 		{
 			DLOG(stderr, "[%p] do_hash: hash checking turned off, returning piece: %d\n"
 				, this, int(pe ? pe->piece : -1));
@@ -1756,60 +1764,94 @@ namespace libtorrent
 	int disk_io_thread::do_update_settings(disk_io_job* j)
 	{
 		TORRENT_ASSERT(j->buffer);
-		session_settings* s = ((session_settings*)j->buffer);
-		TORRENT_ASSERT(s->cache_size >= 0);
-		TORRENT_ASSERT(s->cache_expiry > 0);
+		settings_pack* s = ((settings_pack*)j->buffer);
 		int block_size = m_disk_cache.block_size();
 
-#if defined TORRENT_WINDOWS
-		if (m_settings.low_prio_disk != s->low_prio_disk)
-		{
-			m_file_pool.set_low_prio_io(s->low_prio_disk);
-			// we need to close all files, since the prio
-			// only takes affect when files are opened
-			m_file_pool.release(0);
-		}
+#if TORRENT_USE_AIOINIT
+		bool init_aio = false;
 #endif
-		if (m_settings.hashing_threads != s->hashing_threads)
-			m_hash_thread.set_num_threads(s->hashing_threads);
+
+		for (std::vector<std::pair<int, bool> >::iterator i = s->m_bools.begin()
+			, end(s->m_bools.end()); i != end; ++i)
+		{
+			switch (i->first)
+			{
+#if defined TORRENT_WINDOWS
+				case settings_pack::low_prio_disk:
+					m_file_pool.set_low_prio_io(i->second);
+					// we need to close all files, since the prio
+					// only takes affect when files are opened
+					m_file_pool.release(0);
+					break;
+#endif
+			}
+
+			m_settings.set_bool(i->first, i->second);
+		}
+
+		for (std::vector<std::pair<int, int> >::iterator i = s->m_ints.begin()
+			, end(s->m_ints.end()); i != end; ++i)
+		{
+			switch (i->first)
+			{
+				case settings_pack::hashing_threads:
+					m_hash_thread.set_num_threads(i->second);
+					break;
 
 #if TORRENT_USE_AIOINIT
-		if (m_settings.aio_threads != s->aio_threads
-			|| m_settings.aio_max != s->aio_max)
+				case settings_pack::aio_threads:
+				case settings_pack::aio_max:
+					init_aio = true;
+					break;
+#endif
+#if TORRENT_USE_SYNCIO
+				case settings_pack::aio_threads:
+					m_worker_thread.set_num_threads(i->second);
+					break;
+#endif
+				case settings_pack::file_pool_size:
+					m_file_pool.resize(i->second);
+					break;
+			}
+
+			m_settings.set_int(i->first, i->second);
+		}
+
+		for (std::vector<std::pair<int, std::string> >::iterator i = s->m_strings.begin()
+			, end(s->m_strings.end()); i != end; ++i)
+		{
+			m_settings.set_str(i->first, i->second);
+		}
+
+		delete s;
+
+#if TORRENT_USE_AIOINIT
+		if (init_aio)
 		{
 			aioinit a;
 			memset(&a, 0, sizeof(a));
-			a.aio_threads = s->aio_threads;
-			a.aio_num = s->aio_max;
+			a.aio_threads = m_settings.get_int(settings_pack::aio_threads);
+			a.aio_num = m_settings.get_int(settings_pack::aio_max);
 			aio_init(&a);
 		}
 #endif
 
-#if TORRENT_USE_SYNCIO
-		if (m_settings.aio_threads != s->aio_threads)
-			m_worker_thread.set_num_threads(s->aio_threads);
-#endif
-
-		m_settings = *s;
-		delete s;
-
-		m_file_pool.resize(m_settings.file_pool_size);
 #if defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
-			, m_settings.low_prio_disk ? IOPOL_THROTTLE : IOPOL_DEFAULT);
+			, m_settings.get_bool(settings_pack::low_prio_disk) ? IOPOL_THROTTLE : IOPOL_DEFAULT);
 #elif defined IOPRIO_WHO_PROCESS
 		syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
 #endif
-		if (m_settings.cache_size == -1)
+		if (m_settings.get_int(settings_pack::cache_size) == -1)
 		{
 			// the cache size is set to automatic. Make it
 			// depend on the amount of physical RAM
 			// if we don't know how much RAM we have, just set the
 			// cache size to 16 MiB (1024 blocks)
 			if (m_physical_ram == 0)
-				m_settings.cache_size = 1024;
+				m_settings.set_int(settings_pack::cache_size, 1024);
 			else
-				m_settings.cache_size = m_physical_ram / 8 / block_size;
+				m_settings.set_int(settings_pack::cache_size, m_physical_ram / 8 / block_size);
 		}
 		m_disk_cache.set_settings(m_settings);
 
@@ -1818,8 +1860,8 @@ namespace libtorrent
 		// async.
 		int num_pending_write_blocks = (m_pending_buffer_size + block_size - 1) / block_size;
 		int current_size = m_disk_cache.in_use();
-		if (current_size - num_pending_write_blocks > m_settings.cache_size)
-			m_disk_cache.try_evict_blocks(current_size - m_settings.cache_size, 0);
+		if (current_size - num_pending_write_blocks > m_settings.get_int(settings_pack::cache_size))
+			m_disk_cache.try_evict_blocks(current_size - m_settings.get_int(settings_pack::cache_size), 0);
 
 		return 0;
 	}
@@ -2837,7 +2879,7 @@ namespace libtorrent
 #endif
 	}
 
-	char* disk_io_thread::allocate_buffer(bool& exceeded
+	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
 		, boost::function<void()> const& cb
 		, char const* category)
 	{

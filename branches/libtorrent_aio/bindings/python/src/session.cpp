@@ -11,6 +11,7 @@
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
+#include <libtorrent/aux_/session_settings.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -29,9 +30,10 @@ namespace
     void outgoing_ports(session& s, int _min, int _max)
     {
         allow_threading_guard guard;
-        session_settings settings = s.settings();
-        settings.outgoing_ports = std::make_pair(_min, _max);
-        s.set_settings(settings);
+		  settings_pack p;
+		  p.set_int(settings_pack::outgoing_port, _min);
+		  p.set_int(settings_pack::num_outgoing_ports, _max - _min);
+        s.apply_settings(p);
         return;
     }
 #ifndef TORRENT_DISABLE_DHT
@@ -65,73 +67,63 @@ namespace
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
-		bencode_map_entry* map;
-		int len;
-		boost::tie(map, len) = aux::settings_map();
-	 
-		session_settings sett;
-		for (int i = 0; i < len; ++i)
-		{
-			if (!sett_dict.has_key(map[i].name)) continue;
+		allow_threading_guard guard;
 
-			void* dest = ((char*)&sett) + map[i].offset;
-			char const* name = map[i].name;
-			switch (map[i].type)
+		settings_pack p;
+		list iterkeys = (list)sett_dict.iterkeys();
+		for (int i = 0; i < boost::python::len(iterkeys); i++)
+		{
+			std::string key = extract<std::string>(iterkeys[i]);
+
+			int sett = setting_by_name(key);
+			if (sett == 0) continue;
+
+			TORRENT_TRY
 			{
-				case std_string:
-					*((std::string*)dest) = extract<std::string>(sett_dict[name]);
-					break;
-				case character:
-					*((char*)dest) = extract<char>(sett_dict[name]);
-					break;
-				case boolean:
-					*((bool*)dest) = extract<bool>(sett_dict[name]);
-					break;
-				case integer:
-					*((int*)dest) = extract<int>(sett_dict[name]);
-					break;
-				case floating_point:
-					*((float*)dest) = extract<float>(sett_dict[name]);
-					break;
+				object value = sett_dict[key];
+				switch (sett & settings_pack::type_mask)
+				{
+					case settings_pack::string_type_base:
+						p.set_str(sett, extract<std::string>(value));
+						break;
+					case settings_pack::int_type_base:
+						p.set_int(sett, extract<int>(value));
+						break;
+					case settings_pack::bool_type_base:
+						p.set_bool(sett, extract<bool>(value));
+						break;
+				}
 			}
+			TORRENT_CATCH(...) {}
 		}
 
-		ses.set_settings(sett);
+		ses.apply_settings(p);
 	}
 
 	dict session_get_settings(session const& ses)
 	{
 		allow_threading_guard guard;
-		 
-		session_settings sett = ses.settings();
-		dict sett_dict;
-		bencode_map_entry* map;
-		int len;
-		boost::tie(map, len) = aux::settings_map();
-		for (int i = 0; i < len; ++i)
+		dict ret;
+		aux::session_settings sett = ses.get_settings();
+
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
 		{
-			void const* dest = ((char const*)&sett) + map[i].offset;
-			char const* name = map[i].name;
-			switch (map[i].type)
-			{
-				case std_string:
-					sett_dict[name] = *((std::string const*)dest);
-					break;
-				case character:
-					sett_dict[name] = *((char const*)dest);
-					break;
-				case boolean:
-					sett_dict[name] = *((bool const*)dest);
-					break;
-				case integer:
-					sett_dict[name] = *((int const*)dest);
-					break;
-				case floating_point:
-					sett_dict[name] = *((float const*)dest);
-					break;
-			}
+			ret[name_for_setting(i)] = sett.get_str(i);
 		}
-		return sett_dict;
+
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_int(i);
+		}
+
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_bool(i);
+		}
+		return ret;
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS

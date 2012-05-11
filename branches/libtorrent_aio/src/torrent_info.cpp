@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -550,14 +550,14 @@ namespace libtorrent
 	int announce_entry::min_announce_in() const
 	{ return total_seconds(min_announce - time_now()); }
 
-	void announce_entry::failed(session_settings const& sett, int retry_interval)
+	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
 		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min * sett.tracker_backoff / 100
+			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
 			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
 		next_announce = time_now() + seconds(delay);

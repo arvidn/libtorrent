@@ -102,7 +102,7 @@ namespace libtorrent
 	{
 		aux::session_impl* ses = (aux::session_impl*)user;
 #ifdef TORRENT_STATS
-		if (ses) ++ses->m_num_messages[aux::session_impl::on_disk_counter];
+		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
 #endif
 		while (j)
 		{
@@ -713,7 +713,7 @@ namespace libtorrent
 				return false;
 			}
 
-			if (settings().ignore_resume_timestamps) continue;
+			if (settings().get_bool(settings_pack::ignore_resume_timestamps)) continue;
 
 			// allow some slack, because of FAT volumes
 			if (file_time > expected_time + 5 * 60 || file_time < expected_time - 5)
@@ -890,11 +890,12 @@ namespace libtorrent
 	{
 		if (m_settings)
 		{
-			flags |= settings().coalesce_reads ? file::coalesce_buffers : 0;
-			flags |= settings().allow_reordered_disk_operations ? file::resolve_phys_offset : 0;
+			flags |= settings().get_bool(settings_pack::coalesce_reads) ? file::coalesce_buffers : 0;
+			flags |= settings().get_bool(settings_pack::allow_reordered_disk_operations) ? file::resolve_phys_offset : 0;
 		}
 
-		fileop op = { &file::async_readv, a, 0, m_settings ? settings().disk_io_read_mode : 0
+		fileop op = { &file::async_readv, a, 0, m_settings
+			? settings().get_int(settings_pack::disk_io_read_mode) : 0
 			, file::read_only, flags, storage_error::async_readv };
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
@@ -906,9 +907,10 @@ namespace libtorrent
 		, int slot, int offset, int flags, async_handler* a)
 	{
 		if (m_settings)
-			flags |= settings().coalesce_writes ? file::coalesce_buffers : 0;
+			flags |= settings().get_bool(settings_pack::coalesce_writes) ? file::coalesce_buffers : 0;
 
-		fileop op = { &file::async_writev, a, 0, m_settings ? settings().disk_io_write_mode : 0
+		fileop op = { &file::async_writev, a, 0, m_settings
+			? settings().get_int(settings_pack::disk_io_write_mode) : 0
 			, file::read_write, flags, storage_error::async_writev };
 		storage_error ec;
 		readwritev(bufs, slot, offset, num_bufs, op, ec);
@@ -1103,19 +1105,19 @@ namespace libtorrent
 		// io_submit only works on files opened with O_DIRECT, so this
 		// is not optional if we're using io_submit
 #if !TORRENT_USE_IOSUBMIT
-		int cache_setting = m_settings ? settings().disk_io_write_mode : 0;
-		if (cache_setting == session_settings::disable_os_cache
-			|| (cache_setting == session_settings::disable_os_cache_for_aligned_files
+		int cache_setting = m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0;
+		if (cache_setting == settings_pack::disable_os_cache
+			|| (cache_setting == settings_pack::disable_os_cache_for_aligned_files
 			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
 #endif
 			mode |= file::no_buffer;
 		if (!(flags & file::sequential_access))
 			mode |= file::random_access;
 
-		bool lock_files = m_settings ? settings().lock_files : false;
+		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
 		if (!m_allocate_files) mode |= file::sparse;
-		if (m_settings && settings().no_atime_storage) mode |= file::no_atime;
+		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
 
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
@@ -1441,7 +1443,7 @@ namespace libtorrent
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
 		bool has_files = false;
-		if (!m_storage->settings().no_recheck_incomplete_resume)
+		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			storage_error se;
 			has_files = m_storage->has_any_file(se);

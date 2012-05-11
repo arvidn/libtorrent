@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent
 {
@@ -49,7 +50,7 @@ namespace libtorrent
 
 	struct utp_socket_manager
 	{
-		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
+		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
 		void get_status(utp_status& s) const;
@@ -70,16 +71,16 @@ namespace libtorrent
 		void remove_socket(boost::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
-		int gain_factor() const { return m_sett.utp_gain_factor; }
-		int target_delay() const { return m_sett.utp_target_delay * 1000; }
-		int syn_resends() const { return m_sett.utp_syn_resends; }
-		int fin_resends() const { return m_sett.utp_fin_resends; }
-		int num_resends() const { return m_sett.utp_num_resends; }
-		int connect_timeout() const { return m_sett.utp_connect_timeout; }
-		int delayed_ack() const { return m_sett.utp_delayed_ack; }
-		int min_timeout() const { return m_sett.utp_min_timeout; }
-		int loss_multiplier() const { return m_sett.utp_loss_multiplier; }
-		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
+		int gain_factor() const { return m_sett.get_int(settings_pack::utp_gain_factor); }
+		int target_delay() const { return m_sett.get_int(settings_pack::utp_target_delay) * 1000; }
+		int syn_resends() const { return m_sett.get_int(settings_pack::utp_syn_resends); }
+		int fin_resends() const { return m_sett.get_int(settings_pack::utp_fin_resends); }
+		int num_resends() const { return m_sett.get_int(settings_pack::utp_num_resends); }
+		int connect_timeout() const { return m_sett.get_int(settings_pack::utp_connect_timeout); }
+		int delayed_ack() const { return m_sett.get_int(settings_pack::utp_delayed_ack); }
+		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
+		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
+		bool allow_dynamic_sock_buf() const { return m_sett.get_bool(settings_pack::utp_dynamic_sock_buf); }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
@@ -98,7 +99,7 @@ namespace libtorrent
 
 		int m_new_connection;
 
-		session_settings const& m_sett;
+		aux::session_settings const& m_sett;
 
 		// this is a copy of the routing table, used
 		// to initialize MTU sizes of uTP sockets

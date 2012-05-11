@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(session_settings const& sett, udp_socket& s
+	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett, udp_socket& s
 		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
@@ -238,7 +238,7 @@ namespace libtorrent
 
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
-		if (!m_sett.enable_incoming_utp)
+		if (!m_sett.get_bool(settings_pack::enable_incoming_utp))
 			return false;
 
 		// if not found, see if it's a SYN packet, if it is,

@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/thread.hpp"
 
 #include <boost/intrusive_ptr.hpp> // atomic_count
@@ -331,7 +331,7 @@ namespace libtorrent
 
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXTRA_EXPORT disk_io_thread
+	struct TORRENT_EXTRA_EXPORT disk_io_thread : buffer_allocator_interface
 	{
 		friend TORRENT_EXPORT int append_aios(file::aiocb_t*& list_start, file::aiocb_t*& list_end
 			, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
@@ -342,18 +342,21 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(session_settings const& sett);
-		void reclaim_block(block_cache_reference ref);
+		void set_settings(settings_pack* sett);
 		void abort();
 		void join();
 
 		void subscribe_to_disk(boost::function<void()> const& cb)
 		{ m_disk_cache.subscribe_to_disk(cb); }
-		void free_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
-		char* allocate_buffer(bool& exceeded, boost::function<void()> const& cb
-			, char const* category);
-		char* allocate_buffer(char const* category)
+
+		// implements buffer_allocator_interface
+		void reclaim_block(block_cache_reference ref);
+		void free_disk_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
+		char* allocate_disk_buffer(char const* category)
 		{ return m_disk_cache.allocate_buffer(category); }
+		char* allocate_disk_buffer(bool& exceeded, boost::function<void()> const& cb
+			, char const* category);
+
 		bool exceeded_cache_use() const
 		{ return m_disk_cache.exceeded_max_size(); }
 
@@ -446,7 +449,7 @@ namespace libtorrent
 
 		bool m_abort;
 
-		session_settings m_settings;
+		aux::session_settings m_settings;
 
 		// userdata pointer for the complete_job function, which
 		// is posted to the network thread when jobs complete
@@ -663,13 +666,6 @@ namespace libtorrent
 
 		// thread for performing blocking disk io operations
 		thread m_disk_io_thread;
-	};
-
-	struct deferred_submit_jobs
-	{
-		deferred_submit_jobs(disk_io_thread& dt): m_disk_thread(dt) {}
-		~deferred_submit_jobs() { m_disk_thread.submit_jobs(); }
-		disk_io_thread& m_disk_thread;
 	};
 }
 

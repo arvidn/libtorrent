@@ -468,8 +468,8 @@ int test_main()
 	// on failing announces
 	announce_entry ae("dummy");
 	int last = 0;
-	session_settings sett;
-	sett.tracker_backoff = 250;
+	aux::session_settings sett;
+	sett.set_int(settings_pack::tracker_backoff, 250);
 	for (int i = 0; i < 10; ++i)
 	{
 		ae.failed(sett, 5);

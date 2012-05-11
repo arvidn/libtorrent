@@ -201,9 +201,9 @@ namespace libtorrent
 			dummy, (file_storage*)&t.files(), 0, path, disk_thread, default_storage_constructor
 			, storage_mode_sparse, std::vector<boost::uint8_t>());
 
-		session_settings sett;
-		sett.cache_size = 0;
-		sett.hashing_threads = 2;
+		settings_pack* sett = new settings_pack;
+		sett->set_int(settings_pack::cache_size, 0);
+		sett->set_int(settings_pack::hashing_threads, 2);
 
 		disk_thread.set_settings(sett);
 

@@ -37,14 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, char* buf)
-		: m_disk_thread(ses.m_disk_thread), m_buf(buf)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf)
+		: m_allocator(alloc), m_buf(buf)
 	{
 		m_ref.storage = 0;
 	}
 
-	disk_buffer_holder::disk_buffer_holder(aux::session_impl& ses, disk_io_job const& j)
-		: m_disk_thread(ses.m_disk_thread), m_buf(j.buffer), m_ref(j.d.io.ref)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j)
+		: m_allocator(alloc), m_buf(j.buffer), m_ref(j.d.io.ref)
 	{
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece >= 0);
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block >= 0);
@@ -52,18 +52,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block <= ((piece_manager*)m_ref.storage)->files()->piece_length() / 0x4000);
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_io_thread& iothread, disk_io_job const& j)
-		: m_disk_thread(iothread), m_buf(j.buffer), m_ref(j.d.io.ref)
-	{
-		// in this use case, we're in the disk io thread, we shouldn't
-		// be using the reference counted buffer here
-		TORRENT_ASSERT(m_ref.storage == 0);
-	}
-
 	void disk_buffer_holder::reset(disk_io_job const& j)
 	{
-		if (m_ref.storage) m_disk_thread.reclaim_block(m_ref);
-		else if (m_buf) m_disk_thread.free_buffer(m_buf);
+		if (m_ref.storage) m_allocator.reclaim_block(m_ref);
+		else if (m_buf) m_allocator.free_disk_buffer(m_buf);
 		m_buf = j.buffer;
 		m_ref = j.d.io.ref;
 
@@ -76,8 +68,8 @@ namespace libtorrent
 
 	void disk_buffer_holder::reset(char* buf)
 	{
-		if (m_ref.storage) m_disk_thread.reclaim_block(m_ref);
-		else if (m_buf) m_disk_thread.free_buffer(m_buf);
+		if (m_ref.storage) m_allocator.reclaim_block(m_ref);
+		else if (m_buf) m_allocator.free_disk_buffer(m_buf);
 		m_buf = buf;
 		m_ref.storage = 0;
 	}

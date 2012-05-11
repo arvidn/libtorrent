@@ -46,17 +46,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
 using boost::shared_ptr;
-using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(
-		session_impl& ses
+		aux::session_interface& ses
+		, aux::session_settings& sett
+		, buffer_allocator_interface& allocator
+		, io_service& ios
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
@@ -64,7 +65,7 @@ namespace libtorrent
 		, policy::peer* peerinfo
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
-		: peer_connection(ses, t, s, remote, peerinfo)
+		: peer_connection(ses, sett, allocator, ios, t, s, remote, peerinfo)
 		, m_parser(http_parser::dont_parse_chunks)
 		, m_external_auth(auth)
 		, m_extra_headers(extra_headers)
@@ -79,7 +80,7 @@ namespace libtorrent
 		
 		// since this is a web seed, change the timeout
 		// according to the settings.
-		set_timeout(ses.settings().urlseed_timeout);
+		set_timeout(m_settings.get_int(settings_pack::urlseed_timeout));
 
 		std::string protocol;
 		error_code ec;
@@ -127,9 +128,9 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_ses.settings().always_send_user_agent) {
+		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
 			request += "\r\nUser-Agent: ";
-			request += m_ses.settings().user_agent;
+			request += m_settings.get_str(settings_pack::user_agent);
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";
