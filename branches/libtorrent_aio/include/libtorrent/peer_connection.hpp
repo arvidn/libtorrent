@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_set.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent
 {

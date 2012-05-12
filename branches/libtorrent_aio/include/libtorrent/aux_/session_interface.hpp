@@ -147,6 +147,9 @@ namespace libtorrent { namespace aux
 #ifndef TORRENT_DISABLE_GEO_IP
 		virtual bool has_country_db() const = 0;
 		virtual char const* country_for_ip(address const& a) = 0;
+		virtual std::string as_name_for_ip(address const& a) = 0;
+		virtual int as_for_ip(address const& a) = 0;
+		virtual std::pair<const int, int>* lookup_as(int as) = 0;
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
