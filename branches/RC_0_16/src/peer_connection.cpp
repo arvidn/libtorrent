@@ -2258,6 +2258,8 @@ namespace libtorrent
 			{
 				if (i->block != b) continue;
 				in_req_queue = true;
+				if (i - m_request_queue.begin() < m_queued_time_critical)
+					--m_queued_time_critical;
 				m_request_queue.erase(i);
 				break;
 			}
@@ -3109,6 +3111,9 @@ namespace libtorrent
 			// from all peers, so if this one hasn't requested
 			// the block, just ignore to cancel it.
 			if (rit == m_request_queue.end()) return;
+
+			if (rit - m_request_queue.begin() < m_queued_time_critical)
+				--m_queued_time_critical;
 
 			t->picker().abort_download(block, peer_info_struct());
 			m_request_queue.erase(rit);
