@@ -1306,6 +1306,11 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<== REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+			, r.piece, r.start, r.length);
+#endif
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -1321,11 +1326,6 @@ namespace libtorrent
 			, boost::bind(match_request, boost::cref(r), boost::bind(&pending_block::block, _1)
 			, t->block_size()));
 	
-#ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("<== REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
-			, r.piece, r.start, r.length);
-#endif
-
 		if (i != m_download_queue.end())
 		{
 			pending_block b = *i;
@@ -2894,6 +2894,8 @@ namespace libtorrent
 		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), has_block(block));
 		if (rit == m_request_queue.end()) return;
+		TORRENT_ASSERT(has_picker());
+		TORRENT_ASSERT(m_picker->is_requested(block));
 		// ignore it if it's already time critical
 		if (rit - m_request_queue.begin() < m_queued_time_critical) return;
 		pending_block b = *rit;
