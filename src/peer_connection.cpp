@@ -2894,8 +2894,12 @@ namespace libtorrent
 		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), has_block(block));
 		if (rit == m_request_queue.end()) return;
-		TORRENT_ASSERT(has_picker());
-		TORRENT_ASSERT(m_picker->is_requested(block));
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(t->has_picker());
+		TORRENT_ASSERT(t->picker().is_requested(block));
+#endif
 		// ignore it if it's already time critical
 		if (rit - m_request_queue.begin() < m_queued_time_critical) return;
 		pending_block b = *rit;
