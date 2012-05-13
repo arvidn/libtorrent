@@ -446,7 +446,7 @@ namespace libtorrent
 		}
 		ifconf ifc;
 		// make sure the buffer is aligned to hold ifreq structs
-		ifreq buf[30];
+		ifreq buf[40];
 		ifc.ifc_len = sizeof(buf);
 		ifc.ifc_buf = (char*)buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
@@ -520,7 +520,6 @@ namespace libtorrent
 			ifr += current_size;
 			remaining -= current_size;
 		}
-		TORRENT_ASSERT(remaining == 0);
 		close(s);
 
 #elif TORRENT_USE_GETADAPTERSADDRESSES
