@@ -459,9 +459,19 @@ namespace libtorrent
 		char *ifr = (char*)ifc.ifc_req;
 		int remaining = ifc.ifc_len;
 
-		while (remaining > sizeof(ifreq))
+		while (remaining > 0)
 		{
 			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
+
+#ifdef _SIZEOF_ADDR_IFREQ
+			int current_size = _SIZEOF_ADDR_IFREQ(item);
+#elif defined TORRENT_BSD
+			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
+#else
+			int current_size = sizeof(ifreq);
+#endif
+
+			if (remaining < current_size) break;
 
 			if (item.ifr_addr.sa_family == AF_INET
 #if TORRENT_USE_IPV6
@@ -510,13 +520,6 @@ namespace libtorrent
 				ret.push_back(iface);
 			}
 
-#ifdef _SIZEOF_ADDR_IFREQ
-			int current_size = _SIZEOF_ADDR_IFREQ(item);
-#elif defined TORRENT_BSD
-			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#else
-			int current_size = sizeof(ifreq);
-#endif
 			ifr += current_size;
 			remaining -= current_size;
 		}
