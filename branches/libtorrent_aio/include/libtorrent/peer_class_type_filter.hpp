@@ -42,7 +42,7 @@ namespace libtorrent
 	{
 		peer_class_type_filter()
 		{
-			memset(m_peer_class_type_mask, 0, sizeof(m_peer_class_type_mask));
+			memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
 			memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
 		}
 
@@ -77,7 +77,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
-			m_peer_class_type[st] &= 1 << peer_class;
+			m_peer_class_type[st] &= ~(1 << peer_class);
 		}
 
 		void disallow(socket_type_t st, int peer_class)
@@ -88,7 +88,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
-			m_peer_class_type[st] |= 1 << peer_class;
+			m_peer_class_type_mask[st] &= ~(1 << peer_class);
 		}
 
 		void allow(socket_type_t st, int peer_class)
@@ -99,7 +99,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
-			m_peer_class_type[st] &= 1 << peer_class;
+			m_peer_class_type_mask[st] |= 1 << peer_class;
 		}
 
 		boost::uint32_t apply(int st, boost::uint32_t peer_class_mask)
