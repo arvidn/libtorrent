@@ -400,7 +400,7 @@ lib netkit : : <name>net <search>/boot/system/lib <link>shared ;
 lib gcc : : <name>gcc <link>static ;
 
 # when using iconv
-lib libiconv : : <name>iconv <link>shared ;
+lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 local boost-library-search-path =
   <search>/opt/local/lib
@@ -536,6 +536,9 @@ local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
+# freebsd doesn't seem to include this automatically
+# and iconv.h is installed there
+	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
 	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
