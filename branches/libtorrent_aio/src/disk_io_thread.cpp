@@ -1966,7 +1966,6 @@ namespace libtorrent
 
 		int block_size = m_disk_cache.block_size();
 
-		// TODO: this is potentially pretty expensive, allow cache info jobs to not ask for this full list
 		if (j->storage)
 		{
 			ret->pieces.resize(j->storage->num_pieces());
