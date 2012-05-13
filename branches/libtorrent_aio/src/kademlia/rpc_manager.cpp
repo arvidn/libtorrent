@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/socket.hpp"
 
-// TODO: it would be nice to not have this dependency here
-#include "libtorrent/aux_/session_impl.hpp"
-
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
@@ -345,7 +342,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
 		if (m_observer)
 			m_observer->set_external_address(address_v4(b)
-				, aux::session_impl::source_dht, m.addr.address());
+				, dht_observer::source_dht, m.addr.address());
 	}
 #if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
@@ -355,7 +352,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
 		if (m_observer)
 			m_observer->set_external_address(address_v6(b)
-				, aux::session_impl::source_dht, m.addr.address());
+				, dht_observer::source_dht, m.addr.address());
 	}
 #endif
 

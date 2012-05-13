@@ -39,6 +39,14 @@ namespace libtorrent { namespace dht
 {
 	struct dht_observer
 	{
+		enum
+		{
+			source_dht = 1,
+			source_peer = 2,
+			source_tracker = 4,
+			source_router = 8
+		};
+
 		virtual void set_external_address(address const& addr
 			, int source_type, address const& source) = 0;
 	};
