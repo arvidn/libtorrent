@@ -39,6 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <malloc.h>
 #define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)))
 
+#elif defined TORRENT_BSD
+
+#include <stdlib.h>
+#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
+
 #else
 
 #include <alloca.h>
