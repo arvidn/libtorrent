@@ -7486,7 +7486,8 @@ namespace libtorrent
 					// remove any un-sent requests from the queue
 					p->clear_request_queue();
 					// don't accept new requests from the peer
-					if (!p->is_choked()) m_ses.choke_peer(*p);
+					if (!p->is_choked() && !p->ignore_unchoke_slots())
+						m_ses.choke_peer(*p);
 					continue;
 				}
 
