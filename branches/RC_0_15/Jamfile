@@ -322,7 +322,7 @@ lib shell32 : : <name>shell32 ;
 lib gdi32 : : <name>gdi32 ;
 
 # when using iconv
-lib libiconv : : <name>iconv <link>shared ;
+lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 local boost-library-search-path =
   <search>/opt/local/lib
