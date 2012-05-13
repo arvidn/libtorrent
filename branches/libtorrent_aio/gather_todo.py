@@ -49,3 +49,5 @@ for f in files:
 
 output.close()
 
+os.system('rst2html.py todo.rst >todo.html')
+
