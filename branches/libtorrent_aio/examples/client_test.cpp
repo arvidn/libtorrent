@@ -450,17 +450,37 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 }
 
 std::string const& progress_bar(int progress, int width, char const* code = "33"
-	, char fill = '#', char bg = '-')
+	, char fill = '#', char bg = '-', std::string caption = "")
 {
 	static std::string bar;
 	bar.clear();
 	bar.reserve(width + 10);
 
 	int progress_chars = (progress * width + 500) / 1000;
-	bar = esc(code);
-	std::fill_n(std::back_inserter(bar), progress_chars, fill);
-	std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
-	bar += esc("0");
+
+	if (caption.empty())
+	{
+		bar = esc(code);
+		std::fill_n(std::back_inserter(bar), progress_chars, fill);
+		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
+		bar += esc("0");
+	}
+	else
+	{
+		bar = esc("42"); // green background
+		bar += caption.substr(0, progress_chars);
+		if (progress_chars > caption.size())
+		{
+			std::fill_n(std::back_inserter(bar), progress_chars - caption.size(), ' ');
+		}
+		bar += esc("40"); // black background
+		if (progress_chars < caption.size())
+		{
+			bar += caption.substr(progress_chars);
+		}
+		std::fill_n(std::back_inserter(bar), width - (std::max)(int(caption.size()), progress_chars), ' ');
+		bar += esc("0");
+	}
 	return bar;
 }
 
@@ -1140,6 +1160,17 @@ void print_piece(libtorrent::partial_piece_info* pp
 static char const* state_str[] =
 	{"checking (q)", "checking", "dl metadata"
 	, "downloading", "finished", "seeding", "allocating", "checking (r)"};
+
+std::string torrent_state(torrent_status const& s)
+{
+	std::string ret;
+	if (!s.paused && !s.auto_managed) ret = "[F]";
+	if (s.paused && !s.auto_managed) ret += "paused";
+	else if (s.paused && s.auto_managed) ret += "queued";
+	else if (s.upload_mode) ret += "upload mode";
+	else ret += state_str[s.state];
+	return ret;
+}
 
 int main(int argc, char* argv[])
 {
@@ -2024,46 +2055,27 @@ int main(int argc, char* argv[])
 				progress_bar_color = "32"; // green
 			}
 
-			if ((!s.paused && s.state != torrent_status::seeding) || torrent_index == active_torrent)
-			{
-				snprintf(str, sizeof(str), "%s%-13s down: (%s%s%s) up: %s%s%s (%s%s%s) swarm: %4d:%4d"
-					"  bw queue: (%d|%d) all-time (Rx: %s%s%s Tx: %s%s%s) seed rank: %x %c%s\n"
-					, (!s.paused && !s.auto_managed)?"[F] ":""
-					, (s.paused && !s.auto_managed)?"paused":
-					  (s.paused && s.auto_managed)?"queued":
-						(s.upload_mode)?"upload mode":
-					  state_str[s.state]
-					, esc("32"), add_suffix(s.total_download).c_str(), term
-					, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
-					, esc("31"), add_suffix(s.total_upload).c_str(), term
-					, downloaders, seeds
-					, s.up_bandwidth_queue, s.down_bandwidth_queue
-					, esc("32"), add_suffix(s.all_time_download).c_str(), term
-					, esc("31"), add_suffix(s.all_time_upload).c_str(), term
-					, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
-				out += str;
-				++lines_printed;
+			snprintf(str, sizeof(str), "%s%s v: %s%s%s (%s%s%s) ^: %s%s%s (%s%s%s) p: %4d:%4d"
+				"  bw: (%d|%d) (Rx: %s%s%s Tx: %s%s%s) rank: %x %c%s\n"
+				, progress_bar(s.progress_ppm / 1000, 15, progress_bar_color, '-', '#', torrent_state(s)).c_str(), term
+				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), term
+				, esc("32"), add_suffix(s.total_download).c_str(), term
+				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
+				, esc("31"), add_suffix(s.total_upload).c_str(), term
+				, downloaders, seeds
+				, s.up_bandwidth_queue, s.down_bandwidth_queue
+				, esc("32"), add_suffix(s.all_time_download).c_str(), term
+				, esc("31"), add_suffix(s.all_time_upload).c_str(), term
+				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
+			out += str;
+			++lines_printed;
 
-				if (s.state != torrent_status::seeding)
-				{
-					snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%% %s\n"
-						, s.sequential_download?"sequential":"progress"
-						, esc("32"), s.total_done, esc("0")
-						, s.progress_ppm / 10000.f
-						, progress_bar(s.progress_ppm / 1000, terminal_width - 43, progress_bar_color).c_str());
-					out += str;
-					++lines_printed;
-				}
-			}
-			else
+			if (torrent_index == active_torrent)
 			{
-				snprintf(str, sizeof(str), "%s%-13s %s\n"
-					, (!s.paused && !s.auto_managed)?"[F] ":""
-					, (s.paused && !s.auto_managed)?"paused":
-					  (s.paused && s.auto_managed)?"queued":
-						(s.upload_mode)?"upload mode":
-					  state_str[s.state]
-					, progress_bar(s.progress_ppm / 1000, terminal_width - 63, progress_bar_color).c_str());
+				snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%%\n"
+					, s.sequential_download?"sequential":"progress"
+					, esc("32"), s.total_done, esc("0")
+					, s.progress_ppm / 10000.f);
 				out += str;
 				++lines_printed;
 			}
