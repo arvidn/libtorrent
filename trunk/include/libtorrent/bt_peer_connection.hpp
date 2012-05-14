@@ -87,19 +87,11 @@ namespace libtorrent
 		// other end has the correct id
 		bt_peer_connection(
 			aux::session_impl& ses
-			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo
-			, bool outgoing = true);
-
-		// with this constructor we have been contacted and we still don't
-		// know which torrent the connection belongs to
-		bt_peer_connection(
-			aux::session_impl& ses
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
+			, bool outgoing = false);
 
 		void start();
 
