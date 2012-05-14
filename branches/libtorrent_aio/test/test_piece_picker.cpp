@@ -70,7 +70,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	, char const* partial)
 {
 	const int num_pieces = strlen(availability);
-	assert(int(strlen(have_str)) == num_pieces);
+	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
 	boost::shared_ptr<piece_picker> p(new piece_picker);
 	p->init(blocks_per_piece, blocks_per_piece, num_pieces);
@@ -184,6 +184,31 @@ bool verify_pick(boost::shared_ptr<piece_picker> p
 		, std::insert_iterator<std::set<piece_block> >(blocks, blocks.end()));
 	std::cerr << " verify: " << picked.size() << " " << blocks.size() << std::endl;
 	return picked.size() == blocks.size();
+}
+
+void print_availability(boost::shared_ptr<piece_picker> const& p)
+{
+	std::vector<int> avail;
+	p->get_availability(avail);
+	printf("[ ");
+	for (std::vector<int>::iterator i = avail.begin()
+		, end(avail.end()); i != end; ++i)
+	{
+		printf("%d ", *i);
+	}
+	printf("]\n");
+}
+
+bool verify_availability(boost::shared_ptr<piece_picker> const& p, char const* a)
+{
+	std::vector<int> avail;
+	p->get_availability(avail);
+	for (std::vector<int>::iterator i = avail.begin()
+		, end(avail.end()); i != end; ++i, ++a)
+	{
+		if (*a - '0' != *i) return false;
+	}
+	return true;
 }
 
 void print_pick(std::vector<piece_block> const& picked)
@@ -844,12 +869,9 @@ int test_main()
 	p->dec_refcount(5, 0);
 	p->inc_refcount(5, 0);
 	
-	bitfield bits(7);
-	bits.clear_all();
-	bits.set_bit(0);
+	bitfield bits = string2vec("*      ");
 	p->inc_refcount(bits, 0);
-	bits.clear_all();
-	bits.set_bit(4);
+	bits = string2vec("    *  ");
 	p->dec_refcount(bits, 0);
 	TEST_CHECK(test_pick(p) == 0);
 
@@ -976,6 +998,25 @@ int test_main()
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
 	
+// ========================================================
+
+	// test bitfield optimization
+	print_title("test bitfield optimization");
+	// we have less than half of the pieces
+	p = setup_picker("2122222211221222", "                ", "", "");
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	print_availability(p);
+	p->dec_refcount(string2vec("**  **  **  *   "), (void*)2);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1022112200220222"));
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->inc_refcount(string2vec(" **  **  *   *  "), (void*)3);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1132123201220322"));
+
+
 // MISSING TESTS:
 // 1. abort_download
 // 2. write_failed

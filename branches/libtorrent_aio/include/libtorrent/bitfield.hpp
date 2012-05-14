@@ -281,6 +281,8 @@ namespace libtorrent
 		}
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
+
+		// TODO: make this operate on words instead of bytes. i.e. uintptr_t probably
 		unsigned char* m_bytes;
 		int m_size:31; // in bits
 		bool m_own:1;
