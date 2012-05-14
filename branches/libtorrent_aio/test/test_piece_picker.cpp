@@ -1016,6 +1016,44 @@ int test_main()
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
 
+// ========================================================
+
+	// test seed optimizaton
+	print_title("test seed optimization");
+	p = setup_picker("0000000000000000", "                ", "", "");
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+
+	p->inc_refcount_all((void*)2);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount(string2vec("  ****  **      "), (void*)4);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1100001100111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->inc_refcount(string2vec("  ****  **      "), (void*)5);
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount_all((void*)2);
+	TEST_CHECK(verify_availability(p, "0000000000000000"));
+
+	p->inc_refcount_all((void*)2);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount(3, (void*)4);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1110111111111111"));
 
 // MISSING TESTS:
 // 1. abort_download

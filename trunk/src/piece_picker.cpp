@@ -915,6 +915,28 @@ namespace libtorrent
 			update(prev_priority, p.index);
 	}
 
+	// this function decrements the m_seeds counter
+	// and increments the peer counter on every piece
+	// instead. Sometimes of we connect to a seed that
+	// later sends us a dont-have message, we'll need to
+	// turn that m_seed into counts on the pieces since
+	// they can't be negative
+	void piece_picker::break_one_seed()
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+		TORRENT_ASSERT(m_seeds > 0);
+		--m_seeds;
+
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			++i->peer_count;
+		}
+
+		m_dirty = true;
+	}
+
 	void piece_picker::dec_refcount(int index)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -922,6 +944,17 @@ namespace libtorrent
 #endif
 
 		piece_pos& p = m_piece_map[index];
+
+		if (p.peer_count == 0)
+		{
+			TORRENT_ASSERT(m_seeds > 0);
+			// this is the case where we have one or more
+			// seeds, and one of them saying: I don't have this
+			// piece anymore. we need to break up one of the seed
+			// counters into actual peer counters on the pieces
+			break_one_seed();
+		}
+
 		int prev_priority = p.priority(this);
 		TORRENT_ASSERT(p.peer_count > 0);
 		--p.peer_count;
@@ -960,12 +993,27 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
+		bool seed_broken = false;
 		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
 			if (*i)
 			{
-				--m_piece_map[index].peer_count;
+				piece_pos& p = m_piece_map[index];
+
+				if (p.peer_count == 0)
+				{
+					TORRENT_ASSERT(!seed_broken);
+					TORRENT_ASSERT(m_seeds > 0);
+					// this is the case where we have one or more
+					// seeds, and one of them saying: I don't have this
+					// piece anymore. we need to break up one of the seed
+					// counters into actual peer counters on the pieces
+					break_one_seed();
+					seed_broken = true;
+				}
+
+				--p.peer_count;
 				updated = true;
 			}
 		}
@@ -1693,7 +1741,7 @@ namespace libtorrent
 			for (int i = 0; i < num_pieces(); ++i)
 			{
 				if (!pieces[i]) continue;
-				if (piece_priority(i) == 0) continue;
+				if (m_piece_map[i].priority(this) <= 0) continue;
 				if (have_piece(i)) continue;
 
 				std::vector<downloading_piece>::const_iterator k = find_dl_piece(i);

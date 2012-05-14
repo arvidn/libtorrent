@@ -184,6 +184,31 @@ bool verify_pick(boost::shared_ptr<piece_picker> p
 	return picked.size() == blocks.size();
 }
 
+void print_availability(boost::shared_ptr<piece_picker> const& p)
+{
+	std::vector<int> avail;
+	p->get_availability(avail);
+	printf("[ ");
+	for (std::vector<int>::iterator i = avail.begin()
+		, end(avail.end()); i != end; ++i)
+	{
+		printf("%d ", *i);
+	}
+	printf("]\n");
+}
+
+bool verify_availability(boost::shared_ptr<piece_picker> const& p, char const* a)
+{
+	std::vector<int> avail;
+	p->get_availability(avail);
+	for (std::vector<int>::iterator i = avail.begin()
+		, end(avail.end()); i != end; ++i, ++a)
+	{
+		if (*a - '0' != *i) return false;
+	}
+	return true;
+}
+
 void print_pick(std::vector<piece_block> const& picked)
 {
 	for (int i = 0; i < int(picked.size()); ++i)
@@ -954,6 +979,45 @@ int test_main()
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
 	
+// ========================================================
+
+	// test seed optimizaton
+	print_title("test seed optimization");
+	p = setup_picker("0000000000000000", "                ", "", "");
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+
+	p->inc_refcount_all();
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount(string2vec("  ****  **      "));
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1100001100111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->inc_refcount(string2vec("  ****  **      "));
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount_all();
+	TEST_CHECK(verify_availability(p, "0000000000000000"));
+
+	p->inc_refcount_all();
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1111111111111111"));
+
+	// make sure it's not dirty
+	pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, empty_vector);
+	p->dec_refcount(3);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1110111111111111"));
+
 // MISSING TESTS:
 // 1. abort_download
 // 2. write_failed
