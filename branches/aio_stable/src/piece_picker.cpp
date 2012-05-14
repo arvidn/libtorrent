@@ -1085,7 +1085,13 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
-		const int size = 50;
+		if (bitmask.all_set())
+		{
+			inc_refcount_all(peer);
+			return;
+		}
+
+		const int size = (std::min)(50, int(bitmask.size()/2));
 
 		// this is an optimization where if just a few
 		// pieces end up changing, instead of making
@@ -1093,6 +1099,43 @@ namespace libtorrent
 		// instead
 		int* incremented = TORRENT_ALLOCA(int, size);
 		int num_inc = 0;
+
+		if (!m_dirty)
+		{
+			// first count how many pieces we're updating. If it's few (less than half)
+			// we'll just update them one at a time. Othewise we'll just update the counters
+			// and mark the picker as dirty, so we'll rebuild it next time we need it.
+			// this only matters if we're not already dirty, in which case the fasted
+			// thing to do is to just update the counters and be done
+			int index = 0;
+			for (bitfield::const_iterator i = bitmask.begin()
+				, end(bitmask.end()); i != end; ++i, ++index)
+			{
+				if (!*i) continue;
+				if (num_inc < size) incremented[num_inc] = index;
+				++num_inc;
+				if (num_inc >= size) break;
+			}
+
+			if (num_inc < size)
+			{
+				// not that many pieces were updated
+				// just update those individually instead of
+				// rebuilding the whole piece list
+				for (int i = 0; i < num_inc; ++i)
+				{
+					int piece = incremented[i];
+					piece_pos& p = m_piece_map[piece];
+					int prev_priority = p.priority(this);
+					++p.peer_count;
+					int new_priority = p.priority(this);
+					if (prev_priority == new_priority) continue;
+					else if (prev_priority >= 0) update(prev_priority, p.index);
+					else add(piece);
+				}
+				return;
+			}
+		}
 
 		int index = 0;
 		bool updated = false;
@@ -1108,34 +1151,11 @@ namespace libtorrent
 
 				++m_piece_map[index].peer_count;
 				updated = true;
-				if (num_inc < size) incremented[num_inc] = index;
-				++num_inc;
 			}
 		}
 
 		// if we're already dirty, no point in doing anything more
 		if (m_dirty) return;
-
-		if (num_inc <= size)
-		{
-			// not that many pieces were updated
-			// just update those individually instead of
-			// rebuilding the whole piece list
-			for (int i = 0; i < num_inc; ++i)
-			{
-				int piece = incremented[i];
-				piece_pos& p = m_piece_map[piece];
-				TORRENT_ASSERT(p.peer_count > 0);
-				--p.peer_count;
-				int prev_priority = p.priority(this);
-				++p.peer_count;
-				int new_priority = p.priority(this);
-				if (prev_priority == new_priority) continue;
-				else if (prev_priority >= 0) update(prev_priority, p.index);
-				else add(piece);
-			}
-			return;
-		}
 
 		if (updated) m_dirty = true;
 	}
@@ -1150,7 +1170,14 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "dec_refcount(bitfield)" << std::endl;
 #endif
-		const int size = 50;
+
+		if (bitmask.all_set())
+		{
+			dec_refcount_all(peer);
+			return;
+		}
+
+		const int size = (std::min)(50, int(bitmask.size()/2));
 
 		// this is an optimization where if just a few
 		// pieces end up changing, instead of making
@@ -1158,6 +1185,42 @@ namespace libtorrent
 		// instead
 		int* decremented = TORRENT_ALLOCA(int, size);
 		int num_dec = 0;
+
+		if (!m_dirty)
+		{
+			// first count how many pieces we're updating. If it's few (less than half)
+			// we'll just update them one at a time. Othewise we'll just update the counters
+			// and mark the picker as dirty, so we'll rebuild it next time we need it.
+			// this only matters if we're not already dirty, in which case the fasted
+			// thing to do is to just update the counters and be done
+			int index = 0;
+			for (bitfield::const_iterator i = bitmask.begin()
+				, end(bitmask.end()); i != end; ++i, ++index)
+			{
+				if (!*i) continue;
+				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
+				if (num_dec < size) decremented[num_dec] = index;
+				++num_dec;
+				if (num_dec >= size) break;
+			}
+
+			if (num_dec < size)
+			{
+				// not that many pieces were updated
+				// just update those individually instead of
+				// rebuilding the whole piece list
+				for (int i = 0; i < num_dec; ++i)
+				{
+					int piece = decremented[i];
+					piece_pos& p = m_piece_map[piece];
+					int prev_priority = p.priority(this);
+					TORRENT_ASSERT(p.peer_count > 0);
+					--p.peer_count;
+					if (prev_priority >= 0) update(prev_priority, p.index);
+				}
+				return;
+			}
+		}
 
 		int index = 0;
 		bool updated = false;
@@ -1174,31 +1237,11 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
 				--m_piece_map[index].peer_count;
 				updated = true;
-				if (num_dec < size) decremented[num_dec] = index;
-				++num_dec;
 			}
 		}
 
 		// if we're already dirty, no point in doing anything more
 		if (m_dirty) return;
-
-		if (num_dec <= size)
-		{
-			// not that many pieces were updated
-			// just update those individually instead of
-			// rebuilding the whole piece list
-			for (int i = 0; i < num_dec; ++i)
-			{
-				int piece = decremented[i];
-				piece_pos& p = m_piece_map[piece];
-				++p.peer_count;
-				int prev_priority = p.priority(this);
-				TORRENT_ASSERT(p.peer_count > 0);
-				--p.peer_count;
-				if (prev_priority >= 0) update(prev_priority, p.index);
-			}
-			return;
-		}
 
 		if (updated) m_dirty = true;
 	}
