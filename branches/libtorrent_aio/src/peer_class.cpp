@@ -51,7 +51,7 @@ namespace libtorrent
 		channel[peer_connection::download_channel].throttle(limit);
 	}
 
-	void peer_class::get_info(peer_class_info* pci)
+	void peer_class::get_info(peer_class_info* pci) const
 	{
 		pci->ignore_unchoke_slots = ignore_unchoke_slots;
 		pci->label = label;

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETTINGS_PACK_HPP_INCLUDED
 
 #include "libtorrent/entry.hpp"
+#include <vector>
 
 namespace libtorrent
 {
@@ -45,7 +46,7 @@ namespace libtorrent
 	settings_pack* load_pack_from_dict(lazy_entry const* settings);
 	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
 	void initialize_default_settings(aux::session_settings& s);
-	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
 
 	int setting_by_name(std::string const& name);
 	char const* name_for_setting(int s);

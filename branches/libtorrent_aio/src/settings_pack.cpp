@@ -480,7 +480,7 @@ namespace libtorrent
 
 			sett.set_str(i->first, i->second);
 			str_setting_entry_t const& sa = str_settings[i->first & settings_pack::index_mask];
-			if (sa.fun) (ses->*sa.fun)();
+			if (sa.fun && ses) (ses->*sa.fun)();
 		}
 	
 		for (std::vector<std::pair<int, int> >::const_iterator i = pack->m_ints.begin()
@@ -497,7 +497,7 @@ namespace libtorrent
 
 			sett.set_int(i->first, i->second);
 			int_setting_entry_t const& sa = int_settings[i->first & settings_pack::index_mask];
-			if (sa.fun) (ses->*sa.fun)();
+			if (sa.fun && ses) (ses->*sa.fun)();
 		}
 
 		for (std::vector<std::pair<int, bool> >::const_iterator i = pack->m_bools.begin()
@@ -514,7 +514,7 @@ namespace libtorrent
 
 			sett.set_bool(i->first, i->second);
 			bool_setting_entry_t const& sa = bool_settings[i->first & settings_pack::index_mask];
-			if (sa.fun) (ses->*sa.fun)();
+			if (sa.fun && ses) (ses->*sa.fun)();
 		}
 	}
 

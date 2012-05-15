@@ -14,9 +14,11 @@ test_programs = \
   test_metadata_extension    \
   test_natpmp                \
   test_pe_crypto             \
+  test_peer_classes          \
   test_pex                   \
   test_piece_picker          \
   test_primitives            \
+  test_settings_pack         \
   test_storage               \
   test_swarm                 \
   test_tailqueue             \
@@ -54,10 +56,12 @@ test_lsd_SOURCES = test_lsd.cpp
 test_metadata_extension_SOURCES = test_metadata_extension.cpp
 test_natpmp_SOURCES = test_natpmp.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
+test_peer_classes_SOURCES = test_peer_classes.cpp
 test_pex_SOURCES = test_pex.cpp
 test_piece_picker_SOURCES = test_piece_picker.cpp
 test_primitives_SOURCES = test_primitives.cpp
 test_storage_SOURCES = test_storage.cpp
+test_settings_pack_SOURCES = test_settings_pack.cpp
 test_swarm_SOURCES = test_swarm.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp

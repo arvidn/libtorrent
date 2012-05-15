@@ -61,11 +61,11 @@ namespace libtorrent
 		peer_class(std::string const& label)
 			: ignore_unchoke_slots(false)
 			, label(label)
-			, references(0)
+			, references(1)
 		{}
 
 		void set_info(peer_class_info const* pci);
-		void get_info(peer_class_info* pci);
+		void get_info(peer_class_info* pci) const;
 
 		void set_upload_limit(int limit);
 		void set_download_limit(int limit);
