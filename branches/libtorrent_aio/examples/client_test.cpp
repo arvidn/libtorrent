@@ -399,13 +399,7 @@ std::string add_suffix(float val, char const* suffix = 0)
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
 #ifdef ANSI_TERMINAL_COLORS
-	static const char* lookup[] =
-	{
-		// black, blue, cyan, white
-		"40", "44", "46", "47"
-	};
-
-	const int table_size = sizeof(lookup) / sizeof(lookup[0]);
+	const int table_size = 18;
 #else
 	static const char char_lookup[] =
 	{ ' ', '.', ':', '-', '+', '*', '#'};
@@ -436,7 +430,9 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 			if (p[k]) ++num_have;
 		int color = int(std::ceil(num_have / float(num_pieces) * (table_size - 1)));
 #ifdef ANSI_TERMINAL_COLORS
-		bar += esc(lookup[color]);
+		char buf[10];
+		snprintf(buf, 10, "48;5;%d", 232 + color);
+		bar += esc(buf);
 		bar += " ";
 #else
 		bar += char_lookup[color];
@@ -467,7 +463,11 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 	}
 	else
 	{
-		bar = esc("42"); // green background
+		char color_code[3] = "42";
+		// keep just the color, not
+		// the fact that it's foreground/background
+		color_code[1] = code[1];
+		bar = esc(color_code); // green background
 		bar += caption.substr(0, progress_chars);
 		if (progress_chars > caption.size())
 		{
@@ -1164,6 +1164,7 @@ static char const* state_str[] =
 std::string torrent_state(torrent_status const& s)
 {
 	std::string ret;
+	if (!s.error.empty()) return s.error;
 	if (!s.paused && !s.auto_managed) ret = "[F]";
 	if (s.paused && !s.auto_managed) ret += "paused";
 	else if (s.paused && s.auto_managed) ret += "queued";
@@ -1926,9 +1927,7 @@ int main(int argc, char* argv[])
 		std::string out;
 		out = "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
-			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
-			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
-			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
+			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n";
 
 		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
@@ -2021,17 +2020,6 @@ int main(int argc, char* argv[])
 			snprintf(str, sizeof(str), "%-40s %s ", name.c_str(), term);
 			out += str;
 
-			if (!s.error.empty())
-			{
-				out += esc("31");
-				out += "error ";
-				out += s.error;
-				out += esc("0");
-				out += "\n";
-				++lines_printed;
-				continue;
-			}
-
 			int seeds = 0;
 			int downloaders = 0;
 
@@ -2042,7 +2030,11 @@ int main(int argc, char* argv[])
 			else downloaders = s.list_peers - s.list_seeds;
 
 			char const* progress_bar_color = "33"; // yellow
-			if (s.state == torrent_status::downloading_metadata)
+			if (s.error.empty())
+			{
+				progress_bar_color = "32"; // red 
+			}
+			else if (s.state == torrent_status::downloading_metadata)
 			{
 				progress_bar_color = "35"; // magenta
 			}
@@ -2057,7 +2049,7 @@ int main(int argc, char* argv[])
 
 			snprintf(str, sizeof(str), "%s%s v: %s%s%s (%s%s%s) ^: %s%s%s (%s%s%s) p: %4d:%4d"
 				"  bw: (%d|%d) (Rx: %s%s%s Tx: %s%s%s) rank: %x %c%s\n"
-				, progress_bar(s.progress_ppm / 1000, 15, progress_bar_color, '-', '#', torrent_state(s)).c_str(), term
+				, progress_bar(s.progress_ppm / 1000, 20, progress_bar_color, '-', '#', torrent_state(s)).c_str(), term
 				, esc("32"), add_suffix(s.download_rate, "/s").c_str(), term
 				, esc("32"), add_suffix(s.total_download).c_str(), term
 				, esc("31"), add_suffix(s.upload_rate, "/s").c_str(), term
@@ -2069,16 +2061,6 @@ int main(int argc, char* argv[])
 				, s.seed_rank, s.need_save_resume?'S':' ', esc("0"));
 			out += str;
 			++lines_printed;
-
-			if (torrent_index == active_torrent)
-			{
-				snprintf(str, sizeof(str), "     %-10s: %s%-11"PRId64"%s Bytes %6.2f%%\n"
-					, s.sequential_download?"sequential":"progress"
-					, esc("32"), s.total_done, esc("0")
-					, s.progress_ppm / 10000.f);
-				out += str;
-				++lines_printed;
-			}
 
 			// don't print the piece bar if we don't have any piece, or if we have all
 			if (print_piece_bar && s.num_pieces != 0 && s.progress_ppm != 1000000)
