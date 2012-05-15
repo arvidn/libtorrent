@@ -573,6 +573,8 @@ namespace libtorrent
 #endif
 #endif
 
+		void break_one_seed();
+
 		void update_pieces() const;
 
 		// fills in the range [start, end) of pieces in

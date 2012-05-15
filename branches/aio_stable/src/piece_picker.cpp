@@ -1050,6 +1050,28 @@ namespace libtorrent
 			update(prev_priority, p.index);
 	}
 
+	// this function decrements the m_seeds counter
+	// and increments the peer counter on every piece
+	// instead. Sometimes of we connect to a seed that
+	// later sends us a dont-have message, we'll need to
+	// turn that m_seed into counts on the pieces since
+	// they can't be negative
+	void piece_picker::break_one_seed()
+	{
+		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
+
+		TORRENT_ASSERT(m_seeds > 0);
+		--m_seeds;
+
+		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
+			, end(m_piece_map.end()); i != end; ++i)
+		{
+			++i->peer_count;
+		}
+
+		m_dirty = true;
+	}
+
 	void piece_picker::dec_refcount(int index, const void* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -1066,6 +1088,16 @@ namespace libtorrent
 		TORRENT_ASSERT(p.have_peers.count(peer) == 1);
 		p.have_peers.erase(peer);
 #endif
+
+		if (p.peer_count == 0)
+		{
+			TORRENT_ASSERT(m_seeds > 0);
+			// this is the case where we have one or more
+			// seeds, and one of them saying: I don't have this
+			// piece anymore. we need to break up one of the seed
+			// counters into actual peer counters on the pieces
+			break_one_seed();
+		}
 
 		int prev_priority = p.priority(this);
 		TORRENT_ASSERT(p.peer_count > 0);
@@ -1198,7 +1230,6 @@ namespace libtorrent
 				, end(bitmask.end()); i != end; ++i, ++index)
 			{
 				if (!*i) continue;
-				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
 				if (num_dec < size) decremented[num_dec] = index;
 				++num_dec;
 				if (num_dec >= size) break;
@@ -1206,6 +1237,7 @@ namespace libtorrent
 
 			if (num_dec < size)
 			{
+				bool seed_broken = false;
 				// not that many pieces were updated
 				// just update those individually instead of
 				// rebuilding the whole piece list
@@ -1214,9 +1246,22 @@ namespace libtorrent
 					int piece = decremented[i];
 					piece_pos& p = m_piece_map[piece];
 					int prev_priority = p.priority(this);
+
+					if (p.peer_count == 0)
+					{
+						TORRENT_ASSERT(!seed_broken);
+						TORRENT_ASSERT(m_seeds > 0);
+						// this is the case where we have one or more
+						// seeds, and one of them saying: I don't have this
+						// piece anymore. we need to break up one of the seed
+						// counters into actual peer counters on the pieces
+						break_one_seed();
+						seed_broken = true;
+					}
+
 					TORRENT_ASSERT(p.peer_count > 0);
 					--p.peer_count;
-					if (prev_priority >= 0) update(prev_priority, p.index);
+					if (!m_dirty && prev_priority >= 0) update(prev_priority, p.index);
 				}
 				return;
 			}
@@ -1224,6 +1269,7 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
+		bool seed_broken = false;
 		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
@@ -1234,8 +1280,21 @@ namespace libtorrent
 				m_piece_map[index].have_peers.erase(peer);
 #endif
 
+				piece_pos& p = m_piece_map[index];
+				if (p.peer_count == 0)
+				{
+					TORRENT_ASSERT(!seed_broken);
+					TORRENT_ASSERT(m_seeds > 0);
+					// this is the case where we have one or more
+					// seeds, and one of them saying: I don't have this
+					// piece anymore. we need to break up one of the seed
+					// counters into actual peer counters on the pieces
+					break_one_seed();
+					seed_broken = true;
+				}
+
 				TORRENT_ASSERT(m_piece_map[index].peer_count > 0);
-				--m_piece_map[index].peer_count;
+				--p.peer_count;
 				updated = true;
 			}
 		}
