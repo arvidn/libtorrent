@@ -98,6 +98,13 @@ namespace libtorrent
 		// the start of the body.
 		bool chunked_encoding() const { return m_chunked_encoding; }
 
+		// removes the chunk headers from the supplied buffer. The buffer
+		// must be the stream received from the http server this parser
+		// instanced parsed. It will use the internal chunk list to determine
+		// where the chunks are in the buffer. It returns the new length of
+		// the buffer
+		int collapse_chunk_headers(char* buffer, int size) const;
+
 		// returns false if the buffer doesn't contain a complete
 		// chunk header. In this case, call the function again with
 		// a bigger buffer once more bytes have been received.
