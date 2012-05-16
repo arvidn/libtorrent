@@ -621,28 +621,7 @@ void http_connection::callback(error_code e, char const* data, int size)
 	std::vector<char> buf;
 	if (data && m_bottled && m_parser.header_finished())
 	{
-		if (m_parser.chunked_encoding())
-		{
-			// go through all chunks and compact them
-			// since we're bottled, and the buffer is our after all
-			// it's OK to mutate it
-			char* write_ptr = (char*)data;
-			// the offsets in the array are from the start of the
-			// buffer, not start of the body, so subtract the size
-			// of the HTTP header from them
-			int offset = m_parser.body_start();
-			std::vector<std::pair<size_type, size_type> > const& chunks = m_parser.chunks();
-			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
-				, end(chunks.end()); i != end; ++i)
-			{
-				TORRENT_ASSERT(i->second - i->first < INT_MAX);
-				int len = int(i->second - i->first);
-				if (i->first - offset + len > size) len = size - int(i->first) + offset;
-				memmove(write_ptr, data + i->first - offset, len);
-				write_ptr += len;
-			}
-			size = write_ptr - data;
-		}
+		size = m_parser.collapse_chunk_headers((char*)data, size);
 
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
