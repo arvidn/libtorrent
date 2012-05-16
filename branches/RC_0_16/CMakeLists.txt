@@ -52,6 +52,7 @@ set(sources
 	storage
 	thread
 	time
+	timestamp_history
 	torrent
 	torrent_handle
 	torrent_info
@@ -61,6 +62,7 @@ set(sources
 	udp_tracker_connection
 	udp_socket
 	upnp
+	utp_socket_manager
 	utp_stream
 	logger
 	file_pool
