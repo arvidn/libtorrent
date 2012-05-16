@@ -582,7 +582,7 @@ namespace libtorrent
 			prioritize_udp_trackers();
 	}
 
-#if 1
+#if 0
 	
 	// NON BOTTLED VERSION. SUPPORTS PROGRESS REPORTING
 
@@ -618,6 +618,11 @@ namespace libtorrent
 		}
 
 		if (!ec) return;
+
+		// if this was received with chunked encoding, we need to strip out
+		// the chunk headers
+		size = parser.collapse_chunk_headers((char*)&m_torrent_file_buf[0], m_torrent_file_buf.size());
+		m_torrent_file_buf.resize(size);
 
 		std::string const& encoding = parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && m_torrent_file_buf.size())
@@ -764,7 +769,13 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		int num_torrents = m_ses.m_torrents.size();
 #endif
-		m_ses.m_torrents.erase(m_torrent_file->info_hash());
+
+		// we're about to erase the session's reference to this
+		// torrent, create another reference
+		boost::shared_ptr<torrent> me(shared_from_this());
+
+		m_ses.remove_torrent_impl(me, 0);
+
 		m_torrent_file = tf;
 		m_ses.m_torrents.insert(std::make_pair(m_torrent_file->info_hash(), shared_from_this()));
 
@@ -857,7 +868,7 @@ namespace libtorrent
 		boost::shared_ptr<http_connection> conn(
 			new http_connection(m_ses.m_io_service, m_ses.m_half_open
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
-					, _1, _2, _3, _4), false));
+					, _1, _2, _3, _4)));
 		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
 		set_state(torrent_status::downloading_metadata);
 	}
