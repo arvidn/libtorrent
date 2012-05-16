@@ -61,6 +61,7 @@ set(sources
 	udp_tracker_connection
 	udp_socket
 	upnp
+	utp_stream
 	logger
 	file_pool
 	lsd
