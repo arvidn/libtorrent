@@ -1,4 +1,5 @@
 
+	* added missing functions to python bindings (file_priority())
 	* fixed low_prio_disk support on linux
 	* fixed time critical piece accounting in the request queue
 	* fixed semantics of rate_limit_utp to also ignore per-torrent limits
