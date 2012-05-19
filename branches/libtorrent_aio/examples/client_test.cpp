@@ -463,22 +463,15 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 	}
 	else
 	{
+		caption.resize(width, ' ');
 		char color_code[3] = "42";
 		// keep just the color, not
 		// the fact that it's foreground/background
 		color_code[1] = code[1];
 		bar = esc(color_code); // green background
 		bar += caption.substr(0, progress_chars);
-		if (progress_chars > caption.size())
-		{
-			std::fill_n(std::back_inserter(bar), progress_chars - caption.size(), ' ');
-		}
-		bar += esc("40"); // black background
-		if (progress_chars < caption.size())
-		{
-			bar += caption.substr(progress_chars);
-		}
-		std::fill_n(std::back_inserter(bar), width - (std::max)(int(caption.size()), progress_chars), ' ');
+		bar += esc("48;5;238"); // dark gray background
+		bar += caption.substr(progress_chars);
 		bar += esc("0");
 	}
 	return bar;
@@ -622,8 +615,10 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		{
 			if (i->downloading_piece_index >= 0)
 			{
+				char buf[50];
+				snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
 				out += progress_bar(
-					i->downloading_progress * 1000 / i->downloading_total, 14);
+					i->downloading_progress * 1000 / i->downloading_total, 14, "32", '-', '#', buf);
 			}
 			else
 			{
@@ -1164,12 +1159,18 @@ static char const* state_str[] =
 std::string torrent_state(torrent_status const& s)
 {
 	std::string ret;
-	if (!s.error.empty()) return s.error;
-	if (!s.paused && !s.auto_managed) ret = "[F]";
-	if (s.paused && !s.auto_managed) ret += "paused";
-	else if (s.paused && s.auto_managed) ret += "queued";
-	else if (s.upload_mode) ret += "upload mode";
-	else ret += state_str[s.state];
+	if (!s.error.empty()) ret = s.error;
+	else
+	{
+		if (!s.paused && !s.auto_managed) ret = "[F]";
+		if (s.paused && !s.auto_managed) ret += "paused";
+		else if (s.paused && s.auto_managed) ret += "queued";
+		else if (s.upload_mode) ret += "upload mode";
+		else ret += state_str[s.state];
+	}
+	char buf[10];
+	snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
+	ret += buf;
 	return ret;
 }
 
@@ -2030,22 +2031,16 @@ int main(int argc, char* argv[])
 			else downloaders = s.list_peers - s.list_seeds;
 
 			char const* progress_bar_color = "33"; // yellow
-			if (s.error.empty())
-			{
-				progress_bar_color = "32"; // red 
-			}
+			if (!s.error.empty())
+				progress_bar_color = "31"; // red 
+			else if (s.paused)
+				progress_bar_color = "34"; // blue
 			else if (s.state == torrent_status::downloading_metadata)
-			{
 				progress_bar_color = "35"; // magenta
-			}
 			else if (s.current_tracker.empty())
-			{
 				progress_bar_color = "31"; // red
-			}
 			else if (sess_stat.has_incoming_connections)
-			{
 				progress_bar_color = "32"; // green
-			}
 
 			snprintf(str, sizeof(str), "%s%s v: %s%s%s (%s%s%s) ^: %s%s%s (%s%s%s) p: %4d:%4d"
 				"  bw: (%d|%d) (Rx: %s%s%s Tx: %s%s%s) rank: %x %c%s\n"
@@ -2357,14 +2352,13 @@ int main(int argc, char* argv[])
 						++f;
 					}
 
-					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s %s\n",
-						progress_bar(progress, 50, color).c_str()
+					snprintf(str, sizeof(str), "%s %s%s %s%s\n",
+						progress_bar(progress, 70, color, '-', '#'
+							, filename(info.files().file_path(info.file_at(i)))).c_str()
 						, pad_file?esc("34"):""
-						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
-						, filename(info.files().file_path(info.file_at(i))).c_str()
-						, pad_file?esc("0"):""
-						, mode.c_str());
+						, mode.c_str()
+						, pad_file?esc("0"):"");
 					out += str;
 				}
 
