@@ -148,6 +148,16 @@ list file_priorities(torrent_handle& handle)
     return ret;
 }
 
+int file_prioritity0(torrent_handle& h, int index)
+{
+	return h.file_priority(index);
+}
+
+void file_prioritity1(torrent_handle& h, int index, int prio)
+{
+	return h.file_priority(index, prio);
+}
+
 void replace_trackers(torrent_handle& h, object trackers)
 {
     object iter(trackers.attr("__iter__")());
@@ -343,6 +353,8 @@ void bind_torrent_handle()
         .def("piece_priorities", &piece_priorities)
         .def("prioritize_files", &prioritize_files)
         .def("file_priorities", &file_priorities)
+        .def("file_priority", &file_prioritity0)
+        .def("file_priority", &file_prioritity1)
         .def("use_interface", &torrent_handle::use_interface)
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
