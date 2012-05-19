@@ -1840,7 +1840,8 @@ namespace libtorrent
 		setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_THREAD
 			, m_settings.get_bool(settings_pack::low_prio_disk) ? IOPOL_THROTTLE : IOPOL_DEFAULT);
 #elif defined IOPRIO_WHO_PROCESS
-		syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid());
+		syscall(ioprio_set, IOPRIO_WHO_PROCESS, getpid(), IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE
+			, m_settings.get_bool(settings_pack::low_prio_disk) ? 7: 0));
 #endif
 		if (m_settings.get_int(settings_pack::cache_size) == -1)
 		{
