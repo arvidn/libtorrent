@@ -2706,8 +2706,14 @@ namespace libtorrent
 				{
 					if ((i->flags & disk_io_job::async_operation) && i->storage)
 					{
-						int ret = i->storage->job_complete(i, m_queued_jobs);
-						if (ret > 0) submit_jobs_impl();
+						tailqueue jobs;
+						int ret = i->storage->job_complete(i, jobs);
+						if (!jobs.empty())
+						{
+							mutex::scoped_lock l(m_job_mutex);
+							m_queued_jobs.append(jobs);
+							submit_jobs_impl();
+						}
 						if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
 						TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 						m_num_blocked_jobs -= ret;
@@ -2810,8 +2816,14 @@ namespace libtorrent
 			{
 				if ((i->flags & disk_io_job::async_operation) && i->storage)
 				{
-					int ret = i->storage->job_complete(i, m_queued_jobs);
-					if (ret > 0) submit_jobs_impl();
+					tailqueue jobs;
+					int ret = i->storage->job_complete(i, jobs);
+					if (!jobs.empty())
+					{
+						mutex::scoped_lock l(m_job_mutex);
+						m_queued_jobs.append(jobs);
+						submit_jobs_impl();
+					}
 					if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret, m_num_blocked_jobs - ret);
 					TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 					m_num_blocked_jobs -= ret;
