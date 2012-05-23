@@ -481,13 +481,13 @@ namespace libtorrent
 	void torrent_handle::queue_position_up() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL(queue_down);
+		TORRENT_ASYNC_CALL(queue_up);
 	}
 
 	void torrent_handle::queue_position_down() const
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL(queue_up);
+		TORRENT_ASYNC_CALL(queue_down);
 	}
 
 	void torrent_handle::queue_position_top() const
