@@ -2120,7 +2120,7 @@ namespace libtorrent
 							, l, m_settings.write_cache_line_size
 							, m_settings.disk_cache_algorithm == session_settings::avoid_readback);
 
-						if (p->num_blocks == 0) idx.erase(p);
+						if (p->num_blocks == 0 && p->next_block_to_hash == 0) idx.erase(p);
 						test_error(j);
 						TORRENT_ASSERT(!j.storage->error());
 					}
