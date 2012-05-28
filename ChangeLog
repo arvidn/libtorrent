@@ -1,7 +1,7 @@
 
 	* fixed support for boost-1.44
 	* fixed reversed semantics of queue_up() and queue_down()
-	* added missing functions to python bindings (file_priority())
+	* added missing functions to python bindings (file_priority(), set_dht_settings())
 	* fixed low_prio_disk support on linux
 	* fixed time critical piece accounting in the request queue
 	* fixed semantics of rate_limit_utp to also ignore per-torrent limits
