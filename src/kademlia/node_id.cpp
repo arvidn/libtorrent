@@ -97,48 +97,43 @@ int distance_exp(node_id const& n1, node_id const& n2)
 
 struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
 
-node_id generate_id_impl(address const& ip, boost::uint32_t r)
+node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
-	boost::uint32_t seed = r & 0x7;
-	boost::uint32_t modulus = 0x100;
-
-	boost::uint8_t* p = 0;
-	int num_octets = 0;
-	int mod_shift = 0;
+	boost::uint8_t* ip = 0;
 	
+	const static uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	const static uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	uint8_t const* mask = 0;
+	int num_octets = 0;
+
 	address_v4::bytes_type b4;
 #if TORRENT_USE_IPV6
 	address_v6::bytes_type b6;
-	if (ip.is_v6())
+	if (ip_.is_v6())
 	{
-		b6 = ip.to_v6().to_bytes();
-		p = &b6[0];
+		b6 = ip_.to_v6().to_bytes();
+		ip = &b6[0];
 		num_octets = 8;
-		mod_shift = 3;
+		mask = v6mask;
 	}
 	else
 #endif
 	{
-		b4 = ip.to_v4().to_bytes();
-		p = &b4[0];
+		b4 = ip_.to_v4().to_bytes();
+		ip = &b4[0];
 		num_octets = 4;
-		mod_shift = 6;
+		mask = v4mask;
 	}
 
-	while (num_octets)
-	{
-		seed *= p[num_octets-1];
-		seed &= (modulus-1);
-		modulus <<= mod_shift;
-		--num_octets;
-	}
+	for (int i = 0; i < num_octets; ++i)
+		ip[i] &= mask[i];
 
-	seed = htonl(seed);
-
-	node_id id = hasher((const char*)&seed, sizeof(seed)).final();
-
+	hasher h;
+	h.update((char*)ip, num_octets);
+	uint8_t rand = r & 0x7;
+	h.update((char*)&r, 1);
+	node_id id = h.final();
 	for (int i = 4; i < 19; ++i) id[i] = rand();
-
 	id[19] = r;
 
 	return id;
