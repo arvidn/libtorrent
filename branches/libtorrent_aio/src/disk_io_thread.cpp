@@ -2783,7 +2783,6 @@ namespace libtorrent
 				DLOG(stderr, "[%p] issue aios (%p)\n", this, m_to_issue);
 #endif
 
-
 				file::aiocb_t* pending;
 				int num_issued = 0;
 #if TORRENT_USE_SUBMIT_THREADS

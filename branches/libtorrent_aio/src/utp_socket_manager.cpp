@@ -245,6 +245,10 @@ namespace libtorrent
 		// create a new utp_stream
 		if (ph->get_type() == ST_SYN)
 		{
+			// possible SYN flood. Just ignore
+			if (m_utp_sockets.size() > m_sett.connections_limit * 2)
+				return false;
+
 			// create the new socket with this ID
 			m_new_connection = id;
 

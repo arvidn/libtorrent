@@ -1002,7 +1002,12 @@ namespace libtorrent
 		open_mode_t const& m = mode_array[mode & rw_mask];
 		DWORD a = attrib_array[(mode & attribute_mask) >> 12];
 
-		DWORD flags = ((mode & random_access) ? FILE_FLAG_RANDOM_ACCESS : FILE_FLAG_SEQUENTIAL_SCAN)
+		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
+		// turns out that it isn't. That flag will break your operating system:
+		// http://support.microsoft.com/kb/2549369
+
+		DWORD flags
+			= ((mode & random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
 			| ((mode & no_buffer) ? FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING : 0)
 #if TORRENT_USE_OVERLAPPED

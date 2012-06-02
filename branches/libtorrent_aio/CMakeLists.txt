@@ -54,6 +54,7 @@ set(sources
 	storage
 	thread
 	time
+	timestamp_history
 	torrent
 	torrent_handle
 	torrent_info
@@ -63,6 +64,8 @@ set(sources
 	udp_tracker_connection
 	udp_socket
 	upnp
+	utp_socket_manager
+	utp_stream
 	logger
 	file_pool
 	lsd
@@ -156,9 +159,8 @@ else (shared)
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif (shared)
 
-FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem)
 if (NOT Boost_VERSION LESS 103500)
-	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem system)
+	FIND_PACKAGE( Boost 1.35 COMPONENTS system)
 endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
@@ -226,7 +228,6 @@ if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif (tcmalloc)
 
-target_link_libraries(torrent-rasterbar z)
 include_directories(${includes})
 
 set_target_properties(torrent-rasterbar PROPERTIES
@@ -268,8 +269,6 @@ if(build_examples)
 		target_link_libraries(${s} torrent-rasterbar)
 	endforeach(s)
 
-	FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
-	target_link_libraries(client_test ${Boost_LIBRARIES})
 	include_directories(${Boost_INCLUDE_DIR})
 endif(build_examples)
 # === build tests ===

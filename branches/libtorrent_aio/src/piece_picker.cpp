@@ -2069,7 +2069,7 @@ namespace libtorrent
 			for (int i = 0; i < num_pieces(); ++i)
 			{
 				if (!pieces[i]) continue;
-				if (piece_priority(i) == 0) continue;
+				if (m_piece_map[i].priority(this) <= 0) continue;
 				if (have_piece(i)) continue;
 
 				int state = m_piece_map[i].state;

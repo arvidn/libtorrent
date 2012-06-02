@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
+#include <boost/cstdint.hpp> // uint32_t
 
 namespace libtorrent
 {
