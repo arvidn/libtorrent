@@ -16,12 +16,15 @@ test_programs = \
   test_pex                   \
   test_piece_picker          \
   test_primitives            \
+  test_rss                   \
   test_storage               \
   test_swarm                 \
+  test_threads               \
   test_torrent               \
   test_trackers_extension    \
   test_transfer              \
   test_upnp                  \
+  test_utp                   \
   test_web_seed
 
 if ENABLE_TESTS
@@ -57,10 +60,13 @@ test_piece_picker_SOURCES = test_piece_picker.cpp
 test_primitives_SOURCES = test_primitives.cpp
 test_storage_SOURCES = test_storage.cpp
 test_swarm_SOURCES = test_swarm.cpp
+test_rss_SOURCES = test_rss.cpp
+test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
 test_upnp_SOURCES = test_upnp.cpp
+test_utp_SOURCES = test_utp.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
