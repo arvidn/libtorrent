@@ -134,7 +134,7 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	boost::uint8_t rand = r & 0x7;
 	h.update((char*)&r, 1);
 	node_id id = h.final();
-	for (int i = 4; i < 19; ++i) id[i] = rand;
+	for (int i = 4; i < 19; ++i) id[i] = random();
 	id[19] = r;
 
 	return id;
