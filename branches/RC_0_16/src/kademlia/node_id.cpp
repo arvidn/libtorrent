@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/random.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -101,9 +102,9 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
 	boost::uint8_t* ip = 0;
 	
-	const static uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-	const static uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
-	uint8_t const* mask = 0;
+	const static boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	const static boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	boost::uint8_t const* mask = 0;
 	int num_octets = 0;
 
 	address_v4::bytes_type b4;
@@ -130,10 +131,10 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 
 	hasher h;
 	h.update((char*)ip, num_octets);
-	uint8_t rand = r & 0x7;
+	boost::uint8_t rand = r & 0x7;
 	h.update((char*)&r, 1);
 	node_id id = h.final();
-	for (int i = 4; i < 19; ++i) id[i] = rand();
+	for (int i = 4; i < 19; ++i) id[i] = rand;
 	id[19] = r;
 
 	return id;
@@ -141,9 +142,9 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 
 node_id generate_random_id()
 {
-	char random[20];
-	for (int i = 0; i < 20; ++i) random[i] = rand();
-	return hasher(random, 20).final();
+	char r[20];
+	for (int i = 0; i < 20; ++i) r[i] = random();
+	return hasher(r, 20).final();
 }
 
 // verifies whether a node-id matches the IP it's used from
