@@ -848,7 +848,7 @@ namespace libtorrent
 				}
 				continue;
 			}
-			if (bytes_transferred == 0)
+			if (bytes_transferred == 0 || payload_transferred == 0)
 			{
 #ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded()
