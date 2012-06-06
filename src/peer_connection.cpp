@@ -2898,7 +2898,7 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::cancel_request(piece_block const& block)
+	void peer_connection::cancel_request(piece_block const& block, bool force)
 	{
 		INVARIANT_CHECK;
 
@@ -2945,6 +2945,8 @@ namespace libtorrent
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
+
+		if (force) t->picker().abort_download(block, peer_info_struct());
 
 		if (m_outstanding_bytes < block_size) return;
 
