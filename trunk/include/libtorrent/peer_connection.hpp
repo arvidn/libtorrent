@@ -506,7 +506,9 @@ namespace libtorrent
 		// sends a cancel message if appropriate
 		// refills the request queue, and possibly ignoring pieces requested
 		// by peers in the ignore list (to avoid recursion)
-		void cancel_request(piece_block const& b);
+		// if force is true, the blocks is also freed from the piece
+		// picker, allowing another peer to request it immediately
+		void cancel_request(piece_block const& b, bool force = false);
 		void send_block_requests();
 
 		int bandwidth_throttle(int channel) const
