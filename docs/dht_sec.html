@@ -145,7 +145,7 @@ uint32_t rand = rand() &amp; 0xff;
 uint8_t r = rand &amp; 0x7;
 SHA1_Update(&amp;ctx, (unsigned char*)&amp;r, 1);
 SHA1_Final(&amp;ctx, node_id);
-for (int i = 4; i &lt; 19; ++i) node_id[i] = rand();
+for (int i = 4; i &lt; 19; ++i) node_id[i] = std::rand();
 node_id[19] = rand;
 </pre>
 <p>test vectors:</p>
@@ -153,10 +153,10 @@ node_id[19] = rand;
 IP           rand  example node ID
 ============ ===== ==========================================
 124.31.75.21   1   <strong>8a84ac4d</strong> 0c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
-21.75.31.124  86   <strong>b25a51b1</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
-65.23.51.170  22   <strong>dc35968d</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
-84.124.73.14  65   <strong>98f44bb1</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
-43.213.53.83  90   <strong>5978e1c4</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
+21.75.31.124  86   <strong>1167d8b9</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
+65.23.51.170  22   <strong>508e075d</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
+84.124.73.14  65   <strong>095d76cb</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
+43.213.53.83  90   <strong>f62b5a2f</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
 </pre>
 <p>The bold parts of the node ID are the important parts. The rest are
 random numbers.</p>
