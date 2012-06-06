@@ -105,7 +105,7 @@ Example code code for calculating a valid node ID::
 	uint8_t r = rand & 0x7;
 	SHA1_Update(&ctx, (unsigned char*)&r, 1);
 	SHA1_Final(&ctx, node_id);
-	for (int i = 4; i < 19; ++i) node_id[i] = rand();
+	for (int i = 4; i < 19; ++i) node_id[i] = std::rand();
 	node_id[19] = rand;
 
 test vectors:
@@ -115,10 +115,10 @@ test vectors:
 	IP           rand  example node ID
 	============ ===== ==========================================
 	124.31.75.21   1   **8a84ac4d** 0c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
-	21.75.31.124  86   **b25a51b1** 4e7a08645677bbd1cfe7d8f956d532 **56**
-	65.23.51.170  22   **dc35968d** bc8f112a3d426c84764f8c2a1150e6 **16**
-	84.124.73.14  65   **98f44bb1** 1bb1fe518101ceef99462b947a01ff **41**
-	43.213.53.83  90   **5978e1c4** 5b7c4be0237986d5243b87aa6d5130 **5a**
+	21.75.31.124  86   **1167d8b9** 4e7a08645677bbd1cfe7d8f956d532 **56**
+	65.23.51.170  22   **508e075d** bc8f112a3d426c84764f8c2a1150e6 **16**
+	84.124.73.14  65   **095d76cb** 1bb1fe518101ceef99462b947a01ff **41**
+	43.213.53.83  90   **f62b5a2f** 5b7c4be0237986d5243b87aa6d5130 **5a**
 
 The bold parts of the node ID are the important parts. The rest are
 random numbers.
