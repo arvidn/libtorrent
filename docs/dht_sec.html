@@ -109,11 +109,11 @@ of IPs, as well as allowing more than one node ID per external IP, the node
 ID can be restricted at each class level of the IP.</p>
 <p>The expression to calculate a valid ID prefix (from an IPv4 address) is:</p>
 <pre class="literal-block">
-sha1((ip &amp; 0x30f3fff) .. r)
+sha1((ip &amp; 0x01071f7f) .. r)
 </pre>
 <p>And for an IPv6 address (<tt class="docutils literal">ip</tt> is the high 64 bits of the address):</p>
 <pre class="literal-block">
-sha1((ip &amp; 0x103070f1f3f7fff) ..  r)
+sha1((ip &amp; 0x000103070f1f3f7f) ..  r)
 </pre>
 <p><tt class="docutils literal">r</tt> is a random number in the range [0, 7]. The resulting integer,
 representing the masked IP address is supposed to be big-endian before
@@ -131,8 +131,8 @@ uint8_t* ip; // our external IPv4 or IPv6 address (network byte order)
 int num_octets; // the number of octets to consider in ip (4 or 8)
 uint8_t node_id[20]; // resulting node ID
 
-uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+uint8_t v4mask[] = { 0x01, 0x07, 0x1f, 0x7f };
+uint8_t v6mask[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f };
 uint8_t* mask = num_octets == 4 ? v4_mask : v8_mask;
 
 for (int i = 0; i &lt; num_octets; ++i)
@@ -152,11 +152,19 @@ node_id[19] = rand;
 <pre class="literal-block">
 IP           rand  example node ID
 ============ ===== ==========================================
+<<<<<<< .working
 124.31.75.21   1   <strong>8a84ac4d</strong> 0c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
 21.75.31.124  86   <strong>b25a51b1</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
 65.23.51.170  22   <strong>dc35968d</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
 84.124.73.14  65   <strong>98f44bb1</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
 43.213.53.83  90   <strong>5978e1c4</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
+=======
+124.31.75.21   1   <strong>f766f9f5</strong> 0c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
+21.75.31.124  86   <strong>7ee04779</strong> 4e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
+65.23.51.170  22   <strong>76a626ff</strong> bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
+84.124.73.14  65   <strong>beb4e619</strong> 1bb1fe518101ceef99462b947a01ff <strong>41</strong>
+43.213.53.83  90   <strong>ace5613a</strong> 5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
+>>>>>>> .merge-right.r6963
 </pre>
 <p>The bold parts of the node ID are the important parts. The rest are
 random numbers.</p>
