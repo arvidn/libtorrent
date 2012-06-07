@@ -7808,10 +7808,8 @@ namespace libtorrent
 		// request them from the peers, in order of responsiveness. i.e. request
 		// the most time critical pieces from the fastest peers.
 		for (std::list<time_critical_piece>::iterator i = m_time_critical_pieces.begin()
-			, end(m_time_critical_pieces.end()); i != end; ++i)
+			, end(m_time_critical_pieces.end()); i != end && !peers.empty(); ++i)
 		{
-			if (peers.empty()) break;
-
 			if (i != m_time_critical_pieces.begin() && i->deadline > now
 				+ milliseconds(m_average_piece_time + m_piece_time_deviation * 4))
 			{
