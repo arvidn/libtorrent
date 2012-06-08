@@ -263,6 +263,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	session_settings sett;
 	sett.allow_multiple_connections_per_ip = false;
+	sett.ignore_limits_on_local_network = false;
 
 	if (test_allowed_fast)
 	{
