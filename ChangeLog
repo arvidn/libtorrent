@@ -1,4 +1,5 @@
 
+	* fixed crash when providing corrupt resume data
 	* fixed support for boost-1.44
 	* fixed reversed semantics of queue_up() and queue_down()
 	* added missing functions to python bindings (file_priority(), set_dht_settings())
