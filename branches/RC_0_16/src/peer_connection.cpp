@@ -4684,7 +4684,7 @@ namespace libtorrent
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 		int priority;
-		if (m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
+		if (t && m_ses.m_settings.choking_algorithm == session_settings::bittyrant_choker
 			&& !t->upload_mode() && !t->is_upload_only())
 		{
 			// when we use the bittyrant choker, the priority of a peer
@@ -4711,7 +4711,7 @@ namespace libtorrent
 		{
 			priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
 			if (priority > 255) priority = 255;
-			priority += t->priority() << 8;
+			priority += t ? t->priority() << 8 : 0;
 		}
 		TORRENT_ASSERT(priority <= 0xffff);
 
@@ -4723,9 +4723,9 @@ namespace libtorrent
 			, int(m_send_buffer.size()), priority
 			, bwc1, bwc2, bwc3, bwc4
 			, (bwc1?bwc1->throttle():0)
-         , (bwc2?bwc2->throttle():0)
-         , (bwc3?bwc3->throttle():0)
-         , (bwc4?bwc4->throttle():0)
+			, (bwc2?bwc2->throttle():0)
+			, (bwc3?bwc3->throttle():0)
+			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
 		return m_ses.m_upload_rate.request_bandwidth(self()
@@ -4749,14 +4749,14 @@ namespace libtorrent
 			, int(m_download_queue.size() * 16 * 1024 + 30), m_priority
 			, bwc1, bwc2, bwc3, bwc4
 			, (bwc1?bwc1->throttle():0)
-         , (bwc2?bwc2->throttle():0)
-         , (bwc3?bwc3->throttle():0)
-         , (bwc4?bwc4->throttle():0)
+			, (bwc2?bwc2->throttle():0)
+			, (bwc3?bwc3->throttle():0)
+			, (bwc4?bwc4->throttle():0)
 			, m_ignore_bandwidth_limits);
 #endif
 
 		TORRENT_ASSERT(m_priority <= 255);
-		int priority = m_priority + (t->priority() << 8);
+		int priority = m_priority + (t ? (t->priority() << 8) : 0);
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_limit) == 0);
@@ -4784,8 +4784,7 @@ namespace libtorrent
 
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
-			&& !m_connecting
-			&& t)
+			&& !m_connecting)
 		{
 			int ret = 0;
 			bool utp = m_socket->get<utp_stream>() != 0;
@@ -4798,7 +4797,7 @@ namespace libtorrent
 				// from the bandwidth manager
 				ret = request_upload_bandwidth(
 					&m_ses.m_upload_channel
-					, &t->m_bandwidth_channel[upload_channel]
+					, t ? &t->m_bandwidth_channel[upload_channel] : 0
 					, &m_bandwidth_channel[upload_channel]
 					, !utp ? &m_ses.m_tcp_upload_channel : 0);
 			}
@@ -4938,8 +4937,7 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 		
 		if (m_quota[download_channel] == 0
-			&& !m_connecting
-			&& t)
+			&& !m_connecting)
 		{
 			int ret = 0;
 			bool utp = m_socket->get<utp_stream>() != 0;
@@ -4952,7 +4950,7 @@ namespace libtorrent
 				// request bandwidth from the bandwidth manager
 				ret = request_download_bandwidth(
 					&m_ses.m_download_channel
-					, &t->m_bandwidth_channel[download_channel]
+					, t ? &t->m_bandwidth_channel[download_channel] : 0
 					, &m_bandwidth_channel[download_channel]
 					, !utp ? &m_ses.m_tcp_download_channel : 0);
 			}
