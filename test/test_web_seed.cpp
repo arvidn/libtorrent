@@ -70,10 +70,9 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	
 	if (proxy)
 	{
-		start_proxy(8002, proxy);
 		proxy_settings ps;
+		ps.port = start_proxy(proxy);
 		ps.hostname = "127.0.0.1";
-		ps.port = 8002;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy;
