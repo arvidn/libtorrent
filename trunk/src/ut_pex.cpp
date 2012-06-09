@@ -360,7 +360,7 @@ namespace libtorrent { namespace
 
 			lazy_entry const* p6 = pex_msg.dict_find("dropped6");
 #ifdef TORRENT_VERBOSE_LOGGING
-			if (p6) num_dropped += p->string_length() / 18;
+			if (p6) num_dropped += p6->string_length() / 18;
 #endif
 			if (p6 != 0 && p6->type() == lazy_entry::string_t)
 			{
@@ -378,7 +378,7 @@ namespace libtorrent { namespace
 
 			p6 = pex_msg.dict_find("added6");
 #ifdef TORRENT_VERBOSE_LOGGING
-			if (p6) num_added += p->string_length() / 18;
+			if (p6) num_added += p6->string_length() / 18;
 #endif
 			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
