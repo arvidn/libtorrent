@@ -492,10 +492,7 @@ namespace libtorrent
 		void get_suggested_pieces(std::vector<int>& s) const;
 
 		bool super_seeding() const
-		{
-			// we're not super seeding if we're not a seed
-			return m_super_seeding && is_seed();
-		}
+		{ return m_super_seeding; }
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
@@ -522,8 +519,9 @@ namespace libtorrent
 		// when we get a have message, this is called for that piece
 		void peer_has(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
@@ -537,12 +535,10 @@ namespace libtorrent
 		// when we get a bitfield message, this is called for that piece
 		void peer_has(bitfield const& bits)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				if (bits.all_set())
-					m_picker->inc_refcount_all();
-				else
-					m_picker->inc_refcount(bits);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -554,26 +550,10 @@ namespace libtorrent
 
 		void peer_has_all()
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount_all();
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
-
-		void peer_lost(bitfield const& bits)
-		{
-			if (has_picker())
-			{
-				if (bits.all_set())
-					m_picker->dec_refcount_all();
-				else
-					m_picker->dec_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -585,8 +565,9 @@ namespace libtorrent
 
 		void peer_lost(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->dec_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
@@ -1077,14 +1058,8 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
-		time_t m_last_saved_resume;
-
-		// this was the last time _we_ saw a seed in this swarm
 		time_t m_last_seen_complete;
-
-		// this is the time last any of our peers saw a seed
-		// in this swarm
-		time_t m_swarm_last_seen_complete;
+		time_t m_last_saved_resume;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for

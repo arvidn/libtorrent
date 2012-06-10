@@ -85,8 +85,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
-#include "libtorrent/kademlia/dht_observer.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -183,11 +181,7 @@ namespace libtorrent
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct TORRENT_EXTRA_EXPORT session_impl
-			: alert_dispatcher
-			, dht::dht_observer
-			, boost::noncopyable
-			, initialize_timer
+		struct TORRENT_EXTRA_EXPORT session_impl: boost::noncopyable, initialize_timer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -489,8 +483,7 @@ namespace libtorrent
 				source_router = 8
 			};
 
-			// implements dht_observer
-			virtual void set_external_address(address const& ip
+			void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
@@ -531,9 +524,6 @@ namespace libtorrent
 			}
 
 //		private:
-
-			// implements alert_dispatcher
-			virtual bool post_alert(alert* a);
 
 			void update_connections_limit();
 			void update_unchoke_limit();

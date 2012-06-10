@@ -161,11 +161,9 @@ void stop_proxy(int port)
 	}
 }
 
-int start_proxy(int proxy_type)
+void start_proxy(int port, int proxy_type)
 {
 	using namespace libtorrent;
-
-	int port = 10000 + (rand() % 50000);
 
 	stop_proxy(port);
 
@@ -205,7 +203,6 @@ int start_proxy(int proxy_type)
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
-	return port;
 }
 
 using namespace libtorrent;
