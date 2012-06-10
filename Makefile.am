@@ -110,6 +110,8 @@ EXTRA_DIST = \
   LICENSE \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
+  parse_dht_log.py \
+  parse_session_stats.py \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES)
 
