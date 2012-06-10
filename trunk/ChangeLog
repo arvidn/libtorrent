@@ -1,3 +1,4 @@
+0.16.1 release
 
 	* fixed crash when providing corrupt resume data
 	* fixed support for boost-1.44
