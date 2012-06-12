@@ -594,8 +594,8 @@ lib torrent
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
 	# to declare the symbol as being exported
-	<link>shared,<boost-link>static:<define>BOOST_ASIO_SOURCE
-	<link>shared,<boost-link>static:<define>BOOST_SYSTEM_SOURCE
+	<link>shared:<define>BOOST_ASIO_SOURCE
+	<link>shared:<define>BOOST_SYSTEM_SOURCE
 	<link>shared,<boost-link>static:<define>BOOST_ALL_DYN_LINK
 	<link>shared:<define>BOOST_ALL_DYN_LINK
 
