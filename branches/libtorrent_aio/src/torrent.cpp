@@ -811,6 +811,7 @@ namespace libtorrent
 					+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
 				{
 					std::vector<char>().swap(m_resume_data);
+					lazy_entry().swap(m_resume_entry);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 						<< torrent_file().name() << " rejected: " << ec.message()

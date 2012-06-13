@@ -2993,7 +2993,7 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::cancel_request(piece_block const& block)
+	void peer_connection::cancel_request(piece_block const& block, bool force)
 	{
 		INVARIANT_CHECK;
 
@@ -3040,6 +3040,8 @@ namespace libtorrent
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
 		TORRENT_ASSERT(block_size <= t->block_size());
+
+		if (force) t->picker().abort_download(block, peer_info_struct());
 
 		if (m_outstanding_bytes < block_size) return;
 
@@ -4605,8 +4607,8 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 
 		int priority;
-		if (m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker
-			&& t && !t->upload_mode() && !t->is_upload_only())
+		if (t && m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::bittyrant_choker
+			&& !t->upload_mode() && !t->is_upload_only())
 		{
 			// when we use the bittyrant choker, the priority of a peer
 			// is decided based on the estimated reciprocation rate and
@@ -4732,8 +4734,7 @@ namespace libtorrent
 
 		if (m_quota[upload_channel] == 0
 			&& !m_send_buffer.empty()
-			&& !m_connecting
-			&& t)
+			&& !m_connecting)
 		{
 			int ret = request_upload_bandwidth();
 			if (ret == 0)
@@ -4870,8 +4871,7 @@ namespace libtorrent
 		shared_ptr<torrent> t = m_torrent.lock();
 		
 		if (m_quota[download_channel] == 0
-			&& !m_connecting
-			&& t)
+			&& !m_connecting)
 		{
 			int ret = request_download_bandwidth();
 			if (ret == 0)

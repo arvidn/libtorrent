@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 0.16.0 ;
+VERSION = 0.16.1 ;
 
 # rule for linking the correct libraries depending
 # on features and target-os
@@ -603,7 +603,7 @@ local usage-requirements =
 # make sure asio symbols are properly exported
 # and imported
 	<link>shared:<define>BOOST_ASIO_DYN_LINK
-	<link>static:<define>BOOST_ASIO_SEPARATE_COMPILATION
+	<define>BOOST_ASIO_SEPARATE_COMPILATION
 	<tag>@tag
 	;
 
@@ -622,8 +622,10 @@ lib torrent
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
 	# to declare the symbol as being exported
-	<link>shared,<boost-link>static:<define>BOOST_ASIO_SOURCE
-	<link>shared,<boost-link>static:<define>BOOST_SYSTEM_SOURCE
+	<link>shared:<define>BOOST_ASIO_SOURCE
+	<link>shared:<define>BOOST_SYSTEM_SOURCE
+	<link>shared,<boost-link>static:<define>BOOST_ALL_DYN_LINK
+	<link>shared:<define>BOOST_ALL_DYN_LINK
 
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht-support>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
@@ -638,6 +640,7 @@ lib torrent
 
 	: # usage requirements
 	$(usage-requirements)
+	<link>shared:<define>TORRENT_LINKING_SHARED
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

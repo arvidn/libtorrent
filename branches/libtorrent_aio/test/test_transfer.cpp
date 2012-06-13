@@ -206,13 +206,11 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
-	int proxy_port = (rand() % 30000) + 10000;
+	proxy_settings ps;
 	if (proxy_type)
 	{
-		start_proxy(proxy_port, proxy_type);
-		proxy_settings ps;
+		ps.port = start_proxy(proxy_type);
 		ps.hostname = "127.0.0.1";
-		ps.port = proxy_port;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
@@ -222,6 +220,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 	session_settings sett;
 	sett.allow_multiple_connections_per_ip = false;
+	sett.ignore_limits_on_local_network = false;
 
 	if (test_allowed_fast)
 	{
@@ -554,7 +553,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		stop_tracker();
 		stop_web_server();
 	}
-	if (proxy_type) stop_proxy(proxy_port);
+	if (proxy_type) stop_proxy(ps.port);
 }
 
 int test_main()

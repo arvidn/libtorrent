@@ -69,7 +69,7 @@ setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 
 int start_web_server(bool ssl = false, bool chunked = false);
 void stop_web_server();
-bool start_proxy(int port, int type);
+int start_proxy(int type);
 void stop_proxy(int port);
 
 void stop_tracker();

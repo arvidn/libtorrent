@@ -168,10 +168,12 @@ void stop_proxy(int port)
 	}
 }
 
-// returns true on success and false on failure
-bool start_proxy(int port, int proxy_type)
+// returns a port on success and -1 on failure
+int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
+
+	int port = 10000 + (rand() % 50000);
 
 	stop_proxy(port);
 
@@ -209,10 +211,10 @@ bool start_proxy(int port, int proxy_type)
 	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
 	int ret = system(buf);
 	fprintf(stderr, "launched (%d)\n", ret);
-	if (ret) return false;
+	if (ret) return -1;
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
-	return true;
+	return port;
 }
 
 using namespace libtorrent;

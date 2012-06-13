@@ -45,7 +45,14 @@ extern bool tests_failure;
 void sig_handler(int sig)
 {
 	char stack_text[10000];
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	print_backtrace(stack_text, sizeof(stack_text), 30);
+#elif defined __FUNCTION__
+	strcat(stack_text, __FUNCTION__);
+#else
+	stack_text[0] = 0;
+#endif
 	char const* sig_name = 0;
 	switch (sig)
 	{

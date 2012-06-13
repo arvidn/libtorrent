@@ -65,11 +65,11 @@ ID can be restricted at each class level of the IP.
 
 The expression to calculate a valid ID prefix (from an IPv4 address) is::
 
-	sha1((ip & 0x30f3fff) .. r)
+	sha1((ip & 0x01071f7f) .. r)
 
 And for an IPv6 address (``ip`` is the high 64 bits of the address)::
 
-	sha1((ip & 0x103070f1f3f7fff) ..  r)
+	sha1((ip & 0x000103070f1f3f7f) ..  r)
 
 ``r`` is a random number in the range [0, 7]. The resulting integer,
 representing the masked IP address is supposed to be big-endian before
@@ -91,8 +91,8 @@ Example code code for calculating a valid node ID::
 	int num_octets; // the number of octets to consider in ip (4 or 8)
 	uint8_t node_id[20]; // resulting node ID
 
-	uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
-	uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	uint8_t v4mask[] = { 0x01, 0x07, 0x1f, 0x7f };
+	uint8_t v6mask[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f };
 	uint8_t* mask = num_octets == 4 ? v4_mask : v8_mask;
 
 	for (int i = 0; i < num_octets; ++i)
@@ -105,7 +105,7 @@ Example code code for calculating a valid node ID::
 	uint8_t r = rand & 0x7;
 	SHA1_Update(&ctx, (unsigned char*)&r, 1);
 	SHA1_Final(&ctx, node_id);
-	for (int i = 4; i < 19; ++i) node_id[i] = rand();
+	for (int i = 4; i < 19; ++i) node_id[i] = std::rand();
 	node_id[19] = rand;
 
 test vectors:
@@ -114,11 +114,11 @@ test vectors:
 
 	IP           rand  example node ID
 	============ ===== ==========================================
-	124.31.75.21   1   **8a84ac4d** 0c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
-	21.75.31.124  86   **b25a51b1** 4e7a08645677bbd1cfe7d8f956d532 **56**
-	65.23.51.170  22   **dc35968d** bc8f112a3d426c84764f8c2a1150e6 **16**
-	84.124.73.14  65   **98f44bb1** 1bb1fe518101ceef99462b947a01ff **41**
-	43.213.53.83  90   **5978e1c4** 5b7c4be0237986d5243b87aa6d5130 **5a**
+	124.31.75.21   1   **f766f9f5** 0c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
+	21.75.31.124  86   **7ee04779** 4e7a08645677bbd1cfe7d8f956d532 **56**
+	65.23.51.170  22   **76a626ff** bc8f112a3d426c84764f8c2a1150e6 **16**
+	84.124.73.14  65   **beb4e619** 1bb1fe518101ceef99462b947a01ff **41**
+	43.213.53.83  90   **ace5613a** 5b7c4be0237986d5243b87aa6d5130 **5a**
 
 The bold parts of the node ID are the important parts. The rest are
 random numbers.

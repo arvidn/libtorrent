@@ -12,6 +12,9 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+0.16.1 release
+
+	* fixed crash when providing corrupt resume data
 	* fixed support for boost-1.44
 	* fixed reversed semantics of queue_up() and queue_down()
 	* added missing functions to python bindings (file_priority(), set_dht_settings())

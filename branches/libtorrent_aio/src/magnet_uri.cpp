@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <string>
 
@@ -95,8 +96,8 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_EXCEPTIONS
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
 		, storage_mode_t storage_mode

@@ -246,7 +246,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (m_utp_sockets.size() > m_sett.connections_limit * 2)
+			if (m_utp_sockets.size() > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
 			// create the new socket with this ID

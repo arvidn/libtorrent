@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
+	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 	TORRENT_EXPORT bool is_digit(char c);
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
@@ -80,10 +80,10 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);
 
 	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
-	TORRENT_EXTRA_EXPORT std::string to_hex(std::string const& s);
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
-	TORRENT_EXTRA_EXPORT void to_hex(char const *in, int len, char* out);
-	TORRENT_EXTRA_EXPORT bool from_hex(char const *in, int len, char* out);
+	TORRENT_EXPORT std::string to_hex(std::string const& s);
+	TORRENT_EXPORT bool is_hex(char const *in, int len);
+	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
+	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	TORRENT_EXTRA_EXPORT std::wstring convert_to_wstring(std::string const& s);
