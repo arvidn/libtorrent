@@ -80,6 +80,8 @@ namespace libtorrent
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
 		void swap(tailqueue& rhs);
+		tailqueue_node* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
+		tailqueue_node* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
 	private:
 		tailqueue_node* m_first;
 		tailqueue_node* m_last;
