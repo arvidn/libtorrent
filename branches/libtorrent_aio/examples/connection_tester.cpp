@@ -94,6 +94,8 @@ struct peer_conn
 		: s(ios)
 		, read_pos(0)
 		, state(handshaking)
+		, choked(true)
+		, current_piece(-1)
 		, block(0)
 		, blocks_per_piece(blocks_pp)
 		, info_hash(ih)
@@ -154,6 +156,8 @@ struct peer_conn
 	int state;
 	std::vector<int> pieces;
 	std::vector<int> suggested_pieces;
+	std::vector<int> allowed_fast;
+	bool choked;
 	int current_piece; // the piece we're currently requesting blocks from
 	int block;
 	int blocks_per_piece;
@@ -278,11 +282,18 @@ struct peer_conn
 
 	bool write_request()
 	{
+		if (choked && allowed_fast.empty() && current_piece == -1) return false;
+
 		if (pieces.empty() && suggested_pieces.empty() && current_piece == -1) return false;
 
 		if (current_piece == -1)
 		{
-			if (suggested_pieces.size() > 0)
+			if (choked && allowed_fast.size() > 0)
+			{
+				current_piece = allowed_fast.front();
+				allowed_fast.erase(allowed_fast.begin());
+			}
+			else if (suggested_pieces.size() > 0)
 			{
 				current_piece = suggested_pieces.front();
 				suggested_pieces.erase(suggested_pieces.begin());
@@ -518,6 +529,37 @@ struct peer_conn
 					pieces.erase(i);
 					suggested_pieces.push_back(piece);
 					++num_suggest;
+				}
+			}
+			else if (msg == 16) // reject request
+			{
+				int piece = detail::read_int32(ptr);
+				int start = detail::read_int32(ptr);
+				int length = detail::read_int32(ptr);
+
+				fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
+				s.close();
+				return;
+			}
+			else if (msg == 0) // choke
+			{
+				choked = true;
+				fprintf(stderr, "CHOKED");
+				s.close();
+				return;
+			}
+			else if (msg == 1) // unchoke
+			{
+				choked = false;
+			}
+			else if (msg == 17) // allowed_fast
+			{
+				int piece = detail::read_int32(ptr);
+				std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
+				if (i != pieces.end())
+				{
+					pieces.erase(i);
+					allowed_fast.push_back(piece);
 				}
 			}
 			work_download();
