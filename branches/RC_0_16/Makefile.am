@@ -105,7 +105,6 @@ DOCS_PAGES = \
 
 EXTRA_DIST = \
   Jamfile \
-  project-root.jam \
   Jamroot.jam \
   CMakeLists.txt \
   LICENSE \
