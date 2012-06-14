@@ -256,6 +256,7 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
     th.connect_peer(tuple_to_endpoint(ip), source);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void set_peer_upload_limit(torrent_handle& th, tuple const& ip, int limit)
 {
     th.set_peer_upload_limit(tuple_to_endpoint(ip), limit);
@@ -265,6 +266,7 @@ void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
 {
     th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
 }
+#endif
 
 void add_piece(torrent_handle& th, int piece, char const *data, int flags)
 {
@@ -275,7 +277,9 @@ void bind_torrent_handle()
 {
     void (torrent_handle::*force_reannounce0)() const = &torrent_handle::force_reannounce;
 
+#ifndef TORRENT_NO_DEPRECATE
     bool (torrent_handle::*super_seeding0)() const = &torrent_handle::super_seeding;
+#endif
     void (torrent_handle::*super_seeding1)(bool) const = &torrent_handle::super_seeding;
 
     int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
@@ -315,7 +319,6 @@ void bind_torrent_handle()
         .def("resume", _(&torrent_handle::resume))
         .def("clear_error", _(&torrent_handle::clear_error))
         .def("set_priority", _(&torrent_handle::set_priority))
-        .def("super_seeding", super_seeding0)
         .def("super_seeding", super_seeding1)
 
         .def("auto_managed", _(&torrent_handle::auto_managed))
@@ -331,6 +334,7 @@ void bind_torrent_handle()
 #endif
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
+        .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))
         .def("is_piece_filtered", _(&torrent_handle::is_piece_filtered))
         .def("write_resume_data", _(&torrent_handle::write_resume_data))
@@ -372,10 +376,12 @@ void bind_torrent_handle()
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_peer_upload_limit", &set_peer_upload_limit)
         .def("set_peer_download_limit", &set_peer_download_limit)
-        .def("connect_peer", &connect_peer)
         .def("set_ratio", _(&torrent_handle::set_ratio))
+#endif
+        .def("connect_peer", &connect_peer)
         .def("save_path", _(&torrent_handle::save_path))
         .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
