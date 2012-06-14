@@ -96,8 +96,8 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
 		, storage_mode_t storage_mode
@@ -127,7 +127,6 @@ namespace libtorrent
 			, name.empty() ? 0 : name.c_str(), save_path, entry()
 			, storage_mode, paused, sc, userdata);
 	}
-#endif
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p)
@@ -137,7 +136,7 @@ namespace libtorrent
 		if (ec) throw libtorrent_exception(ec);
 		return ret;
 	}
-#endif
+#endif // BOOST_NO_EXCEPTIONS
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p, error_code& ec)
@@ -146,6 +145,8 @@ namespace libtorrent
 		if (ec) return torrent_handle();
 		return ses.add_torrent(p, ec);
 	}
+
+#endif // TORRENT_NO_DEPRECATE
 
 	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
