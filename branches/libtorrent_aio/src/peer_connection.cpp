@@ -210,6 +210,7 @@ namespace libtorrent
 		, m_in_use(1337)
 		, m_received_in_piece(0)
 		, m_destructed(false)
+		, m_socket_is_writing(false)
 #endif
 	{
 		m_superseed_piece[0] = -1;
@@ -4843,6 +4844,10 @@ namespace libtorrent
 		write_some_job j;
 		j.vec = &vec;
 		j.peer = self();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(!m_socket_is_writing);
+		m_socket_is_writing = true;
+#endif
 		m_ses.post_socket_write_job(j);
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
@@ -5661,6 +5666,11 @@ namespace libtorrent
 		m_ses.sent_buffer(bytes_transferred);
 #endif
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(m_socket_is_writing);
+		m_socket_is_writing = false;
+#endif
 
 		// submit all disk jobs when we've processed all messages
 		// in the current message queue

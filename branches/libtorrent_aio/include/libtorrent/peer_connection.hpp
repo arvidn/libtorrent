@@ -1253,12 +1253,15 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
-		bool m_in_constructor:1;
-		bool m_disconnect_started:1;
-		bool m_initialized:1;
+		bool m_in_constructor;
+		bool m_disconnect_started;
+		bool m_initialized;
 		int m_in_use;
 		int m_received_in_piece;
 		bool m_destructed;
+		// this is true while there is an outstanding
+		// async write job on the socket
+		bool m_socket_is_writing;
 #endif
 	};
 

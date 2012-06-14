@@ -186,6 +186,7 @@ namespace libtorrent {
 
 void network_thread_pool::process_job(write_some_job const& j, bool post)
 {
+	TORRENT_ASSERT(j.peer->m_socket_is_writing);
 	j.peer->get_socket()->async_write_some(
 		*j.vec, j.peer->make_write_handler(boost::bind(
 			&peer_connection::on_send_data, j.peer, _1, _2)));
