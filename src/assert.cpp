@@ -131,7 +131,8 @@ void print_backtrace(char* out, int len, int max_depth)
 	free(symbols);
 }
 
-#elif defined WIN32
+// visual studio 9 and up appears to support this
+#elif defined WIN32 && _MSC_VER >= 1500
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501 // XP
