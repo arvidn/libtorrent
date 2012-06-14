@@ -1,3 +1,4 @@
+	* support using multiple threads for socket operations (especially useful for high performance SSL connections)
 	* allow setting rate limits for arbitrary peer groups. Generalizes per-torrent rate limits, and local peer limits
 	* improved disk cache complexity O(1) instead of O(log(n))
 	* add feature to allow storing disk cache blocks in an mmapped file (presumably on an SSD)
