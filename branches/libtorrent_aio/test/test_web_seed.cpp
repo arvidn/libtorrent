@@ -53,9 +53,11 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	using namespace libtorrent;
 
 	session ses(fingerprint("  ", 0,0,0,0), 0);
-	session_settings settings;
-	settings.max_queued_disk_bytes = 256 * 1024;
-	ses.set_settings(settings);
+
+	settings_pack pack;
+	pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
+	ses.apply_settings(pack);
+
 	ses.set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	error_code ec;
 	ses.listen_on(std::make_pair(51000, 52000), ec);
@@ -89,7 +91,6 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = torrent_file;
 	p.save_path = "tmp2_web_seed";
-	p.storage_mode = storage_mode_compact;
 	torrent_handle th = ses.add_torrent(p, ec);
 
 	std::vector<announce_entry> empty;

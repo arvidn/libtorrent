@@ -881,6 +881,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
 	}
 
+	void session::set_peer_class_type_filter(peer_class_type_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_type_filter, f);
+	}
+
 	int session::create_peer_class(char const* name)
 	{
 		TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);

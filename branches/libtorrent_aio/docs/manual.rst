@@ -211,6 +211,12 @@ The ``session`` class has the following synopsis::
 
 		session_status status() const;
 
+		enum {
+			global_peer_class_id,
+			tcp_peer_class_id,
+			local_peer_class_id
+		};
+
 		int create_peer_class();
 		void delete_peer_class(int cid);
 
@@ -8406,6 +8412,14 @@ peers. The global and local classes are used to adjust the global rate limits.
 
 When the rate limits are adjusted for a specific torrent, a class is created implicitly for
 that torrent.
+
+The default peer class IDs are defined as enums in the ``session`` class::
+
+	enum {
+		global_peer_class_id,
+		tcp_peer_class_id,
+		local_peer_class_id
+	};
 
 A peer class can be considered a more general form of *lables* that some clients have. Peer
 classes however are not just applied to torrents, but ultimately the peers.

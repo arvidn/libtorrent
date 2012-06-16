@@ -717,6 +717,10 @@ namespace aux {
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
 		m_local_peer_class = m_classes.new_peer_class("local");
 
+		TORRENT_ASSERT(m_global_class == session::global_peer_class_id);
+		TORRENT_ASSERT(m_tcp_peer_class == session::tcp_peer_class_id);
+		TORRENT_ASSERT(m_local_peer_class == session::local_peer_class_id);
+
 		init_peer_class_filter(true);
 
 		// TCP, SSL/TCP and I2P connections should be assigned the TCP peer class
@@ -1031,8 +1035,10 @@ namespace aux {
 #endif
 
 		update_half_open();
+#ifndef TORRENT_NO_DEPRECATE
 		update_local_download_rate();
 		update_local_upload_rate();
+#endif
 		update_download_rate();
 		update_upload_rate();
 		update_connections_limit();
@@ -2767,8 +2773,11 @@ namespace aux {
 */
 		// don't allow more connections than the max setting
 		bool reject = false;
-		if (m_settings.get_bool(settings_pack::ignore_limits_on_local_network)
-			&& is_local(endp.address()))
+		if (
+#ifndef TORRENT_NO_DEPRECATE
+			m_settings.get_bool(settings_pack::ignore_limits_on_local_network) &&
+#endif
+			is_local(endp.address()))
 			reject = m_settings.get_int(settings_pack::connections_limit) < INT_MAX / 12
 				&& num_connections() >= m_settings.get_int(settings_pack::connections_limit) * 12 / 10;
 		else
@@ -5917,6 +5926,7 @@ namespace aux {
 		m_half_open.limit(m_settings.get_int(settings_pack::half_open_limit));
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_local_download_rate()
 	{
 		if (m_settings.get_int(settings_pack::local_download_rate_limit) < 0)
@@ -5932,6 +5942,7 @@ namespace aux {
 		set_upload_rate_limit(m_local_peer_class
 			, m_settings.get_int(settings_pack::local_upload_rate_limit));
 	}
+#endif
 
 	void session_impl::update_download_rate()
 	{
@@ -6031,6 +6042,7 @@ namespace aux {
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));	
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_rate_limit_utp()
 	{
 		const int filter = (1 << m_local_peer_class) | (1 << m_global_class);
@@ -6064,6 +6076,7 @@ namespace aux {
 	{
 		init_peer_class_filter(m_settings.get_bool(settings_pack::ignore_limits_on_local_network));
 	}
+#endif
 
 	void session_impl::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{

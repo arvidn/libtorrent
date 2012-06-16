@@ -54,11 +54,11 @@ int test_main()
 
 	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
-	session_settings sett;
-	sett.half_open_limit = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	s->set_settings(sett);
+	settings_pack pack;
+	pack.set_int(settings_pack::half_open_limit, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	s->apply_settings(pack);
 
 	error_code ec;
 	create_directory("./tmp1_tracker", ec);
@@ -106,12 +106,13 @@ int test_main()
 
 	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
-	sett.half_open_limit = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = false;
-	sett.tracker_completion_timeout = 2;
-	sett.tracker_receive_timeout = 1;
-	s->set_settings(sett);
+	pack.clear();
+	pack.set_int(settings_pack::half_open_limit, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	s->apply_settings(pack);
 
 	create_directory("./tmp2_tracker", ec);
 	file.open("./tmp2_tracker/temporary");

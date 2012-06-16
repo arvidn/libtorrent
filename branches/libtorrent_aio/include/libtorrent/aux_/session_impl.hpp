@@ -654,14 +654,16 @@ namespace libtorrent
 			void update_anonymous_mode();
 			void update_rate_settings();
 			void update_half_open();
-			void update_local_download_rate();
-			void update_local_upload_rate();
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();
 			void update_dht_upload_rate_limit();
+#ifndef TORRENT_NO_DEPRECATE
+			void update_local_download_rate();
+			void update_local_upload_rate();
 			void update_rate_limit_utp();
 			void update_ignore_rate_limits_on_local_network();
+#endif
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);

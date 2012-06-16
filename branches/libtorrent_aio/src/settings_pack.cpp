@@ -94,8 +94,10 @@ namespace libtorrent
 
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED_SET(name, default_value, fun) { "", NULL, NULL }
 #else
 #define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
+#define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #endif
 
 	using aux::session_impl;
@@ -110,7 +112,7 @@ namespace libtorrent
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
 	{
 		SET(allow_multiple_connections_per_ip, false, 0),
-		SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
+		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, 0),
 		SET(lazy_bitfields, true, 0),
 		SET(use_dht_as_fallback, false, 0),
@@ -153,7 +155,7 @@ namespace libtorrent
 		SET(anonymous_mode, false, 0),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		SET(utp_dynamic_sock_buf, true, 0),
-		SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
+		DEPRECATED_SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
 		SET(announce_double_nat, false, 0),
 		SET(seeding_outgoing_connections, true, 0),
 		SET(no_connect_privileged_ports, true, 0),
@@ -252,8 +254,8 @@ namespace libtorrent
 		SET(share_mode_target, 3, 0),
 		SET(upload_rate_limit, 0, &session_impl::update_upload_rate),
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),
-		SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
-		SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
+		DEPRECATED_SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
+		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
 		SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
 		SET(unchoke_slots_limit, 8, &session_impl::update_choking_algorithm),
 		SET(half_open_limit, 0, &session_impl::update_half_open),
@@ -542,5 +544,11 @@ namespace libtorrent
 		insort_replace(m_bools, v);
 	}
 
+	void settings_pack::clear()
+	{
+		m_strings.clear();
+		m_ints.clear();
+		m_bools.clear();
+	}
 }
 

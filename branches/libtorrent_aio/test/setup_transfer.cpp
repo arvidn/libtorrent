@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>
@@ -299,14 +300,23 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		if (ses3) ses3->stop_lsd();
 	}
 
-	session_settings sess_set = ses1->settings();
-	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
-	sess_set.ignore_limits_on_local_network = false;
-	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
-	sess_set.max_failcount = 1;
-	ses1->set_settings(sess_set);
-	ses2->set_settings(sess_set);
-	if (ses3) ses3->set_settings(sess_set);
+	// This has the effect of applying the global
+	// rule to all peers, regardless of if they're local or not
+	ip_filter f;
+	f.add_rule(address_v4::from_string("0.0.0.0")
+		, address_v4::from_string("255.255.255.255")
+		, session::global_peer_class_id);
+	ses1->set_peer_class_filter(f);
+	ses2->set_peer_class_filter(f);
+	if (ses3) ses3->set_peer_class_filter(f);
+
+	settings_pack pack;
+	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
+	pack.set_int(settings_pack::max_failcount, 1);
+	ses1->apply_settings(pack);
+	ses2->apply_settings(pack);
+	if (ses3) ses3->apply_settings(pack);
 	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
@@ -888,7 +898,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					failed = true;
 					break;
 				}
-				TORRENT_ASSERT(len < sizeof(buf));
+				TORRENT_ASSERT(len < int(sizeof(buf)));
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;

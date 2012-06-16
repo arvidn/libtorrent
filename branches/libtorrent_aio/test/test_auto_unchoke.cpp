@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/thread.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <iostream>
@@ -58,19 +59,27 @@ void test_swarm()
 	// three peers before finishing.
 	float rate_limit = 100000;
 
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	settings.ignore_limits_on_local_network = false;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
-	settings.upload_rate_limit = rate_limit;
-	settings.unchoke_slots_limit = 1;
-	ses1.set_settings(settings);
+	settings_pack pack;
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_int(settings_pack::unchoke_slots_limit, 1);
+	ses1.apply_settings(pack);
 
-	settings.upload_rate_limit = rate_limit / 10;
-	settings.download_rate_limit = rate_limit / 5;
-	settings.unchoke_slots_limit = 0;
-	ses2.set_settings(settings);
-	ses3.set_settings(settings);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
+	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	ses2.apply_settings(pack);
+	ses3.apply_settings(pack);
+
+	// apply the global rate limit to local peers as well
+	ip_filter f;
+	f.add_rule(address_v4::from_string("0.0.0.0")
+		, address_v4::from_string("255.255.255.255")
+		, session::global_peer_class_id);
+	ses1.set_peer_class_filter(f);
+	ses2.set_peer_class_filter(f);
+	ses3.set_peer_class_filter(f);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;

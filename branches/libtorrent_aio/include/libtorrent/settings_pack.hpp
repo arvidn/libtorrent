@@ -59,7 +59,7 @@ namespace libtorrent
 
 	// #error add an API to query a settings_pack as well
 	// #error maybe convert all bool types into int-types as well
-	struct settings_pack
+	struct TORRENT_EXPORT settings_pack
 	{
 		friend struct disk_io_thread;
 		friend void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
@@ -67,6 +67,7 @@ namespace libtorrent
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
+		void clear();
 	
 		enum type_bases
 		{
@@ -133,7 +134,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			ignore_limits_on_local_network,
 #else
-			deprecated1
+			deprecated1,
 #endif
 
 			// ``send_redundant_have`` controls if have messages will be sent
@@ -419,7 +420,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			rate_limit_utp,
 #else
-			deprecated2
+			deprecated2,
 #endif
 
 			// if this is true, the ``&ip=`` argument in tracker requests
@@ -1070,8 +1071,13 @@ namespace libtorrent
 			// A value of 0 means unlimited.
 			upload_rate_limit,
 			download_rate_limit,
+#ifndef TORRENT_NO_DEPRECATE
 			local_upload_rate_limit,
 			local_download_rate_limit,
+#else
+			deprecated3,
+			deprecated4,
+#endif
 
 			// ``dht_upload_rate_limit`` sets the rate limit on the DHT. This is specified in
 			// bytes per second and defaults to 4000. For busy boxes with lots of torrents
