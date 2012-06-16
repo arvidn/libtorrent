@@ -2903,7 +2903,19 @@ void utp_socket_impl::tick(ptime now)
 		// we can now sent messages again, the send window was opened
 		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
-		m_cwnd = boost::int64_t(m_mtu) << 16;
+		if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
+		{
+			// this is just a timeout because this direction of
+			// the stream is idle. Don't reset the cwnd, just decay it
+			m_cwnd = m_cwnd * 2 / 3;
+		}
+		else
+		{
+			// we timed out because a packet was not ACKed or because
+			// the cwnd was made smaller than one packet
+			m_cwnd = boost::int64_t(m_mtu) << 16;
+		}
+
 		if (m_outbuf.size()) ++m_num_timeouts;
 
 		if (m_num_timeouts > m_sm->num_resends())
