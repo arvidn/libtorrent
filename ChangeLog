@@ -1,3 +1,5 @@
+	* make uTP less aggressive resetting cwnd when idle
+
 0.16.1 release
 
 	* fixed crash when providing corrupt resume data
