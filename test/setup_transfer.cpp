@@ -320,18 +320,18 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (torrent == 0)
 	{
 		error_code ec;
-		create_directory("./tmp1" + suffix, ec);
-		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
+		create_directory("tmp1" + suffix, ec);
+		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
 		t = ::create_torrent(&file, piece_size, 19, true, encrypted_torrent);
 		file.close();
 		if (clear_files)
 		{
-			remove_all("./tmp2" + suffix + "/temporary", ec);
-			remove_all("./tmp3" + suffix + "/temporary", ec);
+			remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
+			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		}
 		char ih_hex[41];
 		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
-		fprintf(stderr, "generated torrent: %s ./tmp1%s/temporary\n", ih_hex, suffix.c_str());
+		fprintf(stderr, "generated torrent: %s tmp1%s/temporary\n", ih_hex, suffix.c_str());
 	}
 	else
 	{
@@ -346,7 +346,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	param.flags &= ~add_torrent_params::flag_auto_managed;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
-	param.save_path = "./tmp1" + suffix;
+	param.save_path = "tmp1" + suffix;
 	param.flags |= add_torrent_params::flag_seed_mode;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
@@ -362,7 +362,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (ses3)
 	{
 		param.ti = clone_ptr(t);
-		param.save_path = "./tmp3" + suffix;
+		param.save_path = "tmp3" + suffix;
 		tor3 = ses3->add_torrent(param, ec);
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
@@ -376,7 +376,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti = clone_ptr(t);
 	}
-	param.save_path = "./tmp2" + suffix;
+	param.save_path = "tmp2" + suffix;
 
 	tor2 = ses2->add_torrent(param, ec);
 	TEST_CHECK(!ses2->get_torrents().empty());
@@ -1039,7 +1039,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
 				error_code ec;
-				int res = load_file("./tmp1_web_seed/seed", file_buf, ec);
+				int res = load_file(combine_path("tmp1_web_seed", "seed"), file_buf, ec);
 
 				if (res == -1 || file_buf.empty())
 				{
