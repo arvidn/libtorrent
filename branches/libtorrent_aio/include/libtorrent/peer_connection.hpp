@@ -88,6 +88,8 @@ namespace libtorrent
 	class torrent;
 	struct peer_info;
 	struct disk_io_job;
+	struct disk_interface;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct peer_plugin;
 #endif
@@ -174,6 +176,7 @@ namespace libtorrent
 			aux::session_interface& ses
 			, aux::session_settings& sett
 			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
 			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
@@ -690,6 +693,9 @@ namespace libtorrent
 		// the peer belongs to.
 		aux::session_interface& m_ses;
 
+		// the disk thread to use to issue disk jobs to
+		disk_interface& m_disk_thread;
+
 		// settings that apply to this peer
 		aux::session_settings& m_settings;
 		
@@ -744,10 +750,10 @@ namespace libtorrent
 		void do_update_interest();
 		int preferred_caching() const;
 		void fill_send_buffer();
-		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
-		void on_disk_write_complete(int ret, disk_io_job const& j
+		void on_disk_read_complete(disk_io_job const* j, peer_request r);
+		void on_disk_write_complete(disk_io_job const* j
 			, peer_request r, boost::shared_ptr<torrent> t);
-		void on_seed_mode_hashed(int ret, disk_io_job const& j);
+		void on_seed_mode_hashed(disk_io_job const* j);
 
 		int request_upload_bandwidth();
 		int request_download_bandwidth(int bytes = 0);

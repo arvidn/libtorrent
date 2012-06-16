@@ -89,6 +89,7 @@ namespace libtorrent
 			aux::session_interface& ses
 			, aux::session_settings& sett
 			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
 			, io_service& ios
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote

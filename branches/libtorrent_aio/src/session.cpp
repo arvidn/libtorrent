@@ -117,7 +117,7 @@ namespace libtorrent
 		// don't use any extra threads to do SHA-1 hashing
 		set.hashing_threads = 0;
 		set.network_threads = 0;
-		set.aio_threads = 0;
+		set.aio_threads = 1;
 
 		set.alert_queue_size = 100;
 
@@ -323,10 +323,7 @@ namespace libtorrent
 		set.network_threads = 0;
 
 		// number of disk threads for low level file operations
-		// TODO: the file object is not thread safe when using blocking
-		// vector operations (the file position relies on the underlying file state).
-		// So, leave this at 1 for now
-		set.aio_threads = 1;
+		set.aio_threads = 8;
 
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file
@@ -792,26 +789,25 @@ namespace libtorrent
 		, std::vector<cached_piece_info>& ret) const
 	{
 		cache_status st;
-		get_cache_info(ih, &st);
+		get_cache_info(&st, find_torrent(ih));
 		ret.swap(st.pieces);
 	}
 
 	cache_status session::get_cache_status() const
 	{
 		cache_status st;
-		get_cache_info(sha1_hash(0), &st);
+		get_cache_info(&st);
 		return st;
 	}
 #endif
 
-	void session::get_cache_info(sha1_hash const& ih
-		, cache_status* ret, int flags) const
+	void session::get_cache_info(cache_status* ret
+		, torrent_handle h, int flags) const
 	{
-		bool done = false;
-		mutex::scoped_lock l(m_impl->mut);
-		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info
-			, m_impl.get(), ih, ret, flags, &done, &m_impl->cond, &m_impl->mut));
-		do { m_impl->cond.wait(l); } while(!done);
+		piece_manager* st = 0;
+		boost::shared_ptr<torrent> t = h.m_torrent.lock();
+		if (t) st = &t->filesystem();
+		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
 #ifndef TORRENT_DISABLE_DHT

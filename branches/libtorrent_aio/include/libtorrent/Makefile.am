@@ -35,8 +35,10 @@ nobase_include_HEADERS = \
   debug.hpp                    \
   disk_buffer_holder.hpp       \
   disk_buffer_pool.hpp         \
+  disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_job_pool.hpp            \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \

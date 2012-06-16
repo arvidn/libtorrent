@@ -189,14 +189,6 @@ rule linking ( properties * )
 			;
 	}
 
-	if <target-os>linux in $(properties)
-		|| <io>iosubmit in $(properties)
-		|| <io>iosubmit-vec in $(properties)
-	{
-		# for libaio support on linux
-		result += <library>aio ;
-	}
-
 	return $(result) ;
 }
 
@@ -291,13 +283,6 @@ feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
 feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
 feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
 feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
-
-feature io : auto overlapped iosubmit aio sync iosubmit-vec : composite propagated ;
-feature.compose <io>overlapped : <define>TORRENT_USE_OVERLAPPED=1 ;
-feature.compose <io>iosubmit : <define>TORRENT_USE_IOSUBMIT=1 ;
-feature.compose <io>iosubmit-vec : <define>TORRENT_USE_IOSUBMIT=1 <define>TORRENT_USE_IOSUBMIT_VEC=1 ;
-feature.compose <io>aio : <define>TORRENT_USE_AIO=1 ;
-feature.compose <io>sync : <define>TORRENT_USE_SYNCIO=1 ;
 
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
@@ -459,7 +444,6 @@ lib ws2_32 : : <name>ws2_32 <link>shared ;
 lib iphlpapi : : <name>iphlpapi <link>shared ;
 
 SOURCES =
-	aiocb_pool
 	alert
 	allocator
 	asio
@@ -475,6 +459,7 @@ SOURCES =
 	disk_buffer_holder
 	disk_buffer_pool
 	disk_io_job
+	disk_job_pool
 	entry
 	error_code
 	file_storage
@@ -482,7 +467,6 @@ SOURCES =
 	escape_string
 	file
 	gzip
-	hash_thread
 	http_connection
 	http_stream
 	http_parser
@@ -569,6 +553,7 @@ local usage-requirements =
 	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
 	<variant>debug:<define>TORRENT_DEBUG
+	<variant>debug:<define>_FORTIFY_SOURCE
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
 # enable cancel support in asio

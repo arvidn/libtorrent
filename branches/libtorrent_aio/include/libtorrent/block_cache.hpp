@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
+#include "libtorrent/file.hpp" // for iovec_t
 
 namespace libtorrent
 {
@@ -56,7 +57,6 @@ namespace libtorrent
 	class piece_manager;
 	struct disk_buffer_pool;
 	struct cache_status;
-	struct hash_thread_interface;
 	struct block_cache_reference;
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
@@ -73,7 +73,7 @@ namespace libtorrent
 	struct cached_block_entry
 	{
 		cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
-			, dirty(false), pending(false), uninitialized(false)
+			, dirty(false), pending(false)
 		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			hashing = false;
@@ -113,12 +113,6 @@ namespace libtorrent
 		// write job to write this block.
 		bool pending:1;
 
-		// this is used for freshly allocated read buffers. For read
-		// operations, the disk-I/O thread will look for this flag
-		// when issueing read jobs.
-		// it is not valid for this flag to be set for blocks where
-		// the dirty flag is set.
-		bool uninitialized:1;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// this block is part of an outstanding hash job
 		bool hashing:1;
@@ -136,8 +130,20 @@ namespace libtorrent
 		cached_piece_entry();
 		~cached_piece_entry();
 
+		bool ok_to_evict() const
+		{
+			return refcount == 0
+				&& piece_refcount == 0
+				&& num_blocks == 0
+				&& !hashing
+				&& !hash;
+		}
+
 		// storage this piece belongs to
 		boost::intrusive_ptr<piece_manager> storage;
+
+		// write jobs hanging off of this piece
+		tailqueue jobs;
 
 		int get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
@@ -156,21 +162,8 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
-		// TODO: could this be a scoped_array instead? does cached_piece_entry need to be copyable?
+		// TODO: could this be a scoped_array instead? does cached_piece_entry really need to be copyable?
 		boost::shared_array<cached_block_entry> blocks;
-
-		// jobs that cannot be performed right now are put on
-		// this queue and retried whenever something completes on this piece
-		tailqueue deferred_jobs;
-
-		// these are outstanding jobs, waiting to be
-		// handled for this piece. For read pieces, these
-		// are the write jobs that will be dispatched back
-		// to the writing peer once their data hits disk.
-		// for read jobs, these are outstanding read jobs
-		// for this piece that are waiting for data to become
-		// avaialable. Read jobs may be overlapping.
-		tailqueue jobs;
 
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
@@ -193,12 +186,9 @@ namespace libtorrent
 		// ---- 64 bit boundary ----
 
 		// while we have an outstanding async hash operation
-		// working on this piece, 'hashing' is set to the first block
-		// in the range that is being hashed. When the operation
-		// returns, this is set to -1. -1 means there's no
-		// outstanding hash operation running
-		enum { not_hashing = 0x3fff };
-		boost::uint32_t hashing:14;
+		// working on this piece, 'hashing' is set to 1
+		// When the operation returns, this is set to 0.
+		boost::uint32_t hashing:1;
 
 		// if this is true, whenever refcount hits 0, 
 		// this piece should be deleted
@@ -223,8 +213,14 @@ namespace libtorrent
 
 		boost::uint32_t cache_state:5;
 
+		// this is the number of threads that are currently holding
+		// a reference to this piece. A piece may not be removed from
+		// the cache while this is > 0
+		boost::uint32_t piece_refcount:7;
+
 		// unused
-		boost::uint32_t padding:11;
+
+		boost::uint32_t padding:4;
 
 		//	---- 32 bit boundary ---
 
@@ -239,7 +235,7 @@ namespace libtorrent
 
 	struct block_cache : disk_buffer_pool
 	{
-		block_cache(int block_size, hash_thread_interface& h, io_service& ios
+		block_cache(int block_size, io_service& ios
 			, alert_dispatcher* alert_disp);
 
 	private:
@@ -250,7 +246,14 @@ namespace libtorrent
 
 		typedef cache_t::iterator iterator;
 
-		void reclaim_block(block_cache_reference const& ref, tailqueue& jobs);
+		// returns the number of blocks this job would cause to be read in
+		int pad_job(disk_io_job const* j, int blocks_in_piece
+			, int read_ahead) const;
+
+		int allocate_iovec(file::iovec_t* iov, int iov_len);
+		void free_iovec(file::iovec_t* iov, int iov_len);
+
+		void reclaim_block(block_cache_reference const& ref);
 
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
@@ -260,19 +263,15 @@ namespace libtorrent
 		list_iterator write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
-		// deletes all pieces in the cache. asserts that there
-		// are no outstanding jobs
-		void clear(tailqueue& jobs);
-
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
-		void mark_for_deletion(cached_piece_entry* p, tailqueue& jobs);
+		void mark_for_deletion(cached_piece_entry* p);
 
 		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p, tailqueue* jobs = 0);
+		bool evict_piece(cached_piece_entry* p);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list
@@ -305,7 +304,7 @@ namespace libtorrent
 		// if the piece is marked for deletion and has a refcount
 		// of 0, this function will post any sync jobs and
 		// delete the piece from the cache
-		bool maybe_free_piece(cached_piece_entry* p, tailqueue& jobs);
+		bool maybe_free_piece(cached_piece_entry* p);
 
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
@@ -316,43 +315,25 @@ namespace libtorrent
 		// to it, otherwise 0.
 		cached_piece_entry* find_piece(block_cache_reference const& ref);
 		cached_piece_entry* find_piece(disk_io_job const* j);
-		cached_piece_entry* find_piece(cached_piece_entry const* pe);
-
-		// allocates and marks the covered blocks as pending to
-		// be filled in. This should be followed by issuing an
-		// async read operation to read in the bytes. The function
-		// returns the number of blocks that were allocated. If
-		// it's less than the requested, it means the cache is
-		// full and there's no space left
-		int allocate_pending(cached_piece_entry* p
-			, int start, int end, disk_io_job* j
-			, int prio = 0, bool force = false);
-
-		// clear the pending flags of the specified block range.
-		// these blocks must be completely filled with valid
-		// data from the disk before this call is made, unless
-		// the disk call failed. If the disk read call failed,
-		// the error code is passed in as 'ec'. In this case
-		// all jobs for this piece are dispatched with the error
-		// code. The io_service passed in is where the jobs are
-		// dispatched
-		void mark_as_done(cached_piece_entry* p, int begin, int end
-			, tailqueue& jobs, tailqueue& restart_jobs, storage_error const& ec);
-
-		// this is called by the hasher thread when hashing of
-		// a range of block is complete.
-		void hashing_done(cached_piece_entry* p, int begin, int end
-			, tailqueue& jobs);
+		cached_piece_entry* find_piece(piece_manager* st, int piece);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.
-		void abort_dirty(cached_piece_entry* p, tailqueue& jobs);
+		void abort_dirty(cached_piece_entry* p);
+
+		// used to convert dirty blocks into non-dirty ones
+		// i.e. from being part of the write cache to being part
+		// of the read cache. it's used when flushing blocks to disk
+		void blocks_flushed(cached_piece_entry* pe, int* flushed, int num_flushed);
 
 		// adds a block to the cache, marks it as dirty and
 		// associates the job with it. When the block is
 		// flushed, the callback is posted
 		cached_piece_entry* add_dirty_block(disk_io_job* j);
 	
+		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
+			, int iov_len, void* requester);
+
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
 #endif
@@ -361,38 +342,18 @@ namespace libtorrent
 		// pick the least recently used ones first
 		// return the number of blocks that was requested to be evicted
 		// that couldn't be
-		int try_evict_blocks(int num, int prio, cached_piece_entry* ignore = 0);
+		int try_evict_blocks(int num, cached_piece_entry* ignore = 0);
+
+		// if there are any dirty blocks 
+		void clear(tailqueue& jobs);
 
 		void get_stats(cache_status* ret) const;
-
-		void add_hash_time(time_duration dt, int num_blocks)
-		{
-			TORRENT_ASSERT(num_blocks > 0);
-			m_hash_time.add_sample(int(total_microseconds(dt / num_blocks)));
-			m_cumulative_hash_time += total_microseconds(dt);
-		}
-
-		void pinned_change(int diff)
-		{
-			TORRENT_ASSERT(diff > 0 || m_pinned_blocks >= -diff);
-			m_pinned_blocks += diff;
-		}
-
-		int pinned_blocks() const { return m_pinned_blocks; }
-
 		void set_settings(aux::session_settings const& sett);
 
+		void inc_block_refcount(cached_piece_entry* pe, int block);
+		void dec_block_refcount(cached_piece_entry* pe, int block);
+
 	private:
-
-		// post operation-aborted errors for all jobs associated
-		// with this piece
-		void drain_jobs(cached_piece_entry* pe, tailqueue& jobs);
-
-		void kick_hasher(cached_piece_entry* pe, int& hash_start, int& hash_end);
-
-		void reap_piece_jobs(cached_piece_entry* pe, storage_error const& ec
-			, int hash_start, int hash_end, tailqueue& jobs
-			, bool reap_hash_jobs);
 
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
@@ -450,18 +411,9 @@ namespace libtorrent
 		// the sum of all reference counts in all blocks
 		boost::uint32_t m_refcount;
 
-		// average hash time (in microseconds)
-		sliding_average<512> m_hash_time;
-
-		// microseconds
-		size_type m_cumulative_hash_time;
-
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int m_pinned_blocks;
-
-		// this is the object hash jobs are posted to
-		hash_thread_interface& m_hash_thread;
 	};
 
 }

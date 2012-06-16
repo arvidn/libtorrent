@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/hash_thread.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/storage.hpp"
@@ -50,20 +49,11 @@ struct print_alert : alert_dispatcher
 	}
 };
 
-struct dummy_hash_thread : hash_thread_interface
-{
-	virtual bool async_hash(cached_piece_entry* p, int start, int end)
-	{
-		return false;
-	}
-};
-
 int test_main()
 {
 	io_service ios;
-	dummy_hash_thread h;
 	print_alert ad;
-	block_cache bc(0x4000, h, ios, &ad);
+	block_cache bc(0x4000, ios, &ad);
 
 	disk_io_job j;
 	j.piece = 0;

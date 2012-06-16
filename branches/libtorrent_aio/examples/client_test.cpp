@@ -1123,32 +1123,9 @@ void print_piece(libtorrent::partial_piece_info* pp
 	out += esc("0");
 #endif
 	char const* piece_state[4] = {"-", "s", "m", "f"};
-	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f %s %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n"
+	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f\n"
 		, cs ? cs->next_to_hash : 0
-		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, pp ? piece_state[pp->piece_state] : "-"
-		, cs && cs->num_jobs[0] ? "read ":""
-		, cs && cs->num_jobs[1] ? "write ":""
-		, cs && cs->num_jobs[2] ? "hash ":""
-		, cs && cs->num_jobs[3] ? "move ":""
-		, cs && cs->num_jobs[4] ? "release ":""
-		, cs && cs->num_jobs[5] ? "delete ":""
-		, cs && cs->num_jobs[6] ? "check-resume ":""
-		, cs && cs->num_jobs[7] ? "save-resume ":""
-		, cs && cs->num_jobs[8] ? "rename ":""
-		, cs && cs->num_jobs[9] ? "abort-thread ":""
-		, cs && cs->num_jobs[10] ? "clear-cache ":""
-		, cs && cs->num_jobs[11] ? "abort-torrent ":""
-		, cs && cs->num_jobs[12] ? "update-settings ":""
-		, cs && cs->num_jobs[13] ? "cache-piece ":""
-		, cs && cs->num_jobs[14] ? "finalize ":""
-		, cs && cs->num_jobs[15] ? "get-cache-info ":""
-		, cs && cs->num_jobs[16] ? "hash-complete ":""
-		, cs && cs->num_jobs[17] ? "file-status ":""
-		, cs && cs->num_jobs[18] ? "reclaim ":""
-		, cs && cs->num_jobs[19] ? "clear-piece ":""
-		, cs && cs->num_jobs[20] ? "sync-piece ":""
-		, cs && cs->num_jobs[21] ? "flush ":"");
+		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f);
 	out += str;
 }
 
@@ -1234,6 +1211,8 @@ int main(int argc, char* argv[])
 			"  -Y                    Rate limit local peers\n"
 			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
 			"                        incoming TCP connections)\n"
+			"  -J                    Disable uTP connections (disable outgoing uTP and reject\n"
+			"                        incoming uTP connections)\n"
 			"  -b <IP>               sets IP of the interface to bind the\n"
 			"                        listen socket to\n"
 			"  -I <IP>               sets the IP of the interface to bind\n"
@@ -1444,6 +1423,7 @@ int main(int argc, char* argv[])
 			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
 			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
 			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
+			case 'J': settings.enable_outgoing_utp = false; settings.enable_incoming_utp = false; --i; break;
 			case 'r': peer = arg; break;
 			case 'P':
 				{
@@ -1551,6 +1531,7 @@ int main(int argc, char* argv[])
 	settings.choking_algorithm = session_settings::auto_expand_choker;
 	settings.disk_cache_algorithm = session_settings::avoid_readback;
 	settings.volatile_read_cache = false;
+	settings.aio_threads = 16;
 
 	ses.set_settings(settings);
 
@@ -2096,18 +2077,12 @@ int main(int argc, char* argv[])
 			++lines_printed;
 		}
 
-		sha1_hash ih(0);
 		int cache_flags = print_downloads ? 0 : session::disk_cache_no_pieces;
 		torrent_handle h;
 		if (!filtered_handles.empty()) h = get_active_torrent(filtered_handles).handle;
-		if (h.is_valid())
-		{
-			ih = h.info_hash();
-			cache_flags = 0;
-		}
 
 		cache_status cs;
-		ses.get_cache_info(ih, &cs, cache_flags);
+		ses.get_cache_info(&cs, h, cache_flags);
 
 		if (cs.blocks_read < 1) cs.blocks_read = 1;
 		if (cs.blocks_written < 1) cs.blocks_written = 1;
@@ -2194,17 +2169,16 @@ int main(int argc, char* argv[])
 #endif
 		if (print_disk_stats)
 		{
-			snprintf(str, sizeof(str), "Disk stats:\n  timing - queue: %6d ms |"
-				" sort: %6d ms | read: %6d ms | write: %6d ms | issue: %6d\n"
-				, cs.average_queue_time / 1000, cs.average_sort_time / 1000
+			snprintf(str, sizeof(str), "Disk stats:\n  timing - "
+				" read: %6d ms | write: %6d ms | hash: %6d\n"
 				, cs.average_read_time / 1000, cs.average_write_time / 1000
-				, cs.average_issue_time / 1000);
+				, cs.average_hash_time / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d (%4d) blocked: %4d "
-				"aiocbs: %4d (%4d) queued-bytes: %5"PRId64" kB\n"
+				"queued-bytes: %5"PRId64" kB\n"
 				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.peak_pending, cs.blocked_jobs
-				, cs.num_aiocb, cs.peak_aiocb, cs.queued_bytes / 1000);
+				, cs.queued_bytes / 1000);
 			out += str;
 
 			snprintf(str, sizeof(str), "  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d\n"
@@ -2351,7 +2325,6 @@ int main(int argc, char* argv[])
 						if (f->open_mode & file::sparse) mode += "sparse ";
 						if (f->open_mode & file::read_write) mode += "read/write ";
 						else if (f->open_mode & file::write_only) mode += "write ";
-						if (f->open_mode & file::no_buffer) mode += "unbuffered ";
 						mode += "]";
 						++f;
 					}

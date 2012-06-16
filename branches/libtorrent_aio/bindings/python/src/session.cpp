@@ -357,10 +357,10 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info(session& s, sha1_hash const& ih)
+	 cache_status get_cache_info(session& s, torrent_handle h, int flags)
 	 {
 	 	cache_status ret;
-		s.get_cache_info(ih, &ret);
+		s.get_cache_info(&ret, h, flags);
 		return ret;
 	 }
 
@@ -368,7 +368,7 @@ namespace
 	 cache_status get_cache_status(session& s)
 	 {
 	 	cache_status ret;
-		s.get_cache_info(sha1_hash(0), &ret);
+		s.get_cache_info(&ret);
 		return ret;
 	 }
 #endif
@@ -517,34 +517,28 @@ void bind_session()
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
-        .def_readonly("elevator_turns", &cache_status::elevator_turns)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
-        .def_readonly("average_queue_time", &cache_status::average_queue_time)
         .def_readonly("average_read_time", &cache_status::average_read_time)
         .def_readonly("average_write_time", &cache_status::average_write_time)
         .def_readonly("average_hash_time", &cache_status::average_hash_time)
         .def_readonly("average_job_time", &cache_status::average_job_time)
-        .def_readonly("average_sort_time", &cache_status::average_sort_time)
-        .def_readonly("average_issue_time", &cache_status::average_issue_time)
         .def_readonly("cumulative_job_time", &cache_status::cumulative_job_time)
         .def_readonly("cumulative_read_time", &cache_status::cumulative_read_time)
         .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
         .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
-        .def_readonly("cumulative_sort_time", &cache_status::cumulative_sort_time)
-        .def_readonly("cumulative_issue_time", &cache_status::cumulative_issue_time)
         .def_readonly("total_read_back", &cache_status::total_read_back)
         .def_readonly("read_queue_size", &cache_status::read_queue_size)
         .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
         .def_readonly("queued_jobs", &cache_status::queued_jobs)
         .def_readonly("peak_queued", &cache_status::peak_queued)
         .def_readonly("pending_jobs", &cache_status::pending_jobs)
-        .def_readonly("peak_pending", &cache_status::peak_pending)
-        .def_readonly("num_aiocb", &cache_status::num_aiocb)
-        .def_readonly("peak_aiocb", &cache_status::peak_aiocb)
-        .def_readonly("cumulative_completed_aiocbs", &cache_status::cumulative_completed_aiocbs)
         .def_readonly("num_jobs", &cache_status::num_jobs)
         .def_readonly("num_read_jobs", &cache_status::num_read_jobs)
         .def_readonly("num_write_jobs", &cache_status::num_write_jobs)
+        .def_readonly("arc_mru_size", &cache_status::arc_mru_size)
+        .def_readonly("arc_mru_ghost_size", &cache_status::arc_mru_ghost_size)
+        .def_readonly("arc_mfu_size", &cache_status::arc_mfu_size)
+        .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
     ;
 
     class_<session, boost::noncopyable>("session", no_init)
@@ -659,7 +653,7 @@ void bind_session()
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
-        .def("get_cache_info", &get_cache_info)
+        .def("get_cache_info", &get_cache_info, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
         .def("get_cache_status", &get_cache_status)
 #endif
@@ -696,6 +690,8 @@ void bind_session()
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
+#ifndef TORRENT_NO_DEPRECATE
 	 def("high_performance_seed", high_performance_seed);
 	 def("min_memory_usage", min_memory_usage);
+#endif
 }

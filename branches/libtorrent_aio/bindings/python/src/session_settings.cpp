@@ -10,6 +10,7 @@ using namespace libtorrent;
 
 void bind_session_settings()
 {
+#ifndef TORRENT_NO_DEPRECATE
     class_<session_settings>("session_settings")
         .def_readwrite("user_agent", &session_settings::user_agent)
         .def_readwrite("tracker_completion_timeout", &session_settings::tracker_completion_timeout)
@@ -42,10 +43,8 @@ void bind_session_settings()
         .def_readwrite("num_want", &session_settings::num_want)
         .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
         .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
-#ifndef TORRENT_NO_DEPRECATE
 		  // this is no longer used
         .def_readwrite("max_queued_disk_bytes", &session_settings::max_queued_disk_bytes)
-#endif
         .def_readwrite("handshake_timeout", &session_settings::handshake_timeout)
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
@@ -172,15 +171,6 @@ void bind_session_settings()
         .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
     ;
 
-    enum_<proxy_settings::proxy_type>("proxy_type")
-        .value("none", proxy_settings::none)
-        .value("socks4", proxy_settings::socks4)
-        .value("socks5", proxy_settings::socks5)
-        .value("socks5_pw", proxy_settings::socks5_pw)
-        .value("http", proxy_settings::http)
-        .value("http_pw", proxy_settings::http_pw)
-    ;
-
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
         .value("lru", session_settings::lru)
         .value("largest_contiguous", session_settings::largest_contiguous)
@@ -202,6 +192,17 @@ void bind_session_settings()
     enum_<session_settings::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
         .value("prefer_tcp", session_settings::prefer_tcp)
         .value("peer_proportional", session_settings::peer_proportional)
+    ;
+
+#endif
+
+    enum_<proxy_settings::proxy_type>("proxy_type")
+        .value("none", proxy_settings::none)
+        .value("socks4", proxy_settings::socks4)
+        .value("socks5", proxy_settings::socks5)
+        .value("socks5_pw", proxy_settings::socks5_pw)
+        .value("http", proxy_settings::http)
+        .value("http_pw", proxy_settings::http_pw)
     ;
 
     class_<proxy_settings>("proxy_settings")

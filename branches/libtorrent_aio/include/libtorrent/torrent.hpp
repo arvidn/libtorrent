@@ -158,9 +158,9 @@ namespace libtorrent
 		// only count BitTorrent peers
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 
-		void on_resume_data_checked(int ret, disk_io_job const& j);
-		void on_force_recheck(int ret, disk_io_job const& j);
-		void on_piece_hashed(int ret, disk_io_job const& j);
+		void on_resume_data_checked(disk_io_job const* j);
+		void on_force_recheck(disk_io_job const* j);
+		void on_piece_hashed(disk_io_job const* j);
 		void files_checked();
 		void start_checking();
 
@@ -183,9 +183,9 @@ namespace libtorrent
 
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0);
-		void on_disk_write_complete(int ret, disk_io_job const& j
+		void on_disk_write_complete(disk_io_job const* j
 			, peer_request p);
-		void on_disk_cache_complete(int ret, disk_io_job const& j);
+		void on_disk_cache_complete(disk_io_job const* j);
 
 		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
@@ -195,7 +195,7 @@ namespace libtorrent
 			bool fail;
 		};
 		void read_piece(int piece);
-		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r, read_piece_struct* rp);
+		void on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp);
 
 		storage_mode_t storage_mode() const { return (storage_mode_t)m_storage_mode; }
 		storage_interface* get_storage()
@@ -240,7 +240,7 @@ namespace libtorrent
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
 		std::string resolve_filename(int file) const;
-		void handle_disk_error(disk_io_job const& j, peer_connection* c = 0);
+		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
 		void clear_error();
 		void set_error(error_code const& ec, int file);
 		void set_error(error_code const& ec, std::string const& file);
@@ -315,8 +315,6 @@ namespace libtorrent
 		void state_updated();
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
-		void file_status(std::vector<pool_file_status>* files
-			, bool* done, condition* e, mutex* m) const;
 
 		void use_interface(std::string net_interface);
 		tcp::endpoint get_interface() const;
@@ -445,7 +443,7 @@ namespace libtorrent
 		void add_suggest_piece(int piece);
 		void update_suggest_piece(int index, int change);
 		void refresh_suggest_pieces();
-		void on_cache_info(int ret, disk_io_job const& j);
+		void on_cache_info(disk_io_job const* j);
 
 // --------------------------------------------
 		// TRACKER MANAGEMENT
@@ -537,12 +535,19 @@ namespace libtorrent
 			return m_picker->have_piece(index);
 		}
 
+		// returns true if we have downloaded the given piece
+		bool has_piece_passed(int index) const
+		{
+			if (!valid_metadata()) return false;
+			if (!has_picker()) return true;
+			return m_picker->has_piece_passed(index);
+		}
+
 		// a predictive piece is a piece that we might
 		// not have yet, but still announced to peers, anticipating that
 		// we'll have it very soon
 		bool is_predictive_piece(int index) const
 		{
-			// #error make this a sorted list and binary_search to lookup
 			return std::binary_search(m_predictive_pieces.begin(), m_predictive_pieces.end(), index);
 		}
 
@@ -554,6 +559,16 @@ namespace libtorrent
 		{
 			return has_picker()
 				? m_picker->num_have()
+				: m_torrent_file->num_pieces();
+		}
+
+		// the number of pieces that have passed
+		// hash check, but aren't necessarily
+		// flushed to disk yet
+		int num_passed() const
+		{
+			return has_picker()
+				? m_picker->num_passed()
 				: m_torrent_file->num_pieces();
 		}
 
@@ -573,6 +588,11 @@ namespace libtorrent
 
 		void disconnect_all(error_code const& ec);
 		int disconnect_peers(int num, error_code const& ec);
+
+		// called every time a block is marked as finished in the
+		// piece picker. We might have completed the torrent and
+		// we can delete the piece picker
+		void maybe_done_flushing();
 
 		// this is called wheh the torrent has completed
 		// the download. It will post an event, disconnect
@@ -631,17 +651,6 @@ namespace libtorrent
 		// piece_failed is called when a piece fails the hash check
 		void piece_failed(int index);
 
-		// this will restore the piece picker state for a piece
-		// by re marking all the requests to blocks in this piece
-		// that are still outstanding in peers' download queues.
-		// this is done when a piece fails
-		void restore_piece_state(int index);
-
-		// when restoring a failed piece, we first have to wait
-		// for all outstanding disk operations on that piece to
-		// finish. This function is called whent they are
-		void on_piece_sync(int ret, disk_io_job const& j);
-
 		enum wasted_reason_t
 		{
 			piece_timed_out, piece_cancelled, piece_unknown, piece_seed, piece_end_game, piece_closing
@@ -656,7 +665,7 @@ namespace libtorrent
 			return valid_metadata()
 				&& (!m_picker
 				|| m_state == torrent_status::seeding
-				|| m_picker->num_have() == m_picker->num_pieces());
+				|| m_picker->num_passed() == m_picker->num_pieces());
 		}
 
 		// this is true if we have all the pieces that we want
@@ -664,7 +673,7 @@ namespace libtorrent
 		{
 			if (is_seed()) return true;
 			return valid_metadata() && m_torrent_file->num_pieces()
-				- m_picker->num_have() - m_picker->num_filtered() == 0;
+				- m_picker->num_passed() - m_picker->num_filtered() == 0;
 		}
 
 		std::string save_path() const;
@@ -836,22 +845,22 @@ namespace libtorrent
 
 	private:
 
-		void on_files_deleted(int ret, disk_io_job const& j);
-		void on_files_released(int ret, disk_io_job const& j);
-		void on_torrent_paused(int ret, disk_io_job const& j);
-		void on_storage_moved(int ret, disk_io_job const& j);
-		void on_save_resume_data(int ret, disk_io_job const& j);
-		void on_file_renamed(int ret, disk_io_job const& j);
-		void on_cache_flushed(int ret, disk_io_job const& j);
+		void on_files_deleted(disk_io_job const* j);
+		void on_files_released(disk_io_job const* j);
+		void on_torrent_paused(disk_io_job const* j);
+		void on_storage_moved(disk_io_job const* j);
+		void on_save_resume_data(disk_io_job const* j);
+		void on_file_renamed(disk_io_job const* j);
+		void on_cache_flushed(disk_io_job const* j);
 
-		void on_piece_verified(int ret, disk_io_job const& j
+		void on_piece_verified(disk_io_job const* j
 			, boost::function<void(int)> f);
 	
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel);
 		int limit_impl(int channel) const;
 
-		void refresh_explicit_cache_impl(int ret, disk_io_job const& j, int cache_size);
+		void refresh_explicit_cache_impl(disk_io_job const* j, int cache_size);
 
 		int prioritize_tracker(int tracker_index);
 		int deprioritize_tracker(int tracker_index);
@@ -1358,11 +1367,6 @@ namespace libtorrent
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
 		
-		// this is set to true while we have an outstanding
-		// disk cache request to refresh the suggest pieces
-		// don't keep more than one out outstanding request
-		bool m_refreshing_suggest_pieces:1;
-
 		// state subscription. If set, a pointer to this torrent
 		// will be added to the m_state_updates set in session_impl
 		// whenever this torrent's state changes (any state).

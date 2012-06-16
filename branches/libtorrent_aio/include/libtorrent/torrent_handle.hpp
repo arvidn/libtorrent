@@ -161,6 +161,7 @@ namespace libtorrent
 	{
 		friend class invariant_access;
 		friend struct aux::session_impl;
+		friend class session;
 		friend struct feed;
 		friend class torrent;
 		friend std::size_t hash_value(torrent_handle const& th);
@@ -213,6 +214,7 @@ namespace libtorrent
 		};
 
 		void file_progress(std::vector<size_type>& progress, int flags = 0) const;
+
 		void file_status(std::vector<pool_file_status>& status) const;
 
 		void clear_error() const;

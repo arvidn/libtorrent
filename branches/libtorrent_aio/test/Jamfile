@@ -34,6 +34,7 @@ test-suite libtorrent :
 	[ run test_block_cache.cpp ]
 	[ run test_peer_classes.cpp ]
 	[ run test_settings_pack.cpp ]
+	[ run test_fence.cpp ]
 #	[ run test_storage.cpp ]
 	[ run test_upnp.cpp ]
 

@@ -99,7 +99,10 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
 		h.add_piece(0, &piece[0]);
-		test_sleep(10000);
+
+		// wait until the piece is done writing and hashing
+		// TODO: wait for an alert rather than just waiting 10 seconds. This is kind of silly
+		test_sleep(2000);
 		st = h.status();
 		TEST_CHECK(st.pieces.size() > 0 && st.pieces[0] == true);
 
@@ -112,13 +115,14 @@ void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type fil
 			std::auto_ptr<alert> al = ses.pop_alert();
 			assert(al.get());
 			std::cout << "  " << al->message() << std::endl;
-			if (read_piece_alert* rpa = dynamic_cast<read_piece_alert*>(al.get()))
+			if (read_piece_alert* rpa = alert_cast<read_piece_alert>(al.get()))
 			{
 				std::cout << "SUCCEEDED!" << std::endl;
 				passed = true;
 				TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
 				TEST_CHECK(rpa->size == info->piece_size(0));
 				TEST_CHECK(rpa->piece == 0);
+				TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
 				break;
 			}
 			a = ses.wait_for_alert(seconds(10));

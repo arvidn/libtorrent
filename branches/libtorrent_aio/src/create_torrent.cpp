@@ -154,30 +154,31 @@ namespace libtorrent
 		}
 	} // detail namespace
 
-	void on_hash(int ret, disk_io_job const& j, create_torrent* t
+	void on_hash(disk_io_job const* j, create_torrent* t
 		, boost::intrusive_ptr<piece_manager> storage, disk_io_thread* iothread
 		, int* piece_counter, int* completed_piece
 		, boost::function<void(int)> const* f, error_code* ec)
 	{
-		if (ret != 0)
+		if (j->ret != 0)
 		{
 			// on error
-			*ec = j.error.ec;
+			*ec = j->error.ec;
+			iothread->set_num_threads(0);
 			return;
 		}
-		t->set_hash(j.piece, sha1_hash(j.d.piece_hash));
+		t->set_hash(j->piece, sha1_hash(j->d.piece_hash));
 		(*f)(*completed_piece);
 		++(*completed_piece);
 		if (*piece_counter < t->num_pieces())
 		{
-			storage->async_hash(*piece_counter, file::sequential_access
-				, boost::bind(&on_hash, _1, _2, t, storage, iothread
-				, piece_counter, completed_piece, f, ec), (void*)1);
+			iothread->async_hash(storage.get(), *piece_counter, file::sequential_access
+				, boost::bind(&on_hash, _1, t, storage, iothread
+				, piece_counter, completed_piece, f, ec), (void*)0);
 			++(*piece_counter);
 		}
-		else if (*completed_piece == t->num_pieces())
+		else
 		{
-			iothread->abort();
+			iothread->set_num_threads(0);
 		}
 		iothread->submit_jobs();
 	}
@@ -214,16 +215,14 @@ namespace libtorrent
 
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
-			storage->async_hash(i, file::sequential_access
-				, boost::bind(&on_hash, _1, _2, &t, storage, &disk_thread
-				, &piece_counter, &completed_piece, &f, &ec), (void*)1);
+			disk_thread.async_hash(storage.get(), i, file::sequential_access
+				, boost::bind(&on_hash, _1, &t, storage, &disk_thread
+				, &piece_counter, &completed_piece, &f, &ec), (void*)0);
 			++piece_counter;
 			if (piece_counter >= t.num_pieces()) break;
 		}
 		disk_thread.submit_jobs();
 		ios.run(ec);
-
-		disk_thread.join();
 	}
 
 	create_torrent::~create_torrent() {}

@@ -74,11 +74,8 @@ namespace libtorrent
 	struct disk_io_job;
 	struct disk_buffer_pool;
 	struct cache_status;
-	struct aiocb_pool;
 	namespace aux { struct session_settings; }
 	struct cached_piece_entry;
-
-	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j);
 
 	TORRENT_EXTRA_EXPORT std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& t
@@ -95,7 +92,8 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT storage_interface
 	{
-		storage_interface(): m_disk_pool(0), m_aiocb_pool(0), m_settings(0) {}
+		storage_interface(): m_settings(0) {}
+
 		// create directories and set file sizes
 		// if allocate_files is true. 
 		// allocate_files is true if allocation mode
@@ -103,22 +101,16 @@ namespace libtorrent
 		// false return value indicates an error
 		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
 
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-
-		virtual void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset) {}
+		virtual int readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
 
 		virtual bool has_any_file(storage_error& ec) = 0;
-		virtual void hint_read(int slot, int offset, int len) {}
-		virtual size_type physical_offset(int slot, int offset) = 0;
 
 		// returns the end of the sparse region the slot 'start'
 		// resides in i.e. the next slot with content. If start
 		// is not in a sparse region, start itself is returned
-		// #error replace this with a query to see if a whole piece is mapped to actual storage, and no sparse hole overlaps with it. If a sparse hole overlaps, the do_hash operation can take a short cut
-		virtual int sparse_end(int start) const { return start; }
 
 		// non-zero return value indicates an error
 		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
@@ -142,17 +134,14 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual void delete_files(storage_error& ec) = 0;
 
+		// called for every file when it completes downloading
+		// used on windows to turn off the sparse flag
 		virtual void finalize_file(int file, storage_error& ec) {}
 
-		disk_buffer_pool* disk_pool() { return m_disk_pool; }
-		aiocb_pool* aiocbs() { return m_aiocb_pool; }
 		aux::session_settings const& settings() const { return *m_settings; }
 
 		virtual ~storage_interface() {}
 
-		// initialized in piece_manager::piece_manager
-		disk_buffer_pool* m_disk_pool;
-		aiocb_pool* m_aiocb_pool;
 		// initialized in disk_io_thread::perform_async_job
 		aux::session_settings* m_settings;
 	};
@@ -172,15 +161,13 @@ namespace libtorrent
 		void initialize(bool allocate_files, storage_error& ec);
 		void move_storage(std::string const& save_path, storage_error& ec);
 		int sparse_end(int start) const;
-		void hint_read(int slot, int offset, int len);
-		size_type physical_offset(int slot, int offset);
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error);
 		void write_resume_data(entry& rd, storage_error& ec) const;
 
-		file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
-		file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
+		int readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec);
+		int writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec);
 
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
@@ -188,14 +175,8 @@ namespace libtorrent
 		struct fileop
 		{
 			// file operation
-			file::aiocb_t* (file::*op)(size_type offset
-				, file::iovec_t const* bufs, int num_bufs
-				, aiocb_pool&, int);
-			// for async operations, this is the handler that will be added
-			// to every aiocb_t in the returned chain
-			async_handler* handler;
-			// for async operations, this is the returned aiocb_t chain
-			file::aiocb_t* ret;
+			size_type (file::*regular_op)(size_type file_offset
+				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
 			int cache_setting;
 			// file open mode (file::read_only, file::write_only etc.)
 			int mode;
@@ -206,7 +187,7 @@ namespace libtorrent
 
 		void delete_one_file(std::string const& p, error_code& ec);
 		int readwritev(file::iovec_t const* bufs, int slot, int offset
-			, int num_bufs, fileop& op, storage_error& ec);
+			, int num_bufs, fileop const& op, storage_error& ec);
 
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
@@ -222,6 +203,7 @@ namespace libtorrent
 		// -2 means no data (i.e. if we want to stat the file, we should
 		//    do it and fill in this slot)
 		// -3 file doesn't exist
+		// TODO: move this into a separate class and unit test it!
 		struct stat_cache_t
 		{
 			stat_cache_t(size_type s, time_t t = 0): file_size(s), file_time(t) {}
@@ -263,12 +245,11 @@ namespace libtorrent
 		void delete_files(storage_error& ec) {}
 		void initialize(bool allocate_files, storage_error& ec) {}
 		void move_storage(std::string const& save_path, storage_error& ec) {}
-		size_type physical_offset(int slot, int offset) { return 0; }
 
-		file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
-		file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
+		int readv(file::iovec_t const* bufs, int num_bufs, int piece
+			, int offset, int flags, storage_error& ec);
+		int writev(file::iovec_t const* bufs, int num_bufs, int piece
+			, int offset, int flags, storage_error& ec);
 
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error) { return false; }
 		void write_resume_data(entry& rd, storage_error& ec) const {}
@@ -282,13 +263,12 @@ namespace libtorrent
 	{
 		virtual void initialize(bool allocate_files, storage_error& ec) {}
 
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a);
+		virtual int readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec);
+		virtual int writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec);
 
 		virtual bool has_any_file(storage_error& ec) { return false; }
-		virtual size_type physical_offset(int slot, int offset) { return slot; }
 
 		virtual void move_storage(std::string const& save_path, storage_error& ec) {}
 		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) { return false; }
@@ -307,33 +287,41 @@ namespace libtorrent
 	// any outstanding jobs on the torrent, then the fence is lowered
 	// and it can be performed, along with the backlog of jobs that
 	// accrued while the fence was up
-	struct disk_job_fence
+	struct TORRENT_EXTRA_EXPORT disk_job_fence
 	{
 		disk_job_fence();
 
-		void raise_fence(disk_io_job* j);
-		bool has_fence() const { return m_has_fence; }
+		// returns one of the fence_* enums.
+		// if there are no outstanding jobs on the
+		// storage, fence_post_fence is returned, the flush job is expected
+		// to be discarded by the caller.
+		// fence_post_flush is returned if the fence job was blocked and queued,
+		// but the flush job should be posted (i.e. put on the job queue)
+		// fence_post_none if both the fence and the flush jobs were queued.
+		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
+		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job);
+		bool has_fence() const;
 
-		void new_job(disk_io_job* j);
 		// called whenever a job completes and is posted back to the
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
 		// fence being lowered.
 		int job_complete(disk_io_job* j, tailqueue& job_queue);
-		bool has_outstanding_jobs() const { return m_outstanding_jobs; }
+		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
 		// if there is a fence up, returns true and adds the job
 		// to the queue of blocked jobs
-		bool is_blocked(disk_io_job* j);
+		bool is_blocked(disk_io_job* j, bool ignore_fence = false);
 		
 		// the number of blocked jobs
-		int num_blocked() const { return m_blocked_jobs.size(); }
+		int num_blocked() const;
 
 	private:
-		// when set, this storage is blocked for new async
+		// when > 0, this storage is blocked for new async
 		// operations until all outstanding jobs have completed.
 		// at that point, the m_blocked_jobs are issued
-		bool m_has_fence;
+		// the count is the number of fence job currently in the queue
+		int m_has_fence;
 
 		// when there's a fence up, jobs are queued up in here
 		// until the fence is lowered
@@ -343,8 +331,11 @@ namespace libtorrent
 		// to this torrent, currently pending, hanging off of
 		// cached_piece_entry objects. This is used to determine
 		// when the fence can be lowered
-		int m_outstanding_jobs;
+		atomic_count m_outstanding_jobs;
 
+		// must be held when accessing m_has_fence and
+		// m_blocked_jobs
+		mutable mutex m_mutex;
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_manager
@@ -382,69 +373,6 @@ namespace libtorrent
 
 		file_storage const* files() const { return &m_files; }
 
-		void async_finalize_file(int file);
-
-		void async_get_cache_info(cache_status* ret
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_file_status(std::vector<pool_file_status>* ret
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_check_fastresume(lazy_entry const* resume_data
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-		
-		void async_rename_file(int index, std::string const& name
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_read(
-			peer_request const& r
-			, boost::function<void(int, disk_io_job const&)> const& handler
-			, void* requester
-			, int flags = 0
-			, int cache_line_size = 0);
-
-		void async_cache(int piece
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void  async_write(
-			peer_request const& r
-			, disk_buffer_holder& buffer
-			, boost::function<void(int, disk_io_job const&)> const& f
-			, int flags = 0);
-
-		void async_hash(int piece, int flags
-			, boost::function<void(int, disk_io_job const&)> const& f
-			, void* requester);
-
-		void async_release_files(
-			boost::function<void(int, disk_io_job const&)> const& handler
-			= boost::function<void(int, disk_io_job const&)>());
-
-		void abort_disk_io(
-			boost::function<void(int, disk_io_job const&)> const& handler
-			= boost::function<void(int, disk_io_job const&)>());
-
-		void async_clear_read_cache(
-			boost::function<void(int, disk_io_job const&)> const& handler
-			= boost::function<void(int, disk_io_job const&)>());
-
-		void async_delete_files(
-			boost::function<void(int, disk_io_job const&)> const& handler
-			= boost::function<void(int, disk_io_job const&)>());
-
-		void async_move_storage(std::string const& p
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_save_resume_data(
-			boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_clear_piece(int piece);
-
-		void async_sync_piece(int piece
-			, boost::function<void(int, disk_io_job const&)> const& handler);
-
-		void async_flush_piece(int piece);
-
 		enum return_t
 		{
 			// return values from check_fastresume
@@ -462,7 +390,7 @@ namespace libtorrent
 		void remove_piece(cached_piece_entry* p);
 		bool has_piece(cached_piece_entry* p) const;
 		int num_pieces() const { return m_cached_pieces.size(); }
-		boost::unordered_set<cached_piece_entry*> const& cached_pieces()
+		boost::unordered_set<cached_piece_entry*> const& cached_pieces() const
 		{ return m_cached_pieces; }
 
 	private:

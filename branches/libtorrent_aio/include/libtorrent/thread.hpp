@@ -65,11 +65,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mach/mach_init.h> // current_task
 #endif
 
+#include <boost/detail/atomic_count.hpp>
+
 namespace libtorrent
 {
 	typedef boost::asio::detail::thread thread;
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
+
+	typedef boost::detail::atomic_count atomic_count;
 
 	TORRENT_EXPORT void sleep(int milliseconds);
 

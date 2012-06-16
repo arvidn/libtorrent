@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_id.hpp"
-#include <boost/function/function2.hpp>
+#include <boost/function/function1.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 
@@ -50,15 +50,12 @@ namespace libtorrent
 
 	struct block_cache_reference
 	{
-//		block_cache_reference(): storage(0), piece(-1), block(-1) {}
 		void* storage;
 		int piece;
 		int block;
 	};
 
-	// #error turn this into a union to make it smaller
-
-	// disk_io_jobs are allocated in a pool allocator in aiocb_pool
+	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
 	// (as pointers) to the disk I/O thread, and then passed back
 	// to the network thread for completion handling and to be freed.
@@ -70,7 +67,7 @@ namespace libtorrent
 	// pointers and chaining them back and forth into lists saves
 	// a lot of heap allocation churn of using general purpose
 	// containers.
-	struct disk_io_job : tailqueue_node, boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node, boost::noncopyable
 	{
 		disk_io_job();
 		~disk_io_job();
@@ -86,59 +83,46 @@ namespace libtorrent
 			, check_fastresume
 			, save_resume_data
 			, rename_file
-			, abort_thread
-			, clear_read_cache
-			, abort_torrent
-			, update_settings
+			, stop_torrent
 			, cache_piece
 			, finalize_file
-			, get_cache_info
-			, hash_complete
-			, file_status
-			, reclaim_block
-			, clear_piece
-			, sync_piece
 			, flush_piece
+			, flush_hashed
+			, flush_storage
 			, trim_cache
-			, aiocb_complete // this is only used for sync_io builds
 
 			, num_job_ids
 		};
 
+		// these flags coexist with flags from file class
 		enum flags_t
 		{
-			// these flags coexist with flags from file class
-			volatile_read = 0x100,
-
 			// this flag is set on a job when a read operation did
 			// not hit the disk, but found the data in the read cache.
-			cache_hit = 0x200,
+			cache_hit = 0x100,
 
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
 			// the cache.
-			force_copy = 0x400,
+			force_copy = 0x200,
 
-			// only applicable to get_cache_info. This makes the
-			// response not include the list of all pieces. The
-			// operation is considerably faster with this flag set.
-			no_pieces = 0x800,
+			// this is set by the storage object when a fence is raised
+			// for this job. It means that this no other jobs on the same
+			// storage will execute in parallel with this one. It's used
+			// to lower the fence when the job has completed
+			fence = 0x400,
 
-			// when this is set, it means the job was not performed
-			// immediately within the disk thread, but was in fact an
-			// asynchronous operation that needs to decrement the
-			// outstanding jobs counter in the storage when it completes
-			async_operation = 0x1000,
+			// don't keep the read block in cache
+			volatile_read = 0x800,
 
-			// if this bit is set, it means we need to decrement the
-			// m_queue_buffer_size by the buffer size of this jobs
-			// when it completes
-			counts_towards_queue_size = 0x2000,
+			// this job is currently being performed, or it's hanging
+			// on a cache piece that may be flushed soon
+			in_progress = 0x1000,
 		};
 
-		// the time when this job was queued. This is used to
-		// keep track of disk I/O congestion
-		ptime start_time;
+		// for write jobs, returns true if its block
+		// is not dirty anymore
+		bool completed(cached_piece_entry const* pe, int block_size);
 
 		// unique identifier for the peer when reading
 		void* requester;
@@ -158,7 +142,7 @@ namespace libtorrent
 		boost::intrusive_ptr<piece_manager> storage;
 
 		// this is called when operation completes
-		boost::function<void(int, disk_io_job const&)> callback;
+		boost::function<void(disk_io_job const*)> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the
@@ -192,12 +176,6 @@ namespace libtorrent
 
 			// number of bytes 'buffer' points to. Used for read & write
 			boost::uint16_t buffer_size;
-
-			// if this is > 0, it specifies the max number of blocks to read
-			// ahead in the read cache for this access. This is only valid
-			// for 'read' actions
-			boost::uint8_t max_cache_line;
-
 			} io;
 		} d;
 
@@ -208,6 +186,8 @@ namespace libtorrent
 		// the type of job this is
 		boost::uint32_t action:8;
 
+		enum { operation_failed = -1 };
+
 		// return value of operation
 		boost::int32_t ret;
 
@@ -216,13 +196,19 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool in_use:1;
+		
+		// set to true when the job is added to the completion queue.
+		// to make sure we don't add it twice
+		mutable bool job_posted:1;
+
 		// set to true when the callback has been called once
 		// used to make sure we don't call it twice
-		bool callback_called:1;
+		mutable bool callback_called:1;
+
+		// this is true when the job is blocked by a storage_fence
+		mutable bool blocked:1;
 #endif
 	};
-
-	bool is_job_immediate(int type);
 
 }
 

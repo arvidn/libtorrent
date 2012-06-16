@@ -136,13 +136,13 @@ struct test_storage : default_storage
 		m_limit = lim;
 	}
 
-	file::aiocb_t* async_writev(
+	int writev(
 		file::iovec_t const* bufs
+		, int num_bufs
 		, int piece_index
 		, int offset
-		, int num_bufs
 		, int flags
-		, async_handler* a)
+		, storage_error& se)
 	{
 		mutex::scoped_lock l(m_mutex);
 		if (m_written >= m_limit)
@@ -156,15 +156,14 @@ struct test_storage : default_storage
 #else
 			ec = error_code(ENOSPC, get_posix_category());
 #endif
-			a->error.ec = ec;
+			se.ec = ec;
 			return 0;
 		}
 
 		for (int i = 0; i < num_bufs; ++i)
 			m_written += bufs[i].iov_len;
 		l.unlock();
-		return default_storage::async_writev(bufs, piece_index, offset
-			, num_bufs, flags, a);
+		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
 	}
 
 	virtual ~test_storage() {}
@@ -574,7 +573,7 @@ int test_main()
 	
 	// test allowed fast
 	test_transfer(0, false, true, true);
-	
+
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);

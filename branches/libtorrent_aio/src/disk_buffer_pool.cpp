@@ -337,13 +337,19 @@ namespace libtorrent
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
 		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
 
+#if TORRENT_HAVE_MMAP
 		// if we've already allocated an mmap, we can't change
 		// anything unless there are no allocations in use
 		if (m_cache_pool && m_in_use > 0) return;
+#endif
 
 		// only allow changing size if we're not using mmapped
 		// cache, or if we're just about to turn it off
-		if (m_cache_pool == 0 || sett.get_str(settings_pack::mmap_cache).empty())
+		if (
+#if TORRENT_HAVE_MMAP
+			m_cache_pool == 0 ||
+#endif
+			sett.get_str(settings_pack::mmap_cache).empty())
 		{
 			m_max_use = sett.get_int(settings_pack::cache_size);
 			m_low_watermark = m_max_use - (std::max)(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);

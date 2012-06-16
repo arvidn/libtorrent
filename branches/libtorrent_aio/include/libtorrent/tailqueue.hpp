@@ -64,7 +64,7 @@ namespace libtorrent
 		tailqueue_node const* m_current;
 	};
 
-	struct tailqueue
+	struct TORRENT_EXTRA_EXPORT tailqueue
 	{
 		tailqueue();
 

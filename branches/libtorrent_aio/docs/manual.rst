@@ -939,9 +939,9 @@ get_cache_info()
 	::
 
 		enum { disk_cache_no_pieces = 1 };
-		void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags) const;
+		void get_cache_info(cache_status* ret, torrent_handle h = torrent_handle(), int flags = 0) const;
 
-Fills in the cache_status struct with information about the given info-hash (``ih``).
+Fills in the cache_status struct with information about the given torrent.
 If ``flags`` is ``session::disk_cache_no_pieces`` the ``cache_status::pieces`` field
 will not be set. This may significantly reduce the cost of this call.
 
@@ -981,24 +981,34 @@ a piece is, the more likely it is to be flushed to disk.
 			int read_cache_size;
 			int pinned_blocks;
 			int total_used_buffers;
-			int average_queue_time;
 			int average_read_time;
 			int average_write_time;
 			int average_hash_time;
-			int average_cache_time;
 			int average_job_time;
-			int average_sort_time;
-			int average_issue_time;
+
+			boost::uint32_t cumulative_job_time;
+			boost::uint32_t cumulative_read_time;
+			boost::uint32_t cumulative_write_time;
+			boost::uint32_t cumulative_hash_time;
+
 			int total_read_back;
 			int read_queue_size;
 			int blocked_jobs;
+
 			int queued_jobs;
 			int peak_queued;
 			int pending_jobs;
 			int peak_pending;
-			int num_aiocb;
-			int peak_aiocb;
-			size_type cumulative_completed_aiocbs;
+
+			int num_jobs;
+			int num_read_jobs;
+
+			int num_write_jobs;
+
+			int arc_mru_size;
+			int arc_mru_ghost_size;
+			int arc_mfu_size;
+			int arc_mfu_ghost_size;
 		};
 
 ``blocks_written`` is the total number of 16 KiB blocks written to disk
@@ -7434,12 +7444,32 @@ The interface looks like this::
 	{
 		// the actual error code
 		error_code ec;
+
 		// the index of the file the error occurred on
-		int file;
+		int32_t file:24;
+
 		// the operation that failed
-		// this must be a string literal, it
-		// should never be freed
-		char const* operation;
+		int32_t operation:8;
+
+		enum {
+			none,
+			stat,
+			mkdir,
+			open,
+			rename,
+			remove,
+			copy,
+			read,
+			write,
+			fallocate,
+			alloc_cache_piece
+		};
+
+		storage_error();
+		operator bool() const;
+
+		// turn the operation ID into a string
+		char const* operation_str() const;
 	};
 
 initialize()

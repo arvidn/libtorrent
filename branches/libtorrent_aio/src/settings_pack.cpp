@@ -119,6 +119,7 @@ namespace libtorrent
 		SET(upnp_ignore_nonrouters, false, 0),
 		SET(use_parole_mode, true, 0),
 		SET(use_read_cache, true, 0),
+		SET(use_write_cache, true, 0),
 		SET(dont_flush_write_cache, false, 0),
 		SET(explicit_read_cache, false, 0),
 		SET(coalesce_reads, false, 0),
@@ -278,8 +279,9 @@ namespace libtorrent
 		SET(hashing_threads, 1, 0),
 		SET(checking_mem_usage, 200, 0),
 		SET(predictive_piece_announce, 0, 0),
-		SET(aio_threads, 2, 0),
+		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
+		// multiple network threads won't work until udp_socket supports multi threading
 		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
@@ -457,13 +459,20 @@ namespace libtorrent
 		{
 			if (str_settings[i].default_value == 0) continue;
 			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
 	
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
+		{
 			s.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+			TORRENT_ASSERT(s.get_int(settings_pack::int_type_base + i) == int_settings[i].default_value);
+		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+		{
 			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
+		}
 	}
 
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses)

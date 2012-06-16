@@ -70,6 +70,7 @@ namespace libtorrent
 		, m_num_filtered(0)
 		, m_num_have_filtered(0)
 		, m_num_have(0)
+		, m_num_passed(0)
 		, m_cursor(0)
 		, m_reverse_cursor(0)
 		, m_sparse_regions(1)
@@ -104,6 +105,7 @@ namespace libtorrent
 		m_num_filtered += m_num_have_filtered;
 		m_num_have_filtered = 0;
 		m_num_have = 0;
+		m_num_passed = 0;
 		m_dirty = true;
 		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
 			, end(m_piece_map.end()); i != end; ++i)
@@ -1383,10 +1385,36 @@ namespace libtorrent
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
 		TORRENT_ASSERT(i != m_downloads[state - 1].end());
-		if (!i->failed_write) i->passed_hash_check = true;
+		if (!i->failed_write)
+		{
+			i->passed_hash_check = true;
+			++m_num_passed;
+		}
 		if (i->finished < blocks_in_piece(index)) return;
 		
 		we_have(index);
+	}
+
+	void piece_picker::piece_failed(int index)
+	{
+		piece_pos& p = m_piece_map[index];
+		int state = p.state;
+		if (state == piece_pos::piece_open) return;
+
+		std::vector<downloading_piece>::iterator i = find_dl_piece(state - 1, index);
+		TORRENT_ASSERT(i != m_downloads[state - 1].end());
+
+		if (i->finished == blocks_in_piece(index))
+		{
+			restore_piece(index);
+			return;
+		}
+	
+		// we're still waiting for some blocks to complete.
+		// remember that the hash failed for this piece so
+		// when the last block is complete, we can restore
+		// it.
+		m_failed_pieces.push_back(index);
 	}
 
 	void piece_picker::we_dont_have(int index)
@@ -1401,8 +1429,26 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "piece_picker::we_dont_have(" << index << ")" << std::endl;
 #endif
-		if (!p.have()) return;
+		if (!p.have())
+		{
+			// even though we don't have the piece, it
+			// might still have passed hash check
+			int state = p.state;
+			if (state == piece_pos::piece_open) return;
 
+			std::vector<downloading_piece>::iterator i
+				= find_dl_piece(state - 1, index);
+			if (i->passed_hash_check)
+			{
+				i->passed_hash_check = false;
+				TORRENT_ASSERT(m_num_passed > 0);
+				--m_num_passed;
+			}
+			return;
+		}
+
+		TORRENT_ASSERT(m_num_passed > 0);
+		--m_num_passed;
 		if (p.filtered())
 		{
 			++m_num_filtered;
@@ -1454,6 +1500,9 @@ namespace libtorrent
 			std::vector<downloading_piece>::iterator i
 				= find_dl_piece(p.state - 1, index);
 			TORRENT_ASSERT(i != m_downloads[p.state - 1].end());
+			// decrement num_passed here to compensate
+			// for the unconditional increment further down
+			if (i->passed_hash_check) --m_num_passed;
 			erase_download_piece(i);
 		}
 
@@ -1486,6 +1535,7 @@ namespace libtorrent
 			++m_num_have_filtered;
 		}
 		++m_num_have;
+		++m_num_passed;
 		p.set_have();
 		if (m_cursor == m_reverse_cursor - 1 &&
 			m_cursor == index)
@@ -2096,6 +2146,8 @@ namespace libtorrent
 
 	}
 
+	// have piece means that the piece passed hash check
+	// AND has been successfully written to disk
 	bool piece_picker::have_piece(int index) const
 	{
 		TORRENT_ASSERT(index >= 0);
@@ -2789,6 +2841,8 @@ namespace libtorrent
 			// some of the blocks to disk, which means we
 			// can't consider the piece complete
 			i->passed_hash_check = false;
+			TORRENT_ASSERT(m_num_passed > 0);
+			--m_num_passed;
 		}
 		else if (i->outstanding_hash_check)
 		{
@@ -2928,10 +2982,28 @@ namespace libtorrent
 //				sort_piece(i);
 			}
 
-			 i = update_piece_state(i);
+			i = update_piece_state(i);
 	
-			if (i->passed_hash_check && i->finished == blocks_in_piece(i->index))
+			if (i->finished < blocks_in_piece(i->index))
+				return;
+
+			if (i->passed_hash_check)
+			{
 				we_have(i->index);
+				return;
+			}
+
+			// we just completed writing all the blocks.
+			// and we don't know if the piece hash check
+			// has passed yet. Did it fail though?
+
+			std::vector<int>::iterator iter = std::find(m_failed_pieces.begin()
+				, m_failed_pieces.end(), i->index);
+			if (iter == m_failed_pieces.end()) return;
+
+			// yes, it did fail! restore the piece
+			m_failed_pieces.erase(iter);
+			restore_piece(i->index);
 		}
 	}
 

@@ -54,7 +54,7 @@ namespace libtorrent
 		int download_limit;
 	};
 
-	struct peer_class : intrusive_ptr_base<peer_class>
+	struct TORRENT_EXTRA_EXPORT peer_class : intrusive_ptr_base<peer_class>
 	{
 		friend struct peer_class_pool;
 

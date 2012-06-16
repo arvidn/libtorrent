@@ -57,6 +57,7 @@ namespace libtorrent
 		aux::session_interface& ses
 		, aux::session_settings& sett
 		, buffer_allocator_interface& allocator
+		, disk_interface& disk_thread
 		, io_service& ios
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
@@ -65,7 +66,8 @@ namespace libtorrent
 		, policy::peer* peerinfo
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
-		: peer_connection(ses, sett, allocator, ios, t, s, remote, peerinfo)
+		: peer_connection(ses, sett, allocator, disk_thread, ios
+			, t, s, remote, peerinfo)
 		, m_parser(http_parser::dont_parse_chunks)
 		, m_external_auth(auth)
 		, m_extra_headers(extra_headers)

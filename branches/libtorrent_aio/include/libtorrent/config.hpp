@@ -73,49 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-/*
-
-	These are the different disk I/O options:
-
-	TORRENT_USE_AIO              - use posix AIO
-	  TORRENT_USE_AIO_SIGNALFD   - use (linux) signalfd as notification
-	                               mechanism in posix AIO
-	  TORRENT_USE_AIO_PORTS      - use (solaris) ports as notification
-	                               mechanism in posix AIO
-	  TORRENT_USE_AIO_KQUEUE     - use (bsd) kqueue as notification mechanism
-	                               in posix AIO
-	  TORRENT_USE_AIOINIT        - use the GNU aio extension aio_init()
-
-	TORRENT_USE_IOSUBMIT         - use (linux) io_submit() for I/O
-	  TORRENT_USE_SUBMIT_THREADS - use separate threads for the io_submit()
-	                               call, since it's a blocking call for filesystems
-	                               that don't support AIO. As far as I know,
-	                               xfs is the only one that supports aio properly.
-	  TORRENT_USE_IOSUBMIT_VEC   - used to enable support for PWRITEV and PREADV
-	                               in the io-submit code. Older kernels did not
-	                               support the vector I/O versions
-
-	TORRENT_USE_OVERLAPPED       - use (win32) overlapped I/O and
-	                               IO completion ports
-
-	TORRENT_USE_SYNCIO           - use portable, synchronous, file operations
-
-
-	If none of these are set, this config header will determine which
-	one to use based on operating system, by setting TORRENT_USE_DEFAULT_IO
-
-*/
-
-
-#if !defined TORRENT_USE_SYNCIO \
-	&& !defined TORRENT_USE_OVERLAPPED \
-	&& !defined TORRENT_USE_AIO \
-	&& !defined TORRENT_USE_IOSUBMIT
-#define TORRENT_USE_DEFAULT_IO 1
-#else
-#define TORRENT_USE_DEFAULT_IO 0
-#endif
-
 // backwards compatibility with older versions of boost
 #if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
 # if defined _MSC_VER || defined __MINGW32__
@@ -195,8 +152,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
 #define TORRENT_AMIGA
 #define TORRENT_USE_MLOCK 0
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_USE_BOOST_THREAD 0
 #define TORRENT_USE_IOSTREAM 0
@@ -219,7 +174,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # ifndef TORRENT_USE_ICONV
 #  define TORRENT_USE_ICONV 0
 #  define TORRENT_USE_LOCALE 0
-#  define TORRENT_CLOSE_MAY_BLOCK 1
 # endif
 # define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
@@ -232,16 +186,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_HAS_FALLOCATE 0
 
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_AIO 1
-#endif
-
-// Darwin's kqueue doesn't support AIO
-#if TORRENT_USE_AIO && !defined __APPLE__ && !defined TORRENT_USE_AIO_KQUEUE
-# define TORRENT_USE_AIO_KQUEUE 1
-#endif
-
-#define TORRENT_AIO_SIGNAL SIGIO
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IFCONF 1
@@ -251,29 +195,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 
-#if TORRENT_USE_DEFAULT_IO
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-#  define TORRENT_USE_IOSUBMIT 1
-//  more recent 2.6 kernels support vector I/O
-#   if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-#    define TORRENT_USE_IOSUBMIT_VEC 1
-#   endif
-# else
-#  define TORRENT_USE_AIO 1
-# endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+# define TORRENT_USE_PREADV 1
+# define TORRENT_USE_PREAD 0
+#else
+# define TORRENT_USE_PREADV 0
+# define TORRENT_USE_PREAD 1
 #endif
 
 #define TORRENT_HAVE_MMAP 1
 
-#if TORRENT_USE_AIO && !defined TORRENT_USE_AIO_SIGNALFD
-#define TORRENT_USE_AIO_SIGNALFD 1
-#endif
-
-#if TORRENT_USE_AIO && !defined TORRENT_USE_AIOINIT
-# define TORRENT_USE_AIOINIT 1
-#endif
-
-#define TORRENT_AIO_SIGNAL SIGRTMIN
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
@@ -285,60 +216,52 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 1
+# define TORRENT_USE_ICONV 0
+# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_OVERLAPPED 1
-#endif
 #define TORRENT_USE_NETLINK 0
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
 #ifndef TORRENT_USE_UNC_PATHS
-#define TORRENT_USE_UNC_PATHS 1
+# define TORRENT_USE_UNC_PATHS 1
 #endif
+// these are emulated on windows
+#define TORRENT_USE_PREADV 1
+#define TORRENT_USE_PWRITEV 1
 
 // ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
-#define TORRENT_USE_GETIPFORWARDTABLE 1
+# define TORRENT_USE_GETIPFORWARDTABLE 1
 #endif
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 1
+# define TORRENT_USE_ICONV 0
+# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_OVERLAPPED 1
-#endif
 #ifndef TORRENT_USE_UNC_PATHS
-#define TORRENT_USE_UNC_PATHS 1
+# define TORRENT_USE_UNC_PATHS 1
 #endif
+// these are emulated on windows
+#define TORRENT_USE_PREADV 1
+#define TORRENT_USE_PWRITEV 1
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
-#if TORRENT_USE_DEFAULT_IO
-#define TORRENT_USE_AIO 1
-#endif
-#define TORRENT_AIO_SIGNAL SIGUSR1
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
-
-#if TORRENT_USE_AIO
-# define TORRENT_USE_AIO_PORTS 1
-#endif
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -451,14 +374,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_LOCALE 0
 #endif
 
-// set this to true if close() may block on your system
-// Mac OS X does this if the file being closed is not fully
-// allocated on disk yet for instance. When defined, the disk
-// I/O subsytem will use a separate thread for closing files
-#ifndef TORRENT_CLOSE_MAY_BLOCK
-#define TORRENT_CLOSE_MAY_BLOCK 0
-#endif
-
 #ifndef TORRENT_BROKEN_UNIONS
 #define TORRENT_BROKEN_UNIONS 0
 #endif
@@ -499,56 +414,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_POSIX_SEMAPHORE 0
 #endif
 
-// use POSIX AIO for asynchronous disk I/O (aio_read()/aio_write() etc.)
-#ifndef TORRENT_USE_AIO
-#define TORRENT_USE_AIO 0
-#endif
-
-#ifndef TORRENT_USE_AIOINIT
-# define TORRENT_USE_AIOINIT 0
-#endif
-
-// use io_submit for asynchronous disk I/O
-#ifndef TORRENT_USE_IOSUBMIT
-#define TORRENT_USE_IOSUBMIT 0
-#endif
-
-#if TORRENT_USE_IOSUBMIT && !defined TORRENT_USE_SUBMIT_THREADS
-// define this to one if you intend to use io_submit on a filesystem
-// other than XFS (ext3 and ext4 do not support AIO as of linux 2.6.38-8)
-#define TORRENT_USE_SUBMIT_THREADS 0
-#endif
-
-// use io_prep_pwritev and io_prep_preadv. These were never implemented
-// in mainline linux, but in Red Hat Enterprise 3. It defaults to off
-#ifndef TORRENT_USE_IOSUBMIT_VEC
-#define TORRENT_USE_IOSUBMIT_VEC 0
-#endif
-
-// use signalfd for event notification for POSIX AIO
-#ifndef TORRENT_USE_AIO_SIGNALFD
-#define TORRENT_USE_AIO_SIGNALFD 0
-#endif
-
-#ifndef TORRENT_USE_AIO_KQUEUE
-#define TORRENT_USE_AIO_KQUEUE 0
-#endif
-
-// use this signal number for event notifications in POSIX AIO
-#ifndef TORRENT_AIO_SIGNAL
-#define TORRENT_AIO_SIGNAL SIGUSR1
-#endif
-
-// use windows overlapped I/O for asynchronous disk I/O
-#ifndef TORRENT_USE_OVERLAPPED
-#define TORRENT_USE_OVERLAPPED 0
-#endif
-
-// use portable synchronous disk I/O
-#ifndef TORRENT_USE_SYNCIO
-#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED && !TORRENT_USE_IOSUBMIT)
-#endif
-
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
@@ -573,20 +438,18 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_MLOCK 1
 #endif
 
-#ifndef TORRENT_USE_WRITEV
-#define TORRENT_USE_WRITEV 1
+// if preadv() exists, we assume pwritev() does as well
+#ifndef TORRENT_USE_PREADV
+#define TORRENT_USE_PREADV 0
 #endif
 
-#ifndef TORRENT_USE_READV
-#define TORRENT_USE_READV 1
+// if pread() exists, we assume pwrite() does as well
+#ifndef TORRENT_USE_PREAD
+#define TORRENT_USE_PREAD 1
 #endif
 
 #ifndef TORRENT_NO_FPU
 #define TORRENT_NO_FPU 0
-#endif
-
-#ifndef TORRENT_USE_AIO_PORTS
-#define TORRENT_USE_AIO_PORTS 0
 #endif
 
 #ifndef TORRENT_USE_IOSTREAM

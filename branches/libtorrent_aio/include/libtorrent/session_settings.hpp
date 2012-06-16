@@ -375,6 +375,7 @@ namespace libtorrent
 		// when true, the disk I/O thread uses the disk
 		// cache for caching blocks read from disk too
 		bool use_read_cache;
+		bool use_write_cache;
 
 		// this will make the disk cache never flush a write
 		// piece if it would cause is to have to re-read it

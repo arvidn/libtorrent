@@ -401,8 +401,6 @@ namespace libtorrent
 
 			alert const* wait_for_alert(time_duration max_wait);
 
-			void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags, bool* done, condition* e, mutex* m);
-
 #ifndef TORRENT_NO_DEPRECATE
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
@@ -646,6 +644,7 @@ namespace libtorrent
 			void update_connection_speed();
 			void update_alert_queue_size();
 			void upate_dht_upload_rate_limit();
+			void update_disk_threads();
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
@@ -1162,6 +1161,8 @@ namespace libtorrent
 				, int instance, bool append = true);
 			
 			virtual void session_log(char const* fmt, ...) const;
+
+			virtual peer_class_pool const& peer_classes() const { return m_classes; }
 
 			void log_all_torrents(peer_connection* p);
 

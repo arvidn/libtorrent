@@ -93,29 +93,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/escape_string.hpp"
 
+#define DEBUG_STORAGE 0
+
+#define DLOG if (DEBUG_STORAGE) fprintf
+
 namespace libtorrent
 {
-
-	// wrap job handlers to free the job itself
-	// this is called in the network thread when a job completes
-	void complete_job(void* user, aiocb_pool* pool, disk_io_job* j)
-	{
-		aux::session_impl* ses = (aux::session_impl*)user;
-#ifdef TORRENT_STATS
-		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
-#endif
-		while (j)
-		{
-			TORRENT_ASSERT(j->callback_called == true);
-			if (j->callback) j->callback(j->ret, *j);
-			disk_io_job* to_free = (disk_io_job*)j;
-			j = (disk_io_job*)j->next;
-			pool->free_job(to_free);
-		}
-		// uncork all peers who received a disk event. This is
-		// to coalesce all the socket writes caused by the events.
-		if (ses) ses->do_delayed_uncork();
-	}
 
 	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
 	{
@@ -792,130 +775,24 @@ namespace libtorrent
 		if (!ec) m_save_path = save_path;
 	}
 
-	size_type default_storage::physical_offset(int slot, int offset)
+	int default_storage::readv(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, storage_error& ec)
 	{
-		TORRENT_ASSERT(slot >= 0);
-		TORRENT_ASSERT(slot < m_files.num_pieces());
-		TORRENT_ASSERT(offset >= 0);
-
-		// find the file and file
-		size_type tor_off = size_type(slot)
-			* files().piece_length() + offset;
-		file_storage::iterator file_iter = files().file_at_offset(tor_off);
-		while (file_iter->pad_file)
-		{
-			++file_iter;
-			if (file_iter == files().end())
-				return size_type(slot) * files().piece_length() + offset;
-			// update offset as well, since we're moving it up ahead
-			tor_off = file_iter->offset;
-		}
-		TORRENT_ASSERT(!file_iter->pad_file);
-
-		size_type file_offset = tor_off - file_iter->offset;
-		TORRENT_ASSERT(file_offset >= 0);
-
-		// open the file read only to avoid re-opening
-		// it in case it's already opened in read-only mode
-		error_code ec;
-		boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, 0, ec);
-
-		size_type ret = 0;
-		if (f && !ec) ret = f->phys_offset(file_offset);
-
-		if (ret == 0)
-		{
-			// this means we don't support true physical offset
-			// just make something up
-			return size_type(slot) * files().piece_length() + offset;
-		}
-		return ret;
+		fileop op = { &file::readv
+			, m_settings ? settings().get_int(settings_pack::disk_io_read_mode) : 0, file::read_only };
+#ifdef TORRENT_SIMULATE_SLOW_READ
+		boost::thread::sleep(boost::get_system_time()
+			+ boost::posix_time::milliseconds(1000));
+#endif
+		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
-	void default_storage::hint_read(int slot, int offset, int size)
+	int default_storage::writev(file::iovec_t const* bufs, int num_bufs
+		, int slot, int offset, int flags, storage_error& ec)
 	{
-		size_type start = slot * (size_type)m_files.piece_length() + offset;
-		TORRENT_ASSERT(start + size <= m_files.total_size());
-
-		size_type file_offset = start;
-		file_storage::iterator file_iter;
-
-		// TODO: use binary search!
-		for (file_iter = files().begin();;)
-		{
-			if (file_offset < file_iter->size)
-				break;
-
-			file_offset -= file_iter->size;
-			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
-		}
-
-		boost::intrusive_ptr<file> file_handle;
-		int bytes_left = size;
-		int slot_size = static_cast<int>(m_files.piece_size(slot));
-
-		if (offset + bytes_left > slot_size)
-			bytes_left = slot_size - offset;
-
-		TORRENT_ASSERT(bytes_left >= 0);
-
-		int file_bytes_left;
-		for (;bytes_left > 0; ++file_iter, bytes_left -= file_bytes_left)
-		{
-			TORRENT_ASSERT(file_iter != files().end());
-
-			file_bytes_left = bytes_left;
-			if (file_offset + file_bytes_left > file_iter->size)
-				file_bytes_left = (std::max)(static_cast<int>(file_iter->size - file_offset), 0);
-
-			if (file_bytes_left == 0) continue;
-
-			if (file_iter->pad_file) continue;
-
-			error_code ec;
-			file_handle = open_file(file_iter, file::read_only, 0, ec);
-
-			// failing to hint that we want to read is not a big deal
-			// just swollow the error and keep going
-			if (!file_handle || ec) continue;
-
-			file_handle->hint_read(file_offset, file_bytes_left);
-			file_offset = 0;
-		}
-	}
-
-	file::aiocb_t* default_storage::async_readv(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, async_handler* a)
-	{
-		if (m_settings)
-		{
-			flags |= settings().get_bool(settings_pack::coalesce_reads) ? file::coalesce_buffers : 0;
-			flags |= settings().get_bool(settings_pack::allow_reordered_disk_operations) ? file::resolve_phys_offset : 0;
-		}
-
-		fileop op = { &file::async_readv, a, 0, m_settings
-			? settings().get_int(settings_pack::disk_io_read_mode) : 0
-			, file::read_only, flags, storage_error::async_readv };
-		storage_error ec;
-		readwritev(bufs, slot, offset, num_bufs, op, ec);
-		a->error = ec;
-		return op.ret;
-	}
-
-	file::aiocb_t* default_storage::async_writev(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, async_handler* a)
-	{
-		if (m_settings)
-			flags |= settings().get_bool(settings_pack::coalesce_writes) ? file::coalesce_buffers : 0;
-
-		fileop op = { &file::async_writev, a, 0, m_settings
-			? settings().get_int(settings_pack::disk_io_write_mode) : 0
-			, file::read_write, flags, storage_error::async_writev };
-		storage_error ec;
-		readwritev(bufs, slot, offset, num_bufs, op, ec);
-		a->error = ec;
-		return op.ret;
+		fileop op = { &file::writev
+			, m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0, file::read_write };
+		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
 	// much of what needs to be done when reading and writing 
@@ -924,7 +801,7 @@ namespace libtorrent
 	// is a template, and the fileop decides what to do with the
 	// file and the buffers.
 	int default_storage::readwritev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, fileop& op, storage_error& ec)
+		, int num_bufs, fileop const& op, storage_error& ec)
 	{
 		TORRENT_ASSERT(bufs != 0);
 		TORRENT_ASSERT(slot >= 0);
@@ -932,11 +809,6 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(offset < m_files.piece_size(slot));
 		TORRENT_ASSERT(num_bufs > 0);
-
-		// this is the last element in the chain, that we hook new
-		// aiocb's to
-		file::aiocb_t* last = 0;
-		op.ret = 0;
 
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
@@ -1021,32 +893,25 @@ namespace libtorrent
 				continue;
 			}
 
-			int file_index = file_iter - files().begin();
-			if (op.mode == file::read_write && m_stat_cache.size() > file_index)
-			{
-				// if we're writing to this file, we have to clear the
-				// stats cache for it, since its modification time will change
-				// and its size may change too
-				m_stat_cache[file_index].file_size = -2;
-			}
-
-			file_handle = open_file(file_iter, op.mode, op.flags, ec.ec);
-			if ((op.mode == file::read_write) && ec.ec == boost::system::errc::no_such_file_or_directory)
+			error_code e;
+			file_handle = open_file(file_iter, op.mode, op.flags, e);
+			if ((op.mode == file::read_write) && e == boost::system::errc::no_such_file_or_directory)
 			{
 				// this means the directory the file is in doesn't exist.
 				// so create it
-				ec.ec.clear();
+				e.clear();
 				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
-				create_directories(parent_path(path), ec.ec);
+				create_directories(parent_path(path), e);
 				// if the directory creation failed, don't try to open the file again
 				// but actually just fail
-				if (!ec) file_handle = open_file(file_iter, op.mode, op.flags, ec.ec);
+				if (!e) file_handle = open_file(file_iter, op.mode, op.flags, e);
 			}
 
-			if (!file_handle || ec)
+			if (!file_handle || e)
 			{
+				ec.ec = e;
 				ec.file = file_iter - files().begin();
-				TORRENT_ASSERT(ec);
+				ec.operation = storage_error::open;
 				return -1;
 			}
 
@@ -1054,42 +919,21 @@ namespace libtorrent
 			TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
 			TORRENT_ASSERT(num_tmp_bufs <= num_bufs);
 			int bytes_transferred = 0;
-			// if the file is opened in no_buffer mode, and the
-			// read is unaligned, we need to fall back on a slow
-			// special read that reads aligned buffers and copies
-			// it into the one supplied
+
 			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
-			TORRENT_ASSERT(op.op);
-			TORRENT_ASSERT(op.handler);
-
-			file::aiocb_t* aio = ((*file_handle).*op.op)(adjusted_offset
-				, tmp_bufs, num_tmp_bufs, *aiocbs(), op.flags);
-
-			if (op.ret == 0) op.ret = aio;
-
-			// add this to the chain
-			while (aio)
-			{
-				bytes_transferred += aio->nbytes();
-				aio->handler = op.handler;
-				++op.handler->references;
-				if (last) last->next = aio;
-				aio->prev = last;
-				last = aio;
-				aio = aio->next;
-				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
-			}
-
+			bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
+				, tmp_bufs, num_tmp_bufs, e, op.flags);
+			TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			file_offset = 0;
 
-			if (ec)
+			if (e)
 			{
+				ec.ec = e;
 				ec.file = file_iter - files().begin();
-				ec.operation = op.operation_type;
+				ec.operation = storage_error::open;
 				return -1;
 			}
 
-			TORRENT_ASSERT(file_bytes_left >= bytes_transferred);
 			if (file_bytes_left != bytes_transferred)
 				return bytes_transferred;
 
@@ -1099,18 +943,10 @@ namespace libtorrent
 		return size;
 	}
 
+
 	boost::intrusive_ptr<file> default_storage::open_file(file_storage::iterator fe, int mode
 		, int flags, error_code& ec) const
 	{
-		// io_submit only works on files opened with O_DIRECT, so this
-		// is not optional if we're using io_submit
-#if !TORRENT_USE_IOSUBMIT
-		int cache_setting = m_settings ? settings().get_int(settings_pack::disk_io_write_mode) : 0;
-		if (cache_setting == settings_pack::disable_os_cache
-			|| (cache_setting == settings_pack::disable_os_cache_for_aligned_files
-			&& ((fe->offset + files().file_base(*fe)) & (m_page_size-1)) == 0))
-#endif
-			mode |= file::no_buffer;
 		if (!(flags & file::sequential_access))
 			mode |= file::random_access;
 
@@ -1129,14 +965,14 @@ namespace libtorrent
 		return new default_storage(fs, mapped, path, fp, file_prio);
 	}
 
-	file::aiocb_t* disabled_storage::async_readv(file::iovec_t const* bufs
-		, int num_bufs, int slot, int offset, int flags, async_handler* a)
+	int disabled_storage::readv(file::iovec_t const* bufs
+		, int num_bufs, int slot, int offset, int flags, storage_error& ec)
 	{
 		return 0;
 	}
 
-	file::aiocb_t* disabled_storage::async_writev(file::iovec_t const* bufs
-		, int num_bufs, int slot, int offset, int flags, async_handler* a)
+	int disabled_storage::writev(file::iovec_t const* bufs
+		, int num_bufs, int slot, int offset, int flags, storage_error& ec)
 	{
 		return 0;
 	}
@@ -1150,24 +986,24 @@ namespace libtorrent
 
 	// -- zero_storage ------------------------------------------------------
 
-	file::aiocb_t* zero_storage::async_readv(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, async_handler* a)
+	int zero_storage::readv(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, int flags, storage_error& ec)
 	{
-		a->transferred = 0;
+		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			memset(bufs[i].iov_base, 0, bufs[i].iov_len);
-			a->transferred += bufs[i].iov_len;
+			ret += bufs[i].iov_len;
 		}
 		return 0;
 	}
 
-	file::aiocb_t* zero_storage::async_writev(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, async_handler* a)
+	int zero_storage::writev(file::iovec_t const* bufs, int num_bufs
+		, int piece, int offset, int flags, storage_error& ec)
 	{
-		a->transferred = 0;
+		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
-			a->transferred += bufs[i].iov_len;
+			ret += bufs[i].iov_len;
 		return 0;
 	}
 
@@ -1197,13 +1033,10 @@ namespace libtorrent
 		, m_io_thread(io)
 		, m_torrent(torrent)
 	{
-		m_storage->m_disk_pool = m_io_thread.cache();
-		m_storage->m_aiocb_pool = m_io_thread.aiocbs();
 	}
 
 	piece_manager::~piece_manager()
 	{
-		TORRENT_ASSERT(!has_fence());
 		TORRENT_ASSERT(m_abort_job == 0);
 	}
 
@@ -1222,215 +1055,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
 		m_cached_pieces.erase(p);
-	}
-
-	// TODO: it doesn't make any sense for the piece_manager to
-	// contain this wrapper around posting jobs to the disk thread
-	// piece_manager can probably be removed
-	void piece_manager::async_finalize_file(int file)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::finalize_file);
-		j->storage = this;
-		j->piece = file;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_get_cache_info(cache_status* ret
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::get_cache_info);
-		j->storage = this;
-		j->buffer = (char*)ret;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_file_status(std::vector<pool_file_status>* ret
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::file_status);
-		j->storage = this;
-		j->buffer = (char*)ret;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_save_resume_data(
-		boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::save_resume_data);
-		j->buffer = 0;
-		j->storage = this;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_clear_piece(int piece)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::clear_piece);
-		j->storage = this;
-		j->piece = piece;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_sync_piece(int piece
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::sync_piece);
-		j->storage = this;
-		j->piece = piece;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_flush_piece(int piece)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::flush_piece);
-		j->storage = this;
-		j->piece = piece;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_clear_read_cache(
-		boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::clear_read_cache);
-		j->storage = this;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_release_files(
-		boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::release_files);
-		j->storage = this;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::abort_disk_io(
-		boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::abort_torrent);
-		j->storage = this;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_delete_files(
-		boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::delete_files);
-		j->storage = this;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_move_storage(std::string const& p
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::move_storage);
-		j->storage = this;
-		j->buffer = strdup(p.c_str());
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_check_fastresume(lazy_entry const* resume_data
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		TORRENT_ASSERT(resume_data != 0);
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::check_fastresume);
-		j->storage = this;
-		j->buffer = (char*)resume_data;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_rename_file(int index, std::string const& name
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::rename_file);
-		j->storage = this;
-		j->piece = index;
-		j->buffer = strdup(name.c_str());
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_cache(int piece
-		, boost::function<void(int, disk_io_job const&)> const& handler)
-	{
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::cache_piece);
-		j->storage = this;
-		j->piece = piece;
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_read(
-		peer_request const& r
-		, boost::function<void(int, disk_io_job const&)> const& handler
-		, void* requester
-		, int flags
-		, int cache_line_size)
-	{
-		TORRENT_ASSERT(requester != 0);
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::read);
-		j->storage = this;
-		j->piece = r.piece;
-		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
-		j->buffer = 0;
-		j->d.io.max_cache_line = cache_line_size;
-		j->flags = flags;
-		j->requester = requester;
-
-		// if a buffer is not specified, only one block can be read
-		// since that is the size of the pool allocator's buffers
-		TORRENT_ASSERT(r.length <= 16 * 1024);
-		j->callback = handler;
-		m_io_thread.add_job(j);
-	}
-
-	void piece_manager::async_write(
-		peer_request const& r
-		, disk_buffer_holder& buffer
-		, boost::function<void(int, disk_io_job const&)> const& handler
-		, int flags)
-	{
-		TORRENT_ASSERT(r.length <= 16 * 1024);
-		// the buffer needs to be allocated through the io_thread
-		TORRENT_ASSERT(buffer.get());
-
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::write);
-		j->storage = this;
-		j->action = disk_io_job::write;
-		j->piece = r.piece;
-		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
-		j->buffer = buffer.get();
-		j->callback = handler;
-		j->flags = flags;
-		m_io_thread.add_job(j);
-		buffer.release();
-	}
-
-	void piece_manager::async_hash(int piece, int flags
-		, boost::function<void(int, disk_io_job const&)> const& handler
-		, void* requester)
-	{
-		TORRENT_ASSERT(requester != 0);
-		TORRENT_ASSERT(piece >= 0 && piece < files()->num_pieces());
-		disk_io_job* j = m_io_thread.aiocbs()->allocate_job(disk_io_job::hash);
-		j->flags = flags;
-		j->storage = this;
-		j->piece = piece;
-		j->requester = requester;
-		j->callback = handler;
-		j->d.io.buffer_size = 0;
-		m_io_thread.add_job(j);
 	}
 
 	// used in torrent_handle.cpp
@@ -1511,48 +1135,188 @@ namespace libtorrent
 	// ====== disk_job_fence implementation ========
 
 	disk_job_fence::disk_job_fence()
-		: m_has_fence(false)
+		: m_has_fence(0)
 		, m_outstanding_jobs(0)
 	{}
 
-	void disk_job_fence::new_job(disk_io_job* j)
-	{
-		++m_outstanding_jobs;
-		TORRENT_ASSERT((j->flags & disk_io_job::async_operation) == 0);
-		j->flags |= disk_io_job::async_operation;
-	}
-
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue& jobs)
 	{
-		TORRENT_ASSERT(j->storage);
-		TORRENT_ASSERT(j->flags & disk_io_job::async_operation);
+		mutex::scoped_lock l(m_mutex);
+
+		TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
+		j->flags &= ~disk_io_job::in_progress;
+
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		j->flags &= ~disk_io_job::async_operation;
+		if (j->flags & disk_io_job::fence)
+		{
+			// a fence job just completed. Make sure the fence logic
+			// works by asserting m_outstanding_jobs is in fact 0 now
+			TORRENT_ASSERT(m_outstanding_jobs == 0);
+
+			// the fence can now be lowered
+			--m_has_fence;
+
+			// now we need to post all jobs that have been queued up
+			// while this fence was up. However, if there's another fence
+			// in the queue, stop there and raise the fence again
+			int ret = 0;
+			while (m_blocked_jobs.size())
+			{
+				disk_io_job *bj = (disk_io_job*)m_blocked_jobs.pop_front();
+				if (bj->flags & disk_io_job::fence)
+				{
+					// we encountered another fence. We cannot post anymore
+					// jobs from the blocked jobs queue. We have to go back
+					// into a raised fence mode and wait for all current jobs
+					// to complete. The exception is that if there are no jobs
+					// executing currently, we should add the fence job.
+					if (m_outstanding_jobs == 0 && jobs.empty())
+					{
+						TORRENT_ASSERT((bj->flags & disk_io_job::in_progress) == 0);
+						bj->flags |= disk_io_job::in_progress;
+						++m_outstanding_jobs;
+						++ret;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+						TORRENT_ASSERT(bj->blocked);
+						bj->blocked = false;
+#endif
+						jobs.push_back(bj);
+					}
+					else
+					{
+						// put the fence job back in the blocked queue
+						m_blocked_jobs.push_front(bj);
+					}
+					return ret;
+				}
+				TORRENT_ASSERT((bj->flags & disk_io_job::in_progress) == 0);
+				bj->flags |= disk_io_job::in_progress;
+
+				++m_outstanding_jobs;
+				++ret;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				TORRENT_ASSERT(bj->blocked);
+				bj->blocked = false;
+#endif
+				jobs.push_back(bj);
+			}
+			return ret;
+		}
 
 		// there are still outstanding jobs, even if we have a
 		// fence, it's not time to lower it yet
 		// also, if we don't have a fence, we're done
-		if (m_outstanding_jobs > 0 || !m_has_fence) return 0;
+		if (m_outstanding_jobs > 0 || m_has_fence == 0) return 0;
 
-		int ret = m_blocked_jobs.size();
-		m_has_fence = false;
-		if (m_blocked_jobs.size()) jobs.prepend(m_blocked_jobs);
-		return ret;
+		// there's a fence raised, and no outstanding operations.
+		// it means we can execute the fence job right now.
+		TORRENT_ASSERT(m_blocked_jobs.size() > 0);
+
+		// this is the fence job
+		disk_io_job *bj = (disk_io_job*)m_blocked_jobs.pop_front();
+		TORRENT_ASSERT(bj->flags & disk_io_job::fence);
+
+		TORRENT_ASSERT((bj->flags & disk_io_job::in_progress) == 0);
+		bj->flags |= disk_io_job::in_progress;
+
+		++m_outstanding_jobs;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(bj->blocked);
+		bj->blocked = false;
+#endif
+		jobs.push_back(bj);
+		return 1;
 	}
 
-	bool disk_job_fence::is_blocked(disk_io_job* j)
+	bool disk_job_fence::is_blocked(disk_io_job* j, bool ignore_fence)
 	{
-		if (!has_fence()) return false;
+		mutex::scoped_lock l(m_mutex);
+		DLOG(stderr, "[%p] is_blocked: fence: %d num_outstanding: %d\n"
+			, this, m_has_fence, int(m_outstanding_jobs));
+
+		// if this is the job that raised the fence, don't block it
+		// ignore fence can only ignore one fence. If there are several,
+		// this job still needs to get queued up
+		if ((ignore_fence && m_has_fence <= 1) || m_has_fence == 0)
+		{
+			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) == 0);
+			j->flags |= disk_io_job::in_progress;
+			++m_outstanding_jobs;
+			return false;
+		}
 		m_blocked_jobs.push_back(j);
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(j->blocked == false);
+		j->blocked = true;
+#endif
+
 		return true;
 	}
 
-	void disk_job_fence::raise_fence(disk_io_job* j)
+	bool disk_job_fence::has_fence() const
 	{
-		TORRENT_ASSERT(m_outstanding_jobs > 0);
-		m_has_fence = true;
+		mutex::scoped_lock l(m_mutex);
+		return m_has_fence;
+	}
+
+	int disk_job_fence::num_blocked() const
+	{
+		mutex::scoped_lock l(m_mutex);
+		return m_blocked_jobs.size();
+	}
+
+	// j is the fence job. It must have exclusive access to the storage
+	// fj is the flush job. If the job j is queued, we need to issue
+	// this job
+	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj)
+	{
+		TORRENT_ASSERT((j->flags & disk_io_job::fence) == 0);
+		j->flags |= disk_io_job::fence;
+
+		mutex::scoped_lock l(m_mutex);
+
+		DLOG(stderr, "[%p] raise_fence: fence: %d num_outstanding: %d\n"
+			, this, m_has_fence, int(m_outstanding_jobs));
+
+		if (m_has_fence == 0 && m_outstanding_jobs == 0)
+		{
+			++m_has_fence;
+			DLOG(stderr, "[%p] raise_fence: need posting\n", this);
+
+			// the job j is expected to be put on the job queue
+			// after this, without being passed through is_blocked()
+			// that's why we're accounting for it here
+
+			// fj is expected to be discarded by the caller
+			j->flags |= disk_io_job::in_progress;
+			++m_outstanding_jobs;
+			return fence_post_fence;
+		}
+
+		++m_has_fence;
+		if (m_has_fence > 1)
+		{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			TORRENT_ASSERT(fj->blocked == false);
+			fj->blocked = true;
+#endif
+			m_blocked_jobs.push_back(fj);
+		}
+		else
+		{
+			// in this case, fj is expected to be put on the job queue
+			fj->flags |= disk_io_job::in_progress;
+			++m_outstanding_jobs;
+		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(j->blocked == false);
+		j->blocked = true;
+#endif
 		m_blocked_jobs.push_back(j);
+
+		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}
 
 #ifdef TORRENT_DEBUG

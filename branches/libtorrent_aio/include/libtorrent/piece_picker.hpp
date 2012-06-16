@@ -336,7 +336,17 @@ namespace libtorrent
 		void mark_as_finished(piece_block block, void* peer);
 		void write_failed(piece_block block);
 		int num_peers(piece_block block) const;
+
+		// if the piece failed, it will automatically be
+		// restored when all blocks are completely written
+		// i.e. transition to finished state. Before then,
+		// it's kept in the writing state to avoid requesting
+		// it from other peers. A piece may also pass the hash
+		// check before all blocks have been written. In this
+		// case a bit will be set in the piece_pos entry
+		// indicating this.
 		void piece_passed(int index);
+		void piece_failed(int index);
 
 		void mark_as_checking(int index);
 		void mark_as_done_checking(int index);
@@ -395,6 +405,11 @@ namespace libtorrent
 		int num_have_filtered() const { return m_num_have_filtered; }
 
 		int num_have() const { return m_num_have; }
+
+		int num_passed() const { return m_num_passed; }
+
+		// return true if we have all the pieces we wanted
+		bool is_finished() const { return m_num_have - m_num_have_filtered == int(m_piece_map.size()) - m_num_filtered; }
 
 #ifdef TORRENT_DEBUG
 		// used in debug mode
@@ -653,6 +668,14 @@ namespace libtorrent
 		// point into this vector for its storage
 		std::vector<block_info> m_block_info;
 
+		// if a piece fails the hash check and is still
+		// being written to disk (i.e. not in finished
+		// state), the piece index is put in this vector.
+		// once all blocks are completed and the piece index
+		// is found in this vector, the piece is restored
+		// and taken out of the vector
+		std::vector<int> m_failed_pieces;
+
 		int m_blocks_per_piece;
 		int m_blocks_in_last_piece;
 
@@ -665,8 +688,11 @@ namespace libtorrent
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
 		
-		// the number of pieces we have
+		// the number of pieces we have (i.e. passed + flushed)
 		int m_num_have;
+		
+		// the number of pieces that have passed the hash check
+		int m_num_passed;
 
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have

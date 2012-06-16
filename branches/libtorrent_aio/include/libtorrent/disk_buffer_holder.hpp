@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	namespace aux { struct session_impl; }
 	struct disk_io_thread;
 
 	struct buffer_allocator_interface

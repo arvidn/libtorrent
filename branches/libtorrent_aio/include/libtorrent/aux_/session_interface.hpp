@@ -50,8 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct peer_connection;
-	struct torrent;
+	class peer_connection;
+	class torrent;
 	struct proxy_settings;
 	struct write_some_job;
 	struct pe_settings;
@@ -60,6 +60,7 @@ namespace libtorrent
 	struct bandwidth_manager;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
+	struct peer_class_pool;
 #endif
 }
 
@@ -163,6 +164,7 @@ namespace libtorrent { namespace aux
 			, int instance, bool append = true) = 0;
 		virtual void session_log(char const* fmt, ...) const = 0;
 		virtual void log_all_torrents(peer_connection* p) = 0;
+		virtual peer_class_pool const& peer_classes() const = 0;
 #endif
 
 #ifdef TORRENT_STATS

@@ -184,6 +184,8 @@ namespace libtorrent {
 	mutex _async_ops_mutex;
 #endif
 
+write_some_job::~write_some_job() {}
+
 void network_thread_pool::process_job(write_some_job const& j, bool post)
 {
 	TORRENT_ASSERT(j.peer->m_socket_is_writing);
@@ -716,6 +718,7 @@ namespace aux {
 		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
 		m_local_peer_class = m_classes.new_peer_class("local");
+		m_classes.at(m_local_peer_class)->ignore_unchoke_slots = true;
 
 		TORRENT_ASSERT(m_global_class == session::global_peer_class_id);
 		TORRENT_ASSERT(m_tcp_peer_class == session::tcp_peer_class_id);
@@ -808,7 +811,6 @@ namespace aux {
 
 		PRINT_SIZEOF(disk_io_job)
 		PRINT_OFFSETOF(disk_io_job, next)
-		PRINT_OFFSETOF(disk_io_job, start_time)
 		PRINT_OFFSETOF(disk_io_job, buffer)
 		PRINT_OFFSETOF(disk_io_job, storage)
 		PRINT_OFFSETOF(disk_io_job, callback)
@@ -820,7 +822,6 @@ namespace aux {
 		PRINT_OFFSETOF(disk_io_job, d.io.ref.block)
 		PRINT_OFFSETOF(disk_io_job, d.io.offset)
 		PRINT_OFFSETOF(disk_io_job, d.io.buffer_size)
-		PRINT_OFFSETOF(disk_io_job, d.io.max_cache_line)
 //		PRINT_OFFSETOF(disk_io_job, piece)
 //		PRINT_OFFSETOF(disk_io_job, action)
 		PRINT_OFFSETOF(disk_io_job, flags)
@@ -1043,6 +1044,8 @@ namespace aux {
 		update_upload_rate();
 		update_connections_limit();
 		update_choking_algorithm();
+		update_disk_threads();
+		update_network_threads();
 	}
 
 #ifdef TORRENT_STATS
@@ -1140,7 +1143,6 @@ namespace aux {
 			":% protocol bytes"
 			":disk read time"
 			":disk write time"
-			":disk queue time"
 			":disk queue size"
 			":queued disk bytes"
 			":read cache hits"
@@ -1153,9 +1155,6 @@ namespace aux {
 			":disk cache size"
 			":disk buffer allocations"
 			":disk hash time"
-			":disk job time"
-			":disk sort time"
-			":disk issue time"
 			":connection attempts"
 			":banned peers"
 			":banned for hash failure"
@@ -1166,8 +1165,6 @@ namespace aux {
 			":% read time"
 			":% write time"
 			":% hash time"
-			":% sort time"
-			":% issue time"
 			":disk read back"
 			":% read back"
 			":disk read queue size"
@@ -1203,8 +1200,6 @@ namespace aux {
 			":num downloading partial pieces"
 			":num full partial pieces"
 			":num finished partial pieces"
-			":completed aio jobs"
-			":in progress aio jobs"
 			":allocated jobs"
 			":allocated read jobs"
 			":allocated write jobs"
@@ -1278,6 +1273,10 @@ namespace aux {
 			":choked piece requests"
 			":cancelled piece requests"
 			":piece rejects"
+
+			":total pieces"
+			":pieces flushed"
+			":pieces passed"
 
 			":peers up send buffer"
 
@@ -1831,41 +1830,24 @@ namespace aux {
 		m_udp_socket.close();
 		m_external_udp_port = 0;
 
+		// we need to wait for the disk-io thread to
+		// die first, to make sure it won't post any
+		// more messages to the io_service containing references
+		// to disk_io_pool inside the disk_io_thread. Once
+		// the main thread has handled all the outstanding requests
+		// we know it's safe to destruct the disk thread.
+		// we must wait until we're done posting all the jobs to the
+		// disk thread before aborting it
+		m_disk_thread.set_num_threads(0);
+
+		m_undead_peers.clear();
+
 #ifndef TORRENT_DISABLE_GEO_IP
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		if (m_country_db) GeoIP_delete(m_country_db);
 		m_asnum_db = 0;
 		m_country_db = 0;
 #endif
-
-		m_disk_thread.abort();
-	}
-
-	void get_cache_info_done(int ret, mutex* m, condition* e, bool* done)
-	{
-		mutex::scoped_lock l(*m);
-		*done = true;
-		e->signal_all(l);
-	}
-
-	// #error should this be a function on torrent_handle?
-	void session_impl::get_cache_info(sha1_hash const& ih, cache_status* ret
-		, int flags, bool* done, condition* e, mutex* m)
-	{
-		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
-		if (!t || !t->valid_storage())
-		{
-			*ret = cache_status();
-			get_cache_info_done(0, m, e, done);
-			return;
-		}
-		piece_manager* st = &t->filesystem();
-		disk_io_job* j = m_disk_thread.aiocbs()->allocate_job(disk_io_job::get_cache_info);
-		j->storage = st;
-		j->buffer = (char*)ret;
-		j->flags = (flags & session::disk_cache_no_pieces) ? disk_io_job::no_pieces : 0;
-		j->callback = boost::bind(&get_cache_info_done, _1, m, e, done);
-		m_disk_thread.add_job(j);
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -2069,9 +2051,8 @@ namespace aux {
 	void session_impl::apply_settings_pack(settings_pack* pack)
 	{
 		apply_pack(pack, m_settings, this);
-
-		// instead of deleting the settings_pack, pass it on to the disk thread
 		m_disk_thread.set_settings(pack);
+		delete pack;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2839,7 +2820,7 @@ namespace aux {
 
 		boost::intrusive_ptr<peer_connection> c(
 			new bt_peer_connection(*this, m_settings
-				, *this, m_io_service, s, endp, 0));
+				, *this, m_disk_thread, m_io_service, s, endp, 0));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -3723,6 +3704,10 @@ namespace aux {
 		// sum of limits of all torrents with a peer limit
 		int total_peers_limit = 0;
 
+		int total_pieces = 0;
+		int total_have_pieces = 0;
+		int total_passed_pieces = 0;
+
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -3780,6 +3765,13 @@ namespace aux {
 				partial_downloading_pieces += a;
 				partial_full_pieces += b;
 				partial_finished_pieces += c;
+			}
+
+			if (t->valid_metadata())
+			{
+				total_pieces += t->torrent_file().num_pieces();
+				total_have_pieces += t->num_have();
+				total_passed_pieces += t->num_passed();
 			}
 
 			dq.clear();
@@ -3919,7 +3911,7 @@ namespace aux {
 		if (m_stats_logger)
 		{
 			cache_status cs;
-			m_disk_thread.get_disk_metrics(cs);
+			m_disk_thread.get_cache_info(&cs);
 			session_status sst = status();
 
 			m_read_ops.add_sample((cs.reads - m_last_cache_status.reads) * 1000.0 / float(tick_interval_ms));
@@ -3999,7 +3991,6 @@ namespace aux {
 			STAT_LOG(f, (float(m_stat.total_protocol_download()) * 100.f / (m_stat.total_download() == 0 ? 1 : m_stat.total_download())));
 			STAT_LOG(f, float(cs.average_read_time) / 1000000.f);
 			STAT_LOG(f, float(cs.average_write_time) / 1000000.f);
-			STAT_LOG(f, float(cs.average_queue_time) / 1000000.f);
 			STAT_LOG(d, int(cs.pending_jobs + cs.queued_jobs));
 			STAT_LOG(d, int(cs.queued_bytes));
 			STAT_LOG(d, int(cs.blocks_read_hit - m_last_cache_status.blocks_read_hit));
@@ -4012,9 +4003,6 @@ namespace aux {
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(f, float(cs.average_hash_time) / 1000000.f);
-			STAT_LOG(f, float(cs.average_job_time) / 1000000.f);
-			STAT_LOG(f, float(cs.average_sort_time) / 1000000.f);
-			STAT_LOG(f, float(cs.average_issue_time) / 1000000.f);
 			STAT_LOG(d, m_stats_counter[connection_attempts]);
 			STAT_LOG(d, m_stats_counter[num_banned_peers]);
 			STAT_LOG(d, m_stats_counter[banned_for_hash_failure]);
@@ -4026,8 +4014,6 @@ namespace aux {
 			STAT_LOG(f, float(cs.cumulative_read_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_write_time * 100.f / total_job_time));
 			STAT_LOG(f, float(cs.cumulative_hash_time * 100.f / total_job_time));
-			STAT_LOG(f, float(cs.cumulative_sort_time * 100.f / total_job_time));
-			STAT_LOG(f, float(cs.cumulative_issue_time * 100.f / total_job_time));
 			STAT_LOG(d, int(cs.total_read_back - m_last_cache_status.total_read_back));
 			STAT_LOG(f, float(cs.total_read_back * 100.f / (cs.blocks_written == 0 ? 1: cs.blocks_written)));
 			STAT_LOG(d, cs.read_queue_size);
@@ -4066,9 +4052,6 @@ namespace aux {
 			STAT_LOG(d, partial_downloading_pieces);
 			STAT_LOG(d, partial_full_pieces);
 			STAT_LOG(d, partial_finished_pieces);
-
-			STAT_LOG(d, int(cs.cumulative_completed_aiocbs - m_last_cache_status.cumulative_completed_aiocbs));
-			STAT_LOG(d, cs.num_aiocb);
 
 			STAT_LOG(d, cs.num_jobs);
 			STAT_LOG(d, cs.num_read_jobs);
@@ -4146,6 +4129,10 @@ namespace aux {
 			STAT_LOG(d, m_stats_counter[choked_piece_requests]);
 			STAT_LOG(d, m_stats_counter[cancelled_piece_requests]);
 			STAT_LOG(d, m_stats_counter[piece_rejects]);
+
+			STAT_LOG(d, total_pieces);
+			STAT_LOG(d, total_have_pieces);
+			STAT_LOG(d, total_passed_pieces);
 
 			STAT_LOG(d, peers_up_send_buffer);
 
@@ -4752,7 +4739,7 @@ namespace aux {
 			}
 			else
 			{
-				// no, this peer should be shoked
+				// no, this peer should be choked
 				TORRENT_ASSERT(p->peer_info_struct());
 				if (!p->is_choked() && !p->peer_info_struct()->optimistically_unchoked)
 					t->choke_peer(*p);
@@ -5660,18 +5647,6 @@ namespace aux {
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
-		// we need to wait for the disk-io thread to
-		// die first, to make sure it won't post any
-		// more messages to the io_service containing references
-		// to disk_io_pool inside the disk_io_thread. Once
-		// the main thread has handled all the outstanding requests
-		// we know it's safe to destruct the disk thread.
-		m_disk_thread.join();
-
-		// clear the undead peer list in the network thread
-		m_io_service.post(boost::bind(&std::vector<intrusive_ptr<peer_connection> >::clear
-			, &m_undead_peers));
-
 		// now it's OK for the network thread to exit
 		m_work.reset();
 
@@ -5844,6 +5819,23 @@ namespace aux {
 	void session_impl::upate_dht_upload_rate_limit()
 	{
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
+	}
+
+	void session_impl::update_disk_threads()
+	{
+		if (m_settings.get_int(settings_pack::aio_threads) < 1)
+			m_settings.set_int(settings_pack::aio_threads, 1);
+
+#if !TORRENT_USE_PREAD && !TORRENT_USE_PREADV
+		// if we don't have pread() nor preadv() there's no way
+		// to perform concurrent file operations on the same file
+		// handle, so we must limit the disk thread to a single one
+
+		if (m_settings.get_int(settings_pack::aio_threads) > 1)
+			m_settings.set_int(settings_pack::aio_threads, 1);
+#endif
+
+		m_disk_thread.set_num_threads(m_settings.get_int(settings_pack::aio_threads));
 	}
 
 	void session_impl::update_network_threads()
@@ -6045,7 +6037,6 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_rate_limit_utp()
 	{
-		const int filter = (1 << m_local_peer_class) | (1 << m_global_class);
 		if (m_settings.get_bool(settings_pack::rate_limit_utp))
 		{
 			// allow the global or local peer class to limit uTP peers

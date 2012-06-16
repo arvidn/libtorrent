@@ -78,6 +78,7 @@ in a swarm has the same IP address.
 
 if set to true, upload, download and unchoke limits
 are ignored for peers on the local network.
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 
 .. _send_redundant_have:
 
@@ -147,14 +148,23 @@ piece that passes the hash check, it is taken out of parole mode.
 
 .. _use_read_cache:
 
-+----------------+------+---------+
-| name           | type | default |
-+================+======+=========+
-| use_read_cache | bool | true    |
-+----------------+------+---------+
+.. _use_write_cache:
 
-when true, the disk I/O thread uses the disk
-cache for caching blocks read from disk too
++-----------------+------+---------+
+| name            | type | default |
++=================+======+=========+
+| use_read_cache  | bool | true    |
++-----------------+------+---------+
+| use_write_cache | bool | true    |
++-----------------+------+---------+
+
+enable and disable caching of read blocks and
+blocks to be written to disk respsectively.
+the purpose of the read cache is partly read-ahead of requests
+but also to avoid reading blocks back from the disk multiple
+times for popular pieces.
+the write cache purpose is to hold off writing blocks to disk until
+they have been hashed, to avoid having to read them back in again.
 
 .. _dont_flush_write_cache:
 
@@ -639,7 +649,7 @@ buffer size on the kernel socket, both for IPv4 and IPv6).
 +----------------+------+---------+
 
 set to true if uTP connections should be rate limited
-defaults to false
+This option is *DEPRECATED*, please use `set_peer_class_filter()`_ instead.
 
 .. _announce_double_nat:
 
@@ -2103,7 +2113,7 @@ should be announced, before they are expected to be completed.
 +-------------+------+---------+
 | name        | type | default |
 +=============+======+=========+
-| aio_threads | int  | 2       |
+| aio_threads | int  | 4       |
 +-------------+------+---------+
 | aio_max     | int  | 300     |
 +-------------+------+---------+

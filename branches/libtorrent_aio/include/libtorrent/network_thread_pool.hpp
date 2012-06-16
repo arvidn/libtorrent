@@ -46,6 +46,8 @@ namespace libtorrent
 	{
 		std::vector<asio::const_buffer> const* vec;
 		boost::intrusive_ptr<peer_connection> peer;
+		// defined in session_impl.cpp
+		~write_some_job();
 	};
 
 	// defined in session_impl.cpp

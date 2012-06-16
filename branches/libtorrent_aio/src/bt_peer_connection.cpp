@@ -97,13 +97,15 @@ namespace libtorrent
 		aux::session_interface& ses
 		, aux::session_settings& sett
 		, buffer_allocator_interface& allocator
+		, disk_interface& disk_thread
 		, io_service& ios
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, policy::peer* peerinfo
 		, boost::weak_ptr<torrent> tor
 		, bool outgoing)
-		: peer_connection(ses, sett, allocator, ios, tor, s, remote, peerinfo, outgoing)
+		: peer_connection(ses, sett, allocator, disk_thread, ios
+			, tor, s, remote, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
