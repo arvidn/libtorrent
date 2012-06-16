@@ -84,7 +84,7 @@ namespace libtorrent
 
 	};
 
-	struct peer_class_pool
+	struct TORRENT_EXTRA_EXPORT peer_class_pool
 	{
 	
 		peer_class_t new_peer_class(std::string const& label);

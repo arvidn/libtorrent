@@ -43,10 +43,10 @@ namespace libtorrent
 	struct settings_pack;
 	struct lazy_entry;
 
-	settings_pack* load_pack_from_dict(lazy_entry const* settings);
-	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
-	void initialize_default_settings(aux::session_settings& s);
-	void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
+	TORRENT_EXTRA_EXPORT settings_pack* load_pack_from_dict(lazy_entry const* settings);
+	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
+	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
+	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
 
 	int setting_by_name(std::string const& name);
 	char const* name_for_setting(int s);
