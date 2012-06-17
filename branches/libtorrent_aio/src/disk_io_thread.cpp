@@ -1872,10 +1872,12 @@ namespace libtorrent
 				// if the number of wanted thread is decreased,
 				// we may stop this thread
 				// when we're terminating the last thread (id=0), make sure
-				// we finish up all queud jobs first
-				// TODO: we cannot quit if there are any dirty blocks in the block_cache
-				// either!
-				if ((thread_id != 0 || m_queued_jobs.empty()) && thread_id >= m_num_threads) break;
+				// we finish up all queued jobs first
+				if (thread_id >= m_num_threads && !(thread_id == 0 && m_queued_jobs.size() > 0))
+				{
+					// time to exit this thread.
+					break;
+				}
 
 				j = (disk_io_job*)m_queued_jobs.pop_front();
 			}
@@ -1925,9 +1927,24 @@ namespace libtorrent
 			return;
 		}
 
+		// at this point, there are no queued jobs left. However, main
+		// thread is still running and may still have peer_connections
+		// that haven't fully destructed yet, reclaiming their references
+		// to read blocks in the disk cache. We need to wait until all
+		// references are removed from other threads before we can go
+		// ahead with the cleanup.
+		mutex::scoped_lock l2(m_cache_mutex);
+		while (m_disk_cache.pinned_blocks() > 0)
+		{
+			l2.unlock();
+			sleep(100);
+			l2.lock();
+		}
+
 		DLOG(stderr, "[%p] disk thread %d is the last one alive. cleaning up\n", this, thread_id);
 
 		tailqueue jobs;
+
 		m_disk_cache.clear(jobs);
 		abort_jobs(jobs);
 
@@ -1996,6 +2013,16 @@ namespace libtorrent
 			j->job_posted = true;
 #endif
 		}
+
+		if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret
+			, int(m_num_blocked_jobs) - ret);
+		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
+
+		// gah. can't wait for c++11 atomic or boost.atomic
+//		m_num_blocked_jobs -= ret;
+		// this is so retarded
+		while (ret--) --m_num_blocked_jobs;
+
 		if (new_jobs.size() > 0)
 		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -2009,14 +2036,6 @@ namespace libtorrent
 			m_queued_jobs.append(new_jobs);
 			m_job_cond.signal_all(l);
 		}
-		if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret
-			, int(m_num_blocked_jobs) - ret);
-		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
-
-		// gah. can't wait for c++11 atomic or boost.atomic
-//		m_num_blocked_jobs -= ret;
-		// this is so retarded
-		while (ret--) --m_num_blocked_jobs;
 
 		mutex::scoped_lock l(m_completed_jobs_mutex);
 

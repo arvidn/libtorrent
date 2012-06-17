@@ -353,6 +353,8 @@ namespace libtorrent
 		void inc_block_refcount(cached_piece_entry* pe, int block);
 		void dec_block_refcount(cached_piece_entry* pe, int block);
 
+		int pinned_blocks() const { return m_pinned_blocks; }
+
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss

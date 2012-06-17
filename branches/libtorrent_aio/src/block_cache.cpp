@@ -86,20 +86,13 @@ cached_piece_entry::~cached_piece_entry()
 {
 	TORRENT_ASSERT(piece_refcount == 0);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	int read_refcounts = 0;
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		TORRENT_ASSERT(blocks[i].buf == 0);
 		TORRENT_ASSERT(!blocks[i].pending);
-		TORRENT_ASSERT(blocks[i].refcount == 0 || blocks[i].refcount == blocks[i].reading_count);
+		TORRENT_ASSERT(blocks[i].refcount == 0);
 		TORRENT_ASSERT(blocks[i].hashing == 0);
-		read_refcounts += blocks[i].reading_count;
 	}
-	// There's still an issue where there may be references
-	// held by read jobs. We need to make sure to tear down
-	// peer connections and their send buffers before stopping
-	// the disk thread.
-	TORRENT_ASSERT(refcount == 0 || refcount == read_refcounts);
 #endif
 	delete hash;
 }
@@ -939,6 +932,7 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		if (p.blocks[i].buf == 0) continue;
+		TORRENT_ASSERT(p.blocks[i].refcount == 0);
 		buf.push_back(p.blocks[i].buf);
 		++ret;
 		p.blocks[i].buf = 0;
@@ -982,8 +976,6 @@ void block_cache::set_settings(aux::session_settings const& sett)
 #ifdef TORRENT_DEBUG
 void block_cache::check_invariant() const
 {
-	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= in_use());
-
 	int cached_write_blocks = 0;
 	int cached_read_blocks = 0;
 	int num_pinned = 0;
@@ -1083,6 +1075,7 @@ void block_cache::check_invariant() const
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);
 	TORRENT_ASSERT(m_write_cache_size == cached_write_blocks);
 	TORRENT_ASSERT(m_pinned_blocks == num_pinned);
+	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size <= in_use());
 
 #ifdef TORRENT_BUFFER_STATS
 	int read_allocs = m_categories.find(std::string("read cache"))->second;
@@ -1209,6 +1202,8 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 void block_cache::reclaim_block(block_cache_reference const& ref)
 {
 	cached_piece_entry* pe = find_piece(ref);
+	if (pe == NULL) return;
+
 	TORRENT_ASSERT(pe->blocks[ref.block].refcount > 0);
 	TORRENT_ASSERT(pe->blocks[ref.block].buf);
 	--pe->blocks[ref.block].refcount;
