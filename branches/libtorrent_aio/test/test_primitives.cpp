@@ -1020,7 +1020,7 @@ int test_main()
 	path.clear();
 	sanitize_append_path_element(path, "dev:", 4);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "");
+	TEST_EQUAL(path, "dev");
 #else
 	TEST_EQUAL(path, "dev:");
 #endif
@@ -1029,7 +1029,7 @@ int test_main()
 	sanitize_append_path_element(path, "c:", 2);
 	sanitize_append_path_element(path, "b", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "b");
+	TEST_EQUAL(path, "c\\b");
 #else
 	TEST_EQUAL(path, "c:/b");
 #endif
@@ -1039,7 +1039,7 @@ int test_main()
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c");
+	TEST_EQUAL(path, "c\\c");
 #else
 	TEST_EQUAL(path, "c:/c");
 #endif
