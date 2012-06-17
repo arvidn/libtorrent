@@ -72,15 +72,6 @@ void test_swarm()
 	ses2.apply_settings(pack);
 	ses3.apply_settings(pack);
 
-	// apply the global rate limit to local peers as well
-	ip_filter f;
-	f.add_rule(address_v4::from_string("0.0.0.0")
-		, address_v4::from_string("255.255.255.255")
-		, session::global_peer_class_id);
-	ses1.set_peer_class_filter(f);
-	ses2.set_peer_class_filter(f);
-	ses3.set_peer_class_filter(f);
-
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
 	pes.out_enc_policy = pe_settings::forced;
@@ -97,7 +88,7 @@ void test_swarm()
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
 	session_status st = ses1.status();
-	TEST_CHECK(st.allowed_upload_slots == 1);
+	TEST_EQUAL(st.allowed_upload_slots, 1);
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses1, "ses1");

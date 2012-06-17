@@ -731,6 +731,9 @@ namespace aux {
 		m_peer_class_type_filter.add(peer_class_type_filter::ssl_tcp_socket, m_tcp_peer_class);
 		m_peer_class_type_filter.add(peer_class_type_filter::i2p_socket, m_tcp_peer_class);
 
+		// TODO: there's no rule here to make uTP connections not have the global or
+		// local rate limits apply to it. This used to be the default.
+
 #ifdef TORRENT_UPNP_LOGGING
 		m_upnp_log.open("upnp.log", std::ios::in | std::ios::out | std::ios::trunc);
 #endif

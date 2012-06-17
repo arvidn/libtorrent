@@ -217,42 +217,43 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		ses2.set_proxy(ps);
 	}
 
-	session_settings sett;
-	sett.allow_multiple_connections_per_ip = false;
-	sett.ignore_limits_on_local_network = false;
+	settings_pack pack;
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
 	if (test_allowed_fast)
 	{
-		sett.allowed_fast_set_size = 2000;
-		sett.unchoke_slots_limit = 0;
+		pack.set_int(settings_pack::allowed_fast_set_size, 2000);
 	}
 
-	sett.unchoke_slots_limit = 0;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 0);
-	sett.unchoke_slots_limit = -1;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == -1);
-	sett.unchoke_slots_limit = 8;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 8);
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, -1);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 8);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
 
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.
 	// using a reconnect time > 0 will just add
 	// to the time it will take to complete the test
-	sett.min_reconnect_time = 0;
-	sett.stop_tracker_timeout = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	// make sure we announce to both http and udp trackers
-	sett.prefer_udp_trackers = false;
-	sett.enable_outgoing_utp = false;
-	sett.enable_incoming_utp = false;
+	pack.set_int(settings_pack::min_reconnect_time, 0);
+	pack.set_int(settings_pack::stop_tracker_timeout, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 
-	ses1.set_settings(sett);
-	ses2.set_settings(sett);
+	// make sure we announce to both http and udp trackers
+	pack.set_bool(settings_pack::prefer_udp_trackers, false);
+	pack.set_bool(settings_pack::enable_outgoing_utp, false);
+	pack.set_bool(settings_pack::enable_incoming_utp, false);
+
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -309,10 +310,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	ses1.set_alert_mask(mask);
 	ses2.set_alert_mask(mask);
 //	ses1.set_alert_dispatch(&print_alert);
-
-//	sett = ses2.settings();
-//	sett.download_rate_limit = tor2.get_torrent_info().piece_length() * 5;
-//	ses2.set_settings(sett);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths

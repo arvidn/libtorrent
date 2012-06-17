@@ -80,32 +80,32 @@ void test_swarm(int flags = 0)
 	// three peers before finishing.
 	float rate_limit = 100000;
 
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	settings.ignore_limits_on_local_network = false;
+	settings_pack pack;
+
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
 	if (flags & strict_super_seeding)
-		settings.strict_super_seeding = true;
+		pack.set_bool(settings_pack::strict_super_seeding, true);
 
 	if (flags & suggest)
-		settings.suggest_mode = session_settings::suggest_read_cache;
+		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
 
 	if (flags & explicit_cache)
-		settings.explicit_read_cache = true;
+		pack.set_bool(settings_pack::explicit_read_cache, true);
 
 	if (flags & explicit_cache)
 	{
-		settings.explicit_read_cache = true;
-		settings.explicit_cache_interval = 5;
+		pack.set_bool(settings_pack::explicit_read_cache, true);
+		pack.set_int(settings_pack::explicit_cache_interval, 5);
 	}
 
-	settings.upload_rate_limit = rate_limit;
-	ses1.set_settings(settings);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	ses1.apply_settings(pack);
 
-	settings.download_rate_limit = rate_limit / 2;
-	settings.upload_rate_limit = rate_limit;
-	ses2.set_settings(settings);
-	ses3.set_settings(settings);
+	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
+	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	ses2.apply_settings(pack);
+	ses3.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;

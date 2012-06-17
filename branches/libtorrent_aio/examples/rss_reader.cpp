@@ -104,11 +104,11 @@ int main(int argc, char* argv[])
 
 	session ses;
 
-	session_settings sett;
-	sett.active_downloads = 2;
-	sett.active_seeds = 1;
-	sett.active_limit = 3;
-	ses.set_settings(sett);
+	settings_pack pack;
+	pack.set_int(settings_pack::active_downloads, 2);
+	pack.set_int(settings_pack::active_seeds, 1);
+	pack.set_int(settings_pack::active_limit, 3);
+	ses.apply_settings(pack);
 
 	std::vector<char> in;
 	error_code ec;

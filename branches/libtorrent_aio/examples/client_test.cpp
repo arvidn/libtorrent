@@ -1242,7 +1242,7 @@ int main(int argc, char* argv[])
 	}
 
 	using namespace libtorrent;
-	session_settings settings;
+	settings_pack settings;
 
 	proxy_settings ps;
 
@@ -1334,20 +1334,20 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
-			case 'o': settings.half_open_limit = atoi(arg); break;
-			case 'h': settings.allow_multiple_connections_per_ip = true; --i; break;
+			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
+			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
 			case 'p': listen_port = atoi(arg); break;
-			case 'k': settings = high_performance_seed(); --i; break;
-			case 'j': settings.use_disk_read_ahead = false; --i; break;
-			case 'z': settings.disable_hash_checks = true; --i; break;
-			case 'K': settings.suggest_mode = session_settings::suggest_read_cache; --i; break;
-			case 'B': settings.peer_timeout = atoi(arg); break;
-			case 'n': settings.announce_to_all_tiers = true; --i; break;
+//			case 'k': settings = high_performance_seed(); --i; break;
+			case 'j': settings.set_bool(settings_pack::use_disk_read_ahead, false); --i; break;
+			case 'z': settings.set_bool(settings_pack::disable_hash_checks, true); --i; break;
+			case 'K': settings.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache); --i; break;
+			case 'B': settings.set_int(settings_pack::peer_timeout, atoi(arg)); break;
+			case 'n': settings.set_bool(settings_pack::announce_to_all_tiers, true); --i; break;
 			case 'G': seed_mode = true; --i; break;
-			case 'E': settings.hashing_threads = atoi(arg); break;
-			case 'd': settings.download_rate_limit = atoi(arg) * 1000; break;
-			case 'u': settings.upload_rate_limit = atoi(arg) * 1000; break;
-			case 'S': settings.unchoke_slots_limit = atoi(arg); break;
+			case 'E': settings.set_int(settings_pack::hashing_threads, atoi(arg)); break;
+			case 'd': settings.set_int(settings_pack::download_rate_limit, atoi(arg) * 1000); break;
+			case 'u': settings.set_int(settings_pack::upload_rate_limit, atoi(arg) * 1000); break;
+			case 'S': settings.set_int(settings_pack::unchoke_slots_limit, atoi(arg)); break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
 				if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
@@ -1358,11 +1358,11 @@ int main(int argc, char* argv[])
 			case 'm': monitor_dir = arg; break;
 			case 'Q': share_mode = true; --i; break;
 			case 'b': bind_to_interface = arg; break;
-			case 'w': settings.urlseed_wait_retry = atoi(arg); break;
+			case 'w': settings.set_int(settings_pack::urlseed_wait_retry, atoi(arg)); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H': start_dht = false; --i; break;
-			case 'l': settings.listen_queue_size = atoi(arg); break;
+			case 'l': settings.set_int(settings_pack::listen_queue_size, atoi(arg)); break;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			case 'e':
 				{
@@ -1377,8 +1377,8 @@ int main(int argc, char* argv[])
 				}
 #endif
 			case 'W':
-				settings.max_peerlist_size = atoi(arg);
-				settings.max_paused_peerlist_size = atoi(arg) / 2;
+				settings.set_int(settings_pack::max_peerlist_size, atoi(arg));
+				settings.set_int(settings_pack::max_paused_peerlist_size, atoi(arg) / 2);
 				break;
 			case 'x':
 				{
@@ -1400,7 +1400,7 @@ int main(int argc, char* argv[])
 					}
 				}
 				break;
-			case 'c': settings.connections_limit = atoi(arg); break;
+			case 'c': settings.set_int(settings_pack::connections_limit, atoi(arg)); break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
 #if TORRENT_USE_I2P
 			case 'i':
@@ -1414,16 +1414,24 @@ int main(int argc, char* argv[])
 				}
 #endif // TORRENT_USE_I2P
 			case 'C':
-				settings.cache_size = atoi(arg);
-				settings.use_read_cache = settings.cache_size > 0;
-				settings.cache_buffer_chunk_size = settings.cache_size / 100;
+				settings.set_int(settings_pack::cache_size, atoi(arg));
+				settings.set_int(settings_pack::use_read_cache, settings.cache_size > 0);
+				settings.set_int(settings_pack::cache_buffer_chunk_size, settings.cache_size / 100);
 				break;
-			case 'A': settings.allowed_fast_set_size = atoi(arg); break;
-			case 'R': settings.read_cache_line_size = atoi(arg); break;
-			case 'O': settings.allow_reordered_disk_operations = false; --i; break;
-			case 'M': settings.mixed_mode_algorithm = session_settings::prefer_tcp; --i; break;
-			case 'y': settings.enable_outgoing_tcp = false; settings.enable_incoming_tcp = false; --i; break;
-			case 'J': settings.enable_outgoing_utp = false; settings.enable_incoming_utp = false; --i; break;
+			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
+			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
+			case 'O': settings.set_bool(settings_pack::allow_reordered_disk_operations, false); --i; break;
+			case 'M': settings.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp); --i; break;
+			case 'y':
+				settings.set_bool(settings_pack::enable_outgoing_tcp, false);
+				settings.set_bool(settings_pack::enable_incoming_tcp, false);
+				--i;
+				break;
+			case 'J':
+				settings.set_bool(settings_pack::enable_outgoing_utp, false);
+				settings.set_bool(settings_pack::enable_incoming_utp, false);
+				--i;
+				break;
 			case 'r': peer = arg; break;
 			case 'P':
 				{
@@ -1473,13 +1481,16 @@ int main(int argc, char* argv[])
 					break;
 				}
 			case 'X': start_lsd = false; --i; break;
-			case 'Z': settings.mmap_cache = arg; settings.contiguous_recv_buffer = false; break;
-			case 'v': settings.active_downloads = atoi(arg);
-				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
+			case 'Z':
+				settings.set_str(settings_pack::mmap_cache, arg);
+				settings.set_bool(settings_pack::contiguous_recv_buffer, false);
+				break;
+			case 'v': settings.set_int(settings_pack::active_downloads, atoi(arg));
+				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
 				break;
 			case '^':
-				settings.active_seeds = atoi(arg);
-				settings.active_limit = (std::max)(atoi(arg) * 2, settings.active_limit);
+				settings.set_int(settings_pack::active_seeds, atoi(arg));
+				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
 				break;
 			case 'q': loop_limit = atoi(arg); break;
 			case '0': disable_storage = true; --i;
@@ -1514,7 +1525,7 @@ int main(int argc, char* argv[])
 #ifndef TORRENT_DISABLE_DHT
 	if (start_dht)
 	{
-		settings.use_dht_as_fallback = false;
+		settings.set_bool(settings_pack::use_dht_as_fallback, false);
 
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bittorrent.com"), 6881));
@@ -1527,13 +1538,13 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	settings.user_agent = "client_test/" LIBTORRENT_VERSION;
-	settings.choking_algorithm = session_settings::auto_expand_choker;
-	settings.disk_cache_algorithm = session_settings::avoid_readback;
-	settings.volatile_read_cache = false;
-	settings.aio_threads = 16;
+	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
+	settings.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
+	settings.set_int(settings_pack::disk_cache_algorithm, settings_pack::avoid_readback);
+	settings.set_bool(settings_pack::volatile_read_cache, false);
+	settings.set_int(settings_pack::aio_threads, 16);
 
-	ses.set_settings(settings);
+	ses.apply_settings(settings);
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
 		, end(magnet_links.end()); i != end; ++i)
