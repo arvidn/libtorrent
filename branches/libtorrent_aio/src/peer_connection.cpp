@@ -2279,7 +2279,6 @@ namespace libtorrent
 		ptime now = time_now();
 
 		piece_picker& picker = t->picker();
-		piece_manager& fs = t->filesystem();
 
 		std::vector<piece_block> finished_blocks;
 		piece_block block_finished(p.piece, p.start / t->block_size());
@@ -2379,6 +2378,8 @@ namespace libtorrent
 
 			m_download_queue.erase(b);
 			m_timeout_extend = 0;
+
+			if (m_disconnecting) return;
 
 			if (!m_download_queue.empty())
 				m_requested = now;
