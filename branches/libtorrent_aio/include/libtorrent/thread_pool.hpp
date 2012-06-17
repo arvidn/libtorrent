@@ -69,7 +69,7 @@ namespace libtorrent
 				mutex::scoped_lock l(m_mutex);
 				m_cond.signal_all(l);
 				l.unlock();
-				if (wait) for (int i = m_num_threads; i < m_threads.size(); ++i) m_threads[i]->join();
+				if (wait) for (int i = m_num_threads; i < int(m_threads.size()); ++i) m_threads[i]->join();
 				// this will detach the threads
 				m_threads.resize(m_num_threads);
 			}
