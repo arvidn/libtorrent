@@ -553,6 +553,42 @@ namespace libtorrent
 		insort_replace(m_bools, v);
 	}
 
+	std::string settings_pack::get_str(int name) const
+	{
+		TORRENT_ASSERT((name & type_mask) == string_type_base);
+		if ((name & type_mask) != string_type_base) return std::string();
+
+		std::pair<int, std::string> v(name, std::string());
+		std::vector<std::pair<int, std::string> >::const_iterator i
+			= std::lower_bound(m_strings.begin(), m_strings.end(), v);
+		if (i != m_strings.end() && i->first == name) return i->second;
+		return std::string();
+	}
+
+	int settings_pack::get_int(int name) const
+	{
+		TORRENT_ASSERT((name & type_mask) == int_type_base);
+		if ((name & type_mask) != int_type_base) return 0;
+
+		std::pair<int, int> v(name, 0);
+		std::vector<std::pair<int, int> >::const_iterator i
+			= std::lower_bound(m_ints.begin(), m_ints.end(), v);
+		if (i != m_ints.end() && i->first == name) return i->second;
+		return 0;
+	}
+
+	bool settings_pack::get_bool(int name) const
+	{
+		TORRENT_ASSERT((name & type_mask) == bool_type_base);
+		if ((name & type_mask) != bool_type_base) return false;
+
+		std::pair<int, bool> v(name, false);
+		std::vector<std::pair<int, bool> >::const_iterator i
+			= std::lower_bound(m_bools.begin(), m_bools.end(), v);
+		if (i != m_bools.end() && i->first == name) return i->second;
+		return false;
+	}
+
 	void settings_pack::clear()
 	{
 		m_strings.clear();

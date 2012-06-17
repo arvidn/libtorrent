@@ -173,7 +173,7 @@ The ``session`` class has the following synopsis::
 		session_settings settings() const;
 	#endif
 
-		void apply_settings(settings_pack const& s);
+		void apply_settinboolsettings_pack const& s);
 		aux::session_settings get_settings() const;
 
 		void set_pe_settings(pe_settings const& settings);
@@ -4660,6 +4660,12 @@ settings_pack
 		void set_str(int name, std::string val);
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
+
+		std::string get_str(int name);
+		int get_int(int name);
+		bool get_bool(int name);
+
+		void clear();
 
 		*all settings enums, see below*
 

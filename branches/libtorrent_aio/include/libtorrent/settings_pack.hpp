@@ -68,6 +68,10 @@ namespace libtorrent
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
 		void clear();
+
+		std::string get_str(int name) const;
+		int get_int(int name) const;
+		bool get_bool(int name) const;
 	
 		enum type_bases
 		{
