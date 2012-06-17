@@ -6349,10 +6349,10 @@ namespace aux {
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_allocations++;
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
-			<< (m_buffer_allocations * send_buffer_size) << std::endl;
+			<< (m_buffer_allocations * send_buffer_size()) << std::endl;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		int num_bytes = send_buffer_size;
+		int num_bytes = send_buffer_size();
 		return (char*)malloc(num_bytes);
 #else
 		return (char*)m_send_buffers.malloc();
@@ -6388,7 +6388,7 @@ namespace aux {
 		m_buffer_allocations--;
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
 		m_buffer_usage_logger << log_time() << " protocol_buffer: "
-			<< (m_buffer_allocations * send_buffer_size) << std::endl;
+			<< (m_buffer_allocations * send_buffer_size()) << std::endl;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		free(buf);
