@@ -815,7 +815,10 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(pe);
+	TORRENT_ASSERT(iov_len > 0);
 	int start = block;
+
+	cache_hit(pe, requester);
 
 	for (int i = 0; i < iov_len; ++i)
 	{
@@ -837,8 +840,6 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			++m_read_cache_size;
 		}
 	}
-
-	cache_hit(pe, requester);
 
 	TORRENT_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost);
 	TORRENT_ASSERT(pe->cache_state != cached_piece_entry::read_lru2_ghost);
