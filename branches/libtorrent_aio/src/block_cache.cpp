@@ -463,7 +463,10 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 
 	if (pe->ok_to_evict())
 	{
-		move_to_ghost(pe);
+		if (pe->cache_state == cached_piece_entry::write_lru)
+			erase_piece(pe);
+		else
+			move_to_ghost(pe);
 		return true;
 	}
 
@@ -573,7 +576,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 #endif
 				TORRENT_ASSERT(pe->refcount == 0);
 				i.next();
-				evict_piece(pe);
+				move_to_ghost(pe);
 				continue;
 			}
 
@@ -641,7 +644,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 #endif
 					TORRENT_ASSERT(pe->refcount == 0);
 					i.next();
-					evict_piece(pe);
+					erase_piece(pe);
 					continue;
 				}
 
@@ -684,7 +687,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 #endif
 					i.next();
 
-					move_to_ghost(pe);
+					erase_piece(pe);
 				}
 				else i.next();
 			}
@@ -736,6 +739,9 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	TORRENT_ASSERT(pe->refcount == 0);
 	TORRENT_ASSERT(pe->piece_refcount == 0);
 	TORRENT_ASSERT(pe->num_blocks == 0);
+
+	TORRENT_ASSERT(pe->cache_state == cached_piece_entry::read_lru1
+		|| pe->cache_state == cached_piece_entry::read_lru2);
 
 	// if the piece is in L1 or L2, move it into the ghost list
 	// i.e. recently evicted
