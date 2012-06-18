@@ -277,7 +277,7 @@ namespace libtorrent
 		SET(max_metadata_size, 3 * 1024 * 10240, 0),
 		SET(read_job_every, 10, 0),
 		SET(hashing_threads, 1, 0),
-		SET(checking_mem_usage, 200, 0),
+		SET(checking_mem_usage, 256, 0),
 		SET(predictive_piece_announce, 0, 0),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
