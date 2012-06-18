@@ -68,6 +68,152 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::bind;
 
+void terminal_size(int* terminal_width, int* terminal_height)
+{
+#ifdef _WIN32
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO coninfo;
+	if (GetConsoleScreenBufferInfo(out, &coninfo))
+	{
+		*terminal_width = coninfo.dwSize.X;
+		*terminal_height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
+#else
+	winsize size;
+	int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
+	if (ret == 0)
+	{
+		*terminal_width = size.ws_col;
+		*terminal_height = size.ws_row;
+#endif
+
+		if (*terminal_width < 64)
+			*terminal_width = 64;
+		if (*terminal_height < 25)
+			*terminal_height = 25;
+	}
+	else
+	{
+		*terminal_width = 190;
+		*terminal_height = 100;
+	}
+}
+#ifdef WIN32
+void apply_ansi_code(int* attributes, bool* reverse, int code)
+{
+	const static int color_table[8] =
+	{
+		0, // black
+		FOREGROUND_RED, // red
+		FOREGROUND_GREEN, // green
+		FOREGROUND_RED | FOREGROUND_GREEN, // yellow
+		FOREGROUND_BLUE, // blue
+		FOREGROUND_RED | FOREGROUND_BLUE, // magenta
+		FOREGROUND_BLUE | FOREGROUND_GREEN, // cyan
+		FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE // white
+	};
+
+	enum
+	{
+		foreground_mask = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
+		background_mask = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE
+	};
+
+	const static int fg_mask[2] = {foreground_mask, background_mask};
+	const static int bg_mask[2] = {background_mask, foreground_mask};
+	const static int fg_shift[2] = { 0, 4};
+	const static int bg_shift[2] = { 4, 0};
+
+	if (code == 0)
+	{
+		// reset
+		*attributes = color_table[7];
+		*reverse = false;
+	}
+	else if (code == 7)
+	{
+		if (*reverse) return;
+		*reverse = true;
+		int fg_col = *attributes & foreground_mask;
+		int bg_col = (*attributes & background_mask) >> 4;
+		*attributes &= ~(foreground_mask + background_mask);
+		*attributes |= fg_col << 4;
+		*attributes |= bg_col;
+	}
+	else if (code >= 30 && code <= 37)
+	{
+		// foreground color
+		*attributes &= ~fg_mask[*reverse];
+		*attributes |= color_table[code - 30] << fg_shift[*reverse];
+	}
+	else if (code >= 40 && code <= 47)
+	{
+		// foreground color
+		*attributes &= ~bg_mask[*reverse];
+		*attributes |= color_table[code - 40] << bg_shift[*reverse];
+	}
+}
+#endif
+
+void print_with_ansi_colors(char const* str)
+{
+#ifdef WIN32
+	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	// first, clear the console and move the cursor
+	// to the top left corner
+	CONSOLE_SCREEN_BUFFER_INFO si;
+	GetConsoleScreenBufferInfo(out, &si);
+	COORD c = {0, 0};
+	DWORD n;
+	FillConsoleOutputCharacter(out, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
+	FillConsoleOutputAttribute(out, 0x7, si.dwSize.X * si.dwSize.Y, c, &n);
+	SetConsoleCursorPosition(out, c);
+
+	char* buf = (char*)str;
+
+	int current_attributes = 7;
+	bool reverse = false;
+	SetConsoleTextAttribute(out, current_attributes);
+
+	char* start = buf;
+	while (*buf != 0)
+	{
+		if (*buf == '\033' && buf[1] == '[')
+		{
+			*buf = 0;
+			WriteFile(out, start, buf - start, NULL, NULL);
+			buf += 2; // skip escape and '['
+			start = buf;
+		one_more:
+			while (*buf != 'm' && *buf != ';' && *buf != 0) ++buf;
+			if (*buf == 0) break;
+			int code = atoi(start);
+			apply_ansi_code(&current_attributes, &reverse, code);
+			if (*buf == ';')
+			{
+				++buf;
+				start = buf;
+				goto one_more;
+			}
+			SetConsoleTextAttribute(out, current_attributes);
+			++buf; // skip 'm'
+			start = buf;
+		}
+		else
+		{
+			++buf;
+		}
+	}
+	WriteFile(out, start, buf - start, NULL, NULL);
+
+#else
+	// first, clear the console and move the cursor
+	// to the top left corner
+	puts("\033[2J\033[0;0H");
+	puts(str);
+#endif
+}
+
 #ifdef _WIN32
 
 #if defined(_MSC_VER)
@@ -91,17 +237,6 @@ bool sleep_and_input(int* c, int sleep)
 	return false;
 };
 
-void clear_home()
-{
-	CONSOLE_SCREEN_BUFFER_INFO si;
-	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-	GetConsoleScreenBufferInfo(h, &si);
-	COORD c = {0, 0};
-	DWORD n;
-	FillConsoleOutputCharacter(h, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
-	SetConsoleCursorPosition(h, c);
-}
-
 #else
 
 #include <stdlib.h>
@@ -111,8 +246,6 @@ void clear_home()
 #include <string.h>
 #include <sys/ioctl.h>
 #include <signal.h>
-
-#define ANSI_TERMINAL_COLORS
 
 struct set_keypress
 {
@@ -163,11 +296,6 @@ retry:
 	}
 
 	return false;
-}
-
-void clear_home()
-{
-	puts("\033[2J\033[0;0H");
 }
 
 #endif
@@ -322,7 +450,6 @@ void update_filtered_torrents(boost::unordered_set<torrent_status>& all_handles
 
 char const* esc(char const* code)
 {
-#ifdef ANSI_TERMINAL_COLORS
 	// this is a silly optimization
 	// to avoid copying of strings
 	enum { num_strings = 200 };
@@ -339,9 +466,6 @@ char const* esc(char const* code)
 	ret[i++] = 'm';
 	ret[i++] = 0;
 	return ret;
-#else
-	return "";
-#endif
 }
 
 std::string to_string(int v, int width)
@@ -398,14 +522,7 @@ std::string add_suffix(float val, char const* suffix = 0)
 
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
-#ifdef ANSI_TERMINAL_COLORS
 	const int table_size = 18;
-#else
-	static const char char_lookup[] =
-	{ ' ', '.', ':', '-', '+', '*', '#'};
-
-	const int table_size = sizeof(char_lookup) / sizeof(char_lookup[0]);
-#endif
 	
 	double piece_per_char = p.size() / double(width);
 	static std::string bar;
@@ -429,18 +546,12 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int color = int(std::ceil(num_have / float(num_pieces) * (table_size - 1)));
-#ifdef ANSI_TERMINAL_COLORS
 		char buf[10];
 		snprintf(buf, 10, "48;5;%d", 232 + color);
 		bar += esc(buf);
 		bar += " ";
-#else
-		bar += char_lookup[color];
-#endif
 	}
-#ifdef ANSI_TERMINAL_COLORS
 	bar += esc("0");
-#endif
 	bar += "]";
 	return bar;
 }
@@ -832,7 +943,6 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 {
 	using namespace libtorrent;
 
-#ifdef ANSI_TERMINAL_COLORS
 	if (a->category() & alert::error_notification)
 	{
 		str += esc("31");
@@ -841,14 +951,11 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 	{
 		str += esc("33");
 	}
-#endif
 	str += "[";
 	str += time_now_string();
 	str += "] ";
 	str += a->message();
-#ifdef ANSI_TERMINAL_COLORS
 	str += esc("0");
-#endif
 
 	if (g_log_file)
 		fprintf(g_log_file, "[%s] %s\n", time_now_string(),  a->message().c_str());
@@ -1090,7 +1197,6 @@ void print_piece(libtorrent::partial_piece_info* pp
 		}
 		else
 		{
-#ifdef ANSI_TERMINAL_COLORS
 			if (cs && cs->blocks[j] && pp->blocks[j].state != block_info::finished)
 				color = esc("36;7");
 			else if (pp->blocks[j].bytes_progress > 0
@@ -1104,13 +1210,6 @@ void print_piece(libtorrent::partial_piece_info* pp
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
 			else if (pp->blocks[j].state == block_info::requested) color = esc("0");
 			else { color = esc("0"); chr = ' '; }
-#else
-			if (cs && cs->blocks[j]) chr = 'c';
-			else if (pp->blocks[j].state == block_info::finished) chr = '#';
-			else if (pp->blocks[j].state == block_info::writing) chr = '+';
-			else if (pp->blocks[j].state == block_info::requested) chr = '-';
-			else chr = ' ';
-#endif
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
 			snprintf(str, sizeof(str), "%s%c", color, chr);
@@ -1119,9 +1218,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 		out += str;
 	}
-#ifdef ANSI_TERMINAL_COLORS
 	out += esc("0");
-#endif
 	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f);
@@ -1635,25 +1732,35 @@ int main(int argc, char* argv[])
 		int c = 0;
 		while (sleep_and_input(&c, refresh_delay))
 		{
+
+#ifdef WIN32
+#define ESCAPE_SEQ 224
+#define LEFT_ARROW 75
+#define RIGHT_ARROW 77
+#define UP_ARROW 72
+#define DOWN_ARROW 80
+#else
+#define ESCAPE_SEQ 27
+#define LEFT_ARROW 68
+#define RIGHT_ARROW 67
+#define UP_ARROW 65
+#define DOWN_ARROW 66
+#endif
+
 			if (c == EOF) { c = 'q'; break; }
-			if (c == 27)
+			if (c == ESCAPE_SEQ)
 			{
 				// escape code, read another character
-#ifdef _WIN32
-				c = _getch();
+#ifdef WIN32
+				int c = _getch();
 #else
 				int c = getc(stdin);
-#endif
 				if (c == EOF) { c = 'q'; break; }
 				if (c != '[') continue;
-#ifdef _WIN32
-				c = _getch();
-#else
 				c = getc(stdin);
 #endif
 				if (c == EOF) break;
-
-				if (c == 68)
+				if (c == LEFT_ARROW)
 				{
 					// arrow left
 					if (torrent_filter > 0)
@@ -1662,7 +1769,7 @@ int main(int argc, char* argv[])
 						update_filtered_torrents(all_handles, filtered_handles, counters);
 					}
 				}
-				else if (c == 67)
+				else if (c == RIGHT_ARROW)
 				{
 					// arrow right
 					if (torrent_filter < torrents_max - 1)
@@ -1671,13 +1778,13 @@ int main(int argc, char* argv[])
 						update_filtered_torrents(all_handles, filtered_handles, counters);
 					}
 				}
-				else if (c == 65)
+				else if (c == UP_ARROW)
 				{
 					// arrow up
 					--active_torrent;
 					if (active_torrent < 0) active_torrent = 0;
 				}
-				else if (c == 66)
+				else if (c == DOWN_ARROW)
 				{
 					// arrow down
 					++active_torrent;
@@ -1862,27 +1969,7 @@ int main(int argc, char* argv[])
 		int terminal_width = 80;
 		int terminal_height = 50;
 
-#ifndef _WIN32
-		{
-			winsize size;
-			int ret = ioctl(STDOUT_FILENO, TIOCGWINSZ, (char*)&size);
-			if (ret == 0)
-			{
-				terminal_width = size.ws_col;
-				terminal_height = size.ws_row;
-
-				if (terminal_width < 64)
-					terminal_width = 64;
-				if (terminal_height < 25)
-					terminal_height = 25;
-			}
-			else
-			{
-				terminal_width = 190;
-				terminal_height = 100;
-			}
-		}
-#endif
+		terminal_size(&terminal_width, &terminal_height);
 
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
@@ -1984,11 +2071,7 @@ int main(int argc, char* argv[])
 				++i;
 			}
 
-#ifdef ANSI_TERMINAL_COLORS
 			char const* term = "\x1b[0m";
-#else
-			char const* term = "";
-#endif
 			if (active_torrent == torrent_index)
 			{
 				term = "\x1b[0m\x1b[7m";
@@ -2364,8 +2447,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		clear_home();
-		puts(out.c_str());
+		print_with_ansi_colors(out.c_str());
 		fflush(stdout);
 
 		if (!monitor_dir.empty()
