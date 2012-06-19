@@ -5907,15 +5907,14 @@ namespace libtorrent
 				TORRENT_ASSERT(m_upload_only);
 		}
 
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (t->has_picker())
 		{
 			std::map<piece_block, peer_count_t> num_requests;
 			for (torrent::const_peer_iterator i = t->begin(); i != t->end(); ++i)
 			{
 				// make sure this peer is not a dangling pointer
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 				TORRENT_ASSERT(m_ses.has_peer(*i));
-#endif
 				peer_connection const& p = *(*i);
 				for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
 					, end(p.request_queue().end()); i != end; ++i)
@@ -5950,7 +5949,6 @@ namespace libtorrent
 					TORRENT_ASSERT(picker_count == count);
 			}
 		}
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		if (m_peer_info && type() == bittorrent_connection)
 		{
 			policy::const_iterator i = t->get_policy().begin_peer();
