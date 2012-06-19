@@ -299,7 +299,7 @@ namespace libtorrent
 		// but the flush job should be posted (i.e. put on the job queue)
 		// fence_post_none if both the fence and the flush jobs were queued.
 		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
-		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job);
+		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job, atomic_count* blocked_counter);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the

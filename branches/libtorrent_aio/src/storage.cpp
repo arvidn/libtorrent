@@ -1270,7 +1270,7 @@ namespace libtorrent
 	// j is the fence job. It must have exclusive access to the storage
 	// fj is the flush job. If the job j is queued, we need to issue
 	// this job
-	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj)
+	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj, atomic_count* blocked_counter)
 	{
 		TORRENT_ASSERT((j->flags & disk_io_job::fence) == 0);
 		j->flags |= disk_io_job::fence;
@@ -1303,6 +1303,7 @@ namespace libtorrent
 			fj->blocked = true;
 #endif
 			m_blocked_jobs.push_back(fj);
+			++*blocked_counter;
 		}
 		else
 		{
@@ -1315,6 +1316,7 @@ namespace libtorrent
 		j->blocked = true;
 #endif
 		m_blocked_jobs.push_back(j);
+		++*blocked_counter;
 
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}

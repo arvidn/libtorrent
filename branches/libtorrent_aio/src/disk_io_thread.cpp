@@ -1776,7 +1776,7 @@ namespace libtorrent
 		disk_io_job* fj = allocate_job(disk_io_job::flush_storage);
 		fj->storage = j->storage;
 
-		int ret = storage->raise_fence(j, fj);
+		int ret = storage->raise_fence(j, fj, &m_num_blocked_jobs);
 		if (ret == disk_job_fence::fence_post_fence)
 		{
 			mutex::scoped_lock l(m_job_mutex);
@@ -1793,7 +1793,6 @@ namespace libtorrent
 		// flush of all those jobs now. Only write jobs linger, those are the
 		// jobs that needs to be kicked
 		TORRENT_ASSERT(j->blocked);
-		++m_num_blocked_jobs;
 		
 		if (ret == disk_job_fence::fence_post_flush)
 		{
@@ -1808,7 +1807,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) == 0);
 			TORRENT_ASSERT(fj->blocked);
-			++m_num_blocked_jobs;
 		}
 	}
 
