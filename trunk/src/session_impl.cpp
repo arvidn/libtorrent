@@ -644,6 +644,7 @@ namespace aux {
 		, m_udp_socket(m_io_service
 			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
 			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
+			, boost::bind(&session_impl::on_udp_socket_drained, this)
 			, m_half_open)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
@@ -2498,6 +2499,14 @@ namespace aux {
 		{
 			m_stat.received_tracker_bytes(len + 28);
 		}
+	}
+
+	// this is called every time all packets have been read from
+	// the udp socket. The utp_socket_manager uses this event to
+	// trigger a flush of deferred ACKs
+	void session_impl::on_udp_socket_drained()
+	{
+		m_utp_socket_manager.socket_drained();
 	}
 
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)

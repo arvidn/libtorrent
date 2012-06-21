@@ -890,6 +890,8 @@ namespace libtorrent
 			void on_receive_udp_hostname(error_code const& e
 				, char const* hostname, char const* buf, int len);
 
+			void on_udp_socket_drained();
+
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
