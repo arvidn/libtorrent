@@ -515,6 +515,19 @@ namespace libtorrent
 				--m_disk_queues[channel];
 			}
 
+			void inc_active_downloading() { ++m_num_active_downloading; }
+			void dec_active_downloading()
+			{
+				TORRENT_ASSERT(m_num_active_downloading > 0);
+				--m_num_active_downloading;
+			}
+			void inc_active_finished() { ++m_num_active_finished; }
+			void dec_active_finished()
+			{
+				TORRENT_ASSERT(m_num_active_finished > 0);
+				--m_num_active_finished;
+			}
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_state_updates(boost::shared_ptr<torrent> t)
 			{
@@ -680,6 +693,13 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+
+			// counters of how many of the active (non-paused) torrents
+			// are finished and downloading. This is used to weigh the
+			// priority of downloading and finished torrents when connecting
+			// more peers.
+			int m_num_active_downloading;
+			int m_num_active_finished;
 
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 

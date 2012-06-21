@@ -610,6 +610,8 @@ namespace aux {
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
 		, m_tracker_manager(*this, m_proxy)
+		, m_num_active_downloading(0)
+		, m_num_active_finished(0)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
@@ -3430,16 +3432,17 @@ namespace aux {
 				torrent& t = *m_next_connect_torrent->second;
 				if (t.want_more_peers())
 				{
+					TORRENT_ASSERT(t.allows_peers());
 					// have a bias to give more connection attempts
 					// to downloading torrents than seed, and even
 					// more to downloading torrents with less than
 					// average number of connections
 					int num_attempts = 1;
-					if (!t.is_seed())
+					if (!t.is_finished())
 					{
-						++num_attempts;
-						if (t.num_peers() < average_peers)
-							++num_attempts;
+						// TODO: make this bias configurable
+						TORRENT_ASSERT(m_num_active_downloading > 0);
+						num_attempts += m_num_active_finished / m_num_active_downloading;
 					}
 					for (int i = 0; i < num_attempts; ++i)
 					{
@@ -4209,6 +4212,8 @@ namespace aux {
 
 	void session_impl::recalculate_auto_managed_torrents()
 	{
+		INVARIANT_CHECK;
+
 		// these vectors are filled with auto managed torrents
 		std::vector<torrent*> downloaders;
 		downloaders.reserve(m_torrents.size());
@@ -4301,7 +4306,6 @@ namespace aux {
 			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_seeds);
 		}
-            
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
@@ -4996,6 +5000,8 @@ namespace aux {
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
+		INVARIANT_CHECK;
+
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
@@ -5036,6 +5042,13 @@ namespace aux {
 		torrent& t = *i->second;
 		if (options & session::delete_files)
 			t.delete_files();
+
+		bool is_active_download = tptr->is_active_download();
+		bool is_active_finished = tptr->is_active_finished();
+
+		// update finished and downloading counters
+		if (is_active_download) dec_active_downloading();
+		if (is_active_finished) dec_active_finished();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
@@ -6064,20 +6077,29 @@ namespace aux {
 //		TORRENT_ASSERT(m_queued_for_checking.size() == num_queued_for_checking);
 
 		std::set<int> unique;
+		int num_active_downloading = 0;
+		int num_active_finished = 0;
 		int total_downloaders = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			int pos = i->second->queue_position();
+			boost::shared_ptr<torrent> t = i->second;
+			if (t->is_active_download()) ++num_active_downloading;
+			else if (t->is_active_finished()) ++num_active_finished;
+
+			int pos = t->queue_position();
 			if (pos < 0)
 			{
 				TORRENT_ASSERT(pos == -1);
 				continue;
 			}
 			++total_downloaders;
-			unique.insert(i->second->queue_position());
+
+			unique.insert(t->queue_position());
 		}
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
+		TORRENT_ASSERT(num_active_downloading == m_num_active_downloading);
+		TORRENT_ASSERT(num_active_finished == m_num_active_finished);
 
 		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_settings.connections_limit > 0);
