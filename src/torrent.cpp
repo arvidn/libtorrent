@@ -441,6 +441,10 @@ namespace libtorrent
 
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
 
+		// update finished and downloading counters
+		if (is_active_download()) m_ses.inc_active_downloading();
+		if (is_active_finished()) m_ses.inc_active_finished();
+
 		if (!p.ti || !p.ti->is_valid())
 		{
 			// we don't have metadata for this torrent. We'll download
@@ -5059,7 +5063,7 @@ namespace libtorrent
 			int paused_ = rd.dict_find_int_value("paused", -1);
 			if (paused_ != -1)
 			{
-				m_allow_peers = !paused_;
+				set_allow_peers(!paused_);
 				m_announce_to_dht = !paused_;
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
@@ -7002,7 +7006,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
-		if (!graceful) m_allow_peers = false;
+		if (!graceful) set_allow_peers(false);
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
@@ -7134,9 +7138,18 @@ namespace libtorrent
 		if (m_allow_peers == b
 			&& m_graceful_pause_mode == graceful) return;
 
+		bool was_active_download = is_active_download();
+		bool was_active_finished = is_active_finished();
+
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
+
+		// update finished and downloading counters
+		if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
+		else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
+		if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
+		else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
 
 		if (!b)
 		{
@@ -7160,7 +7173,7 @@ namespace libtorrent
 			&& m_announce_to_dht
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
-		m_allow_peers = true;
+		set_allow_peers(true);
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
@@ -8244,7 +8257,17 @@ namespace libtorrent
 		if (int(m_state) == s) return;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
+
+		bool was_active_download = is_active_download();
+		bool was_active_finished = is_active_finished();
+
 		m_state = s;
+
+		// update finished and downloading counters
+		if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
+		else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
+		if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
+		else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
 
 		state_updated();
 
