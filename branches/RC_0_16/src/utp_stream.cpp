@@ -258,7 +258,7 @@ struct utp_socket_impl
 		, m_eof(false)
 		, m_attached(true)
 		, m_nagle(true)
-		, m_slow_start(false)
+		, m_slow_start(true)
 		, m_cwnd_full(false)
 	{
 		TORRENT_ASSERT(m_userdata);
@@ -595,7 +595,11 @@ struct utp_socket_impl
 	bool m_nagle:1;
 
 	// this is true while the socket is in slow start mode. It's
-	// only in slow-start during the start-up phase
+	// only in slow-start during the start-up phase. Slow start
+	// (contrary to what its name suggest) means that we're growing
+	// the congestion window (cwnd) exponetially rather than linearly.
+	// this is done at startup of a socket in order to find its
+	// link capacity faster. This behaves similar to TCP slow start
 	bool m_slow_start:1;
 	
 	// this is true as long as we have as many packets in
@@ -2771,7 +2775,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
 	boost::int64_t scaled_gain;
   
-	if (delay >= target_delay / 2)
+	if (delay >= target_delay)
 	{
 		UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
 		m_slow_start = false;
@@ -2789,6 +2793,10 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		scaled_gain = linear_gain;
 	}
 
+	// make sure we don't wrap the cwnd
+	if (scaled_gain >= INT64_MAX - m_cwnd)
+		scaled_gain = INT64_MAX - m_cwnd - 1;
+
 	if (scaled_gain > 0 && !m_cwnd_full
 		&& m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 500)) < now)
 	{
@@ -2798,6 +2806,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		// this probably means we have a send rate limit, so we shouldn't make
 		// the cwnd size any larger
 		scaled_gain = 0;
+		m_slow_start = false;
 	}
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
@@ -2818,6 +2827,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		TORRENT_ASSERT(m_cwnd > 0);
 	}
 
+	TORRENT_ASSERT(m_cwnd >= 0);
 
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - in_flight + acked_bytes;
 	if (window_size_left >= m_mtu)
@@ -2826,6 +2836,9 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
+
+	if ((m_cwnd >> 16) >= m_adv_wnd)
+		m_slow_start = false;
 }
 
 void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
@@ -2892,6 +2905,8 @@ void utp_socket_impl::tick(ptime const& now)
 			// the cwnd was made smaller than one packet
 			m_cwnd = boost::int64_t(m_mtu) << 16;
 		}
+
+		TORRENT_ASSERT(m_cwnd >= 0);
 
 		if (m_outbuf.size()) ++m_num_timeouts;
 
