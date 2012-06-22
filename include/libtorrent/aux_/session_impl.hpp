@@ -188,6 +188,7 @@ namespace libtorrent
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
+			, udp_socket_observer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -884,13 +885,8 @@ namespace libtorrent
 			deadline_timer m_dht_announce_timer;
 #endif
 
-			void on_receive_udp(error_code const& e
-				, udp::endpoint const& ep, char const* buf, int len);
-
-			void on_receive_udp_hostname(error_code const& e
-				, char const* hostname, char const* buf, int len);
-
-			void on_udp_socket_drained();
+			bool incoming_packet(error_code const& ec
+				, udp::endpoint const&, char const* buf, int size);
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.

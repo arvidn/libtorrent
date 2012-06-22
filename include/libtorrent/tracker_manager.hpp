@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
+#include "libtorrent/udp_socket.hpp" // for udp_socket_observer
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
 #endif
@@ -263,7 +264,7 @@ namespace libtorrent
 		const tracker_request m_req;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager: boost::noncopyable
+	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable
 	{
 	public:
 
@@ -289,11 +290,13 @@ namespace libtorrent
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
-		bool incoming_udp(error_code const& e, udp::endpoint const& ep, char const* buf, int size);
+		virtual bool incoming_packet(error_code const& e, udp::endpoint const& ep
+			, char const* buf, int size);
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
-		bool incoming_udp(error_code const& e, char const* hostname, char const* buf, int size);
+		virtual bool incoming_packet(error_code const& e, char const* hostname
+			, char const* buf, int size);
 		
 	private:
 

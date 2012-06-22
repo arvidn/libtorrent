@@ -47,7 +47,7 @@ namespace libtorrent
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager
+	struct utp_socket_manager : udp_socket_observer
 	{
 		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
@@ -55,8 +55,12 @@ namespace libtorrent
 		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
-		void socket_drained();
+		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
+			, char const* p, int size);
+		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
+		{ return false; }
+
+		virtual void socket_drained();
 
 		void tick(ptime now);
 

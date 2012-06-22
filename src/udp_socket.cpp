@@ -53,14 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 
 udp_socket::udp_socket(asio::io_service& ios
-	, udp_socket::callback_t const& c
-	, udp_socket::callback2_t const& c2
-	, udp_socket::drain_callback_t const& dc
 	, connection_queue& cc)
-	: m_callback(c)
-	, m_callback2(c2)
-	, m_drained_callback(dc)
-	, m_ipv4_sock(ios)
+	: m_ipv4_sock(ios)
 	, m_buf_size(0)
 	, m_buf(0)
 #if TORRENT_USE_IPV6
@@ -101,7 +95,6 @@ udp_socket::~udp_socket()
 #endif
 	TORRENT_ASSERT_VAL(m_v4_outstanding == 0, m_v4_outstanding);
 	TORRENT_ASSERT(m_magic == 0x1337);
-	TORRENT_ASSERT(!m_callback || !m_started);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	m_magic = 0;
 #endif
@@ -148,21 +141,6 @@ void udp_socket::send_hostname(char const* hostname, int port
 	qp.hostname = strdup(hostname);
 	qp.buf.insert(qp.buf.begin(), p, p + len);
 	qp.flags = 0;
-}
-
-bool udp_socket::maybe_clear_callback()
-{
-	if (m_outstanding_ops + m_v4_outstanding
-#if TORRENT_USE_IPV6
-	 	+ m_v6_outstanding
-#endif
-		== 0)
-	{
-		// "this" may be destructed in the callback
-		m_callback.clear();
-		return true;
-	}
-	return false;
 }
 
 void udp_socket::send(udp::endpoint const& ep, char const* p, int len
@@ -230,14 +208,9 @@ void udp_socket::on_read(udp::socket* s)
 		--m_v4_outstanding;
 	}
 
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
-	if (!m_callback) return;
 
 	for (;;)
 	{
@@ -247,8 +220,60 @@ void udp_socket::on_read(udp::socket* s)
 		if (ec == asio::error::would_block) break;
 		on_read_impl(s, ep, ec, bytes_transferred);
 	}
-	if (m_drained_callback) m_drained_callback();
+	call_drained_handler();
 	setup_read(s);
+}
+
+void udp_socket::call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size)
+{
+	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
+		, end(m_observers.end()); i != end; ++i)
+	{
+		TORRENT_TRY {
+
+		if ((*i)->incoming_packet(ec, ep, buf, size))
+			break;
+
+		} TORRENT_CATCH (std::exception&) {}
+	}
+}
+
+void udp_socket::call_handler(error_code const& ec, const char* host, char const* buf, int size)
+{
+	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
+		, end(m_observers.end()); i != end; ++i)
+	{
+		TORRENT_TRY {
+
+		if ((*i)->incoming_packet(ec, host, buf, size))
+			break;
+
+		} TORRENT_CATCH (std::exception&) {}
+	}
+}
+
+void udp_socket::subscribe(udp_socket_observer* o)
+{
+	TORRENT_ASSERT(std::find(m_observers.begin(), m_observers.end(), o) == m_observers.end());
+	m_observers.push_back(o);
+}
+
+void udp_socket::unsubscribe(udp_socket_observer* o)
+{
+	std::vector<udp_socket_observer*>::iterator i = std::find(m_observers.begin(), m_observers.end(), o);
+	if (i == m_observers.end()) return;
+	m_observers.erase(i);
+}
+
+void udp_socket::call_drained_handler()
+{
+	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
+		, end(m_observers.end()); i != end; ++i)
+	{
+		TORRENT_TRY {
+		(*i)->socket_drained();
+		} TORRENT_CATCH (std::exception&) {}
+	}
 }
 
 void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
@@ -259,16 +284,7 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 
 	if (e)
 	{
-		TORRENT_TRY {
-
-#if TORRENT_USE_IPV6
-			if (s == &m_ipv6_sock)
-				m_callback(e, ep, 0, 0);
-			else
-#endif
-				m_callback(e, ep, 0, 0);
-
-		} TORRENT_CATCH (std::exception&) {}
+		call_handler(e, ep, 0, 0);
 
 		// don't stop listening on recoverable errors
 		if (e != asio::error::host_unreachable
@@ -283,7 +299,6 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 #endif
 			&& e != asio::error::message_size)
 		{
-			maybe_clear_callback();
 			return;
 		}
 
@@ -302,7 +317,7 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 		}
 		else
 		{
-			m_callback(e, ep, m_buf, bytes_transferred);
+			call_handler(e, ep, m_buf, bytes_transferred);
 		}
 
 	} TORRENT_CATCH (std::exception&) {}
@@ -421,11 +436,11 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 		if (len > (buf + size) - p) return;
 		std::string hostname(p, p + len);
 		p += len;
-		m_callback2(e, hostname.c_str(), p, size - (p - buf));
+		call_handler(e, hostname.c_str(), p, size - (p - buf));
 		return;
 	}
 
-	m_callback(e, sender, p, size - (p - buf));
+	call_handler(e, sender, p, size - (p - buf));
 }
 
 #if !defined BOOST_ASIO_ENABLE_CANCELIO && defined TORRENT_WINDOWS
@@ -472,14 +487,9 @@ void udp_socket::close()
 		// ops counter for that
 		TORRENT_ASSERT(m_outstanding_ops > 0);
 		--m_outstanding_ops;
-		if (m_abort)
-		{
-			maybe_clear_callback();
-			return;
-		}
+		if (m_abort) return;
 	}
 
-	maybe_clear_callback();
 }
 
 void udp_socket::set_buf_size(int s)
@@ -503,7 +513,7 @@ void udp_socket::set_buf_size(int s)
 		m_buf = 0;
 		m_buf_size = 0;
 		udp::endpoint ep;
-		if (m_callback) m_callback(error::no_memory, ep, 0, 0);
+		call_handler(error::no_memory, ep, 0, 0);
 		close();
 	}
 }
@@ -625,11 +635,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
 
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 	CHECK_MAGIC;
 
 	if (e == asio::error::operation_aborted) return;
@@ -638,9 +644,7 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	if (e)
 	{
-		TORRENT_TRY {
-			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
-		} TORRENT_CATCH (std::exception&) {}
+		call_handler(e, udp::endpoint(), 0, 0);
 		return;
 	}
 
@@ -662,11 +666,7 @@ void udp_socket::on_timeout()
 {
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
@@ -680,11 +680,6 @@ void udp_socket::on_connect(int ticket)
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
 	CHECK_MAGIC;
 
 	if (m_abort) return;
@@ -715,11 +710,7 @@ void udp_socket::on_connected(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
 
@@ -734,17 +725,11 @@ void udp_socket::on_connected(error_code const& e)
 	// ops counter for that
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	if (e)
 	{
-		TORRENT_TRY {
-			if (m_callback) m_callback(e, udp::endpoint(), 0, 0);
-		} TORRENT_CATCH (std::exception&) {}
+		call_handler(e, udp::endpoint(), 0, 0);
 		return;
 	}
 
@@ -781,11 +766,7 @@ void udp_socket::handshake1(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
 	if (e) return;
@@ -807,11 +788,7 @@ void udp_socket::handshake2(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 	CHECK_MAGIC;
 
 	if (e) return;
@@ -869,11 +846,7 @@ void udp_socket::handshake3(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
 	if (e) return;
@@ -895,11 +868,7 @@ void udp_socket::handshake4(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
 	if (e) return;
@@ -958,11 +927,7 @@ void udp_socket::connect1(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
 
 	CHECK_MAGIC;
 	if (e) return;
@@ -987,7 +952,6 @@ void udp_socket::connect2(error_code const& e)
 	if (m_abort)
 	{
 		m_queue.clear();
-		maybe_clear_callback();
 		return;
 	}
 
@@ -1062,11 +1026,7 @@ void udp_socket::hung_up(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
-	if (m_abort)
-	{
-		maybe_clear_callback();
-		return;
-	}
+	if (m_abort) return;
   
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
@@ -1078,11 +1038,8 @@ void udp_socket::hung_up(error_code const& e)
 }
 
 rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
-	, callback_t const& c
-	, callback2_t const& c2
-	, drain_callback_t const& dc
 	, connection_queue& cc)
-	: udp_socket(ios, c, c2, dc, cc)
+	: udp_socket(ios, cc)
 	, m_timer(ios)
 	, m_queue_size_limit(200)
 	, m_rate_limit(4000)
