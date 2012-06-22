@@ -641,11 +641,7 @@ namespace aux {
 		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_external_udp_port(0)
-		, m_udp_socket(m_io_service
-			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
-			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
-			, boost::bind(&session_impl::on_udp_socket_drained, this)
-			, m_half_open)
+		, m_udp_socket(m_io_service, m_half_open)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_boost_connections(0)
@@ -669,6 +665,10 @@ namespace aux {
 	{
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.dht_upload_rate_limit);
+
+		m_udp_socket.subscribe(&m_tracker_manager);
+		m_udp_socket.subscribe(&m_utp_socket_manager);
+		m_udp_socket.subscribe(this);
 
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
@@ -2448,65 +2448,20 @@ namespace aux {
 	}
 #endif
 
-	void session_impl::on_receive_udp(error_code const& e
-		, udp::endpoint const& ep, char const* buf, int len)
+	bool session_impl::incoming_packet(error_code const& ec
+		, udp::endpoint const& ep, char const* buf, int size)
 	{
 #ifdef TORRENT_STATS
 		++m_num_messages[on_udp_counter];
 #endif
-		if (e)
-		{
-			if (e == asio::error::connection_refused
-				|| e == asio::error::connection_reset
-				|| e == asio::error::connection_aborted)
-			{
-#ifndef TORRENT_DISABLE_DHT
-				if (m_dht) m_dht->on_unreachable(ep);
-#endif
-				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-					m_stat.received_tracker_bytes(len + 28);
-			}
 
+		if (ec)
+		{
 			// don't bubble up operation aborted errors to the user
-			if (e != asio::error::operation_aborted
+			if (ec != asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(ep, e));
-			return;
+				m_alerts.post_alert(udp_error_alert(ep, ec));
 		}
-
-#ifndef TORRENT_DISABLE_DHT
-		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
-		{
-			// this is probably a dht message
-			m_dht->on_receive(ep, buf, len);
-			return;
-		}
-#endif
-		
-		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
-			return;
-
-		// maybe it's a udp tracker response
-		if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-			m_stat.received_tracker_bytes(len + 28);
-	}
-
-	void session_impl::on_receive_udp_hostname(error_code const& e
-		, char const* hostname, char const* buf, int len)
-	{
-		// it's probably a udp tracker response
-		if (m_tracker_manager.incoming_udp(e, hostname, buf, len))
-		{
-			m_stat.received_tracker_bytes(len + 28);
-		}
-	}
-
-	// this is called every time all packets have been read from
-	// the udp socket. The utp_socket_manager uses this event to
-	// trigger a flush of deferred ACKs
-	void session_impl::on_udp_socket_drained()
-	{
-		m_utp_socket_manager.socket_drained();
 	}
 
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)
@@ -5405,6 +5360,8 @@ namespace aux {
 
 		m_dht->start(startup_state);
 
+		m_udp_socket.subscribe(m_dht.get());
+
 		// announce all torrents we have to the DHT
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -5416,6 +5373,7 @@ namespace aux {
 	void session_impl::stop_dht()
 	{
 		if (!m_dht) return;
+		m_udp_socket.unsubscribe(m_dht.get());
 		m_dht->stop();
 		m_dht = 0;
 	}
@@ -5542,6 +5500,10 @@ namespace aux {
 #endif
 
 		if (m_thread) m_thread->join();
+
+		m_udp_socket.unsubscribe(this);
+		m_udp_socket.unsubscribe(&m_utp_socket_manager);
+		m_udp_socket.unsubscribe(&m_tracker_manager);
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());

@@ -199,7 +199,8 @@ namespace libtorrent
 		return m_sock.local_endpoint(ec);
 	}
 
-	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)
+	bool utp_socket_manager::incoming_packet(error_code const& ec, udp::endpoint const& ep
+			, char const* p, int size)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 

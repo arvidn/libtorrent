@@ -42,25 +42,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 
 #include <deque>
-#include <boost/function/function4.hpp>
-#include <boost/function/function0.hpp>
 
 namespace libtorrent
 {
 	class connection_queue;
 
+	struct udp_socket_observer
+	{
+		// return true if the packet was handled (it won't be
+		// propagated to the next observer)
+		virtual bool incoming_packet(error_code const& ec
+			, udp::endpoint const&, char const* buf, int size) = 0;
+		virtual bool incoming_packet(error_code const& ec
+			, char const* hostname, char const* buf, int size) { return false; }
+
+		// called every time the socket is drained of packets
+		virtual void socket_drained() {}
+	};
+
 	class udp_socket
 	{
 	public:
-		// TODO: instead of these callbacks, support observers
-		typedef boost::function<void(error_code const& ec
-			, udp::endpoint const&, char const* buf, int size)> callback_t;
-		typedef boost::function<void(error_code const& ec
-			, char const*, char const* buf, int size)> callback2_t;
-		typedef boost::function<void()> drain_callback_t;
-
-		udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2
-			, drain_callback_t const& dc, connection_queue& cc);
+		udp_socket(io_service& ios, connection_queue& cc);
 		~udp_socket();
 
 		enum flags_t { dont_drop = 1, peer_connection = 2 };
@@ -74,6 +77,9 @@ namespace libtorrent
 				;
 		}
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+
+		void subscribe(udp_socket_observer* o);
+		void unsubscribe(udp_socket_observer* o);
 
 		// this is only valid when using a socks5 proxy
 		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
@@ -140,15 +146,11 @@ namespace libtorrent
 	public:
 #endif
 
-		// callback for regular incoming packets
-		callback_t m_callback;
+		std::vector<udp_socket_observer*> m_observers;
 
-		// callback for proxied incoming packets with a domain
-		// name as source
-		callback2_t m_callback2;
-
-		// called every time we drain the udp sockets
-		drain_callback_t m_drained_callback;
+		void call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size);
+		void call_handler(error_code const& ec, const char* host, char const* buf, int size);
+		void call_drained_handler();
 
 		void setup_read(udp::socket* s);
 		void on_read(udp::socket* s);
@@ -170,8 +172,6 @@ namespace libtorrent
 		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
-
-		bool maybe_clear_callback();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #if defined BOOST_HAS_PTHREADS
@@ -230,8 +230,7 @@ namespace libtorrent
 
 	struct rate_limited_udp_socket : public udp_socket
 	{
-		rate_limited_udp_socket(io_service& ios, callback_t const& c
-			, callback2_t const& c2, drain_callback_t const& dc, connection_queue& cc);
+		rate_limited_udp_socket(io_service& ios, connection_queue& cc);
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
 		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);
