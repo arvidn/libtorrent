@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <deque>
 #include <boost/function/function4.hpp>
+#include <boost/function/function0.hpp>
 
 namespace libtorrent
 {
