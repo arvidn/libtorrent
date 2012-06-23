@@ -4525,7 +4525,6 @@ session_settings
 		int utp_syn_resends;
 		int utp_num_resends;
 		int utp_connect_timeout;
-		int utp_delayed_ack;
 		bool utp_dynamic_sock_buf;
 		int utp_loss_multiplier;
 
@@ -5341,12 +5340,6 @@ before giving up and closing the connection.
 
 ``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
 packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
-
-``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
-significantly helps reducing the amount of protocol overhead in the reverse direction
-from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
-and every incoming payload packet is ACKed. The granularity of this timer is capped by
-the tick interval (as specified by ``tick_interval``).
 
 ``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
 the socket buffer if a network interface with a large MTU is used (such as loopback

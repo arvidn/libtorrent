@@ -424,7 +424,9 @@ namespace aux {
 		TORRENT_SETTING(integer, utp_fin_resends)
 		TORRENT_SETTING(integer, utp_num_resends)
 		TORRENT_SETTING(integer, utp_connect_timeout)
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(integer, utp_delayed_ack)
+#endif
 		TORRENT_SETTING(boolean, utp_dynamic_sock_buf)
 		TORRENT_SETTING(integer, mixed_mode_algorithm)
 		TORRENT_SETTING(boolean, rate_limit_utp)
