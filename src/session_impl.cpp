@@ -918,17 +918,10 @@ namespace aux {
 #endif
 
 		PRINT_SIZEOF(udp_socket)
-		PRINT_OFFSETOF(udp_socket, m_callback)
-		PRINT_OFFSETOF(udp_socket, m_callback2)
 		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
-		PRINT_OFFSETOF(udp_socket, m_v4_ep)
-		PRINT_OFFSETOF(udp_socket, m_v4_buf)
-		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer4)
+		PRINT_OFFSETOF(udp_socket, m_buf)
 #if TORRENT_USE_IPV6
 		PRINT_OFFSETOF(udp_socket, m_ipv6_sock)
-		PRINT_OFFSETOF(udp_socket, m_v6_ep)
-		PRINT_OFFSETOF(udp_socket, m_v6_buf)
-		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer6)
 #endif
 		PRINT_OFFSETOF(udp_socket, m_bind_port)
 		PRINT_OFFSETOF(udp_socket, m_v4_outstanding)
@@ -2462,6 +2455,7 @@ namespace aux {
 				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, ec));
 		}
+		return false;
 	}
 
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)

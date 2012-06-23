@@ -67,6 +67,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#ifndef INT64_MAX
+#define INT64_MAX 0x7fffffffffffffffLL
+#endif
+
 // backwards compatibility with older versions of boost
 #if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
 # if defined _MSC_VER || defined __MINGW32__
