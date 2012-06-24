@@ -329,6 +329,8 @@ namespace libtorrent
 		std::vector<downloading_piece> const& get_download_queue() const
 		{ return m_downloads; }
 
+		int num_downloading_pieces() const { return int(m_downloads.size()); }
+
 		void* get_downloader(piece_block block) const;
 
 		// the number of filtered pieces we don't have
