@@ -81,6 +81,7 @@ struct observer : boost::noncopyable
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_constructor = true;
 		m_was_sent = false;
+		m_was_abandoned = false;
 #endif
 		set_target(ep);
 	}
@@ -165,6 +166,7 @@ public:
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool m_in_constructor:1;
 	bool m_was_sent:1;
+	bool m_was_abandoned:1;
 #endif
 };
 
