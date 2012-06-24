@@ -1645,7 +1645,9 @@ namespace libtorrent
 		info.last_use = i->expire;
 		info.need_readback = i->need_readback;
 		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
-		info.kind = i->num_dirty ? cached_piece_info::write_cache : cached_piece_info::read_cache;
+		info.kind = i->cache_state == cached_piece_entry::write_lru
+			? cached_piece_info::write_cache
+			: cached_piece_info::read_cache;
 		int blocks_in_piece = i->blocks_in_piece;
 		info.blocks.resize(blocks_in_piece);
 		for (int b = 0; b < blocks_in_piece; ++b)

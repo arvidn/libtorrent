@@ -1219,9 +1219,10 @@ void print_piece(libtorrent::partial_piece_info* pp
 		out += str;
 	}
 	out += esc("0");
-	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f\n"
+	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f%s\n"
 		, cs ? cs->next_to_hash : 0
-		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f);
+		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
+		, cs ? (cs->kind == cached_piece_info::write_cache ? " state: write" : " state: read"): "");
 	out += str;
 }
 
