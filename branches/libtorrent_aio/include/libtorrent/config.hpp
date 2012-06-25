@@ -56,8 +56,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef _MSC_VER
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
+#define __STDC_FORMAT_MACROS 1
+#define __STDC_LIMIT_MACROS 1
+#include <inttypes.h> // for PRId64 et.al.
+#include <stdint.h> // for INT64_MAX
 #endif
 
 #ifndef PRId64
@@ -71,6 +73,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define PRIu64 "llu"
 #define PRIu32 "u"
 #endif
+#endif
+
+#ifndef INT64_MAX
+#define INT64_MAX 0x7fffffffffffffffLL
 #endif
 
 // backwards compatibility with older versions of boost

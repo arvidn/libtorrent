@@ -48,7 +48,7 @@ namespace libtorrent
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager
+	struct utp_socket_manager : udp_socket_observer
 	{
 		utp_socket_manager(aux::session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
@@ -56,7 +56,12 @@ namespace libtorrent
 		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
+		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
+			, char const* p, int size);
+		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
+		{ return false; }
+
+		virtual void socket_drained();
 
 		void tick(ptime now);
 
@@ -77,7 +82,6 @@ namespace libtorrent
 		int fin_resends() const { return m_sett.get_int(settings_pack::utp_fin_resends); }
 		int num_resends() const { return m_sett.get_int(settings_pack::utp_num_resends); }
 		int connect_timeout() const { return m_sett.get_int(settings_pack::utp_connect_timeout); }
-		int delayed_ack() const { return m_sett.get_int(settings_pack::utp_delayed_ack); }
 		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
 		bool allow_dynamic_sock_buf() const { return m_sett.get_bool(settings_pack::utp_dynamic_sock_buf); }
@@ -86,6 +90,8 @@ namespace libtorrent
 		void set_sock_buf(int size);
 		int num_sockets() const { return m_utp_sockets.size(); }
 
+		void defer_ack(utp_socket_impl* s);
+
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
@@ -93,6 +99,12 @@ namespace libtorrent
 		// replace with a hash-map
 		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
+
+		// this is a list of sockets that needs to send an ack.
+		// once the UDP socket is drained, all of these will
+		// have a chance to do that. This is to avoid sending
+		// an ack for every single packet
+		std::vector<utp_socket_impl*> m_deferred_acks;
 
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket;

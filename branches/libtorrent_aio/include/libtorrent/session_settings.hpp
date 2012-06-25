@@ -833,8 +833,10 @@ namespace libtorrent
 		// initial timeout for uTP SYN packets
 		int utp_connect_timeout;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// number of milliseconds of delaying ACKing packets the most
 		int utp_delayed_ack;
+#endif
 
 		// set to true if the uTP socket buffer size is allowed to increase
 		// dynamically based on the NIC MTU setting. This is true by default

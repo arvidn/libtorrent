@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/utp_stream.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
@@ -221,7 +222,6 @@ struct utp_socket_impl
 		, m_write_timeout()
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_cwnd_hit(time_now())
-		, m_ack_timer(time_now() + minutes(10))
 		, m_last_history_step(time_now_hires())
 		, m_cwnd(TORRENT_ETHERNET_MTU << 16)
 		, m_buffered_incoming_bytes(0)
@@ -258,9 +258,10 @@ struct utp_socket_impl
 		, m_eof(false)
 		, m_attached(true)
 		, m_nagle(true)
-		, m_slow_start(false)
+		, m_slow_start(true)
 		, m_cwnd_full(false)
 		, m_null_buffers(false)
+		, m_deferred_ack(false)
 	{
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
@@ -290,6 +291,7 @@ struct utp_socket_impl
 	void send_syn();
 	void send_fin();
 
+	void defer_ack();
 	bool send_pkt(bool ack);
 	bool resend_packet(packet* p, bool fast_resend = false);
 	void send_reset(utp_header* ph);
@@ -403,11 +405,6 @@ struct utp_socket_impl
 	// this is used to restrict increasing the cwnd size when we're
 	// not sending fast enough to need it bigger
 	ptime m_last_cwnd_hit;
-
-	// the next time we need to send an ACK the latest
-	// updated every time we send an ACK and every time we
-	// put off sending an ACK for a received packet
-	ptime m_ack_timer;
 
 	// the last time we stepped the timestamp history
 	ptime m_last_history_step;
@@ -596,7 +593,11 @@ struct utp_socket_impl
 	bool m_nagle:1;
 
 	// this is true while the socket is in slow start mode. It's
-	// only in slow-start during the start-up phase
+	// only in slow-start during the start-up phase. Slow start
+	// (contrary to what its name suggest) means that we're growing
+	// the congestion window (cwnd) exponetially rather than linearly.
+	// this is done at startup of a socket in order to find its
+	// link capacity faster. This behaves similar to TCP slow start
 	bool m_slow_start:1;
 	
 	// this is true as long as we have as many packets in
@@ -608,6 +609,12 @@ struct utp_socket_impl
 	// buffer, we're just signalling when there's something
 	// to read from our internal receive buffer
 	bool m_null_buffers:1;
+
+	// this is set to true when this socket has added itself to
+	// the utp socket manager's list of deferred acks. Once the
+	// burst of incoming UDP packets is all drained, the utp socket
+	// manager will send acks for all sockets on this list.
+	bool m_deferred_ack:1;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -667,6 +674,13 @@ udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 boost::uint16_t utp_receive_id(utp_socket_impl* s)
 {
 	return s->m_recv_id;
+}
+
+void utp_send_ack(utp_socket_impl* s)
+{
+	TORRENT_ASSERT(s->m_deferred_ack);
+	s->m_deferred_ack = false;
+	s->send_pkt(true);
 }
 
 void utp_socket_impl::update_mtu_limits()
@@ -1034,6 +1048,7 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 utp_socket_impl::~utp_socket_impl()
 {
 	TORRENT_ASSERT(!m_attached);
+	TORRENT_ASSERT(!m_deferred_ack);
 
 	UTP_LOGV("%8p: destroying utp socket state\n", this);
 
@@ -1473,6 +1488,13 @@ void utp_socket_impl::write_payload(char* ptr, int size)
 #endif
 }
 
+void utp_socket_impl::defer_ack()
+{
+	if (m_deferred_ack) return;
+	m_deferred_ack = true;
+	m_sm->defer_ack(this);
+}
+
 // sends a packet, pulls data from the write buffer (if there's any)
 // if ack is true, we need to send a packet regardless of if there's
 // any data. Returns true if we could send more data (i.e. call
@@ -1679,11 +1701,6 @@ bool utp_socket_impl::send_pkt(bool ack)
 		if (payload_size) free(p);
 		return false;
 	}
-
-	// we just sent a packet. this means we just ACKed the last received
-	// packet as well. So, we can now reset the delayed ack timer to
-	// not trigger for a long time
-	m_ack_timer = now + minutes(10);
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
@@ -2485,7 +2502,7 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
 
-				send_pkt(true);
+				defer_ack();
 
 				return true;
 			}
@@ -2563,23 +2580,23 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 			// (i.e. ST_STATE) we're not ACKing anything. If we just
 			// received a FIN packet, we need to ack that as well
 			bool has_ack = ph->get_type() == ST_DATA || ph->get_type() == ST_FIN || ph->get_type() == ST_SYN;
-			int delayed_ack = m_sm->delayed_ack();
-			if (has_ack && delayed_ack && m_ack_timer > receive_time)
+			int prev_out_packets = m_out_packets;
+
+			// try to send more data as long as we can
+			// if send_pkt returns true
+			while (send_pkt(false));
+
+			if (has_ack && prev_out_packets == m_out_packets)
 			{
-				// we have data to ACK, and delayed ACKs are enabled.
-				// update the ACK timer and clear the flag, to pretend
-				// like we don't have anything to ACK
-				m_ack_timer = (std::min)(m_ack_timer, receive_time + milliseconds(delayed_ack));
-				has_ack = false;
-				UTP_LOGV("%8p: delaying ack. timer triggers in %d milliseconds\n"
-					, this, int(total_milliseconds(m_ack_timer - time_now_hires())));
+				// we need to ack some data we received, and we didn't
+				// end up sending any payload packets in the loop
+				// above (becasue m_out_packets would have been incremented
+				// in that case). This means we need to send an ack.
+				// don't do it right away, because we may still receive
+				// more packets. defer the ack to send as few acks as possible
+				defer_ack();
 			}
 
-			if (send_pkt(has_ack))
-			{
-				// try to send more data as long as we can
-				while (send_pkt(false));
-			}
 			maybe_trigger_send_callback(receive_time);
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 
@@ -2791,7 +2808,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
 	boost::int64_t scaled_gain;
   
-	if (delay >= target_delay / 2)
+	if (delay >= target_delay)
 	{
 		UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
 		m_slow_start = false;
@@ -2809,6 +2826,10 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		scaled_gain = linear_gain;
 	}
 
+	// make sure we don't wrap the cwnd
+	if (scaled_gain >= INT64_MAX - m_cwnd)
+		scaled_gain = INT64_MAX - m_cwnd - 1;
+
 	if (scaled_gain > 0 && !m_cwnd_full
 		&& m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 500)) < now)
 	{
@@ -2818,6 +2839,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		// this probably means we have a send rate limit, so we shouldn't make
 		// the cwnd size any larger
 		scaled_gain = 0;
+		m_slow_start = false;
 	}
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
@@ -2838,6 +2860,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		TORRENT_ASSERT(m_cwnd > 0);
 	}
 
+	TORRENT_ASSERT(m_cwnd >= 0);
 
 	int window_size_left = (std::min)(int(m_cwnd >> 16), int(m_adv_wnd)) - in_flight + acked_bytes;
 	if (window_size_left >= m_mtu)
@@ -2846,6 +2869,9 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
+
+	if ((m_cwnd >> 16) >= m_adv_wnd)
+		m_slow_start = false;
 }
 
 void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
@@ -2915,6 +2941,8 @@ void utp_socket_impl::tick(ptime now)
 			// the cwnd was made smaller than one packet
 			m_cwnd = boost::int64_t(m_mtu) << 16;
 		}
+
+		TORRENT_ASSERT(m_cwnd >= 0);
 
 		if (m_outbuf.size()) ++m_num_timeouts;
 
@@ -3010,14 +3038,6 @@ void utp_socket_impl::tick(ptime now)
 			test_socket_state();
 			return;
 		}
-	}
-
-	if (now > m_ack_timer)
-	{
-		UTP_LOGV("%8p: ack timer expired, sending ACK\n", this);
-		// we need to send an ACK now!
-		send_pkt(true);
-		if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
 	}
 
 	switch (m_state)

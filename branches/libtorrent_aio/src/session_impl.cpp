@@ -558,10 +558,7 @@ namespace aux {
 		, m_dht_announce_timer(m_io_service)
 #endif
 		, m_external_udp_port(0)
-		, m_udp_socket(m_io_service
-			, boost::bind(&session_impl::on_receive_udp, this, _1, _2, _3, _4)
-			, boost::bind(&session_impl::on_receive_udp_hostname, this, _1, _2, _3, _4)
-			, m_half_open)
+		, m_udp_socket(m_io_service, m_half_open)
 		, m_utp_socket_manager(m_settings, m_udp_socket
 			, boost::bind(&session_impl::incoming_connection, this, _1))
 		, m_boost_connections(0)
@@ -587,6 +584,10 @@ namespace aux {
 	{
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
+
+		m_udp_socket.subscribe(&m_tracker_manager);
+		m_udp_socket.subscribe(&m_utp_socket_manager);
+		m_udp_socket.subscribe(this);
 
 		m_disk_queues[0] = 0;
 		m_disk_queues[1] = 0;
@@ -886,17 +887,10 @@ namespace aux {
 #endif
 
 		PRINT_SIZEOF(udp_socket)
-		PRINT_OFFSETOF(udp_socket, m_callback)
-		PRINT_OFFSETOF(udp_socket, m_callback2)
 		PRINT_OFFSETOF(udp_socket, m_ipv4_sock)
-		PRINT_OFFSETOF(udp_socket, m_v4_ep)
-		PRINT_OFFSETOF(udp_socket, m_v4_buf)
-		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer4)
+		PRINT_OFFSETOF(udp_socket, m_buf)
 #if TORRENT_USE_IPV6
 		PRINT_OFFSETOF(udp_socket, m_ipv6_sock)
-		PRINT_OFFSETOF(udp_socket, m_v6_ep)
-		PRINT_OFFSETOF(udp_socket, m_v6_buf)
-		PRINT_OFFSETOF(udp_socket, m_reallocate_buffer6)
 #endif
 		PRINT_OFFSETOF(udp_socket, m_bind_port)
 		PRINT_OFFSETOF(udp_socket, m_v4_outstanding)
@@ -2455,57 +2449,21 @@ namespace aux {
 	}
 #endif
 
-	void session_impl::on_receive_udp(error_code const& e
-		, udp::endpoint const& ep, char const* buf, int len)
+	bool session_impl::incoming_packet(error_code const& ec
+		, udp::endpoint const& ep, char const* buf, int size)
 	{
 #ifdef TORRENT_STATS
 		inc_stats_counter(on_udp_counter);
 #endif
-		if (e)
-		{
-			if (e == asio::error::connection_refused
-				|| e == asio::error::connection_reset
-				|| e == asio::error::connection_aborted)
-			{
-#ifndef TORRENT_DISABLE_DHT
-				if (m_dht) m_dht->on_unreachable(ep);
-#endif
-				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-					m_stat.received_tracker_bytes(len + 28);
-			}
 
+		if (ec)
+		{
 			// don't bubble up operation aborted errors to the user
-			if (e != asio::error::operation_aborted
+			if (ec != asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(ep, e));
-			return;
+				m_alerts.post_alert(udp_error_alert(ep, ec));
 		}
-
-#ifndef TORRENT_DISABLE_DHT
-		if (len > 20 && *buf == 'd' && buf[len-1] == 'e' && m_dht)
-		{
-			// this is probably a dht message
-			m_dht->on_receive(ep, buf, len);
-			return;
-		}
-#endif
-		
-		if (m_utp_socket_manager.incoming_packet(buf, len, ep))
-			return;
-
-		// maybe it's a udp tracker response
-		if (m_tracker_manager.incoming_udp(e, ep, buf, len))
-			m_stat.received_tracker_bytes(len + 28);
-	}
-
-	void session_impl::on_receive_udp_hostname(error_code const& e
-		, char const* hostname, char const* buf, int len)
-	{
-		// it's probably a udp tracker response
-		if (m_tracker_manager.incoming_udp(e, hostname, buf, len))
-		{
-			m_stat.received_tracker_bytes(len + 28);
-		}
+		return false;
 	}
 
 	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)
@@ -3215,6 +3173,7 @@ namespace aux {
 		if (!m_paused) m_auto_manage_time_scaler--;
 		if (m_auto_manage_time_scaler < 0)
 		{
+			INVARIANT_CHECK;
 			m_auto_manage_time_scaler = settings().get_int(settings_pack::auto_manage_interval);
 			recalculate_auto_managed_torrents();
 		}
@@ -3323,6 +3282,7 @@ namespace aux {
 		// --------------------------------------------------------------
 		if (!is_paused())
 		{
+			INVARIANT_CHECK;
 			--m_auto_scrape_time_scaler;
 			if (m_auto_scrape_time_scaler <= 0)
 			{
@@ -3357,6 +3317,7 @@ namespace aux {
 		if (m_settings.get_int(settings_pack::suggest_mode) != settings_pack::no_piece_suggestions
 			&& m_suggest_timer <= 0)
 		{
+			INVARIANT_CHECK;
 			m_suggest_timer = 10;
 
 			torrent_map::iterator least_recently_refreshed = m_torrents.begin();
@@ -3377,6 +3338,7 @@ namespace aux {
 		if (m_settings.get_bool(settings_pack::explicit_read_cache)
 			&& m_cache_rotation_timer <= 0)
 		{
+			INVARIANT_CHECK;
 			m_cache_rotation_timer = m_settings.get_int(settings_pack::explicit_cache_interval);
 
 			torrent_map::iterator least_recently_refreshed = m_torrents.begin();
@@ -3456,6 +3418,8 @@ namespace aux {
 			&& m_settings.get_int(settings_pack::connection_speed) > 0
 			&& max_connections > 0)
 		{
+			INVARIANT_CHECK;
+
 			// this is the maximum number of connections we will
 			// attempt this tick
 			// approximate the average number of peers per torrent
@@ -3478,16 +3442,17 @@ namespace aux {
 
 				TORRENT_TRY
 				{
+					TORRENT_ASSERT(t.allows_peers());
 					// have a bias to give more connection attempts
 					// to downloading torrents than seed, and even
 					// more to downloading torrents with less than
 					// average number of connections
 					int num_attempts = 1;
-					if (!t.is_seed())
+					if (!t.is_finished())
 					{
-						++num_attempts;
-						if (t.num_peers() < average_peers)
-							++num_attempts;
+						// TODO: make this bias configurable
+						TORRENT_ASSERT(m_num_downloaders > 0);
+						num_attempts += m_num_finished / m_num_downloaders;
 					}
 					for (int i = 0; i < num_attempts; ++i)
 					{
@@ -4319,6 +4284,8 @@ namespace aux {
 
 	void session_impl::recalculate_auto_managed_torrents()
 	{
+		INVARIANT_CHECK;
+
 		// these vectors are filled with auto managed torrents
 
 		// TODO: these vectors could be copied from m_torrent_lists,
@@ -5146,6 +5113,8 @@ namespace aux {
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)
 	{
+		INVARIANT_CHECK;
+
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
@@ -5160,8 +5129,6 @@ namespace aux {
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
 	{
-		INVARIANT_CHECK;
-
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
@@ -5530,6 +5497,8 @@ namespace aux {
 
 		m_dht->start(startup_state);
 
+		m_udp_socket.subscribe(m_dht.get());
+
 		// announce all torrents we have to the DHT
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -5541,6 +5510,7 @@ namespace aux {
 	void session_impl::stop_dht()
 	{
 		if (!m_dht) return;
+		m_udp_socket.unsubscribe(m_dht.get());
 		m_dht->stop();
 		m_dht = 0;
 	}
@@ -5665,6 +5635,10 @@ namespace aux {
 #endif
 
 		if (m_thread) m_thread->join();
+
+		m_udp_socket.unsubscribe(this);
+		m_udp_socket.unsubscribe(&m_utp_socket_manager);
+		m_udp_socket.unsubscribe(&m_tracker_manager);
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
@@ -6413,20 +6387,29 @@ namespace aux {
 		}
 	
 		std::set<int> unique;
+		int num_active_downloading = 0;
+		int num_active_finished = 0;
 		int total_downloaders = 0;
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			int pos = i->second->queue_position();
+			boost::shared_ptr<torrent> t = i->second;
+			if (t->is_active_download()) ++num_active_downloading;
+			else if (t->is_active_finished()) ++num_active_finished;
+
+			int pos = t->queue_position();
 			if (pos < 0)
 			{
 				TORRENT_ASSERT(pos == -1);
 				continue;
 			}
 			++total_downloaders;
-			unique.insert(i->second->queue_position());
+
+			unique.insert(t->queue_position());
 		}
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
+		TORRENT_ASSERT(num_active_downloading == m_num_downloaders);
+		TORRENT_ASSERT(num_active_finished == m_num_finished);
 
 		std::set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);

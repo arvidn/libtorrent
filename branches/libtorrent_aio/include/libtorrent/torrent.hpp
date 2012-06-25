@@ -265,6 +265,20 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
+		bool is_active_download() const
+		{
+			return (m_state == torrent_status::downloading
+				|| m_state == torrent_status::downloading_metadata)
+				&& want_more_peers();
+		}
+
+		bool is_active_finished() const
+		{
+			return (m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding)
+				&& want_more_peers();
+		}
+
 		bool need_save_resume_data() const
 		{
 			// save resume data every 15 minutes regardless, just to

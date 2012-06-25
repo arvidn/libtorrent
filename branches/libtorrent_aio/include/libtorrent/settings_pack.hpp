@@ -1138,11 +1138,6 @@ namespace libtorrent
 			// before giving up and closing the connection.
 			// ``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
 			// packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
-			// ``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
-			// significantly helps reducing the amount of protocol overhead in the reverse direction
-			// from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
-			// and every incoming payload packet is ACKed. The granularity of this timer is capped by
-			// the tick interval (as specified by ``tick_interval``).
 			// ``utp_loss_multiplier`` controls how the congestion window is changed when a packet
 			// loss is experienced. It's specified as a percentage multiplier for ``cwnd``. By default
 			// it's set to 50 (i.e. cut in half). Do not change this value unless you know what
@@ -1154,7 +1149,11 @@ namespace libtorrent
 			utp_fin_resends,
 			utp_num_resends,
 			utp_connect_timeout,
+#ifndef TORRENT_NO_DEPRECATE
 			utp_delayed_ack,
+#else
+			deprecated5,
+#endif
 			utp_loss_multiplier,
 
 			// The ``mixed_mode_algorithm`` determines how to treat TCP connections when there are

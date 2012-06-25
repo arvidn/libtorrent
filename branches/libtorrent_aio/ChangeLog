@@ -13,6 +13,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix end-game mode issue when some files are selected to not be downloaded
+	* improve uTP slow start
 	* make uTP less aggressive resetting cwnd when idle
 
 0.16.1 release

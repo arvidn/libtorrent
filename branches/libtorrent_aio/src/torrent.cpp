@@ -376,6 +376,8 @@ namespace libtorrent
 #endif
 
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
+		TORRENT_ASSERT(!is_active_download());
+		TORRENT_ASSERT(!is_active_finished());
 
 		if (!p.ti || !p.ti->is_valid())
 		{
@@ -927,6 +929,8 @@ namespace libtorrent
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
+		TORRENT_ASSERT(!is_active_download());
+		TORRENT_ASSERT(!is_active_finished());
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -5395,7 +5399,7 @@ namespace libtorrent
 			int paused_ = rd.dict_find_int_value("paused", -1);
 			if (paused_ != -1)
 			{
-				m_allow_peers = !paused_;
+				set_allow_peers(!paused_);
 				m_announce_to_dht = !paused_;
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
@@ -6350,15 +6354,20 @@ namespace libtorrent
 		{
 			if (l.in_list()) return;
 			l.insert(v, this);
-			if (is_finished()) ++m_ses.m_num_finished;
-			else ++m_ses.m_num_downloaders;
+			if (is_active_finished()) m_ses.inc_active_finished();
+			else if (is_active_download()) m_ses.inc_active_downloading();
 		}
 		else
 		{
 			if (!l.in_list()) return;
 			l.unlink(v, aux::session_impl::torrent_want_peers);
-			if (is_finished()) --m_ses.m_num_finished;
-			else --m_ses.m_num_downloaders;
+
+			if (m_state == torrent_status::downloading
+				|| m_state == torrent_status::downloading_metadata)
+				m_ses.dec_active_downloading();
+			else if (m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding)
+				m_ses.dec_active_finished();
 		}
 	}
 
@@ -7384,7 +7393,6 @@ namespace libtorrent
 
 	bool torrent::is_paused() const
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
 		return !m_allow_peers || m_ses.is_paused() || m_graceful_pause_mode;
 	}
 
@@ -7394,7 +7402,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
-		if (!graceful) m_allow_peers = false;
+		if (!graceful) set_allow_peers(false);
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
@@ -7552,7 +7560,7 @@ namespace libtorrent
 			&& m_announce_to_dht
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
-		m_allow_peers = true;
+		set_allow_peers(true);
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
@@ -8597,29 +8605,31 @@ namespace libtorrent
 			TORRENT_ASSERT(!is_finished());
 #endif
 
-		bool was_finished = is_finished();
-
 		if (int(m_state) == s) return;
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
+
+		bool wanted_peers = want_more_peers();
+		bool was_active_download = m_state == torrent_status::downloading || m_state == torrent_status::downloading_metadata;
+		bool was_active_finished = m_state == torrent_status::finished || m_state == torrent_status::seeding;
+
 		m_state = s;
 
-		link& l = m_links[aux::session_impl::torrent_want_peers];
-		if (l.in_list() && is_finished() != was_finished)
+		// update finished and downloading counters
+		// only if we used to want more peers before, in which case it was
+		// the state change itself that made us change whether we're downloading or finished
+		// we we changed from being downloader or finished because want_more_peers()
+		// changed, that's taken care of by the call to update_want_more_peers()
+		if (wanted_peers && want_more_peers())
 		{
-			if (was_finished)
-			{
-				--m_ses.m_num_finished;
-				++m_ses.m_num_downloaders;
-			}
-			else
-			{
-				--m_ses.m_num_downloaders;
-				++m_ses.m_num_finished;
-			}
+			if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
+			else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
+			if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
+			else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
 		}
 
 		update_want_more_peers();
+
 		state_updated();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

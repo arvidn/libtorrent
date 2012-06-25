@@ -156,7 +156,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		i = m_results.insert(i, o);
 	}
 
-	if (m_results.size() > 100) m_results.resize(100);
+	if (m_results.size() > 100)
+	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		for (int i = 100; i < m_results.size(); ++i)
+			m_results[i]->m_was_abandoned = true;
+#endif
+		m_results.resize(100);
+	}
 }
 
 void traversal_algorithm::start()

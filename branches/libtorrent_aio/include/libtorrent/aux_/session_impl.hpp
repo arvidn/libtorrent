@@ -204,6 +204,7 @@ namespace libtorrent
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
+			, udp_socket_observer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -592,6 +593,19 @@ namespace libtorrent
 			// cork a peer and schedule a delayed uncork
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
+
+			void inc_active_downloading() { ++m_num_downloaders; }
+			void dec_active_downloading()
+			{
+				TORRENT_ASSERT(m_num_downloaders > 0);
+				--m_num_downloaders;
+			}
+			void inc_active_finished() { ++m_num_finished; }
+			void dec_active_finished()
+			{
+				TORRENT_ASSERT(m_num_finished > 0);
+				--m_num_finished;
+			}
 
 			// uncork all peers added to the delayed uncork queue
 			void do_delayed_uncork();
@@ -1005,11 +1019,8 @@ namespace libtorrent
 			deadline_timer m_dht_announce_timer;
 #endif
 
-			void on_receive_udp(error_code const& e
-				, udp::endpoint const& ep, char const* buf, int len);
-
-			void on_receive_udp_hostname(error_code const& e
-				, char const* hostname, char const* buf, int len);
+			bool incoming_packet(error_code const& ec
+				, udp::endpoint const&, char const* buf, int size);
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.

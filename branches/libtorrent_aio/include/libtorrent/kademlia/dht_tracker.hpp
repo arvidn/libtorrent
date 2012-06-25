@@ -71,11 +71,12 @@ namespace libtorrent { namespace dht
 	TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
 	TORRENT_EXTRA_EXPORT void intrusive_ptr_release(dht_tracker const*);	
 
-	struct dht_tracker : udp_socket_interface
+	struct dht_tracker : udp_socket_interface, udp_socket_observer
 	{
 		friend void intrusive_ptr_add_ref(dht_tracker const*);
 		friend void intrusive_ptr_release(dht_tracker const*);
 
+		// TODO: take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
 
@@ -96,8 +97,8 @@ namespace libtorrent { namespace dht
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
-		void on_receive(udp::endpoint const& ep, char const* pkt, int size);
-		void on_unreachable(udp::endpoint const& ep);
+		virtual bool incoming_packet(error_code const& ec
+			, udp::endpoint const&, char const* buf, int size);
 
 	private:
 	
