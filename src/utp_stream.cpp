@@ -2911,7 +2911,7 @@ void utp_socket_impl::tick(ptime const& now)
 		{
 			// this is just a timeout because this direction of
 			// the stream is idle. Don't reset the cwnd, just decay it
-			m_cwnd = m_cwnd * 2 / 3;
+			m_cwnd = (std::max)(m_cwnd * 2 / 3, boost::int64_t(m_mtu) << 16);
 		}
 		else
 		{
