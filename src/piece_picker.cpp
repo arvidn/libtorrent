@@ -993,7 +993,9 @@ namespace libtorrent
 
 		int index = 0;
 		bool updated = false;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool seed_broken = false;
+#endif
 		for (bitfield::const_iterator i = bitmask.begin()
 			, end(bitmask.end()); i != end; ++i, ++index)
 		{
@@ -1010,7 +1012,9 @@ namespace libtorrent
 					// piece anymore. we need to break up one of the seed
 					// counters into actual peer counters on the pieces
 					break_one_seed();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 					seed_broken = true;
+#endif
 				}
 
 				--p.peer_count;
