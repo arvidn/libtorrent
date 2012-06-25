@@ -379,7 +379,7 @@ bool routing_table::add_node(node_entry const& e)
 				break;
 			}
 			if (!done)
-   		{
+			{
 				for (bucket_t::iterator i = rb.begin(), end(rb.end());
 					i != end; ++i)
 				{
@@ -388,7 +388,7 @@ bool routing_table::add_node(node_entry const& e)
 					TORRENT_LOG(table) << "node ID changed, deleting old entry: "
 						<< i->id << " " << i->addr;
 	#endif
-   				rb.erase(i);
+					rb.erase(i);
 					done = true;
 					break;
 				}
@@ -398,7 +398,7 @@ bool routing_table::add_node(node_entry const& e)
 		}
 	}
 	
-   table_t::iterator i = find_bucket(e.id);
+	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 
