@@ -386,6 +386,8 @@ struct utp_socket_impl
 	// write callbacks (unless the buffers fill up
 	// before)
 	ptime m_read_timeout;
+
+	// TODO: remove the write timeout concept, and maybe even the read timeout
 	ptime m_write_timeout;
 
 	// the time when the last packet we sent times out. Including re-sends.
@@ -976,8 +978,8 @@ size_t utp_stream::read_some(bool clear_buffers)
 	TORRENT_ASSERT(m_impl->m_receive_buffer_size == 0
 		|| m_impl->m_read_buffer.empty());
 
-	UTP_LOGV("%8p: %d packets moved from buffer to user space\n"
-		, m_impl, pop_packets);
+	UTP_LOGV("%8p: %d packets moved from buffer to user space (%d bytes)\n"
+		, m_impl, pop_packets, int(ret));
 
 	if (clear_buffers)
 	{
@@ -1317,8 +1319,9 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, char const* ptr
 	// this is the sequence number the current bit represents
 	int ack_nr = (packet_ack + 2) & ACK_MASK;
 
-#if TORRENT_UTP_LOG
+#if TORRENT_VERBOSE_UTP_LOG
 	std::string bitmask;
+	bitmask.reserve(size);
 	for (char const* b = ptr, *end = ptr + size; b != end; ++b)
 	{
 		unsigned char bitfield = unsigned(*b);
@@ -1631,18 +1634,17 @@ bool utp_socket_impl::send_pkt(bool ack)
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
+	UTP_LOG("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"ret:%d adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
-		"mtu_probe:%d\n"
+		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
+		"mtu_probe:%d extension:%d\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
-		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
-		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe));
+		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
+		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe)
+		, h->extension);
 #endif
-
-	TORRENT_ASSERT(!m_error);
 
 	error_code ec;
 #ifdef TORRENT_DEBUG
@@ -1915,6 +1917,7 @@ void utp_socket_impl::incoming(char const* buf, int size, packet* p, ptime now)
 		target->buf = ((char*)target->buf) + to_copy;
 		target->len -= to_copy;
 		buf += to_copy;
+		UTP_LOGV("%8p: copied %d bytes into user receive buffer\n", this, to_copy);
 		TORRENT_ASSERT(m_read_buffer_size >= to_copy);
 		m_read_buffer_size -= to_copy;
 		size -= to_copy;
@@ -2457,16 +2460,16 @@ bool utp_socket_impl::incoming_packet(char const* buf, int size
 				m_remote_address = ep.address();
 				m_port = ep.port();
 
-#if TORRENT_UTP_LOG
-				UTP_LOGV("%8p: state:%s\n"
-					, this, socket_state_names[m_state]);
-#endif
 				m_ack_nr = ph->seq_nr;
 				m_seq_nr = random();
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
 				m_fast_resend_seq_nr = m_seq_nr;
 
+#if TORRENT_UTP_LOG
+				UTP_LOGV("%8p: received ST_SYN state:%s seq_nr:%d ack_nr:%d\n"
+					, this, socket_state_names[m_state], m_seq_nr, m_ack_nr);
+#endif
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
 
@@ -2799,7 +2802,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		scaled_gain = INT64_MAX - m_cwnd - 1;
 
 	if (scaled_gain > 0 && !m_cwnd_full
-		&& m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 500)) < now)
+		&& m_last_cwnd_hit + milliseconds(50) < now)
 	{
 		UTP_LOGV("%8p: last_cwnd_hit:%d full_cwnd:%d scaled_gain -> 0, slow_start -> 0\n", this
 			, total_milliseconds(now - m_last_cwnd_hit), int(m_cwnd_full));
@@ -2835,6 +2838,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	{
 		UTP_LOGV("%8p: mtu:%d in_flight:%d adv_wnd:%d cwnd:%d acked_bytes:%d cwnd_full -> 0\n"
 			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
+		if (m_cwnd_full) m_last_cwnd_hit = time_now_hires();
 		m_cwnd_full = false;
 	}
 
@@ -2898,7 +2902,7 @@ void utp_socket_impl::tick(ptime const& now)
 		{
 			// this is just a timeout because this direction of
 			// the stream is idle. Don't reset the cwnd, just decay it
-			m_cwnd = m_cwnd * 2 / 3;
+			m_cwnd = (std::max)(m_cwnd * 2 / 3, boost::int64_t(m_mtu) << 16);
 		}
 		else
 		{
