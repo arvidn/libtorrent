@@ -1648,15 +1648,16 @@ bool utp_socket_impl::send_pkt(bool ack)
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
 
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
+	UTP_LOG("%8p: sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
-		"ret:%d adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
-		"mtu_probe:%d\n"
+		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
+		"mtu_probe:%d extension:%d\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
-		, ret, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
-		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe));
+		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
+		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe)
+		, h->extension);
 #endif
 
 	TORRENT_ASSERT(!m_error);
