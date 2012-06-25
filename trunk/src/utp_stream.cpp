@@ -2816,7 +2816,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 		scaled_gain = INT64_MAX - m_cwnd - 1;
 
 	if (scaled_gain > 0 && !m_cwnd_full
-		&& m_last_cwnd_hit + milliseconds((std::max)(m_rtt.mean(), 500)) < now)
+		&& m_last_cwnd_hit + milliseconds(50) < now)
 	{
 		UTP_LOGV("%8p: last_cwnd_hit:%d full_cwnd:%d scaled_gain -> 0, slow_start -> 0\n", this
 			, total_milliseconds(now - m_last_cwnd_hit), int(m_cwnd_full));
@@ -2852,6 +2852,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	{
 		UTP_LOGV("%8p: mtu:%d in_flight:%d adv_wnd:%d cwnd:%d acked_bytes:%d cwnd_full -> 0\n"
 			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
+		if (m_cwnd_full) m_last_cwnd_hit = time_now_hires();
 		m_cwnd_full = false;
 	}
 
