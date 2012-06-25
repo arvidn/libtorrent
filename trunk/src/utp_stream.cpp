@@ -2677,15 +2677,15 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			// within reasonable bounds. The one-way delay is never
 			// higher than the round-trip time.
 
-			// it's impossible for delay to be more than the RTT, so make
-			// sure to clamp it as a sanity check
-			if (delay > min_rtt) delay = min_rtt;
-
-			// only use the minimum from the last 3 delay measurements
-			delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
-
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
+				// it's impossible for delay to be more than the RTT, so make
+				// sure to clamp it as a sanity check
+				if (delay > min_rtt) delay = min_rtt;
+                
+				// only use the minimum from the last 3 delay measurements
+				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight, receive_time);
 				m_send_delay = delay;
 			}

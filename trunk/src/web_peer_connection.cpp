@@ -771,9 +771,6 @@ namespace libtorrent
 
 			if (!m_requests.empty())
 			{
-				range_overlaps_request = in_range.start + in_range.length
-					> m_requests.front().start + int(m_piece.size());
-
 				if (in_range.start + in_range.length < m_requests.front().start + m_requests.front().length
 					&& (m_received_body + recv_buffer.left() >= range_end - range_start))
 				{
