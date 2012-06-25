@@ -1749,11 +1749,7 @@ namespace aux {
 		stop_upnp();
 		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht)
-		{
-			m_dht->stop();
-			m_dht = 0;
-		}
+		stop_dht();
 		m_dht_announce_timer.cancel(ec);
 #endif
 		m_timer.cancel(ec);
@@ -5341,11 +5337,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		if (m_dht)
-		{
-			m_dht->stop();
-			m_dht = 0;
-		}
+		stop_dht();
 		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, &startup_state);
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()

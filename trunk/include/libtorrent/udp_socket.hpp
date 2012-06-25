@@ -174,6 +174,9 @@ namespace libtorrent
 		void unwrap(error_code const& e, char const* buf, int size);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		bool m_observers_locked;
+
+		// TODO: move this debug facility into a base class. It's used in a lot of places
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
 #endif
