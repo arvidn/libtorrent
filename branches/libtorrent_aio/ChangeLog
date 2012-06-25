@@ -13,6 +13,9 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix nagle implementation in uTP
+
+	* minor uTP tweaks
 	* fix end-game mode issue when some files are selected to not be downloaded
 	* improve uTP slow start
 	* make uTP less aggressive resetting cwnd when idle

@@ -92,6 +92,7 @@ packet_loss = 0
 packet_timeout = 0
 
 delay_histogram = {}
+packet_size_histogram = {}
 window_size = {'0': 0, '1': 0}
 
 # [35301484] 0x00ec1190: actual_delay:1021583 our_delay:102 their_delay:-1021345 off_target:297 max_window:2687 upload_rate:18942 delay_base:1021481154 delay_sum:-1021242 target_delay:400 acked_bytes:1441 cur_window:2882 scaled_gain:2.432
@@ -131,6 +132,11 @@ for l in file:
     if "Packet timeout" in l:
         packet_timeout = packet_timeout + 1
         continue
+
+    if "sending packet" in l:
+        v = l.split('size:')[1].split(' ')[0]
+        packet_size_histogram[v] = 1 + packet_size_histogram.get(v, 0)
+
     if "our_delay:" not in l:
         continue
 
@@ -185,6 +191,10 @@ for d,f in delay_histogram.iteritems():
     print >>out, float(d*histogram_quantization) + histogram_quantization / 2, f
 out.close()
 
+out = open('%s_packet_size.histogram' % out_file, 'wb')
+for d,f in packet_size_histogram.iteritems():
+    print >>out, d, f
+out.close()
 
 plot = [
 	{
@@ -249,11 +259,21 @@ print >>out, 'set xlabel "delay (ms)"'
 print >>out, 'set boxwidth 1'
 print >>out, 'set ylabel "number of packets"'
 print >>out, 'plot "%s.histogram" using 1:2 with boxes fs solid 0.3' % out_file
+files += out_file + '.delays.png '
+
+print >>out, 'set output "%s.packet_sizes.png"' % out_file
+print >>out, 'set xrange [0:*]'
+print >>out, 'set xlabel "packet size (B)"'
+print >>out, 'set boxwidth 1'
+print >>out, 'set ylabel "number of packets sent"'
+print >>out, 'set logscale y'
+print >>out, 'plot "%s_packet_size.histogram" using 1:2 with boxes fs solid 0.3' % out_file
+print >>out, 'set nologscale y'
+files += out_file + '.packet_sizes.png '
 
 print >>out, "set style data steps"
 #print >>out, "set yrange [0:*]"
 print >>out, "set y2range [*:*]"
-files += out_file + '.delays.png '
 #set hidden3d
 #set title "Peer bandwidth distribution"
 #set xlabel "Ratio"
