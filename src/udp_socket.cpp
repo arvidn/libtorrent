@@ -75,6 +75,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	, m_outstanding_ops(0)
 {
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = false;
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
@@ -95,6 +96,7 @@ udp_socket::~udp_socket()
 #endif
 	TORRENT_ASSERT_VAL(m_v4_outstanding == 0, m_v4_outstanding);
 	TORRENT_ASSERT(m_magic == 0x1337);
+	TORRENT_ASSERT(m_observers_locked == false);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	m_magic = 0;
 #endif
@@ -226,6 +228,9 @@ void udp_socket::on_read(udp::socket* s)
 
 void udp_socket::call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size)
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = true;
+#endif
 	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
 		, end(m_observers.end()); i != end; ++i)
 	{
@@ -236,10 +241,16 @@ void udp_socket::call_handler(error_code const& ec, udp::endpoint const& ep, cha
 
 		} TORRENT_CATCH (std::exception&) {}
 	}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = false;
+#endif
 }
 
 void udp_socket::call_handler(error_code const& ec, const char* host, char const* buf, int size)
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = true;
+#endif
 	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
 		, end(m_observers.end()); i != end; ++i)
 	{
@@ -250,23 +261,16 @@ void udp_socket::call_handler(error_code const& ec, const char* host, char const
 
 		} TORRENT_CATCH (std::exception&) {}
 	}
-}
-
-void udp_socket::subscribe(udp_socket_observer* o)
-{
-	TORRENT_ASSERT(std::find(m_observers.begin(), m_observers.end(), o) == m_observers.end());
-	m_observers.push_back(o);
-}
-
-void udp_socket::unsubscribe(udp_socket_observer* o)
-{
-	std::vector<udp_socket_observer*>::iterator i = std::find(m_observers.begin(), m_observers.end(), o);
-	if (i == m_observers.end()) return;
-	m_observers.erase(i);
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = false;
+#endif
 }
 
 void udp_socket::call_drained_handler()
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = true;
+#endif
 	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin()
 		, end(m_observers.end()); i != end; ++i)
 	{
@@ -274,6 +278,24 @@ void udp_socket::call_drained_handler()
 		(*i)->socket_drained();
 		} TORRENT_CATCH (std::exception&) {}
 	}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	m_observers_locked = false;
+#endif
+}
+
+void udp_socket::subscribe(udp_socket_observer* o)
+{
+	TORRENT_ASSERT(m_observers_locked == false);
+	TORRENT_ASSERT(std::find(m_observers.begin(), m_observers.end(), o) == m_observers.end());
+	m_observers.push_back(o);
+}
+
+void udp_socket::unsubscribe(udp_socket_observer* o)
+{
+	TORRENT_ASSERT(m_observers_locked == false);
+	std::vector<udp_socket_observer*>::iterator i = std::find(m_observers.begin(), m_observers.end(), o);
+	if (i == m_observers.end()) return;
+	m_observers.erase(i);
 }
 
 void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
