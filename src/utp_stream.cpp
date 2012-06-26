@@ -1545,7 +1545,7 @@ void utp_socket_impl::remove_sack_header(packet* p)
 	UTP_LOGV("%8p: removing SACK header, %d bytes\n"
 		, this, sack_size + 2);
 
-	TORRENT_ASSERT(p->size >= p->header_size + sack_size + 2);
+	TORRENT_ASSERT(p->size >= p->header_size);
 	TORRENT_ASSERT(p->header_size >= sizeof(utp_header) + sack_size + 2);
 	memmove(ptr, ptr + sack_size + 2, p->size - p->header_size);
 	p->header_size -= sack_size + 2;
