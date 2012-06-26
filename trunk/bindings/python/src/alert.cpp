@@ -458,4 +458,8 @@ void bind_alert()
         .def_readonly("socket_type", &incoming_connection_alert::socket_type)
         .add_property("ip", &incoming_connection_alert_ip)
         ;
+    class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
+        "torrent_need_cert_alert", no_init)
+        .def_readonly("error", &torrent_need_cert_alert::error) 
+        ;
 }
