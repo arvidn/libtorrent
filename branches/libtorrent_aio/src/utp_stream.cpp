@@ -1121,6 +1121,8 @@ void utp_socket_impl::maybe_trigger_receive_callback(ptime now)
 {
 	INVARIANT_CHECK;
 
+	if (m_read_handler == 0) return;
+
 	// nothing has been read or there's no outstanding read operation
 	if (m_null_buffers && m_receive_buffer_size == 0) return;
 	else if (!m_null_buffers && m_read == 0) return;
