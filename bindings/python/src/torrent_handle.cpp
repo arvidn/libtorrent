@@ -390,6 +390,7 @@ void bind_torrent_handle()
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
         .def("rename_file", _(rename_file0))
+        .def("set_ssl_certificate", &torrent_handle::set_ssl_certificate, (arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase")=""))
 #if TORRENT_USE_WSTRING
         .def("move_storage", _(move_storage1))
         .def("rename_file", _(rename_file1))
