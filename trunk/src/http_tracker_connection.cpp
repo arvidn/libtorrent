@@ -389,6 +389,9 @@ namespace libtorrent
 		int interval = int(e.dict_find_int_value("interval", 0));
 		int min_interval = int(e.dict_find_int_value("min interval", 30));
 
+		// if no interval is specified, default to 30 minutes
+		if (interval == 0) interval = 1800;
+		
 		std::string trackerid;
 		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
@@ -427,9 +430,6 @@ namespace libtorrent
 					, interval, min_interval);
 				return;
 			}
-
-			// if no interval is specified, default to 30 minutes
-			if (interval == 0) interval = 1800;
 
 			int complete = int(scrape_data->dict_find_int_value("complete", -1));
 			int incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
