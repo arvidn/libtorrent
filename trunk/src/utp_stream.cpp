@@ -1245,6 +1245,8 @@ void utp_socket_impl::send_syn()
 
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
+	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
+	TORRENT_ASSERT(p->buf == (uint8_t*)h);
 
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
@@ -1314,9 +1316,12 @@ void utp_socket_impl::send_fin()
 	packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
 	if (old)
 	{
+		TORRENT_ASSERT(((utp_header*)old->buf)->seq_nr == m_seq_nr);
 		if (!old->need_resend) m_bytes_in_flight -= old->size - old->header_size;
 		free(old);
 	}
+	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
+
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 	m_fast_resend_seq_nr = m_seq_nr;
 
@@ -1857,9 +1862,11 @@ bool utp_socket_impl::send_pkt(bool ack)
 		packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
 		if (old)
 		{
+			TORRENT_ASSERT(((utp_header*)old->buf)->seq_nr == m_seq_nr);
 			if (!old->need_resend) m_bytes_in_flight -= old->size - old->header_size;
 			free(old);
 		}
+		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 		TORRENT_ASSERT(payload_size >= 0);
 		m_bytes_in_flight += p->size - p->header_size;
