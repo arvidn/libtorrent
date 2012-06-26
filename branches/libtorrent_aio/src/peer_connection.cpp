@@ -3822,9 +3822,6 @@ namespace libtorrent
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
-		int upload_capacity = m_settings.get_int(settings_pack::upload_rate_limit);
-		if (upload_capacity == 0)
-			upload_capacity = (std::max)(20000, m_ses.peak_up_rate() + 10000);
 
 		error_code ec;
 		p.local_endpoint = get_socket()->local_endpoint(ec);

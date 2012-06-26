@@ -552,6 +552,9 @@ namespace libtorrent
 		error_code ec;
 		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(ret == 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (ret != 0) throw libtorrent_exception(ec);
+#endif
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 

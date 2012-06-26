@@ -123,7 +123,7 @@ namespace libtorrent
 			if (size < 2) return -1;
 
 			size -= 2;
-			buffer += 2;
+//			buffer += 2;
 		}
 
 		return total_size - size;

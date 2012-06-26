@@ -624,6 +624,9 @@ namespace libtorrent
 			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 			int ret = lazy_bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
+#ifndef BOOST_NO_EXCEPTIONS
+			if (ret != 0) throw libtorrent_exception(ec);
+#endif
 			TORRENT_ASSERT(ret == 0);
 
 			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
@@ -670,7 +673,7 @@ namespace libtorrent
 		if (tmp.size() == 0 || lazy_bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(errors::invalid_bencoding);
+			throw invalid_torrent_file(ec);
 #endif
 			return;
 		}

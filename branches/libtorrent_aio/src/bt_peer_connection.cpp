@@ -778,7 +778,7 @@ namespace libtorrent
 
 		// peer id
 		memcpy(ptr, &m_ses.get_peer_id()[0], 20);
-		ptr += 20;
+//		ptr += 20;
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());

@@ -3447,6 +3447,7 @@ namespace aux {
 					if (!t.is_finished())
 					{
 						// TODO: make this bias configurable
+						// TODO: also take average_peers into account, to create a bias for downloading torrents with < average peers
 						TORRENT_ASSERT(m_num_downloaders > 0);
 						num_attempts += m_num_finished / m_num_downloaders;
 					}
