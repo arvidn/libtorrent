@@ -1788,11 +1788,11 @@ bool utp_socket_impl::send_pkt(bool ack)
 #endif
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 		, (char const*)h, p->size, ec
-		, use_as_probe ? utp_socket_manager::dont_fragment : 0);
+		, p->mtu_probe ? utp_socket_manager::dont_fragment : 0);
 
 	++m_out_packets;
 
-	if (ec == error::message_size && use_as_probe)
+	if (ec == error::message_size && p->mtu_probe)
 	{
 		m_mtu_ceiling = m_mtu - 1;
 		update_mtu_limits();
@@ -1860,10 +1860,11 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 
 	TORRENT_ASSERT(!m_error);
 
-	if (fast_resend
-		&& ((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
+	if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
 		&& m_mtu_seq != 0)
 	{
+		m_mtu_seq = 0;
+		p->mtu_probe = false;
 		// we got multiple acks for the packet before our probe, assume
 		// it was dropped because it was too big
 		m_mtu_ceiling = m_mtu - 1;
@@ -3042,10 +3043,6 @@ void utp_socket_impl::tick(ptime const& now)
 	{
 		// TIMEOUT!
 		// set cwnd to 1 MSS
-
-		// the window went from less than one MSS to one MSS
-		// we can now sent messages again, the send window was opened
-		if ((m_cwnd >> 16) < m_mtu) window_opened = true;
 
 		if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
 		{
