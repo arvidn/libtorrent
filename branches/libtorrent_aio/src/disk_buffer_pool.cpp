@@ -383,10 +383,13 @@ namespace libtorrent
 #define O_EXLOCK 0
 #endif
 			m_cache_fd = open(sett.get_str(settings_pack::mmap_cache).c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
-			if (m_cache_fd < 0 && m_post_alert)
+			if (m_cache_fd < 0)
 			{
-				error_code ec(errno, boost::system::get_generic_category());
-				m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
+				if (m_post_alert)
+				{
+					error_code ec(errno, boost::system::get_generic_category());
+					m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
+				}
 			}
 			else
 			{
