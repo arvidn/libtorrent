@@ -1,3 +1,4 @@
+	* add python bindings for SSL support
 	* minor uTP tweaks
 	* fix end-game mode issue when some files are selected to not be downloaded
 	* improve uTP slow start
