@@ -328,13 +328,13 @@ namespace
 			policy::peer* p = b.second.peer;
 
 			if (b.second.digest == ok_digest) return;
+			if (p == 0) return;
 
 #ifdef TORRENT_LOG_HASH_FAILURES
 			log_hash_block(&m_log_file, m_torrent, b.first.piece_index
 				, b.first.block_index, p->address(), j.buffer, j.buffer_size, false);
 #endif
 
-			if (p == 0) return;
 			if (!m_torrent.get_policy().has_peer(p)) return;
 
 #ifdef TORRENT_LOGGING
