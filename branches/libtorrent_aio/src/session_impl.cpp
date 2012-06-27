@@ -2934,6 +2934,8 @@ namespace aux {
 	int session_impl::rate_limit(peer_class_t c, int channel) const
 	{
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
+		if (channel < 0 || channel > 1) return 0;
+
 		peer_class const* pc = m_classes.at(c);
 		if (pc == 0) return 0;
 		return pc->channel[channel].throttle();
@@ -2954,6 +2956,8 @@ namespace aux {
 		TORRENT_ASSERT(is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
+
+		if (channel < 0 || channel > 1) return;
 
 		peer_class* pc = m_classes.at(c);
 		if (pc == 0) return;
