@@ -128,6 +128,7 @@ void bind_create_torrent()
         .def("piece_length", &create_torrent::piece_length)
         .def("piece_size", &create_torrent::piece_size)
         .def("priv", &create_torrent::priv)
+        .def("set_root_cert", &create_torrent::set_root_cert, (arg("pem")))
         ;
 
     enum_<create_torrent::flags_t>("create_torrent_flags_t")

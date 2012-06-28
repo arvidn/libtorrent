@@ -355,7 +355,10 @@ namespace libtorrent
 		// the error. It will return true on success.
 		enum listen_on_flags_t
 		{
+#ifndef TORRENT_NO_DEPRECATE
+			// this is always on starting with 0.16.2
 			listen_reuse_address = 0x01,
+#endif
 			listen_no_system_port = 0x02
 		};
 
