@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-#ifndef INT64_MAX
+#if !defined INT64_MAX
 #define INT64_MAX 0x7fffffffffffffffLL
 #endif
 

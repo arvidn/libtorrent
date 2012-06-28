@@ -15,6 +15,7 @@
 
 	* fix nagle implementation in uTP
 
+	* fix unnecessary dependency on boost.date_time when building boost.asio as separate compilation
 	* always use SO_REUSEADDR and deprecate the flag to turn it on
 	* add python bindings for SSL support
 	* minor uTP tweaks
