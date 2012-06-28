@@ -1,3 +1,5 @@
+	* always use SO_REUSEADDR
+
 0.15.11 release
 
 	* fixed web seed bug, sometimes causing infinite loops

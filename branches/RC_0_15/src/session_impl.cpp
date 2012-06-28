@@ -1325,6 +1325,10 @@ namespace aux {
 			s.sock.reset();
 			return s;
 		}
+
+		error_code err; // ignore errors here
+		s.sock->set_option(socket_acceptor::reuse_address(true), err);
+
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
 		{
