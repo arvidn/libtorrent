@@ -951,7 +951,14 @@ namespace libtorrent
 
 			TORRENT_ASSERT((r.start % block_size) == 0);
 
-			if (storage->is_blocked(j)) return;
+			if (storage->is_blocked(j))
+			{
+				++m_num_blocked_jobs;
+				DLOG(stderr, "[%p] blocked job: %s (torrent: %d total: %d)\n"
+					, this, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
+					, int(m_num_blocked_jobs));
+				return;
+			}
 
 			mutex::scoped_lock l(m_cache_mutex);
 			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
