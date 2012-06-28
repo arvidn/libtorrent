@@ -1,5 +1,6 @@
 	* fix nagle implementation in uTP
 
+	* always use SO_REUSEADDR and deprecate the flag to turn it on
 	* add python bindings for SSL support
 	* minor uTP tweaks
 	* fix end-game mode issue when some files are selected to not be downloaded
