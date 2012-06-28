@@ -702,7 +702,11 @@ namespace libtorrent
 			return m_picker.get() != 0;
 		}
 		policy& get_policy() { return m_policy; }
+
+		// TODO: this should be renamed 'storage'
 		piece_manager& filesystem();
+		bool has_storage() const { return m_owning_storage; }
+
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
