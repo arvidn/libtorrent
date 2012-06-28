@@ -463,6 +463,10 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 
 	if (pe->ok_to_evict())
 	{
+		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
+			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
+			return true;
+
 		if (pe->cache_state == cached_piece_entry::write_lru)
 			erase_piece(pe);
 		else

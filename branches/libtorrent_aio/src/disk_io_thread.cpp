@@ -1294,6 +1294,7 @@ namespace libtorrent
 				memcpy(j->d.piece_hash, &piece_hash[0], 20);
 				delete pe->hash;
 				pe->hash = NULL;
+				m_disk_cache.update_cache_state(pe);
 				return 0;
 			}
 		}
@@ -1444,6 +1445,7 @@ namespace libtorrent
 
 			delete pe->hash;
 			pe->hash = NULL;
+			m_disk_cache.update_cache_state(pe);
 		}
 		return ret < 0 ? ret : 0;
 	}
