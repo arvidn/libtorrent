@@ -64,13 +64,19 @@ using namespace libtorrent;
 
 bool tests_failure = false;
 
+#if defined TORRENT_WINDOWS
+#include <conio.h>
+#endif
+
 void report_failure(char const* err, char const* file, int line)
 {
-#if defined TORRENT_WINDOWS && defined TORRENT_MINGW
-	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
+#if defined TORRENT_WINDOWS
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(console, FOREGROUND_RED);
-	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	CloseHandle(console);
+	char msg[512];
+	snprintf(msg, sizeof(msg), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
+	WriteFile(console, msg, strlen(msg), NULL, NULL);
+	SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
 	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
 #endif
