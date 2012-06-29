@@ -1,4 +1,5 @@
 test_programs = \
+  test_file                  \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -41,6 +42,7 @@ noinst_HEADERS = test.hpp setup_transfer.hpp
 
 libtest_la_SOURCES = main.cpp setup_transfer.cpp
 
+test_file_SOURCES = test_file.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
