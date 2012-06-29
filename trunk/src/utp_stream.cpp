@@ -705,17 +705,6 @@ void utp_socket_impl::update_mtu_limits()
 	// clear the mtu probe sequence number since
 	// it was either dropped or acked
 	m_mtu_seq = 0;
-
-	if (m_mtu_ceiling - m_mtu_floor < 10)
-	{
-		// we have narrowed down the mtu within 10
-		// bytes. That's good enough, start using
-		// floor as the packet size from now on.
-		// set the ceiling to the floor as well to
-		// disable more probes to be sent
-		// we'll never re-probe this connection
-		m_mtu = m_mtu_ceiling = m_mtu_floor;
-	}
 }
 
 int utp_socket_state(utp_socket_impl const* s)
@@ -1732,7 +1721,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	// MTU DISCOVERY
 	if (m_mtu_seq == 0
-		&& packet_size > m_mtu_floor
+		&& p->size > m_mtu_floor
 		&& m_seq_nr != 0)
 	{
 		p->mtu_probe = true;
@@ -1764,7 +1753,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		"mtu_probe:%d extension:%d\n"
 		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
-		, packet_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
+		, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
 		, boost::uint32_t(h->timestamp_difference_microseconds), int(p->mtu_probe)
 		, h->extension);
@@ -1783,7 +1772,8 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	if (ec == error::message_size && p->mtu_probe)
 	{
-		m_mtu_ceiling = m_mtu - 1;
+		m_mtu_ceiling = p->size - 1;
+		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 		update_mtu_limits();
 		// TODO: we might want to do something else here
 		// as well, to resend the packet immediately without
@@ -1871,7 +1861,9 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		p->mtu_probe = false;
 		// we got multiple acks for the packet before our probe, assume
 		// it was dropped because it was too big
-		m_mtu_ceiling = m_mtu - 1;
+		// if the packet we just lost was smaller than the mtu
+		// ignore it
+		m_mtu_ceiling = p->size - 1;
 		update_mtu_limits();
 	}
 
@@ -2024,7 +2016,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	{
 		TORRENT_ASSERT(p->mtu_probe);
 		// our mtu probe was acked!
-		m_mtu_floor = m_mtu;
+		m_mtu_floor = (std::max)(m_mtu_floor, p->size);
 		update_mtu_limits();
 	}
 
@@ -3111,6 +3103,7 @@ void utp_socket_impl::tick(ptime const& now)
 			// we had was the probe. Assume it was dropped
 			// because it was too big
 			m_mtu_ceiling = m_mtu - 1;
+			if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
 			update_mtu_limits();
 		}
 
