@@ -1248,7 +1248,7 @@ void utp_socket_impl::send_syn()
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
 	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
-	TORRENT_ASSERT(p->buf == (uint8_t*)h);
+	TORRENT_ASSERT(p->buf == (boost::uint8_t*)h);
 
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
