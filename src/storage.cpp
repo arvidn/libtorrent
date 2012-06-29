@@ -115,42 +115,6 @@ namespace
 
 namespace libtorrent
 {
-
-	void recursive_copy(std::string const& old_path, std::string const& new_path, error_code& ec)
-	{
-		TORRENT_ASSERT(!ec);
-		if (is_directory(old_path, ec))
-		{
-			create_directory(new_path, ec);
-			if (ec) return;
-			for (directory i(old_path, ec); !i.done(); i.next(ec))
-			{
-				std::string f = i.file();
-				recursive_copy(f, combine_path(new_path, f), ec);
-				if (ec) return;
-			}
-		}
-		else if (!ec)
-		{
-			copy_file(old_path, new_path, ec);
-		}
-	}
-
-	void recursive_remove(std::string const& old_path)
-	{
-		error_code ec;
-		if (is_directory(old_path, ec))
-		{
-			for (directory i(old_path, ec); !i.done(); i.next(ec))
-				recursive_remove(combine_path(old_path, i.file()));
-			remove(old_path, ec);
-		}
-		else
-		{
-			remove(old_path, ec);
-		}
-	}
-
 	std::vector<std::pair<size_type, std::time_t> > get_filesizes(
 		file_storage const& storage, std::string const& p)
 	{
@@ -835,7 +799,7 @@ namespace libtorrent
 				}
 				else
 				{
-					recursive_remove(old_path);
+					remove_all(old_path, ec);
 				}
 				break;
 			}
