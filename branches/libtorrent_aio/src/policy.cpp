@@ -1584,6 +1584,13 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 
+		iterator iter = std::lower_bound(
+			m_peers.begin(), m_peers.end()
+			, c->remote().address(), peer_address_compare());
+
+		if (iter != m_peers.end() && (*iter)->address() == c->remote().address())
+			return true;
+
 		return std::find_if(
 			m_peers.begin()
 			, m_peers.end()
