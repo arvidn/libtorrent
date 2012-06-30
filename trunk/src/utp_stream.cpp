@@ -1861,8 +1861,6 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		p->mtu_probe = false;
 		// we got multiple acks for the packet before our probe, assume
 		// it was dropped because it was too big
-		// if the packet we just lost was smaller than the mtu
-		// ignore it
 		m_mtu_ceiling = p->size - 1;
 		update_mtu_limits();
 	}
@@ -2017,6 +2015,7 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 		TORRENT_ASSERT(p->mtu_probe);
 		// our mtu probe was acked!
 		m_mtu_floor = (std::max)(m_mtu_floor, p->size);
+		if (m_mtu_ceiling < m_mtu_floor) m_mtu_ceiling = m_mtu_floor;
 		update_mtu_limits();
 	}
 
