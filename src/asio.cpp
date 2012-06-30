@@ -59,6 +59,9 @@
 #include <boost/asio/ip/impl/host_name.ipp>
 #include <boost/asio/ip/detail/impl/endpoint.ipp>
 #include <boost/asio/local/detail/impl/endpoint.ipp>
+#if BOOST_VERSION >= 104900
+#include <boost/asio/detail/impl/win_object_handle_service.ipp>
+#endif
 
 #elif BOOST_VERSION >= 104400
 #include <boost/asio/impl/src.cpp>
