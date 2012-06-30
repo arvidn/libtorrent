@@ -1512,8 +1512,8 @@ int main(int argc, char* argv[])
 #endif // TORRENT_USE_I2P
 			case 'C':
 				settings.set_int(settings_pack::cache_size, atoi(arg));
-				settings.set_bool(settings_pack::use_read_cache, settings.cache_size > 0);
-				settings.set_int(settings_pack::cache_buffer_chunk_size, settings.cache_size / 100);
+				settings.set_bool(settings_pack::use_read_cache, atoi(arg) > 0);
+				settings.set_int(settings_pack::cache_buffer_chunk_size, atoi(arg) / 100);
 				break;
 			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
 			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
