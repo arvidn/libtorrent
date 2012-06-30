@@ -85,9 +85,22 @@ int test_main()
 	TEST_CHECK(files.count("ghi") == 1);
 	TEST_CHECK(files.count("..") == 1);
 	TEST_CHECK(files.count(".") == 1);
+	files.clear();
+
+	recursive_copy("file_test_dir", "file_test_dir2", ec);
+
+	for (directory i("file_test_dir2", ec); !i.done(); i.next(ec))
+	{
+		std::string f = i.file();
+		TEST_CHECK(files.count(f) == 0);
+		files.insert(f);
+		fprintf(stderr, " %s\n", f.c_str());
+	}
 
 	remove_all("file_test_dir", ec);
-	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+	remove_all("file_test_dir2", ec);
+	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
 
 	return 0;
 }
