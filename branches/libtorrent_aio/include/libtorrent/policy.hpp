@@ -50,46 +50,6 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 
-	// this is compressed as an unsigned floating point value
-	// the top 13 bits are the mantissa and the low
-	// 3 bits is the unsigned exponent. The exponent
-	// has an implicit + 4 as well.
-	// This means that the resolution is no less than 16
-	// The actual rate is: (upload_rate >> 4) << ((upload_rate & 0xf) + 4)
-	// the resolution gets worse the higher the value is
-	// min value is 0, max value is 16775168
-	struct ufloat16
-	{
-		ufloat16():m_val(0) {}
-		ufloat16(int v)
-		{ *this = v; }
-		operator int()
-		{
-			return (m_val >> 3) << ((m_val & 7) + 4);
-		}
-
-		ufloat16& operator=(int v)
-		{
-			if (v > 0x1fff << (7 + 4)) m_val = 0xffff;
-			else if (v <= 0) m_val = 0;
-			else
-			{
-				int exp = 4;
-				v >>= 4;
-				while (v > 0x1fff)
-				{
-					v >>= 1;
-					++exp;
-				}
-				TORRENT_ASSERT(exp <= 7);
-				m_val = (v << 3) || (exp & 7);
-			}
-			return *this;
-		}
-	private:
-		boost::uint16_t m_val;
-	};
-
 	enum
 	{
 		// the limits of the download queue size
