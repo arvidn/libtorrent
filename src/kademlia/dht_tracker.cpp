@@ -241,6 +241,8 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
+	dht_tracker::~dht_tracker() {}
+
 	// defined in node.cpp
 	extern void nop();
 

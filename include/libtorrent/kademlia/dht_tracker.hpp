@@ -79,6 +79,7 @@ namespace libtorrent { namespace dht
 		// TODO: take a udp_socket_interface here instead. Move udp_socket_interface down into libtorrent core
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, entry const* state = 0);
+		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap);
 		void stop();
