@@ -218,7 +218,7 @@ namespace libtorrent
 				, std::string const& logpath
 #endif
 				);
-			~session_impl();
+			virtual ~session_impl();
 			void init();
 			void start_session();
 

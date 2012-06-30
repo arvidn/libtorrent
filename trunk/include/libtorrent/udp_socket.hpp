@@ -146,7 +146,17 @@ namespace libtorrent
 	public:
 #endif
 
+		// observers on this udp socket
 		std::vector<udp_socket_observer*> m_observers;
+		std::vector<udp_socket_observer*> m_added_observers;
+
+		// this is true while iterating over the observers
+		// vector, invoking observer hooks. We may not
+		// add new observers during this time, since it
+		// may invalidate the iterator. If this is true,
+		// instead add new observers to m_added_observers
+		// and they will be added later
+		bool m_observers_locked;
 
 		void call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size);
 		void call_handler(error_code const& ec, const char* host, char const* buf, int size);
@@ -174,7 +184,6 @@ namespace libtorrent
 		void unwrap(error_code const& e, char const* buf, int size);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool m_observers_locked;
 
 		// TODO: move this debug facility into a base class. It's used in a lot of places
 #if defined BOOST_HAS_PTHREADS
