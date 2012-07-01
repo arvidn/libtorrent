@@ -13,6 +13,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
 	* fix move_storage bugs

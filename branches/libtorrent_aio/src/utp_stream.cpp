@@ -267,6 +267,7 @@ struct utp_socket_impl
 		, m_cwnd_full(false)
 		, m_null_buffers(false)
 		, m_deferred_ack(false)
+		, m_stalled(false)
 	{
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
@@ -279,6 +280,8 @@ struct utp_socket_impl
 	void init_mtu(int link_mtu, int utp_mtu);
 	bool incoming_packet(boost::uint8_t const* buf, int size
 		, udp::endpoint const& ep, ptime receive_time);
+	void writable();
+
 	bool should_delete() const;
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
@@ -634,6 +637,13 @@ struct utp_socket_impl
 	// burst of incoming UDP packets is all drained, the utp socket
 	// manager will send acks for all sockets on this list.
 	bool m_deferred_ack:1;
+
+	// if this socket tries to send a packet via the utp socket
+	// manager, and it fails with EWOULDBLOCK, the socket
+	// is stalled and this is set. It's also added to a list
+	// of sockets in the utp_socket_manager to be notified of
+	// the socket being writable again
+	bool m_stalled:1;
 };
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -693,6 +703,13 @@ udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
 boost::uint16_t utp_receive_id(utp_socket_impl* s)
 {
 	return s->m_recv_id;
+}
+
+void utp_writable(utp_socket_impl* s)
+{
+	TORRENT_ASSERT(s->m_stalled);
+	s->m_stalled = false;
+	s->writable();
 }
 
 void utp_send_ack(utp_socket_impl* s)
@@ -1209,7 +1226,7 @@ void utp_socket_impl::send_syn()
 	packet* p = (packet*)malloc(sizeof(packet) + sizeof(utp_header));
 	p->size = sizeof(utp_header);
 	p->header_size = sizeof(utp_header);
-	p->num_transmissions = 1;
+	p->num_transmissions = 0;
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 	h->type_ver = (ST_SYN << 4) | 1;
@@ -1238,7 +1255,18 @@ void utp_socket_impl::send_syn()
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
 		, sizeof(utp_header), ec);
 
-	if (ec)
+	if (ec == error::would_block)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: socket stalled\n", this);
+#endif
+		if (!m_stalled)
+		{
+			m_stalled = true;
+			m_sm->subscribe_writable(this);
+		}
+	}
+	else if (ec)
 	{
 		free(p);
 		m_error = ec;
@@ -1246,6 +1274,9 @@ void utp_socket_impl::send_syn()
 		test_socket_state();
 		return;
 	}
+
+	if (!m_stalled)
+		++p->num_transmissions;
 
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
@@ -1259,6 +1290,19 @@ void utp_socket_impl::send_syn()
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
+}
+
+// if a send ever failed with EWOULDBLOCK, we
+// subscribe to the udp socket and will be
+// signalled with this function.
+void utp_socket_impl::writable()
+{
+#if TORRENT_UTP_LOG
+	UTP_LOGV("%8p: writable\n", this);
+#endif
+	while(send_pkt());
+
+	maybe_trigger_send_callback(time_now_hires());
 }
 
 void utp_socket_impl::send_fin()
@@ -1754,7 +1798,6 @@ bool utp_socket_impl::send_pkt(int flags)
 		h->type_ver = (ST_FIN << 4) | 1;
 
 	// fill in the timestamp as late as possible
-	++p->num_transmissions;
 	ptime now = time_now_hires();
 	p->send_time = now;
 	h->timestamp_microseconds = boost::uint32_t(total_microseconds(now - min_time()));
@@ -1783,7 +1826,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	++m_out_packets;
 
-	if (ec == error::message_size && p->mtu_probe)
+	if (ec == error::message_size)
 	{
 		m_mtu_ceiling = p->size - 1;
 		if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
@@ -1792,14 +1835,28 @@ bool utp_socket_impl::send_pkt(int flags)
 		// as well, to resend the packet immediately without
 		// it being an MTU probe
 	}
+	else if (ec == error::would_block)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: socket stalled\n", this);
+#endif
+		if (!m_stalled)
+		{
+			m_stalled = true;
+			m_sm->subscribe_writable(this);
+		}
+	}
 	else if (ec)
 	{
+		if (payload_size) free(p);
 		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
 		test_socket_state();
-		if (payload_size) free(p);
 		return false;
 	}
+
+	if (!m_stalled)
+		++p->num_transmissions;
 
 	// if we have payload, we need to save the packet until it's acked
 	// and progress m_seq_nr
@@ -1833,7 +1890,10 @@ bool utp_socket_impl::send_pkt(int flags)
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 	}
 
-	return m_write_buffer_size > 0 && !m_cwnd_full;
+	// if the socket is stalled, always return false, don't
+	// try to write more packets. We'll keep writing once
+	// the underlying UDP socket becomes writable
+	return m_write_buffer_size > 0 && !m_cwnd_full && !m_stalled;
 }
 
 // size is in bytes
@@ -1895,7 +1955,6 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	TORRENT_ASSERT(p->size - p->header_size >= 0);
 	if (p->need_resend) m_bytes_in_flight += p->size - p->header_size;
 
-	++p->num_transmissions;
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 	// update packet header
@@ -1939,7 +1998,18 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
 
-	if (ec)
+	if (ec == error::would_block)
+	{
+#if TORRENT_UTP_LOG
+		UTP_LOGV("%8p: socket stalled\n", this);
+#endif
+		if (!m_stalled)
+		{
+			m_stalled = true;
+			m_sm->subscribe_writable(this);
+		}
+	}
+	else if (ec)
 	{
 		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
@@ -1947,7 +2017,10 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		return false;
 	}
 
-	return true;
+	if (!m_stalled)
+		++p->num_transmissions;
+
+	return !m_stalled;
 }
 
 void utp_socket_impl::experienced_loss(int seq_nr)
@@ -2609,7 +2682,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 			if (m_state == UTP_STATE_FIN_SENT)
 			{
-				send_pkt(true);
+				send_pkt(pkt_ack);
 				if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 			}
 			else
@@ -2738,7 +2811,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 			// try to send more data as long as we can
 			// if send_pkt returns true
-			while (send_pkt(false));
+			while (send_pkt());
 
 			if (has_ack && prev_out_packets == m_out_packets)
 			{
@@ -3185,7 +3258,7 @@ void utp_socket_impl::tick(ptime now)
 		}
 		else if (m_state < UTP_STATE_FIN_SENT)
 		{
-			send_pkt(false);
+			send_pkt();
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return;
 		}
 		else if (m_state == UTP_STATE_FIN_SENT)
