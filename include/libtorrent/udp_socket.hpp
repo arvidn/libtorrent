@@ -56,6 +56,10 @@ namespace libtorrent
 		virtual bool incoming_packet(error_code const& ec
 			, char const* hostname, char const* buf, int size) { return false; }
 
+		// called when the socket becomes writeable, after having
+		// failed with EWOULDBLOCK
+		virtual void writable() {}
+
 		// called every time the socket is drained of packets
 		virtual void socket_drained() {}
 	};
@@ -161,6 +165,9 @@ namespace libtorrent
 		void call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size);
 		void call_handler(error_code const& ec, const char* host, char const* buf, int size);
 		void call_drained_handler();
+		void call_writable_handler();
+
+		void on_writable(error_code const& ec, udp::socket* s);
 
 		void setup_read(udp::socket* s);
 		void on_read(udp::socket* s);
@@ -232,6 +239,11 @@ namespace libtorrent
 		// counts the number of outstanding async
 		// operations hanging on this socket
 		int m_outstanding_ops;
+
+#if TORRENT_USE_IPV6
+		bool m_v6_write_subscribed:1;
+#endif
+		bool m_v4_write_subscribed:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_started;
