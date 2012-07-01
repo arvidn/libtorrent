@@ -59,6 +59,7 @@ namespace libtorrent
 			, char const* p, int size);
 		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
 		{ return false; }
+		virtual void writable();
 
 		virtual void socket_drained();
 
@@ -70,6 +71,7 @@ namespace libtorrent
 		enum { dont_fragment = 1 };
 		void send_packet(udp::endpoint const& ep, char const* p, int len
 			, error_code& ec, int flags = 0);
+		void subscribe_writable(utp_socket_impl* s);
 
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
@@ -104,6 +106,11 @@ namespace libtorrent
 		// have a chance to do that. This is to avoid sending
 		// an ack for every single packet
 		std::vector<utp_socket_impl*> m_deferred_acks;
+		
+		// list of sockets that received EWOULDBLOCK from the
+		// underlying socket. They are notified when the socket
+		// becomes writable again
+		std::vector<utp_socket_impl*> m_stalled_sockets;
 
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket;

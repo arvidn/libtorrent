@@ -276,6 +276,25 @@ namespace libtorrent
 		return false;
 	}
 
+	void utp_socket_manager::subscribe_writable(utp_socket_impl* s)
+	{
+		TORRENT_ASSERT(std::find(m_stalled_sockets.begin(), m_stalled_sockets.end()
+			, s) == m_stalled_sockets.end());
+		m_stalled_sockets.push_back(s);
+	}
+
+	void utp_socket_manager::writable()
+	{
+		std::vector<utp_socket_impl*> stalled_sockets;
+		m_stalled_sockets.swap(stalled_sockets);
+		for (std::vector<utp_socket_impl*>::iterator i = stalled_sockets.begin()
+			, end(stalled_sockets.end()); i != end; ++i)
+		{
+			utp_socket_impl* s = *i;
+			utp_writable(s);
+		}
+	}
+
 	void utp_socket_manager::socket_drained()
 	{
 		// flush all deferred acks

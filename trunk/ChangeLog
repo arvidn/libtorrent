@@ -1,3 +1,4 @@
+	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
 	* fix move_storage bugs
