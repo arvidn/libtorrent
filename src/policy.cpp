@@ -236,15 +236,8 @@ namespace libtorrent
 		// and we're not strictly speaking in end-game mode yet
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
-
-		// the number of pieces we want (i.e. not including the filtered pieces)
-		int num_want = t.torrent_file().num_pieces() - p.num_filtered();
-		// the number of pieces we already have (not counting pieces that are filtered
-		// that we might have still for some reason)
-		int num_have = p.num_have() - p.num_have_filtered();
-
 		bool dont_pick_busy_blocks = (ses.m_settings.strict_end_game_mode
-			&& num_have + p.num_downloading_pieces() < num_want)
+			&& p.num_downloading_pieces() < p.num_want_left())
 			|| dq.size() + rq.size() > 0;
 
 		// this is filled with an interesting piece
