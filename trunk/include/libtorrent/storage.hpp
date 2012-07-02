@@ -115,7 +115,7 @@ namespace libtorrent
 		virtual int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		virtual int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 
-		virtual void hint_read(int slot, int offset, int len) {}
+		virtual void hint_read(int, int, int) {}
 		// negative return value indicates an error
 		virtual int read(char* buf, int slot, int offset, int size) = 0;
 
@@ -161,7 +161,7 @@ namespace libtorrent
 		// non-zero return value indicates an error
 		virtual bool delete_files() = 0;
 
-		virtual void finalize_file(int file) {}
+		virtual void finalize_file(int) {}
 
 		disk_buffer_pool* disk_pool() { return m_disk_pool; }
 		session_settings const& settings() const { return *m_settings; }
@@ -264,21 +264,21 @@ namespace libtorrent
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
 		bool has_any_file() { return false; }
-		bool rename_file(int index, std::string const& new_filename) { return false; }
+		bool rename_file(int, std::string const&) { return false; }
 		bool release_files() { return false; }
 		bool delete_files() { return false; }
-		bool initialize(bool allocate_files) { return false; }
-		bool move_storage(std::string const& save_path) { return true; }
-		int read(char* buf, int slot, int offset, int size) { return size; }
-		int write(char const* buf, int slot, int offset, int size) { return size; }
-		size_type physical_offset(int slot, int offset) { return 0; }
+		bool initialize(bool) { return false; }
+		bool move_storage(std::string const&) { return true; }
+		int read(char*, int, int, int size) { return size; }
+		int write(char const*, int, int, int size) { return size; }
+		size_type physical_offset(int, int) { return 0; }
 		int readv(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
 		int writev(file::iovec_t const* bufs, int slot, int offset, int num_bufs);
-		bool move_slot(int src_slot, int dst_slot) { return false; }
-		bool swap_slots(int slot1, int slot2) { return false; }
-		bool swap_slots3(int slot1, int slot2, int slot3) { return false; }
-		bool verify_resume_data(lazy_entry const& rd, error_code& error) { return false; }
-		bool write_resume_data(entry& rd) const { return false; }
+		bool move_slot(int, int) { return false; }
+		bool swap_slots(int, int) { return false; }
+		bool swap_slots3(int, int, int) { return false; }
+		bool verify_resume_data(lazy_entry const&, error_code&) { return false; }
+		bool write_resume_data(entry&) const { return false; }
 
 		int m_piece_size;
 	};
