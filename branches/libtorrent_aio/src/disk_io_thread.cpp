@@ -977,6 +977,7 @@ namespace libtorrent
 				DLOG(stderr, "[%p] blocked job: %s (torrent: %d total: %d)\n"
 					, this, job_action_name[j->action], j->storage ? j->storage->num_blocked() : 0
 					, int(m_num_blocked_jobs));
+				buffer.release();
 				return;
 			}
 
