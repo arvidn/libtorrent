@@ -136,7 +136,7 @@ namespace libtorrent
 
 		// called for every file when it completes downloading
 		// used on windows to turn off the sparse flag
-		virtual void finalize_file(int file, storage_error& ec) {}
+		virtual void finalize_file(int, storage_error&) {}
 
 		aux::session_settings const& settings() const { return *m_settings; }
 
@@ -239,12 +239,12 @@ namespace libtorrent
 	{
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
-		bool has_any_file(storage_error& ec) { return false; }
-		void rename_file(int index, std::string const& new_filename, storage_error& ec) {}
-		void release_files(storage_error& ec) {}
-		void delete_files(storage_error& ec) {}
-		void initialize(bool allocate_files, storage_error& ec) {}
-		void move_storage(std::string const& save_path, storage_error& ec) {}
+		bool has_any_file(storage_error&) { return false; }
+		void rename_file(int, std::string const&, storage_error&) {}
+		void release_files(storage_error&) {}
+		void delete_files(storage_error&) {}
+		void initialize(bool, storage_error&) {}
+		void move_storage(std::string const&, storage_error&) {}
 
 		int readv(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec);

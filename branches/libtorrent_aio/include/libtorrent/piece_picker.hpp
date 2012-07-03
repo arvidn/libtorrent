@@ -411,6 +411,9 @@ namespace libtorrent
 		// return true if we have all the pieces we wanted
 		bool is_finished() const { return m_num_have - m_num_have_filtered == int(m_piece_map.size()) - m_num_filtered; }
 
+		// the number of pieces we want and don't have
+		int num_want_left() const { return num_pieces() - m_num_have - m_num_filtered; }
+
 #ifdef TORRENT_DEBUG
 		// used in debug mode
 		void verify_priority(int start, int end, int prio) const;
