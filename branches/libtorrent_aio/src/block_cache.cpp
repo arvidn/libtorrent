@@ -312,9 +312,13 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR
+	TORRENT_ASSERT(is_disk_buffer(j->buffer));
+#endif
 	INVARIANT_CHECK;
 
 	TORRENT_ASSERT(j->buffer);
+	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size + 1 <= in_use());
 
 	cached_piece_entry* pe = allocate_piece(j, cached_piece_entry::write_lru);
 	TORRENT_ASSERT(pe);
@@ -336,11 +340,13 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	cached_block_entry& b = pe->blocks[block];
 
+	TORRENT_ASSERT(b.buf != j->buffer);
+
 	// we might have a left-over read block from
 	// hash checking
 	// we might also have a previous dirty block which
 	// we're still waiting for to be written
-	if (b.buf != 0)
+	if (b.buf != 0 && b.buf != j->buffer)
 	{
 		TORRENT_ASSERT(b.refcount == 0 && !b.pending);
 		free_block(pe, block);
@@ -829,6 +835,10 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		TORRENT_ASSERT(iov[i].iov_len == (std::min)(block_size()
 			, pe->storage->files()->piece_size(pe->piece) - (start + i) * block_size()));
 
+#ifdef TORRENT_DEBUG_BUFFERS
+		TORRENT_ASSERT(is_disk_buffer((char*)iov[i].iov_base));
+#endif
+
 		// either free the block or insert it. Never replace a block
 		if (pe->blocks[start + i].buf)
 		{
@@ -1035,6 +1045,7 @@ void block_cache::check_invariant() const
 		}
 	}
 
+	boost::unordered_set<char*> buffers;
 	for (iterator i = m_pieces.begin(), end(m_pieces.end()); i != end; ++i)
 	{
 		cached_piece_entry const& p = *i;
@@ -1054,6 +1065,11 @@ void block_cache::check_invariant() const
 			{
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 				TORRENT_ASSERT(is_disk_buffer(p.blocks[k].buf));
+
+				// make sure we don't have the same buffer
+				// in the cache twice
+				TORRENT_ASSERT(buffers.count(p.blocks[k].buf) == 0);
+				buffers.insert(p.blocks[k].buf);
 #endif
 				++num_blocks;
 				if (p.blocks[k].dirty)

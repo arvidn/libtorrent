@@ -131,6 +131,15 @@ namespace libtorrent
 #endif
 	}
 
+#ifdef TORRENT_DEBUG_BUFFERS
+	bool page_aligned_allocator::in_use(char* const block)
+	{
+		int page = page_size();
+		alloc_header* h = (alloc_header*)(block - page);
+		return h->magic == 0x1337;
+	}
+#endif
+
 	void page_aligned_allocator::free(char* const block)
 	{
 		if (block == 0) return;

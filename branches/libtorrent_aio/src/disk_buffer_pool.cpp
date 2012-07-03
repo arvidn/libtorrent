@@ -180,7 +180,11 @@ namespace libtorrent
 			== m_buf_to_category.end()) return false;
 #endif
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+#ifdef TORRENT_DEBUG_BUFFERS
+		return page_aligned_allocator::in_use(buffer);
+#else
 		return true;
+#endif
 #else
 		return m_pool.is_from(buffer);
 #endif

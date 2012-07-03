@@ -944,6 +944,26 @@ namespace libtorrent
 		j->callback = handler;
 		j->flags = flags;
 
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined EXPENSIVE_INVARIANT_CHECKS
+		mutex::scoped_lock l2_(m_cache_mutex);
+		std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
+		for (block_cache::iterator i = range.first; i != range.second; ++i)
+		{
+			cached_piece_entry const& p = *i;
+			int bs = m_disk_cache.block_size();
+			int piece_size = p.storage->files()->piece_size(p.piece);
+			int blocks_in_piece = (piece_size + bs - 1) / bs;
+			for (int k = 0; k < blocks_in_piece; ++k)
+				TORRENT_ASSERT(p.blocks[k].buf != j->buffer);
+		}
+		l2_.unlock();
+#endif
+
+#if !defined TORRENT_DISABLE_POOL_ALLOCATOR
+		mutex::scoped_lock l_(m_cache_mutex);
+		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer));
+		l_.unlock();
+#endif
 		if (m_settings.get_int(settings_pack::cache_size) > 0
 			&& m_settings.get_bool(settings_pack::use_write_cache))
 		{
