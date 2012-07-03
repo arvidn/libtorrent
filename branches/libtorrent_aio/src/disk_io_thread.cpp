@@ -944,7 +944,7 @@ namespace libtorrent
 		j->callback = handler;
 		j->flags = flags;
 
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined EXPENSIVE_INVARIANT_CHECKS
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		mutex::scoped_lock l2_(m_cache_mutex);
 		std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
 		for (block_cache::iterator i = range.first; i != range.second; ++i)
