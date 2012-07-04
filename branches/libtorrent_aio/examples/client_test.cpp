@@ -1169,6 +1169,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 void print_piece(libtorrent::partial_piece_info* pp
 	, libtorrent::cached_piece_info* cs
 	, std::vector<libtorrent::peer_info> const& peers
+	, torrent_status const* ts
 	, std::string& out)
 {
 	using namespace libtorrent;
@@ -1219,10 +1220,11 @@ void print_piece(libtorrent::partial_piece_info* pp
 		out += str;
 	}
 	out += esc("0");
-	snprintf(str, sizeof(str), "] %3d cache age: %-4.1f%s\n"
+	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f%s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, cs ? (cs->kind == cached_piece_info::write_cache ? " state: write" : " state: read"): "");
+		, cs ? (cs->kind == cached_piece_info::write_cache ? " state: write" : " state: read"): ""
+		, ts ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
 }
 
@@ -2373,7 +2375,7 @@ int main(int argc, char* argv[])
 						< boost::bind(&partial_piece_info::piece_index, _2));
 					if (ppi != queue.end() && ppi->piece_index == i->piece) pp = &*ppi;
 
-					print_piece(pp, &*i, peers, out);
+					print_piece(pp, &*i, peers, st, out);
 
 					if (pp) queue.erase(ppi);
 				}
@@ -2381,7 +2383,7 @@ int main(int argc, char* argv[])
 				for (std::vector<partial_piece_info>::iterator i = queue.begin()
 					, end(queue.end()); i != end; ++i)
 				{
-					print_piece(&*i, 0, peers, out);
+					print_piece(&*i, 0, peers, st, out);
 				}
 				snprintf(str, sizeof(str), "%s %s: read cache %s %s: downloading %s %s: cached %s %s: flushed\n"
 					, esc("34;7"), esc("0") // read cache
