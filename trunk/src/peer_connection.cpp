@@ -2416,6 +2416,8 @@ namespace libtorrent
 				, p.piece, _1));
 		}
 
+		if (is_disconnecting()) return;
+
 #ifdef TORRENT_STATS
 		++m_ses.m_incoming_piece_picks;
 #endif
