@@ -650,6 +650,7 @@ namespace aux {
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
+		, m_current_connect_attempts(0)
 		, m_tick_residual(0)
 		, m_non_filtered_torrents(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -3329,122 +3330,7 @@ namespace aux {
 		// connect new peers
 		// --------------------------------------------------------------
 
-		// let torrents connect to peers if they want to
-		// if there are any torrents and any free slots
-
-		// this loop will "hand out" max(connection_speed
-		// , half_open.free_slots()) to the torrents, in a
-		// round robin fashion, so that every torrent is
-		// equally likely to connect to a peer
-
-		int free_slots = m_half_open.free_slots();
-		int max_connections = m_settings.connection_speed;
-		// boost connections are connections made by torrent connection
-		// boost, which are done immediately on a tracker response. These
-		// connections needs to be deducted from this second
-		if (m_boost_connections > 0)
-		{
-			if (m_boost_connections > max_connections)
-			{
-				m_boost_connections -= max_connections;
-				max_connections = 0;
-			}
-			else
-			{
-				max_connections -= m_boost_connections;
-				m_boost_connections = 0;
-			}
-		}
-
-		// this logic is here to smooth out the number of new connection
-		// attempts over time, to prevent connecting a large number of
-		// sockets, wait 10 seconds, and then try again
-		int limit = (std::min)(m_settings.connections_limit - num_connections(), free_slots);
-		if (m_settings.smooth_connects && max_connections > (limit+1) / 2)
-			max_connections = (limit+1) / 2;
-
-		if (!m_torrents.empty()
-			&& free_slots > -m_half_open.limit()
-			&& num_connections() < m_settings.connections_limit
-			&& !m_abort
-			&& m_settings.connection_speed > 0
-			&& max_connections > 0)
-		{
-			// this is the maximum number of connections we will
-			// attempt this tick
-			int average_peers = 0;
-			if (num_downloads > 0)
-				average_peers = num_downloads_peers / num_downloads;
-
-			if (m_next_connect_torrent == m_torrents.end())
-				m_next_connect_torrent = m_torrents.begin();
-
-			int steps_since_last_connect = 0;
-			int num_torrents = int(m_torrents.size());
-			for (;;)
-			{
-				torrent& t = *m_next_connect_torrent->second;
-				if (t.want_more_peers())
-				{
-					TORRENT_ASSERT(t.allows_peers());
-					// have a bias to give more connection attempts
-					// to downloading torrents than seed, and even
-					// more to downloading torrents with less than
-					// average number of connections
-					int num_attempts = 1;
-					if (!t.is_finished())
-					{
-						// TODO: make this bias configurable
-						// TODO: also take average_peers into account, to create a bias for downloading torrents with < average peers
-						TORRENT_ASSERT(m_num_active_downloading > 0);
-						num_attempts += m_num_active_finished / m_num_active_downloading;
-					}
-					for (int i = 0; i < num_attempts; ++i)
-					{
-						TORRENT_TRY
-						{
-							if (t.try_connect_peer())
-							{
-								--max_connections;
-								--free_slots;
-								steps_since_last_connect = 0;
-#ifdef TORRENT_STATS
-								++m_connection_attempts;
-#endif
-							}
-						}
-						TORRENT_CATCH(std::bad_alloc&)
-						{
-							// we ran out of memory trying to connect to a peer
-							// lower the global limit to the number of peers
-							// we already have
-							m_settings.connections_limit = num_connections();
-							if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
-						}
-						if (!t.want_more_peers()) break;
-						if (free_slots <= -m_half_open.limit()) break;
-						if (max_connections == 0) break;
-						if (num_connections() >= m_settings.connections_limit) break;
-					}
-				}
-
-				++m_next_connect_torrent;
-				++steps_since_last_connect;
-				if (m_next_connect_torrent == m_torrents.end())
-					m_next_connect_torrent = m_torrents.begin();
-
-				// if we have gone a whole loop without
-				// handing out a single connection, break
-				if (steps_since_last_connect > num_torrents + 1) break;
-				// if there are no more free connection slots, abort
-				if (free_slots <= -m_half_open.limit()) break;
-				// if we should not make any more connections
-				// attempts this tick, abort
-				if (max_connections == 0) break;
-				// maintain the global limit on number of connections
-				if (num_connections() >= m_settings.connections_limit) break;
-			}
-		}
+		try_connect_more_peers(num_downloads, num_downloads_peers);
 
 		// --------------------------------------------------------------
 		// unchoke set calculations
@@ -4350,6 +4236,128 @@ namespace aux {
 					t->choke_peer(*pi->connection);
 					--m_num_unchoked;
 				}	
+			}
+		}
+	}
+
+	void session_impl::try_connect_more_peers(int num_downloads, int num_downloads_peers)
+	{
+		// let torrents connect to peers if they want to
+		// if there are any torrents and any free slots
+
+		// this loop will "hand out" max(connection_speed
+		// , half_open.free_slots()) to the torrents, in a
+		// round robin fashion, so that every torrent is
+		// equally likely to connect to a peer
+
+		int free_slots = m_half_open.free_slots();
+		int max_connections = m_settings.connection_speed;
+		// boost connections are connections made by torrent connection
+		// boost, which are done immediately on a tracker response. These
+		// connections needs to be deducted from this second
+		if (m_boost_connections > 0)
+		{
+			if (m_boost_connections > max_connections)
+			{
+				m_boost_connections -= max_connections;
+				max_connections = 0;
+			}
+			else
+			{
+				max_connections -= m_boost_connections;
+				m_boost_connections = 0;
+			}
+		}
+
+		// this logic is here to smooth out the number of new connection
+		// attempts over time, to prevent connecting a large number of
+		// sockets, wait 10 seconds, and then try again
+		int limit = (std::min)(m_settings.connections_limit - num_connections(), free_slots);
+		if (m_settings.smooth_connects && max_connections > (limit+1) / 2)
+			max_connections = (limit+1) / 2;
+
+		if (!m_torrents.empty()
+			&& free_slots > -m_half_open.limit()
+			&& num_connections() < m_settings.connections_limit
+			&& !m_abort
+			&& m_settings.connection_speed > 0
+			&& max_connections > 0)
+		{
+			// this is the maximum number of connections we will
+			// attempt this tick
+			int average_peers = 0;
+			if (num_downloads > 0)
+				average_peers = num_downloads_peers / num_downloads;
+
+			if (m_next_connect_torrent == m_torrents.end())
+				m_next_connect_torrent = m_torrents.begin();
+
+			int steps_since_last_connect = 0;
+			int num_torrents = int(m_torrents.size());
+			for (;;)
+			{
+				torrent& t = *m_next_connect_torrent->second;
+				if (t.want_more_peers())
+				{
+					TORRENT_ASSERT(t.allows_peers());
+					// have a bias to give more connection attempts
+					// to downloading torrents than seed, and even
+					// more to downloading torrents with less than
+					// average number of connections
+					int num_attempts = 1;
+					if (!t.is_finished())
+					{
+						// TODO: make this bias configurable
+						// TODO: also take average_peers into account, to create a bias for downloading torrents with < average peers
+						TORRENT_ASSERT(m_num_active_downloading > 0);
+						num_attempts += m_num_active_finished / m_num_active_downloading;
+					}
+					while (m_current_connect_attempts < num_attempts)
+					{
+						TORRENT_TRY
+						{
+							++m_current_connect_attempts;
+							if (t.try_connect_peer())
+							{
+								--max_connections;
+								--free_slots;
+								steps_since_last_connect = 0;
+#ifdef TORRENT_STATS
+								++m_connection_attempts;
+#endif
+							}
+						}
+						TORRENT_CATCH(std::bad_alloc&)
+						{
+							// we ran out of memory trying to connect to a peer
+							// lower the global limit to the number of peers
+							// we already have
+							m_settings.connections_limit = num_connections();
+							if (m_settings.connections_limit < 2) m_settings.connections_limit = 2;
+						}
+						if (!t.want_more_peers()) break;
+						if (free_slots <= -m_half_open.limit()) return;
+						if (max_connections == 0) return;
+						if (num_connections() >= m_settings.connections_limit) return;
+					}
+				}
+
+				++m_next_connect_torrent;
+				m_current_connect_attempts = 0;
+				++steps_since_last_connect;
+				if (m_next_connect_torrent == m_torrents.end())
+					m_next_connect_torrent = m_torrents.begin();
+
+				// if we have gone a whole loop without
+				// handing out a single connection, break
+				if (steps_since_last_connect > num_torrents + 1) break;
+				// if there are no more free connection slots, abort
+				if (free_slots <= -m_half_open.limit()) break;
+				// if we should not make any more connections
+				// attempts this tick, abort
+				if (max_connections == 0) break;
+				// maintain the global limit on number of connections
+				if (num_connections() >= m_settings.connections_limit) break;
 			}
 		}
 	}
