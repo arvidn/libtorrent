@@ -1355,6 +1355,8 @@ namespace libtorrent
 			return retry_job;
 		}
 
+		pe->hashing = 1;
+
 		++pe->piece_refcount;
 
 		if (pe->hash == NULL)
@@ -1416,6 +1418,8 @@ namespace libtorrent
 					//#error introduce a holder class that automatically increments and decrements the piece_refcount
 					--pe->piece_refcount;
 					pe->hashing = false;
+					delete pe->hash;
+					pe->hash = NULL;
 
 					j->error.ec = errors::no_memory;
 					return -1;
@@ -1464,7 +1468,7 @@ namespace libtorrent
 
 		--pe->piece_refcount;
 
-		pe->hashing = false;
+		pe->hashing = 0;
 
 		if (ret >= 0)
 		{
