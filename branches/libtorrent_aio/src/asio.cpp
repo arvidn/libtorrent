@@ -5,7 +5,16 @@
 #define BOOST_ASIO_SOURCE
 #endif
 
-#if BOOST_VERSION >= 104500
+#ifdef _MSC_VER
+
+// on windows; including timer_queue.hpp results in an
+// actual link-time dependency on boost.date_time, even
+// though it's never referenced. So, avoid that on windows.
+// on Mac OS X and Linux, not including it results in
+// missing symbols. For some reason, this current setup
+// works, at least across windows, Linux and Mac OS X.
+// In the future this hack can be fixed by disabling
+// use of boost.date_time in boost.asio
 
 #include <boost/asio/detail/config.hpp>
 
@@ -63,7 +72,12 @@
 #include <boost/asio/detail/impl/win_object_handle_service.ipp>
 #endif
 
+#else // _MSC_VER
+
+#if BOOST_VERSION >= 104500
+#include <boost/asio/impl/src.hpp>
 #elif BOOST_VERSION >= 104400
 #include <boost/asio/impl/src.cpp>
 #endif
 
+#endif

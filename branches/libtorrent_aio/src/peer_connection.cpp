@@ -2500,6 +2500,8 @@ namespace libtorrent
 				, p.piece, _1));
 		}
 
+		if (is_disconnecting()) return;
+
 #ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::incoming_piece_picks);
 #endif
