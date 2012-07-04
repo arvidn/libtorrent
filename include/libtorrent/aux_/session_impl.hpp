@@ -840,6 +840,7 @@ namespace libtorrent
 			void on_disk_queue();
 			void on_tick(error_code const& e);
 
+			void try_connect_more_peers(int num_downloads, int num_downloads_peers);
 			void auto_manage_torrents(std::vector<torrent*>& list
 				, int& dht_limit, int& tracker_limit, int& lsd_limit
 				, int& hard_limit, int type_limit);
@@ -948,6 +949,15 @@ namespace libtorrent
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
 			torrent_map::iterator m_next_connect_torrent;
+
+			// this is the number of attempts of connecting to
+			// peers we have given to the torrent pointed to
+			// by m_next_connect_torrent. Once this reaches
+			// the number of connection attempts this particular
+			// torrent should have, the counter is reset and
+			// m_next_connect_torrent takes a step forward
+			// to give the next torrent its connection attempts.
+			int m_current_connect_attempts;
 
 			// this is the round-robin cursor for peers that
 			// get to download again after the disk has been
