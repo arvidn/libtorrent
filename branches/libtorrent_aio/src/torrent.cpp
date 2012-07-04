@@ -5686,6 +5686,8 @@ namespace libtorrent
 		// failcount is a 5 bit value
 		int max_failcount = (std::min)(settings().get_int(settings_pack::max_failcount), 31);
 
+		int num_saved_peers = 0;
+
 		for (policy::const_iterator i = m_policy.begin_peer()
 			, end(m_policy.end_peer()); i != end; ++i)
 		{
@@ -5721,6 +5723,18 @@ namespace libtorrent
 			// don't save peers that don't work
 			if (int(p->failcount) >= max_failcount) continue;
 
+			// the more peers we've saved, the more picky we get
+			// about which ones are worth saving
+			if (num_saved_peers > 10
+				&& int (p->failcount) > 0
+				&& int(p->failcount) > (40 - (num_saved_peers - 10)) * max_failcount / 40)
+				continue;
+
+			// if we have 40 peers, don't save any peers whom
+			// we've only heard from through the resume data
+			if (num_saved_peers > 40 && p->source == peer_info::resume_data)
+				continue;
+
 #if TORRENT_USE_IPV6
 			if (addr.is_v6())
 			{
@@ -5733,6 +5747,7 @@ namespace libtorrent
 				write_address(addr, peers);
 				write_uint16(p->port, peers);
 			}
+			++num_saved_peers;
 		}
 
 		ret["upload_rate_limit"] = upload_limit();
