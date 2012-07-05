@@ -198,9 +198,14 @@ namespace libtorrent
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy(new char);
 		disk_io_thread disk_thread(ios, 0, 0);
+
+		storage_interface* storage_impl =
+			default_storage_constructor(t.files()
+			, 0, path, disk_thread.files(), storage_mode_sparse
+			, std::vector<boost::uint8_t>());
+
 		boost::intrusive_ptr<piece_manager> storage = new piece_manager(
-			dummy, (file_storage*)&t.files(), 0, path, disk_thread, default_storage_constructor
-			, storage_mode_sparse, std::vector<boost::uint8_t>());
+			storage_impl, dummy, (file_storage*)&t.files());
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);

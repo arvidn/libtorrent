@@ -95,11 +95,7 @@ namespace libtorrent
 		storage_interface(): m_settings(0) {}
 
 		// create directories and set file sizes
-		// if allocate_files is true. 
-		// allocate_files is true if allocation mode
-		// is set to full and sparse files are supported
-		// false return value indicates an error
-		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
+		virtual void initialize(storage_error& ec) = 0;
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec) = 0;
@@ -107,10 +103,6 @@ namespace libtorrent
 			, int piece, int offset, int flags, storage_error& ec) = 0;
 
 		virtual bool has_any_file(storage_error& ec) = 0;
-
-		// returns the end of the sparse region the slot 'start'
-		// resides in i.e. the next slot with content. If start
-		// is not in a sparse region, start itself is returned
 
 		// non-zero return value indicates an error
 		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
@@ -150,7 +142,7 @@ namespace libtorrent
 	{
 	public:
 		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
-			, file_pool& fp, std::vector<boost::uint8_t> const& file_prio);
+			, file_pool& fp, storage_mode_t mode, std::vector<boost::uint8_t> const& file_prio);
 		~default_storage();
 
 		void finalize_file(int file, storage_error& ec);
@@ -158,7 +150,7 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_filename, storage_error& ec);
 		void release_files(storage_error& ec);
 		void delete_files(storage_error& ec);
-		void initialize(bool allocate_files, storage_error& ec);
+		void initialize(storage_error& ec);
 		void move_storage(std::string const& save_path, storage_error& ec);
 		int sparse_end(int start) const;
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error);
@@ -243,7 +235,7 @@ namespace libtorrent
 		void rename_file(int, std::string const&, storage_error&) {}
 		void release_files(storage_error&) {}
 		void delete_files(storage_error&) {}
-		void initialize(bool, storage_error&) {}
+		void initialize(storage_error&) {}
 		void move_storage(std::string const&, storage_error&) {}
 
 		int readv(file::iovec_t const* bufs, int num_bufs, int piece
@@ -261,7 +253,7 @@ namespace libtorrent
 	// anything written to it
 	struct zero_storage : storage_interface
 	{
-		virtual void initialize(bool allocate_files, storage_error& ec) {}
+		virtual void initialize(storage_error& ec) {}
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec);
@@ -348,28 +340,11 @@ namespace libtorrent
 	public:
 
 		piece_manager(
-			boost::shared_ptr<void> const& torrent
-			, file_storage* files
-			, file_storage const* orig_files
-			, std::string const& path
-			, disk_io_thread& io
-			, storage_constructor_type sc
-			, storage_mode_t sm
-			, std::vector<boost::uint8_t> const& file_prio);
+			storage_interface* storage_impl
+			, boost::shared_ptr<void> const& torrent
+			, file_storage* files);
 
 		~piece_manager();
-
-		void set_abort_job(disk_io_job* j)
-		{
-			TORRENT_ASSERT(m_abort_job == 0);
-			m_abort_job = j;
-		}
-		disk_io_job* pop_abort_job()
-		{
-			disk_io_job* j = m_abort_job;
-			m_abort_job = 0;
-			return j;
-		}
 
 		file_storage const* files() const { return &m_files; }
 
@@ -419,15 +394,7 @@ namespace libtorrent
 		// we have to wait until those pieces are evicted. This
 		// is the abort jobs, waiting for all pieces
 		// for this torrent to be evicted
-		disk_io_job* m_abort_job;
-
-		storage_mode_t m_storage_mode;
-
-		// this is saved in case we need to instantiate a new
-		// storage (osed when remapping files)
-		storage_constructor_type m_storage_constructor;
-
-		disk_io_thread& m_io_thread;
+//		disk_io_job* m_abort_job;
 
 		// the reason for this to be a void pointer
 		// is to avoid creating a dependency on the

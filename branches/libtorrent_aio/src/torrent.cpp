@@ -1550,14 +1550,18 @@ namespace libtorrent
 			return;
 		}
 
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		m_owning_storage = new piece_manager(shared_from_this()
-			, (file_storage*)&m_torrent_file->files()
+		storage_interface* storage_impl =
+			m_storage_constructor(m_torrent_file->files()
 			, &m_torrent_file->orig_files() != &m_torrent_file->files()
 				? &m_torrent_file->orig_files() : 0
-			, m_save_path, m_ses.m_disk_thread, m_storage_constructor
-			, (storage_mode_t)m_storage_mode, m_file_priority);
+			, m_save_path, m_ses.m_disk_thread.files()
+			, (storage_mode_t)m_storage_mode
+			, m_file_priority);
+
+		// the shared_from_this() will create an intentional
+		// cycle of ownership, se the hpp file for description.
+		m_owning_storage = new piece_manager(
+			storage_impl, shared_from_this(), (file_storage*)&m_torrent_file->files());
 		m_storage = m_owning_storage.get();
 
 		if (has_picker())

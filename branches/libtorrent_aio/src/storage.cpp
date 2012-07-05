@@ -164,12 +164,13 @@ namespace libtorrent
 #endif
 
 	default_storage::default_storage(file_storage const& fs, file_storage const* mapped
-		, std::string const& path, file_pool& fp, std::vector<boost::uint8_t> const& file_prio)
+		, std::string const& path, file_pool& fp, storage_mode_t mode
+		, std::vector<boost::uint8_t> const& file_prio)
 		: m_files(fs)
 		, m_file_priority(file_prio)
 		, m_pool(fp)
 		, m_page_size(page_size())
-		, m_allocate_files(false)
+		, m_allocate_files(mode == storage_mode_allocate)
 	{
 		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
@@ -184,11 +185,10 @@ namespace libtorrent
 //		m_pool.release(this);
 	}
 
-	void default_storage::initialize(bool allocate_files, storage_error& ec)
+	void default_storage::initialize(storage_error& ec)
 	{
 		if (m_stat_cache.empty()) m_stat_cache.reserve(files().num_files());
 
-		m_allocate_files = allocate_files;
 		// first, create all missing directories
 		std::string last_path;
 		int file_index = 0;
@@ -242,11 +242,11 @@ namespace libtorrent
 			}
 
 			// ec is either ENOENT or the file existed and s is valid
-			// allocate file only if it is not exist and (allocate_files == true)
+			// allocate file only if it is not exist and (m_allocate_files == true)
 			// if the file already exists, but is larger than what
 			// it's supposed to be, also truncate it
 			// if the file is empty, just create it either way.
-			if ((ec && allocate_files)
+			if ((ec && m_allocate_files)
 				|| (!ec && m_stat_cache[file_index].file_size > file_iter->size)
 				|| file_iter->size == 0)
 			{
@@ -933,9 +933,9 @@ namespace libtorrent
 
 	storage_interface* default_storage_constructor(file_storage const& fs
 		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const& file_prio)
+		, storage_mode_t mode, std::vector<boost::uint8_t> const& file_prio)
 	{
-		return new default_storage(fs, mapped, path, fp, file_prio);
+		return new default_storage(fs, mapped, path, fp, mode, file_prio);
 	}
 
 	int disabled_storage::readv(file::iovec_t const* bufs
@@ -952,7 +952,7 @@ namespace libtorrent
 
 	storage_interface* disabled_storage_constructor(file_storage const& fs
 		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const&)
+		, storage_mode_t mode, std::vector<boost::uint8_t> const&)
 	{
 		return new disabled_storage(fs.piece_length());
 	}
@@ -982,7 +982,7 @@ namespace libtorrent
 
 	storage_interface* zero_storage_constructor(file_storage const& fs
 		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const&)
+		, storage_mode_t mode, std::vector<boost::uint8_t> const&)
 	{
 		return new zero_storage;
 	}
@@ -990,28 +990,17 @@ namespace libtorrent
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(
-		boost::shared_ptr<void> const& torrent
-		, file_storage* files
-		, file_storage const* orig_files
-		, std::string const& save_path
-		, disk_io_thread& io
-		, storage_constructor_type sc
-		, storage_mode_t sm
-		, std::vector<boost::uint8_t> const& file_prio)
+		storage_interface* storage_impl
+		, boost::shared_ptr<void> const& torrent
+		, file_storage* files)
 		: m_files(*files)
-		, m_storage(sc(*files, orig_files, save_path, io.files(), file_prio))
-		, m_abort_job(0)
-		, m_storage_mode(sm)
-		, m_storage_constructor(sc)
-		, m_io_thread(io)
+		, m_storage(storage_impl)
 		, m_torrent(torrent)
 	{
 	}
 
 	piece_manager::~piece_manager()
-	{
-		TORRENT_ASSERT(m_abort_job == 0);
-	}
+	{}
 
 	void piece_manager::add_piece(cached_piece_entry* p)
 	{
@@ -1060,7 +1049,10 @@ namespace libtorrent
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
 		storage_error se;
-		m_storage->initialize(m_storage_mode == storage_mode_allocate, se);
+		// TODO: change the initialize signature and let the
+		// storage_impl be responsible for which storage mode
+		// it's using
+		m_storage->initialize(se);
 		if (se)
 		{
 			ec = se;

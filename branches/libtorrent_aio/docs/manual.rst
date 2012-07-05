@@ -7421,29 +7421,24 @@ The interface looks like this::
 
 	struct storage_interface
 	{
-		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
+		virtual void initialize(storage_error& ec) = 0;
+		virtual int readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
 		virtual bool has_any_file(storage_error& ec) = 0;
-		virtual void hint_read(int slot, int offset, int len);
-		virtual int sparse_end(int start) const;
 		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
-		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& error) = 0;
-		virtual bool write_resume_data(entry& rd, storage_error& ec) const = 0;
-		virtual void rename_file(int file, std::string const& new_name, storage_error& ec) = 0;
+		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) = 0;
+		virtual void write_resume_data(entry& rd, storage_error& ec) const = 0;
 		virtual void release_files(storage_error& ec) = 0;
+		virtual void rename_file(int index, std::string const& new_filenamem, storage_error& ec) = 0;
 		virtual void delete_files(storage_error& ec) = 0;
-		virtual void finalize_file(int index, storage_error& ec) {}
-		virtual ~storage_interface() {}
-
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-
-		virtual void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset);
+		virtual void finalize_file(int, storage_error&);
+		virtual ~storage_interface();
 
 		// non virtual functions
 
-		disk_buffer_pool* disk_pool();
+		aux::session_settings const& settings() const { return *m_settings; }
 	};
 
 	struct storage_error
@@ -7483,11 +7478,10 @@ initialize()
 
 	::
 
-		virtual void initialize(bool allocate_files, storage_error& ec) = 0;
+		virtual void initialize(storage_error& ec) = 0;
 
 This function is called when the storage is to be initialized. The default storage
-will create directories and empty files at this point. If ``allocate_files`` is true,
-it will also ``ftruncate`` all files to their target size.
+will create directories and empty files at this point.
 
 If an error occurs, ``storage_error`` should be set to reflect it.
 
@@ -7504,31 +7498,20 @@ If so, the storage will be checked for existing pieces before starting the downl
 
 If an error occurs, ``storage_error`` should be set to reflect it.
 
-hint_read()
------------
+readv() writev()
+----------------
 
 	::
 
-		void hint_read(int slot, int offset, int len);
+		virtual int readv(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
+		virtual int writev(file::iovec_t const* bufs, int num_bufs
+			, int piece, int offset, int flags, storage_error& ec) = 0;
 
-This function is called when a read job is queued. It gives the storage wrapper an
-opportunity to hint the operating system about this coming read. For instance, the
-storage may call ``posix_fadvise(POSIX_FADV_WILLNEED)`` or ``fcntl(F_RDADVISE)``.
-
-async_readv() async_writev()
-----------------------------
-
-	::
-
-		virtual file::aiocb_t* async_readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-		virtual file::aiocb_t* async_writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, async_handler* a) = 0;
-
-These functions should produce I/O jobs (``aiocb_t``) to read or write the data in
-or to the given ``piece`` at the given ``offset``. It should read or write ``num_bufs``
-buffers sequentially, where the size of each buffer is specified in the buffer array
-``bufs``. The file::iovec_t type has the following members::
+These functions should read and write the data in or to the given ``piece`` at
+the given ``offset``. It should read or write ``num_bufs`` buffers sequentially,
+where the size of each buffer is specified in the buffer array ``bufs``. The
+file::iovec_t type has the following members::
 
 	struct iovec_t
 	{
@@ -7536,75 +7519,29 @@ buffers sequentially, where the size of each buffer is specified in the buffer a
 		size_t iov_len;
 	};
 
-The return value is a *chain* (linked list) of ``aiocb_t`` objects representing all jobs
-required to satisfy the read or write request. The ``aiocb_t`` objects are produced by
-the async. operations of the ``file`` class.
-
-Each ``aiocb`` object that is returned, must also have its handler set to the
-passed in ``async_handler`` object. The ``async_handler`` object, must in turn
-have its references member incremented for each ``aiocb_t`` object that references it.
-
-The ``file::async_handler`` class has the following definition::
-
-	struct async_handler
-	{
-		async_handler(ptime now);
-		boost::function<void(async_handler*)> handler;
-		storage_error error;
-		size_t transferred;
-		int references;
-		ptime started;
-
-		void done(storage_error const& ec, size_t bytes_transferred
-			, file::aiocb_t const* aio, aiocb_pool* pool);
-	};
+These functions may be called simultaneously from multiple threads. Make sure they
+are thread safe. The ``file`` in libtorrent is thread safe when it can fall back
+to ``pread``, ``preadv`` or the windows equivalents. On targets where read operations
+cannot be thread safe (i.e one has to seek first and then read), only one disk thread
+is used.
 
 Every buffer in ``bufs`` can be assumed to be page aligned and be of a page aligned size,
 except for the last buffer of the torrent. The allocated buffer can be assumed to fit a
-fully page aligned number of bytes though. This is useful when reading and writing the
-last piece of a file in unbuffered mode.
+fully page aligned number of bytes though.
 
 The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but there are rare
 exceptions when it's not. Specifically if the read cache is disabled/or full and a
-client requests unaligned data. Most clients request aligned data.
+peer requests unaligned data. Most clients request aligned data.
 
-If the function returns NULL, no disk operation is assumed to  be required, and the
-completion handler is called immediately. This is a special case that can be used by
-storage implementations that stores the data in RAM for instance.
-
-readv_done()
-------------
-
-	::
-
-		void readv_done(file::iovec_t const* bufs, int num_bufs, int piece, int offset);
-
-This function is called when all asynchronous disk operations complete from a previous
-call to ``async_readv()``. It is not called for ``async_readv`` invocations that don't
-return any async disk jobs. It passes in the same buffers that were passed in to the read
-call.
-
-The intention of this hook is to allow the storage to do any post processing on the data
-that was just read from disk.
-
-sparse_end()
-------------
-
-	::
-
-		int sparse_end(int start) const;
-
-This function is optional. It is supposed to return the first piece, starting at
-``start`` that is fully contained within a data-region on disk (i.e. non-sparse
-region). The purpose of this is to skip parts of files that can be known to contain
-zeros when checking files.
+The number of bytes read or written should be returned, or -1 on error. If there's
+an error, the ``storage_error`` must be filled out to represent the error that occurred.
 
 move_storage()
 --------------
 
 	::
 
-		void move_storage(fs::path save_path, storage_error& ec) = 0;
+		void move_storage(std::string const& save_path, storage_error& ec) = 0;
 
 This function should move all the files belonging to the storage to the new save_path.
 The default storage moves the single file or the directory of the torrent.
@@ -7729,7 +7666,7 @@ basics of implementing a custom storage.
 	struct temp_storage : storage_interface
 	{
 		temp_storage(file_storage const& fs) : m_files(fs) {}
-		virtual bool initialize(bool allocate_files) { return false; }
+		virtual bool initialize(storage_error& se) { return false; }
 		virtual bool has_any_file() { return false; }
 		virtual int read(char* buf, int slot, int offset, int size)
 		{
