@@ -6739,6 +6739,7 @@ namespace libtorrent
 
 		m_files_checked = true;
 		update_want_more_peers();
+		update_want_tick();
 
 		start_announcing();
 	}
