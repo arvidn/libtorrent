@@ -136,7 +136,7 @@ namespace libtorrent
 				&& piece_refcount == 0
 				&& num_blocks == 0
 				&& !hashing
-				&& !hash;
+				&& (!hash || hash->offset == 0);
 		}
 
 		// storage this piece belongs to

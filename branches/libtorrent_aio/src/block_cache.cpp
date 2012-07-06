@@ -503,6 +503,12 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 	TORRENT_ASSERT(pe->ok_to_evict());
 	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
 	linked_list* lru_list = &m_lru[pe->cache_state];
+	if (pe->hash)
+	{
+		TORRENT_ASSERT(pe->hash->offset == 0);
+		delete pe->hash;
+		pe->hash = NULL;
+	}
 	if (pe->cache_state != cached_piece_entry::read_lru1_ghost
 		&& pe->cache_state != cached_piece_entry::read_lru2_ghost)
 		pe->storage->remove_piece(pe);
