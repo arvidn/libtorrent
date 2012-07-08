@@ -567,6 +567,7 @@ namespace libtorrent
 		&disk_io_thread::do_flush_hashed,
 		&disk_io_thread::do_flush_storage,
 		&disk_io_thread::do_trim_cache,
+		&disk_io_thread::do_file_priority,
 	};
 
 	const char* job_action_name[] =
@@ -587,6 +588,7 @@ namespace libtorrent
 		"flush_hashed",
 		"flush_storage",
 		"trim_cache",
+		"set_file_priority",
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1065,6 +1067,20 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
 		j->storage = storage;
 		j->buffer = (char*)resume_data;
+		j->callback = handler;
+
+		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_set_file_priority(piece_manager* storage
+		, std::vector<boost::uint8_t> const& prios
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		std::vector<boost::uint8_t>* p = new std::vector<boost::uint8_t>(prios);
+
+		disk_io_job* j = allocate_job(disk_io_job::file_priority);
+		j->storage = storage;
+		j->buffer = (char*)p;
 		j->callback = handler;
 
 		add_fence_job(storage, j);
@@ -1799,7 +1815,15 @@ namespace libtorrent
 
 	int disk_io_thread::do_trim_cache(disk_io_job* j)
 	{
-//#error implement	
+//#error implement
+		return 0;
+	}
+
+	int disk_io_thread::do_file_priority(disk_io_job* j)
+	{
+		std::vector<boost::uint8_t>* p = reinterpret_cast<std::vector<boost::uint8_t>*>(j->buffer);
+		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
+		delete p;
 		return 0;
 	}
 

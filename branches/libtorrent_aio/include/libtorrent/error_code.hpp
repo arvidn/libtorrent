@@ -422,7 +422,8 @@ namespace libtorrent
 			read,
 			write,
 			fallocate,
-			alloc_cache_piece
+			alloc_cache_piece,
+			partfile
 		};
 
 		char const* operation_str() const
@@ -431,6 +432,7 @@ namespace libtorrent
 			{
 				"", "stat", "mkdir", "open", "rename", "remove", "copy"
 				, "read", "write", "fallocate", "allocate cache piece"
+				, "partfile"
 			};
 			return ops[operation];
 		}

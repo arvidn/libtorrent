@@ -525,6 +525,7 @@ SOURCES =
 	thread
 	peer_class
 	peer_class_set
+	part_file
 
 # -- extensions --
 	metadata_transfer

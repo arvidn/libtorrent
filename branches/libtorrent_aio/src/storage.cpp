@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/allocator.hpp" // page_size
 
 #include <cstdio>
 
@@ -163,13 +162,14 @@ namespace libtorrent
 	}
 #endif
 
+	// TODO: use the info-hash as part of the partfile name
 	default_storage::default_storage(file_storage const& fs, file_storage const* mapped
 		, std::string const& path, file_pool& fp, storage_mode_t mode
 		, std::vector<boost::uint8_t> const& file_prio)
 		: m_files(fs)
 		, m_file_priority(file_prio)
 		, m_pool(fp)
-		, m_page_size(page_size())
+		, m_part_file(path, "." + fs.name() + ".parts", fs.num_pieces(), fs.piece_length())
 		, m_allocate_files(mode == storage_mode_allocate)
 	{
 		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
@@ -182,7 +182,83 @@ namespace libtorrent
 	{
 		// this may be called from a different
 		// thread than the disk thread
-//		m_pool.release(this);
+		m_pool.release(this);
+	}
+
+	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec)
+	{
+		// extend our file priorities in case it's truncated
+		// the default assumed priority is 1
+		if (prio.size() > m_file_priority.size())
+			m_file_priority.resize(prio.size(), 1);
+
+		file_storage::iterator file_iter = files().begin();
+		for (int i = 0; i < int(prio.size()); ++i, ++file_iter)
+		{
+			int old_prio = m_file_priority[i];
+			int new_prio = prio[i];
+			if (old_prio == 0 && new_prio != 0)
+			{
+				// move stuff out of the part file
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_write, 0, ec.ec);
+				if (ec || !f)
+				{
+					ec.file = i;
+					ec.operation = storage_error::open;
+					return;
+				}
+				m_part_file.export_file(*f, file_iter->offset, file_iter->size, ec.ec);
+				if (ec)
+				{
+					ec.file = i;
+					ec.operation = storage_error::write;
+					return;
+				}
+			}
+			else if (old_prio != 0 && new_prio == 0)
+			{
+				// move stuff into the part file
+				// this is not implemented yet.
+				// pretend that we didn't set the priority to 0.
+				new_prio = 1;
+/*
+				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, 0, ec.ec);
+				if (ec.ec != boost::system::errc::no_such_file_or_directory)
+				{
+					if (ec || !f)
+					{
+						ec.file = i;
+						ec.operation = storage_error::open;
+						return;
+					}
+					m_part_file.import_file(*f, file_iter->offset, file_iter->size, ec.ec);
+					if (ec)
+					{
+						ec.file = i;
+						ec.operation = storage_error::read;
+						return;
+					}
+					// remove the file
+					std::string fp = files().file_path(*file_iter);
+					std::string p = combine_path(m_save_path, fp);
+					delete_one_file(p, ec.ec);
+					if (ec)
+					{
+						ec.file = i;
+						ec.operation = storage_error::remove;
+					}
+				}
+*/
+			}
+			ec.ec.clear();
+			m_file_priority[i] = new_prio;
+		}
+		m_part_file.flush_metadata(ec.ec);
+		if (ec)
+		{
+			ec.file = -1;
+			ec.operation = storage_error::partfile;
+		}
 	}
 
 	void default_storage::initialize(storage_error& ec)
@@ -283,7 +359,6 @@ namespace libtorrent
 			ec.ec.clear();
 		}
 
-		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
 	}
@@ -679,7 +754,6 @@ namespace libtorrent
 		return true;
 	}
 
-	// returns true on success
 	void default_storage::move_storage(std::string const& sp, storage_error& ec)
 	{
 		std::string save_path = complete(sp);
@@ -745,7 +819,18 @@ namespace libtorrent
 			}
 		}
 
-		if (!ec) m_save_path = save_path;
+		if (!ec)
+		{
+			m_part_file.move_partfile(save_path, ec.ec);
+			if (ec)
+			{
+				ec.file = -1;
+				ec.operation = storage_error::partfile;
+				return;
+			}
+
+			m_save_path = save_path;
+		}
 	}
 
 	int default_storage::readv(file::iovec_t const* bufs, int num_bufs
@@ -800,11 +885,13 @@ namespace libtorrent
 		file_storage::iterator file_iter;
 
 		// TODO: use binary search!
+		int file_index = 0;
 		for (file_iter = files().begin();;)
 		{
 			if (file_offset < file_iter->size)
 				break;
 
+			++file_index;
 			file_offset -= file_iter->size;
 			++file_iter;
 			TORRENT_ASSERT(file_iter != files().end());
@@ -831,7 +918,7 @@ namespace libtorrent
 		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
 		int file_bytes_left;
 		for (;bytes_left > 0; ++file_iter, bytes_left -= file_bytes_left
-			, buf_pos += file_bytes_left)
+			, buf_pos += file_bytes_left, ++file_index)
 		{
 			TORRENT_ASSERT(file_iter != files().end());
 			TORRENT_ASSERT(buf_pos >= 0);
@@ -866,44 +953,61 @@ namespace libtorrent
 				continue;
 			}
 
-			error_code e;
-			file_handle = open_file(file_iter, op.mode, op.flags, e);
-			if ((op.mode == file::read_write) && e == boost::system::errc::no_such_file_or_directory)
-			{
-				// this means the directory the file is in doesn't exist.
-				// so create it
-				e.clear();
-				std::string path = combine_path(m_save_path, files().file_path(*file_iter));
-				create_directories(parent_path(path), e);
-				// if the directory creation failed, don't try to open the file again
-				// but actually just fail
-				if (!e) file_handle = open_file(file_iter, op.mode, op.flags, e);
-			}
-
-			if (!file_handle || e)
-			{
-				ec.ec = e;
-				ec.file = file_iter - files().begin();
-				ec.operation = storage_error::open;
-				return -1;
-			}
-
 			int num_tmp_bufs = copy_bufs(current_buf, file_bytes_left, tmp_bufs);
 			TORRENT_ASSERT(count_bufs(tmp_bufs, file_bytes_left) == num_tmp_bufs);
 			TORRENT_ASSERT(num_tmp_bufs <= num_bufs);
 			int bytes_transferred = 0;
+			error_code e;
 
-			size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
-			bytes_transferred = (int)((*file_handle).*op.regular_op)(adjusted_offset
-				, tmp_bufs, num_tmp_bufs, e, op.flags);
-			TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
+			if (file_index < int(m_file_priority.size())
+				&& m_file_priority[file_index] == 0)
+			{
+				if (op.mode == file::read_write)
+				{
+					// write
+					bytes_transferred = m_part_file.writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
+				}
+				else
+				{
+					// read
+					bytes_transferred = m_part_file.readv(tmp_bufs, num_tmp_bufs, slot, offset, e);
+				}
+			}
+			else
+			{
+				file_handle = open_file(file_iter, op.mode, op.flags, e);
+				if ((op.mode == file::read_write) && e == boost::system::errc::no_such_file_or_directory)
+				{
+					// this means the directory the file is in doesn't exist.
+					// so create it
+					e.clear();
+					std::string path = combine_path(m_save_path, files().file_path(*file_iter));
+					create_directories(parent_path(path), e);
+					// if the directory creation failed, don't try to open the file again
+					// but actually just fail
+					if (!e) file_handle = open_file(file_iter, op.mode, op.flags, e);
+				}
+
+				if (!file_handle || e)
+				{
+					ec.ec = e;
+					ec.file = file_iter - files().begin();
+					ec.operation = storage_error::open;
+					return -1;
+				}
+
+				size_type adjusted_offset = files().file_base(*file_iter) + file_offset;
+				bytes_transferred = (int)((*file_handle).*op.op)(adjusted_offset
+					, tmp_bufs, num_tmp_bufs, e, op.flags);
+				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
+			}
 			file_offset = 0;
 
 			if (e)
 			{
 				ec.ec = e;
 				ec.file = file_iter - files().begin();
-				ec.operation = storage_error::open;
+				ec.operation = op.mode == file::read_only ? storage_error::read : storage_error::write;
 				return -1;
 			}
 

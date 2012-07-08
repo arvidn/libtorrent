@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status
+#include "libtorrent/part_file.hpp"
 
 namespace libtorrent
 {
@@ -103,6 +104,10 @@ namespace libtorrent
 			, int piece, int offset, int flags, storage_error& ec) = 0;
 
 		virtual bool has_any_file(storage_error& ec) = 0;
+
+		// change the priorities of files. This is a fenced job and is
+		// guaranteed to be the only running function on this storage
+		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) = 0;
 
 		// non-zero return value indicates an error
 		virtual void move_storage(std::string const& save_path, storage_error& ec) = 0;
@@ -147,6 +152,7 @@ namespace libtorrent
 
 		void finalize_file(int file, storage_error& ec);
 		bool has_any_file(storage_error& ec);
+		void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec);
 		void rename_file(int index, std::string const& new_filename, storage_error& ec);
 		void release_files(storage_error& ec);
 		void delete_files(storage_error& ec);
@@ -167,7 +173,7 @@ namespace libtorrent
 		struct fileop
 		{
 			// file operation
-			size_type (file::*regular_op)(size_type file_offset
+			size_type (file::*op)(size_type file_offset
 				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
 			int cache_setting;
 			// file open mode (file::read_only, file::write_only etc.)
@@ -215,7 +221,9 @@ namespace libtorrent
 		// instances use the same pool
 		file_pool& m_pool;
 
-		int m_page_size;
+		// used for skipped files
+		part_file m_part_file;
+
 		bool m_allocate_files;
 	};
 
@@ -232,6 +240,7 @@ namespace libtorrent
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
 		bool has_any_file(storage_error&) { return false; }
+		void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) {}
 		void rename_file(int, std::string const&, storage_error&) {}
 		void release_files(storage_error&) {}
 		void delete_files(storage_error&) {}
@@ -261,7 +270,7 @@ namespace libtorrent
 			, int piece, int offset, int flags, storage_error& ec);
 
 		virtual bool has_any_file(storage_error& ec) { return false; }
-
+		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec) {}
 		virtual void move_storage(std::string const& save_path, storage_error& ec) {}
 		virtual bool verify_resume_data(lazy_entry const& rd, storage_error& ec) { return false; }
 		virtual void write_resume_data(entry& rd, storage_error& ec) const {}

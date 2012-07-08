@@ -252,6 +252,9 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_save_resume_data(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_set_file_priority(piece_manager* storage
+			, std::vector<boost::uint8_t> const& prio
+			, boost::function<void(disk_io_job const*)> const& handler);
 
 		void clear_read_cache(piece_manager* storage);
 		void clear_piece(piece_manager* storage, int index);
@@ -316,6 +319,7 @@ namespace libtorrent
 		int do_flush_hashed(disk_io_job* j);
 		int do_flush_storage(disk_io_job* j);
 		int do_trim_cache(disk_io_job* j);
+		int do_file_priority(disk_io_job* j);
 
 		void call_job_handlers(void* userdata);
 

@@ -90,6 +90,7 @@ namespace libtorrent
 			, flush_hashed
 			, flush_storage
 			, trim_cache
+			, file_priority 
 
 			, num_job_ids
 		};

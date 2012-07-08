@@ -69,6 +69,7 @@ libtorrent_rasterbar_la_SOURCES = \
   mpi.c                           \
   natpmp.cpp                      \
   parse_url.cpp                   \
+  part_file.cpp                   \
   pe_crypto.cpp                   \
   peer_connection.cpp             \
   peer_class.cpp                  \

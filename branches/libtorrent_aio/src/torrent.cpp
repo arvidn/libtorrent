@@ -4254,6 +4254,8 @@ namespace libtorrent
 		}
 	}
 
+	void nop() {}
+
 	void torrent::prioritize_files(std::vector<int> const& files)
 	{
 		INVARIANT_CHECK;
@@ -4279,6 +4281,7 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
+		m_ses.m_disk_thread.async_set_file_priority(m_storage, m_file_priority, boost::bind(&nop));
 		update_piece_priorities();
 	}
 
@@ -4294,6 +4297,7 @@ namespace libtorrent
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
+		m_ses.m_disk_thread.async_set_file_priority(m_storage, m_file_priority, boost::bind(&nop));
 		update_piece_priorities();
 	}
 	
