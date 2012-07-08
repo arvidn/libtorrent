@@ -757,10 +757,11 @@ namespace libtorrent
 		// we have none of the files and go straight to download
 		bool no_recheck_incomplete_resume;
 
-		// when this is true, libtorrent will take actions to make sure any
+		// when this is true, libtorrent will take actions to make sure no
 		// privacy sensitive information is leaked out from the client. This
 		// mode is assumed to be combined with using a proxy for all your
 		// traffic. With this option, your true IP address will not be exposed
+		// nor anything that can tie your connection to your true IP
 		bool anonymous_mode;
 
 		// the number of milliseconds between internal ticks. Should be no
