@@ -220,7 +220,10 @@ namespace libtorrent
 				// move stuff into the part file
 				// this is not implemented yet.
 				// pretend that we didn't set the priority to 0.
-				new_prio = 1;
+
+				std::string fp = files().file_path(*file_iter);
+				if (exists(combine_path(m_save_path, fp)))
+					new_prio = 1;
 /*
 				boost::intrusive_ptr<file> f = open_file(file_iter, file::read_only, 0, ec.ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
