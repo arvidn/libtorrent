@@ -197,6 +197,14 @@ namespace libtorrent
 			random_access = 16,
 			lock_file = 32,
 
+			// don't put any pressure on the OS disk cache
+			// because of access to this file. We expect our
+			// files to be fairly large, and there is already
+			// a cache at the bittorrent block level. This
+			// may improve overall system performance by
+			// leaving running applications in the page cache
+			no_cache = 64,
+
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
 			attribute_mask = attribute_hidden | attribute_executable

@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
-#include <fcntl.h> // for F_LOG2PHYS
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
@@ -1160,6 +1159,24 @@ namespace libtorrent
 				ec.assign(errno, get_posix_category());
 				return false;
 			}
+		}
+#endif
+
+#ifdef DIRECTIO_ON
+		// for solaris
+		if (mode & no_cache)
+		{
+			int yes = 1;
+			directio(m_file_handle, DIRECTIO_ON);
+		}
+#endif
+
+#ifdef F_NOCACHE
+		// for BSD/Mac
+		if (mode & no_cache)
+		{
+			int yes = 1;
+			fcntl(m_file_handle, F_NOCACHE, &yes);
 		}
 #endif
 

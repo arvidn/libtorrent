@@ -928,6 +928,9 @@ namespace libtorrent
 		if (!m_allocate_files) mode |= file::sparse;
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
 
+		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
+		if (m_settings && settings().get_bool(settings_pack::use_read_cache)) mode |= file::no_cache;
+
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
 
