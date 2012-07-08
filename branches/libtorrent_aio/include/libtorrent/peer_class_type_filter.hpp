@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 
+#include <string.h> // for memset
 #include <boost/cstdint.hpp>
 
 namespace libtorrent
