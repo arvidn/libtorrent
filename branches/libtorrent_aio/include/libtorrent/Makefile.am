@@ -109,6 +109,7 @@ nobase_include_HEADERS = \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \
+  stat_cache.hpp               \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \

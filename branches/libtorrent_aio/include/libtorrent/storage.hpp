@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status
 #include "libtorrent/part_file.hpp"
+#include "libtorrent/stat_cache.hpp"
 
 namespace libtorrent
 {
@@ -196,19 +197,7 @@ namespace libtorrent
 		// during startup, cache the results in here, and clear it all
 		// out once the torrent starts (to avoid getting stale results)
 		// each slot represents the size and timestamp of the file
-		// a size of:
-		// -1 means error
-		// -2 means no data (i.e. if we want to stat the file, we should
-		//    do it and fill in this slot)
-		// -3 file doesn't exist
-		// TODO: move this into a separate class and unit test it!
-		struct stat_cache_t
-		{
-			stat_cache_t(size_type s, time_t t = 0): file_size(s), file_time(t) {}
-			size_type file_size;
-			time_t file_time;
-		};
-		mutable std::vector<stat_cache_t> m_stat_cache;
+		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
 		boost::intrusive_ptr<file> open_file(file_storage::iterator fe, int mode

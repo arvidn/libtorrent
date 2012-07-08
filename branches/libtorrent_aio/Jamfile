@@ -526,6 +526,7 @@ SOURCES =
 	peer_class
 	peer_class_set
 	part_file
+	stat_cache
 
 # -- extensions --
 	metadata_transfer

@@ -1,4 +1,6 @@
 test_programs = \
+  test_stat_cache            \
+  test_part_file             \
   test_file                  \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
@@ -46,6 +48,8 @@ noinst_HEADERS = test.hpp setup_transfer.hpp
 
 libtest_la_SOURCES = main.cpp setup_transfer.cpp
 
+test_test_stat_cache_SOURCES = test_stat_cache.cpp
+test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
