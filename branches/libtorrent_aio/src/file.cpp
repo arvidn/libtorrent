@@ -1177,6 +1177,11 @@ namespace libtorrent
 		{
 			int yes = 1;
 			fcntl(m_file_handle, F_NOCACHE, &yes);
+
+#ifdef F_NODIRECT
+			// it's OK to temporarily cache written pages
+			fcntl(m_file_handle, F_NODIRECT, &yes);
+#endif
 		}
 #endif
 
