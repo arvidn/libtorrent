@@ -755,8 +755,18 @@ namespace libtorrent
 		ptr += 20;
 
 		// peer id
-		memcpy(ptr, &m_ses.get_peer_id()[0], 20);
-//		ptr += 20;
+		if (m_ses.m_settings.anonymous_mode)
+		{
+			// in anonymous mode, every peer connection
+			// has a unique peer-id
+			for (int i = 0; i < 20; ++i)
+				*ptr++ = rand();
+		}
+		else
+		{
+			memcpy(ptr, &m_ses.get_peer_id()[0], 20);
+//			ptr += 20;
+		}
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
