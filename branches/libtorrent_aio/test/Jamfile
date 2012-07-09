@@ -39,6 +39,7 @@ project
    ;
 
 test-suite libtorrent : 	
+	[ run test_recheck.cpp ]
 	[ run test_stat_cache.cpp ]
 	[ run test_part_file.cpp ]
 	[ run test_file.cpp ]
