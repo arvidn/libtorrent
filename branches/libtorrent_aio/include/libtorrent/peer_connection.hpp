@@ -252,14 +252,6 @@ namespace libtorrent
 		bool ignore_stats() const { return m_ignore_stats; }
 		void ignore_stats(bool b) { m_ignore_stats = b; }
 
-		void set_priority(int p)
-		{
-			TORRENT_ASSERT(p > 0);
-			TORRENT_ASSERT(m_priority <= 255);
-			if (p > 255) p = 255;
-			m_priority = p;
-		}
-
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
 
@@ -758,6 +750,9 @@ namespace libtorrent
 		int request_upload_bandwidth();
 		int request_download_bandwidth(int bytes = 0);
 		int request_bandwidth(int channel, int priority, int bytes);
+
+		int get_priority(int channel) const;
+
 		// keep the io_service running as long as we
 		// have peer connections
 		io_service::work m_work;
@@ -969,10 +964,6 @@ namespace libtorrent
 		// we can then clear its download queue
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
-
-		// this is the priority with which this peer gets
-		// download bandwidth quota assigned to it.
-		int m_priority;
 
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming

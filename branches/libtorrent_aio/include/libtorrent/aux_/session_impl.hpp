@@ -354,6 +354,7 @@ namespace libtorrent
 
 			// implements session_interface
 			void set_peer_classes(peer_class_set* s, address const& a, int st);
+			peer_class_pool const& peer_classes() const { return m_classes; }
 			bool ignore_unchoke_slots_set(peer_class_set const& set) const;
 			int copy_pertinent_channels(peer_class_set const& set
 				, int channel, bandwidth_channel** dst, int max);
@@ -1182,8 +1183,6 @@ namespace libtorrent
 				, int instance, bool append = true);
 			
 			virtual void session_log(char const* fmt, ...) const;
-
-			virtual peer_class_pool const& peer_classes() const { return m_classes; }
 
 			void log_all_torrents(peer_connection* p);
 

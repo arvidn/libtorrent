@@ -1163,6 +1163,8 @@ The ``peer_class_info`` struct has the following fields::
 		std::string label;
 		int upload_limit;
 		int download_limit;
+		int upload_priority;
+		int download_priority;
 	};
 
 ``ignore_unchoke_slots`` determines whether peers should always unchoke a peer,
@@ -1176,6 +1178,14 @@ of this peer class.
 ``upload_limit`` and ``download_limit`` are transfer rates limits for the whole peer class.
 They are specified in bytes per second and apply to the sum of all peers that are
 members of this class.
+
+``upload_priority`` and ``download_priority`` are relative priorities used by the
+bandwidth allocator in the rate limiter. If no rate limits are in use, the priority
+is not used either. Priorities start at 1 (0 is not a valid priority) and may not
+exceed 255.
+
+A peer or torrent balonging to more than one class, the highest priority among any
+of its classes is the one that is taken into account.
 
 For more information, see `peer classes`_.
 

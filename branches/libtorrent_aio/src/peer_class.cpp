@@ -57,6 +57,8 @@ namespace libtorrent
 		pci->label = label;
 		pci->upload_limit = channel[peer_connection::upload_channel].throttle();
 		pci->download_limit = channel[peer_connection::download_channel].throttle();
+		pci->upload_priority = priority[peer_connection::upload_channel];
+		pci->download_priority = priority[peer_connection::download_channel];
 	}
 
 	void peer_class::set_info(peer_class_info const* pci)
@@ -65,6 +67,8 @@ namespace libtorrent
 		label = pci->label;
 		set_upload_limit(pci->upload_limit);
 		set_download_limit(pci->download_limit);
+		priority[peer_connection::upload_channel] = (std::max)(1, (std::min)(255, pci->upload_priority));
+		priority[peer_connection::download_channel] = (std::max)(1, (std::min)(255, pci->download_priority));
 	}
 
 	peer_class_t peer_class_pool::new_peer_class(std::string const& label)

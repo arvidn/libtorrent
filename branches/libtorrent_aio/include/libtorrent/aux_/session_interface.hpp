@@ -58,9 +58,9 @@ namespace libtorrent
 	struct peer_class_set;
 	struct bandwidth_channel;
 	struct bandwidth_manager;
+	struct peer_class_pool;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
-	struct peer_class_pool;
 #endif
 }
 
@@ -121,6 +121,7 @@ namespace libtorrent { namespace aux
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
+		virtual peer_class_pool const& peer_classes() const = 0;
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
 		virtual int copy_pertinent_channels(peer_class_set const& set
 			, int channel, bandwidth_channel** dst, int max) = 0;
@@ -164,7 +165,6 @@ namespace libtorrent { namespace aux
 			, int instance, bool append = true) = 0;
 		virtual void session_log(char const* fmt, ...) const = 0;
 		virtual void log_all_torrents(peer_connection* p) = 0;
-		virtual peer_class_pool const& peer_classes() const = 0;
 #endif
 
 #ifdef TORRENT_STATS

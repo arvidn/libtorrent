@@ -241,7 +241,6 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_padding:24)
 		PRINT_OFFSETOF(torrent, m_sequence_number)
 //		PRINT_OFFSETOF(torrent, m_complete:24)
-		PRINT_OFFSETOF(torrent, m_priority)
 //		PRINT_OFFSETOF(torrent, m_incomplete:24)
 //		PRINT_OFFSETOF(torrent, m_progress_ppm:20)
 //		PRINT_OFFSETOF(torrent, m_abort:1)
@@ -343,7 +342,6 @@ namespace libtorrent
 		, m_max_connections((1<<24)-1)
 		, m_padding(0)
 		, m_complete(0xffffff)
-		, m_priority(0)
 		, m_incomplete(0xffffff)
 		, m_progress_ppm(0)
 		, m_abort(false)
@@ -8733,7 +8731,16 @@ namespace libtorrent
 		st->upload_mode = m_upload_mode;
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
-		st->priority = m_priority;
+		int priority = 0;
+		for (int i = 0; i < num_classes(); ++i)
+		{
+			int const* prio = m_ses.peer_classes().at(class_at(i))->priority;
+			if (priority < prio[peer_connection::upload_channel])
+				priority = prio[peer_connection::upload_channel];
+			if (priority < prio[peer_connection::download_channel])
+				priority = prio[peer_connection::download_channel];
+		}
+		st->priority = priority;
 
 		st->num_peers = int(m_connections.size()) - m_num_connecting;
 

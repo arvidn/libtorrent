@@ -50,8 +50,14 @@ namespace libtorrent
 	{
 		bool ignore_unchoke_slots;
 		std::string label;
+		// limits are specified in bytes per second
 		int upload_limit;
 		int download_limit;
+		// relative priority for bandwidth allocation
+		// in rate limiter. Higher number is higher
+		// priority. 0 is default
+		int upload_priority;
+		int download_priority;
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_class : intrusive_ptr_base<peer_class>
@@ -62,7 +68,10 @@ namespace libtorrent
 			: ignore_unchoke_slots(false)
 			, label(label)
 			, references(1)
-		{}
+		{
+			priority[0] = 1;
+			priority[1] = 1;
+		}
 
 		void set_info(peer_class_info const* pci);
 		void get_info(peer_class_info* pci) const;
@@ -75,6 +84,11 @@ namespace libtorrent
 		bandwidth_channel channel[2];
 
 		bool ignore_unchoke_slots;
+
+		// priority for bandwidth allocation
+		// in rate limiter. One for upload and one
+		// for download
+		int priority[2];
 
 		// the name of this peer class
 		std::string label;

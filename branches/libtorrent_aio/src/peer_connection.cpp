@@ -166,7 +166,6 @@ namespace libtorrent
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
 		, m_num_invalid_requests(0)
-		, m_priority(1)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
 		, m_connection_ticket(-1)
@@ -312,14 +311,9 @@ namespace libtorrent
 		u1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
 		u2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 
-		boost::shared_ptr<torrent> t1 = m_torrent.lock();
-		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
-		TORRENT_ASSERT(t2);
-
 		// take torrent priority into account
-		d1 *= 1 + t1->priority();
-		d2 *= 1 + t2->priority();
+		d1 *= get_priority(upload_channel);
+		d2 *= rhs.get_priority(upload_channel);
 
 		d1 = d1 * 1000 / (std::max)(size_type(1), u1);
 		d2 = d2 * 1000 / (std::max)(size_type(1), u2);
@@ -343,8 +337,11 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t2 = rhs.associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
-		if (t1->priority() != t2->priority())
-			return t1->priority() > t2->priority();
+		int prio1 = get_priority(upload_channel);
+		int prio2 = rhs.get_priority(upload_channel);
+
+		if (prio1 != prio2)
+			return prio1 > prio2;
 
 		// compare how many bytes they've sent us
 		size_type c1;
@@ -378,8 +375,8 @@ namespace libtorrent
 			c2 = rhs.m_statistics.total_payload_upload() - rhs.m_uploaded_at_last_unchoke;
 		
 			// take torrent priority into account
-			c1 *= 1 + t1->priority();
-			c2 *= 1 + t2->priority();
+			c1 *= prio1;
+			c2 *= prio2;
 
 			if (c1 > c2) return true;
 			if (c2 > c1) return false;
@@ -421,22 +418,40 @@ namespace libtorrent
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}
 
+	int peer_connection::get_priority(int channel) const
+	{
+		TORRENT_ASSERT(channel >= 0 && channel < 2);
+		int prio = 1;
+		for (int i = 0; i < num_classes(); ++i)
+		{
+			int class_prio = m_ses.peer_classes().at(class_at(i))->priority[channel];
+			if (prio < class_prio) prio = class_prio;
+		}
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+
+		if (t)
+		{
+			for (int i = 0; i < t->num_classes(); ++i)
+			{
+				int class_prio = m_ses.peer_classes().at(t->class_at(i))->priority[channel];
+				if (prio < class_prio) prio = class_prio;
+			}
+		}
+		return prio;
+	}
+
 	bool peer_connection::upload_rate_compare(peer_connection const* p) const
 	{
 		size_type c1;
 		size_type c2;
 
-		boost::shared_ptr<torrent> t1 = m_torrent.lock();
-		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = p->associated_torrent().lock();
-		TORRENT_ASSERT(t2);
-
 		c1 = m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke;
 		c2 = p->m_statistics.total_payload_upload() - p->m_uploaded_at_last_unchoke;
 		
 		// take torrent priority into account
-		c1 *= 1 + t1->priority();
-		c2 *= 1 + t2->priority();
+		c1 *= get_priority(upload_channel);
+		c2 *= p->get_priority(upload_channel);
 
 		return c1 > c2;
 	}
@@ -4649,7 +4664,7 @@ namespace libtorrent
 		{
 			priority = 1 + is_interesting() * 2 + m_requests_in_buffer.size();
 			if (priority > 255) priority = 255;
-			if (t) priority += t->priority() << 8;
+			priority |= get_priority(upload_channel) << 8;
 		}
 		TORRENT_ASSERT(priority <= 0xffff);
 
@@ -4664,9 +4679,6 @@ namespace libtorrent
 	{
 		shared_ptr<torrent> t = m_torrent.lock();
 
-		TORRENT_ASSERT(m_priority <= 255);
-		int priority = m_priority + (t ? (t->priority() << 8) : 0);
-
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
 
 		if (bytes == 0)
@@ -4675,7 +4687,7 @@ namespace libtorrent
 				, m_statistics.download_rate() * 2
 				/ (1000 / m_settings.get_int(settings_pack::tick_interval)));
 		}
-		return request_bandwidth(download_channel, priority, bytes);
+		return request_bandwidth(download_channel, get_priority(download_channel), bytes);
 	}
 
 	int peer_connection::request_bandwidth(int channel, int priority, int bytes)

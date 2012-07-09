@@ -78,7 +78,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// we only want left-over bandwidth
-		set_priority(1);
+		// TODO: introduce a web-seed default class which has a low download priority
 		
 		// since this is a web seed, change the timeout
 		// according to the settings.
