@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/session_interface.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -91,8 +93,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
+#include "libtorrent/peer_class.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
+#include "libtorrent/peer_class_type_filter.hpp"
+#include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/kademlia/dht_observer.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -155,6 +161,7 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_impl;
+		struct session_settings;
 
 #if defined TORRENT_STATS && !defined __MACH__
 		struct vm_statistics_data_t
@@ -190,7 +197,14 @@ namespace libtorrent
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct TORRENT_EXPORT session_impl: boost::noncopyable, initialize_timer
+		struct TORRENT_EXTRA_EXPORT session_impl
+			: session_interface
+			, alert_dispatcher
+			, buffer_allocator_interface
+			, dht::dht_observer
+			, boost::noncopyable
+			, initialize_timer
+			, udp_socket_observer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -201,7 +215,7 @@ namespace libtorrent
 #endif
 
 			// the size of each allocation that is chained in the send buffer
-			enum { send_buffer_size = 128 };
+			enum { send_buffer_size_impl = 128 };
 
 #ifdef TORRENT_DEBUG
 			friend class ::libtorrent::peer_connection;
@@ -224,23 +238,21 @@ namespace libtorrent
 				, std::string const& logpath
 #endif
 				);
-			~session_impl();
+			virtual ~session_impl();
+
 			void init();
 			void start_session();
+
+			void init_peer_class_filter(bool unlimited_local);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent*, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
-#ifdef TORRENT_DEBUG
-			bool has_peer(peer_connection const* p) const
-			{
-				TORRENT_ASSERT(is_network_thread());
-				return std::find_if(m_connections.begin(), m_connections.end()
-					, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
-					!= m_connections.end();
-			}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			bool has_peer(peer_connection const* p) const;
+			bool any_torrent_has_peer(peer_connection const* p) const;
 #endif
 			void main_thread();
 
@@ -282,7 +294,12 @@ namespace libtorrent
 
 			void close_connection(peer_connection* p, error_code const& ec);
 
-			void set_settings(session_settings const& s);
+#ifndef TORRENT_NO_DEPRECATE
+			void set_settings(libtorrent::session_settings const& s);
+			libtorrent::session_settings deprecated_settings() const;
+#endif
+
+			void apply_settings_pack(settings_pack* pack);
 			session_settings const& settings() const { return m_settings; }
 
 #ifndef TORRENT_DISABLE_DHT	
@@ -294,6 +311,7 @@ namespace libtorrent
 			void start_dht();
 			void stop_dht();
 			void start_dht(entry const& startup_state);
+			bool has_dht() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
@@ -308,6 +326,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 			void set_pe_settings(pe_settings const& settings);
 			pe_settings const& get_pe_settings() const { return m_pe_settings; }
+			torrent const* find_encrypted_torrent(
+				sha1_hash const& info_hash, sha1_hash const& xor_mask);
 #endif
 
 			void on_port_map_log(char const* msg, int map_transport);
@@ -329,6 +349,28 @@ namespace libtorrent
 			ip_filter const& get_ip_filter() const;
 			
 			void set_port_filter(port_filter const& f);
+
+			// ==== peer class operations ====
+
+			// implements session_interface
+			void set_peer_classes(peer_class_set* s, address const& a, int st);
+			peer_class_pool const& peer_classes() const { return m_classes; }
+			bool ignore_unchoke_slots_set(peer_class_set const& set) const;
+			int copy_pertinent_channels(peer_class_set const& set
+				, int channel, bandwidth_channel** dst, int max);
+			int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up);
+			bool use_quota_overhead(bandwidth_channel* ch, int channel, int amount);
+
+			int create_peer_class(char const* name);
+			void delete_peer_class(int cid);
+			void set_peer_class_filter(ip_filter const& f);
+			ip_filter const& get_peer_class_filter() const;
+			
+			void set_peer_class_type_filter(peer_class_type_filter f);
+			peer_class_type_filter get_peer_class_type_filter();
+
+			peer_class_info get_peer_class(int cid);
+			void set_peer_class(int cid, peer_class_info const& pci);
 
 			void  listen_on(
 				std::pair<int, int> const& port_range
@@ -361,8 +403,6 @@ namespace libtorrent
 
 			alert const* wait_for_alert(time_duration max_wait);
 
-			void get_cache_info(sha1_hash const& ih, cache_status* ret, int flags, bool* done, condition* e, mutex* m);
-
 #ifndef TORRENT_NO_DEPRECATE
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
@@ -380,15 +420,33 @@ namespace libtorrent
 			int max_connections() const;
 			int max_uploads() const;
 			int max_half_open_connections() const;
-
 #endif
+
+			void half_open_done(int ticket)
+			{ m_half_open.done(ticket); }
+
+			bandwidth_manager* get_bandwidth_manager(int channel);
+
+			int upload_rate_limit(peer_class_t c) const;
+			int download_rate_limit(peer_class_t c) const;
+			void set_upload_rate_limit(peer_class_t c, int limit);
+			void set_download_rate_limit(peer_class_t c, int limit);
+
+			void set_rate_limit(peer_class_t c, int channel, int limit);
+			int rate_limit(peer_class_t c, int channel) const;
 
 			int num_uploads() const { return m_num_unchoked; }
 			int num_connections() const
 			{ return m_connections.size(); }
 
+			int peak_up_rate() const { return m_peak_up_rate; }
+
 			void unchoke_peer(peer_connection& c);
 			void choke_peer(peer_connection& c);
+			void trigger_unchoke()
+			{ m_unchoke_time_scaler = 0; }
+			void trigger_optimistic_unchoke()
+			{ m_optimistic_unchoke_time_scaler = 0; }
 
 			session_status status() const;
 			void set_peer_id(peer_id const& id);
@@ -425,6 +483,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return m_dht; }
+			int external_udp_port() const { return m_external_udp_port; }
 #endif
 
 #if TORRENT_USE_I2P
@@ -481,23 +540,25 @@ namespace libtorrent
 				m_total_failed_bytes += b;
 			}
 
+			void deferred_submit_jobs();
+
 			char* allocate_buffer();
 			void free_buffer(char* buf);
+			int send_buffer_size() const { return send_buffer_size_impl; }
 
 			void subscribe_to_disk(boost::function<void()> const& cb)
 			{ return m_disk_thread.subscribe_to_disk(cb); }
 
+			// implements buffer_allocator_interface
+			void free_disk_buffer(char* buf);
 			char* allocate_disk_buffer(char const* category);
 			char* allocate_disk_buffer(bool& exceeded
 				, boost::function<void()> const& cb
 				, char const* category);
-			void free_disk_buffer(char* buf);
+			void reclaim_block(block_cache_reference ref);
+	
 			bool exceeded_cache_use() const
 			{ return m_disk_thread.exceeded_cache_use(); }
-
-			// decrement the refcounts for the blocks
-			// in the disk cache
-			void reclaim_block(block_cache_reference ref);
 
 			enum
 			{
@@ -507,7 +568,8 @@ namespace libtorrent
 				source_router = 8
 			};
 
-			void set_external_address(address const& ip
+			// implements dht_observer
+			virtual void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
@@ -533,8 +595,25 @@ namespace libtorrent
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
 
+			void inc_active_downloading() { ++m_num_downloaders; }
+			void dec_active_downloading()
+			{
+				TORRENT_ASSERT(m_num_downloaders > 0);
+				--m_num_downloaders;
+			}
+			void inc_active_finished() { ++m_num_finished; }
+			void dec_active_finished()
+			{
+				TORRENT_ASSERT(m_num_finished > 0);
+				--m_num_finished;
+			}
+
 			// uncork all peers added to the delayed uncork queue
 			void do_delayed_uncork();
+
+			void post_socket_write_job(write_some_job& j);
+
+//		private:
 
 			enum torrent_list_index
 			{
@@ -565,19 +644,46 @@ namespace libtorrent
 			int m_num_finished;
 			int m_num_downloaders;
 
+			peer_class_pool m_classes;
+
 //		private:
 
-			void disk_performance_warning(alert* a);
+			void submit_disk_jobs();
 
-			void update_connections_limit();
-			void update_unchoke_limit();
+			// implements alert_dispatcher
+			virtual bool post_alert(alert* a);
+
+			void update_peer_tos();
+			void update_user_agent();
+			void update_choking_algorithm();
+			void update_connection_speed();
+			void update_alert_queue_size();
+			void upate_dht_upload_rate_limit();
+			void update_disk_threads();
+			void update_network_threads();
+			void update_cache_buffer_chunk_size();
+			void update_report_web_seed_downloads();
+			void reset_auto_manage_timer();
+			void update_dht_announce_interval();
+			void update_anonymous_mode();
 			void update_rate_settings();
+			void update_half_open();
+			void update_download_rate();
+			void update_upload_rate();
+			void update_connections_limit();
+			void update_dht_upload_rate_limit();
+#ifndef TORRENT_NO_DEPRECATE
+			void update_local_download_rate();
+			void update_local_upload_rate();
+			void update_rate_limit_utp();
+			void update_ignore_rate_limits_on_local_network();
+#endif
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
 
 			// the settings for the client
-			session_settings m_settings;
+			aux::session_settings m_settings;
 
 			// this is a shared pool where policy_peer objects
 			// are allocated. It's a pool since we're likely
@@ -677,28 +783,20 @@ namespace libtorrent
 			bandwidth_manager m_download_rate;
 			bandwidth_manager m_upload_rate;
 
-			// the global rate limiter bandwidth channels
-			bandwidth_channel m_download_channel;
-			bandwidth_channel m_upload_channel;
+			// the peer class that all peers belong to by default
+			peer_class_t m_global_class;
 
-			// bandwidth channels for local peers when
-			// rate limits are ignored. They are only
-			// throttled by these global rate limiters
-			// and they don't have a rate limit set by
-			// default
-			bandwidth_channel m_local_download_channel;
-			bandwidth_channel m_local_upload_channel;
-
+			// the peer class all TCP peers belong to by default
 			// all tcp peer connections are subject to these
 			// bandwidth limits. Local peers are excempted
 			// from this limit. The purpose is to be able to
 			// throttle TCP that passes over the internet
 			// bottleneck (i.e. modem) to avoid starving out
 			// uTP connections.
-			bandwidth_channel m_tcp_download_channel;
-			bandwidth_channel m_tcp_upload_channel;
+			peer_class_t m_tcp_peer_class;
 
-			bandwidth_channel* m_bandwidth_channel[2];
+			// peer class for local peers
+			peer_class_t m_local_peer_class;
 
 			// the number of peer connections that are waiting
 			// for the disk. one for each channel.
@@ -729,6 +827,14 @@ namespace libtorrent
 			// peers.
 			connection_map m_connections;
 			
+			// maps IP ranges to bitfields representing peer class IDs
+			// to assign peers matching a specific IP range based on its
+			// remote endpoint
+			ip_filter m_peer_class_filter;
+
+			// maps socket types to peer classes
+			peer_class_type_filter m_peer_class_type_filter;
+
 			// filters incoming connections
 			ip_filter m_ip_filter;
 
@@ -870,6 +976,7 @@ namespace libtorrent
 			
 			void on_tick(error_code const& e);
 
+			void try_connect_more_peers();
 			void auto_manage_torrents(std::vector<torrent*>& list
 				, int& checking_limit, int& dht_limit, int& tracker_limit
 				, int& lsd_limit, int& hard_limit, int type_limit);
@@ -914,11 +1021,8 @@ namespace libtorrent
 			deadline_timer m_dht_announce_timer;
 #endif
 
-			void on_receive_udp(error_code const& e
-				, udp::endpoint const& ep, char const* buf, int len);
-
-			void on_receive_udp_hostname(error_code const& e
-				, char const* hostname, char const* buf, int len);
+			bool incoming_packet(error_code const& ec
+				, udp::endpoint const&, char const* buf, int size);
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
@@ -984,6 +1088,15 @@ namespace libtorrent
 			// of torrent pointers with all torrents that want peers)
 			int m_next_connect_torrent;
 
+			// this is the number of attempts of connecting to
+			// peers we have given to the torrent pointed to
+			// by m_next_connect_torrent. Once this reaches
+			// the number of connection attempts this particular
+			// torrent should have, the counter is reset and
+			// m_next_connect_torrent takes a step forward
+			// to give the next torrent its connection attempts.
+			int m_current_connect_attempts;
+
 			// index into m_torrent_lists[torrent_want_scrape] referring
 			// to the next torrent to auto-scrape
 			int m_next_scrape_torrent;
@@ -1015,6 +1128,13 @@ namespace libtorrent
 			void reset_stat_counters();
 			void enable_stats_logging(bool s);
 
+			// the argument specifies which counter to
+			// increment or decrement
+			void inc_stats_counter(int c) { ++m_stats_counter[c]; }
+
+			void received_buffer(int size);
+			void sent_buffer(int size);
+
 			bool m_stats_logging_enabled;
 
 			// the last time we rotated the log file
@@ -1026,56 +1146,18 @@ namespace libtorrent
 			// rotated every hour and the sequence number is
 			// incremented by one
 			int m_log_seq;
-			// the number of peers that were disconnected this
-			// tick due to protocol error
-			int m_error_peers;
-			int m_disconnected_peers;
-			int m_eof_peers;
-			int m_connreset_peers;
-			// the number of times the piece picker fell through
-			// to the end-game mode
-			int m_end_game_piece_picker_blocks;
-			int m_piece_picker_blocks;
-			int m_piece_picker_loops;
-			int m_piece_picks;
-			int m_reject_piece_picks;
-			int m_unchoke_piece_picks;
-			int m_incoming_redundant_piece_picks;
-			int m_incoming_piece_picks;
-			int m_end_game_piece_picks;
-			int m_snubbed_piece_picks;
-			int m_connect_timeouts;
-			int m_uninteresting_peers;
-			int m_timeout_peers;
-			int m_no_memory_peers;
-			int m_too_many_peers;
-			int m_transport_timeout_peers;
+			int m_stats_counter[session_interface::num_stats_counters];
+
 			cache_status m_last_cache_status;
 			size_type m_last_failed;
 			size_type m_last_redundant;
 			size_type m_last_uploaded;
 			size_type m_last_downloaded;
-			int m_connection_attempts;
-			int m_num_banned_peers;
-			int m_banned_for_hash_failure;
 			vm_statistics_data_t m_last_vm_stat;
 			thread_cpu_usage m_network_thread_cpu_usage;
 			sliding_average<20> m_read_ops;
 			sliding_average<20> m_write_ops;;
-			enum
-			{
-				on_read_counter,
-				on_write_counter,
-				on_tick_counter,
-				on_lsd_counter,
-				on_lsd_peer_counter,
-				on_udp_counter,
-				on_accept_counter,
-				on_disk_queue_counter,
-				on_disk_counter,
-				max_messages
-			};
-			int m_num_messages[max_messages];
+
 			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
 			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
 			int m_send_buffer_sizes[18];
@@ -1097,9 +1179,13 @@ namespace libtorrent
 			int m_non_filtered_torrents;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			boost::shared_ptr<logger> create_log(std::string const& name
+			virtual boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
 			
+			virtual void session_log(char const* fmt, ...) const;
+
+			void log_all_torrents(peer_connection* p);
+
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
@@ -1122,7 +1208,7 @@ namespace libtorrent
 				bool operator<(external_ip_t const& rhs) const
 				{
 					if (num_votes < rhs.num_votes) return true;
-					if (rhs.num_votes > num_votes) return false;
+					if (num_votes > rhs.num_votes) return false;
 					return sources < rhs.sources;
 				}
 
@@ -1168,6 +1254,10 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
+
+			// this is true whenever we have posted a deferred-disk job
+			// it means we don't need to post another one
+			bool m_deferred_submit_disk_jobs;
 			
 			// the number of bytes we have sent to the disk I/O
 			// thread for writing. Every time we hear back from

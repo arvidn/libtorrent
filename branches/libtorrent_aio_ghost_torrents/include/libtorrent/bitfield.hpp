@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
+#include <boost/cstdint.hpp> // uint32_t
 
 namespace libtorrent
 {
@@ -79,6 +80,28 @@ namespace libtorrent
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_size);
 			m_bytes[index / 8] &= ~(0x80 >> (index & 7));
+		}
+
+		// returns true if all bits in the bitfield are set
+		bool all_set() const
+		{
+			const int num_words = m_size / 32;
+			const int num_bytes = m_size / 8;
+			boost::uint32_t* bits = (boost::uint32_t*)m_bytes;
+			for (int i = 0; i < num_words; ++i)
+			{
+				if (bits[i] != 0xffffffff) return false;
+			}
+
+			for (int i = num_words * 4; i < num_bytes; ++i)
+			{
+				if (m_bytes[i] != 0xff) return false;
+			}
+			int rest = m_size - num_bytes * 8;
+			boost::uint8_t mask = 0xff << (8-rest);
+			if (rest > 0 && (m_bytes[num_bytes] & mask) != mask)
+				return false;
+			return true;
 		}
 
 		void set_bit(int index)
@@ -259,6 +282,8 @@ namespace libtorrent
 		}
 
 		void dealloc() { if (m_own) std::free(m_bytes); m_bytes = 0; }
+
+		// TODO: make this operate on words instead of bytes. i.e. uintptr_t probably
 		unsigned char* m_bytes;
 		int m_size:31; // in bits
 		bool m_own:1;

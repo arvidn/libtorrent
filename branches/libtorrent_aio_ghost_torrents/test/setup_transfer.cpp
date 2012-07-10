@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>
@@ -63,13 +64,19 @@ using namespace libtorrent;
 
 bool tests_failure = false;
 
+#if defined TORRENT_WINDOWS
+#include <conio.h>
+#endif
+
 void report_failure(char const* err, char const* file, int line)
 {
-#if defined TORRENT_WINDOWS && defined TORRENT_MINGW
-	HANDLE console = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, 0, CONSOLE_TEXTMODE_BUFFER, 0);
+#if defined TORRENT_WINDOWS
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(console, FOREGROUND_RED);
-	fprintf(stderr, "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
-	CloseHandle(console);
+	char msg[512];
+	snprintf(msg, sizeof(msg), "\n**** %s:%d \"%s\" ****\n\n", file, line, err);
+	WriteFile(console, msg, strlen(msg), NULL, NULL);
+	SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #else
 	fprintf(stderr, "\033[31m %s:%d \"%s\"\033[0m\n", file, line, err);
 #endif
@@ -105,17 +112,27 @@ bool print_alerts(libtorrent::session& ses, char const* name
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
-		TEST_CHECK(pea == 0
-			|| (!handles.empty() && h.status().is_seeding)
-			|| pea->error.message() == "connecting to peer"
-			|| pea->error.message() == "closing connection to ourself"
-			|| pea->error.message() == "duplicate connection"
-			|| pea->error.message() == "duplicate peer-id"
-			|| pea->error.message() == "upload to upload connection"
-			|| pea->error.message() == "stopping torrent"
-			|| (allow_disconnects && pea->error.message() == "Broken pipe")
-			|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
-			|| (allow_disconnects && pea->error.message() == "End of file."));
+		if (pea)
+		{
+			fprintf(stderr, "peer error: %s\n", pea->error.message().c_str());
+			TEST_CHECK((!handles.empty() && h.status().is_seeding)
+				|| pea->error.message() == "connecting to peer"
+				|| pea->error.message() == "closing connection to ourself"
+				|| pea->error.message() == "duplicate connection"
+				|| pea->error.message() == "duplicate peer-id"
+				|| pea->error.message() == "upload to upload connection"
+				|| pea->error.message() == "stopping torrent"
+				|| (allow_disconnects && pea->error.message() == "Broken pipe")
+				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
+				|| (allow_disconnects && pea->error.message() == "End of file."));
+		}
+
+		invalid_request_alert* ira = alert_cast<invalid_request_alert>(*i);
+		if (ira)
+		{
+			fprintf(stderr, "peer error: %s\n", ira->message().c_str());
+			TEST_CHECK(false);
+		}
 		delete *i;
 	}
 	return ret;
@@ -158,9 +175,12 @@ void stop_proxy(int port)
 	}
 }
 
-void start_proxy(int port, int proxy_type)
+// returns a port on success and -1 on failure
+int start_proxy(int proxy_type)
 {
 	using namespace libtorrent;
+
+	int port = 10000 + (rand() % 50000);
 
 	stop_proxy(port);
 
@@ -196,10 +216,12 @@ void start_proxy(int port, int proxy_type)
 		, port, type, auth);
 
 	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
-	system(buf);
-	fprintf(stderr, "launched\n");
+	int ret = system(buf);
+	fprintf(stderr, "launched (%d)\n", ret);
+	if (ret) return -1;
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
+	return port;
 }
 
 using namespace libtorrent;
@@ -284,14 +306,23 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 		if (ses3) ses3->stop_lsd();
 	}
 
-	session_settings sess_set = ses1->settings();
-	if (ses3) sess_set.allow_multiple_connections_per_ip = true;
-	sess_set.ignore_limits_on_local_network = false;
-	sess_set.mixed_mode_algorithm = session_settings::prefer_tcp;
-	sess_set.max_failcount = 1;
-	ses1->set_settings(sess_set);
-	ses2->set_settings(sess_set);
-	if (ses3) ses3->set_settings(sess_set);
+	// This has the effect of applying the global
+	// rule to all peers, regardless of if they're local or not
+	ip_filter f;
+	f.add_rule(address_v4::from_string("0.0.0.0")
+		, address_v4::from_string("255.255.255.255")
+		, session::global_peer_class_id);
+	ses1->set_peer_class_filter(f);
+	ses2->set_peer_class_filter(f);
+	if (ses3) ses3->set_peer_class_filter(f);
+
+	settings_pack pack;
+	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
+	pack.set_int(settings_pack::max_failcount, 1);
+	ses1->apply_settings(pack);
+	ses2->apply_settings(pack);
+	if (ses3) ses3->apply_settings(pack);
 	ses1->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	ses2->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
 	if (ses3) ses3->set_alert_mask(~(alert::progress_notification | alert::stats_notification));
@@ -314,18 +345,18 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	if (torrent == 0)
 	{
 		error_code ec;
-		create_directory("./tmp1" + suffix, ec);
-		std::ofstream file(("./tmp1" + suffix + "/temporary").c_str());
+		create_directory("tmp1" + suffix, ec);
+		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
 		t = ::create_torrent(&file, piece_size, 19, true, encrypted_torrent);
 		file.close();
 		if (clear_files)
 		{
-			remove_all("./tmp2" + suffix + "/temporary", ec);
-			remove_all("./tmp3" + suffix + "/temporary", ec);
+			remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
+			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		}
 		char ih_hex[41];
 		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
-		fprintf(stderr, "generated torrent: %s ./tmp1%s/temporary\n", ih_hex, suffix.c_str());
+		fprintf(stderr, "generated torrent: %s tmp1%s/temporary\n", ih_hex, suffix.c_str());
 	}
 	else
 	{
@@ -336,27 +367,27 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	// file pool will complain if two torrents are trying to
 	// use the same files
 	add_torrent_params param;
-	param.paused = false;
-	param.auto_managed = false;
+	param.flags &= ~add_torrent_params::flag_paused;
+	param.flags &= ~add_torrent_params::flag_auto_managed;
 	if (p) param = *p;
 	param.ti = clone_ptr(t);
-	param.save_path = "./tmp1" + suffix;
-	param.seed_mode = true;
+	param.save_path = "tmp1" + suffix;
+	param.flags |= add_torrent_params::flag_seed_mode;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	tor1.super_seeding(super_seeding);
-	param.seed_mode = false;
+
+	// the downloader cannot use seed_mode
+	param.flags &= ~add_torrent_params::flag_seed_mode;
+
 	TEST_CHECK(!ses1->get_torrents().empty());
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	// the downloader cannot use seed_mode
-	param.seed_mode = false;
-
 	if (ses3)
 	{
 		param.ti = clone_ptr(t);
-		param.save_path = "./tmp3" + suffix;
+		param.save_path = "tmp3" + suffix;
 		tor3 = ses3->add_torrent(param, ec);
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
@@ -370,7 +401,7 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	{
 		param.ti = clone_ptr(t);
 	}
-	param.save_path = "./tmp2" + suffix;
+	param.save_path = "tmp2" + suffix;
 
 	tor2 = ses2->add_torrent(param, ec);
 	TEST_CHECK(!ses2->get_torrents().empty());
@@ -597,7 +628,7 @@ int start_web_server(bool ssl, bool chunked_encoding)
 		system("echo test city >> tmp");
 		system("echo test company >> tmp");
 		system("echo test department >> tmp");
-		system("echo tester >> tmp");
+		system("echo 127.0.0.1 >> tmp");
 		system("echo test@test.com >> tmp");   
 		system("openssl req -new -x509 -keyout server.pem -out server.pem "
 			"-days 365 -nodes <tmp");
@@ -873,7 +904,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 					failed = true;
 					break;
 				}
-				TORRENT_ASSERT(len < sizeof(buf));
+				TORRENT_ASSERT(len < int(sizeof(buf)));
 				size_t received = 0;
 				bool done = false;
 				bool timed_out = false;
@@ -881,7 +912,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				s.async_read_some(boost::asio::buffer(&buf[len]
 					, sizeof(buf) - len), boost::bind(&on_read, _1, _2, &received, &ec, &done));
 				deadline_timer timer(ios);
-				timer.expires_at(time_now_hires() + seconds(100));
+				timer.expires_at(time_now_hires() + seconds(2));
 				timer.async_wait(boost::bind(&on_read_timeout, _1, &timed_out));
 
 				while (!done && !timed_out)
@@ -965,6 +996,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 			}
 
 			std::string path = p.path();
+			fprintf(stderr, "%s\n", path.c_str());
 
 			if (path == "/redirect")
 			{
@@ -1041,7 +1073,7 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				boost::uint64_t off = idx * 64 * 1024 + range_start;
 				std::vector<char> file_buf;
 				error_code ec;
-				int res = load_file("./tmp1_web_seed/seed", file_buf, ec);
+				int res = load_file(combine_path("tmp1_web_seed", "seed"), file_buf, ec);
 
 				if (res == -1 || file_buf.empty())
 				{
@@ -1107,6 +1139,14 @@ void web_server_thread(int* port, bool ssl, bool chunked)
 				char eh[400];
 				snprintf(eh, sizeof(eh), "Content-Range: bytes %d-%d\r\n", start, end);
 				extra_header[1] = eh;
+				if (end - start + 1 >= 1000)
+				{
+					fprintf(stderr, "request size: %.2f kB\n", int(end - start + 1)/1000.f);
+				}
+				else
+				{
+					fprintf(stderr, "request size: %d Bytes\n", int(end - start + 1));
+				}
 				send_response(s, ec, 206, "Partial", extra_header, end - start + 1);
 				if (!file_buf.empty())
 				{

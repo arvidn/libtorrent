@@ -98,6 +98,7 @@ namespace libtorrent
 
 	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
 
+#ifndef TORRENT_NO_DEPRECATE
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
 	// usage, with no consideration of performance.
@@ -116,7 +117,7 @@ namespace libtorrent
 		// don't use any extra threads to do SHA-1 hashing
 		set.hashing_threads = 0;
 		set.network_threads = 0;
-		set.aio_threads = 0;
+		set.aio_threads = 1;
 
 		set.alert_queue_size = 100;
 
@@ -293,12 +294,16 @@ namespace libtorrent
 
 		// of 500 ms, and a send rate of 4 MB/s, the upper
 		// limit should be 2 MB
-		set.send_buffer_watermark = 2 * 1024 * 1024;
+		set.send_buffer_watermark = 3 * 1024 * 1024;
 
 		// put 1.5 seconds worth of data in the send buffer
 		// this gives the disk I/O more heads-up on disk
 		// reads, and can maximize throughput
 		set.send_buffer_watermark_factor = 150;
+
+		// always stuff at least 1 MiB down each peer
+		// pipe, to quickly ramp up send rates
+ 		set.send_buffer_low_watermark = 1 * 1024 * 1024;
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
@@ -314,10 +319,11 @@ namespace libtorrent
 
 		// the number of threads to use to call async_write_some
 		// on peer sockets
-		set.network_threads = 3;
+		// TODO: this doesn't actually fully work yet. There appears to be some race condition involved
+		set.network_threads = 0;
 
 		// number of disk threads for low level file operations
-		set.aio_threads = 4;
+		set.aio_threads = 8;
 
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file
@@ -325,6 +331,7 @@ namespace libtorrent
 
 		return set;
 	}
+#endif
 
 	// wrapper around a function that's executed in the network thread
 	// ans synchronized in the client thread
@@ -406,6 +413,10 @@ namespace libtorrent
 	type r; \
 	m_impl->m_io_service.post(boost::bind(&fun_ret<type>, &r, &done, &m_impl->cond, &m_impl->mut, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3)))); \
 	TORRENT_WAIT
+
+#ifndef TORRENT_CFG
+#error TORRENT_CFG is not defined!
+#endif
 
 	// this is a dummy function that's exported and named based
 	// on the configuration. The session.hpp file will reference
@@ -541,6 +552,9 @@ namespace libtorrent
 		error_code ec;
 		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(ret == 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (ret != 0) throw libtorrent_exception(ec);
+#endif
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
@@ -622,13 +636,6 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session::add_torrent(add_torrent_params const& params)
 	{
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p);
-		}
-
 		error_code ec;
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
@@ -639,13 +646,6 @@ namespace libtorrent
 	torrent_handle session::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
 		ec.clear();
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			add_torrent_params p(params);
-			p.url.clear();
-			return add_magnet_uri(*this, params.url, p, ec);
-		}
-
 		TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
 		return r;
 	}
@@ -654,8 +654,6 @@ namespace libtorrent
 	{
 		add_torrent_params* p = new add_torrent_params(params);
 		if (params.resume_data) p->resume_data = new std::vector<char>(*params.resume_data);
-		if (params.tracker_url) p->tracker_url = strdup(params.tracker_url);
-		if (params.name) p->name = strdup(params.name);
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
@@ -794,26 +792,25 @@ namespace libtorrent
 		, std::vector<cached_piece_info>& ret) const
 	{
 		cache_status st;
-		get_cache_info(ih, &st);
+		get_cache_info(&st, find_torrent(ih));
 		ret.swap(st.pieces);
 	}
 
 	cache_status session::get_cache_status() const
 	{
 		cache_status st;
-		get_cache_info(sha1_hash(0), &st);
+		get_cache_info(&st);
 		return st;
 	}
 #endif
 
-	void session::get_cache_info(sha1_hash const& ih
-		, cache_status* ret, int flags) const
+	void session::get_cache_info(cache_status* ret
+		, torrent_handle h, int flags) const
 	{
-		bool done = false;
-		mutex::scoped_lock l(m_impl->mut);
-		m_impl->m_io_service.post(boost::bind(&session_impl::get_cache_info
-			, m_impl.get(), ih, ret, flags, &done, &m_impl->cond, &m_impl->mut));
-		do { m_impl->cond.wait(l); } while(!done);
+		piece_manager* st = 0;
+		boost::shared_ptr<torrent> t = h.m_torrent.lock();
+		if (t && t->has_storage()) st = &t->filesystem();
+		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -878,12 +875,45 @@ namespace libtorrent
 	}
 #endif
 
+	void session::set_peer_class_filter(ip_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
+	}
+
+	void session::set_peer_class_type_filter(peer_class_type_filter const& f)
+	{
+		TORRENT_ASYNC_CALL1(set_peer_class_type_filter, f);
+	}
+
+	int session::create_peer_class(char const* name)
+	{
+		TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);
+		return r;
+	}
+
+	void session::delete_peer_class(int cid)
+	{
+		TORRENT_ASYNC_CALL1(delete_peer_class, cid);
+	}
+
+	peer_class_info session::get_peer_class(int cid)
+	{
+		TORRENT_SYNC_CALL_RET1(peer_class_info, get_peer_class, cid);
+		return r;
+	}
+
+	void session::set_peer_class(int cid, peer_class_info const& pci)
+	{
+		TORRENT_ASYNC_CALL2(set_peer_class, cid, pci);
+	}
+
 	bool session::is_listening() const
 	{
 		TORRENT_SYNC_CALL_RET(bool, is_listening);
 		return r;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_settings(session_settings const& s)
 	{
 		TORRENT_ASYNC_CALL1(set_settings, s);
@@ -891,7 +921,20 @@ namespace libtorrent
 
 	session_settings session::settings() const
 	{
-		TORRENT_SYNC_CALL_RET(session_settings, settings);
+		TORRENT_SYNC_CALL_RET(session_settings, deprecated_settings);
+		return r;
+	}
+#endif
+
+	void session::apply_settings(settings_pack const& s)
+	{
+		settings_pack* copy = new settings_pack(s);
+		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
+	}
+
+	aux::session_settings session::get_settings() const
+	{
+		TORRENT_SYNC_CALL_RET(aux::session_settings, settings);
 		return r;
 	}
 
@@ -1158,5 +1201,18 @@ namespace libtorrent
 	{
 		return m_impl->m_half_open;
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	session_settings::session_settings(std::string const& user_agent_)
+	{
+		aux::session_settings def;
+		def.set_str(settings_pack::user_agent, user_agent_);
+		initialize_default_settings(def);
+		load_struct_from_settings(def, *this);
+	}
+
+	session_settings::~session_settings() {}
+#endif // TORRENT_NO_DEPRECATE
+
 }
 

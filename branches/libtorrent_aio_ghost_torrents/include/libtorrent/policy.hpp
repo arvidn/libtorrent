@@ -50,46 +50,6 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 
-	// this is compressed as an unsigned floating point value
-	// the top 13 bits are the mantissa and the low
-	// 3 bits is the unsigned exponent. The exponent
-	// has an implicit + 4 as well.
-	// This means that the resolution is no less than 16
-	// The actual rate is: (upload_rate >> 4) << ((upload_rate & 0xf) + 4)
-	// the resolution gets worse the higher the value is
-	// min value is 0, max value is 16775168
-	struct ufloat16
-	{
-		ufloat16():m_val(0) {}
-		ufloat16(int v)
-		{ *this = v; }
-		operator int()
-		{
-			return (m_val >> 3) << ((m_val & 7) + 4);
-		}
-
-		ufloat16& operator=(int v)
-		{
-			if (v > 0x1fff << (7 + 4)) m_val = 0xffff;
-			else if (v <= 0) m_val = 0;
-			else
-			{
-				int exp = 4;
-				v >>= 4;
-				while (v > 0x1fff)
-				{
-					v >>= 1;
-					++exp;
-				}
-				TORRENT_ASSERT(exp <= 7);
-				m_val = (v << 3) || (exp & 7);
-			}
-			return *this;
-		}
-	private:
-		boost::uint16_t m_val;
-	};
-
 	enum
 	{
 		// the limits of the download queue size
@@ -98,7 +58,7 @@ namespace libtorrent
 
 	void request_a_block(torrent& t, peer_connection& c);
 
-	class TORRENT_EXPORT policy
+	class TORRENT_EXTRA_EXPORT policy
 	{
 	public:
 
@@ -155,11 +115,11 @@ namespace libtorrent
 // 20     1     1         fast_reconnects, trust_points
 // 21     1     1         source, pe_support, is_v6_addr
 // 22     1     1         on_parole, banned, added_to_dht, supports_utp,
-//                        supports_holepunch
+//                        supports_holepunch, web_seed
 // 23     2     1         <padding>
 // 24
 
-		struct TORRENT_EXPORT peer
+		struct TORRENT_EXTRA_EXPORT peer
 		{
 			peer(boost::uint16_t port, bool connectable, int src);
 
@@ -301,12 +261,18 @@ namespace libtorrent
 			// we have been connected via uTP at least once
 			bool confirmed_supports_utp:1;
 			bool supports_holepunch:1;
+			// this is set to one for web seeds. Web seeds
+			// are not stored in the policy m_peers list,
+			// and are excempt from connect candidate bookkeeping
+			// so, any peer with the web_seed bit set, is
+			// never considered a connect candidate
+			bool web_seed:1;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_use:1;
 #endif
 		};
 
-		struct TORRENT_EXPORT ipv4_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv4_peer : peer
 		{
 			ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 
@@ -314,7 +280,7 @@ namespace libtorrent
 		};
 
 #if TORRENT_USE_I2P
-		struct TORRENT_EXPORT i2p_peer : peer
+		struct TORRENT_EXTRA_EXPORT i2p_peer : peer
 		{
 			i2p_peer(char const* destination, bool connectable, int src);
 			~i2p_peer();
@@ -324,7 +290,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_IPV6
-		struct TORRENT_EXPORT ipv6_peer : peer
+		struct TORRENT_EXTRA_EXPORT ipv6_peer : peer
 		{
 			ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 
@@ -406,6 +372,8 @@ namespace libtorrent
 		void erase_peer(iterator i);
 
 	private:
+
+		void update_connect_candidates(int delta);
 
 		void update_peer(policy::peer* p, int src, int flags
 		, tcp::endpoint const& remote, char const* destination);

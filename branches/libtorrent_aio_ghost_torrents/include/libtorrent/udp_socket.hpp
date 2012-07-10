@@ -42,21 +42,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 
 #include <deque>
-#include <boost/function/function4.hpp>
 
 namespace libtorrent
 {
 	class connection_queue;
 
+	struct udp_socket_observer
+	{
+		// return true if the packet was handled (it won't be
+		// propagated to the next observer)
+		virtual bool incoming_packet(error_code const& ec
+			, udp::endpoint const&, char const* buf, int size) = 0;
+		virtual bool incoming_packet(error_code const& ec
+			, char const* hostname, char const* buf, int size) { return false; }
+
+		// called when the socket becomes writeable, after having
+		// failed with EWOULDBLOCK
+		virtual void writable() {}
+
+		// called every time the socket is drained of packets
+		virtual void socket_drained() {}
+	};
+
 	class udp_socket
 	{
 	public:
-		typedef boost::function<void(error_code const& ec
-			, udp::endpoint const&, char const* buf, int size)> callback_t;
-		typedef boost::function<void(error_code const& ec
-			, char const*, char const* buf, int size)> callback2_t;
-
-		udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
+		udp_socket(io_service& ios, connection_queue& cc);
 		~udp_socket();
 
 		enum flags_t { dont_drop = 1, peer_connection = 2 };
@@ -70,6 +81,9 @@ namespace libtorrent
 				;
 		}
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+
+		void subscribe(udp_socket_observer* o);
+		void unsubscribe(udp_socket_observer* o);
 
 		// this is only valid when using a socks5 proxy
 		void send_hostname(char const* hostname, int port, char const* p, int len, error_code& ec);
@@ -136,14 +150,29 @@ namespace libtorrent
 	public:
 #endif
 
-		// callback for regular incoming packets
-		callback_t m_callback;
+		// observers on this udp socket
+		std::vector<udp_socket_observer*> m_observers;
+		std::vector<udp_socket_observer*> m_added_observers;
 
-		// callback for proxied incoming packets with a domain
-		// name as source
-		callback2_t m_callback2;
+		// this is true while iterating over the observers
+		// vector, invoking observer hooks. We may not
+		// add new observers during this time, since it
+		// may invalidate the iterator. If this is true,
+		// instead add new observers to m_added_observers
+		// and they will be added later
+		bool m_observers_locked;
 
-		void on_read(udp::socket* sock, error_code const& e, std::size_t bytes_transferred);
+		void call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size);
+		void call_handler(error_code const& ec, const char* host, char const* buf, int size);
+		void call_drained_handler();
+		void call_writable_handler();
+
+		void on_writable(error_code const& ec, udp::socket* s);
+
+		void setup_read(udp::socket* s);
+		void on_read(udp::socket* s);
+		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
+			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_timeout();
 		void on_connect(int ticket);
@@ -161,10 +190,9 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		void maybe_realloc_buffers(int which = 3);
-		bool maybe_clear_callback();
-
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+
+		// TODO: move this debug facility into a base class. It's used in a lot of places
 #if defined BOOST_HAS_PTHREADS
 		mutable pthread_t m_thread;
 #endif
@@ -180,25 +208,11 @@ namespace libtorrent
 #endif
 
 		udp::socket m_ipv4_sock;
-		udp::endpoint m_v4_ep;
-		int m_v4_buf_size;
-		char* m_v4_buf;
-		// this is set to true to indicate that the
-		// m_v4_buf should be reallocated to the size
-		// of the buffer size members the next time their
-		// read handler gets triggered
-		bool m_reallocate_buffer4;
+		int m_buf_size;
+		char* m_buf;
 
 #if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
-		udp::endpoint m_v6_ep;
-		int m_v6_buf_size;
-		char* m_v6_buf;
-		// this is set to true to indicate that the
-		// m_v6_buf should be reallocated to the size
-		// of the buffer size members the next time their
-		// read handler gets triggered
-		bool m_reallocate_buffer6;
 #endif
 
 		boost::uint16_t m_bind_port;
@@ -226,6 +240,11 @@ namespace libtorrent
 		// operations hanging on this socket
 		int m_outstanding_ops;
 
+#if TORRENT_USE_IPV6
+		bool m_v6_write_subscribed:1;
+#endif
+		bool m_v4_write_subscribed:1;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_started;
 		int m_magic;
@@ -235,7 +254,7 @@ namespace libtorrent
 
 	struct rate_limited_udp_socket : public udp_socket
 	{
-		rate_limited_udp_socket(io_service& ios, callback_t const& c, callback2_t const& c2, connection_queue& cc);
+		rate_limited_udp_socket(io_service& ios, connection_queue& cc);
 		void set_rate_limit(int limit) { m_rate_limit = limit; }
 		bool can_send() const { return int(m_queue.size()) >= m_queue_size_limit; }
 		bool send(udp::endpoint const& ep, char const* p, int len, error_code& ec, int flags = 0);

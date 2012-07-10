@@ -64,53 +64,24 @@ namespace libtorrent
 		tailqueue_node const* m_current;
 	};
 
-	struct tailqueue
+	struct TORRENT_EXTRA_EXPORT tailqueue
 	{
-		tailqueue(): m_first(0), m_last(0), m_size(0) {}
+		tailqueue();
 
 		tailqueue_iterator iterate() const
 		{ return tailqueue_iterator(m_first); }
 
-		tailqueue_node* pop_front()
-		{
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			tailqueue_node* e = m_first;
-			m_first = m_first->next;
-			if (e == m_last) m_last = 0;
-			e->next = 0;
-			--m_size;
-			return e;
-		}
-		void push_front(tailqueue_node* e)
-		{
-			TORRENT_ASSERT(e->next == 0);
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			e->next = m_first;
-			m_first = e;
-			if (!m_last) m_last = e;
-			++m_size;
-		}
-		void push_back(tailqueue_node* e)
-		{
-			TORRENT_ASSERT(e->next == 0);
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			if (m_last) m_last->next = e;
-			else m_first = e;
-			m_last = e;
-			e->next = 0;
-			++m_size;
-		}
-		tailqueue_node* get_all()
-		{
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			tailqueue_node* e = m_first;
-			m_first = 0;
-			m_last = 0;
-			m_size = 0;
-			return e;
-		}
+		void append(tailqueue& rhs);
+		void prepend(tailqueue& rhs);
+		tailqueue_node* pop_front();
+		void push_front(tailqueue_node* e);
+		void push_back(tailqueue_node* e);
+		tailqueue_node* get_all();
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
+		void swap(tailqueue& rhs);
+		tailqueue_node* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
+		tailqueue_node* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
 	private:
 		tailqueue_node* m_first;
 		tailqueue_node* m_last;

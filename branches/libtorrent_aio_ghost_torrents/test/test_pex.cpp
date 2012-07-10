@@ -69,24 +69,17 @@ void test_pex()
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	session_settings set = ses1.settings();
-	set.download_rate_limit = 0;
-	set.upload_rate_limit = 0;
-	ses1.set_settings(set);
+	settings_pack pack;
+	pack.set_int(settings_pack::download_rate_limit, 0);
+	pack.set_int(settings_pack::upload_rate_limit, 0);
+	ses1.apply_settings(pack);
+	ses3.apply_settings(pack);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
-	set = ses2.settings();
-	set.download_rate_limit = 2000;
-	set.upload_rate_limit = 2000;
-	set.ignore_limits_on_local_network = false;
-	set.rate_limit_utp = true;
-	ses2.set_settings(set);
-
-	set = ses3.settings();
-	set.download_rate_limit = 0;
-	set.upload_rate_limit = 0;
-	ses3.set_settings(set);
+	pack.set_int(settings_pack::download_rate_limit, 2000);
+	pack.set_int(settings_pack::upload_rate_limit, 2000);
+	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -154,15 +147,15 @@ int test_main()
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	remove_all("tmp1_pex", ec);
+	remove_all("tmp2_pex", ec);
+	remove_all("tmp3_pex", ec);
 
 	test_pex();
 	
-	remove_all("./tmp1_pex", ec);
-	remove_all("./tmp2_pex", ec);
-	remove_all("./tmp3_pex", ec);
+	remove_all("tmp1_pex", ec);
+	remove_all("tmp2_pex", ec);
+	remove_all("tmp3_pex", ec);
 
 	return 0;
 }

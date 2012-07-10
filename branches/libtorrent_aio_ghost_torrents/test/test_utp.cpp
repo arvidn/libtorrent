@@ -59,24 +59,15 @@ void test_transfer()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
 
-	session_settings sett;
-
-	sett.enable_outgoing_tcp = false;
-	sett.min_reconnect_time = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	// make sure we announce to both http and udp trackers
-	sett.prefer_udp_trackers = false;
-
-	// for performance testing
-//	sett.disable_hash_checks = true;
-//	sett.utp_delayed_ack = 0;
-
-	// disable this to use regular size packets over loopback
-//	sett.utp_dynamic_sock_buf = false;
-
-	ses1.set_settings(sett);
-	ses2.set_settings(sett);
+	settings_pack pack;
+	pack.set_bool(settings_pack::enable_outgoing_tcp, false);
+	pack.set_bool(settings_pack::enable_incoming_tcp, false);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_bool(settings_pack::prefer_udp_trackers, false);
+	pack.set_int(settings_pack::min_reconnect_time, 1);
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -107,6 +98,8 @@ void test_transfer()
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);
 
+		test_sleep(500);
+
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
@@ -124,8 +117,6 @@ void test_transfer()
 			<< std::endl;
 
 		if (st2.is_finished) break;
-
-		test_sleep(500);
 
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);

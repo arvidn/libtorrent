@@ -52,9 +52,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
+#include <boost/cstdint.hpp>
 
 #if TORRENT_USE_POSIX_SEMAPHORE
 #include <semaphore.h>      // sem_*
+#include <errno.h>
 #endif
 
 #if TORRENT_USE_MACH_SEMAPHORE
@@ -63,15 +65,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mach/mach_init.h> // current_task
 #endif
 
+#include <boost/detail/atomic_count.hpp>
+
 namespace libtorrent
 {
 	typedef boost::asio::detail::thread thread;
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
+	typedef boost::detail::atomic_count atomic_count;
+
 	TORRENT_EXPORT void sleep(int milliseconds);
 
-	struct TORRENT_EXPORT condition
+	struct TORRENT_EXTRA_EXPORT condition
 	{
 		condition();
 		~condition();

@@ -65,20 +65,22 @@ ID can be restricted at each class level of the IP.
 
 The expression to calculate a valid ID prefix (from an IPv4 address) is::
 
-	sha1((A * (B * (C * (D * (rand() % 8) % 0x100) % 0x4000) % 0x100000)) % 0x4000000)
+	sha1((ip & 0x01071f7f) .. r)
 
-Where ``A``, ``B``, ``C`` and ``D`` are the four octets of an IPv4 address.
+And for an IPv6 address (``ip`` is the high 64 bits of the address)::
 
-The pattern is that the modulus constant is shifted left by 6 for each octet.
-It generalizes to IPv6 by only considering the first 64 bit of the IP (since
-the low 64 bits are controlled by the host) and shifting the modulus by 3 for
-each octet instead.
+	sha1((ip & 0x000103070f1f3f7f) ..  r)
+
+``r`` is a random number in the range [0, 7]. The resulting integer,
+representing the masked IP address is supposed to be big-endian before
+hashed. The ".." means concatenation.
 
 The details of implementing this is to evaluate the expression, store the
-result in a big endian 32 bit integer and hash those 4 bytes with SHA-1.
+result in a big endian 64 bit integer and hash those 8 bytes with SHA-1.
+
 The first 4 bytes of the node ID used in the DHT MUST match the first 4
 bytes in the resulting hash. The last byte of the hash MUST match the
-random number used to generate the hash.
+random number (``r``) used to generate the hash.
 
 .. image:: ip_id_v4.png
 .. image:: ip_id_v6.png
@@ -89,63 +91,47 @@ Example code code for calculating a valid node ID::
 	int num_octets; // the number of octets to consider in ip (4 or 8)
 	uint8_t node_id[20]; // resulting node ID
 
-	uint32_t rand = rand() & 0xff;
-	uint32_t modulus = 0x100;
-	uint32_t seed = rand & 0x7;
-	int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
-	while (num_octets)
-	{
-		seed = (uint64_t(seed) * ip[num_octets-1]) & (modulus-1);
-		modulus <<= mod_shift;
-		--num_octets;
-	}
+	uint8_t v4mask[] = { 0x01, 0x07, 0x1f, 0x7f };
+	uint8_t v6mask[] = { 0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f };
+	uint8_t* mask = num_octets == 4 ? v4_mask : v8_mask;
 
-	seed = htonl(seed);
+	for (int i = 0; i < num_octets; ++i)
+		ip[i] &= mask[i];
+
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (unsigned char*)&seed, sizeof(seed));
+	SHA1_Update(&ctx, (unsigned char*)ip, num_octets);
+	uint32_t rand = rand() & 0xff;
+	uint8_t r = rand & 0x7;
+	SHA1_Update(&ctx, (unsigned char*)&r, 1);
 	SHA1_Final(&ctx, node_id);
-	for (int i = 4; i < 19; ++i) node_id[i] = rand();
+	for (int i = 4; i < 19; ++i) node_id[i] = std::rand();
 	node_id[19] = rand;
 
-Example code to verify a node ID::
-
-	uint8_t* ip; // incoming IPv4 or IPv6 address (network byte order)
-	int num_octets; // the number of octets to consider in ip (4 or 8)
-	uint8_t node_id[20]; // incoming node ID
-
-	uint32_t modulus = 0x100;
-	uint32_t seed = node_id[19] & 0x7;
-	int mod_shift = 6 * 4 / num_octets; // 6 or 3, depending on IPv4 and IPv6
-	while (num_octets)
-	{
-		seed = (uint64_t(seed) * ip[num_octets-1]) & (modulus-1);
-		modulus <<= mod_shift;
-		--num_octets;
-	}
-
-	seed = htonl(seed);
-	SHA_CTX ctx;
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, (unsigned char*)&seed, sizeof(seed));
-	uint8_t digest[20];
-	SHA1_Final(&ctx, digest);
-	if (memcmp(digest, node_id, 4) != 0)
-		return false; // failed verification
-	else
-		return true; // verification passed
-
 test vectors:
+
+.. parsed-literal::
+
+	IP           rand  example node ID
+	============ ===== ==========================================
+	124.31.75.21   1   **f766f9f5** 0c5d6a4ec8a88e4c6ab4c28b95eee4 **01**
+	21.75.31.124  86   **7ee04779** 4e7a08645677bbd1cfe7d8f956d532 **56**
+	65.23.51.170  22   **76a626ff** bc8f112a3d426c84764f8c2a1150e6 **16**
+	84.124.73.14  65   **beb4e619** 1bb1fe518101ceef99462b947a01ff **41**
+	43.213.53.83  90   **ace5613a** 5b7c4be0237986d5243b87aa6d5130 **5a**
+
+The bold parts of the node ID are the important parts. The rest are
+random numbers.
 
 bootstrapping
 -------------
 
 In order to set ones initial node ID, the external IP needs to be known. This
-is not a trivial problem. WIth this extension, *all* DHT requests whose node
+is not a trivial problem. With this extension, *all* DHT requests whose node
 ID does not match its IP address MUST be serviced and MUST also include one
 extra result value (inside the ``r`` dictionary) called ``ip``. The IP field
 contains the raw (big endian) byte representation of the external IP address.
-This is the same byte sequence passed to SHA-1.
+This is the same byte sequence used to verify the node ID.
 
 A DHT node which receives an ``ip`` result in a request SHOULD consider restarting
 its DHT node with a new node ID, taking this IP into account. Since a single node

@@ -1,3 +1,6 @@
+	* support for partfiles, where partial pieces belonging to skipped files are put
+	* support using multiple threads for socket operations (especially useful for high performance SSL connections)
+	* allow setting rate limits for arbitrary peer groups. Generalizes per-torrent rate limits, and local peer limits
 	* improved disk cache complexity O(1) instead of O(log(n))
 	* add feature to allow storing disk cache blocks in an mmapped file (presumably on an SSD)
 	* optimize peer connection distribution logic across torrents to scale better with many torrents
@@ -11,8 +14,46 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix uTP edge case where udp socket buffer fills up
+	* fix nagle implementation in uTP
+
+	* fix move_storage bugs
+	* fix unnecessary dependency on boost.date_time when building boost.asio as separate compilation
+	* always use SO_REUSEADDR and deprecate the flag to turn it on
+	* add python bindings for SSL support
+	* minor uTP tweaks
+	* fix end-game mode issue when some files are selected to not be downloaded
+	* improve uTP slow start
+	* make uTP less aggressive resetting cwnd when idle
+
+0.16.1 release
+
+	* fixed crash when providing corrupt resume data
+	* fixed support for boost-1.44
+	* fixed reversed semantics of queue_up() and queue_down()
+	* added missing functions to python bindings (file_priority(), set_dht_settings())
+	* fixed low_prio_disk support on linux
+	* fixed time critical piece accounting in the request queue
+	* fixed semantics of rate_limit_utp to also ignore per-torrent limits
+	* fixed piece sorting bug of deadline pieces
+	* fixed python binding build on Mac OS and BSD
+	* fixed UNC path normalization (on windows, unless UNC paths are disabled)
+	* fixed possible crash when enabling multiple connections per IP
+	* fixed typo in win vista specific code, breaking the build
+	* change default of rate_limit_utp to true
+	* fixed DLL export issue on windows (when building a shared library linking statically against boost)
+	* fixed FreeBSD build
+	* fixed web seed performance issue whith pieces > 1 MiB
+	* fixed unchoke logic when using web seeds
+	* fixed compatibility with older versions of boost (down to boost 1.40)
+
 0.16 release
 
+	* support torrents with more than 262000 pieces
+	* make tracker back-off configurable
+	* don't restart the swarm after downloading metadata from magnet links
+	* lower the default tracker retry intervals
+	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
 	* improved peer exchange performance by sharing incoming connections which advertize listen port 
@@ -117,6 +158,14 @@
 	* support for automatically start torrents when they receive an
 	  incoming connection
 	* added more detailed instrumentation of the disk I/O thread
+
+0.15.11 release
+
+	* fixed web seed bug, sometimes causing infinite loops
+	* fixed race condition when setting session_settings immediately after creating session
+	* give up immediately when failing to open a listen socket (report the actual error)
+	* restored ABI compatibility with 0.15.9
+	* added missing python bindings for create_torrent and torrent_info
 
 0.15.10 release
 

@@ -50,8 +50,8 @@ struct rc4 {
 	unsigned char buf[256];
 };
 
-void TORRENT_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
-unsigned long TORRENT_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
+void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
+unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 #endif
 
 #include "libtorrent/peer_id.hpp" // For sha1_hash
@@ -59,7 +59,7 @@ unsigned long TORRENT_EXPORT rc4_encrypt(unsigned char *out, unsigned long outle
 
 namespace libtorrent
 {
-	class TORRENT_EXPORT dh_key_exchange
+	class TORRENT_EXTRA_EXPORT dh_key_exchange
 	{
 	public:
 		dh_key_exchange();

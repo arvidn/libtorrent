@@ -335,14 +335,13 @@ namespace libtorrent { namespace
 				char const* in = p->string_ptr();
 				char const* fin = pf->string_ptr();
 
-				peer_id pid(0);
-				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					char flags = *fin++;
 
-					if (int(m_peers.size()) >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
+						break;
 
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
@@ -352,7 +351,7 @@ namespace libtorrent { namespace
 					// do we already know about this peer?
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
-					p.add_peer(adr, pid, peer_info::pex, flags);
+					m_torrent.add_peer(adr, peer_info::pex, flags);
 				} 
 			}
 
@@ -360,7 +359,7 @@ namespace libtorrent { namespace
 
 			lazy_entry const* p6 = pex_msg.dict_find("dropped6");
 #ifdef TORRENT_VERBOSE_LOGGING
-			if (p6) num_dropped += p->string_length() / 18;
+			if (p6) num_dropped += p6->string_length() / 18;
 #endif
 			if (p6 != 0 && p6->type() == lazy_entry::string_t)
 			{
@@ -378,7 +377,7 @@ namespace libtorrent { namespace
 
 			p6 = pex_msg.dict_find("added6");
 #ifdef TORRENT_VERBOSE_LOGGING
-			if (p6) num_added += p->string_length() / 18;
+			if (p6) num_added += p6->string_length() / 18;
 #endif
 			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
@@ -391,7 +390,6 @@ namespace libtorrent { namespace
 				char const* in = p6->string_ptr();
 				char const* fin = p6f->string_ptr();
 
-				peer_id pid(0);
 				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -399,14 +397,15 @@ namespace libtorrent { namespace
 					char flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
-					if (int(m_peers6.size()) >= m_torrent.settings().max_pex_peers) break;
+					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
+						break;
 
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
 					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					// do we already know about this peer?
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
-					p.add_peer(adr, pid, peer_info::pex, flags);
+					m_torrent.add_peer(adr, peer_info::pex, flags);
 				} 
 			}
 #endif
@@ -613,7 +612,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent* t, void*)
 	{
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
-			&& !t->settings().allow_i2p_mixed))
+			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}

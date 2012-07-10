@@ -39,6 +39,40 @@ int test_main();
 
 extern bool tests_failure;
 
+#include "libtorrent/assert.hpp"
+#include <signal.h>
+
+void sig_handler(int sig)
+{
+	char stack_text[10000];
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	print_backtrace(stack_text, sizeof(stack_text), 30);
+#elif defined __FUNCTION__
+	strcat(stack_text, __FUNCTION__);
+#else
+	stack_text[0] = 0;
+#endif
+	char const* sig_name = 0;
+	switch (sig)
+	{
+#define SIG(x) case x: sig_name = #x; break
+		SIG(SIGSEGV);
+#ifdef SIGBUS
+		SIG(SIGBUS);
+#endif
+		SIG(SIGILL);
+		SIG(SIGABRT);
+		SIG(SIGFPE);
+#ifdef SIGSYS
+		SIG(SIGSYS);
+#endif
+#undef SIG
+	};
+	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+	exit(138);
+}
+
 int main()
 {
 #ifdef O_NONBLOCK
@@ -49,6 +83,17 @@ int main()
 	fcntl(fileno(stdout), F_SETFL, flags & ~O_NONBLOCK);
 	flags = fcntl(fileno(stderr), F_GETFL, 0);
 	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
+#endif
+
+	signal(SIGSEGV, &sig_handler);
+#ifdef SIGBUS
+	signal(SIGBUS, &sig_handler);
+#endif
+	signal(SIGILL, &sig_handler);
+	signal(SIGABRT, &sig_handler);
+	signal(SIGFPE, &sig_handler);
+#ifdef SIGSYS
+	signal(SIGSYS, &sig_handler);
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS

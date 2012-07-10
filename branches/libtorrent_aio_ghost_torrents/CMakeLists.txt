@@ -6,6 +6,8 @@ set(sources
 	aiocb_pool
 	alert
 	allocator
+	asio
+	asio_ssl
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -52,14 +54,18 @@ set(sources
 	storage
 	thread
 	time
+	timestamp_history
 	torrent
 	torrent_handle
 	torrent_info
 	tracker_manager
 	http_tracker_connection
+	utf8
 	udp_tracker_connection
 	udp_socket
 	upnp
+	utp_socket_manager
+	utp_stream
 	logger
 	file_pool
 	lsd
@@ -107,7 +113,7 @@ option(exceptions "build with exception support" ON)
 option(logging "build with logging" OFF)
 option(verbose-logging "build with verbose logging" OFF)
 option(build_tests "build tests" OFF)
-option(build_examples "build examples" OFF)
+option(build_examples "build examples" ON)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 
@@ -144,7 +150,10 @@ else (dht)
 	add_definitions(-DTORRENT_DISABLE_DHT)
 endif (dht)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+if(NOT MSVC)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fvisibility-inlines-hidden")
+endif()
 
 if (shared)
 	add_library(torrent-rasterbar SHARED ${sources2})
@@ -152,27 +161,30 @@ else (shared)
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif (shared)
 
-FIND_PACKAGE( Boost 1.34 COMPONENTS filesystem)
 if (NOT Boost_VERSION LESS 103500)
-	FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem system)
+	if(NOT MSVC)
+		FIND_PACKAGE( Boost 1.35 COMPONENTS system)
+	else(NOT MSVC)
+		FIND_PACKAGE( Boost 1.35 COMPONENTS system thread date_time)
+	endif(NOT MSVC)
 endif (NOT Boost_VERSION LESS 103500)
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 
 # this works around a bug in asio in boost-1.39
-add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021)
+add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 -DBOOST_ASIO_DYN_LINK -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0500)
+
+add_definitions(-DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK)
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
 endif (WIN32)
 
 if (encryption)
+	FIND_PACKAGE(OpenSSL REQUIRED)
 	add_definitions(-DTORRENT_USE_OPENSSL)
-	if (WIN32)
-		target_link_libraries(torrent-rasterbar ssleay32 libeay32 advapi32 user32 shell32 gdi32)
-	else (WIN32)
-		target_link_libraries(torrent-rasterbar crypto ssl)
-	endif (WIN32)
+	include_directories(${OPENSSL_INCLUDE_DIR})
+	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 else (encryption)
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
 	list(APPEND sources sha1)
@@ -199,7 +211,11 @@ if (NOT deprecated-functions)
 endif (NOT deprecated-functions)
 
 if (exceptions)
-	add_definitions(-fexceptions)
+	if (MSVC)
+		add_definitions(/EHsc)
+	else (MSVC)
+		add_definitions(-fexceptions)
+	endif (MSVC)
 else (exceptions)
 	add_definitions(-fno-exceptions)
 endif (exceptions)
@@ -209,6 +225,8 @@ if (MSVC)
 	add_definitions(-D_SCL_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE)
 # these compiler settings just makes the compiler standard conforming
 	add_definitions(/Zc:wchar_t /Zc:forScope)
+# for multi-core compilation
+	add_definitions(/MP)
 
 #	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
@@ -222,14 +240,13 @@ if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
 endif (tcmalloc)
 
-target_link_libraries(torrent-rasterbar z)
 include_directories(${includes})
 
 set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "0.16.0")
+set (VERSION "0.16.1")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
@@ -239,9 +256,11 @@ foreach (s ${COMPILETIME_OPTIONS_LIST})
 	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
 endforeach (s)
 
-configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
+if (MSVC)
+	configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
+endif (MSVC)
 
-string (COMPARE EQUAL ${CMAKE_SIZEOF_VOID_P} "8" IS64BITS)
+string (COMPARE EQUAL "${CMAKE_SIZEOF_VOID_P}" "8" IS64BITS)
 
 if (IS64BITS AND RESPECTLIB64)
 	set (LIBDIR "lib64")
@@ -264,8 +283,6 @@ if(build_examples)
 		target_link_libraries(${s} torrent-rasterbar)
 	endforeach(s)
 
-	FIND_PACKAGE( Boost 1.34 COMPONENTS program_options regex)
-	target_link_libraries(client_test ${Boost_LIBRARIES})
 	include_directories(${Boost_INCLUDE_DIR})
 endif(build_examples)
 # === build tests ===

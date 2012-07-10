@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,51 +30,48 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_HASH_THREAD
-#define TORRENT_HASH_THREAD
+#ifndef TORRENT_STAT_CACHE_HPP
+#define TORRENT_STAT_CACHE_HPP
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/thread_pool.hpp"
+#include <vector>
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
-	struct cached_piece_entry;
-	struct disk_io_thread;
-	struct block_cache;
-
-	struct hash_queue_entry
+	struct stat_cache
 	{
-		cached_piece_entry* piece;
-		int start;
-		int end;
-	};
+		stat_cache();
+		~stat_cache();
 
-	struct hash_thread : thread_pool<hash_queue_entry>
-	{
-		hash_thread(disk_io_thread* d) : m_outstanding_jobs(0), m_disk_thread(d) {}
-		bool async_hash(cached_piece_entry* p, int start, int end);
+		void init(int num_files);
+		
+		enum
+		{
+			cache_error = -1,
+			not_in_cache = -2,
+			no_exist = -3,
+		};
 
-		int num_pending_jobs() const { return m_outstanding_jobs; }
-		void hash_job_done() { TORRENT_ASSERT(m_outstanding_jobs > 0); --m_outstanding_jobs; }
+		// returns the size of the file or one
+		// of the enums, noent or not_in_cache
+		size_type get_filesize(int i) const;
+		time_t get_filetime(int i) const;
 
-	protected:
-
-		void retain_job(hash_queue_entry& e);
+		void set_cache(int i, size_type size, time_t time);
+		void set_noexist(int i);
+		void set_error(int i);
 
 	private:
 
-		void process_job(hash_queue_entry const& e, bool post);
-
-		// the number of async. hash jobs that have been issued
-		// and not completed yet
-		int m_outstanding_jobs;
-
-		// used for posting completion notifications back
-		// to the disk thread
-		disk_io_thread* m_disk_thread;
+		struct stat_cache_t
+		{
+			stat_cache_t(size_type s, time_t t = 0): file_size(s), file_time(t) {}
+			size_type file_size;
+			time_t file_time;
+		};
+		std::vector<stat_cache_t> m_stat_cache;
 	};
-
 }
 
-#endif // TORRENT_HASH_THREAD
+#endif // TORRENT_STAT_CACHE_HPP
 

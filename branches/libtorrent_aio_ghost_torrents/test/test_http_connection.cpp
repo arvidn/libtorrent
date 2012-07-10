@@ -134,16 +134,17 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings const& ps, int port)
+void run_suite(std::string const& protocol, proxy_settings ps, int port)
 {
 	if (ps.type != proxy_settings::none)
 	{
-		start_proxy(ps.port, ps.type);
+		ps.port = start_proxy(ps.type);
 	}
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
 		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
-	std::cout << "\n\n********************** using " << test_name[ps.type]
-		<< " proxy **********************\n" << std::endl;
+
+	printf("\n\n********************** using %s proxy **********************\n"
+		, test_name[ps.type]);
 
 	typedef boost::optional<error_code> err;
 	// this requires the hosts file to be modified

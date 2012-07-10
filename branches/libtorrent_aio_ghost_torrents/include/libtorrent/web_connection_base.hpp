@@ -76,12 +76,7 @@ namespace libtorrent
 {
 	class torrent;
 
-	namespace detail
-	{
-		struct session_impl;
-	}
-
-	class TORRENT_EXPORT web_connection_base
+	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection
 	{
 	friend class invariant_access;
@@ -91,7 +86,11 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_connection_base(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
+			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote

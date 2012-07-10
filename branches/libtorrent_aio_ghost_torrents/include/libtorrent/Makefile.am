@@ -8,6 +8,7 @@ nobase_include_HEADERS = \
   address.hpp                  \
   add_torrent_params.hpp       \
   alert.hpp                    \
+  alert_dispatcher.hpp         \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
@@ -34,8 +35,10 @@ nobase_include_HEADERS = \
   debug.hpp                    \
   disk_buffer_holder.hpp       \
   disk_buffer_pool.hpp         \
+  disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_job_pool.hpp            \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \
@@ -73,10 +76,14 @@ nobase_include_HEADERS = \
   network_thread_pool.hpp      \
   packet_buffer.hpp            \
   parse_url.hpp                \
+  part_file.hpp                \
   pch.hpp                      \
   pe_crypto.hpp                \
   peer_connection.hpp          \
   peer.hpp                     \
+  peer_class.hpp               \
+  peer_class_set.hpp           \
+  peer_class_type_filter.hpp   \
   peer_id.hpp                  \
   peer_info.hpp                \
   peer_request.hpp             \
@@ -102,9 +109,11 @@ nobase_include_HEADERS = \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
   stat.hpp                     \
+  stat_cache.hpp               \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \
+  sruct_debug.hpp              \
   thread.hpp                   \
   thread_pool.hpp              \
   time.hpp                     \
@@ -126,8 +135,12 @@ nobase_include_HEADERS = \
   xml_parse.hpp                \
   \
   $(GEOIP_H) \
+  tommath.h \
+  tommath_class.h \
+  tommath_superclass.h \
   \
   aux_/session_impl.hpp        \
+  aux_/internal_session_settings.hpp\
   \
   extensions/logger.hpp             \
   extensions/lt_trackers.hpp        \
@@ -137,6 +150,7 @@ nobase_include_HEADERS = \
   extensions/ut_pex.hpp             \
   \
   kademlia/dht_tracker.hpp          \
+  kademlia/dht_observer.hpp         \
   kademlia/find_data.hpp            \
   kademlia/logging.hpp              \
   kademlia/msg.hpp                  \

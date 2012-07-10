@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 #DISTCHECK_CONFIGURE_FLAGS = --enable-tests
 
-SUBDIRS = include/libtorrent src examples test bindings
+SUBDIRS = include/libtorrent src examples test bindings tools
 
 DOCS_IMAGES = \
   docs/arctic_thumb.png           \
@@ -105,11 +105,13 @@ DOCS_PAGES = \
 
 EXTRA_DIST = \
   Jamfile \
-  project-root.jam \
+  Jamroot.jam \
   CMakeLists.txt \
   LICENSE \
   libtorrent-rasterbar.pc  \
   libtorrent-rasterbar-cmake.pc  \
+  parse_dht_log.py \
+  parse_session_stats.py \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES)
 

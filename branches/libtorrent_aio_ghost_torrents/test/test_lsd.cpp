@@ -47,10 +47,10 @@ void test_lsd()
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 
-	session_settings settings;
-	settings.allow_multiple_connections_per_ip = true;
-	ses1.set_settings(settings);
-	ses2.set_settings(settings);
+	settings_pack pack;
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
 
 	ses1.start_lsd();
 	ses2.start_lsd();

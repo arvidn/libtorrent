@@ -79,23 +79,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/sliding_average.hpp"
-
-#ifdef TORRENT_STATS
-#include "libtorrent/aux_/session_impl.hpp"
-#endif
+#include "libtorrent/peer_class.hpp"
+#include "libtorrent/peer_class_set.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent
 {
 	class torrent;
 	struct peer_info;
 	struct disk_io_job;
+	struct disk_interface;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct peer_plugin;
 #endif
 
-	namespace detail
+	namespace aux
 	{
-		struct session_impl;
+		struct session_interface;
 	}
 
 	struct pending_block
@@ -142,8 +143,9 @@ namespace libtorrent
 
 	inline void nop(char*) {}
 
-	class TORRENT_EXPORT peer_connection
+	class TORRENT_EXTRA_EXPORT peer_connection
 		: public bandwidth_socket
+		, public peer_class_set
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
@@ -171,20 +173,16 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		peer_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
+			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo
 			, bool outgoing = true);
-
-		// with this constructor we have been contacted and we still don't
-		// know which torrent the connection belongs to
-		peer_connection(
-			aux::session_impl& ses
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
@@ -254,14 +252,6 @@ namespace libtorrent
 		bool ignore_stats() const { return m_ignore_stats; }
 		void ignore_stats(bool b) { m_ignore_stats = b; }
 
-		void set_priority(int p)
-		{
-			TORRENT_ASSERT(p > 0);
-			TORRENT_ASSERT(m_priority <= 255);
-			if (p > 255) p = 255;
-			m_priority = p;
-		}
-
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
 
@@ -275,8 +265,12 @@ namespace libtorrent
 		
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
-		void superseed_piece(int index);
-		int superseed_piece() const { return m_superseed_piece; }
+		void superseed_piece(int replace_piece, int new_piece);
+		bool super_seeded_piece(int index) const
+		{
+			return m_superseed_piece[0] == index
+				|| m_superseed_piece[1] == index;
+		}
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -400,14 +394,7 @@ namespace libtorrent
 		{ m_received_listen_port = true; }
 
 		bool on_local_network() const;
-		bool ignore_bandwidth_limits() const
-		{ return m_ignore_bandwidth_limits; }
-		void ignore_bandwidth_limits(bool i)
-		{ m_ignore_bandwidth_limits = i; }
-
 		bool ignore_unchoke_slots() const;
-		void ignore_unchoke_slots(bool i)
-		{ m_ignore_unchoke_slots = i; }
 
 		bool failed() const { return m_failed; }
 
@@ -507,7 +494,9 @@ namespace libtorrent
 		// sends a cancel message if appropriate
 		// refills the request queue, and possibly ignoring pieces requested
 		// by peers in the ignore list (to avoid recursion)
-		void cancel_request(piece_block const& b);
+		// if force is true, the blocks is also freed from the piece
+		// picker, allowing another peer to request it immediately
+		void cancel_request(piece_block const& b, bool force = false);
 		void send_block_requests();
 
 		void assign_bandwidth(int channel, int amount);
@@ -694,7 +683,19 @@ namespace libtorrent
 
 		// a back reference to the session
 		// the peer belongs to.
-		aux::session_impl& m_ses;
+		aux::session_interface& m_ses;
+
+		// the disk thread to use to issue disk jobs to
+		disk_interface& m_disk_thread;
+
+		// settings that apply to this peer
+		aux::session_settings& m_settings;
+		
+		// used to allocate and free disk buffers
+		buffer_allocator_interface& m_allocator;
+
+		// io service
+		io_service& m_ios;
 
 		// called from the main loop when this connection has any
 		// work to do.
@@ -741,13 +742,16 @@ namespace libtorrent
 		void do_update_interest();
 		int preferred_caching() const;
 		void fill_send_buffer();
-		void on_disk_read_complete(int ret, disk_io_job const& j, peer_request r);
-		void on_disk_write_complete(int ret, disk_io_job const& j
+		void on_disk_read_complete(disk_io_job const* j, peer_request r);
+		void on_disk_write_complete(disk_io_job const* j
 			, peer_request r, boost::shared_ptr<torrent> t);
-		void on_seed_mode_hashed(int ret, disk_io_job const& j);
+		void on_seed_mode_hashed(disk_io_job const* j);
 
 		int request_upload_bandwidth();
 		int request_download_bandwidth(int bytes = 0);
+		int request_bandwidth(int channel, int priority, int bytes);
+
+		int get_priority(int channel) const;
 
 		// keep the io_service running as long as we
 		// have peer connections
@@ -840,7 +844,8 @@ namespace libtorrent
 		bitfield m_have_piece;
 
 		// the queue of requests we have got
-		// from this peer
+		// from this peer that haven't been issued
+		// to the disk thread yet
 		std::vector<peer_request> m_requests;
 
 		// the blocks we have reserved in the piece
@@ -960,10 +965,6 @@ namespace libtorrent
 		// by sending choke, unchoke.
 		int m_num_invalid_requests;
 
-		// this is the priority with which this peer gets
-		// download bandwidth quota assigned to it.
-		int m_priority;
-
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming
 		// and hasn't been added to a torrent yet.
@@ -980,12 +981,12 @@ namespace libtorrent
 		// once the connection completes
 		int m_connection_ticket;
 
-		// if this is -1, superseeding is not active. If it is >= 0
+		// if [0] is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
-		// this piece can be downloaded from us by this peer.
+		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece;
+		int m_superseed_piece[2];
 
 		// bytes downloaded since last second
 		// timer timeout; used for determining 
@@ -1075,16 +1076,6 @@ namespace libtorrent
 		// case we will not try to reconnect to
 		// this peer
 		bool m_failed:1;
-
-		// if this is set to true, the peer will not
-		// request bandwidth from the limiter, but instead
-		// just send and receive as much as possible.
-		bool m_ignore_bandwidth_limits:1;
-
-		// set to true if this peer controls its unchoke
-		// state individually, regardless of the global
-		// unchoker
-		bool m_ignore_unchoke_slots:1;
 
 		// this is set to true when a have_all
 		// message is received. This information
@@ -1259,12 +1250,15 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
-		bool m_in_constructor:1;
-		bool m_disconnect_started:1;
-		bool m_initialized:1;
+		bool m_in_constructor;
+		bool m_disconnect_started;
+		bool m_initialized;
 		int m_in_use;
 		int m_received_in_piece;
 		bool m_destructed;
+		// this is true while there is an outstanding
+		// async write job on the socket
+		bool m_socket_is_writing;
 #endif
 	};
 

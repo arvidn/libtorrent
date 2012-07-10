@@ -47,19 +47,19 @@ typedef libtorrent::big_number node_id;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
-node_id TORRENT_EXPORT distance(node_id const& n1, node_id const& n2);
+node_id TORRENT_EXTRA_EXPORT distance(node_id const& n1, node_id const& n2);
 
 // returns true if: distance(n1, ref) < distance(n2, ref)
-bool TORRENT_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
+bool TORRENT_EXTRA_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 // usefult for finding out which bucket a node belongs to
-int TORRENT_EXPORT distance_exp(node_id const& n1, node_id const& n2);
+int TORRENT_EXTRA_EXPORT distance_exp(node_id const& n1, node_id const& n2);
 
-node_id TORRENT_EXPORT generate_id(address const& external_ip);
-node_id TORRENT_EXPORT generate_random_id();
+node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
+node_id TORRENT_EXTRA_EXPORT generate_random_id();
 
-bool TORRENT_EXPORT verify_id(node_id const& nid, address const& source_ip);
+bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
 
 } } // namespace libtorrent::dht
 

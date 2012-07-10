@@ -5,6 +5,7 @@
 #include <boost/python.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/session_settings.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -61,6 +62,11 @@ namespace
             result.append(ti.files().at(i));
 
         return result;
+    }
+
+    std::string hash_for_piece(torrent_info const& ti, int i)
+    {
+        return ti.hash_for_piece(i).to_string();
     }
 
     std::string metadata(torrent_info const& ti) {
@@ -144,7 +150,7 @@ void bind_torrent_info()
 #ifndef TORRENT_NO_DEPRECATE
         .def("info_hash", &torrent_info::info_hash, copy)
 #endif
-        .def("hash_for_piece", &torrent_info::hash_for_piece)
+        .def("hash_for_piece", &hash_for_piece)
         .def("piece_size", &torrent_info::piece_size)
 
         .def("num_files", &torrent_info::num_files, (arg("storage")=false))
@@ -195,7 +201,6 @@ void bind_torrent_info()
         .add_property("send_stats", &get_send_stats)
 
         .def("reset", &announce_entry::reset)
-        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)

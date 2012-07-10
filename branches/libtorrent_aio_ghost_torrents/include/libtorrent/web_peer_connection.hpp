@@ -65,12 +65,7 @@ namespace libtorrent
 {
 	class torrent;
 
-	namespace detail
-	{
-		struct session_impl;
-	}
-
-	class TORRENT_EXPORT web_peer_connection
+	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
 	friend class invariant_access;
@@ -80,7 +75,11 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_peer_connection(
-			aux::session_impl& ses
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
+			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
@@ -122,6 +121,8 @@ namespace libtorrent
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
+		// TODO: if we make this be a disk_buffer_holder instead
+		// we would save a copy sometimes
 		std::vector<char> m_piece;
 		
 		// the number of bytes received in the current HTTP

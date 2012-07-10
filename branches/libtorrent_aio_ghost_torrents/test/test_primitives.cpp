@@ -68,6 +68,11 @@ using namespace boost::tuples;
 
 namespace libtorrent {
 	TORRENT_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
+	namespace dht
+	{
+		TORRENT_EXPORT libtorrent::dht::node_id generate_id_impl(
+			address const& ip_, boost::uint32_t r);
+	}
 }
 
 sha1_hash to_hash(char const* s)
@@ -380,9 +385,6 @@ namespace libtorrent
 {
 	// defined in torrent_info.cpp
 	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
-
-	TORRENT_EXPORT int append_aios(file::aiocb_t*& list, file::aiocb_t*& list_end
-		, file::aiocb_t* aios, int elevator_direction, disk_io_thread* io);
 }
 
 TORRENT_EXPORT void find_control_url(int type, char const* string, parse_state& state);
@@ -413,56 +415,21 @@ int test_main()
 	TEST_CHECK(abs(avg.mean() - 250) < 50);
 	TEST_CHECK(abs(avg.avg_deviation() - 250) < 80);
 
-	// test aio operation sorting
-#if TORRENT_USE_SYNCIO
-	for (int elevator = -1; elevator <= 1; elevator += 2)
+	// make sure the retry interval keeps growing
+	// on failing announces
+	announce_entry ae("dummy");
+	int last = 0;
+	aux::session_settings sett;
+	sett.set_int(settings_pack::tracker_backoff, 250);
+	for (int i = 0; i < 10; ++i)
 	{
-		fprintf(stderr, "=== ELEVATOR TEST %d === \n", elevator);
-
-		// build a list of 100 operations with different physical offsets
-		file::aiocb_t* list = 0;
-		std::vector<int> ids;
-		for (int i = 0; i < 100; ++i) ids.push_back(i);
-		std::random_shuffle(ids.begin(), ids.end());
-
-		for (int i = 0; i < 100; ++i)
-		{
-			if (ids[i] == 50) continue;
-			file::aiocb_t* item = new file::aiocb_t;
-			item->phys_offset = ids[i];
-			item->next = list;
-			list = item;
-		}
-
-		file::aiocb_t* sorted_list = new file::aiocb_t;
-		file::aiocb_t* sorted_list_end = sorted_list;
-		sorted_list->next = 0;
-		sorted_list->phys_offset = 50;
-		append_aios(sorted_list, sorted_list_end, list, elevator, 0);
-
-		int elevator_dir = elevator;
-		int last = sorted_list->phys_offset;
-		for (file::aiocb_t* i = sorted_list; i;)
-		{
-			if (elevator_dir == 1)
-			{
-				TEST_CHECK(last <= i->phys_offset);
-			}
-			else
-			{
-				TEST_CHECK(last >= i->phys_offset);
-			}
-			last = i->phys_offset;
-			fprintf(stderr, "%d ", int(i->phys_offset));
-			if (last == 99) elevator_dir = -1;
-			else if (last == 0) elevator_dir = 1;
-			file::aiocb_t* del = i;
-			i = i->next;
-			delete del;
-		}
-		fprintf(stderr, "\n");
+		ae.failed(sett, 5);
+		int delay = ae.next_announce_in();
+		TEST_CHECK(delay > last);
+		last = delay;
+		fprintf(stderr, "%d, ", delay);
 	}
-#endif
+	fprintf(stderr, "\n");
 
 #if defined TORRENT_USE_OPENSSL
 	// test sign_rsa and verify_rsa
@@ -590,6 +557,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -602,7 +570,7 @@ int test_main()
 		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
@@ -613,6 +581,7 @@ int test_main()
 		, ""
 #endif
 		);
+	ses->start_session();
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -626,7 +595,7 @@ int test_main()
 		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
+	ses->m_io_service.post(boost::bind(&aux::session_impl::abort, ses));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	ses->m_logger.reset();
 #endif
@@ -701,6 +670,11 @@ int test_main()
 		TEST_EQUAL(pb.span(), 501 - 123);
 		TEST_EQUAL(pb.capacity(), 512);
 
+		pb.insert(500, (void*)501);
+		TEST_EQUAL(pb.size(), 3);
+		pb.insert(500, (void*)500);
+		TEST_EQUAL(pb.size(), 3);
+
 		TEST_CHECK(pb.remove(123) == (void*)123);
 		TEST_EQUAL(pb.size(), 2);
 		TEST_EQUAL(pb.span(), 501 - 125);
@@ -763,20 +737,22 @@ int test_main()
 	// test session state load/restore
 	session* s = new session(fingerprint("LT",0,0,0,0), 0);
 
-	session_settings sett;
-	sett.user_agent = "test";
-	sett.tracker_receive_timeout = 1234;
-	sett.file_pool_size = 543;
-	sett.urlseed_wait_retry = 74;
-	sett.file_pool_size = 754;
-	sett.initial_picker_threshold = 351;
-	sett.upnp_ignore_nonrouters = 5326;
-	sett.coalesce_writes = 623;
-	sett.auto_scrape_interval = 753;
-	sett.close_redundant_connections = 245;
-	sett.auto_scrape_interval = 235;
-	sett.auto_scrape_min_interval = 62;
-	s->set_settings(sett);
+	settings_pack pack;
+	pack.set_str(settings_pack::user_agent, "test");
+	pack.set_int(settings_pack::tracker_receive_timeout, 1234);
+	pack.set_int(settings_pack::file_pool_size, 543);
+	pack.set_int(settings_pack::urlseed_wait_retry, 74);
+	pack.set_int(settings_pack::initial_picker_threshold, 351);
+	pack.set_bool(settings_pack::upnp_ignore_nonrouters, true);
+	pack.set_bool(settings_pack::coalesce_writes, true);
+	pack.set_int(settings_pack::auto_scrape_interval, 753);
+	pack.set_bool(settings_pack::close_redundant_connections, false);
+	pack.set_int(settings_pack::auto_scrape_interval, 235);
+	pack.set_int(settings_pack::auto_scrape_min_interval, 62);
+	s->apply_settings(pack);
+
+	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
+	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dhts;
@@ -796,25 +772,13 @@ int test_main()
 	add_torrent_params p;
 	p.save_path = ".";
 	error_code ec;
-	const char* magnet_uri = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43";
-	torrent_handle t = add_magnet_uri(*s, magnet_uri, p, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
-
-	const char* magnet_uri2 = "magnet:"
-		"?tr=http://1&tr=http://2&tr=http://3&dn=foo&dht=127.0.0.1:43"
-		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
-	torrent_handle t2 = add_magnet_uri(*s, magnet_uri2, p, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
-
-	const char* magnet_uri3 = "magnet:"
-		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
-		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
-		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
-		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07&dn=Ubuntu+11.04+%28Final%29";
-	torrent_handle t3 = add_magnet_uri(*s, magnet_uri3, p, ec);
+	p.url = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=http://1"
+		"&tr=http://2"
+		"&tr=http://3"
+		"&dn=foo"
+		"&dht=127.0.0.1:43";
+	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
@@ -836,6 +800,47 @@ int test_main()
 		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 
+	p.url = "magnet:"
+		"?tr=http://1"
+		"&tr=http://2"
+		"&dn=foo"
+		"&dht=127.0.0.1:43"
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
+	torrent_handle t2 = s->add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	trackers = t2.trackers();
+	TEST_EQUAL(trackers.size(), 2);
+
+	p.url = "magnet:"
+		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
+		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
+		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07"
+		"&dn=Ubuntu+11.04+%28Final%29";
+	torrent_handle t3 = s->add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+
+	trackers = t3.trackers();
+	TEST_EQUAL(trackers.size(), 3);
+	if (trackers.size() > 0)
+	{
+		TEST_EQUAL(trackers[0].url, "udp://tracker.openbittorrent.com:80");
+		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
+	}
+	if (trackers.size() > 1)
+	{
+		TEST_EQUAL(trackers[1].url, "udp://tracker.publicbt.com:80");
+		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
+	}
+	if (trackers.size() > 2)
+	{
+		TEST_EQUAL(trackers[2].url, "udp://tracker.ccc.de:80");
+		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
+	}
+
 	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	delete s;
@@ -853,31 +858,19 @@ int test_main()
 	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
 
 	s->load_state(session_state2);
-#define CMP_SET(x) TEST_CHECK(s->settings().x == sett.x)
 
-	CMP_SET(user_agent);
+#define CMP_SET(x) fprintf(stderr, #x ": %d %d\n"\
+	, s->get_settings().get_int(settings_pack:: x)\
+	, pack.get_int(settings_pack:: x)); \
+	TEST_EQUAL(s->get_settings().get_int(settings_pack:: x), pack.get_int(settings_pack:: x))
+
 	CMP_SET(tracker_receive_timeout);
 	CMP_SET(file_pool_size);
 	CMP_SET(urlseed_wait_retry);
-	CMP_SET(file_pool_size);
 	CMP_SET(initial_picker_threshold);
-	CMP_SET(upnp_ignore_nonrouters);
-	CMP_SET(coalesce_writes);
 	CMP_SET(auto_scrape_interval);
-	CMP_SET(close_redundant_connections);
 	CMP_SET(auto_scrape_interval);
 	CMP_SET(auto_scrape_min_interval);
-	CMP_SET(max_peerlist_size);
-	CMP_SET(max_paused_peerlist_size);
-	CMP_SET(min_announce_interval);
-	CMP_SET(prioritize_partial_pieces);
-	CMP_SET(auto_manage_startup);
-	CMP_SET(rate_limit_ip_overhead);
-	CMP_SET(announce_to_all_trackers);
-	CMP_SET(announce_to_all_tiers);
-	CMP_SET(prefer_udp_trackers);
-	CMP_SET(strict_super_seeding);
-	CMP_SET(seeding_piece_quota);
 	delete s;
 	}
 
@@ -888,6 +881,15 @@ int test_main()
 	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
 #else
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
+#endif
+
+#if TORRENT_USE_UNC_PATHS
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
 #endif
 
 	TEST_EQUAL(extension("blah"), "");
@@ -1018,7 +1020,7 @@ int test_main()
 	path.clear();
 	sanitize_append_path_element(path, "dev:", 4);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "");
+	TEST_EQUAL(path, "dev");
 #else
 	TEST_EQUAL(path, "dev:");
 #endif
@@ -1027,7 +1029,7 @@ int test_main()
 	sanitize_append_path_element(path, "c:", 2);
 	sanitize_append_path_element(path, "b", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "b");
+	TEST_EQUAL(path, "c\\b");
 #else
 	TEST_EQUAL(path, "c:/b");
 #endif
@@ -1037,7 +1039,7 @@ int test_main()
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c");
+	TEST_EQUAL(path, "c\\c");
 #else
 	TEST_EQUAL(path, "c:/c");
 #endif
@@ -1239,6 +1241,25 @@ int test_main()
 	test = "filename=4";
 	TEST_CHECK(verify_encoding(test));
 	TEST_CHECK(test == "filename=4");
+
+	// file class
+	file f;
+#if TORRENT_USE_UNC_PATHS || !defined WIN32
+	TEST_CHECK(f.open("con", file::read_write, ec));
+#else
+	TEST_CHECK(f.open("test_file", file::read_write, ec));
+#endif
+	TEST_CHECK(!ec);
+	file::iovec_t b = {(void*)"test", 4};
+	TEST_CHECK(f.writev(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	char test_buf[5] = {0};
+	b.iov_base = test_buf;
+	b.iov_len = 4;
+	TEST_CHECK(f.readv(0, &b, 1, ec) == 4);
+	TEST_CHECK(!ec);
+	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	f.close();
 
 	// HTTP request parser
 	http_parser parser;
@@ -1748,9 +1769,38 @@ int test_main()
 	}
 	TEST_CHECK(hits > int(temp.size()) / 2);
 
+	using namespace libtorrent::dht;
+
+	char const* ips[] = {
+		"124.31.75.21",
+		"21.75.31.124",
+		"65.23.51.170",
+		"84.124.73.14",
+		"43.213.53.83",
+	};
+
+	int rs[] = { 1,86,22,65,90 };
+
+	boost::uint8_t prefixes[][4] =
+	{
+		{0xf7, 0x66, 0xf9, 0xf5},
+		{0x7e, 0xe0, 0x47, 0x79 },
+		{0x76, 0xa6, 0x26, 0xff },
+		{0xbe, 0xb4, 0xe6, 0x19 },
+		{0xac, 0xe5, 0x61, 0x3a },
+	};
+
+	for (int i = 0; i < 5; ++i)
+	{
+		address a = address_v4::from_string(ips[i]);
+		node_id id = generate_id_impl(a, rs[i]);
+		for (int j = 0; j < 4; ++j)
+			TEST_CHECK(id[j] == prefixes[i][j]);
+		TEST_CHECK(id[19] == rs[i]);
+		fprintf(stderr, "IP address: %s r: %d node ID: %s\n", ips[i]
+			, rs[i], to_hex(id.to_string()).c_str());
+	}
 #endif
-
-
 
 	// test peer_id/sha1_hash type
 
@@ -1831,6 +1881,7 @@ int test_main()
 	test1.set_bit(1);
 	test1.set_bit(9);
 	TEST_CHECK(test1.count() == 3);
+	TEST_CHECK(test1.all_set() == false);
 	test1.clear_bit(2);
 	TEST_CHECK(test1.count() == 2);
 	int distance = std::distance(test1.begin(), test1.end());
@@ -1852,6 +1903,9 @@ int test_main()
 	test1.set_bit(1);
 	test1.resize(1);
 	TEST_CHECK(test1.count() == 1);
+
+	test1.resize(100, true);
+	TEST_CHECK(test1.all_set() == true);
 	return 0;
 }
 

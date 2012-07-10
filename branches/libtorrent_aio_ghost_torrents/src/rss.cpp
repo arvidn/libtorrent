@@ -46,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+feed_item::feed_item(): size(-1) {}
+feed_item::~feed_item() {}
+
 struct feed_state
 {
 	feed_state(feed& r)
@@ -391,7 +394,6 @@ void feed::on_feed(error_code const& ec
 			p.name = i->title.c_str();
 
 			error_code e;
-			// #error session_impl::add_torrent doesn't support magnet links via url
 			torrent_handle h = m_ses.add_torrent(p, e);
 			m_ses.m_alerts.post_alert(add_torrent_alert(h, p, e));
 			m_added.insert(make_pair(i->url, now));
@@ -586,7 +588,8 @@ int feed::update_feed()
 			, _1, _2, _3, _4)));
 
 	m_updating = true;
-	feed->get(m_settings.url, seconds(30), 0, 0, 5, m_ses.m_settings.user_agent);
+	feed->get(m_settings.url, seconds(30), 0, 0, 5
+		, m_ses.m_settings.get_str(settings_pack::user_agent));
 
 	return 60 + m_failures * m_failures * 60;
 }

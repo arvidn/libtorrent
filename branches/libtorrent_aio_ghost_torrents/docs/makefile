@@ -33,11 +33,17 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
 all: html
 
+settings.rst: ../include/libtorrent/settings_pack.hpp
+	python gen_settings_doc.py
+
+manual.rst: settings.rst
+	touch manual.rst
+
 %.pdf:%.rst
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
 	cp $@ $(WEB_PATH)/$@
 
 %.png:%.dot

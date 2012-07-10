@@ -30,98 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_AIOCB_POOL
-#define TORRENT_AIOCB_POOL
+#ifndef TORRENT_DISK_JOB_POOL
+#define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/file.hpp" // for file::iovec_t
 #include "libtorrent/thread.hpp"
-#include "libtorrent/max.hpp" // for min<> metafunction
-
-//#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/object_pool.hpp>
-//#endif
-
-#if TORRENT_USE_SYNCIO
-#include "libtorrent/thread_pool.hpp"
-#endif
 
 namespace libtorrent
 {
-	struct async_handler;
 	struct disk_io_job;
-	struct aiocb_pool;
-	struct disk_io_thread;
 
-#if TORRENT_USE_SYNCIO
-	struct disk_worker_pool : thread_pool<file::aiocb_t*>
+	struct disk_job_pool
 	{
-		disk_worker_pool(disk_io_thread* dt)
-			: m_disk_thread(dt)
-		{}
-
-		// defined in file.cpp
-		void process_job(file::aiocb_t *const& j, bool post);
-		
-		disk_io_thread* m_disk_thread;
-	};
-#endif
-
-	struct aiocb_pool
-	{
-		enum { max_iovec = min<64, TORRENT_IOV_MAX>::value };
-
-		aiocb_pool();
+		disk_job_pool();
+		~disk_job_pool();
 
 		disk_io_job* allocate_job(int type);
 		void free_job(disk_io_job* j);
 
-		async_handler* alloc_handler();
-		void free_handler(async_handler* h);
-
-		file::iovec_t* alloc_vec();
-		void free_vec(file::iovec_t* vec);
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		bool is_from(file::aiocb_t* p) const { return true; }
-#else
-		bool is_from(file::aiocb_t* p) const { return m_pool.is_from(p); }
-#endif
-
-		file::aiocb_t* construct();
-		void destroy(file::aiocb_t* a);
-
-		int in_use() const { return m_in_use; }
-		int peak_in_use() const { return m_peak_in_use; }
 		int jobs_in_use() const { return m_jobs_in_use; }
 		int read_jobs_in_use() const { return m_read_jobs; }
 		int write_jobs_in_use() const { return m_write_jobs; }
 
-#if TORRENT_USE_IOSUBMIT
-		io_context_t io_queue;
-		int event;
-#endif
-
-#if TORRENT_USE_AIO_PORTS
-		int port;
-#endif
-
-#if TORRENT_USE_AIO_KQUEUE
-		int queue;
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		FILE* file_access_log;
-#endif
-
-#if TORRENT_USE_SYNCIO
-		disk_worker_pool* worker_thread;
-#endif
-
 	private:
-
-		int m_in_use;
-		int m_peak_in_use;
 
 		// total number of in-use jobs
 		int m_jobs_in_use;
@@ -130,16 +62,10 @@ namespace libtorrent
 		// total number of in-use write jobs
 		int m_write_jobs;
 
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		boost::pool<> m_pool;
-		boost::pool<> m_vec_pool;
-		boost::pool<> m_handler_pool;
-#endif
 		mutex m_job_mutex;
 		boost::pool<> m_job_pool;
-
 	};
 }
 
-#endif // AIOCB_POOL
+#endif // TORRENT_DISK_JOB_POOL
 

@@ -76,7 +76,7 @@ namespace libtorrent
 		struct session_impl;
 	}
 
-	class TORRENT_EXPORT bt_peer_connection
+	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection
 	{
 	friend class invariant_access;
@@ -86,20 +86,16 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		bt_peer_connection(
-			aux::session_impl& ses
-			, boost::weak_ptr<torrent> t
+			aux::session_interface& ses
+			, aux::session_settings& sett
+			, buffer_allocator_interface& allocator
+			, disk_interface& disk_thread
+			, io_service& ios
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo
-			, bool outgoing = true);
-
-		// with this constructor we have been contacted and we still don't
-		// know which torrent the connection belongs to
-		bt_peer_connection(
-			aux::session_impl& ses
-			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, policy::peer* peerinfo);
+			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
+			, bool outgoing = false);
 
 		void start();
 
@@ -116,6 +112,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		bool supports_encryption() const
 		{ return m_encrypted; }
+		bool rc4_encrypted() const
+		{ return m_rc4_encrypted; }
 #endif
 
 		virtual int type() const { return peer_connection::bittorrent_connection; }

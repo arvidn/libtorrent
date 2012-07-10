@@ -37,13 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/socket_type.hpp" // for async_shutdown
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
-
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
-#include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
 #include <boost/bind.hpp>
@@ -92,10 +89,6 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 	, m_abort(false)
 {
 	TORRENT_ASSERT(!m_handler.empty());
-	// TODO: if we were handed an SSL context, we should really
-	// verify the hostname of the web server as well. This is supported
-	// in boost starting with version 1.47.0. See ssl::rfc2818_verification
-	// and ssl::context::set_verify_callback
 }
 
 http_connection::~http_connection()
@@ -262,7 +255,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 		m_ssl = ssl;
 		m_bind_addr = bind_addr;
 		error_code ec;
-		m_sock.close(ec);
+		if (m_sock.is_open()) m_sock.close(ec);
 
 #if TORRENT_USE_I2P
 		bool is_i2p = false;
@@ -340,30 +333,13 @@ void http_connection::start(std::string const& hostname, std::string const& port
 			}
 		}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
-		// for SSL connections, make sure to authenticate the hostname
-		// of the certificate
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		m_sock.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
-		break;
-
-		switch(m_sock.type())
-		{
-			CASE(stream_socket)
-			CASE(socks5_stream)
-			CASE(http_stream)
-			CASE(utp_stream)
-		}
-
+		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
 			m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 				, me, ec, (char*)0, 0));
 			return;
 		}
-#undef CASE
-
-#endif
 
 #if TORRENT_USE_I2P
 		if (is_i2p)
@@ -443,7 +419,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 			add_outstanding_async("http_connection::on_timeout");
 #endif
 			error_code ec;
-			c->m_sock.close(ec);
+			async_shutdown(c->m_sock, c);
 			c->m_timer.expires_at((std::min)(
 				c->m_last_receive + c->m_read_timeout
 				, c->m_start_time + c->m_completion_timeout), ec);
@@ -470,11 +446,15 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 void http_connection::close()
 {
+	if (m_abort) return;
+
 	error_code ec;
 	m_timer.cancel(ec);
 	m_resolver.cancel();
 	m_limiter_timer.cancel(ec);
-	m_sock.close(ec);
+
+	async_shutdown(m_sock, shared_from_this());
+
 	m_hostname.clear();
 	m_port.clear();
 	m_handler.clear();
@@ -641,28 +621,7 @@ void http_connection::callback(error_code e, char const* data, int size)
 	std::vector<char> buf;
 	if (data && m_bottled && m_parser.header_finished())
 	{
-		if (m_parser.chunked_encoding())
-		{
-			// go through all chunks and compact them
-			// since we're bottled, and the buffer is our after all
-			// it's OK to mutate it
-			char* write_ptr = (char*)data;
-			// the offsets in the array are from the start of the
-			// buffer, not start of the body, so subtract the size
-			// of the HTTP header from them
-			int offset = m_parser.body_start();
-			std::vector<std::pair<size_type, size_type> > const& chunks = m_parser.chunks();
-			for (std::vector<std::pair<size_type, size_type> >::const_iterator i = chunks.begin()
-				, end(chunks.end()); i != end; ++i)
-			{
-				TORRENT_ASSERT(i->second - i->first < INT_MAX);
-				int len = int(i->second - i->first);
-				if (i->first - offset + len > size) len = size - int(i->first) + offset;
-				memmove(write_ptr, data + i->first - offset, len);
-				write_ptr += len;
-			}
-			size = write_ptr - data;
-		}
+		size = m_parser.collapse_chunk_headers((char*)data, size);
 
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)
@@ -694,6 +653,9 @@ void http_connection::on_write(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_write");
 #endif
+
+	if (e == asio::error::operation_aborted) return;
+
 	if (e)
 	{
 		boost::shared_ptr<http_connection> me(shared_from_this());
@@ -741,6 +703,8 @@ void http_connection::on_read(error_code const& e
 		m_download_quota -= bytes_transferred;
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
+
+	if (e == asio::error::operation_aborted) return;
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
@@ -807,6 +771,10 @@ void http_connection::on_read(error_code const& e
 				}
 
 				error_code ec;
+				// it would be nice to gracefully shut down SSL here
+				// but then we'd have to do all the reconnect logic
+				// in its handler. For now, just kill the connection.
+//				async_shutdown(m_sock, shared_from_this());
 				m_sock.close(ec);
 				using boost::tuples::ignore;
 				boost::tie(ignore, ignore, ignore, ignore, ignore)

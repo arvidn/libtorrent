@@ -63,7 +63,11 @@ public:
 	typedef typename Stream::protocol_type protocol_type;
 
 	void set_host_name(std::string name)
-	{ SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str()); }
+	{
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
+		SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str());
+#endif
+	}
 
 	template <class T>
 	void set_verify_callback(T const& fun, error_code& ec)

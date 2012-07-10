@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/assert.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #else
@@ -444,9 +445,10 @@ namespace libtorrent
 			return ret;
 		}
 		ifconf ifc;
-		char buf[1024];
+		// make sure the buffer is aligned to hold ifreq structs
+		ifreq buf[40];
 		ifc.ifc_len = sizeof(buf);
-		ifc.ifc_buf = buf;
+		ifc.ifc_buf = (char*)buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, asio::error::system_category);
@@ -457,9 +459,19 @@ namespace libtorrent
 		char *ifr = (char*)ifc.ifc_req;
 		int remaining = ifc.ifc_len;
 
-		while (remaining)
+		while (remaining > 0)
 		{
 			ifreq const& item = *reinterpret_cast<ifreq*>(ifr);
+
+#ifdef _SIZEOF_ADDR_IFREQ
+			int current_size = _SIZEOF_ADDR_IFREQ(item);
+#elif defined TORRENT_BSD
+			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
+#else
+			int current_size = sizeof(ifreq);
+#endif
+
+			if (remaining < current_size) break;
 
 			if (item.ifr_addr.sa_family == AF_INET
 #if TORRENT_USE_IPV6
@@ -508,11 +520,6 @@ namespace libtorrent
 				ret.push_back(iface);
 			}
 
-#if defined TORRENT_BSD
-			int current_size = item.ifr_addr.sa_len + IFNAMSIZ;
-#else
-			int current_size = sizeof(ifreq);
-#endif
 			ifr += current_size;
 			remaining -= current_size;
 		}

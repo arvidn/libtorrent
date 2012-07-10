@@ -120,7 +120,7 @@ namespace libtorrent
 		static const bool i2p = false;
 #endif
 
-		session_settings const& settings = m_ses.settings();
+		aux::session_settings const& settings = m_ses.settings();
 
 		// if request-string already contains
 		// some parameters, append an ampersand instead
@@ -181,14 +181,14 @@ namespace libtorrent
 			}
 			else
 #endif
-			if (!m_ses.settings().anonymous_mode)
+			if (!m_ses.settings().get_bool(settings_pack::anonymous_mode))
 			{
-				if (!settings.announce_ip.empty())
+				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
+				if (!announce_ip.empty())
 				{
-					url += "&ip=" + escape_string(
-						settings.announce_ip.c_str(), settings.announce_ip.size());
+					url += "&ip=" + escape_string(announce_ip.c_str(), announce_ip.size());
 				}
-				else if (m_ses.settings().announce_double_nat
+				else if (m_ses.settings().get_bool(settings_pack::announce_double_nat)
 					&& is_local(m_ses.listen_address()))
 				{
 					// only use the global external listen address here
@@ -223,12 +223,13 @@ namespace libtorrent
 			));
 
 		int timeout = tracker_req().event==tracker_request::stopped
-			?settings.stop_tracker_timeout
-			:settings.tracker_completion_timeout;
+			?settings.get_int(settings_pack::stop_tracker_timeout)
+			:settings.get_int(settings_pack::tracker_completion_timeout);
 
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
-			, &m_ps, 5, settings.anonymous_mode ? "" : settings.user_agent
+			, &m_ps, 5, settings.get_bool(settings_pack::anonymous_mode)
+				? "" : settings.get_str(settings_pack::user_agent)
 			, bind_interface()
 #if TORRENT_USE_I2P
 			, m_i2p_conn
@@ -386,9 +387,12 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb) return;
 
-		int interval = int(e.dict_find_int_value("interval", 1800));
-		int min_interval = int(e.dict_find_int_value("min interval", 60));
+		int interval = int(e.dict_find_int_value("interval", 0));
+		int min_interval = int(e.dict_find_int_value("min interval", 30));
 
+		// if no interval is specified, default to 30 minutes
+		if (interval == 0) interval = 1800;
+		
 		std::string trackerid;
 		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
@@ -427,6 +431,7 @@ namespace libtorrent
 					, interval, min_interval);
 				return;
 			}
+
 			int complete = int(scrape_data->dict_find_int_value("complete", -1));
 			int incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
 			int downloaded = int(scrape_data->dict_find_int_value("downloaded", -1));

@@ -5,15 +5,21 @@ import sys
 
 def num_ids(bits, total_bits):
 
-	ret = 8;
-	modulus = 0x100
-	mod_shift = 6 * 32 / total_bits
-	while bits >= 0:
-		ret *= min(1 << bits, 256)
-		ret = min(ret, modulus)
+	if total_bits == 32:
+		bit_dec = 2
+	else:
+		bit_dec = 1
+
+	num_used = 7;
+	ret = 3
+
+	while bits > 0:
+		ret += min(num_used, bits)
+		num_used -= bit_dec
+		if num_used < 0: num_used = 0
 		bits -= 8
-		modulus <<= mod_shift
-	return ret
+	
+	return 1 << ret
 
 f = open('ip_id_v4.dat', 'w+')
 for i in range(0, 33):

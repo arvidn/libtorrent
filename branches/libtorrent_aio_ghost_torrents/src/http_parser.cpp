@@ -60,6 +60,8 @@ namespace libtorrent
 			&& http_status < 400;
 	}
 
+	http_parser::~http_parser() {}
+
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
 		, m_status_code(-1)
@@ -454,5 +456,31 @@ restart_response:
 		m_partial_chunk_header = 0;
 	}
 	
+	int http_parser::collapse_chunk_headers(char* buffer, int size) const
+	{
+		if (!chunked_encoding()) return size;
+
+		// go through all chunks and compact them
+		// since we're bottled, and the buffer is our after all
+		// it's OK to mutate it
+		char* write_ptr = (char*)buffer;
+		// the offsets in the array are from the start of the
+		// buffer, not start of the body, so subtract the size
+		// of the HTTP header from them
+		int offset = body_start();
+		std::vector<std::pair<size_type, size_type> > const& c = chunks();
+		for (std::vector<std::pair<size_type, size_type> >::const_iterator i = c.begin()
+			, end(c.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(i->second - i->first < INT_MAX);
+			TORRENT_ASSERT(i->second - offset <= size);
+			int len = int(i->second - i->first);
+			if (i->first - offset + len > size) len = size - int(i->first) + offset;
+			memmove(write_ptr, buffer + i->first - offset, len);
+			write_ptr += len;
+		}
+		size = write_ptr - buffer;
+		return size;
+	}
 }
 

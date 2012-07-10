@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011, Arvid Norberg
+Copyright (c) 2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,38 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aiocb_pool.hpp"
+#include "libtorrent/disk_job_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
-
-#ifdef TORRENT_DEBUG
-	// defined in assert.cpp
-	void print_backtrace(char* out, int len);
-#endif
 
 namespace libtorrent
 {
-	aiocb_pool::aiocb_pool()
-		: m_in_use(0)
-		, m_peak_in_use(0)
-		, m_jobs_in_use(0)
+	disk_job_pool::disk_job_pool()
+		: m_jobs_in_use(0)
 		, m_read_jobs(0)
 		, m_write_jobs(0)
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		, m_pool(sizeof(file::aiocb_t), 128)
-		, m_vec_pool(sizeof(file::iovec_t) * max_iovec)
-		, m_handler_pool(sizeof(async_handler))
-#endif
 		, m_job_pool(sizeof(disk_io_job))
+	{}
+
+	disk_job_pool::~disk_job_pool()
 	{
-#ifdef TORRENT_DISK_STATS
-		file_access_log = 0;
-#endif
-#if TORRENT_USE_SYNCIO
-		worker_thread = 0;
-#endif
+// #error this should be fixed!
+//		TORRENT_ASSERT(m_jobs_in_use == 0);
 	}
 
-	disk_io_job* aiocb_pool::allocate_job(int type)
+	disk_io_job* disk_job_pool::allocate_job(int type)
 	{
 		mutex::scoped_lock l(m_job_mutex);
 		disk_io_job* ptr = (disk_io_job*)m_job_pool.malloc();
@@ -81,7 +68,7 @@ namespace libtorrent
 		return ptr;
 	}
 
-	void aiocb_pool::free_job(disk_io_job* j)
+	void disk_job_pool::free_job(disk_io_job* j)
 	{
 		TORRENT_ASSERT(j);
 		if (j == 0) return;
@@ -96,88 +83,6 @@ namespace libtorrent
 		else if (type == disk_io_job::write) --m_write_jobs;
 		--m_jobs_in_use;
 		m_job_pool.free(j);	
-	}
-
-	async_handler* aiocb_pool::alloc_handler()
-	{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		async_handler* ret = new async_handler(time_now_hires());
-#else
-		async_handler* ret = (async_handler*)m_handler_pool.malloc();
-		new (ret) async_handler(time_now_hires());
-		m_pool.set_next_size(50);
-#endif
-		return ret;
-	}
-
-	void aiocb_pool::free_handler(async_handler* h)
-	{
-		if (h == 0) return;
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		delete h;
-#else
-		h->~async_handler();
-		m_handler_pool.free(h);
-#endif
-	}
-
-	file::iovec_t* aiocb_pool::alloc_vec()
-	{
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		file::iovec_t* ret = new file::iovec_t[max_iovec];
-		TORRENT_ASSERT(ret);
-#else
-		file::iovec_t* ret = (file::iovec_t*)m_vec_pool.malloc();
-		TORRENT_ASSERT(ret);
-		m_pool.set_next_size(50);
-#endif
-		TORRENT_ASSERT(ret);
-		return ret;
-	}
-
-	void aiocb_pool::free_vec(file::iovec_t* vec)
-	{
-		if (vec == 0) return;
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		delete[] vec;
-#else
-		m_vec_pool.free(vec);
-#endif
-	}
-
-	file::aiocb_t* aiocb_pool::construct()
-	{
-		++m_in_use;
-		if (m_in_use > m_peak_in_use) m_peak_in_use = m_in_use;
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		file::aiocb_t* ret = new file::aiocb_t;
-		TORRENT_ASSERT(ret);
-#else
-		file::aiocb_t* ret = (file::aiocb_t*)m_pool.malloc();
-		TORRENT_ASSERT(ret);
-		new (ret) file::aiocb_t;
-		m_pool.set_next_size(256);
-#endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		ret->in_use = true;
-#endif
-		return ret;
-	}
-
-	void aiocb_pool::destroy(file::aiocb_t* a)
-	{
-		--m_in_use;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		TORRENT_ASSERT(a->in_use);
-		a->in_use = false;
-#endif
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		delete a;
-#else
-		TORRENT_ASSERT(m_pool.is_from(a));
-		a->~aiocb_t();
-		m_pool.free(a);
-#endif
 	}
 }
 

@@ -170,7 +170,7 @@ def build_commandline(config, port):
 
 	disable_disk = ''
 	if config['disable-disk']: disable_disk = '-0'
-	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -e %d %s -f session_stats/alerts_log.txt %s' \
+	return './stage_%s/client_test -k -N -H -M -B %d -l %d -S %d -T %d -c %d -C %d -s "%s" -p %d -E %d %s -f session_stats/alerts_log.txt %s' \
 		% (config['build'], test_duration, num_peers, num_peers, num_peers, num_peers, config['cache-size'], config['save-path'], port, \
 			config['hash-threads'], disable_disk, torrent_path)
 

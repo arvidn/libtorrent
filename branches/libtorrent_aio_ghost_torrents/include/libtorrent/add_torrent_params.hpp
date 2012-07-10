@@ -49,8 +49,9 @@ namespace libtorrent
 	{
 		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: version(LIBTORRENT_VERSION_NUM)
+#ifndef TORRENT_NO_DEPRECATE
 			, tracker_url(0)
-			, name(0)
+#endif
 			, resume_data(0)
 			, storage_mode(storage_mode_sparse)
 			, storage(sc)
@@ -115,9 +116,13 @@ namespace libtorrent
 		// libtorrent version. Used for forward binary compatibility
 		int version;
 		boost::intrusive_ptr<torrent_info> ti;
+#ifndef TORRENT_NO_DEPRECATE
 		char const* tracker_url;
+#endif
+		std::vector<std::string> trackers;
+		std::vector<std::pair<std::string, int> > dht_nodes;
 		sha1_hash info_hash;
-		char const* name;
+		std::string name;
 		std::string save_path;
 		std::vector<char>* resume_data;
 		storage_mode_t storage_mode;

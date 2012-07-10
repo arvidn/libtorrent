@@ -32,24 +32,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/storage.hpp"
+#include "libtorrent/block_cache.hpp" // for cached_piece_entry
 
 namespace libtorrent
 {
 	disk_io_job::disk_io_job()
-		: buffer(0)
-		, requester(0)
+		: requester(0)
+		, buffer(0)
 		, piece(0)
 		, action(read)
 		, ret(0)
 		, flags(0)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, in_use(false)
+		, job_posted(false)
 		, callback_called(false)
+		, blocked(false)
 #endif
 	{
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
-		d.io.max_cache_line = 0;
+		d.io.ref.storage = 0;
+		d.io.ref.piece = 0;
+		d.io.ref.block = 0;
 	}
 
 	disk_io_job::~disk_io_job()
@@ -58,6 +63,23 @@ namespace libtorrent
 			free(buffer);
 		if (action == save_resume_data)
 			delete (entry*)buffer;
+	}
+
+	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)
+	{
+		if (action != write) return false;
+
+		int block_offset = d.io.offset & (block_size-1);
+		int size = d.io.buffer_size;
+		int start = d.io.offset / block_size;
+		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
+		
+		for (int i = start; i < end; ++i)
+			if (pe->blocks[i].dirty || pe->blocks[i].pending) return false;
+
+		// if all our blocks are not pending and not dirty, it means they
+		// were successfully written to disk. This job is complete
+		return true;
 	}
 }
 

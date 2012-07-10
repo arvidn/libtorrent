@@ -45,12 +45,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // __linux
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
-#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators
+#error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators with TORRENT_DISABLE_POOL_ALLOCATOR
+#endif
+
+#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
+#error you must define either BOOST_ASIO_SEPARATE_COMPILATION or BOOST_ASIO_DYN_LINK in your project in \
+	order for asio's declarations to be correct. If you're linking dynamically against libtorrent, define \
+	BOOST_ASIO_DYN_LINK otherwise BOOST_ASIO_SEPARATE_COMPILATION. You can also use pkg-config or boost \
+	build, to automatically apply these defines
 #endif
 
 #ifndef _MSC_VER
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
+#define __STDC_FORMAT_MACROS 1
+#define __STDC_LIMIT_MACROS 1
+#include <inttypes.h> // for PRId64 et.al.
+#include <stdint.h> // for INT64_MAX
 #endif
 
 #ifndef PRId64
@@ -66,47 +75,42 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-/*
+#if !defined INT64_MAX
+#define INT64_MAX 0x7fffffffffffffffLL
+#endif
 
-	These are the different disk I/O options:
+// backwards compatibility with older versions of boost
+#if !defined BOOST_SYMBOL_EXPORT && !defined BOOST_SYMBOL_IMPORT
+# if defined _MSC_VER || defined __MINGW32__
+#  define BOOST_SYMBOL_EXPORT __declspec(dllexport)
+#  define BOOST_SYMBOL_IMPORT __declspec(dllimport)
+# elif __GNU__ >= 4
+#  define BOOST_SYMBOL_EXPORT __attribute__((visibility("default")))
+#  define BOOST_SYMBOL_IMPORT __attribute__((visibility("default")))
+# else
+#  define BOOST_SYMBOL_EXPORT
+#  define BOOST_SYMBOL_IMPORT
+# endif
+#endif
 
-	TORRENT_USE_AIO              - use posix AIO
-	  TORRENT_USE_AIO_SIGNALFD   - use (linux) signalfd as notification
-	                               mechanism in posix AIO
-	  TORRENT_USE_AIO_PORTS      - use (solaris) ports as notification
-	                               mechanism in posix AIO
-	  TORRENT_USE_AIO_KQUEUE     - use (bsd) kqueue as notification mechanism
-	                               in posix AIO
-	  TORRENT_USE_AIOINIT        - use the GNU aio extension aio_init()
+#if defined TORRENT_BUILDING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_EXPORT
+#elif defined TORRENT_LINKING_SHARED
+# define TORRENT_EXPORT BOOST_SYMBOL_IMPORT
+#endif
 
-	TORRENT_USE_IOSUBMIT         - use (linux) io_submit() for I/O
-	  TORRENT_USE_SUBMIT_THREADS - use separate threads for the io_submit()
-	                               call, since it's a blocking call for filesystems
-	                               that don't support AIO. As far as I know,
-	                               xfs is the only one that supports aio properly.
-	  TORRENT_USE_IOSUBMIT_VEC   - used to enable support for PWRITEV and PREADV
-	                               in the io-submit code. Older kernels did not
-	                               support the vector I/O versions
+// when this is specified, export a bunch of extra
+// symbols, mostly for the unit tests to reach
+#if TORRENT_EXPORT_EXTRA
+# if defined TORRENT_BUILDING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
+# elif defined TORRENT_LINKING_SHARED
+#  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_IMPORT
+# endif
+#endif
 
-	TORRENT_USE_OVERLAPPED       - use (win32) overlapped I/O and
-	                               IO completion ports
-
-	TORRENT_USE_SYNCIO           - use portable, synchronous, file operations
-
-
-	If none of these are set, this config header will determine which
-	one to use based on operating system, by setting TORRENT_USE_DEFAULT_IO
-
-*/
-
-
-#if !defined TORRENT_USE_SYNCIO \
-	&& !defined TORRENT_USE_OVERLAPPED \
-	&& !defined TORRENT_USE_AIO \
-	&& !defined TORRENT_USE_IOSUBMIT
-#define TORRENT_USE_DEFAULT_IO 1
-#else
-#define TORRENT_USE_DEFAULT_IO 0
+#ifndef TORRENT_EXTRA_EXPORT
+# define TORRENT_EXTRA_EXPORT
 #endif
 
 // ======= GCC =========
@@ -117,23 +121,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 # endif
 
-// GCC pre 4.0 did not have support for the visibility attribute
-# if __GNUC__ >= 4
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __attribute__ ((visibility("default")))
-#  endif
-# endif
-
-
 // ======= SUNPRO =========
 
 #elif defined __SUNPRO_CC
-
-# if __SUNPRO_CC >= 0x550
-#  if defined(TORRENT_BUILDING_SHARED) || defined(TORRENT_LINKING_SHARED)
-#   define TORRENT_EXPORT __global
-#  endif
-# endif
 
 // SunPRO seems to have an overly-strict
 // definition of POD types and doesn't
@@ -155,12 +145,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable: 4996)
 #define strdup _strdup
 
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
-
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
 #endif
@@ -174,8 +158,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
 #define TORRENT_AMIGA
 #define TORRENT_USE_MLOCK 0
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_USE_BOOST_THREAD 0
 #define TORRENT_USE_IOSTREAM 0
@@ -198,10 +180,11 @@ POSSIBILITY OF SUCH DAMAGE.
 # ifndef TORRENT_USE_ICONV
 #  define TORRENT_USE_ICONV 0
 #  define TORRENT_USE_LOCALE 0
-#  define TORRENT_CLOSE_MAY_BLOCK 1
 # endif
 # define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
+// FreeBSD has a reasonable iconv signature
+# define TORRENT_ICONV_ARG (const char**)
 # define TORRENT_USE_POSIX_SEMAPHORE 1
 #endif // __APPLE__
 
@@ -209,16 +192,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_HAS_FALLOCATE 0
 
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_AIO 1
-#endif
-
-// Darwin's kqueue doesn't support AIO
-#if TORRENT_USE_AIO && !defined __APPLE__ && !defined TORRENT_USE_AIO_KQUEUE
-# define TORRENT_USE_AIO_KQUEUE 1
-#endif
-
-#define TORRENT_AIO_SIGNAL SIGIO
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IFCONF 1
@@ -228,29 +201,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 
-#if TORRENT_USE_DEFAULT_IO
-# if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-#  define TORRENT_USE_IOSUBMIT 1
-//  more recent 2.6 kernels support vector I/O
-#   if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-#    define TORRENT_USE_IOSUBMIT_VEC 1
-#   endif
-# else
-#  define TORRENT_USE_AIO 1
-# endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+# define TORRENT_USE_PREADV 1
+# define TORRENT_USE_PREAD 0
+#else
+# define TORRENT_USE_PREADV 0
+# define TORRENT_USE_PREAD 1
 #endif
 
 #define TORRENT_HAVE_MMAP 1
 
-#if TORRENT_USE_AIO && !defined TORRENT_USE_AIO_SIGNALFD
-#define TORRENT_USE_AIO_SIGNALFD 1
-#endif
-
-#if TORRENT_USE_AIO && !defined TORRENT_USE_AIOINIT
-# define TORRENT_USE_AIOINIT 1
-#endif
-
-#define TORRENT_AIO_SIGNAL SIGRTMIN
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
@@ -262,56 +222,52 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 1
+# define TORRENT_USE_ICONV 0
+# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_OVERLAPPED 1
-#endif
 #define TORRENT_USE_NETLINK 0
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
-#define TORRENT_USE_UNC_PATHS 1
+#ifndef TORRENT_USE_UNC_PATHS
+# define TORRENT_USE_UNC_PATHS 1
+#endif
+// these are emulated on windows
+#define TORRENT_USE_PREADV 1
+#define TORRENT_USE_PWRITEV 1
 
 // ==== WINDOWS ===
 #elif defined WIN32
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
-#define TORRENT_USE_GETIPFORWARDTABLE 1
+# define TORRENT_USE_GETIPFORWARDTABLE 1
 #endif
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
 #ifndef TORRENT_USE_ICONV
-#define TORRENT_USE_ICONV 0
-#define TORRENT_USE_LOCALE 1
+# define TORRENT_USE_ICONV 0
+# define TORRENT_USE_LOCALE 1
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
-#if TORRENT_USE_DEFAULT_IO
-# define TORRENT_USE_OVERLAPPED 1
+#ifndef TORRENT_USE_UNC_PATHS
+# define TORRENT_USE_UNC_PATHS 1
 #endif
-#define TORRENT_USE_UNC_PATHS 1
+// these are emulated on windows
+#define TORRENT_USE_PREADV 1
+#define TORRENT_USE_PWRITEV 1
 
 // ==== SOLARIS ===
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
-#if TORRENT_USE_DEFAULT_IO
-#define TORRENT_USE_AIO 1
-#endif
-#define TORRENT_AIO_SIGNAL SIGUSR1
 #define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
-
-#if TORRENT_USE_AIO
-# define TORRENT_USE_AIO_PORTS 1
-#endif
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -321,13 +277,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_MLOCK 0
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
-#endif
-#if __GNUCC__ == 2
-# if defined(TORRENT_BUILDING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllexport)
-# elif defined(TORRENT_LINKING_SHARED)
-#  define TORRENT_EXPORT __declspec(dllimport)
-# endif
 #endif
 
 // ==== GNU/Hurd ===
@@ -431,14 +380,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_LOCALE 0
 #endif
 
-// set this to true if close() may block on your system
-// Mac OS X does this if the file being closed is not fully
-// allocated on disk yet for instance. When defined, the disk
-// I/O subsytem will use a separate thread for closing files
-#ifndef TORRENT_CLOSE_MAY_BLOCK
-#define TORRENT_CLOSE_MAY_BLOCK 0
-#endif
-
 #ifndef TORRENT_BROKEN_UNIONS
 #define TORRENT_BROKEN_UNIONS 0
 #endif
@@ -479,56 +420,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_POSIX_SEMAPHORE 0
 #endif
 
-// use POSIX AIO for asynchronous disk I/O (aio_read()/aio_write() etc.)
-#ifndef TORRENT_USE_AIO
-#define TORRENT_USE_AIO 0
-#endif
-
-#ifndef TORRENT_USE_AIOINIT
-# define TORRENT_USE_AIOINIT 0
-#endif
-
-// use io_submit for asynchronous disk I/O
-#ifndef TORRENT_USE_IOSUBMIT
-#define TORRENT_USE_IOSUBMIT 0
-#endif
-
-#if TORRENT_USE_IOSUBMIT && !defined TORRENT_USE_SUBMIT_THREADS
-// define this to one if you intend to use io_submit on a filesystem
-// other than XFS (ext3 and ext4 do not support AIO as of linux 2.6.38-8)
-#define TORRENT_USE_SUBMIT_THREADS 0
-#endif
-
-// use io_prep_pwritev and io_prep_preadv. These were never implemented
-// in mainline linux, but in Red Hat Enterprise 3. It defaults to off
-#ifndef TORRENT_USE_IOSUBMIT_VEC
-#define TORRENT_USE_IOSUBMIT_VEC 0
-#endif
-
-// use signalfd for event notification for POSIX AIO
-#ifndef TORRENT_USE_AIO_SIGNALFD
-#define TORRENT_USE_AIO_SIGNALFD 0
-#endif
-
-#ifndef TORRENT_USE_AIO_KQUEUE
-#define TORRENT_USE_AIO_KQUEUE 0
-#endif
-
-// use this signal number for event notifications in POSIX AIO
-#ifndef TORRENT_AIO_SIGNAL
-#define TORRENT_AIO_SIGNAL SIGUSR1
-#endif
-
-// use windows overlapped I/O for asynchronous disk I/O
-#ifndef TORRENT_USE_OVERLAPPED
-#define TORRENT_USE_OVERLAPPED 0
-#endif
-
-// use portable synchronous disk I/O
-#ifndef TORRENT_USE_SYNCIO
-#define TORRENT_USE_SYNCIO (!TORRENT_USE_AIO && !TORRENT_USE_OVERLAPPED && !TORRENT_USE_IOSUBMIT)
-#endif
-
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
@@ -553,20 +444,18 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_MLOCK 1
 #endif
 
-#ifndef TORRENT_USE_WRITEV
-#define TORRENT_USE_WRITEV 1
+// if preadv() exists, we assume pwritev() does as well
+#ifndef TORRENT_USE_PREADV
+#define TORRENT_USE_PREADV 0
 #endif
 
-#ifndef TORRENT_USE_READV
-#define TORRENT_USE_READV 1
+// if pread() exists, we assume pwrite() does as well
+#ifndef TORRENT_USE_PREAD
+#define TORRENT_USE_PREAD 1
 #endif
 
 #ifndef TORRENT_NO_FPU
 #define TORRENT_NO_FPU 0
-#endif
-
-#ifndef TORRENT_USE_AIO_PORTS
-#define TORRENT_USE_AIO_PORTS 0
 #endif
 
 #ifndef TORRENT_USE_IOSTREAM
@@ -575,6 +464,12 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #else
 #define TORRENT_USE_IOSTREAM 0
 #endif
+#endif
+
+// if set to true, piece picker will use less RAM
+// but only support up to ~260000 pieces in a torrent
+#ifndef TORRENT_COMPACT_PICKER
+#define TORRENT_COMPACT_PICKER 0
 #endif
 
 #ifndef TORRENT_USE_I2P
@@ -598,11 +493,11 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
-# define TORRENT_READ_HANDLER_MAX_SIZE 256
+# define TORRENT_READ_HANDLER_MAX_SIZE 300
 #endif
 
 #if !defined(TORRENT_WRITE_HANDLER_MAX_SIZE)
-# define TORRENT_WRITE_HANDLER_MAX_SIZE 256
+# define TORRENT_WRITE_HANDLER_MAX_SIZE 300
 #endif
 
 #if defined _MSC_VER && _MSC_VER <= 1200

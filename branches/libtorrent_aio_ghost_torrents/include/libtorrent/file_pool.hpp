@@ -62,10 +62,6 @@ namespace libtorrent
 	{
 		file_pool(int size = 40);
 		~file_pool();
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		void set_thread_owner();
-		void clear_thread_owner();
-#endif
 
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
 			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
@@ -76,13 +72,9 @@ namespace libtorrent
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 		void get_status(std::vector<pool_file_status>* files, void* st) const;
 
-#if TORRENT_USE_OVERLAPPED
-		void set_iocp(HANDLE completion_port) { m_iocp = completion_port; }
-#endif
-
 	private:
 
-		void remove_oldest();
+		void remove_oldest(mutex::scoped_lock& l);
 
 		int m_size;
 		bool m_low_prio_io;
@@ -102,23 +94,7 @@ namespace libtorrent
 		
 		file_set m_files;
 
-#if defined TORRENT_DEBUG && defined BOOST_HAS_PTHREADS
-		pthread_t m_owning_thread;
-#endif
-
-#if TORRENT_USE_OVERLAPPED
-		HANDLE m_iocp;
-#endif
-
-#if TORRENT_CLOSE_MAY_BLOCK
-		void closer_thread_fun();
-		mutex m_closer_mutex;
-		std::vector<boost::intrusive_ptr<file> > m_queued_for_close;
-		bool m_stop_thread;
-
-		// used to close files
-		thread m_closer_thread;
-#endif
+		mutable mutex m_mutex;
 	};
 }
 

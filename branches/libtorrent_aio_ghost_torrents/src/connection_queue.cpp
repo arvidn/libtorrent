@@ -54,6 +54,9 @@ namespace libtorrent
 		, m_in_timeout_function(false)
 #endif
 	{
+#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+		m_network_thread = 0;
+#endif
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log.open("connection_queue.log");
 #endif
@@ -61,7 +64,7 @@ namespace libtorrent
 
 	int connection_queue::free_slots() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 		return m_half_open_limit == 0 ? (std::numeric_limits<int>::max)()
 			: m_half_open_limit - m_queue.size();
 	}
@@ -70,7 +73,7 @@ namespace libtorrent
 		, boost::function<void()> const& on_timeout
 		, time_duration timeout, int priority)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -90,6 +93,7 @@ namespace libtorrent
 				m_queue.push_front(entry());
 				e = &m_queue.front();
 				break;
+			default: return;
 		}
 
 		e->priority = priority;
@@ -107,7 +111,7 @@ namespace libtorrent
 
 	void connection_queue::done(int ticket)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 
 		INVARIANT_CHECK;
 
@@ -130,7 +134,7 @@ namespace libtorrent
 	void connection_queue::close()
 	{
 		error_code ec;
-		mutex_t::scoped_lock l(m_mutex);
+		TORRENT_ASSERT(is_network_thread());
 		if (m_num_connecting == 0) m_timer.cancel(ec);
 		m_abort = true;
 
@@ -138,16 +142,11 @@ namespace libtorrent
 		tmp.swap(m_queue);
 		m_num_connecting = 0;
 
-		// we don't want to call the timeout callback while we're locked
-		// since that is a recipie for dead-locks
-		l.unlock();
-
 		while (!tmp.empty())
 		{
 			entry& e = tmp.front();
 			if (e.priority > 1)
 			{
-				mutex_t::scoped_lock ll(m_mutex);
 				if (e.connecting) ++m_num_connecting;
 				m_queue.push_back(e);
 				tmp.pop_front();
@@ -185,8 +184,9 @@ namespace libtorrent
 
 #endif
 
-	void connection_queue::try_connect(connection_queue::mutex_t::scoped_lock& l)
+	void connection_queue::try_connect()
 	{
+		TORRENT_ASSERT(is_network_thread());
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_CONNECTION_LOGGING
@@ -240,8 +240,6 @@ namespace libtorrent
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
 
-		l.unlock();
-
 		while (!to_connect.empty())
 		{
 			entry& ent = to_connect.front();
@@ -268,7 +266,6 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("connection_queue::on_timeout");
 #endif
-		mutex_t::scoped_lock l(m_mutex);
 
 		INVARIANT_CHECK;
 #ifdef TORRENT_DEBUG
@@ -297,10 +294,6 @@ namespace libtorrent
 			++i;
 		}
 
-		// we don't want to call the timeout callback while we're locked
-		// since that is a recepie for dead-locks
-		l.unlock();
-
 		for (std::list<entry>::iterator i = timed_out.begin()
 			, end(timed_out.end()); i != end; ++i)
 		{
@@ -311,8 +304,6 @@ namespace libtorrent
 			} TORRENT_CATCH(std::exception&) {}
 		}
 		
-		l.lock();
-		
 		if (next_expire < max_time())
 		{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -322,13 +313,12 @@ namespace libtorrent
 			m_timer.expires_at(next_expire, ec);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
 		}
-		try_connect(l);
+		try_connect();
 	}
 
 	void connection_queue::on_try_connect()
 	{
-		mutex_t::scoped_lock l(m_mutex);
-		try_connect(l);
+		try_connect();
 	}
 }
 

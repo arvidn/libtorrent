@@ -16,7 +16,8 @@ extern void dict_to_add_torrent_params(dict params
     , std::list<std::string>& storage);
 
 namespace {
-    
+
+#ifndef TORRENT_NO_DEPRECATE
     torrent_handle _add_magnet_uri(session& s, std::string uri, dict params)
     {
         add_torrent_params p;
@@ -34,6 +35,7 @@ namespace {
         return add_magnet_uri(s, uri, p, ec);
 #endif
     }
+#endif
 
 	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
 	std::string (*make_magnet_uri1)(torrent_info const&) = make_magnet_uri;
@@ -41,7 +43,9 @@ namespace {
 
 void bind_magnet_uri()
 {
+#ifndef TORRENT_NO_DEPRECATE
     def("add_magnet_uri", &_add_magnet_uri);
+#endif
     def("make_magnet_uri", make_magnet_uri0);
     def("make_magnet_uri", make_magnet_uri1);
 }

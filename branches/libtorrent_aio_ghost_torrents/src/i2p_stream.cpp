@@ -288,13 +288,13 @@ namespace libtorrent
 		}
 
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == 0 || expect2 == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
 
 		int result = 0;
-		char const* message = 0;
-		float version = 3.0f;
+//		char const* message = 0;
+//		float version = 3.0f;
 
 		for(;;)
 		{
@@ -324,11 +324,11 @@ namespace libtorrent
 			}
 			else if (strcmp("MESSAGE", name) == 0)
 			{
-				message = ptr;
+//				message = ptr;
 			}
 			else if (strcmp("VERSION", name) == 0)
 			{
-				version = float(atof(ptr));
+//				version = float(atof(ptr));
 			}
 			else if (strcmp("VALUE", name) == 0)
 			{

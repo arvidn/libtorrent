@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/socket.hpp"
 
-// TODO: it would be nice to not have this dependency here
-#include "libtorrent/aux_/session_impl.hpp"
-
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
@@ -48,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
+#include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/time.hpp>
 #include <time.h> // time()
@@ -160,19 +158,17 @@ enum { observer_size = max3<
 };
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, routing_table& table, send_fun const& sf
-	, void* userdata
-	, external_ip_fun ext_ip)
+	, routing_table& table, udp_socket_interface* sock
+	, dht_observer* observer)
 	: m_pool_allocator(observer_size, 10)
-	, m_send(sf)
-	, m_userdata(userdata)
+	, m_sock(sock)
 	, m_our_id(our_id)
 	, m_table(table)
 	, m_timer(time_now())
 	, m_random_number(generate_random_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
-	, m_ext_ip(ext_ip)
+	, m_observer(observer)
 {
 	std::srand(time(0));
 
@@ -310,7 +306,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 #endif
 		entry e;
 		incoming_error(e, "invalid transaction id");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -325,7 +321,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'r' key");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -334,7 +330,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'id' key");
-		m_send(m_userdata, e, m.addr, 0);
+		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -344,7 +340,9 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v4::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
-		m_ext_ip(address_v4(b), aux::session_impl::source_dht, m.addr.address());
+		if (m_observer)
+			m_observer->set_external_address(address_v4(b)
+				, dht_observer::source_dht, m.addr.address());
 	}
 #if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
@@ -352,7 +350,9 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
-		m_ext_ip(address_v6(b), aux::session_impl::source_dht, m.addr.address());
+		if (m_observer)
+			m_observer->set_external_address(address_v6(b)
+				, dht_observer::source_dht, m.addr.address());
 	}
 #endif
 
@@ -468,7 +468,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 		<< e["q"].string() << " -> " << target_addr;
 #endif
 
-	if (m_send(m_userdata, e, target_addr, 1))
+	if (m_sock->send_packet(e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -484,7 +484,7 @@ observer::~observer()
 	// reported back to the traversal_algorithm as
 	// well. If it wasn't sent, it cannot have been
 	// reported back
-	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done));
+	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
 }
 

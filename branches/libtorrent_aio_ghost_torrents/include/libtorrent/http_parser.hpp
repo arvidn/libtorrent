@@ -62,11 +62,12 @@ namespace libtorrent
 	// return true if the status code is a redirect
 	bool is_redirect(int http_status);
 
-	class TORRENT_EXPORT http_parser
+	class TORRENT_EXTRA_EXPORT http_parser
 	{
 	public:
 		enum flags_t { dont_parse_chunks = 1 };
 		http_parser(int flags = 0);
+		~http_parser();
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;
@@ -96,6 +97,13 @@ namespace libtorrent
 		// to call parse_chunk_header() for each chunk, starting with
 		// the start of the body.
 		bool chunked_encoding() const { return m_chunked_encoding; }
+
+		// removes the chunk headers from the supplied buffer. The buffer
+		// must be the stream received from the http server this parser
+		// instanced parsed. It will use the internal chunk list to determine
+		// where the chunks are in the buffer. It returns the new length of
+		// the buffer
+		int collapse_chunk_headers(char* buffer, int size) const;
 
 		// returns false if the buffer doesn't contain a complete
 		// chunk header. In this case, call the function again with

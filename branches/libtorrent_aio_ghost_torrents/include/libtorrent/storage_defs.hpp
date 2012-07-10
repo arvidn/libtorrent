@@ -56,19 +56,20 @@ namespace libtorrent
 	};
 	
 	typedef boost::function<storage_interface*(file_storage const&, file_storage const*
-		, std::string const&, file_pool&, std::vector<boost::uint8_t> const&)> storage_constructor_type;
+		, std::string const&, file_pool&, storage_mode_t mode
+		, std::vector<boost::uint8_t> const&)> storage_constructor_type;
 
 	TORRENT_EXPORT storage_interface* default_storage_constructor(
 		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
-		, std::vector<boost::uint8_t> const&);
+		, storage_mode_t mode, std::vector<boost::uint8_t> const&);
 
 	TORRENT_EXPORT storage_interface* disabled_storage_constructor(
 		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
-		, std::vector<boost::uint8_t> const&);
+		, storage_mode_t mode, std::vector<boost::uint8_t> const&);
 
 	TORRENT_EXPORT storage_interface* zero_storage_constructor(
 		file_storage const&, file_storage const* mapped, std::string const&, file_pool&
-		, std::vector<boost::uint8_t> const&);
+		, storage_mode_t mode, std::vector<boost::uint8_t> const&);
 }
 
 #endif

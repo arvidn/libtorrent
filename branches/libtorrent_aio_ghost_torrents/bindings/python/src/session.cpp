@@ -2,15 +2,16 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <boost/python.hpp>
 #include <list>
 #include <string>
-#include <boost/python.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings.hpp> // for bencode_map_entry
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
+#include <libtorrent/aux_/session_settings.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -29,9 +30,10 @@ namespace
     void outgoing_ports(session& s, int _min, int _max)
     {
         allow_threading_guard guard;
-        session_settings settings = s.settings();
-        settings.outgoing_ports = std::make_pair(_min, _max);
-        s.set_settings(settings);
+		  settings_pack p;
+		  p.set_int(settings_pack::outgoing_port, _min);
+		  p.set_int(settings_pack::num_outgoing_ports, _max - _min);
+        s.apply_settings(p);
         return;
     }
 #ifndef TORRENT_DISABLE_DHT
@@ -65,73 +67,63 @@ namespace
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
-		bencode_map_entry* map;
-		int len;
-		boost::tie(map, len) = aux::settings_map();
-	 
-		session_settings sett;
-		for (int i = 0; i < len; ++i)
-		{
-			if (!sett_dict.has_key(map[i].name)) continue;
+		allow_threading_guard guard;
 
-			void* dest = ((char*)&sett) + map[i].offset;
-			char const* name = map[i].name;
-			switch (map[i].type)
+		settings_pack p;
+		list iterkeys = (list)sett_dict.iterkeys();
+		for (int i = 0; i < boost::python::len(iterkeys); i++)
+		{
+			std::string key = extract<std::string>(iterkeys[i]);
+
+			int sett = setting_by_name(key);
+			if (sett == 0) continue;
+
+			TORRENT_TRY
 			{
-				case std_string:
-					*((std::string*)dest) = extract<std::string>(sett_dict[name]);
-					break;
-				case character:
-					*((char*)dest) = extract<char>(sett_dict[name]);
-					break;
-				case boolean:
-					*((bool*)dest) = extract<bool>(sett_dict[name]);
-					break;
-				case integer:
-					*((int*)dest) = extract<int>(sett_dict[name]);
-					break;
-				case floating_point:
-					*((float*)dest) = extract<float>(sett_dict[name]);
-					break;
+				object value = sett_dict[key];
+				switch (sett & settings_pack::type_mask)
+				{
+					case settings_pack::string_type_base:
+						p.set_str(sett, extract<std::string>(value));
+						break;
+					case settings_pack::int_type_base:
+						p.set_int(sett, extract<int>(value));
+						break;
+					case settings_pack::bool_type_base:
+						p.set_bool(sett, extract<bool>(value));
+						break;
+				}
 			}
+			TORRENT_CATCH(...) {}
 		}
 
-		ses.set_settings(sett);
+		ses.apply_settings(p);
 	}
 
 	dict session_get_settings(session const& ses)
 	{
 		allow_threading_guard guard;
-		 
-		session_settings sett = ses.settings();
-		dict sett_dict;
-		bencode_map_entry* map;
-		int len;
-		boost::tie(map, len) = aux::settings_map();
-		for (int i = 0; i < len; ++i)
+		dict ret;
+		aux::session_settings sett = ses.get_settings();
+
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
 		{
-			void const* dest = ((char const*)&sett) + map[i].offset;
-			char const* name = map[i].name;
-			switch (map[i].type)
-			{
-				case std_string:
-					sett_dict[name] = *((std::string const*)dest);
-					break;
-				case character:
-					sett_dict[name] = *((char const*)dest);
-					break;
-				case boolean:
-					sett_dict[name] = *((bool const*)dest);
-					break;
-				case integer:
-					sett_dict[name] = *((int const*)dest);
-					break;
-				case floating_point:
-					sett_dict[name] = *((float const*)dest);
-					break;
-			}
+			ret[name_for_setting(i)] = sett.get_str(i);
 		}
-		return sett_dict;
+
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_int(i);
+		}
+
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_bool(i);
+		}
+		return ret;
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -151,15 +143,9 @@ namespace
         , std::vector<char>& rd, std::list<std::string>& string_storage)
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
-        if (params.has_key("ti"))
+        if (params.has_key("ti") && params.get("ti") != boost::python::object())
             p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
 
-        std::string url;
-        if (params.has_key("tracker_url"))
-        {
-            string_storage.push_back(extract<std::string>(params["tracker_url"]));
-            p.tracker_url = string_storage.back().c_str();
-        }
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
         if (params.has_key("name"))
@@ -179,7 +165,28 @@ namespace
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
 
+        if (params.has_key("tracker_url"))
+        {
+            list l = extract<list>(params["trackers"]);
+            int n = boost::python::len(l);
+            for(int i = 0; i < n; i++)
+                p.trackers.push_back(extract<std::string>(l[i]));
+        }
+
+        if (params.has_key("dht_nodes"))
+        {
+            list l = extract<list>(params["dht_nodes"]);
+            int n = boost::python::len(l);
+            for(int i = 0; i < n; i++)
+                p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
+        }
 #ifndef TORRENT_NO_DEPRECATE
+        std::string url;
+        if (params.has_key("tracker_url"))
+        {
+            string_storage.push_back(extract<std::string>(params["tracker_url"]));
+            p.tracker_url = string_storage.back().c_str();
+        }
         if (params.has_key("seed_mode"))
             p.seed_mode = params["seed_mode"];
         if (params.has_key("upload_mode"))
@@ -350,10 +357,10 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info(session& s, sha1_hash const& ih)
+	 cache_status get_cache_info(session& s, torrent_handle h, int flags)
 	 {
 	 	cache_status ret;
-		s.get_cache_info(ih, &ret);
+		s.get_cache_info(&ret, h, flags);
 		return ret;
 	 }
 
@@ -361,7 +368,7 @@ namespace
 	 cache_status get_cache_status(session& s)
 	 {
 	 	cache_status ret;
-		s.get_cache_info(sha1_hash(0), &ret);
+		s.get_cache_info(&ret);
 		return ret;
 	 }
 #endif
@@ -510,34 +517,28 @@ void bind_session()
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
-        .def_readonly("elevator_turns", &cache_status::elevator_turns)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
-        .def_readonly("average_queue_time", &cache_status::average_queue_time)
         .def_readonly("average_read_time", &cache_status::average_read_time)
         .def_readonly("average_write_time", &cache_status::average_write_time)
         .def_readonly("average_hash_time", &cache_status::average_hash_time)
         .def_readonly("average_job_time", &cache_status::average_job_time)
-        .def_readonly("average_sort_time", &cache_status::average_sort_time)
-        .def_readonly("average_issue_time", &cache_status::average_issue_time)
         .def_readonly("cumulative_job_time", &cache_status::cumulative_job_time)
         .def_readonly("cumulative_read_time", &cache_status::cumulative_read_time)
         .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
         .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
-        .def_readonly("cumulative_sort_time", &cache_status::cumulative_sort_time)
-        .def_readonly("cumulative_issue_time", &cache_status::cumulative_issue_time)
         .def_readonly("total_read_back", &cache_status::total_read_back)
         .def_readonly("read_queue_size", &cache_status::read_queue_size)
         .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
         .def_readonly("queued_jobs", &cache_status::queued_jobs)
         .def_readonly("peak_queued", &cache_status::peak_queued)
         .def_readonly("pending_jobs", &cache_status::pending_jobs)
-        .def_readonly("peak_pending", &cache_status::peak_pending)
-        .def_readonly("num_aiocb", &cache_status::num_aiocb)
-        .def_readonly("peak_aiocb", &cache_status::peak_aiocb)
-        .def_readonly("cumulative_completed_aiocbs", &cache_status::cumulative_completed_aiocbs)
         .def_readonly("num_jobs", &cache_status::num_jobs)
         .def_readonly("num_read_jobs", &cache_status::num_read_jobs)
         .def_readonly("num_write_jobs", &cache_status::num_write_jobs)
+        .def_readonly("arc_mru_size", &cache_status::arc_mru_size)
+        .def_readonly("arc_mru_ghost_size", &cache_status::arc_mru_ghost_size)
+        .def_readonly("arc_mfu_size", &cache_status::arc_mfu_size)
+        .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
     ;
 
     class_<session, boost::noncopyable>("session", no_init)
@@ -559,6 +560,7 @@ void bind_session()
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
+        .def("set_dht_settings", allow_threads(&session::set_dht_settings))
         .def("start_dht", allow_threads(start_dht0))
         .def("stop_dht", allow_threads(&session::stop_dht))
 #ifndef TORRENT_NO_DEPRECATE
@@ -651,7 +653,7 @@ void bind_session()
         .def("resume", allow_threads(&session::resume))
         .def("is_paused", allow_threads(&session::is_paused))
         .def("id", allow_threads(&session::id))
-        .def("get_cache_info", &get_cache_info)
+        .def("get_cache_info", &get_cache_info, (arg("handle") = torrent_handle(), arg("flags") = 0))
 #ifndef TORRENT_NO_DEPRECATE
         .def("get_cache_status", &get_cache_status)
 #endif
@@ -688,6 +690,8 @@ void bind_session()
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
+#ifndef TORRENT_NO_DEPRECATE
 	 def("high_performance_seed", high_performance_seed);
-	 def("min_memory_usage", high_performance_seed);
+	 def("min_memory_usage", min_memory_usage);
+#endif
 }

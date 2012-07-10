@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct TORRENT_EXPORT bw_request
+struct TORRENT_EXTRA_EXPORT bw_request
 {
 	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
 		, int blk, int prio);
@@ -62,7 +62,8 @@ struct TORRENT_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	bandwidth_channel* channel[5];
+	// we don't actually support more than 10 channels per peer
+	bandwidth_channel* channel[10];
 };
 
 }

@@ -68,9 +68,9 @@ namespace libtorrent
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
-	boost::array<char, 3 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
+	boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
 	{
-		boost::array<char, 3 + std::numeric_limits<size_type>::digits10> ret;
+		boost::array<char, 4 + std::numeric_limits<size_type>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
 		unsigned_size_type un = n;
@@ -510,7 +510,7 @@ namespace libtorrent
 		return url.substr(pos, url.find('&', pos) - pos);
 	}
 
-	TORRENT_EXPORT std::string to_hex(std::string const& s)
+	TORRENT_EXTRA_EXPORT std::string to_hex(std::string const& s)
 	{
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -521,7 +521,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
+	TORRENT_EXTRA_EXPORT void to_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
@@ -539,7 +539,7 @@ namespace libtorrent
 		return -1;
 	}
 
-	TORRENT_EXPORT bool is_hex(char const *in, int len)
+	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
@@ -549,7 +549,7 @@ namespace libtorrent
 		return true;
 	}
 
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
+	TORRENT_EXTRA_EXPORT bool from_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in, ++out)
 		{
@@ -576,7 +576,7 @@ namespace libtorrent
 		for (const char* i = &s[0]; i < end;)
 		{
 			wchar_t c = '.';
-			int result = std::mbtowc(&c, i, end - i);
+			result = std::mbtowc(&c, i, end - i);
 			if (result > 0) i += result;
 			else ++i;
 			ret += c;
@@ -596,7 +596,7 @@ namespace libtorrent
 		{
 			char c[10];
 			TORRENT_ASSERT(sizeof(c) >= MB_CUR_MAX);
-			int result = std::wctomb(c, *i);
+			result = std::wctomb(c, *i);
 			if (result > 0)
 			{
 				i += result;

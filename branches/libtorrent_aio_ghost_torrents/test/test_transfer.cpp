@@ -56,10 +56,10 @@ void test_rate()
 {
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48575, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49575, 50000), "0.0.0.0", 0, mask);
@@ -67,8 +67,8 @@ void test_rate()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
-	std::ofstream file("./tmp1_transfer/temporary");
+	create_directory("tmp1_transfer", ec);
+	std::ofstream file("tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
 	file.close();
 
@@ -125,7 +125,7 @@ void print_alert(std::auto_ptr<alert>)
 struct test_storage : default_storage 
 {
 	test_storage(file_storage const& fs, std::string const& p, file_pool& fp)
-		: default_storage(fs, 0, p, fp, std::vector<boost::uint8_t>())
+		: default_storage(fs, NULL, p, fp, storage_mode_sparse, std::vector<boost::uint8_t>())
   		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
@@ -136,13 +136,13 @@ struct test_storage : default_storage
 		m_limit = lim;
 	}
 
-	file::aiocb_t* async_writev(
+	int writev(
 		file::iovec_t const* bufs
+		, int num_bufs
 		, int piece_index
 		, int offset
-		, int num_bufs
 		, int flags
-		, async_handler* a)
+		, storage_error& se)
 	{
 		mutex::scoped_lock l(m_mutex);
 		if (m_written >= m_limit)
@@ -156,15 +156,14 @@ struct test_storage : default_storage
 #else
 			ec = error_code(ENOSPC, get_posix_category());
 #endif
-			a->error.ec = ec;
+			se.ec = ec;
 			return 0;
 		}
 
 		for (int i = 0; i < num_bufs; ++i)
 			m_written += bufs[i].iov_len;
 		l.unlock();
-		return default_storage::async_writev(bufs, piece_index, offset
-			, num_bufs, flags, a);
+		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
 	}
 
 	virtual ~test_storage() {}
@@ -175,7 +174,8 @@ struct test_storage : default_storage
 };
 
 storage_interface* test_storage_constructor(file_storage const& fs
-	, file_storage const*, std::string const& path, file_pool& fp, std::vector<boost::uint8_t> const&)
+	, file_storage const*, std::string const& path, file_pool& fp, int storage_mode
+	, std::vector<boost::uint8_t> const&)
 {
 	return new test_storage(fs, path, fp);
 }
@@ -198,21 +198,19 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
 
-	int proxy_port = (rand() % 30000) + 10000;
+	proxy_settings ps;
 	if (proxy_type)
 	{
-		start_proxy(proxy_port, proxy_type);
-		proxy_settings ps;
+		ps.port = start_proxy(proxy_type);
 		ps.hostname = "127.0.0.1";
-		ps.port = proxy_port;
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy_type;
@@ -220,41 +218,43 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		ses2.set_proxy(ps);
 	}
 
-	session_settings sett;
-	sett.allow_multiple_connections_per_ip = false;
+	settings_pack pack;
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
 	if (test_allowed_fast)
 	{
-		sett.allowed_fast_set_size = 2000;
-		sett.unchoke_slots_limit = 0;
+		pack.set_int(settings_pack::allowed_fast_set_size, 2000);
 	}
 
-	sett.unchoke_slots_limit = 0;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 0);
-	sett.unchoke_slots_limit = -1;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == -1);
-	sett.unchoke_slots_limit = 8;
-	ses1.set_settings(sett);
-	TEST_CHECK(ses1.settings().unchoke_slots_limit == 8);
+	pack.set_int(settings_pack::unchoke_slots_limit, 0);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, -1);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
+
+	pack.set_int(settings_pack::unchoke_slots_limit, 8);
+	ses1.apply_settings(pack);
+	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
 
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.
 	// using a reconnect time > 0 will just add
 	// to the time it will take to complete the test
-	sett.min_reconnect_time = 0;
-	sett.stop_tracker_timeout = 1;
-	sett.announce_to_all_trackers = true;
-	sett.announce_to_all_tiers = true;
-	// make sure we announce to both http and udp trackers
-	sett.prefer_udp_trackers = false;
-	sett.enable_outgoing_utp = false;
-	sett.enable_incoming_utp = false;
+	pack.set_int(settings_pack::min_reconnect_time, 0);
+	pack.set_int(settings_pack::stop_tracker_timeout, 1);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 
-	ses1.set_settings(sett);
-	ses2.set_settings(sett);
+	// make sure we announce to both http and udp trackers
+	pack.set_bool(settings_pack::prefer_udp_trackers, false);
+	pack.set_bool(settings_pack::enable_outgoing_utp, false);
+	pack.set_bool(settings_pack::enable_incoming_utp, false);
+
+	ses1.apply_settings(pack);
+	ses2.apply_settings(pack);
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 	pe_settings pes;
@@ -267,8 +267,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	create_directory("./tmp1_transfer", ec);
-	std::ofstream file("./tmp1_transfer/temporary");
+	create_directory("tmp1_transfer", ec);
+	std::ofstream file("tmp1_transfer/temporary");
 	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
@@ -286,8 +286,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	}
 
 	add_torrent_params addp(&test_storage_constructor);
-	addp.paused = false;
-	addp.auto_managed = false;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses1");
@@ -311,10 +311,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	ses1.set_alert_mask(mask);
 	ses2.set_alert_mask(mask);
 //	ses1.set_alert_dispatch(&print_alert);
-
-//	sett = ses2.settings();
-//	sett.download_rate_limit = tor2.get_torrent_info().piece_length() * 5;
-//	ses2.set_settings(sett);
 
 	// also test to move the storage of the downloader and the uploader
 	// to make sure it can handle switching paths
@@ -350,8 +346,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		if (!test_move_storage && st2.progress > 0.25f)
 		{
 			test_move_storage = true;
-			tor1.move_storage("./tmp1_transfer_moved");
-			tor2.move_storage("./tmp2_transfer_moved");
+			tor1.move_storage("tmp1_transfer_moved");
+			tor2.move_storage("tmp2_transfer_moved");
 			std::cerr << "moving storage" << std::endl;
 		}
 
@@ -477,10 +473,10 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		std::cout << "re-adding" << std::endl;
 		add_torrent_params p;
-		p.paused = false;
-		p.auto_managed = false;
+		p.flags &= ~add_torrent_params::flag_paused;
+		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = t;
-		p.save_path = "./tmp2_transfer_moved";
+		p.save_path = "tmp2_transfer_moved";
 		p.resume_data = &resume_data;
 		tor2 = ses2.add_torrent(p, ec);
 		ses2.set_alert_mask(mask);
@@ -554,7 +550,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 		stop_tracker();
 		stop_web_server();
 	}
-	if (proxy_type) stop_proxy(proxy_port);
+	if (proxy_type) stop_proxy(ps.port);
 }
 
 int test_main()
@@ -575,12 +571,12 @@ int test_main()
 	
 	// test allowed fast
 	test_transfer(0, false, true, true);
-	
+
 	error_code ec;
-	remove_all("./tmp1_transfer", ec);
-	remove_all("./tmp2_transfer", ec);
-	remove_all("./tmp1_transfer_moved", ec);
-	remove_all("./tmp2_transfer_moved", ec);
+	remove_all("tmp1_transfer", ec);
+	remove_all("tmp2_transfer", ec);
+	remove_all("tmp1_transfer_moved", ec);
+	remove_all("tmp2_transfer_moved", ec);
 
 	return 0;
 }

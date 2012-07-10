@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <string>
 
@@ -95,8 +96,8 @@ namespace libtorrent
 		return ret;
 	}
 
-#ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
 		, storage_mode_t storage_mode
@@ -126,7 +127,6 @@ namespace libtorrent
 			, name.empty() ? 0 : name.c_str(), save_path, entry()
 			, storage_mode, paused, sc, userdata);
 	}
-#endif
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p)
@@ -136,9 +136,19 @@ namespace libtorrent
 		if (ec) throw libtorrent_exception(ec);
 		return ret;
 	}
-#endif
+#endif // BOOST_NO_EXCEPTIONS
+
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p, error_code& ec)
+	{
+		parse_magnet_uri(uri, p, ec);
+		if (ec) return torrent_handle();
+		return ses.add_torrent(p, ec);
+	}
+
+#endif // TORRENT_NO_DEPRECATE
+
+	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
 		std::string name;
 		std::string tracker;
@@ -146,21 +156,33 @@ namespace libtorrent
 		error_code e;
 		std::string display_name = url_has_argument(uri, "dn");
 		if (!display_name.empty()) name = unescape_string(display_name.c_str(), e);
+
+		// parse trackers out of the magnet link
 		std::string::size_type pos = std::string::npos;
-		std::string tracker_string = url_has_argument(uri, "tr", &pos);
-		if (!tracker_string.empty()) tracker = unescape_string(tracker_string.c_str(), e);
+		std::string url = url_has_argument(uri, "tr", &pos);
+		while (pos != std::string::npos)
+		{
+			error_code e;
+			url = unescape_string(url, e);
+			if (e) continue;
+			p.trackers.push_back(url);
+			pos = uri.find("&tr=", pos);
+			if (pos == std::string::npos) break;
+			pos += 4;
+			url = uri.substr(pos, uri.find('&', pos) - pos);
+		}
 	
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return torrent_handle();
+			return;
 		}
 
 		if (btih.compare(0, 9, "urn:btih:") != 0)
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return torrent_handle();
+			return;
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -173,7 +195,7 @@ namespace libtorrent
 			{
 				int port = atoi(node.c_str()+divider+1);
 				if (port != 0)
-					ses.add_dht_node(std::make_pair(node.substr(0, divider), port));
+					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider), port));
 			}
 			
 			node_pos = uri.find("&dht=", node_pos);
@@ -187,26 +209,8 @@ namespace libtorrent
 		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
 		else info_hash.assign(base32decode(btih.substr(9)));
 
-		if (!tracker.empty()) p.tracker_url = tracker.c_str();
 		p.info_hash = info_hash;
-		if (!name.empty()) p.name = name.c_str();
-		torrent_handle ret = ses.add_torrent(p, ec);
-
-		int tier = 1;
-		// there might be more trackers in the url
-		while (pos != std::string::npos)
-		{
-			pos = uri.find("&tr=", pos);
-			if (pos == std::string::npos) break;
-			pos += 4;
-			error_code e;
-			std::string url = unescape_string(uri.substr(pos, uri.find('&', pos) - pos), e);
-			if (e) continue;
-			announce_entry ae(url);
-			ae.tier = tier++;
-			ret.add_tracker(ae);
-		}
-		return ret;
+		if (!name.empty()) p.name = name;
 	}
 }
 

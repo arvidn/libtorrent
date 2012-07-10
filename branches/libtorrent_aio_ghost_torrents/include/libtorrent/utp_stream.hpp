@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
 
+#ifndef BOOST_NO_EXCEPTIONS
+#include <boost/system/system_error.hpp>
+#endif
+
 #define CCONTROL_TARGET 100
 
 namespace libtorrent
@@ -147,6 +151,8 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);
 int utp_socket_state(utp_socket_impl const* s);
+void utp_send_ack(utp_socket_impl* s);
+void utp_writable(utp_socket_impl* s);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 int socket_impl_size();
@@ -162,7 +168,7 @@ int socket_impl_size();
 // will keep the utp_stream object around for.
 // for more details, see utp_socket_impl, which is analogous
 // to the kernel state for a socket. It's defined in utp_stream.cpp
-class TORRENT_EXPORT utp_stream
+class TORRENT_EXTRA_EXPORT utp_stream
 {
 public:
 
@@ -188,7 +194,7 @@ public:
 	void io_control(IO_Control_Command& ioc, error_code& ec) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void bind(endpoint_type const& endpoint) {}
+	void bind(endpoint_type const& /*endpoint*/) {}
 #endif
 
 	void bind(endpoint_type const& endpoint, error_code& ec);
@@ -202,7 +208,7 @@ public:
 	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
 
 	void close();
-	void close(error_code const& ec) { close(); }
+	void close(error_code const& /*ec*/) { close(); }
 	bool is_open() const { return m_open; }
 
 	int read_buffer_size() const;
@@ -241,7 +247,7 @@ public:
 	endpoint_type remote_endpoint(error_code& ec) const;
 
 	std::size_t available() const;
-	std::size_t available(error_code& ec) const { return available(); }
+	std::size_t available(error_code& /*ec*/) const { return available(); }
 
 	asio::io_service& get_io_service() { return m_io_service; }
 

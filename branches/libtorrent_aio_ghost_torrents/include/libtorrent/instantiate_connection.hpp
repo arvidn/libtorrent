@@ -42,10 +42,8 @@ namespace libtorrent
 	struct utp_socket_manager;
 	struct socket_type;
 
-	// if from is specified, a new socket will be created
-	// using the same underlying socket object as 'from'.
-	// this can be used to "upgrade" a socket into an SSL socket
-	TORRENT_EXPORT bool instantiate_connection(io_service& ios
+	// instantiate a socket_type (s) according to the specified criteria
+	TORRENT_EXTRA_EXPORT bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
 		, void* ssl_context = 0
 		, utp_socket_manager* sm = 0

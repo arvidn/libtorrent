@@ -55,13 +55,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct session_settings;
+	namespace aux { struct session_settings; }
 	class alert;
+	struct alert_dispatcher;
 
-	struct TORRENT_EXPORT disk_buffer_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
-			, boost::function<void(alert*)> const& post_alert);
+			, alert_dispatcher* alert_disp);
 		~disk_buffer_pool();
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
@@ -86,11 +87,15 @@ namespace libtorrent
 
 		void release_memory();
 
-		boost::uint32_t in_use() const { return m_in_use; }
+		boost::uint32_t in_use() const
+		{
+			mutex::scoped_lock l(m_pool_mutex);
+			return m_in_use;
+		}
 		boost::uint32_t num_to_evict(int num_needed = 0);
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
-		void set_settings(session_settings const& sett);
+		void set_settings(aux::session_settings const& sett);
 
 	protected:
 
@@ -116,6 +121,7 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
+		// TODO: change this to be disk_observer pointers instead. peer_connection could then implement that interface
 		std::vector<boost::function<void()> > m_callbacks;
 
 		// set to true to throttle more allocations
@@ -153,7 +159,7 @@ namespace libtorrent
 		std::vector<int> m_free_list;
 #endif
 
-		boost::function<void(alert*)> m_post_alert;
+		alert_dispatcher* m_post_alert;
 
 #if defined TORRENT_BUFFER_STATS || defined TORRENT_STATS
 		int m_allocations;

@@ -409,6 +409,8 @@ namespace libtorrent
 		// the file the error occurred on
 		boost::int32_t file:24;
 		// the operation that failed
+		boost::uint32_t operation:8;
+
 		enum {
 			none,
 			stat,
@@ -417,22 +419,23 @@ namespace libtorrent
 			rename,
 			remove,
 			copy,
-			async_readv,
-			async_writev,
 			read,
 			write,
-			fallocate
+			fallocate,
+			alloc_cache_piece,
+			partfile
 		};
 
 		char const* operation_str() const
 		{
 			char const* ops[] =
 			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy", "async_readv", "async_writev", "read", "write", "fallocate"
+				"", "stat", "mkdir", "open", "rename", "remove", "copy"
+				, "read", "write", "fallocate", "allocate cache piece"
+				, "partfile"
 			};
 			return ops[operation];
 		}
-		boost::uint32_t operation:8;
 	};
 
 }

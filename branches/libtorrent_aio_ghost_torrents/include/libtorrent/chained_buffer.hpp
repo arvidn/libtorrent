@@ -56,7 +56,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 	namespace asio = boost::asio;
 #endif
-	struct TORRENT_EXPORT chained_buffer
+	struct TORRENT_EXTRA_EXPORT chained_buffer
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
