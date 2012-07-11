@@ -6384,7 +6384,17 @@ failed to match it. i.e. the metadata that was received was corrupt. libtorrent 
 automatically retry to fetch it in this case. This is only relevant when running a
 torrent-less download, with the metadata extension provided by libtorrent.
 
-There are no additional data members in this alert.
+::	
+
+	struct metadata_failed_alert: torrent_alert
+	{
+		// ...
+
+		error_code error;
+	};
+
+The ``error`` member indicates what failed when parsing the metadata. This error is
+what's returned from ``lazy_bdecode()``.
 
 
 metadata_received_alert

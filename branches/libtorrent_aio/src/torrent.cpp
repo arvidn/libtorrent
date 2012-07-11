@@ -6103,7 +6103,8 @@ namespace libtorrent
 		{
 			if (alerts().should_post<metadata_failed_alert>())
 			{
-				alerts().post_alert(metadata_failed_alert(get_handle()));
+				alerts().post_alert(metadata_failed_alert(get_handle()
+					, error_code(errors::mismatching_info_hash, get_libtorrent_category())));
 			}
 			return false;
 		}
@@ -6118,8 +6119,7 @@ namespace libtorrent
 			// failed to parse it. Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
-				// TODO: pass in ec along with the alert
-				alerts().post_alert(metadata_failed_alert(get_handle()));
+				alerts().post_alert(metadata_failed_alert(get_handle(), ec));
 			}
 			set_error(errors::invalid_swarm_metadata, -1);
 			pause();

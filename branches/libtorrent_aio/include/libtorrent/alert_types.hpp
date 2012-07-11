@@ -911,15 +911,18 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
 	{
-		metadata_failed_alert(const torrent_handle& h)
+		metadata_failed_alert(const torrent_handle& h, error_code const& ec)
 			: torrent_alert(h)
+			, error(ec)
 		{}
 
 		TORRENT_DEFINE_ALERT(metadata_failed_alert);
 
 		const static int static_category = alert::error_notification;
 		virtual std::string message() const
-		{ return torrent_alert::message() + " invalid metadata received"; }
+		{ return torrent_alert::message() + " invalid metadata received: " + error.message(); }
+
+		error_code error;
 	};
 	
 	struct TORRENT_EXPORT metadata_received_alert: torrent_alert

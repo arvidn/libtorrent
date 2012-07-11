@@ -1140,9 +1140,6 @@ namespace libtorrent
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
 		storage_error se;
-		// TODO: change the initialize signature and let the
-		// storage_impl be responsible for which storage mode
-		// it's using
 		m_storage->initialize(se);
 		if (se)
 		{
