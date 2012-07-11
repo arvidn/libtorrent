@@ -1225,6 +1225,8 @@ namespace aux {
 			":too many peers"
 			":transport timeout peers"
 			
+			":arc LRU write pieces"
+			":arc LRU volatile pieces"
 			":arc LRU pieces"
 			":arc LRU ghost pieces"
 			":arc LFU pieces"
@@ -1822,16 +1824,6 @@ namespace aux {
 		// the uTP connections cannot be closed gracefully
 		m_udp_socket.close();
 		m_external_udp_port = 0;
-
-		// we need to wait for the disk-io thread to
-		// die first, to make sure it won't post any
-		// more messages to the io_service containing references
-		// to disk_io_pool inside the disk_io_thread. Once
-		// the main thread has handled all the outstanding requests
-		// we know it's safe to destruct the disk thread.
-		// we must wait until we're done posting all the jobs to the
-		// disk thread before aborting it
-		m_disk_thread.set_num_threads(0);
 
 		m_undead_peers.clear();
 
@@ -3911,8 +3903,10 @@ namespace aux {
 			STAT_LOG(d, m_stats_counter[too_many_peers]);
 			STAT_LOG(d, m_stats_counter[transport_timeout_peers]);
 
-			STAT_LOG(d, cs.arc_mru_size);
-			STAT_LOG(d, cs.arc_mru_size + cs.arc_mru_ghost_size);
+			STAT_LOG(d, cs.arc_write_size);
+			STAT_LOG(d, cs.arc_volatile_size);
+			STAT_LOG(d, cs.arc_volatile_size + cs.arc_mru_size);
+			STAT_LOG(d, cs.arc_volatile_size + cs.arc_mru_size + cs.arc_mru_ghost_size);
 			STAT_LOG(d, -cs.arc_mfu_size);
 			STAT_LOG(d, -cs.arc_mfu_size - cs.arc_mfu_ghost_size);
 
@@ -5609,6 +5603,8 @@ namespace aux {
 		fclose(m_request_logger);
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
+
+		m_disk_thread.set_num_threads(0);
 
 		// now it's OK for the network thread to exit
 		m_work.reset();

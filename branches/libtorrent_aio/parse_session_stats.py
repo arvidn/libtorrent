@@ -244,7 +244,7 @@ reports = [
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', \
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
 		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked}),
-	('ARC', 'num pieces', '', '', ['arc LRU pieces', 'arc LRU ghost pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
+	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats

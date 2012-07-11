@@ -1220,10 +1220,12 @@ void print_piece(libtorrent::partial_piece_info* pp
 		out += str;
 	}
 	out += esc("0");
-	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f%s%s\n"
+
+	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
+	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f state: %s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, cs ? (cs->kind == cached_piece_info::write_cache ? " state: write" : " state: read"): ""
+		, cs ? cache_kind_str[cs->kind] : "N/A"
 		, ts ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
 }

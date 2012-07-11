@@ -127,7 +127,7 @@ int block_cache::try_read(disk_io_job* j)
 	// it's a cache miss
 	if (p == 0) return -1;
 
-	cache_hit(p, j->requester);
+	cache_hit(p, j->requester, j->flags & disk_io_job::volatile_read);
 
 	ret = copy_from_piece(p, j);
 	if (ret < 0) return ret;
@@ -152,7 +152,7 @@ void block_cache::bump_lru(cached_piece_entry* p)
 
 // this is called for pieces that we're reading from, when they
 // are in the cache (including the ghost lists)
-void block_cache::cache_hit(cached_piece_entry* p, void* requester)
+void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatile_read)
 {
 	INVARIANT_CHECK;
 
@@ -170,11 +170,22 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester)
 		// any of the ghost lists, ignore it
 		if (p->cache_state == cached_piece_entry::read_lru1
 			|| p->cache_state == cached_piece_entry::read_lru2
-			|| p->cache_state == cached_piece_entry::write_lru)
+			|| p->cache_state == cached_piece_entry::write_lru
+			|| p->cache_state == cached_piece_entry::volatile_read_lru)
 			return;
 
 		if (p->cache_state == cached_piece_entry::read_lru1_ghost)
 			target_queue = cached_piece_entry::read_lru1;
+	}
+
+	if (p->cache_state == cached_piece_entry::volatile_read_lru)
+	{
+		// a volatile read hit on a volatile piece doesn't do anything
+		if (volatile_read) return;
+
+		// however, if this is a proper read on a volatile piece
+		// we need to promote it to lru1
+		target_queue = cached_piece_entry::read_lru1;
 	}
 
 	if (requester != NULL)
@@ -307,6 +318,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 			p->expire = time_now();
 		}
 	}
+
 	return p;
 }
 
@@ -473,7 +485,8 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
 			return true;
 
-		if (pe->cache_state == cached_piece_entry::write_lru)
+		if (pe->cache_state == cached_piece_entry::write_lru
+			|| pe->cache_state == cached_piece_entry::volatile_read_lru)
 			erase_piece(pe);
 		else
 			move_to_ghost(pe);
@@ -536,7 +549,14 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	// evicting from there. The lru_list is an array of two lists, these
 	// are the two ends to evict from, ordered by preference.
 
-	linked_list* lru_list[2];
+	linked_list* lru_list[3];
+
+	// however, before we consider any of the proper LRU lists, we evict
+	// pieces from the volatile list. These are low priority pieces that
+	// were specifically marked as to not survive long in the cache. These
+	// are the first pieces to go when evicting
+	lru_list[0] = &m_lru[cached_piece_entry::volatile_read_lru];
+
 	if (m_last_cache_op == cache_miss)
 	{
 		// when there was a cache miss, evict from the largest
@@ -545,32 +565,32 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		if (m_lru[cached_piece_entry::read_lru2].size()
 			> m_lru[cached_piece_entry::read_lru1].size())
 		{
-			lru_list[0] = &m_lru[cached_piece_entry::read_lru2];
-			lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+			lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+			lru_list[2] = &m_lru[cached_piece_entry::read_lru1];
 		}
 		else
 		{
-			lru_list[0] = &m_lru[cached_piece_entry::read_lru1];
-			lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+			lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+			lru_list[2] = &m_lru[cached_piece_entry::read_lru2];
 		}
 	}
 	else if (m_last_cache_op == ghost_hit_lru1)
 	{
 		// when we insert new items or move things from L1 to L2
 		// evict blocks from L2
-		lru_list[0] = &m_lru[cached_piece_entry::read_lru2];
-		lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+		lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+		lru_list[2] = &m_lru[cached_piece_entry::read_lru1];
 	}
 	else
 	{
 		// when we get cache hits in L2 evict from L1
-		lru_list[0] = &m_lru[cached_piece_entry::read_lru1];
-		lru_list[1] = &m_lru[cached_piece_entry::read_lru2];
+		lru_list[1] = &m_lru[cached_piece_entry::read_lru1];
+		lru_list[2] = &m_lru[cached_piece_entry::read_lru2];
 	}
 
 	// end refers to which end of the ARC cache we're evicting
 	// from. The LFU or the LRU end
-	for (int end = 0; num > 0 && end < 2; ++end)
+	for (int end = 0; num > 0 && end < 3; ++end)
 	{
 		// iterate over all blocks in order of last being used (oldest first) and as
 		// long as we still have blocks to evict
@@ -756,6 +776,12 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	TORRENT_ASSERT(pe->piece_refcount == 0);
 	TORRENT_ASSERT(pe->num_blocks == 0);
 
+	if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+	{
+		erase_piece(pe);
+		return;
+	}
+
 	TORRENT_ASSERT(pe->cache_state == cached_piece_entry::read_lru1
 		|| pe->cache_state == cached_piece_entry::read_lru2);
 
@@ -825,7 +851,8 @@ void block_cache::free_iovec(file::iovec_t* iov, int iov_len)
 		free_buffer((char*)iov[i].iov_base);
 }
 
-void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov, int iov_len, void* requester)
+void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
+	, int iov_len, disk_io_job* j)
 {
 	INVARIANT_CHECK;
 
@@ -833,7 +860,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	TORRENT_ASSERT(iov_len > 0);
 	int start = block;
 
-	cache_hit(pe, requester);
+	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
 	for (int i = 0; i < iov_len; ++i)
 	{
@@ -985,6 +1012,8 @@ void block_cache::get_stats(cache_status* ret) const
 	ret->arc_mru_ghost_size = m_lru[cached_piece_entry::read_lru1_ghost].size();
 	ret->arc_mfu_size = m_lru[cached_piece_entry::read_lru2].size();
 	ret->arc_mfu_ghost_size = m_lru[cached_piece_entry::read_lru2_ghost].size();
+	ret->arc_write_size = m_lru[cached_piece_entry::write_lru].size();
+	ret->arc_volatile_size = m_lru[cached_piece_entry::volatile_read_lru].size();
 }
 
 void block_cache::set_settings(aux::session_settings const& sett)
@@ -1184,10 +1213,6 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 	j->buffer = allocate_buffer("send buffer");
 	if (j->buffer == 0) return -2;
 
-	// build a vector of all the buffers we need to free
-	// and free them all in one go
-	std::vector<char*> buffers;
-
 	while (size > 0)
 	{
 		TORRENT_ASSERT(pe->blocks[block].buf);
@@ -1200,34 +1225,8 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j)
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;
-		// TODO: this can be implemented in reclaim block, for volatile blocks, whenever they
-		// are reclaimed and refcount == 0, the could be evicted right away
-		// disabled because it breaks if there are multiple requests to the same block
-		// the first request will go through, but the second one will read a NULL pointer
-/*
-		if (j->flags & disk_io_job::volatile_read)
-		{
-			// if volatile read cache is set, the assumption is
-			// that no other peer is likely to request the same
-			// piece. Therefore, for each request out of the cache
-			// we clear the block that was requested and any blocks
-			// the peer skipped
-			for (int i = block; i >= 0 && pe->blocks[i].buf; --i)
-			{
-				if (pe->blocks[i].refcount > 0) continue;
-
-				buffers.push_back(pe->blocks[i].buf);
-				pe->blocks[i].buf = 0;
-				TORRENT_ASSERT(pe->num_blocks > 0);
-				--pe->num_blocks;
-				TORRENT_ASSERT(m_read_cache_size > 0);
-				--m_read_cache_size;
-			}
-		}
-*/
 		++block;
 	}
-	if (!buffers.empty()) free_multiple_buffers(&buffers[0], buffers.size());
 	return j->d.io.buffer_size;
 }
 
@@ -1236,16 +1235,8 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 	cached_piece_entry* pe = find_piece(ref);
 	if (pe == NULL) return;
 
-	TORRENT_ASSERT(pe->blocks[ref.block].refcount > 0);
 	TORRENT_ASSERT(pe->blocks[ref.block].buf);
-	--pe->blocks[ref.block].refcount;
-	if (pe->blocks[ref.block].refcount == 0)
-	{
-		TORRENT_ASSERT(m_pinned_blocks > 0);
-		--m_pinned_blocks;
-	}
-	TORRENT_ASSERT(pe->refcount > 0);
-	--pe->refcount;
+	dec_block_refcount(pe, ref.block);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	TORRENT_ASSERT(pe->blocks[ref.block].reading_count > 0);
 	--pe->blocks[ref.block].reading_count;

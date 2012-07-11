@@ -72,7 +72,7 @@ namespace libtorrent
 		ptime last_use;
 		bool need_readback;
 		int next_to_hash;
-		enum kind_t { read_cache = 0, write_cache = 1 };
+		enum kind_t { read_cache = 0, write_cache = 1, volatile_read_cache = 2 };
 		kind_t kind;
 	};
 	
@@ -113,6 +113,8 @@ namespace libtorrent
 			, arc_mru_ghost_size(0)
 			, arc_mfu_size(0)
 			, arc_mfu_ghost_size(0)
+			, arc_write_size(0)
+			, arc_volatile_size(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -201,6 +203,8 @@ namespace libtorrent
 		int arc_mru_ghost_size;
 		int arc_mfu_size;
 		int arc_mfu_ghost_size;
+		int arc_write_size;
+		int arc_volatile_size;
 	};
 	
 	// this is a singleton consisting of the thread and a queue

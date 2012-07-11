@@ -162,7 +162,7 @@ namespace libtorrent
 
 	disk_io_thread::~disk_io_thread()
 	{
-		DLOG(stderr, "destructing disk_io_thread [%p]\n", this);
+		DLOG(stderr, "[%p] destructing disk_io_thread\n", this);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// by now, all pieces should have been evicted
@@ -769,7 +769,13 @@ namespace libtorrent
 		}
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == NULL) pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		if (pe == NULL)
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
@@ -778,7 +784,7 @@ namespace libtorrent
 		}
 
 		int block = j->d.io.offset / block_size;
-		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j->requester);
+		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j);
 
 		int tmp = m_disk_cache.try_read(j);
 		TORRENT_ASSERT(tmp >= 0);
@@ -1324,7 +1330,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
 		{
-			m_disk_cache.cache_hit(pe, j->requester);
+			m_disk_cache.cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
@@ -1354,7 +1360,12 @@ namespace libtorrent
 		}
 
 		if (pe == NULL)
-			pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
@@ -1471,7 +1482,7 @@ namespace libtorrent
 				ph->h.update((char const*)iov.iov_base, iov.iov_len);
 
 				l.lock();
-				m_disk_cache.insert_blocks(pe, i, &iov, 1, j->requester);
+				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
 				l.unlock();
 			}
 		}
@@ -1603,7 +1614,13 @@ namespace libtorrent
 		mutex::scoped_lock l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == NULL) pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		if (pe == NULL)
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
@@ -1666,7 +1683,7 @@ namespace libtorrent
 			offset += block_size;
 
 			l.lock();
-			m_disk_cache.insert_blocks(pe, i, &iov, 1, j->requester);
+			m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
 		}
 
 		--pe->piece_refcount;
@@ -1697,6 +1714,8 @@ namespace libtorrent
 		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
 		info.kind = i->cache_state == cached_piece_entry::write_lru
 			? cached_piece_info::write_cache
+			: i->cache_state == cached_piece_entry::volatile_read_lru
+			? cached_piece_info::volatile_read_cache
 			: cached_piece_info::read_cache;
 		int blocks_in_piece = i->blocks_in_piece;
 		info.blocks.resize(blocks_in_piece);

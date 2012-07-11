@@ -203,15 +203,38 @@ namespace libtorrent
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
 		{
+			// this is the LRU list for pieces with dirty blocks
 			write_lru,
+
+			// this is the LRU list for volatile pieces. i.e.
+			// pieces with very low cache priority. These are
+			// always the first ones to be evicted.
+			volatile_read_lru,
+
+			// this is the LRU list for read blocks that have
+			// been requested once
 			read_lru1,
+
+			// the is the LRU list for read blocks that have
+			// been requested once recently, but then was evicted.
+			// if these are requested again, they will be moved
+			// to list 2, the frequently requested pieces
 			read_lru1_ghost,
+
+			// this is the LRU of frequently used pieces. Any
+			// piece that has been requested by a second peer
+			// while pulled in to list 1 by a different peer
+			// is moved into this list
 			read_lru2,
+
+			// this is the LRU of frequently used pieces but
+			// that has been recently evicted. If a piece in
+			// this list is requested, it's moved back into list 2.
 			read_lru2_ghost,
 			num_lrus
 		};
 
-		boost::uint32_t cache_state:5;
+		boost::uint32_t cache_state:3;
 
 		// this is the number of threads that are currently holding
 		// a reference to this piece. A piece may not be removed from
@@ -284,7 +307,7 @@ namespace libtorrent
 		// called when we're reading and we found the piece we're
 		// reading from in the hash table (not necessarily that we
 		// hit the block we needed)
-		void cache_hit(cached_piece_entry* p, void* requester);
+		void cache_hit(cached_piece_entry* p, void* requester, bool volatile_read);
 
 		// free block from piece entry
 		void free_block(cached_piece_entry* pe, int block);
@@ -332,7 +355,7 @@ namespace libtorrent
 		cached_piece_entry* add_dirty_block(disk_io_job* j);
 	
 		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
-			, int iov_len, void* requester);
+			, int iov_len, disk_io_job* j);
 
 #ifdef TORRENT_DEBUG
 		void check_invariant() const;
