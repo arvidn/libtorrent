@@ -5117,8 +5117,6 @@ namespace aux {
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
 	{
-		INVARIANT_CHECK;
-
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
