@@ -1152,9 +1152,7 @@ namespace libtorrent
 		p->inet_as = m_torrent->session().lookup_as(as);
 #endif
 		if (is_connect_candidate(*p, m_finished))
-		{
 			update_connect_candidates(1);
-		}
 
 		m_torrent->state_updated();
 

@@ -365,6 +365,8 @@ namespace libtorrent
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
+		, m_active_download(false)
+		, m_active_finished(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -929,6 +931,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!is_active_download());
 		TORRENT_ASSERT(!is_active_finished());
+		update_downloading_counters();
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -1977,6 +1980,8 @@ namespace libtorrent
 
 	void torrent::force_recheck()
 	{
+		INVARIANT_CHECK;
+
 		if (!valid_metadata()) return;
 
 		// if the torrent is already queued to check its files
@@ -6367,28 +6372,46 @@ namespace libtorrent
 				&& m_state != torrent_status::finished));
 	}
 
+	void torrent::update_downloading_counters()
+	{
+		if (m_active_download && !is_active_download())
+		{
+			m_active_download = false;
+			m_ses.dec_active_downloading();
+		}
+		else if (!m_active_download && is_active_download())
+		{
+			m_active_download = true;
+			m_ses.inc_active_downloading();
+		}
+
+		if (m_active_finished && !is_active_finished())
+		{
+			m_active_finished = false;
+			m_ses.dec_active_finished();
+		}
+		else if (!m_active_finished && is_active_finished())
+		{
+			m_active_finished = true;
+			m_ses.inc_active_finished();
+		}
+	}
+
 	void torrent::update_want_more_peers()
 	{
+		update_downloading_counters();
+
 		link& l = m_links[aux::session_impl::torrent_want_peers];
 		std::vector<torrent*>& v = m_ses.m_torrent_lists[aux::session_impl::torrent_want_peers];
 		if (want_more_peers())
 		{
 			if (l.in_list()) return;
 			l.insert(v, this);
-			if (is_active_finished()) m_ses.inc_active_finished();
-			else if (is_active_download()) m_ses.inc_active_downloading();
 		}
 		else
 		{
 			if (!l.in_list()) return;
 			l.unlink(v, aux::session_impl::torrent_want_peers);
-
-			if (m_state == torrent_status::downloading
-				|| m_state == torrent_status::downloading_metadata)
-				m_ses.dec_active_downloading();
-			else if (m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding)
-				m_ses.dec_active_finished();
 		}
 	}
 
@@ -8366,8 +8389,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(want_more_peers());
+
 		bool ret = m_policy.connect_one_peer(m_ses.session_time());
 		update_want_more_peers();
+
 		return ret;
 	}
 
@@ -8631,25 +8656,9 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<state_changed_alert>())
 			m_ses.m_alerts.post_alert(state_changed_alert(get_handle(), s, (torrent_status::state_t)m_state));
 
-		bool wanted_peers = want_more_peers();
-		bool was_active_download = m_state == torrent_status::downloading || m_state == torrent_status::downloading_metadata;
-		bool was_active_finished = m_state == torrent_status::finished || m_state == torrent_status::seeding;
-
 		m_state = s;
 
-		// update finished and downloading counters
-		// only if we used to want more peers before, in which case it was
-		// the state change itself that made us change whether we're downloading or finished
-		// we we changed from being downloader or finished because want_more_peers()
-		// changed, that's taken care of by the call to update_want_more_peers()
-		if (wanted_peers && want_more_peers())
-		{
-			if (was_active_download && !is_active_download()) m_ses.dec_active_downloading();
-			else if (!was_active_download && is_active_download()) m_ses.inc_active_downloading();
-			if (was_active_finished && !is_active_finished()) m_ses.dec_active_finished();
-			else if (!was_active_finished && is_active_finished()) m_ses.inc_active_finished();
-		}
-
+		update_downloading_counters();
 		update_want_more_peers();
 
 		state_updated();

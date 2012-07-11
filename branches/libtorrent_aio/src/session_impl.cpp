@@ -4978,7 +4978,7 @@ namespace aux {
 		}
 #endif
 
-//		INVARIANT_CHECK;
+		INVARIANT_CHECK;
 
 		if (is_aborted())
 		{
@@ -5117,6 +5117,8 @@ namespace aux {
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
 	{
+		INVARIANT_CHECK;
+
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
@@ -6381,7 +6383,10 @@ namespace aux {
 		{
 			boost::shared_ptr<torrent> t = i->second;
 			if (t->is_active_download()) ++num_active_downloading;
-			else if (t->is_active_finished()) ++num_active_finished;
+			if (t->is_active_finished()) ++num_active_finished;
+			TORRENT_ASSERT(!(t->is_active_download() && t->is_active_finished()));
+			TORRENT_ASSERT(num_active_downloading <= m_num_downloaders);
+			TORRENT_ASSERT(num_active_finished <= m_num_finished);
 
 			int pos = t->queue_position();
 			if (pos < 0)

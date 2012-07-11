@@ -595,15 +595,28 @@ namespace libtorrent
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
 
-			void inc_active_downloading() { ++m_num_downloaders; }
+			void inc_active_downloading()
+			{
+				TORRENT_ASSERT(is_network_thread());
+				++m_num_downloaders;
+			}
+
 			void dec_active_downloading()
 			{
+				TORRENT_ASSERT(is_network_thread());
 				TORRENT_ASSERT(m_num_downloaders > 0);
 				--m_num_downloaders;
 			}
-			void inc_active_finished() { ++m_num_finished; }
+
+			void inc_active_finished()
+			{
+				TORRENT_ASSERT(is_network_thread());
+				++m_num_finished;
+			}
+
 			void dec_active_finished()
 			{
+				TORRENT_ASSERT(is_network_thread());
 				TORRENT_ASSERT(m_num_finished > 0);
 				--m_num_finished;
 			}
