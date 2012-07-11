@@ -364,8 +364,7 @@ private:
 			int start;
 			int length;
 		};
-		static bool range_below_zero(const range& r)
-		{ return r.start < 0; }
+
 		std::vector<range> m_payloads;
 
 		// we have suggested these pieces to the peer

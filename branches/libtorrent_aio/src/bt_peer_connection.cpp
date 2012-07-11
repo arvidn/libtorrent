@@ -1780,7 +1780,6 @@ namespace libtorrent
 		std::string myip = root.dict_find_string_value("yourip");
 		if (!myip.empty())
 		{
-			// TODO: don't trust this blindly
 			if (myip.size() == address_v4::bytes_type().size())
 			{
 				address_v4::bytes_type bytes;
@@ -3353,6 +3352,11 @@ namespace libtorrent
 		int amount_payload = 0;
 		if (!m_payloads.empty())
 		{
+			// this points to the first entry to not erase. i.e.
+			// [begin, first_to_keep) will be erased because
+			// the payload ranges they represent have been sent
+			std::vector<range>::iterator first_to_keep = m_payloads.begin();
+
 			for (std::vector<range>::iterator i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
@@ -3362,6 +3366,8 @@ namespace libtorrent
 					if (i->start + i->length <= 0)
 					{
 						amount_payload += i->length;
+						TORRENT_ASSERT(first_to_keep == i);
+						++first_to_keep;
 					}
 					else
 					{
@@ -3371,13 +3377,10 @@ namespace libtorrent
 					}
 				}
 			}
-		}
 
-		// TODO: move the erasing into the loop above
-		// remove all payload ranges that has been sent
-		m_payloads.erase(
-			std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
-			, m_payloads.end());
+			// remove all payload ranges that have been sent
+			m_payloads.erase(m_payloads.begin(), first_to_keep);
+		}
 
 		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
 		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
