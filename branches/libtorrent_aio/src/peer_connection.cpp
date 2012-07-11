@@ -2511,8 +2511,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 			check_postcondition post_checker2_(t, false);
 #endif
-			t->async_verify_piece(p.piece, boost::bind(&torrent::piece_finished, t
-				, p.piece, _1));
+			t->verify_piece(p.piece);
 		}
 
 		if (is_disconnecting()) return;

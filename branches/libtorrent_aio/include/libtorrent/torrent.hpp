@@ -649,12 +649,8 @@ namespace libtorrent
 		// we wasn't finished anymore.
 		void resume_download();
 
-		void async_verify_piece(int piece_index, boost::function<void(int)> const&);
-
-		// this is called from the peer_connection
-		// each time a piece has failed the hash
-		// test
-		void piece_finished(int index, int passed_hash_check);
+		void verify_piece(int piece);
+		void on_piece_verified(disk_io_job const* j);
 
 		// piece_passed is called when a piece passes the hash check
 		// this will tell all peers that we just got his piece
@@ -871,9 +867,6 @@ namespace libtorrent
 		void on_file_renamed(disk_io_job const* j);
 		void on_cache_flushed(disk_io_job const* j);
 
-		void on_piece_verified(disk_io_job const* j
-			, boost::function<void(int)> f);
-	
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel);
 		int limit_impl(int channel) const;

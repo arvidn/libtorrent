@@ -1208,9 +1208,7 @@ namespace libtorrent
 			picker().mark_as_downloading(block, 0, piece_picker::fast);
 			picker().mark_as_writing(block, 0);
 		}
-		picker().mark_as_checking(piece);
-		async_verify_piece(piece, boost::bind(&torrent::piece_finished
-			, shared_from_this(), piece, _1));
+		verify_piece(piece);
 		picker().dec_refcount(piece, 0);
 	}
 
@@ -1955,9 +1953,7 @@ namespace libtorrent
 						}
 						if (m_picker->is_piece_finished(piece))
 						{
-							picker().mark_as_checking(piece);
-							async_verify_piece(piece, boost::bind(&torrent::piece_finished
-								, shared_from_this(), piece, _1));
+							verify_piece(piece);
 						}
 					}
 				}
@@ -3129,26 +3125,39 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
-	// passed_hash_check
-	// 0: success, piece passed check
-	// -1: disk failure
-	// -2: piece failed check
-	void torrent::piece_finished(int index, int passed_hash_check)
+	void torrent::on_piece_verified(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
+
+		int ret = j->ret;
+		if (m_ses.m_settings.get_bool(settings_pack::disable_hash_checks))
+		{
+			ret = 0;
+		}
+		else
+		{
+			if (ret == -1) handle_disk_error(j);
+
+			if (sha1_hash(j->d.piece_hash) != m_torrent_file->hash_for_piece(j->piece))
+				ret = -2;
+		}
+
+		// 0: success, piece passed check
+		// -1: disk failure
+		// -2: piece failed check
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		(*m_ses.m_logger) << time_now_string() << " *** PIECE_FINISHED [ p: "
-			<< index << " chk: " << ((passed_hash_check == 0)
-				?"passed":passed_hash_check == -1
+			<< j->piece << " chk: " << ((ret == 0)
+				?"passed":ret == -1
 				?"disk failed":"failed") << " size: "
-			<< m_torrent_file->piece_size(index) << " ]\n";
+			<< m_torrent_file->piece_size(j->piece) << " ]\n";
 #endif
-
 		TORRENT_ASSERT(valid_metadata());
 
-		TORRENT_ASSERT(!m_picker->have_piece(index));
+		TORRENT_ASSERT(!m_picker->have_piece(j->piece));
 
-		picker().mark_as_done_checking(index);
+		picker().mark_as_done_checking(j->piece);
 
 		state_updated();
 
@@ -3158,32 +3167,32 @@ namespace libtorrent
 		// called, and the piece is no longer finished.
 		// in this case, we have to ignore the fact that
 		// it passed the check
-		if (!m_picker->is_piece_finished(index)) return;
+		if (!m_picker->is_piece_finished(j->piece)) return;
 
 		// if we're a seed we don't have a picker
 		// and we also don't have to do anything because
 		// we already have this piece
 		if (!has_picker()) return;
 
-		if (passed_hash_check == 0)
+		if (ret == 0)
 		{
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
-			piece_passed(index);
+			piece_passed(j->piece);
 			// if we're in seed mode, we just acquired this piece
 			// mark it as verified
-			if (m_seed_mode) verified(index);
+			if (m_seed_mode) verified(j->piece);
 		}
-		else if (passed_hash_check == -2)
+		else if (ret == -2)
 		{
 			// piece_failed() will restore the piece
-			piece_failed(index);
+			piece_failed(j->piece);
 		}
 		else
 		{
-			TORRENT_ASSERT(passed_hash_check == -1);
-			m_picker->restore_piece(index);
-//			restore_piece_state(index);
+			TORRENT_ASSERT(ret == -1);
+			m_picker->restore_piece(j->piece);
+//			restore_piece_state(j->piece);
 		}
 	}
 
@@ -8406,64 +8415,13 @@ namespace libtorrent
 		state_updated();
 	}
 
-	// TODO: remove this redundant middle-man function
-	void torrent::async_verify_piece(int piece_index, boost::function<void(int)> const& f)
+	void torrent::verify_piece(int piece)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-//		INVARIANT_CHECK;
+		picker().mark_as_checking(piece);
 
-		TORRENT_ASSERT(m_storage);
-		TORRENT_ASSERT(m_storage->refcount() > 0);
-		TORRENT_ASSERT(piece_index >= 0);
-		TORRENT_ASSERT(piece_index < m_torrent_file->num_pieces());
-		TORRENT_ASSERT(piece_index < (int)m_picker->num_pieces());
-		TORRENT_ASSERT(!m_picker || !m_picker->have_piece(piece_index));
-#ifdef TORRENT_DEBUG
-		if (m_picker)
-		{
-			int blocks_in_piece = m_picker->blocks_in_piece(piece_index);
-			for (int i = 0; i < blocks_in_piece; ++i)
-			{
-				TORRENT_ASSERT(m_picker->num_peers(piece_block(piece_index, i)) == 0);
-			}
-		}
-#endif
-
-		m_ses.m_disk_thread.async_hash(m_storage, piece_index, 0
-			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1, f)
+		m_ses.m_disk_thread.async_hash(m_storage, piece, 0
+			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1)
 			, (void*)1);
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-		check_invariant();
-#endif
-	}
-
-	void torrent::on_piece_verified(disk_io_job const* j
-		, boost::function<void(int)> f)
-	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
-
-		int ret = j->ret;
-		if (m_ses.m_settings.get_bool(settings_pack::disable_hash_checks))
-		{
-			ret = 0;
-		}
-		else
-		{
-			if (ret == -1) handle_disk_error(j);
-
-			if (sha1_hash(j->d.piece_hash) != m_torrent_file->hash_for_piece(j->piece))
-				ret = -2;
-		}
-
-		// error codes passed into f
-		// 0: success, piece passed hash check
-		// -1: disk failure
-		// -2: hash check failed
-
-		state_updated();
-
-		if (ret == -1) handle_disk_error(j);
-		f(ret);
 	}
 
 	tcp::endpoint torrent::current_tracker() const
