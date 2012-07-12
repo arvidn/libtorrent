@@ -837,6 +837,14 @@ namespace libtorrent
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
+	namespace
+	{
+		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
+		{
+			return lhs.offset < rhs.offset;
+		}
+	}
+
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
 	// of that is the same for reading and writing. This function
@@ -861,25 +869,17 @@ namespace libtorrent
 		TORRENT_ASSERT(!slices.empty());
 #endif
 
-		size_type start = slot * (size_type)m_files.piece_length() + offset;
-		TORRENT_ASSERT(start + size <= m_files.total_size());
+		internal_file_entry target_file;
+		target_file.offset = slot * size_type(m_files.piece_length()) + offset;
 
-		// find the file iterator and file offset
-		size_type file_offset = start;
-		file_storage::iterator file_iter;
+		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+			files().begin(), files().end(), target_file, compare_file_offset);
 
-		// TODO: use binary search!
-		int file_index = 0;
-		for (file_iter = files().begin();;)
-		{
-			if (file_offset < file_iter->size)
-				break;
+		TORRENT_ASSERT(file_iter != files().begin());
+		--file_iter;
+		int file_index = file_iter - files().begin();
 
-			++file_index;
-			file_offset -= file_iter->size;
-			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
-		}
+		size_type file_offset = target_file.offset - file_iter->offset;
 
 		int buf_pos = 0;
 
