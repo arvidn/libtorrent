@@ -677,7 +677,7 @@ namespace libtorrent
 		if (j->buffer == 0)
 		{
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::read;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -779,6 +779,7 @@ namespace libtorrent
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			m_disk_cache.free_iovec(iov, iov_len);
 			return -1;
 		}
@@ -911,7 +912,7 @@ namespace libtorrent
 			{
 				l.unlock();
 				j->error.ec = error::no_memory;
-				// TODO: set operation in j->error
+				j->error.operation = storage_error::alloc_cache_piece;
 				j->ret = disk_io_job::operation_failed;
 				handler(j);
 				free_job(j);
@@ -1369,6 +1370,7 @@ namespace libtorrent
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -1449,6 +1451,7 @@ namespace libtorrent
 					pe->hash = NULL;
 
 					j->error.ec = errors::no_memory;
+					j->error.operation = storage_error::alloc_cache_piece;
 					return -1;
 				}
 
@@ -1624,6 +1627,7 @@ namespace libtorrent
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -1654,6 +1658,7 @@ namespace libtorrent
 				//#error introduce a holder class that automatically increments and decrements the piece_refcount
 				--pe->piece_refcount;
 				j->error.ec = errors::no_memory;
+				j->error.operation = storage_error::alloc_cache_piece;
 				return -1;
 			}
 
