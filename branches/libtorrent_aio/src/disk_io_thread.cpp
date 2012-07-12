@@ -2137,6 +2137,7 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_completed_jobs_mutex);
 		DLOG(stderr, "[%p] call_job_handlers (%d)\n", this, m_completed_jobs.size());
+		int num_jobs = m_completed_jobs.size();
 		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
 		l.unlock();
 
@@ -2145,6 +2146,9 @@ namespace libtorrent
 #ifdef TORRENT_STATS
 		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
 #endif
+		std::vector<disk_io_job*> to_delete;
+		to_delete.reserve(num_jobs);
+
 		while (j)
 		{
 			TORRENT_ASSERT(j->job_posted == true);
@@ -2156,11 +2160,12 @@ namespace libtorrent
 			j->callback_called = true;
 #endif
 			if (j->callback) j->callback(j);
-			// TODO: it might be more efficient to free all jobs in one go
-			// to only require the mutex once
-			free_job(j);
+			to_delete.push_back(j);
 			j = next;
 		}
+
+		free_jobs(&to_delete[0], to_delete.size());
+
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.
 		if (ses) ses->do_delayed_uncork();

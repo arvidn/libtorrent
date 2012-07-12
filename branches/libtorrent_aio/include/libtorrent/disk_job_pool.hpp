@@ -48,6 +48,7 @@ namespace libtorrent
 
 		disk_io_job* allocate_job(int type);
 		void free_job(disk_io_job* j);
+		void free_jobs(disk_io_job** j, int num);
 
 		int jobs_in_use() const { return m_jobs_in_use; }
 		int read_jobs_in_use() const { return m_read_jobs; }
