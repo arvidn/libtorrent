@@ -1134,7 +1134,20 @@ namespace libtorrent
 #endif
 			, permissions);
 
-		if (handle == -1)
+#ifdef O_NOATIME
+		// O_NOATIME is not allowed for files we don't own
+		// so, if we get EPERM when we try to open with it
+		// try again without O_NOATIME
+		if (m_fd == -1 && (mode & no_atime) && errno == EPERM)
+		{
+			mode &= ~no_atime;
+			m_fd = ::open(path.c_str()
+				, mode_array[mode & rw_mask]
+				| no_buffer_flag[(mode & no_buffer) >> 2]
+				, permissions);
+		}
+#endif
+		if (m_fd == -1)
 		{
 			ec.assign(errno, get_posix_category());
 			TORRENT_ASSERT(ec);
