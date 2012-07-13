@@ -3968,15 +3968,10 @@ namespace libtorrent
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			assert(t);
 
-			// TODO: we should probably just send a HAVE_ALL here
-			for (int i = 0; i < int(m_have_piece.size()); ++i)
-			{
-				if (m_have_piece[i] || !t->have_piece(i)) continue;
-#ifdef TORRENT_VERBOSE_LOGGING
-				peer_log("==> HAVE    [ piece: %d] (ending super seed)", i);
-#endif
-				write_have(i);
-			}
+			// this will either send a full bitfield or
+			// a have-all message, effectively terminating
+			// super-seeding, since the peer may pick any piece
+			write_bitfield();
 			
 			return;
 		}
