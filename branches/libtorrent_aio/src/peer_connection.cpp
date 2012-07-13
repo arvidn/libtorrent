@@ -178,6 +178,7 @@ namespace libtorrent
 		, m_prefer_whole_pieces(0)
 		, m_desired_queue_size(2)
 		, m_choke_rejects(0)
+		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
 		, m_fast_reconnect(false)
 		, m_outgoing(outgoing)
@@ -4546,11 +4547,30 @@ namespace libtorrent
 
 		if (j->ret < 0)
 		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			if (!t)
+			{
+				disconnect(j->error.ec);
+				return;
+			}
+		
 			TORRENT_ASSERT(j->buffer == 0);
-			// TODO: send reject_piece here instead?
-			disconnect(j->error.ec);
+			write_dont_have(r.piece);
+			write_reject_request(r);
+			if (t->alerts().should_post<file_error_alert>())
+				t->alerts().post_alert(file_error_alert(j->error.ec
+					, t->resolve_filename(j->error.file)
+					, j->error.operation_str(), t->get_handle()));
+
+			++m_disk_read_failures;
+			if (m_disk_read_failures > 100) disconnect(j->error.ec);
 			return;
 		}
+
+		// we're only interested in failures in a row.
+		// if we every now and then successfully send a
+		// block, the peer is still useful
+		m_disk_read_failures = 0;
 
 		TORRENT_ASSERT(j->ret == r.length);
 

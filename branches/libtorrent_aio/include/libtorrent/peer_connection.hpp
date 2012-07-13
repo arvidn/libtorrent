@@ -1037,6 +1037,13 @@ namespace libtorrent
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
 
+		// this is the number of times this peer has had
+		// a request rejected because of a disk I/O failure.
+		// once this reaches a certain threshold, the
+		// peer is disconnected in order to avoid infinite
+		// loops of consistent failures
+		boost::uint8_t m_disk_read_failures;
+
 		// this is used in seed mode whenever we trigger a hash check
 		// for a piece, before we read it. It's used to throttle
 		// the hash checks to just a few per peer at a time.
