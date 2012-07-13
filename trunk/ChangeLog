@@ -1,6 +1,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix permissions issue on linux whith noatime enabled for non-owned files
 	* use random peer IDs in anonymous mode
 	* fix move_storage bugs
 	* fix unnecessary dependency on boost.date_time when building boost.asio as separate compilation
