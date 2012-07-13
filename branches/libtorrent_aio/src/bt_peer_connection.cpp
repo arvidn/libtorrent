@@ -777,7 +777,7 @@ namespace libtorrent
 		ptr += 20;
 
 		// peer id
-		if (m_ses.m_settings.anonymous_mode)
+		if (m_settings.get_bool(settings_pack::anonymous_mode))
 		{
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
