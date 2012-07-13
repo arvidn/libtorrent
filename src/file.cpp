@@ -980,9 +980,27 @@ namespace libtorrent
 		{
 			mode &= ~no_buffer;
 			m_fd = ::open(path.c_str()
-				, mode & (rw_mask | no_buffer), permissions);
-		}
+				, mode_array[mode & rw_mask]
+#ifdef O_NOATIME
+				| no_atime_flag[(mode & no_atime) >> 4]
+#endif
 
+				, permissions);
+		}
+#endif
+
+#ifdef O_NOATIME
+		// O_NOATIME is not allowed for files we don't own
+		// so, if we get EPERM when we try to open with it
+		// try again without O_NOATIME
+		if (m_fd == -1 && (mode & no_atime) && errno == EPERM)
+		{
+			mode &= ~no_atime;
+			m_fd = ::open(path.c_str()
+				, mode_array[mode & rw_mask]
+				| no_buffer_flag[(mode & no_buffer) >> 2]
+				, permissions);
+		}
 #endif
 		if (m_fd == -1)
 		{
