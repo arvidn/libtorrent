@@ -90,7 +90,6 @@ namespace libtorrent
 				m_queue.push_front(entry());
 				e = &m_queue.front();
 				break;
-			default: return;
 		}
 
 		e->priority = priority;
