@@ -199,6 +199,10 @@ namespace libtorrent
 			return;
 		}
 
+		// all entries are connecting, no need to look for new ones
+		if (m_queue.size() == m_num_connecting)
+			return;
+
 		std::list<entry>::iterator i = std::find_if(m_queue.begin()
 			, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 
