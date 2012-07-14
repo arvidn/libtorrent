@@ -255,7 +255,7 @@ namespace libtorrent
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
 #endif
@@ -269,7 +269,7 @@ namespace libtorrent
 	void bt_peer_connection::write_have_none()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_sent_bitfield = true;
 #endif
@@ -1973,11 +1973,8 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(t->valid_metadata());
-
-		// in this case, have_all or have_none should be sent instead
-		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_have() != 0);
 
 		if (t->super_seeding())
 		{
