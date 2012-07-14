@@ -103,7 +103,35 @@ namespace libtorrent
 	}
 }
 
+#endif // TORRENT_ASIO_DEBUGGING
+
+namespace libtorrent
+{
+#if (defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
+	struct single_threaded
+	{
+		single_threaded(): m_single_thread(0) {}
+		~single_threaded() { m_single_thread = 0; }
+		bool is_single_thread() const
+		{
+			if (m_single_thread == 0)
+			{
+				m_single_thread = pthread_self();
+				return true;
+			}
+			return m_single_thread == pthread_self();
+		}
+
+		void thread_started()
+		{ m_single_thread = pthread_self(); }
+
+	private:
+		mutable pthread_t m_single_thread;
+	};
+#else
+	struct single_threaded { bool is_single_thread() const { return true; } void thread_started() {} };
 #endif
+}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 

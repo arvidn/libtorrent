@@ -234,7 +234,7 @@ namespace
 
 		void on_read_failed_block(piece_block b, address a, disk_io_job const* j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 			
 			disk_buffer_holder buffer(m_torrent.session(), *j);
 
@@ -320,7 +320,7 @@ namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, disk_io_job const* j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
 			disk_buffer_holder buffer(m_torrent.session(), *j);
 

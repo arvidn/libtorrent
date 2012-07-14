@@ -1343,7 +1343,7 @@ namespace aux {
 
 	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		entry& e = *eptr;
 
@@ -1414,7 +1414,7 @@ namespace aux {
 	
 	void session_impl::set_proxy(proxy_settings const& s)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		m_proxy = s;
 		// in case we just set a socks proxy, we might have to
@@ -1425,7 +1425,7 @@ namespace aux {
 
 	void session_impl::load_state(lazy_entry const* e)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		lazy_entry const* settings;
 	  
@@ -1523,7 +1523,7 @@ namespace aux {
 
 	char const* session_impl::country_for_ip(address const& a)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (!a.is_v4() || m_country_db == 0) return 0;
 		return GeoIP_country_code_by_ipnum(m_country_db, a.to_v4().to_ulong());
@@ -1531,7 +1531,7 @@ namespace aux {
 
 	int session_impl::as_for_ip(address const& a)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (!a.is_v4() || m_asnum_db == 0) return 0;
 		char* name = GeoIP_name_by_ipnum(m_asnum_db, a.to_v4().to_ulong());
@@ -1543,7 +1543,7 @@ namespace aux {
 
 	std::string session_impl::as_name_for_ip(address const& a)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (!a.is_v4() || m_asnum_db == 0) return std::string();
 		char* name = GeoIP_name_by_ipnum(m_asnum_db, a.to_v4().to_ulong());
@@ -1556,7 +1556,7 @@ namespace aux {
 
 	std::pair<const int, int>* session_impl::lookup_as(int as)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		std::map<int, int>::iterator i = m_as_peak.lower_bound(as);
 
@@ -1570,7 +1570,7 @@ namespace aux {
 
 	void session_impl::load_asnum_db(std::string file)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		m_asnum_db = GeoIP_open(file.c_str(), GEOIP_STANDARD);
@@ -1580,7 +1580,7 @@ namespace aux {
 #if TORRENT_USE_WSTRING
 	void session_impl::load_asnum_dbw(std::wstring file)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_asnum_db) GeoIP_delete(m_asnum_db);
 		std::string utf8;
@@ -1591,7 +1591,7 @@ namespace aux {
 
 	void session_impl::load_country_dbw(std::wstring file)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_country_db) GeoIP_delete(m_country_db);
 		std::string utf8;
@@ -1603,7 +1603,7 @@ namespace aux {
 
 	void session_impl::load_country_db(std::string file)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_country_db) GeoIP_delete(m_country_db);
 		m_country_db = GeoIP_open(file.c_str(), GEOIP_STANDARD);
@@ -1616,7 +1616,7 @@ namespace aux {
 	void session_impl::add_extension(
 		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
 		typedef boost::shared_ptr<torrent_plugin>(*function_t)(torrent*, void*);
@@ -1633,7 +1633,7 @@ namespace aux {
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
 		m_ses_extensions.push_back(ext);
@@ -1645,7 +1645,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 	void session_impl::add_dht_node(udp::endpoint n)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_dht) m_dht->add_node(n);
 	}
@@ -1658,7 +1658,7 @@ namespace aux {
 
 	feed_handle session_impl::add_feed(feed_settings const& sett)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		// look for duplicates. If we already have a feed with this
 		// URL, return a handle to the existing one
@@ -1677,7 +1677,7 @@ namespace aux {
 
 	void session_impl::remove_feed(feed_handle h)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		boost::shared_ptr<feed> f = h.m_feed_ptr.lock();
 		if (!f) return;
@@ -1692,7 +1692,7 @@ namespace aux {
 
 	void session_impl::get_feeds(std::vector<feed_handle>* ret) const
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		ret->clear();
 		ret->reserve(m_feeds.size());
@@ -1703,7 +1703,7 @@ namespace aux {
 
 	void session_impl::pause()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_paused) return;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -1720,7 +1720,7 @@ namespace aux {
 
 	void session_impl::resume()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (!m_paused) return;
 		m_paused = false;
@@ -1735,7 +1735,7 @@ namespace aux {
 	
 	void session_impl::abort()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
 #if defined TORRENT_LOGGING
@@ -2044,7 +2044,7 @@ namespace aux {
 	void session_impl::set_settings(libtorrent::session_settings const& s)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		settings_pack* p = load_pack_from_struct(m_settings, s);
 		apply_settings_pack(p);
 	}
@@ -2167,7 +2167,7 @@ namespace aux {
 	
 	void session_impl::open_listen_port(int flags, error_code& ec)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -2494,7 +2494,7 @@ namespace aux {
 #ifdef TORRENT_STATS
 		inc_stats_counter(on_accept_counter);
 #endif
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
 		
@@ -2613,7 +2613,7 @@ namespace aux {
 
 	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_USE_OPENSSL
 		// add the current time to the PRNG, to add more unpredictability
@@ -2821,7 +2821,7 @@ namespace aux {
 	void session_impl::close_connection(peer_connection* p
 		, error_code const& ec)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the
@@ -2944,7 +2944,7 @@ namespace aux {
 
 	void session_impl::set_rate_limit(peer_class_t c, int channel, int limit)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
 
@@ -2969,7 +2969,7 @@ namespace aux {
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool session_impl::has_peer(peer_connection const* p) const
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		return std::find_if(m_connections.begin(), m_connections.end()
 			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
 			!= m_connections.end();
@@ -2993,7 +2993,7 @@ namespace aux {
 		inc_stats_counter(on_tick_counter);
 #endif
 
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		// submit all disk jobs when we leave this function
 		deferred_submit_jobs();
@@ -4000,7 +4000,7 @@ namespace aux {
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_announce");
 #endif
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
 		if (m_abort) return;
@@ -4035,7 +4035,7 @@ namespace aux {
 #ifdef TORRENT_STATS
 		inc_stats_counter(on_lsd_counter);
 #endif
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
 		if (m_abort) return;
@@ -4249,7 +4249,7 @@ namespace aux {
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		if (m_allowed_upload_slots == 0) return;
 	
 		std::vector<policy::peer*> opt_unchoke;
@@ -4475,7 +4475,7 @@ namespace aux {
 
 	void session_impl::recalculate_unchoke_slots()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		ptime now = time_now();
@@ -4709,7 +4709,7 @@ namespace aux {
 
 	void session_impl::cork_burst(peer_connection* p)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		if (p->is_corked()) return;
 		p->cork_socket();
 		m_delayed_uncorks.push_back(p);
@@ -4717,7 +4717,7 @@ namespace aux {
 
 	void session_impl::do_delayed_uncork()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
 			, end(m_delayed_uncorks.end()); i != end; ++i)
 		{
@@ -4728,10 +4728,11 @@ namespace aux {
 
 	void session_impl::main_thread()
 	{
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
-		m_network_thread = pthread_self();
-#endif
-		TORRENT_ASSERT(is_network_thread());
+		// this is a debug facility
+		// see single_threaded in debug.hpp
+		thread_started();
+
+		TORRENT_ASSERT(is_single_thread());
 		eh_initializer();
 
 		// initialize async operations
@@ -4786,7 +4787,7 @@ namespace aux {
 	// session is locked!
 	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		torrent_map::iterator i = m_torrents.find(info_hash);
 #ifdef TORRENT_DEBUG
@@ -4822,7 +4823,7 @@ namespace aux {
 
 	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		std::map<std::string, boost::shared_ptr<torrent> >::iterator i
 			= m_uuids.find(uuid);
@@ -4895,7 +4896,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		std::vector<torrent*>& state_updates
@@ -5269,7 +5270,7 @@ namespace aux {
 #ifdef TORRENT_STATS
 		inc_stats_counter(on_lsd_peer_counter);
 #endif
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
 
@@ -5306,7 +5307,7 @@ namespace aux {
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
 		, error_code const& ec, int map_transport)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
@@ -5352,7 +5353,7 @@ namespace aux {
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		session_status s;
 
@@ -6303,7 +6304,7 @@ namespace aux {
 	
 	char* session_impl::allocate_buffer()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_BUFFER_STATS
 		TORRENT_ASSERT(m_buffer_allocations >= 0);
@@ -6322,7 +6323,7 @@ namespace aux {
 #ifdef TORRENT_BUFFER_STATS
 	void session_impl::log_buffer_usage()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		int send_buffer_capacity = 0;
 		int used_send_buffer = 0;
@@ -6342,7 +6343,7 @@ namespace aux {
 
 	void session_impl::free_buffer(char* buf)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_BUFFER_STATS
 		m_buffer_allocations--;
@@ -6360,7 +6361,7 @@ namespace aux {
 #ifdef TORRENT_DEBUG
 	void session_impl::check_invariant() const
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		for (int l = 0; l < num_torrent_lists; ++l)
 		{

@@ -46,25 +46,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string.h> // for memcpy
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/block_cache.hpp"
 #endif
+
+#include "libtorrent/debug.hpp"
 
 namespace libtorrent
 {
 #if BOOST_VERSION >= 103500
 	namespace asio = boost::asio;
 #endif
-	struct TORRENT_EXTRA_EXPORT chained_buffer
+	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
 		{
+			thread_started();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_destructed = false;
-#endif
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
-			m_network_thread = pthread_self();
 #endif
 		}
 
@@ -124,17 +124,6 @@ namespace libtorrent
 		void clear();
 
 		~chained_buffer();
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool is_network_thread() const
-		{
-#if defined BOOST_HAS_PTHREADS
-			if (m_network_thread == 0) return true;
-			return m_network_thread == pthread_self();
-#endif
-			return true;
-		}
-#endif
 
 	private:
 

@@ -206,6 +206,7 @@ namespace libtorrent
 			, initialize_timer
 			, udp_socket_observer
 			, boost::enable_shared_from_this<session_impl>
+			, single_threaded
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			// this needs to be destructed last, since other components may log
@@ -253,7 +254,9 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool has_peer(peer_connection const* p) const;
 			bool any_torrent_has_peer(peer_connection const* p) const;
+			bool is_single_thread() const { return single_threaded::is_single_thread(); }
 #endif
+
 			void main_thread();
 
 			void open_listen_port(int flags, error_code& ec);
@@ -272,17 +275,6 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			bool is_network_thread() const
-			{
-#if defined BOOST_HAS_PTHREADS
-				if (m_network_thread == 0) return true;
-				return m_network_thread == pthread_self();
-#endif
-				return true;
-			}
-#endif
-
 			feed_handle add_feed(feed_settings const& feed);
 			void remove_feed(feed_handle h);
 			void get_feeds(std::vector<feed_handle>* f) const;
@@ -597,26 +589,26 @@ namespace libtorrent
 
 			void inc_active_downloading()
 			{
-				TORRENT_ASSERT(is_network_thread());
+				TORRENT_ASSERT(is_single_thread());
 				++m_num_downloaders;
 			}
 
 			void dec_active_downloading()
 			{
-				TORRENT_ASSERT(is_network_thread());
+				TORRENT_ASSERT(is_single_thread());
 				TORRENT_ASSERT(m_num_downloaders > 0);
 				--m_num_downloaders;
 			}
 
 			void inc_active_finished()
 			{
-				TORRENT_ASSERT(is_network_thread());
+				TORRENT_ASSERT(is_single_thread());
 				++m_num_finished;
 			}
 
 			void dec_active_finished()
 			{
-				TORRENT_ASSERT(is_network_thread());
+				TORRENT_ASSERT(is_single_thread());
 				TORRENT_ASSERT(m_num_finished > 0);
 				--m_num_finished;
 			}

@@ -54,9 +54,6 @@ namespace libtorrent
 		, m_in_timeout_function(false)
 #endif
 	{
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
-		m_network_thread = 0;
-#endif
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log.open("connection_queue.log");
 #endif
@@ -64,7 +61,7 @@ namespace libtorrent
 
 	int connection_queue::free_slots() const
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		return m_half_open_limit == 0 ? (std::numeric_limits<int>::max)()
 			: m_half_open_limit - m_queue.size();
 	}
@@ -73,7 +70,7 @@ namespace libtorrent
 		, boost::function<void()> const& on_timeout
 		, time_duration timeout, int priority)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
 
@@ -111,7 +108,7 @@ namespace libtorrent
 
 	void connection_queue::done(int ticket)
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
 
@@ -134,7 +131,7 @@ namespace libtorrent
 	void connection_queue::close()
 	{
 		error_code ec;
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		if (m_num_connecting == 0) m_timer.cancel(ec);
 		m_abort = true;
 
@@ -186,7 +183,7 @@ namespace libtorrent
 
 	void connection_queue::try_connect()
 	{
-		TORRENT_ASSERT(is_network_thread());
+		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 #ifdef TORRENT_CONNECTION_LOGGING

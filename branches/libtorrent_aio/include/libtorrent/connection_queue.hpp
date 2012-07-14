@@ -46,11 +46,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/thread.hpp"
+#include "libtorrent/debug.hpp"
 
 namespace libtorrent
 {
 
-class TORRENT_EXTRA_EXPORT connection_queue : public boost::noncopyable
+class TORRENT_EXTRA_EXPORT connection_queue
+	: public boost::noncopyable
+	, single_threaded
 {
 public:
 	connection_queue(io_service& ios);
@@ -107,25 +110,6 @@ private:
 	bool m_abort;
 
 	deadline_timer m_timer;
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		bool is_network_thread() const
-		{
-#if defined BOOST_HAS_PTHREADS
-			if (m_network_thread == 0)
-			{
-				m_network_thread = pthread_self();
-				return true;
-			}
-			return m_network_thread == pthread_self();
-#endif
-			return true;
-		}
-#endif
-
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
-		mutable pthread_t m_network_thread;
-#endif
 
 #ifdef TORRENT_DEBUG
 	bool m_in_timeout_function;

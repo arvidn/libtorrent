@@ -783,7 +783,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_destructed = true;
 #endif
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_in_use = 0;
@@ -2527,7 +2527,7 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(disk_io_job const* j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC WRITE COMPLETE [ ret: %d | piece: %d | s: %d | l: %d | e: %s ]"
@@ -3380,7 +3380,7 @@ namespace libtorrent
 
 	void peer_connection::on_timeout()
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		connect_failed(errors::timed_out);
 	}
@@ -3458,7 +3458,7 @@ namespace libtorrent
 	// 2 protocol error (client sent something invalid)
 	void peer_connection::disconnect(error_code const& ec, int error)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_disconnect_started = true;
@@ -4497,7 +4497,7 @@ namespace libtorrent
 	// checked, while in seed-mode
 	void peer_connection::on_seed_mode_hashed(disk_io_job const* j)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
@@ -4534,7 +4534,7 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC READ COMPLETE [ ret: %d | piece: %d | s: %d | l: %d"
@@ -5253,7 +5253,7 @@ namespace libtorrent
 		// function.
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		// submit all disk jobs later
 		m_ses.deferred_submit_jobs();
@@ -5495,7 +5495,7 @@ namespace libtorrent
 
 	void peer_connection::on_connect(int ticket)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
@@ -5601,7 +5601,7 @@ namespace libtorrent
 #endif
 		ptime completed = time_now_hires();
 
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		INVARIANT_CHECK;
 
@@ -5703,7 +5703,7 @@ namespace libtorrent
 		m_ses.inc_stats_counter(aux::session_interface::on_write_counter);
 		m_ses.sent_buffer(bytes_transferred);
 #endif
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(m_socket_is_writing);

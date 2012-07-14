@@ -194,13 +194,13 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_network_thread());
+		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 

@@ -83,9 +83,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
-#if defined BOOST_HAS_PTHREADS
-	m_thread = 0;
-#endif
 #endif
 
 	m_buf_size = 2000;
