@@ -699,8 +699,7 @@ namespace libtorrent
 		}
 		policy& get_policy() { return m_policy; }
 
-		// TODO: this should be renamed 'storage'
-		piece_manager& filesystem();
+		piece_manager& storage();
 		bool has_storage() const { return m_owning_storage; }
 
 		torrent_info const& torrent_file() const

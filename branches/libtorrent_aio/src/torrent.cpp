@@ -960,7 +960,7 @@ namespace libtorrent
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
-			m_ses.m_disk_thread.async_read(&filesystem(), r, boost::bind(&torrent::on_disk_read_complete
+			m_ses.m_disk_thread.async_read(&storage(), r, boost::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, r, rp), (void*)1);
 		}
 	}
@@ -1201,7 +1201,7 @@ namespace libtorrent
 			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
-			m_ses.m_disk_thread.async_write(&filesystem(), p, holder
+			m_ses.m_disk_thread.async_write(&storage(), p, holder
 				, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 			piece_block block(piece, i);
@@ -6859,7 +6859,7 @@ namespace libtorrent
 		}
 	}
 
-	piece_manager& torrent::filesystem()
+	piece_manager& torrent::storage()
 	{
 		TORRENT_ASSERT(m_owning_storage.get());
 		TORRENT_ASSERT(m_storage);

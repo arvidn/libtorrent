@@ -809,7 +809,7 @@ namespace libtorrent
 	{
 		piece_manager* st = 0;
 		boost::shared_ptr<torrent> t = h.m_torrent.lock();
-		if (t && t->has_storage()) st = &t->filesystem();
+		if (t && t->has_storage()) st = &t->storage();
 		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 

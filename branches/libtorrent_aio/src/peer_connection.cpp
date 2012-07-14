@@ -2424,7 +2424,7 @@ namespace libtorrent
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
 #endif
-		m_disk_thread.async_write(&t->filesystem(), p, data
+		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 		m_outstanding_writing_bytes += p.length;
@@ -4448,7 +4448,7 @@ namespace libtorrent
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(&t->filesystem(), r.piece, 0
+				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
 					, this);
 				t->verifying(r.piece);
@@ -4481,7 +4481,7 @@ namespace libtorrent
 				sent_a_piece = true;
 
 				// the callback function may be called immediately, instead of being posted
-				m_disk_thread.async_read(&t->filesystem(), r
+				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r), this);
 			}
@@ -6011,7 +6011,7 @@ namespace libtorrent
 				if (complete && !piece_failed)
 				{
 					disk_io_job ret = m_ses.m_disk_thread.find_job(
-						&t->filesystem(), -1, i->index);
+						&t->storage(), -1, i->index);
 					TORRENT_ASSERT(ret.action == disk_io_job::hash || ret.action == disk_io_job::write);
 					TORRENT_ASSERT(ret.piece == i->index);
 				}
