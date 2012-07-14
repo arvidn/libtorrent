@@ -550,6 +550,9 @@ void http_connection::queue_connect()
 
 void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
+#endif
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
 		&& (m_proxy.type == proxy_settings::socks5

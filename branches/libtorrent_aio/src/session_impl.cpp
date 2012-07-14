@@ -1833,6 +1833,8 @@ namespace aux {
 		m_asnum_db = 0;
 		m_country_db = 0;
 #endif
+
+		m_disk_thread.set_num_threads(0);
 	}
 
 	void session_impl::set_port_filter(port_filter const& f)
@@ -5605,8 +5607,6 @@ namespace aux {
 #endif
 		m_io_service.post(boost::bind(&session_impl::abort, this));
 
-		m_disk_thread.set_num_threads(0);
-
 		// now it's OK for the network thread to exit
 		m_work.reset();
 
@@ -5616,7 +5616,8 @@ namespace aux {
 		{
 			sleep(1000);
 			++counter;
-			printf("\n==== Waiting to shut down: %d ==== conn-queue: %d\n\n", counter, m_half_open.size());
+			printf("\n==== Waiting to shut down: %d ==== conn-queue: %d num-connecting: %d\n\n"
+				, counter, m_half_open.size(), m_half_open.num_connecting());
 		}
 		async_dec_threads();
 #endif

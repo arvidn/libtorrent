@@ -48,7 +48,6 @@ namespace libtorrent
 	connection_queue::connection_queue(io_service& ios): m_next_ticket(0)
 		, m_num_connecting(0)
 		, m_half_open_limit(0)
-		, m_abort(false)
 		, m_timer(ios)
 #ifdef TORRENT_DEBUG
 		, m_in_timeout_function(false)
@@ -133,7 +132,6 @@ namespace libtorrent
 		error_code ec;
 		TORRENT_ASSERT(is_single_thread());
 		if (m_num_connecting == 0) m_timer.cancel(ec);
-		m_abort = true;
 
 		std::list<entry> tmp;
 		tmp.swap(m_queue);
@@ -189,14 +187,13 @@ namespace libtorrent
 #ifdef TORRENT_CONNECTION_LOGGING
 		m_log << log_time() << " " << free_slots() << std::endl;
 #endif
-		// if this is enabled, UPnP connections will be blocked when shutting down
-//		if (m_abort) return;
 
 		if (m_num_connecting >= m_half_open_limit
 			&& m_half_open_limit > 0) return;
 	
 		if (m_queue.empty())
 		{
+			TORRENT_ASSERT(m_num_connecting == 0);
 			error_code ec;
 			m_timer.cancel(ec);
 			return;
@@ -240,12 +237,15 @@ namespace libtorrent
 		while (!to_connect.empty())
 		{
 			entry& ent = to_connect.front();
+			TORRENT_ASSERT(m_num_connecting > 0);
+#if defined TORRENT_ASIO_DEBUGGING
+			TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
+#endif
 			TORRENT_TRY {
 				ent.on_connect(ent.ticket);
 			} TORRENT_CATCH(std::exception&) {}
 			to_connect.pop_front();
 		}
-
 	}
 
 #ifdef TORRENT_DEBUG
@@ -270,7 +270,11 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(!e || e == error::operation_aborted);
-		if (e) return;
+		if (e)
+		{
+			TORRENT_ASSERT(m_num_connecting == 0);
+			return;
+		}
 
 		ptime next_expire = max_time();
 		ptime now = time_now_hires() + milliseconds(100);

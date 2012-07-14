@@ -1853,6 +1853,11 @@ namespace libtorrent
 
 	void disk_io_thread::add_fence_job(piece_manager* storage, disk_io_job* j)
 	{
+		// if this happens, it means we started to shut down
+		// the disk threads too early. We have to post all jobs
+		// before the disk threads are shut down
+		TORRENT_ASSERT(m_num_threads > 0);
+
 		DLOG(stderr, "[%p] add_fence:job: %s (outstanding: %d)\n", this
 			, job_action_name[j->action]
 			, j->storage->num_outstanding_jobs());
@@ -1896,6 +1901,11 @@ namespace libtorrent
 
 	void disk_io_thread::add_job(disk_io_job* j, bool ignore_fence)
 	{
+		// if this happens, it means we started to shut down
+		// the disk threads too early. We have to post all jobs
+		// before the disk threads are shut down
+		TORRENT_ASSERT(m_num_threads > 0);
+
 		DLOG(stderr, "[%p] add_job: %s (ignore_fence: %d outstanding: %d)\n", this
 			, job_action_name[j->action], ignore_fence
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);

@@ -55,6 +55,13 @@ namespace libtorrent
 	extern int _async_ops_nthreads;
 	extern mutex _async_ops_mutex;
 
+	inline bool has_outstanding_async(char const* name)
+	{
+		mutex::scoped_lock l(_async_ops_mutex);
+		std::map<std::string, async_t>::iterator i = _async_ops.find(name);
+		return i != _async_ops.end();
+	}
+
 	inline void add_outstanding_async(char const* name)
 	{
 		mutex::scoped_lock l(_async_ops_mutex);

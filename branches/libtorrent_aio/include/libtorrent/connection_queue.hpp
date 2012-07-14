@@ -70,6 +70,7 @@ public:
 	int limit() const;
 	void close();
 	int size() const { return m_queue.size(); }
+	int num_connecting() const { return m_num_connecting; }
 
 #ifdef TORRENT_DEBUG
 	void check_invariant() const;
@@ -107,7 +108,6 @@ private:
 	int m_next_ticket;
 	int m_num_connecting;
 	int m_half_open_limit;
-	bool m_abort;
 
 	deadline_timer m_timer;
 
