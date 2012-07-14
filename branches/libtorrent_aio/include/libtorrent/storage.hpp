@@ -328,12 +328,29 @@ namespace libtorrent
 		mutable mutex m_mutex;
 	};
 
+	// this class keeps track of which pieces, belonging to
+	// a specific storage, are in the cache right now. It's
+	// used for quickly being able to evict all pieces for a
+	// specific torrent
+	struct TORRENT_EXTRA_EXPORT storage_piece_set
+	{
+		void add_piece(cached_piece_entry* p);
+		void remove_piece(cached_piece_entry* p);
+		bool has_piece(cached_piece_entry* p) const;
+		int num_pieces() const { return m_cached_pieces.size(); }
+		boost::unordered_set<cached_piece_entry*> const& cached_pieces() const
+		{ return m_cached_pieces; }
+	private:
+		// these are cached pieces belonging to this storage
+		boost::unordered_set<cached_piece_entry*> m_cached_pieces;
+	};
+
 	class TORRENT_EXTRA_EXPORT piece_manager
 		: public intrusive_ptr_base<piece_manager>
 		, public disk_job_fence
+		, public storage_piece_set
 		, boost::noncopyable
 	{
-	friend class invariant_access;
 	friend struct disk_io_thread;
 	public:
 
@@ -359,13 +376,6 @@ namespace libtorrent
 
 		void write_resume_data(entry& rd, storage_error& ec) const;
 
-		void add_piece(cached_piece_entry* p);
-		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry* p) const;
-		int num_pieces() const { return m_cached_pieces.size(); }
-		boost::unordered_set<cached_piece_entry*> const& cached_pieces() const
-		{ return m_cached_pieces; }
-
 	private:
 
 		// if error is set and return value is 'no_error' or 'need_full_check'
@@ -387,13 +397,6 @@ namespace libtorrent
 
 		boost::scoped_ptr<storage_interface> m_storage;
 
-		// abort jobs synchronize with all pieces being evicted
-		// for a certain torrent. If some pieces cannot be evicted
-		// we have to wait until those pieces are evicted. This
-		// is the abort jobs, waiting for all pieces
-		// for this torrent to be evicted
-//		disk_io_job* m_abort_job;
-
 		// the reason for this to be a void pointer
 		// is to avoid creating a dependency on the
 		// torrent. This shared_ptr is here only
@@ -401,9 +404,6 @@ namespace libtorrent
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
-
-		// these are cached pieces belonging to this storage
-		boost::unordered_set<cached_piece_entry*> m_cached_pieces;
 	};
 
 }

@@ -1078,6 +1078,23 @@ namespace libtorrent
 		return new zero_storage;
 	}
 
+	void storage_piece_set::add_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
+		m_cached_pieces.insert(p);
+	}
+
+	bool storage_piece_set::has_piece(cached_piece_entry* p) const
+	{
+		return m_cached_pieces.count(p) > 0;
+	}
+
+	void storage_piece_set::remove_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
+		m_cached_pieces.erase(p);
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(
@@ -1093,27 +1110,9 @@ namespace libtorrent
 	piece_manager::~piece_manager()
 	{}
 
-	void piece_manager::add_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
-		m_cached_pieces.insert(p);
-	}
-
-	bool piece_manager::has_piece(cached_piece_entry* p) const
-	{
-		return m_cached_pieces.count(p) > 0;
-	}
-
-	void piece_manager::remove_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
-		m_cached_pieces.erase(p);
-	}
-
 	// used in torrent_handle.cpp
 	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
 	{
-		INVARIANT_CHECK;
 		m_storage->write_resume_data(rd, ec);
 	}
 
@@ -1157,8 +1156,6 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		lazy_entry const& rd, storage_error& ec)
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 		
 		// if we don't have any resume data, return
@@ -1373,9 +1370,5 @@ namespace libtorrent
 
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}
-
-#ifdef TORRENT_DEBUG
-	void piece_manager::check_invariant() const {}
-#endif
 } // namespace libtorrent
 
