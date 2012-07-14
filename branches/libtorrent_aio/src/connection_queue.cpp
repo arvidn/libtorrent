@@ -270,11 +270,8 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(!e || e == error::operation_aborted);
-		if (e)
-		{
-			TORRENT_ASSERT(m_num_connecting == 0);
+		if (e && m_num_connecting == 0)
 			return;
-		}
 
 		ptime next_expire = max_time();
 		ptime now = time_now_hires() + milliseconds(100);

@@ -70,7 +70,12 @@ namespace libtorrent
 		{
 			char stack_text[10000];
 			print_backtrace(stack_text, sizeof(stack_text), 9);
-			a.stack = stack_text;
+
+			// skip the stack frame of 'add_outstanding_async'
+			char* ptr = strchr(stack_text, '\n');
+			if (ptr != NULL) ++ptr;
+			else ptr = stack_text;
+			a.stack = ptr;
 		}
 		++a.refs;
 	}
