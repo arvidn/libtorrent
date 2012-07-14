@@ -2030,6 +2030,13 @@ namespace libtorrent
 		m_disk_cache.clear(jobs);
 		abort_jobs(jobs);
 
+		// close all files. This may take a long
+		// time on certain OSes (i.e. Mac OS)
+		// that's why it's important to do this in
+		// the disk thread in parallel with stopping
+		// trackers.
+		m_file_pool.release();
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// by now, all pieces should have been evicted
 		std::pair<block_cache::iterator, block_cache::iterator> pieces

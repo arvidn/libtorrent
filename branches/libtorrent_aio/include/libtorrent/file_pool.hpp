@@ -65,7 +65,7 @@ namespace libtorrent
 
 		boost::intrusive_ptr<file> open_file(void* st, std::string const& p
 			, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec);
-		void release(void* st);
+		void release(void* st = NULL);
 		void release(void* st, int file_index);
 		void resize(int size);
 		int size_limit() const { return m_size; }
