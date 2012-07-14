@@ -293,7 +293,7 @@ namespace libtorrent
 				--m_num_connecting;
 				continue;
 			}
-			if (i->expires < next_expire)
+			if (i->connecting && i->expires < next_expire)
 				next_expire = i->expires;
 			++i;
 		}
