@@ -3212,7 +3212,7 @@ namespace aux {
 			// to no longer want to be ticked (i.e. it was
 			// removed from the list) we need to back up the counter
 			// to not miss the torrent after it
-			if (size > want_tick.size()) --i;
+			if (!t.want_tick()) --i;
 		}
 
 #ifndef TORRENT_DISABLE_DHT

@@ -498,6 +498,7 @@ namespace libtorrent
 #endif
 		update_want_more_peers();
 		update_want_scrape();
+		update_want_tick();
 
 		INVARIANT_CHECK;
 
@@ -7801,6 +7802,9 @@ namespace libtorrent
 		announce_with_tracker(tracker_request::stopped);
 	}
 
+	// TODO: don't rely on second_tick to propagate stats to the session stats. Update them in sync.
+	// with the optimization of not calling second_tick on all torrents, some stats is lost
+	// when turning off ticks
 	void torrent::second_tick(stat& accumulator, int tick_interval_ms)
 	{
 		TORRENT_ASSERT(want_tick());
