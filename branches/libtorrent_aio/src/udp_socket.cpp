@@ -223,7 +223,7 @@ void udp_socket::on_writable(error_code const& ec, udp::socket* s)
 }
 
 // called whenever the socket is readable
-void udp_socket::on_read(udp::socket* s)
+void udp_socket::on_read(error_code const& ec, udp::socket* s)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_read");
@@ -245,6 +245,7 @@ void udp_socket::on_read(udp::socket* s)
 		--m_v4_outstanding;
 	}
 
+	if (ec == asio::error::operation_aborted) return;
 	if (m_abort) return;
 
 	CHECK_MAGIC;
@@ -427,7 +428,7 @@ void udp_socket::setup_read(udp::socket* s)
 #endif
 	udp::endpoint ep;
 	s->async_receive_from(asio::null_buffers()
-		, ep, boost::bind(&udp_socket::on_read, this, s));
+		, ep, boost::bind(&udp_socket::on_read, this, _1, s));
 }
 
 void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec)
