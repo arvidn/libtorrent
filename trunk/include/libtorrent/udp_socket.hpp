@@ -170,7 +170,7 @@ namespace libtorrent
 		void on_writable(error_code const& ec, udp::socket* s);
 
 		void setup_read(udp::socket* s);
-		void on_read(udp::socket* s);
+		void on_read(error_code const& ec, udp::socket* s);
 		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
 			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
