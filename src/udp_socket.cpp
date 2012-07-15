@@ -776,6 +776,11 @@ void udp_socket::on_connect(int ticket)
 
 	if (m_abort) return;
 	if (is_closed()) return;
+	if (ticket == -1)
+	{
+		close();
+		return;
+	}
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_connected");

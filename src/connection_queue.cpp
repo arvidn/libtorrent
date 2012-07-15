@@ -49,6 +49,7 @@ namespace libtorrent
 		, m_num_connecting(0)
 		, m_half_open_limit(0)
 		, m_abort(false)
+		, m_num_timers(0)
 		, m_timer(ios)
 #ifdef TORRENT_DEBUG
 		, m_in_timeout_function(false)
@@ -155,7 +156,7 @@ namespace libtorrent
 				continue;
 			}
 			TORRENT_TRY {
-				e.on_timeout();
+				e.on_connect(-1);
 			} TORRENT_CATCH(std::exception&) {}
 			tmp.pop_front();
 		}
@@ -227,6 +228,7 @@ namespace libtorrent
 				error_code ec;
 				m_timer.expires_at(expire, ec);
 				m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
+				++m_num_timers;
 			}
 			i->connecting = true;
 			++m_num_connecting;
@@ -275,6 +277,7 @@ namespace libtorrent
 		complete_async("connection_queue::on_timeout");
 #endif
 		mutex_t::scoped_lock l(m_mutex);
+		--m_num_timers;
 
 		INVARIANT_CHECK;
 #ifdef TORRENT_DEBUG
@@ -282,7 +285,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(!e || e == error::operation_aborted);
-		if (e) return;
+		if (e && m_num_connecting == 0 && m_num_timers > 0) return;
 
 		ptime next_expire = max_time();
 		ptime now = time_now_hires() + milliseconds(100);
@@ -327,6 +330,7 @@ namespace libtorrent
 			error_code ec;
 			m_timer.expires_at(next_expire, ec);
 			m_timer.async_wait(boost::bind(&connection_queue::on_timeout, this, _1));
+			++m_num_timers;
 		}
 		try_connect(l);
 	}

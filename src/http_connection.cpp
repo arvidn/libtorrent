@@ -93,6 +93,7 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 
 http_connection::~http_connection()
 {
+	TORRENT_ASSERT(m_connection_ticket == -1);
 #ifdef TORRENT_USE_OPENSSL
 	if (m_own_ssl_context) delete m_ssl_ctx;
 #endif
@@ -378,23 +379,14 @@ void http_connection::start(std::string const& hostname, std::string const& port
 
 void http_connection::on_connect_timeout()
 {
-	if (m_connection_ticket > -1) m_cc.done(m_connection_ticket);
-	m_connection_ticket = -1;
+	TORRENT_ASSERT(m_connection_ticket > -1);
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
-	if (!m_endpoints.empty())
-	{
-		error_code ec;
-		m_sock.close(ec);
-	} 
-	else
-	{ 
-		callback(asio::error::timed_out);
-		close();
-	}
+	error_code ec;
+	m_sock.close(ec);
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -550,6 +542,12 @@ void http_connection::queue_connect()
 
 void http_connection::connect(int ticket, tcp::endpoint target_address)
 {
+	if (ticket == -1)
+	{
+		close();
+		return;
+	}
+
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
 		&& (m_proxy.type == proxy_settings::socks5
