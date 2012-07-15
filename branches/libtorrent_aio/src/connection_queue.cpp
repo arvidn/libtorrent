@@ -235,6 +235,7 @@ namespace libtorrent
 
 			if (m_num_connecting >= m_half_open_limit
 				&& m_half_open_limit > 0) break;
+			if (m_num_connecting == m_queue.size()) break;
 			i = std::find_if(i, m_queue.end(), boost::bind(&entry::connecting, _1) == false);
 		}
 
@@ -274,8 +275,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(!e || e == error::operation_aborted);
-		if (e && m_num_connecting == 0)
-			return;
+		if (e) return;
 
 		ptime next_expire = max_time();
 		ptime now = time_now_hires() + milliseconds(100);
