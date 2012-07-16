@@ -7,8 +7,8 @@ import platform
 import sys
 
 if '@BOOST_PYTHON_LIB@' == '':
-	print 'You need to pass --enable-python-binding to configure in order ',
-	print 'to properly use this setup. There is no boost.python library configured now'
+	print('You need to pass --enable-python-binding to configure in order '),
+	print('to properly use this setup. There is no boost.python library configured now')
 	sys.exit(1)
 
 def parse_cmd(cmdline, prefix, keep_prefix = False):
@@ -33,7 +33,7 @@ if platform.system() == 'Windows':
 	# msvc 9.0 (2008) is the official windows compiler for python 2.6
 	# http://docs.python.org/whatsnew/2.6.html#build-and-c-api-changes
 	if os.system('bjam boost=source link=static geoip=static boost-link=static release msvc-9.0 optimization=space') != 0:
-		print 'build failed'
+		print('build failed')
 		sys.exit(1)
 	try: os.mkdir(r'build')
 	except: pass
