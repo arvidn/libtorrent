@@ -139,21 +139,22 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 
 		if (test_ban && th.url_seeds().empty())
 		{
+			fprintf(stderr, "testing ban: URL seed removed\n");
 			// when we don't have any web seeds left, we know we successfully banned it
 			break;
 		}
 
-		if (s.is_seeding /* && ss.download_rate == 0.f*/)
+		if (s.is_seeding)
 		{
-			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
-			// we need to sleep here a bit to let the session sync with the torrent stats
-//			test_sleep(1000);
-			fprintf(stderr, "payload: %d redundant: %d\n", int(ses->status().total_payload_download), int(ses->status().total_redundant_bytes));
+			fprintf(stderr, "SEEDING\n");
+			fprintf(stderr, "session.payload: %d session.redundant: %d\n"
+				, int(ses->status().total_payload_download), int(ses->status().total_redundant_bytes));
+			fprintf(stderr, "torrent.payload: %d torrent.redundant: %d\n"
+				, int(s.total_payload_download), int(s.total_redundant_bytes));
 
-			// this doesn't work yet!
-			// TODO: session stat depends on second_tick being called on all torrents
-//			TEST_EQUAL(ses->status().total_payload_download - ses->status().total_redundant_bytes
-//				, total_size - pad_file_size);
+			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
+			TEST_EQUAL(ses->status().total_payload_download - ses->status().total_redundant_bytes
+				, total_size - pad_file_size);
 			break;
 		}
 		test_sleep(500);

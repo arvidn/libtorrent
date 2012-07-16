@@ -970,6 +970,13 @@ namespace libtorrent
 			// statistics gathered from all torrents.
 			stat m_stat;
 
+			// implements session_interface
+			virtual void sent_bytes(int bytes_payload, int bytes_protocol);
+			virtual void received_bytes(int bytes_payload, int bytes_protocol);
+			virtual void trancieve_ip_packet(int bytes, bool ipv6);
+			virtual void sent_syn(bool ipv6);
+			virtual void received_synack(bool ipv6);
+
 			int m_peak_up_rate;
 			int m_peak_down_rate;
 

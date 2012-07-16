@@ -2992,6 +2992,31 @@ namespace aux {
 	}
 #endif
 
+	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
+	{
+		m_stat.sent_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
+	{
+		m_stat.received_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
+	{
+		m_stat.trancieve_ip_packet(bytes, ipv6);
+	}
+
+	void session_impl::sent_syn(bool ipv6)
+	{
+		m_stat.sent_syn(ipv6);
+	}
+
+	void session_impl::received_synack(bool ipv6)
+	{
+		m_stat.received_synack(ipv6);
+	}
+
 	void session_impl::on_tick(error_code const& e)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -3206,7 +3231,7 @@ namespace aux {
 			TORRENT_ASSERT(!t.is_aborted());
 
 			size_t size = want_tick.size();
-			t.second_tick(m_stat, tick_interval_ms);
+			t.second_tick(tick_interval_ms);
 
 			// if the call to second_tick caused the torrent
 			// to no longer want to be ticked (i.e. it was

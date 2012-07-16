@@ -226,16 +226,21 @@ namespace libtorrent
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
-		void second_tick(stat& accumulator, int tick_interval_ms);
+		void second_tick(int tick_interval_ms);
 
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		void add_stats(stat const& s);
 		size_type bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
 		size_type quantized_bytes_done() const;
+
+		void sent_bytes(int bytes_payload, int bytes_protocol);
+		void received_bytes(int bytes_payload, int bytes_protocol);
+		void trancieve_ip_packet(int bytes, bool ipv6);
+		void sent_syn(bool ipv6);
+		void received_synack(bool ipv6);
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 

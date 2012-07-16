@@ -1,3 +1,4 @@
+	* make statistics propagate instantly rather than on the second tick
 	* support for partfiles, where partial pieces belonging to skipped files are put
 	* support using multiple threads for socket operations (especially useful for high performance SSL connections)
 	* allow setting rate limits for arbitrary peer groups. Generalizes per-torrent rate limits, and local peer limits

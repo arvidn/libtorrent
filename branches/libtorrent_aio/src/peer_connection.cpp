@@ -983,6 +983,51 @@ namespace libtorrent
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
+	void peer_connection::received_bytes(int bytes_payload, int bytes_protocol)
+	{
+		m_statistics.received_bytes(bytes_payload, bytes_protocol);
+		if (m_ignore_stats) return;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+		t->received_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void peer_connection::sent_bytes(int bytes_payload, int bytes_protocol)
+	{
+		m_statistics.sent_bytes(bytes_payload, bytes_protocol);
+		if (m_ignore_stats) return;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+		t->sent_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void peer_connection::trancieve_ip_packet(int bytes, bool ipv6)
+	{
+		m_statistics.trancieve_ip_packet(bytes, ipv6);
+		if (m_ignore_stats) return;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+		t->trancieve_ip_packet(bytes, ipv6);
+	}
+
+	void peer_connection::sent_syn(bool ipv6)
+	{
+		m_statistics.sent_syn(ipv6);
+		if (m_ignore_stats) return;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+		t->sent_syn(ipv6);
+	}
+
+	void peer_connection::received_synack(bool ipv6)
+	{
+		m_statistics.received_synack(ipv6);
+		if (m_ignore_stats) return;
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t) return;
+		t->received_synack(ipv6);
+	}
+
 	bitfield const& peer_connection::get_bitfield() const
 	{
 		return m_have_piece;
@@ -3617,8 +3662,6 @@ namespace libtorrent
 			// make sure we keep all the stats!
 			if (!m_ignore_stats)
 			{
-				t->add_stats(statistics());
-
 				// report any partially received payload as redundant
 				boost::optional<piece_block_progress> pbp = downloading_piece_progress();
 				if (pbp
@@ -5277,7 +5320,7 @@ namespace libtorrent
 			peer_log("*** ERROR [ in peer_connection::on_receive_data error: %s ]"
 				, error.message().c_str());
 #endif
-			m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+			trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 			on_receive(error, bytes_transferred);
 			disconnect(error);
 			return;
@@ -5355,7 +5398,7 @@ namespace libtorrent
 
 			if (m_disconnecting)
 			{
-				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 				return;
 			}
 	
@@ -5416,7 +5459,7 @@ namespace libtorrent
 			TORRENT_ASSERT(bytes_transferred > 0 || ec);
 			if (ec && ec != asio::error::would_block)
 			{
-				m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 				disconnect(ec);
 				return;
 			}
@@ -5434,7 +5477,7 @@ namespace libtorrent
 			if (t) t->seen_complete();
 		}
 
-		m_statistics.trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
+		trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 
 		// allow reading from the socket again
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
@@ -5588,7 +5631,8 @@ namespace libtorrent
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now_hires();
-		m_statistics.sent_syn(m_remote.address().is_v6());
+
+		sent_syn(m_remote.address().is_v6());
 
 		if (t->alerts().should_post<peer_connect_alert>())
 		{
@@ -5655,7 +5699,7 @@ namespace libtorrent
 
 		// this means the connection just succeeded
 
-		m_statistics.received_synack(m_remote.address().is_v6());
+		received_synack(m_remote.address().is_v6());
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING
@@ -5751,7 +5795,7 @@ namespace libtorrent
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
 		m_quota[upload_channel] -= bytes_transferred;
 
-		m_statistics.trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+		trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log(">>> wrote %d bytes", int(bytes_transferred));

@@ -330,8 +330,13 @@ namespace libtorrent
 		boost::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
-		const stat& statistics() const { return m_statistics; }
+		stat const& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
+		void sent_bytes(int bytes_payload, int bytes_protocol);
+		void received_bytes(int bytes_payload, int bytes_protocol);
+		void trancieve_ip_packet(int bytes, bool ipv6);
+		void sent_syn(bool ipv6);
+		void received_synack(bool ipv6);
 
 		// is called once every second by the main loop
 		void second_tick(int tick_interval_ms);
@@ -677,10 +682,14 @@ namespace libtorrent
 		// number of bytes this peer can send and receive
 		int m_quota[2];
 
+	private:
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for
 		// this peer
+		// TODO: factor this out into its own class with a virtual interface
+		// torrent and session should implement this interface
 		stat m_statistics;
+	protected:
 
 		// a back reference to the session
 		// the peer belongs to.

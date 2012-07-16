@@ -128,6 +128,12 @@ namespace libtorrent { namespace aux
 		virtual int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) = 0;
 
 		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
+
+		virtual void sent_bytes(int bytes_payload, int bytes_protocol) = 0;
+		virtual void received_bytes(int bytes_payload, int bytes_protocol) = 0;
+		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
+		virtual void sent_syn(bool ipv6) = 0;
+		virtual void received_synack(bool ipv6) = 0;
 		
 		// half-open
 		virtual void half_open_done(int ticket) = 0;

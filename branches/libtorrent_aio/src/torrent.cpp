@@ -7802,10 +7802,7 @@ namespace libtorrent
 		announce_with_tracker(tracker_request::stopped);
 	}
 
-	// TODO: don't rely on second_tick to propagate stats to the session stats. Update them in sync.
-	// with the optimization of not calling second_tick on all torrents, some stats is lost
-	// when turning off ticks
-	void torrent::second_tick(stat& accumulator, int tick_interval_ms)
+	void torrent::second_tick(int tick_interval_ms)
 	{
 		TORRENT_ASSERT(want_tick());
 		TORRENT_ASSERT(m_ses.is_single_thread());
@@ -7833,7 +7830,6 @@ namespace libtorrent
 		if (is_paused())
 		{
 			// let the stats fade out to 0
-			accumulator += m_stat;
  			m_stat.second_tick(tick_interval_ms);
 			// if the rate is 0, there's no update because of network transfers
 			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
@@ -7935,9 +7931,6 @@ namespace libtorrent
 			// look for the peer that saw a seed most recently
 			m_swarm_last_seen_complete = (std::max)(p->last_seen_complete(), m_swarm_last_seen_complete);
 
-			if (!p->ignore_stats())
-				m_stat += p->statistics();
-
 			// updates the peer connection's ul/dl bandwidth
 			// resource requests
 			TORRENT_TRY {
@@ -7956,7 +7949,6 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<stats_alert>())
 			m_ses.m_alerts.post_alert(stats_alert(get_handle(), tick_interval_ms, m_stat));
 
-		accumulator += m_stat;
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
 		m_stat.second_tick(tick_interval_ms);
@@ -8209,12 +8201,34 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::add_stats(stat const& s)
+	void torrent::sent_bytes(int bytes_payload, int bytes_protocol)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
-		// these stats are propagated to the session
-		// stats the next time second_tick is called
-		m_stat += s;
+		m_stat.sent_bytes(bytes_payload, bytes_protocol);
+		m_ses.sent_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void torrent::received_bytes(int bytes_payload, int bytes_protocol)
+	{
+		m_stat.received_bytes(bytes_payload, bytes_protocol);
+		m_ses.received_bytes(bytes_payload, bytes_protocol);
+	}
+
+	void torrent::trancieve_ip_packet(int bytes, bool ipv6)
+	{
+		m_stat.trancieve_ip_packet(bytes, ipv6);
+		m_ses.trancieve_ip_packet(bytes, ipv6);
+	}
+
+	void torrent::sent_syn(bool ipv6)
+	{
+		m_stat.sent_syn(ipv6);
+		m_ses.sent_syn(ipv6);
+	}
+
+	void torrent::received_synack(bool ipv6)
+	{
+		m_stat.received_synack(ipv6);
+		m_ses.received_synack(ipv6);
 	}
 
 	void torrent::request_time_critical_pieces()
