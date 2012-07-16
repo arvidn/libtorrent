@@ -478,10 +478,6 @@ namespace libtorrent
 
 		list_iterator range = m_disk_cache.write_lru_pieces();
 
-		// TODO: remove the cache algorithm option
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
-			== settings_pack::avoid_readback);
-
 		for (list_iterator p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
@@ -519,9 +515,6 @@ namespace libtorrent
 	{
 		DLOG(stderr, "[%p] flush_expired_write_blocks\n", this);
 
-		// TODO: remove the cache algorithm option
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
-			== settings_pack::avoid_readback);
 		ptime now = time_now();
 		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 

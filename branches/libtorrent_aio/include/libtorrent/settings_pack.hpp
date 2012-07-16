@@ -953,18 +953,6 @@ namespace libtorrent
 			// as they leave disk I/O time for other processes.
 			file_checks_delay_per_block,
 
-			// ``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-			// algorithm to use. The default algorithm is largest_contiguous. This
-			// flushes the entire piece, in the write cache, that was least recently
-			// written to. This is specified by the ``session_settings::lru`` enum
-			// value. ``session_settings::largest_contiguous`` will flush the largest
-			// sequences of contiguous blocks from the write cache, regarless of the
-			// piece's last use time. ``session_settings::avoid_readback`` will prioritize
-			// flushing blocks that will avoid having to read them back in to verify
-			// the hash of the piece once it's done. This is especially useful for high
-			// throughput setups, where reading from the disk is especially expensive.
-			disk_cache_algorithm,
-
 			// ``read_cache_line_size`` is the number of blocks to read into the read
 			// cache when a read cache miss occurs. Setting this to 0 is essentially
 			// the same thing as disabling read cache. The number of blocks read
@@ -1297,9 +1285,6 @@ namespace libtorrent
 			disable_os_cache_for_aligned_files = 1,
 			disable_os_cache = 2
 		};
-
-		enum disk_cache_algo_t
-		{ lru, largest_contiguous, avoid_readback };
 
 		enum bandwidth_mixed_algo_t
 		{

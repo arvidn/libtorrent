@@ -1641,7 +1641,6 @@ int main(int argc, char* argv[])
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
-	settings.set_int(settings_pack::disk_cache_algorithm, settings_pack::avoid_readback);
 	settings.set_bool(settings_pack::volatile_read_cache, false);
 	settings.set_int(settings_pack::aio_threads, 16);
 
