@@ -284,7 +284,12 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(!e || e == error::operation_aborted);
-		if (e && m_num_connecting == 0 && m_num_timers > 0) return;
+
+		// if there was an error, it's most likely operation aborted,
+		// we should just quit. However, in case there are still connections
+		// in connecting state, and there are no other timer invocations
+		// we need to stick around still.
+		if (e && (m_num_connecting == 0 || m_num_timers > 0)) return;
 
 		ptime next_expire = max_time();
 		ptime now = time_now_hires() + milliseconds(100);
