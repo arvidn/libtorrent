@@ -27,7 +27,11 @@ struct path_from_python
 
     static void* convertible(PyObject* x)
     {
+#if PY_VERSION_HEX >= 0x03020000
+        return PyBytes_Check(x) ? x : PyUnicode_Check(x) ? x : 0;
+#else
         return PyString_Check(x) ? x : PyUnicode_Check(x) ? x : 0;
+#endif
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
@@ -40,7 +44,11 @@ struct path_from_python
         {
             std::wstring str;
             str.resize(PyUnicode_GetSize(x) + 1, 0);
-            int len = PyUnicode_AsWideChar((PyUnicodeObject*)x, &str[0], str.size());
+#if PY_VERSION_HEX >= 0x03020000
+            int len = PyUnicode_AsWideChar(x, &str[0], str.size());
+#else
+            int len = PyUnicode_AsWideChar(PyUnicodeObject*)x, &str[0], str.size());
+#endif
             if (len > -1)
             {
                assert(len < str.size());
@@ -54,7 +62,11 @@ struct path_from_python
         }
         else
         {
+#if PY_VERSION_HEX >= 0x03000000
+            new (storage) boost::filesystem::path(PyBytes_AsString(x));
+#else
             new (storage) boost::filesystem::path(PyString_AsString(x));
+#endif
         }
         data->convertible = storage;
     }
