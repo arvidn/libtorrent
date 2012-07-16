@@ -5509,6 +5509,12 @@ namespace libtorrent
 		m_ses.session_log("ON_CONNECT: %s", print_endpoint(m_remote).c_str());
 #endif
 
+		if (ticket == -1)
+		{
+			disconnect(asio::error::operation_aborted);
+			return;		
+		}
+
 		m_connection_ticket = ticket;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
