@@ -173,6 +173,8 @@ namespace libtorrent
 		void set_share_mode(bool s);
 		bool share_mode() const { return m_share_mode; }
 
+		// TOOD: make graceful pause also finish all sending blocks
+		// before disconnecting
 		bool graceful_pause() const { return m_graceful_pause_mode; }
 
 		void set_upload_mode(bool b);
