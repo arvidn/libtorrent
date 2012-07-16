@@ -5,6 +5,7 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 import sys
+import atexit
 import libtorrent as lt
 import time
 import os.path
@@ -36,7 +37,7 @@ class UnixConsole:
         new[6][termios.VMIN] = 1
         termios.tcsetattr(self.fd.fileno(), termios.TCSADRAIN, new)
 
-        sys.exitfunc = self._onexit
+        atexit.register(self._onexit)
 
     def _onexit(self):
         termios.tcsetattr(self.fd.fileno(), termios.TCSADRAIN, self.old)
@@ -238,7 +239,7 @@ def main():
     for f in args:
         e = lt.bdecode(open(f, 'rb').read())
         info = lt.torrent_info(e)
-        print 'Adding \'%s\'...' % info.name()
+        print('Adding \'%s\'...' % info.name())
 
         atp = {}
         try:
