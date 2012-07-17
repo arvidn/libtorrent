@@ -59,7 +59,7 @@ namespace libtorrent
 		~disk_buffer_pool();
 #endif
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_DISK_STATS
 		bool is_disk_buffer(char* buffer
 			, mutex::scoped_lock& l) const;
 		bool is_disk_buffer(char* buffer) const;
