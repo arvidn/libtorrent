@@ -4750,6 +4750,9 @@ namespace aux {
 
 	void session_impl::do_delayed_uncork()
 	{
+#ifdef TORRENT_STATS
+		inc_stats_counter(aux::session_impl::on_disk_counter);
+#endif
 		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
 			, end(m_delayed_uncorks.end()); i != end; ++i)

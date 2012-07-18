@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/uncork_interface.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -205,6 +206,7 @@ namespace libtorrent
 			, boost::noncopyable
 			, initialize_timer
 			, udp_socket_observer
+			, uncork_interface
 			, boost::enable_shared_from_this<session_impl>
 			, single_threaded
 		{
@@ -614,6 +616,7 @@ namespace libtorrent
 			}
 
 			// uncork all peers added to the delayed uncork queue
+			// implements uncork_interface
 			void do_delayed_uncork();
 
 			void post_socket_write_job(write_some_job& j);

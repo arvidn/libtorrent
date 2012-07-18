@@ -49,9 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
-
-// TODO: it would be nice to get rid of this dependency
-#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/uncork_interface.hpp"
 
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>
@@ -2151,11 +2149,7 @@ namespace libtorrent
 		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
 		l.unlock();
 
-		// TODO: this should probably be an uncork-interface
-		aux::session_impl* ses = (aux::session_impl*)userdata;
-#ifdef TORRENT_STATS
-		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
-#endif
+		uncork_interface* uncork = (uncork_interface*)userdata;
 		std::vector<disk_io_job*> to_delete;
 		to_delete.reserve(num_jobs);
 
@@ -2178,7 +2172,7 @@ namespace libtorrent
 
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.
-		if (ses) ses->do_delayed_uncork();
+		if (uncork) uncork->do_delayed_uncork();
 	}
 
 #ifdef TORRENT_DEBUG
