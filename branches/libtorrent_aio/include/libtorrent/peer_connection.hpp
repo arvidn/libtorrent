@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/disk_observer.hpp"
 
 namespace libtorrent
 {
@@ -146,6 +147,7 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT peer_connection
 		: public bandwidth_socket
 		, public peer_class_set
+		, public disk_observer
 		, public boost::noncopyable
 	{
 	friend class invariant_access;

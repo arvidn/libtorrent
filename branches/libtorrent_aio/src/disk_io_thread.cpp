@@ -2052,11 +2052,11 @@ namespace libtorrent
 	}
 
 	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
-		, boost::function<void()> const& cb
+		, disk_observer* o
 		, char const* category)
 	{
 		bool trigger_trim = false;
-		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, cb, category);
+		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, o, category);
 		if (trigger_trim)
 		{
 			// we just exceeded the cache size limit. Trigger a trim job

@@ -59,6 +59,7 @@ namespace libtorrent
 	struct bandwidth_channel;
 	struct bandwidth_manager;
 	struct peer_class_pool;
+	struct disk_observer;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
@@ -108,7 +109,7 @@ namespace libtorrent { namespace aux
 		// port selection
 		virtual int next_port() = 0;
 
-		virtual void subscribe_to_disk(boost::function<void()> const& cb) = 0;
+		virtual void subscribe_to_disk(disk_observer* o) = 0;
 		virtual bool exceeded_cache_use() const = 0;
 
 		// TODO: it would be nice to not have this be part of session_interface

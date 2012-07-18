@@ -2226,9 +2226,7 @@ namespace libtorrent
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
 		bool exceeded = false;
-		char* buffer = m_allocator.allocate_disk_buffer(exceeded
-			, boost::bind(&peer_connection::on_disk, self())
-			, "receive buffer");
+		char* buffer = m_allocator.allocate_disk_buffer(exceeded, this, "receive buffer");
 
 		if (buffer == 0)
 		{
@@ -3915,9 +3913,7 @@ namespace libtorrent
 		// then allocate a new one
 
 		bool exceeded = false;
-		m_disk_recv_buffer.reset(m_allocator.allocate_disk_buffer(exceeded
-			, boost::bind(&peer_connection::on_disk, self())
-			, "receive buffer"));
+		m_disk_recv_buffer.reset(m_allocator.allocate_disk_buffer(exceeded, this, "receive buffer"));
 
 		if (!m_disk_recv_buffer)
 		{
@@ -5523,8 +5519,7 @@ namespace libtorrent
 
 				// make sure we know when the cache has been flushed
 				// enough so we can start downloading again
-				m_ses.subscribe_to_disk(boost::bind(&peer_connection::on_disk
-					, const_cast<peer_connection*>(this)->self()));
+				m_ses.subscribe_to_disk(const_cast<peer_connection*>(this));
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** exceeded disk buffer watermark");

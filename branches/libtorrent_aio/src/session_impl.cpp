@@ -6329,10 +6329,10 @@ namespace aux {
 	}
 	
 	char* session_impl::allocate_disk_buffer(bool& exceeded
-		, boost::function<void()> const& cb
+		, disk_observer* o
 		, char const* category)
 	{
-		return m_disk_thread.allocate_disk_buffer(exceeded, cb, category);
+		return m_disk_thread.allocate_disk_buffer(exceeded, o, category);
 	}
 	
 	char* session_impl::allocate_buffer()

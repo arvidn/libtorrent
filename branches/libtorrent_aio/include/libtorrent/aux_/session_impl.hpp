@@ -538,14 +538,14 @@ namespace libtorrent
 			void free_buffer(char* buf);
 			int send_buffer_size() const { return send_buffer_size_impl; }
 
-			void subscribe_to_disk(boost::function<void()> const& cb)
-			{ return m_disk_thread.subscribe_to_disk(cb); }
+			void subscribe_to_disk(disk_observer* o)
+			{ m_disk_thread.subscribe_to_disk(o); }
 
 			// implements buffer_allocator_interface
 			void free_disk_buffer(char* buf);
 			char* allocate_disk_buffer(char const* category);
 			char* allocate_disk_buffer(bool& exceeded
-				, boost::function<void()> const& cb
+				, disk_observer* o
 				, char const* category);
 			void reclaim_block(block_cache_reference ref);
 	

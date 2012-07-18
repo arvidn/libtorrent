@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
+#include "libtorrent/disk_observer.hpp"
 
 #include <algorithm>
 #include <boost/bind.hpp>
@@ -54,13 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	// this is posted to the network thread
-	static void watermark_callback(std::vector<boost::function<void()> >* cbs)
+	static void watermark_callback(std::vector<disk_observer*>* cbs)
 	{
-		for (std::vector<boost::function<void()> >::iterator i = cbs->begin()
+		for (std::vector<disk_observer*>::iterator i = cbs->begin()
 			, end(cbs->end()); i != end; ++i)
-		{
-			(*i)();
-		}
+			(*i)->on_disk();
 		delete cbs;
 	}
 
@@ -134,7 +133,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_callbacks.size()));
+			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()));
 
 		if (m_in_use + num_needed > m_max_use)
 			ret = (std::max)(ret, int(m_in_use + num_needed - m_max_use));
@@ -154,8 +153,8 @@ namespace libtorrent
 		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
 
 		m_exceeded_max_size = false;
-		std::vector<boost::function<void()> >* cbs = new std::vector<boost::function<void()> >();
-		m_callbacks.swap(*cbs);
+		std::vector<disk_observer*>* cbs = new std::vector<disk_observer*>();
+		m_observers.swap(*cbs);
 		l.unlock();
 
 		m_ios.post(boost::bind(&watermark_callback, cbs));
@@ -197,10 +196,10 @@ namespace libtorrent
 	}
 #endif
 
-	void disk_buffer_pool::subscribe_to_disk(boost::function<void()> const& cb)
+	void disk_buffer_pool::subscribe_to_disk(disk_observer* o)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
-		m_callbacks.push_back(cb);
+		m_observers.push_back(o);
 	}
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)
@@ -210,7 +209,7 @@ namespace libtorrent
 	}
 
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded, bool& trigger_trim
-		, boost::function<void()> const& cb, char const* category)
+		, disk_observer* o, char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		bool was_exceeded = m_exceeded_max_size;
@@ -218,7 +217,7 @@ namespace libtorrent
 		if (m_exceeded_max_size)
 		{
 			exceeded = true;
-			m_callbacks.push_back(cb);
+			m_observers.push_back(o);
 			if (!was_exceeded) trigger_trim = true;
 		}
 		return ret;
@@ -330,6 +329,8 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		free_buffer_impl(buf, l);
+
+		check_buffer_level(l);
 	}
 
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett)

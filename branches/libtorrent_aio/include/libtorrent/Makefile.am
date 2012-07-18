@@ -38,6 +38,7 @@ nobase_include_HEADERS = \
   disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_observer.hpp            \
   disk_job_pool.hpp            \
   entry.hpp                    \
   enum_net.hpp                 \
