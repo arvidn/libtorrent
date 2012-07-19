@@ -1225,7 +1225,7 @@ namespace libtorrent
 			// if we went from 0 to > 0, we need to
 			// update 'want-more-peers' state
 			if (m_num_connect_candidates == delta)
-				m_torrent->update_want_more_peers();
+				m_torrent->update_want_peers();
 		}
 		else
 		{
@@ -1234,7 +1234,7 @@ namespace libtorrent
 			// if we went from > 0 to 0, we also need
 			// to update 'want-more-peers' state
 			if (m_num_connect_candidates == 0)
-				m_torrent->update_want_more_peers();
+				m_torrent->update_want_peers();
 		}
 	}
 
@@ -1427,7 +1427,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_torrent->want_more_peers());
+		TORRENT_ASSERT(m_torrent->want_peers());
 		
 		iterator i = find_connect_candidate(session_time);
 		if (i == m_peers.end()) return false;
@@ -1555,9 +1555,9 @@ namespace libtorrent
 		}
 
 		// if we dropped to 0 or increased from 0, we need to update
-		// the 'want_more_peers' state of the torrent
+		// the 'want_peers' state of the torrent
 		if ((prev_candidates == 0) != (m_num_connect_candidates == 0))
-			m_torrent->update_want_more_peers();
+			m_torrent->update_want_peers();
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

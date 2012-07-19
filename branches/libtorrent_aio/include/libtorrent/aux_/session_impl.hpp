@@ -589,32 +589,6 @@ namespace libtorrent
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
 
-			void inc_active_downloading()
-			{
-				TORRENT_ASSERT(is_single_thread());
-				++m_num_downloaders;
-			}
-
-			void dec_active_downloading()
-			{
-				TORRENT_ASSERT(is_single_thread());
-				TORRENT_ASSERT(m_num_downloaders > 0);
-				--m_num_downloaders;
-			}
-
-			void inc_active_finished()
-			{
-				TORRENT_ASSERT(is_single_thread());
-				++m_num_finished;
-			}
-
-			void dec_active_finished()
-			{
-				TORRENT_ASSERT(is_single_thread());
-				TORRENT_ASSERT(m_num_finished > 0);
-				--m_num_finished;
-			}
-
 			// uncork all peers added to the delayed uncork queue
 			// implements uncork_interface
 			void do_delayed_uncork();
@@ -632,8 +606,12 @@ namespace libtorrent
 				// all torrents that want to be ticked every second
 				torrent_want_tick,
 
-				// all torrents that want more peers
-				torrent_want_peers,
+				// all torrents that want more peers and are still downloading
+				// these typically have higher priority when connecting peers
+				torrent_want_peers_download,
+
+				// all torrents that want more peers and are finished downloading
+				torrent_want_peers_finished,
 
 				// torrents that want auto-scrape (only paused auto-managed ones)
 				torrent_want_scrape,
@@ -645,12 +623,6 @@ namespace libtorrent
 			};
 	
 			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
-
-			// these are the number of finished and downloading torrents that 
-			// want more peers. i.e. this is not a total count, just the active
-			// ones
-			int m_num_finished;
-			int m_num_downloaders;
 
 			peer_class_pool m_classes;
 
@@ -719,6 +691,8 @@ namespace libtorrent
 				static int allocations;
 				static int allocated_bytes;
 			};
+
+			// TODO: these should be a plain boost::pool rather than an object_pool
 			boost::object_pool<
 				policy::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
@@ -1099,18 +1073,17 @@ namespace libtorrent
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin peer connections among
 			// torrents that want more peers. The index is into
-			// m_torrent_lists[torrent_want_peers] (which is a list
-			// of torrent pointers with all torrents that want peers)
-			int m_next_connect_torrent;
+			// m_torrent_lists[torrent_want_peers_downloading]
+			// (which is a list of torrent pointers with all
+			// torrents that want peers and are downloading)
+			int m_next_downloading_connect_torrent;
+			int m_next_finished_connect_torrent;
 
 			// this is the number of attempts of connecting to
-			// peers we have given to the torrent pointed to
-			// by m_next_connect_torrent. Once this reaches
-			// the number of connection attempts this particular
-			// torrent should have, the counter is reset and
-			// m_next_connect_torrent takes a step forward
-			// to give the next torrent its connection attempts.
-			int m_current_connect_attempts;
+			// peers we have given to downloading torrents.
+			// when this gets high enough, we try to connect
+			// a peer from a finished torrent
+			int m_download_connect_attempts;
 
 			// index into m_torrent_lists[torrent_want_scrape] referring
 			// to the next torrent to auto-scrape

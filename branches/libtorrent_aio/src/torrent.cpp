@@ -365,8 +365,6 @@ namespace libtorrent
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
-		, m_active_download(false)
-		, m_active_finished(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -376,8 +374,6 @@ namespace libtorrent
 #endif
 
 		if (!m_apply_ip_filter) ++m_ses.m_non_filtered_torrents;
-		TORRENT_ASSERT(!is_active_download());
-		TORRENT_ASSERT(!is_active_finished());
 
 		if (!p.ti || !p.ti->is_valid())
 		{
@@ -496,7 +492,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_files_checked = false;
 #endif
-		update_want_more_peers();
+		update_want_peers();
 		update_want_scrape();
 		update_want_tick();
 
@@ -930,9 +926,6 @@ namespace libtorrent
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
-		TORRENT_ASSERT(!is_active_download());
-		TORRENT_ASSERT(!is_active_finished());
-		update_downloading_counters();
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -1716,7 +1709,7 @@ namespace libtorrent
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 
-		update_want_more_peers();
+		update_want_peers();
 
 		maybe_done_flushing();
 	}
@@ -1779,7 +1772,7 @@ namespace libtorrent
 					m_policy.add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 
 			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_string("banned_peers"))
@@ -1792,7 +1785,7 @@ namespace libtorrent
 						, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 
 #if TORRENT_USE_IPV6
@@ -1805,7 +1798,7 @@ namespace libtorrent
 					m_policy.add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
 						, id, peer_info::resume_data, 0);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 
 			if (lazy_entry const* banned_peers6_entry = m_resume_entry.dict_find_string("banned_peers6"))
@@ -1818,7 +1811,7 @@ namespace libtorrent
 						, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 #endif
 
@@ -1837,7 +1830,7 @@ namespace libtorrent
 					if (ec) continue;
 					m_policy.add_peer(a, id, peer_info::resume_data, 0);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 
 			// parse out "banned_peers" and add them as banned
@@ -1856,7 +1849,7 @@ namespace libtorrent
 					policy::peer* p = m_policy.add_peer(a, id, peer_info::resume_data, 0);
 					if (p) m_policy.ban_peer(p);
 				}
-				update_want_more_peers();
+				update_want_peers();
 			}
 		}
 
@@ -2293,7 +2286,7 @@ namespace libtorrent
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
 
-		update_want_more_peers();
+		update_want_peers();
 	}
 
 #endif
@@ -2678,7 +2671,7 @@ namespace libtorrent
 				m_policy.add_peer(a, i->pid, peer_info::tracker, 0);
 			}
 		}
-		update_want_more_peers();
+		update_want_peers();
 
 		if (m_ses.m_alerts.should_post<tracker_reply_alert>())
 		{
@@ -2734,7 +2727,7 @@ namespace libtorrent
 				, m_ses.m_half_open.free_slots())
 				, m_ses.m_boost_connections - m_ses.m_settings.get_int(settings_pack::connection_speed));
 
-			while (want_more_peers() && conns > 0)
+			while (want_peers() && conns > 0)
 			{
 				if (!m_policy.connect_one_peer(m_ses.session_time())) break;
 				// increase m_ses.m_boost_connections for each connection
@@ -2744,7 +2737,7 @@ namespace libtorrent
 				++m_ses.m_boost_connections;
 			}
 
-			update_want_more_peers();
+			update_want_peers();
 		}
 
 		state_updated();
@@ -2825,7 +2818,7 @@ namespace libtorrent
 		}
 			
 		m_policy.add_peer(*host, pid, peer_info::tracker, 0);
-		update_want_more_peers();
+		update_want_peers();
 	}
 
 	size_type torrent::bytes_left() const
@@ -3576,7 +3569,7 @@ namespace libtorrent
 
 				// mark the peer as banned
 				m_policy.ban_peer(p);
-				update_want_more_peers();
+				update_want_peers();
 #ifdef TORRENT_STATS
 				m_ses.inc_stats_counter(aux::session_interface::banned_for_hash_failure);
 #endif
@@ -3836,7 +3829,7 @@ namespace libtorrent
 		if (m_abort) return;
 
 		m_abort = true;
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 
 		// if the torrent is paused, it doesn't need
@@ -4734,7 +4727,7 @@ namespace libtorrent
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 	}
 
@@ -5146,7 +5139,7 @@ namespace libtorrent
 		{
 			// add the newly connected peer to this torrent's peer list
 			m_connections.insert(boost::get_pointer(c));
-			update_want_more_peers();
+			update_want_peers();
 			update_want_tick();
 			m_ses.m_connections.insert(c);
 
@@ -5425,7 +5418,7 @@ namespace libtorrent
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
 
-				update_want_more_peers();
+				update_want_peers();
 				update_want_scrape();
 			}
 			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
@@ -5959,7 +5952,7 @@ namespace libtorrent
 		// extend connect timeout by this many seconds
 		int timeout_extend = 0;
 
-		TORRENT_ASSERT(want_more_peers() || ignore_limit);
+		TORRENT_ASSERT(want_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections()
 			< m_ses.settings().get_int(settings_pack::connections_limit) || ignore_limit);
 
@@ -6068,7 +6061,7 @@ namespace libtorrent
 		m_connections.insert(boost::get_pointer(c));
 		m_ses.m_connections.insert(c);
 		m_policy.set_connection(peerinfo, c.get());
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 		c->start();
 
@@ -6090,7 +6083,7 @@ namespace libtorrent
 			if (i != m_connections.end())
 			{
 				m_connections.erase(i);
-				update_want_more_peers();
+				update_want_peers();
 				update_want_tick();
 			}
 			c->disconnect(errors::no_error, 1);
@@ -6303,7 +6296,7 @@ namespace libtorrent
 				p->disconnect(errors::too_many_connections);
 				return false;
 			}
-			update_want_more_peers();
+			update_want_peers();
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
@@ -6318,7 +6311,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(m_connections.find(p) == m_connections.end());
 		m_connections.insert(p);
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 
 #ifdef TORRENT_DEBUG
@@ -6354,21 +6347,10 @@ namespace libtorrent
 
 	void torrent::update_want_tick()
 	{
-		if (want_tick())
-		{
-			m_links[aux::session_impl::torrent_want_tick]
-				.insert(m_ses.m_torrent_lists[aux::session_impl::torrent_want_tick]
-					, this);
-		}
-		else
-		{
-			m_links[aux::session_impl::torrent_want_tick]
-				.unlink(m_ses.m_torrent_lists[aux::session_impl::torrent_want_tick]
-					, aux::session_impl::torrent_want_tick);
-		}
+		update_list(aux::session_impl::torrent_want_tick, want_tick());
 	}
 
-	bool torrent::want_more_peers() const
+	bool torrent::want_peers() const
 	{
 		return m_connections.size() < m_max_connections
 			&& !is_paused()
@@ -6382,38 +6364,36 @@ namespace libtorrent
 				&& m_state != torrent_status::finished));
 	}
 
-	void torrent::update_downloading_counters()
+	bool torrent::want_peers_download() const
 	{
-		if (m_active_download && !is_active_download())
-		{
-			m_active_download = false;
-			m_ses.dec_active_downloading();
-		}
-		else if (!m_active_download && is_active_download())
-		{
-			m_active_download = true;
-			m_ses.inc_active_downloading();
-		}
-
-		if (m_active_finished && !is_active_finished())
-		{
-			m_active_finished = false;
-			m_ses.dec_active_finished();
-		}
-		else if (!m_active_finished && is_active_finished())
-		{
-			m_active_finished = true;
-			m_ses.inc_active_finished();
-		}
+		return (m_state == torrent_status::downloading
+			|| m_state == torrent_status::downloading_metadata)
+			&& want_peers();
 	}
 
-	void torrent::update_want_more_peers()
+	bool torrent::want_peers_finished() const
 	{
-		update_downloading_counters();
+		return (m_state == torrent_status::finished
+			|| m_state == torrent_status::seeding)
+			&& want_peers();
+	}
 
-		link& l = m_links[aux::session_impl::torrent_want_peers];
-		std::vector<torrent*>& v = m_ses.m_torrent_lists[aux::session_impl::torrent_want_peers];
-		if (want_more_peers())
+	void torrent::update_want_peers()
+	{
+		update_list(aux::session_impl::torrent_want_peers_download, want_peers_download());
+		update_list(aux::session_impl::torrent_want_peers_finished, want_peers_finished());
+	}
+
+	void torrent::update_want_scrape()
+	{
+		update_list(aux::session_impl::torrent_want_scrape, !m_allow_peers && m_auto_managed);
+	}
+
+	void torrent::update_list(int list, bool in)
+	{
+		link& l = m_links[list];
+		std::vector<torrent*>& v = m_ses.m_torrent_lists[list];
+		if (in)
 		{
 			if (l.in_list()) return;
 			l.insert(v, this);
@@ -6421,22 +6401,9 @@ namespace libtorrent
 		else
 		{
 			if (!l.in_list()) return;
-			l.unlink(v, aux::session_impl::torrent_want_peers);
+			l.unlink(v, list);
 		}
-	}
-
-	void torrent::update_want_scrape()
-	{
-		link& l = m_links[aux::session_impl::torrent_want_scrape];
-		std::vector<torrent*>& v = m_ses.m_torrent_lists[aux::session_impl::torrent_want_scrape];
-		if (!m_allow_peers && m_auto_managed)
-		{
-			l.insert(v, this);
-		}
-		else
-		{
-			l.unlink(v, aux::session_impl::torrent_want_scrape);
-		}	
+		
 	}
 
 	void torrent::disconnect_all(error_code const& ec)
@@ -6462,7 +6429,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_connections.size() <= size);
 		}
 
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 	}
 
@@ -6588,7 +6555,7 @@ namespace libtorrent
 		if (m_abort) return;
 
 		m_policy.recalculate_connect_candidates();
-		update_want_more_peers();
+		update_want_peers();
 
 		TORRENT_ASSERT(m_storage);
 		// we need to keep the object alive during this operation
@@ -6777,7 +6744,7 @@ namespace libtorrent
 		}
 
 		m_files_checked = true;
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 
 		start_announcing();
@@ -6883,7 +6850,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
-		TORRENT_ASSERT(want_more_peers() == m_links[aux::session_impl::torrent_want_peers].in_list());
+		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_impl::torrent_want_peers_download].in_list());
+		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_impl::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_impl::torrent_want_tick].in_list());
 		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_impl::torrent_want_scrape].in_list());
 
@@ -7462,7 +7430,7 @@ namespace libtorrent
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
 
-		update_want_more_peers();
+		update_want_peers();
 		update_want_scrape();
 
 		// we need to save this new state
@@ -7492,7 +7460,7 @@ namespace libtorrent
 #endif
 
 		state_updated();
-		update_want_more_peers();
+		update_want_peers();
 		update_want_scrape();
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
@@ -7532,7 +7500,7 @@ namespace libtorrent
 				if (p->is_disconnecting())
 				{
 					m_connections.erase(j);
-					update_want_more_peers();
+					update_want_peers();
 					update_want_tick();
 					continue;
 				}
@@ -7651,7 +7619,7 @@ namespace libtorrent
 		clear_error();
 
 		state_updated();
-		update_want_more_peers();
+		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
 
@@ -8082,7 +8050,7 @@ namespace libtorrent
 		if (prio_updated)
 			m_policy.recalculate_connect_candidates();
 
-		update_want_more_peers();
+		update_want_peers();
 
 		// now, rarest_pieces is a list of all pieces that are the rarest ones.
 		// and rarest_rarity is the number of peers that have the rarest pieces
@@ -8106,7 +8074,7 @@ namespace libtorrent
 		update_peer_interest(was_finished);
 
 		m_policy.recalculate_connect_candidates();
-		update_want_more_peers();
+		update_want_peers();
 	}
 
 	void torrent::refresh_explicit_cache(int cache_size)
@@ -8415,10 +8383,10 @@ namespace libtorrent
 	bool torrent::try_connect_peer()
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		TORRENT_ASSERT(want_more_peers());
+		TORRENT_ASSERT(want_peers());
 
 		bool ret = m_policy.connect_one_peer(m_ses.session_time());
-		update_want_more_peers();
+		update_want_peers();
 
 		return ret;
 	}
@@ -8429,7 +8397,7 @@ namespace libtorrent
 		peer_id id(0);
 		m_policy.add_peer(adr, id, source, 0);
 
-		update_want_more_peers();
+		update_want_peers();
 		state_updated();
 	}
 
@@ -8634,8 +8602,7 @@ namespace libtorrent
 
 		m_state = s;
 
-		update_downloading_counters();
-		update_want_more_peers();
+		update_want_peers();
 
 		state_updated();
 

@@ -418,24 +418,13 @@ namespace libtorrent
 		bool want_tick() const;
 		void update_want_tick();
 
-		bool want_more_peers() const;
-		void update_want_more_peers();
+		bool want_peers() const;
+		bool want_peers_download() const;
+		bool want_peers_finished() const;
+
+		void update_want_peers();
 
 		void update_want_scrape();
-
-		bool is_active_download() const
-		{
-			return (m_state == torrent_status::downloading
-				|| m_state == torrent_status::downloading_metadata)
-				&& want_more_peers();
-		}
-		bool is_active_finished() const
-		{
-			return (m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding)
-				&& want_more_peers();
-		}
-		void update_downloading_counters();
 
 		bool try_connect_peer();
 		void add_peer(tcp::endpoint const& adr, int source, int flags = 0);
@@ -864,6 +853,8 @@ namespace libtorrent
 #endif
 
 	private:
+
+		void update_list(int list, bool in);
 
 		void on_files_deleted(disk_io_job const* j);
 		void on_files_released(disk_io_job const* j);
@@ -1388,14 +1379,6 @@ namespace libtorrent
 		// will be added to the m_state_updates set in session_impl
 		// whenever this torrent's state changes (any state).
 		bool m_state_subscription:1;
-
-		// true if this torrent counts against the session's
-		// num_downloading counter
-		bool m_active_download:1;
-
-		// true if this torrent counts against the session's
-		// num_finished counter
-		bool m_active_finished:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
