@@ -166,7 +166,7 @@ namespace libtorrent
 		st.finished = 0;
 	}
 
-	piece_picker::downloading_piece& piece_picker::add_download_piece(int piece)
+	piece_picker::dlpiece_iter piece_picker::add_download_piece(int piece)
 	{
 		int num_downloads = 0;
 		for (int k = 0; k < 3; ++k) num_downloads += m_downloads[k].size();
@@ -206,7 +206,7 @@ namespace libtorrent
 			ret.info[i].piece_index = piece;
 #endif
 		}
-		return ret;
+		return i;
 	}
 
 	void piece_picker::erase_download_piece(std::vector<downloading_piece>::iterator i)
@@ -2649,19 +2649,18 @@ namespace libtorrent
 			p.state = piece_pos::piece_downloading;
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
-			downloading_piece& dp = add_download_piece(block.piece_index);
-			dp.state = state;
-			block_info& info = dp.info[block.block_index];
+			dlpiece_iter dp = add_download_piece(block.piece_index);
+			dp->state = state;
+			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.state = block_info::state_requested;
 			info.peer = peer;
 			info.num_peers = 1;
-			++dp.requested;
+			++dp->requested;
 			// update_full may move the downloading piece to
 			// a different vector, so 'dp' may be invalid after
 			// this call
-			// TODO: make add_download_piece return an iterator instead
-			update_piece_state(find_dl_piece(0, dp.index));
+			update_piece_state(dp);
 		}
 		else
 		{
@@ -2765,18 +2764,16 @@ namespace libtorrent
 			// the piece priority was set to 0
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
-			downloading_piece& dp = add_download_piece(block.piece_index);
-			dp.state = none;
-			block_info& info = dp.info[block.block_index];
+			dlpiece_iter dp = add_download_piece(block.piece_index);
+			dp->state = none;
+			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.state = block_info::state_writing;
 			info.peer = peer;
 			info.num_peers = 0;
-			dp.writing = 1;
+			dp->writing = 1;
 
-			// TODO: make add_download_piece return an iterator instead
-			update_piece_state(find_dl_piece(0, dp.index));
-//			sort_piece(m_downloads.end()-1);
+			update_piece_state(dp);
 		}
 		else
 		{
@@ -2943,17 +2940,17 @@ namespace libtorrent
 			p.state = piece_pos::piece_downloading;
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
-			downloading_piece& dp = add_download_piece(block.piece_index);
-			dp.state = none;
-			block_info& info = dp.info[block.block_index];
+			dlpiece_iter dp = add_download_piece(block.piece_index);
+			dp->state = none;
+			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.peer = peer;
 			TORRENT_ASSERT(info.state == block_info::state_none);
 			TORRENT_ASSERT(info.num_peers == 0);
-			++dp.finished;
+			++dp->finished;
 			info.state = block_info::state_finished;
 			// dp may be invalid after this call
-			update_piece_state(find_dl_piece(0, dp.index));
+			update_piece_state(dp);
 		}
 		else
 		{
