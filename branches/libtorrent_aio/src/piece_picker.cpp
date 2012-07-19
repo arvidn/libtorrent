@@ -890,36 +890,7 @@ namespace libtorrent
 		p2.index = temp;
 		std::swap(m_pieces[other_index], m_pieces[elem_index]);
 	}
-/*
-	void piece_picker::sort_piece(std::vector<downloading_piece>::iterator dp)
-	{
-		TORRENT_ASSERT(m_piece_map[dp->index].downloading());
-		int complete = dp->writing + dp->finished;
-		if (dp != m_downloads.begin())
-		{
-			for (std::vector<downloading_piece>::iterator j(dp-1);
-				dp != m_downloads.begin(); --dp, --j)
-			{
-				TORRENT_ASSERT(j >= m_downloads.begin());
-				if (j->finished + j->writing >= complete) break;
-				using std::swap;
-				swap(*j, *dp);
-				if (j == m_downloads.begin()) return;
-			}
-		}
 
-		TORRENT_ASSERT(dp != m_downloads.end());
-		for (std::vector<downloading_piece>::iterator j(dp+1);
-			dp != m_downloads.end() - 1; ++dp, ++j)
-		{
-			TORRENT_ASSERT(j < m_downloads.end());
-			if (j->finished + j->writing <= complete) break;
-			using std::swap;
-			swap(*j, *dp);
-			if (j == m_downloads.end() - 1) return;
-		}
-	}
-*/
 	void piece_picker::restore_piece(int index)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -2804,7 +2775,6 @@ namespace libtorrent
 				// remove the fast/slow state from it
 				i->state = none;
 			}
-//			sort_piece(i);
 		}
 		return true;
 	}
@@ -2865,10 +2835,6 @@ namespace libtorrent
 			if (new_priority == prev_priority) return;
 			if (prev_priority == -1) add(block.piece_index);
 			else update(prev_priority, p.index);
-		}
-		else
-		{
-//			sort_piece(i);
 		}
 	}
 
@@ -2980,7 +2946,6 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(info.state == block_info::state_none);
 				info.state = block_info::state_finished;
-//				sort_piece(i);
 			}
 
 			i = update_piece_state(i);
