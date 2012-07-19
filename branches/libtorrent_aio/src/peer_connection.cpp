@@ -2768,9 +2768,6 @@ namespace libtorrent
 			t->get_policy().peer_is_interesting(*this);
 
 			disconnect_if_redundant();
-			// TODO: this might need something more
-			// so that once we have the metadata
-			// we can construct a full bitfield
 			return;
 		}
 
