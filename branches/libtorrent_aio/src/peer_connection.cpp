@@ -514,6 +514,16 @@ namespace libtorrent
 
 	void peer_connection::update_interest()
 	{
+		if (!m_need_interest_update)
+		{
+			// we're the first to request an interest update
+			// post a message in order to delay it enough for
+			// any potential other messages already in the queue
+			// to not trigger another one. This effectively defer
+			// the update until the current message queue is
+			// flushed
+			m_ios.post(boost::bind(&peer_connection::do_update_interest, self()));
+		}
 		m_need_interest_update = true;
 	}
 
@@ -4129,13 +4139,6 @@ namespace libtorrent
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
 		}
-
-		// TODO: instead of running this check every second_tick. Whenever
-		// m_need_interest_update transitions from false to true, post a
-		// message to call do_update_interest(). That way, anything currently
-		// in the message queue that might require us to update the interest
-		// will be folded together.
-		if (m_need_interest_update) do_update_interest();
 
 		on_tick();
 
