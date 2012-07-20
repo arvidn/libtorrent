@@ -1258,6 +1258,20 @@ namespace libtorrent
 			peer_turnover_cutoff,
 			peer_turnover_interval,
 
+			// this setting controls the priority of downloading torrents
+			// over seeding or finished torrents when it comes to making
+			// peer connections. Peer connections are throttled by the
+			// connection_speed and the half-open connection limit. This
+			// makes peer connections a limited resource. Torrents that
+			// still have pieces to download are prioritized by default,
+			// to avoid having many seeding torrents use most of the connection
+			// attempts and only give one peer every now and then to the
+			// downloading torrent. libtorrent will loop over the downloading
+			// torrents to connect a peer each, and every n:th connection
+			// attempt, a finished torrent is picked to be allowed to connect
+			// to a peer. This setting controls n.
+			connect_seed_every_n_download,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};

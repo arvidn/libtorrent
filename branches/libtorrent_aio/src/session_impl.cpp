@@ -4441,8 +4441,8 @@ namespace aux {
 				m_next_finished_connect_torrent = 0;
 
 			torrent* t;
-			// TODO: make this ratio configurable
-			if ((m_download_connect_attempts >= 10
+			if ((m_download_connect_attempts >= m_settings.get_int(
+					settings_pack::connect_seed_every_n_download)
 				&& want_peers_finished.size())
 					|| want_peers_download.empty())
 			{

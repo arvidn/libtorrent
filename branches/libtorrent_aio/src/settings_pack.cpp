@@ -94,9 +94,11 @@ namespace libtorrent
 
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
+#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED_SET(name, default_value, fun) { "", NULL, NULL }
 #else
 #define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
+#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value, 0 }
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #endif
 
@@ -289,6 +291,7 @@ namespace libtorrent
 		SET(peer_turnover, 4, 0),
 		SET(peer_turnover_cutoff, 90, 0),
 		SET(peer_turnover_interval, 300, 0),
+		SET_NOPREV(connect_seed_every_n_download, 10, 0)
 	};
 
 #undef SET
