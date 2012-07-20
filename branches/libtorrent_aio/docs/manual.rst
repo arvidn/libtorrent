@@ -173,7 +173,7 @@ The ``session`` class has the following synopsis::
 		session_settings settings() const;
 	#endif
 
-		void apply_settinboolsettings_pack const& s);
+		void apply_settings(settings_pack const& s);
 		aux::session_settings get_settings() const;
 
 		void set_pe_settings(pe_settings const& settings);
@@ -1283,7 +1283,7 @@ The order of these rules being applied are:
 
 1. peer-class IP filter
 2. peer-class type filter, removing classes
-2. peer-class type filter, adding classes
+3. peer-class type filter, adding classes
 
 For more information, see `peer classes`_.
 
