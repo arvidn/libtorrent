@@ -142,6 +142,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::string split_path(std::string const& f);
 	TORRENT_EXPORT char const* next_path_element(char const* p);
 	TORRENT_EXPORT std::string extension(std::string const& f);
+	TORRENT_EXPORT std::string remove_extension(std::string const& f);
 	TORRENT_EXPORT void replace_extension(std::string& f, std::string const& ext);
 	TORRENT_EXPORT bool is_root_path(std::string const& f);
 	TORRENT_EXPORT std::string parent_path(std::string const& f);

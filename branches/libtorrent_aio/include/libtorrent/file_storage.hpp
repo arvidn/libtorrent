@@ -263,6 +263,8 @@ namespace libtorrent
 		std::string file_path(internal_file_entry const& fe) const;
 		size_type file_size(internal_file_entry const& fe) const;
 
+		std::vector<std::string> const& paths() const { return m_paths; }
+
 #if !defined TORRENT_VERBOSE_LOGGING \
 	&& !defined TORRENT_LOGGING \
 	&& !defined TORRENT_ERROR_LOGGING

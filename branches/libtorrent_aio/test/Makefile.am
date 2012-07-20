@@ -1,4 +1,5 @@
 test_programs = \
+  test_torrent_info          \
   test_recheck               \
   test_stat_cache            \
   test_part_file             \
@@ -49,6 +50,7 @@ noinst_HEADERS = test.hpp setup_transfer.hpp
 
 libtest_la_SOURCES = main.cpp setup_transfer.cpp
 
+test_test_torrent_info_SOURCES = test_torrent_info.cpp
 test_test_recheck_SOURCES = test_recheck.cpp
 test_test_stat_cache_SOURCES = test_stat_cache.cpp
 test_part_file_SOURCES = test_part_file.cpp
