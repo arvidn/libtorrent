@@ -5159,8 +5159,12 @@ namespace libtorrent
 
 			c->start();
 
-			m_ses.m_half_open.enqueue(c.get()
-				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
+			if (!c->is_disconnecting())
+			{
+				c->m_queued_for_connection = true;
+				m_ses.m_half_open.enqueue(c.get()
+					, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
+			}
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
@@ -6063,12 +6067,15 @@ namespace libtorrent
 		update_want_tick();
 		c->start();
 
+		if (c->is_disconnecting()) return false;
+
 		int timeout = settings().get_int(settings_pack::peer_connect_timeout);
 		if (peerinfo) timeout += 3 * peerinfo->failcount;
 		timeout += timeout_extend;
 
 		TORRENT_TRY
 		{
+			c->m_queued_for_connection = true;
 			m_ses.m_half_open.enqueue(c.get()
 				, seconds(timeout));
 		}

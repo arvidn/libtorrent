@@ -387,6 +387,8 @@ void http_connection::on_connect_timeout()
 
 	error_code ec;
 	m_sock.close(ec);
+
+	m_self_reference.reset();
 }
 
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
@@ -532,11 +534,14 @@ void http_connection::on_resolve(error_code const& e
 void http_connection::queue_connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
+	m_self_reference = shared_from_this();
 	m_cc.enqueue(this, m_read_timeout, m_priority);
 }
 
 void http_connection::on_allow_connect(int ticket)
 {
+	boost::shared_ptr<http_connection> me(shared_from_this());
+	m_self_reference.reset();
 #if defined TORRENT_ASIO_DEBUGGING
 	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
 #endif

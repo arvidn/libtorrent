@@ -1187,6 +1187,12 @@ namespace libtorrent
 		// otherwise.
 		bool m_has_metadata:1;
 
+		// this is true while this connection is queued
+		// in the connection_queue. We may not destruct
+		// the connection while it is, since it's not
+		// held by an owning pointer, just a plain one
+		bool m_queued_for_connection:1;
+
 		template <std::size_t Size>
 		struct handler_storage
 		{

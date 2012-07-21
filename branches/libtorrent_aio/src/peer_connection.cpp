@@ -205,6 +205,7 @@ namespace libtorrent
 		, m_corked(false)
 		, m_need_interest_update(false)
 		, m_has_metadata(true)
+		, m_queued_for_connection(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -785,6 +786,7 @@ namespace libtorrent
 
 	peer_connection::~peer_connection()
 	{
+		TORRENT_ASSERT(!m_queued_for_connection);
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);
 		TORRENT_ASSERT(m_disconnecting);
@@ -3430,6 +3432,7 @@ namespace libtorrent
 
 	void peer_connection::on_connect_timeout()
 	{
+		m_queued_for_connection = false;
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		connect_failed(errors::timed_out);
@@ -5533,6 +5536,9 @@ namespace libtorrent
 
 	void peer_connection::on_allow_connect(int ticket)
 	{
+		TORRENT_ASSERT(m_queued_for_connection);
+		m_queued_for_connection = false;
+
 		TORRENT_ASSERT(m_ses.is_single_thread());
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// in case we disconnect here, we need to

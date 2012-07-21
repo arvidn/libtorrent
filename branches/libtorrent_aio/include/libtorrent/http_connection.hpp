@@ -88,7 +88,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #endif
 		);
 
-	~http_connection();
+	virtual ~http_connection();
 
 	void rate_limit(int limit);
 
@@ -212,6 +212,9 @@ private:
 	int m_priority;
 
 	bool m_abort;
+
+	// used to keep us alive when queued in the connection_queue
+	boost::shared_ptr<http_connection> m_self_reference;
 };
 
 }
