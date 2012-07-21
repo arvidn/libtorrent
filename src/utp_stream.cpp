@@ -1094,6 +1094,8 @@ utp_socket_impl::~utp_socket_impl()
 	{
 		free(*i);
 	}
+
+	free(m_nagle_packet);
 }
 
 bool utp_socket_impl::should_delete() const
