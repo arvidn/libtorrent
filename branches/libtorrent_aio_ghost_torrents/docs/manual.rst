@@ -415,7 +415,8 @@ async_add_torrent() add_torrent()
 				flag_auto_managed = 0x040.
 				flag_duplicate_is_error = 0x080,
 				flag_merge_resume_trackers = 0x100,
-				flag_update_subscribe = 0x200
+				flag_update_subscribe = 0x200,
+				flag_pinned = 0x400
 			};
 
 			int version;
@@ -554,7 +555,8 @@ and how it's added. These are the flags::
 		flag_auto_managed = 0x040.
 		flag_duplicate_is_error = 0x080,
 		flag_merge_resume_trackers = 0x100,
-		flag_update_subscribe = 0x200
+		flag_update_subscribe = 0x200,
+		flag_pinned = 0x400
 	}
 
 ``flag_apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
@@ -625,6 +627,10 @@ priorities for torrents in share mode, it will make it not work.
 
 The share mode has one setting, the share ratio target, see share_mode_target_.
 for more info.
+
+``flag_pinned`` indicates that this torrent should never be unloaded from RAM, even
+if unloading torrents are allowed in general. Setting this makes the torrent
+excempt from loading/unloading management.
 
 
 remove_torrent()
