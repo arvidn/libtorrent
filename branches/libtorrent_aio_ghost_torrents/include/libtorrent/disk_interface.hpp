@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function1.hpp>
 #include <boost/function/function0.hpp>
 
+#include "libtorrent/lazy_entry.hpp"
+
 #include <string>
 
 namespace libtorrent

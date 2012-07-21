@@ -374,7 +374,7 @@ namespace libtorrent
 			}
 		}
 
-		bool is_loaded() const { m_piece_hashes; }
+		bool is_loaded() const { return m_piece_hashes; }
 
 		boost::optional<time_t> creation_date() const;
 

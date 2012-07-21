@@ -876,7 +876,7 @@ namespace libtorrent
 	void torrent_info::unload()
 	{
 		m_info_section.reset();
-		m_info_secton_size = 0;
+		m_info_section_size = 0;
 
 		// if we have orig_files, we have to keep
 		// m_files around, since it means we have
@@ -1109,7 +1109,7 @@ namespace libtorrent
 		// needs to be restored
 		if (m_files.is_loaded()) {
 			m_orig_files.reset(new file_storage);
-			m_orig_files->swap(files);
+			const_cast<file_storage&>(*m_orig_files).swap(files);
 		}
 		else
 		{

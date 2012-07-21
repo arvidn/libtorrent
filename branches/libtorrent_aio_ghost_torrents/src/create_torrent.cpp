@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>

@@ -154,6 +154,9 @@ namespace libtorrent
 		// loading it from disk
 		void need_loaded();
 
+		// unload the torrent file to save memory
+		void unload();
+
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
 		// can send a rendezvous connect message
@@ -1138,6 +1141,14 @@ namespace libtorrent
 
 	private:
 
+		// pinned torrents are locked in RAM and won't be unloaded
+		// in favor of more active torrents. This is a reference
+		// counter of how many users there are that needs this torrent
+		// to stay in RAM. When the torrent is added, the user may
+		// choose to initialize this to 1, in which case it will never
+		// be unloaded from RAM
+		int m_pinned;
+
 		// when checking, this is the first piece we have not
 		// issued a hash job for
 		int m_checking_piece;
@@ -1394,10 +1405,6 @@ namespace libtorrent
 		// will be added to the m_state_updates set in session_impl
 		// whenever this torrent's state changes (any state).
 		bool m_state_subscription:1;
-
-		// pinned torrents are locked in RAM and won't be unloaded
-		// in favor of more active torrents
-		bool m_pinned:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

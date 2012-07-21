@@ -305,6 +305,7 @@ namespace libtorrent
 		, m_last_saved_resume(time(0))
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
+		, m_pinned((p.flags & add_torrent_params::flag_pinned) ? 1 : 0)
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
 		, m_average_piece_time(0)
@@ -365,7 +366,6 @@ namespace libtorrent
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
-		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -1733,8 +1733,7 @@ namespace libtorrent
 	void torrent::unload()
 	{
 		// pinned torrents are not allowed to be swapped out
-		TORRENT_ASSERT(!m_pinned);
-#error m_pinned should be a refcounter. Some disk_io_jobs need to increment the refcount to keep the torernt loaded (like, probably most of them). In fact, maybe we could just check for the number of outstanding disk jobs right here, and not unload it if there are any
+		TORRENT_ASSERT(m_pinned == 0);
 		m_torrent_file->unload();
 	}
 
