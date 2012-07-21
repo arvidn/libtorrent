@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 #include <vector>
-#include <list>
 #include <string>
 
 #include "libtorrent/socket.hpp"
@@ -70,7 +69,7 @@ typedef boost::function<void(error_code const&
 
 typedef boost::function<void(http_connection&)> http_connect_handler;
 
-typedef boost::function<void(http_connection&, std::list<tcp::endpoint>&)> http_filter_handler;
+typedef boost::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_filter_handler;
 
 // when bottled, the last two arguments to the handler
 // will always be 0
@@ -118,7 +117,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	socket_type const& socket() const { return m_sock; }
 
-	std::list<tcp::endpoint> const& endpoints() const { return m_endpoints; }
+	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 	
 private:
 
@@ -168,7 +167,7 @@ private:
 	std::string m_url;
 	std::string m_user_agent;
 
-	std::list<tcp::endpoint> m_endpoints;
+	std::vector<tcp::endpoint> m_endpoints;
 #ifdef TORRENT_USE_OPENSSL
 	asio::ssl::context* m_ssl_ctx;
 	bool m_own_ssl_context;

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include <vector>
+#include <list>
 #include <cctype>
 #include <algorithm>
 
@@ -259,12 +260,12 @@ namespace libtorrent
 		tracker_connection::close();
 	}
 
-	void http_tracker_connection::on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints)
+	void http_tracker_connection::on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints)
 	{
 		if (tracker_req().apply_ip_filter == false) return;
 
 		// remove endpoints that are filtered by the IP filter
-		for (std::list<tcp::endpoint>::iterator i = endpoints.begin();
+		for (std::vector<tcp::endpoint>::iterator i = endpoints.begin();
 			i != endpoints.end();)
 		{
 			if (m_ses.m_ip_filter.access(i->address()) == ip_filter::blocked) 
@@ -534,8 +535,8 @@ namespace libtorrent
 		{
 			error_code ec;
 			ip_list.push_back(m_tracker_connection->socket().remote_endpoint(ec).address());
-			std::list<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-			for (std::list<tcp::endpoint>::const_iterator i = epts.begin()
+			std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
+			for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
 				, end(epts.end()); i != end; ++i)
 			{
 				ip_list.push_back(i->address());

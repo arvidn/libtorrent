@@ -33,14 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONNECTION_QUEUE_HPP
 #define TORRENT_CONNECTION_QUEUE_HPP
 
-#include <list>
-#include <boost/function/function1.hpp>
-#include <boost/function/function0.hpp>
+#include <vector>
+#include <map>
 #include <boost/noncopyable.hpp>
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/connection_interface.hpp"
 
 #ifdef TORRENT_CONNECTION_LOGGING
 #include <fstream>
@@ -72,17 +70,16 @@ public:
 	int limit() const;
 	void close();
 	int size() const { return m_queue.size(); }
-	int num_connecting() const { return m_num_connecting; }
+	int num_connecting() const { return int(m_connecting.size()); }
 #if defined TORRENT_ASIO_DEBUGGING
 	float next_timeout() const { return total_milliseconds(m_timer.expires_at() - time_now_hires()) / 1000.f; }
 	float max_timeout() const
 	{
 		ptime max_timeout = min_time();
-		for (std::list<entry>::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (std::map<int, connect_entry>::const_iterator i = m_connecting.begin()
+			, end(m_connecting.end()); i != end; ++i)
 		{
-			if (!i->connecting) continue;
-			if (i->expires > max_timeout) max_timeout = i->expires;
+			if (i->second.expires > max_timeout) max_timeout = i->second.expires;
 		}
 		if (max_timeout == min_time()) return 0.f;
 		return total_milliseconds(max_timeout - time_now_hires()) / 1000.f;
@@ -99,27 +96,26 @@ private:
 	void on_timeout(error_code const& e);
 	void on_try_connect();
 
-	struct entry
+	struct queue_entry
 	{
-		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
-
+		queue_entry(): conn(0), priority(0) {}
 		connection_interface* conn;
-
-		bool connecting;
-		int ticket;
-		ptime expires;
 		time_duration timeout;
 		int priority;
 	};
+	struct connect_entry
+	{
+		connect_entry(): conn(0), expires(max_time()), priority(0) {}
+		connection_interface* conn;
+		ptime expires;
+		int priority;
+	};
 
-	// TODO: split this into a queue and connecting map. The key for the map
-	// is the ticket. Most field in entry would only be necessary for the
-	// connecting map.
-	std::list<entry> m_queue;
+	std::vector<queue_entry> m_queue;
+	std::map<int, connect_entry> m_connecting;
 
 	// the next ticket id a connection will be given
 	int m_next_ticket;
-	int m_num_connecting;
 	int m_half_open_limit;
 
 	// the number of outstanding timers

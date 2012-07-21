@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
 
 #include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -88,7 +89,7 @@ namespace libtorrent
 		boost::intrusive_ptr<http_tracker_connection> self()
 		{ return boost::intrusive_ptr<http_tracker_connection>(this); }
 
-		void on_filter(http_connection& c, std::list<tcp::endpoint>& endpoints);
+		void on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints);
 		void on_connect(http_connection& c);
 		void on_response(error_code const& ec, http_parser const& parser
 			, char const* data, int size);

@@ -125,6 +125,13 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	// deletes this object
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
+	if (ec)
+	{
+		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
+			, me, ec, (char*)0, 0));
+		return;
+	}
+
 	if (protocol != "http"
 #ifdef TORRENT_USE_OPENSSL
 		&& protocol != "https"
@@ -132,13 +139,6 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code ec(errors::unsupported_url_protocol);
-		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, (char*)0, 0));
-		return;
-	}
-
-	if (ec)
-	{
 		m_resolver.get_io_service().post(boost::bind(&http_connection::callback
 			, me, ec, (char*)0, 0));
 		return;
@@ -367,6 +367,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
+			TORRENT_ASSERT(!m_self_reference);
 			m_endpoints.clear();
 			tcp::resolver::query query(hostname, port);
 			m_resolver.async_resolve(query, boost::bind(&http_connection::on_resolve
@@ -515,6 +516,8 @@ void http_connection::on_resolve(error_code const& e
 		return;
 	}
 
+	std::random_shuffle(m_endpoints.begin(), m_endpoints.end());
+
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint
 	// order for windows
@@ -560,7 +563,7 @@ void http_connection::on_allow_connect(int ticket)
 	}
 
 	tcp::endpoint target_address = m_endpoints.front();
-	m_endpoints.pop_front();
+	m_endpoints.erase(m_endpoints.begin());
 
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames
