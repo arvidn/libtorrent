@@ -66,8 +66,7 @@ namespace libtorrent
 			: m_half_open_limit - m_queue.size();
 	}
 
-	void connection_queue::enqueue(boost::function<void(int)> const& on_connect
-		, boost::function<void()> const& on_timeout
+	void connection_queue::enqueue(connection_interface* conn
 		, time_duration timeout, int priority)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -94,8 +93,7 @@ namespace libtorrent
 		}
 
 		e->priority = priority;
-		e->on_connect = on_connect;
-		e->on_timeout = on_timeout;
+		e->conn = conn;
 		e->ticket = m_next_ticket;
 		e->timeout = timeout;
 		++m_next_ticket;
@@ -149,7 +147,7 @@ namespace libtorrent
 				continue;
 			}
 			TORRENT_TRY {
-				e.on_connect(-1);
+				e.conn->on_allow_connect(-1);
 			} TORRENT_CATCH(std::exception&) {}
 			tmp.pop_front();
 		}
@@ -249,7 +247,7 @@ namespace libtorrent
 			TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
 #endif
 			TORRENT_TRY {
-				ent.on_connect(ent.ticket);
+				ent.conn->on_allow_connect(ent.ticket);
 			} TORRENT_CATCH(std::exception&) {}
 			to_connect.pop_front();
 		}
@@ -310,7 +308,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i->connecting);
 			TORRENT_ASSERT(i->ticket != -1);
 			TORRENT_TRY {
-				i->on_timeout();
+				i->conn->on_connect_timeout();
 			} TORRENT_CATCH(std::exception&) {}
 		}
 		

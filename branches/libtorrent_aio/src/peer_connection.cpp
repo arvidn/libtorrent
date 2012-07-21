@@ -3428,7 +3428,7 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::on_timeout()
+	void peer_connection::on_connect_timeout()
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
@@ -5531,7 +5531,7 @@ namespace libtorrent
 		return !m_connecting && !m_disconnecting;
 	}
 
-	void peer_connection::on_connect(int ticket)
+	void peer_connection::on_allow_connect(int ticket)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

@@ -5159,9 +5159,7 @@ namespace libtorrent
 
 			c->start();
 
-			m_ses.m_half_open.enqueue(
-				boost::bind(&peer_connection::on_connect, c, _1)
-				, boost::bind(&peer_connection::on_timeout, c)
+			m_ses.m_half_open.enqueue(c.get()
 				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
 		}
 		TORRENT_CATCH (std::exception& e)
@@ -6071,9 +6069,7 @@ namespace libtorrent
 
 		TORRENT_TRY
 		{
-			m_ses.m_half_open.enqueue(
-				boost::bind(&peer_connection::on_connect, c, _1)
-				, boost::bind(&peer_connection::on_timeout, c)
+			m_ses.m_half_open.enqueue(c.get()
 				, seconds(timeout));
 		}
 		TORRENT_CATCH (std::exception&)

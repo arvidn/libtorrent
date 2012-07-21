@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/connection_interface.hpp"
 
 #include "libtorrent/i2p_stream.hpp"
 
@@ -73,7 +74,10 @@ typedef boost::function<void(http_connection&, std::list<tcp::endpoint>&)> http_
 
 // when bottled, the last two arguments to the handler
 // will always be 0
-struct TORRENT_EXTRA_EXPORT http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
+struct TORRENT_EXTRA_EXPORT http_connection
+	: connection_interface
+	, boost::enable_shared_from_this<http_connection>
+	, boost::noncopyable
 {
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true
@@ -125,7 +129,7 @@ private:
 	void on_resolve(error_code const& e
 		, tcp::resolver::iterator i);
 	void queue_connect();
-	void connect(int ticket, tcp::endpoint target_address);
+	void on_allow_connect(int ticket);
 	void on_connect_timeout();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);

@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
+#include "libtorrent/connection_interface.hpp"
 
 namespace libtorrent
 {
@@ -148,6 +149,7 @@ namespace libtorrent
 		: public bandwidth_socket
 		, public peer_class_set
 		, public disk_observer
+		, public connection_interface 
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
@@ -355,7 +357,6 @@ namespace libtorrent
 		ptime connected_time() const { return m_connect; }
 		ptime last_received() const { return m_last_receive; }
 
-		void on_timeout();
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec, int error = 0);
 		// called when a connect attempt fails (not when an
@@ -381,8 +382,12 @@ namespace libtorrent
 		// initiate the tcp connection. This may be postponed until
 		// the library isn't using up the limitation of half-open
 		// tcp connections.	
-		void on_connect(int ticket);
+		// implements connection_interface
+		void on_allow_connect(int ticket);
 		
+		// implements connection_interface. Called by the connection_queue
+		void on_connect_timeout();
+
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
 		// It will reset the used bandwidth to 0.

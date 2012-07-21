@@ -532,15 +532,10 @@ void http_connection::on_resolve(error_code const& e
 void http_connection::queue_connect()
 {
 	TORRENT_ASSERT(!m_endpoints.empty());
-	tcp::endpoint target = m_endpoints.front();
-	m_endpoints.pop_front();
-
-	m_cc.enqueue(boost::bind(&http_connection::connect, shared_from_this(), _1, target)
-		, boost::bind(&http_connection::on_connect_timeout, shared_from_this())
-		, m_read_timeout, m_priority);
+	m_cc.enqueue(this, m_read_timeout, m_priority);
 }
 
-void http_connection::connect(int ticket, tcp::endpoint target_address)
+void http_connection::on_allow_connect(int ticket)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	TORRENT_ASSERT(has_outstanding_async("connection_queue::on_timeout"));
@@ -551,6 +546,16 @@ void http_connection::connect(int ticket, tcp::endpoint target_address)
 		close();
 		return;
 	}
+
+	TORRENT_ASSERT(!m_endpoints.empty());
+	if (m_endpoints.empty())
+	{
+		m_cc.done(ticket);
+		return;
+	}
+
+	tcp::endpoint target_address = m_endpoints.front();
+	m_endpoints.pop_front();
 
 	m_connection_ticket = ticket;
 	if (m_proxy.proxy_hostnames

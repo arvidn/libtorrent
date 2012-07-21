@@ -747,11 +747,10 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// To simplyfy this, it's probably a good idea to
 	// merge on_connect and on_timeout to a single function
 	++m_outstanding_ops;
-	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
-		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
+	m_cc.enqueue(this, seconds(10));
 }
 
-void udp_socket::on_timeout()
+void udp_socket::on_connect_timeout()
 {
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
@@ -764,7 +763,7 @@ void udp_socket::on_timeout()
 	m_connection_ticket = -1;
 }
 
-void udp_socket::on_connect(int ticket)
+void udp_socket::on_allow_connect(int ticket)
 {
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(m_outstanding_ops > 0);

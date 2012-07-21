@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Arvid Norberg
+Copyright (c) 2007-2012, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CONNECTION_QUEUE
-#define TORRENT_CONNECTION_QUEUE
+#ifndef TORRENT_CONNECTION_QUEUE_HPP
+#define TORRENT_CONNECTION_QUEUE_HPP
 
 #include <list>
 #include <boost/function/function1.hpp>
@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/connection_interface.hpp"
 
 #ifdef TORRENT_CONNECTION_LOGGING
 #include <fstream>
@@ -50,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+struct connection_interface;
 
 class TORRENT_EXTRA_EXPORT connection_queue
 	: public boost::noncopyable
@@ -62,8 +65,7 @@ public:
 	// number of queued up connections
 	int free_slots() const;
 
-	void enqueue(boost::function<void(int)> const& on_connect
-		, boost::function<void()> const& on_timeout
+	void enqueue(connection_interface* conn
 		, time_duration timeout, int priority = 0);
 	void done(int ticket);
 	void limit(int limit);
@@ -100,19 +102,9 @@ private:
 	struct entry
 	{
 		entry(): connecting(false), ticket(0), expires(max_time()), priority(0) {}
-		// called when the connection is initiated
-		// this is when the timeout countdown starts
-		// TODO: if we don't actually need the connection queue
-		// to hold ownership of objects, replace these boost functions
-		// with pointer to a pure virtual interface class
-		boost::function<void(int)> on_connect;
-		// called if done hasn't been called within the timeout
-		// or if the connection queue aborts. This means there
-		// are 3 different interleaves of these function calls:
-		// 1. on_connect
-		// 2. on_connect, on_timeout
-		// 3. on_timeout
-		boost::function<void()> on_timeout;
+
+		connection_interface* conn;
+
 		bool connecting;
 		int ticket;
 		ptime expires;

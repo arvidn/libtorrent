@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/connection_interface.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
 
@@ -65,7 +66,7 @@ namespace libtorrent
 		virtual void socket_drained() {}
 	};
 
-	class udp_socket : single_threaded
+	class udp_socket : connection_interface, single_threaded
 	{
 	public:
 		udp_socket(io_service& ios, connection_queue& cc);
@@ -175,8 +176,8 @@ namespace libtorrent
 		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
 			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
-		void on_timeout();
-		void on_connect(int ticket);
+		void on_connect_timeout();
+		void on_allow_connect(int ticket);
 		void on_connected(error_code const& ec);
 		void handshake1(error_code const& e);
 		void handshake2(error_code const& e);
