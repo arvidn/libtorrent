@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/io_service_fwd.hpp"
-#include <boost/function.hpp>
 #include <vector>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
@@ -58,6 +57,7 @@ namespace libtorrent
 	namespace aux { struct session_settings; }
 	class alert;
 	struct alert_dispatcher;
+	struct disk_observer;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
@@ -71,10 +71,10 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
-		void subscribe_to_disk(boost::function<void()> const& cb);
+		void subscribe_to_disk(disk_observer* o);
 		char* allocate_buffer(char const* category);
 		char* allocate_buffer(bool& exceeded, bool& trigger_trim
-			, boost::function<void()> const& cb, char const* category);
+			, disk_observer* o, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
 
@@ -121,8 +121,7 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
-		// TODO: change this to be disk_observer pointers instead. peer_connection could then implement that interface
-		std::vector<boost::function<void()> > m_callbacks;
+		std::vector<disk_observer*> m_observers;
 
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;

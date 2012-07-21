@@ -214,7 +214,7 @@ namespace libtorrent
 
 		if (error)
 		{
-			m_statistics.received_bytes(0, bytes_transferred);
+			received_bytes(0, bytes_transferred);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("*** http_seed_connection error: %s", error.message().c_str());
 #endif
@@ -234,7 +234,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_requests.empty());
 			if (m_requests.empty())
 			{
-				m_statistics.received_bytes(0, bytes_transferred);
+				received_bytes(0, bytes_transferred);
 				disconnect(errors::http_error, 2);
 				return;
 			}
@@ -248,13 +248,13 @@ namespace libtorrent
 				int protocol = 0;
 				int payload = 0;
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
-				m_statistics.received_bytes(0, protocol);
+				received_bytes(0, protocol);
 				bytes_transferred -= protocol;
 				if (payload > front_request.length) payload = front_request.length;
 
 				if (parse_error)
 				{
-					m_statistics.received_bytes(0, bytes_transferred);
+					received_bytes(0, bytes_transferred);
 					disconnect(errors::http_parse_error, 2);
 					return;
 				}
@@ -286,7 +286,7 @@ namespace libtorrent
 						t->alerts().post_alert(url_seed_alert(t->get_handle(), url()
 							, error_msg));
 					}
-					m_statistics.received_bytes(0, bytes_transferred);
+					received_bytes(0, bytes_transferred);
 					disconnect(error_code(m_parser.status_code(), get_http_category()), 1);
 					return;
 				}
@@ -306,7 +306,7 @@ namespace libtorrent
 					// this means we got a redirection request
 					// look for the location header
 					std::string location = m_parser.header("location");
-					m_statistics.received_bytes(0, bytes_transferred);
+					received_bytes(0, bytes_transferred);
 
 					if (location.empty())
 					{
@@ -336,7 +336,7 @@ namespace libtorrent
 				m_response_left = atol(m_parser.header("content-length").c_str());
 				if (m_response_left == -1)
 				{
-					m_statistics.received_bytes(0, bytes_transferred);
+					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
 					disconnect(errors::no_content_length, 2);
@@ -344,7 +344,7 @@ namespace libtorrent
 				}
 				if (m_response_left != front_request.length)
 				{
-					m_statistics.received_bytes(0, bytes_transferred);
+					received_bytes(0, bytes_transferred);
 					// we should not try this server again.
 					t->remove_web_seed(this);
 					disconnect(errors::invalid_range, 2);
@@ -372,7 +372,7 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.left() - m_partial_chunk_header));
 					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
-					m_statistics.received_bytes(0, chunk_start.left() - m_partial_chunk_header);
+					received_bytes(0, chunk_start.left() - m_partial_chunk_header);
 					m_partial_chunk_header = chunk_start.left();
 					if (bytes_transferred == 0) return;
 					break;
@@ -385,7 +385,7 @@ namespace libtorrent
 					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
 					bytes_transferred -= header_size - m_partial_chunk_header;
 
-					m_statistics.received_bytes(0, header_size - m_partial_chunk_header);
+					received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
 					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
@@ -407,7 +407,7 @@ namespace libtorrent
 			int payload = bytes_transferred;
 			if (payload > m_response_left) payload = int(m_response_left);
 			if (payload > front_request.length) payload = front_request.length;
-			m_statistics.received_bytes(payload, 0);
+			received_bytes(payload, 0);
 			incoming_piece_fragment(payload);
 			m_response_left -= payload;
 
@@ -421,7 +421,7 @@ namespace libtorrent
 				peer_log("*** retrying in %d seconds", retry_time);
 #endif
 
-				m_statistics.received_bytes(0, bytes_transferred);
+				received_bytes(0, bytes_transferred);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
 				disconnect(error_code(m_parser.status_code(), get_http_category()), 1);

@@ -49,9 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
-
-// TODO: it would be nice to get rid of this dependency
-#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/uncork_interface.hpp"
 
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>
@@ -162,7 +160,7 @@ namespace libtorrent
 
 	disk_io_thread::~disk_io_thread()
 	{
-		DLOG(stderr, "destructing disk_io_thread [%p]\n", this);
+		DLOG(stderr, "[%p] destructing disk_io_thread\n", this);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// by now, all pieces should have been evicted
@@ -478,10 +476,6 @@ namespace libtorrent
 
 		list_iterator range = m_disk_cache.write_lru_pieces();
 
-		// TODO: remove the cache algorithm option
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
-			== settings_pack::avoid_readback);
-
 		for (list_iterator p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
@@ -519,9 +513,6 @@ namespace libtorrent
 	{
 		DLOG(stderr, "[%p] flush_expired_write_blocks\n", this);
 
-		// TODO: remove the cache algorithm option
-		TORRENT_ASSERT(m_settings.get_int(settings_pack::disk_cache_algorithm)
-			== settings_pack::avoid_readback);
 		ptime now = time_now();
 		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 
@@ -677,7 +668,7 @@ namespace libtorrent
 		if (j->buffer == 0)
 		{
 			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::read;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -769,16 +760,23 @@ namespace libtorrent
 		}
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == NULL) pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		if (pe == NULL)
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			m_disk_cache.free_iovec(iov, iov_len);
 			return -1;
 		}
 
 		int block = j->d.io.offset / block_size;
-		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j->requester);
+		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j);
 
 		int tmp = m_disk_cache.try_read(j);
 		TORRENT_ASSERT(tmp >= 0);
@@ -905,7 +903,7 @@ namespace libtorrent
 			{
 				l.unlock();
 				j->error.ec = error::no_memory;
-				// TODO: set operation in j->error
+				j->error.operation = storage_error::alloc_cache_piece;
 				j->ret = disk_io_job::operation_failed;
 				handler(j);
 				free_job(j);
@@ -1324,7 +1322,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
 		{
-			m_disk_cache.cache_hit(pe, j->requester);
+			m_disk_cache.cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
@@ -1354,10 +1352,16 @@ namespace libtorrent
 		}
 
 		if (pe == NULL)
-			pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -1438,6 +1442,7 @@ namespace libtorrent
 					pe->hash = NULL;
 
 					j->error.ec = errors::no_memory;
+					j->error.operation = storage_error::alloc_cache_piece;
 					return -1;
 				}
 
@@ -1471,7 +1476,7 @@ namespace libtorrent
 				ph->h.update((char const*)iov.iov_base, iov.iov_len);
 
 				l.lock();
-				m_disk_cache.insert_blocks(pe, i, &iov, 1, j->requester);
+				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
 				l.unlock();
 			}
 		}
@@ -1603,10 +1608,17 @@ namespace libtorrent
 		mutex::scoped_lock l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == NULL) pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+		if (pe == NULL)
+		{
+			int cache_state = (j->flags & disk_io_job::volatile_read)
+				? cached_piece_entry::volatile_read_lru
+				: cached_piece_entry::read_lru1;
+			pe = m_disk_cache.allocate_piece(j, cache_state);
+		}
 		if (pe == NULL)
 		{
 			j->error.ec = error::no_memory;
+			j->error.operation = storage_error::alloc_cache_piece;
 			return -1;
 		}
 
@@ -1637,6 +1649,7 @@ namespace libtorrent
 				//#error introduce a holder class that automatically increments and decrements the piece_refcount
 				--pe->piece_refcount;
 				j->error.ec = errors::no_memory;
+				j->error.operation = storage_error::alloc_cache_piece;
 				return -1;
 			}
 
@@ -1666,7 +1679,7 @@ namespace libtorrent
 			offset += block_size;
 
 			l.lock();
-			m_disk_cache.insert_blocks(pe, i, &iov, 1, j->requester);
+			m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
 		}
 
 		--pe->piece_refcount;
@@ -1697,6 +1710,8 @@ namespace libtorrent
 		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
 		info.kind = i->cache_state == cached_piece_entry::write_lru
 			? cached_piece_info::write_cache
+			: i->cache_state == cached_piece_entry::volatile_read_lru
+			? cached_piece_info::volatile_read_cache
 			: cached_piece_info::read_cache;
 		int blocks_in_piece = i->blocks_in_piece;
 		info.blocks.resize(blocks_in_piece);
@@ -1829,6 +1844,11 @@ namespace libtorrent
 
 	void disk_io_thread::add_fence_job(piece_manager* storage, disk_io_job* j)
 	{
+		// if this happens, it means we started to shut down
+		// the disk threads too early. We have to post all jobs
+		// before the disk threads are shut down
+		TORRENT_ASSERT(m_num_threads > 0);
+
 		DLOG(stderr, "[%p] add_fence:job: %s (outstanding: %d)\n", this
 			, job_action_name[j->action]
 			, j->storage->num_outstanding_jobs());
@@ -1872,6 +1892,11 @@ namespace libtorrent
 
 	void disk_io_thread::add_job(disk_io_job* j, bool ignore_fence)
 	{
+		// if this happens, it means we started to shut down
+		// the disk threads too early. We have to post all jobs
+		// before the disk threads are shut down
+		TORRENT_ASSERT(m_num_threads > 0);
+
 		DLOG(stderr, "[%p] add_job: %s (ignore_fence: %d outstanding: %d)\n", this
 			, job_action_name[j->action], ignore_fence
 			, j->storage ? j->storage->num_outstanding_jobs() : 0);
@@ -2006,6 +2031,13 @@ namespace libtorrent
 		m_disk_cache.clear(jobs);
 		abort_jobs(jobs);
 
+		// close all files. This may take a long
+		// time on certain OSes (i.e. Mac OS)
+		// that's why it's important to do this in
+		// the disk thread in parallel with stopping
+		// trackers.
+		m_file_pool.release();
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// by now, all pieces should have been evicted
 		std::pair<block_cache::iterator, block_cache::iterator> pieces
@@ -2018,11 +2050,11 @@ namespace libtorrent
 	}
 
 	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
-		, boost::function<void()> const& cb
+		, disk_observer* o
 		, char const* category)
 	{
 		bool trigger_trim = false;
-		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, cb, category);
+		char* ret = m_disk_cache.allocate_buffer(exceeded, trigger_trim, o, category);
 		if (trigger_trim)
 		{
 			// we just exceeded the cache size limit. Trigger a trim job
@@ -2113,14 +2145,14 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_completed_jobs_mutex);
 		DLOG(stderr, "[%p] call_job_handlers (%d)\n", this, m_completed_jobs.size());
+		int num_jobs = m_completed_jobs.size();
 		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
 		l.unlock();
 
-		// TODO: this should probably be an uncork-interface
-		aux::session_impl* ses = (aux::session_impl*)userdata;
-#ifdef TORRENT_STATS
-		if (ses) ses->inc_stats_counter(aux::session_impl::on_disk_counter);
-#endif
+		uncork_interface* uncork = (uncork_interface*)userdata;
+		std::vector<disk_io_job*> to_delete;
+		to_delete.reserve(num_jobs);
+
 		while (j)
 		{
 			TORRENT_ASSERT(j->job_posted == true);
@@ -2132,14 +2164,15 @@ namespace libtorrent
 			j->callback_called = true;
 #endif
 			if (j->callback) j->callback(j);
-			// TODO: it might be more efficient to free all jobs in one go
-			// to only require the mutex once
-			free_job(j);
+			to_delete.push_back(j);
 			j = next;
 		}
+
+		free_jobs(&to_delete[0], to_delete.size());
+
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.
-		if (ses) ses->do_delayed_uncork();
+		if (uncork) uncork->do_delayed_uncork();
 	}
 
 #ifdef TORRENT_DEBUG

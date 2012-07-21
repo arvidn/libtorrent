@@ -33,10 +33,13 @@ f2 = open('../src/settings_pack.cpp')
 def_map = {}
 for l in f2:
 	l = l.strip()
-	if not l.startswith('SET('): continue
+	if not l.startswith('SET(') \
+		and not l.startswith('SET_NOPREV(') \
+		and not l.startswith('DEPRECATED_SET('): continue
 
-	l = l[4:].split(',')
+	l = l.split('(')[1].split(',')
 	def_map[l[0]] = l[1].strip()
+	print '%s = %s' % (l[0], l[1].strip())
 
 description = ''
 names = []
@@ -45,7 +48,10 @@ for l in f:
 	if 'enum string_types' in l: mode = 'string'
 	if 'enum bool_types' in l: mode = 'bool'
 	if 'enum int_types' in l: mode = 'int'
+	if '#ifndef TORRENT_NO_DEPRECATE' in l: mode = 'skip'
+	if '#endif' in l: mode = None;
 
+	if mode == 'skip': continue
 	if mode == None: continue
 
 	l = l.lstrip()

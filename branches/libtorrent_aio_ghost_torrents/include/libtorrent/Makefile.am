@@ -27,6 +27,7 @@ nobase_include_HEADERS = \
   build_config.hpp             \
   chained_buffer.hpp           \
   config.hpp                   \
+  connection_interface.hpp     \
   connection_queue.hpp         \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
@@ -38,6 +39,7 @@ nobase_include_HEADERS = \
   disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_observer.hpp            \
   disk_job_pool.hpp            \
   entry.hpp                    \
   enum_net.hpp                 \
@@ -124,6 +126,7 @@ nobase_include_HEADERS = \
   tracker_manager.hpp          \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
+  uncork_interface.hpp         \
   union_endpoint.hpp           \
   upnp.hpp                     \
   utp_socket_manager.hpp       \

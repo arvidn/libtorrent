@@ -380,10 +380,6 @@ namespace libtorrent
 		// when it was added.
 		std::string name() const;
 
-		// TODO: add a feature where the user can tell the torrent
-		// to finish all pieces currently in the pipeline, and then
-		// abort the torrent.
-
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;

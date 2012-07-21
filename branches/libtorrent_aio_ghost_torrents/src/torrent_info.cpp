@@ -373,7 +373,7 @@ namespace libtorrent
 			int c;
 
 			while ((c = *s1++))
-				ret = (ret * 33) ^ c;
+				ret = (ret * 33) ^ to_lower(c);
 
 			return ret;
 		}
@@ -437,41 +437,17 @@ namespace libtorrent
 				, &file_hash, &fee, &mtime))
 				return false;
 
-			// TODO: this logic should be a separate step
-			// done once the torrent is loaded, and the original
-			// filenames should be preserved!
-			int cnt = 0;
-
-#if TORRENT_HAS_BOOST_UNORDERED
-			boost::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
-#else
-			std::set<std::string, string_less_no_case> files;
-#endif
-
-			// as long as this file already exists
-			// increase the counter
-			while (!files.insert(e.path).second)
-			{
-				++cnt;
-				char suffix[50];
-				snprintf(suffix, sizeof(suffix), ".%d%s", cnt, extension(e.path).c_str());
-				replace_extension(e.path, suffix);
-			}
 			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0);
 
 			// This is a memory optimization! Instead of having
 			// each entry keep a string for its filename, make it
 			// simply point into the info-section buffer
 			internal_file_entry const& fe = *target.rbegin();
-			// TODO: once the filename renaming is removed from here
-			// this check can be removed as well
-			if (fee && fe.filename() == fee->string_value())
-			{
-				// this string pointer does not necessarily point into
-				// the m_info_section buffer.
-				char const* str_ptr = fee->string_ptr() + info_ptr_diff;
-				const_cast<internal_file_entry&>(fe).set_name(str_ptr, fee->string_length());
-			}
+
+			// this string pointer does not necessarily point into
+			// the m_info_section buffer.
+			char const* str_ptr = fee->string_ptr() + info_ptr_diff;
+			const_cast<internal_file_entry&>(fe).set_name(str_ptr, fee->string_length());
 		}
 		return true;
 	}
@@ -636,6 +612,53 @@ namespace libtorrent
 			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 		}
 		INVARIANT_CHECK;
+	}
+
+	void torrent_info::resolve_duplicate_filenames()
+	{
+		int cnt = 0;
+
+#if TORRENT_HAS_BOOST_UNORDERED
+		boost::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
+#else
+		std::set<std::string, string_less_no_case> files;
+#endif
+		std::vector<std::string> const& paths = m_files.paths();
+
+		// insert all directories first, to make sure no files
+		// are allowed to collied with them
+		// TODO: what about directories with the same name?
+		for (std::vector<std::string>::const_iterator i = paths.begin()
+			, end(paths.end()); i != end; ++i)
+		{
+			files.insert(*i);
+		}
+
+		int index = 0;
+		for (file_storage::iterator i = m_files.begin()
+			, end(m_files.end()); i != end; ++i, ++index)
+		{
+			// as long as this file already exists
+			// increase the counter
+			std::string filename = m_files.file_path(index);
+			if (!files.insert(filename).second)
+			{
+				std::string base = remove_extension(filename);
+				std::string ext = extension(filename);
+				do
+				{
+					++cnt;
+					char new_ext[50];
+					snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
+					filename = base + new_ext;
+				}
+				while (!files.insert(filename).second);
+
+				copy_on_write();
+				m_files.rename_file(index, filename);
+			}
+			cnt = 0;
+		}
 	}
 
 	void torrent_info::remap_files(file_storage const& f)
@@ -1343,7 +1366,9 @@ namespace libtorrent
 			ec = errors::torrent_missing_info;
 			return false;
 		}
-		return parse_info_section(*info, ec, flags);
+		bool ret = parse_info_section(*info, ec, flags);
+		if (ret) resolve_duplicate_filenames();
+		return ret;
 	}
 
 	boost::optional<time_t>

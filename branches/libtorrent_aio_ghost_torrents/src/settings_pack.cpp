@@ -94,9 +94,11 @@ namespace libtorrent
 
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
+#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED_SET(name, default_value, fun) { "", NULL, NULL }
 #else
 #define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
+#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value, 0 }
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #endif
 
@@ -223,8 +225,8 @@ namespace libtorrent
 		SET(seed_time_limit, 24 * 60 * 60, 0),
 		SET(auto_scrape_interval, 1800, 0),
 		SET(auto_scrape_min_interval, 300, 0),
-		SET(max_peerlist_size, 4000, 0),
-		SET(max_paused_peerlist_size, 4000, 0),
+		SET(max_peerlist_size, 3000, 0),
+		SET(max_paused_peerlist_size, 1000, 0),
 		SET(min_announce_interval, 5 * 60, 0),
 		SET(auto_manage_startup, 120, 0),
 		SET(seeding_piece_quota, 20, 0),
@@ -237,7 +239,6 @@ namespace libtorrent
 		SET(recv_socket_buffer_size, 0, 0),
 		SET(send_socket_buffer_size, 0, 0),
 		SET(file_checks_delay_per_block, 0, 0),
-		SET(disk_cache_algorithm, settings_pack::avoid_readback, 0),
 		SET(read_cache_line_size, 32, 0),
 		SET(write_cache_line_size, 16, 0),
 		SET(optimistic_disk_retry, 10 * 60, 0),
@@ -290,6 +291,7 @@ namespace libtorrent
 		SET(peer_turnover, 4, 0),
 		SET(peer_turnover_cutoff, 90, 0),
 		SET(peer_turnover_interval, 300, 0),
+		SET_NOPREV(connect_seed_every_n_download, 10, 0)
 	};
 
 #undef SET

@@ -54,13 +54,13 @@ const int mask = alert::all_categories & ~(alert::performance_warning | alert::s
 
 void wait_for_complete(session& ses, torrent_handle h)
 {
-	for (int i = 0; i < 200; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
 		fprintf(stderr, "%f %%\n", st.progress_ppm / 10000.f);
 		if (st.progress_ppm == 1000000) return;
-		test_sleep(100);
+		test_sleep(500);
 	}
 	TEST_CHECK(false);
 }

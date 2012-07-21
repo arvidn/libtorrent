@@ -837,6 +837,14 @@ namespace libtorrent
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
+	namespace
+	{
+		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
+		{
+			return lhs.offset < rhs.offset;
+		}
+	}
+
 	// much of what needs to be done when reading and writing 
 	// is buffer management and piece to file mapping. Most
 	// of that is the same for reading and writing. This function
@@ -861,25 +869,17 @@ namespace libtorrent
 		TORRENT_ASSERT(!slices.empty());
 #endif
 
-		size_type start = slot * (size_type)m_files.piece_length() + offset;
-		TORRENT_ASSERT(start + size <= m_files.total_size());
+		internal_file_entry target_file;
+		target_file.offset = slot * size_type(m_files.piece_length()) + offset;
 
-		// find the file iterator and file offset
-		size_type file_offset = start;
-		file_storage::iterator file_iter;
+		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+			files().begin(), files().end(), target_file, compare_file_offset);
 
-		// TODO: use binary search!
-		int file_index = 0;
-		for (file_iter = files().begin();;)
-		{
-			if (file_offset < file_iter->size)
-				break;
+		TORRENT_ASSERT(file_iter != files().begin());
+		--file_iter;
+		int file_index = file_iter - files().begin();
 
-			++file_index;
-			file_offset -= file_iter->size;
-			++file_iter;
-			TORRENT_ASSERT(file_iter != files().end());
-		}
+		size_type file_offset = target_file.offset - file_iter->offset;
 
 		int buf_pos = 0;
 
@@ -1078,6 +1078,23 @@ namespace libtorrent
 		return new zero_storage;
 	}
 
+	void storage_piece_set::add_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
+		m_cached_pieces.insert(p);
+	}
+
+	bool storage_piece_set::has_piece(cached_piece_entry* p) const
+	{
+		return m_cached_pieces.count(p) > 0;
+	}
+
+	void storage_piece_set::remove_piece(cached_piece_entry* p)
+	{
+		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
+		m_cached_pieces.erase(p);
+	}
+
 	// -- piece_manager -----------------------------------------------------
 
 	piece_manager::piece_manager(
@@ -1093,27 +1110,9 @@ namespace libtorrent
 	piece_manager::~piece_manager()
 	{}
 
-	void piece_manager::add_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 0);
-		m_cached_pieces.insert(p);
-	}
-
-	bool piece_manager::has_piece(cached_piece_entry* p) const
-	{
-		return m_cached_pieces.count(p) > 0;
-	}
-
-	void piece_manager::remove_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(m_cached_pieces.count(p) == 1);
-		m_cached_pieces.erase(p);
-	}
-
 	// used in torrent_handle.cpp
 	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
 	{
-		INVARIANT_CHECK;
 		m_storage->write_resume_data(rd, ec);
 	}
 
@@ -1140,9 +1139,6 @@ namespace libtorrent
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
 		storage_error se;
-		// TODO: change the initialize signature and let the
-		// storage_impl be responsible for which storage mode
-		// it's using
 		m_storage->initialize(se);
 		if (se)
 		{
@@ -1160,8 +1156,6 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		lazy_entry const& rd, storage_error& ec)
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 		
 		// if we don't have any resume data, return
@@ -1376,9 +1370,5 @@ namespace libtorrent
 
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}
-
-#ifdef TORRENT_DEBUG
-	void piece_manager::check_invariant() const {}
-#endif
 } // namespace libtorrent
 

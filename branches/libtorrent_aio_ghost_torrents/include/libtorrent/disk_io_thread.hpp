@@ -73,7 +73,7 @@ namespace libtorrent
 		ptime last_use;
 		bool need_readback;
 		int next_to_hash;
-		enum kind_t { read_cache = 0, write_cache = 1 };
+		enum kind_t { read_cache = 0, write_cache = 1, volatile_read_cache = 2 };
 		kind_t kind;
 	};
 	
@@ -114,6 +114,8 @@ namespace libtorrent
 			, arc_mru_ghost_size(0)
 			, arc_mfu_size(0)
 			, arc_mfu_ghost_size(0)
+			, arc_write_size(0)
+			, arc_volatile_size(0)
 		{}
 
 		std::vector<cached_piece_info> pieces;
@@ -202,6 +204,8 @@ namespace libtorrent
 		int arc_mru_ghost_size;
 		int arc_mfu_size;
 		int arc_mfu_ghost_size;
+		int arc_write_size;
+		int arc_volatile_size;
 	};
 	
 	// this is a singleton consisting of the thread and a queue
@@ -260,15 +264,15 @@ namespace libtorrent
 		void clear_read_cache(piece_manager* storage);
 		void clear_piece(piece_manager* storage, int index);
 
-		void subscribe_to_disk(boost::function<void()> const& cb)
-		{ m_disk_cache.subscribe_to_disk(cb); }
+		void subscribe_to_disk(disk_observer* o)
+		{ m_disk_cache.subscribe_to_disk(o); }
 
 		// implements buffer_allocator_interface
 		void reclaim_block(block_cache_reference ref);
 		void free_disk_buffer(char* buf) { m_disk_cache.free_buffer(buf); }
 		char* allocate_disk_buffer(char const* category)
 		{ return m_disk_cache.allocate_buffer(category); }
-		char* allocate_disk_buffer(bool& exceeded, boost::function<void()> const& cb
+		char* allocate_disk_buffer(bool& exceeded, disk_observer* o
 			, char const* category);
 
 		bool exceeded_cache_use() const

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_INTERFACE_HPP
 
 #include <boost/function/function1.hpp>
-#include <boost/function/function0.hpp>
 
 #include "libtorrent/lazy_entry.hpp"
 
@@ -45,6 +44,7 @@ namespace libtorrent
 	struct disk_io_job;
 	class piece_manager;
 	struct peer_request;
+	struct disk_observer;
 
 	struct disk_interface
 	{
@@ -83,7 +83,7 @@ namespace libtorrent
 		virtual void clear_read_cache(piece_manager* storage) = 0;
 		virtual void clear_piece(piece_manager* storage, int index) = 0;
 
-		virtual void subscribe_to_disk(boost::function<void()> const& cb) = 0;
+		virtual void subscribe_to_disk(disk_observer* o) = 0;
 	};
 }
 

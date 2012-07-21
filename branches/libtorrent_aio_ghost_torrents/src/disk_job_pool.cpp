@@ -84,5 +84,27 @@ namespace libtorrent
 		--m_jobs_in_use;
 		m_job_pool.free(j);	
 	}
+
+	void disk_job_pool::free_jobs(disk_io_job** j, int num)
+	{
+		if (num == 0) return;
+
+		int read_jobs = 0;
+		int write_jobs = 0;
+		for (int i = 0; i < num; ++i)
+		{
+			int type = j[i]->action;
+			j[i]->~disk_io_job();
+			if (type == disk_io_job::read) ++read_jobs;
+			else if (type == disk_io_job::write) ++write_jobs;
+		}
+	
+		mutex::scoped_lock l(m_job_mutex);
+		m_read_jobs -= read_jobs;
+		m_write_jobs -= write_jobs;
+		m_jobs_in_use -= num;
+		for (int i = 0; i < num; ++i)
+			m_job_pool.free(j[i]);	
+	}
 }
 

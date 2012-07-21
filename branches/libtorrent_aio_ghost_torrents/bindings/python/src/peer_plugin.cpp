@@ -267,7 +267,20 @@ namespace
   object get_buffer()
   {
       static char const data[] = "foobar";
+#if PY_VERSION_HEX >= 0x03000000
+      Py_buffer view;
+      memset(&view, 0, sizeof(Py_buffer));
+      view.buf = (void*)data;
+      view.len = 6;
+      view.ndim = 1;
+      view.readonly = true;
+      view.itemsize = sizeof(char);
+      Py_ssize_t shape[] = { 6 };
+      view.shape = shape;
+      return object(handle<>(PyMemoryView_FromBuffer(&view)));
+#else
       return object(handle<>(PyBuffer_FromMemory((void*)data, 6)));
+#endif
   }
 
 } // namespace unnamed

@@ -527,6 +527,18 @@ namespace libtorrent
 		return ext;
 	}
 
+	std::string remove_extension(std::string const& f)
+	{
+		char const* slash = strrchr(f.c_str(), '/');
+#ifdef TORRENT_WINDOWS
+		slash = (std::max)(strrchr(f.c_str(), '\\'), slash);
+#endif
+		char const* ext = strrchr(f.c_str(), '.');
+		// if we don't have an extension, just return f
+		if (ext == 0 || ext == &f[0] || (slash != NULL && ext < slash)) return f;
+		return f.substr(0, ext - &f[0]);
+	}
+
 	void replace_extension(std::string& f, std::string const& ext)
 	{
 		char const* e = strrchr(f.c_str(), '.');
@@ -1134,6 +1146,16 @@ namespace libtorrent
 #endif
 			, permissions);
 
+#ifdef O_NOATIME
+		// O_NOATIME is not allowed for files we don't own
+		// so, if we get EPERM when we try to open with it
+		// try again without O_NOATIME
+		if (handle == -1 && (mode & no_atime) && errno == EPERM)
+		{
+			mode &= ~no_atime;
+			handle = ::open(path.c_str(), mode_array[mode & rw_mask], permissions);
+		}
+#endif
 		if (handle == -1)
 		{
 			ec.assign(errno, get_posix_category());

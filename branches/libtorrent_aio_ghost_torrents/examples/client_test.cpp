@@ -1220,10 +1220,12 @@ void print_piece(libtorrent::partial_piece_info* pp
 		out += str;
 	}
 	out += esc("0");
-	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f%s%s\n"
+
+	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
+	snprintf(str, sizeof(str), "] %3d cache age: %-5.1f state: %s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
-		, cs ? (cs->kind == cached_piece_info::write_cache ? " state: write" : " state: read"): ""
+		, cs ? cache_kind_str[cs->kind] : "N/A"
 		, ts ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
 }
@@ -1639,7 +1641,6 @@ int main(int argc, char* argv[])
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::auto_expand_choker);
-	settings.set_int(settings_pack::disk_cache_algorithm, settings_pack::avoid_readback);
 	settings.set_bool(settings_pack::volatile_read_cache, false);
 	settings.set_int(settings_pack::aio_threads, 16);
 

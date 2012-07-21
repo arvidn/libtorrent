@@ -152,7 +152,7 @@ namespace
 			{
 				if (i->first.block_index == pb.block_index)
 				{
-					m_torrent.session().m_disk_thread.async_read(&m_torrent.filesystem()
+					m_torrent.session().m_disk_thread.async_read(&m_torrent.storage()
 						, r, boost::bind(&smart_ban_plugin::on_read_ok_block
 						, shared_from_this(), *i, _1), (void*)1);
 					m_block_hashes.erase(i++);
@@ -208,7 +208,7 @@ namespace
 					// since the piece has failed, this block is very likely to be replaced with a newly
 					// downloaded one very soon, and to get a block by reference would fail, since the
 					// block read will have been deleted by the time it gets back to the network thread
-					m_torrent.session().m_disk_thread.async_read(&m_torrent.filesystem(), r
+					m_torrent.session().m_disk_thread.async_read(&m_torrent.storage(), r
 						, boost::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1), (void*)1
 						, disk_io_job::force_copy);
@@ -234,7 +234,7 @@ namespace
 
 		void on_read_failed_block(piece_block b, address a, disk_io_job const* j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 			
 			disk_buffer_holder buffer(m_torrent.session(), *j);
 
@@ -320,7 +320,7 @@ namespace
 		
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, disk_io_job const* j)
 		{
-			TORRENT_ASSERT(m_torrent.session().is_network_thread());
+			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
 			disk_buffer_holder buffer(m_torrent.session(), *j);
 

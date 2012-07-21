@@ -49,5 +49,5 @@ for f in files:
 
 output.close()
 
-os.system('rst2html.py todo.rst >todo.html')
+os.system('rst2html-2.6.py todo.rst >todo.html')
 

@@ -229,7 +229,7 @@ reports = [
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),
 	('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP', ['uTP avg send delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),
 	('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP', ['uTP avg recv delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),
-	('uTP stats', 'num', 's', 'number of uTP sockets by state', ['uTP idle', 'uTP syn-sent', 'uTP connected', 'uTP fin-sent', 'uTP close-wait'], {'type': stacked}),
+	('uTP stats', 'num', '', 'number of uTP sockets by state', ['uTP idle', 'uTP syn-sent', 'uTP connected', 'uTP fin-sent', 'uTP close-wait'], {'type': stacked}),
 	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages'], {'type': stacked}),
 	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
 	('page faults', '', '', '', ['page faults']),
@@ -244,7 +244,7 @@ reports = [
 	('recv_buffer_sizes', 'num', '', '', ['down 8', 'down 16', 'down 32', 'down 64', 'down 128', \
 		'down 256', 'down 512', 'down 1024', 'down 2048', 'down 4096', 'down 8192', 'down 16384', \
 		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked}),
-	('ARC', 'num pieces', '', '', ['arc LRU pieces', 'arc LRU ghost pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
+	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats

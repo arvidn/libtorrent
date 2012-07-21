@@ -83,9 +83,6 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
-#if defined BOOST_HAS_PTHREADS
-	m_thread = 0;
-#endif
 #endif
 
 	m_buf_size = 2000;
@@ -226,7 +223,7 @@ void udp_socket::on_writable(error_code const& ec, udp::socket* s)
 }
 
 // called whenever the socket is readable
-void udp_socket::on_read(udp::socket* s)
+void udp_socket::on_read(error_code const& ec, udp::socket* s)
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_read");
@@ -248,6 +245,7 @@ void udp_socket::on_read(udp::socket* s)
 		--m_v4_outstanding;
 	}
 
+	if (ec == asio::error::operation_aborted) return;
 	if (m_abort) return;
 
 	CHECK_MAGIC;
@@ -430,7 +428,7 @@ void udp_socket::setup_read(udp::socket* s)
 #endif
 	udp::endpoint ep;
 	s->async_receive_from(asio::null_buffers()
-		, ep, boost::bind(&udp_socket::on_read, this, s));
+		, ep, boost::bind(&udp_socket::on_read, this, _1, s));
 }
 
 void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec)
@@ -749,11 +747,10 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// To simplyfy this, it's probably a good idea to
 	// merge on_connect and on_timeout to a single function
 	++m_outstanding_ops;
-	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
-		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
+	m_cc.enqueue(this, seconds(10));
 }
 
-void udp_socket::on_timeout()
+void udp_socket::on_connect_timeout()
 {
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
@@ -766,7 +763,7 @@ void udp_socket::on_timeout()
 	m_connection_ticket = -1;
 }
 
-void udp_socket::on_connect(int ticket)
+void udp_socket::on_allow_connect(int ticket)
 {
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(m_outstanding_ops > 0);
@@ -775,6 +772,11 @@ void udp_socket::on_connect(int ticket)
 
 	if (m_abort) return;
 	if (is_closed()) return;
+	if (ticket == -1)
+	{
+		close();
+		return;
+	}
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_connected");

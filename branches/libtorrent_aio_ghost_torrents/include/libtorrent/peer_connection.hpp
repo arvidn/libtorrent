@@ -82,6 +82,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/disk_observer.hpp"
+#include "libtorrent/connection_interface.hpp"
 
 namespace libtorrent
 {
@@ -146,6 +148,8 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT peer_connection
 		: public bandwidth_socket
 		, public peer_class_set
+		, public disk_observer
+		, public connection_interface 
 		, public boost::noncopyable
 	{
 	friend class invariant_access;
@@ -330,8 +334,13 @@ namespace libtorrent
 		boost::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
-		const stat& statistics() const { return m_statistics; }
+		stat const& statistics() const { return m_statistics; }
 		void add_stat(size_type downloaded, size_type uploaded);
+		void sent_bytes(int bytes_payload, int bytes_protocol);
+		void received_bytes(int bytes_payload, int bytes_protocol);
+		void trancieve_ip_packet(int bytes, bool ipv6);
+		void sent_syn(bool ipv6);
+		void received_synack(bool ipv6);
 
 		// is called once every second by the main loop
 		void second_tick(int tick_interval_ms);
@@ -348,7 +357,6 @@ namespace libtorrent
 		ptime connected_time() const { return m_connect; }
 		ptime last_received() const { return m_last_receive; }
 
-		void on_timeout();
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec, int error = 0);
 		// called when a connect attempt fails (not when an
@@ -374,8 +382,12 @@ namespace libtorrent
 		// initiate the tcp connection. This may be postponed until
 		// the library isn't using up the limitation of half-open
 		// tcp connections.	
-		void on_connect(int ticket);
+		// implements connection_interface
+		void on_allow_connect(int ticket);
 		
+		// implements connection_interface. Called by the connection_queue
+		void on_connect_timeout();
+
 		// This is called for every peer right after the upload
 		// bandwidth has been distributed among them
 		// It will reset the used bandwidth to 0.
@@ -613,6 +625,7 @@ namespace libtorrent
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
 		virtual void write_suggest(int piece) = 0;
+		virtual void write_bitfield() = 0;
 		
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
@@ -676,10 +689,14 @@ namespace libtorrent
 		// number of bytes this peer can send and receive
 		int m_quota[2];
 
+	private:
 		// statistics about upload and download speeds
 		// and total amount of uploads and downloads for
 		// this peer
+		// TODO: factor this out into its own class with a virtual interface
+		// torrent and session should implement this interface
 		stat m_statistics;
+	protected:
 
 		// a back reference to the session
 		// the peer belongs to.
@@ -1036,6 +1053,13 @@ namespace libtorrent
 		// requesting too many pieces while being choked
 		boost::uint8_t m_choke_rejects;
 
+		// this is the number of times this peer has had
+		// a request rejected because of a disk I/O failure.
+		// once this reaches a certain threshold, the
+		// peer is disconnected in order to avoid infinite
+		// loops of consistent failures
+		boost::uint8_t m_disk_read_failures;
+
 		// this is used in seed mode whenever we trigger a hash check
 		// for a piece, before we read it. It's used to throttle
 		// the hash checks to just a few per peer at a time.
@@ -1162,6 +1186,12 @@ namespace libtorrent
 		// set to true if this peer has metadata, and false
 		// otherwise.
 		bool m_has_metadata:1;
+
+		// this is true while this connection is queued
+		// in the connection_queue. We may not destruct
+		// the connection while it is, since it's not
+		// held by an owning pointer, just a plain one
+		bool m_queued_for_connection:1;
 
 		template <std::size_t Size>
 		struct handler_storage

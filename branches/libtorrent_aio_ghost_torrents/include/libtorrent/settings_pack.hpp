@@ -953,18 +953,6 @@ namespace libtorrent
 			// as they leave disk I/O time for other processes.
 			file_checks_delay_per_block,
 
-			// ``disk_cache_algorithm`` tells the disk I/O thread which cache flush
-			// algorithm to use. The default algorithm is largest_contiguous. This
-			// flushes the entire piece, in the write cache, that was least recently
-			// written to. This is specified by the ``session_settings::lru`` enum
-			// value. ``session_settings::largest_contiguous`` will flush the largest
-			// sequences of contiguous blocks from the write cache, regarless of the
-			// piece's last use time. ``session_settings::avoid_readback`` will prioritize
-			// flushing blocks that will avoid having to read them back in to verify
-			// the hash of the piece once it's done. This is especially useful for high
-			// throughput setups, where reading from the disk is especially expensive.
-			disk_cache_algorithm,
-
 			// ``read_cache_line_size`` is the number of blocks to read into the read
 			// cache when a read cache miss occurs. Setting this to 0 is essentially
 			// the same thing as disabling read cache. The number of blocks read
@@ -1270,6 +1258,20 @@ namespace libtorrent
 			peer_turnover_cutoff,
 			peer_turnover_interval,
 
+			// this setting controls the priority of downloading torrents
+			// over seeding or finished torrents when it comes to making
+			// peer connections. Peer connections are throttled by the
+			// connection_speed and the half-open connection limit. This
+			// makes peer connections a limited resource. Torrents that
+			// still have pieces to download are prioritized by default,
+			// to avoid having many seeding torrents use most of the connection
+			// attempts and only give one peer every now and then to the
+			// downloading torrent. libtorrent will loop over the downloading
+			// torrents to connect a peer each, and every n:th connection
+			// attempt, a finished torrent is picked to be allowed to connect
+			// to a peer. This setting controls n.
+			connect_seed_every_n_download,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
@@ -1297,9 +1299,6 @@ namespace libtorrent
 			disable_os_cache_for_aligned_files = 1,
 			disable_os_cache = 2
 		};
-
-		enum disk_cache_algo_t
-		{ lru, largest_contiguous, avoid_readback };
 
 		enum bandwidth_mixed_algo_t
 		{

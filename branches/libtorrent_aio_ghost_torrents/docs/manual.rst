@@ -173,7 +173,7 @@ The ``session`` class has the following synopsis::
 		session_settings settings() const;
 	#endif
 
-		void apply_settinboolsettings_pack const& s);
+		void apply_settings(settings_pack const& s);
 		aux::session_settings get_settings() const;
 
 		void set_pe_settings(pe_settings const& settings);
@@ -1289,7 +1289,7 @@ The order of these rules being applied are:
 
 1. peer-class IP filter
 2. peer-class type filter, removing classes
-2. peer-class type filter, adding classes
+3. peer-class type filter, adding classes
 
 For more information, see `peer classes`_.
 
@@ -6390,7 +6390,17 @@ failed to match it. i.e. the metadata that was received was corrupt. libtorrent 
 automatically retry to fetch it in this case. This is only relevant when running a
 torrent-less download, with the metadata extension provided by libtorrent.
 
-There are no additional data members in this alert.
+::	
+
+	struct metadata_failed_alert: torrent_alert
+	{
+		// ...
+
+		error_code error;
+	};
+
+The ``error`` member indicates what failed when parsing the metadata. This error is
+what's returned from ``lazy_bdecode()``.
 
 
 metadata_received_alert

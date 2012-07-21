@@ -181,6 +181,8 @@ namespace libtorrent
 		void set_share_mode(bool s);
 		bool share_mode() const { return m_share_mode; }
 
+		// TOOD: make graceful pause also finish all sending blocks
+		// before disconnecting
 		bool graceful_pause() const { return m_graceful_pause_mode; }
 
 		void set_upload_mode(bool b);
@@ -234,16 +236,21 @@ namespace libtorrent
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
 
-		void second_tick(stat& accumulator, int tick_interval_ms);
+		void second_tick(int tick_interval_ms);
 
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		void add_stats(stat const& s);
 		size_type bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
 		size_type quantized_bytes_done() const;
+
+		void sent_bytes(int bytes_payload, int bytes_protocol);
+		void received_bytes(int bytes_payload, int bytes_protocol);
+		void trancieve_ip_packet(int bytes, bool ipv6);
+		void sent_syn(bool ipv6);
+		void received_synack(bool ipv6);
 
 		void ip_filter_updated() { m_policy.ip_filter_updated(); }
 
@@ -272,20 +279,6 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
 		void force_recheck();
 		void save_resume_data(int flags);
-
-		bool is_active_download() const
-		{
-			return (m_state == torrent_status::downloading
-				|| m_state == torrent_status::downloading_metadata)
-				&& want_more_peers();
-		}
-
-		bool is_active_finished() const
-		{
-			return (m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding)
-				&& want_more_peers();
-		}
 
 		bool need_save_resume_data() const
 		{
@@ -433,8 +426,11 @@ namespace libtorrent
 		bool want_tick() const;
 		void update_want_tick();
 
-		bool want_more_peers() const;
-		void update_want_more_peers();
+		bool want_peers() const;
+		bool want_peers_download() const;
+		bool want_peers_finished() const;
+
+		void update_want_peers();
 
 		void update_want_scrape();
 
@@ -657,12 +653,8 @@ namespace libtorrent
 		// we wasn't finished anymore.
 		void resume_download();
 
-		void async_verify_piece(int piece_index, boost::function<void(int)> const&);
-
-		// this is called from the peer_connection
-		// each time a piece has failed the hash
-		// test
-		void piece_finished(int index, int passed_hash_check);
+		void verify_piece(int piece);
+		void on_piece_verified(disk_io_job const* j);
 
 		// piece_passed is called when a piece passes the hash check
 		// this will tell all peers that we just got his piece
@@ -711,8 +703,7 @@ namespace libtorrent
 		}
 		policy& get_policy() { return m_policy; }
 
-		// TODO: this should be renamed 'storage'
-		piece_manager& filesystem();
+		piece_manager& storage();
 		bool has_storage() const { return m_owning_storage; }
 
 		torrent_info const& torrent_file() const
@@ -871,6 +862,8 @@ namespace libtorrent
 
 	private:
 
+		void update_list(int list, bool in);
+
 		void on_files_deleted(disk_io_job const* j);
 		void on_files_released(disk_io_job const* j);
 		void on_torrent_paused(disk_io_job const* j);
@@ -879,9 +872,6 @@ namespace libtorrent
 		void on_file_renamed(disk_io_job const* j);
 		void on_cache_flushed(disk_io_job const* j);
 
-		void on_piece_verified(disk_io_job const* j
-			, boost::function<void(int)> f);
-	
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel);
 		int limit_impl(int channel) const;

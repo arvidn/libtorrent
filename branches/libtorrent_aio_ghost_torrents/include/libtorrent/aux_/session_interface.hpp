@@ -59,6 +59,7 @@ namespace libtorrent
 	struct bandwidth_channel;
 	struct bandwidth_manager;
 	struct peer_class_pool;
+	struct disk_observer;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
@@ -108,7 +109,7 @@ namespace libtorrent { namespace aux
 		// port selection
 		virtual int next_port() = 0;
 
-		virtual void subscribe_to_disk(boost::function<void()> const& cb) = 0;
+		virtual void subscribe_to_disk(disk_observer* o) = 0;
 		virtual bool exceeded_cache_use() const = 0;
 
 		// TODO: it would be nice to not have this be part of session_interface
@@ -128,6 +129,12 @@ namespace libtorrent { namespace aux
 		virtual int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) = 0;
 
 		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
+
+		virtual void sent_bytes(int bytes_payload, int bytes_protocol) = 0;
+		virtual void received_bytes(int bytes_payload, int bytes_protocol) = 0;
+		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
+		virtual void sent_syn(bool ipv6) = 0;
+		virtual void received_synack(bool ipv6) = 0;
 		
 		// half-open
 		virtual void half_open_done(int ticket) = 0;
@@ -155,7 +162,7 @@ namespace libtorrent { namespace aux
 #endif
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		virtual bool is_network_thread() const = 0;
+		virtual bool is_single_thread() const = 0;
 		virtual bool has_peer(peer_connection const* p) const = 0;
 		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
 #endif

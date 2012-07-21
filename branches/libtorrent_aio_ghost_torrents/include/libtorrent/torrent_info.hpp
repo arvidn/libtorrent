@@ -427,6 +427,8 @@ namespace libtorrent
 	private:
 #endif
 
+		void resolve_duplicate_filenames();
+
 		// not assignable
 		torrent_info const& operator=(torrent_info const&);
 

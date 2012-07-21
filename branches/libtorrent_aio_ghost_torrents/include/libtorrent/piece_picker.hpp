@@ -610,10 +610,9 @@ namespace libtorrent
 		// shuffles the given piece inside it's priority range
 		void shuffle(int priority, int elem_index);
 
-//		void sort_piece(std::vector<downloading_piece>::iterator dp);
-
-		downloading_piece& add_download_piece(int index);
-		void erase_download_piece(std::vector<downloading_piece>::iterator i);
+		typedef std::vector<downloading_piece>::iterator dlpiece_iter;
+		dlpiece_iter add_download_piece(int index);
+		void erase_download_piece(dlpiece_iter i);
 
 		std::vector<downloading_piece>::const_iterator find_dl_piece(int queue, int index) const;
 		std::vector<downloading_piece>::iterator find_dl_piece(int queue, int index);
