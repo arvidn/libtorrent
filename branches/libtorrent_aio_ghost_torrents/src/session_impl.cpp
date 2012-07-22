@@ -1282,6 +1282,55 @@ namespace aux {
 	}
 #endif
 
+	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
+	{
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		if (m_num_save_resume + m_num_queued_resume >= loaded_limit)
+		{
+			TORRENT_ASSERT(t);
+			m_save_resume_queue.push_back(t);
+			return;
+		}
+
+		++m_num_save_resume;
+		t->do_async_save_resume_data();
+	}
+
+	// this is called whenever a save_resume_data comes back
+	// from the disk thread
+	void session_impl::done_async_resume()
+	{
+		TORRENT_ASSERT(m_num_save_resume > 0);
+		--m_num_save_resume;
+		++m_num_queued_resume;
+	}
+
+	// this is called when one or all save resume alerts are
+	// popped off the alert queue
+	void session_impl::async_resume_dispatched(bool all)
+	{
+		if (all)
+		{
+			if (m_num_queued_resume == 0) return;
+			m_num_queued_resume = 0;
+		}
+		else
+		{
+			TORRENT_ASSERT(m_num_queued_resume > 0);
+			--m_num_queued_resume;
+		}
+
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		while (!m_save_resume_queue.empty()
+			&& m_num_save_resume + m_num_queued_resume < loaded_limit)
+		{
+			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
+			m_save_resume_queue.erase(m_save_resume_queue.begin());
+			++m_num_save_resume;
+			t->do_async_save_resume_data();
+		}
+	}
+
 	void session_impl::start_session()
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -1976,7 +2025,11 @@ namespace aux {
 
 	void session_impl::bump_torrent(torrent* t)
 	{
-		if (t->next != NULL || t->prev != NULL)
+		// if t is the only torrent in the LRU list, both
+		// its prev and next links will be NULL, even though
+		// it's already in the list. Cover this case by also
+		// checking to see if it's the first item
+		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
 		{
 			// this torrent is in the list already.
 			// first remove it
@@ -4864,6 +4917,20 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " cleaning up torrents\n";
 #endif
+
+		// clear the torrent LRU (probably not strictly necessary)
+		list_node* i = m_torrent_lru.get_all();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// clear the prev and next pointers in all torrents
+		// to avoid the assert when destructing them
+		while (i)
+		{
+			list_node* tmp = i;
+			i = i->next;
+			tmp->next = NULL;
+			tmp->prev= NULL;
+		}
+#endif
 		m_torrents.clear();
 
 		TORRENT_ASSERT(m_torrents.empty());
@@ -6143,12 +6210,18 @@ namespace aux {
 
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
-		return m_alerts.get();
+		std::auto_ptr<alert> ret = m_alerts.get();
+		if (alert_cast<save_resume_data_failed_alert>(ret.get())
+			|| alert_cast<save_resume_data_alert>(ret.get()))
+		{
+			async_resume_dispatched(false);
+		}
 	}
 	
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
 	{
 		m_alerts.get_all(alerts);
+		async_resume_dispatched(true);
 	}
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)

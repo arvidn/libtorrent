@@ -4064,6 +4064,9 @@ namespace libtorrent
 	void torrent::on_save_resume_data(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
+		torrent_ref_holder h(this);
+		dec_refcount();
+		m_ses.done_async_resume();
 
 		if (!j->buffer)
 		{
@@ -7473,6 +7476,13 @@ namespace libtorrent
 		if (flags & torrent_handle::flush_disk_cache)
 			m_ses.m_disk_thread.async_release_files(m_storage);
 
+		m_ses.queue_async_resume_data(shared_from_this());
+	}
+
+	void torrent::do_async_save_resume_data()
+	{
+		need_loaded();
+		inc_refcount();
 		m_ses.m_disk_thread.async_save_resume_data(m_storage
 			, boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1));
 	}
