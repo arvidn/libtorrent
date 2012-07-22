@@ -61,6 +61,8 @@ namespace libtorrent
 		void set_noexist(int i);
 		void set_error(int i);
 
+		void clear();
+
 	private:
 
 		struct stat_cache_t

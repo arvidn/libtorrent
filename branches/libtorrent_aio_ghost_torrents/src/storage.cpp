@@ -349,6 +349,7 @@ namespace libtorrent
 		}
 
 		// close files that were opened in write mode
+		m_stat_cache.clear();
 		m_pool.release(this);
 	}
 
@@ -399,6 +400,7 @@ namespace libtorrent
 				{
 					ec.file = index;
 					ec.operation = storage_error::stat;
+					m_stat_cache.clear();
 					return false;
 				}
 			}
@@ -409,6 +411,7 @@ namespace libtorrent
 			if (m_stat_cache.get_filesize(index) > 0)
 				return true;
 		}
+		m_stat_cache.clear();
 		return false;
 	}
 
