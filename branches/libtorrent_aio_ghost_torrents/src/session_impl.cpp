@@ -6216,6 +6216,7 @@ namespace aux {
 		{
 			async_resume_dispatched(false);
 		}
+		return ret;
 	}
 	
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
