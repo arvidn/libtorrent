@@ -826,7 +826,7 @@ namespace libtorrent
 			// queued up in this list in order to not have too many of them
 			// outstanding at any given time, since the resume data may use
 			// a lot of memory.
-			std::vector<boost::shared_ptr<torrent> > m_save_resume_queue;
+			std::list<boost::shared_ptr<torrent> > m_save_resume_queue;
 
 			// the number of save resume data disk jobs that are currently
 			// outstanding

@@ -1364,7 +1364,7 @@ int main(int argc, char* argv[])
 
 	proxy_settings ps;
 
-	int refresh_delay = 1000;
+	int refresh_delay = 500;
 	bool start_dht = true;
 	bool start_upnp = true;
 	bool start_lsd = true;
