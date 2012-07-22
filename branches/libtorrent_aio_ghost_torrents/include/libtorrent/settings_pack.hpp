@@ -859,12 +859,20 @@ namespace libtorrent
 			// lsd or their tracker. If some peer knows about you for any reason and tries to connect,
 			// it will still be accepted, unless the torrent is paused, which means it won't accept
 			// any connections.
+			// 
+			// ``active_loaded_limit`` is the number of torrents that are allowed to be *loaded*
+			// at any given time. Note that a torrent can be active even though it's not loaded.
+			// if an unloaded torrents finds a peer that wants to access it, the torrent will be
+			// loaded on demand, using a user-supplied callback function. If the feature of unloading
+			// torrents is not enabled, this setting have no effect. If this limit is set to 0, it
+			// means unlimited.
 			active_downloads,
 			active_seeds,
 			active_dht_limit,
 			active_tracker_limit,
 			active_lsd_limit,
 			active_limit,
+			active_loaded_limit,
 
 			// ``auto_manage_interval`` is the number of seconds between the torrent queue
 			// is updated, and rotated.

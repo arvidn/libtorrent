@@ -112,6 +112,7 @@ namespace libtorrent
 		: public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
+		, public list_node // used for torrent activity LRU
 	{
 	public:
 
@@ -156,6 +157,11 @@ namespace libtorrent
 
 		// unload the torrent file to save memory
 		void unload();
+		void load(std::vector<char>& buffer);
+
+		// pinned torrents may not be unloaded
+		bool is_pinned() const { return m_pinned; }
+		bool is_loaded() const { return m_torrent_file->is_loaded(); }
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
@@ -431,7 +437,6 @@ namespace libtorrent
 		bool want_peers_finished() const;
 
 		void update_want_peers();
-
 		void update_want_scrape();
 
 		bool try_connect_peer();
@@ -844,6 +849,19 @@ namespace libtorrent
 			m_links[aux::session_impl::torrent_state_updates].clear();
 		}
 
+		void dec_refcount()
+		{
+			TORRENT_ASSERT(m_refcount > 0);
+			--m_refcount;
+			if (m_refcount == 0 && m_should_be_loaded == false)
+				unload();
+		}
+		void inc_refcount()
+		{
+			TORRENT_ASSERT(is_loaded());
+			++m_refcount;
+		}
+
 		void inc_num_connecting()
 		{ ++m_num_connecting; }
 		void dec_num_connecting()
@@ -1131,20 +1149,17 @@ namespace libtorrent
 
 	private:
 
-		// pinned torrents are locked in RAM and won't be unloaded
-		// in favor of more active torrents. This is a reference
-		// counter of how many users there are that needs this torrent
-		// to stay in RAM. When the torrent is added, the user may
-		// choose to initialize this to 1, in which case it will never
-		// be unloaded from RAM
-		int m_pinned;
-
 		// when checking, this is the first piece we have not
 		// issued a hash job for
 		int m_checking_piece;
 
 		// the number of pieces we completed the check of
 		int m_num_checked_pieces;
+
+		// the number of async. operations that need this torrent
+		// loaded in RAM. having a refcount > 0 prevents it from
+		// being unloaded.
+		int m_refcount;
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;
@@ -1396,12 +1411,38 @@ namespace libtorrent
 		// whenever this torrent's state changes (any state).
 		bool m_state_subscription:1;
 
+		// pinned torrents are locked in RAM and won't be unloaded
+		// in favor of more active torrents. When the torrent is added,
+		// the user may choose to initialize this to 1, in which case
+		// it will never be unloaded from RAM
+		bool m_pinned:1;
+
+		// when this is false, we should unload the torrent as soon
+		// as the no other async. job needs the torrent loaded
+		bool m_should_be_loaded:1;
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
 		bool m_resume_data_loaded;
 #endif
 	};
+
+	struct torrent_ref_holder
+	{
+		torrent_ref_holder(torrent* t)
+			: m_torrent(t)
+		{
+			m_torrent->inc_refcount();
+		}
+
+		~torrent_ref_holder()
+		{
+			m_torrent->dec_refcount();
+		}
+		torrent* m_torrent;
+	};
+
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED

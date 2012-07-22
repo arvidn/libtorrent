@@ -497,6 +497,11 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(get_feeds, &f);
 	}
 
+	void session::set_load_function(boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> fun)
+	{
+		TORRENT_ASYNC_CALL1(set_load_function, fun);
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
 	{

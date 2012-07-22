@@ -2479,6 +2479,8 @@ namespace libtorrent
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
 #endif
+		t->need_loaded();
+		t->inc_refcount();
 		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
@@ -2582,6 +2584,8 @@ namespace libtorrent
 	void peer_connection::on_disk_write_complete(disk_io_job const* j
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
+		torrent_ref_holder h(t.get());
+		t->dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -4490,6 +4494,8 @@ namespace libtorrent
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
+				t->need_loaded();
+				t->inc_refcount();
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
 					, this);
@@ -4523,6 +4529,8 @@ namespace libtorrent
 				sent_a_piece = true;
 
 				// the callback function may be called immediately, instead of being posted
+				t->need_loaded();
+				t->inc_refcount();
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r), this);
@@ -4542,10 +4550,13 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		torrent_ref_holder h(t.get());
+		t->dec_refcount();
+
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
 
 		// we're using the piece hashes here, we need the torrent to be loaded
@@ -4590,9 +4601,12 @@ namespace libtorrent
 #endif
 		m_reading_bytes -= r.length;
 
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		torrent_ref_holder h(t.get());
+		t->dec_refcount();
+
 		if (j->ret < 0)
 		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (!t)
 			{
 				disconnect(j->error.ec);
@@ -4635,7 +4649,6 @@ namespace libtorrent
 			m_ses.m_disk_thread.rename_buffer(j->buffer, "received send buffer");
 #endif
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t)
 		{
 			disconnect(j->error.ec);

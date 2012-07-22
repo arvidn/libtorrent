@@ -348,6 +348,9 @@ struct torrent_entry
 
 // maps filenames to torrent_handles
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
+typedef std::map<libtorrent::sha1_hash, std::string> files_t;
+
+files_t hash_to_filename;
 
 using libtorrent::torrent_status;
 
@@ -812,6 +815,17 @@ void signal_handler(int signo)
 	loop_limit = 1;
 }
 
+void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libtorrent::error_code& ec)
+{
+	files_t::iterator i = hash_to_filename.find(ih);
+	if (i == hash_to_filename.end())
+	{
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		return;
+	}
+	libtorrent::load_file(i->second.c_str(), buf, ec);
+}
+
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
 
@@ -841,6 +855,8 @@ void add_torrent(libtorrent::session& ses
 		fprintf(stderr, "%s: %s\n", torrent.c_str(), ec.message().c_str());
 		return;
 	}
+
+	hash_to_filename.insert(std::make_pair(t->info_hash(), torrent));
 
 	static int counter = 0;
 
@@ -1344,6 +1360,7 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	settings_pack settings;
+	settings.set_int(settings_pack::active_loaded_limit, 20);
 
 	proxy_settings ps;
 
@@ -1364,6 +1381,7 @@ int main(int argc, char* argv[])
 	std::vector<torrent_status const*> filtered_handles;
 
 	handles_t files;
+
 	// torrents that were not added via the monitor dir
 	std::set<torrent_handle> non_files;
 
@@ -1377,6 +1395,8 @@ int main(int argc, char* argv[])
 			+ alert::progress_notification
 			+ alert::debug_notification
 			+ alert::stats_notification));
+
+	ses.set_load_function(&load_torrent);
 
 	std::vector<char> in;
 	error_code ec;
@@ -1421,6 +1441,7 @@ int main(int argc, char* argv[])
 				p.flags |= add_torrent_params::flag_paused;
 				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 				p.flags |= add_torrent_params::flag_auto_managed;
+				p.flags |= add_torrent_params::flag_pinned;
 				magnet_links.push_back(p);
 				continue;
 			}
@@ -2086,6 +2107,11 @@ int main(int argc, char* argv[])
 			{
 				out += " ";
 			}
+
+			if (s.is_loaded)
+				out += "L";
+			else
+				out += " ";
 
 			int queue_pos = s.queue_position;
 			if (queue_pos == -1) out += "-  ";

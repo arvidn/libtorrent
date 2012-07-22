@@ -109,6 +109,14 @@ namespace libtorrent { namespace aux
 		// port selection
 		virtual int next_port() = 0;
 
+		// load the specified torrent. also evict one torrent, except
+		// for the one specified, if we are at the limit of loaded torrents
+		virtual void load_torrent(torrent* t) = 0;
+
+		// bump the specified torrent to make it the most recently used one
+		// in the torrent LRU (i.e. the least likely to get unloaded)
+		virtual void bump_torrent(torrent* t) = 0;
+
 		virtual void subscribe_to_disk(disk_observer* o) = 0;
 		virtual bool exceeded_cache_use() const = 0;
 

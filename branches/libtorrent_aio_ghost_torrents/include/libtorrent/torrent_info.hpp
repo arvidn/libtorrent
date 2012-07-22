@@ -322,7 +322,8 @@ namespace libtorrent
 		peer_request map_file(int file, size_type offset, int size) const
 		{ return m_files.map_file(file, offset, size); }
 
-		// this is essentially the opposite of parse_torrent_file()
+		// load and unload this torrent info
+		void load(char const* buffer, int size, error_code& ec);
 		void unload();
 
 #ifndef TORRENT_NO_DEPRECATE

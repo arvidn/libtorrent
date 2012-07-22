@@ -862,6 +862,7 @@ namespace libtorrent
 
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(files().is_loaded());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		std::vector<file_slice> slices

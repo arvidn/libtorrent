@@ -305,9 +305,9 @@ namespace libtorrent
 		, m_last_saved_resume(time(0))
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
-		, m_pinned((p.flags & add_torrent_params::flag_pinned) ? 1 : 0)
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
+		, m_refcount(0)
 		, m_average_piece_time(0)
 		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
@@ -366,6 +366,8 @@ namespace libtorrent
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
+		, m_should_be_loaded(true)
+		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -905,6 +907,7 @@ namespace libtorrent
 	torrent::~torrent()
 	{
 		TORRENT_ASSERT(m_abort);
+		TORRENT_ASSERT(prev == NULL && next == NULL);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
@@ -952,9 +955,11 @@ namespace libtorrent
 		r.piece = piece;
 		r.start = 0;
 		rp->blocks_left = blocks_in_piece;
+		need_loaded();
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
+			inc_refcount();
 			m_ses.m_disk_thread.async_read(&storage(), r, boost::bind(&torrent::on_disk_read_complete
 				, shared_from_this(), _1, r, rp), (void*)1);
 		}
@@ -1129,6 +1134,10 @@ namespace libtorrent
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
 	{
+		// hold a reference until this function returns
+		torrent_ref_holder h(this);
+
+		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		disk_buffer_holder buffer(m_ses, *j);
@@ -1196,6 +1205,9 @@ namespace libtorrent
 			}
 			disk_buffer_holder holder(m_ses, buffer);
 			std::memcpy(buffer, data + p.start, p.length);
+	
+			need_loaded();
+			inc_refcount();
 			m_ses.m_disk_thread.async_write(&storage(), p, holder
 				, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
@@ -1210,6 +1222,10 @@ namespace libtorrent
 	void torrent::on_disk_write_complete(disk_io_job const* j
 		, peer_request p)
 	{
+		// hold a reference until this function returns
+		torrent_ref_holder h(this);
+
+		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 //		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
@@ -1706,6 +1722,8 @@ namespace libtorrent
 			}
 		}
 
+		need_loaded();
+		inc_refcount();
 		m_ses.m_disk_thread.async_check_fastresume(m_storage, &m_resume_entry
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
@@ -1717,10 +1735,28 @@ namespace libtorrent
 
 	void torrent::need_loaded()
 	{
-		TORRENT_ASSERT(false);
+		m_should_be_loaded = true;
+
+		// bump this torrent to the top of the torrent LRU of
+		// which torrents are most active
+		m_ses.bump_torrent(this);
+
 		if (m_torrent_file->is_loaded()) return;
 
-//		#error should the API request the client to load the file based in info-hash?
+		// load the specified torrent and also evict one torrent,
+		// except for the one specified. if we're not at our limit
+		// yet, no torrent is evicted
+		m_ses.load_torrent(this);
+	}
+
+	void torrent::load(std::vector<char>& buffer)
+	{
+		error_code ec;
+		m_torrent_file->load(&buffer[0], buffer.size(), ec);
+		if (ec)
+			set_error(ec, "");
+		else
+			state_updated();
 	}
 
 	// this is called when this torrent hasn't been active in long enough
@@ -1728,8 +1764,16 @@ namespace libtorrent
 	void torrent::unload()
 	{
 		// pinned torrents are not allowed to be swapped out
-		TORRENT_ASSERT(m_pinned == 0);
+		TORRENT_ASSERT(!m_pinned);
+
+		m_should_be_loaded = false;
+
+		// make sure it's not unloaded in the middle of some operation that uses it
+		if (m_refcount > 0) return;
+
 		m_torrent_file->unload();
+
+		state_updated();
 	}
 
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
@@ -1761,6 +1805,10 @@ namespace libtorrent
 
 	void torrent::on_resume_data_checked(disk_io_job const* j)
 	{
+		// hold a reference until this function returns
+		torrent_ref_holder h(this);
+
+		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		if (j->ret == piece_manager::fatal_disk_error)
@@ -2024,6 +2072,9 @@ namespace libtorrent
 
 		std::vector<char>().swap(m_resume_data);
 		lazy_entry().swap(m_resume_entry);
+
+		need_loaded();
+		inc_refcount();
 		m_ses.m_disk_thread.async_check_fastresume(m_storage, &m_resume_entry
 			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
@@ -2033,6 +2084,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		// hold a reference until this function returns
+		torrent_ref_holder h(this);
+
+		dec_refcount();
 		state_updated();
 
 		if (j->ret == piece_manager::fatal_disk_error)
@@ -2070,6 +2125,8 @@ namespace libtorrent
 
 		for (int i = 0; i < num_outstanding; ++i)
 		{
+			need_loaded();
+			inc_refcount();
 			m_ses.m_disk_thread.async_hash(m_storage, m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
@@ -2080,6 +2137,10 @@ namespace libtorrent
 	
 	void torrent::on_piece_hashed(disk_io_job const* j)
 	{
+		// hold a reference until this function returns
+		torrent_ref_holder h(this);
+
+		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		INVARIANT_CHECK;
 
@@ -2162,6 +2223,8 @@ namespace libtorrent
 			// we paused the checking
 			if (!should_check_files()) return;
 
+			need_loaded();
+			inc_refcount();
 			m_ses.m_disk_thread.async_hash(m_storage, m_checking_piece++
 				, file::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
@@ -6856,9 +6919,6 @@ namespace libtorrent
 
 	piece_manager& torrent::storage()
 	{
-		// we'll most likely need the torrent to be loaded here
-		need_loaded();
-
 		TORRENT_ASSERT(m_owning_storage.get());
 		TORRENT_ASSERT(m_storage);
 		return *m_storage;
@@ -6880,6 +6940,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+		if (!is_loaded()) return;
+
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_impl::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_impl::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_impl::torrent_want_tick].in_list());
@@ -8695,6 +8757,7 @@ namespace libtorrent
 
 		st->handle = get_handle();
 		st->info_hash = info_hash();
+		st->is_loaded = is_loaded();
 
 		st->listen_port = 0;
 #ifdef TORRENT_USE_OPENSSL

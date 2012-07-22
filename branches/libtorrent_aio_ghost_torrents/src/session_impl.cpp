@@ -1974,6 +1974,62 @@ namespace aux {
 			? &m_download_rate : &m_upload_rate;
 	}
 
+	void session_impl::bump_torrent(torrent* t)
+	{
+		if (t->next != NULL || t->prev != NULL)
+		{
+			// this torrent is in the list already.
+			// first remove it
+			m_torrent_lru.erase(t);
+		}
+
+		// pinned torrents should not be part of the LRU, since
+		// the LRU is only used to evict torrents
+		if (t->is_pinned()) return;
+
+		m_torrent_lru.push_back(t);
+	}
+
+	void session_impl::evict_torrent(torrent* ignore)
+	{
+		if (!m_user_load_torrent) return;
+
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		while (m_torrent_lru.size() >= loaded_limit)
+		{
+			// we're at the limit of loaded torrents. Find the least important
+			// torrent and unload it. This is done with an LRU.
+			torrent* i = (torrent*)m_torrent_lru.front();
+
+			// ignore t. That's the torrent we're putting in
+			if (i == ignore) i = (torrent*)i->next;
+
+			// if there are no other torrents, we can't do anything
+			if (i == NULL) break;
+
+			TORRENT_ASSERT(i->is_pinned() == false);
+			i->unload();
+			m_torrent_lru.erase(i);
+		}
+	}
+
+	void session_impl::load_torrent(torrent* t)
+	{
+		evict_torrent(t);
+
+		// now, load t into RAM
+		std::vector<char> buffer;
+		error_code ec;
+		m_user_load_torrent(t->info_hash(), buffer, ec);
+		if (ec)
+		{
+			t->set_error(ec, -1);
+			return;
+		}
+		t->load(buffer);
+		bump_torrent(t);
+	}
+
 	void session_impl::deferred_submit_jobs()
 	{
 		if (m_deferred_submit_disk_jobs) return;
@@ -4177,6 +4233,11 @@ namespace aux {
 		// if we would maintain them. That way the first pass over
 		// all torrents could be avoided. It would be especially
 		// efficient if most torrents are not auto-managed
+		// whenever we receive a scrape response (or anything
+		// that may change the rank of a torrent) that one torrent
+		// could re-sort itself in a list that's kept sorted at all
+		// times. That way, this pass over all torrents could be
+		// avoided alltogether.
 		std::vector<torrent*> checking;
 		std::vector<torrent*> downloaders;
 		downloaders.reserve(m_torrents.size());
@@ -5101,6 +5162,12 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
+		if (torrent_ptr->is_pinned() == false)
+		{
+			bump_torrent(torrent_ptr.get());
+			evict_torrent(torrent_ptr.get());
+		}
+
 #if TORRENT_HAS_BOOST_UNORDERED
 		// if this insert made the hash grow, the iterators became invalid
 		// we need to reset them
@@ -5173,6 +5240,11 @@ namespace aux {
 		torrent& t = *i->second;
 		if (options & session::delete_files)
 			t.delete_files();
+
+		if ((t.prev != NULL || t.next != NULL) && !t.is_pinned())
+			m_torrent_lru.erase(&t);
+
+		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();

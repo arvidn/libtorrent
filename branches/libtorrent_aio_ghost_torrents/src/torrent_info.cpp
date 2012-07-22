@@ -896,6 +896,16 @@ namespace libtorrent
 	torrent_info::~torrent_info()
 	{}
 
+	void torrent_info::load(char const* buffer, int size, error_code& ec)
+	{
+		lazy_entry e;
+		if (lazy_bdecode(buffer, buffer + size, e, ec) != 0)
+			return;
+
+		if (!parse_torrent_file(e, ec, 0))
+			return;
+	}
+
 	void torrent_info::unload()
 	{
 		m_info_section.reset();

@@ -255,6 +255,8 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
+		void set_load_function(boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> fun);
+
 		session_status status() const;
 
 #ifndef TORRENT_NO_DEPRECATE

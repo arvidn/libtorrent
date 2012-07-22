@@ -471,6 +471,7 @@ namespace libtorrent
 		bool sequential_download;
 		bool is_seeding;
 		bool is_finished;
+		bool is_loaded;
 		bool has_metadata;
 
 		float progress;
