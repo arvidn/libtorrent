@@ -632,8 +632,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		udp::socket::non_blocking_io ioc(true);
 		m_ipv4_sock.io_control(ioc, ec);
 		if (ec) return;
-		if (m_v4_outstanding == 0)
-			setup_read(&m_ipv4_sock);
+		setup_read(&m_ipv4_sock);
 	}
 #if TORRENT_USE_IPV6
 	else
@@ -645,8 +644,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		udp::socket::non_blocking_io ioc(true);
 		m_ipv6_sock.io_control(ioc, ec);
 		if (ec) return;
-		if (m_v6_outstanding == 0)
-			setup_read(&m_ipv6_sock);
+		setup_read(&m_ipv6_sock);
 	}
 #endif
 #ifdef TORRENT_DEBUG
@@ -676,8 +674,7 @@ void udp_socket::bind(int port)
 	if (!ec)
 	{
 		m_ipv4_sock.bind(udp::endpoint(address_v4::any(), port), ec);
-		if (m_v4_outstanding == 0)
-			setup_read(&m_ipv4_sock);
+		setup_read(&m_ipv4_sock);
 	}
 #if TORRENT_USE_IPV6
 	m_ipv6_sock.open(udp::v6(), ec);
@@ -686,8 +683,7 @@ void udp_socket::bind(int port)
 		m_ipv6_sock.set_option(v6only(true), ec);
 		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
 
-		if (m_v6_outstanding == 0)
-			setup_read(&m_ipv6_sock);
+		setup_read(&m_ipv6_sock);
 	}
 #endif // TORRENT_USE_IPV6
 
