@@ -493,7 +493,7 @@ namespace libtorrent { namespace dht
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		++m_total_message_input;
-		m_total_in_bytes += bytes_transferred;
+		m_total_in_bytes += size;
 #endif
 
 		using libtorrent::entry;
