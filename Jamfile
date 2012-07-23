@@ -173,12 +173,26 @@ rule linking ( properties * )
 		else
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
+
+			# when building a shared library with openssl, for some reason we really need
+			# boost date time (at least on windows). Hopefully a future version of asio
+			# will allow disabling this dependency
+			if <encryption>openssl in $(properties)
+			{
+				result += <library>/boost/date_time//boost_date_time/<link>shared ;
+			}
 		}
 		result += <include>$(BOOST_ROOT) <define>BOOST_ALL_NO_LIB ;
+
 	}
 	else
 	{
 		result += <library>boost_system ;
+
+		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
+		{
+			result += <library>boost_date_time ;
+		}
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -411,10 +425,12 @@ local boost-library-search-path =
   ;
 
 lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-search-path) ;
-
 lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
-
 lib boost_system : : <name>boost_system ;
+
+lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
+lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
+lib boost_date_time : : <name>boost_date_time ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
