@@ -246,6 +246,8 @@ namespace libtorrent { namespace aux
 			on_disk_queue_counter,
 			on_disk_counter,
 
+			torrent_evicted_counter,
+
 			num_stats_counters
 		};
 		virtual void inc_stats_counter(int c) = 0;

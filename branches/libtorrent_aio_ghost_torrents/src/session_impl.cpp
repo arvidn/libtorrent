@@ -1278,6 +1278,9 @@ namespace aux {
 
 			":peers up send buffer"
 
+			":loaded torrents"
+			":loaded torrent churn"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
@@ -1288,7 +1291,12 @@ namespace aux {
 		if (m_num_save_resume + m_num_queued_resume >= loaded_limit)
 		{
 			TORRENT_ASSERT(t);
-			m_save_resume_queue.push_back(t);
+			// do loaded torrents first, otherwise they'll just be
+			// evicted and have to be loaded again
+			if (t->is_loaded())
+				m_save_resume_queue.push_front(t);
+			else
+				m_save_resume_queue.push_back(t);
 			return;
 		}
 
@@ -2060,6 +2068,9 @@ namespace aux {
 			// if there are no other torrents, we can't do anything
 			if (i == NULL) break;
 
+#ifdef TORRENT_STATS
+			inc_stats_counter(torrent_evicted_counter);
+#endif
 			TORRENT_ASSERT(i->is_pinned() == false);
 			i->unload();
 			m_torrent_lru.erase(i);
@@ -4098,6 +4109,10 @@ namespace aux {
 
 			STAT_LOG(d, peers_up_send_buffer);
 
+			// loaded torrents
+			STAT_LOG(d, m_torrent_lru.size());
+			STAT_LOG(d, m_stats_counter[torrent_evicted_counter]);
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
@@ -5063,6 +5078,10 @@ namespace aux {
 
 		alert->status.reserve(state_updates.size());
 
+		// TODO: it might be a nice feature here to limit the number of torrents
+		// to send in a single update. By just posting the first n torrents, they
+		// would nicely be round-robined because the torrent lists are always
+		// pushed back
 		for (std::vector<torrent*>::iterator i = state_updates.begin()
 			, end(state_updates.end()); i != end; ++i)
 		{

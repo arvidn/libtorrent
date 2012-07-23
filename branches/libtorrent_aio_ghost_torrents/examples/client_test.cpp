@@ -332,6 +332,7 @@ enum {
 	torrents_queued,
 	torrents_stopped,
 	torrents_checking,
+	torrents_loaded,
 	torrents_feeds,
 
 	torrents_max
@@ -389,6 +390,11 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		++counters[torrents_checking];
 	}
 
+	if (st.is_loaded)
+	{
+		++counters[torrents_loaded];
+	}
+
 	switch (torrent_filter)
 	{
 		case torrents_all: return true;
@@ -404,6 +410,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		case torrents_queued: return st.paused && st.auto_managed;
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == torrent_status::checking_files;
+		case torrents_loaded: return st.is_loaded;
 		case torrents_feeds: return false;
 	}
 	return true;
@@ -2037,7 +2044,7 @@ int main(int argc, char* argv[])
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n";
 
-		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "RSS"};
+		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "loaded", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 		{
 			char filter[200];
