@@ -366,8 +366,8 @@ namespace libtorrent
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
-		, m_should_be_loaded(true)
 		, m_pinned(p.flags & add_torrent_params::flag_pinned)
+		, m_should_be_loaded(true)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;

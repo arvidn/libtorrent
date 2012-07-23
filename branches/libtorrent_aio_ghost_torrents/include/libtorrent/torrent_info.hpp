@@ -252,7 +252,7 @@ namespace libtorrent
 
 		~torrent_info();
 
-		file_storage const& files() const { TORRENT_ASSERT(is_loaded()); return m_files; }
+		file_storage const& files() const { return m_files; }
 		file_storage const& orig_files() const
 		{
 			TORRENT_ASSERT(is_loaded());
