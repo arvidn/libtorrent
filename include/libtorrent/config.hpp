@@ -49,11 +49,18 @@ POSSIBILITY OF SUCH DAMAGE.
 	build, to automatically apply these defines
 #endif
 
+#if !defined _MSC_VER || _MSC_VER >= 1600
+#include <stdint.h> // for INT64_MAX
+#else
+#if !defined INT64_MAX
+#define INT64_MAX 0x7fffffffffffffffLL
+#endif
+#endif
+
 #ifndef _MSC_VER
 #define __STDC_FORMAT_MACROS 1
 #define __STDC_LIMIT_MACROS 1
 #include <inttypes.h> // for PRId64 et.al.
-#include <stdint.h> // for INT64_MAX
 #endif
 
 #ifndef PRId64
@@ -67,10 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define PRIu64 "llu"
 #define PRIu32 "u"
 #endif
-#endif
-
-#if !defined INT64_MAX
-#define INT64_MAX 0x7fffffffffffffffLL
 #endif
 
 // backwards compatibility with older versions of boost
