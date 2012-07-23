@@ -1756,7 +1756,19 @@ namespace libtorrent
 		if (ec)
 			set_error(ec, "");
 		else
+		{
 			state_updated();
+			// call on_load() on extensions
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			for (extension_list_t::iterator i = m_extensions.begin()
+				, end(m_extensions.end()); i != end; ++i)
+			{
+				TORRENT_TRY {
+					(*i)->on_load();
+				} TORRENT_CATCH (std::exception&) {}
+			}
+#endif
+		}
 	}
 
 	// this is called when this torrent hasn't been active in long enough
@@ -1770,6 +1782,17 @@ namespace libtorrent
 
 		// make sure it's not unloaded in the middle of some operation that uses it
 		if (m_refcount > 0) return;
+
+		// call on_unload() on extensions
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_unload();
+			} TORRENT_CATCH (std::exception&) {}
+		}
+#endif
 
 		m_torrent_file->unload();
 

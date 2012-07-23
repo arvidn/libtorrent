@@ -121,6 +121,15 @@ namespace libtorrent
 		// enum members
 		virtual void on_state(int s) {}
 
+		// called when the torrent is unloaded from RAM
+		// and loaded again, respectively
+		// unload is called right before the torrent is
+		// unloaded and load is called right after it's
+		// loaded. i.e. the full torrent state is available
+		// when these callbacks are called.
+		virtual void on_unload() {}
+		virtual void on_load() {}
+
 		// called every time policy::add_peer is called
 		// src is a bitmask of which sources this peer
 		// has been seen from. flags is a bitmask of:
