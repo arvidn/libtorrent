@@ -587,7 +587,6 @@ lib torrent
 	src/$(SOURCES).cpp
 
 	: # requirements
-	<define>BOOST_THREAD_USE_LIB
 	<threading>multi
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 
@@ -596,7 +595,6 @@ lib torrent
 	# to declare the symbol as being exported
 	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
-	<link>shared,<boost-link>static:<define>BOOST_ALL_DYN_LINK
 	<link>shared:<define>BOOST_ALL_DYN_LINK
 
 	<dht-support>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
