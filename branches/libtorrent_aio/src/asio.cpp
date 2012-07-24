@@ -51,7 +51,9 @@
 #include <boost/asio/detail/impl/strand_service.ipp>
 #include <boost/asio/detail/impl/task_io_service.ipp>
 #include <boost/asio/detail/impl/throw_error.ipp>
-//#include <boost/asio/detail/impl/timer_queue.ipp>
+#if defined TORRENT_USE_OPENSSL 
+#include <boost/asio/detail/impl/timer_queue_ptime.ipp>
+#endif
 #include <boost/asio/detail/impl/timer_queue_set.ipp>
 #include <boost/asio/detail/impl/win_iocp_handle_service.ipp>
 #include <boost/asio/detail/impl/win_iocp_io_service.ipp>

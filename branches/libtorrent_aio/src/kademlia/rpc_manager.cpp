@@ -178,14 +178,14 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
-	PRINT_OFFSETOF(observer, m_sent);
-	PRINT_OFFSETOF(observer, m_refs);
-	PRINT_OFFSETOF(observer, m_algorithm);
-	PRINT_OFFSETOF(observer, m_id);
-	PRINT_OFFSETOF(observer, m_addr);
-	PRINT_OFFSETOF(observer, m_port);
-	PRINT_OFFSETOF(observer, m_transaction_id);
-	PRINT_OFFSETOF(observer, flags);
+	PRINT_OFFSETOF(dht::observer, m_sent);
+	PRINT_OFFSETOF(dht::observer, m_refs);
+	PRINT_OFFSETOF(dht::observer, m_algorithm);
+	PRINT_OFFSETOF(dht::observer, m_id);
+	PRINT_OFFSETOF(dht::observer, m_addr);
+	PRINT_OFFSETOF(dht::observer, m_port);
+	PRINT_OFFSETOF(dht::observer, m_transaction_id);
+	PRINT_OFFSETOF(dht::observer, flags);
 
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
