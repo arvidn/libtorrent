@@ -90,7 +90,7 @@ namespace libtorrent { namespace aux
 		// does nothing if the peer is already corked
 		virtual void cork_burst(peer_connection* p) = 0;
 
-		virtual void close_connection(peer_connection* p, error_code const& ec) = 0;
+		virtual void close_connection(peer_connection* p, error_code const& ec, bool cancel_with_cq) = 0;
 		virtual int num_connections() const = 0;
 
 		virtual char* allocate_buffer() = 0;

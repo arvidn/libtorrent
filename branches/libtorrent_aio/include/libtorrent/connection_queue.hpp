@@ -65,6 +65,7 @@ public:
 
 	void enqueue(connection_interface* conn
 		, time_duration timeout, int priority = 0);
+	void cancel(connection_interface* conn);
 	void done(int ticket);
 	void limit(int limit);
 	int limit() const;

@@ -2825,10 +2825,15 @@ namespace aux {
 		incoming_connection(s);
 	}
 
+	// if cancel_with_cq is set, the peer connection is
+	// currently expected to be scheduled for a connection
+	// with the connection queue, and should be cancelled
 	void session_impl::close_connection(peer_connection* p
-		, error_code const& ec)
+		, error_code const& ec, bool cancel_with_cq)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		if (cancel_with_cq) m_half_open.cancel(p);
 
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the

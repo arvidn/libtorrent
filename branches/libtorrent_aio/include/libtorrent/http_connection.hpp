@@ -193,6 +193,7 @@ private:
 	int m_redirects;
 
 	int m_connection_ticket;
+	bool m_queued_for_connection;
 	connection_queue& m_cc;
 
 	// specifies whether or not the connection is
