@@ -3734,7 +3734,7 @@ namespace libtorrent
 
 		async_shutdown(*m_socket, m_socket);
 
-		m_ses.close_connection(this, ec);
+		m_ses.close_connection(this, ec, m_queued_for_connection);
 
 		// we should only disconnect while we still have
 		// at least one reference left to the connection

@@ -79,6 +79,7 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 #endif
 	, m_rate_limit(0)
 	, m_download_quota(0)
+	, m_queued_for_connection(false)
 	, m_limiter_timer_active(false)
 	, m_limiter_timer(ios)
 	, m_redirects(5)
@@ -381,6 +382,8 @@ void http_connection::start(std::string const& hostname, std::string const& port
 void http_connection::on_connect_timeout()
 {
 	TORRENT_ASSERT(m_connection_ticket > -1);
+	TORRENT_ASSERT(m_queued_for_connection);
+	m_queued_for_connection = false;
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
@@ -449,6 +452,15 @@ void http_connection::close()
 	m_limiter_timer.cancel(ec);
 
 	async_shutdown(m_sock, shared_from_this());
+
+	if (m_queued_for_connection)
+		m_cc.cancel(this);
+
+	if (m_connection_ticket > -1)
+	{
+		m_cc.done(m_connection_ticket);
+		m_connection_ticket = -1;
+	}
 
 	m_hostname.clear();
 	m_port.clear();
@@ -539,10 +551,14 @@ void http_connection::queue_connect()
 	TORRENT_ASSERT(!m_endpoints.empty());
 	m_self_reference = shared_from_this();
 	m_cc.enqueue(this, m_read_timeout, m_priority);
+	m_queued_for_connection = true;
 }
 
 void http_connection::on_allow_connect(int ticket)
 {
+	TORRENT_ASSERT(m_queued_for_connection);
+	m_queued_for_connection = false;
+
 	boost::shared_ptr<http_connection> me(shared_from_this());
 	m_self_reference.reset();
 #if defined TORRENT_ASIO_DEBUGGING

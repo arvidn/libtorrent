@@ -100,6 +100,27 @@ namespace libtorrent
 
 	}
 
+	void connection_queue::cancel(connection_interface* conn)
+	{
+		std::vector<queue_entry>::iterator i = std::find_if(
+			m_queue.begin(), m_queue.end(), boost::bind(&queue_entry::conn, _1) == conn);
+
+		if (i == m_queue.end())
+		{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// assert the connection is not in the connecting list
+			for (std::map<int, connect_entry>::iterator i = m_connecting.begin();
+				i != m_connecting.end(); ++i)
+			{
+				TORRENT_ASSERT(i->second.conn != conn);
+			}
+#endif
+			return;
+		}
+
+		m_queue.erase(i);
+	}
+
 	void connection_queue::done(int ticket)
 	{
 		TORRENT_ASSERT(is_single_thread());

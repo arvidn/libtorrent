@@ -18,6 +18,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix windows build of shared library with openssl
 	* fix race condition causing shutdown hang
 
 0.16.2 release

@@ -295,7 +295,8 @@ namespace libtorrent
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
-			void close_connection(peer_connection* p, error_code const& ec);
+			void close_connection(peer_connection* p, error_code const& ec
+				, bool cancel_in_cq);
 
 #ifndef TORRENT_NO_DEPRECATE
 			void set_settings(libtorrent::session_settings const& s);
