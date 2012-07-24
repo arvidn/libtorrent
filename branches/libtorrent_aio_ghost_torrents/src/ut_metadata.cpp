@@ -97,8 +97,6 @@ namespace libtorrent { namespace
 			, m_metadata_progress(0)
 			, m_metadata_size(0)
 		{
-			// initialize m_metadata_size
-			metadata();
 		}
 
 		void need_loaded()
