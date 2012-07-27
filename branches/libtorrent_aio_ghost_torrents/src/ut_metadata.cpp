@@ -97,10 +97,13 @@ namespace libtorrent { namespace
 			, m_metadata_progress(0)
 			, m_metadata_size(0)
 		{
+			// initialize m_metadata_size
+			if (m_torrent.valid_metadata())
+				metadata();
 		}
 
-		void need_loaded()
-		{ m_torrent.need_loaded(); }
+		bool need_loaded()
+		{ return m_torrent.need_loaded(); }
 
 		virtual void on_unload()
 		{
@@ -116,10 +119,8 @@ namespace libtorrent { namespace
 
 		virtual void on_files_checked()
 		{
-			// if the torrent is a seed, copy the metadata from
-			// the torrent before it is deallocated
-			if (m_torrent.is_seed())
-				metadata();
+			// initialize m_metadata_size
+			metadata();
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
@@ -133,7 +134,7 @@ namespace libtorrent { namespace
 
 		buffer::const_interval metadata() const
 		{
-			m_torrent.need_loaded();
+			if (!m_torrent.need_loaded()) return buffer::const_interval(NULL, NULL);
 			TORRENT_ASSERT(m_torrent.valid_metadata());
 			if (!m_metadata)
 			{
@@ -291,7 +292,7 @@ namespace libtorrent { namespace
 				int offset = piece * 16 * 1024;
 				// unloaded torrents don't have any metadata. Since we're
 				// about to send the metadata, we need it to be loaded
-				m_tp.need_loaded();
+				if (!m_tp.need_loaded()) return;
 				metadata = m_tp.metadata().begin + offset;
 				metadata_piece_size = (std::min)(
 					int(m_tp.get_metadata_size() - offset), 16 * 1024);

@@ -548,7 +548,8 @@ namespace libtorrent
 			// pick the least recently used torrent and unload it, unless
 			// t is the least recently used, then the next least recently
 			// used is picked
-			void load_torrent(torrent* t);
+			// returns true if the torrent was loaded successfully
+			bool load_torrent(torrent* t);
 
 			// bump t to the top of the list of least recently used. i.e.
 			// make it the most recently used. This is done every time

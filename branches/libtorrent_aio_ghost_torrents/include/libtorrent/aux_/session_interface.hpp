@@ -111,7 +111,7 @@ namespace libtorrent { namespace aux
 
 		// load the specified torrent. also evict one torrent, except
 		// for the one specified, if we are at the limit of loaded torrents
-		virtual void load_torrent(torrent* t) = 0;
+		virtual bool load_torrent(torrent* t) = 0;
 
 		// bump the specified torrent to make it the most recently used one
 		// in the torrent LRU (i.e. the least likely to get unloaded)

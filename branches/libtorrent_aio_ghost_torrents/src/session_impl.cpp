@@ -2077,7 +2077,7 @@ namespace aux {
 		}
 	}
 
-	void session_impl::load_torrent(torrent* t)
+	bool session_impl::load_torrent(torrent* t)
 	{
 		evict_torrent(t);
 
@@ -2088,10 +2088,11 @@ namespace aux {
 		if (ec)
 		{
 			t->set_error(ec, -1);
-			return;
+			return false;
 		}
-		t->load(buffer);
+		bool ret = t->load(buffer);
 		bump_torrent(t);
+		return ret;
 	}
 
 	void session_impl::deferred_submit_jobs()

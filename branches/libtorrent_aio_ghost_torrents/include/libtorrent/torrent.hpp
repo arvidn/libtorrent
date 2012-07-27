@@ -153,11 +153,15 @@ namespace libtorrent
 		// called every time we actually need the torrent_info
 		// object to be fully loaded. If it isn't, this triggers
 		// loading it from disk
-		void need_loaded();
+		// the return value indicates success. If it failed to
+		// load, the torrent will be set to an error state and
+		// return false
+		bool need_loaded();
 
 		// unload the torrent file to save memory
 		void unload();
-		void load(std::vector<char>& buffer);
+		// returns true if parsed successfully
+		bool load(std::vector<char>& buffer);
 
 		// pinned torrents may not be unloaded
 		bool is_pinned() const { return m_pinned; }

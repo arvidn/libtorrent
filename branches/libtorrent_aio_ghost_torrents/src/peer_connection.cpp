@@ -2479,7 +2479,7 @@ namespace libtorrent
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
 #endif
-		t->need_loaded();
+		if (!t->need_loaded()) return;
 		t->inc_refcount();
 		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
@@ -4495,7 +4495,7 @@ namespace libtorrent
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				t->need_loaded();
+				if (!t->need_loaded()) return;
 				t->inc_refcount();
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
@@ -4530,7 +4530,7 @@ namespace libtorrent
 				sent_a_piece = true;
 
 				// the callback function may be called immediately, instead of being posted
-				t->need_loaded();
+				if (!t->need_loaded()) return;
 				t->inc_refcount();
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
@@ -4561,7 +4561,7 @@ namespace libtorrent
 		if (!t) return;
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		t->need_loaded();
+		if (!t->need_loaded()) return;
 
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
 			&& sha1_hash(j->d.piece_hash) != t->torrent_file().hash_for_piece(j->piece))
