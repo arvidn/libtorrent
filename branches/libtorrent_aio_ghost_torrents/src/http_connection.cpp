@@ -79,11 +79,11 @@ http_connection::http_connection(io_service& ios, connection_queue& cc
 #endif
 	, m_rate_limit(0)
 	, m_download_quota(0)
-	, m_queued_for_connection(false)
 	, m_limiter_timer_active(false)
 	, m_limiter_timer(ios)
 	, m_redirects(5)
 	, m_connection_ticket(-1)
+	, m_queued_for_connection(false)
 	, m_cc(cc)
 	, m_ssl(false)
 	, m_priority(0)
@@ -382,8 +382,7 @@ void http_connection::start(std::string const& hostname, std::string const& port
 void http_connection::on_connect_timeout()
 {
 	TORRENT_ASSERT(m_connection_ticket > -1);
-	TORRENT_ASSERT(m_queued_for_connection);
-	m_queued_for_connection = false;
+	TORRENT_ASSERT(!m_queued_for_connection);
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
@@ -446,11 +445,6 @@ void http_connection::close()
 {
 	if (m_abort) return;
 
-	error_code ec;
-	m_timer.cancel(ec);
-	m_resolver.cancel();
-	m_limiter_timer.cancel(ec);
-
 	async_shutdown(m_sock, shared_from_this());
 
 	if (m_queued_for_connection)
@@ -461,6 +455,11 @@ void http_connection::close()
 		m_cc.done(m_connection_ticket);
 		m_connection_ticket = -1;
 	}
+
+	error_code ec;
+	m_timer.cancel(ec);
+	m_resolver.cancel();
+	m_limiter_timer.cancel(ec);
 
 	m_hostname.clear();
 	m_port.clear();
