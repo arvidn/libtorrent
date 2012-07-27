@@ -1104,6 +1104,7 @@ utp_socket_impl::~utp_socket_impl()
 	}
 
 	free(m_nagle_packet);
+	m_nagle_packet = NULL;
 }
 
 bool utp_socket_impl::should_delete() const
@@ -1927,7 +1928,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	// for fast re-sends the packet hasn't been marked as needing resending
 	TORRENT_ASSERT(p->need_resend || fast_resend);
 
-	TORRENT_ASSERT(!m_error);
+	if (m_error) return false;
 
 	if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
 		&& m_mtu_seq != 0)
