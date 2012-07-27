@@ -5,7 +5,7 @@
 #define BOOST_ASIO_SOURCE
 #endif
 
-#ifdef _MSC_VER > 1310
+#if _MSC_VER > 1310
 
 // on windows; including timer_queue.hpp results in an
 // actual link-time dependency on boost.date_time, even
