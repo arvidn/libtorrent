@@ -1782,6 +1782,9 @@ namespace libtorrent
 		return 0;
 	}
 
+	// this is triggered every time we insert a new dirty block in a piece
+	// by the time this gets executed, the block may already have been flushed
+	// triggered by another mechanism.
 	int disk_io_thread::do_flush_hashed(disk_io_job* j)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
@@ -1789,6 +1792,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 
 		if (pe == NULL) return 0;
+		if (pe->num_dirty == 0) return 0;
 		if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
 		{
 			pe->hash = new partial_hash;
@@ -1809,7 +1813,7 @@ namespace libtorrent
 		// if we have more blocks in the cache than allowed by
 		// the cache size limit, flush some dirty blocks
 		int current_size = m_disk_cache.in_use();
-		if (m_settings.get_int(settings_pack::cache_size) <= current_size)
+		if (m_settings.get_int(settings_pack::cache_size) < current_size)
 		{
 			int left = current_size - m_settings.get_int(settings_pack::cache_size);
 			left = m_disk_cache.try_evict_blocks(left);
