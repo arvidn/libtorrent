@@ -794,6 +794,9 @@ namespace libtorrent
 		return r;
 	}
 
+	// TODO: this function should either be removed, or return
+	// reference counted handle to the torrent_info which
+	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;

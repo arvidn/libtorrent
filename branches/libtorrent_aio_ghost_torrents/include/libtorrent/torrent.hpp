@@ -1438,12 +1438,12 @@ namespace libtorrent
 		torrent_ref_holder(torrent* t)
 			: m_torrent(t)
 		{
-			m_torrent->inc_refcount();
+			if (m_torrent) m_torrent->inc_refcount();
 		}
 
 		~torrent_ref_holder()
 		{
-			m_torrent->dec_refcount();
+			if (m_torrent) m_torrent->dec_refcount();
 		}
 		torrent* m_torrent;
 	};

@@ -7515,6 +7515,13 @@ namespace libtorrent
 		if (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
 		{
+			if (!need_loaded())
+			{
+				alerts().post_alert(save_resume_data_failed_alert(get_handle()
+						, m_error));
+				return;
+			}
+
 			boost::shared_ptr<entry> rd(new entry);
 			write_resume_data(*rd);
 			alerts().post_alert(save_resume_data_alert(rd, get_handle()));
@@ -8601,53 +8608,27 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(valid_metadata());
-	
-		fp.resize(m_torrent_file->num_files(), 0);
+
+		int num_files = m_file_progress.size();
+		fp.resize(num_files, 0);
+
+		std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
 
 		if (flags & torrent_handle::piece_granularity)
-		{
-			std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
 			return;
-		}
 
 		if (is_seed())
-		{
-			for (int i = 0; i < m_torrent_file->num_files(); ++i)
-				fp[i] = m_torrent_file->files().at(i).size;
 			return;
-		}
 		
 		TORRENT_ASSERT(has_picker());
 
-		for (int i = 0; i < m_torrent_file->num_files(); ++i)
-		{
-			peer_request ret = m_torrent_file->files().map_file(i, 0, 0);
-			size_type size = m_torrent_file->files().at(i).size;
-
-// zero sized files are considered
-// 100% done all the time
-			if (size == 0)
-			{
-				fp[i] = 0;
-				continue;
-			}
-
-			size_type done = 0;
-			while (size > 0)
-			{
-				size_type bytes_step = (std::min)(size_type(m_torrent_file->piece_size(ret.piece)
-					- ret.start), size);
-				if (m_picker->have_piece(ret.piece)) done += bytes_step;
-				++ret.piece;
-				ret.start = 0;
-				size -= bytes_step;
-			}
-			TORRENT_ASSERT(size == 0);
-
-			fp[i] = done;
-		}
-
 		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
+
+		if (!q.empty())
+		{
+			// TODO: it sure would be nice to not need to load the torrent here
+			if (!const_cast<torrent&>(*this).need_loaded()) return;
+		}
 
 		for (std::vector<piece_picker::downloading_piece>::const_iterator
 			i = q.begin(), end(q.end()); i != end; ++i)

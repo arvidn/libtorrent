@@ -2585,7 +2585,7 @@ namespace libtorrent
 		, peer_request p, boost::shared_ptr<torrent> t)
 	{
 		torrent_ref_holder h(t.get());
-		t->dec_refcount();
+		if (t) t->dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #ifdef TORRENT_VERBOSE_LOGGING
@@ -3715,7 +3715,6 @@ namespace libtorrent
 			check_invariant();
 #endif
 			t->remove_peer(this);
-			m_torrent.reset();
 		}
 		else
 		{
@@ -4553,7 +4552,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		torrent_ref_holder h(t.get());
-		t->dec_refcount();
+		if (t) t->dec_refcount();
 
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
@@ -4604,7 +4603,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		torrent_ref_holder h(t.get());
-		t->dec_refcount();
+		if (t) t->dec_refcount();
 
 		if (j->ret < 0)
 		{
@@ -5892,7 +5891,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_download_queue.empty());
 			TORRENT_ASSERT(m_request_queue.empty());
-			TORRENT_ASSERT(!t);
 			TORRENT_ASSERT(m_disconnect_started);
 		}
 		else if (!m_in_constructor)

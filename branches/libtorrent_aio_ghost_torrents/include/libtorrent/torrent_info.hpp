@@ -312,15 +312,26 @@ namespace libtorrent
 		file_iterator end_files() const { return m_files.end(); }
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
+
+		//TODO: remember num_files when the torrent is unloaded
 		int num_files() const { return m_files.num_files(); }
 		file_entry file_at(int index) const { return m_files.at(index); }
 
 		file_iterator file_at_offset(size_type offset) const
-		{ return m_files.file_at_offset(offset); }
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_files.file_at_offset(offset);
+		}
 		std::vector<file_slice> map_block(int piece, size_type offset, int size) const
-		{ return m_files.map_block(piece, offset, size); }
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_files.map_block(piece, offset, size);
+		}
 		peer_request map_file(int file, size_type offset, int size) const
-		{ return m_files.map_file(file, offset, size); }
+		{
+			TORRENT_ASSERT(is_loaded());
+			return m_files.map_file(file, offset, size);
+		}
 
 		// load and unload this torrent info
 		void load(char const* buffer, int size, error_code& ec);
