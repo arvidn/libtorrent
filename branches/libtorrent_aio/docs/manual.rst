@@ -415,7 +415,8 @@ async_add_torrent() add_torrent()
 				flag_auto_managed = 0x040.
 				flag_duplicate_is_error = 0x080,
 				flag_merge_resume_trackers = 0x100,
-				flag_update_subscribe = 0x200
+				flag_update_subscribe = 0x200,
+				flag_pinned = 0x400
 			};
 
 			int version;
@@ -554,7 +555,8 @@ and how it's added. These are the flags::
 		flag_auto_managed = 0x040.
 		flag_duplicate_is_error = 0x080,
 		flag_merge_resume_trackers = 0x100,
-		flag_update_subscribe = 0x200
+		flag_update_subscribe = 0x200,
+		flag_pinned = 0x400
 	}
 
 ``flag_apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
@@ -625,6 +627,10 @@ priorities for torrents in share mode, it will make it not work.
 
 The share mode has one setting, the share ratio target, see share_mode_target_.
 for more info.
+
+``flag_pinned`` indicates that this torrent should never be unloaded from RAM, even
+if unloading torrents are allowed in general. Setting this makes the torrent
+excempt from loading/unloading management.
 
 
 remove_torrent()
@@ -3743,8 +3749,9 @@ It contains the following fields::
 		bool paused;
 		bool auto_managed;
 		bool sequential_download;
-		bool seeding;
-		bool finished;
+		bool is_seeding;
+		bool is_finished;
+		bool is_loaded;
 		float progress;
 		int progress_ppm;
 		std::string error;
@@ -3915,6 +3922,10 @@ this mode pieces are downloaded in order rather than rarest first.
 ``is_finished`` is true if all pieces that have a priority > 0 are downloaded. There is
 only a distinction between finished and seeding if some pieces or files have been
 set to priority 0, i.e. are not downloaded.
+
+``is_loaded`` is true if this torrent is loaded into RAM. A torrent can be started
+and still not loaded into RAM, in case it has not had any peers interested in it
+yet. Torrents are loaded on demand.
 
 ``has_metadata`` is true if this torrent has metadata (either it was started from a
 .torrent file or the metadata has been downloaded). The only scenario where this can be

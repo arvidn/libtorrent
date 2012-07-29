@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/optional.hpp>
 #include <deque>
 #include "libtorrent/config.hpp"
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR

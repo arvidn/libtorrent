@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/uncork_interface.hpp"
+#include "libtorrent/linked_list.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -245,6 +246,14 @@ namespace libtorrent
 
 			void init();
 			void start_session();
+
+			void set_load_function(boost::function<void(sha1_hash const&i
+				, std::vector<char>&, error_code& ec)> fun)
+			{ m_user_load_torrent = fun; }
+
+			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
+			void done_async_resume();
+			void async_resume_dispatched(bool all);
 
 			void init_peer_class_filter(bool unlimited_local);
 
@@ -535,6 +544,23 @@ namespace libtorrent
 				m_total_failed_bytes += b;
 			}
 
+			// load the specified torrent, also
+			// pick the least recently used torrent and unload it, unless
+			// t is the least recently used, then the next least recently
+			// used is picked
+			// returns true if the torrent was loaded successfully
+			bool load_torrent(torrent* t);
+
+			// bump t to the top of the list of least recently used. i.e.
+			// make it the most recently used. This is done every time
+			// an action is performed that required the torrent to be
+			// loaded, indicating activity
+			void bump_torrent(torrent* t);
+
+			// evict torrents until there's space for one new torrent,
+			// but don't evict the specified torrent
+			void evict_torrent(torrent* ignore);
+
 			void deferred_submit_jobs();
 
 			char* allocate_buffer();
@@ -789,7 +815,28 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
+
+			// this is an LRU for torrents. It's used to determine
+			// which torrents should be loaded into RAM and which ones
+			// shouldn't. Each torrent that's loaded is part of this
+			// list.
+			linked_list m_torrent_lru;
+	
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+
+			// when saving resume data for many torrents, torrents are
+			// queued up in this list in order to not have too many of them
+			// outstanding at any given time, since the resume data may use
+			// a lot of memory.
+			std::list<boost::shared_ptr<torrent> > m_save_resume_queue;
+
+			// the number of save resume data disk jobs that are currently
+			// outstanding
+			int m_num_save_resume;
+
+			// the number of resume data job that are complete and are waiting
+			// to be reaped in the alert queue
+			int m_num_queued_resume;
 
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that
@@ -1228,6 +1275,10 @@ namespace libtorrent
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 #endif
+
+			// if this function is set, it indicates that torrents are allowed
+			// to be unloaded. If it isn't, torrents will never be unloaded
+			boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> m_user_load_torrent;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 			GeoIP* m_asnum_db;

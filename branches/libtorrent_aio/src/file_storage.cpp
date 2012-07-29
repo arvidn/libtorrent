@@ -631,5 +631,15 @@ namespace libtorrent
 		}
 		m_total_size = off;
 	}
+
+	void file_storage::unload()
+	{
+		std::vector<internal_file_entry>().swap(m_files);
+		std::vector<char const*>().swap(m_file_hashes);
+		std::vector<std::string>().swap(m_symlinks);
+		std::vector<time_t>().swap(m_mtime);
+		std::vector<size_type>().swap(m_file_base);
+		std::vector<std::string>().swap(m_paths);
+	}
 }
 

@@ -81,5 +81,10 @@ namespace libtorrent
 		m_stat_cache.resize(num_files, not_in_cache);
 	}
 
+	void stat_cache::clear()
+	{
+		std::vector<stat_cache_t>().swap(m_stat_cache);
+	}
+
 }
 

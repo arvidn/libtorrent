@@ -175,7 +175,7 @@ namespace libtorrent
 	{
 		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
 
-		TORRENT_ASSERT(m_files.begin() != m_files.end());
+		TORRENT_ASSERT(m_files.num_files() > 0);
 		m_save_path = complete(path);
 	}
 
@@ -349,6 +349,7 @@ namespace libtorrent
 		}
 
 		// close files that were opened in write mode
+		m_stat_cache.clear();
 		m_pool.release(this);
 	}
 
@@ -399,6 +400,7 @@ namespace libtorrent
 				{
 					ec.file = index;
 					ec.operation = storage_error::stat;
+					m_stat_cache.clear();
 					return false;
 				}
 			}
@@ -409,6 +411,7 @@ namespace libtorrent
 			if (m_stat_cache.get_filesize(index) > 0)
 				return true;
 		}
+		m_stat_cache.clear();
 		return false;
 	}
 
@@ -862,6 +865,7 @@ namespace libtorrent
 
 		int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(files().is_loaded());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		std::vector<file_slice> slices

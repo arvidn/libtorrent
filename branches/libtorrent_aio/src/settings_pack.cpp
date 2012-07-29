@@ -92,6 +92,10 @@ namespace libtorrent
 #endif
 	};
 
+
+// SET_NOPREV - this is used for new settings that don't exist in the
+//              deprecated session_settings.
+
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
 #define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
@@ -221,6 +225,7 @@ namespace libtorrent
 		SET(active_tracker_limit, 360, 0),
 		SET(active_lsd_limit, 60, 0),
 		SET(active_limit, 15, &session_impl::reset_auto_manage_timer),
+		SET_NOPREV(active_loaded_limit, 0, &session_impl::reset_auto_manage_timer),
 		SET(auto_manage_interval, 30, 0),
 		SET(seed_time_limit, 24 * 60 * 60, 0),
 		SET(auto_scrape_interval, 1800, 0),

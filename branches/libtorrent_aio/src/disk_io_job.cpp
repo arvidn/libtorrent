@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
+#include "libtorrent/entry.hpp"
 
 namespace libtorrent
 {

@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -68,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp" // pool_file_status
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
+#include "libtorrent/lazy_entry.hpp"
 
 namespace libtorrent
 {

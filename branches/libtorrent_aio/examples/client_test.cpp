@@ -332,6 +332,7 @@ enum {
 	torrents_queued,
 	torrents_stopped,
 	torrents_checking,
+	torrents_loaded,
 	torrents_feeds,
 
 	torrents_max
@@ -348,6 +349,9 @@ struct torrent_entry
 
 // maps filenames to torrent_handles
 typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
+typedef std::map<libtorrent::sha1_hash, std::string> files_t;
+
+files_t hash_to_filename;
 
 using libtorrent::torrent_status;
 
@@ -386,6 +390,11 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		++counters[torrents_checking];
 	}
 
+	if (st.is_loaded)
+	{
+		++counters[torrents_loaded];
+	}
+
 	switch (torrent_filter)
 	{
 		case torrents_all: return true;
@@ -401,6 +410,7 @@ bool show_torrent(libtorrent::torrent_status const& st, int torrent_filter, int*
 		case torrents_queued: return st.paused && st.auto_managed;
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == torrent_status::checking_files;
+		case torrents_loaded: return st.is_loaded;
 		case torrents_feeds: return false;
 	}
 	return true;
@@ -812,6 +822,17 @@ void signal_handler(int signo)
 	loop_limit = 1;
 }
 
+void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libtorrent::error_code& ec)
+{
+	files_t::iterator i = hash_to_filename.find(ih);
+	if (i == hash_to_filename.end())
+	{
+		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
+		return;
+	}
+	libtorrent::load_file(i->second.c_str(), buf, ec);
+}
+
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
 
@@ -841,6 +862,8 @@ void add_torrent(libtorrent::session& ses
 		fprintf(stderr, "%s: %s\n", torrent.c_str(), ec.message().c_str());
 		return;
 	}
+
+	hash_to_filename.insert(std::make_pair(t->info_hash(), torrent));
 
 	static int counter = 0;
 
@@ -1344,10 +1367,11 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	settings_pack settings;
+	settings.set_int(settings_pack::active_loaded_limit, 20);
 
 	proxy_settings ps;
 
-	int refresh_delay = 1000;
+	int refresh_delay = 500;
 	bool start_dht = true;
 	bool start_upnp = true;
 	bool start_lsd = true;
@@ -1364,6 +1388,7 @@ int main(int argc, char* argv[])
 	std::vector<torrent_status const*> filtered_handles;
 
 	handles_t files;
+
 	// torrents that were not added via the monitor dir
 	std::set<torrent_handle> non_files;
 
@@ -1377,6 +1402,8 @@ int main(int argc, char* argv[])
 			+ alert::progress_notification
 			+ alert::debug_notification
 			+ alert::stats_notification));
+
+	ses.set_load_function(&load_torrent);
 
 	std::vector<char> in;
 	error_code ec;
@@ -1421,6 +1448,7 @@ int main(int argc, char* argv[])
 				p.flags |= add_torrent_params::flag_paused;
 				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 				p.flags |= add_torrent_params::flag_auto_managed;
+				p.flags |= add_torrent_params::flag_pinned;
 				magnet_links.push_back(p);
 				continue;
 			}
@@ -2016,7 +2044,7 @@ int main(int argc, char* argv[])
 			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n";
 
-		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "RSS"};
+		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "loaded", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 		{
 			char filter[200];
@@ -2086,6 +2114,11 @@ int main(int argc, char* argv[])
 			{
 				out += " ";
 			}
+
+			if (s.is_loaded)
+				out += "L";
+			else
+				out += " ";
 
 			int queue_pos = s.queue_position;
 			if (queue_pos == -1) out += "-  ";

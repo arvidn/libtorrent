@@ -1278,9 +1278,66 @@ namespace aux {
 
 			":peers up send buffer"
 
+			":loaded torrents"
+			":loaded torrent churn"
+
 			"\n\n", m_stats_logger);
 	}
 #endif
+
+	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
+	{
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		if (m_num_save_resume + m_num_queued_resume >= loaded_limit)
+		{
+			TORRENT_ASSERT(t);
+			// do loaded torrents first, otherwise they'll just be
+			// evicted and have to be loaded again
+			if (t->is_loaded())
+				m_save_resume_queue.push_front(t);
+			else
+				m_save_resume_queue.push_back(t);
+			return;
+		}
+
+		++m_num_save_resume;
+		t->do_async_save_resume_data();
+	}
+
+	// this is called whenever a save_resume_data comes back
+	// from the disk thread
+	void session_impl::done_async_resume()
+	{
+		TORRENT_ASSERT(m_num_save_resume > 0);
+		--m_num_save_resume;
+		++m_num_queued_resume;
+	}
+
+	// this is called when one or all save resume alerts are
+	// popped off the alert queue
+	void session_impl::async_resume_dispatched(bool all)
+	{
+		if (all)
+		{
+			if (m_num_queued_resume == 0) return;
+			m_num_queued_resume = 0;
+		}
+		else
+		{
+			TORRENT_ASSERT(m_num_queued_resume > 0);
+			--m_num_queued_resume;
+		}
+
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		while (!m_save_resume_queue.empty()
+			&& m_num_save_resume + m_num_queued_resume < loaded_limit)
+		{
+			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
+			m_save_resume_queue.erase(m_save_resume_queue.begin());
+			++m_num_save_resume;
+			t->do_async_save_resume_data();
+		}
+	}
 
 	void session_impl::start_session()
 	{
@@ -1972,6 +2029,70 @@ namespace aux {
 	{
 		return (channel == peer_connection::download_channel)
 			? &m_download_rate : &m_upload_rate;
+	}
+
+	void session_impl::bump_torrent(torrent* t)
+	{
+		// if t is the only torrent in the LRU list, both
+		// its prev and next links will be NULL, even though
+		// it's already in the list. Cover this case by also
+		// checking to see if it's the first item
+		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
+		{
+			// this torrent is in the list already.
+			// first remove it
+			m_torrent_lru.erase(t);
+		}
+
+		// pinned torrents should not be part of the LRU, since
+		// the LRU is only used to evict torrents
+		if (t->is_pinned()) return;
+
+		m_torrent_lru.push_back(t);
+	}
+
+	void session_impl::evict_torrent(torrent* ignore)
+	{
+		if (!m_user_load_torrent) return;
+
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+		while (m_torrent_lru.size() >= loaded_limit)
+		{
+			// we're at the limit of loaded torrents. Find the least important
+			// torrent and unload it. This is done with an LRU.
+			torrent* i = (torrent*)m_torrent_lru.front();
+
+			// ignore t. That's the torrent we're putting in
+			if (i == ignore) i = (torrent*)i->next;
+
+			// if there are no other torrents, we can't do anything
+			if (i == NULL) break;
+
+#ifdef TORRENT_STATS
+			inc_stats_counter(torrent_evicted_counter);
+#endif
+			TORRENT_ASSERT(i->is_pinned() == false);
+			i->unload();
+			m_torrent_lru.erase(i);
+		}
+	}
+
+	bool session_impl::load_torrent(torrent* t)
+	{
+		evict_torrent(t);
+
+		// now, load t into RAM
+		std::vector<char> buffer;
+		error_code ec;
+		m_user_load_torrent(t->info_hash(), buffer, ec);
+		if (ec)
+		{
+			t->set_error(ec, -1);
+			return false;
+		}
+		bool ret = t->load(buffer);
+		bump_torrent(t);
+		return ret;
 	}
 
 	void session_impl::deferred_submit_jobs()
@@ -3994,6 +4115,10 @@ namespace aux {
 
 			STAT_LOG(d, peers_up_send_buffer);
 
+			// loaded torrents
+			STAT_LOG(d, m_torrent_lru.size());
+			STAT_LOG(d, m_stats_counter[torrent_evicted_counter]);
+
 			fprintf(m_stats_logger, "\n");
 
 #undef STAT_LOG
@@ -4182,6 +4307,11 @@ namespace aux {
 		// if we would maintain them. That way the first pass over
 		// all torrents could be avoided. It would be especially
 		// efficient if most torrents are not auto-managed
+		// whenever we receive a scrape response (or anything
+		// that may change the rank of a torrent) that one torrent
+		// could re-sort itself in a list that's kept sorted at all
+		// times. That way, this pass over all torrents could be
+		// avoided alltogether.
 		std::vector<torrent*> checking;
 		std::vector<torrent*> downloaders;
 		downloaders.reserve(m_torrents.size());
@@ -4808,6 +4938,20 @@ namespace aux {
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " cleaning up torrents\n";
 #endif
+
+		// clear the torrent LRU (probably not strictly necessary)
+		list_node* i = m_torrent_lru.get_all();
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// clear the prev and next pointers in all torrents
+		// to avoid the assert when destructing them
+		while (i)
+		{
+			list_node* tmp = i;
+			i = i->next;
+			tmp->next = NULL;
+			tmp->prev= NULL;
+		}
+#endif
 		m_torrents.clear();
 
 		TORRENT_ASSERT(m_torrents.empty());
@@ -4940,6 +5084,10 @@ namespace aux {
 
 		alert->status.reserve(state_updates.size());
 
+		// TODO: it might be a nice feature here to limit the number of torrents
+		// to send in a single update. By just posting the first n torrents, they
+		// would nicely be round-robined because the torrent lists are always
+		// pushed back
 		for (std::vector<torrent*>::iterator i = state_updates.begin()
 			, end(state_updates.end()); i != end; ++i)
 		{
@@ -5106,6 +5254,12 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
+		if (torrent_ptr->is_pinned() == false)
+		{
+			bump_torrent(torrent_ptr.get());
+			evict_torrent(torrent_ptr.get());
+		}
+
 #if TORRENT_HAS_BOOST_UNORDERED
 		// if this insert made the hash grow, the iterators became invalid
 		// we need to reset them
@@ -5178,6 +5332,11 @@ namespace aux {
 		torrent& t = *i->second;
 		if (options & session::delete_files)
 			t.delete_files();
+
+		if ((t.prev != NULL || t.next != NULL) && !t.is_pinned())
+			m_torrent_lru.erase(&t);
+
+		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		sha1_hash i_hash = t.torrent_file().info_hash();
@@ -6076,12 +6235,19 @@ namespace aux {
 
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
-		return m_alerts.get();
+		std::auto_ptr<alert> ret = m_alerts.get();
+		if (alert_cast<save_resume_data_failed_alert>(ret.get())
+			|| alert_cast<save_resume_data_alert>(ret.get()))
+		{
+			async_resume_dispatched(false);
+		}
+		return ret;
 	}
 	
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
 	{
 		m_alerts.get_all(alerts);
+		async_resume_dispatched(true);
 	}
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)

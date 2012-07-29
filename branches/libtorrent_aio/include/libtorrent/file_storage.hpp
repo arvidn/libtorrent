@@ -240,6 +240,13 @@ namespace libtorrent
 			swap(ti.m_piece_length, m_piece_length);
 		}
 
+		// deallocates most of the memory used by this
+		// instance, leaving it only partially usable
+		void unload();
+
+		// returns true when populated with at least one file
+		bool is_loaded() const { return !m_files.empty(); }
+
 		// if pad_file_limit >= 0, files larger than
 		// that limit will be padded, default is to
 		// not add any padding
