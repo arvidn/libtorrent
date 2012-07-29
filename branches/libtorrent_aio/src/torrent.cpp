@@ -7951,7 +7951,7 @@ namespace libtorrent
 		// leave upload mode every 10 minutes hoping that the error
 		// condition has been fixed
 		if (m_upload_mode && m_auto_managed && int(m_upload_mode_time)
-			>= settings().get_bool(settings_pack::optimistic_disk_retry))
+			>= settings().get_int(settings_pack::optimistic_disk_retry))
 		{
 			set_upload_mode(false);
 		}
