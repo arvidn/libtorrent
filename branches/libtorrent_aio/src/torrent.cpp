@@ -4340,6 +4340,43 @@ namespace libtorrent
 		return m_picker->piece_priority(index);
 	}
 
+	void torrent::prioritize_piece_list(std::vector<std::pair<int, int> > const& pieces)
+	{
+		INVARIANT_CHECK;
+
+		// this call is only valid on torrents with metadata
+		TORRENT_ASSERT(valid_metadata());
+		if (is_seed()) return;
+
+		TORRENT_ASSERT(m_picker.get());
+
+		bool filter_updated = false;
+		bool was_finished = is_finished();
+		for (std::vector<std::pair<int, int> >::const_iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT(i->second >= 0);
+			TORRENT_ASSERT(i->second <= 7);
+			TORRENT_ASSERT(i->first >= 0);
+			TORRENT_ASSERT(i->first < m_torrent_file->num_pieces());
+
+			if (i->first < 0 || i->first >= m_torrent_file->num_pieces() || i->second < 0 || i->second > 7)
+				continue;
+
+			filter_updated |= m_picker->set_piece_priority(i->first, i->second);
+			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
+		}
+		if (filter_updated)
+		{
+			// we need to save this new state
+			m_need_save_resume_data = true;
+
+			update_peer_interest(was_finished);
+		}
+
+		state_updated();
+	}
+
 	void torrent::prioritize_pieces(std::vector<int> const& pieces)
 	{
 		INVARIANT_CHECK;

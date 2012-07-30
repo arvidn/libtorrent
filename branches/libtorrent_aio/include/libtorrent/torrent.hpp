@@ -322,6 +322,7 @@ namespace libtorrent
 		int piece_priority(int index) const;
 
 		void prioritize_pieces(std::vector<int> const& pieces);
+		void prioritize_piece_list(std::vector<std::pair<int, int> > const& pieces);
 		void piece_priorities(std::vector<int>*) const;
 
 		void set_file_priority(int index, int priority);

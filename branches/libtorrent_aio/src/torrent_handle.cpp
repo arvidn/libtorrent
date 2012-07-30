@@ -578,6 +578,12 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(prioritize_pieces, pieces);
 	}
 
+	void torrent_handle::prioritize_pieces(std::vector<std::pair<int, int> > const& pieces)
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(prioritize_piece_list, pieces);
+	}
+
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
 		INVARIANT_CHECK;

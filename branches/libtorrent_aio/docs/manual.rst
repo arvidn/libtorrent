@@ -2633,6 +2633,7 @@ Its declaration looks like this::
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
+		void prioritize_pieces(std::vector<std::pair<int, int> > const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
 		void file_priority(int index, int priority) const;
@@ -2735,6 +2736,7 @@ piece_priority() prioritize_pieces() piece_priorities()
 		void piece_priority(int index, int priority) const;
 		int piece_priority(int index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
+		void prioritize_pieces(std::vector<std::pair<int, int> > const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
 These functions are used to set and get the prioritiy of individual pieces.
@@ -2765,6 +2767,13 @@ specified by ``index``.
 ``prioritize_pieces`` takes a vector of integers, one integer per piece in
 the torrent. All the piece priorities will be updated with the priorities
 in the vector.
+
+The second overload of ``prioritize_pieces`` that takes a vector of pairs
+will update the priorities of only select pieces, and leave all other
+unaffected. Each pair is (piece, priority). That is, the first item is
+the piece index and the second item is the priority of that piece.
+Invalid entries, where the piece index or priority is out of range, are
+not allowed.
 
 ``piece_priorities`` returns a vector with one element for each piece in the
 torrent. Each element is the current priority of that piece.

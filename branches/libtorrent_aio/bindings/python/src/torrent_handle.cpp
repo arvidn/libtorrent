@@ -100,19 +100,34 @@ list get_peer_info(torrent_handle const& handle)
 void prioritize_pieces(torrent_handle& info, object o)
 {
    std::vector<int> result;
+   std::vector<std::pair<int, int> > piece_list;
    try
    {
       object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
       while( 1 )
       {
          object obj = extract<object>( iter_obj.attr( "next" )() );
-         result.push_back(extract<int const>( obj ));
+         extract<int const> val1(obj);
+         if (val1.check())
+         {
+            result.push_back(val1);
+            continue;
+         }
+         extract<std::pair<int, int> > val2(obj);
+         if (val2.check())
+         {
+            piece_list.push_back(val2);
+            continue;
+         }
       }
    }
    catch( error_already_set )
    {
       PyErr_Clear();
-      info.prioritize_pieces(result);
+      if (result.size())
+         info.prioritize_pieces(result);
+      else
+         info.prioritize_pieces(piece_list);
       return;
    }
 }
@@ -150,12 +165,12 @@ list file_priorities(torrent_handle& handle)
 
 int file_prioritity0(torrent_handle& h, int index)
 {
-	return h.file_priority(index);
+   return h.file_priority(index);
 }
 
 void file_prioritity1(torrent_handle& h, int index, int prio)
 {
-	return h.file_priority(index, prio);
+   return h.file_priority(index, prio);
 }
 
 void replace_trackers(torrent_handle& h, object trackers)
