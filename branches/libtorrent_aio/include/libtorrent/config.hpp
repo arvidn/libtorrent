@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
+#define __STDC_LIMIT_MACROS 1
 #include <stdint.h> // for INT64_MAX
 #else
 #if !defined INT64_MAX
