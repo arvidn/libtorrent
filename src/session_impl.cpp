@@ -1766,9 +1766,12 @@ namespace aux {
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 			m_socks_listen_socket->close();
 		m_socks_listen_socket.reset();
+
+#if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
 			m_i2p_listen_socket->close();
 		m_i2p_listen_socket.reset();
+#endif
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string() << " aborting all torrents (" << m_torrents.size() << ")\n";
