@@ -60,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef _MSC_VER
 #define __STDC_FORMAT_MACROS 1
-#define __STDC_LIMIT_MACROS 1
 #include <inttypes.h> // for PRId64 et.al.
 #endif
 
