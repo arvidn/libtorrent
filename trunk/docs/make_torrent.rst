@@ -490,6 +490,9 @@ torrent an *SSL torrent*. An SSL torrent requires that each peer has a valid cer
 signed by this root certificate. For SSL torrents, all peers are connecting over SSL
 connections. For more information on SSL torrents, see the manual_.
 
+The string is not the path to the cert, it's the actual content of the certificate,
+loaded into a std::string.
+
 .. _manual: manual.html#ssl-torrents
 
 set_priv() priv()
