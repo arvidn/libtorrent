@@ -1463,7 +1463,9 @@ namespace libtorrent
 
 		if (!ctx)
 		{
-			set_error(asio::error::no_memory, "SSL context");
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
+			set_error(ec, "SSL context");
 			pause();
 			return;
 		}
@@ -1499,7 +1501,9 @@ namespace libtorrent
 		X509_STORE* cert_store = X509_STORE_new();
 		if (!cert_store)
 		{
-			set_error(asio::error::no_memory, "x.509 certificate store");
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
+			set_error(ec, "x.509 certificate store");
 			pause();
 			return;
 		}
@@ -1515,8 +1519,10 @@ namespace libtorrent
 
 		if (!certificate)
 		{
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
 			X509_STORE_free(cert_store);
-			set_error(asio::error::no_memory, "x.509 certificate");
+			set_error(ec, "x.509 certificate");
 			pause();
 			return;
 		}
