@@ -13,6 +13,7 @@ nobase_include_HEADERS = \
   alloca.hpp                   \
   allocator.hpp                \
   assert.hpp                   \
+  atomic.hpp                   \
   bandwidth_limit.hpp          \
   bandwidth_manager.hpp        \
   bandwidth_socket.hpp         \

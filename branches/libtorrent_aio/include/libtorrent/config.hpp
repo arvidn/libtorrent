@@ -66,7 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef _MSC_VER
 #define __STDC_FORMAT_MACROS 1
-#define __STDC_LIMIT_MACROS 1
 #include <inttypes.h> // for PRId64 et.al.
 #endif
 
@@ -181,15 +180,14 @@ POSSIBILITY OF SUCH DAMAGE.
 // we don't need iconv on mac, because
 // the locale is always utf-8
 #if defined __APPLE__
+# define TORRENT_USE_OSATOMIC 1
 # ifndef TORRENT_USE_ICONV
 #  define TORRENT_USE_ICONV 0
 #  define TORRENT_USE_LOCALE 0
 # endif
-# define TORRENT_USE_MACH_SEMAPHORE 1
 #else // __APPLE__
 // FreeBSD has a reasonable iconv signature
 # define TORRENT_ICONV_ARG (const char**)
-# define TORRENT_USE_POSIX_SEMAPHORE 1
 #endif // __APPLE__
 
 #define TORRENT_HAVE_MMAP 1
@@ -215,7 +213,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_HAVE_MMAP 1
 
-#define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFCONF 1
@@ -234,6 +231,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
+#define TORRENT_USE_INTERLOCKED_ATOMIC 1
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
@@ -256,6 +254,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_INTERLOCKED_ATOMIC 1
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
@@ -267,11 +266,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined sun || defined __sun 
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
-#define TORRENT_USE_POSIX_SEMAPHORE 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_USE_SOLARIS_ATOMIC 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -279,6 +278,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_BEOS_ATOMIC 1
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #endif
@@ -292,6 +292,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD
+#endif
+
+#if defined __GNUC__ && !(defined TORRENT_USE_OSATOMIC \
+	|| defined TORRENT_USE_INTERLOCKED_ATOMIC \
+	|| defined TORRENT_USE_BEOS_ATOMIC \
+	|| defined TORRENT_USE_SOLARIS_ATOMIC)
+// atomic operations in GCC were introduced in 4.1.1
+# if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 1 && __GNUC_PATCHLEVEL__ >= 1) || __GNUC__ > 4
+#  define TORRENT_USE_GCC_ATOMIC 1
+# endif
 #endif
 
 // on windows, NAME_MAX refers to Unicode characters
@@ -351,7 +361,23 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_ICONV_ARG (char**)
 #endif
 
-// libiconv presence, not implemented yet
+#ifndef TORRENT_USE_INTERLOCKED_ATOMIC
+#define TORRENT_USE_INTERLOCKED_ATOMIC 0
+#endif
+
+#ifndef TORRENT_USE_GCC_ATOMIC
+#define TORRENT_USE_GCC_ATOMIC 0
+#endif
+
+#ifndef TORRENT_USE_OSATOMIC
+#define TORRENT_USE_OSATOMIC 0
+#endif
+
+#ifndef TORRENT_USE_BEOS_ATOMIC
+#define TORRENT_USE_BEOS_ATOMIC 0
+#endif
+
+// libiconv presence detection is not implemented yet
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 1
 #endif
@@ -414,14 +440,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 0
-#endif
-
-#ifndef TORRENT_USE_MACH_SEMAPHORE
-#define TORRENT_USE_MACH_SEMAPHORE 0
-#endif
-
-#ifndef TORRENT_USE_POSIX_SEMAPHORE
-#define TORRENT_USE_POSIX_SEMAPHORE 0
 #endif
 
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED

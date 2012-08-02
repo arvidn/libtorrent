@@ -35,9 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/atomic.hpp"
 #include <deque>
 #include <vector>
-#include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
@@ -152,7 +152,7 @@ namespace libtorrent
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		boost::detail::atomic_count m_num_threads;
+		atomic_count m_num_threads;
 	};
 
 }

@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/atomic.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status

@@ -58,8 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/thread.hpp"
-
-#include <boost/intrusive_ptr.hpp> // atomic_count
+#include "libtorrent/atomic.hpp"
 
 namespace libtorrent
 {
@@ -378,12 +377,12 @@ namespace libtorrent
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		boost::detail::atomic_count m_num_threads;
+		atomic_count m_num_threads;
 
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
 		// shutting down. This last thread is responsible for cleanup
-		boost::detail::atomic_count m_num_running_threads;
+		atomic_count m_num_running_threads;
 
 		// the actual threads running disk jobs
 		std::vector<boost::shared_ptr<thread> > m_threads;

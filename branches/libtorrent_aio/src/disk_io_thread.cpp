@@ -2112,10 +2112,7 @@ namespace libtorrent
 			, int(m_num_blocked_jobs) - ret);
 		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 
-		// gah. can't wait for c++11 atomic or boost.atomic
-//		m_num_blocked_jobs -= ret;
-		// this is so retarded
-		while (ret--) --m_num_blocked_jobs;
+		m_num_blocked_jobs -= ret;
 
 		if (new_jobs.size() > 0)
 		{
