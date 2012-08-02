@@ -110,7 +110,7 @@ namespace libtorrent
 		int operator++(int) { return atomic_add(&m_value, 1); }
 		int operator--(int) { return atomic_add(&m_value, -1); }
 #else
-#error don't know which atomic operations to use!
+#error "don't know which atomic operations to use"
 #endif
 	private:
 		volatile int m_value;
