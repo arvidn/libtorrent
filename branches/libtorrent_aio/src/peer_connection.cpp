@@ -2479,7 +2479,12 @@ namespace libtorrent
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
 #endif
-		if (!t->need_loaded()) return;
+		if (!t->need_loaded())
+		{
+			t->add_redundant_bytes(p.length, torrent::piece_unknown);
+			m_download_queue.erase(b);
+			return;
+		}
 		t->inc_refcount();
 		m_disk_thread.async_write(&t->storage(), p, data
 			, boost::bind(&peer_connection::on_disk_write_complete
