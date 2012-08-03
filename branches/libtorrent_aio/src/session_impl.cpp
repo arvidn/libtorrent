@@ -554,6 +554,7 @@ namespace aux {
 		, m_next_rss_update(min_time())
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
+		, m_dht_interval_update_torrents(0)
 #endif
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service, m_half_open)
@@ -1375,16 +1376,7 @@ namespace aux {
 		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_DHT
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_announce");
-#endif
-		delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
-			/ (std::max)(int(m_torrents.size()), 1), 1);
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
-		m_dht_announce_timer.async_wait(
-			boost::bind(&session_impl::on_dht_announce, this, _1));
-		TORRENT_ASSERT(!ec);
+		update_dht_announce_interval();
 #endif
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
@@ -3207,6 +3199,12 @@ namespace aux {
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;
 
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht_interval_update_torrents < 40
+			&& m_dht_interval_update_torrents != m_torrents.size())
+			update_dht_announce_interval();
+#endif
+
 		// remove undead peers that only have this list as their reference keeping them alive
 		std::vector<intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
 			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) < 2);
@@ -4181,11 +4179,27 @@ namespace aux {
 		m_dht_announce_timer.async_wait(
 			bind(&session_impl::on_dht_announce, this, _1));
 
+		if (!m_dht_torrents.empty())
+		{
+			boost::shared_ptr<torrent> t;
+			do
+			{
+		  		t = m_dht_torrents.front().lock();
+				m_dht_torrents.pop_front();
+			}
+			while (!t && !m_dht_torrents.empty());
+			if (t)
+			{
+				t->dht_announce();
+				return;
+			}
+		}
 		if (m_torrents.empty()) return;
 
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
 		m_next_dht_torrent->second->dht_announce();
+		// TODO: make a list for torrents that want to be announced on the DHT
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
@@ -5681,13 +5695,6 @@ namespace aux {
 		m_dht->start(startup_state);
 
 		m_udp_socket.subscribe(m_dht.get());
-
-		// announce all torrents we have to the DHT
-		for (torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-		{
-			i->second->dht_announce();
-		}
 	}
 
 	void session_impl::stop_dht()
@@ -6042,6 +6049,7 @@ namespace aux {
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_announce");
 #endif
+		m_dht_interval_update_torrents = m_torrents.size();
 		error_code ec;
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);

@@ -7325,6 +7325,15 @@ namespace libtorrent
 
 		m_announcing = true;
 
+#ifndef TORRENT_DISABLE_DHT
+		if (m_policy.num_peers() == 0 && m_ses.m_dht)
+		{
+			// we don't have any peers, prioritize
+			// announcing this torrent with the DHT
+			m_ses.m_dht_torrents.push_back(shared_from_this());
+		}
+#endif
+
 		if (!m_trackers.empty())
 		{
 			// tell the tracker that we're back
@@ -7348,10 +7357,6 @@ namespace libtorrent
 					|| settings().allow_i2p_mixed)))
 		{
 			if (m_ses.m_lsd) lsd_announce();
-
-#ifndef TORRENT_DISABLE_DHT
-			if (m_ses.m_dht) dht_announce();
-#endif
 		}
 	}
 

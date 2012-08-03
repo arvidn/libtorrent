@@ -219,6 +219,7 @@ namespace libtorrent
 #endif
 				);
 			virtual ~session_impl();
+			void update_dht_announce_interval();
 			void init();
 			void start_session();
 
@@ -884,6 +885,14 @@ namespace libtorrent
 			// this announce timer is used
 			// by the DHT.
 			deadline_timer m_dht_announce_timer;
+
+			// the number of torrents there were when the
+			// update_dht_announce_interval() was last called.
+			// if the number of torrents changes significantly
+			// compared to this number, the DHT announce interval
+			// is updated again. This especially matters for
+			// small numbers.
+			int m_dht_interval_update_torrents;
 #endif
 
 			bool incoming_packet(error_code const& ec
@@ -937,6 +946,14 @@ namespace libtorrent
 			// within the DHT announce interval (which defaults to
 			// 15 minutes)
 			torrent_map::iterator m_next_dht_torrent;
+
+			// torrents that don't have any peers
+			// when added should be announced to the DHT
+			// as soon as possible. Such torrents are put
+			// in this queue and get announced the next time
+			// the timer fires, instead of the next one in
+			// the round-robin sequence.
+			std::deque<boost::weak_ptr<torrent> > m_dht_torrents;
 #endif
 
 			// this announce timer is used
