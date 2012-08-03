@@ -720,7 +720,11 @@ namespace aux {
 		m_global_class = m_classes.new_peer_class("global");
 		m_tcp_peer_class = m_classes.new_peer_class("tcp");
 		m_local_peer_class = m_classes.new_peer_class("local");
+		// local peers are always unchoked
 		m_classes.at(m_local_peer_class)->ignore_unchoke_slots = true;
+		// local peers are allowed to exceed the normal connection
+		// limit by 50%
+		m_classes.at(m_local_peer_class)->connection_limit_factor = 150;
 
 		TORRENT_ASSERT(m_global_class == session::global_peer_class_id);
 		TORRENT_ASSERT(m_tcp_peer_class == session::tcp_peer_class_id);
@@ -2820,20 +2824,27 @@ namespace aux {
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
 			return;
 		}
-/*
-#error instead of using ignore_local_limits_on_local_network. add another field to the peer_class saying it is allowed to exceed the connection limit (by some factor maybe) and change this code to resolve which peer classes the peer would belong to and go through those for this flag
-*/
+
+		// figure out which peer classes this is connections has,
+		// to get connection_limit_factor
+		peer_class_set pcs;
+		set_peer_classes(&pcs, endp.address(), s->type());
+		int connection_limit_factor = 0;
+		for (int i = 0; i < pcs.num_classes(); ++i)
+		{
+			int pc = pcs.class_at(i);
+			if (m_classes.at(pc) == NULL) continue;
+			int f = m_classes.at(pc)->connection_limit_factor;
+			if (connection_limit_factor < f) connection_limit_factor = f;
+		}
+		if (pcs.num_classes() == 0) connection_limit_factor = 100;
+
+		boost::uint64_t limit = m_settings.get_int(settings_pack::connections_limit);
+		limit = limit * 100 / connection_limit_factor;
+
 		// don't allow more connections than the max setting
-		bool reject = false;
-		if (
-#ifndef TORRENT_NO_DEPRECATE
-			m_settings.get_bool(settings_pack::ignore_limits_on_local_network) &&
-#endif
-			is_local(endp.address()))
-			reject = m_settings.get_int(settings_pack::connections_limit) < INT_MAX / 12
-				&& num_connections() >= m_settings.get_int(settings_pack::connections_limit) * 12 / 10;
-		else
-			reject = num_connections() >= m_settings.get_int(settings_pack::connections_limit);
+		// weighed by the peer class' setting
+		bool reject = num_connections() >= limit;
 
 		if (reject)
 		{
@@ -3377,7 +3388,7 @@ namespace aux {
 		}
 #endif
 
-		// #error this should apply to all bandwidth channels
+		// TODO: this should apply to all bandwidth channels
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead))
 		{
 			peer_class* gpc = m_classes.at(m_global_class);
@@ -4833,7 +4844,7 @@ namespace aux {
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 
 			// this will update the m_uploaded_at_last_unchoke
-			// #error this should be called for all peers!
+			// TODO: this should be called for all peers!
 			p->reset_choke_counters();
 
 			torrent* t = p->associated_torrent().lock().get();

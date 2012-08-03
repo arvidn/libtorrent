@@ -6430,7 +6430,19 @@ namespace libtorrent
 			return false;
 		}
 
-		if (m_connections.size() >= m_max_connections)
+		int connection_limit_factor = 0;
+		for (int i = 0; i < p->num_classes(); ++i)
+		{
+			int pc = p->class_at(i);
+			if (m_ses.peer_classes().at(pc) == NULL) continue;
+			int f = m_ses.peer_classes().at(pc)->connection_limit_factor;
+			if (connection_limit_factor < f) connection_limit_factor = f;
+		}
+		if (p->num_classes() == 0) connection_limit_factor = 100;
+
+		boost::uint64_t limit = boost::uint64_t(m_max_connections) * 100 / connection_limit_factor;
+
+		if (m_connections.size() >= limit)
 		{
 			// if more than 10% of the connections are outgoing
 			// connection attempts that haven't completed yet,

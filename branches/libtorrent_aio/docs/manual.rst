@@ -1166,6 +1166,7 @@ The ``peer_class_info`` struct has the following fields::
 	struct peer_class_info
 	{
 		bool ignore_unchoke_slots;
+		int connection_limit_factor;
 		std::string label;
 		int upload_limit;
 		int download_limit;
@@ -1177,6 +1178,14 @@ The ``peer_class_info`` struct has the following fields::
 regardless of the choking algorithm, or if it should honor the unchoke slot limits.
 It's used for local peers by default. If *any* of the peer classes a peer belongs to
 has this set to true, that peer will be unchoked at all times.
+
+``connection_limit_factor`` adjusts the connection limit (global and per torrent) that
+applies to this peer class. By default, local peers are allowed to exceed the normal
+connection limit for instance. This is specified as a percent factor. 100 makes
+the peer class apply normally to the limit. 200 means as long as there are fewer
+connections than twice the limit, we accept this peer. This factor applies both to
+the global connection limit and the per-torrent limit. Note that if not used carefully
+one peer class can potentially completely starve out all other over time.
 
 ``label`` is not used by libtorrent. It's intended as a potentially user-facing identifier
 of this peer class.

@@ -49,6 +49,11 @@ namespace libtorrent
 	struct peer_class_info
 	{
 		bool ignore_unchoke_slots;
+		// this is in hundreds. 100 means to honor the normal limit.
+		// 50 means to use half of the set limit, 200 means to use
+		// twice the set limit. This applies to global connections
+		// limit and per-torrent limits
+		int connection_limit_factor;
 		std::string label;
 		// limits are specified in bytes per second
 		int upload_limit;
@@ -66,6 +71,7 @@ namespace libtorrent
 
 		peer_class(std::string const& label)
 			: ignore_unchoke_slots(false)
+			, connection_limit_factor(100)
 			, label(label)
 			, references(1)
 		{
@@ -84,6 +90,7 @@ namespace libtorrent
 		bandwidth_channel channel[2];
 
 		bool ignore_unchoke_slots;
+		int connection_limit_factor;
 
 		// priority for bandwidth allocation
 		// in rate limiter. One for upload and one
