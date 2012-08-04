@@ -71,24 +71,13 @@ namespace libtorrent
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
-		if (e || i == tcp::resolver::iterator())
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		error_code ec;
 		if (!m_sock.is_open())
 		{
 			m_sock.open(i->endpoint().protocol(), ec);
-			if (ec)
-			{
-				(*h)(ec);
-				close(ec);
-				return;
-			}
+			if (handle_error(ec, h)) return;
 		}
 
 		// TOOD: we could bind the socket here, since we know what the
@@ -99,13 +88,7 @@ namespace libtorrent
 
 	void socks5_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 		if (m_version == 5)
@@ -142,13 +125,7 @@ namespace libtorrent
 
 	void socks5_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		m_buffer.resize(2);
 		async_read(m_sock, asio::buffer(m_buffer)
@@ -157,13 +134,7 @@ namespace libtorrent
 
 	void socks5_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -216,13 +187,7 @@ namespace libtorrent
 	void socks5_stream::handshake3(error_code const& e
 		, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		m_buffer.resize(2);
 		async_read(m_sock, asio::buffer(m_buffer)
@@ -232,13 +197,7 @@ namespace libtorrent
 	void socks5_stream::handshake4(error_code const& e
 		, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -321,13 +280,7 @@ namespace libtorrent
 
 	void socks5_stream::connect1(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		if (m_version == 5)
 			m_buffer.resize(6 + 4); // assume an IPv4 address
@@ -339,13 +292,7 @@ namespace libtorrent
 
 	void socks5_stream::connect2(error_code const& e, boost::shared_ptr<handler_type> h)
 	{
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		using namespace libtorrent::detail;
 
@@ -478,13 +425,7 @@ namespace libtorrent
 	{
 		using namespace libtorrent::detail;
 
-		if (e)
-		{
-			(*h)(e);
-			error_code ec;
-			close(ec);
-			return;
-		}
+		if (handle_error(e, h)) return;
 
 		if (m_command == 2)
 		{

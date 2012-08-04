@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
+#include <boost/function/function1.hpp>
 
 namespace libtorrent {
 
@@ -46,16 +47,15 @@ class proxy_base : boost::noncopyable
 {
 public:
 
+	typedef boost::function<void(error_code const&)> handler_type;
+
 	typedef stream_socket next_layer_type;
 	typedef stream_socket::lowest_layer_type lowest_layer_type;
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
-	explicit proxy_base(io_service& io_service)
-		: m_sock(io_service)
-		, m_port(0)
-		, m_resolver(io_service)
-	{}
+	explicit proxy_base(io_service& io_service);
+	~proxy_base();
 
 	void set_proxy(std::string hostname, int port)
 	{
@@ -226,6 +226,8 @@ public:
 	bool is_open() const { return m_sock.is_open(); }
 	
 protected:
+
+	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 
 	stream_socket m_sock;
 	std::string m_hostname;

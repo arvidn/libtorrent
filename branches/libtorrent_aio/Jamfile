@@ -504,6 +504,7 @@ SOURCES =
 	packet_buffer
 	piece_picker
 	policy
+	proxy_base
 	puff
 	random
 	rsa

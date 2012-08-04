@@ -39,6 +39,7 @@ set(sources
 	natpmp
 	packet_buffer
 	piece_picker
+	proxy_base
 	policy
 	puff
 	random

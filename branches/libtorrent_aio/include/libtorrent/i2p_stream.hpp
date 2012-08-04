@@ -103,8 +103,6 @@ public:
 	void set_destination(std::string const& d) { m_dest = d; }
 	std::string const& destination() { return m_dest; }
 
-	typedef boost::function<void(error_code const&)> handler_type;
-
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
@@ -132,7 +130,6 @@ public:
 
 private:
 
-	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 	void do_connect(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h);
 	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
