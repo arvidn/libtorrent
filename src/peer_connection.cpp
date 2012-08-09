@@ -1750,6 +1750,9 @@ namespace libtorrent
 		m_have_piece.set_bit(index);
 		++m_num_pieces;
 
+		// if the peer is downloading stuff, it must have metadata		
+		m_has_metadata = true;
+
 		// only update the piece_picker if
 		// we have the metadata and if
 		// we're not a seed (in which case
@@ -1768,9 +1771,6 @@ namespace libtorrent
 			// update bytes downloaded since last timer
 			m_remote_bytes_dled += t->torrent_file().piece_size(index);
 		}
-
-		// if the peer is downloading stuff, it must have metadata		
-		m_has_metadata = true;
 
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
@@ -2838,6 +2838,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 		t->get_policy().set_seed(m_peer_info, false);
 		m_bitfield_received = true;
+
+		// if the peer is ready to download stuff, it must have metadata		
+		m_has_metadata = true;
 
 		// we're never interested in a peer that doesn't have anything
 		send_not_interested();
