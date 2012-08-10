@@ -51,6 +51,18 @@ list stats_alert_transferred(stats_alert const& alert)
    return result;
 }
 
+list get_status_from_update_alert(state_update_alert const& alert)
+{
+   list result;
+
+   for (std::vector<torrent_status>::const_iterator i = alert.status.begin(); i != alert.status.end(); ++i)
+   {
+      result.append(*i);
+   }
+   return result;
+}
+
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -339,6 +351,11 @@ void bind_alert()
         "state_changed_alert", no_init)
         .def_readonly("state", &state_changed_alert::state)
         .def_readonly("prev_state", &state_changed_alert::prev_state)
+        ;
+
+    class_<state_update_alert, bases<alert>, noncopyable>(
+        "state_update_alert", no_init)
+        .add_property("status", &get_status_from_update_alert)
         ;
 
     class_<dht_reply_alert, bases<tracker_alert>, noncopyable>(
