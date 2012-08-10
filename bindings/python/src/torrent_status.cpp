@@ -24,6 +24,7 @@ object verified_pieces(torrent_status const& s) { return bitfield_to_list(s.veri
 void bind_torrent_status()
 {
     scope status = class_<torrent_status>("torrent_status")
+        .def_readonly("info_hash", &torrent_status::info_hash)
         .def_readonly("state", &torrent_status::state)
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("auto_managed", &torrent_status::auto_managed)

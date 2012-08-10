@@ -1,6 +1,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* expose post_torrent_updates and state_update_alert to python bindings
 	* fix incorrect SSL error messages
 	* fix windows build of shared library with openssl
 	* fix race condition causing shutdown hang
