@@ -2078,6 +2078,7 @@ namespace aux {
 
 	bool session_impl::load_torrent(torrent* t)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		evict_torrent(t);
 
 		// now, load t into RAM
@@ -2086,7 +2087,8 @@ namespace aux {
 		m_user_load_torrent(t->info_hash(), buffer, ec);
 		if (ec)
 		{
-			t->set_error(ec, -1);
+			t->set_error(ec, ".torrent file");
+			t->pause(false);
 			return false;
 		}
 		bool ret = t->load(buffer);
@@ -6255,21 +6257,31 @@ namespace aux {
 		m_alerts.set_dispatch_function(fun);
 	}
 
+	// this function is called on the user's thread
+	// not the network thread
 	std::auto_ptr<alert> session_impl::pop_alert()
 	{
 		std::auto_ptr<alert> ret = m_alerts.get();
 		if (alert_cast<save_resume_data_failed_alert>(ret.get())
 			|| alert_cast<save_resume_data_alert>(ret.get()))
 		{
-			async_resume_dispatched(false);
+			// we can only issue more resume data jobs from
+			// the network thread
+			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
+				, shared_from_this(), false));
 		}
 		return ret;
 	}
 	
+	// this function is called on the user's thread
+	// not the network thread
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
 	{
 		m_alerts.get_all(alerts);
-		async_resume_dispatched(true);
+		// we can only issue more resume data jobs from
+		// the network thread
+		m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
+			, shared_from_this(), true));
 	}
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
