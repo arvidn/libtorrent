@@ -1,3 +1,4 @@
+	* expose post_torrent_updates and state_update_alert to python bindings
 	* fix incorrect SSL error messages
 	* fix windows build of shared library with openssl
 	* fix race condition causing shutdown hang
