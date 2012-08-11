@@ -1099,7 +1099,8 @@ namespace libtorrent
 		// http://support.microsoft.com/kb/2549369
 
 		DWORD flags = ((mode & random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
-			| (a ? a : FILE_ATTRIBUTE_NORMAL) | FILE_FLAG_OVERLAPPED;
+			| (a ? a : FILE_ATTRIBUTE_NORMAL) | FILE_FLAG_OVERLAPPED
+			| (mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0;
 
 		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? 0 : share_array[mode & rw_mask]
@@ -1142,7 +1143,10 @@ namespace libtorrent
  		handle_type handle = ::open(convert_to_native(path).c_str()
  			, mode_array[mode & rw_mask]
 #ifdef O_NOATIME
-			| no_atime_flag[(mode & no_atime) >> 4]
+			| ((mode & no_atime) ? O_NOATIME : 0)
+#endif
+#ifdef O_DIRECT
+			| ((mode & direct_io) ? O_DIRECT : 0)
 #endif
 			, permissions);
 

@@ -206,6 +206,10 @@ namespace libtorrent
 			// leaving running applications in the page cache
 			no_cache = 64,
 
+			// this corresponds to Linux' O_DIRECT flag
+			// and may impose alignment restrictions
+			direct_io = 128,
+
 			attribute_hidden = 0x1000,
 			attribute_executable = 0x2000,
 			attribute_mask = attribute_hidden | attribute_executable
