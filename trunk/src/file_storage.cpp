@@ -515,14 +515,16 @@ namespace libtorrent
 		}
 	}
 
-	void file_storage::optimize(int pad_file_limit)
+	void file_storage::optimize(int pad_file_limit, int alignment)
 	{
-		// the main purpuse of padding is to optimize disk
-		// I/O. This is a conservative memory page size assumption
-		int alignment = 8*1024;
-
 		// it doesn't make any sense to pad files that
-		// are smaller than one piece
+		// are smaller than one block
+		if (pad_file_limit >= 0 && pad_file_limit < 0x4000)
+			pad_file_limit = 0x4000;
+
+		// also, it doesn't make any sense to pad files
+		// that are smaller than the alignment, since they
+		// won't get aligned anyway; they are used as padding
 		if (pad_file_limit >= 0 && pad_file_limit < alignment)
 			pad_file_limit = alignment;
 
@@ -615,9 +617,8 @@ namespace libtorrent
 
 				reorder_file(index, cur_index);
 
-				// skip the pad file we just added and point
-				// at the current file again
-				++i;
+				TORRENT_ASSERT((off & (alignment-1)) == 0);
+				continue;
 			}
 			i->offset = off;
 			off += i->size;

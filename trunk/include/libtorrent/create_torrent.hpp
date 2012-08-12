@@ -74,7 +74,7 @@ namespace libtorrent
 		};
 
 		create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, int flags = optimize);
+			, int pad_file_limit = -1, int flags = optimize, int alignment = 0x4000);
 		create_torrent(torrent_info const& ti);
 		~create_torrent();
 		entry generate() const;

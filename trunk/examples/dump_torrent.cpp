@@ -133,7 +133,8 @@ int main(int argc, char* argv[])
 	{
 		int first = t.map_file(index, 0, 0).piece;
 		int last = t.map_file(index, (std::max)(size_type(i->size)-1, size_type(0)), 0).piece;
-		printf("  %11"PRId64" %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
+		printf(" %8"PRIx64" %11"PRId64" %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
+			, i->offset
 			, i->size
 			, (i->pad_file?'p':'-')
 			, (i->executable_attribute?'x':'-')

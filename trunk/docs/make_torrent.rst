@@ -268,7 +268,7 @@ The ``create_torrent`` class has the following synopsis::
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize);
+			, int flags = optimize, int alignment = 0x4000);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -305,7 +305,7 @@ create_torrent()
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize);
+			, int flags = optimize, int alignment = 0x4000);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
@@ -361,6 +361,10 @@ calculate_file_hashes
 	the piece hashes, also calculate the file hashes and add those associated
 	with each file. Note that unless you use the `set_piece_hashes()`_ function,
 	this flag will have no effect.
+
+``alignment`` is used when pad files are enabled. This is the size eligible
+files are aligned to. The default is the default bittorrent block size of
+16 kiB. It is common to align to the piece size of the torrent.
 
 generate()
 ----------
