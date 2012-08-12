@@ -490,31 +490,40 @@ namespace libtorrent
 
 	void file_storage::reorder_file(int index, int dst)
 	{
+		TORRENT_ASSERT(index < int(m_files.size()));
+		TORRENT_ASSERT(dst < int(m_files.size()));
+		TORRENT_ASSERT(dst < index);
+
 		internal_file_entry e = m_files[index];
 		m_files.erase(m_files.begin() + index);
 		m_files.insert(m_files.begin() + dst, e);
 		if (!m_mtime.empty())
 		{
+			TORRENT_ASSERT(m_mtime.size() == m_files.size());
 			time_t mtime = 0;
 			if (int(m_mtime.size()) > index)
 			{
 				mtime = m_mtime[index];
 				m_mtime.erase(m_mtime.begin() + index);
 			}
+			if (dst > int(m_mtime.size())) m_mtime.resize(dst, 0);
 			m_mtime.insert(m_mtime.begin() + dst, mtime);
 		}
 		if (!m_file_hashes.empty())
 		{
+			TORRENT_ASSERT(m_file_hashes.size() == m_files.size());
 			char const* fh = 0;
 			if (int(m_file_hashes.size()) > index)
 			{
 				fh = m_file_hashes[index];
 				m_file_hashes.erase(m_file_hashes.begin() + index);
 			}
+			if (int(m_file_hashes.size()) < dst) m_file_hashes.resize(dst, NULL);
 			m_file_hashes.insert(m_file_hashes.begin() + dst, fh);
 		}
 		if (!m_file_base.empty())
 		{
+			TORRENT_ASSERT(m_file_base.size() == m_files.size());
 			size_type base = 0;
 			if (int(m_file_base.size()) > index)
 			{
@@ -589,7 +598,6 @@ namespace libtorrent
 					int cur_index = file_index(*i);
 					reorder_file(index, cur_index);
 					i = m_files.begin() + cur_index;
-
 					i->offset = off;
 					off += i->size;
 					continue;
@@ -601,6 +609,7 @@ namespace libtorrent
 				// new pad file. Once we're done adding it, we need
 				// to increment i to point to the current file again
 				internal_file_entry e;
+				int cur_index = file_index(*i);
 				i = m_files.insert(i, e);
 				i->size = pad_size;
 				i->offset = off;
@@ -611,6 +620,16 @@ namespace libtorrent
 				i->pad_file = true;
 				off += pad_size;
 				++padding_file;
+
+				if (int(m_mtime.size()) > cur_index)
+					m_mtime.insert(m_mtime.begin() + cur_index, 0);
+
+				if (int(m_file_hashes.size()) > cur_index)
+					m_file_hashes.insert(m_file_hashes.begin() + cur_index, NULL);
+
+				if (int(m_file_base.size()) > cur_index)
+					m_file_base.insert(m_file_base.begin() + cur_index, 0);
+
 				// skip the pad file we just added and point
 				// at the current file again
 				++i;
