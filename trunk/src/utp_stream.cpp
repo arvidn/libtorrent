@@ -2340,8 +2340,14 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 		link_mtu -= decrease;
 	}
 
-	m_mtu = utp_mtu;
+	// set the ceiling to what we found out from the interface
 	m_mtu_ceiling = utp_mtu;
+
+	// however, start the search from a more conservative MTU
+	int overhead = link_mtu - utp_mtu;
+	m_mtu = TORRENT_ETHERNET_MTU - overhead;
+	if (m_mtu > m_mtu_ceiling) m_mtu = m_mtu_ceiling;
+
 	if (m_mtu_floor > utp_mtu) m_mtu_floor = utp_mtu;
 
 	// if the window size is smaller than one packet size
