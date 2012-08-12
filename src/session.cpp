@@ -1263,7 +1263,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		, utp_delayed_ack(0) // milliseconds
 #endif
-		, utp_dynamic_sock_buf(true)
+		, utp_dynamic_sock_buf(false) // this doesn't seem quite reliable yet
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
 		, rate_limit_utp(true)
