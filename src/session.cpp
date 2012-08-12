@@ -1258,7 +1258,7 @@ namespace libtorrent
 		, utp_num_resends(6)
 		, utp_connect_timeout(3000) // milliseconds
 		, utp_delayed_ack(0) // milliseconds
-		, utp_dynamic_sock_buf(true)
+		, utp_dynamic_sock_buf(false) // this doesn't seem quite reliable yet
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
 		, rate_limit_utp(true)
