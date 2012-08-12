@@ -1,0 +1,32 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+use-project /torrent : ../libtorrent_repo/branches/libtorrent_aio ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+SOURCES =
+	webui
+	transmission_webui
+	;
+
+lib libtorrent-webui
+	: # sources
+	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c
+
+	: # requirements
+	<library>/torrent//torrent
+
+	: # default build
+	<link>static
+
+	: # usage-requirements
+	<include>src
+	;
+
+exe webui_test : test.cpp : <library>libtorrent-webui <library>/torrent//torrent ;
+
