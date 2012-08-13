@@ -719,6 +719,11 @@ void utp_socket_impl::update_mtu_limits()
 	TORRENT_ASSERT(m_mtu_floor <= m_mtu_ceiling);
 	m_mtu = (m_mtu_floor + m_mtu_ceiling) / 2;
 
+	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
+
+	UTP_LOGV("%8p: updating MTU to: %d [%d, %d]\n"
+		, this, m_mtu, m_mtu_floor, m_mtu_ceiling);
+
 	// clear the mtu probe sequence number since
 	// it was either dropped or acked
 	m_mtu_seq = 0;
@@ -3145,6 +3150,29 @@ void utp_socket_impl::tick(ptime const& now)
 		// TIMEOUT!
 		// set cwnd to 1 MSS
 
+		if (m_outbuf.size()) ++m_num_timeouts;
+
+		if (m_num_timeouts > m_sm->num_resends())
+		{
+			// the connection is dead
+			m_error = asio::error::timed_out;
+			m_state = UTP_STATE_ERROR_WAIT;
+			test_socket_state();
+			return;
+		}
+
+		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
+			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq
+			&& m_mtu_seq != 0)
+		{
+			// we timed out, and the only outstanding packet
+			// we had was the probe. Assume it was dropped
+			// because it was too big
+			m_mtu_ceiling = m_mtu - 1;
+			if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
+			update_mtu_limits();
+		}
+
 		if (m_bytes_in_flight == 0 && (m_cwnd >> 16) >= m_mtu)
 		{
 			// this is just a timeout because this direction of
@@ -3160,33 +3188,10 @@ void utp_socket_impl::tick(ptime const& now)
 
 		TORRENT_ASSERT(m_cwnd >= 0);
 
-		if (m_outbuf.size()) ++m_num_timeouts;
-
-		if (m_num_timeouts > m_sm->num_resends())
-		{
-			// the connection is dead
-			m_error = asio::error::timed_out;
-			m_state = UTP_STATE_ERROR_WAIT;
-			test_socket_state();
-			return;
-		}
-
 		m_timeout = now + milliseconds(packet_timeout());
 	
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"
 			, this, int(m_cwnd >> 16));
-
-		if (((m_acked_seq_nr + 1) & ACK_MASK) == m_mtu_seq
-			&& ((m_seq_nr - 1) & ACK_MASK) == m_mtu_seq
-			&& m_mtu_seq != 0)
-		{
-			// we timed out, and the only outstanding packet
-			// we had was the probe. Assume it was dropped
-			// because it was too big
-			m_mtu_ceiling = m_mtu - 1;
-			if (m_mtu_floor > m_mtu_ceiling) m_mtu_floor = m_mtu_ceiling;
-			update_mtu_limits();
-		}
 
 		// we dropped all packets, that includes the mtu probe
 		m_mtu_seq = 0;
