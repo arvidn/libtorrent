@@ -30,11 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/io.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
 #include <map>
 
 using namespace libtorrent;
@@ -42,7 +45,7 @@ using namespace libtorrent::detail; // for write_* and read_*
 
 void print_usage()
 {
-	fprintf(stderr, "usage: parse_access_log log-file data-file\n\n"
+	fprintf(stderr, "usage: parse_access_log log-file\n\n"
 		"prints a gnuplot readable data file to stdout\n");
 	exit(1);
 }
@@ -56,7 +59,7 @@ struct file_op
 
 int main(int argc, char* argv[])
 {
-	if (argc != 3) print_usage();
+	if (argc != 2) print_usage();
 
 	FILE* log_file = fopen(argv[1], "r");
 	if (log_file == 0)
@@ -72,16 +75,6 @@ int main(int argc, char* argv[])
 	FILE* writes_elev_file = fopen("writes_elevator.log", "w+");
 	FILE* reads_elev_file = fopen("reads_elevator.log", "w+");
 
-	// TODO: in order to generalize this, the filenames need to be
-	// saved in the log itself
-
-	error_code ec;
-	file data_file(argv[2], file::read_only, ec);
-	if (ec)
-	{
-		fprintf(stderr, "failed to open data file: %s\n", ec.message().c_str());
-		return 1;
-	}
 
 	typedef std::map<boost::uint32_t, file_op> op_map;
 	op_map outstanding_ops;
@@ -90,7 +83,7 @@ int main(int argc, char* argv[])
 
 	for (;;)
 	{
-		char entry[29];
+		char entry[21];
 		char* ptr = entry;
 		int ret = fread(&entry, 1, sizeof(entry), log_file);
 		if (ret != sizeof(entry)) break;
