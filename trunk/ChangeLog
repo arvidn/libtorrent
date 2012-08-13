@@ -1,3 +1,4 @@
+	* uTP path MTU discovery improvements
 	* optimized the torrent creator optimizer to scale significantly better with more files
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
