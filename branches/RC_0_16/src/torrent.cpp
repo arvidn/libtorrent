@@ -3149,7 +3149,7 @@ namespace libtorrent
 					if (m_owning_storage.get() && m_state == torrent_status::downloading)
 						m_storage->async_finalize_file(file_index);
 
-					if (m_ses.m_alerts.should_post<piece_finished_alert>())
+					if (m_ses.m_alerts.should_post<file_completed_alert>())
 					{
 						// this file just completed, post alert
 						m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
