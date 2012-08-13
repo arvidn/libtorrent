@@ -43,6 +43,8 @@ namespace libtorrent
 
 struct TORRENT_EXPORT alert_handler
 {
+	// TODO: move the responsibility of picking which
+	// alert types to subscribe to to the observer
 	void subscribe(alert_observer* o, int flags = 0, ...);
 	void dispatch_alerts(std::deque<alert*> const& alerts);
 	void unsubscribe(alert_observer* o);

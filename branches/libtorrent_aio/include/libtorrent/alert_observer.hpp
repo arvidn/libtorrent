@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+struct alert;
+
 struct alert_observer
 {
 	friend struct alert_handler;
