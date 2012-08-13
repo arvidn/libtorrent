@@ -5,6 +5,7 @@ set(sources
 	web_connection_base
 	aiocb_pool
 	alert
+	alert_handler
 	allocator
 	asio
 	asio_ssl

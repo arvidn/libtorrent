@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <deque>
 #include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -192,6 +193,7 @@ namespace libtorrent {
 		unhandled_alert() {}
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_TYPEID
 
 	namespace detail {
@@ -243,6 +245,7 @@ namespace libtorrent {
 	};
 
 #endif // BOOST_NO_TYPEID
+#endif // TORRENT_NO_DEPRECATE
 
 template <class T>
 T* alert_cast(alert* a)
