@@ -224,6 +224,12 @@ namespace libtorrent
 		}
 		else
 		{
+			if (!t->need_loaded())
+			{
+				disconnect(errors::torrent_aborted);
+				return;
+			}
+
 			std::vector<file_slice> files = info.orig_files().map_block(r.piece, r.start
 				, r.length);
 
@@ -482,6 +488,17 @@ namespace libtorrent
 						TORRENT_ASSERT(!m_file_requests.empty());
 						int file_index = m_file_requests.front();
 
+						if (!t->need_loaded())
+						{
+							disconnect(errors::torrent_aborted);
+							return;
+						}
+
+						if (!t->need_loaded())
+						{
+							disconnect(errors::torrent_aborted);
+							return;
+						}
 						torrent_info const& info = t->torrent_file();
 						std::string path = info.orig_files().file_path(info.orig_files().at(file_index));
 #ifdef TORRENT_WINDOWS
@@ -669,6 +686,11 @@ namespace libtorrent
 				<< " file_requests: " << m_file_requests.size() << std::endl;
 #endif
 
+			if (!t->need_loaded())
+			{
+				disconnect(errors::torrent_aborted);
+				return;
+			}
 			int file_index = m_file_requests.front();
 			peer_request in_range = info.orig_files().map_file(file_index, range_start
 				, int(range_end - range_start));
@@ -825,6 +847,12 @@ namespace libtorrent
 				m_chunk_pos = 0;
 				m_partial_chunk_header = 0;
 				
+				if (!t->need_loaded())
+				{
+					disconnect(errors::torrent_aborted);
+					return;
+				}
+
 				torrent_info const& info = t->torrent_file();
 				while (!m_file_requests.empty()
 					&& info.orig_files().internal_at(m_file_requests.front()).pad_file)
