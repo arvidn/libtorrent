@@ -1114,6 +1114,13 @@ namespace libtorrent
 		j->piece = piece;
 		j->callback = handler;
 
+		if (m_num_threads == 0)
+		{
+			j->error.ec = asio::error::operation_aborted;
+			handler(j);
+			free_job(j);
+		}
+
 		add_job(j);
 	}
 
