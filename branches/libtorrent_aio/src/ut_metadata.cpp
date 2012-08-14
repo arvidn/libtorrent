@@ -452,7 +452,7 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return time_now() > m_request_limit;
+			return m_pc.has_metadata() || (time_now() > m_request_limit);
 		}
 
 		void failed_hash_check(ptime const& now)

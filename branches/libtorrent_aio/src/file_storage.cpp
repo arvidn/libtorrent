@@ -501,49 +501,41 @@ namespace libtorrent
 
 	void file_storage::reorder_file(int index, int dst)
 	{
-		internal_file_entry e = m_files[index];
-		m_files.erase(m_files.begin() + index);
-		m_files.insert(m_files.begin() + dst, e);
+		TORRENT_ASSERT(index < int(m_files.size()));
+		TORRENT_ASSERT(dst < int(m_files.size()));
+		TORRENT_ASSERT(dst < index);
+
+		std::iter_swap(m_files.begin() + index, m_files.begin() + dst);
 		if (!m_mtime.empty())
 		{
-			time_t mtime = 0;
-			if (int(m_mtime.size()) > index)
-			{
-				mtime = m_mtime[index];
-				m_mtime.erase(m_mtime.begin() + index);
-			}
-			m_mtime.insert(m_mtime.begin() + dst, mtime);
+			TORRENT_ASSERT(m_mtime.size() == m_files.size());
+			if (int(m_mtime.size()) < index) m_mtime.resize(index+1, 0);
+			std::iter_swap(m_mtime.begin() + dst, m_mtime.begin() + index);
 		}
 		if (!m_file_hashes.empty())
 		{
-			char const* fh = 0;
-			if (int(m_file_hashes.size()) > index)
-			{
-				fh = m_file_hashes[index];
-				m_file_hashes.erase(m_file_hashes.begin() + index);
-			}
-			m_file_hashes.insert(m_file_hashes.begin() + dst, fh);
+			TORRENT_ASSERT(m_file_hashes.size() == m_files.size());
+			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, NULL);
+			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
 		if (!m_file_base.empty())
 		{
-			size_type base = 0;
-			if (int(m_file_base.size()) > index)
-			{
-				base = m_file_base[index];
-				m_file_base.erase(m_file_base.begin() + index);
-			}
-			m_file_base.insert(m_file_base.begin() + dst, base);
+			TORRENT_ASSERT(m_file_base.size() == m_files.size());
+			if (int(m_file_base.size()) < index) m_file_base.resize(index + 1, NULL);
+			std::iter_swap(m_file_base.begin() + dst, m_file_base.begin() + index);
 		}
 	}
 
-	void file_storage::optimize(int pad_file_limit)
+	void file_storage::optimize(int pad_file_limit, int alignment)
 	{
-		// the main purpuse of padding is to optimize disk
-		// I/O. This is a conservative memory page size assumption
-		int alignment = 8*1024;
-
 		// it doesn't make any sense to pad files that
-		// are smaller than one piece
+		// are smaller than one block
+		if (pad_file_limit >= 0 && pad_file_limit < 0x4000)
+			pad_file_limit = 0x4000;
+
+		// also, it doesn't make any sense to pad files
+		// that are smaller than the alignment, since they
+		// won't get aligned anyway; they are used as padding
 		if (pad_file_limit >= 0 && pad_file_limit < alignment)
 			pad_file_limit = alignment;
 
@@ -600,7 +592,6 @@ namespace libtorrent
 					int cur_index = file_index(*i);
 					reorder_file(index, cur_index);
 					i = m_files.begin() + cur_index;
-
 					i->offset = off;
 					off += i->size;
 					continue;
@@ -611,20 +602,34 @@ namespace libtorrent
 				// note that i will be set to point to the
 				// new pad file. Once we're done adding it, we need
 				// to increment i to point to the current file again
-				internal_file_entry e;
-				i = m_files.insert(i, e);
-				i->size = pad_size;
-				i->offset = off;
+				// first add the pad file to the end of the file list
+				// then swap it in place. This minimizes the amount
+				// of copying of internal_file_entry, which is somewhat
+				// expensive (until we have move semantics)
+				int cur_index = file_index(*i);
+				int index = m_files.size();
+				m_files.push_back(internal_file_entry());
+				internal_file_entry& e = m_files.back();
+				// i may have been invalidated, refresh it
+				i = m_files.begin() + cur_index;
+				e.size = pad_size;
+				e.offset = off;
 				char name[30];
 				snprintf(name, sizeof(name), ".____padding_file/%d", padding_file);
 				std::string path = combine_path(m_name, name);
-				i->set_name(path.c_str());
-				i->pad_file = true;
+				e.set_name(path.c_str());
+				e.pad_file = true;
 				off += pad_size;
 				++padding_file;
-				// skip the pad file we just added and point
-				// at the current file again
-				++i;
+
+				if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
+				if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
+				if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
+
+				reorder_file(index, cur_index);
+
+				TORRENT_ASSERT((off & (alignment-1)) == 0);
+				continue;
 			}
 			i->offset = off;
 			off += i->size;

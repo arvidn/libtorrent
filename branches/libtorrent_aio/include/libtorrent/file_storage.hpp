@@ -250,7 +250,7 @@ namespace libtorrent
 		// if pad_file_limit >= 0, files larger than
 		// that limit will be padded, default is to
 		// not add any padding
-		void optimize(int pad_file_limit = -1);
+		void optimize(int pad_file_limit = -1, int alignment = 0x10000);
 
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;

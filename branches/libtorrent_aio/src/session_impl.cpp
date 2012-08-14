@@ -1352,6 +1352,24 @@ namespace aux {
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
 
+	void session_impl::update_dht_announce_interval()
+	{
+#ifndef TORRENT_DISABLE_DHT
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_announce");
+#endif
+		m_dht_interval_update_torrents = m_torrents.size();
+		error_code ec;
+		int delay = (std::max)(m_settings.dht_announce_interval
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.async_wait(
+			boost::bind(&session_impl::on_dht_announce, this, _1));
+		TORRENT_ASSERT(!ec);
+#endif
+	}
+
 	void session_impl::init()
 	{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING

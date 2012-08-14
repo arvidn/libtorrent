@@ -1457,7 +1457,9 @@ namespace libtorrent
 
 		if (!ctx)
 		{
-			set_error(asio::error::no_memory, "SSL context");
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
+			set_error(ec, "SSL context");
 			pause();
 			return;
 		}
@@ -1493,7 +1495,9 @@ namespace libtorrent
 		X509_STORE* cert_store = X509_STORE_new();
 		if (!cert_store)
 		{
-			set_error(asio::error::no_memory, "x.509 certificate store");
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
+			set_error(ec, "x.509 certificate store");
 			pause();
 			return;
 		}
@@ -1509,8 +1513,10 @@ namespace libtorrent
 
 		if (!certificate)
 		{
+			error_code ec(::ERR_get_error(),
+				asio::error::get_ssl_category());
 			X509_STORE_free(cert_store);
-			set_error(asio::error::no_memory, "x.509 certificate");
+			set_error(ec, "x.509 certificate");
 			pause();
 			return;
 		}
@@ -3467,7 +3473,7 @@ namespace libtorrent
 					if (m_owning_storage.get() && m_state == torrent_status::downloading)
 						m_ses.m_disk_thread.async_finalize_file(m_storage, file_index);
 
-					if (m_ses.m_alerts.should_post<piece_finished_alert>())
+					if (m_ses.m_alerts.should_post<file_completed_alert>())
 					{
 						// this file just completed, post alert
 						m_ses.m_alerts.post_alert(file_completed_alert(get_handle()

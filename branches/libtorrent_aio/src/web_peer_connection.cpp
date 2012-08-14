@@ -503,6 +503,9 @@ namespace libtorrent
 						}
 						location.resize(i);
 					}
+					// apparently web servers sometimes include a
+					// body in their redirects
+					received_bytes(0, bytes_transferred);
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this);
 					disconnect(errors::redirecting, 2);

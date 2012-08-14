@@ -547,6 +547,7 @@ void bind_session()
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=session::start_default_features | session::add_default_plugins))
         )
+        .def("post_torrent_updates", allow_threads(&session::post_torrent_updates))
         .def(
             "listen_on", &listen_on
           , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
