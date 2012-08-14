@@ -111,7 +111,7 @@ namespace libtorrent { namespace
 		// returns a piece of the metadata that
 		// we should request.
 		// returns -1 if we should hold off the request
-		int metadata_request();
+		int metadata_request(bool has_metadata);
 
 		// this is called from the peer_connection for
 		// each piece of metadata it receives
@@ -353,7 +353,7 @@ namespace libtorrent { namespace
 				break;
 			case 2: // have no data
 				{
-					m_request_limit = (std::min)(time_now() + minutes(1), m_request_limit);
+					m_request_limit = (std::max)(time_now() + minutes(1), m_request_limit);
 					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
@@ -384,7 +384,7 @@ namespace libtorrent { namespace
 				&& m_sent_requests.size() < 2
 				&& has_metadata())
 			{
-				int piece = m_tp.metadata_request();
+				int piece = m_tp.metadata_request(m_pc.has_metadata());
 				if (piece == -1) return;
 
 				m_sent_requests.push_back(piece);
@@ -433,7 +433,10 @@ namespace libtorrent { namespace
 		return boost::shared_ptr<peer_plugin>(new ut_metadata_peer_plugin(m_torrent, *c, *this));
 	}
 
-	int ut_metadata_plugin::metadata_request()
+	// has_metadata is false if the peer making the request has not announced
+	// that it has metadata. In this case, it shouldn't prevent other peers
+	// from requesting this block by setting a timeout on it.
+	int ut_metadata_plugin::metadata_request(bool has_metadata)
 	{
 		std::vector<metadata_piece>::iterator i = std::min_element(
 			m_requested_metadata.begin(), m_requested_metadata.end());
@@ -453,7 +456,13 @@ namespace libtorrent { namespace
 		if (now - m_requested_metadata[piece].last_request < 3) return -1;
 
 		++m_requested_metadata[piece].num_requests;
-		m_requested_metadata[piece].last_request = now;
+
+		// only set the timeout on this block, only if the peer
+		// has metadata. This is to prevent peers with no metadata
+		// to starve out sending requests to peers with metadata
+		if (has_metadata)
+			m_requested_metadata[piece].last_request = now;
+
 		return piece;
 	}
 
