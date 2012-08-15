@@ -68,10 +68,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
+#define PRIx64 "I64x"
 #define PRIu32 "u"
 #else
 #define PRId64 "lld"
 #define PRIu64 "llu"
+#define PRIx64 "llx"
 #define PRIu32 "u"
 #endif
 #endif
