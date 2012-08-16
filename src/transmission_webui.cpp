@@ -34,11 +34,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string.h> // for strcmp() 
 #include <stdio.h>
 #include <vector>
+#include <boost/intrusive_ptr.hpp>
 
 extern "C" {
 #include "mongoose.h"
 #include "jsmn.h"
 }
+
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/escape_string.hpp" // for base64decode
+#include "libtorrent/session.hpp"
 
 namespace libtorrent
 {
@@ -69,16 +76,36 @@ jsmntok_t* find_key(jsmntok_t* tokens, char* buf, char const* key, int type)
 	return NULL;
 }
 
+char const* find_string(jsmntok_t* tokens, char* buf, char const* key)
+{
+	jsmntok_t* k = find_key(tokens, buf, key, JSMN_STRING);
+	if (k == NULL) return "";
+	buf[k->end] = '\0';
+	return buf + k->start;
+}
+
+bool find_bool(jsmntok_t* tokens, char* buf, char const* key)
+{
+	jsmntok_t* k = find_key(tokens, buf, key, JSMN_PRIMITIVE);
+	if (k == NULL) return false;
+	buf[k->end] = '\0';
+	return strcmp(buf + k->start, "true") == 0;
+}
+
 void return_error(mg_connection* conn, char const* msg)
 {
-	// TODO: this should probably be more thought through
-	mg_printf(conn, "{ \"error\": \"%s\"}", msg);
+	mg_printf(conn, "{ \"result\": \"%s\" }", msg);
+}
+
+void return_failure(mg_connection* conn, char const* msg, char const* tag)
+{
+	mg_printf(conn, "{ \"result\": \"%s\", \"tag\": \"%s\"}", msg, tag);
 }
 
 struct method_handler
 {
 	char const* method_name;
-	void (transmission_webui::*fun)(mg_connection*, jsmntok_t* args, char* buffer);
+	void (transmission_webui::*fun)(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
 };
 
 method_handler handlers[] =
@@ -110,37 +137,98 @@ void transmission_webui::handle_json_rpc(mg_connection* conn, jsmntok_t* tokens,
 		if (strcmp(m, handlers[i].method_name)) continue;
 
 		jsmntok_t* args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
+		char const* tag = find_string(tokens, buffer, "tag");
 
 		if (args) buffer[args->end] = 0;
 		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
 
-		(this->*handlers[i].fun)(conn, args, buffer);
+		(this->*handlers[i].fun)(conn, args, tag, buffer);
 		break;
 	}
 }
 
-void transmission_webui::add_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
+	, char const* tag, char* buffer)
+{
+	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
+
+	add_torrent_params params;
+	params.save_path = find_string(args, buffer, "download-dir");
+	bool paused = find_bool(args, buffer, "paused");
+	params.paused = paused;
+	params.flags = paused ? 0 : add_torrent_params::flag_auto_managed;
+
+	std::string url = find_string(args, buffer, "filename");
+	if (url.substr(0, 7) == "http://"
+		|| url.substr(0, 8) == "https://"
+		|| url.substr(0, 7) == "magnet:")
+	{
+		params.url = url;
+	}
+	else if (!url.empty())
+	{
+		error_code ec;
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(url, ec));
+		if (ec)
+		{
+			return_failure(conn, ec.message().c_str(), tag);
+			return;
+		}
+		params.ti = ti;
+	}
+	else
+	{
+		std::string metainfo = base64decode(find_string(args, buffer, "metainfo"));
+		error_code ec;
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(&metainfo[0], metainfo.size(), ec));
+		if (ec)
+		{
+			return_failure(conn, ec.message().c_str(), tag);
+			return;
+		}
+		params.ti = ti;
+	}
+	
+	error_code ec;
+	torrent_handle h = m_ses.add_torrent(params);
+	if (ec)
+	{
+		return_failure(conn, ec.message().c_str(), tag);
+		return;
+	}
+
+	std::string return_value = "{}";
+
+	mg_printf(conn, "{ \"result\": \"success\", \"tag\": \"%s\", \"arguments\": %s}"
+		, tag, return_value.c_str());
+}
+
+void transmission_webui::get_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::get_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::set_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::set_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::start_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::start_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::start_torrent_now(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::start_torrent_now(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::stop_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::stop_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::verify_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
-void transmission_webui::verify_torrent(mg_connection*, jsmntok_t* args, char* buffer)
-{
-}
-void transmission_webui::reannounce_torrent(mg_connection*, jsmntok_t* args, char* buffer)
+void transmission_webui::reannounce_torrent(mg_connection*, jsmntok_t* args
+	, char const* tag, char* buffer)
 {
 }
 

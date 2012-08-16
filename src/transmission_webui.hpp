@@ -48,14 +48,14 @@ namespace libtorrent
 
 		void handle_json_rpc(mg_connection* conn, jsmntok_t* tokens, char* buffer);
 
-		void add_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void get_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void set_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void start_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void start_torrent_now(mg_connection*, jsmntok_t* args, char* buffer);
-		void stop_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void verify_torrent(mg_connection*, jsmntok_t* args, char* buffer);
-		void reannounce_torrent(mg_connection*, jsmntok_t* args, char* buffer);
+		void add_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void get_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void set_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void start_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void start_torrent_now(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void stop_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void verify_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+		void reannounce_torrent(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
 	};
 }
 
