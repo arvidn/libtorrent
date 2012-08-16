@@ -50,7 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
+#ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS 1
+#endif
 #include <stdint.h> // for INT64_MAX
 #else
 #if !defined INT64_MAX
@@ -59,7 +61,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifndef _MSC_VER
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS 1
+#endif
 #include <inttypes.h> // for PRId64 et.al.
 #endif
 
