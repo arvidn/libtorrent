@@ -853,21 +853,9 @@ void add_torrent(libtorrent::session& ses
 	, int torrent_download_limit)
 {
 	using namespace libtorrent;
-
-	boost::intrusive_ptr<torrent_info> t;
-	error_code ec;
-	t = new torrent_info(torrent.c_str(), ec);
-	if (ec)
-	{
-		fprintf(stderr, "%s: %s\n", torrent.c_str(), ec.message().c_str());
-		return;
-	}
-
-	hash_to_filename.insert(std::make_pair(t->info_hash(), torrent));
-
 	static int counter = 0;
 
-	printf("[%d] %s\n", counter++, t->name().c_str());
+	printf("[%d] %s\n", counter++, torrent.c_str());
 
 	add_torrent_params p;
 	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
@@ -875,13 +863,19 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, combine_path(".resume", to_hex(t->info_hash().to_string()) + ".resume"));
+	std::string filename = combine_path(save_path, combine_path(".resume", libtorrent::filename(torrent) + ".resume"));
 
+	error_code ec;
 	std::vector<char> buf;
 	if (load_file(filename.c_str(), buf, ec) == 0)
 		p.resume_data = &buf;
 
-	p.ti = t;
+#ifdef TORRENT_WINDOWS
+	torrent = convert_path_to_posix(torrent);
+	p.url = "file:///" + escape_path(torrent.c_str(), torrent.size());
+#else
+	p.url = "file://" + escape_path(torrent.c_str(), torrent.size());
+#endif
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags |= add_torrent_params::flag_paused;
@@ -1109,6 +1103,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				}
 			}
 
+			hash_to_filename.insert(std::make_pair(h.info_hash(), filename));
+
 			boost::unordered_set<torrent_status>::iterator j
 				= all_handles.insert(h.status()).first;
 			if (show_torrent(*j, torrent_filter, counters))
@@ -1138,7 +1134,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		{
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
-			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", libtorrent::filename(
+				hash_to_filename[h.info_hash()]) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
 				&& std::find_if(files.begin(), files.end()

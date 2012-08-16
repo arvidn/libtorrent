@@ -5190,8 +5190,36 @@ namespace aux {
 
 	void session_impl::async_add_torrent(add_torrent_params* params)
 	{
+		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
+		{
+			m_disk_thread.async_load_torrent(params
+				, boost::bind(&session_impl::on_async_load_torrent, shared_from_this(), _1));
+			return;
+		}
+
 		error_code ec;
 		torrent_handle handle = add_torrent(*params, ec);
+		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
+		delete params->resume_data;
+		delete params;
+	}
+
+	void session_impl::on_async_load_torrent(disk_io_job const* j)
+	{
+		add_torrent_params* params = (add_torrent_params*)j->requester;
+		error_code ec;
+		torrent_handle handle;
+		if (j->error.ec)
+		{
+			ec = j->error.ec;
+		}
+		else
+		{
+			params->url.clear();
+			params->ti = boost::intrusive_ptr<torrent_info>((torrent_info*)j->buffer);
+			handle = add_torrent(*params, ec);
+		}
+
 		m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
 		delete params->resume_data;
 		delete params;
@@ -5212,6 +5240,15 @@ namespace aux {
 			parse_magnet_uri(params.url, params, ec);
 			if (ec) return torrent_handle();
 			params.url.clear();
+		}
+
+		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
+		{
+			std::string filename = resolve_file_url(params.url);
+			boost::intrusive_ptr<torrent_info> t = new torrent_info(filename, ec);
+			if (ec) return torrent_handle();
+			params.url.clear();
+			params.ti = t;
 		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)

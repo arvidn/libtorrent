@@ -475,8 +475,11 @@ for the torrent.
 If you specify a ``url``, the torrent will be set in ``downloading_metadata`` state
 until the .torrent file has been downloaded. If there's any error while downloading,
 the torrent will be stopped and the torrent error state (``torrent_status::error``)
-will indicate what went wrong. The ``url`` may refer to a magnet link or a regular
-http URL.
+will indicate what went wrong. The ``url`` may refer to a magnet link, a regular
+http URL or a file-URL. Using a file-URL to load torrents allows for loading them
+asyncronously. When used with ``async_add_torrent()`` it can provide a completely non-
+blocking mechanism for adding torrents, without requiring them to be loaded
+from disk first.
 
 ``dht_nodes`` is a list of hostname and port pairs, representing DHT nodes to be
 added to the session (if DHT is enabled). The hostname may be an IP address.

@@ -291,6 +291,15 @@ namespace libtorrent
 			if (*i == '\\') *i = '/';
 	}
 
+#ifdef TORRENT_WINDOWS
+	void convert_path_to_windows(std::string& path);
+	{
+		for (std::string::iterator i = path.begin()
+			, end(path.end()); i != end; ++i)
+			if (*i == '/') *i = '\\';
+	}
+#endif
+
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
@@ -323,6 +332,32 @@ namespace libtorrent
 			, auth.empty()?"":"@", host.c_str(), port
 			, escape_path(path.c_str(), path.size()).c_str());
 		return msg;
+	}
+
+	std::string resolve_file_url(std::string const& url)
+	{
+		TORRENT_ASSERT(url.substr(0, 7) == "file://");
+		// first, strip the file:// part.
+		// On windows, we have
+		// to strip the first / as well
+		int num_to_strip = 7;
+#ifdef TORRENT_WINDOWS
+		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
+#endif
+		std::string ret = url.substr(num_to_strip);
+
+		// we also need to URL-decode it
+		error_code ec;
+		std::string unescaped = unescape_string(ret, ec);
+		if (ec) unescaped = ret;
+
+		// on windows, we need to convert forward slashes
+		// to backslashes
+#ifdef TORRENT_WINDOWS
+		convert_path_to_windows(unescaped);
+#endif
+
+		return unescaped;
 	}
 
 	std::string base64encode(const std::string& s)

@@ -559,6 +559,7 @@ namespace libtorrent
 		&disk_io_thread::do_flush_storage,
 		&disk_io_thread::do_trim_cache,
 		&disk_io_thread::do_file_priority,
+		&disk_io_thread::do_load_torrent,
 	};
 
 	const char* job_action_name[] =
@@ -580,6 +581,7 @@ namespace libtorrent
 		"flush_storage",
 		"trim_cache",
 		"set_file_priority",
+		"load_torrent",
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -1082,6 +1084,16 @@ namespace libtorrent
 		j->callback = handler;
 
 		add_fence_job(storage, j);
+	}
+
+	void disk_io_thread::async_load_torrent(add_torrent_params* params
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
+		j->requester = (char*)params;
+		j->callback = handler;
+
+		add_job(j);
 	}
 
 	void disk_io_thread::async_save_resume_data(piece_manager* storage
@@ -1850,6 +1862,25 @@ namespace libtorrent
 		std::vector<boost::uint8_t>* p = reinterpret_cast<std::vector<boost::uint8_t>*>(j->buffer);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
 		delete p;
+		return 0;
+	}
+
+	int disk_io_thread::do_load_torrent(disk_io_job* j)
+	{
+		add_torrent_params* params = (add_torrent_params*)j->requester;
+
+		std::string filename = resolve_file_url(params->url);
+		torrent_info* t = new torrent_info(filename, j->error.ec);
+		if (j->error.ec)
+		{
+			j->buffer = NULL;
+			delete t;
+		}
+		else
+		{
+			j->buffer = (char*)t;
+		}
+
 		return 0;
 	}
 

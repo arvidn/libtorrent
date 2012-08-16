@@ -64,6 +64,7 @@ namespace libtorrent
 {
 	class alert;
 	struct alert_dispatcher;
+	struct add_torrent_params;
 
 	struct cached_piece_info
 	{
@@ -259,6 +260,8 @@ namespace libtorrent
 		void async_set_file_priority(piece_manager* storage
 			, std::vector<boost::uint8_t> const& prio
 			, boost::function<void(disk_io_job const*)> const& handler);
+		void async_load_torrent(add_torrent_params* params
+			, boost::function<void(disk_io_job const*)> const& handler);
 
 		void clear_read_cache(piece_manager* storage);
 		void clear_piece(piece_manager* storage, int index);
@@ -324,6 +327,7 @@ namespace libtorrent
 		int do_flush_storage(disk_io_job* j);
 		int do_trim_cache(disk_io_job* j);
 		int do_file_priority(disk_io_job* j);
+		int do_load_torrent(disk_io_job* j);
 
 		void call_job_handlers(void* userdata);
 
