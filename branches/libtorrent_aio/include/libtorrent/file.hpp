@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
 
