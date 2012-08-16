@@ -2038,6 +2038,12 @@ namespace aux {
 		// checking to see if it's the first item
 		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
 		{
+#ifdef TORRENT_DEBUG
+			torrent* i = (torrent*)m_torrent_lru.front();
+			while (i != NULL && i != t) i = (torrent*)i->next;
+			TORRENT_ASSERT(i == t);
+#endif
+	
 			// this torrent is in the list already.
 			// first remove it
 			m_torrent_lru.erase(t);
@@ -2050,23 +2056,54 @@ namespace aux {
 		m_torrent_lru.push_back(t);
 	}
 
-	void session_impl::evict_torrent(torrent* ignore)
+	void session_impl::evict_torrent(torrent* t)
+	{
+		TORRENT_ASSERT(!t->is_pinned());
+		if (!t->is_loaded()) return;
+
+		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
+
+#ifdef TORRENT_DEBUG
+		torrent* i = (torrent*)m_torrent_lru.front();
+		while (i != NULL && i != t) i = (torrent*)i->next;
+		TORRENT_ASSERT(i == t);
+#endif
+	
+		t->unload();
+		m_torrent_lru.erase(t);
+		TORRENT_ASSERT(t->next == NULL);
+		TORRENT_ASSERT(t->prev == NULL);
+	}
+
+	void session_impl::evict_torrents_except(torrent* ignore)
 	{
 		if (!m_user_load_torrent) return;
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+
+		// if the torrent we're ignoring (i.e. making room for), allow
+		// one more torrent in the list.
+		if (ignore->next != NULL || ignore->prev != NULL || m_torrent_lru.front() == ignore)
+		{
+#ifdef TORRENT_DEBUG
+			torrent* i = (torrent*)m_torrent_lru.front();
+			while (i != NULL && i != ignore) i = (torrent*)i->next;
+			TORRENT_ASSERT(i == ignore);
+#endif
+			++loaded_limit;
+		}
+
 		while (m_torrent_lru.size() >= loaded_limit)
 		{
 			// we're at the limit of loaded torrents. Find the least important
 			// torrent and unload it. This is done with an LRU.
 			torrent* i = (torrent*)m_torrent_lru.front();
 
-			// ignore t. That's the torrent we're putting in
-			if (i == ignore) i = (torrent*)i->next;
-
-			// if there are no other torrents, we can't do anything
-			if (i == NULL) break;
-
+			if (i == ignore)
+			{
+				i = (torrent*)i->next;
+				if (i == NULL) break;
+			}
 #ifdef TORRENT_STATS
 			inc_stats_counter(torrent_evicted_counter);
 #endif
@@ -2079,7 +2116,7 @@ namespace aux {
 	bool session_impl::load_torrent(torrent* t)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		evict_torrent(t);
+		evict_torrents_except(t);
 
 		// now, load t into RAM
 		std::vector<char> buffer;
@@ -5286,8 +5323,8 @@ namespace aux {
 
 		if (torrent_ptr->is_pinned() == false)
 		{
+			evict_torrents_except(torrent_ptr.get());
 			bump_torrent(torrent_ptr.get());
-			evict_torrent(torrent_ptr.get());
 		}
 
 #if TORRENT_HAS_BOOST_UNORDERED

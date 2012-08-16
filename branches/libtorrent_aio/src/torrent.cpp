@@ -7743,6 +7743,8 @@ namespace libtorrent
 
 		stop_announcing();
 
+		m_ses.evict_torrent(this);
+
 		// if this torrent was just paused
 		// we might have to resume some other auto-managed torrent
 		m_ses.m_auto_manage_time_scaler = 2;

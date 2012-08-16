@@ -558,8 +558,8 @@ namespace libtorrent
 			void bump_torrent(torrent* t);
 
 			// evict torrents until there's space for one new torrent,
-			// but don't evict the specified torrent
-			void evict_torrent(torrent* ignore);
+			void evict_torrents_except(torrent* ignore);
+			void evict_torrent(torrent* t);
 
 			void deferred_submit_jobs();
 
