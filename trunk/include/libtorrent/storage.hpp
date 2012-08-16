@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
