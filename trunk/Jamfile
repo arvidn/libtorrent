@@ -63,7 +63,9 @@ rule linking ( properties * )
 		}
 	}
 
+	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
+		&& ! <toolset>gcc in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <variant>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
