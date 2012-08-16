@@ -63,7 +63,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 
-#include <cstdlib>
+#include <stdlib.h>
+#include <string>
+#include <exception>
+#include <iterator> // for distance
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -248,11 +251,7 @@ namespace libtorrent
 				++in; // 'e' 
 				ret = entry(entry::int_t);
 				char* end_pointer;
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
-				ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
-#else
 				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
-#endif
 #ifdef TORRENT_DEBUG
 				ret.m_type_queried = false;
 #endif
@@ -354,7 +353,7 @@ namespace libtorrent
 					}
 					TORRENT_ASSERT(*in == ':');
 					++in; // ':'
-					int len = std::atoi(len_s.c_str());
+					int len = atoi(len_s.c_str());
 					ret = entry(entry::string_t);
 					read_string(in, end, len, ret.string(), err);
 					if (err)

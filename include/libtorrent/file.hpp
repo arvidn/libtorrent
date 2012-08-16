@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <winioctl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #else
 // posix part
 #define _FILE_OFFSET_BITS 64
@@ -75,7 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h> // for DIR
 
