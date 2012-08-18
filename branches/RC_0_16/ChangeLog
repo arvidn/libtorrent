@@ -1,3 +1,4 @@
+	* fix python binding backwards compatibility in replace_trackers
 	* fix possible starvation in metadata extension
 	* fix crash when creating torrents and optimizing file order with pad files
 	* disable support for large MTUs in uTP until it is more reliable
