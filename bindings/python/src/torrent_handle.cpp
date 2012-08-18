@@ -150,12 +150,12 @@ list file_priorities(torrent_handle& handle)
 
 int file_prioritity0(torrent_handle& h, int index)
 {
-	return h.file_priority(index);
+   return h.file_priority(index);
 }
 
 void file_prioritity1(torrent_handle& h, int index, int prio)
 {
-	return h.file_priority(index, prio);
+   return h.file_priority(index, prio);
 }
 
 void replace_trackers(torrent_handle& h, object trackers)
@@ -171,7 +171,27 @@ void replace_trackers(torrent_handle& h, object trackers)
         if (entry == handle<>())
             break;
 
-        result.push_back(extract<announce_entry const&>(object(entry)));
+        if (extract<announce_entry>(object(entry)).check())
+        {
+           result.push_back(extract<announce_entry>(object(entry)));
+        }
+        else
+        {
+            dict d;
+            d = extract<dict>(object(entry));
+            std::string url = extract<std::string>(d["url"]);
+            announce_entry ae(url);
+            if (d.has_key("tier"))
+               ae.tier = extract<int>(d["tier"]);
+            if (d.has_key("fail_limit"))
+               ae.fail_limit = extract<int>(d["fail_limit"]);
+            if (d.has_key("source"))
+               ae.source = extract<int>(d["source"]);
+            if (d.has_key("verified"))
+               ae.verified = extract<int>(d["verified"]);
+            if (d.has_key("send_stats"))
+               ae.send_stats = extract<int>(d["send_stats"]);
+        }
     }
 
     allow_threading_guard guard;
@@ -194,6 +214,7 @@ list trackers(torrent_handle &h)
         d["updating"] = i->updating;
         d["start_sent"] = i->start_sent;
         d["complete_sent"] = i->complete_sent;
+        d["send_stats"] = i->send_stats;
         ret.append(d);
     }
     return ret;
