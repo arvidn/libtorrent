@@ -7743,7 +7743,11 @@ namespace libtorrent
 
 		stop_announcing();
 
-		m_ses.evict_torrent(this);
+		// if the torrent is pinned, we should not unload it
+		if (!is_pinned())
+		{
+			m_ses.evict_torrent(this);
+		}
 
 		// if this torrent was just paused
 		// we might have to resume some other auto-managed torrent

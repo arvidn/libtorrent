@@ -2059,7 +2059,13 @@ namespace aux {
 	void session_impl::evict_torrent(torrent* t)
 	{
 		TORRENT_ASSERT(!t->is_pinned());
-		if (!t->is_loaded()) return;
+
+		// if there's no user-load function set, we cannot evict
+		// torrents. The feature is not enabled
+		if (!m_user_load_torrent) return;
+
+		// if it's already evicted, there's nothing to do
+		if (!t->is_loaded() || !t->should_be_loaded()) return;
 
 		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
 

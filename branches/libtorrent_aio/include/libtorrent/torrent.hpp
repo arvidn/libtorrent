@@ -166,6 +166,7 @@ namespace libtorrent
 		// pinned torrents may not be unloaded
 		bool is_pinned() const { return m_pinned; }
 		bool is_loaded() const { return m_torrent_file->is_loaded(); }
+		bool should_be_loaded() const { return m_should_be_loaded; }
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
