@@ -408,12 +408,6 @@ namespace libtorrent
 		return m_mtime[index];
 	}
 
-	int file_storage::file_index(int index) const
-	{
-		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
-		return index;
-	}
-
 	void file_storage::set_file_base(int index, size_type off)
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
@@ -440,6 +434,12 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
 		return m_files[index].size;
+	}
+
+	bool file_storage::pad_file_at(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		return m_files[index].pad_file;
 	}
 
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
@@ -494,6 +494,11 @@ namespace libtorrent
 	size_type file_storage::file_size(internal_file_entry const& fe) const
 	{
 		return fe.size;
+	}
+
+	bool file_storage::pad_file_at(internal_file_entry const& fe) const
+	{
+		return fe.pad_file;
 	}
 
 	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)

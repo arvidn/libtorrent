@@ -176,9 +176,12 @@ file structure. Its synopsis::
 		sha1_hash const& hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
-		int file_index(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
+
+		std::string file_path(int index) const;
+		size_type file_size(int index) const;
+		bool pad_file_at(int index) const;
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
@@ -214,28 +217,35 @@ can be changed by calling ``set_name``.
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
 
-hash() symlink() mtime() file_index()
--------------------------------------
+hash() symlink() mtime() file_path() file_size() pad_file_at()
+--------------------------------------------------------------
 
 	::
 
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
-		int file_index(int index) const;
+		std::string file_path(int index) const;
+		size_type file_size(int index) const;
+		bool pad_file_at(int index) const;
 
-These functions are used to query the symlink, file hash,
-modification time and the file-index from a file index.
+These functions are used to query attributes of files at
+a given index.
 
-The file hash is a sha-1 hash of the file, or 0 if none was
+The ``file_hash()`` is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
 join a bittorrent network with other file sharing networks.
 
-The modification time is the posix time when a file was last
-modified when the torrent was created, or 0 if it was not provided.
+The ``mtime()`` is the modification time is the posix
+time when a file was last modified when the torrent
+was created, or 0 if it was not included in the torrent file.
 
-The file index of a file is simply a 0 based index of the
-file as they are ordered in the torrent file.
+``file_path()`` returns the full path to a file.
+
+``file_size()`` returns the size of a file.
+
+``pad_file_at()`` returns true if the file at the given
+index is a pad-file.
 
 file_base() set_file_base()
 ---------------------------
