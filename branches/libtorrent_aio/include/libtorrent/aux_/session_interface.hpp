@@ -115,7 +115,7 @@ namespace libtorrent { namespace aux
 
 		// bump the specified torrent to make it the most recently used one
 		// in the torrent LRU (i.e. the least likely to get unloaded)
-		virtual void bump_torrent(torrent* t) = 0;
+		virtual void bump_torrent(torrent* t, bool back = true) = 0;
 
 		virtual void subscribe_to_disk(disk_observer* o) = 0;
 		virtual bool exceeded_cache_use() const = 0;

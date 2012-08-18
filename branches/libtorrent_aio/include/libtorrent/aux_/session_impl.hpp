@@ -556,7 +556,7 @@ namespace libtorrent
 			// make it the most recently used. This is done every time
 			// an action is performed that required the torrent to be
 			// loaded, indicating activity
-			void bump_torrent(torrent* t);
+			void bump_torrent(torrent* t, bool back = true);
 
 			// evict torrents until there's space for one new torrent,
 			void evict_torrents_except(torrent* ignore);

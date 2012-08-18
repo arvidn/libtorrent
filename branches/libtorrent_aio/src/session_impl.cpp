@@ -2030,7 +2030,14 @@ namespace aux {
 			? &m_download_rate : &m_upload_rate;
 	}
 
-	void session_impl::bump_torrent(torrent* t)
+	// the back argument determines whether this bump causes the torrent
+	// to be the most recently used or the least recently used. Putting
+	// the torrent at the back of the queue makes it the most recently
+	// used and the least likely to be evicted. This is the default.
+	// if back is false, the torrent is moved to the front of the queue,
+	// and made the most likely to be evicted. This is used for torrents
+	// that are paused, to give up their slot among the loaded torrents
+	void session_impl::bump_torrent(torrent* t, bool back)
 	{
 		// if t is the only torrent in the LRU list, both
 		// its prev and next links will be NULL, even though
@@ -2053,7 +2060,10 @@ namespace aux {
 		// the LRU is only used to evict torrents
 		if (t->is_pinned()) return;
 
-		m_torrent_lru.push_back(t);
+		if (back)
+			m_torrent_lru.push_back(t);
+		else
+			m_torrent_lru.push_front(t);
 	}
 
 	void session_impl::evict_torrent(torrent* t)
@@ -2075,10 +2085,9 @@ namespace aux {
 		TORRENT_ASSERT(i == t);
 #endif
 	
-		t->unload();
-		m_torrent_lru.erase(t);
-		TORRENT_ASSERT(t->next == NULL);
-		TORRENT_ASSERT(t->prev == NULL);
+		// move this torrent to be the first to be evicted whenever
+		// another torrent need its slot
+		bump_torrent(t, false);
 	}
 
 	void session_impl::evict_torrents_except(torrent* ignore)
