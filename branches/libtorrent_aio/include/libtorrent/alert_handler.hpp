@@ -45,8 +45,10 @@ struct TORRENT_EXPORT alert_handler
 {
 	// TODO: move the responsibility of picking which
 	// alert types to subscribe to to the observer
+	// TODO: make subscriptions automatically enable
+	// the corresponding category of alerts in the settion somehow
 	void subscribe(alert_observer* o, int flags = 0, ...);
-	void dispatch_alerts(std::deque<alert*> const& alerts);
+	void dispatch_alerts(std::deque<alert*>& alerts) const;
 	void unsubscribe(alert_observer* o);
 
 private:

@@ -58,16 +58,16 @@ namespace libtorrent
 		subscribe_impl(types, i, o, flags);
 	}
 
-	void alert_handler::dispatch_alerts(std::deque<alert*> const& alerts)
+	void alert_handler::dispatch_alerts(std::deque<alert*>& alerts) const
 	{
 		for (std::deque<alert*>::const_iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			alert* a = *i;
 			int type = a->type();
-			std::vector<alert_observer*>& alert_dispatchers = m_observers[type];
+			std::vector<alert_observer*> const& alert_dispatchers = m_observers[type];
 			{
-				for (std::vector<alert_observer*>::iterator k = alert_dispatchers.begin()
+				for (std::vector<alert_observer*>::const_iterator k = alert_dispatchers.begin()
 					, end(alert_dispatchers.end()); k != end; ++k)
 				{
 					(*k)->handle_alert(a);
@@ -75,6 +75,7 @@ namespace libtorrent
 			}
 			delete a;
 		}
+		alerts.clear();
 	}
 
 	void alert_handler::unsubscribe(alert_observer* o)
@@ -83,7 +84,10 @@ namespace libtorrent
 		{
 			int type = o->types[i];
 			if (type == 0) continue;
-			std::vector<alert_observer*>& alert_observers= m_observers[type];
+			TORRENT_ASSERT(type >= 0);
+			TORRENT_ASSERT(type < sizeof(m_observers)/sizeof(m_observers[0]));
+			if (type < 0 || type >= sizeof(m_observers)/sizeof(m_observers[0])) continue;
+			std::vector<alert_observer*>& alert_observers = m_observers[type];
 			std::vector<alert_observer*>::iterator j = std::find(alert_observers.begin()
 				, alert_observers.end(), o);
 			if (j != alert_observers.end()) alert_observers.erase(j);
@@ -99,7 +103,14 @@ namespace libtorrent
 		{
 			int type = type_list[i];
 			if (type == 0) break;
+
+			// only subscribe once per observer per type
 			if (std::count(o->types, o->types + o->num_types, type) > 0) continue;
+
+			TORRENT_ASSERT(type >= 0);
+			TORRENT_ASSERT(type < sizeof(m_observers)/sizeof(m_observers[0]));
+			if (type < 0 || type >= sizeof(m_observers)/sizeof(m_observers[0])) continue;
+
 			o->types[o->num_types++] = type;
 			m_observers[type].push_back(o);
 			TORRENT_ASSERT(o->num_types < 20);
