@@ -1463,7 +1463,7 @@ int main(int argc, char* argv[])
 			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
 			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
 			case 'p': listen_port = atoi(arg); break;
-//			case 'k': settings = high_performance_seed(); --i; break;
+			case 'k': high_performance_seed(settings); --i; break;
 			case 'j': settings.set_bool(settings_pack::use_disk_read_ahead, false); --i; break;
 			case 'z': settings.set_bool(settings_pack::disable_hash_checks, true); --i; break;
 			case 'K': settings.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache); --i; break;

@@ -4671,8 +4671,8 @@ fit your needs better.
 
 ::
 
-	settings_pack min_memory_usage();
-	settings_pack high_performance_seed();
+	void min_memory_usage(settings_pack& p);
+	void high_performance_seed(settings_pack& p);
 
 ``min_memory_usage`` returns settings that will use the minimal amount of RAM, at the
 potential expense of upload and download performance. It adjusts the socket buffer sizes,
