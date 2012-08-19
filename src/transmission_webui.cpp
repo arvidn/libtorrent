@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <vector>
 #include <boost/intrusive_ptr.hpp>
+#include <boost/cstdint.hpp>
 
 extern "C" {
 #include "mongoose.h"
@@ -86,22 +87,28 @@ std::string base64decode(std::string const& in)
 	return ret;
 }
 
-jsmntok_t* next_token(jsmntok_t* i)
+// skip i. if i points to an object or an array, this function
+// needs to make recursive calls to skip its members too
+jsmntok_t* skip_item(jsmntok_t* i)
 {
-	++i;
 	int n = i->size;
 	++i;
+	// if it's a literal, just skip it, and we're done
 	if (n == 0) return i;
-	for (int k = 0; k < n; ++n)
-		i = next_token(i);
+	// if it's a container, we need to skip n items
+	for (int k = 0; k < n; ++k)
+		i = skip_item(i);
 	return i;
 }
 
 jsmntok_t* find_key(jsmntok_t* tokens, char* buf, char const* key, int type)
 {
 	if (tokens[0].type != JSMN_OBJECT) return NULL;
-	jsmntok_t* end = &tokens[1] + tokens[0].size;
-	for (jsmntok_t* i = &tokens[1]; i < end; i = next_token(i))
+	// size is the number of tokens at the object level.
+	// half of them are keys, the other half
+	int num_keys = tokens[0].size / 2;
+	// we skip two items at a time, first the key then the value
+	for (jsmntok_t* i = &tokens[1]; num_keys > 0; i = skip_item(skip_item(i)), --num_keys)
 	{
 		if (i->type != JSMN_STRING) continue;
 		buf[i->end] = 0;
@@ -120,6 +127,14 @@ char const* find_string(jsmntok_t* tokens, char* buf, char const* key)
 	return buf + k->start;
 }
 
+boost::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key)
+{
+	jsmntok_t* k = find_key(tokens, buf, key, JSMN_PRIMITIVE);
+	if (k == NULL) return 0;
+	buf[k->end] = '\0';
+	return strtoll(buf + k->start, NULL, 10);
+}
+
 bool find_bool(jsmntok_t* tokens, char* buf, char const* key)
 {
 	jsmntok_t* k = find_key(tokens, buf, key, JSMN_PRIMITIVE);
@@ -133,15 +148,15 @@ void return_error(mg_connection* conn, char const* msg)
 	mg_printf(conn, "{ \"result\": \"%s\" }", msg);
 }
 
-void return_failure(mg_connection* conn, char const* msg, char const* tag)
+void return_failure(mg_connection* conn, char const* msg, boost::int64_t tag)
 {
-	mg_printf(conn, "{ \"result\": \"%s\", \"tag\": \"%s\"}", msg, tag);
+	mg_printf(conn, "{ \"result\": \"%s\", \"tag\": \"%" PRId64 "\"}", msg, tag);
 }
 
 struct method_handler
 {
 	char const* method_name;
-	void (transmission_webui::*fun)(mg_connection*, jsmntok_t* args, char const* tag, char* buffer);
+	void (transmission_webui::*fun)(mg_connection*, jsmntok_t* args, boost::int64_t tag, char* buffer);
 };
 
 method_handler handlers[] =
@@ -173,7 +188,7 @@ void transmission_webui::handle_json_rpc(mg_connection* conn, jsmntok_t* tokens,
 		if (strcmp(m, handlers[i].method_name)) continue;
 
 		jsmntok_t* args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
-		char const* tag = find_string(tokens, buffer, "tag");
+		boost::int64_t tag = find_int(tokens, buffer, "tag");
 
 		if (args) buffer[args->end] = 0;
 		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
@@ -184,7 +199,7 @@ void transmission_webui::handle_json_rpc(mg_connection* conn, jsmntok_t* tokens,
 }
 
 void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
 
@@ -235,7 +250,7 @@ void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
 
 	std::string return_value = "{}";
 
-	mg_printf(conn, "{ \"result\": \"success\", \"tag\": \"%s\", \"arguments\": %s}"
+	mg_printf(conn, "{ \"result\": \"success\", \"tag\": \"%" PRId64 "\", \"arguments\": %s}"
 		, tag, return_value.c_str());
 }
 
@@ -253,7 +268,7 @@ int torrent_id(sha1_hash const& ih)
 }
 
 void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 	jsmntok_t* field_ent = find_key(args, buffer, "fields", JSMN_ARRAY);
 	if (field_ent == NULL)
@@ -512,31 +527,31 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 		++returned_torrents;
 	}
 
-	mg_printf(conn, "] }, \"tag\": \"%s\" }", tag);
+	mg_printf(conn, "] }, \"tag\": \"%" PRId64 "\" }", tag);
 }
 
 void transmission_webui::set_torrent(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 void transmission_webui::start_torrent(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 void transmission_webui::start_torrent_now(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 void transmission_webui::stop_torrent(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 void transmission_webui::verify_torrent(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 void transmission_webui::reannounce_torrent(mg_connection*, jsmntok_t* args
-	, char const* tag, char* buffer)
+	, boost::int64_t tag, char* buffer)
 {
 }
 
@@ -562,7 +577,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		}
 	}
 
-	if (!strcmp(request_info->uri, "/transmission/rpc"))
+	if (!strcmp(request_info->uri, "/transmission/rpc/"))
 	{
 		if (post_body.empty())
 		{
