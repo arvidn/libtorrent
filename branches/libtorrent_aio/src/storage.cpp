@@ -163,20 +163,18 @@ namespace libtorrent
 	}
 #endif
 
-	// TODO: use the info-hash as part of the partfile name
-	default_storage::default_storage(file_storage const& fs, file_storage const* mapped
-		, std::string const& path, file_pool& fp, storage_mode_t mode
-		, std::vector<boost::uint8_t> const& file_prio)
-		: m_files(fs)
-		, m_file_priority(file_prio)
-		, m_pool(fp)
-		, m_part_file(path, "." + fs.name() + ".parts", fs.num_pieces(), fs.piece_length())
-		, m_allocate_files(mode == storage_mode_allocate)
+	default_storage::default_storage(storage_params const& params)
+		: m_files(*params.files)
+		, m_pool(*params.pool)
+		, m_part_file(complete(params.path), "." + (params.info ? to_hex(params.info->info_hash().to_string()) : params.files->name()) + ".parts"
+			, m_files.num_pieces(), m_files.piece_length())
+		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
-		if (mapped) m_mapped_files.reset(new file_storage(*mapped));
+		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
+		if (params.priorities) m_file_priority = *params.priorities;
 
 		TORRENT_ASSERT(m_files.num_files() > 0);
-		m_save_path = complete(path);
+		m_save_path = complete(params.path);
 	}
 
 	default_storage::~default_storage()
@@ -495,6 +493,9 @@ namespace libtorrent
 		TORRENT_ASSERT(rd.type() == entry::dictionary_t);
 
 		entry::list_type& fl = rd["file sizes"].list();
+
+		error_code ignore;
+		const_cast<part_file&>(m_part_file).flush_metadata(ignore);
 
 		file_storage const& fs = files();
 		int index = 0;
@@ -1028,8 +1029,7 @@ namespace libtorrent
 
 	storage_interface* default_storage_constructor(storage_params const& params)
 	{
-		return new default_storage(*params.files, params.mapped_files
-			, params.path, *params.pool, params.mode, *params.priorities);
+		return new default_storage(params);
 	}
 
 	int disabled_storage::readv(file::iovec_t const* bufs

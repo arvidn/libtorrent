@@ -147,8 +147,7 @@ namespace libtorrent
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
 	public:
-		default_storage(file_storage const& fs, file_storage const* mapped, std::string const& path
-			, file_pool& fp, storage_mode_t mode, std::vector<boost::uint8_t> const& file_prio);
+		default_storage(storage_params const& params);
 		~default_storage();
 
 		void finalize_file(int file, storage_error& ec);

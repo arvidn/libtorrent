@@ -58,13 +58,15 @@ namespace libtorrent
 
 	struct storage_params
 	{
+		storage_params(): files(NULL), mapped_files(NULL), pool(NULL)
+			, mode(storage_mode_sparse), priorities(NULL), info(NULL) {}
 		file_storage const* files;
 		file_storage const* mapped_files; // optional
 		std::string path;
 		file_pool* pool;
 		storage_mode_t mode;
 		std::vector<boost::uint8_t> const* priorities; // optional
-		torrent_info const* info;
+		torrent_info const* info; // optional
 	};
 	
 	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
