@@ -43,7 +43,7 @@ namespace libtorrent
 	struct storage_interface;
 	class file_storage;
 	struct file_pool;
-	struct torrent_info;
+	class torrent_info;
 
 	enum storage_mode_t
 	{
