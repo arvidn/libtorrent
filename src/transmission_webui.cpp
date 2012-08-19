@@ -44,11 +44,47 @@ extern "C" {
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/escape_string.hpp" // for base64decode
 #include "libtorrent/session.hpp"
+#include "libtorrent/peer_info.hpp"
+#include "libtorrent/socket_io.hpp" // for print_address
+#include "libtorrent/io.hpp" // for read_int32
+#include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 
 namespace libtorrent
 {
+
+static const char b64table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+char b64_value(char c)
+{
+	const char *v = strchr(b64table, c);
+	if (v == NULL) return 0;
+	return v - b64table;
+}
+
+std::string base64decode(std::string const& in)
+{
+	std::string ret;
+	if (in.size() < 4) return ret;
+
+	char const* src = in.c_str();
+	char const* end = in.c_str() + in.size();
+	while (end - src >= 4)
+	{
+		char a = b64_value(src[0]);
+		char b = b64_value(src[1]);
+		char c = b64_value(src[2]);
+		char d = b64_value(src[3]);
+		ret.push_back((a << 2) | (b >> 4));
+		if (src[1] == '=') break;
+		ret.push_back((b << 4) | (c >> 2));
+		if (src[2] == '=') break;
+		ret.push_back((c << 6) | d);
+		if (src[3] == '=') break;
+		src += 4;
+	}
+	return ret;
+}
 
 jsmntok_t* next_token(jsmntok_t* i)
 {
@@ -203,10 +239,282 @@ void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
 		, tag, return_value.c_str());
 }
 
-void transmission_webui::get_torrent(mg_connection*, jsmntok_t* args
+char const* to_bool(bool b) { return b ? "true" : "false"; }
+
+bool all_torrents(torrent_status const& s)
+{
+	return true;
+}
+
+int torrent_id(sha1_hash const& ih)
+{
+	char const* ptr = (char const*)&ih[0];
+	return libtorrent::detail::read_int32(ptr);
+}
+
+void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 	, char const* tag, char* buffer)
 {
+	jsmntok_t* field_ent = find_key(args, buffer, "fields", JSMN_ARRAY);
+	if (field_ent == NULL)
+	{
+		return_failure(conn, "missing 'field' argument", tag);
+		return;
+	}
+
+	std::set<std::string> fields;
+	int num_fields = field_ent->size;
+	for (int i = 0; i < num_fields; ++i)
+	{
+		jsmntok_t* item = &field_ent[i+1];
+		fields.insert(std::string(buffer + item->start, buffer + item->end));
+	}
+
+	std::set<int> torrent_ids;
+	jsmntok_t* ids_ent = find_key(args, buffer, "ids", JSMN_ARRAY);
+	if (ids_ent)
+	{
+		int num_ids = ids_ent->size;
+		for (int i = 0; i < num_ids; ++i)
+		{
+			jsmntok_t* item = &ids_ent[i+1];
+			torrent_ids.insert(atoi(buffer + item->start));
+		}
+	}
+
+	std::vector<torrent_status> t;
+	m_ses.get_torrent_status(&t, &all_torrents);
+
+	mg_printf(conn, "{ \"result\": \"success\", \"arguments\": { \"torrents\": [");
+
+#define TORRENT_PROPERTY(name, format_code, prop) \
+	if (fields.count(name)) { \
+		mg_printf(conn, ", \"" name "\": \"%" format_code "\"" + (count?0:2), prop); \
+		++count; \
+	}
+
+	int returned_torrents = 0;
+	for (int i = 0; i < t.size(); ++i)
+	{
+		torrent_info const& ti = t[i].handle.get_torrent_info();
+		torrent_status const& ts = t[i];
+
+		if (!torrent_ids.empty() && torrent_ids.count(torrent_id(ti.info_hash())) == 0)
+			continue;
+
+		// skip comma on any item that's not the first one
+		mg_printf(conn, ", {" + (returned_torrents?0:2));
+		int count = 0;
+		TORRENT_PROPERTY("activityDate", PRId64, time(0) - (std::min)(ts.time_since_download
+			, ts.time_since_upload));
+		TORRENT_PROPERTY("addedDate", PRId64, ts.added_time);
+		TORRENT_PROPERTY("comment", "s", ti.comment().c_str());
+		TORRENT_PROPERTY("creator", "s", ti.creator().c_str());
+		TORRENT_PROPERTY("dateCreated", PRId64, ti.creation_date() ? ti.creation_date().get() : 0);
+		TORRENT_PROPERTY("doneDate", PRId64, ts.completed_time);
+		TORRENT_PROPERTY("downloadDir", "s", ts.handle.save_path().c_str());
+		TORRENT_PROPERTY("errorString", "s", ts.error.c_str());
+		TORRENT_PROPERTY("eta", "d", ts.download_payload_rate <= 0 ? -1
+			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
+		TORRENT_PROPERTY("hashString", "s", to_hex(ts.handle.info_hash().to_string()).c_str());
+		TORRENT_PROPERTY("downloadedEver", PRId64, ts.all_time_download);
+		TORRENT_PROPERTY("haveValid", "d", ts.num_pieces);
+		TORRENT_PROPERTY("id", "d", torrent_id(ti.info_hash()));
+		TORRENT_PROPERTY("isFinished", "s", to_bool(ts.is_finished));
+		TORRENT_PROPERTY("isPrivate", "s", to_bool(ti.priv()));
+		TORRENT_PROPERTY("leftUntilDone", PRId64, ts.total_wanted - ts.total_wanted_done);
+		TORRENT_PROPERTY("magnetLink", "s", make_magnet_uri(ti).c_str());
+		TORRENT_PROPERTY("metadataPercentComplete", "f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("name", "s", ts.handle.name().c_str());
+		TORRENT_PROPERTY("peer-limit", "d", ts.handle.max_connections());
+		TORRENT_PROPERTY("peersConnected", "d", ts.num_peers);
+		TORRENT_PROPERTY("percentDone", "f", ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("pieceCount", "d", ti.num_pieces());
+		TORRENT_PROPERTY("pieceSize", "d", ti.piece_length());
+		TORRENT_PROPERTY("queuePosition", "d", ts.queue_position);
+		TORRENT_PROPERTY("rateDownload", "d", ts.download_rate);
+		TORRENT_PROPERTY("rateUpload", "d", ts.upload_rate);
+		TORRENT_PROPERTY("recheckProgress", "f", ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("secondsDownloading", "d", ts.active_time);
+		TORRENT_PROPERTY("secondsSeeding", "d", ts.finished_time);
+		TORRENT_PROPERTY("sizeWhenDone", PRId64, ti.total_size());
+		TORRENT_PROPERTY("totalSize", PRId64, ts.total_done);
+		TORRENT_PROPERTY("uploadedEver", PRId64, ts.all_time_upload);
+
+		if (fields.count("status"))
+		{
+#define TR_STATUS_CHECK_WAIT   ( 1 << 0 )  /* Waiting in queue to check files */
+#define TR_STATUS_CHECK        ( 1 << 1 )  /* Checking files */
+#define TR_STATUS_DOWNLOAD     ( 1 << 2 )  /* Downloading */
+#define TR_STATUS_SEED         ( 1 << 3 )  /* Seeding */
+#define TR_STATUS_STOPPED      ( 1 << 4 )  /* Torrent is stopped */
+			int res = 0;
+
+			switch(ts.state)
+			{
+				case libtorrent::torrent_status::checking_resume_data:
+					res = TR_STATUS_CHECK;
+					break;
+				case libtorrent::torrent_status::checking_files:
+					if (ts.paused)
+						res = TR_STATUS_CHECK_WAIT;
+					else
+						res = TR_STATUS_CHECK;
+					break;
+				case libtorrent::torrent_status::downloading_metadata:
+				case libtorrent::torrent_status::downloading:
+				case libtorrent::torrent_status::allocating:
+					res = TR_STATUS_DOWNLOAD;
+					break;
+				case libtorrent::torrent_status::seeding:
+				case libtorrent::torrent_status::finished:
+					res = TR_STATUS_SEED;
+					break;
+			}
+			if (ts.paused && !ts.auto_managed)
+				res |= TR_STATUS_STOPPED;
+
+			mg_printf(conn, ", \"status\": \"%d\"" + (count?0:2), res);
+			++count;
+		}
+
+		if (fields.count("files"))
+		{
+			file_storage const& files = ti.files();
+			std::vector<libtorrent::size_type> progress;
+			ts.handle.file_progress(progress);
+			mg_printf(conn, ", \"files\": [" + (count?0:2));
+			for (int i = 0; i < files.num_files(); ++i)
+			{
+				mg_printf(conn, ", { \"bytesCompleted\": \"%" PRId64 "\","
+					"\"length\": \"%" PRId64 "\","
+					"\"name\": \"%s\" }" + (i?0:2)
+					, progress[i], files.file_size(i), files.file_path(i).c_str());
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+		if (fields.count("fileStats"))
+		{
+			file_storage const& files = ti.files();
+			std::vector<libtorrent::size_type> progress;
+			ts.handle.file_progress(progress);
+			mg_printf(conn, ", \"fileStats\": [" + (count?0:2));
+			for (int i = 0; i < files.num_files(); ++i)
+			{
+				int prio = ts.handle.file_priority(i);
+				mg_printf(conn, ", { \"bytesCompleted\": \"%" PRId64 "\","
+					"\"wanted\": \"%s\","
+					"\"priority\": \"%d\" }" + (i?0:2)
+					, progress[i], to_bool(prio), prio);
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+		if (fields.count("wanted"))
+		{
+			file_storage const& files = ti.files();
+			mg_printf(conn, ", \"wanted\": [" + (count?0:2));
+			for (int i = 0; i < files.num_files(); ++i)
+			{
+				mg_printf(conn, ", \"%s\"" + (i?0:2)
+					, to_bool(ts.handle.file_priority(i)));
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+		if (fields.count("priorities"))
+		{
+			file_storage const& files = ti.files();
+			mg_printf(conn, ", \"priorities\": [" + (count?0:2));
+			for (int i = 0; i < files.num_files(); ++i)
+			{
+				mg_printf(conn, ", \"%d\"" + (i?0:2)
+					, ts.handle.file_priority(i));
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+		if (fields.count("webseeds"))
+		{
+			std::vector<web_seed_entry> const& webseeds = ti.web_seeds();
+			mg_printf(conn, ", \"webseeds\": [" + (count?0:2));
+			for (int i = 0; i < webseeds.size(); ++i)
+			{
+				mg_printf(conn, ", \"%s\"" + (i?0:2)
+					, webseeds[i].url.c_str());
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+		if (fields.count("pieces"))
+		{
+			std::string encoded_pieces = base64encode(
+				std::string(ts.pieces.bytes(), (ts.pieces.size() + 7) / 8));
+			mg_printf(conn, ", \"pieces\": \"%s\"" + (count?0:2)
+				, encoded_pieces.c_str());
+			++count;
+		}
+
+		if (fields.count("peers"))
+		{
+			std::vector<peer_info> peers;
+			ts.handle.get_peer_info(peers);
+			mg_printf(conn, ", \"peers\": [" + (count?0:2));
+			for (int i = 0; i < peers.size(); ++i)
+			{
+				peer_info const& p = peers[i];
+				mg_printf(conn, ", { \"address\": \"%s\""
+					", \"clientName\": \"%s\""
+					", \"clientIsChoked\": \"%s\""
+					", \"clientIsInterested\": \"%s\""
+					", \"flagStr\": \"\""
+					", \"isDownloadingFrom\": \"%s\""
+					", \"isEncrypted\": \"%s\""
+					", \"isIncoming\": \"%s\""
+					", \"isUploadingTo\": \"%s\""
+					", \"isUTP\": \"%s\""
+					", \"peerIsChoked\": \"%s\""
+					", \"peerIsInterested\": \"%s\""
+					", \"port\": \"%d\""
+					", \"progress\": \"%f\""
+					", \"rateToClient\": \"%d\""
+					", \"rateToPeer\": \"%d\""
+					"}"
+					+ (i?2:0)
+					, print_address(p.ip.address()).c_str()
+					, p.client.c_str()
+					, to_bool(p.flags & peer_info::choked)
+					, to_bool(p.flags & peer_info::interesting)
+					, to_bool(p.downloading_piece_index != -1)
+					, to_bool(p.source & peer_info::incoming)
+					, to_bool(p.used_send_buffer)
+					, to_bool(p.connection_type == peer_info::bittorrent_utp)
+					, to_bool(p.flags & peer_info::remote_choked)
+					, to_bool(p.flags & peer_info::remote_interested)
+					, p.ip.port()
+					, p.progress
+					, p.down_speed
+					, p.up_speed
+					);
+			}
+			mg_printf(conn, "]");
+			++count;
+		}
+
+
+		mg_printf(conn, "}\n");
+		++returned_torrents;
+	}
+
+	mg_printf(conn, "] }, \"tag\": \"%s\" }", tag);
 }
+
 void transmission_webui::set_torrent(mg_connection*, jsmntok_t* args
 	, char const* tag, char* buffer)
 {
