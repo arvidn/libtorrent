@@ -396,9 +396,7 @@ async_add_torrent() add_torrent()
 
 	::
 
-		typedef boost::function<storage_interface*(file_storage const&
-			, file_storage const*, std::string const&, file_pool&
-			, std::vector<boost::uint8_t> const&) storage_constructor_type;
+		typedef boost::function<storage_interface*(storage_params const& parms) storage_constructor_type;
 
 		struct add_torrent_params
 		{
@@ -7471,6 +7469,17 @@ reads garbage. It's useful mostly for benchmarking and profiling purpose.
 
 The interface looks like this::
 
+	struct storage_params
+	{
+		file_storage const* files;
+		file_storage const* mapped_files; // optional
+		std::string path;
+		file_pool* pool;
+		storage_mode_t mode;
+		std::vector<boost::uint8_t> const* priorities; // optional
+		torrent_info const* info;
+	};
+
 	struct storage_interface
 	{
 		virtual void initialize(storage_error& ec) = 0;
@@ -7767,12 +7776,9 @@ basics of implementing a custom storage.
 		file_storage m_files;
 	};
 
-	storage_interface* temp_storage_constructor(
-		file_storage const& fs, file_storage const* mapped
-		, std::string const& path, file_pool& fp
-		, std::vector<boost::uint8_t> const& prio)
+	storage_interface* temp_storage_constructor(storage_params const& params)
 	{
-		return new temp_storage(fs);
+		return new temp_storage(*params.files);
 	}
 
 magnet links

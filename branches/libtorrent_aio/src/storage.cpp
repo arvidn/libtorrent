@@ -1026,11 +1026,10 @@ namespace libtorrent
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, fe, files(), mode, ec);
 	}
 
-	storage_interface* default_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, storage_mode_t mode, std::vector<boost::uint8_t> const& file_prio)
+	storage_interface* default_storage_constructor(storage_params const& params)
 	{
-		return new default_storage(fs, mapped, path, fp, mode, file_prio);
+		return new default_storage(*params.files, params.mapped_files
+			, params.path, *params.pool, params.mode, *params.priorities);
 	}
 
 	int disabled_storage::readv(file::iovec_t const* bufs
@@ -1045,11 +1044,9 @@ namespace libtorrent
 		return 0;
 	}
 
-	storage_interface* disabled_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, storage_mode_t mode, std::vector<boost::uint8_t> const&)
+	storage_interface* disabled_storage_constructor(storage_params const& params)
 	{
-		return new disabled_storage(fs.piece_length());
+		return new disabled_storage(params.files->piece_length());
 	}
 
 	// -- zero_storage ------------------------------------------------------
@@ -1075,9 +1072,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	storage_interface* zero_storage_constructor(file_storage const& fs
-		, file_storage const* mapped, std::string const& path, file_pool& fp
-		, storage_mode_t mode, std::vector<boost::uint8_t> const&)
+	storage_interface* zero_storage_constructor(storage_params const& params)
 	{
 		return new zero_storage;
 	}

@@ -1581,13 +1581,17 @@ namespace libtorrent
 			return;
 		}
 
-		storage_interface* storage_impl =
-			m_storage_constructor(m_torrent_file->files()
-			, &m_torrent_file->orig_files() != &m_torrent_file->files()
-				? &m_torrent_file->orig_files() : 0
-			, m_save_path, m_ses.m_disk_thread.files()
-			, (storage_mode_t)m_storage_mode
-			, m_file_priority);
+		storage_params params;
+		params.files = &m_torrent_file->files();
+		params.mapped_files = &m_torrent_file->orig_files() != &m_torrent_file->files()
+			? &m_torrent_file->orig_files() : 0;
+		params.path = m_save_path;
+		params.pool = &m_ses.m_disk_thread.files();
+		params.mode = (storage_mode_t)m_storage_mode;
+		params.priorities = &m_file_priority;
+		params.info = m_torrent_file.get();
+
+		storage_interface* storage_impl = m_storage_constructor(params);
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
