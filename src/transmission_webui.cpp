@@ -149,12 +149,12 @@ void return_error(mg_connection* conn, char const* msg)
 	mg_printf(conn, "HTTP/1.1 401 Invalid Request\r\n"
 		"Content-Type: text/json\r\n"
 		"Content-Length: %d\r\n\r\n"
-		"{ \"result\": \"%s\" }", 16 + strlen(msg), msg);
+		"{ \"result\": \"%s\" }", int(16 + strlen(msg)), msg);
 }
 
 void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
 {
-	appendf(buf, "{ \"result\": \"%s\", \"tag\": \"%" PRId64 "\"}", msg, tag);
+	appendf(buf, "{ \"result\": \"%s\", \"tag\": %" PRId64 "}", msg, tag);
 }
 
 struct method_handler
@@ -162,6 +162,12 @@ struct method_handler
 	char const* method_name;
 	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 };
+
+int torrent_id(sha1_hash const& ih)
+{
+	char const* ptr = (char const*)&ih[0];
+	return libtorrent::detail::read_int32(ptr);
+}
 
 method_handler handlers[] =
 {
@@ -254,10 +260,13 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-	std::string return_value = "{}";
+	torrent_info const& ti = h.get_torrent_info();
 
-	appendf(buf, "{ \"result\": \"success\", \"tag\": \"%" PRId64 "\", \"arguments\": %s}"
-		, tag, return_value.c_str());
+	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
+		"\"arguments\": { \"torrent-added\": { \"hashString\": \"%s\", "
+		"\"id\": %d, \"name\": \"%s\"}}}"
+		, tag, to_hex(ti.info_hash().to_string()).c_str()
+		, torrent_id(ti.info_hash()), h.name().c_str());
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -265,12 +274,6 @@ char const* to_bool(bool b) { return b ? "true" : "false"; }
 bool all_torrents(torrent_status const& s)
 {
 	return true;
-}
-
-int torrent_id(sha1_hash const& ih)
-{
-	char const* ptr = (char const*)&ih[0];
-	return libtorrent::detail::read_int32(ptr);
 }
 
 void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
@@ -310,7 +313,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 #define TORRENT_PROPERTY(name, format_code, prop) \
 	if (fields.count(name)) { \
-		appendf(buf, ", \"" name "\": \"%" format_code "\"" + (count?0:2), prop); \
+		appendf(buf, ", \"" name "\": " format_code "" + (count?0:2), prop); \
 		++count; \
 	}
 
@@ -326,41 +329,41 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		// skip comma on any item that's not the first one
 		appendf(buf, ", {" + (returned_torrents?0:2));
 		int count = 0;
-		TORRENT_PROPERTY("activityDate", PRId64, time(0) - (std::min)(ts.time_since_download
+		TORRENT_PROPERTY("activityDate", "%" PRId64, time(0) - (std::min)(ts.time_since_download
 			, ts.time_since_upload));
-		TORRENT_PROPERTY("addedDate", PRId64, ts.added_time);
-		TORRENT_PROPERTY("comment", "s", ti.comment().c_str());
-		TORRENT_PROPERTY("creator", "s", ti.creator().c_str());
-		TORRENT_PROPERTY("dateCreated", PRId64, ti.creation_date() ? ti.creation_date().get() : 0);
-		TORRENT_PROPERTY("doneDate", PRId64, ts.completed_time);
-		TORRENT_PROPERTY("downloadDir", "s", ts.handle.save_path().c_str());
-		TORRENT_PROPERTY("errorString", "s", ts.error.c_str());
-		TORRENT_PROPERTY("eta", "d", ts.download_payload_rate <= 0 ? -1
+		TORRENT_PROPERTY("addedDate", "%" PRId64, ts.added_time);
+		TORRENT_PROPERTY("comment", "\"%s\"", ti.comment().c_str());
+		TORRENT_PROPERTY("creator", "\"%s\"", ti.creator().c_str());
+		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti.creation_date() ? ti.creation_date().get() : 0);
+		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
+		TORRENT_PROPERTY("downloadDir", "\"%s\"", ts.handle.save_path().c_str());
+		TORRENT_PROPERTY("errorString", "\"%s\"", ts.error.c_str());
+		TORRENT_PROPERTY("eta", "%d", ts.download_payload_rate <= 0 ? -1
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
-		TORRENT_PROPERTY("hashString", "s", to_hex(ts.handle.info_hash().to_string()).c_str());
-		TORRENT_PROPERTY("downloadedEver", PRId64, ts.all_time_download);
-		TORRENT_PROPERTY("haveValid", "d", ts.num_pieces);
-		TORRENT_PROPERTY("id", "d", torrent_id(ti.info_hash()));
-		TORRENT_PROPERTY("isFinished", "s", to_bool(ts.is_finished));
-		TORRENT_PROPERTY("isPrivate", "s", to_bool(ti.priv()));
-		TORRENT_PROPERTY("leftUntilDone", PRId64, ts.total_wanted - ts.total_wanted_done);
-		TORRENT_PROPERTY("magnetLink", "s", make_magnet_uri(ti).c_str());
-		TORRENT_PROPERTY("metadataPercentComplete", "f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
-		TORRENT_PROPERTY("name", "s", ts.handle.name().c_str());
-		TORRENT_PROPERTY("peer-limit", "d", ts.handle.max_connections());
-		TORRENT_PROPERTY("peersConnected", "d", ts.num_peers);
-		TORRENT_PROPERTY("percentDone", "f", ts.progress_ppm / 10000.f);
-		TORRENT_PROPERTY("pieceCount", "d", ti.num_pieces());
-		TORRENT_PROPERTY("pieceSize", "d", ti.piece_length());
-		TORRENT_PROPERTY("queuePosition", "d", ts.queue_position);
-		TORRENT_PROPERTY("rateDownload", "d", ts.download_rate);
-		TORRENT_PROPERTY("rateUpload", "d", ts.upload_rate);
-		TORRENT_PROPERTY("recheckProgress", "f", ts.progress_ppm / 10000.f);
-		TORRENT_PROPERTY("secondsDownloading", "d", ts.active_time);
-		TORRENT_PROPERTY("secondsSeeding", "d", ts.finished_time);
-		TORRENT_PROPERTY("sizeWhenDone", PRId64, ti.total_size());
-		TORRENT_PROPERTY("totalSize", PRId64, ts.total_done);
-		TORRENT_PROPERTY("uploadedEver", PRId64, ts.all_time_upload);
+		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
+		TORRENT_PROPERTY("downloadedEver", "%" PRId64, ts.all_time_download);
+		TORRENT_PROPERTY("haveValid", "\"%s\"", ts.num_pieces);
+		TORRENT_PROPERTY("id", "%d", torrent_id(ti.info_hash()));
+		TORRENT_PROPERTY("isFinished", "\"%s\"", to_bool(ts.is_finished));
+		TORRENT_PROPERTY("isPrivate", "\"%s\"", to_bool(ti.priv()));
+		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
+		TORRENT_PROPERTY("magnetLink", "\"%s\"", make_magnet_uri(ti).c_str());
+		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("name", "\"%s\"", ts.handle.name().c_str());
+		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
+		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
+		TORRENT_PROPERTY("percentDone", "%f", ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("pieceCount", "%d", ti.num_pieces());
+		TORRENT_PROPERTY("pieceSize", "%d", ti.piece_length());
+		TORRENT_PROPERTY("queuePosition", "%d", ts.queue_position);
+		TORRENT_PROPERTY("rateDownload", "%d", ts.download_rate);
+		TORRENT_PROPERTY("rateUpload", "%d", ts.upload_rate);
+		TORRENT_PROPERTY("recheckProgress", "%f", ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("secondsDownloading", "%" PRId64 , ts.active_time);
+		TORRENT_PROPERTY("secondsSeeding", "%" PRId64, ts.finished_time);
+		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti.total_size());
+		TORRENT_PROPERTY("totalSize", "%" PRId64, ts.total_done);
+		TORRENT_PROPERTY("uploadedEver", "%" PRId64, ts.all_time_upload);
 
 		if (fields.count("status"))
 		{
@@ -395,7 +398,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			if (ts.paused && !ts.auto_managed)
 				res |= TR_STATUS_STOPPED;
 
-			appendf(buf, ", \"status\": \"%d\"" + (count?0:2), res);
+			appendf(buf, ", \"status\": %d" + (count?0:2), res);
 			++count;
 		}
 
@@ -407,8 +410,8 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			appendf(buf, ", \"files\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				appendf(buf, ", { \"bytesCompleted\": \"%" PRId64 "\","
-					"\"length\": \"%" PRId64 "\","
+				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
+					"\"length\": %" PRId64 ","
 					"\"name\": \"%s\" }" + (i?0:2)
 					, progress[i], files.file_size(i), files.file_path(i).c_str());
 			}
@@ -425,9 +428,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			for (int i = 0; i < files.num_files(); ++i)
 			{
 				int prio = ts.handle.file_priority(i);
-				appendf(buf, ", { \"bytesCompleted\": \"%" PRId64 "\","
-					"\"wanted\": \"%s\","
-					"\"priority\": \"%d\" }" + (i?0:2)
+				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
+					"\"wanted\": %s,"
+					"\"priority\": %d }" + (i?0:2)
 					, progress[i], to_bool(prio), prio);
 			}
 			appendf(buf, "]");
@@ -440,7 +443,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			appendf(buf, ", \"wanted\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				appendf(buf, ", \"%s\"" + (i?0:2)
+				appendf(buf, ", %s" + (i?0:2)
 					, to_bool(ts.handle.file_priority(i)));
 			}
 			appendf(buf, "]");
@@ -453,7 +456,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			appendf(buf, ", \"priorities\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				appendf(buf, ", \"%d\"" + (i?0:2)
+				appendf(buf, ", %d" + (i?0:2)
 					, ts.handle.file_priority(i));
 			}
 			appendf(buf, "]");
@@ -492,20 +495,20 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 				peer_info const& p = peers[i];
 				appendf(buf, ", { \"address\": \"%s\""
 					", \"clientName\": \"%s\""
-					", \"clientIsChoked\": \"%s\""
-					", \"clientIsInterested\": \"%s\""
+					", \"clientIsChoked\": %s"
+					", \"clientIsInterested\": %s"
 					", \"flagStr\": \"\""
-					", \"isDownloadingFrom\": \"%s\""
-					", \"isEncrypted\": \"%s\""
-					", \"isIncoming\": \"%s\""
-					", \"isUploadingTo\": \"%s\""
-					", \"isUTP\": \"%s\""
-					", \"peerIsChoked\": \"%s\""
-					", \"peerIsInterested\": \"%s\""
-					", \"port\": \"%d\""
-					", \"progress\": \"%f\""
-					", \"rateToClient\": \"%d\""
-					", \"rateToPeer\": \"%d\""
+					", \"isDownloadingFrom\": %s"
+					", \"isEncrypted\": %s"
+					", \"isIncoming\": %s"
+					", \"isUploadingTo\": %s"
+					", \"isUTP\": %s"
+					", \"peerIsChoked\": %s"
+					", \"peerIsInterested\": %s"
+					", \"port\": %d"
+					", \"progress\": %f"
+					", \"rateToClient\": %d"
+					", \"rateToPeer\": %d"
 					"}"
 					+ (i?2:0)
 					, print_address(p.ip.address()).c_str()
