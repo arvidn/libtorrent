@@ -500,8 +500,6 @@ namespace libtorrent
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
 #endif
 
-		void break_one_seed();
-
 		void update_pieces() const;
 
 		// fills in the range [start, end) of pieces in

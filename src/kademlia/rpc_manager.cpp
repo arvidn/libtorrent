@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
-#include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/time.hpp>
 #include <time.h> // time()
@@ -161,17 +160,19 @@ enum { observer_size = max3<
 };
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, routing_table& table, udp_socket_interface* sock
-	, dht_observer* observer)
+	, routing_table& table, send_fun const& sf
+	, void* userdata
+	, external_ip_fun ext_ip)
 	: m_pool_allocator(observer_size, 10)
-	, m_sock(sock)
+	, m_send(sf)
+	, m_userdata(userdata)
 	, m_our_id(our_id)
 	, m_table(table)
 	, m_timer(time_now())
 	, m_random_number(generate_random_id())
 	, m_allocated_observers(0)
 	, m_destructing(false)
-	, m_observer(observer)
+	, m_ext_ip(ext_ip)
 {
 	std::srand(time(0));
 
@@ -181,14 +182,14 @@ rpc_manager::rpc_manager(node_id const& our_id
 #define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
 
 	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
-	PRINT_OFFSETOF(dht::observer, m_sent);
-	PRINT_OFFSETOF(dht::observer, m_refs);
-	PRINT_OFFSETOF(dht::observer, m_algorithm);
-	PRINT_OFFSETOF(dht::observer, m_id);
-	PRINT_OFFSETOF(dht::observer, m_addr);
-	PRINT_OFFSETOF(dht::observer, m_port);
-	PRINT_OFFSETOF(dht::observer, m_transaction_id);
-	PRINT_OFFSETOF(dht::observer, flags);
+	PRINT_OFFSETOF(observer, m_sent);
+	PRINT_OFFSETOF(observer, m_refs);
+	PRINT_OFFSETOF(observer, m_algorithm);
+	PRINT_OFFSETOF(observer, m_id);
+	PRINT_OFFSETOF(observer, m_addr);
+	PRINT_OFFSETOF(observer, m_port);
+	PRINT_OFFSETOF(observer, m_transaction_id);
+	PRINT_OFFSETOF(observer, flags);
 
 	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
 	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
@@ -309,7 +310,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 #endif
 		entry e;
 		incoming_error(e, "invalid transaction id");
-		m_sock->send_packet(e, m.addr, 0);
+		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
 
@@ -324,7 +325,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'r' key");
-		m_sock->send_packet(e, m.addr, 0);
+		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
 
@@ -333,7 +334,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		entry e;
 		incoming_error(e, "missing 'id' key");
-		m_sock->send_packet(e, m.addr, 0);
+		m_send(m_userdata, e, m.addr, 0);
 		return false;
 	}
 
@@ -343,9 +344,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v4::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
-		if (m_observer)
-			m_observer->set_external_address(address_v4(b)
-				, aux::session_impl::source_dht, m.addr.address());
+		m_ext_ip(address_v4(b), aux::session_impl::source_dht, m.addr.address());
 	}
 #if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
@@ -353,9 +352,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
-		if (m_observer)
-			m_observer->set_external_address(address_v6(b)
-				, aux::session_impl::source_dht, m.addr.address());
+		m_ext_ip(address_v6(b), aux::session_impl::source_dht, m.addr.address());
 	}
 #endif
 
@@ -471,7 +468,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 		<< e["q"].string() << " -> " << target_addr;
 #endif
 
-	if (m_sock->send_packet(e, target_addr, 1))
+	if (m_send(m_userdata, e, target_addr, 1))
 	{
 		m_transactions.push_back(o);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
