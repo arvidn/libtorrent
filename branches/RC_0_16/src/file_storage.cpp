@@ -625,7 +625,8 @@ namespace libtorrent
 					m_mtime.insert(m_mtime.begin() + cur_index, 0);
 
 				if (int(m_file_hashes.size()) > cur_index)
-					m_file_hashes.insert(m_file_hashes.begin() + cur_index, NULL);
+					m_file_hashes.insert(m_file_hashes.begin()
+						+ cur_index, (char const*)NULL);
 
 				if (int(m_file_base.size()) > cur_index)
 					m_file_base.insert(m_file_base.begin() + cur_index, 0);
