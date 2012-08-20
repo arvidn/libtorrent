@@ -1,3 +1,5 @@
+0.16.3 release
+
 	* fix python binding backwards compatibility in replace_trackers
 	* fix possible starvation in metadata extension
 	* fix crash when creating torrents and optimizing file order with pad files
