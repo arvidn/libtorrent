@@ -50,6 +50,7 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
+#include "response_buffer.hpp" // for appendf
 
 namespace libtorrent
 {
@@ -145,18 +146,21 @@ bool find_bool(jsmntok_t* tokens, char* buf, char const* key)
 
 void return_error(mg_connection* conn, char const* msg)
 {
-	mg_printf(conn, "{ \"result\": \"%s\" }", msg);
+	mg_printf(conn, "HTTP/1.1 401 Invalid Request\r\n"
+		"Content-Type: text/json\r\n"
+		"Content-Length: %d\r\n\r\n"
+		"{ \"result\": \"%s\" }", 16 + strlen(msg), msg);
 }
 
-void return_failure(mg_connection* conn, char const* msg, boost::int64_t tag)
+void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
 {
-	mg_printf(conn, "{ \"result\": \"%s\", \"tag\": \"%" PRId64 "\"}", msg, tag);
+	appendf(buf, "{ \"result\": \"%s\", \"tag\": \"%" PRId64 "\"}", msg, tag);
 }
 
 struct method_handler
 {
 	char const* method_name;
-	void (transmission_webui::*fun)(mg_connection*, jsmntok_t* args, boost::int64_t tag, char* buffer);
+	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 };
 
 method_handler handlers[] =
@@ -171,13 +175,13 @@ method_handler handlers[] =
 	{"torrent-reannounce", &transmission_webui::reannounce_torrent },
 };
 
-void transmission_webui::handle_json_rpc(mg_connection* conn, jsmntok_t* tokens, char* buffer)
+void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer)
 {
 	// we expect a "method" in the top level
 	jsmntok_t* method = find_key(tokens, buffer, "method", JSMN_STRING);
 	if (method == NULL)
 	{
-		return_error(conn, "missing method in request");
+		return_failure(buf, "missing method in request", -1);
 		return;
 	}
 
@@ -193,18 +197,20 @@ void transmission_webui::handle_json_rpc(mg_connection* conn, jsmntok_t* tokens,
 		if (args) buffer[args->end] = 0;
 		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
 
-		(this->*handlers[i].fun)(conn, args, tag, buffer);
+		(this->*handlers[i].fun)(buf, args, tag, buffer);
 		break;
 	}
 }
 
-void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
+void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
 
 	add_torrent_params params;
 	params.save_path = find_string(args, buffer, "download-dir");
+	if (params.save_path.empty()) 
+		params.save_path = ".";
 	bool paused = find_bool(args, buffer, "paused");
 	params.paused = paused;
 	params.flags = paused ? 0 : add_torrent_params::flag_auto_managed;
@@ -222,7 +228,7 @@ void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
 		boost::intrusive_ptr<torrent_info> ti(new torrent_info(url, ec));
 		if (ec)
 		{
-			return_failure(conn, ec.message().c_str(), tag);
+			return_failure(buf, ec.message().c_str(), tag);
 			return;
 		}
 		params.ti = ti;
@@ -234,7 +240,7 @@ void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
 		boost::intrusive_ptr<torrent_info> ti(new torrent_info(&metainfo[0], metainfo.size(), ec));
 		if (ec)
 		{
-			return_failure(conn, ec.message().c_str(), tag);
+			return_failure(buf, ec.message().c_str(), tag);
 			return;
 		}
 		params.ti = ti;
@@ -244,13 +250,13 @@ void transmission_webui::add_torrent(mg_connection* conn, jsmntok_t* args
 	torrent_handle h = m_ses.add_torrent(params);
 	if (ec)
 	{
-		return_failure(conn, ec.message().c_str(), tag);
+		return_failure(buf, ec.message().c_str(), tag);
 		return;
 	}
 
 	std::string return_value = "{}";
 
-	mg_printf(conn, "{ \"result\": \"success\", \"tag\": \"%" PRId64 "\", \"arguments\": %s}"
+	appendf(buf, "{ \"result\": \"success\", \"tag\": \"%" PRId64 "\", \"arguments\": %s}"
 		, tag, return_value.c_str());
 }
 
@@ -267,13 +273,13 @@ int torrent_id(sha1_hash const& ih)
 	return libtorrent::detail::read_int32(ptr);
 }
 
-void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
+void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 	jsmntok_t* field_ent = find_key(args, buffer, "fields", JSMN_ARRAY);
 	if (field_ent == NULL)
 	{
-		return_failure(conn, "missing 'field' argument", tag);
+		return_failure(buf, "missing 'field' argument", tag);
 		return;
 	}
 
@@ -300,11 +306,11 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 	std::vector<torrent_status> t;
 	m_ses.get_torrent_status(&t, &all_torrents);
 
-	mg_printf(conn, "{ \"result\": \"success\", \"arguments\": { \"torrents\": [");
+	appendf(buf, "{ \"result\": \"success\", \"arguments\": { \"torrents\": [");
 
 #define TORRENT_PROPERTY(name, format_code, prop) \
 	if (fields.count(name)) { \
-		mg_printf(conn, ", \"" name "\": \"%" format_code "\"" + (count?0:2), prop); \
+		appendf(buf, ", \"" name "\": \"%" format_code "\"" + (count?0:2), prop); \
 		++count; \
 	}
 
@@ -318,7 +324,7 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 			continue;
 
 		// skip comma on any item that's not the first one
-		mg_printf(conn, ", {" + (returned_torrents?0:2));
+		appendf(buf, ", {" + (returned_torrents?0:2));
 		int count = 0;
 		TORRENT_PROPERTY("activityDate", PRId64, time(0) - (std::min)(ts.time_since_download
 			, ts.time_since_upload));
@@ -389,7 +395,7 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 			if (ts.paused && !ts.auto_managed)
 				res |= TR_STATUS_STOPPED;
 
-			mg_printf(conn, ", \"status\": \"%d\"" + (count?0:2), res);
+			appendf(buf, ", \"status\": \"%d\"" + (count?0:2), res);
 			++count;
 		}
 
@@ -398,15 +404,15 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 			file_storage const& files = ti.files();
 			std::vector<libtorrent::size_type> progress;
 			ts.handle.file_progress(progress);
-			mg_printf(conn, ", \"files\": [" + (count?0:2));
+			appendf(buf, ", \"files\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				mg_printf(conn, ", { \"bytesCompleted\": \"%" PRId64 "\","
+				appendf(buf, ", { \"bytesCompleted\": \"%" PRId64 "\","
 					"\"length\": \"%" PRId64 "\","
 					"\"name\": \"%s\" }" + (i?0:2)
 					, progress[i], files.file_size(i), files.file_path(i).c_str());
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
@@ -415,55 +421,55 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 			file_storage const& files = ti.files();
 			std::vector<libtorrent::size_type> progress;
 			ts.handle.file_progress(progress);
-			mg_printf(conn, ", \"fileStats\": [" + (count?0:2));
+			appendf(buf, ", \"fileStats\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
 				int prio = ts.handle.file_priority(i);
-				mg_printf(conn, ", { \"bytesCompleted\": \"%" PRId64 "\","
+				appendf(buf, ", { \"bytesCompleted\": \"%" PRId64 "\","
 					"\"wanted\": \"%s\","
 					"\"priority\": \"%d\" }" + (i?0:2)
 					, progress[i], to_bool(prio), prio);
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
 		if (fields.count("wanted"))
 		{
 			file_storage const& files = ti.files();
-			mg_printf(conn, ", \"wanted\": [" + (count?0:2));
+			appendf(buf, ", \"wanted\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				mg_printf(conn, ", \"%s\"" + (i?0:2)
+				appendf(buf, ", \"%s\"" + (i?0:2)
 					, to_bool(ts.handle.file_priority(i)));
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
 		if (fields.count("priorities"))
 		{
 			file_storage const& files = ti.files();
-			mg_printf(conn, ", \"priorities\": [" + (count?0:2));
+			appendf(buf, ", \"priorities\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				mg_printf(conn, ", \"%d\"" + (i?0:2)
+				appendf(buf, ", \"%d\"" + (i?0:2)
 					, ts.handle.file_priority(i));
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
 		if (fields.count("webseeds"))
 		{
 			std::vector<web_seed_entry> const& webseeds = ti.web_seeds();
-			mg_printf(conn, ", \"webseeds\": [" + (count?0:2));
+			appendf(buf, ", \"webseeds\": [" + (count?0:2));
 			for (int i = 0; i < webseeds.size(); ++i)
 			{
-				mg_printf(conn, ", \"%s\"" + (i?0:2)
+				appendf(buf, ", \"%s\"" + (i?0:2)
 					, webseeds[i].url.c_str());
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
@@ -471,7 +477,7 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 		{
 			std::string encoded_pieces = base64encode(
 				std::string(ts.pieces.bytes(), (ts.pieces.size() + 7) / 8));
-			mg_printf(conn, ", \"pieces\": \"%s\"" + (count?0:2)
+			appendf(buf, ", \"pieces\": \"%s\"" + (count?0:2)
 				, encoded_pieces.c_str());
 			++count;
 		}
@@ -480,11 +486,11 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 		{
 			std::vector<peer_info> peers;
 			ts.handle.get_peer_info(peers);
-			mg_printf(conn, ", \"peers\": [" + (count?0:2));
+			appendf(buf, ", \"peers\": [" + (count?0:2));
 			for (int i = 0; i < peers.size(); ++i)
 			{
 				peer_info const& p = peers[i];
-				mg_printf(conn, ", { \"address\": \"%s\""
+				appendf(buf, ", { \"address\": \"%s\""
 					", \"clientName\": \"%s\""
 					", \"clientIsChoked\": \"%s\""
 					", \"clientIsInterested\": \"%s\""
@@ -518,39 +524,38 @@ void transmission_webui::get_torrent(mg_connection* conn, jsmntok_t* args
 					, p.up_speed
 					);
 			}
-			mg_printf(conn, "]");
+			appendf(buf, "]");
 			++count;
 		}
 
-
-		mg_printf(conn, "}\n");
+		appendf(buf, "}");
 		++returned_torrents;
 	}
 
-	mg_printf(conn, "] }, \"tag\": \"%" PRId64 "\" }", tag);
+	appendf(buf, "] }, \"tag\": \"%" PRId64 "\" }", tag);
 }
 
-void transmission_webui::set_torrent(mg_connection*, jsmntok_t* args
+void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
-void transmission_webui::start_torrent(mg_connection*, jsmntok_t* args
+void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
-void transmission_webui::start_torrent_now(mg_connection*, jsmntok_t* args
+void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
-void transmission_webui::stop_torrent(mg_connection*, jsmntok_t* args
+void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
-void transmission_webui::verify_torrent(mg_connection*, jsmntok_t* args
+void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
-void transmission_webui::reannounce_torrent(mg_connection*, jsmntok_t* args
+void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
 }
@@ -577,6 +582,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		}
 	}
 
+	std::vector<char> response;
 	if (!strcmp(request_info->uri, "/transmission/rpc/"))
 	{
 		if (post_body.empty())
@@ -610,7 +616,18 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 			return true;
 		}
 
-		handle_json_rpc(conn, tokens, &post_body[0]);
+		handle_json_rpc(response, tokens, &post_body[0]);
+
+		// we need a null terminator
+		response.push_back('\0');
+		// subtract one from content-length
+		// to not count null terminator
+		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/json\r\n"
+			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
+	  	int len = mg_printf(conn, "%s", &response[0]);
+		TORRENT_ASSERT(len == response.size()-1);
+		printf("%s\n", &response[0]);
 		return true;
 	}
 

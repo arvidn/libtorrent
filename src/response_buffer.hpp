@@ -30,36 +30,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_TRANSMISSION_WEBUI_HPP
-#define TORRENT_TRANSMISSION_WEBUI_HPP
+#ifndef TORRENT_RESPONSE_BUFFER_HPP
+#define TORRENT_RESPONSE_BUFFER_HPP
 
-#include "webui.hpp"
-#include <boost/cstdint.hpp>
 #include <vector>
-
-struct jsmntok_t;
+#include <stdarg.h>
 
 namespace libtorrent
 {
-	struct transmission_webui : webui_base
+	void appendf(std::vector<char>& target, char const* fmt, ...)
 	{
-		transmission_webui(session& s);
-		~transmission_webui();
+		char* buf;
+		va_list args;
+		va_start(args, fmt);
+		int len = vasprintf(&buf, fmt, args);
+		va_end(args);
 
-		virtual bool handle_http(mg_connection* conn,
-			mg_request_info const* request_info);
+		if (len < 0) return;
 
-		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer);
-
-		void add_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void get_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void set_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void start_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void start_torrent_now(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void stop_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void verify_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void reannounce_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-	};
+		target.insert(target.end(), buf, buf + len);
+		free(buf);
+	}
 }
 
 #endif

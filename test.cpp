@@ -11,7 +11,7 @@ int main(int argc, char *const argv[])
 	transmission_webui webui(ses);
 	webui.start(8080);
 
-	getchar();
+	while (getchar() != 'q');
 
 	webui.stop();
 }
