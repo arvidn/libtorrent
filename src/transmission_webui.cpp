@@ -342,10 +342,10 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
 		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
 		TORRENT_PROPERTY("downloadedEver", "%" PRId64, ts.all_time_download);
-		TORRENT_PROPERTY("haveValid", "\"%s\"", ts.num_pieces);
+		TORRENT_PROPERTY("haveValid", "%d", ts.num_pieces);
 		TORRENT_PROPERTY("id", "%d", torrent_id(ti.info_hash()));
-		TORRENT_PROPERTY("isFinished", "\"%s\"", to_bool(ts.is_finished));
-		TORRENT_PROPERTY("isPrivate", "\"%s\"", to_bool(ti.priv()));
+		TORRENT_PROPERTY("isFinished", "%s", to_bool(ts.is_finished));
+		TORRENT_PROPERTY("isPrivate", "%s", to_bool(ti.priv()));
 		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
 		TORRENT_PROPERTY("magnetLink", "\"%s\"", make_magnet_uri(ti).c_str());
 		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
