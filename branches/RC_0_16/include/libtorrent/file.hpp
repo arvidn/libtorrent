@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 
+#include <sys/stat.h>
+
 #ifdef TORRENT_WINDOWS
 // windows part
 #ifndef WIN32_LEAN_AND_MEAN
@@ -59,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <winioctl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #else
 // posix part
 #define _FILE_OFFSET_BITS 64
