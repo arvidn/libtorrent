@@ -379,6 +379,7 @@ namespace libtorrent
 		// returns the name of this torrent, in case it doesn't
 		// have metadata it returns the name assigned to it
 		// when it was added.
+		// TODO: name should be part of torrent_status
 		std::string name() const;
 
 		void set_upload_limit(int limit) const;
@@ -391,6 +392,7 @@ namespace libtorrent
 		// manually connect a peer
 		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
 
+		// save_path should be part of torrent_status
 		std::string save_path() const;
 
 		// -1 means unlimited unchokes
