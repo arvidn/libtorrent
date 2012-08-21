@@ -1,3 +1,5 @@
+	* fix mingw build for linux crosscompiler
+
 0.16.3 release
 
 	* fix python binding backwards compatibility in replace_trackers

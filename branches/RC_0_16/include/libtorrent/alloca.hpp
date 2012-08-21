@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if defined TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 #include <malloc.h>
 #define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)))
@@ -52,5 +52,3 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #endif
-
-
