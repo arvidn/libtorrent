@@ -51,8 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 
-#include <sys/stat.h>
-
 #ifdef TORRENT_WINDOWS
 // windows part
 #ifndef WIN32_LEAN_AND_MEAN
@@ -93,16 +91,18 @@ namespace libtorrent
 		time_t ctime;
 		enum {
 #if defined TORRENT_WINDOWS
-			directory = _S_IFDIR,
-			regular_file = _S_IFREG
+			fifo = 0x1000, // named pipe (fifo)
+			character_special = 0x2000,  // character special
+			directory = 0x4000,  // directory
+			regular_file = 0x8000  // regular
 #else
-			fifo = S_IFIFO,
-			character_special = S_IFCHR,
-			directory = S_IFDIR,
-			block_special = S_IFBLK,
-			regular_file = S_IFREG,
-			link = S_IFLNK,
-			socket = S_IFSOCK
+			fifo = 0010000, // named pipe (fifo)
+			character_special = 0020000,  // character special
+			directory = 0040000,  // directory
+			block_special = 0060000,  // block special
+			regular_file = 0100000,  // regular
+			link = 0120000,  // symbolic link
+			socket = 0140000  // socket
 #endif
 		} modes_t;
 		int mode;
