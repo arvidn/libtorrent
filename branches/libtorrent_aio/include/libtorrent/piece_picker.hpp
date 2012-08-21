@@ -152,7 +152,11 @@ namespace libtorrent
 			// have affinity to pieces with the same speed category
 			speed_affinity = 32,
 			// ignore the prefer_whole_pieces parameter
-			ignore_whole_pieces = 64
+			ignore_whole_pieces = 64,
+			// only expands pieces (when prefer whole pieces is set)
+			// within properly aligned ranges, not the largest possible
+			// range of pieces.
+			align_expanded_pieces = 128
 		};
 
 		struct downloading_piece
@@ -446,7 +450,7 @@ namespace libtorrent
 		bool can_pick(int piece, bitfield const& bitmask) const;
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
-			, bitfield const& have) const;
+			, bitfield const& have, int options) const;
 
 	public:
 

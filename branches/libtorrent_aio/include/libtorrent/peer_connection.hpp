@@ -227,6 +227,9 @@ namespace libtorrent
 
 		void on_metadata_impl();
 
+		void picker_options(int o)
+		{ m_picker_options = o; }
+
 		int prefer_whole_pieces() const
 		{
 			if (on_parole()) return 1;
@@ -972,6 +975,12 @@ namespace libtorrent
 		// from disk, that will be added to the send
 		// buffer as soon as they complete
 		int m_reading_bytes;
+		
+		// options used for the piece picker. These flags will
+		// be augmented with flags controlled by other settings
+		// like sequential download etc. These are here to
+		// let plugins control flags that should always be set
+		int m_picker_options;
 		
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request

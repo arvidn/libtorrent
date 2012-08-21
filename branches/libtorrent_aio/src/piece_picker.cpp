@@ -1951,7 +1951,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
 
 				int start, end;
-				boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces);
+				boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces, options);
 				for (int k = start; k < end; ++k)
 				{
 					TORRENT_ASSERT(m_piece_map[k].downloading() == false);
@@ -2154,6 +2154,8 @@ namespace libtorrent
 		TORRENT_ASSERT(piece >= 0 && piece < int(m_piece_map.size()));
 		return bitmask[piece]
 			&& !m_piece_map[piece].have()
+			// TODO: when expanding pieces for cache stripe reasons,
+			// the !downloading condition doesn't make much sense
 			&& !m_piece_map[piece].downloading()
 			&& !m_piece_map[piece].filtered();
 	}
@@ -2251,7 +2253,7 @@ namespace libtorrent
 		else
 		{
 			int start, end;
-			boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces);
+			boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces, options);
 			for (int k = start; k < end; ++k)
 			{
 				TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
@@ -2369,20 +2371,38 @@ namespace libtorrent
 	}
 	
 	std::pair<int, int> piece_picker::expand_piece(int piece, int whole_pieces
-		, bitfield const& have) const
+		, bitfield const& have, int options) const
 	{
 		if (whole_pieces == 0) return std::make_pair(piece, piece + 1);
 
-		int start = piece - 1;
-		int lower_limit = piece - whole_pieces;
-		if (lower_limit < -1) lower_limit = -1;
-		while (start > lower_limit
-			&& can_pick(start, have))
+		int start = piece;
+		int lower_limit;
+
+		if (options & align_expanded_pieces)
+		{
+			lower_limit = piece - (piece % whole_pieces);
+		}
+		else
+		{
+			lower_limit = piece - whole_pieces + 1;
+			if (lower_limit < 0) lower_limit = 0;
+		}
+
+		while (start - 1 >= lower_limit
+			&& can_pick(start - 1, have))
 			--start;
-		++start;
+
 		TORRENT_ASSERT(start >= 0);
 		int end = piece + 1;
-		int upper_limit = start + whole_pieces;
+		int upper_limit ;
+		if (options & align_expanded_pieces)
+		{
+			upper_limit = lower_limit + whole_pieces;
+		}
+		else
+		{
+			upper_limit = start + whole_pieces;
+		}
 		if (upper_limit > int(m_piece_map.size())) upper_limit = int(m_piece_map.size());
 		while (end < upper_limit
 			&& can_pick(end, have))

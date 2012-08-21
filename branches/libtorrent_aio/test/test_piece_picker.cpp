@@ -948,6 +948,26 @@ int test_main()
 	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2,2)) == picked.end());
 
+	// test aligned whole pieces
+	print_title("test prefer aligned whole pieces");
+	p = setup_picker("2222221222222222", "                ", "", "");
+	picked = pick_pieces(p, "****************", 1, 4, 0
+		, piece_picker::fast, options | piece_picker::align_expanded_pieces, empty_vector);
+
+	// the piece picker should pick piece 5, and then align it to even 4 pieces
+	// i.e. it should have picked pieces: 4,5,6,7
+	print_pick(picked);
+	TEST_CHECK(picked.size() == 4 * blocks_per_piece);
+
+	std::set<int> picked_pieces;
+	for (std::vector<piece_block>::iterator i = picked.begin()
+		, end(picked.end()); i != end; ++i)
+		picked_pieces.insert(picked_pieces.begin(), i->piece_index);
+
+	TEST_CHECK(picked_pieces.size() == 4);
+	int expected_pieces[] = {4,5,6,7};
+	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
+
 //#error test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
 	
 // ========================================================

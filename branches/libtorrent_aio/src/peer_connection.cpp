@@ -165,6 +165,7 @@ namespace libtorrent
 		, m_recv_start(0)
 		, m_disk_recv_buffer_size(0)
 		, m_reading_bytes(0)
+		, m_picker_options(0)
 		, m_num_invalid_requests(0)
 		, m_peer_info(peerinfo)
 		, m_speed(slow)
@@ -835,7 +836,8 @@ namespace libtorrent
 
 	int peer_connection::picker_options() const
 	{
-		int ret = 0; 
+		int ret = m_picker_options; 
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		if (!t) return 0;
