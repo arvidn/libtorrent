@@ -246,6 +246,7 @@ reports = [
 		'down 32768', 'down 65536', 'down 131072', 'down 262144'], {'type': stacked}),
 	('ARC', 'num pieces', '', '', ['arc LRU ghost pieces', 'arc LRU pieces', 'arc LRU volatile pieces', 'arc LFU pieces', 'arc LFU ghost pieces'], {'allow-negative': True, 'type': 'lines'}),
 	('torrent churn', 'num torrents', '', '', ['loaded torrents', 'loaded torrent churn'], {'type': 'lines'}),
+	('requests', '', '', '', ['outstanding requests'], {'type': 'lines'}),
 #	('absolute_waste', 'num', '', ['failed bytes', 'redundant bytes', 'download rate']),
 
 #somewhat uninteresting stats
