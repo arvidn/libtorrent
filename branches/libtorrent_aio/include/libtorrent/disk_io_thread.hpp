@@ -388,6 +388,10 @@ namespace libtorrent
 		// shutting down. This last thread is responsible for cleanup
 		atomic_count m_num_running_threads;
 
+		// this is the number of threads currently writing bytes
+		// to disk
+		atomic_count m_num_writing_threads;
+
 		// the actual threads running disk jobs
 		std::vector<boost::shared_ptr<thread> > m_threads;
 

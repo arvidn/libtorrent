@@ -81,6 +81,7 @@ namespace libtorrent
 		, int block_size)
 		: m_num_threads(0)
 		, m_num_running_threads(0)
+		, m_num_writing_threads(0)
 		, m_userdata(userdata)
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(time_now_hires())
@@ -325,6 +326,8 @@ namespace libtorrent
 
 		l.unlock();
 
+		++m_num_writing_threads;
+
 		ptime start_time = time_now_hires();
 
 		// issue the actual write operation
@@ -341,6 +344,8 @@ namespace libtorrent
 			iov_start = &iov[i];
 			flushing_start = i;
 		}
+
+		--m_num_writing_threads;
 
 		if (!failed)
 		{
@@ -795,10 +800,14 @@ namespace libtorrent
 
 		file::iovec_t b = { j->buffer, j->d.io.buffer_size };
    
+		++m_num_writing_threads;
+
 		// the actual write operation
 		int ret = j->storage->get_storage_impl()->writev(&b, 1
 			, j->piece, j->d.io.offset, j->flags, j->error);
    
+		--m_num_writing_threads;
+
 		if (!j->error.ec)
 		{
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
@@ -2042,7 +2051,10 @@ namespace libtorrent
 			if (evict > 0)
 			{
 				evict = m_disk_cache.try_evict_blocks(evict);
-				if (evict > 0) try_flush_write_blocks(evict, l2);
+				// don't evict write jobs if at least one other thread
+				// is flushing right now. Doing so could result in
+				// unnecessary flushing of the wrong pieces
+				if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l2);
 			}
 
 			l.lock();
