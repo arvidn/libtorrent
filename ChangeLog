@@ -1,3 +1,4 @@
+	* extend the UDP tracker protocol to include the request string from the tracker URL
 	* fix mingw build for linux crosscompiler
 
 0.16.3 release
