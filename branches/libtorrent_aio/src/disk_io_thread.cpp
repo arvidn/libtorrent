@@ -606,7 +606,10 @@ namespace libtorrent
 		if (evict > 0)
 		{
 			evict = m_disk_cache.try_evict_blocks(evict);
-			if (evict > 0) try_flush_write_blocks(evict, l);
+			// don't evict write jobs if at least one other thread
+			// is flushing right now. Doing so could result in
+			// unnecessary flushing of the wrong pieces
+			if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l);
 		}
 
 		l.unlock();
