@@ -355,6 +355,11 @@ namespace libtorrent
 
 		m_disk_cache.blocks_flushed(pe, flushing, num_flushing);
 
+		// if the cache is under high pressure, we need to evict
+		// the blocks we just flushed to make room for more write pieces
+		int evict = m_disk_cache.num_to_evict(0);
+		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
+
 		tailqueue jobs;
 		if (failed)
 		{
@@ -658,8 +663,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j->next == 0);
 		DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
-
-		l.unlock();
 
 		add_completed_job(j);
 	}
