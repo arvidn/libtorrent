@@ -859,17 +859,6 @@ namespace libtorrent
 				// piece to be flushed
 				try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
 
-				// if we have more blocks in the cache than allowed by
-				// the cache size limit, flush some dirty blocks
-				int current_size = m_disk_cache.in_use();
-				if (m_settings.get_int(settings_pack::cache_size) <= current_size)
-				{
-					int left = current_size - m_settings.get_int(settings_pack::cache_size);
-					left = m_disk_cache.try_evict_blocks(left);
-					if (left > 0 && !m_settings.get_bool(settings_pack::dont_flush_write_cache))
-						try_flush_write_blocks(left, l);
-				}
-
 				--pe->piece_refcount;
 				return defer_handler;
 			}
@@ -1843,17 +1832,6 @@ namespace libtorrent
 		// piece to be flushed
 		// #error if hash checks are disabled, always just flush
 		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
-
-		// if we have more blocks in the cache than allowed by
-		// the cache size limit, flush some dirty blocks
-		int current_size = m_disk_cache.in_use();
-		if (m_settings.get_int(settings_pack::cache_size) < current_size)
-		{
-			int left = current_size - m_settings.get_int(settings_pack::cache_size);
-			left = m_disk_cache.try_evict_blocks(left);
-			if (left > 0 && !m_settings.get_bool(settings_pack::dont_flush_write_cache))
-				try_flush_write_blocks(left, l);
-		}
 
 		--pe->piece_refcount;
 		return 0;
