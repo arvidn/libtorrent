@@ -428,6 +428,13 @@ namespace libtorrent
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.lock() < h.m_torrent.lock(); }
 
+		boost::uint32_t id() const
+		{
+			uintptr_t ret = (uintptr_t)m_torrent.lock().get();
+			// a torrent object is about 1024 bytes, so
+			// it's safe to shift 11 bits
+			return boost::uint32_t(ret >> 11);
+		}
 	private:
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)
