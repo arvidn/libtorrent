@@ -163,12 +163,6 @@ struct method_handler
 	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 };
 
-int torrent_id(sha1_hash const& ih)
-{
-	char const* ptr = (char const*)&ih[0];
-	return libtorrent::detail::read_int32(ptr);
-}
-
 method_handler handlers[] =
 {
 	{"torrent-add", &transmission_webui::add_torrent },
@@ -192,14 +186,17 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		return;
 	}
 
+	bool handled = false;
 	buffer[method->end] = 0;
 	char const* m = &buffer[method->start];
+	jsmntok_t* args = NULL;
 	for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
 	{
 		if (strcmp(m, handlers[i].method_name)) continue;
 
-		jsmntok_t* args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
+		args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
 		boost::int64_t tag = find_int(tokens, buffer, "tag");
+		handled = true;
 
 		if (args) buffer[args->end] = 0;
 		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
@@ -207,6 +204,8 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		(this->*handlers[i].fun)(buf, args, tag, buffer);
 		break;
 	}
+	if (!handled)
+		printf("Unhandled: %s: %s\n", m, args ? buffer + args->start : "{}");
 }
 
 void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
@@ -261,16 +260,11 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
-#error if a URL or magnet link was just added, we may not have the metadata \
-	in which case this call will crash
-
-	torrent_info const& ti = h.get_torrent_info();
-
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": { \"torrent-added\": { \"hashString\": \"%s\", "
-		"\"id\": %d, \"name\": \"%s\"}}}"
-		, tag, to_hex(ti.info_hash().to_string()).c_str()
-		, torrent_id(ti.info_hash()), h.name().c_str());
+		"\"id\": %u, \"name\": \"%s\"}}}"
+		, tag, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
+		, h.id(), h.name().c_str());
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -280,7 +274,7 @@ bool all_torrents(torrent_status const& s)
 	return true;
 }
 
-void transmission_webui::parse_ids(std::set<int>& torrent_ids, jsmntok_t* args, char* buffer)
+void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer)
 {
 	jsmntok_t* ids_ent = find_key(args, buffer, "ids", JSMN_ARRAY);
 	if (ids_ent)
@@ -294,7 +288,7 @@ void transmission_webui::parse_ids(std::set<int>& torrent_ids, jsmntok_t* args, 
 	}
 	else
 	{
-		int id = find_int(args, buffer, "ids");
+		boost::uint32_t id = find_int(args, buffer, "ids");
 		if (id == 0) return;
 		torrent_ids.insert(torrent_ids.begin(), id);
 	}
@@ -318,7 +312,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		fields.insert(std::string(buffer + item->start, buffer + item->end));
 	}
 
-	std::set<int> torrent_ids;
+	std::set<boost::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
 
 	std::vector<torrent_status> t;
@@ -333,12 +327,15 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	}
 
 	int returned_torrents = 0;
+	error_code ec;
+	torrent_info empty("", ec);
 	for (int i = 0; i < t.size(); ++i)
 	{
-		torrent_info const& ti = t[i].handle.get_torrent_info();
+		torrent_info const* ti = &empty;
+		if (t[i].has_metadata) ti = &t[i].handle.get_torrent_info();
 		torrent_status const& ts = t[i];
 
-		if (!torrent_ids.empty() && torrent_ids.count(torrent_id(ti.info_hash())) == 0)
+		if (!torrent_ids.empty() && torrent_ids.count(ts.handle.id()) == 0)
 			continue;
 
 		// skip comma on any item that's not the first one
@@ -347,9 +344,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("activityDate", "%" PRId64, time(0) - (std::min)(ts.time_since_download
 			, ts.time_since_upload));
 		TORRENT_PROPERTY("addedDate", "%" PRId64, ts.added_time);
-		TORRENT_PROPERTY("comment", "\"%s\"", ti.comment().c_str());
-		TORRENT_PROPERTY("creator", "\"%s\"", ti.creator().c_str());
-		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti.creation_date() ? ti.creation_date().get() : 0);
+		TORRENT_PROPERTY("comment", "\"%s\"", ti->comment().c_str());
+		TORRENT_PROPERTY("creator", "\"%s\"", ti->creator().c_str());
+		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date().get() : 0);
 		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
 		TORRENT_PROPERTY("downloadDir", "\"%s\"", ts.handle.save_path().c_str());
 		TORRENT_PROPERTY("errorString", "\"%s\"", ts.error.c_str());
@@ -358,27 +355,31 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
 		TORRENT_PROPERTY("downloadedEver", "%" PRId64, ts.all_time_download);
 		TORRENT_PROPERTY("haveValid", "%d", ts.num_pieces);
-		TORRENT_PROPERTY("id", "%d", torrent_id(ti.info_hash()));
+		TORRENT_PROPERTY("id", "%u", ts.handle.id());
 		TORRENT_PROPERTY("isFinished", "%s", to_bool(ts.is_finished));
-		TORRENT_PROPERTY("isPrivate", "%s", to_bool(ti.priv()));
+		TORRENT_PROPERTY("isPrivate", "%s", to_bool(ti->priv()));
+		TORRENT_PROPERTY("isStalled", "%s", to_bool(ts.download_payload_rate == 0));
 		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
-		TORRENT_PROPERTY("magnetLink", "\"%s\"", make_magnet_uri(ti).c_str());
+		TORRENT_PROPERTY("magnetLink", "\"%s\"", ti == &empty ? "" : make_magnet_uri(*ti).c_str());
 		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
 		TORRENT_PROPERTY("name", "\"%s\"", ts.handle.name().c_str());
 		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
 		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
 		TORRENT_PROPERTY("percentDone", "%f", ts.progress_ppm / 10000.f);
-		TORRENT_PROPERTY("pieceCount", "%d", ti.num_pieces());
-		TORRENT_PROPERTY("pieceSize", "%d", ti.piece_length());
+		TORRENT_PROPERTY("pieceCount", "%d", ti->num_pieces());
+		TORRENT_PROPERTY("pieceSize", "%d", ti->piece_length());
 		TORRENT_PROPERTY("queuePosition", "%d", ts.queue_position);
 		TORRENT_PROPERTY("rateDownload", "%d", ts.download_rate);
 		TORRENT_PROPERTY("rateUpload", "%d", ts.upload_rate);
 		TORRENT_PROPERTY("recheckProgress", "%f", ts.progress_ppm / 10000.f);
 		TORRENT_PROPERTY("secondsDownloading", "%" PRId64 , ts.active_time);
 		TORRENT_PROPERTY("secondsSeeding", "%" PRId64, ts.finished_time);
-		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti.total_size());
+		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti->total_size());
 		TORRENT_PROPERTY("totalSize", "%" PRId64, ts.total_done);
 		TORRENT_PROPERTY("uploadedEver", "%" PRId64, ts.all_time_upload);
+		TORRENT_PROPERTY("uploadedRatio", "%ld", ts.all_time_download == 0
+			? ts.all_time_upload
+			: ts.all_time_upload / ts.all_time_download);
 
 		if (fields.count("status"))
 		{
@@ -419,7 +420,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("files"))
 		{
-			file_storage const& files = ti.files();
+			file_storage const& files = ti->files();
 			std::vector<libtorrent::size_type> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"files\": [" + (count?0:2));
@@ -436,7 +437,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("fileStats"))
 		{
-			file_storage const& files = ti.files();
+			file_storage const& files = ti->files();
 			std::vector<libtorrent::size_type> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"fileStats\": [" + (count?0:2));
@@ -454,7 +455,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("wanted"))
 		{
-			file_storage const& files = ti.files();
+			file_storage const& files = ti->files();
 			appendf(buf, ", \"wanted\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
@@ -467,7 +468,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("priorities"))
 		{
-			file_storage const& files = ti.files();
+			file_storage const& files = ti->files();
 			appendf(buf, ", \"priorities\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
@@ -480,7 +481,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("webseeds"))
 		{
-			std::vector<web_seed_entry> const& webseeds = ti.web_seeds();
+			std::vector<web_seed_entry> const& webseeds = ti->web_seeds();
 			appendf(buf, ", \"webseeds\": [" + (count?0:2));
 			for (int i = 0; i < webseeds.size(); ++i)
 			{
@@ -546,6 +547,28 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			++count;
 		}
 
+		if (fields.count("trackers"))
+		{
+			std::vector<announce_entry> trackers = ts.handle.trackers();
+			appendf(buf, ", \"trackers\": [" + (count?0:2));
+			for (int i = 0; i < trackers.size(); ++i)
+			{
+				announce_entry const& a = trackers[i];
+				appendf(buf, ", { \"announce\": \"%s\""
+					", \"id\": %d"
+					", \"scrape\": \"%s\""
+					", \"tier\": %d"
+					"}"
+					+ (i?2:0)
+					, trackers[i].url.c_str()
+					, 0
+					, trackers[i].url.c_str()
+					, trackers[i].tier
+					);
+			}
+			appendf(buf, "]");
+			++count;
+		}
 		appendf(buf, "}");
 		++returned_torrents;
 	}
@@ -652,7 +675,7 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 {
 	std::vector<torrent_handle> h = m_ses.get_torrents();
 
-	std::set<int> torrent_ids;
+	std::set<boost::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
 
 	if (torrent_ids.empty())
@@ -664,7 +687,7 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 	for (std::vector<torrent_handle>::iterator i = h.begin()
 		, end(h.end()); i != end; ++i)
 	{
-		if (torrent_ids.count(torrent_id(i->info_hash())))
+		if (torrent_ids.count(i->id()))
 			handles.insert(handles.begin(), *i);
 	}
 }

@@ -52,7 +52,7 @@ namespace libtorrent
 			mg_request_info const* request_info);
 
 		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer);
-		void parse_ids(std::set<int>& torrent_ids, jsmntok_t* args, char* buffer);
+		void parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
 		void get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
 			, char* buffer);
 
