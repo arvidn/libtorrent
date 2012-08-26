@@ -143,6 +143,8 @@ namespace libtorrent
 		utp_status utp_stats;
 
 		int peerlist_size;
+		int num_torrents;
+		int num_paused_torrents;
 	};
 
 }

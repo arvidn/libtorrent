@@ -5679,6 +5679,10 @@ namespace aux {
 		s.num_unchoked = m_num_unchoked;
 		s.allowed_upload_slots = m_allowed_upload_slots;
 
+		s.num_torrents = m_torrents.size();
+		// only non-paused torrents want tick
+		s.num_paused_torrents = m_torrents.size() - m_torrent_lists[torrent_want_tick].size();
+
 		s.total_redundant_bytes = m_total_redundant_bytes;
 		s.total_failed_bytes = m_total_failed_bytes;
 

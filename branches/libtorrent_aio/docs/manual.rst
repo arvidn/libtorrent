@@ -859,6 +859,9 @@ struct has the following members::
 		int dht_total_allocations;
 
 		utp_status utp_stats;
+
+		int num_torrents;
+		int num_paused_torrents;
 	};
 
 ``has_incoming_connections`` is false as long as no incoming connections have been
@@ -939,6 +942,10 @@ particular DHT lookup. This represents roughly the amount of memory used
 by the DHT.
 
 ``utp_stats`` contains statistics on the uTP sockets.
+
+``num_torrents`` and ``num_paused_torrents`` are the number of torrents in the
+session and the number of them that are currently paused, respectively.
+
 
 get_cache_info()
 ----------------
