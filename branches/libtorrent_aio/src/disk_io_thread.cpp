@@ -619,7 +619,7 @@ namespace libtorrent
 			, (j->flags & disk_io_job::fence) ? "fence ": ""
 			, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
 			, j->piece, j->d.io.offset
-			, j->storage->num_outstanding_jobs());
+			, j->storage ? j->storage->num_outstanding_jobs() : -1);
 
 		boost::intrusive_ptr<piece_manager> storage = j->storage;
 
