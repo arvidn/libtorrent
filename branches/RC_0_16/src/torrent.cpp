@@ -81,6 +81,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/gzip.hpp" // for inflate_gzip
 #include "libtorrent/random.hpp"
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -2107,7 +2108,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		m_net_interfaces.clear();
 
-		char* str = strdup(net_interfaces.c_str());
+		char* str = allocate_string_copy(net_interfaces.c_str());
 		char* ptr = str;
 
 		while (ptr)
