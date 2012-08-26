@@ -122,19 +122,29 @@ jsmntok_t* find_key(jsmntok_t* tokens, char* buf, char const* key, int type)
 	return NULL;
 }
 
-char const* find_string(jsmntok_t* tokens, char* buf, char const* key)
+char const* find_string(jsmntok_t* tokens, char* buf, char const* key, bool* found = NULL)
 {
 	jsmntok_t* k = find_key(tokens, buf, key, JSMN_STRING);
-	if (k == NULL) return "";
+	if (k == NULL)
+	{
+		if (found) *found = false;
+		return "";
+	}
+	if (found) *found = true;
 	buf[k->end] = '\0';
 	return buf + k->start;
 }
 
-boost::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key)
+boost::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key, bool* found = NULL)
 {
 	jsmntok_t* k = find_key(tokens, buf, key, JSMN_PRIMITIVE);
-	if (k == NULL) return 0;
+	if (k == NULL)
+	{
+		if (found) *found = false;
+		return 0;
+	}
 	buf[k->end] = '\0';
+	if (found) *found = true;
 	return strtoll(buf + k->start, NULL, 10);
 }
 
@@ -369,8 +379,8 @@ void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmnt
 	}
 	else
 	{
-		boost::uint32_t id = find_int(args, buffer, "ids");
-		if (id == 0) return;
+		boost::int64_t id = find_int(args, buffer, "ids");
+		if (id == -1) return;
 		torrent_ids.insert(torrent_ids.begin(), id);
 	}
 }
@@ -697,6 +707,135 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
+	std::vector<torrent_handle> handles;
+	get_torrents(handles, args, buffer);
+
+	bool set_dl_limit = false;
+	int download_limit = find_int(args, buffer, "downloadLimit", &set_dl_limit);
+	bool download_limited = find_bool(args, buffer, "downloadLimited");
+	if (!download_limited) download_limit = 0;
+
+	bool set_ul_limit = false;
+	int upload_limit = find_int(args, buffer, "uploadLimit", &set_ul_limit);
+	bool upload_limited = find_bool(args, buffer, "uploadLimited");
+	if (!upload_limited) upload_limit = 0;
+
+	bool move_storage = false;
+	std::string location = find_string(args, buffer, "location", &move_storage);
+
+	bool set_max_conns = false;
+	int max_connections = find_int(args, buffer, "peer-limit", &set_max_conns);
+
+	std::vector<announce_entry> add_trackers;
+	jsmntok_t* tracker_add = find_key(args, buffer, "trackerAdd", JSMN_ARRAY);
+	if (tracker_add)
+	{
+		jsmntok_t* item = tracker_add + 1;
+		for (int i = 0; i < tracker_add->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_STRING) continue;
+			add_trackers.push_back(announce_entry(std::string(
+				buffer + item->start, item->end - item->start)));
+		}
+	}
+
+	int all_file_prio = -1;
+	std::vector<std::pair<int, int> > file_priority;
+
+	jsmntok_t* file_prio_unwanted = find_key(args, buffer, "files-unwanted", JSMN_ARRAY);
+	if (file_prio_unwanted)
+	{
+		if (file_prio_unwanted->size == 0) all_file_prio = 0;
+		jsmntok_t* item = file_prio_unwanted + 1;
+		for (int i = 0; i < file_prio_unwanted->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_PRIMITIVE) continue;
+			int index = atoi(buffer + item->start);
+			file_priority.push_back(std::make_pair(index, 0));
+		}
+	}
+
+	jsmntok_t* file_prio_wanted = find_key(args, buffer, "files-wanted", JSMN_ARRAY);
+	if (file_prio_wanted)
+	{
+		if (file_prio_unwanted->size == 0) all_file_prio = 2;
+		jsmntok_t* item = file_prio_wanted + 1;
+		for (int i = 0; i < file_prio_wanted->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_PRIMITIVE) continue;
+			int index = atoi(buffer + item->start);
+			file_priority.push_back(std::make_pair(index, 2));
+		}
+	}
+
+	jsmntok_t* file_prio_high = find_key(args, buffer, "priority-high", JSMN_ARRAY);
+	if (file_prio_high)
+	{
+		if (file_prio_unwanted->size == 0) all_file_prio = 7;
+		jsmntok_t* item = file_prio_high + 1;
+		for (int i = 0; i < file_prio_high->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_PRIMITIVE) continue;
+			int index = atoi(buffer + item->start);
+			file_priority.push_back(std::make_pair(index, 7));
+		}
+	}
+
+	jsmntok_t* file_prio_low = find_key(args, buffer, "priority-low", JSMN_ARRAY);
+	if (file_prio_low)
+	{
+		if (file_prio_unwanted->size == 0) all_file_prio = 1;
+		jsmntok_t* item = file_prio_low + 1;
+		for (int i = 0; i < file_prio_low->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_PRIMITIVE) continue;
+			int index = atoi(buffer + item->start);
+			file_priority.push_back(std::make_pair(index, 1));
+		}
+	}
+
+	jsmntok_t* file_prio_normal = find_key(args, buffer, "priority-normal", JSMN_ARRAY);
+	if (file_prio_normal)
+	{
+		if (file_prio_unwanted->size == 0) all_file_prio = 2;
+		jsmntok_t* item = file_prio_normal + 1;
+		for (int i = 0; i < file_prio_normal->size; ++i, item = skip_item(item))
+		{
+			if (item->type != JSMN_PRIMITIVE) continue;
+			int index = atoi(buffer + item->start);
+			file_priority.push_back(std::make_pair(index, 2));
+		}
+	}
+
+	for (std::vector<torrent_handle>::iterator i = handles.begin()
+		, end(handles.end()); i != end; ++i)
+	{
+		torrent_handle& h = *i;
+
+		if (set_dl_limit) h.set_download_limit(download_limit * 1000);
+		if (set_ul_limit) h.set_upload_limit(upload_limit * 1000);
+		if (move_storage) h.move_storage(location);
+		if (set_max_conns) h.set_max_connections(max_connections);
+		if (!add_trackers.empty())
+		{
+			std::vector<announce_entry> trackers =  h.trackers();
+			trackers.insert(trackers.end(), add_trackers.begin(), add_trackers.end());
+			h.replace_trackers(trackers);
+		}
+		if (!file_priority.empty())
+		{
+			std::vector<int> prio = h.file_priorities();
+			if (all_file_prio != -1) std::fill(prio.begin(), prio.end(), all_file_prio);
+			for (std::vector<std::pair<int, int> >::iterator
+				i = file_priority.begin(), end(file_priority.end());
+				i != end; ++i)
+			{
+				if (i->first < 0 || i->first >= prio.size()) continue;
+				prio[i->first] = i->second;
+			}
+			h.prioritize_files(prio);
+		}
+	}
 }
 
 void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
