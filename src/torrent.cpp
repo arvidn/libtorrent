@@ -8060,6 +8060,8 @@ namespace libtorrent
 	void torrent::file_progress(std::vector<float>& fp) const
 	{
 		fp.clear();
+		if (!valid_metadata()) return;
+	
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
 
@@ -8076,7 +8078,11 @@ namespace libtorrent
 
 	void torrent::file_progress(std::vector<size_type>& fp, int flags) const
 	{
-		TORRENT_ASSERT(valid_metadata());
+		if (!valid_metadata())
+		{
+			fp.clear();
+			return;
+		}
 	
 		fp.resize(m_torrent_file->num_files(), 0);
 
