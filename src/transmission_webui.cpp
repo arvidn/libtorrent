@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/tuple/tuple.hpp>
 
 extern "C" {
 #include "mongoose.h"
@@ -43,6 +44,7 @@ extern "C" {
 }
 
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/parse_url.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
@@ -275,6 +277,84 @@ bool all_torrents(torrent_status const& s)
 	return true;
 }
 
+boost::uint32_t tracker_id(announce_entry const& ae)
+{
+	sha1_hash urlhash = hasher(ae.url.c_str(), ae.url.size()).final();
+	return ae.tier
+		+ (boost::uint32_t(urlhash[0]) << 8)
+		+ (boost::uint32_t(urlhash[1]) << 16)
+		+ (boost::uint32_t(urlhash[2]) << 24);
+}
+
+int tracker_status(announce_entry const& ae, torrent_status const& ts)
+{
+	enum tracker_state_t
+	{
+		TR_TRACKER_INACTIVE = 0,
+		TR_TRACKER_WAITING = 1,
+		TR_TRACKER_QUEUED = 2,
+		TR_TRACKER_ACTIVE = 3
+	};
+
+	if (ae.updating) return TR_TRACKER_ACTIVE;
+	if (ts.paused) return TR_TRACKER_INACTIVE;
+	if (ae.fails >= ae.fail_limit) return TR_TRACKER_INACTIVE;
+	if (ae.verified && ae.start_sent) return TR_TRACKER_WAITING;
+	return TR_TRACKER_QUEUED;
+}
+
+int torrent_tr_status(torrent_status const& ts)
+{
+	enum tr_status_t
+	{
+		TR_STATUS_STOPPED = 0,
+		TR_STATUS_CHECK_WAIT = 1,
+		TR_STATUS_CHECK = 2,
+		TR_STATUS_DOWNLOAD_WAIT = 3,
+		TR_STATUS_DOWNLOAD = 4,
+		TR_STATUS_SEED_WAIT = 5,
+		TR_STATUS_SEED = 6
+	};
+	int res = 0;
+
+	if (ts.paused && !ts.auto_managed)
+		return TR_STATUS_STOPPED;
+	switch(ts.state)
+	{
+		case libtorrent::torrent_status::checking_resume_data:
+			res = TR_STATUS_CHECK;
+			break;
+		case libtorrent::torrent_status::checking_files:
+			if (ts.paused) return TR_STATUS_CHECK_WAIT;
+			else return TR_STATUS_CHECK;
+			break;
+		case libtorrent::torrent_status::downloading_metadata:
+		case libtorrent::torrent_status::downloading:
+		case libtorrent::torrent_status::allocating:
+			if (ts.paused) return TR_STATUS_DOWNLOAD_WAIT;
+			else return TR_STATUS_DOWNLOAD;
+			break;
+		case libtorrent::torrent_status::seeding:
+		case libtorrent::torrent_status::finished:
+			if (ts.paused) return TR_STATUS_SEED_WAIT;
+			else return TR_STATUS_SEED;
+	}
+	return TR_STATUS_STOPPED;
+}
+
+int tr_file_priority(int prio)
+{
+	enum
+	{
+		TR_PRI_LOW = -1,
+		TR_PRI_NORMAL =  0,
+		TR_PRI_HIGH =  1
+	};
+	if (prio == 1) return TR_PRI_LOW;
+	if (prio > 2) return TR_PRI_HIGH;
+	return TR_PRI_NORMAL;
+}
+
 void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer)
 {
 	jsmntok_t* ids_ent = find_key(args, buffer, "ids", JSMN_ARRAY);
@@ -350,6 +430,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date().get() : 0);
 		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
 		TORRENT_PROPERTY("downloadDir", "\"%s\"", ts.handle.save_path().c_str());
+		TORRENT_PROPERTY("error", "%d", ts.error.empty() ? 0 : 1);
 		TORRENT_PROPERTY("errorString", "\"%s\"", ts.error.c_str());
 		TORRENT_PROPERTY("eta", "%d", ts.download_payload_rate <= 0 ? -1
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
@@ -362,17 +443,19 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("isStalled", "%s", to_bool(ts.download_payload_rate == 0));
 		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
 		TORRENT_PROPERTY("magnetLink", "\"%s\"", ti == &empty ? "" : make_magnet_uri(*ti).c_str());
-		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 100.f : ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 1.f : ts.progress_ppm / 1000000.f);
 		TORRENT_PROPERTY("name", "\"%s\"", ts.handle.name().c_str());
 		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
 		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
-		TORRENT_PROPERTY("percentDone", "%f", ts.progress_ppm / 10000.f);
+		// even though this is called "percentDone", it's really expecting the
+		// progress in the range [0, 1]
+		TORRENT_PROPERTY("percentDone", "%f", ts.progress_ppm / 1000000.f);
 		TORRENT_PROPERTY("pieceCount", "%d", ti != &empty ? ti->num_pieces() : 0);
 		TORRENT_PROPERTY("pieceSize", "%d", ti != &empty ? ti->piece_length() : 0);
 		TORRENT_PROPERTY("queuePosition", "%d", ts.queue_position);
 		TORRENT_PROPERTY("rateDownload", "%d", ts.download_rate);
 		TORRENT_PROPERTY("rateUpload", "%d", ts.upload_rate);
-		TORRENT_PROPERTY("recheckProgress", "%f", ts.progress_ppm / 10000.f);
+		TORRENT_PROPERTY("recheckProgress", "%f", ts.progress_ppm / 1000000.f);
 		TORRENT_PROPERTY("secondsDownloading", "%" PRId64 , ts.active_time);
 		TORRENT_PROPERTY("secondsSeeding", "%" PRId64, ts.finished_time);
 		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti != &empty ? ti->total_size() : 0);
@@ -384,38 +467,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 
 		if (fields.count("status"))
 		{
-#define TR_STATUS_CHECK_WAIT   ( 1 << 0 )  /* Waiting in queue to check files */
-#define TR_STATUS_CHECK        ( 1 << 1 )  /* Checking files */
-#define TR_STATUS_DOWNLOAD     ( 1 << 2 )  /* Downloading */
-#define TR_STATUS_SEED         ( 1 << 3 )  /* Seeding */
-#define TR_STATUS_STOPPED      ( 1 << 4 )  /* Torrent is stopped */
-			int res = 0;
-
-			switch(ts.state)
-			{
-				case libtorrent::torrent_status::checking_resume_data:
-					res = TR_STATUS_CHECK;
-					break;
-				case libtorrent::torrent_status::checking_files:
-					if (ts.paused)
-						res = TR_STATUS_CHECK_WAIT;
-					else
-						res = TR_STATUS_CHECK;
-					break;
-				case libtorrent::torrent_status::downloading_metadata:
-				case libtorrent::torrent_status::downloading:
-				case libtorrent::torrent_status::allocating:
-					res = TR_STATUS_DOWNLOAD;
-					break;
-				case libtorrent::torrent_status::seeding:
-				case libtorrent::torrent_status::finished:
-					res = TR_STATUS_SEED;
-					break;
-			}
-			if (ts.paused && !ts.auto_managed)
-				res |= TR_STATUS_STOPPED;
-
-			appendf(buf, ", \"status\": %d" + (count?0:2), res);
+			appendf(buf, ", \"status\": %d" + (count?0:2), torrent_tr_status(ts));
 			++count;
 		}
 
@@ -444,7 +496,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			appendf(buf, ", \"fileStats\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				int prio = ts.handle.file_priority(i);
+				int prio = tr_file_priority(ts.handle.file_priority(i));
 				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
 					"\"wanted\": %s,"
 					"\"priority\": %d }" + (i?0:2)
@@ -474,7 +526,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			for (int i = 0; i < files.num_files(); ++i)
 			{
 				appendf(buf, ", %d" + (i?0:2)
-					, ts.handle.file_priority(i));
+					, tr_file_priority(ts.handle.file_priority(i)));
 			}
 			appendf(buf, "]");
 			++count;
@@ -557,16 +609,80 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			{
 				announce_entry const& a = trackers[i];
 				appendf(buf, ", { \"announce\": \"%s\""
-					", \"id\": %d"
+					", \"id\": %u"
 					", \"scrape\": \"%s\""
 					", \"tier\": %d"
 					"}"
 					+ (i?0:2)
-					, trackers[i].url.c_str()
+					, a.url.c_str(), tracker_id(a), a.url.c_str(), a.tier);
+			}
+			appendf(buf, "]");
+			++count;
+		}
+
+		if (fields.count("trackerStats"))
+		{
+			std::vector<announce_entry> trackers = ts.handle.trackers();
+			appendf(buf, ", \"trackerStats\": [" + (count?0:2));
+			for (int i = 0; i < trackers.size(); ++i)
+			{
+				announce_entry const& a = trackers[i];
+				using boost::tuples::ignore;
+				error_code ec;
+				std::string hostname;
+				boost::tie(ignore, ignore, hostname, ignore, ignore)
+					= parse_url_components(a.url, ec);
+				appendf(buf, ", { \"announce\": \"%s\""
+					", \"announceState\": %u"
+					", \"downloadCount\": %d"
+					", \"hasAnnounced\": %s"
+					", \"hasScraped\": %s"
+					", \"host\": \"%s\""
+					", \"id\": %u"
+					", \"isBackup\": %s"
+					", \"lastAnnouncePeerCount\": %d"
+					", \"lastAnnounceResult\": \"%s\""
+					", \"lastAnnounceStartTime\": %" PRId64
+					", \"lastAnnounceSucceeded\": %" PRId64
+					", \"lastAnnounceTime\": %" PRId64
+					", \"lastAnnounceTimeOut\": %s"
+					", \"lastScrapePeerCount\": %d"
+					", \"lastScrapeResult\": \"%s\""
+					", \"lastScrapeStartTime\": %" PRId64
+					", \"lastScrapeSucceeded\": %" PRId64
+					", \"lastScrapeTime\": %" PRId64
+					", \"lastScrapeTimeOut\": %s"
+					", \"leecherCount\": %d"
+					", \"nextAnnounceTime\": %" PRId64
+					", \"nextScrapeTime\": %" PRId64
+					", \"scrape\": \"%s\""
+					", \"scrapeState\": %d"
+					", \"seederCount\": %d"
+					", \"tier\": %d"
+					"}"
+					+ (i?0:2)
+					, a.url.c_str()
+					, tracker_status(a, ts)
 					, 0
-					, trackers[i].url.c_str()
-					, trackers[i].tier
-					);
+					, to_bool(a.start_sent)
+					, to_bool(false)
+					, hostname.c_str()
+					, tracker_id(a)
+					, to_bool(false)
+					, 0 // lastAnnouncePeerCount
+					, a.last_error.message().c_str() // lastAnnounceResult
+					, 0 // lastAnnounceStartTime
+					, to_bool(!a.last_error) // lastAnnounceSucceeded
+					, 0 // lastAnnounceTime
+					, to_bool(a.last_error == asio::error::timed_out) // lastAnnounceTimeOut
+					, 0, "", 0, "false", 0, "false"
+					, 0 // leecherCount
+					, time(NULL) + a.next_announce_in()
+					, 0
+					, a.url.c_str()
+					, 0
+					, 0 // seederCount
+					, a.tier);
 			}
 			appendf(buf, "]");
 			++count;
@@ -575,7 +691,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		++returned_torrents;
 	}
 
-	appendf(buf, "] }, \"tag\": \"%" PRId64 "\" }", tag);
+	appendf(buf, "] }, \"tag\": %" PRId64 " }", tag);
 }
 
 void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
