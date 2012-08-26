@@ -190,6 +190,10 @@ namespace libtorrent
 		// When the operation returns, this is set to 0.
 		boost::uint32_t hashing:1;
 
+		// if we've completed at least one hash job on this
+		// piece, and returned it. This is set to one
+		boost::uint32_t hashing_done:1;
+
 		// if this is true, whenever refcount hits 0, 
 		// this piece should be deleted
 		boost::uint32_t marked_for_deletion:1;
@@ -243,7 +247,7 @@ namespace libtorrent
 
 		// unused
 
-		boost::uint32_t padding:4;
+		boost::uint32_t padding:3;
 
 		//	---- 32 bit boundary ---
 

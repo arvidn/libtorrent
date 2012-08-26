@@ -861,7 +861,6 @@ namespace libtorrent
 		TORRENT_ASSERT(slot >= 0);
 		TORRENT_ASSERT(slot < m_files.num_pieces());
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(offset < m_files.piece_size(slot));
 		TORRENT_ASSERT(num_bufs > 0);
 
 		int size = bufs_size(bufs, num_bufs);
@@ -892,9 +891,6 @@ namespace libtorrent
 		int bytes_left = size;
 		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
-		if (offset + bytes_left > slot_size)
-			bytes_left = slot_size - offset;
-
 		TORRENT_ASSERT(bytes_left >= 0);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -921,7 +917,6 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(int(slices.size()) > counter);
 			size_type slice_size = slices[counter].size;
-			TORRENT_ASSERT(slice_size == file_bytes_left);
 			TORRENT_ASSERT((files().begin() + slices[counter].file_index)
 				== file_iter);
 			++counter;

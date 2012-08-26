@@ -360,6 +360,15 @@ namespace libtorrent
 		int flush_range(cached_piece_entry* p, int start, int end
 			, int flags, mutex::scoped_lock& l);
 
+		// low level flush operations, used by flush_range
+		int build_iovec(cached_piece_entry* pe, int start, int end
+			, file::iovec_t* iov, int* flushing, int block_base_index = 0);
+		void flush_iovec(cached_piece_entry* pe, file::iovec_t const* iov, int const* flushing
+			, int num_blocks, storage_error& error);
+		void iovec_flushed(cached_piece_entry* pe
+			, int* flushing, int num_blocks, int block_offset
+			, storage_error const& error);
+
 		// assumes l is locked (the cache mutex).
 		// assumes pe->hash to be set.
 		// If there are new blocks in piece 'pe' that have not been

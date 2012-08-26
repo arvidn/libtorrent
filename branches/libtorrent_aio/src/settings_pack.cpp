@@ -173,6 +173,7 @@ namespace libtorrent
 		SET(lock_files, false, 0),
 		SET(contiguous_recv_buffer, true, 0),
 		SET(ban_web_seeds, true, 0),
+		SET_NOPREV(allow_partial_disk_writes, true, 0),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =

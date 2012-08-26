@@ -223,7 +223,7 @@ namespace libtorrent
 		, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(cont_block > 0);
-		if (p->hash == 0)
+		if (p->hash == 0 && !p->hashing_done)
 		{
 			DLOG(stderr, "[%p] try_flush_hashed: (%d) no hash\n", this, int(p->piece));
 			return 0;
@@ -233,17 +233,17 @@ namespace libtorrent
 		// round offset up to include the last block, which might
 		// have an odd size
 		int block_size = m_disk_cache.block_size();
-		int end = (p->hash->offset + block_size - 1) / block_size;
+		int end = p->hashing_done ? p->blocks_in_piece : (p->hash->offset + block_size - 1) / block_size;
 
 		// nothing has been hashed yet, don't flush anything
 		if (end == 0 && !p->need_readback) return 0;
 
 		// the number of contiguous blocks we need to be allowed to flush
-		cont_block = (std::min)(cont_block, int(p->blocks_in_piece));
+		int block_limit = (std::min)(cont_block, int(p->blocks_in_piece));
 
 		// if everything has been hashed, we might as well flush everything
 		// regardless of the contiguous block restriction
-		if (end == int(p->blocks_in_piece)) cont_block = 1;
+		if (end == int(p->blocks_in_piece)) block_limit = 1;
 
 		if (p->need_readback)
 		{
@@ -260,24 +260,210 @@ namespace libtorrent
 		for (int i = end-1; i >= 0; --i)
 			num_blocks += (p->blocks[i].dirty && !p->blocks[i].pending);
 
-		// we did not satisfy the cont_block requirement
+		// we did not satisfy the block_limit requirement
 		// i.e. too few blocks would be flushed at this point, put it off
-		if (cont_block > num_blocks) return 0;
+		if (block_limit > num_blocks) return 0;
 
-		DLOG(stderr, "[%p] try_flush_hashed: (%d) blocks_in_piece: %d end: %d\n"
-			, this, int(p->piece), int(p->blocks_in_piece), end);
+		// if the cache line size is larger than a whole piece, hold
+		// off flushing this piece until enough adjacent pieces are
+		// full as well.
+		int cont_pieces = cont_block / p->blocks_in_piece;
 
-		return flush_range(p, 0, end, 0, l);
+		// at this point, we may enforce flushing full cache stripes even when
+		// they span multiple pieces. This won't necessarily work in the general
+		// case, because it assumes that the piece picker will have an affinity
+		// ti download whole stripes at a time. This is why this setting is turned
+		// off by default, flushing only one piece at a time
+
+		if (cont_pieces <= 1 || m_settings.get_bool(settings_pack::allow_partial_disk_writes))
+		{
+			DLOG(stderr, "[%p] try_flush_hashed: (%d) blocks_in_piece: %d end: %d\n"
+				, this, int(p->piece), int(p->blocks_in_piece), end);
+
+			return flush_range(p, 0, end, 0, l);
+		}
+
+		// piece range
+		int range_start = (p->piece / cont_pieces) * cont_pieces;
+		int range_end = (std::min)(range_start + cont_pieces, p->storage->files()->num_pieces());
+
+		// look through all the pieces in this range to see if
+		// they are ready to be flushed. If so, flush them all,
+		// otherwise, hold off
+		bool range_full = true;
+		
+		cached_piece_entry* first_piece = NULL;
+		DLOG(stderr, "[%p] try_flush_hashed: multi-piece: ", this);
+		for (int i = range_start; i < range_end; ++i)
+		{
+			if (i == p->piece)
+			{
+				if (i == range_start) first_piece = p;
+				DLOG(stderr, "[%d self] ", i);
+				continue;
+			}
+			cached_piece_entry* pe = m_disk_cache.find_piece(p->storage.get(), i);
+			if (pe == NULL)
+			{
+				DLOG(stderr, "[%d NULL] ", i);
+				range_full = false;
+				break;
+			}
+			if (i == range_start) first_piece = pe;
+
+			// if this is a read-cache piece, it has already been flushed
+			if (pe->cache_state != cached_piece_entry::write_lru)
+			{
+				DLOG(stderr, "[%d read-cache] ", i);
+				continue;
+			}
+			int hash_cursor = pe->hash ? pe->hash->offset / block_size : 0;
+
+			// if the piece has all blocks, and they're all dirty, and they've
+			// all been hashed, then this piece is eligible for flushing
+			if (pe->num_dirty == pe->blocks_in_piece
+				&& (pe->hashing_done
+					|| hash_cursor == pe->blocks_in_piece
+					|| m_settings.get_bool(settings_pack::disable_hash_checks)))
+			{
+				DLOG(stderr, "[%d hash-done] ", i);
+				continue;
+			}
+
+			if (pe->num_dirty < pe->blocks_in_piece)
+			{
+				DLOG(stderr, "[%d dirty:%d] ", i, int(pe->num_dirty));
+			}
+			else if (pe->hashing_done == 0 && hash_cursor < pe->blocks_in_piece)
+			{
+				DLOG(stderr, "[%d cursor:%d] ", i, hash_cursor);
+			}
+			else
+			{
+				DLOG(stderr, "[%d xx] ", i);
+			}
+
+			// TOOD: in this case, the piece should probably not be flushed yet. are there
+			// any more cases where it should?
+
+			range_full = false;
+			break;
+		}
+
+		if (!range_full)
+		{
+			DLOG(stderr, "not flushing\n");
+			return 0;
+		}
+		DLOG(stderr, "\n");
+
+		int ret = 0;
+
+		// now, build a iovec for all pieces that we want to flush, so that they
+		// can be flushed in a single atomic operation. This is especially important
+		// when there are more than 1 disk thread, to make sure they don't
+		// interleave in undesired places.
+		// in order to remember where each piece boundary ended up in the iovec,
+		// we keep the indices in the iovec_offset array
+
+		cont_pieces = range_end - range_start;
+
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, p->blocks_in_piece * cont_pieces);
+		int* flushing = TORRENT_ALLOCA(int, p->blocks_in_piece * cont_pieces);
+		// this is the offset into iov and flushing for each piece
+		int* iovec_offset = TORRENT_ALLOCA(int, cont_pieces + 1);
+		int iov_len = 0;
+		// this is the block index each piece starts at
+		int block_start = 0;
+		// the pieces that have had their refcount incremented
+		int* refcount_pieces = TORRENT_ALLOCA(int, cont_pieces);
+		for (int i = 0; i < cont_pieces; ++i)
+		{
+			cached_piece_entry* pe;
+			if (i == p->piece) pe = p;
+			else pe = m_disk_cache.find_piece(p->storage.get(), range_start + i);
+			if (pe == NULL)
+			{
+				refcount_pieces[i] = 0;
+				iovec_offset[i] = iov_len;
+				block_start += p->blocks_in_piece;
+				continue;
+			}
+
+			iovec_offset[i] = iov_len;
+			refcount_pieces[i] = 1;
+			++pe->refcount;
+
+			iov_len += build_iovec(pe, 0, p->blocks_in_piece
+				, iov + iov_len, flushing + iov_len, block_start);
+
+			block_start += p->blocks_in_piece;
+		}
+		iovec_offset[cont_pieces] = iov_len;
+
+		// ok, now we have one (or more, but hopefully one) contiguous
+		// iovec array. Now, flush it to disk
+
+		TORRENT_ASSERT(first_piece != NULL);
+
+		if (iov_len == 0)
+		{
+			DLOG(stderr, "  iov_len: 0 cont_pieces: %d range_start: %d range_end: %d\n"
+				, cont_pieces, range_start, range_end);
+			return 0;
+		}
+
+		l.unlock();
+
+		storage_error error;
+		flush_iovec(first_piece, iov, flushing, iov_len, error);
+
+		l.lock();
+
+		block_start = 0;
+		for (int i = 0; i < cont_pieces; ++i)
+		{
+			cached_piece_entry* pe;
+			if (i == p->piece) pe = p;
+			else pe = m_disk_cache.find_piece(p->storage.get(), range_start + i);
+			if (pe == NULL)
+			{
+				TORRENT_ASSERT(refcount_pieces[i] == 0);
+				block_start += p->blocks_in_piece;
+				continue;
+			}
+			if (refcount_pieces[i]) --pe->refcount;
+			int num_blocks = iovec_offset[i+1] - iovec_offset[i];
+			iovec_flushed(pe, flushing + iovec_offset[i], num_blocks
+				, block_start, error);
+			block_start += p->blocks_in_piece;
+		}
+
+		// if the cache is under high pressure, we need to evict
+		// the blocks we just flushed to make room for more write pieces
+		int evict = m_disk_cache.num_to_evict(0);
+		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
+
+		return iov_len;
 	}
 
-	// issues write operations for blocks in the given
-	// range on the given piece.
-	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
-		, int flags, mutex::scoped_lock& l)
+	// iov and flushing are expected to be arrays to at least pe->blocks_in_piece
+	// items in them. Returns the numner of iovecs written to the iov array.
+	// The same number of block indices are written to the flushing array. These
+	// are block indices that the respecivec iovec structure refers to, since
+	// we might not be able to flush everything as a single contiguous block,
+	// the block indices indicates where the block run is broken
+	// the cache needs to be locked when calling this function
+	// block_base_index is the offset added to every block index written to
+	// the flushing array. This can be used when building iovecs spanning
+	// multiple pieces, the subsequent pieces after the first one, must have
+	// their block indices start where the previous one left off
+	int disk_io_thread::build_iovec(cached_piece_entry* pe, int start, int end
+		, file::iovec_t* iov, int* flushing, int block_base_index)
 	{
 		INVARIANT_CHECK;
 
-		DLOG(stderr, "[%p] flush_range: piece=%d [%d, %d)\n"
+		DLOG(stderr, "[%p] build_iovec: piece=%d [%d, %d)\n"
 			, this, int(pe->piece), start, end);
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(start < end);
@@ -286,14 +472,12 @@ namespace libtorrent
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		TORRENT_ASSERT(piece_size > 0);
 		
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
 		int iov_len = 0;
 		// the blocks we're flushing
-		int* flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
 		int num_flushing = 0;
 
-#ifdef DEBUG_STORAGE
-		DLOG(stderr, "[%p] flush_range: piece: %d [", this, int(pe->piece));
+#if DEBUG_DISK_THREAD
+		DLOG(stderr, "[%p] build_iov: piece: %d [", this, int(pe->piece));
 		for (int i = 0; i < start; ++i) DLOG(stderr, ".");
 #endif
 
@@ -312,7 +496,7 @@ namespace libtorrent
 				continue;
 			}
 
-			flushing[num_flushing++] = i;
+			flushing[num_flushing++] = i + block_base_index;
 			iov[iov_len].iov_base = pe->blocks[i].buf;
 			iov[iov_len].iov_len = (std::min)(block_size, size_left);
 			++iov_len;
@@ -321,26 +505,48 @@ namespace libtorrent
 
 			DLOG(stderr, "x");
 		}
+		DLOG(stderr, "]\n");
 
-		if (num_flushing == 0) return 0;
+		TORRENT_ASSERT(iov_len == num_flushing);
+		return iov_len;
+	}
 
-		l.unlock();
-
+	// does the actual writing to disk
+	// the cached_piece_entry is supposed to point to the
+	// first piece, if the iovec spans multiple pieces
+	void disk_io_thread::flush_iovec(cached_piece_entry* pe
+		, file::iovec_t const* iov, int const* flushing
+		, int num_blocks, storage_error& error)
+	{
+		TORRENT_ASSERT(!error);
+		TORRENT_ASSERT(num_blocks > 0);
 		++m_num_writing_threads;
 
 		ptime start_time = time_now_hires();
+		int block_size = m_disk_cache.block_size();
+
+#if DEBUG_DISK_THREAD
+		mutex::scoped_lock l(m_cache_mutex);
+		DLOG(stderr, "[%p] flush_iovec: piece: %d [ ", this, int(pe->piece));
+		for (int i = 0; i < num_blocks; ++i)
+			DLOG(stderr, "%d ", flushing[i]);
+		DLOG(stderr, "]\n");
+		l.unlock();
+#endif
 
 		// issue the actual write operation
-		file::iovec_t* iov_start = iov;
+		file::iovec_t const* iov_start = iov;
 		int flushing_start = 0;
-		storage_error error;
+		int piece = pe->piece;
+		int blocks_in_piece = pe->blocks_in_piece;
 		bool failed = false;
-		for (int i = 1; i <= num_flushing; ++i)
+		for (int i = 1; i <= num_blocks; ++i)
 		{
-			if (i < num_flushing && flushing[i] == flushing[i-1]+1) continue;
+			if (i < num_blocks&& flushing[i] == flushing[i-1]+1) continue;
 			int ret = pe->storage->get_storage_impl()->writev(iov_start, i - flushing_start
-				, pe->piece, flushing[flushing_start] * block_size, 0, error);
-			if (ret < 0) failed = true;
+				, piece // + flushing[flushing_start] / blocks_in_piece
+				, flushing[flushing_start] * block_size, 0, error);
+			if (ret < 0 || error) failed = true;
 			iov_start = &iov[i];
 			flushing_start = i;
 		}
@@ -349,19 +555,53 @@ namespace libtorrent
 
 		if (!failed)
 		{
+			TORRENT_ASSERT(!error);
 			boost::uint32_t write_time = total_microseconds(time_now_hires() - start_time);
-			m_write_time.add_sample(write_time / num_flushing);
+			m_write_time.add_sample(write_time / num_blocks);
 			m_cache_stats.cumulative_write_time += write_time;
 			m_cache_stats.cumulative_job_time += write_time;
-			m_cache_stats.blocks_written += num_flushing;
+			m_cache_stats.blocks_written += num_blocks;
+
+#if DEBUG_DISK_THREAD
+			mutex::scoped_lock l(m_cache_mutex);
+			DLOG(stderr, "[%p] flush_iovec: %d\n"
+				, this, num_blocks);
+			l.unlock();
+#endif
 		}
+#if DEBUG_DISK_THREAD
+		else
+		{
+			mutex::scoped_lock l(m_cache_mutex);
+			DLOG(stderr, "[%p] flush_iovec: error: (%d) %s\n"
+				, this, error.ec.value(), error.ec.message().c_str());
+		}
+#endif
+	}
 
-		l.lock();
+	// It is necessary to call this function with the blocks produced by
+	// build_iovec, to reset their state to not being flushed anymore
+	// the cache needs to be locked when calling this function
+	void disk_io_thread::iovec_flushed(cached_piece_entry* pe
+		, int* flushing, int num_blocks, int block_offset
+		, storage_error const& error)
+	{
+		for (int i = 0; i < num_blocks; ++i)
+			flushing[i] -= block_offset;
 
-		m_disk_cache.blocks_flushed(pe, flushing, num_flushing);
+#if DEBUG_DISK_THREAD
+		DLOG(stderr, "[%p] iovec_flushed: piece: %d block_offset: %d [ "
+			, this, int(pe->piece), block_offset);
+		for (int i = 0; i < num_blocks; ++i)
+			DLOG(stderr, "%d ", flushing[i]);
+		DLOG(stderr, "]\n");
+#endif
+		m_disk_cache.blocks_flushed(pe, flushing, num_blocks);
+
+		int block_size = m_disk_cache.block_size();
 
 		tailqueue jobs;
-		if (failed)
+		if (error)
 		{
 			jobs.swap(pe->jobs);
 
@@ -393,13 +633,40 @@ namespace libtorrent
 			}
 		}
 		add_completed_jobs(jobs);
+	}
+
+	// issues write operations for blocks in the given
+	// range on the given piece.
+	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
+		, int flags, mutex::scoped_lock& l)
+	{
+		INVARIANT_CHECK;
+
+		DLOG(stderr, "[%p] flush_range: piece=%d [%d, %d)\n"
+			, this, int(pe->piece), start, end);
+		TORRENT_ASSERT(start >= 0);
+		TORRENT_ASSERT(start < end);
+		
+		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
+		int* flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
+		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
+		if (iov_len == 0) return 0;
+
+		l.unlock();
+
+		storage_error error;
+		flush_iovec(pe, iov, flushing, iov_len, error);
+
+		l.lock();
+
+		iovec_flushed(pe, flushing, iov_len, 0, error);
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
 
-		return num_flushing;
+		return iov_len;
 	}
 
 	void disk_io_thread::abort_jobs(tailqueue& jobs_)
@@ -612,14 +879,14 @@ namespace libtorrent
 			if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l);
 		}
 
-		l.unlock();
-
 		DLOG(stderr, "[%p] perform_async_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
 			, this, job_action_name[j->action]
 			, (j->flags & disk_io_job::fence) ? "fence ": ""
 			, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
 			, j->piece, j->d.io.offset
 			, j->storage ? j->storage->num_outstanding_jobs() : -1);
+
+		l.unlock();
 
 		boost::intrusive_ptr<piece_manager> storage = j->storage;
 
@@ -1032,6 +1299,7 @@ namespace libtorrent
 
 			delete pe->hash;
 			pe->hash = NULL;
+			pe->hashing_done = 1;
 	
 			l.unlock();
 			if (handler) handler(j);
@@ -1220,10 +1488,10 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
-		l.unlock();
-
 		DLOG(stderr, "[%p] kick_hasher: %d - %d (piece: %d offset: %d)\n"
 			, this, cursor, end, int(pe->piece), ph->offset);
+
+		l.unlock();
 
 		ptime start_time = time_now_hires();
 
@@ -1281,6 +1549,7 @@ namespace libtorrent
 
 			delete pe->hash;
 			pe->hash = NULL;
+			pe->hashing_done = 1;
 			add_completed_jobs(hash_jobs);
 		}
 	}
@@ -1359,6 +1628,7 @@ namespace libtorrent
 				memcpy(j->d.piece_hash, &piece_hash[0], 20);
 				delete pe->hash;
 				pe->hash = NULL;
+				pe->hashing_done = 1;
 				m_disk_cache.update_cache_state(pe);
 				return 0;
 			}
@@ -1521,6 +1791,7 @@ namespace libtorrent
 
 			delete pe->hash;
 			pe->hash = NULL;
+			pe->hashing_done = 1;
 			m_disk_cache.update_cache_state(pe);
 		}
 		return ret < 0 ? ret : 0;
@@ -1801,7 +2072,7 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == NULL) return 0;
 
-		flush_piece(pe, flush_write_cache, l);
+		try_flush_hashed(pe, m_settings.get_int(settings_pack::write_cache_line_size), l);
 		return 0;
 	}
 
@@ -2130,8 +2401,8 @@ namespace libtorrent
 			disk_io_job* j = (disk_io_job*)i.get();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			DLOG(stderr, "[%p] job_complete %s outstanding: %d\n", this
-				, job_action_name[j->action], j->storage ? j->storage->num_outstanding_jobs() : 0);
+//			DLOG(stderr, "[%p] job_complete %s outstanding: %d\n", this
+//				, job_action_name[j->action], j->storage ? j->storage->num_outstanding_jobs() : 0);
 
 			ret += j->storage ? j->storage->job_complete(j, new_jobs) : 0;
 			TORRENT_ASSERT(ret == new_jobs.size());
@@ -2142,8 +2413,13 @@ namespace libtorrent
 #endif
 		}
 
+#if DEBUG_DISK_THREAD
+		l.lock();
 		if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret
 			, int(m_num_blocked_jobs) - ret);
+		l.unlock();
+#endif
+
 		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
 
 		m_num_blocked_jobs -= ret;
@@ -2170,7 +2446,11 @@ namespace libtorrent
 
 		if (need_post)
 		{
+#if DEBUG_DISK_THREAD
+			l.lock();
 			DLOG(stderr, "[%p] posting job handlers (%d)\n", this, m_completed_jobs.size());
+			l.unlock();
+#endif
 			m_ios.post(boost::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
 		}
 	}
@@ -2192,7 +2472,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
-			DLOG(stderr, "[%p]   callback: %s\n", this, job_action_name[j->action]);
+//			DLOG(stderr, "[%p]   callback: %s\n", this, job_action_name[j->action]);
 			disk_io_job* next = (disk_io_job*)j->next;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

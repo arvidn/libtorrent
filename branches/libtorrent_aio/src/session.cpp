@@ -188,7 +188,7 @@ namespace libtorrent
 	{
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
-		set.set_int(settings_pack::mixed_mode_algorithm, session_settings::prefer_tcp);
+		set.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
@@ -276,7 +276,7 @@ namespace libtorrent
 		set.set_int(settings_pack::active_dht_limit, 600);
 		set.set_int(settings_pack::active_seeds, 2000);
 
-		set.set_int(settings_pack::choking_algorithm, session_settings::fixed_slots_choker);
+		set.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 
 		// of 500 ms, and a send rate of 4 MB/s, the upper
 		// limit should be 2 MB
