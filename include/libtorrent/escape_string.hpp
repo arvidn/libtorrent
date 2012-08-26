@@ -43,17 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n);
-	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
-	TORRENT_EXPORT bool is_digit(char c);
-	TORRENT_EXTRA_EXPORT bool is_print(char c);
-	TORRENT_EXTRA_EXPORT bool is_space(char c);
-	TORRENT_EXTRA_EXPORT char to_lower(char c);
-
-	TORRENT_EXTRA_EXPORT int split_string(char const** tags, int buf_size, char* in);
-	TORRENT_EXTRA_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
-	TORRENT_EXTRA_EXPORT bool string_equal_no_case(char const* s1, char const* s2);
-
-	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
 
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
