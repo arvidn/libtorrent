@@ -901,7 +901,7 @@ namespace libtorrent
 				DLOG(stderr, "[%p] do_read: cache hit\n", this);
 				j->flags |= disk_io_job::cache_hit;
 				j->ret = ret;
-				handler(j);
+				if (handler) handler(j);
 				free_job(j);
 				return;
 			}
@@ -911,7 +911,7 @@ namespace libtorrent
 				j->error.ec = error::no_memory;
 				j->error.operation = storage_error::alloc_cache_piece;
 				j->ret = disk_io_job::operation_failed;
-				handler(j);
+				if (handler) handler(j);
 				free_job(j);
 				return;
 			}
@@ -1034,7 +1034,7 @@ namespace libtorrent
 			pe->hash = NULL;
 	
 			l.unlock();
-			handler(j);
+			if (handler) handler(j);
 			free_job(j);
 			return;
 		}
@@ -1133,7 +1133,7 @@ namespace libtorrent
 		if (m_num_threads == 0)
 		{
 			j->error.ec = asio::error::operation_aborted;
-			handler(j);
+			if (handler) handler(j);
 			free_job(j);
 		}
 
