@@ -142,9 +142,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable:4251)
 // '_vsnprintf': This function or variable may be unsafe
 #pragma warning(disable:4996)
-// 'strdup': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _strdup
-#pragma warning(disable: 4996)
-#define strdup _strdup
 
 #define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
 
@@ -443,10 +440,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_I2P 1
 #endif
 
-#ifndef TORRENT_HAS_STRDUP
-#define TORRENT_HAS_STRDUP 1
-#endif
-
 #if !defined TORRENT_IOV_MAX
 #ifdef IOV_MAX
 #define TORRENT_IOV_MAX IOV_MAX
@@ -498,17 +491,6 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_BOOST_DATE_TIME 1
 #endif
 
-#endif
-
-#if !TORRENT_HAS_STRDUP
-inline char* strdup(char const* str)
-{
-	if (str == 0) return 0;
-	char* tmp = (char*)malloc(strlen(str) + 1);
-	if (tmp == 0) return 0;
-	strcpy(tmp, str);
-	return tmp;
-}
 #endif
 
 // for non-exception builds

@@ -21,6 +21,7 @@ set(sources
 	file_storage
 	lazy_bdecode
 	escape_string
+	string_util
 	file
 	gzip
 	http_connection
