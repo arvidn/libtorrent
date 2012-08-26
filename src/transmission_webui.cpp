@@ -446,6 +446,8 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
 		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
 		TORRENT_PROPERTY("downloadedEver", "%" PRId64, ts.all_time_download);
+		TORRENT_PROPERTY("downloadLimit", "%d", ts.handle.download_limit());
+		TORRENT_PROPERTY("downloadLimited", "%s", to_bool(ts.handle.download_limit() > 0));
 		TORRENT_PROPERTY("haveValid", "%d", ts.num_pieces);
 		TORRENT_PROPERTY("id", "%u", ts.handle.id());
 		TORRENT_PROPERTY("isFinished", "%s", to_bool(ts.is_finished));
@@ -471,6 +473,8 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti != &empty ? ti->total_size() : 0);
 		TORRENT_PROPERTY("totalSize", "%" PRId64, ts.total_done);
 		TORRENT_PROPERTY("uploadedEver", "%" PRId64, ts.all_time_upload);
+		TORRENT_PROPERTY("uploadLimit", "%d", ts.handle.upload_limit());
+		TORRENT_PROPERTY("uploadLimited", "%s", to_bool(ts.handle.upload_limit() > 0));
 		TORRENT_PROPERTY("uploadedRatio", "%ld", ts.all_time_download == 0
 			? ts.all_time_upload
 			: ts.all_time_upload / ts.all_time_download);
