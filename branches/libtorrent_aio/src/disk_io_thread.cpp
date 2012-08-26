@@ -2203,7 +2203,8 @@ namespace libtorrent
 			j = next;
 		}
 
-		free_jobs(&to_delete[0], to_delete.size());
+		if (!to_delete.empty())
+			free_jobs(&to_delete[0], to_delete.size());
 
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.
