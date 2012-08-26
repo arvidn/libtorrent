@@ -26,7 +26,7 @@ def render_section(names, description, type, default_values):
 	print >>out
 	print >>out, description
 
-mode = None
+mode = ''
 
 # parse out default values for settings
 f2 = open('../src/settings_pack.cpp')
@@ -48,11 +48,11 @@ for l in f:
 	if 'enum string_types' in l: mode = 'string'
 	if 'enum bool_types' in l: mode = 'bool'
 	if 'enum int_types' in l: mode = 'int'
-	if '#ifndef TORRENT_NO_DEPRECATE' in l: mode = 'skip'
-	if '#endif' in l: mode = None;
+	if '#ifndef TORRENT_NO_DEPRECATE' in l: mode += 'skip'
+	if '#endif' in l: mode = mode[0:-4]
 
-	if mode == 'skip': continue
-	if mode == None: continue
+	if mode == '': continue
+	if mode[-4:] == 'skip': continue
 
 	l = l.lstrip()
 
@@ -69,7 +69,7 @@ for l in f:
 		names = []
 
 	if l.startswith('};'):
-		mode = None
+		mode = ''
 		continue
 
 	if l.startswith('// '):
