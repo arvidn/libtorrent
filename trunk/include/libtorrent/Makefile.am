@@ -99,6 +99,7 @@ nobase_include_HEADERS = \
   stat.hpp                     \
   storage.hpp                  \
   storage_defs.hpp             \
+  string_util.hpp              \
   struct_debug.hpp             \
   thread.hpp                   \
   time.hpp                     \

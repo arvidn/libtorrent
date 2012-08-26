@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace
 {
