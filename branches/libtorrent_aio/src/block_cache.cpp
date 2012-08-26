@@ -392,11 +392,13 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 // (since these blocks now are part of the read cache)
 // the refcounts of the blocks are also decremented by this function. They are
 // expected to have been incremented by the caller.
-void block_cache::blocks_flushed(cached_piece_entry* pe, int* flushed, int num_flushed)
+void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int num_flushed)
 {
 	for (int i = 0; i < num_flushed; ++i)
 	{
 		int block = flushed[i];
+		TORRENT_ASSERT(block >= 0);
+		TORRENT_ASSERT(block < pe->blocks_in_piece);
 		TORRENT_ASSERT(pe->blocks[block].dirty);
 		TORRENT_ASSERT(pe->blocks[block].pending);
 		pe->blocks[block].pending = false;
@@ -754,8 +756,10 @@ void block_cache::clear(tailqueue& jobs)
 		tailqueue_node* j = const_cast<tailqueue&>(p->jobs).get_all();
 		while (j)
 		{
-			jobs.push_back(j);
+			tailqueue_node* job = j;
 			j = j->next;
+			job->next = NULL;
+			jobs.push_back(job);
 		}
 
 		drain_piece_bufs(const_cast<cached_piece_entry&>(*p), bufs);
