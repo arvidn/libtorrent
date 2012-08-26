@@ -65,6 +65,10 @@ namespace libtorrent
 		void verify_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void reannounce_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void remove_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
+		void session_stats(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
+
+	private:
+		time_t m_start_time;
 	};
 }
 

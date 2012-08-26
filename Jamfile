@@ -2,7 +2,7 @@ import modules ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
-use-project /torrent : ../libtorrent_repo/branches/libtorrent_aio ;
+use-project /torrent : ../libtorrent_aio ;
 
 if $(BOOST_ROOT)
 {

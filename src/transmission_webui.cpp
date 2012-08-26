@@ -174,6 +174,7 @@ method_handler handlers[] =
 	{"torrent-verify", &transmission_webui::verify_torrent },
 	{"torrent-reannounce", &transmission_webui::reannounce_torrent },
 	{"torrent-remove", &transmission_webui::remove_torrent},
+	{"session-stats", &transmission_webui::session_stats},
 };
 
 void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer)
@@ -366,15 +367,15 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
 		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
 		TORRENT_PROPERTY("percentDone", "%f", ts.progress_ppm / 10000.f);
-		TORRENT_PROPERTY("pieceCount", "%d", ti->num_pieces());
-		TORRENT_PROPERTY("pieceSize", "%d", ti->piece_length());
+		TORRENT_PROPERTY("pieceCount", "%d", ti != &empty ? ti->num_pieces() : 0);
+		TORRENT_PROPERTY("pieceSize", "%d", ti != &empty ? ti->piece_length() : 0);
 		TORRENT_PROPERTY("queuePosition", "%d", ts.queue_position);
 		TORRENT_PROPERTY("rateDownload", "%d", ts.download_rate);
 		TORRENT_PROPERTY("rateUpload", "%d", ts.upload_rate);
 		TORRENT_PROPERTY("recheckProgress", "%f", ts.progress_ppm / 10000.f);
 		TORRENT_PROPERTY("secondsDownloading", "%" PRId64 , ts.active_time);
 		TORRENT_PROPERTY("secondsSeeding", "%" PRId64, ts.finished_time);
-		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti->total_size());
+		TORRENT_PROPERTY("sizeWhenDone", "%" PRId64, ti != &empty ? ti->total_size() : 0);
 		TORRENT_PROPERTY("totalSize", "%" PRId64, ts.total_done);
 		TORRENT_PROPERTY("uploadedEver", "%" PRId64, ts.all_time_upload);
 		TORRENT_PROPERTY("uploadedRatio", "%ld", ts.all_time_download == 0
@@ -670,6 +671,57 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 		"\"arguments\": {} }", tag);
 }
 
+void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
+	, boost::int64_t tag, char* buffer)
+{
+	session_status st = m_ses.status();
+
+	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
+		"\"arguments\": { "
+		"\"activeTorrentCount\": %d,"
+		"\"downloadSpeed\": %d,"
+		"\"pausedTorrentCount\": %d,"
+		"\"torrentCount\": %d,"
+		"\"uploadSpeed\": %d,"
+		"\"culumative-stats\": {"
+			"\"uploadedBytes\": %"PRId64","
+			"\"downloadedBytes\": %"PRId64","
+			"\"filesAdded\": %d,"
+			"\"sessionCount\": %d,"
+			"\"secondsActive\": %d"
+			"},"
+		"\"current-stats\": {"
+			"\"uploadedBytes\": %"PRId64","
+			"\"downloadedBytes\": %"PRId64","
+			"\"filesAdded\": %d,"
+			"\"sessionCount\": %d,"
+			"\"secondsActive\": %d"
+			"}"
+		"}}", tag
+		, st.num_torrents - st.num_paused_torrents
+		, st.payload_download_rate
+		, st.num_paused_torrents
+		, st.num_torrents
+		, st.payload_upload_rate
+		// cumulative-stats (not supported)
+		, st.total_payload_download
+		, st.total_payload_upload
+		, st.num_torrents
+		, 1
+		, time(NULL) - m_start_time
+		, st.total_payload_download
+		, st.total_payload_upload
+		, st.num_torrents
+		, 1
+		, time(NULL) - m_start_time
+		// current-stats
+		, st.total_payload_download
+		, st.total_payload_upload
+		, st.num_torrents
+		, 1
+		, time(NULL) - m_start_time);
+}
+
 void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
 	, char* buffer)
 {
@@ -694,7 +746,9 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 
 transmission_webui::transmission_webui(session& s)
 	: webui_base(s)
-{}
+{
+	m_start_time = time(NULL);
+}
 
 transmission_webui::~transmission_webui() {}
 
@@ -760,8 +814,7 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/json\r\n"
 			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
-	  	int len = mg_printf(conn, "%s", &response[0]);
-		TORRENT_ASSERT(len == response.size()-1);
+		mg_write(conn, &response[0], response.size());
 		printf("%s\n", &response[0]);
 		return true;
 	}
