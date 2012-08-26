@@ -255,8 +255,13 @@ The extensions field is a bitmask. The following
 bits are assigned:
 
 	* 1 = authentication_.
+	* 2 = `request string`_.
 
-
+If multiple bits are present in the extension field, the extension
+bodies are appended to the packet in the order of least significant
+bit first. For instance, if both bit 1 and 2 are set, the extension
+represented by bit 1 comes first, followed by the extension represented
+by bit 2.
 
 authentication
 ~~~~~~~~~~~~~~
@@ -281,9 +286,35 @@ appended to it. It has the following format:
 |             |                     | from the 20 bytes hash calculated.     |
 +-------------+---------------------+----------------------------------------+
 
+request string
+--------------
+
+The request string extension is meant to allow torrent creators pass along
+cookies back to the tracker. This can be useful for authenticating that a
+torrent is allowed to be tracked by a tracker for instance. It could also
+be used to authenticate users by generating torrents with unique tokens
+in the tracker URL for each user. The extension body has the following format:
+
++-------------+---------------------+----------------------------------------+
+| size        | name                | description                            |
++=============+=====================+========================================+
+| int16_t     | request length      | The number of bytes in the request     |
+|             |                     | string.                                |
++-------------+---------------------+----------------------------------------+
+| int8_t[]    | request string      | The string that comes after the host-  |
+|             |                     | name and port in the udp tracker URL.  |
+|             |                     | Typically this starts with "/announce" |
+|             |                     | The bittorrent client is not expected  |
+|             |                     | to append query string arguments for   |
+|             |                     | stats reporting, like "uploaded" and   |
+|             |                     | "downloaded" since this is already     |
+|             |                     | reported in the udp tracker protocol.  |
+|             |                     | However, the client is free to add     |
+|             |                     | arguments as extensions.               |
++-------------+---------------------+----------------------------------------+
 
 credits
 -------
 
-Protocol designed by Olaf van der Spek
+Protocol designed by Olaf van der Spek and extended by Arvid Norberg
 

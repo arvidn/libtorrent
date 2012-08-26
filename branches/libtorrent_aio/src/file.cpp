@@ -55,6 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #endif
 
+#include <sys/stat.h>
+
 #ifdef TORRENT_WINDOWS
 // windows part
 
@@ -69,15 +71,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <windows.h>
 #include <winioctl.h>
+#ifndef TORRENT_MINGW
 #include <direct.h> // for _getcwd, _mkdir
+#else
+#include <dirent.h>
+#endif
 #include <sys/types.h>
-#include <sys/stat.h>
 #else
 // posix part
 
 #define _FILE_OFFSET_BITS 64
 #include <unistd.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/statvfs.h>
 #include <errno.h>
@@ -297,7 +301,7 @@ namespace libtorrent
 		std::string f = convert_to_native(inf);
 #endif
 
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS
 		struct _stati64 ret;
 #if TORRENT_USE_WSTRING
 		if (_wstati64(f.c_str(), &ret) < 0)
@@ -326,7 +330,20 @@ namespace libtorrent
 		s->atime = ret.st_atime;
 		s->mtime = ret.st_mtime;
 		s->ctime = ret.st_ctime;
-		s->mode = ret.st_mode;
+#if defined TORRENT_WINDOWS
+    s->mode = ((ret.st_mode & _S_IFREG) ? file_status::regular_file : 0)
+      | ((ret.st_mode & _S_IFDIR) ? file_status::directory : 0)
+      | ((ret.st_mode & _S_IFCHR) ? file_status::character_special : 0)
+      | ((ret.st_mode & _S_IFIFO) ? file_status::fifo : 0);
+#else
+    s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
+      | (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
+      | (S_ISLNK(ret.st_mode) ? file_status::link : 0)
+      | (S_ISFIFO(ret.st_mode) ? file_status::fifo : 0)
+      | (S_ISCHR(ret.st_mode) ? file_status::character_special : 0)
+      | (S_ISBLK(ret.st_mode) ? file_status::block_special : 0)
+      | (S_ISSOCK(ret.st_mode) ? file_status::socket : 0);
+#endif
 	}
 
 	void rename(std::string const& inf, std::string const& newf, error_code& ec)
@@ -693,7 +710,7 @@ namespace libtorrent
 
 	std::string current_working_directory()
 	{
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 #if TORRENT_USE_WSTRING
 		wchar_t cwd[TORRENT_MAX_PATH];
 		_wgetcwd(cwd, sizeof(cwd) / sizeof(wchar_t));

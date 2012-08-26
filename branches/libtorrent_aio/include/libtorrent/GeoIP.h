@@ -29,7 +29,6 @@ extern "C" {
 #include<stdlib.h>
 #include<string.h>
 #include <sys/types.h> /* for fstat */
-#include <sys/stat.h>	/* for fstat */
 
 #define SEGMENT_RECORD_LENGTH 3
 #define STANDARD_RECORD_LENGTH 3

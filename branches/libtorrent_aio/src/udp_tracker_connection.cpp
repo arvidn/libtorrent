@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -599,7 +600,7 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		char buf[8 + 4 + 4 + 20 + 20 + 8 + 8 + 8 + 4 + 4 + 4 + 4 + 2 + 2];
+		char buf[800];
 		char* out = buf;
 
 		tracker_request const& req = tracker_req();
@@ -636,9 +637,23 @@ namespace libtorrent
 		detail::write_int32(req.key, out); // key
 		detail::write_int32(req.num_want, out); // num_want
 		detail::write_uint16(req.listen_port, out); // port
-		detail::write_uint16(0, out); // extensions
 
-		TORRENT_ASSERT(out - buf == sizeof(buf));
+		std::string request_string;
+		error_code ec;
+		using boost::tuples::ignore;
+		boost::tie(ignore, ignore, ignore, ignore, request_string) = parse_url_components(req.url, ec);
+		if (ec) request_string.clear();
+
+		detail::write_uint16(request_string.empty() ? 0: 2, out); // extensions. 2 = request-string
+
+		if (!request_string.empty())
+		{
+			if (request_string.size() > 512) request_string.resize(512);
+			detail::write_uint16(request_string.size(), out);
+			detail::write_string(request_string, out);
+		}
+
+		TORRENT_ASSERT(out - buf <= sizeof(buf));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -652,17 +667,16 @@ namespace libtorrent
 		}
 #endif
 
-		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_ses.m_udp_socket.send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
+			m_ses.m_udp_socket.send_hostname(m_hostname.c_str(), m_target.port(), buf, out - buf, ec);
 		}
 		else
 		{
-			m_ses.m_udp_socket.send(m_target, buf, sizeof(buf), ec);
+			m_ses.m_udp_socket.send(m_target, buf, out - buf, ec);
 		}
 		m_state = action_announce;
-		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
+		sent_bytes(out - buf + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
