@@ -527,12 +527,13 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					", \"rateToClient\": %d"
 					", \"rateToPeer\": %d"
 					"}"
-					+ (i?2:0)
+					+ (i?0:2)
 					, print_address(p.ip.address()).c_str()
 					, p.client.c_str()
 					, to_bool(p.flags & peer_info::choked)
 					, to_bool(p.flags & peer_info::interesting)
 					, to_bool(p.downloading_piece_index != -1)
+					, to_bool(p.flags & (peer_info::rc4_encrypted | peer_info::plaintext_encrypted))
 					, to_bool(p.source & peer_info::incoming)
 					, to_bool(p.used_send_buffer)
 					, to_bool(p.connection_type == peer_info::bittorrent_utp)
@@ -560,7 +561,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					", \"scrape\": \"%s\""
 					", \"tier\": %d"
 					"}"
-					+ (i?2:0)
+					+ (i?0:2)
 					, trackers[i].url.c_str()
 					, 0
 					, trackers[i].url.c_str()
