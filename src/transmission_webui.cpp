@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string.h> // for strcmp() 
 #include <stdio.h>
 #include <vector>
+#include <map>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -52,6 +53,7 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
+#include "libtorrent/http_parser.hpp" // for http_parser
 #include "response_buffer.hpp" // for appendf
 
 namespace libtorrent
@@ -166,6 +168,7 @@ void return_error(mg_connection* conn, char const* msg)
 
 void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
 {
+	buf.clear();
 	appendf(buf, "{ \"result\": \"%s\", \"tag\": %" PRId64 "}", msg, tag);
 }
 
@@ -187,6 +190,7 @@ method_handler handlers[] =
 	{"torrent-reannounce", &transmission_webui::reannounce_torrent },
 	{"torrent-remove", &transmission_webui::remove_torrent},
 	{"session-stats", &transmission_webui::session_stats},
+	{"session-get", &transmission_webui::get_session},
 };
 
 void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer)
@@ -278,6 +282,86 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		"\"id\": %u, \"name\": \"%s\"}}}"
 		, tag, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
 		, h.id(), h.name().c_str());
+}
+
+void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<char>& buf, std::vector<char> const& post_body)
+{
+	// expect a multipart message here
+	char const* content_type = mg_get_header(conn, "content-type");
+	if (strstr(content_type, "multipart/form-data") == NULL)
+	{
+		return_failure(buf, "expected multipart/form-data", 0);
+		return;
+	}
+
+	char const* boundary = strstr(content_type, "boundary=");
+	if (boundary == NULL)
+	{
+		return_failure(buf, "missing form boundary in header", 0);
+		return;
+	}
+	boundary += 9;
+
+	char const* body_end = &post_body[0] + post_body.size();
+
+	char const* part_start = strnstr(&post_body[0], boundary, post_body.size());
+	if (part_start == NULL)
+	{
+		return_failure(buf, "missing form boundary", 0);
+		return;
+	}
+	part_start += strlen(boundary);
+	char const* part_end = NULL;
+
+	appendf(buf, "{ \"result\": \"success\", "
+		"\"arguments\": { ");
+
+	// loop through all parts
+	for(; part_start < body_end; part_start = (std::min)(body_end, part_end + strlen(boundary)))
+	{
+		part_end = strnstr(part_start, boundary, body_end - part_start);
+		if (part_end == NULL) part_end = body_end;
+
+		http_parser part;
+		bool error = false;
+		part.incoming(buffer::const_interval(part_start, part_end), error);
+
+		std::multimap<std::string, std::string> const& part_headers = part.headers();
+		for (std::multimap<std::string, std::string>::const_iterator i = part_headers.begin()
+			, end(part_headers.end()); i != end; ++i)
+		{
+			printf("  %s: %s\n", i->first.c_str(), i->second.c_str());
+		}
+
+		// if the content-disposition header doesn't contain
+		// name="torrent_files[]", we should ignore this part
+		std::string const& disposition = part.header("content-disposition");
+		if (strstr(disposition.c_str(), "name=\"torrent_files[]\"") == NULL) continue;
+
+		add_torrent_params params;
+		params.save_path = ".";
+		char const* torrent_start = part.get_body().begin;
+		error_code ec;
+		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
+		if (ec)
+		{
+			return_failure(buf, ec.message().c_str(), 0);
+			continue;
+		}
+
+		torrent_handle h = m_ses.add_torrent(params);
+		if (ec)
+		{
+			return_failure(buf, ec.message().c_str(), 0);
+			return;
+		}
+
+		appendf(buf, "\"torrent-added\": { \"hashString\": \"%s\", "
+			"\"id\": %u, \"name\": \"%s\"}"
+			, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
+			, h.id(), h.name().c_str());
+	}
+	appendf(buf, "}}");
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -380,7 +464,7 @@ void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmnt
 	else
 	{
 		boost::int64_t id = find_int(args, buffer, "ids");
-		if (id == -1) return;
+		if (id == 0) return;
 		torrent_ids.insert(torrent_ids.begin(), id);
 	}
 }
@@ -982,6 +1066,33 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		, time(NULL) - m_start_time);
 }
 
+void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
+	, boost::int64_t tag, char* buffer)
+{
+	session_status st = m_ses.status();
+	aux::session_settings sett = m_ses.get_settings();
+
+	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
+		"\"arguments\": { "
+		"\"alt-speed-down\": 0,"
+		"\"alt-speed-enabled\": false,"
+		"\"alt-speed-time-begin\": 0,"
+		"\"alt-speed-time-enabled\": false,"
+		"\"alt-speed-time-end\": 0,"
+		"\"alt-speed-time-day\": 0,"
+		"\"alt-speed-up\": 0,"
+		"\"blocklist-url\": \"\","
+		"\"blocklist-enabled\": false,"
+		"\"blocklist-size\": 0,"
+		"\"cache-size-mb\": %d,"
+		"\"config-dir\": \"\","
+		"\"download-dir\": \"\","
+		"}}",tag
+		, sett.get_int(settings_pack::cache_size) * 16 / 1024
+		);
+
+}
+
 void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
 	, char* buffer)
 {
@@ -1077,6 +1188,22 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		mg_write(conn, &response[0], response.size());
 		printf("%s\n", &response[0]);
 		return true;
+	}
+
+	if (!strcmp(request_info->uri, "/upload"))
+	{
+		std::vector<char> buf;
+		add_torrent_multipart(conn, buf, post_body);
+
+		// we need a null terminator
+		response.push_back('\0');
+		// subtract one from content-length
+		// to not count null terminator
+		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/json\r\n"
+			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
+		mg_write(conn, &response[0], response.size());
+		printf("%s\n", &response[0]);
 	}
 
 	// TODO: handle other urls here
