@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "webui.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include <boost/cstdint.hpp>
 #include <vector>
 #include <set>
@@ -47,6 +48,9 @@ namespace libtorrent
 	{
 		transmission_webui(session& s);
 		~transmission_webui();
+
+		void set_params_model(add_torrent_params const& p)
+		{ m_params_model = p; }
 
 		virtual bool handle_http(mg_connection* conn,
 			mg_request_info const* request_info);
@@ -71,6 +75,7 @@ namespace libtorrent
 
 	private:
 		time_t m_start_time;
+		add_torrent_params m_params_model;
 	};
 }
 

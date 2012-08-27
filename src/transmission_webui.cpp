@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+// for statfs()
+#include <sys/param.h>
+#include <sys/mount.h>
+
 #include "transmission_webui.hpp"
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -230,13 +234,22 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 {
 	jsmntok_t* cookies = find_key(args, buffer, "cookies", JSMN_STRING);
 
-	add_torrent_params params;
-	params.save_path = find_string(args, buffer, "download-dir");
-	if (params.save_path.empty()) 
-		params.save_path = ".";
+	add_torrent_params params = m_params_model;
+	std::string save_path = find_string(args, buffer, "download-dir");
+	if (!save_path.empty())
+		params.save_path = save_path;
+
 	bool paused = find_bool(args, buffer, "paused");
-	params.paused = paused;
-	params.flags = paused ? 0 : add_torrent_params::flag_auto_managed;
+	if (paused)
+	{
+		params.flags |= add_torrent_params::flag_paused;
+		params.flags &= ~add_torrent_params::flag_auto_managed;
+	}
+	else
+	{
+		params.flags &= ~add_torrent_params::flag_paused;
+		params.flags |= add_torrent_params::flag_auto_managed;
+	}
 
 	std::string url = find_string(args, buffer, "filename");
 	if (url.substr(0, 7) == "http://"
@@ -335,8 +348,7 @@ void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<
 		std::string const& disposition = part.header("content-disposition");
 		if (strstr(disposition.c_str(), "name=\"torrent_files[]\"") == NULL) continue;
 
-		add_torrent_params params;
-		params.save_path = ".";
+		add_torrent_params params = m_params_model;
 		char const* torrent_start = part.get_body().begin;
 		error_code ec;
 		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
@@ -587,11 +599,11 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			appendf(buf, ", \"fileStats\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
 			{
-				int prio = tr_file_priority(ts.handle.file_priority(i));
+				int prio = ts.handle.file_priority(i);
 				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
 					"\"wanted\": %s,"
 					"\"priority\": %d }" + (i?0:2)
-					, progress[i], to_bool(prio), prio);
+					, progress[i], to_bool(prio), tr_file_priority(prio));
 			}
 			appendf(buf, "]");
 			++count;
@@ -839,7 +851,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	jsmntok_t* file_prio_wanted = find_key(args, buffer, "files-wanted", JSMN_ARRAY);
 	if (file_prio_wanted)
 	{
-		if (file_prio_unwanted->size == 0) all_file_prio = 2;
+		if (file_prio_wanted->size == 0) all_file_prio = 2;
 		jsmntok_t* item = file_prio_wanted + 1;
 		for (int i = 0; i < file_prio_wanted->size; ++i, item = skip_item(item))
 		{
@@ -852,7 +864,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	jsmntok_t* file_prio_high = find_key(args, buffer, "priority-high", JSMN_ARRAY);
 	if (file_prio_high)
 	{
-		if (file_prio_unwanted->size == 0) all_file_prio = 7;
+		if (file_prio_high->size == 0) all_file_prio = 7;
 		jsmntok_t* item = file_prio_high + 1;
 		for (int i = 0; i < file_prio_high->size; ++i, item = skip_item(item))
 		{
@@ -865,7 +877,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	jsmntok_t* file_prio_low = find_key(args, buffer, "priority-low", JSMN_ARRAY);
 	if (file_prio_low)
 	{
-		if (file_prio_unwanted->size == 0) all_file_prio = 1;
+		if (file_prio_low->size == 0) all_file_prio = 1;
 		jsmntok_t* item = file_prio_low + 1;
 		for (int i = 0; i < file_prio_low->size; ++i, item = skip_item(item))
 		{
@@ -878,7 +890,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 	jsmntok_t* file_prio_normal = find_key(args, buffer, "priority-normal", JSMN_ARRAY);
 	if (file_prio_normal)
 	{
-		if (file_prio_unwanted->size == 0) all_file_prio = 2;
+		if (file_prio_normal->size == 0) all_file_prio = 2;
 		jsmntok_t* item = file_prio_normal + 1;
 		for (int i = 0; i < file_prio_normal->size; ++i, item = skip_item(item))
 		{
@@ -1059,6 +1071,17 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		, time(NULL) - m_start_time);
 }
 
+boost::int64_t free_disk_space(std::string const& path)
+{
+	// TODO: support windows
+
+	struct statfs fs;
+	int ret = statfs(path.c_str(), &fs);
+	if (ret < 0) return -1;
+
+	return boost::int64_t(fs.f_bavail) * fs.f_bsize;
+}
+
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	, boost::int64_t tag, char* buffer)
 {
@@ -1079,9 +1102,46 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		"\"blocklist-size\": 0,"
 		"\"cache-size-mb\": %d,"
 		"\"config-dir\": \"\","
-		"\"download-dir\": \"\""
+		"\"download-dir\": \"%s\","
+		"\"download-dir-free-space\": %" PRId64 ","
+		"\"download-queue-size\": %d,"
+		"\"download-queue-enabled\": true,"
+		"\"seed-queue-size\": %d,"
+		"\"seed-queue-enabled\": true,"
+		"\"speed-limit-down\": %d,"
+		"\"speed-limit-up\": %d,"
+		"\"speed-limit-down-enabled\": %s,"
+		"\"speed-limit-up-enabled\": %s,"
+		"\"start-added-torrents\": %s,"
+		"\"units\": { "
+			"\"speed-units\": [\"kB/s\", \"MB/s\", \"GB/s\", \"TB/s\"],"
+			"\"speed-bytes\": [1000, 1000000, 1000000000, 1000000000000],"
+			"\"size-units\": [\"kB\", \"MB\", \"GB\", \"TB\"],"
+			"\"size-bytes\": [1000, 1000000, 1000000000, 1000000000000],"
+			"\"memory-units\": [\"kB\", \"MB\", \"GB\", \"TB\"],"
+			"\"memory-bytes\": [1000, 1000000, 1000000000, 1000000000000]"
+			"},"
+		"\"utp-enabled\": %s,"
+		"\"version\": \"%s\","
+		"\"peer-port\": %d,"
+		"\"peer-limit-global\": %d"
 		"}}",tag
 		, sett.get_int(settings_pack::cache_size) * 16 / 1024
+		, m_params_model.save_path.c_str()
+		, free_disk_space(m_params_model.save_path)
+		, sett.get_int(settings_pack::active_downloads)
+		, sett.get_int(settings_pack::active_seeds)
+		, sett.get_int(settings_pack::download_rate_limit)
+		, sett.get_int(settings_pack::upload_rate_limit)
+		, to_bool(sett.get_int(settings_pack::download_rate_limit) > 0)
+		, to_bool(sett.get_int(settings_pack::upload_rate_limit) > 0)
+		, to_bool((m_params_model.flags & add_torrent_params::flag_auto_managed)
+			|| (m_params_model.flags & add_torrent_params::flag_paused) == 0)
+		, to_bool(sett.get_bool(settings_pack::enable_incoming_utp)
+			|| sett.get_bool(settings_pack::enable_outgoing_utp))
+		, sett.get_str(settings_pack::user_agent).c_str()
+		, m_ses.listen_port()
+		, sett.get_int(settings_pack::connections_limit)
 		);
 
 }
@@ -1111,6 +1171,7 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 transmission_webui::transmission_webui(session& s)
 	: webui_base(s)
 {
+	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
 }
 
