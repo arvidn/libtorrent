@@ -284,20 +284,20 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		, h.id(), h.name().c_str());
 }
 
-void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<char>& buf, std::vector<char> const& post_body)
+void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<char> const& post_body)
 {
 	// expect a multipart message here
 	char const* content_type = mg_get_header(conn, "content-type");
 	if (strstr(content_type, "multipart/form-data") == NULL)
 	{
-		return_failure(buf, "expected multipart/form-data", 0);
+		mg_printf(conn, "HTTP/1.1 503 Invalid argument\r\n\r\n");
 		return;
 	}
 
 	char const* boundary = strstr(content_type, "boundary=");
 	if (boundary == NULL)
 	{
-		return_failure(buf, "missing form boundary in header", 0);
+		mg_printf(conn, "HTTP/1.1 503 Missing boundary in header\r\n\r\n");
 		return;
 	}
 	boundary += 9;
@@ -307,14 +307,11 @@ void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<
 	char const* part_start = strnstr(&post_body[0], boundary, post_body.size());
 	if (part_start == NULL)
 	{
-		return_failure(buf, "missing form boundary", 0);
+		mg_printf(conn, "HTTP/1.1 503 Missing boundary\r\n\r\n");
 		return;
 	}
 	part_start += strlen(boundary);
 	char const* part_end = NULL;
-
-	appendf(buf, "{ \"result\": \"success\", "
-		"\"arguments\": { ");
 
 	// loop through all parts
 	for(; part_start < body_end; part_start = (std::min)(body_end, part_end + strlen(boundary)))
@@ -325,14 +322,14 @@ void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<
 		http_parser part;
 		bool error = false;
 		part.incoming(buffer::const_interval(part_start, part_end), error);
-
+/*
 		std::multimap<std::string, std::string> const& part_headers = part.headers();
 		for (std::multimap<std::string, std::string>::const_iterator i = part_headers.begin()
 			, end(part_headers.end()); i != end; ++i)
 		{
 			printf("  %s: %s\n", i->first.c_str(), i->second.c_str());
 		}
-
+*/
 		// if the content-disposition header doesn't contain
 		// name="torrent_files[]", we should ignore this part
 		std::string const& disposition = part.header("content-disposition");
@@ -345,23 +342,19 @@ void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<
 		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
 		if (ec)
 		{
-			return_failure(buf, ec.message().c_str(), 0);
+			mg_printf(conn, "HTTP/1.1 503 %s\r\n\r\n", ec.message().c_str());
 			continue;
 		}
 
 		torrent_handle h = m_ses.add_torrent(params);
 		if (ec)
 		{
-			return_failure(buf, ec.message().c_str(), 0);
+			mg_printf(conn, "HTTP/1.1 503 %s\r\n\r\n", ec.message().c_str());
 			return;
 		}
-
-		appendf(buf, "\"torrent-added\": { \"hashString\": \"%s\", "
-			"\"id\": %u, \"name\": \"%s\"}"
-			, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
-			, h.id(), h.name().c_str());
 	}
-	appendf(buf, "}}");
+
+	mg_printf(conn, "HTTP/1.1 200 OK\r\n\r\n");
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -1086,7 +1079,7 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		"\"blocklist-size\": 0,"
 		"\"cache-size-mb\": %d,"
 		"\"config-dir\": \"\","
-		"\"download-dir\": \"\","
+		"\"download-dir\": \"\""
 		"}}",tag
 		, sett.get_int(settings_pack::cache_size) * 16 / 1024
 		);
@@ -1192,18 +1185,8 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 
 	if (!strcmp(request_info->uri, "/upload"))
 	{
-		std::vector<char> buf;
-		add_torrent_multipart(conn, buf, post_body);
-
-		// we need a null terminator
-		response.push_back('\0');
-		// subtract one from content-length
-		// to not count null terminator
-		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/json\r\n"
-			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
-		mg_write(conn, &response[0], response.size());
-		printf("%s\n", &response[0]);
+		add_torrent_multipart(conn, post_body);
+		return true;
 	}
 
 	// TODO: handle other urls here

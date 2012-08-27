@@ -57,7 +57,7 @@ namespace libtorrent
 			, char* buffer);
 
 		void add_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void add_torrent_multipart(mg_connection* conn, std::vector<char>& buf, std::vector<char> const& post_body);
+		void add_torrent_multipart(mg_connection* conn, std::vector<char> const& post_body);
 		void get_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void set_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void start_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
