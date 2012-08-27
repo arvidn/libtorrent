@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/random.hpp"
 
 #include <stdlib.h> // for malloc/free
 #include <string.h> // for strcpy/strlen
