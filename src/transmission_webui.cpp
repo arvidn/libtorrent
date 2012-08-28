@@ -1053,19 +1053,14 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		, st.num_torrents
 		, st.payload_upload_rate
 		// cumulative-stats (not supported)
-		, st.total_payload_download
 		, st.total_payload_upload
-		, st.num_torrents
-		, 1
-		, time(NULL) - m_start_time
 		, st.total_payload_download
-		, st.total_payload_upload
 		, st.num_torrents
 		, 1
 		, time(NULL) - m_start_time
 		// current-stats
-		, st.total_payload_download
 		, st.total_payload_upload
+		, st.total_payload_download
 		, st.num_torrents
 		, 1
 		, time(NULL) - m_start_time);
@@ -1169,7 +1164,7 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 }
 
 transmission_webui::transmission_webui(session& s)
-	: webui_base(s)
+	: m_ses(s)
 {
 	m_params_model.save_path = ".";
 	m_start_time = time(NULL);

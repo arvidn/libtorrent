@@ -31,10 +31,19 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef TORRENT_WEBUI_HPP
+#define TORRENT_WEBUI_HPP
+
+#include <vector>
 
 struct mg_context;
 struct mg_connection;
 struct mg_request_info;
+
+struct http_handler
+{
+	virtual bool handle_http(mg_connection* conn,
+		mg_request_info const* request_info) = 0;
+};
 
 namespace libtorrent
 {
@@ -42,22 +51,25 @@ namespace libtorrent
 
 	struct webui_base
 	{
-		webui_base(session& s);
+		webui_base();
 		~webui_base();
+
+		void add_handler(http_handler* h)
+		{ m_handlers.push_back(h); }
+
+		void remove_handler(http_handler* h);
 
 		void start(int port);
 		void stop();
 
-		virtual bool handle_http(mg_connection* conn,
-			mg_request_info const* request_info) = 0;
-
-	protected:
-
-		session& m_ses;
-
+		bool handle_http(mg_connection* conn
+			, mg_request_info const* request_info);
+	
 	private:
 
-		mg_context *m_ctx;
+		std::vector<http_handler*> m_handlers;
+
+		mg_context* m_ctx;
 	};
 
 }

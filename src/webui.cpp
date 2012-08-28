@@ -57,12 +57,28 @@ static void *handle_http(mg_event event,
 	return ret ? (void*)"" : NULL;
 }
 
-webui_base::webui_base(session& s)
-	: m_ses(s)
-	, m_ctx(NULL)
+webui_base::webui_base()
+	: m_ctx(NULL)
 {}
 
 webui_base::~webui_base() {}
+
+void webui_base::remove_handler(http_handler* h)
+{
+	std::vector<http_handler*>::iterator i = std::find(m_handlers.begin(), m_handlers.end(), h);
+	if (i != m_handlers.end()) m_handlers.erase(i);
+}
+
+bool webui_base::handle_http(mg_connection* conn
+		, mg_request_info const* request_info)
+{
+	for (std::vector<http_handler*>::iterator i = m_handlers.begin()
+		, end(m_handlers.end()); i != end; ++i)
+	{
+		if ((*i)->handle_http(conn, request_info)) return true;
+	}
+	return false;
+}
 
 void webui_base::start(int port)
 {

@@ -44,7 +44,7 @@ struct jsmntok_t;
 
 namespace libtorrent
 {
-	struct transmission_webui : webui_base
+	struct transmission_webui : http_handler
 	{
 		transmission_webui(session& s);
 		~transmission_webui();
@@ -55,13 +55,7 @@ namespace libtorrent
 		virtual bool handle_http(mg_connection* conn,
 			mg_request_info const* request_info);
 
-		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer);
-		void parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
-		void get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
-			, char* buffer);
-
 		void add_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
-		void add_torrent_multipart(mg_connection* conn, std::vector<char> const& post_body);
 		void get_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void set_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void start_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
@@ -74,7 +68,16 @@ namespace libtorrent
 		void get_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer);
 
 	private:
+
+		void add_torrent_multipart(mg_connection* conn, std::vector<char> const& post_body);
+
+		void get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
+			, char* buffer);
+		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer);
+		void parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
+
 		time_t m_start_time;
+		session& m_ses;
 		add_torrent_params m_params_model;
 	};
 }
