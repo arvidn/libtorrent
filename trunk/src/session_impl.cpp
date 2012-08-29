@@ -2071,6 +2071,8 @@ namespace aux {
 		else if (s.choking_algorithm == session_settings::auto_expand_choker
 			&& m_allowed_upload_slots < m_settings.unchoke_slots_limit)
 			m_allowed_upload_slots = m_settings.unchoke_slots_limit;
+		if (m_allowed_upload_slots < 0)
+			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 		// replace all occurances of '\n' with ' '.
 		std::string::iterator i = m_settings.user_agent.begin();
@@ -6061,6 +6063,10 @@ namespace aux {
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_network_thread());
+
+		if (m_settings.unchoke_slots_limit < 0
+			&& m_settings.choking_algorithm == session_settings::fixed_slots_choker)
+			TORRENT_ASSERT(m_allowed_upload_slots == (std::numeric_limits<int>::max)());
 
 		int num_checking = 0;
 		int num_queued_for_checking = 0;
