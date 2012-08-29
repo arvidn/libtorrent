@@ -34,9 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/connection_queue.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/error.hpp"
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -141,7 +141,7 @@ void udp_socket::send_hostname(char const* hostname, int port
 	m_queue.push_back(queued_packet());
 	queued_packet& qp = m_queue.back();
 	qp.ep.port(port);
-	qp.hostname = strdup(hostname);
+	qp.hostname = allocate_string_copy(hostname);
 	qp.buf.insert(qp.buf.begin(), p, p + len);
 	qp.flags = 0;
 }

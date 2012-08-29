@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include <string.h> // strdup
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include <stdlib.h> // free
 
 namespace libtorrent
@@ -383,7 +383,7 @@ namespace libtorrent
 			if (!m_msg)
 			{
 				std::string msg = m_error.message();
-				m_msg = strdup(msg.c_str());
+				m_msg = allocate_string_copy(msg.c_str());
 			}
 
 			return m_msg;

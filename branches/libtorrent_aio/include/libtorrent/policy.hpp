@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <deque>
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 
 #include "libtorrent/peer.hpp"
 #include "libtorrent/piece_picker.hpp"
@@ -439,7 +440,7 @@ namespace libtorrent
 
 #if TORRENT_USE_I2P
 	inline policy::i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
-		: peer(0, connectable, src), destination(strdup(dest))
+		: peer(0, connectable, src), destination(allocate_string_copy(dest))
 	{
 #if TORRENT_USE_IPV6
 		is_v6_addr = false;

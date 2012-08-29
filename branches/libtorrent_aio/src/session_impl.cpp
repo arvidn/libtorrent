@@ -2220,6 +2220,8 @@ namespace aux {
 		m_disk_thread.set_settings(pack);
 		delete pack;
 	}
+		if (m_allowed_upload_slots < 0)
+			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::set_settings(libtorrent::session_settings const& s)
@@ -6691,6 +6693,10 @@ namespace aux {
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		if (m_settings.unchoke_slots_limit < 0
+			&& m_settings.choking_algorithm == session_settings::fixed_slots_choker)
+			TORRENT_ASSERT(m_allowed_upload_slots == (std::numeric_limits<int>::max)());
 
 		for (int l = 0; l < num_torrent_lists; ++l)
 		{

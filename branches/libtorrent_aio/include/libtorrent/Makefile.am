@@ -119,6 +119,7 @@ nobase_include_HEADERS = \
   storage_defs.hpp             \
   tailqueue.hpp                \
   sruct_debug.hpp              \
+  string_util.hpp              \
   thread.hpp                   \
   thread_pool.hpp              \
   time.hpp                     \

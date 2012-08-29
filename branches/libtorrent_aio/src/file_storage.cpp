@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include <boost/bind.hpp>
@@ -158,7 +159,7 @@ namespace libtorrent
 		}
 		else
 		{
-			name = borrow_chars ? n : strdup(n);
+			name = borrow_chars ? n : allocate_string_copy(n);
 		}
 		name_len = borrow_chars;
 	}
