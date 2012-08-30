@@ -113,20 +113,28 @@ bool torrent_post::handle_http(mg_connection* conn,
 			printf("  %s: %s\n", i->first.c_str(), i->second.c_str());
 		}
 */
-		// if the content-disposition header doesn't contain
-		// name="torrent_files[]", we should ignore this part
-		// TODO: look for one with a content-type of application/x-bittorrent instead
-		std::string const& disposition = part.header("content-disposition");
-		if (strstr(disposition.c_str(), "name=\"torrent_files[]\"") == NULL) continue;
+		std::string const& disposition = part.header("content-type");
+		if (disposition != "application/octet-stream") continue;
 
 		add_torrent_params params = m_params_model;
 		char const* torrent_start = part.get_body().begin;
 		error_code ec;
 		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
+
 		if (ec)
 		{
 			mg_printf(conn, "HTTP/1.1 400 %s\r\n\r\n", ec.message().c_str());
 			continue;
+		}
+
+		std::string query_string = "?";
+		query_string += request_info->query_string;
+
+		std::string paused = url_has_argument(query_string, "paused");
+		if (paused == "true")
+		{
+			params.flags |= add_torrent_params::flag_paused;
+			params.flags &= ~add_torrent_params::flag_auto_managed;
 		}
 
 		torrent_handle h = m_ses.add_torrent(params);
