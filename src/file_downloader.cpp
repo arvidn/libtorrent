@@ -156,8 +156,6 @@ namespace libtorrent
 		sha1_hash info_hash;
 		from_hex(info_hash_str.c_str(), 40, (char*)&info_hash[0]);
 
-//#error parse out byte-range from range header
-
 		torrent_handle h = m_ses.find_torrent(info_hash);
 
 		// TODO: it would be nice to wait for the metadata to complete
@@ -173,9 +171,32 @@ namespace libtorrent
 			mg_printf(conn, "HTTP/1.1 400 Bad Request\r\n\r\n");
 			return true;
 		}
-		peer_request req = ti.map_file(file, 0, 0);
+
+		boost::int64_t file_size = ti.files().file_size(file);
+		boost::int64_t range_first_byte = 0;
+		boost::int64_t range_last_byte = file_size - 1;
+		bool range_request = false;
+
+		char const* range = mg_get_header(conn, "range");
+		if (range)
+		{
+			range = strstr(range, "bytes=");
+			if (range)
+			{
+				char const* divider = strchr(range, '-');
+				if (divider)
+				{
+					range_first_byte = strtoll(range, NULL, 10);
+					range_last_byte = strtoll(divider+1, NULL, 10);
+					range_request = true;
+					printf("range: %"PRId64" - %"PRId64"\n", range_first_byte, range_last_byte);
+				}
+			}
+		}
+
+		peer_request req = ti.map_file(file, range_first_byte, 0);
 		int first_piece = req.piece;
-		int end_piece = ti.map_file(file, ti.files().file_size(file)-1, 0).piece + 1;
+		int end_piece = ti.map_file(file, range_last_byte, 0).piece + 1;
 		boost::uint64_t offset = req.start;
 
 		torrent_piece_queue pq;
@@ -187,18 +208,41 @@ namespace libtorrent
 
 		int priority_cursor = pq.begin;
 
-		// TODO: take range request into account
-		boost::int64_t left_to_send = ti.files().file_size(file);
+		if (range_request && (range_first_byte > range_last_byte
+			|| range_last_byte >= file_size
+			|| range_first_byte < 0))
+		{
+			mg_printf(conn, "HTTP/1.1 416 Requested Range Not Satisfiable\r\n"
+				"Content-Length: %" PRId64 "\r\n\r\n"
+				, file_size);
+			return true;
+		}
 
-		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+		mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Length: %" PRId64 "\r\n"
-			"\r\n", left_to_send);
+			"Accept-Ranges: bytes\r\n"
+			, range_request ? "206 Partial Content" : "200 OK"
+			, range_last_byte - range_first_byte + 1);
+
+		if (range_request)
+		{
+			mg_printf(conn, "Content-Range: bytes %"PRId64"-%"PRId64"/%"PRId64"\r\n\r\n"
+				, range_first_byte, range_last_byte, file_size);
+		}
+		else
+		{
+			mg_printf(conn, "\r\n");
+		}
+
+		offset += range_first_byte;
+		boost::int64_t left_to_send = range_last_byte - range_first_byte + 1;
+
 
 		for (int i = pq.begin; i < pq.finish; ++i)
 		{
 			while (priority_cursor < pq.end)
 			{
-				printf("set_piece_deadline: %d\n", priority_cursor);
+//				printf("set_piece_deadline: %d\n", priority_cursor);
 				h.set_piece_deadline(priority_cursor
 					, 100 * (priority_cursor - pq.begin)
 					, torrent_handle::alert_when_available);
@@ -219,7 +263,7 @@ namespace libtorrent
 			l.unlock();
 
 			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
-			mg_write(conn, &pe.buffer[offset], pe.size);
+			mg_write(conn, &pe.buffer[offset], amount_to_send);
 			left_to_send -= amount_to_send;
 			printf("sent: %d bytes\n", amount_to_send);
 			offset = 0;
