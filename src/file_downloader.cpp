@@ -220,9 +220,14 @@ namespace libtorrent
 
 		mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Length: %" PRId64 "\r\n"
+			"Content-Type: %s\r\n"
+			"Content-Disposition: inline; filename=%s\r\n"
 			"Accept-Ranges: bytes\r\n"
 			, range_request ? "206 Partial Content" : "200 OK"
-			, range_last_byte - range_first_byte + 1);
+			, range_last_byte - range_first_byte + 1
+			, mg_get_builtin_mime_type(ti.files().file_name(file).c_str())
+			// TODO: make sure to escape any new-line characters in the filename
+			, ti.files().file_name(file).c_str());
 
 		if (range_request)
 		{
@@ -263,7 +268,10 @@ namespace libtorrent
 			l.unlock();
 
 			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
-			mg_write(conn, &pe.buffer[offset], amount_to_send);
+			int ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
+			if (ret < 0) break;
+			TORRENT_ASSERT(ret == amount_to_send);
+
 			left_to_send -= amount_to_send;
 			printf("sent: %d bytes\n", amount_to_send);
 			offset = 0;

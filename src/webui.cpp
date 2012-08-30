@@ -47,13 +47,14 @@ extern "C" {
 using namespace libtorrent;
 
 static void *handle_http(mg_event event,
-	mg_connection* conn,
-	mg_request_info const* request_info)
+	mg_connection* conn)
 {
+	const mg_request_info *request_info = mg_get_request_info(conn);
 	if (event != MG_NEW_REQUEST) return NULL;
 	if (request_info->user_data == NULL) return NULL;
 
-	bool ret = reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(conn, request_info);
+	bool ret = reinterpret_cast<webui_base*>(request_info->user_data)->handle_http(
+		conn, request_info);
 	return ret ? (void*)"" : NULL;
 }
 
