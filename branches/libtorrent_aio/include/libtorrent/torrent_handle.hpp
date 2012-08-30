@@ -73,6 +73,7 @@ namespace libtorrent
 	struct peer_list_entry;
 	struct torrent_status;
 	struct torrent_handle;
+	class torrent;
 
 	TORRENT_EXPORT std::size_t hash_value(torrent_status const& ts);
 
@@ -435,6 +436,9 @@ namespace libtorrent
 			// it's safe to shift 11 bits
 			return boost::uint32_t(ret >> 11);
 		}
+
+		boost::shared_ptr<torrent> native_handle() const;
+
 	private:
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)

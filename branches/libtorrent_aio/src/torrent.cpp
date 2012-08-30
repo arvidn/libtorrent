@@ -1173,11 +1173,8 @@ namespace libtorrent
 				size = 0;
 			}
 
-			if (m_ses.m_alerts.should_post<read_piece_alert>())
-			{
-				m_ses.m_alerts.post_alert(read_piece_alert(
-					get_handle(), r.piece, rp->piece_data, size));
-			}
+			m_ses.m_alerts.post_alert(read_piece_alert(
+				get_handle(), r.piece, rp->piece_data, size));
 			delete rp;
 		}
 	}

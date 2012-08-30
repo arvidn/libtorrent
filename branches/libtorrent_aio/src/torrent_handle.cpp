@@ -958,6 +958,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(reset_piece_deadline, index);
 	}
 
+	boost::shared_ptr<torrent> torrent_handle::native_handle() const
+	{
+		return m_torrent.lock();
+	}
+
 	std::size_t hash_value(torrent_status const& ts)
 	{
 		return hash_value(ts.handle);
@@ -968,5 +973,6 @@ namespace libtorrent
 		// use the pointer value as hash
 		return std::size_t(th.m_torrent.lock().get());
 	}
+
 }
 
