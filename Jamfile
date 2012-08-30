@@ -12,6 +12,7 @@ if $(BOOST_ROOT)
 SOURCES =
 	webui
 	transmission_webui
+	json_util
 	file_downloader
 	torrent_post
 	;
