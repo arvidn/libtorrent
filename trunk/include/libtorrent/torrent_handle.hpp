@@ -70,6 +70,7 @@ namespace libtorrent
 	struct peer_info;
 	struct peer_list_entry;
 	struct torrent_status;
+	class torrent;
 
 	TORRENT_EXPORT std::size_t hash_value(torrent_status const& ts);
 
@@ -416,6 +417,8 @@ namespace libtorrent
 
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.lock() < h.m_torrent.lock(); }
+
+		boost::shared_ptr<torrent> native_handle() const;
 
 	private:
 

@@ -2384,6 +2384,8 @@ Its declaration looks like this::
 		bool operator==(torrent_handle const&) const;
 		bool operator!=(torrent_handle const&) const;
 		bool operator<(torrent_handle const&) const;
+
+		boost::shared_ptr<torrent> native_handle() const;
 	};
 
 The default constructor will initialize the handle to an invalid state. Which
@@ -2631,8 +2633,8 @@ this torrent. You must have completed the download of the specified piece before
 calling this function.
 
 When the read operation is completed, it is passed back through an alert,
-read_piece_alert_. In order to receive this alert, you must enable
-``alert::storage_notification`` in your alert mask (see `set_alert_mask()`_).
+read_piece_alert_. Since this alert is a reponse to an explicit call, it will
+always be posted, regardless of the alert mask.
 
 Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.
@@ -3376,6 +3378,20 @@ ssl certificate.
 
 If you receive a torrent_need_cert_alert_, you need to call this to provide a valid cert. If you
 don't have a cert you won't be allowed to connect to any peers.
+
+native_handle()
+---------------
+
+	::
+
+		boost::shared_ptr<torrent> native_handle() const;
+
+This function is intended only for use by plugins and the alert dispatch function. Any code
+that runs in libtorrent's network thread may not use the public API of ``torrent_handle``.
+Doing so results in a dead-lock. For such routines, the ``native_handle`` gives access to the
+underlying type representing the torrent. This type does not have a stable API and should
+be relied on as little as possible.
+
 
 torrent_status
 ==============
