@@ -959,11 +959,8 @@ namespace libtorrent
 		if (!need_loaded())
 		{
 			rp->piece_data.reset();
-			if (m_ses.m_alerts.should_post<read_piece_alert>())
-			{
-				m_ses.m_alerts.post_alert(read_piece_alert(
-					get_handle(), r.piece, rp->piece_data, 0));
-			}
+			m_ses.m_alerts.post_alert(read_piece_alert(
+				get_handle(), r.piece, rp->piece_data, 0));
 			delete rp;
 			return;
 		}
