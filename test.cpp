@@ -1,4 +1,5 @@
 #include "transmission_webui.hpp"
+#include "file_downloader.hpp"
 #include "libtorrent/session.hpp"
 
 using namespace libtorrent;
@@ -9,8 +10,11 @@ int main(int argc, char *const argv[])
 		, std::make_pair(6881, 6882));
 
 	transmission_webui tr_handler(ses);
+	file_downloader file_handler(ses);
+
 	webui_base webport;
 	webport.add_handler(&tr_handler);
+	webport.add_handler(&file_handler);
 	webport.start(8080);
 
 	while (getchar() != 'q');

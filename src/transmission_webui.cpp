@@ -220,7 +220,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		handled = true;
 
 		if (args) buffer[args->end] = 0;
-		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
+//		printf("%s: %s\n", m, args ? buffer + args->start : "{}");
 
 		(this->*handlers[i].fun)(buf, args, tag, buffer);
 		break;
@@ -1188,7 +1188,8 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		}
 	}
 
-	printf("REQUEST: %s\n", request_info->uri);
+	printf("REQUEST: %s?%s\n", request_info->uri
+		, request_info->query_string ? request_info->query_string : "");
 
 	std::vector<char> response;
 	if (!strcmp(request_info->uri, "/transmission/rpc")
@@ -1235,12 +1236,14 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 			"Content-Type: text/json\r\n"
 			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
 		mg_write(conn, &response[0], response.size());
-		printf("%s\n", &response[0]);
+//		printf("%s\n", &response[0]);
 		return true;
 	}
 
 	if (!strcmp(request_info->uri, "/upload"))
 	{
+		// TODO: parse out ?paused= as well
+		// TODO: move the /upload to a separate handler
 		add_torrent_multipart(conn, post_body);
 		return true;
 	}

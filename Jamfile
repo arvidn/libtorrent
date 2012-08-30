@@ -12,6 +12,7 @@ if $(BOOST_ROOT)
 SOURCES =
 	webui
 	transmission_webui
+	file_downloader
 	;
 
 lib libtorrent-webui

@@ -52,6 +52,8 @@ namespace libtorrent
 		session& m_ses;
 
 		boost::shared_ptr<piece_alert_dispatch> m_dispatch;
+
+		int m_queue_size;
 	};
 }
 
