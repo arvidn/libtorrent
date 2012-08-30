@@ -57,7 +57,6 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
-#include "libtorrent/http_parser.hpp" // for http_parser
 #include "response_buffer.hpp" // for appendf
 
 namespace libtorrent
@@ -295,78 +294,6 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		"\"id\": %u, \"name\": \"%s\"}}}"
 		, tag, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
 		, h.id(), h.name().c_str());
-}
-
-void transmission_webui::add_torrent_multipart(mg_connection* conn, std::vector<char> const& post_body)
-{
-	// expect a multipart message here
-	char const* content_type = mg_get_header(conn, "content-type");
-	if (strstr(content_type, "multipart/form-data") == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 503 Invalid argument\r\n\r\n");
-		return;
-	}
-
-	char const* boundary = strstr(content_type, "boundary=");
-	if (boundary == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 503 Missing boundary in header\r\n\r\n");
-		return;
-	}
-	boundary += 9;
-
-	char const* body_end = &post_body[0] + post_body.size();
-
-	char const* part_start = strnstr(&post_body[0], boundary, post_body.size());
-	if (part_start == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 503 Missing boundary\r\n\r\n");
-		return;
-	}
-	part_start += strlen(boundary);
-	char const* part_end = NULL;
-
-	// loop through all parts
-	for(; part_start < body_end; part_start = (std::min)(body_end, part_end + strlen(boundary)))
-	{
-		part_end = strnstr(part_start, boundary, body_end - part_start);
-		if (part_end == NULL) part_end = body_end;
-
-		http_parser part;
-		bool error = false;
-		part.incoming(buffer::const_interval(part_start, part_end), error);
-/*
-		std::multimap<std::string, std::string> const& part_headers = part.headers();
-		for (std::multimap<std::string, std::string>::const_iterator i = part_headers.begin()
-			, end(part_headers.end()); i != end; ++i)
-		{
-			printf("  %s: %s\n", i->first.c_str(), i->second.c_str());
-		}
-*/
-		// if the content-disposition header doesn't contain
-		// name="torrent_files[]", we should ignore this part
-		std::string const& disposition = part.header("content-disposition");
-		if (strstr(disposition.c_str(), "name=\"torrent_files[]\"") == NULL) continue;
-
-		add_torrent_params params = m_params_model;
-		char const* torrent_start = part.get_body().begin;
-		error_code ec;
-		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
-		if (ec)
-		{
-			mg_printf(conn, "HTTP/1.1 503 %s\r\n\r\n", ec.message().c_str());
-			continue;
-		}
-
-		torrent_handle h = m_ses.add_torrent(params);
-		if (ec)
-		{
-			mg_printf(conn, "HTTP/1.1 503 %s\r\n\r\n", ec.message().c_str());
-			return;
-		}
-	}
-
-	mg_printf(conn, "HTTP/1.1 200 OK\r\n\r\n");
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -1174,6 +1101,9 @@ transmission_webui::~transmission_webui() {}
 
 bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
+	if (strcmp(request_info->uri, "/transmission/rpc")
+		&& strcmp(request_info->uri, "/rpc")) return false;
+
 	char const* cl = mg_get_header(conn, "content-length");
 	std::vector<char> post_body;
 	if (cl != NULL)
@@ -1192,65 +1122,49 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		, request_info->query_string ? request_info->query_string : "");
 
 	std::vector<char> response;
-	if (!strcmp(request_info->uri, "/transmission/rpc")
-		|| !strcmp(request_info->uri, "/rpc"))
+	if (post_body.empty())
 	{
-		if (post_body.empty())
-		{
-			return_error(conn, "request with no POST body");
-			return true;
-		}
-		jsmntok_t tokens[256];
-		jsmn_parser p;
-		jsmn_init(&p);
+		return_error(conn, "request with no POST body");
+		return true;
+	}
+	jsmntok_t tokens[256];
+	jsmn_parser p;
+	jsmn_init(&p);
 
-		int r = jsmn_parse(&p, &post_body[0], tokens, sizeof(tokens)/sizeof(tokens[0]));
-		if (r == JSMN_ERROR_INVAL)
-		{
-			return_error(conn, "request not JSON");
-			return true;
-		}
-		else if (r == JSMN_ERROR_NOMEM)
-		{
-			return_error(conn, "request too big");
-			return true;
-		}
-		else if (r == JSMN_ERROR_PART)
-		{
-			return_error(conn, "request truncated");
-			return true;
-		}
-		else if (r != JSMN_SUCCESS)
-		{
-			return_error(conn, "invalid request");
-			return true;
-		}
-
-		handle_json_rpc(response, tokens, &post_body[0]);
-
-		// we need a null terminator
-		response.push_back('\0');
-		// subtract one from content-length
-		// to not count null terminator
-		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/json\r\n"
-			"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
-		mg_write(conn, &response[0], response.size());
-//		printf("%s\n", &response[0]);
+	int r = jsmn_parse(&p, &post_body[0], tokens, sizeof(tokens)/sizeof(tokens[0]));
+	if (r == JSMN_ERROR_INVAL)
+	{
+		return_error(conn, "request not JSON");
+		return true;
+	}
+	else if (r == JSMN_ERROR_NOMEM)
+	{
+		return_error(conn, "request too big");
+		return true;
+	}
+	else if (r == JSMN_ERROR_PART)
+	{
+		return_error(conn, "request truncated");
+		return true;
+	}
+	else if (r != JSMN_SUCCESS)
+	{
+		return_error(conn, "invalid request");
 		return true;
 	}
 
-	if (!strcmp(request_info->uri, "/upload"))
-	{
-		// TODO: parse out ?paused= as well
-		// TODO: move the /upload to a separate handler
-		add_torrent_multipart(conn, post_body);
-		return true;
-	}
+	handle_json_rpc(response, tokens, &post_body[0]);
 
-	// TODO: handle other urls here
-
-	return false;
+	// we need a null terminator
+	response.push_back('\0');
+	// subtract one from content-length
+	// to not count null terminator
+	mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+		"Content-Type: text/json\r\n"
+		"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
+	mg_write(conn, &response[0], response.size());
+//	printf("%s\n", &response[0]);
+	return true;
 }
 
 
