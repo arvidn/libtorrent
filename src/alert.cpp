@@ -411,6 +411,19 @@ namespace libtorrent {
 		mutex::scoped_lock lock(m_mutex);
 
 		post_impl(a);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		lock.unlock();
+
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_alert(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+#endif
+
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
