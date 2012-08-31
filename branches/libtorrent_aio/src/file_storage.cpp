@@ -431,6 +431,13 @@ namespace libtorrent
 		return combine_path(m_paths[fe.path_index], fe.filename());
 	}
 
+	std::string file_storage::file_name(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		internal_file_entry const& fe = m_files[index];
+		return fe.filename();
+	}
+
 	size_type file_storage::file_size(int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
@@ -490,6 +497,11 @@ namespace libtorrent
 		TORRENT_ASSERT(fe.path_index >= -1 && fe.path_index < int(m_paths.size()));
 		if (fe.path_index == -1) return fe.filename();
 		return combine_path(m_paths[fe.path_index], fe.filename());
+	}
+
+	std::string file_storage::file_name(internal_file_entry const& fe) const
+	{
+		return fe.filename();
 	}
 
 	size_type file_storage::file_size(internal_file_entry const& fe) const
