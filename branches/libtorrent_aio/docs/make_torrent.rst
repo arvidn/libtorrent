@@ -180,6 +180,7 @@ file structure. Its synopsis::
 		void set_file_base(int index, size_type off);
 
 		std::string file_path(int index) const;
+		std::string file_name(int index) const;
 		size_type file_size(int index) const;
 		bool pad_file_at(int index) const;
 
@@ -217,8 +218,8 @@ can be changed by calling ``set_name``.
 The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.
 
-hash() symlink() mtime() file_path() file_size() pad_file_at()
---------------------------------------------------------------
+hash() symlink() mtime() file_path() file_name() file_size() pad_file_at()
+--------------------------------------------------------------------------
 
 	::
 
@@ -226,6 +227,7 @@ hash() symlink() mtime() file_path() file_size() pad_file_at()
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
 		std::string file_path(int index) const;
+		std::string file_name(int index) const;
 		size_type file_size(int index) const;
 		bool pad_file_at(int index) const;
 
@@ -246,6 +248,9 @@ was created, or 0 if it was not included in the torrent file.
 
 ``pad_file_at()`` returns true if the file at the given
 index is a pad-file.
+
+``file_name()`` returns just the name of the file, without
+the path.
 
 file_base() set_file_base()
 ---------------------------
