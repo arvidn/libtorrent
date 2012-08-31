@@ -294,7 +294,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
-		TORRENT_ASYNC_CALL1(set_max_uploads, max_uploads);
+		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
 	void torrent_handle::use_interface(const char* net_interface) const
@@ -314,7 +314,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
-		TORRENT_ASYNC_CALL1(set_max_connections, max_connections);
+		TORRENT_ASYNC_CALL2(set_max_connections, max_connections, true);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const

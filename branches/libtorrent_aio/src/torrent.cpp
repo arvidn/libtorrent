@@ -502,6 +502,17 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		if (p.flags & add_torrent_params::flag_sequential_download)
+			m_sequential_download = true;
+
+		if (p.flags & add_torrent_params::flag_super_seeding)
+			m_super_seeding = true;
+
+		set_max_uploads(p.max_uploads, false);
+		set_max_connections(p.max_connections, false);
+		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
+		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
+
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -4021,9 +4032,6 @@ namespace libtorrent
 	{
 		if (on == m_super_seeding) return;
 
-		// don't turn on super seeding if we're not a seed
-		TORRENT_ASSERT(!on || is_seed() || !m_files_checked);
-		if (on && !is_seed() && m_files_checked) return;
 		m_super_seeding = on;
 
 		if (m_super_seeding) return;
@@ -7283,21 +7291,21 @@ namespace libtorrent
 		m_ses.m_auto_manage_time_scaler = 2;
 	}
 
-	void torrent::set_max_uploads(int limit)
+	void torrent::set_max_uploads(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1<<24)-1;
-		if (m_max_uploads != limit) state_updated();
+		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
 	}
 
-	void torrent::set_max_connections(int limit)
+	void torrent::set_max_connections(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1<<24)-1;
-		if (m_max_connections != limit) state_updated();
+		if (m_max_connections != limit && state_update) state_updated();
 		m_max_connections = limit;
 
 		if (num_peers() > int(m_max_connections))
@@ -7317,7 +7325,7 @@ namespace libtorrent
 		set_limit_impl(limit, peer_connection::download_channel);
 	}
 
-	void torrent::set_limit_impl(int limit, int channel)
+	void torrent::set_limit_impl(int limit, int channel, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
@@ -7330,7 +7338,7 @@ namespace libtorrent
 
 		struct peer_class* tpc = m_ses.m_classes.at(m_peer_class);
 		TORRENT_ASSERT(tpc);
-		if (tpc->channel[channel].throttle() != limit)
+		if (tpc->channel[channel].throttle() != limit && state_update)
 			state_updated();
 		tpc->channel[channel].throttle(limit);
 	}

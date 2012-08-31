@@ -380,9 +380,9 @@ namespace libtorrent
 
 		peer_class_t peer_class() const { return m_peer_class; }
 
-		void set_max_uploads(int limit);
+		void set_max_uploads(int limit, bool state_update = true);
 		int max_uploads() const { return m_max_uploads; }
-		void set_max_connections(int limit);
+		void set_max_connections(int limit, bool state_update = true);
 		int max_connections() const { return m_max_connections; }
 
 // --------------------------------------------
@@ -898,7 +898,7 @@ namespace libtorrent
 		void on_cache_flushed(disk_io_job const* j);
 
 		// upload and download rate limits for the torrent
-		void set_limit_impl(int limit, int channel);
+		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;
 
 		void refresh_explicit_cache_impl(disk_io_job const* j, int cache_size);

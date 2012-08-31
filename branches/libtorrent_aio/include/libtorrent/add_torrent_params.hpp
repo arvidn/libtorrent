@@ -71,6 +71,10 @@ namespace libtorrent
 #else
 			, flags(default_flags)
 #endif
+			, max_uploads(-1)
+			, max_connections(-1)
+			, upload_limit(-1)
+			, download_limit(-1)
 		{
 		}
 
@@ -105,7 +109,9 @@ namespace libtorrent
 			flag_duplicate_is_error = 0x080,
 			flag_merge_resume_trackers = 0x100,
 			flag_update_subscribe = 0x200,
-			flag_pinned = 0x400,
+			flag_super_seeding = 0x400,
+			flag_sequential_download = 0x800,
+			flag_pinned = 0x1000,
 
 			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 #ifndef TORRENT_NO_DEPRECATE
@@ -145,6 +151,13 @@ namespace libtorrent
 		bool duplicate_is_error;
 		bool merge_resume_trackers;
 #endif
+		// -1 means unlimited on these settings
+		// just like their counterpart functions
+		// on torrent_handle
+		int max_uploads;
+		int max_connections;
+		int upload_limit;
+		int download_limit;
 	};
 }
 
