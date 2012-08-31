@@ -562,6 +562,17 @@ namespace libtorrent
 #endif
 		INVARIANT_CHECK;
 
+		if (p.flags & add_torrent_params::flag_sequential_download)
+			m_sequential_download = true;
+
+		if (p.flags & add_torrent_params::flag_super_seeding)
+			m_super_seeding = true;
+
+		set_max_uploads(p.max_uploads, false);
+		set_max_connections(p.max_connections, false);
+		set_upload_limit(p.upload_limit, false);
+		set_download_limit(p.download_limit, false);
+
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -3545,9 +3556,6 @@ namespace libtorrent
 	{
 		if (on == m_super_seeding) return;
 
-		// don't turn on super seeding if we're not a seed
-		TORRENT_ASSERT(!on || is_seed() || !m_files_checked);
-		if (on && !is_seed() && m_files_checked) return;
 		m_super_seeding = on;
 
 		if (m_super_seeding) return;
@@ -6668,21 +6676,21 @@ namespace libtorrent
 		m_ses.m_auto_manage_time_scaler = 2;
 	}
 
-	void torrent::set_max_uploads(int limit)
+	void torrent::set_max_uploads(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1<<24)-1;
-		if (m_max_uploads != limit) state_updated();
+		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
 	}
 
-	void torrent::set_max_connections(int limit)
+	void torrent::set_max_connections(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1<<24)-1;
-		if (m_max_connections != limit) state_updated();
+		if (m_max_connections != limit && state_update) state_updated();
 		m_max_connections = limit;
 
 		if (num_peers() > int(m_max_connections))
@@ -6730,12 +6738,13 @@ namespace libtorrent
 		(*i)->set_download_limit(limit);
 	}
 
-	void torrent::set_upload_limit(int limit)
+	void torrent::set_upload_limit(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
-		if (m_bandwidth_channel[peer_connection::upload_channel].throttle() != limit)
+		if (m_bandwidth_channel[peer_connection::upload_channel].throttle() != limit
+			&& state_update)
 			state_updated();
 		m_bandwidth_channel[peer_connection::upload_channel].throttle(limit);
 	}
@@ -6748,12 +6757,13 @@ namespace libtorrent
 		return limit;
 	}
 
-	void torrent::set_download_limit(int limit)
+	void torrent::set_download_limit(int limit, bool state_update)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
-		if (m_bandwidth_channel[peer_connection::download_channel].throttle() != limit)
+		if (m_bandwidth_channel[peer_connection::download_channel].throttle() != limit
+			&& state_update)
 			state_updated();
 		m_bandwidth_channel[peer_connection::download_channel].throttle(limit);
 	}
