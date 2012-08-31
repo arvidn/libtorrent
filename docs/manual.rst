@@ -394,7 +394,9 @@ async_add_torrent() add_torrent()
 				flag_auto_managed = 0x040.
 				flag_duplicate_is_error = 0x080,
 				flag_merge_resume_trackers = 0x100,
-				flag_update_subscribe = 0x200
+				flag_update_subscribe = 0x200,
+				flag_super_seeding = 0x400,
+				flag_sequential_download = 0x800
 			};
 
 			int version;
@@ -417,6 +419,10 @@ async_add_torrent() add_torrent()
 			std::string uuid;
 			std::string source_feed_url;
 			boost::uint64_t flags;
+			int max_uploads;
+			int max_connections;
+			int upload_limit;
+			int download_limit;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -533,7 +539,9 @@ and how it's added. These are the flags::
 		flag_auto_managed = 0x040.
 		flag_duplicate_is_error = 0x080,
 		flag_merge_resume_trackers = 0x100,
-		flag_update_subscribe = 0x200
+		flag_update_subscribe = 0x200,
+		flag_super_seeding = 0x400,
+		flag_sequential_download = 0x800
 	}
 
 ``flag_apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
@@ -605,6 +613,20 @@ priorities for torrents in share mode, it will make it not work.
 The share mode has one setting, the share ratio target, see ``session_settings::share_mode_target``
 for more info.
 
+``flag_super_seeding`` sets the torrent into super seeding mode. If the torrent
+is not a seed, this flag has no effect. It has the same effect as calling
+``torrent_handle::super_seeding(true)`` on the torrent handle immediately
+after adding it.
+
+``flag_sequential_download`` sets the sequential download state for the torrent.
+It has the same effect as calling ``torrent_handle::sequential_download(true)``
+on the torrent handle immediately after adding it.
+
+``max_uploads``, ``max_connections``, ``upload_limit``, ``download_limit`` correspond
+to the ``set_max_uploads()``, ``set_max_connections()``, ``set_upload_limit()`` and
+``set_download_limit()`` functions on torrent_handle_. These values let you initialize
+these settings when the torrent is added, instead of calling these functions immediately
+following adding it.
 
 remove_torrent()
 ----------------
