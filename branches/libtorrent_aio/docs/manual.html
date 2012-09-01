@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -55,41 +55,42 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#overview" id="id13">overview</a></li>
-<li><a class="reference internal" href="#things-to-keep-in-mind" id="id14">things to keep in mind</a></li>
-<li><a class="reference internal" href="#network-primitives" id="id15">network primitives</a></li>
-<li><a class="reference internal" href="#session" id="id16">session</a></li>
-<li><a class="reference internal" href="#entry" id="id17">entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id18">torrent_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id19">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id20">torrent_status</a></li>
-<li><a class="reference internal" href="#peer-info" id="id21">peer_info</a></li>
-<li><a class="reference internal" href="#feed-handle" id="id22">feed_handle</a></li>
-<li><a class="reference internal" href="#feed-item" id="id23">feed_item</a></li>
-<li><a class="reference internal" href="#session-customization" id="id24">session customization</a></li>
-<li><a class="reference internal" href="#pe-settings" id="id25">pe_settings</a></li>
-<li><a class="reference internal" href="#proxy-settings" id="id26">proxy_settings</a></li>
-<li><a class="reference internal" href="#ip-filter" id="id27">ip_filter</a></li>
-<li><a class="reference internal" href="#big-number" id="id28">big_number</a></li>
-<li><a class="reference internal" href="#bitfield" id="id29">bitfield</a></li>
-<li><a class="reference internal" href="#hasher" id="id30">hasher</a></li>
-<li><a class="reference internal" href="#fingerprint" id="id31">fingerprint</a></li>
-<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id32">UPnP and NAT-PMP</a></li>
-<li><a class="reference internal" href="#free-functions" id="id33">free functions</a></li>
-<li><a class="reference internal" href="#alerts" id="id34">alerts</a></li>
-<li><a class="reference internal" href="#alert-dispatcher" id="id35">alert dispatcher</a></li>
-<li><a class="reference internal" href="#exceptions" id="id36">exceptions</a></li>
-<li><a class="reference internal" href="#error-code" id="id37">error_code</a></li>
-<li><a class="reference internal" href="#storage-interface" id="id38">storage_interface</a></li>
-<li><a class="reference internal" href="#magnet-links" id="id39">magnet links</a></li>
-<li><a class="reference internal" href="#queuing" id="id40">queuing</a></li>
-<li><a class="reference internal" href="#fast-resume" id="id41">fast resume</a></li>
-<li><a class="reference internal" href="#storage-allocation" id="id42">storage allocation</a></li>
-<li><a class="reference internal" href="#extensions" id="id43">extensions</a></li>
-<li><a class="reference internal" href="#piece-picker" id="id44">piece picker</a></li>
-<li><a class="reference internal" href="#predictive-piece-announce" id="id45">predictive piece announce</a></li>
-<li><a class="reference internal" href="#peer-classes" id="id46">peer classes</a></li>
-<li><a class="reference internal" href="#ssl-torrents" id="id47">SSL torrents</a></li>
+<li><a class="reference internal" href="#overview" id="id15">overview</a></li>
+<li><a class="reference internal" href="#things-to-keep-in-mind" id="id16">things to keep in mind</a></li>
+<li><a class="reference internal" href="#network-primitives" id="id17">network primitives</a></li>
+<li><a class="reference internal" href="#session" id="id18">session</a></li>
+<li><a class="reference internal" href="#entry" id="id19">entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id20">torrent_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id21">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id22">torrent_status</a></li>
+<li><a class="reference internal" href="#peer-info" id="id23">peer_info</a></li>
+<li><a class="reference internal" href="#feed-handle" id="id24">feed_handle</a></li>
+<li><a class="reference internal" href="#feed-item" id="id25">feed_item</a></li>
+<li><a class="reference internal" href="#session-customization" id="id26">session customization</a></li>
+<li><a class="reference internal" href="#pe-settings" id="id27">pe_settings</a></li>
+<li><a class="reference internal" href="#proxy-settings" id="id28">proxy_settings</a></li>
+<li><a class="reference internal" href="#ip-filter" id="id29">ip_filter</a></li>
+<li><a class="reference internal" href="#big-number" id="id30">big_number</a></li>
+<li><a class="reference internal" href="#bitfield" id="id31">bitfield</a></li>
+<li><a class="reference internal" href="#hasher" id="id32">hasher</a></li>
+<li><a class="reference internal" href="#fingerprint" id="id33">fingerprint</a></li>
+<li><a class="reference internal" href="#upnp-and-nat-pmp" id="id34">UPnP and NAT-PMP</a></li>
+<li><a class="reference internal" href="#free-functions" id="id35">free functions</a></li>
+<li><a class="reference internal" href="#alerts" id="id36">alerts</a></li>
+<li><a class="reference internal" href="#alert-dispatcher" id="id37">alert dispatcher</a></li>
+<li><a class="reference internal" href="#exceptions" id="id38">exceptions</a></li>
+<li><a class="reference internal" href="#error-code" id="id39">error_code</a></li>
+<li><a class="reference internal" href="#storage-interface" id="id40">storage_interface</a></li>
+<li><a class="reference internal" href="#magnet-links" id="id41">magnet links</a></li>
+<li><a class="reference internal" href="#queuing" id="id42">queuing</a></li>
+<li><a class="reference internal" href="#fast-resume" id="id43">fast resume</a></li>
+<li><a class="reference internal" href="#storage-allocation" id="id44">storage allocation</a></li>
+<li><a class="reference internal" href="#extensions" id="id45">extensions</a></li>
+<li><a class="reference internal" href="#dynamic-loading-of-torrent-files" id="id46">dynamic loading of torrent files</a></li>
+<li><a class="reference internal" href="#piece-picker" id="id47">piece picker</a></li>
+<li><a class="reference internal" href="#id14" id="id48">predictive piece announce</a></li>
+<li><a class="reference internal" href="#peer-classes" id="id49">peer classes</a></li>
+<li><a class="reference internal" href="#ssl-torrents" id="id50">SSL torrents</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -439,6 +440,31 @@ torrents to their previous paused state. i.e. the session pause state is separat
 the torrent pause state. A torrent is inactive if it is paused or if the session is
 paused.</p>
 </div>
+<div class="section" id="set-load-function">
+<h2>set_load_function()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_load_function(boost::function&lt;void(sha1_hash const&amp;
+        , std::vector&lt;char&gt;&amp;, error_code&amp; ec)&gt; fun);
+</pre>
+</blockquote>
+<p>This function enables <a class="reference internal" href="#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>. When a torrent is unloaded
+but needs to be availabe in memory, this function is called <strong>from within the libtorrent
+network thread</strong>. From within this thread, you can <strong>not</strong> use any of the public APIs of
+libtorrent itself. The the info-hash of the torrent is passed in to the function and it
+is expected to fill in the passed in <tt class="docutils literal">vector&lt;char&gt;</tt> with the .torrent file corresponding
+to it.</p>
+<p>If there is an error loading the torrent file, the <tt class="docutils literal">error_code</tt> (<tt class="docutils literal">ec</tt>) should be
+set to reflect the error. In such case, the torrent itself is stopped and set to an
+error state with the corresponding error code.</p>
+<p>Given that the function is called from the internal network thread of libtorrent, it's
+important to not stall. libtorrent will not be able to send nor receive any data until
+the function call returns.</p>
+<p>The signature of the function to pass in is:</p>
+<pre class="literal-block">
+void fun(sha1_hash const&amp; info_hash, std::vector&lt;char&gt;&amp; buf, error_code&amp; ec);
+</pre>
+</div>
 <div class="section" id="abort">
 <h2>abort()</h2>
 <blockquote>
@@ -468,9 +494,7 @@ public:
 <h2>async_add_torrent() add_torrent()</h2>
 <blockquote>
 <pre class="literal-block">
-typedef boost::function&lt;storage_interface*(file_storage const&amp;
-        , file_storage const*, std::string const&amp;, file_pool&amp;
-        , std::vector&lt;boost::uint8_t&gt; const&amp;) storage_constructor_type;
+typedef boost::function&lt;storage_interface*(storage_params const&amp; parms) storage_constructor_type;
 
 struct add_torrent_params
 {
@@ -487,7 +511,8 @@ struct add_torrent_params
                 flag_auto_managed = 0x040.
                 flag_duplicate_is_error = 0x080,
                 flag_merge_resume_trackers = 0x100,
-                flag_update_subscribe = 0x200
+                flag_update_subscribe = 0x200,
+                flag_pinned = 0x400
         };
 
         int version;
@@ -543,8 +568,11 @@ for the torrent.</p>
 <p>If you specify a <tt class="docutils literal">url</tt>, the torrent will be set in <tt class="docutils literal">downloading_metadata</tt> state
 until the .torrent file has been downloaded. If there's any error while downloading,
 the torrent will be stopped and the torrent error state (<tt class="docutils literal"><span class="pre">torrent_status::error</span></tt>)
-will indicate what went wrong. The <tt class="docutils literal">url</tt> may refer to a magnet link or a regular
-http URL.</p>
+will indicate what went wrong. The <tt class="docutils literal">url</tt> may refer to a magnet link, a regular
+http URL or a file-URL. Using a file-URL to load torrents allows for loading them
+asyncronously. When used with <tt class="docutils literal">async_add_torrent()</tt> it can provide a completely non-
+blocking mechanism for adding torrents, without requiring them to be loaded
+from disk first.</p>
 <p><tt class="docutils literal">dht_nodes</tt> is a list of hostname and port pairs, representing DHT nodes to be
 added to the session (if DHT is enabled). The hostname may be an IP address.</p>
 <p>If the torrent you are trying to add already exists in the session (is either queued
@@ -608,7 +636,8 @@ enum flags_t
         flag_auto_managed = 0x040.
         flag_duplicate_is_error = 0x080,
         flag_merge_resume_trackers = 0x100,
-        flag_update_subscribe = 0x200
+        flag_update_subscribe = 0x200,
+        flag_pinned = 0x400
 }
 </pre>
 <p><tt class="docutils literal">flag_apply_ip_filter</tt> determines if the IP filter should apply to this torrent or not. By
@@ -665,6 +694,9 @@ bar, which might be set to &quot;100% finished&quot; most of the time. Do not ch
 priorities for torrents in share mode, it will make it not work.</p>
 <p>The share mode has one setting, the share ratio target, see <a class="reference internal" href="#share-mode-target">share_mode_target</a>.
 for more info.</p>
+<p><tt class="docutils literal">flag_pinned</tt> indicates that this torrent should never be unloaded from RAM, even
+if unloading torrents are allowed in general. Setting this makes the torrent
+excempt from loading/unloading management.</p>
 </div>
 <div class="section" id="remove-torrent">
 <h2>remove_torrent()</h2>
@@ -879,6 +911,9 @@ struct session_status
         int dht_total_allocations;
 
         utp_status utp_stats;
+
+        int num_torrents;
+        int num_paused_torrents;
 };
 </pre>
 <p><tt class="docutils literal">has_incoming_connections</tt> is false as long as no incoming connections have been
@@ -939,6 +974,8 @@ table.</p>
 particular DHT lookup. This represents roughly the amount of memory used
 by the DHT.</p>
 <p><tt class="docutils literal">utp_stats</tt> contains statistics on the uTP sockets.</p>
+<p><tt class="docutils literal">num_torrents</tt> and <tt class="docutils literal">num_paused_torrents</tt> are the number of torrents in the
+session and the number of them that are currently paused, respectively.</p>
 </div>
 <div class="section" id="get-cache-info">
 <h2>get_cache_info()</h2>
@@ -1129,6 +1166,7 @@ the specified peer class. There is no option to only update a single property.</
 struct peer_class_info
 {
         bool ignore_unchoke_slots;
+        int connection_limit_factor;
         std::string label;
         int upload_limit;
         int download_limit;
@@ -1140,6 +1178,13 @@ struct peer_class_info
 regardless of the choking algorithm, or if it should honor the unchoke slot limits.
 It's used for local peers by default. If <em>any</em> of the peer classes a peer belongs to
 has this set to true, that peer will be unchoked at all times.</p>
+<p><tt class="docutils literal">connection_limit_factor</tt> adjusts the connection limit (global and per torrent) that
+applies to this peer class. By default, local peers are allowed to exceed the normal
+connection limit for instance. This is specified as a percent factor. 100 makes
+the peer class apply normally to the limit. 200 means as long as there are fewer
+connections than twice the limit, we accept this peer. This factor applies both to
+the global connection limit and the per-torrent limit. Note that if not used carefully
+one peer class can potentially completely starve out all other over time.</p>
 <p><tt class="docutils literal">label</tt> is not used by libtorrent. It's intended as a potentially user-facing identifier
 of this peer class.</p>
 <p><tt class="docutils literal">upload_limit</tt> and <tt class="docutils literal">download_limit</tt> are transfer rates limits for the whole peer class.
@@ -1349,7 +1394,7 @@ leaving any alert dispatching mechanism independent of this blocking call, the d
 can be called and it can pop the alert independently.</p>
 <p>In the python binding, <tt class="docutils literal">wait_for_alert</tt> takes the number of milliseconds to wait as an integer.</p>
 <p>To control the max number of alerts that's queued by the session, see
-<a href="#id48"><span class="problematic" id="id49">alert_queue_size_</span></a>.</p>
+<a class="reference internal" href="#alert-queue-size">alert_queue_size</a>.</p>
 <p><tt class="docutils literal">save_resume_data_alert</tt> and <tt class="docutils literal">save_resume_data_failed_alert</tt> are always posted, regardelss
 of the alert mask.</p>
 </div>
@@ -2412,6 +2457,7 @@ struct torrent_handle
         int download_limit() const;
         void set_sequential_download(bool sd) const;
         bool is_sequential_download() const;
+        void set_pinned(bool p) const;
 
         int queue_position() const;
         void queue_position_up() const;
@@ -2426,6 +2472,11 @@ struct torrent_handle
         enum pause_flags_t { graceful_pause = 1 };
         void pause(int flags = 0) const;
         void resume() const;
+        bool is_paused() const;
+
+        void set_load_function(boost::function&lt;void(sha1_hash const&amp;
+                , std::vector&lt;char&gt;&amp;, error_code&amp; ec)&gt; fun);
+
         bool is_seed() const;
         void force_recheck() const;
         void clear_error() const;
@@ -2447,6 +2498,7 @@ struct torrent_handle
         void piece_priority(int index, int priority) const;
         int piece_priority(int index) const;
         void prioritize_pieces(std::vector&lt;int&gt; const&amp; pieces) const;
+        void prioritize_pieces(std::vector&lt;std::pair&lt;int, int&gt; &gt; const&amp; pieces) const;
         std::vector&lt;int&gt; piece_priorities() const;
 
         void file_priority(int index, int priority) const;
@@ -2482,6 +2534,8 @@ struct torrent_handle
         bool operator==(torrent_handle const&amp;) const;
         bool operator!=(torrent_handle const&amp;) const;
         bool operator&lt;(torrent_handle const&amp;) const;
+
+        boost::shared_ptr&lt;torrent&gt; native_handle() const;
 };
 </pre>
 <p>The default constructor will initialize the handle to an invalid state. Which
@@ -2543,6 +2597,7 @@ uses in order to prefer picking rare pieces.</p>
 void piece_priority(int index, int priority) const;
 int piece_priority(int index) const;
 void prioritize_pieces(std::vector&lt;int&gt; const&amp; pieces) const;
+void prioritize_pieces(std::vector&lt;std::pair&lt;int, int&gt; &gt; const&amp; pieces) const;
 std::vector&lt;int&gt; piece_priorities() const;
 </pre>
 </blockquote>
@@ -2574,6 +2629,12 @@ specified by <tt class="docutils literal">index</tt>.</p>
 <p><tt class="docutils literal">prioritize_pieces</tt> takes a vector of integers, one integer per piece in
 the torrent. All the piece priorities will be updated with the priorities
 in the vector.</p>
+<p>The second overload of <tt class="docutils literal">prioritize_pieces</tt> that takes a vector of pairs
+will update the priorities of only select pieces, and leave all other
+unaffected. Each pair is (piece, priority). That is, the first item is
+the piece index and the second item is the priority of that piece.
+Invalid entries, where the piece index or priority is out of range, are
+not allowed.</p>
 <p><tt class="docutils literal">piece_priorities</tt> returns a vector with one element for each piece in the
 torrent. Each element is the current priority of that piece.</p>
 </div>
@@ -2753,8 +2814,8 @@ void read_piece(int piece) const;
 this torrent. You must have completed the download of the specified piece before
 calling this function.</p>
 <p>When the read operation is completed, it is passed back through an alert,
-<a class="reference internal" href="#read-piece-alert">read_piece_alert</a>. In order to receive this alert, you must enable
-<tt class="docutils literal"><span class="pre">alert::storage_notification</span></tt> in your alert mask (see <a class="reference internal" href="#set-alert-mask">set_alert_mask()</a>).</p>
+<a class="reference internal" href="#read-piece-alert">read_piece_alert</a>. Since this alert is a reponse to an explicit call, it will
+always be posted, regardless of the alert mask.</p>
 <p>Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.</p>
 </div>
@@ -2880,6 +2941,22 @@ void set_sequential_download(bool sd);
 picker will pick pieces in sequence instead of rarest first.</p>
 <p>Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.</p>
+</div>
+<div class="section" id="set-pinned">
+<h2>set_pinned()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_pinned(bool p) const;
+</pre>
+</blockquote>
+<p>A pinned torrent may not be unloaded by libtorrent. When the dynamic loading and unloading of
+torrents is enabled (by setting a load function on the session), this can be used to exempt
+certain torrents from the unloading logic.</p>
+<p>Magnet links, and other torrents that start out without having metadata are pinned automatically.
+This is to give the client a chance to get the metadata and save it before it's unloaded. In this
+case, it may be useful to un-pin the torrent once its metadata has been saved to disk.</p>
+<p>For more information about dynamically loading and unloading torrents, see
+<a class="reference internal" href="#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>.</p>
 </div>
 <div class="section" id="pause-resume">
 <h2>pause() resume()</h2>
@@ -3015,8 +3092,8 @@ bool set_metadata(char const* buf, int size) const;
 </pre>
 </blockquote>
 <p><tt class="docutils literal">set_metadata</tt> expects the <em>info</em> section of metadata. i.e. The buffer passed in will be
-hashed and verified against the info-hash. If it fails, a <tt class="docutils literal">metadata_failed_alert</tt> will be
-generated. If it passes, a <tt class="docutils literal">metadata_received_alert</tt> is generated. The function returns
+hashed and verified against the info-hash. If it fails, a <a class="reference internal" href="#metadata-failed-alert">metadata_failed_alert</a> will be
+generated. If it passes, a <a class="reference internal" href="#metadata-received-alert">metadata_received_alert</a> is generated. The function returns
 true if the metadata is successfully set on the torrent, and false otherwise. If the torrent
 already has metadata, this function will not affect the torrent, and false will be returned.</p>
 </div>
@@ -3490,6 +3567,19 @@ ssl certificate.</p>
 <p>If you receive a <a class="reference internal" href="#torrent-need-cert-alert">torrent_need_cert_alert</a>, you need to call this to provide a valid cert. If you
 don't have a cert you won't be allowed to connect to any peers.</p>
 </div>
+<div class="section" id="native-handle">
+<h2>native_handle()</h2>
+<blockquote>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent&gt; native_handle() const;
+</pre>
+</blockquote>
+<p>This function is intended only for use by plugins and the alert dispatch function. Any code
+that runs in libtorrent's network thread may not use the public API of <tt class="docutils literal">torrent_handle</tt>.
+Doing so results in a dead-lock. For such routines, the <tt class="docutils literal">native_handle</tt> gives access to the
+underlying type representing the torrent. This type does not have a stable API and should
+be relied on as little as possible.</p>
+</div>
 </div>
 <div class="section" id="torrent-status">
 <h1>torrent_status</h1>
@@ -3515,8 +3605,9 @@ struct torrent_status
         bool paused;
         bool auto_managed;
         bool sequential_download;
-        bool seeding;
-        bool finished;
+        bool is_seeding;
+        bool is_finished;
+        bool is_loaded;
         float progress;
         int progress_ppm;
         std::string error;
@@ -3691,6 +3782,9 @@ this mode pieces are downloaded in order rather than rarest first.</p>
 <p><tt class="docutils literal">is_finished</tt> is true if all pieces that have a priority &gt; 0 are downloaded. There is
 only a distinction between finished and seeding if some pieces or files have been
 set to priority 0, i.e. are not downloaded.</p>
+<p><tt class="docutils literal">is_loaded</tt> is true if this torrent is loaded into RAM. A torrent can be started
+and still not loaded into RAM, in case it has not had any peers interested in it
+yet. Torrents are loaded on demand.</p>
 <p><tt class="docutils literal">has_metadata</tt> is true if this torrent has metadata (either it was started from a
 .torrent file or the metadata has been downloaded). The only scenario where this can be
 false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
@@ -4356,8 +4450,8 @@ on a desktop system. There are functions that can set the session settings to pr
 settings for other environments. These can be used for the basis, and should be tweaked to
 fit your needs better.</p>
 <pre class="literal-block">
-settings_pack min_memory_usage();
-settings_pack high_performance_seed();
+void min_memory_usage(settings_pack&amp; p);
+void high_performance_seed(settings_pack&amp; p);
 </pre>
 <p><tt class="docutils literal">min_memory_usage</tt> returns settings that will use the minimal amount of RAM, at the
 potential expense of upload and download performance. It adjusts the socket buffer sizes,
@@ -4536,6 +4630,1192 @@ default, to prevent abusive behavior by peers. It may
 be useful to allow such connections in cases where
 simulations are run on the same machie, and all peers
 in a swarm has the same IP address.</p>
+<table border="1" class="docutils" id="send-redundant-have">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>send_redundant_have</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if set to true, upload, download and unchoke limits
+are ignored for peers on the local network.
+This option is <em>DEPRECATED</em>, please use <a class="reference internal" href="#set-peer-class-filter">set_peer_class_filter()</a> instead.
+<tt class="docutils literal">send_redundant_have</tt> controls if have messages will be sent
+to peers that already have the piece. This is typically not necessary,
+but it might be necessary for collecting statistics in some cases.
+Default is false.</p>
+<table border="1" class="docutils" id="lazy-bitfields">
+<colgroup>
+<col width="52%" />
+<col width="19%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>lazy_bitfields</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if this is true, outgoing bitfields will never be fuil. If the
+client is seed, a few bits will be set to 0, and later filled
+in with have messages. This is to prevent certain ISPs
+from stopping people from seeding.</p>
+<table border="1" class="docutils" id="use-dht-as-fallback">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>use_dht_as_fallback</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">use_dht_as_fallback</tt> determines how the DHT is used. If this is true,
+the DHT will only be used for torrents where all trackers in its tracker
+list has failed. Either by an explicit error message or a time out. This
+is false by default, which means the DHT is used by default regardless of</p>
+<table border="1" class="docutils" id="upnp-ignore-nonrouters">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>upnp_ignore_nonrouters</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">upnp_ignore_nonrouters</tt> indicates whether or not the UPnP implementation
+should ignore any broadcast response from a device whose address is not the
+configured router for this machine. i.e. it's a way to not talk to other
+people's routers by mistake.</p>
+<table border="1" class="docutils" id="use-parole-mode">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>use_parole_mode</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">use_parole_mode</tt> specifies if parole mode should be used. Parole mode means
+that peers that participate in pieces that fail the hash check are put in a mode
+where they are only allowed to download whole pieces. If the whole piece a peer
+in parole mode fails the hash check, it is banned. If a peer participates in a
+piece that passes the hash check, it is taken out of parole mode.</p>
+<table border="1" class="docutils" id="use-write-cache">
+<span id="use-read-cache"></span><colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>use_read_cache</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+<tr><td>use_write_cache</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>enable and disable caching of read blocks and
+blocks to be written to disk respsectively.
+the purpose of the read cache is partly read-ahead of requests
+but also to avoid reading blocks back from the disk multiple
+times for popular pieces.
+the write cache purpose is to hold off writing blocks to disk until
+they have been hashed, to avoid having to read them back in again.</p>
+<table border="1" class="docutils" id="dont-flush-write-cache">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>dont_flush_write_cache</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>this will make the disk cache never flush a write
+piece if it would cause is to have to re-read it
+once we want to calculate the piece hash</p>
+<table border="1" class="docutils" id="explicit-read-cache">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>explicit_read_cache</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">explicit_read_cache</tt> defaults to 0. If set to something greater than 0, the
+disk read cache will not be evicted by cache misses and will explicitly be
+controlled based on the rarity of pieces. Rare pieces are more likely to be
+cached. This would typically be used together with <tt class="docutils literal">suggest_mode</tt> set to
+<tt class="docutils literal">suggest_read_cache</tt>. The value is the number of pieces to keep in the read
+cache. If the actual read cache can't fit as many, it will essentially be clamped.</p>
+<table border="1" class="docutils" id="coalesce-writes">
+<span id="coalesce-reads"></span><colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>coalesce_reads</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+<tr><td>coalesce_writes</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>allocate separate, contiguous, buffers for read and
+write calls. Only used where writev/readv cannot be used
+will use more RAM but may improve performance</p>
+<table border="1" class="docutils" id="auto-manage-prefer-seeds">
+<colgroup>
+<col width="63%" />
+<col width="15%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>auto_manage_prefer_seeds</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>prefer seeding torrents when determining which torrents to give
+active slots to, the default is false which gives preference to
+downloading torrents</p>
+<table border="1" class="docutils" id="dont-count-slow-torrents">
+<colgroup>
+<col width="63%" />
+<col width="15%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>dont_count_slow_torrents</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if <tt class="docutils literal">dont_count_slow_torrents</tt> is true, torrents without any payload transfers are
+not subject to the <tt class="docutils literal">active_seeds</tt> and <tt class="docutils literal">active_downloads</tt> limits. This is intended
+to make it more likely to utilize all available bandwidth, and avoid having torrents
+that don't transfer anything block the active slots.</p>
+<table border="1" class="docutils" id="close-redundant-connections">
+<colgroup>
+<col width="66%" />
+<col width="14%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>close_redundant_connections</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">close_redundant_connections</tt> specifies whether libtorrent should close
+connections where both ends have no utility in keeping the connection open.
+For instance if both ends have completed their downloads, there's no point
+in keeping it open.</p>
+<table border="1" class="docutils" id="prioritize-partial-pieces">
+<colgroup>
+<col width="64%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>prioritize_partial_pieces</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal">prioritize_partial_pieces</tt> is true, partial pieces are picked
+before pieces that are more rare. If false, rare pieces are always
+prioritized, unless the number of partial pieces is growing out of
+proportion.</p>
+<table border="1" class="docutils" id="rate-limit-ip-overhead">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>rate_limit_ip_overhead</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if set to true, the estimated TCP/IP overhead is
+drained from the rate limiters, to avoid exceeding
+the limits with the total traffic</p>
+<table border="1" class="docutils" id="announce-to-all-trackers">
+<span id="announce-to-all-tiers"></span><colgroup>
+<col width="63%" />
+<col width="15%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>announce_to_all_tiers</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+<tr><td>announce_to_all_trackers</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">announce_to_all_trackers</tt> controls how multi tracker torrents are
+treated. If this is set to true, all trackers in the same tier are
+announced to in parallel. If all trackers in tier 0 fails, all trackers
+in tier 1 are announced as well. If it's set to false, the behavior is as
+defined by the multi tracker specification. It defaults to false, which
+is the same behavior previous versions of libtorrent has had as well.</p>
+<p><tt class="docutils literal">announce_to_all_tiers</tt> also controls how multi tracker torrents are
+treated. When this is set to true, one tracker from each tier is announced
+to. This is the uTorrent behavior. This is false by default in order
+to comply with the multi-tracker specification.</p>
+<table border="1" class="docutils" id="prefer-udp-trackers">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>prefer_udp_trackers</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">prefer_udp_trackers</tt> is true by default. It means that trackers may
+be rearranged in a way that udp trackers are always tried before http
+trackers for the same hostname. Setting this to fails means that the
+trackers' tier is respected and there's no preference of one protocol
+over another.</p>
+<table border="1" class="docutils" id="strict-super-seeding">
+<colgroup>
+<col width="59%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>strict_super_seeding</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">strict_super_seeding</tt> when this is set to true, a piece has to
+have been forwarded to a third peer before another one is handed out.
+This is the traditional definition of super seeding.</p>
+<table border="1" class="docutils" id="lock-disk-cache">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>lock_disk_cache</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>if this is set to true, the memory allocated for the
+disk cache will be locked in physical RAM, never to
+be swapped out</p>
+<table border="1" class="docutils" id="optimize-hashing-for-speed">
+<colgroup>
+<col width="65%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>optimize_hashing_for_speed</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">optimize_hashing_for_speed</tt> chooses between two ways of reading back
+piece data from disk when its complete and needs to be verified against
+the piece hash. This happens if some blocks were flushed to the disk
+out of order. Everything that is flushed in order is hashed as it goes
+along. Optimizing for speed will allocate space to fit all the the
+remaingin, unhashed, part of the piece, reads the data into it in a single
+call and hashes it. This is the default. If <tt class="docutils literal">optimizing_hashing_for_speed</tt>
+is false, a single block will be allocated (16 kB), and the unhashed parts
+of the piece are read, one at a time, and hashed in this single block. This
+is appropriate on systems that are memory constrained.</p>
+<table border="1" class="docutils" id="disable-hash-checks">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>disable_hash_checks</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>when set to true, all data downloaded from
+peers will be assumed to be correct, and not
+tested to match the hashes in the torrent
+this is only useful for simulation and
+testing purposes (typically combined with
+disabled_storage)</p>
+<table border="1" class="docutils" id="allow-reordered-disk-operations">
+<colgroup>
+<col width="69%" />
+<col width="13%" />
+<col width="19%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>allow_reordered_disk_operations</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if this is true, disk read operations are
+sorted by their physical offset on disk before
+issued to the operating system. This is useful
+if async I/O is not supported. It defaults to
+true if async I/O is not supported and fals
+otherwise.
+disk I/O operations are likely to be reordered
+regardless of this setting when async I/O
+is supported by the OS.</p>
+<table border="1" class="docutils" id="allow-i2p-mixed">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>allow_i2p_mixed</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>if this is true, i2p torrents are allowed
+to also get peers from other sources than
+the tracker, and connect to regular IPs,
+not providing any anonymization. This may
+be useful if the user is not interested in
+the anonymization of i2p, but still wants to
+be able to connect to i2p peers.</p>
+<table border="1" class="docutils" id="drop-skipped-requests">
+<colgroup>
+<col width="61%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>drop_skipped_requests</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal">drop_skipped_requests</tt> is set to true (it defaults to false), piece
+requests that have been skipped enough times when piece messages
+are received, will be considered lost. Requests are considered skipped
+when the returned piece messages are re-ordered compared to the order
+of the requests. This was an attempt to get out of dead-locks caused by
+BitComet peers silently ignoring some requests. It may cause problems
+at high rates, and high level of reordering in the uploading peer, that's
+why it's disabled by default.</p>
+<table border="1" class="docutils" id="low-prio-disk">
+<colgroup>
+<col width="50%" />
+<col width="20%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>low_prio_disk</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">low_prio_disk</tt> determines if the disk I/O should use a normal
+or low priority policy. This defaults to true, which means that
+it's low priority by default. Other processes doing disk I/O will
+normally take priority in this mode. This is meant to improve the
+overall responsiveness of the system while downloading in the
+background. For high-performance server setups, this might not
+be desirable.</p>
+<table border="1" class="docutils" id="volatile-read-cache">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>volatile_read_cache</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">volatile_read_cache</tt>, if this is set to true, read cache blocks
+that are hit by peer read requests are removed from the disk cache
+to free up more space. This is useful if you don't expect the disk
+cache to create any cache hits from other peers than the one who
+triggered the cache line to be read into the cache in the first place.</p>
+<table border="1" class="docutils" id="guided-read-cache">
+<colgroup>
+<col width="56%" />
+<col width="18%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>guided_read_cache</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">guided_read_cache</tt> enables the disk cache to adjust the size
+of a cache line generated by peers to depend on the upload rate
+you are sending to that peer. The intention is to optimize the RAM
+usage of the cache, to read ahead further for peers that you're
+sending faster to.</p>
+<table border="1" class="docutils" id="no-atime-storage">
+<colgroup>
+<col width="55%" />
+<col width="18%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_atime_storage</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">no_atime_storage</tt> this is a linux-only option and passes in the
+<tt class="docutils literal">O_NOATIME</tt> to <tt class="docutils literal">open()</tt> when opening files. This may lead to
+some disk performance improvements.</p>
+<table border="1" class="docutils" id="incoming-starts-queued-torrents">
+<colgroup>
+<col width="69%" />
+<col width="13%" />
+<col width="19%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>incoming_starts_queued_torrents</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">incoming_starts_queued_torrents</tt> defaults to false. If a torrent
+has been paused by the auto managed feature in libtorrent, i.e.
+the torrent is paused and auto managed, this feature affects whether
+or not it is automatically started on an incoming connection. The
+main reason to queue torrents, is not to make them unavailable, but
+to save on the overhead of announcing to the trackers, the DHT and to
+avoid spreading one's unchoke slots too thin. If a peer managed to
+find us, even though we're no in the torrent anymore, this setting
+can make us start the torrent and serve it.</p>
+<table border="1" class="docutils" id="report-true-downloaded">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>report_true_downloaded</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>when set to true, the downloaded counter sent to trackers
+will include the actual number of payload bytes donwnloaded
+including redundant bytes. If set to false, it will not include
+any redundany bytes</p>
+<table border="1" class="docutils" id="strict-end-game-mode">
+<colgroup>
+<col width="59%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>strict_end_game_mode</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">strict_end_game_mode</tt> defaults to true, and controls when a block
+may be requested twice. If this is <tt class="docutils literal">true</tt>, a block may only be requested
+twice when there's ay least one request to every piece that's left to
+download in the torrent. This may slow down progress on some pieces
+sometimes, but it may also avoid downloading a lot of redundant bytes.
+If this is <tt class="docutils literal">false</tt>, libtorrent attempts to use each peer connection
+to its max, by always requesting something, even if it means requesting
+something that has been requested from another peer already.</p>
+<table border="1" class="docutils" id="broadcast-lsd">
+<colgroup>
+<col width="50%" />
+<col width="20%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>broadcast_lsd</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>if <tt class="docutils literal">broadcast_lsd</tt> is set to true, the local peer discovery
+(or Local Service Discovery) will not only use IP multicast, but also
+broadcast its messages. This can be useful when running on networks
+that don't support multicast. Since broadcast messages might be
+expensive and disruptive on networks, only every 8th announce uses
+broadcast.</p>
+<table border="1" class="docutils" id="enable-incoming-tcp">
+<span id="enable-outgoing-tcp"></span><span id="enable-incoming-utp"></span><span id="enable-outgoing-utp"></span><colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>enable_outgoing_utp</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+<tr><td>enable_incoming_utp</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+<tr><td>enable_outgoing_tcp</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+<tr><td>enable_incoming_tcp</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>when set to true, libtorrent will try to make outgoing utp connections
+controls whether libtorrent will accept incoming connections or make
+outgoing connections of specific type.</p>
+<table border="1" class="docutils" id="ignore-resume-timestamps">
+<colgroup>
+<col width="63%" />
+<col width="15%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>ignore_resume_timestamps</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">ignore_resume_timestamps</tt> determines if the storage, when loading
+resume data files, should verify that the file modification time
+with the timestamps in the resume data. This defaults to false, which
+means timestamps are taken into account, and resume data is less likely
+to accepted (torrents are more likely to be fully checked when loaded).
+It might be useful to set this to true if your network is faster than your
+disk, and it would be faster to redownload potentially missed pieces than
+to go through the whole storage to look for them.</p>
+<table border="1" class="docutils" id="no-recheck-incomplete-resume">
+<colgroup>
+<col width="67%" />
+<col width="13%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_recheck_incomplete_resume</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">no_recheck_incomplete_resume</tt> determines if the storage should check
+the whole files when resume data is incomplete or missing or whether
+it should simply assume we don't have any of the data. By default, this
+is determined by the existance of any of the files. By setting this setting
+to true, the files won't be checked, but will go straight to download
+mode.</p>
+<table border="1" class="docutils" id="anonymous-mode">
+<colgroup>
+<col width="52%" />
+<col width="19%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>anonymous_mode</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">anonymous_mode</tt> defaults to false. When set to true, the client tries
+to hide its identity to a certain degree. The peer-ID will no longer
+include the client's fingerprint. The user-agent will be reset to an
+empty string. Trackers will only be used if they are using a proxy
+server. The listen sockets are closed, and incoming connections will
+only be accepted through a SOCKS5 or I2P proxy (if a peer proxy is set up and
+is run on the same machine as the tracker proxy). Since no incoming connections
+are accepted, NAT-PMP, UPnP, DHT and local peer discovery are all turned off
+when this setting is enabled.</p>
+<p>If you're using I2P, it might make sense to enable anonymous mode as well.</p>
+<table border="1" class="docutils" id="report-web-seed-downloads">
+<colgroup>
+<col width="64%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>report_web_seed_downloads</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>specifies whether downloads from web seeds is reported to the
+tracker or not. Defaults to on</p>
+<table border="1" class="docutils" id="utp-dynamic-sock-buf">
+<colgroup>
+<col width="59%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>utp_dynamic_sock_buf</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>controls if the uTP socket manager is allowed to increase
+the socket buffer if a network interface with a large MTU is used (such as loopback
+or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
+For RAM constrained systems, disabling this typically saves around 30kB in user space
+and probably around 400kB in kernel socket buffers (it adjusts the send and receive
+buffer size on the kernel socket, both for IPv4 and IPv6).</p>
+<table border="1" class="docutils" id="announce-double-nat">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>announce_double_nat</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>set to true if uTP connections should be rate limited
+This option is <em>DEPRECATED</em>, please use <a class="reference internal" href="#set-peer-class-filter">set_peer_class_filter()</a> instead.
+if this is true, the <tt class="docutils literal">&amp;ip=</tt> argument in tracker requests
+(unless otherwise specified) will be set to the intermediate
+IP address if the user is double NATed. If ther user is not
+double NATed, this option does not have an affect</p>
+<table border="1" class="docutils" id="seeding-outgoing-connections">
+<colgroup>
+<col width="67%" />
+<col width="13%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>seeding_outgoing_connections</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">seeding_outgoing_connections</tt> determines if seeding (and finished) torrents
+should attempt to make outgoing connections or not. By default this is true. It
+may be set to false in very specific applications where the cost of making
+outgoing connections is high, and there are no or small benefits of doing so.
+For instance, if no nodes are behind a firewall or a NAT, seeds don't need to
+make outgoing connections.</p>
+<table border="1" class="docutils" id="no-connect-privileged-ports">
+<colgroup>
+<col width="66%" />
+<col width="14%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_connect_privileged_ports</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>when this is true, libtorrent will not attempt to make outgoing
+connections to peers whose port is &lt; 1024. This is a safety
+precaution to avoid being part of a DDoS attack</p>
+<table border="1" class="docutils" id="smooth-connects">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>smooth_connects</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">smooth_connects</tt> is true by default, which means the number of connection
+attempts per second may be limited to below the <tt class="docutils literal">connection_speed</tt>, in case
+we're close to bump up against the limit of number of connections. The intention
+of this setting is to more evenly distribute our connection attempts over time,
+instead of attempting to connectin in batches, and timing them out in batches.</p>
+<table border="1" class="docutils" id="always-send-user-agent">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>always_send_user_agent</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p>always send user-agent in every web seed request. If false, only
+the first request per http connection will include the user agent</p>
+<table border="1" class="docutils" id="apply-ip-filter-to-trackers">
+<colgroup>
+<col width="66%" />
+<col width="14%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>apply_ip_filter_to_trackers</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">apply_ip_filter_to_trackers</tt> defaults to true. It determines whether the
+IP filter applies to trackers as well as peers. If this is set to false,
+trackers are exempt from the IP filter (if there is one). If no IP filter
+is set, this setting is irrelevant.</p>
+<table border="1" class="docutils" id="use-disk-read-ahead">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>use_disk_read_ahead</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">use_disk_read_ahead</tt> defaults to true and will attempt to optimize disk reads
+by giving the operating system heads up of disk read requests as they are queued
+in the disk job queue.</p>
+<table border="1" class="docutils" id="lock-files">
+<colgroup>
+<col width="44%" />
+<col width="22%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>lock_files</td>
+<td>bool</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">lock_files</tt> determines whether or not to lock files which libtorrent is downloading
+to or seeding from. This is implemented using <tt class="docutils literal">fcntl(F_SETLK)</tt> on unix systems and
+by not passing in <tt class="docutils literal">SHARE_READ</tt> and <tt class="docutils literal">SHARE_WRITE</tt> on windows. This might prevent
+3rd party processes from corrupting the files under libtorrent's feet.</p>
+<table border="1" class="docutils" id="contiguous-recv-buffer">
+<colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>contiguous_recv_buffer</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">contiguous_recv_buffer</tt> determines whether or not libtorrent should receive
+data from peers into a contiguous intermediate buffer, to then copy blocks into
+disk buffers from, or to make many smaller calls to <tt class="docutils literal">read()</tt>, each time passing
+in the specific buffer the data belongs in. When downloading at high rates, the latter
+may save some time copying data. When seeding at high rates, all incoming traffic
+consists of a very large number of tiny packets, and enabling <tt class="docutils literal">contiguous_recv_buffer</tt>
+will provide higher performance. When this is enabled, it will only be used when
+seeding to peers, since that's when it provides performance improvements.</p>
+<table border="1" class="docutils" id="ban-web-seeds">
+<colgroup>
+<col width="50%" />
+<col width="20%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>ban_web_seeds</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>when true, web seeds sending bad data will be banned</p>
+<table border="1" class="docutils" id="allow-partial-disk-writes">
+<colgroup>
+<col width="64%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>allow_partial_disk_writes</td>
+<td>bool</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>when set to false, the <tt class="docutils literal">write_cache_line_size</tt> will apply across piece boundaries.
+this is a bad idea unless the piece picker also is configured to have an affinity
+to pick pieces belonging to the same write cache line as is configured in the
+disk cache.</p>
 <table border="1" class="docutils" id="tracker-completion-timeout">
 <colgroup>
 <col width="65%" />
@@ -4555,10 +5835,7 @@ in a swarm has the same IP address.</p>
 </tr>
 </tbody>
 </table>
-<p>if set to true, upload, download and unchoke limits
-are ignored for peers on the local network.
-This option is <em>DEPRECATED</em>, please use <a class="reference internal" href="#set-peer-class-filter">set_peer_class_filter()</a> instead.
-<tt class="docutils literal">tracker_completion_timeout</tt> is the number of seconds the tracker
+<p><tt class="docutils literal">tracker_completion_timeout</tt> is the number of seconds the tracker
 connection will wait from when it sent the request until it considers the
 tracker to have timed-out. Default value is 60 seconds.</p>
 <table border="1" class="docutils" id="tracker-receive-timeout">
@@ -5481,8 +6758,8 @@ to peers if a previous socket to that peer and port is in <tt class="docutils li
 sent to peers (including web seeds). The default value for this is <tt class="docutils literal">0x0</tt>
 (no marking). One potentially useful TOS mark is <tt class="docutils literal">0x20</tt>, this represents
 the <em>QBone scavenger service</em>. For more details, see <a class="reference external" href="http://qbone.internet2.edu/qbss/">QBSS</a>.</p>
-<table border="1" class="docutils" id="active-limit">
-<span id="active-lsd-limit"></span><span id="active-tracker-limit"></span><span id="active-dht-limit"></span><span id="active-seeds"></span><span id="active-downloads"></span><colgroup>
+<table border="1" class="docutils" id="active-loaded-limit">
+<span id="active-limit"></span><span id="active-lsd-limit"></span><span id="active-tracker-limit"></span><span id="active-dht-limit"></span><span id="active-seeds"></span><span id="active-downloads"></span><colgroup>
 <col width="59%" />
 <col width="16%" />
 <col width="24%" />
@@ -5518,6 +6795,10 @@ the <em>QBone scavenger service</em>. For more details, see <a class="reference 
 <td>int</td>
 <td>15</td>
 </tr>
+<tr><td>active_loaded_limit</td>
+<td>int</td>
+<td>0</td>
+</tr>
 </tbody>
 </table>
 <p>for auto managed torrents, these are the limits
@@ -5550,6 +6831,12 @@ than one announce every 5 seconds (assuming the default announce interval of 5 m
 lsd or their tracker. If some peer knows about you for any reason and tries to connect,
 it will still be accepted, unless the torrent is paused, which means it won't accept
 any connections.</p>
+<p><tt class="docutils literal">active_loaded_limit</tt> is the number of torrents that are allowed to be <em>loaded</em>
+at any given time. Note that a torrent can be active even though it's not loaded.
+if an unloaded torrents finds a peer that wants to access it, the torrent will be
+loaded on demand, using a user-supplied callback function. If the feature of unloading
+torrents is not enabled, this setting have no effect. If this limit is set to 0, it
+means unlimited. For more information, see <a class="reference internal" href="#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>.</p>
 <table border="1" class="docutils" id="auto-manage-interval">
 <colgroup>
 <col width="59%" />
@@ -6141,6 +7428,616 @@ not make any sense to set this any lower than 2. For instance, if only 3 peers
 need to download the rarest piece, it's impossible to download a single piece
 and upload it more than 3 times. If the share_mode_target is set to more than 3,
 nothing is downloaded.</p>
+<table border="1" class="docutils" id="download-rate-limit">
+<span id="upload-rate-limit"></span><colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>upload_rate_limit</td>
+<td>int</td>
+<td>0</td>
+</tr>
+<tr><td>download_rate_limit</td>
+<td>int</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">upload_rate_limit</tt>, <tt class="docutils literal">download_rate_limit</tt>, <tt class="docutils literal">local_upload_rate_limit</tt>
+and <tt class="docutils literal">local_download_rate_limit</tt> sets the session-global limits of upload
+and download rate limits, in bytes per second. The local rates refer to peers
+on the local network. By default peers on the local network are not rate limited.</p>
+<p>These rate limits are only used for local peers (peers within the same subnet as
+the client itself) and it is only used when <tt class="docutils literal">ignore_limits_on_local_network</tt>
+is set to true (which it is by default). These rate limits default to unthrottled,
+but can be useful in case you want to treat local peers preferentially, but not
+quite unthrottled.</p>
+<p>A value of 0 means unlimited.</p>
+<table border="1" class="docutils" id="dht-upload-rate-limit">
+<colgroup>
+<col width="61%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>dht_upload_rate_limit</td>
+<td>int</td>
+<td>4000</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">dht_upload_rate_limit</tt> sets the rate limit on the DHT. This is specified in
+bytes per second and defaults to 4000. For busy boxes with lots of torrents
+that requires more DHT traffic, this should be raised.</p>
+<table border="1" class="docutils" id="unchoke-slots-limit">
+<colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>unchoke_slots_limit</td>
+<td>int</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">unchoke_slots_limit</tt> is the max number of unchoked peers in the session.
+The number of unchoke slots may be ignored depending on what
+<tt class="docutils literal">choking_algorithm</tt> is set to.</p>
+<table border="1" class="docutils" id="half-open-limit">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>half_open_limit</td>
+<td>int</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">half_open_limit</tt> sets the maximum number of half-open connections
+libtorrent will have when connecting to peers. A half-open connection is one
+where connect() has been called, but the connection still hasn't been established
+(nor failed). Windows XP Service Pack 2 sets a default, system wide, limit of
+the number of half-open connections to 10. So, this limit can be used to work
+nicer together with other network applications on that system. The default is
+to have no limit, and passing -1 as the limit, means to have no limit. When
+limiting the number of simultaneous connection attempts, peers will be put in
+a queue waiting for their turn to get connected.</p>
+<table border="1" class="docutils" id="connections-limit">
+<colgroup>
+<col width="56%" />
+<col width="18%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>connections_limit</td>
+<td>int</td>
+<td>200</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">connections_limit</tt> sets a global limit on the number of connections
+opened. The number of connections is set to a hard minimum of at least two per
+torrent, so if you set a too low connections limit, and open too many torrents,
+the limit will not be met.</p>
+<table border="1" class="docutils" id="utp-loss-multiplier">
+<span id="utp-connect-timeout"></span><span id="utp-num-resends"></span><span id="utp-fin-resends"></span><span id="utp-syn-resends"></span><span id="utp-min-timeout"></span><span id="utp-gain-factor"></span><span id="utp-target-delay"></span><colgroup>
+<col width="58%" />
+<col width="17%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>utp_target_delay</td>
+<td>int</td>
+<td>100</td>
+</tr>
+<tr><td>utp_gain_factor</td>
+<td>int</td>
+<td>1500</td>
+</tr>
+<tr><td>utp_min_timeout</td>
+<td>int</td>
+<td>500</td>
+</tr>
+<tr><td>utp_syn_resends</td>
+<td>int</td>
+<td>2</td>
+</tr>
+<tr><td>utp_fin_resends</td>
+<td>int</td>
+<td>2</td>
+</tr>
+<tr><td>utp_num_resends</td>
+<td>int</td>
+<td>6</td>
+</tr>
+<tr><td>utp_connect_timeout</td>
+<td>int</td>
+<td>3000</td>
+</tr>
+<tr><td>utp_loss_multiplier</td>
+<td>int</td>
+<td>50</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">utp_target_delay</tt> is the target delay for uTP sockets in milliseconds. A high
+value will make uTP connections more aggressive and cause longer queues in the upload
+bottleneck. It cannot be too low, since the noise in the measurements would cause
+it to send too slow. The default is 50 milliseconds.
+<tt class="docutils literal">utp_gain_factor</tt> is the number of bytes the uTP congestion window can increase
+at the most in one RTT. This defaults to 300 bytes. If this is set too high,
+the congestion controller reacts too hard to noise and will not be stable, if it's
+set too low, it will react slow to congestion and not back off as fast.
+<tt class="docutils literal">utp_min_timeout</tt> is the shortest allowed uTP socket timeout, specified in milliseconds.
+This defaults to 500 milliseconds. The timeout depends on the RTT of the connection, but
+is never smaller than this value. A connection times out when every packet in a window
+is lost, or when a packet is lost twice in a row (i.e. the resent packet is lost as well).</p>
+<p>The shorter the timeout is, the faster the connection will recover from this situation,
+assuming the RTT is low enough.
+<tt class="docutils literal">utp_syn_resends</tt> is the number of SYN packets that are sent (and timed out) before
+giving up and closing the socket.
+<tt class="docutils literal">utp_num_resends</tt> is the number of times a packet is sent (and lossed or timed out)
+before giving up and closing the connection.
+<tt class="docutils literal">utp_connect_timeout</tt> is the number of milliseconds of timeout for the initial SYN
+packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
+<tt class="docutils literal">utp_loss_multiplier</tt> controls how the congestion window is changed when a packet
+loss is experienced. It's specified as a percentage multiplier for <tt class="docutils literal">cwnd</tt>. By default
+it's set to 50 (i.e. cut in half). Do not change this value unless you know what
+you're doing. Never set it higher than 100.</p>
+<table border="1" class="docutils" id="mixed-mode-algorithm">
+<colgroup>
+<col width="35%" />
+<col width="10%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>mixed_mode_algorithm</td>
+<td>int</td>
+<td>settings_pack::peer_proportional</td>
+</tr>
+</tbody>
+</table>
+<p>The <tt class="docutils literal">mixed_mode_algorithm</tt> determines how to treat TCP connections when there are
+uTP connections. Since uTP is designed to yield to TCP, there's an inherent problem
+when using swarms that have both TCP and uTP connections. If nothing is done, uTP
+connections would often be starved out for bandwidth by the TCP connections. This mode
+is <tt class="docutils literal">prefer_tcp</tt>. The <tt class="docutils literal">peer_proportional</tt> mode simply looks at the current throughput
+and rate limits all TCP connections to their proportional share based on how many of
+the connections are TCP. This works best if uTP connections are not rate limited by
+the global rate limiter (which they aren't by default).</p>
+<table border="1" class="docutils" id="listen-queue-size">
+<colgroup>
+<col width="56%" />
+<col width="18%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>listen_queue_size</td>
+<td>int</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">listen_queue_size</tt> is the value passed in to listen() for the listen socket.
+It is the number of outstanding incoming connections to queue up while we're not
+actively waiting for a connection to be accepted. The default is 5 which should
+be sufficient for any normal client. If this is a high performance server which
+expects to receive a lot of connections, or used in a simulator or test, it
+might make sense to raise this number. It will not take affect until listen_on()
+is called again (or for the first time).</p>
+<table border="1" class="docutils" id="torrent-connect-boost">
+<colgroup>
+<col width="61%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>torrent_connect_boost</td>
+<td>int</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">torrent_connect_boost</tt> is the number of peers to try to connect to immediately
+when the first tracker response is received for a torrent. This is a boost to
+given to new torrents to accelerate them starting up. The normal connect scheduler
+is run once every second, this allows peers to be connected immediately instead
+of waiting for the session tick to trigger connections.</p>
+<table border="1" class="docutils" id="alert-queue-size">
+<colgroup>
+<col width="55%" />
+<col width="18%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>alert_queue_size</td>
+<td>int</td>
+<td>1000</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">alert_queue_size</tt> is the maximum number of alerts queued up internally. If
+alerts are not popped, the queue will eventually fill up to this level.</p>
+<table border="1" class="docutils" id="max-metadata-size">
+<colgroup>
+<col width="44%" />
+<col width="14%" />
+<col width="42%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>max_metadata_size</td>
+<td>int</td>
+<td>3 * 1024 * 10240</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">max_metadata_size</tt> is the maximum allowed size (in bytes) to be received
+by the metadata extension, i.e. magnet links. It defaults to 1 MiB.</p>
+<table border="1" class="docutils" id="read-job-every">
+<colgroup>
+<col width="52%" />
+<col width="19%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>read_job_every</td>
+<td>int</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">read_job_every</tt> is used to avoid starvation of read jobs in the disk I/O
+thread. By default, read jobs are deferred, sorted by physical disk location
+and serviced once all write jobs have been issued. In scenarios where the
+download rate is enough to saturate the disk, there's a risk the read jobs will
+never be serviced. With this setting, every <em>x</em> write job, issued in a row, will
+instead pick one read job off of the sorted queue, where <em>x</em> is <tt class="docutils literal">read_job_every</tt>.</p>
+<table border="1" class="docutils" id="hashing-threads">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>hashing_threads</td>
+<td>int</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">hashing_threads</tt> is the number of threads to use for piece hash verification. It
+defaults to 1. For very high download rates, on machines with multiple cores, this
+could be incremented. Setting it higher than the number of CPU cores would presumably
+not provide any benefit of setting it to the number of cores. If it's set to 0,
+hashing is done in the disk thread.</p>
+<table border="1" class="docutils" id="checking-mem-usage">
+<colgroup>
+<col width="57%" />
+<col width="17%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>checking_mem_usage</td>
+<td>int</td>
+<td>256</td>
+</tr>
+</tbody>
+</table>
+<p>the number of blocks to keep outstanding at any given time when
+checking torrents. Higher numbers give faster re-checks but uses
+more memory. Specified in number of 16 kiB blocks</p>
+<table border="1" class="docutils" id="predictive-piece-announce">
+<colgroup>
+<col width="64%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>predictive_piece_announce</td>
+<td>int</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>if set to &gt; 0, pieces will be announced to other peers before they
+are fully downloaded (and before they are hash checked). The intention
+is to gain 1.5 potential round trip times per downloaded piece. When
+non-zero, this indicates how many milliseconds in advance pieces
+should be announced, before they are expected to be completed.</p>
+<table border="1" class="docutils" id="aio-max">
+<span id="aio-threads"></span><colgroup>
+<col width="46%" />
+<col width="21%" />
+<col width="32%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>aio_threads</td>
+<td>int</td>
+<td>4</td>
+</tr>
+<tr><td>aio_max</td>
+<td>int</td>
+<td>300</td>
+</tr>
+</tbody>
+</table>
+<p>for some aio back-ends, <tt class="docutils literal">aio_threads</tt> specifies the number of
+io-threads to use,  and <tt class="docutils literal">aio_max</tt> the max number of outstanding jobs.</p>
+<table border="1" class="docutils" id="network-threads">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>network_threads</td>
+<td>int</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">network_threads</tt> is the number of threads to use to call <tt class="docutils literal">async_write_some</tt>
+(i.e. send) on peer connection sockets. When seeding at extremely high rates,
+this may become a bottleneck, and setting this to 2 or more may parallelize
+that cost. When using SSL torrents, all encryption for outgoing traffic is
+done withint the socket send functions, and this will help parallelizing the
+cost of SSL encryption as well.</p>
+<table border="1" class="docutils" id="ssl-listen">
+<colgroup>
+<col width="44%" />
+<col width="22%" />
+<col width="33%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>ssl_listen</td>
+<td>int</td>
+<td>4433</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">ssl_listen</tt> sets the listen port for SSL connections. If this is set to 0,
+no SSL listen port is opened. Otherwise a socket is opened on this port. This
+setting is only taken into account when opening the regular listen port, and
+won't re-open the listen socket simply by changing this setting.</p>
+<table border="1" class="docutils" id="tracker-backoff">
+<colgroup>
+<col width="53%" />
+<col width="19%" />
+<col width="28%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>tracker_backoff</td>
+<td>int</td>
+<td>250</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">tracker_backoff</tt> determines how aggressively to back off from retrying
+failing trackers. This value determines <em>x</em> in the following formula, determining
+the number of seconds to wait until the next retry:</p>
+<blockquote>
+delay = 5 + 5 * x / 100 * fails^2</blockquote>
+<p>This setting may be useful to make libtorrent more or less aggressive in hitting
+trackers.</p>
+<table border="1" class="docutils" id="seed-time-ratio-limit">
+<span id="share-ratio-limit"></span><colgroup>
+<col width="61%" />
+<col width="16%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>share_ratio_limit</td>
+<td>int</td>
+<td>200</td>
+</tr>
+<tr><td>seed_time_ratio_limit</td>
+<td>int</td>
+<td>700</td>
+</tr>
+</tbody>
+</table>
+<p>when a seeding torrent reaches eaither the share ratio
+(bytes up / bytes down) or the seed time ratio
+(seconds as seed / seconds as downloader) or the seed
+time limit (seconds as seed) it is considered
+done, and it will leave room for other torrents
+these are specified as percentages</p>
+<table border="1" class="docutils" id="peer-turnover-interval">
+<span id="peer-turnover-cutoff"></span><span id="peer-turnover"></span><colgroup>
+<col width="62%" />
+<col width="15%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer_turnover</td>
+<td>int</td>
+<td>4</td>
+</tr>
+<tr><td>peer_turnover_cutoff</td>
+<td>int</td>
+<td>90</td>
+</tr>
+<tr><td>peer_turnover_interval</td>
+<td>int</td>
+<td>300</td>
+</tr>
+</tbody>
+</table>
+<p>peer_turnover is the percentage of peers to disconnect
+every turnover peer_turnover_interval (if we're at
+the peer limit), this is specified in percent
+when we are connected to more than
+limit * peer_turnover_cutoff peers
+disconnect peer_turnover fraction
+of the peers. It is specified in percent
+peer_turnover_interval is the interval (in seconds)
+between optimistic disconnects
+if the disconnects happen and how many peers are disconnected
+is controlled by peer_turnover and peer_turnover_cutoff</p>
+<table border="1" class="docutils" id="connect-seed-every-n-download">
+<colgroup>
+<col width="67%" />
+<col width="13%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>connect_seed_every_n_download</td>
+<td>int</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p>this setting controls the priority of downloading torrents
+over seeding or finished torrents when it comes to making
+peer connections. Peer connections are throttled by the
+connection_speed and the half-open connection limit. This
+makes peer connections a limited resource. Torrents that
+still have pieces to download are prioritized by default,
+to avoid having many seeding torrents use most of the connection
+attempts and only give one peer every now and then to the
+downloading torrent. libtorrent will loop over the downloading
+torrents to connect a peer each, and every n:th connection
+attempt, a finished torrent is picked to be allowed to connect
+to a peer. This setting controls n.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -9007,6 +10904,17 @@ just what it sounds like. It throws away data that's written, and it
 reads garbage. It's useful mostly for benchmarking and profiling purpose.</p>
 <p>The interface looks like this:</p>
 <pre class="literal-block">
+struct storage_params
+{
+        file_storage const* files;
+        file_storage const* mapped_files; // optional
+        std::string path;
+        file_pool* pool;
+        storage_mode_t mode;
+        std::vector&lt;boost::uint8_t&gt; const* priorities; // optional
+        torrent_info const* info;
+};
+
 struct storage_interface
 {
         virtual void initialize(storage_error&amp; ec) = 0;
@@ -9279,12 +11187,9 @@ struct temp_storage : storage_interface
         file_storage m_files;
 };
 
-storage_interface* temp_storage_constructor(
-        file_storage const&amp; fs, file_storage const* mapped
-        , std::string const&amp; path, file_pool&amp; fp
-        , std::vector&lt;boost::uint8_t&gt; const&amp; prio)
+storage_interface* temp_storage_constructor(storage_params const&amp; params)
 {
-        return new temp_storage(fs);
+        return new temp_storage(*params.files);
 }
 </pre>
 </div>
@@ -9339,8 +11244,8 @@ amount of seeding. Torrents with fewer completed <em>seed cycles</em> are priori
 seeding. A seed cycle is completed when a torrent meets either the share ratio limit
 (uploaded bytes / downloaded bytes), the share time ratio (time seeding / time
 downloaing) or seed time limit (time seeded).</p>
-<p>The relevant settings to control these limits are <a href="#id50"><span class="problematic" id="id51">share_ratio_limit_</span></a>,
-<a href="#id52"><span class="problematic" id="id53">seed_time_ratio_limit_</span></a> and <a class="reference internal" href="#seed-time-limit">seed_time_limit</a>.</p>
+<p>The relevant settings to control these limits are <a class="reference internal" href="#share-ratio-limit">share_ratio_limit</a>,
+<a class="reference internal" href="#seed-time-ratio-limit">seed_time_ratio_limit</a> and <a class="reference internal" href="#seed-time-limit">seed_time_limit</a>.</p>
 </div>
 </div>
 <div class="section" id="fast-resume">
@@ -9853,6 +11758,35 @@ torrent's name '/' the file name is appended. This is the same directory
 structure that libtorrent will download torrents into.</p>
 </div>
 </div>
+<div class="section" id="dynamic-loading-of-torrent-files">
+<h1>dynamic loading of torrent files</h1>
+<p>libtorrent has a feature that can unload idle torrents from memory. The purpose
+of this is to support being active on many more torrents than the RAM permits.
+This is useful for both embedded devices that have limited RAM and servers
+seeding tens of thousands of torrents.</p>
+<p>The most significant parts of loaded torrents that use RAM are the piece
+hashes (20 bytes per piece) and the file list. The entire info-dictionary
+of the .torrent file is kept in RAM.</p>
+<p>In order to activate the dynamic loading of torrent files, set the load
+function on the session. See <a class="reference internal" href="#set-load-function">set_load_function()</a>.</p>
+<p>When a load function is set on the session, the dynamic load/unload
+feature is enabled. Torrents are kept in an LRU. Every time an operation
+is performed, on a torrent or from a peer, that requires the metadata of
+the torrent to be loaded, the torrent is bumped up in the LRU. When a torrent
+is paused or queued, it is demoted to the least recently used torrent in
+the LRU, since it's a good candidate for eviction.</p>
+<p>To configure how many torrents are allowed to be loaded at the same time,
+set <tt class="docutils literal"><span class="pre">settings_pack::active_loaded_limit</span></tt> on the session.</p>
+<p>Torrents can be exempt from being unloaded by being <em>pinned</em>. Pinned torrents
+still count against the limit, but are never considered for eviction.
+You can either pin a torrent when adding it, in <tt class="docutils literal">add_torrent_params</tt>
+(see <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>), or after ading it with the
+<a class="reference internal" href="#set-pinned">set_pinned()</a> function on <a class="reference internal" href="#torrent-handle">torrent_handle</a>.</p>
+<p>Torrents that start out without metadata (e.g. magnet links or http downloads)
+are automatically pinned. This is important in order to give the client a
+chance to save the metadata to disk once it's received (see <a class="reference internal" href="#metadata-received-alert">metadata_received_alert</a>).</p>
+<p>Once the metadata is saved to disk, it might make sense to unpin the torrent.</p>
+</div>
 <div class="section" id="piece-picker">
 <h1>piece picker</h1>
 <p>The piece picker in libtorrent has the following features:</p>
@@ -9914,19 +11848,19 @@ means that the most common pieces are picked, instead of the rarest pieces
 <p>Peers that have participated in a piece that failed the hash check, may be
 put in <em>parole mode</em>. This means we prefer downloading a full piece  from this
 peer, in order to distinguish which peer is sending corrupt data. Whether to
-do this is or not is controlled by <a href="#id54"><span class="problematic" id="id55">use_parole_mode_</span></a>.</p>
+do this is or not is controlled by <a class="reference internal" href="#use-parole-mode">use_parole_mode</a>.</p>
 <p>In parole mode, the piece picker prefers picking one whole piece at a time for
 a given peer, avoiding picking any blocks from a piece any other peer has
 contributed to (since that would defeat the purpose of parole mode).</p>
 </div>
-<div class="section" id="prioritize-partial-pieces">
+<div class="section" id="id13">
 <h2>prioritize partial pieces</h2>
 <p>This setting determines if partially downloaded or requested pieces should always
 be preferred over other pieces. The benefit of doing this is that the number of
 partial pieces is minimized (and hence the turn-around time for downloading a block
 until it can be uploaded to others is minimized). It also puts less stress on the
 disk cache, since fewer partial pieces need to be kept in the cache. Whether or
-not to enable this is controlled by <a href="#id56"><span class="problematic" id="id57">prioritize_partial_pieces_</span></a>.</p>
+not to enable this is controlled by <a class="reference internal" href="#prioritize-partial-pieces">prioritize_partial_pieces</a>.</p>
 <p>The main benefit of not prioritizing partial pieces is that the rarest first
 algorithm gets to have more influence on which pieces are picked. The picker is
 more likely to truly pick the rarest piece, and hence improving the performance
@@ -9952,7 +11886,7 @@ the same peer.</p>
 <em>TODO: piece priorities</em></p>
 </div>
 </div>
-<div class="section" id="predictive-piece-announce">
+<div class="section" id="id14">
 <h1>predictive piece announce</h1>
 <p>In order to improve performance, libtorrent supports a feature called
 <tt class="docutils literal">predictive piece announce</tt>. When enabled, it will make libtorrent announce
@@ -10037,7 +11971,7 @@ indication). The server name is the hex encoded info-hash of the torrent to conn
 This is required for the client accepting the connection to know which certificate to
 present.</p>
 <p>SSL connections are accepted on a separate socket from normal bittorrent connections. To
-pick which port the SSL socket should bind to, set <a href="#id58"><span class="problematic" id="id59">ssl_listen_</span></a> to a
+pick which port the SSL socket should bind to, set <a class="reference internal" href="#ssl-listen">ssl_listen</a> to a
 different port. It defaults to port 4433. This setting is only taken into account when the
 normal listen socket is opened (i.e. just changing this setting won't necessarily close
 and re-open the SSL socket). To not listen on an SSL socket at all, set <tt class="docutils literal">ssl_listen</tt> to 0.</p>
@@ -10077,27 +12011,6 @@ the pem file to include in the .torrent file.</p>
 <p>The peer's certificate is located in <tt class="docutils literal">./newcert.pem</tt> and the certificate's
 private key in <tt class="docutils literal">./newkey.pem</tt>.</p>
 </div>
-</div>
-<div class="system-messages section">
-<h1>Docutils System Messages</h1>
-<div class="system-message" id="id48">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 1418); <em><a href="#id49">backlink</a></em></p>
-Unknown target name: &quot;alert_queue_size&quot;.</div>
-<div class="system-message" id="id50">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 7812); <em><a href="#id51">backlink</a></em></p>
-Unknown target name: &quot;share_ratio_limit&quot;.</div>
-<div class="system-message" id="id52">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 7812); <em><a href="#id53">backlink</a></em></p>
-Unknown target name: &quot;seed_time_ratio_limit&quot;.</div>
-<div class="system-message" id="id54">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8316); <em><a href="#id55">backlink</a></em></p>
-Unknown target name: &quot;use_parole_mode&quot;.</div>
-<div class="system-message" id="id56">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8328); <em><a href="#id57">backlink</a></em></p>
-Unknown target name: &quot;prioritize_partial_pieces&quot;.</div>
-<div class="system-message" id="id58">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">manual.rst</tt>, line 8461); <em><a href="#id59">backlink</a></em></p>
-Unknown target name: &quot;ssl_listen&quot;.</div>
 </div>
     </div>
     <div id="footer">

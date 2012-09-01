@@ -388,6 +388,7 @@ namespace libtorrent
 		void set_download_limit(int limit) const;
 		int download_limit() const;
 
+		void set_pinned(bool p) const;
 		void set_sequential_download(bool sd) const;
 
 		// manually connect a peer

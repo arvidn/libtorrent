@@ -540,6 +540,12 @@ namespace libtorrent
 		return st;
 	}
 
+	void torrent_handle::set_pinned(bool p) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(set_pinned, p);
+	}
+
 	void torrent_handle::set_sequential_download(bool sd) const
 	{
 		INVARIANT_CHECK;

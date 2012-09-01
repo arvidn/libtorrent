@@ -871,7 +871,7 @@ namespace libtorrent
 			// if an unloaded torrents finds a peer that wants to access it, the torrent will be
 			// loaded on demand, using a user-supplied callback function. If the feature of unloading
 			// torrents is not enabled, this setting have no effect. If this limit is set to 0, it
-			// means unlimited.
+			// means unlimited. For more information, see `dynamic loading of torrent files`_.
 			active_downloads,
 			active_seeds,
 			active_dht_limit,

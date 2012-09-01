@@ -366,6 +366,34 @@ torrents to their previous paused state. i.e. the session pause state is separat
 the torrent pause state. A torrent is inactive if it is paused or if the session is
 paused.
 
+set_load_function()
+-------------------
+
+	::
+
+		void set_load_function(boost::function<void(sha1_hash const&
+			, std::vector<char>&, error_code& ec)> fun);
+
+This function enables `dynamic loading of torrent files`_. When a torrent is unloaded
+but needs to be availabe in memory, this function is called **from within the libtorrent
+network thread**. From within this thread, you can **not** use any of the public APIs of
+libtorrent itself. The the info-hash of the torrent is passed in to the function and it
+is expected to fill in the passed in ``vector<char>`` with the .torrent file corresponding
+to it.
+
+If there is an error loading the torrent file, the ``error_code`` (``ec``) should be
+set to reflect the error. In such case, the torrent itself is stopped and set to an
+error state with the corresponding error code.
+
+Given that the function is called from the internal network thread of libtorrent, it's
+important to not stall. libtorrent will not be able to send nor receive any data until
+the function call returns.
+
+The signature of the function to pass in is::
+
+	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
+
+
 abort()
 -------
 
@@ -2637,6 +2665,7 @@ Its declaration looks like this::
 		int download_limit() const;
 		void set_sequential_download(bool sd) const;
 		bool is_sequential_download() const;
+		void set_pinned(bool p) const;
 
 		int queue_position() const;
 		void queue_position_up() const;
@@ -2651,6 +2680,11 @@ Its declaration looks like this::
 		enum pause_flags_t { graceful_pause = 1 };
 		void pause(int flags = 0) const;
 		void resume() const;
+		bool is_paused() const;
+
+		void set_load_function(boost::function<void(sha1_hash const&
+			, std::vector<char>&, error_code& ec)> fun);
+
 		bool is_seed() const;
 		void force_recheck() const;
 		void clear_error() const;
@@ -3139,6 +3173,24 @@ picker will pick pieces in sequence instead of rarest first.
 Enabling sequential download will affect the piece distribution negatively in the swarm. It should be
 used sparingly.
 
+set_pinned()
+------------
+
+	::
+
+		void set_pinned(bool p) const;
+
+A pinned torrent may not be unloaded by libtorrent. When the dynamic loading and unloading of
+torrents is enabled (by setting a load function on the session), this can be used to exempt
+certain torrents from the unloading logic.
+
+Magnet links, and other torrents that start out without having metadata are pinned automatically.
+This is to give the client a chance to get the metadata and save it before it's unloaded. In this
+case, it may be useful to un-pin the torrent once its metadata has been saved to disk.
+
+For more information about dynamically loading and unloading torrents, see
+`dynamic loading of torrent files`_.
+
 pause() resume()
 ----------------
 
@@ -3283,8 +3335,8 @@ set_metadata()
 		bool set_metadata(char const* buf, int size) const;
 
 ``set_metadata`` expects the *info* section of metadata. i.e. The buffer passed in will be
-hashed and verified against the info-hash. If it fails, a ``metadata_failed_alert`` will be
-generated. If it passes, a ``metadata_received_alert`` is generated. The function returns
+hashed and verified against the info-hash. If it fails, a metadata_failed_alert_ will be
+generated. If it passes, a metadata_received_alert_ is generated. The function returns
 true if the metadata is successfully set on the torrent, and false otherwise. If the torrent
 already has metadata, this function will not affect the torrent, and false will be returned.
 
@@ -8330,6 +8382,43 @@ structure that libtorrent will download torrents into.
 
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
+
+dynamic loading of torrent files
+================================
+
+libtorrent has a feature that can unload idle torrents from memory. The purpose
+of this is to support being active on many more torrents than the RAM permits.
+This is useful for both embedded devices that have limited RAM and servers
+seeding tens of thousands of torrents.
+
+The most significant parts of loaded torrents that use RAM are the piece
+hashes (20 bytes per piece) and the file list. The entire info-dictionary
+of the .torrent file is kept in RAM.
+
+In order to activate the dynamic loading of torrent files, set the load
+function on the session. See `set_load_function()`_.
+
+When a load function is set on the session, the dynamic load/unload
+feature is enabled. Torrents are kept in an LRU. Every time an operation
+is performed, on a torrent or from a peer, that requires the metadata of
+the torrent to be loaded, the torrent is bumped up in the LRU. When a torrent
+is paused or queued, it is demoted to the least recently used torrent in
+the LRU, since it's a good candidate for eviction.
+
+To configure how many torrents are allowed to be loaded at the same time,
+set ``settings_pack::active_loaded_limit`` on the session.
+
+Torrents can be exempt from being unloaded by being *pinned*. Pinned torrents
+still count against the limit, but are never considered for eviction.
+You can either pin a torrent when adding it, in ``add_torrent_params``
+(see `async_add_torrent() add_torrent()`_), or after ading it with the
+`set_pinned()`_ function on torrent_handle_.
+
+Torrents that start out without metadata (e.g. magnet links or http downloads)
+are automatically pinned. This is important in order to give the client a
+chance to save the metadata to disk once it's received (see metadata_received_alert_).
+
+Once the metadata is saved to disk, it might make sense to unpin the torrent.
 
 piece picker
 ============

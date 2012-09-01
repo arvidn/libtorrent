@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
 <title>creating torrents</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -61,7 +61,7 @@
 <li><a class="reference internal" href="#set-piece-hashes" id="id5">set_piece_hashes()</a></li>
 <li><a class="reference internal" href="#file-storage" id="id6">file_storage</a><ul>
 <li><a class="reference internal" href="#add-file" id="id7">add_file()</a></li>
-<li><a class="reference internal" href="#hash-symlink-mtime-file-index" id="id8">hash() symlink() mtime() file_index()</a></li>
+<li><a class="reference internal" href="#hash-symlink-mtime-file-path-file-name-file-size-pad-file-at" id="id8">hash() symlink() mtime() file_path() file_name() file_size() pad_file_at()</a></li>
 <li><a class="reference internal" href="#file-base-set-file-base" id="id9">file_base() set_file_base()</a></li>
 </ul>
 </li>
@@ -241,9 +241,13 @@ public:
         sha1_hash const&amp; hash(int index) const;
         std::string const&amp; symlink(int index) const;
         time_t mtime(int index) const;
-        int file_index(int index) const;
         size_type file_base(int index) const;
         void set_file_base(int index, size_type off);
+
+        std::string file_path(int index) const;
+        std::string file_name(int index) const;
+        size_type file_size(int index) const;
+        bool pad_file_at(int index) const;
 
         void set_name(std::string const&amp; n);
         void set_name(std::wstring const&amp; n);
@@ -277,25 +281,33 @@ can be changed by calling <tt class="docutils literal">set_name</tt>.</p>
 <p>The built in functions to traverse a directory to add files will
 make sure this requirement is fulfilled.</p>
 </div>
-<div class="section" id="hash-symlink-mtime-file-index">
-<h2>hash() symlink() mtime() file_index()</h2>
+<div class="section" id="hash-symlink-mtime-file-path-file-name-file-size-pad-file-at">
+<h2>hash() symlink() mtime() file_path() file_name() file_size() pad_file_at()</h2>
 <blockquote>
 <pre class="literal-block">
 sha1_hash hash(int index) const;
 std::string const&amp; symlink(int index) const;
 time_t mtime(int index) const;
-int file_index(int index) const;
+std::string file_path(int index) const;
+std::string file_name(int index) const;
+size_type file_size(int index) const;
+bool pad_file_at(int index) const;
 </pre>
 </blockquote>
-<p>These functions are used to query the symlink, file hash,
-modification time and the file-index from a file index.</p>
-<p>The file hash is a sha-1 hash of the file, or 0 if none was
+<p>These functions are used to query attributes of files at
+a given index.</p>
+<p>The <tt class="docutils literal">file_hash()</tt> is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
 join a bittorrent network with other file sharing networks.</p>
-<p>The modification time is the posix time when a file was last
-modified when the torrent was created, or 0 if it was not provided.</p>
-<p>The file index of a file is simply a 0 based index of the
-file as they are ordered in the torrent file.</p>
+<p>The <tt class="docutils literal">mtime()</tt> is the modification time is the posix
+time when a file was last modified when the torrent
+was created, or 0 if it was not included in the torrent file.</p>
+<p><tt class="docutils literal">file_path()</tt> returns the full path to a file.</p>
+<p><tt class="docutils literal">file_size()</tt> returns the size of a file.</p>
+<p><tt class="docutils literal">pad_file_at()</tt> returns true if the file at the given
+index is a pad-file.</p>
+<p><tt class="docutils literal">file_name()</tt> returns just the name of the file, without
+the path.</p>
 </div>
 <div class="section" id="file-base-set-file-base">
 <h2>file_base() set_file_base()</h2>
@@ -327,7 +339,7 @@ struct create_torrent
                 , calculate_file_hashes = 16
         };
         create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
-                , int flags = optimize);
+                , int flags = optimize, int alignment = 0x4000);
         create_torrent(torrent_info const&amp; ti);
 
         entry generate() const;
@@ -363,7 +375,7 @@ enum {
         , calculate_file_hashes = 16
 };
 create_torrent(file_storage&amp; fs, int piece_size = 0, int pad_size_limit = -1
-        , int flags = optimize);
+        , int flags = optimize, int alignment = 0x4000);
 create_torrent(torrent_info const&amp; ti);
 </pre>
 </blockquote>
@@ -414,6 +426,9 @@ the piece hashes, also calculate the file hashes and add those associated
 with each file. Note that unless you use the <a class="reference internal" href="#set-piece-hashes">set_piece_hashes()</a> function,
 this flag will have no effect.</dd>
 </dl>
+<p><tt class="docutils literal">alignment</tt> is used when pad files are enabled. This is the size eligible
+files are aligned to. The default is the default bittorrent block size of
+16 kiB. It is common to align to the piece size of the torrent.</p>
 </div>
 <div class="section" id="generate">
 <h2>generate()</h2>
@@ -539,6 +554,8 @@ void set_root_cert(std::string const&amp; pem);
 torrent an <em>SSL torrent</em>. An SSL torrent requires that each peer has a valid certificate
 signed by this root certificate. For SSL torrents, all peers are connecting over SSL
 connections. For more information on SSL torrents, see the <a class="reference external" href="manual.html#ssl-torrents">manual</a>.</p>
+<p>The string is not the path to the cert, it's the actual content of the certificate,
+loaded into a std::string.</p>
 </div>
 <div class="section" id="set-priv-priv">
 <h2>set_priv() priv()</h2>

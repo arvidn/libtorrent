@@ -536,6 +536,12 @@ namespace libtorrent
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
+
+		// if we don't have metadata, make this torrent pinned. The
+		// client may unpin it once we have metadata and it has had
+		// a chance to save it on the metadata_received_alert
+		if (!valid_metadata())
+			m_pinned = true;
 	}
 
 #if 0
@@ -1779,6 +1785,16 @@ namespace libtorrent
 		// except for the one specified. if we're not at our limit
 		// yet, no torrent is evicted
 		return m_ses.load_torrent(this);
+	}
+
+	void torrent::set_pinned(bool p)
+	{
+		if (m_pinned == p) return;
+		m_pinned = p;
+
+		// if the torrent was just un-pinned, we need to insert
+		// it into the LRU
+		m_ses.bump_torrent(this, true);
 	}
 
 	bool torrent::load(std::vector<char>& buffer)

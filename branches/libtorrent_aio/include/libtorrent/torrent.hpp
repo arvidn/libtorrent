@@ -165,6 +165,7 @@ namespace libtorrent
 
 		// pinned torrents may not be unloaded
 		bool is_pinned() const { return m_pinned; }
+		void set_pinned(bool p);
 		bool is_loaded() const { return m_torrent_file->is_loaded(); }
 		bool should_be_loaded() const { return m_should_be_loaded; }
 
@@ -237,7 +238,7 @@ namespace libtorrent
 
 		aux::session_settings const& settings() const;
 		aux::session_impl& session() { return m_ses; }
-		
+	
 		void set_sequential_download(bool sd);
 		bool is_sequential_download() const
 		{ return m_sequential_download; }
