@@ -1049,8 +1049,8 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		{
 			post_body.resize(content_length + 1);
 			mg_read(conn, &post_body[0], post_body.size());
-			post_body[content_length] = 0;
 			// null terminate
+			post_body[content_length] = 0;
 		}
 	}
 

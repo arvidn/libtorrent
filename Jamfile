@@ -15,9 +15,10 @@ SOURCES =
 	json_util
 	file_downloader
 	torrent_post
+	rencode
 	;
 
-lib libtorrent-webui
+lib torrent-webui
 	: # sources
 	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c
 
@@ -31,5 +32,5 @@ lib libtorrent-webui
 	<include>src
 	;
 
-exe webui_test : test.cpp : <library>libtorrent-webui <library>/torrent//torrent ;
+exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 

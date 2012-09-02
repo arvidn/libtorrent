@@ -1,0 +1,20 @@
+import testing ;
+
+use-project /torrent : ../../libtorrent_aio ;
+use-project /torrent-webui : .. ;
+
+project
+   : requirements
+	<library>/torrent//torrent
+	<library>/torrent-webui//torrent-webui
+#	<source>main.cpp
+   : default-build
+	<threading>multi
+	<debug-iterators>on
+   ;
+
+test-suite libtorrent : 	
+	[ run test_rencode.cpp ]
+	; 
+
+
