@@ -1494,7 +1494,7 @@ namespace libtorrent
 		// the verification function verifies the distinguished name
 		// of a peer certificate to make sure it matches the info-hash
 		// of the torrent, or that it's a "star-cert"
-		ctx->set_verify_callback(boost::bind(&torrent::verify_peer_cert, this, _1), ec);
+		ctx->set_verify_callback(boost::bind(&torrent::verify_peer_cert, this, _1, _2), ec);
 		if (ec)
 		{
 			set_error(ec, "SSL verify callback");
