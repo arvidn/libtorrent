@@ -1,4 +1,5 @@
 #include "transmission_webui.hpp"
+#include "deluge.hpp"
 #include "file_downloader.hpp"
 #include "torrent_post.hpp"
 #include "libtorrent/session.hpp"
@@ -20,8 +21,12 @@ int main(int argc, char *const argv[])
 	webport.add_handler(&post);
 	webport.start(8080);
 
+	deluge dlg(ses, "server.pem");
+	dlg.start(58846);
+
 	while (getchar() != 'q');
 
+	dlg.stop();
 	webport.stop();
 }
 

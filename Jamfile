@@ -16,6 +16,7 @@ SOURCES =
 	file_downloader
 	torrent_post
 	rencode
+	deluge
 	;
 
 lib torrent-webui
