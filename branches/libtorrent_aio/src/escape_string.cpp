@@ -211,7 +211,7 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path);
+	void convert_path_to_windows(std::string& path)
 	{
 		for (std::string::iterator i = path.begin()
 			, end(path.end()); i != end; ++i)

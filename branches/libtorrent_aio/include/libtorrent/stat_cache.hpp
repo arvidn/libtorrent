@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STAT_CACHE_HPP
 #define TORRENT_STAT_CACHE_HPP
 
+#include <time.h>
 #include <vector>
 #include "libtorrent/size_type.hpp"
 

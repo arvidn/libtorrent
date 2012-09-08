@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if TORRENT_USE_INTERLOCKED_ATOMIC
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #endif
 
@@ -60,7 +62,7 @@ namespace libtorrent
 		atomic_count(int v) : m_value(v) {}
 
 #if TORRENT_USE_OSATOMIC
-		operator int() const { return OSAtomicAdd32(0, const_cast<volatile int*>(&m_value)); }
+		operator int() const { return OSAtomicAdd32(0, const_cast<value_type*>(&m_value)); }
 		atomic_count& operator-=(int v) { OSAtomicAdd32(-v, &m_value); return *this; }
 		atomic_count& operator+=(int v) { OSAtomicAdd32(v, &m_value); return *this; }
 		// pre inc/dec operators
@@ -70,7 +72,7 @@ namespace libtorrent
 		int operator++(int) { return OSAtomicAdd32(1, &m_value); }
 		int operator--(int) { return OSAtomicAdd32(-1, &m_value); }
 #elif TORRENT_USE_GCC_ATOMIC
-		operator int() const { return __sync_fetch_and_add(const_cast<volatile int*>(&m_value), 0); }
+		operator int() const { return __sync_fetch_and_add(const_cast<value_type*>(&m_value), 0); }
 		atomic_count& operator-=(int v) { __sync_fetch_and_sub(&m_value, v); return *this; }
 		atomic_count& operator+=(int v) { __sync_fetch_and_add(&m_value, v); return *this; }
 		// pre inc/dec operators
@@ -80,17 +82,17 @@ namespace libtorrent
 		int operator++(int) { return __sync_fetch_and_add(&m_value, 1); }
 		int operator--(int) { return __sync_fetch_and_sub(&m_value, 1); }
 #elif TORRENT_USE_INTERLOCKED_ATOMIC
-		operator int() const { return InterlockedExchangeAdd(const_cast<volatile int*>(&m_value), 0); }
-		atomic_count& operator-=(int v) { InterlockedExchangeSub(&m_value, v); return *this; }
+		operator int() const { return InterlockedExchangeAdd(const_cast<value_type*>(&m_value), 0); }
+		atomic_count& operator-=(int v) { InterlockedExchangeAdd(&m_value, -v); return *this; }
 		atomic_count& operator+=(int v) { InterlockedExchangeAdd(&m_value, v); return *this; }
 		// pre inc/dec operators
 		atomic_count& operator++() { InterlockedIncrement(&m_value); return *this; }
 		atomic_count& operator--() { InterlockedDecrement(&m_value); return *this; }
 		// post inc/dec operators
 		int operator++(int) { return InterlockedExchangeAdd(&m_value, 1); }
-		int operator--(int) { return InterlockedExchangeSub(&m_value, 1); }
+		int operator--(int) { return InterlockedExchangeAdd(&m_value, -1); }
 #elif TORRENT_USE_SOLARIS_ATOMIC
-		operator int() const { return atomic_add_32_nv(const_cast<volatile int*>(&m_value), 0); }
+		operator int() const { return atomic_add_32_nv(const_cast<value_type*>(&m_value), 0); }
 		atomic_count& operator-=(int v) { atomic_add_32(&m_value, -v); return *this; }
 		atomic_count& operator+=(int v) { atomic_add_32(&m_value, v); return *this; }
 		// pre inc/dec operators
@@ -100,7 +102,7 @@ namespace libtorrent
 		int operator++(int) { return atomic_add_32_nv(&m_value, 1) - 1; }
 		int operator--(int) { return atomic_add_32_nv(&m_value, -1) + 1; }
 #elif TORRENT_USE_BEOS_ATOMIC
-		operator int() const { return atomic_add(const_cast<volatile int*>(&m_value), 0); }
+		operator int() const { return atomic_add(const_cast<value_type*>(&m_value), 0); }
 		atomic_count& operator-=(int v) { atomic_add(&m_value, -v); return *this; }
 		atomic_count& operator+=(int v) { atomic_add(&m_value, v); return *this; }
 		// pre inc/dec operators
@@ -113,7 +115,12 @@ namespace libtorrent
 #error "don't know which atomic operations to use"
 #endif
 	private:
-		volatile int m_value;
+#if TORRENT_USE_INTERLOCKED_ATOMIC
+		typedef LONG value_type;
+#else
+		typedef int value_type;
+#endif
+		volatile value_type m_value;
 	};
 }
 

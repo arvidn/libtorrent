@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // print_address
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -848,7 +849,7 @@ using boost::bind;
 void add_torrent(libtorrent::session& ses
 	, handles_t& files
 	, std::set<libtorrent::torrent_handle>& non_files
-	, std::string const& torrent
+	, std::string torrent
 	, int allocation_mode
 	, std::string const& save_path
 	, bool monitored_dir
@@ -874,7 +875,7 @@ void add_torrent(libtorrent::session& ses
 		p.resume_data = &buf;
 
 #ifdef TORRENT_WINDOWS
-	torrent = convert_path_to_posix(torrent);
+	convert_path_to_posix(torrent);
 	p.url = "file:///" + escape_path(torrent.c_str(), torrent.size());
 #else
 	p.url = "file://" + escape_path(torrent.c_str(), torrent.size());
