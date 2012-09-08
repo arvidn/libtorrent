@@ -567,7 +567,7 @@ namespace libtorrent
 		char cwd[TORRENT_MAX_PATH];
 		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
 #endif
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
 #else
 		return convert_from_native(cwd);

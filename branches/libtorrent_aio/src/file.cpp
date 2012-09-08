@@ -548,7 +548,7 @@ namespace libtorrent
 	{
 		char const* slash = strrchr(f.c_str(), '/');
 #ifdef TORRENT_WINDOWS
-		slash = (std::max)(strrchr(f.c_str(), '\\'), slash);
+		slash = (std::max)((char const*)strrchr(f.c_str(), '\\'), slash);
 #endif
 		char const* ext = strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
@@ -722,7 +722,7 @@ namespace libtorrent
 		char cwd[TORRENT_MAX_PATH];
 		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
 #endif
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
 #else
 		return convert_from_native(cwd);
