@@ -45,6 +45,8 @@ typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 namespace libtorrent
 {
 	struct session;
+	struct rtok_t;
+	struct rencoder;
 
 	struct deluge
 	{
@@ -54,7 +56,12 @@ namespace libtorrent
 		void start(int port);
 		void stop();
 
+		void handle_login(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& out);
+
 	private:
+
+		void incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec);
 
 		void accept_thread(int port);
 		void connection_thread();

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include <string>
+#include <vector>
 
 namespace libtorrent {
 
@@ -71,6 +72,32 @@ private:
 };
 
 int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len);
+
+void print_rtok(rtok_t const* tokens, char const* buf);
+
+rtok_t* skip_item(rtok_t* i);
+
+rtok_t* find_key(rtok_t* tokens, char* buf, char const* key, int type);
+std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found);
+boost::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found);
+bool find_bool(rtok_t* tokens, char* buf, char const* key);
+
+struct rencoder
+{
+	bool append_list(int size = -1);
+	bool append_dict(int size = -1);
+	void append_int(boost::int64_t i);
+	void append_float(float f);
+	void append_none();
+	void append_bool(bool b);
+	void append_string(std::string const& s);
+	void append_term();
+
+	char const* data() const { return &m_buffer[0]; }
+	int len() const { return m_buffer.size(); }
+private:
+	std::vector<char> m_buffer;
+};
 
 }
 

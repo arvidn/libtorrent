@@ -42,10 +42,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/puff.hpp"
 #include "deluge.hpp"
+#include "rencode.hpp"
+#include <zlib.h>
 
 using namespace libtorrent;
 
 namespace io = libtorrent::detail;
+
+enum rpc_type_t
+{
+	RPC_RESPONSE = 1,
+	RPC_ERROR = 2,
+	RPC_EVENT = 3
+};
 
 deluge::deluge(session& s, std::string pem_path)
 	: m_ses(s)
@@ -160,6 +169,105 @@ void deluge::on_accept(error_code const& ec, ssl_socket* sock)
 	do_accept();
 }
 
+struct handler_map_t
+{
+	char const* method;
+	void (deluge::*fun)(rtok_t const*, char const* buf, rencoder&);
+};
+
+handler_map_t handlers[] =
+{
+	{"daemon.login", &deluge::handle_login},
+	{"daemon.set_event_interest", &deluge::handle_set_event_interest},
+};
+
+void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec)
+{
+	printf("<== ");
+	print_rtok(tokens, buf);
+	printf("\n");
+
+	// RPCs are always 4-tuples, anything else is malformed
+	if (tokens[0].num_items() != 4) return;
+	// first the request-ID
+	if (tokens[1].type() != type_integer) return;
+	// then the method name
+	if (tokens[2].type() != type_string) return;
+	// then the arguments
+	if (tokens[3].type() != type_list) return;
+
+	std::string method = tokens[2].string(buf);
+
+	for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+	{
+		if (handlers[i].method != method) continue;
+
+		rencoder output;
+		(this->*handlers[i].fun)(tokens, buf, output);
+
+		// ----
+		rtok_t tmp[200];
+		int r = rdecode(tmp, 200, output.data(), output.len());
+		TORRENT_ASSERT(r > 0);
+		printf("==> ");
+		print_rtok(tmp, output.data());
+		printf("\n");
+		// ----
+
+		z_stream strm;
+		memset(&strm, 0, sizeof(strm));
+		int ret = deflateInit(&strm, 9);
+		if (ret != Z_OK) return;
+
+		std::vector<char> deflated(output.len() * 3);
+		strm.next_in = (Bytef*)output.data();
+		strm.avail_in = output.len();
+		strm.next_out = (Bytef*)&deflated[0];
+		strm.avail_out = deflated.size();
+
+		ret = deflate(&strm, Z_FINISH);
+
+		deflated.resize(deflated.size() - strm.avail_out);
+		deflateEnd(&strm);
+		if (ret != Z_STREAM_END) return;
+
+		ret = asio::write(*sock, asio::buffer(&deflated[0], deflated.size()), ec);
+		if (ec)
+		{
+			fprintf(stderr, "write: %s\n", ec.message().c_str());
+			return;
+		}
+		fprintf(stderr, "wrote %d bytes\n", ret);
+		return;
+	}
+}
+
+void deluge::handle_login(rtok_t const* tokens, char const* buf, rencoder& output)
+{
+	int id = tokens[1].integer(buf);
+
+	// [ RPC_RESPONSE, req-id, [5] ]
+
+	output.append_list(3);
+	output.append_int(RPC_RESPONSE);
+	output.append_int(id);
+	output.append_list(1);
+	output.append_int(5); // auth-level
+}
+
+void deluge::handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& output)
+{
+	int id = tokens[1].integer(buf);
+
+	// [ RPC_RESPONSE, req-id, [True] ]
+
+	output.append_list(3);
+	output.append_int(RPC_RESPONSE);
+	output.append_int(id);
+	output.append_list(1);
+	output.append_bool(true); // success
+}
+
 void deluge::connection_thread()
 {
 	mutex::scoped_lock l(m_mutex);
@@ -190,36 +298,47 @@ void deluge::connection_thread()
 
 		std::vector<char> buffer;
 		std::vector<char> inflated;
+		buffer.resize(1024);
 		do
 		{
-			buffer.resize(1024);
 			int buffer_use = 0;
 			error_code ec;
 
-			int ret = 0;
-			boost::uint32_t inlen = 0;
-			boost::uint32_t outlen = 0;
+			int ret;
+			z_stream strm;
+
+			// assume no more than a 1:5 compression ratio
+			inflated.resize(buffer.size() * 5);
 read_some_more:
-			ret = sock->read_some(asio::buffer(&buffer[buffer_use], buffer.size() - buffer_use), ec);
-			fprintf(stderr, "read %d bytes\n", ret);
+			ret = sock->read_some(asio::buffer(&buffer[buffer_use]
+				, buffer.size() - buffer_use), ec);
 			if (ec)
 			{
 				fprintf(stderr, "read: %s\n", ec.message().c_str());
 				break;
 			}
 			TORRENT_ASSERT(ret > 0);
+			fprintf(stderr, "read %d bytes\n", int(ret));
 
 			buffer_use += ret;
+	
+			memset(&strm, 0, sizeof(strm));
+			ret = inflateInit(&strm);
+			if (ret != Z_OK)
+			{
+				fprintf(stderr, "inflateInit failed: %d\n", ret);
+				break;
+			}
+			strm.next_in = (Bytef*)&buffer[0];
+			strm.avail_in = buffer_use;
 
-			inlen = buffer.size();
-			inflated.resize(inlen * 5);
-			outlen = inflated.size();
-			
-			ret = puff((unsigned char*)&inflated[0], &outlen, (unsigned char*)&buffer[0], &inlen);
+			strm.next_out = (Bytef*)&inflated[0];
+			strm.avail_out = inflated.size();
 
-			// 2 means the input data wasn't terminated
-			// properly. We need to read more from the socket
-			if (ret == 2)
+			ret = inflate(&strm, Z_NO_FLUSH);
+
+			// TODO: in some cases we should just abort as well
+			if (ret != Z_STREAM_END)
 			{
 				if (buffer_use + 512 > buffer.size())
 				{
@@ -234,28 +353,51 @@ read_some_more:
 					// incoming buffer.
 					buffer.resize(buffer_use + buffer_use / 2);
 				}
+				inflateEnd(&strm);
+				fprintf(stderr, "inflate: %d\n", ret);
 				goto read_some_more;
 			}
 
-			if (ret == 1)
+			// truncate the out buffer to only contain the message
+			inflated.resize(strm.avail_out);
+
+			int consumed_bytes = (char*)strm.next_in - &buffer[0];
+
+			inflateEnd(&strm);
+
+			rtok_t tokens[200];
+			ret = rdecode(tokens, 200, &inflated[0], inflated.size());
+
+			fprintf(stderr, "rdecode: %d\n", ret);
+
+			// an RPC call is at least 5 tokens
+			// list, ID, method, args, kwargs
+			if (ret < 5) break;
+
+			// each RPC call must be a list of the 4 items
+			// it could also be multiple RPC calls wrapped
+			// in a list.
+
+			if (tokens[0].type() != type_list) break;
+
+			if (tokens[1].type() == type_list)
 			{
-				fprintf(stderr, "inflated message size is greater than %d bytes\n"
-					, int(buffer.size() * 5));
-				break;
+				int num_items = tokens->num_items();
+				for (rtok_t* rpc = &tokens[1]; num_items; --num_items, rpc = skip_item(rpc))
+				{
+					incoming_rpc(rpc, &inflated[0], sock, ec);
+					if (ec) break;
+				}
+				if (ec) break;
+			}
+			else
+			{
+				incoming_rpc(&tokens[0], &inflated[0], sock, ec);
+				if (ec) break;
 			}
 
-			if (ret != 0)
-			{
-				fprintf(stderr, "inflate failed: %d\n", ret);
-				break;
-			}
-
-			fprintf(stderr, "incoming message: %d bytes\n", inlen);
-
-			fprintf(stderr, "message: %s\n", &inflated[0]);
-
-			// TODO: rdecode the message
-			// TODO: pass on message to handler
+			buffer.erase(buffer.begin(), buffer.begin() + consumed_bytes);
+			buffer_use -= consumed_bytes;
 
 		} while (!m_shutdown);
 

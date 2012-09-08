@@ -25,6 +25,7 @@ lib torrent-webui
 
 	: # requirements
 	<library>/torrent//torrent
+	<library>zlib
 
 	: # default build
 	<link>static
@@ -32,6 +33,8 @@ lib torrent-webui
 	: # usage-requirements
 	<include>src
 	;
+
+lib zlib : : <name>z <search>/usr/local/lib ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 

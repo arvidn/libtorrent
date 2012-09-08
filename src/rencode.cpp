@@ -64,7 +64,7 @@ enum renc_typecode
 	STR_FIXED_START = 128,
 	STR_FIXED_COUNT = 64,
 	// Lists with length embedded in typecode.
-	LIST_FIXED_START = STR_FIXED_START+STR_FIXED_COUNT,
+	LIST_FIXED_START = 192,
 	LIST_FIXED_COUNT = 64,
 };
 
@@ -170,7 +170,9 @@ int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len)
 	int ret = 0;
 	char const* cursor = buffer;
 
-	return decode_token(buffer, cursor, tokens, num_tokens);
+	ret = decode_token(buffer, cursor, tokens, num_tokens);
+	if (ret <= 0) fprintf(stderr, "rdecode error: %s\n", cursor);
+	return ret;
 }
 
 // return the number of slots used in the tokens array
@@ -323,8 +325,8 @@ int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int nu
 		for (int i = 0; i < size; ++i)
 		{
 			int ret = decode_token(buffer, cursor, tokens, num_tokens);
-			if (ret == -1) return ret;
-			if (tokens->type() != type_string) return -1;
+			if (ret == -1)
+				return ret;
 			tokens += ret;
 			num_tokens -= ret;
 			used_tokens += ret;
@@ -335,6 +337,231 @@ int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int nu
 
 	TORRENT_ASSERT(false);
 	return -1;
+}
+
+void print_rtok(rtok_t const* tokens, char const* buf)
+{
+	if (tokens->type() == type_list)
+	{
+		printf("[");
+		int num_items = tokens->num_items();
+		for (int i = 0; i < num_items; ++i)
+		{
+			print_rtok(tokens + i + 1, buf);
+			if (i < num_items - 1) printf(", ");
+		}
+		printf("]");
+	}
+	else if (tokens->type() == type_dict)
+	{
+		printf("{");
+		for (int i = 0; i < tokens->num_items() * 2; i += 2)
+		{
+			print_rtok(tokens + i + 1, buf);
+			printf(": ");
+			print_rtok(tokens + i + 2, buf);
+		}
+		printf("}");
+	}
+	else if (tokens->type() == type_integer)
+	{
+		printf("%" PRId64, tokens->integer(buf));
+	}
+	else if (tokens->type() == type_string)
+	{
+		printf("\"%s\"", tokens->string(buf).c_str());
+	}
+	else if (tokens->type() == type_float)
+	{
+		printf("%f", tokens->floating_point(buf));
+	}
+	else if (tokens->type() == type_none)
+	{
+		printf("None"); 
+	}
+	else if (tokens->type() == type_bool)
+	{
+		printf(tokens->boolean(buf) ? "True":"False"); 
+	}
+}
+
+// skip i. if i points to an object or an array, this function
+// needs to make recursive calls to skip its members too
+rtok_t* skip_item(rtok_t* i)
+{
+	int n = i->num_items();
+	if (i->type() == type_dict) n *= 2;
+	++i;
+	// if it's a literal, just skip it, and we're done
+	if (n == 0) return i;
+	// if it's a container, we need to skip n items
+	for (int k = 0; k < n; ++k)
+		i = skip_item(i);
+	return i;
+}
+
+rtok_t* find_key(rtok_t* tokens, char* buf, char const* key, int type)
+{
+	if (tokens->type() != type_dict) return NULL;
+	int num_keys = tokens->num_items();
+	// we skip two items at a time, first the key then the value
+	for (rtok_t* i = &tokens[1]; num_keys > 0; i = skip_item(skip_item(i)), --num_keys)
+	{
+		if (i->type() != type_string) continue;
+		if (i->string(buf) != key) continue;
+		if (i[1].type() != type) continue;
+		return i + 1;
+	}
+	return NULL;
+}
+
+std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found)
+{
+	rtok_t* k = find_key(tokens, buf, key, type_string);
+	if (k == NULL)
+	{
+		if (found) *found = false;
+		return "";
+	}
+	if (found) *found = true;
+	return k->string(buf);
+}
+
+boost::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found)
+{
+	rtok_t* k = find_key(tokens, buf, key, type_integer);
+	if (k == NULL)
+	{
+		if (found) *found = false;
+		return 0;
+	}
+	if (found) *found = true;
+	return k->integer(buf);
+}
+
+bool find_bool(rtok_t* tokens, char* buf, char const* key)
+{
+	rtok_t* k = find_key(tokens, buf, key, type_bool);
+	if (k == NULL) return false;
+	return k->boolean(buf);
+}
+
+bool rencoder::append_list(int size)
+{
+	if (size < 0 || size > LIST_FIXED_COUNT)
+	{
+		m_buffer.push_back(CHR_LIST);
+		return true;
+	}
+	else
+	{
+		m_buffer.push_back(LIST_FIXED_START + size);
+		return false;
+	}
+}
+
+bool rencoder::append_dict(int size)
+{
+	if (size < 0 || size > DICT_FIXED_COUNT)
+	{
+		m_buffer.push_back(CHR_DICT);
+		return true;
+	}
+	else
+	{
+		m_buffer.push_back(DICT_FIXED_START + size);
+		return false;
+	}
+}
+
+void rencoder::append_int(boost::int64_t i)
+{
+	if (i >= 0 && i < INT_POS_FIXED_COUNT)
+	{
+		m_buffer.push_back(INT_POS_FIXED_START + i);
+	}
+	else if (i < 0 && i > -INT_NEG_FIXED_COUNT)
+	{
+		m_buffer.push_back(INT_NEG_FIXED_START + -i);
+	}
+	else if (i <= 0x80 && i >= -0x7f)
+	{
+		m_buffer.push_back(CHR_INT1);
+		m_buffer.push_back(i);
+	}
+	else if (i <= 0x8000 && i >= -0x7fff)
+	{
+		m_buffer.push_back(CHR_INT2);
+		m_buffer.push_back(i >> 8);
+		m_buffer.push_back(i & 0xff);
+	}
+	else if (i <= 0x80000000 && i >= -0x7fffffff)
+	{
+		m_buffer.push_back(CHR_INT4);
+		m_buffer.push_back((i >> 24) & 0xff);
+		m_buffer.push_back((i >> 16) & 0xff);
+		m_buffer.push_back((i >> 8) & 0xff);
+		m_buffer.push_back((i >> 0) & 0xff);
+	}
+	else // if (i <= 0x8000000000000000LL && i >= -0x7fffffffffffffffLL)
+	{
+		m_buffer.push_back(CHR_INT8);
+		m_buffer.push_back((i >> 56) & 0xff);
+		m_buffer.push_back((i >> 48) & 0xff);
+		m_buffer.push_back((i >> 40) & 0xff);
+		m_buffer.push_back((i >> 32) & 0xff);
+		m_buffer.push_back((i >> 24) & 0xff);
+		m_buffer.push_back((i >> 16) & 0xff);
+		m_buffer.push_back((i >> 8) & 0xff);
+		m_buffer.push_back((i >> 0) & 0xff);
+	}
+}
+
+void rencoder::append_float(float f)
+{
+	m_buffer.push_back(CHR_FLOAT32);
+	union
+	{
+		float in;
+		boost::uint32_t out;
+	};
+
+	in = f;
+	m_buffer.push_back((out >> 24) & 0xff);
+	m_buffer.push_back((out >> 16) & 0xff);
+	m_buffer.push_back((out >> 8) & 0xff);
+	m_buffer.push_back((out >> 0) & 0xff);
+}
+
+void rencoder::append_none()
+{
+	m_buffer.push_back(CHR_NONE);
+}
+
+void rencoder::append_bool(bool b)
+{
+	m_buffer.push_back(b ? CHR_TRUE : CHR_FALSE);
+}
+
+void rencoder::append_string(std::string const& s)
+{
+	if (s.size() < STR_FIXED_COUNT)
+	{
+		m_buffer.push_back(STR_FIXED_START + s.size());
+		m_buffer.insert(m_buffer.end(), s.begin(), s.end());
+	}
+	else
+	{
+		char buf[10];
+		int len = snprintf(buf, sizeof(buf), "%d:", int(s.size()));
+		m_buffer.insert(m_buffer.end(), buf, buf + len);
+		m_buffer.insert(m_buffer.end(), s.begin(), s.end());
+	}
+}
+
+void rencoder::append_term()
+{
+	m_buffer.push_back(CHR_TERM);
 }
 
 }
