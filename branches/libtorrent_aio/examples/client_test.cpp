@@ -827,6 +827,9 @@ void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libto
 	files_t::iterator i = hash_to_filename.find(ih);
 	if (i == hash_to_filename.end())
 	{
+		// for magnet links and torrents downloaded via
+		// URL, the metadata is saved in the resume file
+		// TODO: pick up metadata from the resume file
 		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
 		return;
 	}
@@ -1054,6 +1057,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			save_file(filename, buffer);
 
 			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
+			hash_to_filename.insert(std::make_pair(ti.info_hash(), filename));
 			non_files.erase(h);
 		}
 	}

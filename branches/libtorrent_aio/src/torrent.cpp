@@ -757,6 +757,10 @@ namespace libtorrent
 				m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
 					? m_url : m_uuid, i->second));
 			}
+
+			// TODO: if the existing torrent doesn't have metadata, insert
+			// the metadata we just downloaded into it.
+
 			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
 			abort();
 			return;
@@ -768,7 +772,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_torrents == m_ses.m_torrents.size());
 
 		// if the user added any trackers while downloading the
-		// .torrent file, serge them into the new tracker list
+		// .torrent file, merge them into the new tracker list
 		std::vector<announce_entry> new_trackers = m_torrent_file->trackers();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
