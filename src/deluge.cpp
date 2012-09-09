@@ -362,8 +362,6 @@ void deluge::connection_thread()
 			int ret;
 			z_stream strm;
 
-			// assume no more than a 1:5 compression ratio
-			inflated.resize(buffer.size() * 5);
 read_some_more:
 			TORRENT_ASSERT(buffer.size() > 0);
 			TORRENT_ASSERT(buffer.size() - buffer_use > 0);
@@ -380,6 +378,9 @@ read_some_more:
 			buffer_use += ret;
 	
 parse_message:
+			// assume no more than a 1:10 compression ratio
+			inflated.resize(buffer_use * 10);
+
 			memset(&strm, 0, sizeof(strm));
 			ret = inflateInit(&strm);
 			if (ret != Z_OK)
