@@ -182,6 +182,8 @@ handler_map_t handlers[] =
 	{"daemon.set_event_interest", "[[s]]{}", &deluge::handle_set_event_interest},
 	{"daemon.info", "[]{}", &deluge::handle_info},
 	{"core.get_config_value", "[s]{}", &deluge::handle_get_config_value},
+	{"core.get_session_status", "[[s]]{}", &deluge::handle_get_session_status},
+	{"core.get_enabled_plugins", "[]{}", &deluge::handle_get_enabled_plugins},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -263,16 +265,22 @@ void deluge::handle_info(rtok_t const* tokens, char const* buf, rencoder& output
 	output.append_string(m_ses.get_settings().get_str(settings_pack::user_agent)); // version
 }
 
+void deluge::handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& output)
+{
+	int id = tokens[1].integer(buf);
+
+	// [ RPC_RESPONSE, req-id, [[]] ]
+
+	output.append_list(3);
+	output.append_int(RPC_RESPONSE);
+	output.append_int(id);
+	output.append_list(1);
+	output.append_list(0);
+}
+
 void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out)
 {
 	int id = tokens[1].integer(buf);
-	if (tokens[3].type() != type_list
-		|| tokens[3].num_items() < 1
-		|| tokens[4].type() != type_string)
-	{
-		output_error(id, "invalid argument", out);
-		return;
-	}
 	std::string config_name = tokens[4].string(buf);
 
 	// map deluge-names to libtorrent-names
@@ -280,6 +288,10 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 		config_name = "download_rate_limit";
 	else if (config_name == "max_upload_speed")
 		config_name = "upload_rate_limit";
+	else if (config_name == "max_connections_global")
+		config_name = "connections_limit";
+	else if (config_name == "dht")
+		config_name = "connections_limit";
 
 	int name = setting_by_name(config_name);
 	if (name == -1)
@@ -308,6 +320,40 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 			out.append_bool(set.get_bool(name));
 			break;
 	};
+}
+
+void deluge::handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& output)
+{
+	int id = tokens[1].integer(buf);
+	
+	rtok_t const* keys = &tokens[4];
+	int num_keys = keys->num_items();
+	++keys;
+
+	session_status st = m_ses.status();
+
+	output.append_list(3);
+	output.append_int(RPC_RESPONSE);
+	output.append_int(id);
+	output.append_list(1);
+	bool need_term = output.append_dict(num_keys);
+	for (int i = 0; i < num_keys; ++i, keys = skip_item((rtok_t*)keys))
+	{
+		if (keys->type() != type_string)
+			continue;
+		std::string k = keys->string(buf);
+		output.append_string(k);
+
+		if (k == "payload_upload_rate")
+			output.append_int(st.payload_upload_rate);
+		else if (k == "payload_download_rate")
+			output.append_int(st.payload_download_rate);
+		else if (k == "payload_download_rate")
+			output.append_int(st.payload_download_rate);
+		else
+			output.append_none();
+	}
+	if (need_term) output.append_term();
 }
 
 void deluge::output_error(int id, char const* msg, rencoder& out)

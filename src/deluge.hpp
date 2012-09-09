@@ -61,6 +61,8 @@ namespace libtorrent
 		void handle_info(rtok_t const* tokens, char const* buf, rencoder& out);
 
 		void handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& out);
 
 	private:
 
