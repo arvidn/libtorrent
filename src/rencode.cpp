@@ -450,6 +450,88 @@ bool find_bool(rtok_t* tokens, char* buf, char const* key)
 	return k->boolean(buf);
 }
 
+// format strings can contain:
+// i = integer
+// f = float
+// [] = list
+// {} = dicts
+// b = boolean
+// n = none
+// s = string
+// example: [is[]{}] verifies the format of RPC calls
+bool validate_structure(rtok_t const* tokens, char const* fmt)
+{
+	// TODO: the number of items in lists or dicts are not verified!
+	int offset = 0;
+	std::vector<int> stack;
+	while (*fmt)
+	{
+		switch (*fmt)
+		{
+			case 'i':
+				if (tokens[offset].type() != type_integer)
+					return false;
+				break;
+			case 'f':
+				if (tokens[offset].type() != type_float)
+					return false;
+				break;
+			case 'b':
+				if (tokens[offset].type() != type_bool)
+					return false;
+				break;
+			case 's':
+				if (tokens[offset].type() != type_string)
+					return false;
+				break;
+			case 'n':
+				if (tokens[offset].type() != type_none)
+					return false;
+				break;
+			case '[':
+				if (tokens[offset].type() != type_list)
+					return false;
+				stack.push_back(offset);
+				break;
+			case '{':
+				if (tokens[offset].type() != type_dict)
+					return false;
+				stack.push_back(offset);
+				break;
+			case ']': {
+				if (stack.empty() || tokens[stack.back()].type() != type_list)
+					return false;
+				rtok_t* t = skip_item((rtok_t*)&tokens[stack.back()]);
+				stack.pop_back();
+				if (t == NULL) return false;
+				// offset is incremented below, the -1 is to take that
+				// into account
+				offset = t - tokens - 1;
+				break;
+			 }
+			case '}': {
+				if (stack.empty() || tokens[stack.back()].type() != type_dict)
+					return false;
+				rtok_t* t = skip_item((rtok_t*)&tokens[stack.back()]);
+				stack.pop_back();
+				if (t == NULL) return false;
+				// offset is incremented below, the -1 is to take that
+				// into account
+				offset = t - tokens - 1;
+				break;
+			 }
+			default:
+				// invalid format string
+				fprintf(stderr, "invalid format character: %c", *fmt);
+				return false;
+		};
+//		fprintf(stderr, "%d: %c\n", offset, *fmt);
+		++offset;
+		++fmt;
+	}
+	return true;
+}
+
 bool rencoder::append_list(int size)
 {
 	if (size < 0 || size > LIST_FIXED_COUNT)

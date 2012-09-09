@@ -172,29 +172,38 @@ void deluge::on_accept(error_code const& ec, ssl_socket* sock)
 struct handler_map_t
 {
 	char const* method;
+	char const* args;
 	void (deluge::*fun)(rtok_t const*, char const* buf, rencoder&);
 };
 
 handler_map_t handlers[] =
 {
-	{"daemon.login", &deluge::handle_login},
-	{"daemon.set_event_interest", &deluge::handle_set_event_interest},
-	{"daemon.info", &deluge::handle_info},
-	{"core.get_config_value", &deluge::handle_get_config_value},
+	{"daemon.login", "[ss]{}", &deluge::handle_login},
+	{"daemon.set_event_interest", "[[s]]{}", &deluge::handle_set_event_interest},
+	{"daemon.info", "[]{}", &deluge::handle_info},
+	{"core.get_config_value", "[s]{}", &deluge::handle_get_config_value},
 };
 
-void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec)
+void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
 {
 	printf("<== ");
 	print_rtok(tokens, buf);
 	printf("\n");
 
 	// RPCs are always 4-tuples, anything else is malformed
-	if (tokens[0].num_items() != 4) return;
 	// first the request-ID
-	if (tokens[1].type() != type_integer) return;
-	// then the method name
-	if (tokens[2].type() != type_string) return;
+	// method name
+	// arguments
+	// keyword (named) arguments
+	if (validate_structure(tokens, "[is[]{}]") == false)
+	{
+		int id = -1;
+		if (tokens[1].type() == type_integer)
+			id = tokens[1].integer(buf);
+
+		output_error(id, "invalid RPC format", output);
+		return;
+	}
 
 	std::string method = tokens[2].string(buf);
 
@@ -202,46 +211,17 @@ void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* soc
 	{
 		if (handlers[i].method != method) continue;
 
-		rencoder output;
-		(this->*handlers[i].fun)(tokens, buf, output);
-
-		// ----
-		rtok_t tmp[200];
-		int r = rdecode(tmp, 200, output.data(), output.len());
-		TORRENT_ASSERT(r > 0);
-		printf("==> ");
-		print_rtok(tmp, output.data());
-		printf("\n");
-		// ----
-
-		z_stream strm;
-		memset(&strm, 0, sizeof(strm));
-		int ret = deflateInit(&strm, 9);
-		if (ret != Z_OK) return;
-
-		std::vector<char> deflated(output.len() * 3);
-		strm.next_in = (Bytef*)output.data();
-		strm.avail_in = output.len();
-		strm.next_out = (Bytef*)&deflated[0];
-		strm.avail_out = deflated.size();
-
-		ret = deflate(&strm, Z_FINISH);
-
-		deflated.resize(deflated.size() - strm.avail_out);
-		deflateEnd(&strm);
-		if (ret != Z_STREAM_END) return;
-
-		ret = asio::write(*sock, asio::buffer(&deflated[0], deflated.size()), ec);
-		if (ec)
+		if (!validate_structure(tokens+3, handlers[i].args))
 		{
-			fprintf(stderr, "write: %s\n", ec.message().c_str());
+			output_error(tokens[1].integer(buf), "invalid arguments", output);
 			return;
 		}
-		fprintf(stderr, "wrote %d bytes\n", ret);
+
+		(this->*handlers[i].fun)(tokens, buf, output);
 		return;
 	}
 
-	fprintf(stderr, "unknown method\n");
+	output_error(tokens[1].integer(buf), "unknown method", output);
 }
 
 void deluge::handle_login(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -373,7 +353,7 @@ void deluge::connection_thread()
 
 		std::vector<char> buffer;
 		std::vector<char> inflated;
-		buffer.resize(1024);
+		buffer.resize(2048);
 		do
 		{
 			int buffer_use = 0;
@@ -449,6 +429,8 @@ parse_message:
 
 			fprintf(stderr, "rdecode: %d\n", ret);
 
+			rencoder output;
+
 			// an RPC call is at least 5 tokens
 			// list, ID, method, args, kwargs
 			if (ret < 5) break;
@@ -456,7 +438,6 @@ parse_message:
 			// each RPC call must be a list of the 4 items
 			// it could also be multiple RPC calls wrapped
 			// in a list.
-
 			if (tokens[0].type() != type_list) break;
 
 			if (tokens[1].type() == type_list)
@@ -464,14 +445,17 @@ parse_message:
 				int num_items = tokens->num_items();
 				for (rtok_t* rpc = &tokens[1]; num_items; --num_items, rpc = skip_item(rpc))
 				{
-					incoming_rpc(rpc, &inflated[0], sock, ec);
+					incoming_rpc(rpc, &inflated[0], output);
+					write_response(output, sock, ec);
+					output.clear();
 					if (ec) break;
 				}
 				if (ec) break;
 			}
 			else
 			{
-				incoming_rpc(&tokens[0], &inflated[0], sock, ec);
+				incoming_rpc(&tokens[0], &inflated[0], output);
+				write_response(output, sock, ec);
 				if (ec) break;
 			}
 
@@ -482,13 +466,13 @@ parse_message:
 
 			buffer.erase(buffer.begin(), buffer.begin() + consumed_bytes);
 			buffer_use -= consumed_bytes;
-			fprintf(stderr, "consumed %d bytes\n", consumed_bytes);
+			fprintf(stderr, "consumed %d bytes (%d left)\n", consumed_bytes, buffer_use);
 	
 			// there's still data in the in-buffer that may be a message
 			// don't get stuck in read if we have more messages to parse
 			if (buffer_use > 0) goto parse_message;
 	
-			if (buffer.size() < 1024) buffer.resize(1024);
+			if (buffer.size() < 2048) buffer.resize(2048);
 
 		} while (!m_shutdown);
 
@@ -498,6 +482,43 @@ parse_message:
 		delete sock;
 	}
 
+}
+
+void deluge::write_response(rencoder const& output, ssl_socket* sock, error_code& ec)
+{
+	// ----
+	rtok_t tmp[200];
+	int r = rdecode(tmp, 200, output.data(), output.len());
+	TORRENT_ASSERT(r > 0);
+	printf("==> ");
+	print_rtok(tmp, output.data());
+	printf("\n");
+	// ----
+
+	z_stream strm;
+	memset(&strm, 0, sizeof(strm));
+	int ret = deflateInit(&strm, 9);
+	if (ret != Z_OK) return;
+
+	std::vector<char> deflated(output.len() * 3);
+	strm.next_in = (Bytef*)output.data();
+	strm.avail_in = output.len();
+	strm.next_out = (Bytef*)&deflated[0];
+	strm.avail_out = deflated.size();
+
+	ret = deflate(&strm, Z_FINISH);
+
+	deflated.resize(deflated.size() - strm.avail_out);
+	deflateEnd(&strm);
+	if (ret != Z_STREAM_END) return;
+
+	ret = asio::write(*sock, asio::buffer(&deflated[0], deflated.size()), ec);
+	if (ec)
+	{
+		fprintf(stderr, "write: %s\n", ec.message().c_str());
+		return;
+	}
+	fprintf(stderr, "wrote %d bytes\n", ret);
 }
 
 void deluge::start(int port)

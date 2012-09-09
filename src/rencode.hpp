@@ -82,6 +82,8 @@ std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found)
 boost::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found);
 bool find_bool(rtok_t* tokens, char* buf, char const* key);
 
+bool validate_structure(rtok_t const* tokens, char const* fmt);
+
 struct rencoder
 {
 	bool append_list(int size = -1);
@@ -95,6 +97,8 @@ struct rencoder
 
 	char const* data() const { return &m_buffer[0]; }
 	int len() const { return m_buffer.size(); }
+
+	void clear() { m_buffer.clear(); }
 private:
 	std::vector<char> m_buffer;
 };

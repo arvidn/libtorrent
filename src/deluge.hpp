@@ -64,8 +64,9 @@ namespace libtorrent
 
 	private:
 
-		void incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec);
+		void incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& out);
 		void output_error(int id, char const* msg, rencoder& out);
+		void write_response(rencoder const& output, ssl_socket* sock, error_code& ec);
 
 		void accept_thread(int port);
 		void connection_thread();
