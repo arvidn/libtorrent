@@ -74,10 +74,10 @@ renc_type_t rtok_t::type() const
 		return type_bool;
 	if (m_typecode == CHR_FLOAT32 || m_typecode == CHR_FLOAT64)
 		return type_float;
-	if (m_typecode == CHR_DICT || (m_typecode > DICT_FIXED_START
+	if (m_typecode == CHR_DICT || (m_typecode >= DICT_FIXED_START
 		&& m_typecode < DICT_FIXED_START+DICT_FIXED_COUNT))
 		return type_dict;
-	if (m_typecode == CHR_LIST || (m_typecode > LIST_FIXED_START
+	if (m_typecode == CHR_LIST || (m_typecode >= LIST_FIXED_START
 		&& m_typecode < LIST_FIXED_START+LIST_FIXED_COUNT))
 		return type_list;
 	if (m_typecode == CHR_NONE) return type_none;
@@ -283,6 +283,7 @@ int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int nu
 			tokens += ret;
 			num_tokens -= ret;
 			used_tokens += ret;
+			++list_root->m_num_items;
 		}
 		return used_tokens;
 	}

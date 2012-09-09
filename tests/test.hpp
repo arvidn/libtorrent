@@ -33,9 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
+extern int main_ret;
+
 #define TEST_CHECK(cond) \
 	if (!(cond)) { \
 		fprintf(stderr, "ERROR: (%s:%d) %s\n", __FILE__, __LINE__, #cond); \
+		++main_ret; \
 	}
 
 #endif
