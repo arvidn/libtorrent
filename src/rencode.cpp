@@ -339,15 +339,17 @@ int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int nu
 	return -1;
 }
 
-void print_rtok(rtok_t const* tokens, char const* buf)
+// returns the number of tokens that were printed
+int print_rtok(rtok_t const* tokens, char const* buf)
 {
+	int consumed = 1;
 	if (tokens->type() == type_list)
 	{
 		printf("[");
 		int num_items = tokens->num_items();
 		for (int i = 0; i < num_items; ++i)
 		{
-			print_rtok(tokens + i + 1, buf);
+			consumed += print_rtok(tokens + consumed, buf);
 			if (i < num_items - 1) printf(", ");
 		}
 		printf("]");
@@ -357,9 +359,9 @@ void print_rtok(rtok_t const* tokens, char const* buf)
 		printf("{");
 		for (int i = 0; i < tokens->num_items() * 2; i += 2)
 		{
-			print_rtok(tokens + i + 1, buf);
+			consumed += print_rtok(tokens + consumed, buf);
 			printf(": ");
-			print_rtok(tokens + i + 2, buf);
+			consumed += print_rtok(tokens + consumed, buf);
 		}
 		printf("}");
 	}
@@ -383,6 +385,7 @@ void print_rtok(rtok_t const* tokens, char const* buf)
 	{
 		printf(tokens->boolean(buf) ? "True":"False"); 
 	}
+	return consumed;
 }
 
 // skip i. if i points to an object or an array, this function

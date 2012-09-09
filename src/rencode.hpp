@@ -73,7 +73,7 @@ private:
 
 int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len);
 
-void print_rtok(rtok_t const* tokens, char const* buf);
+int print_rtok(rtok_t const* tokens, char const* buf);
 
 rtok_t* skip_item(rtok_t* i);
 
