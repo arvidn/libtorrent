@@ -58,10 +58,14 @@ namespace libtorrent
 
 		void handle_login(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_info(rtok_t const* tokens, char const* buf, rencoder& out);
+
+		void handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out);
 
 	private:
 
 		void incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec);
+		void output_error(int id, char const* msg, rencoder& out);
 
 		void accept_thread(int port);
 		void connection_thread();

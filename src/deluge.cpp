@@ -179,6 +179,8 @@ handler_map_t handlers[] =
 {
 	{"daemon.login", &deluge::handle_login},
 	{"daemon.set_event_interest", &deluge::handle_set_event_interest},
+	{"daemon.info", &deluge::handle_info},
+	{"core.get_config_value", &deluge::handle_get_config_value},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* sock, error_code& ec)
@@ -193,8 +195,6 @@ void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* soc
 	if (tokens[1].type() != type_integer) return;
 	// then the method name
 	if (tokens[2].type() != type_string) return;
-	// then the arguments
-	if (tokens[3].type() != type_list) return;
 
 	std::string method = tokens[2].string(buf);
 
@@ -240,6 +240,8 @@ void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, ssl_socket* soc
 		fprintf(stderr, "wrote %d bytes\n", ret);
 		return;
 	}
+
+	fprintf(stderr, "unknown method\n");
 }
 
 void deluge::handle_login(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -266,6 +268,79 @@ void deluge::handle_set_event_interest(rtok_t const* tokens, char const* buf, re
 	output.append_int(id);
 	output.append_list(1);
 	output.append_bool(true); // success
+}
+
+void deluge::handle_info(rtok_t const* tokens, char const* buf, rencoder& output)
+{
+	int id = tokens[1].integer(buf);
+
+	// [ RPC_RESPONSE, req-id, ["1.0"] ]
+
+	output.append_list(3);
+	output.append_int(RPC_RESPONSE);
+	output.append_int(id);
+	output.append_list(1);
+	output.append_string(m_ses.get_settings().get_str(settings_pack::user_agent)); // version
+}
+
+void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+	if (tokens[3].type() != type_list
+		|| tokens[3].num_items() < 1
+		|| tokens[4].type() != type_string)
+	{
+		output_error(id, "invalid argument", out);
+		return;
+	}
+	std::string config_name = tokens[4].string(buf);
+
+	// map deluge-names to libtorrent-names
+	if (config_name == "max_download_speed")
+		config_name = "download_rate_limit";
+	else if (config_name == "max_upload_speed")
+		config_name = "upload_rate_limit";
+
+	int name = setting_by_name(config_name);
+	if (name == -1)
+	{
+		output_error(id, "unknown configuration", out);
+		return;
+	}
+
+	aux::session_settings set = m_ses.get_settings();
+	
+	// [ RPC_RESPONSE, req-id, [<config value>] ]
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	switch (name & settings_pack::index_mask)
+	{
+		case settings_pack::string_type_base:
+			out.append_string(set.get_str(name));
+			break;
+		case settings_pack::int_type_base:
+			out.append_int(set.get_int(name));
+			break;
+		case settings_pack::bool_type_base:
+			out.append_bool(set.get_bool(name));
+			break;
+	};
+}
+
+void deluge::output_error(int id, char const* msg, rencoder& out)
+{
+	// [ RPC_ERROR, req-id, [msg, args, trace] ]
+
+	out.append_list(3);
+	out.append_int(RPC_ERROR);
+	out.append_int(id);
+	out.append_list(3);
+	out.append_string(msg); // exception name
+	out.append_string(""); // args
+	out.append_string(""); // stack-trace
 }
 
 void deluge::connection_thread()
@@ -310,6 +385,8 @@ void deluge::connection_thread()
 			// assume no more than a 1:5 compression ratio
 			inflated.resize(buffer.size() * 5);
 read_some_more:
+			TORRENT_ASSERT(buffer.size() > 0);
+			TORRENT_ASSERT(buffer.size() - buffer_use > 0);
 			ret = sock->read_some(asio::buffer(&buffer[buffer_use]
 				, buffer.size() - buffer_use), ec);
 			if (ec)
@@ -318,10 +395,11 @@ read_some_more:
 				break;
 			}
 			TORRENT_ASSERT(ret > 0);
-			fprintf(stderr, "read %d bytes\n", int(ret));
+			fprintf(stderr, "read %d bytes (%d/%d)\n", int(ret), buffer_use, int(buffer.size()));
 
 			buffer_use += ret;
 	
+parse_message:
 			memset(&strm, 0, sizeof(strm));
 			ret = inflateInit(&strm);
 			if (ret != Z_OK)
@@ -351,7 +429,7 @@ read_some_more:
 					}
 					// make sure we have enough space in the
 					// incoming buffer.
-					buffer.resize(buffer_use + buffer_use / 2);
+					buffer.resize(buffer_use + buffer_use / 2 + 512);
 				}
 				inflateEnd(&strm);
 				fprintf(stderr, "inflate: %d\n", ret);
@@ -359,9 +437,10 @@ read_some_more:
 			}
 
 			// truncate the out buffer to only contain the message
-			inflated.resize(strm.avail_out);
+			inflated.resize(inflated.size() - strm.avail_out);
 
 			int consumed_bytes = (char*)strm.next_in - &buffer[0];
+			TORRENT_ASSERT(consumed_bytes > 0);
 
 			inflateEnd(&strm);
 
@@ -396,8 +475,20 @@ read_some_more:
 				if (ec) break;
 			}
 
+			// flush anything written to the SSL socket
+			BIO* bio = SSL_get_wbio(sock->native_handle());
+			TORRENT_ASSERT(bio);
+			if (bio) BIO_flush(bio);
+
 			buffer.erase(buffer.begin(), buffer.begin() + consumed_bytes);
 			buffer_use -= consumed_bytes;
+			fprintf(stderr, "consumed %d bytes\n", consumed_bytes);
+	
+			// there's still data in the in-buffer that may be a message
+			// don't get stuck in read if we have more messages to parse
+			if (buffer_use > 0) goto parse_message;
+	
+			if (buffer.size() < 1024) buffer.resize(1024);
 
 		} while (!m_shutdown);
 
