@@ -358,11 +358,13 @@ int print_rtok(rtok_t const* tokens, char const* buf)
 	else if (tokens->type() == type_dict)
 	{
 		printf("{");
-		for (int i = 0; i < tokens->num_items() * 2; i += 2)
+		int num_items = tokens->num_items();
+		for (int i = 0; i < num_items * 2; i += 2)
 		{
 			consumed += print_rtok(tokens + consumed, buf);
 			printf(": ");
 			consumed += print_rtok(tokens + consumed, buf);
+			if (i < num_items * 2) printf(", ");
 		}
 		printf("}");
 	}

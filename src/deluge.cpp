@@ -182,6 +182,7 @@ handler_map_t handlers[] =
 	{"daemon.set_event_interest", "[[s]]{}", &deluge::handle_set_event_interest},
 	{"daemon.info", "[]{}", &deluge::handle_info},
 	{"core.get_config_value", "[s]{}", &deluge::handle_get_config_value},
+	{"core.get_config_values", "[[s]]{}", &deluge::handle_get_config_values},
 	{"core.get_session_status", "[[s]]{}", &deluge::handle_get_session_status},
 	{"core.get_enabled_plugins", "[]{}", &deluge::handle_get_enabled_plugins},
 };
@@ -278,29 +279,55 @@ void deluge::handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, r
 	output.append_list(0);
 }
 
-void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out)
+char const* map_deluge_setting(std::string const& name)
 {
-	int id = tokens[1].integer(buf);
-	std::string config_name = tokens[4].string(buf);
+	if (name == "max_download_speed")
+		return "download_rate_limit";
+	else if (name == "max_upload_speed")
+		return "upload_rate_limit";
+	else if (name == "max_connections_global")
+		return "connections_limit";
+	else
+		return name.c_str();
+}
 
-	// map deluge-names to libtorrent-names
-	if (config_name == "max_download_speed")
-		config_name = "download_rate_limit";
-	else if (config_name == "max_upload_speed")
-		config_name = "upload_rate_limit";
-	else if (config_name == "max_connections_global")
-		config_name = "connections_limit";
-	else if (config_name == "dht")
-		config_name = "connections_limit";
-
-	int name = setting_by_name(config_name);
-	if (name == -1)
+void deluge::output_config_value(std::string set_name, aux::session_settings const& sett
+	, rencoder& out)
+{
+	char const* lt_name = map_deluge_setting(set_name);
+	int name = setting_by_name(lt_name);
+	if (name < 0)
 	{
-		output_error(id, "unknown configuration", out);
+		if (set_name == "dht")
+		{
+			out.append_bool(m_ses.is_dht_running());
+			return;
+		}
+		out.append_none();
 		return;
 	}
 
-	aux::session_settings set = m_ses.get_settings();
+	switch (name & settings_pack::index_mask)
+	{
+		case settings_pack::string_type_base:
+			out.append_string(sett.get_str(name));
+			break;
+		case settings_pack::int_type_base:
+			out.append_int(sett.get_int(name));
+			break;
+		case settings_pack::bool_type_base:
+			out.append_bool(sett.get_bool(name));
+			break;
+		default:
+			out.append_none();
+	};
+}
+
+void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	aux::session_settings sett = m_ses.get_settings();
 	
 	// [ RPC_RESPONSE, req-id, [<config value>] ]
 
@@ -308,18 +335,38 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
 	out.append_list(1);
-	switch (name & settings_pack::index_mask)
+	output_config_value(tokens[4].string(buf), sett, out);
+}
+
+void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	aux::session_settings sett = m_ses.get_settings();
+	
+	rtok_t const* keys = &tokens[4];
+	int num_keys = keys->num_items();
+	++keys;
+
+	// [ RPC_RESPONSE, req-id, [<config value>] ]
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	bool need_term = out.append_dict(num_keys);
+	for (int i = 0; i < num_keys; ++i, keys = skip_item((rtok_t*)keys))
 	{
-		case settings_pack::string_type_base:
-			out.append_string(set.get_str(name));
-			break;
-		case settings_pack::int_type_base:
-			out.append_int(set.get_int(name));
-			break;
-		case settings_pack::bool_type_base:
-			out.append_bool(set.get_bool(name));
-			break;
-	};
+		if (keys->type() != type_string)
+		{
+			out.clear();
+			output_error(id, "invalid argument", out);
+			return;
+		}
+		std::string config_name = keys->string(buf);
+		out.append_string(config_name);
+		output_config_value(config_name, sett, out);
+	}
 }
 
 void deluge::handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -350,6 +397,14 @@ void deluge::handle_get_session_status(rtok_t const* tokens, char const* buf, re
 			output.append_int(st.payload_download_rate);
 		else if (k == "payload_download_rate")
 			output.append_int(st.payload_download_rate);
+		else if (k == "download_rate")
+			output.append_int(st.download_rate);
+		else if (k == "upload_rate")
+			output.append_int(st.upload_rate);
+		else if (k == "has_incoming_connections")
+			output.append_bool(st.has_incoming_connections);
+		else if (k == "dht_nodes")
+			output.append_int(st.dht_nodes);
 		else
 			output.append_none();
 	}

@@ -61,6 +61,7 @@ namespace libtorrent
 		void handle_info(rtok_t const* tokens, char const* buf, rencoder& out);
 
 		void handle_get_config_value(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& out);
 
@@ -68,6 +69,9 @@ namespace libtorrent
 
 		void incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& out);
 		void output_error(int id, char const* msg, rencoder& out);
+		void output_config_value(std::string set_name, aux::session_settings const& sett
+			, rencoder& out);
+
 		void write_response(rencoder const& output, ssl_socket* sock, error_code& ec);
 
 		void accept_thread(int port);
