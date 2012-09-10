@@ -30,12 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-// for statfs()
-#include <sys/param.h>
-#include <sys/mount.h>
-
 #include "transmission_webui.hpp"
 #include "json_util.hpp"
+#include "disk_space.hpp"
 
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -927,17 +924,6 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		, st.num_torrents
 		, 1
 		, time(NULL) - m_start_time);
-}
-
-boost::int64_t free_disk_space(std::string const& path)
-{
-	// TODO: support windows
-
-	struct statfs fs;
-	int ret = statfs(path.c_str(), &fs);
-	if (ret < 0) return -1;
-
-	return boost::int64_t(fs.f_bavail) * fs.f_bsize;
 }
 
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args

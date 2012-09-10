@@ -364,7 +364,7 @@ int print_rtok(rtok_t const* tokens, char const* buf)
 			consumed += print_rtok(tokens + consumed, buf);
 			printf(": ");
 			consumed += print_rtok(tokens + consumed, buf);
-			if (i < num_items * 2) printf(", ");
+			if (i < (num_items-1) * 2) printf(", ");
 		}
 		printf("}");
 	}
@@ -570,7 +570,7 @@ void rencoder::append_int(boost::int64_t i)
 	}
 	else if (i < 0 && i > -INT_NEG_FIXED_COUNT)
 	{
-		m_buffer.push_back(INT_NEG_FIXED_START + -i);
+		m_buffer.push_back(INT_NEG_FIXED_START - i - 1);
 	}
 	else if (i <= 0x80 && i >= -0x7f)
 	{

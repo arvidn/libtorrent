@@ -17,6 +17,7 @@ SOURCES =
 	torrent_post
 	rencode
 	deluge
+	disk_space
 	;
 
 lib torrent-webui

@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/puff.hpp"
+#include "disk_space.hpp"
 #include "deluge.hpp"
 #include "rencode.hpp"
 #include <zlib.h>
@@ -63,6 +64,8 @@ deluge::deluge(session& s, std::string pem_path)
 	, m_context(m_ios, boost::asio::ssl::context::sslv23)
 	, m_shutdown(false)
 {
+	m_params_model.save_path = ".";
+
 	m_context.set_options(
 		boost::asio::ssl::context::default_workarounds
 		| boost::asio::ssl::context::no_sslv2
@@ -185,6 +188,8 @@ handler_map_t handlers[] =
 	{"core.get_config_values", "[[s]]{}", &deluge::handle_get_config_values},
 	{"core.get_session_status", "[[s]]{}", &deluge::handle_get_session_status},
 	{"core.get_enabled_plugins", "[]{}", &deluge::handle_get_enabled_plugins},
+	{"core.get_free_space", "[]{}", &deluge::handle_get_free_space},
+	{"core.get_num_connections", "[]{}", &deluge::handle_get_num_connections},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -299,11 +304,29 @@ void deluge::output_config_value(std::string set_name, aux::session_settings con
 	if (name < 0)
 	{
 		if (set_name == "dht")
-		{
 			out.append_bool(m_ses.is_dht_running());
-			return;
-		}
-		out.append_none();
+		else if (set_name == "add_paused")
+			out.append_bool(m_params_model.flags & add_torrent_params::flag_paused);
+		else if (set_name == "max_connections_per_torrent")
+			out.append_int(m_params_model.max_connections);
+		else if (set_name == "max_upload_slots_per_torrent")
+			out.append_int(m_params_model.max_uploads);
+		else if (set_name == "max_upload_speed_per_torrent")
+			out.append_int(m_params_model.upload_limit);
+		else if (set_name == "max_download_speed_per_torrent")
+			out.append_int(m_params_model.download_limit);
+		else if (set_name == "prioritize_first_last_pieces")
+			out.append_bool(false);
+		else if (set_name == "compact_allocation")
+#ifndef TORRENT_NO_DEPRECATE
+			out.append_bool(m_params_model.storage_mode == storage_mode_compact);
+#else
+			out.append_bool(false);
+#endif
+		else if (set_name == "download_location")
+			out.append_string(m_params_model.save_path);
+		else
+			out.append_none();
 		return;
 	}
 
@@ -336,6 +359,43 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 	out.append_int(id);
 	out.append_list(1);
 	output_config_value(tokens[4].string(buf), sett, out);
+}
+
+void deluge::handle_get_free_space(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	std::string path = tokens[4].type() == type_string
+		? tokens[4].string(buf) : m_params_model.save_path;
+	
+	// [ RPC_RESPONSE, req-id, [free-bytes] ]
+
+	boost::int64_t ret = free_disk_space(path);
+	if (ret < 0)
+	{
+		output_error(id, "InvalidPathError", out);
+		return;
+	}
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_int(ret);
+}
+
+void deluge::handle_get_num_connections(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	// [ RPC_RESPONSE, req-id, [num-connections] ]
+
+	session_status st = m_ses.status();
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_list(1);
+	out.append_int(st.num_peers);
 }
 
 void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)

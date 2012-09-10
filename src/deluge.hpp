@@ -56,6 +56,9 @@ namespace libtorrent
 		void start(int port);
 		void stop();
 
+		void set_params_model(add_torrent_params const& p)
+		{ m_params_model = p; }
+
 		void handle_login(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_set_event_interest(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_info(rtok_t const* tokens, char const* buf, rencoder& out);
@@ -64,6 +67,8 @@ namespace libtorrent
 		void handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_get_session_status(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_get_enabled_plugins(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_free_space(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_num_connections(rtok_t const* tokens, char const* buf, rencoder& out);
 
 	private:
 
@@ -82,6 +87,7 @@ namespace libtorrent
 		void on_accept(error_code const& ec, ssl_socket* sock);
 
 		session& m_ses;
+		add_torrent_params m_params_model;
 		io_service m_ios;
 		socket_acceptor* m_listen_socket;
 		thread* m_accept_thread;
