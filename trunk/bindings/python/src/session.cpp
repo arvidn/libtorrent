@@ -21,9 +21,9 @@ namespace
     void listen_on(session& s, int min_, int max_, char const* interface, int flags)
     {
         allow_threading_guard guard;
-		  error_code ec;
+        error_code ec;
         s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
-		  if (ec) throw libtorrent_exception(ec);
+        if (ec) throw libtorrent_exception(ec);
     }
 
     void outgoing_ports(session& s, int _min, int _max)
@@ -101,9 +101,11 @@ namespace
 
 	dict session_get_settings(session const& ses)
 	{
-		allow_threading_guard guard;
-		 
-		session_settings sett = ses.settings();
+		session_settings sett;
+		{
+			allow_threading_guard guard;
+			sett = ses.settings();
+		}
 		dict sett_dict;
 		bencode_map_entry* map;
 		int len;
@@ -264,8 +266,6 @@ namespace
 
     feed_handle add_feed(session& s, dict params)
     {
-        allow_threading_guard guard;
-
         feed_settings feed;
         // this static here is a bit of a hack. It will
         // probably work for the most part
@@ -273,14 +273,17 @@ namespace
         std::list<std::string> string_storage;
         dict_to_feed_settings(params, feed, resume_buf, string_storage);
 
+        allow_threading_guard guard;
         return s.add_feed(feed);
     }
 
     dict get_feed_status(feed_handle const& h)
     {
-        allow_threading_guard guard;
-
-        feed_status s = h.get_feed_status();
+        feed_status s;
+        {
+            allow_threading_guard guard;
+            s = h.get_feed_status();
+        }
         dict ret;
         ret["url"] = s.url;
         ret["title"] = s.title;
@@ -307,14 +310,12 @@ namespace
             item["info_hash"] = i->info_hash.to_string();
             items.append(item);
         }
-		  ret["items"] = items;
+        ret["items"] = items;
         return ret;
     }
 
     void set_feed_settings(feed_handle& h, dict sett)
     {
-        allow_threading_guard guard;
-
         feed_settings feed;
         static std::vector<char> resume_buf;
         std::list<std::string> string_storage;
@@ -324,16 +325,18 @@ namespace
 
     dict get_feed_settings(feed_handle& h)
     {
-        allow_threading_guard guard;
-
-        feed_settings s = h.settings();
+        feed_settings s;
+        {
+            allow_threading_guard guard;
+            s = h.settings();
+        }
         dict ret;
         ret["url"] = s.url;
         ret["auto_download"] = s.auto_download;
         ret["default_ttl"] = s.default_ttl;
         return ret;
     }
-	
+
     void start_natpmp(session& s)
     {
         allow_threading_guard guard;
@@ -354,9 +357,12 @@ namespace
 
     list get_torrents(session& s)
     {
-        allow_threading_guard guard;
         list ret;
-        std::vector<torrent_handle> torrents = s.get_torrents();
+        std::vector<torrent_handle> torrents;
+        {
+           allow_threading_guard guard;
+           torrents = s.get_torrents();
+        }
 
         for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
         {
