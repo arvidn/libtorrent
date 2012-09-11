@@ -215,6 +215,15 @@ namespace libtorrent
 			return m_piece_map[index].index == piece_pos::we_have_index;
 		}
 
+		bool is_downloading(int index) const
+		{
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < int(m_piece_map.size()));
+
+			piece_pos const& p = m_piece_map[index];
+			return p.downloading;
+		}
+
 		// sets the priority of a piece.
 		// returns true if the priority was changed from 0 to non-0
 		// or vice versa

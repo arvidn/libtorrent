@@ -7115,7 +7115,12 @@ namespace libtorrent
 				piece_block b = i->first;
 				int count = i->second;
 				int picker_count = m_picker->num_peers(b);
-				if (!m_picker->is_downloaded(b))
+				// if we're no longer downloading the piece
+				// (for instance, it may be fully downloaded and waiting
+				// for the hash check to return), the piece picker always
+				// returns 0 requests, regardless of how many peers may still
+				// have the block in their queue
+				if (!m_picker->is_downloaded(b) && m_picker->is_downloading(b.piece_index))
 					TORRENT_ASSERT(picker_count == count);
 			}
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
