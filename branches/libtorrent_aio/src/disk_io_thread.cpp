@@ -652,6 +652,8 @@ namespace libtorrent
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
+		++pe->piece_refcount;
+
 		l.unlock();
 
 		storage_error error;
@@ -659,6 +661,8 @@ namespace libtorrent
 
 		l.lock();
 
+		TORRENT_ASSERT(pe->piece_refcount > 0);
+		--pe->piece_refcount;
 		iovec_flushed(pe, flushing, iov_len, 0, error);
 
 		// if the cache is under high pressure, we need to evict
@@ -797,6 +801,9 @@ namespace libtorrent
 		ptime timeout = min_time();
 #endif
 
+		cached_piece_entry** to_flush = TORRENT_ALLOCA(cached_piece_entry*, 200);
+		int num_flush = 0;
+
 		for (list_iterator p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
@@ -810,7 +817,16 @@ namespace libtorrent
 			if (now - e->expire < expiration_limit) break;
 			if (e->num_dirty == 0) continue;
 
-			flush_range(e, 0, INT_MAX, 0, l);
+			++e->piece_refcount;
+			to_flush[num_flush++] = e;
+			if (num_flush == 200) break;
+		}
+
+		for (int i = 0; i < num_flush; ++i)
+		{
+			flush_range(to_flush[i], 0, INT_MAX, 0, l);
+			TORRENT_ASSERT(to_flush[i]->piece_refcount > 0);
+			--to_flush[i]->piece_refcount;
 		}
 	}
 
