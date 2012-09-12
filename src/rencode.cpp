@@ -89,6 +89,9 @@ renc_type_t rtok_t::type() const
 
 boost::int64_t rtok_t::integer(char const* buffer) const
 {
+	if (type() == type_float)
+		return int(floating_point(buffer));
+
 	TORRENT_ASSERT(type() == type_integer);
 	if (m_typecode >= INT_POS_FIXED_START && m_typecode < INT_POS_FIXED_START + INT_POS_FIXED_COUNT)
 	{
@@ -144,6 +147,9 @@ bool rtok_t::boolean(char const* buffer) const
 
 double rtok_t::floating_point(char const* buffer) const
 {
+	if (type() == type_integer)
+		return double(integer(buffer));
+
 	TORRENT_ASSERT(type() == type_float);
 
 	namespace io = libtorrent::detail;
@@ -468,35 +474,36 @@ bool validate_structure(rtok_t const* tokens, char const* fmt)
 	std::vector<int> stack;
 	while (*fmt)
 	{
+		renc_type_t type = tokens[offset].type();
 		switch (*fmt)
 		{
 			case 'i':
-				if (tokens[offset].type() != type_integer)
+				if (type != type_integer && type != type_float)
 					return false;
 				break;
 			case 'f':
-				if (tokens[offset].type() != type_float)
+				if (type != type_float)
 					return false;
 				break;
 			case 'b':
-				if (tokens[offset].type() != type_bool)
+				if (type != type_bool)
 					return false;
 				break;
 			case 's':
-				if (tokens[offset].type() != type_string)
+				if (type != type_string)
 					return false;
 				break;
 			case 'n':
-				if (tokens[offset].type() != type_none)
+				if (type != type_none)
 					return false;
 				break;
 			case '[':
-				if (tokens[offset].type() != type_list)
+				if (type != type_list)
 					return false;
 				stack.push_back(offset);
 				break;
 			case '{':
-				if (tokens[offset].type() != type_dict)
+				if (type != type_dict)
 					return false;
 				stack.push_back(offset);
 				break;
