@@ -76,6 +76,7 @@ int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len);
 int print_rtok(rtok_t const* tokens, char const* buf);
 
 rtok_t* skip_item(rtok_t* i);
+inline rtok_t const* skip_item(rtok_t const* i) { return skip_item((rtok_t*)i); }
 
 rtok_t* find_key(rtok_t* tokens, char* buf, char const* key, int type);
 std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found);

@@ -190,6 +190,7 @@ handler_map_t handlers[] =
 	{"core.get_enabled_plugins", "[]{}", &deluge::handle_get_enabled_plugins},
 	{"core.get_free_space", "[]{}", &deluge::handle_get_free_space},
 	{"core.get_num_connections", "[]{}", &deluge::handle_get_num_connections},
+	{"core.get_torrents_status", "[{}[]b]{}", &deluge::handle_get_torrents_status},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -330,7 +331,7 @@ void deluge::output_config_value(std::string set_name, aux::session_settings con
 		return;
 	}
 
-	switch (name & settings_pack::index_mask)
+	switch (name & settings_pack::type_mask)
 	{
 		case settings_pack::string_type_base:
 			out.append_string(sett.get_str(name));
@@ -357,7 +358,6 @@ void deluge::handle_get_config_value(rtok_t const* tokens, char const* buf, renc
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	out.append_list(1);
 	output_config_value(tokens[4].string(buf), sett, out);
 }
 
@@ -379,7 +379,6 @@ void deluge::handle_get_free_space(rtok_t const* tokens, char const* buf, rencod
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	out.append_list(1);
 	out.append_int(ret);
 }
 
@@ -394,8 +393,179 @@ void deluge::handle_get_num_connections(rtok_t const* tokens, char const* buf, r
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	out.append_list(1);
 	out.append_int(st.num_peers);
+}
+
+char const* torrent_keys[] = {
+	"active_time",
+	"all_time_download",
+	"compact",
+	"distributed_copies",
+	"download_payload_rate",
+	"file_priorities",
+	"hash",
+	"is_auto_managed",
+	"is_finished",
+	"max_connections",
+	"max_download_speed",
+	"max_upload_slots",
+	"max_upload_speed",
+	"message",
+	"move_on_completed_path",
+	"move_on_completed",
+	"move_completed_path",
+	"move_completed",
+	"next_announce",
+	"num_peers",
+	"num_seeds",
+	"paused",
+	"prioritize_first_last",
+	"progress",
+	"remove_at_ratio",
+	"save_path",
+	"seeding_time",
+	"seeds_peers_ratio",
+	"seed_rank",
+	"state",
+	"stop_at_ratio",
+	"stop_ratio",
+	"time_added",
+	"total_done",
+	"total_payload_download",
+	"total_payload_upload",
+	"total_peers",
+	"total_seeds",
+	"total_uploaded",
+	"total_wanted",
+	"tracker",
+	"trackers",
+	"tracker_status",
+	"upload_payload_rate"
+};
+
+bool yes(torrent_status const& st) { return true;}
+
+// input [id, method, [ { ... }, [ ... ], bool ] ]
+//                   filter_dict  keys    diff
+void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	rtok_t const* filter_dict = &tokens[4];
+	rtok_t const* keys = skip_item(filter_dict);
+	rtok_t const* diff = skip_item(keys);
+
+	boost::uint64_t key_mask = 0;
+	int num_keys = keys->num_items();
+
+	++keys;
+
+	for (int i = 0; i < num_keys; ++i)
+	{
+		if (keys[i].type() != type_string)
+		{
+			output_error(id, "invalid argument", out);
+			return;
+		}
+
+		std::string k = keys[i].string(buf);
+		for (int j = 0; i < sizeof(torrent_keys)/sizeof(torrent_keys[0]); ++j)
+		{
+			if (k != torrent_keys[j]) continue;
+			key_mask |= 1 << j;
+		}
+	}
+
+	if (num_keys == 0)
+	{
+		key_mask = ~0LL;
+		num_keys = sizeof(torrent_keys)/sizeof(torrent_keys[0]);
+	}
+
+	// TODO: use a predicate function to only return torrents that match
+	// the filter dict
+
+	// TODO: pass in a query_mask depending on key_mask
+
+	std::vector<torrent_status> torrents;
+	m_ses.get_torrent_status(&torrents, yes, 0xffffffff);
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+
+	out.append_dict();
+
+	for (std::vector<torrent_status>::iterator i = torrents.begin()
+		, end(torrents.end()); i != end; ++i)
+	{
+		// key in the dict
+		out.append_string(i->info_hash.to_string());
+
+		// the value, is a dict
+		bool need_term = out.append_dict(num_keys);
+
+#define MAYBE_ADD(op) \
+		if (key_mask & (1 << idx)) { \
+			out.append_string(torrent_keys[idx]); \
+			op; \
+		} \
+		++idx
+
+		int idx = 0;
+
+		MAYBE_ADD(out.append_int(i->active_time));
+		MAYBE_ADD(out.append_int(i->all_time_download));
+#ifdef TORRENT_NO_DEPRECATE
+		MAYBE_ADD(out.append_bool(i->storage_mode == compact_allocation));
+#else
+		MAYBE_ADD(out.append_bool(false));
+#endif
+		MAYBE_ADD(out.append_float(i->distributed_copies));
+		MAYBE_ADD(out.append_int(i->download_payload_rate));
+		MAYBE_ADD(out.append_list(0)); // TODO: support
+		MAYBE_ADD(out.append_string(i->info_hash.to_string()));
+		MAYBE_ADD(out.append_bool(i->auto_managed));
+		MAYBE_ADD(out.append_bool(i->is_finished));
+		MAYBE_ADD(out.append_int(i->connections_limit));
+		MAYBE_ADD(out.append_int(i->handle.download_limit()));
+		MAYBE_ADD(out.append_int(i->uploads_limit));
+		MAYBE_ADD(out.append_int(i->handle.upload_limit()));
+		MAYBE_ADD(out.append_string(i->error));
+		MAYBE_ADD(out.append_string("")); // move on completed path
+		MAYBE_ADD(out.append_bool(false)); // move on completed
+		MAYBE_ADD(out.append_string("")); // move completed path
+		MAYBE_ADD(out.append_bool(false)); // move completed
+		MAYBE_ADD(out.append_int(i->next_announce.total_seconds()));
+		MAYBE_ADD(out.append_int(i->num_peers));
+		MAYBE_ADD(out.append_int(i->num_seeds));
+		MAYBE_ADD(out.append_bool(i->paused));
+		MAYBE_ADD(out.append_bool(false)); // prioritize first+last
+		MAYBE_ADD(out.append_float(i->progress));
+		MAYBE_ADD(out.append_bool(false)); // remove at ratio
+		MAYBE_ADD(out.append_string(i->handle.save_path()));
+		MAYBE_ADD(out.append_int(i->seeding_time));
+		MAYBE_ADD(out.append_int(0));
+		MAYBE_ADD(out.append_int(i->seed_rank));
+		MAYBE_ADD(out.append_int(i->state));
+		MAYBE_ADD(out.append_int(0));
+		MAYBE_ADD(out.append_int(i->added_time));
+		MAYBE_ADD(out.append_int(i->total_done));
+		MAYBE_ADD(out.append_int(i->total_payload_download));
+		MAYBE_ADD(out.append_int(i->total_payload_upload));
+		MAYBE_ADD(out.append_int(i->list_peers));
+		MAYBE_ADD(out.append_int(i->list_seeds));
+		MAYBE_ADD(out.append_int(i->total_upload));
+		MAYBE_ADD(out.append_int(i->total_wanted));
+		MAYBE_ADD(out.append_string(i->current_tracker));
+		MAYBE_ADD(out.append_list(0)); // trackers
+		MAYBE_ADD(out.append_string("")); // tracker status
+		MAYBE_ADD(out.append_int(i->upload_payload_rate));
+
+		if (need_term) out.append_term();
+	}
+
+	out.append_term();
 }
 
 void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)
@@ -413,9 +583,8 @@ void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, ren
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
-	out.append_list(1);
 	bool need_term = out.append_dict(num_keys);
-	for (int i = 0; i < num_keys; ++i, keys = skip_item((rtok_t*)keys))
+	for (int i = 0; i < num_keys; ++i, keys = skip_item(keys))
 	{
 		if (keys->type() != type_string)
 		{
@@ -442,9 +611,8 @@ void deluge::handle_get_session_status(rtok_t const* tokens, char const* buf, re
 	output.append_list(3);
 	output.append_int(RPC_RESPONSE);
 	output.append_int(id);
-	output.append_list(1);
 	bool need_term = output.append_dict(num_keys);
-	for (int i = 0; i < num_keys; ++i, keys = skip_item((rtok_t*)keys))
+	for (int i = 0; i < num_keys; ++i, keys = skip_item(keys))
 	{
 		if (keys->type() != type_string)
 			continue;
@@ -534,7 +702,7 @@ read_some_more:
 				break;
 			}
 			TORRENT_ASSERT(ret > 0);
-			fprintf(stderr, "read %d bytes (%d/%d)\n", int(ret), buffer_use, int(buffer.size()));
+//			fprintf(stderr, "read %d bytes (%d/%d)\n", int(ret), buffer_use, int(buffer.size()));
 
 			buffer_use += ret;
 	
@@ -589,7 +757,7 @@ parse_message:
 			rtok_t tokens[200];
 			ret = rdecode(tokens, 200, &inflated[0], inflated.size());
 
-			fprintf(stderr, "rdecode: %d\n", ret);
+//			fprintf(stderr, "rdecode: %d\n", ret);
 
 			rencoder output;
 
@@ -628,7 +796,7 @@ parse_message:
 
 			buffer.erase(buffer.begin(), buffer.begin() + consumed_bytes);
 			buffer_use -= consumed_bytes;
-			fprintf(stderr, "consumed %d bytes (%d left)\n", consumed_bytes, buffer_use);
+//			fprintf(stderr, "consumed %d bytes (%d left)\n", consumed_bytes, buffer_use);
 	
 			// there's still data in the in-buffer that may be a message
 			// don't get stuck in read if we have more messages to parse
@@ -680,7 +848,7 @@ void deluge::write_response(rencoder const& output, ssl_socket* sock, error_code
 		fprintf(stderr, "write: %s\n", ec.message().c_str());
 		return;
 	}
-	fprintf(stderr, "wrote %d bytes\n", ret);
+//	fprintf(stderr, "wrote %d bytes\n", ret);
 }
 
 void deluge::start(int port)
