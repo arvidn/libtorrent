@@ -572,18 +572,18 @@ void rencoder::append_int(boost::int64_t i)
 	{
 		m_buffer.push_back(INT_NEG_FIXED_START - i - 1);
 	}
-	else if (i <= 0x80 && i >= -0x7f)
+	else if (i < 0x80 && i >= -0x7f)
 	{
 		m_buffer.push_back(CHR_INT1);
 		m_buffer.push_back(i);
 	}
-	else if (i <= 0x8000 && i >= -0x7fff)
+	else if (i < 0x8000 && i >= -0x7fff)
 	{
 		m_buffer.push_back(CHR_INT2);
 		m_buffer.push_back(i >> 8);
 		m_buffer.push_back(i & 0xff);
 	}
-	else if (i <= 0x80000000 && i >= -0x7fffffff)
+	else if (i < 0x80000000 && i >= -0x7fffffff)
 	{
 		m_buffer.push_back(CHR_INT4);
 		m_buffer.push_back((i >> 24) & 0xff);
@@ -591,7 +591,7 @@ void rencoder::append_int(boost::int64_t i)
 		m_buffer.push_back((i >> 8) & 0xff);
 		m_buffer.push_back((i >> 0) & 0xff);
 	}
-	else // if (i <= 0x8000000000000000LL && i >= -0x7fffffffffffffffLL)
+	else // if (i < 0x8000000000000000LL && i >= -0x7fffffffffffffffLL)
 	{
 		m_buffer.push_back(CHR_INT8);
 		m_buffer.push_back((i >> 56) & 0xff);
