@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "transmission_webui.hpp"
 #include "json_util.hpp"
 #include "disk_space.hpp"
+#include "base64.hpp"
 
 #include <string.h> // for strcmp() 
 #include <stdio.h>
@@ -60,39 +61,6 @@ extern "C" {
 
 namespace libtorrent
 {
-
-static const char b64table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-char b64_value(char c)
-{
-	const char *v = strchr(b64table, c);
-	if (v == NULL) return 0;
-	return v - b64table;
-}
-
-std::string base64decode(std::string const& in)
-{
-	std::string ret;
-	if (in.size() < 4) return ret;
-
-	char const* src = in.c_str();
-	char const* end = in.c_str() + in.size();
-	while (end - src >= 4)
-	{
-		char a = b64_value(src[0]);
-		char b = b64_value(src[1]);
-		char c = b64_value(src[2]);
-		char d = b64_value(src[3]);
-		ret.push_back((a << 2) | (b >> 4));
-		if (src[1] == '=') break;
-		ret.push_back((b << 4) | (c >> 2));
-		if (src[2] == '=') break;
-		ret.push_back((c << 6) | d);
-		if (src[3] == '=') break;
-		src += 4;
-	}
-	return ret;
-}
 
 void return_error(mg_connection* conn, char const* msg)
 {

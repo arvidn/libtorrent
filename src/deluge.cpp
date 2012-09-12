@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "disk_space.hpp"
 #include "deluge.hpp"
 #include "rencode.hpp"
+#include "base64.hpp"
 #include <zlib.h>
 
 using namespace libtorrent;
@@ -191,6 +192,7 @@ handler_map_t handlers[] =
 	{"core.get_free_space", "[]{}", &deluge::handle_get_free_space},
 	{"core.get_num_connections", "[]{}", &deluge::handle_get_num_connections},
 	{"core.get_torrents_status", "[{}[]b]{}", &deluge::handle_get_torrents_status},
+	{"core.add_torrent_file", "[ss{}]{}", &deluge::handle_add_torrent_file},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -568,6 +570,87 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 	out.append_term();
 }
 
+// [id, method, [filename, torrent_file, options-dict], {}]
+void deluge::handle_add_torrent_file(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	std::string filename = tokens[4].string(buf);
+	std::string file = tokens[5].string(buf);
+	rtok_t const* options = &tokens[6];
+
+	file = base64decode(file);
+
+	add_torrent_params p = m_params_model;
+
+	error_code ec;
+	p.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(&file[0], file.size(), ec));
+	if (ec)
+	{
+		output_error(id, ec.message().c_str(), out);
+		return;
+	}
+
+	int num_options = options->num_items();
+	++options;
+	for (int i = 0; i < num_options; ++i, options = skip_item(skip_item(options)))
+	{
+		if (options->type() != type_string) continue;
+		std::string key = options->string(buf);
+
+		if (key == "add_paused")
+		{
+			if (options[1].type() != type_bool) continue;
+			p.paused = options[1].boolean(buf);
+		}
+		else if (key == "max_download_speed")
+		{
+			if (options[1].type() != type_float) continue;
+			p.download_limit = options[1].floating_point(buf) * 1000;
+		}
+		else if (key == "max_upload_speed")
+		{
+			if (options[1].type() != type_float) continue;
+			p.upload_limit = options[1].floating_point(buf) * 1000;
+		}
+		else if (key == "download_location")
+		{
+			if (options[1].type() != type_string) continue;
+			p.save_path = options[1].string(buf);
+		}
+		else if (key == "max_upload_slots")
+		{
+			if (options[1].type() != type_integer) continue;
+			p.max_uploads = options[1].integer(buf);
+		}
+		else if (key == "file_priorities")
+		{
+// TODO: implement this	
+		}
+		else if (key == "max_connections")
+		{
+			if (options[1].type() != type_integer) continue;
+			p.max_connections = options[1].integer(buf);
+		}
+		else
+		{
+			fprintf(stderr, "unknown torrent option: \"%s\"\n", key.c_str());
+		}
+	}
+
+	torrent_handle h = m_ses.add_torrent(p, ec);
+	if (ec)
+	{
+		output_error(id, ec.message().c_str(), out);
+		return;
+	}
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_int(h.id());
+}
+
 void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)
 {
 	int id = tokens[1].integer(buf);
@@ -578,7 +661,7 @@ void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, ren
 	int num_keys = keys->num_items();
 	++keys;
 
-	// [ RPC_RESPONSE, req-id, [<config value>] ]
+	// [ RPC_RESPONSE, req-id, <config value> ]
 
 	out.append_list(3);
 	out.append_int(RPC_RESPONSE);
