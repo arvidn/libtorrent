@@ -193,6 +193,7 @@ handler_map_t handlers[] =
 	{"core.get_num_connections", "[]{}", &deluge::handle_get_num_connections},
 	{"core.get_torrents_status", "[{}[]b]{}", &deluge::handle_get_torrents_status},
 	{"core.add_torrent_file", "[ss{}]{}", &deluge::handle_add_torrent_file},
+	{"core.get_filter_tree", "[b]{}", &deluge::handle_get_filter_tree},
 };
 
 void deluge::incoming_rpc(rtok_t const* tokens, char const* buf, rencoder& output)
@@ -649,6 +650,28 @@ void deluge::handle_add_torrent_file(rtok_t const* tokens, char const* buf, renc
 	out.append_int(RPC_RESPONSE);
 	out.append_int(id);
 	out.append_int(h.id());
+}
+
+void deluge::handle_get_filter_tree(rtok_t const* tokens, char const* buf, rencoder& out)
+{
+	int id = tokens[1].integer(buf);
+
+	session_status st = m_ses.status();
+
+	out.append_list(3);
+	out.append_int(RPC_RESPONSE);
+	out.append_int(id);
+	out.append_dict(1);
+	out.append_string("state");
+	out.append_list(2);
+
+		out.append_list(2);
+		out.append_string("All");
+		out.append_int(st.num_torrents);
+
+		out.append_list(2);
+		out.append_string("Paused");
+		out.append_int(st.num_paused_torrents);
 }
 
 void deluge::handle_get_config_values(rtok_t const* tokens, char const* buf, rencoder& out)

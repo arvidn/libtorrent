@@ -59,6 +59,7 @@ std::string base64decode(std::string const& in)
 
 		char a, b, c, d;
 		// skip non base64 characters
+		// TODO: make sure src doesn't exceed end
 		while ((a = b64_value(src[0])) < 0) ++src;
 		while ((b = b64_value(src[1])) < 0) ++src;
 		while ((c = b64_value(src[2])) < 0) ++src;

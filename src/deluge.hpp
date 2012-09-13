@@ -71,6 +71,7 @@ namespace libtorrent
 		void handle_get_num_connections(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_get_torrents_status(rtok_t const* tokens, char const* buf, rencoder& out);
 		void handle_add_torrent_file(rtok_t const* tokens, char const* buf, rencoder& out);
+		void handle_get_filter_tree(rtok_t const* tokens, char const* buf, rencoder& out);
 
 	private:
 
