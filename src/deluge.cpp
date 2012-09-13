@@ -405,46 +405,55 @@ char const* torrent_keys[] = {
 	"compact",
 	"distributed_copies",
 	"download_payload_rate",
+
 	"eta",
 	"file_priorities",
 	"hash",
 	"is_auto_managed",
 	"is_finished",
+
 	"max_connections",
 	"max_download_speed",
 	"max_upload_slots",
 	"max_upload_speed",
 	"message",
+
 	"move_on_completed_path",
 	"move_on_completed",
 	"move_completed_path",
 	"move_completed",
 	"name",
+
 	"next_announce",
 	"num_peers",
 	"num_seeds",
 	"paused",
 	"prioritize_first_last",
+
 	"progress",
 	"queue",
 	"remove_at_ratio",
 	"save_path",
 	"seeding_time",
+
 	"seeds_peers_ratio",
 	"seed_rank",
 	"state",
 	"stop_at_ratio",
 	"stop_ratio",
+
 	"time_added",
 	"total_done",
 	"total_payload_download",
 	"total_payload_upload",
 	"total_peers",
+
 	"total_seeds",
 	"total_uploaded",
 	"total_wanted",
 	"tracker",
 	"trackers",
+
 	"tracker_status",
 	"upload_payload_rate"
 };
@@ -480,7 +489,7 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		for (int j = 0; j < sizeof(torrent_keys)/sizeof(torrent_keys[0]); ++j)
 		{
 			if (k != torrent_keys[j]) continue;
-			key_mask |= 1 << j;
+			key_mask |= 1LL << j;
 			found = true;
 		}
 		if (!found)
@@ -521,11 +530,22 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		bool need_term = out.append_dict(num_keys);
 
 #define MAYBE_ADD(op) \
-		if (key_mask & (1 << idx)) { \
+		if (key_mask & (1LL << idx)) { \
 			out.append_string(torrent_keys[idx]); \
 			op; \
 		} \
 		++idx
+
+		char const* state_str[] = {
+			"Queued",
+			"Checking",
+			"Downloading Metadata",
+			"Downloading",
+			"Finished",
+			"Seeding",
+			"Allocating",
+			"Checking Resume Data"
+		};
 
 		int idx = 0;
 
@@ -538,48 +558,59 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 #endif
 		MAYBE_ADD(out.append_float(i->distributed_copies));
 		MAYBE_ADD(out.append_int(i->download_payload_rate));
+
 		MAYBE_ADD(out.append_int(i->download_payload_rate > 0
 			? (i->total_wanted - i->total_wanted_done) / i->download_payload_rate : -1));
-		MAYBE_ADD(out.append_list(0)); // TODO: support
+		MAYBE_ADD(out.append_list(0)); // TODO: support file_priorities
 		MAYBE_ADD(out.append_string(i->info_hash.to_string()));
 		MAYBE_ADD(out.append_bool(i->auto_managed));
 		MAYBE_ADD(out.append_bool(i->is_finished));
+
 		MAYBE_ADD(out.append_int(i->connections_limit));
 		MAYBE_ADD(out.append_int(i->handle.download_limit()));
 		MAYBE_ADD(out.append_int(i->uploads_limit));
 		MAYBE_ADD(out.append_int(i->handle.upload_limit()));
 		MAYBE_ADD(out.append_string(i->error));
+
 		MAYBE_ADD(out.append_string("")); // move on completed path
 		MAYBE_ADD(out.append_bool(false)); // move on completed
 		MAYBE_ADD(out.append_string("")); // move completed path
 		MAYBE_ADD(out.append_bool(false)); // move completed
-		MAYBE_ADD(out.append_int(i->next_announce.total_seconds()));
 		MAYBE_ADD(out.append_string(i->handle.name()));
+
+		MAYBE_ADD(out.append_int(i->next_announce.total_seconds()));
 		MAYBE_ADD(out.append_int(i->num_peers));
 		MAYBE_ADD(out.append_int(i->num_seeds));
 		MAYBE_ADD(out.append_bool(i->paused));
 		MAYBE_ADD(out.append_bool(false)); // prioritize first+last
+
 		MAYBE_ADD(out.append_float(i->progress));
 		MAYBE_ADD(out.append_int(i->queue_position));
 		MAYBE_ADD(out.append_bool(false)); // remove at ratio
 		MAYBE_ADD(out.append_string(i->handle.save_path()));
 		MAYBE_ADD(out.append_int(i->seeding_time));
-		MAYBE_ADD(out.append_int(0));
+
+		MAYBE_ADD(out.append_int(0)); // seeds peers ratio
 		MAYBE_ADD(out.append_int(i->seed_rank));
-		MAYBE_ADD(out.append_int(i->state));
-		MAYBE_ADD(out.append_int(0));
+		MAYBE_ADD(out.append_string(state_str[i->state]));
+		MAYBE_ADD(out.append_bool(false)); // stop at ratio
+		MAYBE_ADD(out.append_int(0)); // stop ratio
+
 		MAYBE_ADD(out.append_int(i->added_time));
 		MAYBE_ADD(out.append_int(i->total_done));
 		MAYBE_ADD(out.append_int(i->total_payload_download));
 		MAYBE_ADD(out.append_int(i->total_payload_upload));
 		MAYBE_ADD(out.append_int(i->list_peers));
+
 		MAYBE_ADD(out.append_int(i->list_seeds));
 		MAYBE_ADD(out.append_int(i->total_upload));
 		MAYBE_ADD(out.append_int(i->total_wanted));
 		MAYBE_ADD(out.append_string(i->current_tracker));
 		MAYBE_ADD(out.append_list(0)); // trackers
+
 		MAYBE_ADD(out.append_string("")); // tracker status
 		MAYBE_ADD(out.append_int(i->upload_payload_rate));
+		TORRENT_ASSERT(idx == sizeof(torrent_keys)/sizeof(torrent_keys[0]));
 
 		if (need_term) out.append_term();
 	}
