@@ -405,6 +405,7 @@ char const* torrent_keys[] = {
 	"compact",
 	"distributed_copies",
 	"download_payload_rate",
+	"eta",
 	"file_priorities",
 	"hash",
 	"is_auto_managed",
@@ -418,12 +419,14 @@ char const* torrent_keys[] = {
 	"move_on_completed",
 	"move_completed_path",
 	"move_completed",
+	"name",
 	"next_announce",
 	"num_peers",
 	"num_seeds",
 	"paused",
 	"prioritize_first_last",
 	"progress",
+	"queue",
 	"remove_at_ratio",
 	"save_path",
 	"seeding_time",
@@ -460,6 +463,7 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 
 	boost::uint64_t key_mask = 0;
 	int num_keys = keys->num_items();
+	int num_invalid_keys = 0;
 
 	++keys;
 
@@ -472,13 +476,21 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		}
 
 		std::string k = keys[i].string(buf);
-		for (int j = 0; i < sizeof(torrent_keys)/sizeof(torrent_keys[0]); ++j)
+		bool found = false;
+		for (int j = 0; j < sizeof(torrent_keys)/sizeof(torrent_keys[0]); ++j)
 		{
 			if (k != torrent_keys[j]) continue;
 			key_mask |= 1 << j;
+			found = true;
+		}
+		if (!found)
+		{
+			fprintf(stderr, "invalid torrent key: %s\n", k.c_str());
+			++num_invalid_keys;
 		}
 	}
 
+	num_keys -= num_invalid_keys;
 	if (num_keys == 0)
 	{
 		key_mask = ~0LL;
@@ -503,7 +515,7 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		, end(torrents.end()); i != end; ++i)
 	{
 		// key in the dict
-		out.append_string(i->info_hash.to_string());
+		out.append_string(to_hex(i->info_hash.to_string()));
 
 		// the value, is a dict
 		bool need_term = out.append_dict(num_keys);
@@ -526,6 +538,8 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 #endif
 		MAYBE_ADD(out.append_float(i->distributed_copies));
 		MAYBE_ADD(out.append_int(i->download_payload_rate));
+		MAYBE_ADD(out.append_int(i->download_payload_rate > 0
+			? (i->total_wanted - i->total_wanted_done) / i->download_payload_rate : -1));
 		MAYBE_ADD(out.append_list(0)); // TODO: support
 		MAYBE_ADD(out.append_string(i->info_hash.to_string()));
 		MAYBE_ADD(out.append_bool(i->auto_managed));
@@ -540,11 +554,13 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		MAYBE_ADD(out.append_string("")); // move completed path
 		MAYBE_ADD(out.append_bool(false)); // move completed
 		MAYBE_ADD(out.append_int(i->next_announce.total_seconds()));
+		MAYBE_ADD(out.append_string(i->handle.name()));
 		MAYBE_ADD(out.append_int(i->num_peers));
 		MAYBE_ADD(out.append_int(i->num_seeds));
 		MAYBE_ADD(out.append_bool(i->paused));
 		MAYBE_ADD(out.append_bool(false)); // prioritize first+last
 		MAYBE_ADD(out.append_float(i->progress));
+		MAYBE_ADD(out.append_int(i->queue_position));
 		MAYBE_ADD(out.append_bool(false)); // remove at ratio
 		MAYBE_ADD(out.append_string(i->handle.save_path()));
 		MAYBE_ADD(out.append_int(i->seeding_time));
