@@ -399,6 +399,31 @@ void deluge::handle_get_num_connections(rtok_t const* tokens, char const* buf, r
 	out.append_int(st.num_peers);
 }
 
+char const* deluge_state_str(torrent_status const& st)
+{
+	if (!st.error.empty())
+		return "Error";
+
+	if (st.state == torrent_status::allocating)
+		return "Allocating";
+
+	if (st.paused && st.auto_managed)
+		return "Queued";
+
+	if (st.paused && !st.auto_managed)
+		return "Paused";
+
+	if (st.state == torrent_status::checking_files
+		|| st.state == torrent_status::checking_resume_data)
+		return "Checking";
+
+	if (st.state == torrent_status::seeding
+		|| st.state == torrent_status::finished)
+		return "Seeding";
+
+	return "Downloading";
+}
+
 char const* torrent_keys[] = {
 	"active_time",
 	"all_time_download",
@@ -536,17 +561,6 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 		} \
 		++idx
 
-		char const* state_str[] = {
-			"Queued",
-			"Checking",
-			"Downloading Metadata",
-			"Downloading",
-			"Finished",
-			"Seeding",
-			"Allocating",
-			"Checking Resume Data"
-		};
-
 		int idx = 0;
 
 		MAYBE_ADD(out.append_int(i->active_time));
@@ -592,7 +606,7 @@ void deluge::handle_get_torrents_status(rtok_t const* tokens, char const* buf, r
 
 		MAYBE_ADD(out.append_int(0)); // seeds peers ratio
 		MAYBE_ADD(out.append_int(i->seed_rank));
-		MAYBE_ADD(out.append_string(state_str[i->state]));
+		MAYBE_ADD(out.append_string(deluge_state_str(*i)));
 		MAYBE_ADD(out.append_bool(false)); // stop at ratio
 		MAYBE_ADD(out.append_int(0)); // stop ratio
 
