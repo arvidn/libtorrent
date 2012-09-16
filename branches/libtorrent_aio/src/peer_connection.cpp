@@ -1870,28 +1870,30 @@ namespace libtorrent
 		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
-	void peer_connection::disconnect_if_redundant()
+	bool peer_connection::disconnect_if_redundant()
 	{
+		if (m_disconnecting) return false;
+
 		// we cannot disconnect in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
-		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return false;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return;
+		if (!t) return false;
 
 		// if we don't have the metadata yet, don't disconnect
 		// also, if the peer doesn't have metadata we shouldn't
 		// disconnect it, since it may want to request the
 		// metadata from us
-		if (!t->valid_metadata() || !has_metadata()) return;
+		if (!t->valid_metadata() || !has_metadata()) return false;
 
 		// don't close connections in share mode, we don't know if we need them
-		if (t->share_mode()) return;
+		if (t->share_mode()) return false;
 
 		if (m_upload_only && t->is_upload_only())
 		{
 			disconnect(errors::upload_upload_connection);
-			return;
+			return true;
 		}
 
 		if (m_upload_only
@@ -1900,12 +1902,13 @@ namespace libtorrent
 			&& t->are_files_checked())
 		{
 			disconnect(errors::uninteresting_upload_peer);
-			return;
+			return true;
 		}
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		check_invariant();
 #endif
+		return false;
 	}
 
 	// -----------------------------

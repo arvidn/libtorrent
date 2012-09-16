@@ -434,7 +434,8 @@ namespace libtorrent
 
 		// if this peer connection is useless (neither party is
 		// interested in the other), disconnect it
-		void disconnect_if_redundant();
+		// returns true if the connection was disconnected
+		bool disconnect_if_redundant();
 
 		void increase_est_reciprocation_rate();
 		void decrease_est_reciprocation_rate();

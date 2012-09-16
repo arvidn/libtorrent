@@ -166,14 +166,14 @@ namespace libtorrent
 			, const std::string& msg
 			, int retry_interval) = 0;
 
-		union_endpoint m_tracker_address;
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const std::string& line) = 0;
 #else
 	private:
 #endif
 		tracker_manager* m_manager;
+	public:
+		union_endpoint m_tracker_address;
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler

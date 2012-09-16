@@ -50,6 +50,7 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
+	struct logger;
 
 	enum
 	{
@@ -66,6 +67,10 @@ namespace libtorrent
 		policy(torrent* t);
 
 		struct peer;
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		static void print_size(logger& l);
+#endif
 
 #if TORRENT_USE_I2P
 		policy::peer* add_i2p_peer(char const* destination, int source, char flags);

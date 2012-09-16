@@ -136,6 +136,7 @@ nobase_include_HEADERS = \
   utp_socket_manager.hpp       \
   utp_stream.hpp               \
   utf8.hpp                     \
+  vector_utils.hpp             \
   version.hpp                  \
   web_connection_base.hpp      \
   web_peer_connection.hpp      \

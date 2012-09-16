@@ -62,6 +62,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/struct_debug.hpp"
+#endif
+
 namespace
 {
 	using namespace libtorrent;
@@ -365,6 +369,26 @@ namespace libtorrent
 		, m_num_seeds(0)
 		, m_finished(false)
 	{ TORRENT_ASSERT(t); }
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+	void policy::print_size(logger& l)
+	{
+		char tmp[300];
+		int temp = 0;
+		int prev_size = 0;
+		PRINT_SIZEOF(policy)
+
+		PRINT_OFFSETOF(policy, m_peers)
+		PRINT_OFFSETOF(policy, m_torrent)
+		PRINT_OFFSETOF(policy, m_round_robin)
+		PRINT_OFFSETOF(policy, m_num_connect_candidates)
+		PRINT_OFFSETOF(policy, m_num_seeds)
+	}
+#undef PRINT_SIZEOF
+#undef PRINT_OFFSETOF
+
+#endif
 
 	// disconnects and removes all peers that are now filtered
 	void policy::ip_filter_updated()

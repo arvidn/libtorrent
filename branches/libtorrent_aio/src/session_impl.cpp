@@ -809,7 +809,6 @@ namespace aux {
 		PRINT_SIZEOF(request_callback)
 		PRINT_SIZEOF(stat)
 		PRINT_SIZEOF(bandwidth_channel)
-		PRINT_SIZEOF(policy)
 		(*m_logger) << "sizeof(utp_socket_impl): " << socket_impl_size() << "\n";
 
 		PRINT_SIZEOF(file_entry)

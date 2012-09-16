@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
+#include "libtorrent/vector_utils.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -143,7 +144,7 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool has_peer(peer_connection const* p) const
-		{ return m_connections.find((peer_connection*)p) != m_connections.end(); }
+		{ return sorted_find(m_connections, (peer_connection*)p) != m_connections.end(); }
 #endif
 
 		// this is called when the torrent has metadata.
@@ -454,8 +455,8 @@ namespace libtorrent
 		int num_peers() const { return (int)m_connections.size(); }
 		int num_seeds() const;
 
-		typedef std::set<peer_connection*>::iterator peer_iterator;
-		typedef std::set<peer_connection*>::const_iterator const_peer_iterator;
+		typedef std::vector<peer_connection*>::iterator peer_iterator;
+		typedef std::vector<peer_connection*>::const_iterator const_peer_iterator;
 
 		const_peer_iterator begin() const { return m_connections.begin(); }
 		const_peer_iterator end() const { return m_connections.end(); }
@@ -991,7 +992,12 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	public:
 #endif
-		std::set<peer_connection*> m_connections;
+		// this vector is sorted at all times, by the pointer value.
+		// use sorted_insert() and sorted_find() on it. The GNU STL
+		// implementation on Darwin uses significantly less memory to
+		// represent a vector than a set, and this set is typically
+		// relaitvely small, and it's cheap to copy pointers.
+		std::vector<peer_connection*> m_connections;
 #ifdef TORRENT_DEBUG
 	private:
 #endif
@@ -1089,7 +1095,7 @@ namespace libtorrent
 
 		// this is used as temporary storage while downloading
 		// the .torrent file from m_url
-		std::vector<char> m_torrent_file_buf;
+//		std::vector<char> m_torrent_file_buf;
 
 		// this is a list of all pieces that we have announced
 		// as having, without actually having yet. If we receive

@@ -341,7 +341,8 @@ namespace libtorrent
 		m_sent_suggested_pieces.set_bit(piece);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("==> SUGGEST [ piece: %d num_peers: %d ]", piece, t->picker().get_availability(piece));
+		peer_log("==> SUGGEST [ piece: %d num_peers: %d ]", piece
+			, t->has_picker() ? t->picker().get_availability(piece) : -1);
 #endif
 
 		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
