@@ -223,8 +223,8 @@ namespace libtorrent
 		storage_mode_t storage_mode() const { return (storage_mode_t)m_storage_mode; }
 		storage_interface* get_storage()
 		{
-			if (!m_owning_storage) return 0;
-			return m_owning_storage->get_storage_impl();
+			if (!m_storage) return 0;
+			return m_storage->get_storage_impl();
 		}
 
 		// this will flag the torrent as aborted. The main
@@ -718,7 +718,7 @@ namespace libtorrent
 		policy& get_policy() { return m_policy; }
 
 		piece_manager& storage();
-		bool has_storage() const { return m_owning_storage; }
+		bool has_storage() const { return m_storage; }
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -774,7 +774,7 @@ namespace libtorrent
 		bool are_files_checked() const
 		{ return m_files_checked; }
 		bool valid_storage() const
-		{ return m_owning_storage.get(); }
+		{ return m_storage.get(); }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -967,13 +967,7 @@ namespace libtorrent
 		// the piece_manager, and stored in the
 		// torrent, so the torrent cannot destruct
 		// before the piece_manager.
-		boost::intrusive_ptr<piece_manager> m_owning_storage;
-
-		// this is a weak (non owninig) pointer to
-		// the piece_manager. This is used after the torrent
-		// has been aborted, and it can no longer own
-		// the object.
-		piece_manager* m_storage;
+		boost::intrusive_ptr<piece_manager> m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<asio::ssl::context> m_ssl_ctx;
