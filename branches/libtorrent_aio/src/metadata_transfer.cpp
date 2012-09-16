@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/pch.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #ifdef _MSC_VER
@@ -106,6 +107,21 @@ namespace libtorrent { namespace
 			, m_metadata_size(0)
 		{
 			m_requested_metadata.resize(256, 0);
+		}
+
+		bool need_loaded()
+		{ return m_torrent.need_loaded(); }
+
+		virtual void on_unload()
+		{
+			m_metadata.reset();
+		}
+
+		virtual void on_load()
+		{
+			// initialize m_metadata_size
+			TORRENT_ASSERT(m_torrent.is_loaded());
+			metadata();
 		}
 
 		virtual void on_files_checked()
@@ -343,6 +359,9 @@ namespace libtorrent { namespace
 				detail::write_uint32((int)m_tp.metadata().left(), ptr);
 				detail::write_uint32(offset.first, ptr);
 				m_pc.send_buffer(msg, sizeof(msg));
+
+				// TODO: this is not safe. The torrent could be unloaded while
+				// we're still sending the metadata
 				char const* metadata = m_tp.metadata().begin;
 				m_pc.append_const_send_buffer(metadata + offset.first, offset.second);
 			}
@@ -589,5 +608,6 @@ namespace libtorrent
 
 }
 
+#endif
 #endif
 

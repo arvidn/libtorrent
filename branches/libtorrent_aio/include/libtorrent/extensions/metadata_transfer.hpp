@@ -44,12 +44,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
+
 namespace libtorrent
 {
 	struct torrent_plugin;
 	class torrent;
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*, void*);
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
 }
+#endif
 
 #endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
