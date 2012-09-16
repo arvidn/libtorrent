@@ -478,7 +478,7 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 			boost::uint32_t peer_count : 9;
 #else
 			boost::uint32_t peer_count : 16;
@@ -509,7 +509,7 @@ namespace libtorrent
 			// 7 is maximum priority (ignores availability)
 			boost::uint32_t piece_priority : 3;
 			// index in to the piece_info vector
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 			boost::uint32_t index : 18;
 #else
 			boost::uint32_t index;
@@ -525,7 +525,7 @@ namespace libtorrent
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 				we_have_index = 0x3ffff,
 #else
 				we_have_index = 0xffffffff,
@@ -533,7 +533,7 @@ namespace libtorrent
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 				max_peer_count = 0x1ff
 #else
 				max_peer_count = 0xffff
@@ -597,7 +597,7 @@ namespace libtorrent
 	private:
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
 #else
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
@@ -726,7 +726,7 @@ namespace libtorrent
 		mutable bool m_dirty;
 	public:
 
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 #else
 		// still limited by piece_block

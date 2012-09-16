@@ -332,7 +332,7 @@ namespace libtorrent
 	void piece_picker::check_invariant(const torrent* t) const
 	{
 #ifndef TORRENT_DEBUG_REFCOUNTS
-#if TORRENT_COMPACT_PICKER
+#if TORRENT_OPTIMIZE_MEMORY_USAGE
 		TORRENT_ASSERT(sizeof(piece_pos) == 4);
 #else
 		TORRENT_ASSERT(sizeof(piece_pos) == 8);

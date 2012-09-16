@@ -44,7 +44,9 @@ void stat_channel::second_tick(int tick_interval_ms)
 	int sample = int(size_type(m_counter) * 1000 / tick_interval_ms);
 	TORRENT_ASSERT(sample >= 0);
 	m_5_sec_average = size_type(m_5_sec_average) * 4 / 5 + sample / 5;
+#ifndef TORRENT_DISABLE_FULL_STATS
 	m_30_sec_average = size_type(m_30_sec_average) * 29 / 30 + sample / 30;
+#endif
 	m_counter = 0;
 }
 

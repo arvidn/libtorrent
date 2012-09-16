@@ -319,8 +319,8 @@ feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 feature full-stats : on off : composite propagated link-incompatible ;
 feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
-feature compact-picker : off on : composite propagated link-incompatible ;
-feature.compose <compact-picker>on : <define>TORRENT_COMPACT_PICKER ;
+feature memory-optimization : off on : composite propagated link-incompatible ;
+feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;

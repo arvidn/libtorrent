@@ -54,21 +54,20 @@ namespace libtorrent
 	public:
 
 		stat_channel()
-			: m_counter(0)
+			: m_total_counter(0)
+			, m_counter(0)
 			, m_5_sec_average(0)
+#ifndef TORRENT_DISABLE_FULL_STATS
 			, m_30_sec_average(0)
-			, m_total_counter(0)
+#endif
 		{}
 
 		void operator+=(stat_channel const& s)
 		{
-			TORRENT_ASSERT(m_counter >= 0);
 			TORRENT_ASSERT(m_total_counter >= 0);
-			TORRENT_ASSERT(s.m_counter >= 0);
 			m_counter += s.m_counter;
 			m_total_counter += s.m_counter;
-			TORRENT_ASSERT(m_counter >= 0);
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_counter >= m_counter - s.m_counter);
 		}
 
 		void add(int count)
@@ -76,15 +75,22 @@ namespace libtorrent
 			TORRENT_ASSERT(count >= 0);
 
 			m_counter += count;
-			TORRENT_ASSERT(m_counter >= 0);
+			TORRENT_ASSERT(m_counter >= m_counter - count);
 			m_total_counter += count;
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_total_counter >= m_total_counter - count);
 		}
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
 		int rate() const { return m_5_sec_average; }
-		int low_pass_rate() const { return m_30_sec_average; }
+		int low_pass_rate() const
+		{
+#ifndef TORRENT_DISABLE_FULL_STATS
+			return m_30_sec_average;
+#else
+			return m_5_sec_average;
+#endif
+		}
 		size_type total() const { return m_total_counter; }
 
 		void offset(size_type c)
@@ -101,21 +107,25 @@ namespace libtorrent
 		{
 			m_counter = 0;
 			m_5_sec_average = 0;
+#ifndef TORRENT_DISABLE_FULL_STATS
 			m_30_sec_average = 0;
+#endif
 			m_total_counter = 0;
 		}
 
 	private:
 
+		// total counters
+		boost::uint64_t m_total_counter;
+
 		// the accumulator for this second.
-		int m_counter;
+		boost::uint32_t m_counter;
 
 		// sliding average
-		int m_5_sec_average;
-		int m_30_sec_average;
-
-		// total counters
-		size_type m_total_counter;
+		boost::uint32_t m_5_sec_average;
+#ifndef TORRENT_DISABLE_FULL_STATS
+		boost::uint32_t m_30_sec_average;
+#endif
 	};
 
 	class TORRENT_EXTRA_EXPORT stat

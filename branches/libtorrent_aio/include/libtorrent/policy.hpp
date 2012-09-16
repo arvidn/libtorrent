@@ -345,7 +345,11 @@ namespace libtorrent
 			}
 		};
 
+#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
+		typedef std::vector<peer*> peers_t;
+#else
 		typedef std::deque<peer*> peers_t;
+#endif
 
 		typedef peers_t::iterator iterator;
 		typedef peers_t::const_iterator const_iterator;
