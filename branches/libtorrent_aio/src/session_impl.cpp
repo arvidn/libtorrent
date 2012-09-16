@@ -855,6 +855,8 @@ namespace aux {
 
 		torrent::print_size(*m_logger);
 
+		policy::print_size(*m_logger);
+
 		PRINT_SIZEOF(peer_connection)
 		PRINT_SIZEOF(bt_peer_connection)
 		PRINT_SIZEOF(address)

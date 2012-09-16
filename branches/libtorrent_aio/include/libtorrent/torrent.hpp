@@ -950,10 +950,6 @@ namespace libtorrent
 
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
-		// for torrents who have a bandwidth limit, this is != 0
-		// and refers to a peer_class in the session.
-		peer_class_t m_peer_class;
-
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet.
@@ -1003,13 +999,6 @@ namespace libtorrent
 #endif
 
 		void setup_peer_class();
-
-		// of all peers in m_connections, this is the number
-		// of peers that are outgoing and still waiting to
-		// complete the connection. This is used to possibly
-		// kick out these connections when we get incoming
-		// connections (if we've reached the connection limit)
-		int m_num_connecting;
 
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set
@@ -1146,6 +1135,10 @@ namespace libtorrent
 		// in this swarm
 		time_t m_swarm_last_seen_complete;
 
+		// for torrents who have a bandwidth limit, this is != 0
+		// and refers to a peer_class in the session.
+		peer_class_t m_peer_class;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
@@ -1188,6 +1181,13 @@ namespace libtorrent
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
 		int m_sequence_number;
+
+		// of all peers in m_connections, this is the number
+		// of peers that are outgoing and still waiting to
+		// complete the connection. This is used to possibly
+		// kick out these connections when we get incoming
+		// connections (if we've reached the connection limit)
+		int m_num_connecting;
 
 		// ==============================
 		// The following members are specifically

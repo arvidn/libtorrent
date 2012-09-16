@@ -169,6 +169,9 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_torrent_file)
 		PRINT_OFFSETOF(torrent, m_owning_storage)
 		PRINT_OFFSETOF(torrent, m_storage)
+#ifdef TORRENT_USE_OPENSSL
+		PRINT_OFFSETOF(torrent, m_ssl_ctx)
+#endif
 		PRINT_OFFSETOF(torrent, m_connections)
 		PRINT_OFFSETOF(torrent, m_web_seeds)
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -209,6 +212,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_last_saved_resume)
 		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
+		PRINT_OFFSETOF(torrent, m_peer_class)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
 #endif
@@ -221,6 +225,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
 		PRINT_OFFSETOF(torrent, m_total_redundant_bytes)
 		PRINT_OFFSETOF(torrent, m_sequence_number)
+		PRINT_OFFSETOF(torrent, m_num_connecting)
 //		PRINT_OFFSETOF(torrent, m_upload_mode_time:24)
 //		PRINT_OFFSETOF(torrent, m_state:3)
 //		PRINT_OFFSETOF(torrent, m_storage_mode:2)
@@ -296,9 +301,7 @@ namespace libtorrent
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_started(time_now())
-		, m_peer_class(0)
 		, m_storage(0)
-		, m_num_connecting(0)
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackerid(p.trackerid)
@@ -312,6 +315,7 @@ namespace libtorrent
 		, m_last_saved_resume(time(0))
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
+		, m_peer_class(0)
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
 		, m_refcount(0)
@@ -320,6 +324,7 @@ namespace libtorrent
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_sequence_number(seq)
+		, m_num_connecting(0)
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
 		, m_storage_mode(p.storage_mode)
