@@ -7768,12 +7768,12 @@ namespace libtorrent
 				, end(m_connections.end()); i != end;)
 			{
 				peer_iterator j = i++;
-				peer_connection* p = *j;
+				boost::intrusive_ptr<peer_connection> p = *j;
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 				if (p->is_disconnecting())
 				{
-					m_connections.erase(j);
+					i = m_connections.erase(j);
 					update_want_peers();
 					update_want_tick();
 					continue;
@@ -7796,6 +7796,7 @@ namespace libtorrent
 				p->peer_log("*** CLOSING CONNECTION: torrent_paused");
 #endif
 				p->disconnect(errors::torrent_paused);
+				i = j;
 			}
 		}
 
@@ -8178,8 +8179,9 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
-			peer_connection* p = *i;
-			++i;
+			// keep the peer object alive while we're
+			// inspecting it
+			boost::intrusive_ptr<peer_connection> p = *i;
 
 			// look for the peer that saw a seed most recently
 			m_swarm_last_seen_complete = (std::max)(p->last_seen_complete(), m_swarm_last_seen_complete);
@@ -8198,6 +8200,8 @@ namespace libtorrent
 #endif
 				p->disconnect(errors::no_error, 1);
 			}
+
+			if (!p->is_disconnecting()) ++i;
 		}
 		if (m_ses.m_alerts.should_post<stats_alert>())
 			m_ses.m_alerts.post_alert(stats_alert(get_handle(), tick_interval_ms, m_stat));
