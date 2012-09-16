@@ -614,6 +614,12 @@ namespace libtorrent { namespace
 			return false;
 		}
 
+		// free our copy of the metadata and get a reference
+		// to the torrent's copy instead. No need to keep two
+		// identical copies around
+		m_metadata.reset();
+		metadata();
+
 		// clear the storage for the bitfield
 		std::vector<metadata_piece>().swap(m_requested_metadata);
 

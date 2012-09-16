@@ -908,6 +908,7 @@ namespace libtorrent
 
 	void torrent_info::unload()
 	{
+		TORRENT_ASSERT(m_info_section.unique());
 		m_info_section.reset();
 		m_info_section_size = 0;
 

@@ -2078,11 +2078,25 @@ namespace aux {
 
 		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		torrent* i = (torrent*)m_torrent_lru.front();
 		while (i != NULL && i != t) i = (torrent*)i->next;
 		TORRENT_ASSERT(i == t);
 #endif
+		
+		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
+
+		if (m_torrent_lru.size() > loaded_limit)
+		{
+			// just evict the torrent
+#ifdef TORRENT_STATS
+			inc_stats_counter(torrent_evicted_counter);
+#endif
+			TORRENT_ASSERT(t->is_pinned() == false);
+			t->unload();
+			m_torrent_lru.erase(t);
+			return;
+		}
 	
 		// move this torrent to be the first to be evicted whenever
 		// another torrent need its slot
@@ -5051,7 +5065,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		torrent_map::iterator i = m_torrents.find(info_hash);
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		for (torrent_map::iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
