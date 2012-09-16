@@ -7764,8 +7764,9 @@ namespace libtorrent
 			// disconnect all peers with no outstanding data to receive
 			// and choke all remaining peers to prevent responding to new
 			// requests
-			for (peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end;)
+			bool update_ticks = false;
+			for (peer_iterator i = m_connections.begin();
+				i != m_connections.end();)
 			{
 				peer_iterator j = i++;
 				boost::intrusive_ptr<peer_connection> p = *j;
@@ -7774,8 +7775,7 @@ namespace libtorrent
 				if (p->is_disconnecting())
 				{
 					i = m_connections.erase(j);
-					update_want_peers();
-					update_want_tick();
+					update_ticks = true;
 					continue;
 				}
 
@@ -7797,6 +7797,11 @@ namespace libtorrent
 #endif
 				p->disconnect(errors::torrent_paused);
 				i = j;
+			}
+			if (update_ticks)
+			{
+				update_want_peers();
+				update_want_tick();
 			}
 		}
 
