@@ -172,8 +172,6 @@ namespace libtorrent
 	private:
 #endif
 		tracker_manager* m_manager;
-	public:
-		union_endpoint m_tracker_address;
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler

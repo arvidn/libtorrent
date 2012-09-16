@@ -221,8 +221,6 @@ namespace libtorrent
 			}
 		}
 
-		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
-
 		start_announce();
 	}
 

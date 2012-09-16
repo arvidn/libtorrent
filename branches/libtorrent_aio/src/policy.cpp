@@ -791,12 +791,6 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		// if the connection comes from the tracker,
-		// it's probably just a NAT-check. Ignore the
-		// num connections constraint then.
-
-		// TODO: only allow _one_ connection to use this
-		// override at a time
 		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 		TORRENT_ASSERT(!m_torrent->is_paused());
@@ -804,8 +798,7 @@ namespace libtorrent
 		aux::session_impl& ses = m_torrent->session();
 		
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
-			&& ses.num_connections() >= ses.settings().get_int(settings_pack::connections_limit)
-			&& c.remote().address() != m_torrent->current_tracker().address())
+			&& ses.num_connections() >= ses.settings().get_int(settings_pack::connections_limit))
 		{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 			(*m_torrent->session().m_logger) << time_now_string()
@@ -822,13 +815,6 @@ namespace libtorrent
 			c.disconnect(errors::too_many_connections);
 			return false;
 		}
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		if (c.remote().address() == m_torrent->current_tracker().address())
-		{
-			m_torrent->debug_log("overriding connection limit for tracker NAT-check");
-		}
-#endif
 
 		iterator iter;
 		peer* i = 0;

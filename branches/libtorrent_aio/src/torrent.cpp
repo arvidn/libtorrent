@@ -161,7 +161,6 @@ namespace libtorrent
 		PRINT_SIZEOF(torrent)
 
 		PRINT_OFFSETOF(torrent, m_manager)
-		PRINT_OFFSETOF(torrent, m_tracker_address)
 		PRINT_OFFSETOF(torrent, m_policy)
 		PRINT_OFFSETOF(torrent, m_total_uploaded)
 		PRINT_OFFSETOF(torrent, m_total_downloaded)
@@ -8702,11 +8701,6 @@ namespace libtorrent
 		m_ses.m_disk_thread.async_hash(m_storage.get(), piece, 0
 			, boost::bind(&torrent::on_piece_verified, shared_from_this(), _1)
 			, (void*)1);
-	}
-
-	tcp::endpoint torrent::current_tracker() const
-	{
-		return m_tracker_address;
 	}
 
 	announce_entry* torrent::find_tracker(tracker_request const& r)

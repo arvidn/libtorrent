@@ -527,10 +527,6 @@ namespace libtorrent
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
 
-		// the tcp::endpoint of the tracker that we managed to
-		// announce ourself at the last time we tried to announce
-		tcp::endpoint current_tracker() const;
-
 		announce_entry* find_tracker(tracker_request const& r);
 
 // --------------------------------------------
