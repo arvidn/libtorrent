@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
@@ -349,7 +348,7 @@ struct torrent_entry
 };
 
 // maps filenames to torrent_handles
-typedef std::multimap<std::string, libtorrent::torrent_handle> handles_t;
+typedef std::map<std::string, libtorrent::torrent_handle> handles_t;
 typedef std::map<libtorrent::sha1_hash, std::string> files_t;
 
 files_t hash_to_filename;
@@ -887,6 +886,7 @@ void add_torrent(libtorrent::session& ses
 	p.flags |= add_torrent_params::flag_auto_managed;
 	p.userdata = (void*)strdup(torrent.c_str());
 	ses.async_add_torrent(p);
+	files.insert(std::pair<const std::string, torrent_handle>(torrent, torrent_handle()));
 }
 
 void scan_dir(std::string const& dir_path
@@ -1080,7 +1080,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			torrent_handle h = p->handle;
 
 			if (!filename.empty())
-				files.insert(std::pair<const std::string, torrent_handle>(filename, h));
+				files[filename] = h;
 			else
 				non_files.insert(h);
 
