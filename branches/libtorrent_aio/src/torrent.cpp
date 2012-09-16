@@ -338,7 +338,7 @@ namespace libtorrent
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
 #endif
-		, m_need_save_resume_data(true)
+		, m_need_save_resume_data(false)
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
@@ -7597,6 +7597,9 @@ namespace libtorrent
 	}
 
 	// this is an async operation triggered by the client	
+	// TODO: add a flag to ignore stats, and only care about resume data for
+	// content. For unchanged files, don't trigger a load of the metadata
+	// just to save an empty resume data file
 	void torrent::save_resume_data(int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
