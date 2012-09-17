@@ -199,8 +199,6 @@ int test_main()
 	test_transfer(pe_settings::enabled, pe_settings::both, false, true);
 	test_transfer(pe_settings::enabled, pe_settings::both, true, true);
 
-	return 0;
-
 	test_transfer(pe_settings::disabled);
 
 	test_transfer(pe_settings::forced, pe_settings::plaintext);

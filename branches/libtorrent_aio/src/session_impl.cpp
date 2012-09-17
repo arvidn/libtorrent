@@ -3309,22 +3309,7 @@ namespace aux {
 			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
 			{
-				policy& p = i->second->get_policy();
-				for (policy::iterator j = p.begin_peer()
-					, end(p.end_peer()); j != end; ++j)
-				{
-					policy::peer* pe = *j;
-
-					if (pe->last_optimistically_unchoked < four_hours)
-						pe->last_optimistically_unchoked = 0;
-					else
-						pe->last_optimistically_unchoked -= four_hours;
-
-					if (pe->last_connected < four_hours)
-						pe->last_connected = 0;
-					else
-						pe->last_connected -= four_hours;
-				}
+				i->second->step_session_time(four_hours);
 			}
 		}
 
@@ -4331,8 +4316,8 @@ namespace aux {
 			// if the torrent started less than 2 minutes
 			// ago (default), let it count as active since
 			// the rates are probably not accurate yet
-			if (time_now() - t->started()
-				< seconds(s.get_int(settings_pack::auto_manage_startup))) return true;
+			if (t->session().session_time() - t->started()
+				< s.get_int(settings_pack::auto_manage_startup)) return true;
 
 			return t->statistics().upload_payload_rate() != 0.f
 				|| t->statistics().download_payload_rate() != 0.f;
@@ -5082,20 +5067,12 @@ namespace aux {
 	torrent const* session_impl::find_encrypted_torrent(sha1_hash const& info_hash
 		, sha1_hash const& xor_mask)
 	{
-		aux::session_impl::torrent_map::const_iterator i;
+		sha1_hash obfuscated = info_hash;
+		obfuscated ^= xor_mask;
 
-		for (i = m_torrents.begin(); i != m_torrents.end(); ++i)
-		{
-			torrent const& ti = *i->second;
-
-			sha1_hash const& skey_hash = ti.obfuscated_hash();
-			sha1_hash obfs_hash = xor_mask;
-			obfs_hash ^= skey_hash;
-
-			if (info_hash == obfs_hash)
-				return &ti;
-		}
-		return NULL;
+		torrent_map::iterator i = m_obfuscated_torrents.find(obfuscated);
+		if (i == m_obfuscated_torrents.end()) return NULL;
+		return i->second.get();
 	}
 
 	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
@@ -5388,6 +5365,15 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&(*ih)[0], 20);
+		// this is SHA1("req2" + info-hash), used for
+		// encrypted hand shakes
+		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
+#endif
+
 		if (torrent_ptr->is_pinned() == false)
 		{
 			evict_torrents_except(torrent_ptr.get());
@@ -5483,6 +5469,13 @@ namespace aux {
 			++m_next_lsd_torrent;
 
 		m_torrents.erase(i);
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		hasher h;
+		h.update("req2", 4);
+		h.update((char*)&tptr->info_hash()[0], 20);
+		m_obfuscated_torrents.erase(h.final());
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_next_dht_torrent == m_torrents.end())
@@ -5917,6 +5910,13 @@ namespace aux {
 	{
 		m_pe_settings = settings;
 	}
+
+	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
+		, boost::weak_ptr<torrent> const& t)
+	{
+		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t));
+	}
+
 #endif
 
 	bool session_impl::is_listening() const

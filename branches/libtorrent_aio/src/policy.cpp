@@ -384,6 +384,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(policy, m_round_robin)
 		PRINT_OFFSETOF(policy, m_num_connect_candidates)
 		PRINT_OFFSETOF(policy, m_num_seeds)
+		PRINT_OFFSETOF_END(policy)
 	}
 #undef PRINT_SIZEOF
 #undef PRINT_OFFSETOF

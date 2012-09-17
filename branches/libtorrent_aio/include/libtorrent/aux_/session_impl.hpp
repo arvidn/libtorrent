@@ -332,6 +332,8 @@ namespace libtorrent
 			pe_settings const& get_pe_settings() const { return m_pe_settings; }
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask);
+
+			void add_obfuscated_hash(sha1_hash const& obfuscated, boost::weak_ptr<torrent> const& t);
 #endif
 
 			void on_port_map_log(char const* msg, int map_transport);
@@ -816,6 +818,12 @@ namespace libtorrent
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
+
+#ifndef TORRENT_DISABLE_ENCRYPTION
+			// this maps obfuscated hashes to torrents. It's only
+			// used when encryption is enabled
+			torrent_map m_obfuscated_torrents;
+#endif
 
 			// this is an LRU for torrents. It's used to determine
 			// which torrents should be loaded into RAM and which ones

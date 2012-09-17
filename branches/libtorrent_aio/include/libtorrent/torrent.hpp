@@ -122,11 +122,6 @@ namespace libtorrent
 			, sha1_hash const& info_hash);
 		~torrent();
 
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		sha1_hash const& obfuscated_hash() const
-		{ return m_obfuscated_hash; }
-#endif
-
 		sha1_hash const& info_hash() const
 		{ return m_torrent_file->info_hash(); }
 
@@ -283,7 +278,8 @@ namespace libtorrent
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
 
-		ptime started() const { return m_started; }
+		int started() const { return m_started; }
+		void step_session_time(int seconds);
 		void do_pause();
 		void do_resume();
 
@@ -298,7 +294,7 @@ namespace libtorrent
 		{
 			// save resume data every 15 minutes regardless, just to
 			// keep stats up to date
-			return m_need_save_resume_data || time(0) - m_last_saved_resume > 15 * 60;
+			return m_need_save_resume_data || m_ses.session_time() - m_last_saved_resume > 15 * 60;
 		}
 
 		bool is_auto_managed() const { return m_auto_managed; }
@@ -380,7 +376,7 @@ namespace libtorrent
 		void set_download_limit(int limit);
 		int download_limit() const;
 
-		peer_class_t peer_class() const { return m_peer_class; }
+		peer_class_t peer_class() const { return (peer_class_t)m_peer_class; }
 
 		void set_max_uploads(int limit, bool state_update = true);
 		int max_uploads() const { return m_max_uploads; }
@@ -938,12 +934,6 @@ namespace libtorrent
 		size_type m_total_uploaded;
 		size_type m_total_downloaded;
 
-		// if this torrent is running, this was the time
-		// when it was started. This is used to have a
-		// bias towards keeping seeding torrents that
-		// recently was started, to avoid oscillation
-		ptime m_started;
-
 		boost::intrusive_ptr<torrent_info> m_torrent_file;
 
 		// if this pointer is 0, the torrent is in
@@ -1056,6 +1046,7 @@ namespace libtorrent
 		// the network interfaces outgoing connections
 		// are opened through. If there is more then one,
 		// they are used in a round-robin fasion
+		// TODO: should this really be a per-torrent setting?
 		std::vector<union_endpoint> m_net_interfaces;
 
 		std::string m_save_path;
@@ -1089,6 +1080,8 @@ namespace libtorrent
 		// the piece has had its hash verified. This
 		// is only used in seed mode (when m_seed_mode
 		// is true)
+
+		// TODO: These two bitfields should probably be coalesced into one
 		bitfield m_verified;
 		// this means there is an outstanding, async, operation
 		// to verify each piece that has a 1
@@ -1097,9 +1090,12 @@ namespace libtorrent
 		// set if there's an error on this torrent
 		error_code m_error;
 		// if the error ocurred on a file, this is the file
+		// TODO: make this an index to the file instead. It probably only has to be 24 bits
 		std::string m_error_file;
 
 		// used if there is any resume data
+		// TODO: these should probably be heap allocated and replaced by a pointer
+		// in order to not require the storage in torrent at all times.
 		std::vector<char> m_resume_data;
 		lazy_entry m_resume_entry;
 
@@ -1109,6 +1105,8 @@ namespace libtorrent
 		// longer be used and will be reset
 		boost::scoped_ptr<std::string> m_name;
 
+		// TODO: this type is quite big. Maybe the actual constructor should be heap allocated.
+		// so it can be removed when the storage has been allocated
 		storage_constructor_type m_storage_constructor;
 
 		// the posix time this torrent was added and when
@@ -1116,7 +1114,6 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
-		time_t m_last_saved_resume;
 
 		// this was the last time _we_ saw a seed in this swarm
 		time_t m_last_seen_complete;
@@ -1124,16 +1121,6 @@ namespace libtorrent
 		// this is the time last any of our peers saw a seed
 		// in this swarm
 		time_t m_swarm_last_seen_complete;
-
-		// for torrents who have a bandwidth limit, this is != 0
-		// and refers to a peer_class in the session.
-		peer_class_t m_peer_class;
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		sha1_hash m_obfuscated_hash;
-#endif
 
 	public:
 		// these are the lists this torrent belongs to. For more
@@ -1145,6 +1132,20 @@ namespace libtorrent
 		link m_links[aux::session_impl::num_torrent_lists];
 
 	private:
+
+		// this timestamp is kept in session-time, to
+		// make it fit in 16 bits
+		boost::uint16_t m_last_saved_resume;
+
+		// if this torrent is running, this was the time
+		// when it was started. This is used to have a
+		// bias towards keeping seeding torrents that
+		// recently was started, to avoid oscillation
+		// this is specified at a second granularity
+		// in session-time. see session_impl for details.
+		// the reference point is stepped forward every 4
+		// hours to keep the timestamps fit in 16 bits
+		boost::uint16_t m_started;
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1172,12 +1173,16 @@ namespace libtorrent
 		// monotonically increasing number for each added torrent
 		int m_sequence_number;
 
+		// for torrents who have a bandwidth limit, this is != 0
+		// and refers to a peer_class in the session.
+		boost::uint16_t m_peer_class;
+
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to
 		// complete the connection. This is used to possibly
 		// kick out these connections when we get incoming
 		// connections (if we've reached the connection limit)
-		int m_num_connecting;
+		boost::uint16_t m_num_connecting;
 
 		// ==============================
 		// The following members are specifically

@@ -164,7 +164,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_policy)
 		PRINT_OFFSETOF(torrent, m_total_uploaded)
 		PRINT_OFFSETOF(torrent, m_total_downloaded)
-		PRINT_OFFSETOF(torrent, m_started)
 		PRINT_OFFSETOF(torrent, m_torrent_file)
 		PRINT_OFFSETOF(torrent, m_storage)
 #ifdef TORRENT_USE_OPENSSL
@@ -191,7 +190,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_username)
 		PRINT_OFFSETOF(torrent, m_password)
 		PRINT_OFFSETOF(torrent, m_net_interfaces)
-		PRINT_OFFSETOF(torrent, m_save_path)
+		;PRINT_OFFSETOF(torrent, m_save_path)
 		PRINT_OFFSETOF(torrent, m_url)
 		PRINT_OFFSETOF(torrent, m_uuid)
 		PRINT_OFFSETOF(torrent, m_source_feed_url)
@@ -207,14 +206,11 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_storage_constructor)
 		PRINT_OFFSETOF(torrent, m_added_time)
 		PRINT_OFFSETOF(torrent, m_completed_time)
-		PRINT_OFFSETOF(torrent, m_last_saved_resume)
 		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
-		PRINT_OFFSETOF(torrent, m_peer_class)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
-#endif
 		PRINT_OFFSETOF(torrent, m_links)
+		PRINT_OFFSETOF(torrent, m_last_saved_resume)
+		PRINT_OFFSETOF(torrent, m_started)
 		PRINT_OFFSETOF(torrent, m_checking_piece)
 		PRINT_OFFSETOF(torrent, m_num_checked_pieces)
 		PRINT_OFFSETOF(torrent, m_refcount)
@@ -223,6 +219,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
 		PRINT_OFFSETOF(torrent, m_total_redundant_bytes)
 		PRINT_OFFSETOF(torrent, m_sequence_number)
+		PRINT_OFFSETOF(torrent, m_peer_class)
 		PRINT_OFFSETOF(torrent, m_num_connecting)
 //		PRINT_OFFSETOF(torrent, m_upload_mode_time:24)
 //		PRINT_OFFSETOF(torrent, m_state:3)
@@ -298,7 +295,6 @@ namespace libtorrent
 		: m_policy(this)
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
-		, m_started(time_now())
 		, m_tracker_timer(ses.m_io_service)
 		, m_ses(ses)
 		, m_trackerid(p.trackerid)
@@ -309,10 +305,10 @@ namespace libtorrent
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
 		, m_completed_time(0)
-		, m_last_saved_resume(time(0))
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
-		, m_peer_class(0)
+		, m_last_saved_resume(ses.session_time())
+		, m_started(ses.session_time())
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
 		, m_refcount(0)
@@ -321,6 +317,7 @@ namespace libtorrent
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_sequence_number(seq)
+		, m_peer_class(0)
 		, m_num_connecting(0)
 		, m_upload_mode_time(0)
 		, m_state(torrent_status::checking_resume_data)
@@ -493,13 +490,6 @@ namespace libtorrent
 		}
 
 		if (p.resume_data) m_resume_data.swap(*p.resume_data);
-
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		hasher h;
-		h.update("req2", 4);
-		h.update((char*)&m_torrent_file->info_hash()[0], 20);
-		m_obfuscated_hash = h.final();
-#endif
 
 #ifdef TORRENT_DEBUG
 		m_files_checked = false;
@@ -685,7 +675,9 @@ namespace libtorrent
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&m_torrent_file->info_hash()[0], 20);
-		m_obfuscated_hash = h.final();
+		// this is SHA1("req2" + info-hash), used for
+		// encrypted hand shakes
+		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
 
 		if (m_ses.m_alerts.should_post<metadata_received_alert>())
@@ -800,7 +792,7 @@ namespace libtorrent
 		hasher h;
 		h.update("req2", 4);
 		h.update((char*)&m_torrent_file->info_hash()[0], 20);
-		m_obfuscated_hash = h.final();
+		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
 
 		if (m_ses.m_alerts.should_post<metadata_received_alert>())
@@ -1849,6 +1841,9 @@ namespace libtorrent
 	// to warrant swapping it out, in favor of a more active torrent.
 	void torrent::unload()
 	{
+		// TODO: also remove extensions and re-instantiate them when the torrent is loaded again
+		// they end up using a significant amount of memory
+
 		// pinned torrents are not allowed to be swapped out
 		TORRENT_ASSERT(!m_pinned);
 
@@ -4172,7 +4167,7 @@ namespace libtorrent
 		else
 		{
 			m_need_save_resume_data = false;
-			m_last_saved_resume = time(0);
+			m_last_saved_resume = m_ses.session_time();
 			write_resume_data(*((entry*)j->buffer));
 			alerts().post_alert(save_resume_data_alert(boost::shared_ptr<entry>((entry*)j->buffer)
 				, get_handle()));
@@ -7530,6 +7525,31 @@ namespace libtorrent
 			m_ses.m_auto_manage_time_scaler = 2;
 	}
 
+	void torrent::step_session_time(int seconds)
+	{
+		policy& p = get_policy();
+		for (policy::iterator j = p.begin_peer()
+			, end(p.end_peer()); j != end; ++j)
+		{
+			policy::peer* pe = *j;
+
+			if (pe->last_optimistically_unchoked < seconds)
+				pe->last_optimistically_unchoked = 0;
+			else
+				pe->last_optimistically_unchoked -= seconds;
+
+			if (pe->last_connected < seconds)
+				pe->last_connected = 0;
+			else
+				pe->last_connected -= seconds;
+		}
+
+		if (m_started < seconds) m_started = 0;
+		else m_started -= seconds;
+		if (m_last_saved_resume < seconds) m_last_saved_resume = 0;
+		else m_last_saved_resume -= seconds;
+	}
+
 	// the higher seed rank, the more important to seed
 	int torrent::seed_rank(aux::session_settings const& s) const
 	{
@@ -7567,7 +7587,7 @@ namespace libtorrent
 
 		// if this torrent is running, and it was started less
 		// than 30 minutes ago, give it priority, to avoid oscillation
-		if (!is_paused() && now - m_started < minutes(30))
+		if (!is_paused() && (m_ses.session_time() - m_started) < 30 * 60)
 			ret |= recently_started;
 
 		// if we have any scrape data, use it to calculate
@@ -7619,7 +7639,7 @@ namespace libtorrent
 		}
 
 		m_need_save_resume_data = false;
-		m_last_saved_resume = time(0);
+		m_last_saved_resume = m_ses.session_time();
 		m_save_resume_flags = boost::uint8_t(flags);
 		state_updated();
 
@@ -7900,7 +7920,7 @@ namespace libtorrent
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().post_alert(torrent_resumed_alert(get_handle()));
 
-		m_started = time_now();
+		m_started = m_ses.session_time();
 		clear_error();
 
 		state_updated();
@@ -8180,12 +8200,14 @@ namespace libtorrent
 		}
 		
 		m_swarm_last_seen_complete = m_last_seen_complete;
+		int idx = 0;
 		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();)
+			i != m_connections.end(); ++idx)
 		{
 			// keep the peer object alive while we're
 			// inspecting it
 			boost::intrusive_ptr<peer_connection> p = *i;
+			++i;
 
 			// look for the peer that saw a seed most recently
 			m_swarm_last_seen_complete = (std::max)(p->last_seen_complete(), m_swarm_last_seen_complete);
@@ -8205,7 +8227,11 @@ namespace libtorrent
 				p->disconnect(errors::no_error, 1);
 			}
 
-			if (!p->is_disconnecting()) ++i;
+			if (p->is_disconnecting())
+			{
+				i = m_connections.begin() + idx;
+				--idx;
+			}
 		}
 		if (m_ses.m_alerts.should_post<stats_alert>())
 			m_ses.m_alerts.post_alert(stats_alert(get_handle(), tick_interval_ms, m_stat));
