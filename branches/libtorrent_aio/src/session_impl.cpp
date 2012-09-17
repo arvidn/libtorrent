@@ -1306,8 +1306,8 @@ namespace aux {
 			return;
 		}
 
-		++m_num_save_resume;
-		t->do_async_save_resume_data();
+		if (t->do_async_save_resume_data())
+			++m_num_save_resume;
 	}
 
 	// this is called whenever a save_resume_data comes back
@@ -1340,8 +1340,8 @@ namespace aux {
 		{
 			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
 			m_save_resume_queue.erase(m_save_resume_queue.begin());
-			++m_num_save_resume;
-			t->do_async_save_resume_data();
+			if (t->do_async_save_resume_data())
+				++m_num_save_resume;
 		}
 	}
 

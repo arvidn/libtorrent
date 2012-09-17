@@ -200,7 +200,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_verifying)
 		PRINT_OFFSETOF(torrent, m_error)
 		PRINT_OFFSETOF(torrent, m_resume_data)
-		PRINT_OFFSETOF(torrent, m_resume_entry)
 		PRINT_OFFSETOF(torrent, m_name)
 		PRINT_OFFSETOF(torrent, m_storage_constructor)
 		PRINT_OFFSETOF(torrent, m_added_time)
@@ -259,6 +258,8 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
 		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
+		PRINT_OFFSETOF(torrent, m_last_download)
+		PRINT_OFFSETOF(torrent, m_interface_index)
 		PRINT_OFFSETOF_END(torrent)
 	}
 #undef PRINT_SIZEOF
@@ -491,7 +492,11 @@ namespace libtorrent
 			m_verifying.resize(m_torrent_file->num_pieces(), false);
 		}
 
-		if (p.resume_data) m_resume_data.swap(*p.resume_data);
+		if (p.resume_data && !p.resume_data->empty())
+		{
+			m_resume_data.reset(new resume_data_t);
+			m_resume_data->buf.swap(*p.resume_data);
+		}
 
 #ifdef TORRENT_DEBUG
 		m_files_checked = false;
@@ -827,24 +832,21 @@ namespace libtorrent
 			m_picker.reset(new piece_picker());
 			std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
 
-			if (!m_resume_data.empty())
+			if (m_resume_data)
 			{
 				int pos;
 				error_code ec;
-				if (lazy_bdecode(&m_resume_data[0], &m_resume_data[0]
-					+ m_resume_data.size(), m_resume_entry, ec, &pos) != 0)
+				if (lazy_bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
+					+ m_resume_data->buf.size(), m_resume_data->entry, ec, &pos) != 0)
 				{
-					std::vector<char>().swap(m_resume_data);
-					lazy_entry().swap(m_resume_entry);
+					m_resume_data.reset();
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 					(*m_ses.m_logger) << time_now_string() << " fastresume data for "
 						<< torrent_file().name() << " rejected: " << ec.message()
 						<< " pos: " << pos << "\n";
 #endif
 					if (m_ses.m_alerts.should_post<fastresume_rejected_alert>())
-					{
 						m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), ec, "", 0));
-					}
 				}
 			}
 		}
@@ -1669,8 +1671,7 @@ namespace libtorrent
 		if (m_seed_mode)
 		{
 			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
-			std::vector<char>().swap(m_resume_data);
-			lazy_entry().swap(m_resume_entry);
+			m_resume_data.reset();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			m_resume_data_loaded = true;
 #endif
@@ -1679,13 +1680,13 @@ namespace libtorrent
 
 		set_state(torrent_status::checking_resume_data);
 
-		if (m_resume_entry.type() == lazy_entry::dict_t)
+		if (m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
 		{
 			int ev = 0;
-			if (m_resume_entry.dict_find_string_value("file-format") != "libtorrent resume file")
+			if (m_resume_data->entry.dict_find_string_value("file-format") != "libtorrent resume file")
 				ev = errors::invalid_file_tag;
 	
-			std::string info_hash = m_resume_entry.dict_find_string_value("info-hash");
+			std::string info_hash = m_resume_data->entry.dict_find_string_value("info-hash");
 			if (!ev && info_hash.empty())
 				ev = errors::missing_info_hash;
 
@@ -1705,12 +1706,11 @@ namespace libtorrent
 					<< torrent_file().name() << " rejected: "
 					<< error_code(ev, get_libtorrent_category()).message() << "\n";
 #endif
-				std::vector<char>().swap(m_resume_data);
-				lazy_entry().swap(m_resume_entry);
+				m_resume_data.reset();
 			}
 			else
 			{
-				read_resume_data(m_resume_entry);
+				read_resume_data(m_resume_data->entry);
 			}
 		}
 	
@@ -1779,7 +1779,7 @@ namespace libtorrent
 		if (!need_loaded()) return;
 
 		inc_refcount();
-		m_ses.m_disk_thread.async_check_fastresume(m_storage.get(), &m_resume_entry
+		m_ses.m_disk_thread.async_check_fastresume(m_storage.get(), m_resume_data ? &m_resume_data->entry : NULL
 			, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 
@@ -1912,19 +1912,18 @@ namespace libtorrent
 			if (is_auto_managed()) pause();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
-			std::vector<char>().swap(m_resume_data);
-			lazy_entry().swap(m_resume_entry);
+			m_resume_data.reset();
 			return;
 		}
 
 		state_updated();
 
-		if (m_resume_entry.type() == lazy_entry::dict_t)
+		if (m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
 			peer_id id(0);
 
-			if (lazy_entry const* peers_entry = m_resume_entry.dict_find_string("peers"))
+			if (lazy_entry const* peers_entry = m_resume_data->entry.dict_find_string("peers"))
 			{
 				int num_peers = peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
 				char const* ptr = peers_entry->string_ptr();
@@ -1936,7 +1935,7 @@ namespace libtorrent
 				update_want_peers();
 			}
 
-			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_string("banned_peers"))
+			if (lazy_entry const* banned_peers_entry = m_resume_data->entry.dict_find_string("banned_peers"))
 			{
 				int num_peers = banned_peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
 				char const* ptr = banned_peers_entry->string_ptr();
@@ -1950,7 +1949,7 @@ namespace libtorrent
 			}
 
 #if TORRENT_USE_IPV6
-			if (lazy_entry const* peers6_entry = m_resume_entry.dict_find_string("peers6"))
+			if (lazy_entry const* peers6_entry = m_resume_data->entry.dict_find_string("peers6"))
 			{
 				int num_peers = peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
 				char const* ptr = peers6_entry->string_ptr();
@@ -1962,7 +1961,7 @@ namespace libtorrent
 				update_want_peers();
 			}
 
-			if (lazy_entry const* banned_peers6_entry = m_resume_entry.dict_find_string("banned_peers6"))
+			if (lazy_entry const* banned_peers6_entry = m_resume_data->entry.dict_find_string("banned_peers6"))
 			{
 				int num_peers = banned_peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
 				char const* ptr = banned_peers6_entry->string_ptr();
@@ -1977,7 +1976,7 @@ namespace libtorrent
 #endif
 
 			// parse out "peers" from the resume data and add them to the peer list
-			if (lazy_entry const* peers_entry = m_resume_entry.dict_find_list("peers"))
+			if (lazy_entry const* peers_entry = m_resume_data->entry.dict_find_list("peers"))
 			{
 				for (int i = 0; i < peers_entry->list_size(); ++i)
 				{
@@ -1995,7 +1994,7 @@ namespace libtorrent
 			}
 
 			// parse out "banned_peers" and add them as banned
-			if (lazy_entry const* banned_peers_entry = m_resume_entry.dict_find_list("banned_peers"))
+			if (lazy_entry const* banned_peers_entry = m_resume_data->entry.dict_find_list("banned_peers"))
 			{	
 				for (int i = 0; i < banned_peers_entry->list_size(); ++i)
 				{
@@ -2015,7 +2014,7 @@ namespace libtorrent
 		}
 
 		// only report this error if the user actually provided resume data
-		if ((j->error || j->ret != 0) && !m_resume_data.empty()
+		if ((j->error || j->ret != 0) && m_resume_data
 			&& m_ses.m_alerts.should_post<fastresume_rejected_alert>())
 		{
 			m_ses.m_alerts.post_alert(fastresume_rejected_alert(get_handle(), j->error.ec
@@ -2037,10 +2036,10 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!j->error && m_resume_entry.type() == lazy_entry::dict_t)
+			if (!j->error && m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
 			{
 				// parse have bitmask
-				lazy_entry const* pieces = m_resume_entry.dict_find("pieces");
+				lazy_entry const* pieces = m_resume_data->entry.dict_find("pieces");
 				if (pieces && pieces->type() == lazy_entry::string_t
 					&& int(pieces->string_length()) == m_torrent_file->num_pieces())
 				{
@@ -2057,7 +2056,7 @@ namespace libtorrent
 				}
 				else
 				{
-					lazy_entry const* slots = m_resume_entry.dict_find("slots");
+					lazy_entry const* slots = m_resume_data->entry.dict_find("slots");
 					if (slots && slots->type() == lazy_entry::list_t)
 					{
 						for (int i = 0; i < slots->list_size(); ++i)
@@ -2076,7 +2075,7 @@ namespace libtorrent
 				int num_blocks_per_piece =
 					static_cast<int>(torrent_file().piece_length()) / block_size();
 
-				if (lazy_entry const* unfinished_ent = m_resume_entry.dict_find_list("unfinished"))
+				if (lazy_entry const* unfinished_ent = m_resume_data->entry.dict_find_list("unfinished"))
 				{
 					for (int i = 0; i < unfinished_ent->list_size(); ++i)
 					{
@@ -2125,8 +2124,7 @@ namespace libtorrent
 		}
 
 		maybe_done_flushing();
-		std::vector<char>().swap(m_resume_data);
-		lazy_entry().swap(m_resume_entry);
+		m_resume_data.reset();
 	}
 
 	void torrent::force_recheck()
@@ -2165,12 +2163,11 @@ namespace libtorrent
 		if (m_auto_managed && !is_finished())
 			set_queue_position((std::numeric_limits<int>::max)());
 
-		std::vector<char>().swap(m_resume_data);
-		lazy_entry().swap(m_resume_entry);
+		m_resume_data.reset();
 
 		if (!need_loaded()) return;
 		inc_refcount();
-		m_ses.m_disk_thread.async_check_fastresume(m_storage.get(), &m_resume_entry
+		m_ses.m_disk_thread.async_check_fastresume(m_storage.get(), NULL
 			, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
 	}
@@ -7103,8 +7100,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
-		TORRENT_ASSERT(m_resume_entry.type() == lazy_entry::dict_t
-			|| m_resume_entry.type() == lazy_entry::none_t);
+		TORRENT_ASSERT(!m_resume_data || m_resume_data->entry.type() == lazy_entry::dict_t
+			|| m_resume_data->entry.type() == lazy_entry::none_t);
 
 		int num_uploads = 0;
 		std::map<piece_block, int> num_requests;
@@ -7668,16 +7665,17 @@ namespace libtorrent
 		m_ses.queue_async_resume_data(shared_from_this());
 	}
 
-	void torrent::do_async_save_resume_data()
+	bool torrent::do_async_save_resume_data()
 	{
 		if (!need_loaded())
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle(), m_error));
-			return;
+			return false;
 		}
 		inc_refcount();
 		m_ses.m_disk_thread.async_save_resume_data(m_storage.get()
 			, boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1));
+		return true;
 	}
 	
 	bool torrent::should_check_files() const

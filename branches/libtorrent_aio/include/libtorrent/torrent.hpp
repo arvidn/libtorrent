@@ -106,6 +106,12 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
+	struct resume_data_t
+	{
+		std::vector<char> buf;
+		lazy_entry entry;
+	};
+
 	// a torrent is a class that holds information
 	// for a specific download. It updates itself against
 	// the tracker
@@ -293,7 +299,7 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
 		void force_recheck();
 		void save_resume_data(int flags);
-		void do_async_save_resume_data();
+		bool do_async_save_resume_data();
 
 		bool need_save_resume_data() const
 		{
@@ -1096,10 +1102,7 @@ namespace libtorrent
 		error_code m_error;
 
 		// used if there is any resume data
-		// TODO: these should probably be heap allocated and replaced by a pointer
-		// in order to not require the storage in torrent at all times.
-		std::vector<char> m_resume_data;
-		lazy_entry m_resume_entry;
+		boost::scoped_ptr<resume_data_t> m_resume_data;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received

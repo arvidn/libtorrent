@@ -1351,7 +1351,6 @@ namespace libtorrent
 		, lazy_entry const* resume_data
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
-		TORRENT_ASSERT(resume_data != 0);
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
 		j->storage = storage;
 		j->buffer = (char*)resume_data;
@@ -1860,7 +1859,8 @@ namespace libtorrent
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		lazy_entry const* rd = (lazy_entry const*)j->buffer;
-		TORRENT_ASSERT(rd != 0);
+		lazy_entry tmp;
+		if (rd == NULL) rd = &tmp;
 
 		return j->storage->check_fastresume(*rd, j->error);
 	}
@@ -2214,10 +2214,11 @@ namespace libtorrent
 
 	void disk_io_thread::add_job(disk_io_job* j, bool ignore_fence)
 	{
+		TORRENT_ASSERT(j->next == NULL);
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
-		TORRENT_ASSERT(m_num_threads > 0);
+		TORRENT_ASSERT(m_num_threads > 0 || j->action == disk_io_job::flush_piece);
 
 		DLOG(stderr, "[%p] add_job: %s (ignore_fence: %d outstanding: %d)\n", this
 			, job_action_name[j->action], ignore_fence
