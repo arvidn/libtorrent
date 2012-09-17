@@ -1283,9 +1283,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
 	{
 		torrent_error_alert(torrent_handle const& h
-			, error_code const& e)
+			, error_code const& e, std::string const& f)
 			: torrent_alert(h)
 			, error(e)
+			, error_file(f)
 		{}
 
 		TORRENT_DEFINE_ALERT(torrent_error_alert, 64);
@@ -1294,6 +1295,7 @@ namespace libtorrent
 		virtual std::string message() const;
 
 		error_code error;
+		std::string error_file;
 	};
 
 	struct TORRENT_EXPORT torrent_need_cert_alert: torrent_alert

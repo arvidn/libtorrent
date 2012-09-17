@@ -2154,7 +2154,7 @@ namespace aux {
 		m_user_load_torrent(t->info_hash(), buffer, ec);
 		if (ec)
 		{
-			t->set_error(ec, ".torrent file");
+			t->set_error(ec, torrent::error_file_none);
 			t->pause(false);
 			return false;
 		}

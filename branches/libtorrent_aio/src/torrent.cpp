@@ -199,7 +199,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_verified)
 		PRINT_OFFSETOF(torrent, m_verifying)
 		PRINT_OFFSETOF(torrent, m_error)
-		PRINT_OFFSETOF(torrent, m_error_file)
 		PRINT_OFFSETOF(torrent, m_resume_data)
 		PRINT_OFFSETOF(torrent, m_resume_entry)
 		PRINT_OFFSETOF(torrent, m_name)
@@ -214,6 +213,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_checking_piece)
 		PRINT_OFFSETOF(torrent, m_num_checked_pieces)
 		PRINT_OFFSETOF(torrent, m_refcount)
+		PRINT_OFFSETOF(torrent, m_error_file)
 		PRINT_OFFSETOF(torrent, m_average_piece_time)
 		PRINT_OFFSETOF(torrent, m_piece_time_deviation)
 		PRINT_OFFSETOF(torrent, m_total_failed_bytes)
@@ -259,6 +259,7 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
 		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
+		PRINT_OFFSETOF_END(torrent)
 	}
 #undef PRINT_SIZEOF
 #undef PRINT_OFFSETOF
@@ -312,6 +313,7 @@ namespace libtorrent
 		, m_checking_piece(0)
 		, m_num_checked_pieces(0)
 		, m_refcount(0)
+		, m_error_file(error_file_none)
 		, m_average_piece_time(0)
 		, m_piece_time_deviation(0)
 		, m_total_failed_bytes(0)
@@ -557,7 +559,7 @@ namespace libtorrent
 
 		if (ec && ec != asio::error::eof)
 		{
-			set_error(ec, m_url);
+			set_error(ec, error_file_url);
 			pause();
 			return;
 		}
@@ -572,7 +574,7 @@ namespace libtorrent
 
 		if (parser.header_finished() && parser.status_code() != 200)
 		{
-			set_error(error_code(parser.status_code(), get_http_category()), parser.message());
+			set_error(error_code(parser.status_code(), get_http_category()), error_file_url);
 			pause();
 			return;
 		}
@@ -592,7 +594,7 @@ namespace libtorrent
 			if (inflate_gzip(&m_torrent_file_buf[0], m_torrent_file_buf.size()
 				, buf, 4 * 1024 * 1024, error))
 			{
-				set_error(errors::http_failed_decompress, m_url);
+				set_error(errors::http_failed_decompress, error_file_url);
 				pause();
 				std::vector<char>().swap(m_torrent_file_buf);
 				return;
@@ -606,7 +608,7 @@ namespace libtorrent
 			&m_torrent_file_buf[0], m_torrent_file_buf.size(), e));
 		if (e)
 		{
-			set_error(e, m_url);
+			set_error(e, error_file_url);
 			pause();
 			std::vector<char>().swap(m_torrent_file_buf);
 			return;
@@ -644,7 +646,7 @@ namespace libtorrent
 				m_ses.m_uuids.insert(std::make_pair(m_uuid.empty()
 					? m_url : m_uuid, i->second));
 			}
-			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
+			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), error_file_url);
 			abort();
 			return;
 		}
@@ -703,15 +705,14 @@ namespace libtorrent
 
 		if (ec && ec != asio::error::eof)
 		{
-			set_error(ec, m_url);
+			set_error(ec, error_file_url);
 			pause();
 			return;
 		}
 
 		if (parser.status_code() != 200)
 		{
-			// #error there should really be an error code category for HTTP
-			set_error(errors::http_error, parser.message());
+			set_error(error_code(parser.status_code(), get_http_category()), error_file_url);
 			pause();
 			return;
 		}
@@ -720,7 +721,7 @@ namespace libtorrent
 		intrusive_ptr<torrent_info> tf(new torrent_info(data, size, e));
 		if (e)
 		{
-			set_error(e, m_url);
+			set_error(e, error_file_url);
 			pause();
 			return;
 		}
@@ -761,7 +762,7 @@ namespace libtorrent
 			// TODO: if the existing torrent doesn't have metadata, insert
 			// the metadata we just downloaded into it.
 
-			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), "");
+			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), error_file_url);
 			abort();
 			return;
 		}
@@ -1486,7 +1487,7 @@ namespace libtorrent
 		{
 			error_code ec(::ERR_get_error(),
 				asio::error::get_ssl_category());
-			set_error(ec, "SSL context");
+			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
 		}
@@ -1501,7 +1502,7 @@ namespace libtorrent
 			| context::verify_client_once, ec);
 		if (ec)
 		{
-			set_error(ec, "SSL verify mode");
+			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
 		}
@@ -1512,7 +1513,7 @@ namespace libtorrent
 		ctx->set_verify_callback(boost::bind(&torrent::verify_peer_cert, this, _1, _2), ec);
 		if (ec)
 		{
-			set_error(ec, "SSL verify callback");
+			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
 		}
@@ -1524,7 +1525,7 @@ namespace libtorrent
 		{
 			error_code ec(::ERR_get_error(),
 				asio::error::get_ssl_category());
-			set_error(ec, "x.509 certificate store");
+			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
 		}
@@ -1543,7 +1544,7 @@ namespace libtorrent
 			error_code ec(::ERR_get_error(),
 				asio::error::get_ssl_category());
 			X509_STORE_free(cert_store);
-			set_error(ec, "x.509 certificate");
+			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
 		}
@@ -1568,7 +1569,7 @@ namespace libtorrent
 		// tell the client we need a cert for this torrent
 		alerts().post_alert(torrent_need_cert_alert(get_handle()));
 #else
-		set_error(asio::error::operation_not_supported, "x.509 certificate");
+		set_error(asio::error::operation_not_supported, error_file_ssl_ctx);
 		pause();
 #endif
 	}
@@ -1596,14 +1597,14 @@ namespace libtorrent
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
-			set_error(errors::too_many_pieces_in_torrent, "");
+			set_error(errors::too_many_pieces_in_torrent, error_file_none);
 			pause();
 			return;
 		}
 
 		if (m_torrent_file->num_pieces() == 0)
 		{
-			set_error(errors::torrent_invalid_length, "");
+			set_error(errors::torrent_invalid_length, error_file_none);
 			pause();
 			return;
 		}
@@ -1819,7 +1820,7 @@ namespace libtorrent
 		m_torrent_file->load(&buffer[0], buffer.size(), ec);
 		if (ec)
 		{
-			set_error(ec, "");
+			set_error(ec, error_file_none);
 			return false;
 		}
 		else
@@ -6352,7 +6353,7 @@ namespace libtorrent
 			{
 				alerts().post_alert(metadata_failed_alert(get_handle(), ec));
 			}
-			set_error(errors::invalid_swarm_metadata, -1);
+			set_error(errors::invalid_swarm_metadata, error_file_none);
 			pause();
 			return false;
 		}
@@ -7441,7 +7442,7 @@ namespace libtorrent
 		bool checking_files = should_check_files();
 		m_ses.m_auto_manage_time_scaler = 2;
 		m_error = error_code();
-		m_error_file.clear();
+		m_error_file = error_file_none;
 
 		state_updated();
 
@@ -7459,6 +7460,10 @@ namespace libtorrent
 
 	std::string torrent::resolve_filename(int file) const
 	{
+		if (file == error_file_none) return "";
+		if (file == error_file_url) return m_url;
+		if (file == error_file_ssl_ctx) return "SSL Context";
+
 		if (m_storage && file >= 0)
 		{
 			file_storage const& st = m_torrent_file->files();
@@ -7473,23 +7478,18 @@ namespace libtorrent
 	void torrent::set_error(error_code const& ec, int error_file)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		set_error(ec, resolve_filename(error_file));
-	}
-
-	void torrent::set_error(error_code const& ec, std::string const& error_file)
-	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_error = ec;
 		m_error_file = error_file;
 
 		if (alerts().should_post<torrent_error_alert>())
-			alerts().post_alert(torrent_error_alert(get_handle(), ec));
+			alerts().post_alert(torrent_error_alert(get_handle(), ec, resolve_filename(error_file)));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		if (ec)
 		{
 			char buf[1024];
-			snprintf(buf, sizeof(buf), "TORRENT ERROR: %s: %s", ec.message().c_str(), error_file.c_str());
+			snprintf(buf, sizeof(buf), "TORRENT ERROR: %s: %s", ec.message().c_str()
+				, resolve_filename(error_file).c_str());
 			log_to_all_peers(buf);
 		}
 #endif
@@ -8976,7 +8976,7 @@ namespace libtorrent
 #endif
 
 		st->has_incoming = m_has_incoming;
-		if (m_error) st->error = m_error.message() + ": " + m_error_file;
+		if (m_error) st->error = m_error.message() + ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
 
 		st->added_time = m_added_time;

@@ -265,8 +265,13 @@ namespace libtorrent
 		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
 		void clear_error();
+
+		enum {
+			error_file_none = -1, // the error did not occur on a file
+			error_file_url = -2, // the error occurred on m_url
+			error_file_ssl_ctx = -3, // the error occurred setting up the SSL context
+		};
 		void set_error(error_code const& ec, int file);
-		void set_error(error_code const& ec, std::string const& file);
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
@@ -1089,9 +1094,6 @@ namespace libtorrent
 
 		// set if there's an error on this torrent
 		error_code m_error;
-		// if the error ocurred on a file, this is the file
-		// TODO: make this an index to the file instead. It probably only has to be 24 bits
-		std::string m_error_file;
 
 		// used if there is any resume data
 		// TODO: these should probably be heap allocated and replaced by a pointer
@@ -1156,6 +1158,11 @@ namespace libtorrent
 		// loaded in RAM. having a refcount > 0 prevents it from
 		// being unloaded.
 		int m_refcount;
+
+		// if the error ocurred on a file, this is the index of that file
+		// there are a few special cases, when this is negative. See
+		// set_error()
+		int m_error_file;
 
 		// the average time it takes to download one time critical piece
 		boost::uint32_t m_average_piece_time;

@@ -5907,9 +5907,12 @@ This is posted whenever a torrent is transitioned into the error state.
 	{
 		// ...
 		error_code error;
+		std::string error_file;
 	};
 
 The ``error`` specifies which error the torrent encountered.
+
+``error_file`` is the filename (or object) the error occurred on.
 
 file_renamed_alert
 ------------------
