@@ -1105,9 +1105,7 @@ namespace libtorrent
 		// longer be used and will be reset
 		boost::scoped_ptr<std::string> m_name;
 
-		// TODO: this type is quite big. Maybe the actual constructor should be heap allocated.
-		// so it can be removed when the storage has been allocated
-		storage_constructor_type m_storage_constructor;
+		boost::scoped_ptr<storage_constructor_type> m_storage_constructor;
 
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet

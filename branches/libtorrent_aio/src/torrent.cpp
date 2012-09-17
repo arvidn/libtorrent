@@ -302,7 +302,7 @@ namespace libtorrent
 		, m_url(p.url)
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
-		, m_storage_constructor(p.storage)
+		, m_storage_constructor(new storage_constructor_type(p.storage))
 		, m_added_time(time(0))
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
@@ -1618,7 +1618,9 @@ namespace libtorrent
 		params.priorities = &m_file_priority;
 		params.info = m_torrent_file.get();
 
-		storage_interface* storage_impl = m_storage_constructor(params);
+		TORRENT_ASSERT(m_storage_constructor);
+		storage_interface* storage_impl = (*m_storage_constructor)(params);
+		m_storage_constructor.reset();
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
