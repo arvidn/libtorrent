@@ -1826,8 +1826,27 @@ namespace libtorrent
 		else
 		{
 			state_updated();
-			// call on_load() on extensions
+			// create the extensions again
+			// and call on_load() on them
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			for (aux::session_impl::extension_list_t::iterator i = m_ses.m_extensions.begin()
+				, end(m_ses.m_extensions.end()); i != end; ++i)
+			{
+				// TOOD: should we store add_torrent_params::userdata
+				// in torrent just to have it available here?
+				boost::shared_ptr<torrent_plugin> tp((*i)(this, NULL));
+				if (tp) add_extension(tp);
+			}
+
+			for (aux::session_impl::ses_extension_list_t::iterator i = m_ses.m_ses_extensions.begin()
+				, end(m_ses.m_ses_extensions.end()); i != end; ++i)
+			{
+				// TOOD: should we store add_torrent_params::userdata
+				// in torrent just to have it available here?
+				boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(this, NULL));
+				if (tp) add_extension(tp);
+			}
+
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
@@ -1844,9 +1863,6 @@ namespace libtorrent
 	// to warrant swapping it out, in favor of a more active torrent.
 	void torrent::unload()
 	{
-		// TODO: also remove extensions and re-instantiate them when the torrent is loaded again
-		// they end up using a significant amount of memory
-
 		// pinned torrents are not allowed to be swapped out
 		TORRENT_ASSERT(!m_pinned);
 
@@ -1864,6 +1880,10 @@ namespace libtorrent
 				(*i)->on_unload();
 			} TORRENT_CATCH (std::exception&) {}
 		}
+
+		// also remove extensions and re-instantiate them when the torrent is loaded again
+		// they end up using a significant amount of memory
+		m_extensions.clear();
 #endif
 
 		m_torrent_file->unload();
