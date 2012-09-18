@@ -385,6 +385,11 @@ namespace libtorrent
 				, int flags = 0);
 			bool is_listening() const;
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			void add_extensions_to_torrent(
+				boost::shared_ptr<torrent> const& torrent_ptr, void* userdata);
+#endif
+
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 			void on_async_load_torrent(disk_io_job const* j);

@@ -5232,6 +5232,25 @@ namespace aux {
 		delete params;
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	void session_impl::add_extensions_to_torrent(
+		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
+	{
+		for (extension_list_t::iterator i = m_extensions.begin()
+			, end(m_extensions.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), userdata));
+			if (tp) torrent_ptr->add_extension(tp);
+		}
+
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), userdata));
+			if (tp) torrent_ptr->add_extension(tp);
+		}
+	}
+#endif
 	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
@@ -5326,21 +5345,7 @@ namespace aux {
 			, 16 * 1024, queue_pos, params, *ih));
 		torrent_ptr->start();
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), params.userdata));
-			if (tp) torrent_ptr->add_extension(tp);
-		}
-
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), params.userdata));
-			if (tp) torrent_ptr->add_extension(tp);
-		}
-#endif
+		add_extensions_to_torrent(torrent_ptr, params.userdata);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht && params.ti)

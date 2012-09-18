@@ -661,6 +661,7 @@ namespace libtorrent
 		// doesn't exist in the piece_info buckets
 		// pieces with the filtered flag set doesn't have entries in
 		// the m_piece_info buckets either
+		// TODO: should this be allocated lazily?
 		mutable std::vector<piece_pos> m_piece_map;
 
 		// each piece that's currently being downloaded

@@ -1826,27 +1826,14 @@ namespace libtorrent
 		else
 		{
 			state_updated();
-			// create the extensions again
-			// and call on_load() on them
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			for (aux::session_impl::extension_list_t::iterator i = m_ses.m_extensions.begin()
-				, end(m_ses.m_extensions.end()); i != end; ++i)
-			{
-				// TOOD: should we store add_torrent_params::userdata
-				// in torrent just to have it available here?
-				boost::shared_ptr<torrent_plugin> tp((*i)(this, NULL));
-				if (tp) add_extension(tp);
-			}
+			// create the extensions again
 
-			for (aux::session_impl::ses_extension_list_t::iterator i = m_ses.m_ses_extensions.begin()
-				, end(m_ses.m_ses_extensions.end()); i != end; ++i)
-			{
-				// TOOD: should we store add_torrent_params::userdata
-				// in torrent just to have it available here?
-				boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(this, NULL));
-				if (tp) add_extension(tp);
-			}
+			// TOOD: should we store add_torrent_params::userdata
+			// in torrent just to have it available here?
+			m_ses.add_extensions_to_torrent(shared_from_this(), NULL);
 
+			// and call on_load() on them
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
