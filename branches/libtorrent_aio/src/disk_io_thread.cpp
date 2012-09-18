@@ -1418,6 +1418,7 @@ namespace libtorrent
 			j->error.ec = asio::error::operation_aborted;
 			if (handler) handler(j);
 			free_job(j);
+			return;
 		}
 
 		add_job(j);
