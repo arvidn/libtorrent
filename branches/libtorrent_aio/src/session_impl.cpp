@@ -857,6 +857,17 @@ namespace aux {
 
 		policy::print_size(*m_logger);
 
+		PRINT_SIZEOF(default_storage)
+		PRINT_OFFSETOF(default_storage, m_mapped_files)
+		PRINT_OFFSETOF(default_storage, m_files)
+		PRINT_OFFSETOF(default_storage, m_stat_cache)
+		PRINT_OFFSETOF(default_storage, m_file_priority)
+		PRINT_OFFSETOF(default_storage, m_save_path)
+		PRINT_OFFSETOF(default_storage, m_pool)
+		PRINT_OFFSETOF(default_storage, m_part_file)
+		PRINT_OFFSETOF(default_storage, m_allocate_files)
+		PRINT_OFFSETOF_END(default_storage)
+
 		PRINT_SIZEOF(peer_connection)
 		PRINT_SIZEOF(bt_peer_connection)
 		PRINT_SIZEOF(address)

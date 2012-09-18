@@ -189,6 +189,8 @@ namespace libtorrent
 
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
+		void need_partfile();
+
 		boost::scoped_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
@@ -204,13 +206,14 @@ namespace libtorrent
 
 		std::vector<boost::uint8_t> m_file_priority;
 		std::string m_save_path;
+		std::string m_part_file_name;
 		// the file pool is typically stored in
 		// the session, to make all storage
 		// instances use the same pool
 		file_pool& m_pool;
 
 		// used for skipped files
-		part_file m_part_file;
+		boost::scoped_ptr<part_file> m_part_file;
 
 		bool m_allocate_files;
 	};

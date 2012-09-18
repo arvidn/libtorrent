@@ -166,8 +166,6 @@ namespace libtorrent
 	default_storage::default_storage(storage_params const& params)
 		: m_files(*params.files)
 		, m_pool(*params.pool)
-		, m_part_file(complete(params.path), "." + (params.info ? to_hex(params.info->info_hash().to_string()) : params.files->name()) + ".parts"
-			, m_files.num_pieces(), m_files.piece_length())
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
 		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
@@ -175,6 +173,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_files.num_files() > 0);
 		m_save_path = complete(params.path);
+		m_part_file_name = "." + (params.info
+			? to_hex(params.info->info_hash().to_string())
+			: params.files->name()) + ".parts";
 	}
 
 	default_storage::~default_storage()
@@ -182,6 +183,15 @@ namespace libtorrent
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(this);
+	}
+
+	void default_storage::need_partfile()
+	{
+		if (m_part_file) return;
+
+		m_part_file.reset(new part_file(
+			m_save_path, m_part_file_name
+			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
 	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec)
@@ -206,7 +216,10 @@ namespace libtorrent
 					ec.operation = storage_error::open;
 					return;
 				}
-				m_part_file.export_file(*f, file_iter->offset, file_iter->size, ec.ec);
+
+				need_partfile();
+
+				m_part_file->export_file(*f, file_iter->offset, file_iter->size, ec.ec);
 				if (ec)
 				{
 					ec.file = i;
@@ -233,7 +246,9 @@ namespace libtorrent
 						ec.operation = storage_error::open;
 						return;
 					}
-					m_part_file.import_file(*f, file_iter->offset, file_iter->size, ec.ec);
+					need_partfile();
+
+					m_part_file->import_file(*f, file_iter->offset, file_iter->size, ec.ec);
 					if (ec)
 					{
 						ec.file = i;
@@ -255,7 +270,7 @@ namespace libtorrent
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
 		}
-		m_part_file.flush_metadata(ec.ec);
+		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
 		{
 			ec.file = -1;
@@ -494,8 +509,11 @@ namespace libtorrent
 
 		entry::list_type& fl = rd["file sizes"].list();
 
-		error_code ignore;
-		const_cast<part_file&>(m_part_file).flush_metadata(ignore);
+		if (m_part_file)
+		{
+			error_code ignore;
+			const_cast<part_file&>(*m_part_file).flush_metadata(ignore);
+		}
 
 		file_storage const& fs = files();
 		int index = 0;
@@ -809,12 +827,15 @@ namespace libtorrent
 
 		if (!ec)
 		{
-			m_part_file.move_partfile(save_path, ec.ec);
-			if (ec)
+			if (m_part_file)
 			{
-				ec.file = -1;
-				ec.operation = storage_error::partfile;
-				return;
+				m_part_file->move_partfile(save_path, ec.ec);
+				if (ec)
+				{
+					ec.file = -1;
+					ec.operation = storage_error::partfile;
+					return;
+				}
 			}
 
 			m_save_path = save_path;
@@ -946,15 +967,17 @@ namespace libtorrent
 			if (file_index < int(m_file_priority.size())
 				&& m_file_priority[file_index] == 0)
 			{
+				need_partfile();
+
 				if (op.mode == file::read_write)
 				{
 					// write
-					bytes_transferred = m_part_file.writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs, slot, offset, e);
 				}
 				else
 				{
 					// read
-					bytes_transferred = m_part_file.readv(tmp_bufs, num_tmp_bufs, slot, offset, e);
+					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs, slot, offset, e);
 				}
 			}
 			else
