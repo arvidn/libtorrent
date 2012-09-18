@@ -68,6 +68,11 @@ namespace libtorrent
 		~condition();
 		void wait(mutex::scoped_lock& l);
 		void signal_all(mutex::scoped_lock& l);
+		void signal(mutex::scoped_lock& l)
+		{
+			// TODO: support this
+			signal_all(l);
+		}
 	private:
 #ifdef BOOST_HAS_PTHREADS
 		pthread_cond_t m_cond;
