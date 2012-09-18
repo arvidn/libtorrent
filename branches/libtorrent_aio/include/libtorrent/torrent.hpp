@@ -892,6 +892,7 @@ namespace libtorrent
 
 	private:
 
+		void construct_storage();
 		void update_list(int list, bool in);
 
 		void on_files_deleted(disk_io_job const* j);
@@ -1110,7 +1111,7 @@ namespace libtorrent
 		// longer be used and will be reset
 		boost::scoped_ptr<std::string> m_name;
 
-		boost::scoped_ptr<storage_constructor_type> m_storage_constructor;
+		storage_constructor_type m_storage_constructor;
 
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet

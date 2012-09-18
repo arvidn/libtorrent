@@ -304,7 +304,7 @@ namespace libtorrent
 		, m_url(p.url)
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
-		, m_storage_constructor(new storage_constructor_type(p.storage))
+		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
 		, m_completed_time(0)
 		, m_last_seen_complete(0)
@@ -1578,6 +1578,27 @@ namespace libtorrent
 
 #endif // TORRENT_OPENSSL
 
+	void torrent::construct_storage()
+	{
+		storage_params params;
+		params.files = &m_torrent_file->files();
+		params.mapped_files = &m_torrent_file->orig_files() != &m_torrent_file->files()
+			? &m_torrent_file->orig_files() : 0;
+		params.path = m_save_path;
+		params.pool = &m_ses.m_disk_thread.files();
+		params.mode = (storage_mode_t)m_storage_mode;
+		params.priorities = &m_file_priority;
+		params.info = m_torrent_file.get();
+
+		TORRENT_ASSERT(m_storage_constructor);
+		storage_interface* storage_impl = m_storage_constructor(params);
+
+		// the shared_from_this() will create an intentional
+		// cycle of ownership, se the hpp file for description.
+		m_storage = new piece_manager(
+			storage_impl, shared_from_this(), (file_storage*)&m_torrent_file->files());
+	}
+
 	// this may not be called from a constructor because of the call to
 	// shared_from_this()
 	void torrent::init()
@@ -1611,24 +1632,7 @@ namespace libtorrent
 			return;
 		}
 
-		storage_params params;
-		params.files = &m_torrent_file->files();
-		params.mapped_files = &m_torrent_file->orig_files() != &m_torrent_file->files()
-			? &m_torrent_file->orig_files() : 0;
-		params.path = m_save_path;
-		params.pool = &m_ses.m_disk_thread.files();
-		params.mode = (storage_mode_t)m_storage_mode;
-		params.priorities = &m_file_priority;
-		params.info = m_torrent_file.get();
-
-		TORRENT_ASSERT(m_storage_constructor);
-		storage_interface* storage_impl = (*m_storage_constructor)(params);
-		m_storage_constructor.reset();
-
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		m_storage = new piece_manager(
-			storage_impl, shared_from_this(), (file_storage*)&m_torrent_file->files());
+		construct_storage();
 
 		if (has_picker())
 		{
@@ -1843,6 +1847,9 @@ namespace libtorrent
 			}
 #endif
 		}
+
+		construct_storage();
+
 		return true;
 	}
 
@@ -1874,6 +1881,8 @@ namespace libtorrent
 #endif
 
 		m_torrent_file->unload();
+
+		m_storage.reset();
 
 		state_updated();
 	}
