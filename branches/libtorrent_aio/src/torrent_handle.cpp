@@ -297,11 +297,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
+#endif
 
 	int torrent_handle::max_connections() const
 	{

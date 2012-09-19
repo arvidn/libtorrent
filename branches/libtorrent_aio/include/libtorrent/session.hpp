@@ -386,6 +386,9 @@ namespace libtorrent
 		unsigned short listen_port() const;
 		bool is_listening() const;
 
+		// specify which interfaces to bind outgoing connections to
+		void use_interfaces(char const* interfaces);
+
 		enum options_t
 		{
 			none = 0,

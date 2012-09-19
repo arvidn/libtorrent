@@ -5611,7 +5611,7 @@ namespace libtorrent
 			return;
 		}
 
-		tcp::endpoint bind_interface = t->get_interface();
+		tcp::endpoint bind_interface = m_ses.get_interface();
 	
 		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
 		{

@@ -189,8 +189,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_trackerid)
 		PRINT_OFFSETOF(torrent, m_username)
 		PRINT_OFFSETOF(torrent, m_password)
-		PRINT_OFFSETOF(torrent, m_net_interfaces)
-		;PRINT_OFFSETOF(torrent, m_save_path)
+		PRINT_OFFSETOF(torrent, m_save_path)
 		PRINT_OFFSETOF(torrent, m_url)
 		PRINT_OFFSETOF(torrent, m_uuid)
 		PRINT_OFFSETOF(torrent, m_source_feed_url)
@@ -259,7 +258,6 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
 		PRINT_OFFSETOF(torrent, m_last_download)
-		PRINT_OFFSETOF(torrent, m_interface_index)
 		PRINT_OFFSETOF_END(torrent)
 	}
 #undef PRINT_SIZEOF
@@ -289,7 +287,6 @@ namespace libtorrent
 
 	torrent::torrent(
 		session_impl& ses
-		, tcp::endpoint const& net_interface
 		, int block_size
 		, int seq
 		, add_torrent_params const& p
@@ -367,7 +364,6 @@ namespace libtorrent
 		, m_last_download(0)
 		, m_last_upload(0)
 		, m_downloaders(0xffffff)
-		, m_interface_index(0)
 		, m_graceful_pause_mode(false)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
@@ -481,8 +477,6 @@ namespace libtorrent
 		(*m_ses.m_logger) << time_now_string() << " creating torrent: "
 			<< torrent_file().name() << "\n";
 #endif
-		m_net_interfaces.push_back(tcp::endpoint(net_interface.address(), 0));
-
 		if (p.file_priorities)
 			m_file_priority = *p.file_priorities;
 
@@ -2356,33 +2350,12 @@ namespace libtorrent
 		m_num_checked_pieces = 0;
 	}
 
+#ifndef TORRENT_NO_DEPRECATED
 	void torrent::use_interface(std::string net_interfaces)
 	{
-		INVARIANT_CHECK;
-		m_net_interfaces.clear();
-
-		char* str = allocate_string_copy(net_interfaces.c_str());
-		char* ptr = str;
-
-		while (ptr)
-		{
-			char* space = strchr(ptr, ',');
-			if (space) *space++ = 0;
-			error_code ec;
-			address a(address::from_string(ptr, ec));
-			ptr = space;
-			if (ec) continue;
-			m_net_interfaces.push_back(tcp::endpoint(a, 0));
-		}
-		free(str);
+		m_ses.use_outgoing_interfaces(net_interfaces);
 	}
-
-	tcp::endpoint torrent::get_interface() const
-	{
-		if (m_net_interfaces.empty()) return tcp::endpoint(address_v4(), 0);
-		if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
-		return m_net_interfaces[m_interface_index++];
-	}
+#endif
 
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
 		, error_code const& e)

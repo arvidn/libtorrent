@@ -120,6 +120,9 @@ namespace libtorrent { namespace aux
 		virtual void subscribe_to_disk(disk_observer* o) = 0;
 		virtual bool exceeded_cache_use() const = 0;
 
+		// ask for which interface and port to bind outgoing peer connections on
+		virtual tcp::endpoint get_interface() const = 0;
+
 		// TODO: it would be nice to not have this be part of session_interface
 		virtual void set_proxy(proxy_settings const& s) = 0;
 		virtual proxy_settings const& proxy() const = 0;

@@ -240,6 +240,8 @@ The ``session`` class has the following synopsis::
 			, char const* interface = 0
 			, int flags = 0);
 
+		void use_interfaces(char const* net_interface) const;
+
 		std::auto_ptr<alert> pop_alert();
 		alert const* wait_for_alert(time_duration max_wait);
 		void set_alert_mask(int m);
@@ -1435,6 +1437,19 @@ way to accelerate the connecting of peers on windows may be to first ping all pe
 with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).
+
+use_interfaces()
+---------------
+
+	::
+
+		void use_interfaces(char const* net_interface) const;
+
+``use_interfaces()`` sets the network interface this torrent will use when it opens outgoing
+connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
+OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
+(either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
+in round-robin order. This may be useful for clients that are multi-homed.
 
 set_alert_mask()
 ----------------
@@ -2675,8 +2690,6 @@ Its declaration looks like this::
 
 		void set_priority(int prio) const;
 
-		void use_interface(char const* net_interface) const;
-
 		enum pause_flags_t { graceful_pause = 1 };
 		void pause(int flags = 0) const;
 		void resume() const;
@@ -3464,20 +3477,6 @@ in order of priority, but the priority is used as a weight.
 Peers whose Torrent has a higher priority will take precedence when distributing unchoke slots.
 This is a strict prioritization where every interested peer on a high priority torrent will
 be unchoked before any other, lower priority, torrents have any peers unchoked.
-
-use_interface()
----------------
-
-	::
-
-		void use_interface(char const* net_interface) const;
-
-``use_interface()`` sets the network interface this torrent will use when it opens outgoing
-connections. By default, it uses the same interface as the session_ uses to listen on. The
-parameter must be a string containing one or more, comma separated, ip-address (either an
-IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
-which interface to use for each outgoing conneciton. This is useful for clients that are
-multi-homed.
 
 
 info_hash()

@@ -123,8 +123,8 @@ namespace libtorrent
 	{
 	public:
 
-		torrent(aux::session_impl& ses, tcp::endpoint const& net_interface
-			, int block_size, int seq, add_torrent_params const& p
+		torrent(aux::session_impl& ses, int block_size
+			, int seq, add_torrent_params const& p
 			, sha1_hash const& info_hash);
 		~torrent();
 
@@ -353,8 +353,9 @@ namespace libtorrent
 
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
 
+#ifndef TORRENT_NO_DEPRECATED
 		void use_interface(std::string net_interface);
-		tcp::endpoint get_interface() const;
+#endif
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
 		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
@@ -1059,12 +1060,6 @@ namespace libtorrent
 		std::string m_username;
 		std::string m_password;
 
-		// the network interfaces outgoing connections
-		// are opened through. If there is more then one,
-		// they are used in a round-robin fasion
-		// TODO: should this really be a per-torrent setting?
-		std::vector<union_endpoint> m_net_interfaces;
-
 		std::string m_save_path;
 
 		// if we don't have the metadata, this is a url to
@@ -1394,9 +1389,6 @@ namespace libtorrent
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
 		unsigned int m_downloaders:24;
-
-		// round-robin index into m_interfaces
-		mutable boost::uint8_t m_interface_index;
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests

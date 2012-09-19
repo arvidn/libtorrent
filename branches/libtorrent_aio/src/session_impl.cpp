@@ -526,6 +526,8 @@ namespace aux {
 		, m_max_queue_pos(-1)
 		, m_key(0)
 		, m_listen_port_retries(listen_port_range.second - listen_port_range.first)
+		, m_socks_listen_port(0)
+		, m_interface_index(0)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -582,6 +584,8 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+		m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
+
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 
@@ -5354,7 +5358,7 @@ namespace aux {
 
 		int queue_pos = ++m_max_queue_pos;
 
-		torrent_ptr.reset(new torrent(*this, m_listen_interface
+		torrent_ptr.reset(new torrent(*this
 			, 16 * 1024, queue_pos, params, *ih));
 		torrent_ptr->start();
 
@@ -5426,6 +5430,34 @@ namespace aux {
 			m_auto_manage_time_scaler = 2;
 
 		return torrent_handle(torrent_ptr);
+	}
+
+	void session_impl::use_outgoing_interfaces(std::string net_interfaces)
+	{
+		INVARIANT_CHECK;
+		m_net_interfaces.clear();
+
+		char* str = allocate_string_copy(net_interfaces.c_str());
+		char* ptr = str;
+
+		while (ptr)
+		{
+			char* space = strchr(ptr, ',');
+			if (space) *space++ = 0;
+			error_code ec;
+			address a(address::from_string(ptr, ec));
+			ptr = space;
+			if (ec) continue;
+			m_net_interfaces.push_back(tcp::endpoint(a, 0));
+		}
+		free(str);
+	}
+
+	tcp::endpoint session_impl::get_interface() const
+	{
+		if (m_net_interfaces.empty()) return tcp::endpoint(address_v4(), 0);
+		if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
+		return m_net_interfaces[m_interface_index++];
 	}
 
 	void session_impl::remove_torrent(const torrent_handle& h, int options)

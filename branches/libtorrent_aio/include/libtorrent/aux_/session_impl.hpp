@@ -630,6 +630,11 @@ namespace libtorrent
 
 			void post_socket_write_job(write_some_job& j);
 
+			// implements session_interface
+			virtual tcp::endpoint get_interface() const;
+
+			void use_outgoing_interfaces(std::string net_interfaces);
+
 //		private:
 
 			enum torrent_list_index
@@ -911,6 +916,11 @@ namespace libtorrent
 			// interface to listen on
 			tcp::endpoint m_listen_interface;
 
+			// the network interfaces outgoing connections
+			// are opened through. If there is more then one,
+			// they are used in a round-robin fasion
+			std::vector<union_endpoint> m_net_interfaces;
+
 			// if we're listening on an IPv6 interface
 			// this is one of the non local IPv6 interfaces
 			// on this machine
@@ -929,6 +939,9 @@ namespace libtorrent
 			// listen for incoming connections on a socks connection
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
 			boost::uint16_t m_socks_listen_port;
+
+			// round-robin index into m_net_interfaces
+			mutable boost::uint8_t m_interface_index;
 
 			void open_new_incoming_socks_connection();
 

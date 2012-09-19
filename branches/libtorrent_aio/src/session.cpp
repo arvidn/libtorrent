@@ -984,6 +984,12 @@ namespace libtorrent
 		return r;
 	}
 
+	void session::use_interfaces(char const* interfaces)
+	{
+		std::string ifaces = interfaces;
+		TORRENT_ASYNC_CALL1(use_outgoing_interfaces, ifaces);
+	}
+
 	session_status session::status() const
 	{
 		TORRENT_SYNC_CALL_RET(session_status, status);

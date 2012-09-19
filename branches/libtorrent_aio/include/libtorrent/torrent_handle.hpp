@@ -348,11 +348,12 @@ namespace libtorrent
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// set the interface to bind outgoing connections
 		// to.
-		void use_interface(const char* net_interface) const;
+		TORRENT_DEPRECATED_PREFIX
+		void use_interface(const char* net_interface) const TORRENT_DEPRECATED;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
