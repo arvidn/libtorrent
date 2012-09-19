@@ -322,7 +322,7 @@ namespace libtorrent
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
 #if !TORRENT_NO_FPU
-		void file_progress(std::vector<float>& fp) const;
+		void file_progress(std::vector<float>& fp);
 #endif
 		// ============ end deprecation =============
 
@@ -351,7 +351,7 @@ namespace libtorrent
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(std::vector<size_type>& fp, int flags = 0) const;
+		void file_progress(std::vector<size_type>& fp, int flags = 0);
 
 		void use_interface(std::string net_interface);
 		tcp::endpoint get_interface() const;
@@ -1014,12 +1014,16 @@ namespace libtorrent
 		// this torrent belongs to.
 		aux::session_impl& m_ses;
 
+		// TODO: this wastes 5 bits per piece
+		// maybe it should be allocated lazily?
 		std::vector<boost::uint8_t> m_file_priority;
 
 		// this vector contains the number of bytes completely
 		// downloaded (as in passed-hash-check) in each file.
 		// this lets us trigger on individual files completing
-		std::vector<size_type> m_file_progress;
+		// the vector is allocated lazily, when file progress
+		// is first queried by the client
+		std::vector<boost::uint64_t> m_file_progress;
 
 		// these are the pieces we're currently
 		// suggesting to peers.

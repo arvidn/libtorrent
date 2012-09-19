@@ -830,7 +830,7 @@ namespace libtorrent
 		if (!m_seed_mode)
 		{
 			m_picker.reset(new piece_picker());
-			std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
+			std::vector<boost::uint64_t>().swap(m_file_progress);
 
 			if (m_resume_data)
 			{
@@ -1614,7 +1614,6 @@ namespace libtorrent
 #endif
 
 		m_file_priority.resize(m_torrent_file->num_files(), 1);
-		m_file_progress.resize(m_torrent_file->num_files(), 0);
 
 		m_block_size_shift = root2((std::min)(int(block_size()), m_torrent_file->piece_length()));
 
@@ -2163,7 +2162,9 @@ namespace libtorrent
 		m_ses.m_disk_thread.async_release_files(m_storage.get()
 			, boost::function<void(disk_io_job const*)>());
 		if (!m_picker) m_picker.reset(new piece_picker());
-		std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
+		// file progress is allocated lazily, the first time the client
+		// asks for it
+		std::vector<boost::uint64_t>().swap(m_file_progress);
 
 		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
 		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
@@ -3409,7 +3410,6 @@ namespace libtorrent
 	void torrent::we_have(int index)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		// update m_file_progress
 		TORRENT_ASSERT(m_picker);
 		TORRENT_ASSERT(m_picker->has_piece_passed(index));
 
@@ -3503,45 +3503,49 @@ namespace libtorrent
 		if (m_ses.m_alerts.should_post<piece_finished_alert>())
 			m_ses.m_alerts.post_alert(piece_finished_alert(get_handle(), index));
 
-		const int piece_size = m_torrent_file->piece_length();
-		size_type off = size_type(index) * piece_size;
-		file_storage::iterator f = m_torrent_file->files().file_at_offset(off);
-		int size = m_torrent_file->piece_size(index);
-		int file_index = f - m_torrent_file->files().begin();
-		for (; size > 0; ++f, ++file_index)
+		// update m_file_progress (if we have one)
+		if (!m_file_progress.empty())
 		{
-			size_type file_offset = off - f->offset;
-			TORRENT_ASSERT(f != m_torrent_file->files().end());
-			TORRENT_ASSERT(file_offset <= f->size);
-			int add = (std::min)(f->size - file_offset, (size_type)size);
-			m_file_progress[file_index] += add;
-
-			TORRENT_ASSERT(m_file_progress[file_index]
-				<= m_torrent_file->files().file_size(file_index));
-
-			if (m_file_progress[file_index] >= m_torrent_file->files().file_size(file_index))
+			const int piece_size = m_torrent_file->piece_length();
+			size_type off = size_type(index) * piece_size;
+			file_storage::iterator f = m_torrent_file->files().file_at_offset(off);
+			int size = m_torrent_file->piece_size(index);
+			int file_index = f - m_torrent_file->files().begin();
+			for (; size > 0; ++f, ++file_index)
 			{
-				if (!m_torrent_file->files().pad_file_at(file_index))
-				{
-					// don't finalize files if we discover that they exist
-					// in whole (i.e. while checking). In that case, just assume
-					// they were finalized when they completed.
-					// The main purpose of finalizing files is to clear the sparse
-					// flag on windows, which only needs to be done once
-					if (m_storage.get() && m_state == torrent_status::downloading)
-						m_ses.m_disk_thread.async_finalize_file(m_storage.get(), file_index);
+				size_type file_offset = off - f->offset;
+				TORRENT_ASSERT(f != m_torrent_file->files().end());
+				TORRENT_ASSERT(file_offset <= f->size);
+				int add = (std::min)(f->size - file_offset, (size_type)size);
+				m_file_progress[file_index] += add;
 
-					if (m_ses.m_alerts.should_post<file_completed_alert>())
+				TORRENT_ASSERT(m_file_progress[file_index]
+						<= m_torrent_file->files().file_size(file_index));
+
+				if (m_file_progress[file_index] >= m_torrent_file->files().file_size(file_index))
+				{
+					if (!m_torrent_file->files().pad_file_at(file_index))
 					{
-						// this file just completed, post alert
-						m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
-							, file_index));
+						// don't finalize files if we discover that they exist
+						// in whole (i.e. while checking). In that case, just assume
+						// they were finalized when they completed.
+						// The main purpose of finalizing files is to clear the sparse
+						// flag on windows, which only needs to be done once
+						if (m_storage.get() && m_state == torrent_status::downloading)
+							m_ses.m_disk_thread.async_finalize_file(m_storage.get(), file_index);
+
+						if (m_ses.m_alerts.should_post<file_completed_alert>())
+						{
+							// this file just completed, post alert
+							m_ses.m_alerts.post_alert(file_completed_alert(get_handle()
+										, file_index));
+						}
 					}
 				}
+				size -= add;
+				off += add;
+				TORRENT_ASSERT(size >= 0);
 			}
-			size -= add;
-			off += add;
-			TORRENT_ASSERT(size >= 0);
 		}
 
 		remove_time_critical_piece(index);
@@ -6864,6 +6868,8 @@ namespace libtorrent
 		maybe_done_flushing();
 
 		set_state(torrent_status::seeding);
+		// no need for this anymore
+		std::vector<boost::uint64_t>().swap(m_file_progress);
 		if (!m_announcing) return;
 
 		ptime now = time_now();
@@ -7228,11 +7234,14 @@ namespace libtorrent
 			TORRENT_ASSERT(block_size() > 0);
 		}
 
-		for (std::vector<size_type>::const_iterator i = m_file_progress.begin()
-			, end(m_file_progress.end()); i != end; ++i)
+		if (!m_file_progress.empty())
 		{
-			int index = i - m_file_progress.begin();
-			TORRENT_ASSERT(*i <= m_torrent_file->files().file_size(index));
+			for (std::vector<boost::uint64_t>::const_iterator i = m_file_progress.begin()
+				, end(m_file_progress.end()); i != end; ++i)
+			{
+				int index = i - m_file_progress.begin();
+				TORRENT_ASSERT(*i <= m_torrent_file->files().file_size(index));
+			}
 		}
 	}
 #endif
@@ -8755,7 +8764,7 @@ namespace libtorrent
 	}
 
 #if !TORRENT_NO_FPU
-	void torrent::file_progress(std::vector<float>& fp) const
+	void torrent::file_progress(std::vector<float>& fp)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (!valid_metadata())
@@ -8778,7 +8787,7 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::file_progress(std::vector<size_type>& fp, int flags) const
+	void torrent::file_progress(std::vector<size_type>& fp, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (!valid_metadata())
@@ -8787,7 +8796,81 @@ namespace libtorrent
 			return;
 		}
 
-		int num_files = m_file_progress.size();
+		// if we're a seed, we don't have an m_file_progress anyway
+		// since we don't need one. We know we have all files
+		if (is_seed())
+		{
+			if (!need_loaded()) return;
+			fp.resize(m_torrent_file->num_files());
+			file_storage const& fs = m_torrent_file->files();
+			int idx = 0;
+			for (file_storage::iterator i = fs.begin()
+				, end(fs.end()); i != end; ++i, ++idx)
+				fp[idx] = fs.file_size(*i);
+			return;
+		}
+
+		if (num_have() == 0)
+		{
+			// if we don't have any pieces, just return zeroes
+			fp.clear();
+			fp.resize(m_torrent_file->num_files(), 0);
+			return;
+		}
+		
+		int num_files = m_torrent_file->num_files();
+		if (m_file_progress.empty())
+		{
+			// This is the first time the client asks for file progress.
+			// allocate it and make sure it's up to date
+			m_file_progress.resize(num_files, 0);
+
+			int num_pieces = m_torrent_file->num_pieces();
+
+			// initialize the progress of each file
+
+			const int piece_size = m_torrent_file->piece_length();
+			boost::uint64_t off = 0;
+			boost::uint64_t total_size = m_torrent_file->total_size();
+			int file_index = 0;
+			file_storage::iterator f = m_torrent_file->files().begin();
+			for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
+			{
+				TORRENT_ASSERT(f != m_torrent_file->files().end());
+				size_type file_offset = off - f->offset;
+				if (file_offset >= f->size)
+				{
+					++file_index;
+					++f;
+					continue;
+				}
+				TORRENT_ASSERT(file_offset <= f->size);
+
+				if (!have_piece(piece)) continue;
+
+				int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
+
+				while (size)
+				{
+					if (f->size - file_offset < size)
+					{
+						int add = f->size - file_offset;
+						m_file_progress[file_index] += add;
+						++f;
+						++file_index;
+						size -= add;
+						file_offset += add;
+						file_offset = 0;
+					}
+					else
+					{
+						m_file_progress[file_index] += size;
+						size = 0;
+					}
+				}
+			}
+		}
+
 		fp.resize(num_files, 0);
 
 		std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
@@ -8795,9 +8878,6 @@ namespace libtorrent
 		if (flags & torrent_handle::piece_granularity)
 			return;
 
-		if (is_seed())
-			return;
-		
 		TORRENT_ASSERT(has_picker());
 
 		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
