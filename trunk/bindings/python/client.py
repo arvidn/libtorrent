@@ -63,25 +63,6 @@ else:
     import termios
     import select
 
-class PythonExtension(lt.torrent_plugin):
-    def __init__(self, alerts):
-        lt.torrent_plugin.__init__(self)
-        self.alerts = alerts
-        self.alerts.append('PythonExtension')
-        self.count = 0
-
-    def on_piece_pass(self, index):
-        self.alerts.append('got piece %d' % index)
-
-    def on_piece_failed(self, index):
-        self.alerts.append('failed piece %d' % index)
-
-    def tick(self):
-        self.count += 1
-        if self.count >= 10:
-            self.count = 0
-            self.alerts.append('PythonExtension tick')
-
 def write_line(console, line):
     console.write(line)
 
@@ -225,17 +206,10 @@ def main():
     ses.set_upload_rate_limit(int(options.max_upload_rate))
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
-#   ses.set_severity_level(lt.alert.severity_levels.info)
     ses.set_alert_mask(0xfffffff)
-#    ses.add_extension(lt.create_ut_pex_plugin)
-#    ses.add_extension(lt.create_ut_metadata_plugin)
-#    ses.add_extension(lt.create_metadata_plugin)
 
     handles = []
     alerts = []
-
-    # Extensions
-    # ses.add_extension(lambda x: PythonExtension(alerts))
 
     for f in args:
         e = lt.bdecode(open(f, 'rb').read())

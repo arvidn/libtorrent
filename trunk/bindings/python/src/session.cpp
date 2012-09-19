@@ -11,6 +11,7 @@
 #include <libtorrent/storage.hpp>
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
+#include <libtorrent/extensions.hpp>
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -42,26 +43,14 @@ namespace
     }
 #endif
 
-    struct invoke_extension_factory
-    {
-        invoke_extension_factory(object const& callback)
-            : cb(callback)
-        {}
+#ifndef TORRENT_NO_DEPRECATE
+    void add_extension(session& s, object const& e) {}
 
-        boost::shared_ptr<torrent_plugin> operator()(torrent* t, void*)
-        {
-           lock_gil lock;
-           return extract<boost::shared_ptr<torrent_plugin> >(cb(ptr(t)))();
-        }
-
-        object cb;
-    };
-
-    void add_extension(session& s, object const& e)
-    {
-        allow_threading_guard guard;
-        s.add_extension(invoke_extension_factory(e));
+    boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(torrent* t) {
+        return boost::shared_ptr<torrent_plugin>();
     }
+
+#endif
 
 	void session_set_settings(session& ses, dict const& sett_dict)
 	{
@@ -601,8 +590,8 @@ void bind_session()
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
-        .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
+        .def("add_extension", &add_extension)
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
@@ -657,6 +646,13 @@ void bind_session()
         .def("set_settings", &set_feed_settings)
         .def("settings", &get_feed_settings)
     ;
+
+#ifndef TORRENT_NO_DEPRECATE
+    def("create_ut_pex_plugin", dummy_plugin_wrapper);
+    def("create_metadata_plugin", dummy_plugin_wrapper);
+    def("create_ut_metadata_plugin", dummy_plugin_wrapper);
+    def("create_smart_ban_plugin", dummy_plugin_wrapper);
+#endif
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
