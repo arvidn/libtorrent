@@ -857,6 +857,8 @@ namespace aux {
 
 		policy::print_size(*m_logger);
 
+		piece_picker::print_size(*m_logger);
+
 		PRINT_SIZEOF(default_storage)
 		PRINT_OFFSETOF(default_storage, m_mapped_files)
 		PRINT_OFFSETOF(default_storage, m_files)

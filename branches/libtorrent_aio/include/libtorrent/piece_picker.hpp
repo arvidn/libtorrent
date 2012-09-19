@@ -66,6 +66,7 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 	struct bitfield;
+	struct logger;
 
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
@@ -100,6 +101,10 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{
 	public:
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		static void print_size(logger& l);
+#endif
 
 		struct piece_pos;
 
@@ -636,10 +641,6 @@ namespace libtorrent
 
 		// some compilers (e.g. gcc 2.95, does not inherit access
 		// privileges to nested classes)
-	public:
-		// the number of seeds. These are not added to
-		// the availability counters of the pieces
-		int m_seeds;
 	private:
 
 		// the following vectors are mutable because they sometimes may
@@ -721,6 +722,10 @@ namespace libtorrent
 
 		// the number of regions of pieces we don't have.
 		int m_sparse_regions;
+
+		// the number of seeds. These are not added to
+		// the availability counters of the pieces
+		int m_seeds;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.

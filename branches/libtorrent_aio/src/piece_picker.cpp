@@ -53,6 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/invariant_check.hpp"
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#include "libtorrent/struct_debug.hpp"
+#endif
+
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
 //#define TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
 //#define TORRENT_PIECE_PICKER_INVARIANT_CHECK
@@ -62,9 +66,40 @@ namespace libtorrent
 
 	const piece_block piece_block::invalid(0x7FFFF, 0x1FFF);
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+
+	void piece_picker::print_size(logger& l)
+	{
+		char tmp[300];
+		int temp = 0;
+		int prev_size = 0;
+		PRINT_SIZEOF(piece_picker)
+		PRINT_OFFSETOF(piece_picker, m_pieces)
+		PRINT_OFFSETOF(piece_picker, m_priority_boundries)
+		PRINT_OFFSETOF(piece_picker, m_piece_map)
+		PRINT_OFFSETOF(piece_picker, m_downloads)
+		PRINT_OFFSETOF(piece_picker, m_block_info)
+		PRINT_OFFSETOF(piece_picker, m_failed_pieces)
+		PRINT_OFFSETOF(piece_picker, m_blocks_per_piece)
+		PRINT_OFFSETOF(piece_picker, m_blocks_in_last_piece)
+		PRINT_OFFSETOF(piece_picker, m_num_filtered)
+		PRINT_OFFSETOF(piece_picker, m_num_have_filtered)
+		PRINT_OFFSETOF(piece_picker, m_num_have)
+		PRINT_OFFSETOF(piece_picker, m_num_passed)
+		PRINT_OFFSETOF(piece_picker, m_cursor)
+		PRINT_OFFSETOF(piece_picker, m_reverse_cursor)
+		PRINT_OFFSETOF(piece_picker, m_sparse_regions)
+		PRINT_OFFSETOF(piece_picker, m_seeds)
+		PRINT_OFFSETOF(piece_picker, m_dirty)
+		PRINT_OFFSETOF_END(piece_picker)
+	}
+#undef PRINT_SIZEOF
+#undef PRINT_OFFSETOF
+
+#endif
+
 	piece_picker::piece_picker()
-		: m_seeds(0)
-		, m_priority_boundries(1, int(m_pieces.size()))
+		: m_priority_boundries(1, int(m_pieces.size()))
 		, m_blocks_per_piece(0)
 		, m_blocks_in_last_piece(0)
 		, m_num_filtered(0)
@@ -74,6 +109,7 @@ namespace libtorrent
 		, m_cursor(0)
 		, m_reverse_cursor(0)
 		, m_sparse_regions(1)
+		, m_seeds(0)
 		, m_dirty(false)
 	{
 #ifdef TORRENT_PICKER_LOG

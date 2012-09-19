@@ -1876,6 +1876,9 @@ namespace libtorrent
 
 		// also remove extensions and re-instantiate them when the torrent is loaded again
 		// they end up using a significant amount of memory
+		// TODO: there may be peer extensions relying on the torrent extension
+		// still being alive. Only do this if there are no peers. And when the last peer
+		// is disconnected, if the torrent is unloaded, clear the extensions
 		m_extensions.clear();
 #endif
 
