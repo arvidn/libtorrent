@@ -21,18 +21,6 @@ rule libtorrent_linking ( properties * )
         result += <cxxflags>-fvisibility=hidden ;
     }
 
-    # when building peer_plugin.cpp on msvc-7.1 it fails
-    # running out of internal heap space. Don't add it
-    # to windows build, since it's not critical anyway
-    if <toolset>msvc in $(properties)
-    {
-        result += <define>TORRENT_NO_PYTHON_PLUGINS ;
-    }
-    else
-    {
-        result += <source>src/peer_plugin.cpp ;
-    }
-
     if <boost>source in $(properties)
     {
         if <boost-link>static in $(properties) || <link>static in $(properties)
@@ -71,7 +59,6 @@ python-extension libtorrent
     src/version.cpp
     src/alert.cpp
     src/datetime.cpp
-    src/extensions.cpp
     src/torrent.cpp
     src/peer_info.cpp
     src/ip_filter.cpp
