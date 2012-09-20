@@ -1048,7 +1048,11 @@ namespace libtorrent
 		m_share_mode = s;
 
 		// in share mode, all pieces have their priorities initialized to 0
-		std::fill(m_file_priority.begin(), m_file_priority.end(), !m_share_mode);
+		if (m_share_mode && valid_metadata())
+		{
+			m_file_priority.clear();
+			m_file_priority.resize(m_torrent_file->num_files(), 0);
+		}
 
 		update_piece_priorities();
 
@@ -1607,8 +1611,6 @@ namespace libtorrent
 		if (!cert.empty()) init_ssl(cert);
 #endif
 
-		m_file_priority.resize(m_torrent_file->num_files(), 1);
-
 		m_block_size_shift = root2((std::min)(int(block_size()), m_torrent_file->piece_length()));
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
@@ -1635,10 +1637,11 @@ namespace libtorrent
 			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 		}
 
-		if (m_share_mode)
+		if (m_share_mode && valid_metadata())
 		{
 			// in share mode, all pieces have their priorities initialized to 0
-			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
+			m_file_priority.clear();
+			m_file_priority.resize(m_torrent_file->num_files(), 0);
 		}
 
 		if (!m_connections_initialized)
@@ -4495,7 +4498,7 @@ namespace libtorrent
 			limit = m_torrent_file->num_files();
 
 		if (m_file_priority.size() < limit)
-			m_file_priority.resize(limit);
+			m_file_priority.resize(limit, 1);
 
 		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
 
@@ -4516,6 +4519,14 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
+
+		if (m_file_priority.size() <= index)
+		{
+			// any unallocated slot is assumed to be 1
+			if (prio == 1) return;
+			m_file_priority.resize(index+1, 1);
+		}
+
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
 		m_ses.m_disk_thread.async_set_file_priority(m_storage.get(), m_file_priority, boost::bind(&nop));
@@ -4530,23 +4541,19 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 		TORRENT_ASSERT(index >= 0);
 		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
+
+		// any unallocated slot is assumed to be 1
+		if (m_file_priority.size() <= index) return 1;
 		return m_file_priority[index];
 	}
 
 	void torrent::file_priorities(std::vector<int>* files) const
 	{
 		INVARIANT_CHECK;
-		if (!valid_metadata())
-		{
-			files->resize(m_file_priority.size());
-			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
-			return;
-		}
 
-		files->resize(m_torrent_file->num_files());
+		files->clear();
+		files->resize(m_file_priority.size(), 1);
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
-		if (m_file_priority.size() < m_torrent_file->num_files())
-			std::fill(files->begin() + m_file_priority.size(), files->end(), 1);
 	}
 
 	void torrent::update_piece_priorities()
@@ -4569,7 +4576,13 @@ namespace libtorrent
 			size_type size = m_torrent_file->files().file_size(*i);
 			if (size == 0) continue;
 			position += size;
-			if (m_file_priority[index] == 0) continue;
+			int file_prio;
+			if (m_file_priority.size() <= index)
+				file_prio = 1;
+			else
+				file_prio = m_file_priority[index];
+
+			if (file_prio == 0) continue;
 
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
@@ -4581,7 +4594,7 @@ namespace libtorrent
 			// come here several times with the same start_piece, end_piece
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
-				, boost::bind(&set_if_greater, _1, m_file_priority[index]));
+				, boost::bind(&set_if_greater, _1, file_prio));
 		}
 		prioritize_pieces(pieces);
 	}
@@ -5601,8 +5614,15 @@ namespace libtorrent
 		if (file_priority && file_priority->list_size()
 			== m_torrent_file->num_files())
 		{
-			for (int i = 0; i < file_priority->list_size(); ++i)
+			int num_files = m_torrent_file->num_files();
+			for (int i = 0; i < num_files; ++i)
 				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+			// unallocated slots are assumed to be priority 1, so cut off any
+			// trailing ones
+			int end_range = num_files - 1;
+			for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
+			m_file_priority.resize(end_range + 1);
+
 			update_piece_priorities();
 		}
 
