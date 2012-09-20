@@ -5081,6 +5081,7 @@ namespace aux {
 		return boost::weak_ptr<torrent>();
 	}
 
+#ifndef TORRENT_DISABLE_ENCRYPTION
 	torrent const* session_impl::find_encrypted_torrent(sha1_hash const& info_hash
 		, sha1_hash const& xor_mask)
 	{
@@ -5091,6 +5092,7 @@ namespace aux {
 		if (i == m_obfuscated_torrents.end()) return NULL;
 		return i->second.get();
 	}
+#endif
 
 	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
 	{

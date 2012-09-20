@@ -73,7 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
 #include "libtorrent/vector_utils.hpp"
