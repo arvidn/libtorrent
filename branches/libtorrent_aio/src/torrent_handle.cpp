@@ -904,7 +904,7 @@ namespace libtorrent
 		status.clear();
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t) return;
+		if (!t || !t->has_storage()) return;
 		session_impl& ses = t->session();
 		ses.m_disk_thread.files().get_status(&status, &t->storage());
 	}
