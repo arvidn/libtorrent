@@ -1607,7 +1607,7 @@ int main(int argc, char* argv[])
 					pcf.add_rule(address_v4::from_string("0.0.0.0")
 						, address_v4::from_string("255.255.255.255"), 1);
 					pcf.add_rule(address_v6::from_string("::")
-						, address_v4::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+						, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
 					ses.set_peer_class_filter(pcf);
 					break;
 				}
