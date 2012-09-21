@@ -590,8 +590,10 @@ std::string const& progress_bar(int progress, int width, char const* code = "33"
 		// the fact that it's foreground/background
 		color_code[1] = code[1];
 		bar = esc(color_code); // green background
+		bar += esc("30"); // black foreground
 		bar += caption.substr(0, progress_chars);
 		bar += esc("48;5;238"); // dark gray background
+		bar += esc("37"); // white foreground
 		bar += caption.substr(progress_chars);
 		bar += esc("0");
 	}
@@ -806,7 +808,6 @@ int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
 std::string bind_to_interface = "";
-std::string outgoing_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
@@ -1088,7 +1089,6 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			h.set_max_uploads(-1);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
-			h.use_interface(outgoing_interface.c_str());
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
@@ -1597,7 +1597,7 @@ int main(int argc, char* argv[])
 					ps.type = proxy_settings::socks5_pw;
 				}
 				break;
-			case 'I': outgoing_interface = arg; break;
+			case 'I': ses.use_interfaces(arg); break;
 			case 'N': start_upnp = false; --i; break;
 			case 'Y':
 				{
