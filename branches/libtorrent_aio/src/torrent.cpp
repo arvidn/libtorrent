@@ -3108,10 +3108,18 @@ namespace libtorrent
 
 		if (!has_picker())
 		{
-			if (m_have_all) st.total_done = m_torrent_file->total_size() - m_padding;
-			else st.total_done = 0;
-			st.total_wanted_done = st.total_done;
-			st.total_wanted = st.total_done;
+			if (m_have_all)
+			{
+				st.total_done = m_torrent_file->total_size() - m_padding;
+				st.total_wanted_done = st.total_done;
+				st.total_wanted = st.total_done;
+			}
+			else
+			{
+				st.total_done = 0;
+				st.total_wanted_done = 0;
+				st.total_wanted = m_torrent_file->total_size() - m_padding;
+			}
 			return;
 		}
 
