@@ -566,7 +566,7 @@ namespace libtorrent
 		bool have_piece(int index) const
 		{
 			if (!valid_metadata()) return false;
-			if (!has_picker()) return true;
+			if (!has_picker()) return m_have_all;
 			return m_picker->have_piece(index);
 		}
 
@@ -574,7 +574,7 @@ namespace libtorrent
 		bool has_piece_passed(int index) const
 		{
 			if (!valid_metadata()) return false;
-			if (!has_picker()) return true;
+			if (!has_picker()) return m_have_all;
 			return m_picker->has_piece_passed(index);
 		}
 
@@ -594,7 +594,7 @@ namespace libtorrent
 		{
 			return has_picker()
 				? m_picker->num_have()
-				: m_torrent_file->num_pieces();
+				: m_have_all ? m_torrent_file->num_pieces() : 0;
 		}
 
 		// the number of pieces that have passed
@@ -604,7 +604,7 @@ namespace libtorrent
 		{
 			return has_picker()
 				? m_picker->num_passed()
-				: m_torrent_file->num_pieces();
+				: m_have_all ? m_torrent_file->num_pieces() : 0;
 		}
 
 		// when we get a have message, this is called for that piece
@@ -693,17 +693,18 @@ namespace libtorrent
 		// this is true if we have all the pieces
 		bool is_seed() const
 		{
-			return valid_metadata()
-				&& (!m_picker
-				|| m_state == torrent_status::seeding
-				|| m_picker->num_passed() == m_picker->num_pieces());
+			if (!valid_metadata()) return false;
+			if (m_have_all) return true;
+			if (m_picker && m_picker->num_passed() == m_picker->num_pieces()) return true;
+			return m_state == torrent_status::seeding;
 		}
 
 		// this is true if we have all the pieces that we want
 		bool is_finished() const
 		{
 			if (is_seed()) return true;
-			return valid_metadata() && m_torrent_file->num_pieces()
+			return valid_metadata() && has_picker()
+				&& m_torrent_file->num_pieces()
 				- m_picker->num_passed() - m_picker->num_filtered() == 0;
 		}
 
@@ -714,6 +715,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_picker.get());
 			return *m_picker;
 		}
+		void need_picker();
 		bool has_picker() const
 		{
 			return m_picker.get() != 0;
@@ -1014,8 +1016,10 @@ namespace libtorrent
 		// this torrent belongs to.
 		aux::session_impl& m_ses;
 
+		// this vector is allocated lazily. If no file priorities are
+		// ever changed, this remains empty. Any unallocated slot
+		// implicitly means the file has priority 1.
 		// TODO: this wastes 5 bits per piece
-		// maybe it should be allocated lazily?
 		std::vector<boost::uint8_t> m_file_priority;
 
 		// this vector contains the number of bytes completely
@@ -1029,6 +1033,13 @@ namespace libtorrent
 		// suggesting to peers.
 		std::vector<suggest_piece_t> m_suggested_pieces;
 		
+		// the piece picker. This is allocated lazily. When we don't
+		// have anything in the torrent (for instance, if it hasn't
+		// been started yet) or if we have everything, there is no
+		// picker. It's allocated on-demand the first time we need
+		// it in torrent::need_picker(). In order to tell the
+		// difference between having everything and nothing in
+		// the case there is no piece picker, see m_have_all.
 		boost::scoped_ptr<piece_picker> m_picker;
 
 		std::vector<announce_entry> m_trackers;
@@ -1433,6 +1444,12 @@ namespace libtorrent
 		// when this is false, we should unload the torrent as soon
 		// as the no other async. job needs the torrent loaded
 		bool m_should_be_loaded:1;
+
+		// this is true if we have all pieces. If it's false,
+		// it means we either don't have any pieces, or, if
+		// there is a piece_picker object present, it contans
+		// the state of how many pieces we have
+		bool m_have_all:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	public:

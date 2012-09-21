@@ -546,6 +546,7 @@ namespace libtorrent
 		bool interested = false;
 		if (!t->is_upload_only())
 		{
+			t->need_picker();
 			piece_picker const& p = t->picker();
 			int num_pieces = p.num_pieces();
 			for (int j = 0; j != num_pieces; ++j)
@@ -2353,6 +2354,8 @@ namespace libtorrent
 		}
 
 		ptime now = time_now();
+
+		t->need_picker();
 
 		piece_picker& picker = t->picker();
 

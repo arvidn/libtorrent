@@ -373,6 +373,7 @@ namespace libtorrent
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
 		, m_pinned(p.flags & add_torrent_params::flag_pinned)
 		, m_should_be_loaded(true)
+		, m_have_all(false)
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
@@ -823,7 +824,6 @@ namespace libtorrent
 
 		if (!m_seed_mode)
 		{
-			m_picker.reset(new piece_picker());
 			std::vector<boost::uint64_t>().swap(m_file_progress);
 
 			if (m_resume_data)
@@ -1209,6 +1209,26 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::need_picker()
+	{
+		if (m_picker) return;
+
+		// if we have all pieces we should not have a picker
+		TORRENT_ASSERT(!m_have_all);
+
+		m_picker.reset(new piece_picker());
+		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+			+ block_size() - 1) / block_size();
+		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+
+		for (peer_iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
+		{
+			peer_has((*i)->get_bitfield(), *i);
+		}
+	}
+
 	void torrent::add_piece(int piece, char const* data, int flags)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
@@ -1217,7 +1237,9 @@ namespace libtorrent
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		// avoid crash trying to access the picker when there is none
-		if (!has_picker()) return;
+		if (m_have_all && !has_picker()) return;
+
+		need_picker();
 
 		if (picker().have_piece(piece)
 			&& (flags & torrent::overwrite_existing) == 0)
@@ -1602,8 +1624,10 @@ namespace libtorrent
 	void torrent::init()
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		TORRENT_ASSERT(m_torrent_file->is_valid());
+
+		if (!need_loaded()) return;
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
+		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
 #ifdef TORRENT_USE_OPENSSL
@@ -1628,14 +1652,6 @@ namespace libtorrent
 		}
 
 		construct_storage();
-
-		if (has_picker())
-		{
-			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
-			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
-				+ block_size() - 1) / block_size();
-			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
-		}
 
 		if (m_share_mode && valid_metadata())
 		{
@@ -1670,6 +1686,7 @@ namespace libtorrent
 
 		if (m_seed_mode)
 		{
+			m_have_all = true;
 			m_ses.m_io_service.post(boost::bind(&torrent::files_checked, shared_from_this()));
 			m_resume_data.reset();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -1726,6 +1743,10 @@ namespace libtorrent
 			if (!i->pad_file || i->size == 0) continue;
 			m_padding += i->size;
 			
+			// TODO: instead of creating the picker up front here,
+			// maybe this whole section should move to need_picker()
+			need_picker();
+
 			peer_request pr = m_torrent_file->map_file(file, 0, m_torrent_file->file_at(file).size);
 			int off = pr.start & (block_size()-1);
 			if (off != 0) { pr.length -= block_size() - off; pr.start += block_size() - off; }
@@ -1826,6 +1847,7 @@ namespace libtorrent
 		else
 		{
 			state_updated();
+/*
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// create the extensions again
 
@@ -1842,6 +1864,7 @@ namespace libtorrent
 				} TORRENT_CATCH (std::exception&) {}
 			}
 #endif
+*/
 		}
 
 		construct_storage();
@@ -1876,12 +1899,14 @@ namespace libtorrent
 		// TODO: there may be peer extensions relying on the torrent extension
 		// still being alive. Only do this if there are no peers. And when the last peer
 		// is disconnected, if the torrent is unloaded, clear the extensions
-		m_extensions.clear();
+//		m_extensions.clear();
 #endif
 
 		m_torrent_file->unload();
 
 		m_storage.reset();
+
+		m_picker.reset();
 
 		state_updated();
 	}
@@ -2063,6 +2088,7 @@ namespace libtorrent
 					{
 						if (pieces_str[i] & 1)
 						{
+							need_picker();
 							m_picker->we_have(i);
 							we_have(i);
 						}
@@ -2079,6 +2105,7 @@ namespace libtorrent
 							int piece = slots->list_int_value_at(i, -1);
 							if (piece >= 0)
 							{
+								need_picker();
 								m_picker->we_have(piece);
 								we_have(piece);
 							}
@@ -2099,11 +2126,13 @@ namespace libtorrent
 						int piece = e->dict_find_int_value("piece", -1);
 						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
 
-						if (m_picker->have_piece(piece))
+						if (has_picker() && m_picker->have_piece(piece))
 							m_picker->we_dont_have(piece);
 
 						std::string bitmask = e->dict_find_string_value("bitmask");
 						if (bitmask.empty()) continue;
+
+						need_picker();
 
 						const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
 						if ((int)bitmask.size() != num_bitmask_bytes) continue;
@@ -2161,17 +2190,15 @@ namespace libtorrent
 
 		m_ses.m_disk_thread.async_release_files(m_storage.get()
 			, boost::function<void(disk_io_job const*)>());
-		if (!m_picker) m_picker.reset(new piece_picker());
+
+		m_have_all = false;
+		m_picker.reset();
+
 		// file progress is allocated lazily, the first time the client
 		// asks for it
 		std::vector<boost::uint64_t>().swap(m_file_progress);
 
-		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
-		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
-			+ block_size() - 1) / block_size();
-		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 		// assume that we don't have anything
-		TORRENT_ASSERT(m_picker->num_have() == 0);
 		m_files_checked = false;
 		set_state(torrent_status::checking_resume_data);
 
@@ -2308,8 +2335,11 @@ namespace libtorrent
 		if (m_ses.m_settings.get_bool(settings_pack::disable_hash_checks)
 			|| sha1_hash(j->d.piece_hash) == m_torrent_file->hash_for_piece(j->piece))
 		{
-			TORRENT_ASSERT(m_picker);
-			m_picker->we_have(j->piece);
+			if (has_picker() || !m_have_all)
+			{
+				need_picker();
+				m_picker->we_have(j->piece);
+			}
 			we_have(j->piece);
 		}
 		else
@@ -3011,12 +3041,12 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces() == 0)
 			return 0;
 
-		if (is_seed()) return m_torrent_file->total_size();
+		if (!has_picker()) return m_have_all ? m_torrent_file->total_size() : 0;
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
 		size_type total_done
-			= size_type(num_have()) * m_torrent_file->piece_length();
+			= boost::uint64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -3076,9 +3106,10 @@ namespace libtorrent
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 		const int piece_size = m_torrent_file->piece_length();
 
-		if (is_seed())
+		if (!has_picker())
 		{
-			st.total_done = m_torrent_file->total_size() - m_padding;
+			if (m_have_all) st.total_done = m_torrent_file->total_size() - m_padding;
+			else st.total_done = 0;
 			st.total_wanted_done = st.total_done;
 			st.total_wanted = st.total_done;
 			return;
@@ -3328,6 +3359,13 @@ namespace libtorrent
 #endif
 		TORRENT_ASSERT(valid_metadata());
 
+		// if we're a seed we don't have a picker
+		// and we also don't have to do anything because
+		// we already have this piece
+		if (!has_picker() && m_have_all) return;
+
+		need_picker();
+
 		TORRENT_ASSERT(!m_picker->have_piece(j->piece));
 
 		picker().mark_as_done_checking(j->piece);
@@ -3341,11 +3379,6 @@ namespace libtorrent
 		// in this case, we have to ignore the fact that
 		// it passed the check
 		if (!m_picker->is_piece_finished(j->piece)) return;
-
-		// if we're a seed we don't have a picker
-		// and we also don't have to do anything because
-		// we already have this piece
-		if (!has_picker()) return;
 
 		if (ret == 0)
 		{
@@ -3389,8 +3422,7 @@ namespace libtorrent
 	void torrent::we_have(int index)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
-		TORRENT_ASSERT(m_picker);
-		TORRENT_ASSERT(m_picker->has_piece_passed(index));
+		TORRENT_ASSERT(!has_picker() || m_picker->has_piece_passed(index));
 
 		// at this point, we have the piece for sure. It has been
 		// successfully written to disk. We may announce it to peers
@@ -3427,6 +3459,7 @@ namespace libtorrent
 		}
 
 		if (settings().get_int(settings_pack::max_sparse_regions) > 0
+			&& has_picker()
 			&& m_picker->sparse_regions() > settings().get_int(settings_pack::max_sparse_regions))
 		{
 			// we have too many sparse regions. Prioritize pieces
@@ -3792,7 +3825,7 @@ namespace libtorrent
 
 	void torrent::peer_has(int index, peer_connection const* peer)
 	{
-		if (m_picker.get())
+		if (has_picker())
 		{
 			m_picker->inc_refcount(index, peer);
 			update_suggest_piece(index, 1);
@@ -3800,7 +3833,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
 	}
@@ -3808,7 +3841,7 @@ namespace libtorrent
 	// when we get a bitfield message, this is called for that piece
 	void torrent::peer_has(bitfield const& bits, peer_connection const* peer)
 	{
-		if (m_picker.get())
+		if (has_picker())
 		{
 			m_picker->inc_refcount(bits, peer);
 			refresh_suggest_pieces();
@@ -3816,21 +3849,21 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
 	}
 
 	void torrent::peer_has_all(peer_connection const* peer)
 	{
-		if (m_picker.get())
+		if (has_picker())
 		{
 			m_picker->inc_refcount_all(peer);
 		}
 #ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
 	}
@@ -3845,7 +3878,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
 	}
@@ -3860,7 +3893,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		else
 		{
-			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
 	}
@@ -4562,6 +4595,7 @@ namespace libtorrent
 
 		if (m_torrent_file->num_pieces() == 0) return;
 
+		bool need_update = false;
 		size_type position = 0;
 		int piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
@@ -4583,6 +4617,7 @@ namespace libtorrent
 				file_prio = m_file_priority[index];
 
 			if (file_prio == 0) continue;
+			if (!has_picker() && file_prio == 1) continue;
 
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
@@ -4595,8 +4630,9 @@ namespace libtorrent
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
 				, boost::bind(&set_if_greater, _1, file_prio));
+			need_update = true;
 		}
-		prioritize_pieces(pieces);
+		if (need_update) prioritize_pieces(pieces);
 	}
 
 	// this is called when piece priorities have been updated
@@ -5615,6 +5651,7 @@ namespace libtorrent
 			== m_torrent_file->num_files())
 		{
 			int num_files = m_torrent_file->num_files();
+			m_file_priority.resize(num_files);
 			for (int i = 0; i < num_files; ++i)
 				m_file_priority[i] = file_priority->list_int_value_at(i, 1);
 			// unallocated slots are assumed to be priority 1, so cut off any
@@ -5632,7 +5669,12 @@ namespace libtorrent
 		{
 			char const* p = piece_priority->string_ptr();
 			for (int i = 0; i < piece_priority->string_length(); ++i)
+			{
+				int prio = p[i];
+				if (!has_picker() && prio == 1) continue;
+				need_picker();
 				m_picker->set_piece_priority(i, p[i]);
+			}
 			m_policy.recalculate_connect_candidates();
 		}
 
@@ -5804,7 +5846,8 @@ namespace libtorrent
 		}
 
 		// if this torrent is a seed, we won't have a piece picker
-		// and there will be no half-finished pieces.
+		// if we don't have anything, we may also not have a picker
+		// in either case; there will be no half-finished pieces.
 		if (has_picker())
 		{
 			std::vector<piece_picker::downloading_piece> q
@@ -5893,9 +5936,9 @@ namespace libtorrent
 		// bit 1: set if we have verified the piece (in seed mode)
 		entry::string_type& pieces = ret["pieces"].string();
 		pieces.resize(m_torrent_file->num_pieces());
-		if (is_seed())
+		if (!has_picker())
 		{
-			std::memset(&pieces[0], 1, pieces.size());
+			std::memset(&pieces[0], m_have_all, pieces.size());
 		}
 		else
 		{
@@ -6014,9 +6057,9 @@ namespace libtorrent
 		// write piece priorities
 		entry::string_type& piece_priority = ret["piece_priority"].string();
 		piece_priority.resize(m_torrent_file->num_pieces());
-		if (is_seed())
+		if (!has_picker())
 		{
-			std::memset(&piece_priority[0], 1, pieces.size());
+			std::memset(&piece_priority[0], m_have_all, pieces.size());
 		}
 		else
 		{
@@ -6854,6 +6897,7 @@ namespace libtorrent
 		{
 			// no need for the piece picker anymore
 			m_picker.reset();
+			m_have_all = true;
 		}
 	}
 
@@ -7471,7 +7515,7 @@ namespace libtorrent
 			return;
 		}
 		// if the error happened during initialization, try again now
-		if (!m_storage) init();
+		if (!m_connections_initialized && valid_metadata()) init();
 		if (!checking_files && should_check_files())
 			start_checking();
 	}
@@ -7588,8 +7632,6 @@ namespace libtorrent
 		if (!is_seed()) scale = 500;
 
 		int ret = 0;
-
-		ptime now = time_now();
 
 		size_type finished_time = m_finished_time;
 		size_type download_time = int(m_active_time) - finished_time;
@@ -9219,18 +9261,21 @@ namespace libtorrent
 #endif
 		}
 
+		int num_pieces = m_torrent_file->num_pieces();
 		if (has_picker())
 		{
 			st->sparse_regions = m_picker->sparse_regions();
-			int num_pieces = m_picker->num_pieces();
 			st->pieces.resize(num_pieces, false);
 			for (int i = 0; i < num_pieces; ++i)
 				if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
 		}
-		else if (is_seed())
+		else if (m_have_all)
 		{
-			int num_pieces = m_torrent_file->num_pieces();
 			st->pieces.resize(num_pieces, true);
+		}
+		else
+		{
+			st->pieces.resize(num_pieces, false);
 		}
 		st->num_pieces = num_have();
 		st->num_seeds = num_seeds();
