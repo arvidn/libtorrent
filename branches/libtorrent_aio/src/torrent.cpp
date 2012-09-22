@@ -4252,7 +4252,7 @@ namespace libtorrent
 	{
 		ptime deadline = time_now() + milliseconds(t);
 
-		if (is_seed() || m_picker->have_piece(piece))
+		if (is_seed() || (has_picker() && m_picker->have_piece(piece)))
 		{
 			if (flags & torrent_handle::alert_when_available)
 				read_piece(piece);
@@ -4279,6 +4279,8 @@ namespace libtorrent
 			}
 			return;
 		}
+
+		need_picker();
 
 		time_critical_piece p;
 		p.first_requested = min_time();
