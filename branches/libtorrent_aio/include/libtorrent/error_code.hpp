@@ -364,13 +364,22 @@ namespace libtorrent
 	}
 
 	using boost::system::error_code;
+
+#if BOOST_VERSION < 104400
 	inline boost::system::error_category const& get_system_category()
 	{ return boost::system::get_system_category(); }
+#else
+	inline boost::system::error_category const& get_system_category()
+	{ return boost::system::system_category(); }
+#endif
+
 	inline boost::system::error_category const& get_posix_category()
 #if BOOST_VERSION < 103600
 	{ return boost::system::get_posix_category(); }
-#else
+#elif BOOST_VERSION < 104400
 	{ return boost::system::get_generic_category(); }
+#else
+	{ return boost::system::generic_category(); }
 #endif // BOOST_VERSION < 103600
 #endif // BOOST_VERSION < 103500
 

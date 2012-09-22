@@ -147,12 +147,13 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 
-#include <string>
+#include <cstring>
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/thread.hpp"
 
 #if TORRENT_USE_IOSTREAM
+#include <string>
 #include <fstream>
 #include <iostream>
 #endif

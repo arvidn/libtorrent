@@ -13,7 +13,6 @@ EXTRA_DIST = \
   src/datetime.cpp          \
   src/entry.cpp             \
   src/error_code.cpp        \
-  src/extensions.cpp        \
   src/fingerprint.cpp       \
   src/gil.hpp               \
   src/ip_filter.cpp         \
@@ -21,7 +20,6 @@ EXTRA_DIST = \
   src/module.cpp            \
   src/optional.hpp          \
   src/peer_info.cpp         \
-  src/peer_plugin.cpp       \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/torrent.cpp           \

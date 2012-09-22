@@ -642,12 +642,13 @@ namespace libtorrent
 		boost::tie(ignore, ignore, ignore, ignore, request_string) = parse_url_components(req.url, ec);
 		if (ec) request_string.clear();
 
-		detail::write_uint16(request_string.empty() ? 0: 2, out); // extensions. 2 = request-string
-
 		if (!request_string.empty())
 		{
-			if (request_string.size() > 512) request_string.resize(512);
-			detail::write_uint16(request_string.size(), out);
+			int str_len = (std::min)(int(request_string.size()), 255);
+			request_string.resize(str_len);
+
+			detail::write_uint8(2, out);
+			detail::write_uint8(str_len, out);
 			detail::write_string(request_string, out);
 		}
 
