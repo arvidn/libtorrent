@@ -1750,6 +1750,7 @@ struct has the following members::
 		int max_torrents;
 		bool restrict_routing_ips;
 		bool restrict_search_ips;
+		bool extended_routing_table;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1781,6 +1782,10 @@ distance.
 ``restrict_search_ips`` determines if DHT searches should prevent adding nodes
 with IPs with very close CIDR distance. This also defaults to true and helps
 mitigate certain attacks on the DHT.
+
+``extended_routing_table`` makes the first buckets in the DHT routing
+table fit 128, 64, 32 and 16 nodes respectively, as opposed to the
+standard size of 8. All other buckets have size 8 still.
 
 The ``dht_settings`` struct used to contain a ``service_port`` member to control
 which port the DHT would listen on and send messages from. This field is deprecated

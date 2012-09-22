@@ -320,7 +320,12 @@ namespace aux {
 		TORRENT_SETTING(integer, service_port)
 #endif
 		TORRENT_SETTING(integer, max_fail_count)
+		TORRENT_SETTING(integer, max_torrents)
+		TORRENT_SETTING(integer, max_dht_items)
 		TORRENT_SETTING(integer, max_torrent_search_reply)
+		TORRENT_SETTING(boolean, restrict_routing_ips)
+		TORRENT_SETTING(boolean, restrict_search_ips)
+		TORRENT_SETTING(boolean, extended_routing_table)
 	};
 #undef TORRENT_SETTING
 #endif
