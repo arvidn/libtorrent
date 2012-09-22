@@ -67,6 +67,16 @@ routing_table::routing_table(node_id const& id, int bucket_size
 {
 }
 
+int routing_table::bucket_limit(int bucket) const
+{
+	if (!m_settings.extended_routing_table) return m_bucket_size;
+
+	int size_exceptions[] = {16, 8, 4, 2};
+	if (bucket < sizeof(size_exceptions)/sizeof(size_exceptions[0]))
+		return m_bucket_size * size_exceptions[bucket];
+	return m_bucket_size;
+}
+
 void routing_table::status(session_status& s) const
 {
 	boost::tie(s.dht_nodes, s.dht_node_cache) = size();
@@ -131,19 +141,20 @@ void routing_table::print_state(std::ostream& os) const
 		os << "-";
 	os << "\n";
 
-	for (int k = 0; k < m_bucket_size; ++k)
+	int max_size = bucket_limit(0);
+	for (int k = 0; k < max_size; ++k)
 	{
 		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 			i != end; ++i)
 		{
-			os << (int(i->live_nodes.size()) > (m_bucket_size - 1 - k) ? "|" : " ");
+			os << (int(i->live_nodes.size()) > (max_size - 1 - k) ? "|" : " ");
 		}
 		os << "\n";
 	}
 	for (int i = 0; i < 160; ++i) os << "+";
 	os << "\n";
 
-	for (int k = 0; k < m_bucket_size; ++k)
+	for (int k = 0; k < max_size; ++k)
 	{
 		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 			i != end; ++i)
@@ -403,6 +414,8 @@ bool routing_table::add_node(node_entry e)
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
+	int bucket_index = std::distance(m_buckets.begin(), i);
+	int bucket_size_limit = bucket_limit(bucket_index);
 
 	bucket_t::iterator j;
 
@@ -473,9 +486,9 @@ bool routing_table::add_node(node_entry e)
 	}
 
 	// if there's room in the main bucket, just insert it
-	if (int(b.size()) < m_bucket_size)
+	if (int(b.size()) < bucket_size_limit)
 	{
-		if (b.empty()) b.reserve(m_bucket_size);
+		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
 		m_ips.insert(e.addr.to_v4().to_bytes());
 //		TORRENT_LOG(table) << "inserting node: " << e.id << " " << e.addr;
@@ -603,7 +616,7 @@ bool routing_table::add_node(node_entry e)
 
 	// move any node whose (160 - distane_exp(m_id, id)) >= (i - m_buckets.begin())
 	// to the new bucket
-	int bucket_index = std::distance(m_buckets.begin(), i);
+	int new_bucket_size = bucket_limit(bucket_index + 1);
 	for (bucket_t::iterator j = b.begin(); j != b.end();)
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
@@ -623,7 +636,7 @@ bool routing_table::add_node(node_entry e)
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
 		{
-			if (int(b.size()) >= m_bucket_size)
+			if (int(b.size()) >= bucket_size_limit)
 			{
 				++j;
 				continue;
@@ -633,7 +646,7 @@ bool routing_table::add_node(node_entry e)
 		else
 		{
 			// this entry belongs in the new bucket
-			if (int(new_bucket.size()) < m_bucket_size)
+			if (int(new_bucket.size()) < new_bucket_size)
 				new_bucket.push_back(*j);
 			else
 				new_replacement_bucket.push_back(*j);
@@ -645,7 +658,7 @@ bool routing_table::add_node(node_entry e)
 	// now insert the new node in the appropriate bucket
 	if (distance_exp(m_id, e.id) >= 159 - bucket_index)
 	{
-		if (int(b.size()) < m_bucket_size)
+		if (int(b.size()) < bucket_size_limit)
 		{
 			b.push_back(e);
 			added = true;
@@ -658,7 +671,7 @@ bool routing_table::add_node(node_entry e)
 	}
 	else
 	{
-		if (int(new_bucket.size()) < m_bucket_size)
+		if (int(new_bucket.size()) < new_bucket_size)
 		{
 			new_bucket.push_back(e);
 			added = true;
