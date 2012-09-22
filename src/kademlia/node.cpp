@@ -742,7 +742,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// the token was correct. That means this
 		// node is not spoofing its address. So, let
 		// the table get a chance to add it.
-		m_table.node_seen(id, m.addr);
+		m_table.node_seen(id, m.addr, 0xffff);
 
 		if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
 		{
@@ -950,7 +950,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			f = &i->second;
 		}
 
-		m_table.node_seen(id, m.addr);
+		m_table.node_seen(id, m.addr, 0xffff);
 
 		f->last_seen = time_now();
 

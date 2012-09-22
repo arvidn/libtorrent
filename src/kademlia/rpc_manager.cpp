@@ -313,9 +313,11 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		return false;
 	}
 
+	ptime now = time_now_hires();
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
-	reply_stats << m.addr << "\t" << total_milliseconds(time_now_hires() - o->sent())
+	reply_stats << m.addr << "\t" << total_milliseconds(now - o->sent())
 		<< std::endl;
 #endif
 
@@ -366,9 +368,11 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	o->reply(m);
 	*id = node_id(node_id_ent->string_ptr());
 
+	int rtt = total_milliseconds(now - o->sent());
+
 	// we found an observer for this reply, hence the node is not spoofing
 	// add it to the routing table
-	return m_table.node_seen(*id, m.addr);
+	return m_table.node_seen(*id, m.addr, rtt);
 }
 
 time_duration rpc_manager::tick()

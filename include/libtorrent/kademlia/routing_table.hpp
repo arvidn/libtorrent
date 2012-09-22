@@ -102,13 +102,13 @@ public:
 	router_iterator router_begin() const { return m_router_nodes.begin(); }
 	router_iterator router_end() const { return m_router_nodes.end(); }
 
-	bool add_node(node_entry const& e);
+	bool add_node(node_entry e);
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
 	// be inserted in the k-buckets or be moved to the top
 	// of its bucket.
-	bool node_seen(node_id const& id, udp::endpoint ep);
+	bool node_seen(node_id const& id, udp::endpoint ep, int rtt);
 
 	// this may add a node to the routing table and mark it as
 	// not pinged. If the bucket the node falls into is full,
