@@ -1636,7 +1636,7 @@ int test_main()
 
 	// test a node with the same IP:port changing ID
 	add_and_replace(tmp, diff);
-	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
 	table.find_node(id, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	TEST_EQUAL(table.size().get<0>(), 1);
@@ -1664,7 +1664,7 @@ int test_main()
 	}
 
 	// add the exact same node again, it should set the timeout_count to 0
-	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
 	nodes.clear();
 	table.for_each_node(node_push_back, nop, &nodes);
 	TEST_EQUAL(nodes.size(), 1);
@@ -1678,7 +1678,7 @@ int test_main()
 
 	// test adding the same IP:port again with a new node ID (should replace the old one)
 	add_and_replace(tmp, diff);
-	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4));
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
 	table.find_node(id, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	TEST_EQUAL(nodes.size(), 1);
@@ -1690,7 +1690,7 @@ int test_main()
 	}
 
 	// test adding the same node ID again with a different IP (should be ignored)
-	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 5));
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 5), 10);
 	table.find_node(id, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
@@ -1703,7 +1703,7 @@ int test_main()
 	// test adding a node that ends up in the same bucket with an IP
 	// very close to the current one (should be ignored)
 	// if restrict_routing_ips == true
-	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.5"), 5));
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.5"), 5), 10);
 	table.find_node(id, nodes, 0, 10);
 	TEST_EQUAL(table.bucket_size(0), 1);
 	if (!nodes.empty())
@@ -1716,12 +1716,12 @@ int test_main()
 	s.restrict_routing_ips = false;
 
 	add_and_replace(tmp, diff);
-	table.node_seen(id, udp::endpoint(rand_v4(), rand()));
+	table.node_seen(id, udp::endpoint(rand_v4(), rand()), 10);
 
 	nodes.clear();
 	for (int i = 0; i < 7000; ++i)
 	{
-		table.node_seen(tmp, udp::endpoint(rand_v4(), rand()));
+		table.node_seen(tmp, udp::endpoint(rand_v4(), rand()), 10);
 		add_and_replace(tmp, diff);
 	}
 	TEST_EQUAL(table.num_active_buckets(), 11);
