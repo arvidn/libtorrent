@@ -1606,7 +1606,41 @@ int main(int argc, char* argv[])
 				else ses.pause();
 			}
 
+			// add magnet link
 			if (c == 'm')
+			{
+				char url[4096];
+				puts("Enter magnet link:\n");
+				scanf("%4096s", url);
+
+				add_torrent_params p;
+				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+				if (disable_storage) p.storage = disabled_storage_constructor;
+				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+				p.save_path = save_path;
+				p.storage_mode = (storage_mode_t)allocation_mode;
+				p.url = url;
+
+				std::vector<char> buf;
+				if (std::strstr(url, "magnet:") == url)
+				{
+					add_torrent_params tmp;
+					parse_magnet_uri(url, tmp, ec);
+
+					if (ec) continue;
+
+					std::string filename = combine_path(save_path, combine_path(".resume"
+						, to_hex(tmp.info_hash.to_string()) + ".resume"));
+
+					if (load_file(filename.c_str(), buf, ec) == 0)
+						p.resume_data = &buf;
+				}
+
+				printf("adding URL: %s\n", url);
+				ses.async_add_torrent(p);
+			}
+
+			if (c == 'M')
 			{
 				printf("saving peers for torrents\n");
 
@@ -1831,7 +1865,7 @@ int main(int argc, char* argv[])
 
 		std::string out;
 		out = "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
-			"[a] toggle piece bar [s] toggle download sequential [f] toggle files "
+			"[a] toggle piece bar [s] toggle download sequential [f] toggle files [m] add magnet"
 			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n"
 			"[1] toggle IP [2] toggle AS [3] toggle timers [4] toggle block progress "
 			"[5] toggle peer rate [6] toggle failures [7] toggle send buffers [R] save resume data\n";
