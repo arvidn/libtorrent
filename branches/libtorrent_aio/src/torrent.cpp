@@ -1906,8 +1906,6 @@ namespace libtorrent
 
 		m_storage.reset();
 
-		m_picker.reset();
-
 		state_updated();
 	}
 
