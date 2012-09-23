@@ -1689,6 +1689,8 @@ int test_main()
 		, boost::bind(&node_entry::id, _2), tmp));
 
 	int hits = 0;
+	// This makes sure enough of the nodes returned are actually
+	// part of the closest nodes
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
@@ -1697,7 +1699,8 @@ int test_main()
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
-	TEST_CHECK(hits > int(temp.size()) / 2);
+	std::cout << "hits: " << hits << std::endl;
+	TEST_CHECK(hits == int(temp.size()));
 
 	std::generate(tmp.begin(), tmp.end(), &std::rand);
 	table.find_node(tmp, temp, 0, 15);
@@ -1709,6 +1712,8 @@ int test_main()
 		, boost::bind(&node_entry::id, _2), tmp));
 
 	hits = 0;
+	// This makes sure enough of the nodes returned are actually
+	// part of the closest nodes
 	for (std::vector<node_entry>::iterator i = temp.begin()
 		, end(temp.end()); i != end; ++i)
 	{
@@ -1717,7 +1722,8 @@ int test_main()
 //		std::cerr << hit << std::endl;
 		if (hit < int(temp.size())) ++hits;
 	}
-	TEST_CHECK(hits > int(temp.size()) / 2);
+	std::cout << "hits: " << hits << std::endl;
+	TEST_CHECK(hits == int(temp.size()));
 
 	using namespace libtorrent::dht;
 
