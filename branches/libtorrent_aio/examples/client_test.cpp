@@ -1912,7 +1912,10 @@ int main(int argc, char* argv[])
 						if (i != files.end())
 						{
 							error_code ec;
-							remove(combine_path(monitor_dir, i->first), ec);
+							std::string path;
+							if (is_complete(i->first)) path = i->first;
+							else path = combine_path(monitor_dir, i->first);
+							remove(path, ec);
 							if (ec) printf("failed to delete .torrent file: %s\n", ec.message().c_str());
 							files.erase(i);
 						}
