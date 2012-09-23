@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <iterator> // std::distance()
-#include <algorithm>
+#include <algorithm> // std::copy, std::remove_copy_if
 #include <functional>
 #include <numeric>
 #include <boost/cstdint.hpp>
@@ -154,7 +154,7 @@ void routing_table::print_state(std::ostream& os) const
 	for (int i = 0; i < 160; ++i) os << "+";
 	os << "\n";
 
-	for (int k = 0; k < max_size; ++k)
+	for (int k = 0; k < m_bucket_size; ++k)
 	{
 		for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 			i != end; ++i)
@@ -802,31 +802,6 @@ bool routing_table::need_bootstrap() const
 	return true;
 }
 
-template <class SrcIter, class DstIter, class Pred>
-DstIter copy_if_n(SrcIter begin, SrcIter end, DstIter target, size_t n, Pred p)
-{
-	for (; n > 0 && begin != end; ++begin)
-	{
-		if (!p(*begin)) continue;
-		*target = *begin;
-		--n;
-		++target;
-	}
-	return target;
-}
-
-template <class SrcIter, class DstIter>
-DstIter copy_n(SrcIter begin, SrcIter end, DstIter target, size_t n)
-{
-	for (; n > 0 && begin != end; ++begin)
-	{
-		*target = *begin;
-		--n;
-		++target;
-	}
-	return target;
-}
-
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
 void routing_table::find_node(node_id const& target
@@ -834,57 +809,56 @@ void routing_table::find_node(node_id const& target
 {
 	l.clear();
 	if (count == 0) count = m_bucket_size;
-	l.reserve(count);
 
 	table_t::iterator i = find_bucket(target);
-	bucket_t& b = i->live_nodes;
+	int bucket_index = std::distance(m_buckets.begin(), i);
+	int bucket_size_limit = bucket_limit(bucket_index);
 
-	// copy all nodes that hasn't failed into the target
-	// vector.
-	if (options & include_failed)
-	{
-		copy_n(b.begin(), b.end(), std::back_inserter(l)
-			, (std::min)(size_t(count), b.size()));
-	}
-	else
-	{
-		copy_if_n(b.begin(), b.end(), std::back_inserter(l)
-			, (std::min)(size_t(count), b.size())
-			, boost::bind(&node_entry::confirmed, _1));
-	}
-	TORRENT_ASSERT((int)l.size() <= count);
+	l.reserve(bucket_size_limit);
 
-	if (int(l.size()) >= count) return;
-
-	// if we didn't have enough nodes in that bucket
-	// we have to reply with nodes from buckets closer
-	// to us.
 	table_t::iterator j = i;
-	++j;
 
 	for (; j != m_buckets.end() && int(l.size()) < count; ++j)
 	{
 		bucket_t& b = j->live_nodes;
 		size_t to_copy = (std::min)(count - l.size(), b.size());
+
 		if (options & include_failed)
 		{
-			copy(b.begin(), b.begin() + to_copy
+			copy(b.begin(), b.end()
 				, std::back_inserter(l));
 		}
 		else
 		{
-			std::remove_copy_if(b.begin(), b.begin() + to_copy
+			std::remove_copy_if(b.begin(), b.end()
 				, std::back_inserter(l)
 				, !boost::bind(&node_entry::confirmed, _1));
 		}
-	}
 
-	if (int(l.size()) >= count) return;
+		if (int(l.size()) >= count)
+		{
+			// sort the nodes by how close they are to the target
+			std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+				, boost::bind(&node_entry::id, _1)
+				, boost::bind(&node_entry::id, _2), target));
+
+			l.resize(count);
+			return;
+		}
+	}
 
 	// if we still don't have enough nodes, copy nodes
 	// further away from us
 
-	if (i == m_buckets.begin()) return;
+	if (i == m_buckets.begin())
+	{
+		// sort the nodes by how close they are to the target
+		std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+			, boost::bind(&node_entry::id, _1)
+			, boost::bind(&node_entry::id, _2), target));
+		return;
+	}
+
 	j = i;
 
 	do
@@ -892,18 +866,36 @@ void routing_table::find_node(node_id const& target
 		--j;
 		bucket_t& b = j->live_nodes;
 	
-		size_t to_copy = (std::min)(count - l.size(), b.size());
 		if (options & include_failed)
 		{
-			copy_n(b.begin(), b.end(), std::back_inserter(l), to_copy);
+			std::copy(b.begin(), b.end(), std::back_inserter(l));
 		}
 		else
 		{
-			copy_if_n(b.begin(), b.end(), std::back_inserter(l)
-				, to_copy, boost::bind(&node_entry::confirmed, _1));
+			std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
+				, !boost::bind(&node_entry::confirmed, _1));
+		}
+
+		if (int(l.size()) >= count)
+		{
+			// sort the nodes by how close they are to the target
+			std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+				, boost::bind(&node_entry::id, _1)
+				, boost::bind(&node_entry::id, _2), target));
+
+			l.resize(count);
+			return;
 		}
 	}
 	while (j != m_buckets.begin() && int(l.size()) < count);
+
+	// sort the nodes by how close they are to the target
+	std::sort(l.begin(), l.end(), boost::bind(&compare_ref
+		, boost::bind(&node_entry::id, _1)
+		, boost::bind(&node_entry::id, _2), target));
+
+	if (int(l.size()) >= count)
+		l.resize(count);
 }
 /*
 routing_table::iterator routing_table::begin() const
