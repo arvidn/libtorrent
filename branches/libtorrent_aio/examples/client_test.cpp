@@ -2008,7 +2008,7 @@ int main(int argc, char* argv[])
 			if (c == 'l') print_log = !print_log;
 			if (c == 'd') print_downloads = !print_downloads;
 			if (c == 'f') print_file_progress = !print_file_progress;
-			if (c == 'h') show_pad_files = !show_pad_files;
+			if (c == 'P') show_pad_files = !show_pad_files;
 			if (c == 'a') print_piece_bar = !print_piece_bar;
 			if (c == 'g') show_dht_status = !show_dht_status;
 			if (c == 'u') print_utp_stats = !print_utp_stats;
@@ -2030,6 +2030,41 @@ int main(int argc, char* argv[])
 				set.add_args.save_path = save_path;
 				feed_handle h = ses.add_feed(set);
 				h.update_feed();
+			}
+			if (c == 'h')
+			{
+				print_with_ansi_colors(
+					"HELP SCREEN (press any key to dismiss)\n\n"
+					"CLIENT OPTIONS\n"
+					"[q] quit client                                 [m] add magnet link\n"
+					"[y] add RSS feed\n"
+					"\n"
+					"TORRENT ACTIONS\n"
+					"[p] pause/unpause selected torrent\n"
+					"[s] toggle sequential download                  [j] force recheck\n"
+					"[space] toggle session pause                    [c] clear error\n"
+					"[v] scrape                                      [D] delete torrent and data\n"
+					"[r] force reannounce                            [R] save resume data for all torrents\n"
+					"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
+					"[k] toggle force-started\n"
+					"\n"
+					"DISPLAY OPTIONS\n"
+					"left/right arrow keys: select torrent filter\n"
+					"up/down arrow keys: select torrent\n"
+					"[i] toggle show peers                           [d] toggle show downloading pieces\n"
+					"[a] toggle piece bar                            [f] toggle show files\n"
+					"[g] show DHT                                    [x] toggle disk cache stats\n"
+					"[t] show trackers                               [l] show alert log\n"
+					"[P] show pad files (in file list)               [u] show uTP stats\n"
+					"\n"
+					"COLUMN OPTIONS\n"
+					"[1] toggle IP column                            [2] toggle AS column\n"
+					"[3] toggle timers column                        [4] toggle block progress column\n"
+					"[5] toggle peer rate column                     [6] toggle failures column\n"
+					"[7] toggle send buffers column\n"
+					);
+				int tmp;
+				while (sleep_and_input(&tmp, 500) == false);
 			}
 		}
 		if (c == 'q') break;
@@ -2076,9 +2111,7 @@ int main(int argc, char* argv[])
 		if (loop_limit > 1 && sess_stat.num_peers == 0 && tick > 30) break;
 
 		std::string out;
-		out = "[q] quit [i] toggle peers [d] toggle downloading pieces [p] toggle paused "
-			"[a] toggle piece bar [s] toggle download sequential [f] toggle files [m] add magnet"
-			"[j] force recheck [space] toggle session pause [c] clear error [v] scrape [g] show DHT\n";
+		out = "[h] show key mappings\n";
 
 		char const* filter_names[] = { "all", "downloading", "non-paused", "seeding", "queued", "stopped", "checking", "loaded", "RSS"};
 		for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
