@@ -821,8 +821,6 @@ void routing_table::find_node(node_id const& target
 	for (; j != m_buckets.end() && int(l.size()) < count; ++j)
 	{
 		bucket_t& b = j->live_nodes;
-		size_t to_copy = (std::min)(count - l.size(), b.size());
-
 		if (options & include_failed)
 		{
 			copy(b.begin(), b.end()
