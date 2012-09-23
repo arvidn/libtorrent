@@ -165,6 +165,8 @@ namespace libtorrent
 		// don't have to make any new requests yet
 		if (num_requests <= 0) return;
 
+		t.need_picker();
+
 		piece_picker& p = t.picker();
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
