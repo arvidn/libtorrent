@@ -375,12 +375,18 @@ setup_transfer(session* ses1, session* ses2, session* ses3
 	param.flags |= add_torrent_params::flag_seed_mode;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
+	if (ec)
+	{
+		fprintf(stderr, "ses1.add_torrent: %s\n", ec.message().c_str());
+		return boost::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
+	}
 	tor1.super_seeding(super_seeding);
 
 	// the downloader cannot use seed_mode
 	param.flags &= ~add_torrent_params::flag_seed_mode;
 
 	TEST_CHECK(!ses1->get_torrents().empty());
+
 	torrent_handle tor2;
 	torrent_handle tor3;
 

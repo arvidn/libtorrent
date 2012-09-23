@@ -3129,7 +3129,7 @@ namespace libtorrent
 		st.total_done = size_type(num_passed()) * piece_size;
 		// if num_passed() == num_pieces(), we should be a seed, and taken the
 		// branch above
-		TORRENT_ASSERT(num_passed() < m_torrent_file->num_pieces());
+		TORRENT_ASSERT(num_passed() <= m_torrent_file->num_pieces());
 
 		int num_filtered_pieces = m_picker->num_filtered()
 			+ m_picker->num_have_filtered();
@@ -4527,12 +4527,10 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata() || is_seed()) return;
 
-		// the bitmask need to have exactly one bit for every file
+		// the vector need to have exactly one element for every file
 		// in the torrent
 		TORRENT_ASSERT(int(files.size()) == m_torrent_file->num_files());
 		
-		if (m_torrent_file->num_pieces() == 0) return;
-
 		int limit = int(files.size());
 		if (valid_metadata() && limit > m_torrent_file->num_files())
 			limit = m_torrent_file->num_files();
@@ -4545,7 +4543,10 @@ namespace libtorrent
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
 			m_file_priority.resize(m_torrent_file->num_files(), 1);
 
-		m_ses.m_disk_thread.async_set_file_priority(m_storage.get(), m_file_priority, boost::bind(&nop));
+		if (m_torrent_file->num_pieces() > 0)
+			m_ses.m_disk_thread.async_set_file_priority(m_storage.get()
+				, m_file_priority, boost::bind(&nop));
+
 		update_piece_priorities();
 	}
 
@@ -4592,7 +4593,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		files->clear();
-		files->resize(m_file_priority.size(), 1);
+		files->resize(m_torrent_file->num_files(), 1);
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
 
@@ -4623,8 +4624,11 @@ namespace libtorrent
 			else
 				file_prio = m_file_priority[index];
 
-			if (file_prio == 0) continue;
-			if (!has_picker() && file_prio == 1) continue;
+			if (file_prio == 0)
+			{
+				need_update = true;
+				continue;
+			}
 
 			// mark all pieces of the file with this file's priority
 			// but only if the priority is higher than the pieces
@@ -4637,7 +4641,9 @@ namespace libtorrent
 			std::for_each(pieces.begin() + start_piece
 				, pieces.begin() + last_piece + 1
 				, boost::bind(&set_if_greater, _1, file_prio));
-			need_update = true;
+
+			if (has_picker() || file_prio != 1)
+				need_update = true;
 		}
 		if (need_update) prioritize_pieces(pieces);
 	}

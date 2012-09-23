@@ -45,6 +45,7 @@ namespace libtorrent
 	file_storage::file_storage()
 		: m_total_size(0)
 		, m_num_pieces(0)
+		, m_num_files(0)
 		, m_piece_length(0)
 	{}
 
@@ -324,6 +325,7 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(m_name == split_path(file).c_str());
 		m_files.push_back(internal_file_entry());
+		++m_num_files;
 		internal_file_entry& e = m_files.back();
 		e.set_name(file.c_str());
 		e.size = size;
@@ -366,6 +368,7 @@ namespace libtorrent
 		}
 		internal_file_entry ife(ent);
 		m_files.push_back(ife);
+		++m_num_files;
 		internal_file_entry& e = m_files.back();
 		if (e.size < 0) e.size = 0;
 		e.offset = m_total_size;
@@ -627,6 +630,7 @@ namespace libtorrent
 				int cur_index = file_index(*i);
 				int index = m_files.size();
 				m_files.push_back(internal_file_entry());
+				++m_num_files;
 				internal_file_entry& e = m_files.back();
 				// i may have been invalidated, refresh it
 				i = m_files.begin() + cur_index;

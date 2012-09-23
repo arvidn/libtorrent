@@ -313,7 +313,6 @@ namespace libtorrent
 		reverse_file_iterator rbegin_files() const { return m_files.rbegin(); }
 		reverse_file_iterator rend_files() const { return m_files.rend(); }
 
-		//TODO: remember num_files when the torrent is unloaded
 		int num_files() const { return m_files.num_files(); }
 		file_entry file_at(int index) const { return m_files.at(index); }
 

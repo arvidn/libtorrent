@@ -204,7 +204,7 @@ namespace libtorrent
 		iterator end() const { return m_files.end(); }
 		reverse_iterator rbegin() const { return m_files.rbegin(); }
 		reverse_iterator rend() const { return m_files.rend(); }
-		int num_files() const { return int(m_files.size()); }
+		int num_files() const { return m_num_files; }
 
 		file_entry at(int index) const;
 		file_entry at(iterator i) const;
@@ -229,6 +229,7 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(ti.m_files, m_files);
+			swap(ti.m_num_files, m_num_files);
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
@@ -324,6 +325,10 @@ namespace libtorrent
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
+
+		// the number of files. This is used when
+		// the torrent is unloaded
+		int m_num_files;
 
 		int m_piece_length;
 	};
