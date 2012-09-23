@@ -4392,9 +4392,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
+		need_picker();
 
 		// this call is only valid on torrents with metadata
-		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return;
@@ -4415,10 +4415,9 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return 1;
+		if (!has_picker()) return 1;
 
 		// this call is only valid on torrents with metadata
-		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return 0;
@@ -4434,7 +4433,7 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
 
-		TORRENT_ASSERT(m_picker.get());
+		need_picker();
 
 		bool filter_updated = false;
 		bool was_finished = is_finished();
@@ -4471,7 +4470,7 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
 
-		TORRENT_ASSERT(m_picker.get());
+		need_picker();
 
 		int index = 0;
 		bool filter_updated = false;
@@ -4502,7 +4501,7 @@ namespace libtorrent
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed())
+		if (!has_picker())
 		{
 			pieces->clear();
 			pieces->resize(m_torrent_file->num_pieces(), 1);
@@ -4677,9 +4676,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
+		need_picker();
 
 		// this call is only valid on torrents with metadata
-		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
@@ -4698,7 +4697,7 @@ namespace libtorrent
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
 
-		TORRENT_ASSERT(m_picker.get());
+		need_picker();
 
 		bool was_finished = is_finished();
 		int index = 0;
@@ -4718,7 +4717,7 @@ namespace libtorrent
 	{
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return false;
+		if (!has_picker()) return false;
 		
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
@@ -4735,7 +4734,7 @@ namespace libtorrent
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed())
+		if (!has_picker())
 		{
 			bitmask.clear();
 			bitmask.resize(m_torrent_file->num_pieces(), false);
@@ -4963,14 +4962,14 @@ namespace libtorrent
 
 			if (p->is_seed())
 			{
-				if (m_picker.get())
+				if (has_picker())
 				{
 					m_picker->dec_refcount_all(p);
 				}
 			}
 			else
 			{
-				if (m_picker.get())
+				if (has_picker())
 				{
 					bitfield const& pieces = p->get_bitfield();
 					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
@@ -8197,7 +8196,7 @@ namespace libtorrent
 			m_time_scaler = 10;
 
 			if (settings().get_int(settings_pack::max_sparse_regions) > 0
-				&& m_picker
+				&& has_picker()
 				&& m_picker->sparse_regions() > settings().get_int(settings_pack::max_sparse_regions))
 			{
 				// we have too many sparse regions. Prioritize pieces

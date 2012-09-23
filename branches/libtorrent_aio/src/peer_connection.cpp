@@ -1691,7 +1691,7 @@ namespace libtorrent
 		if (!t->have_piece(index)
 			&& !t->is_seed()
 			&& !is_interesting()
-			&& t->picker().piece_priority(index) != 0)
+			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
 			t->get_policy().peer_is_interesting(*this);
 
 		// if we're super seeding, this might mean that somebody
