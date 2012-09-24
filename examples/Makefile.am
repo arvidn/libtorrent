@@ -6,7 +6,8 @@ example_programs =  \
   simple_client     \
   rss_reader        \
   parse_request_log \
-  utp_test
+  utp_test          \
+  connection_tester
 
 if ENABLE_EXAMPLES
 bin_PROGRAMS = $(example_programs)
@@ -29,6 +30,9 @@ simple_client_SOURCES = simple_client.cpp
 
 enum_if_SOURCES = enum_if.cpp
 #enum_if_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
+connection_tester_SOURCES = connection_tester.cpp
+#connection_tester_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 rss_reader_SOURCES = rss_reader.cpp
 #rss_reader_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
