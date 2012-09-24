@@ -32,6 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
+#include "libtorrent/config.hpp"
+#if defined TORRENT_OS2
+#include <pthread.h>
+#endif
+
 #include <boost/bind.hpp>
 
 #include "libtorrent/socket.hpp"

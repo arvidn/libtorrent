@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
+#if defined TORRENT_OS2 && defined ioc
+#undef ioc
+#endif
+
 #if TORRENT_USE_I2P
 
 #define TORRENT_SOCKTYPE_I2P_FORWARD(x) \
