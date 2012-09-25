@@ -388,6 +388,12 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 #ifdef WIN32
 			// ERROR_MORE_DATA means the same thing as EMSGSIZE
 			&& e != error_code(ERROR_MORE_DATA, get_system_category())
+			&& e != error_code(ERROR_HOST_UNREACHABLE, get_system_category())
+			&& e != error_code(ERROR_PORT_UNREACHABLE, get_system_category())
+			&& e != error_code(ERROR_RETRY, get_system_category())
+			&& e != error_code(ERROR_NETWORK_UNREACHABLE, get_system_category())
+			&& e != error_code(ERROR_CONNECTION_REFUSED, get_system_category())
+			&& e != error_code(ERROR_CONNECTION_ABORTED, get_system_category())
 #endif
 			&& e != asio::error::message_size)
 		{

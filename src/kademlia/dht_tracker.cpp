@@ -432,7 +432,14 @@ namespace libtorrent { namespace dht
 		{
 			if (ec == asio::error::connection_refused
 				|| ec == asio::error::connection_reset
-				|| ec == asio::error::connection_aborted)
+				|| ec == asio::error::connection_aborted
+#ifdef WIN32
+				|| ec == error_code(ERROR_HOST_UNREACHABLE, get_system_category())
+				|| ec == error_code(ERROR_PORT_UNREACHABLE, get_system_category())
+				|| ec == error_code(ERROR_CONNECTION_REFUSED, get_system_category())
+				|| ec == error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+#endif
+				)
 			{
 				m_dht.unreachable(ep);
 			}
