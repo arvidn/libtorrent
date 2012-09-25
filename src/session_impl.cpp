@@ -2477,6 +2477,12 @@ namespace aux {
 			if (ec != asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, ec));
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			char msg[200];
+			snprintf(msg, sizeof(msg), "UDP socket error: (%d) %s", ec.value(), ec.message().c_str());
+			(*m_logger) << msg << "\n";
+#endif
 		}
 		return false;
 	}
