@@ -2465,7 +2465,14 @@ namespace aux {
 		{
 			if (e == asio::error::connection_refused
 				|| e == asio::error::connection_reset
-				|| e == asio::error::connection_aborted)
+				|| e == asio::error::connection_aborted
+#ifdef WIN32
+				|| e == error_code(ERROR_HOST_UNREACHABLE, get_system_category())
+				|| e == error_code(ERROR_PORT_UNREACHABLE, get_system_category())
+				|| e == error_code(ERROR_CONNECTION_REFUSED, get_system_category())
+				|| e == error_code(ERROR_CONNECTION_ABORTED, get_system_category())
+#endif
+				)
 			{
 #ifndef TORRENT_DISABLE_DHT
 				if (m_dht) m_dht->on_unreachable(ep);
@@ -2473,17 +2480,20 @@ namespace aux {
 				if (m_tracker_manager.incoming_udp(e, ep, buf, len))
 					m_stat.received_tracker_bytes(len + 28);
 			}
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			else
+			{
+				char msg[200];
+				snprintf(msg, sizeof(msg), "UDP socket error: (%d) %s", e.value(), e.message().c_str());
+				(*m_logger) << msg << "\n";
+			}
+#endif
 
 			// don't bubble up operation aborted errors to the user
 			if (e != asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.post_alert(udp_error_alert(ep, e));
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, sizeof(msg), "UDP socket error: (%d) %s", e.value(), e.message().c_str());
-			(*m_logger) << msg << "\n";
-#endif
 			return;
 		}
 
