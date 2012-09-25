@@ -625,7 +625,10 @@ bool routing_table::add_node(node_entry e)
 			continue;
 		}
 		// this entry belongs in the new bucket
-		new_bucket.push_back(*j);
+		if (int(new_bucket.size()) < bucket_size_limit)
+			new_bucket.push_back(*j);
+		else if (int(new_replacement_bucket.size()) < m_bucket_size)
+			new_replacement_bucket.push_back(*j);
 		j = b.erase(j);
 	}
 
@@ -648,7 +651,7 @@ bool routing_table::add_node(node_entry e)
 			// this entry belongs in the new bucket
 			if (int(new_bucket.size()) < new_bucket_size)
 				new_bucket.push_back(*j);
-			else
+			else if (int(new_replacement_bucket.size()) < m_bucket_size)
 				new_replacement_bucket.push_back(*j);
 		}
 		j = rb.erase(j);
@@ -754,7 +757,12 @@ void routing_table::node_failed(node_id const& id, udp::endpoint const& ep)
 	m_ips.erase(j->addr.to_v4().to_bytes());
 	b.erase(j);
 
-	j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1) == true);
+	// sort by RTT first, to find the node with the lowest
+	// RTT that is pinged
+	std::sort(rb.begin(), rb.end()
+		, boost::bind(&node_entry::rtt, _1) < boost::bind(&node_entry::rtt, _2));
+
+	j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1));
 	if (j == rb.end()) j = rb.begin();
 	b.push_back(*j);
 	rb.erase(j);
@@ -895,17 +903,6 @@ void routing_table::find_node(node_id const& target
 	if (int(l.size()) >= count)
 		l.resize(count);
 }
-/*
-routing_table::iterator routing_table::begin() const
-{
-	// +1 to avoid ourself
-	return iterator(m_buckets.begin() + 1, m_buckets.end());
-}
 
-routing_table::iterator routing_table::end() const
-{
-	return iterator(m_buckets.end(), m_buckets.end());
-}
-*/
 } } // namespace libtorrent::dht
 
