@@ -1,3 +1,4 @@
+	* fixed UDP socket error causing it to fail on Win7
 	* update use of boost.system to not use deprecated functions
 	* fix GIL issue in python bindings. Deprecated extension support in python
 	* fixed bug where setting upload slots to -1 would not mean infinite
