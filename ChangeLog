@@ -1,3 +1,4 @@
+	* improve uTP slow start behavior
 	* fixed UDP socket error causing it to fail on Win7
 	* update use of boost.system to not use deprecated functions
 	* fix GIL issue in python bindings. Deprecated extension support in python
