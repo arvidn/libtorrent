@@ -2788,7 +2788,9 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 
 	if (m_slow_start)
 	{
-		scaled_gain = (std::max)((window_factor * m_cwnd) >> 16, linear_gain);
+		// mimic TCP slow-start by adding the number of acked
+		// bytes to cwnd
+		scaled_gain = (std::max)(boost::int64_t(acked_bytes) << 16, linear_gain);
 	}
 	else
 	{
