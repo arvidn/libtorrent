@@ -1204,7 +1204,7 @@ namespace libtorrent
 			void tracker_warning(tracker_request const& req
 				, std::string const& str)
 			{
-				debug_log("*** tracker warning: " + str);
+				debug_log("*** tracker warning: %s", str.c_str());
 			}
 
 			void tracker_response(tracker_request const&
@@ -1235,7 +1235,7 @@ namespace libtorrent
 				}
 				snprintf(tmp, 200, "external ip: %s\n", print_address(external_ip).c_str());
 				s += tmp;
-				debug_log(s);
+				debug_log("%s", s.c_str());
 			}
 
 			void tracker_request_timed_out(
@@ -1248,15 +1248,23 @@ namespace libtorrent
 				, int response_code, error_code const& ec, const std::string& str
 				, int retry_interval)
 			{
-				char msg[256];
-				snprintf(msg, sizeof(msg), "*** tracker error: %d: %s %s"
+				debug_log("*** tracker error: %d: %s %s"
 					, response_code, ec.message().c_str(), str.c_str());
-				debug_log(msg);
 			}
 			
-			void debug_log(const std::string& line)
+			void debug_log(const char* fmt, ...) const
 			{
-				(*m_ses.m_logger) << time_now_string() << " " << line << "\n";
+				if (!m_ses.m_logger) return;
+
+				va_list v;	
+				va_start(v, fmt);
+	
+				char usr[1024];
+				vsnprintf(usr, sizeof(usr), fmt, v);
+				va_end(v);
+				char buf[1280];
+				snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
+				(*m_ses.m_logger) << buf;
 			}
 			session_impl& m_ses;
 		};
