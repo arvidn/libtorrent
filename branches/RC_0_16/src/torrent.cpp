@@ -728,7 +728,6 @@ namespace libtorrent
 
 		m_override_resume_data = true;
 		init();
-		start_announcing();
 	}
 #else
 
@@ -839,7 +838,6 @@ namespace libtorrent
 
 		m_override_resume_data = true;
 		init();
-		start_announcing();
 	}
 
 #endif
@@ -1864,7 +1862,7 @@ namespace libtorrent
 		}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		else
-			debug_log("fastresume data rejected accepted");
+			debug_log("fastresume data accepted");
 #endif
 #endif
 
@@ -2230,13 +2228,25 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		INVARIANT_CHECK;
 
-		if (m_trackers.empty()) return;
+		if (m_trackers.empty())
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("*** announce_with_tracker: no trackers");
+#endif
+			return;
+		}
 
 		if (m_abort) e = tracker_request::stopped;
 
 		// if we're not announcing to trackers, only allow
 		// stopping
-		if (e != tracker_request::stopped && !m_announce_to_trackers) return;
+		if (e != tracker_request::stopped && !m_announce_to_trackers)
+		{
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+			debug_log("*** announce_with_tracker: event != stopped && !m_announce_to_trackers");
+#endif
+			return;
+		}
 
 		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
 
@@ -2380,7 +2390,7 @@ namespace libtorrent
 				}
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			debug_log(" ==> TRACKER REQUEST \"%s\" event: %s abort: %d"
+			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d"
 				, req.url.c_str()
 				, (req.event==tracker_request::stopped?"stopped"
 					:req.event==tracker_request::started?"started":"")
@@ -7294,7 +7304,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused())
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("start_announcing(), paused");
 #endif
 			return;
@@ -7304,7 +7314,7 @@ namespace libtorrent
 		// request the metadata from
 		if (!m_files_checked && valid_metadata())
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("start_announcing(), files not checked (with valid metadata)");
 #endif
 			return;
