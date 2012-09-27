@@ -121,7 +121,8 @@ namespace libtorrent
 				&udp_tracker_connection::name_lookup, self(), _1, _2));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
-			if (cb) cb->debug_log(("*** UDP_TRACKER [ initiating name lookup: " + hostname + " ]").c_str());
+			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
+				, hostname.c_str());
 #endif
 		}
 
@@ -173,7 +174,8 @@ namespace libtorrent
 				if (m_ses.m_ip_filter.access(k->address()) == ip_filter::blocked) 
 				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: " + print_address(k->address()) + " ]");
+					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
+						, print_address(k->address()).c_str());
 #endif
 					k = m_endpoints.erase(k);
 				}
@@ -261,9 +263,7 @@ namespace libtorrent
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		char msg[200];
-		snprintf(msg, 200, "*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
-		if (cb) cb->debug_log(msg);
+		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
 		m_abort = true;
 		fail(error_code(errors::timed_out));
@@ -305,9 +305,7 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
-			char msg[200];
-			snprintf(msg, 200, "<== UDP_TRACKER_PACKET [ size: %d ]", size);
-			cb->debug_log(msg);
+			cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]", size);
 		}
 #endif
 
@@ -321,9 +319,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			char msg[200];
-			snprintf(msg, 200, "*** UDP_TRACKER_PACKET [ action: %d ]", action);
-			cb->debug_log(msg);
+			cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
 		}
 #endif
 
@@ -344,10 +340,8 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (cb)
 		{
-			char msg[200];
-			snprintf(msg, 200, "*** UDP_TRACKER_RESPONSE [ tid: %x ]"
+			cb->debug_log("*** UDP_TRACKER_RESPONSE [ tid: %x ]"
 				, int(transaction));
-			cb->debug_log(msg);
 		}
 #endif
 
@@ -397,9 +391,7 @@ namespace libtorrent
 		{
 			char hex_ih[41];
 			to_hex((char const*)&tracker_req().info_hash[0], 20, hex_ih);
-			char msg[200];
-			snprintf(msg, 200, "==> UDP_TRACKER_CONNECT [%s]", hex_ih);
-			cb->debug_log(msg);
+			cb->debug_log("==> UDP_TRACKER_CONNECT [%s]", hex_ih);
 		}
 #endif
 		if (m_abort) return;
@@ -500,9 +492,7 @@ namespace libtorrent
 		if (cb)
 		{
 			boost::shared_ptr<request_callback> cb = requester();
-			char msg[200];
-			snprintf(msg, 200, "<== UDP_TRACKER_RESPONSE [ url: %s ]", tracker_req().url.c_str());
-			cb->debug_log(msg);
+			cb->debug_log("<== UDP_TRACKER_RESPONSE [ url: %s ]", tracker_req().url.c_str());
 		}
 #endif
 
@@ -662,9 +652,7 @@ namespace libtorrent
 		{
 			char hex_ih[41];
 			to_hex((char const*)&req.info_hash[0], 20, hex_ih);
-			char msg[200];
-			snprintf(msg, 200, "==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
-			cb->debug_log(msg);
+			cb->debug_log("==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
 		}
 #endif
 
