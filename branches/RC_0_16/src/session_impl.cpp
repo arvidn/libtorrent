@@ -965,7 +965,7 @@ namespace aux {
 		PRINT_OFFSETOF(udp_tracker_connection, m_completion_timeout)
 		PRINT_OFFSETOF(udp_tracker_connection, m_read_timeout)
 		PRINT_OFFSETOF(udp_tracker_connection, m_mutex)
-		PRINT_OFFSETOF(udp_tracker_connection, timeout_handler::m_abort)
+		PRINT_OFFSETOF(udp_tracker_connection, m_abort)
 		PRINT_OFFSETOF(udp_tracker_connection, m_requester)
 #ifndef _MSC_VER
 		PRINT_OFFSETOF(udp_tracker_connection, m_man)
