@@ -243,7 +243,7 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
-			cb->debug_log("==> TRACKER_REQUEST [ url: " + url + " ]");
+			cb->debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
 		}
 #endif
 	}
