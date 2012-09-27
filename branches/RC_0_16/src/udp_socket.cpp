@@ -303,6 +303,8 @@ void udp_socket::on_read(udp::socket* s, error_code const& e, std::size_t bytes_
 			&& e != asio::error::connection_refused
 			&& e != asio::error::connection_aborted
 			&& e != asio::error::operation_aborted
+			&& e != asio::error::network_reset
+			&& e != asio::error::network_unreachable
 #ifdef WIN32
 			// ERROR_MORE_DATA means the same thing as EMSGSIZE
 			&& e != error_code(ERROR_MORE_DATA, get_system_category())
