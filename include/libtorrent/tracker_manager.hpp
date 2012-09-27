@@ -167,7 +167,7 @@ namespace libtorrent
 		union_endpoint m_tracker_address;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		virtual void debug_log(const std::string& line) = 0;
+		virtual void debug_log(const char* fmt, ...) const = 0;
 #else
 	private:
 #endif
