@@ -244,7 +244,7 @@ set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION 1
 	VERSION 1)
 
-set (VERSION "0.16.3")
+set (VERSION "0.16.4")
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
