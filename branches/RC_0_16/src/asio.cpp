@@ -5,7 +5,7 @@
 #define BOOST_ASIO_SOURCE
 #endif
 
-#if _MSC_VER > 1310
+#if _MSC_VER > 1310 && defined TORRENT_NO_BOOST_DATE_TIME
 
 // on windows; including timer_queue.hpp results in an
 // actual link-time dependency on boost.date_time, even
@@ -15,6 +15,9 @@
 // works, at least across windows, Linux and Mac OS X.
 // In the future this hack can be fixed by disabling
 // use of boost.date_time in boost.asio
+// if TORRENT_NO_BOOST_DATE_TIME is not defined, it's
+// fine to include everything, including pulling in
+// the boost.date_time dependency via asio
 
 #include <boost/asio/detail/config.hpp>
 
