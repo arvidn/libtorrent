@@ -367,6 +367,16 @@ Build features:
 |                          |   trace of the assert and some more information.   |
 |                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
+| ``i2p``                  | * ``on`` - build with I2P support                  |
+|                          | * ``off`` - build without I2P support              |
++--------------------------+----------------------------------------------------+
+| ``boost-date-time``      | * ``off`` - don't build asio types that depend     |
+|                          |   on boost.date_time. libtorrent doesn't use them  |
+|                          |   but if the client does, you need these to be     |
+|                          |   built.                                           |
+|                          | * ``on`` - build asio types that depend on         |
+|                          |   boost.date_time.                                 |
++--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api
 
