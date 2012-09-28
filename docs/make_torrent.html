@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.0</td></tr>
+<td>0.16.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -539,6 +539,8 @@ void set_root_cert(std::string const&amp; pem);
 torrent an <em>SSL torrent</em>. An SSL torrent requires that each peer has a valid certificate
 signed by this root certificate. For SSL torrents, all peers are connecting over SSL
 connections. For more information on SSL torrents, see the <a class="reference external" href="manual.html#ssl-torrents">manual</a>.</p>
+<p>The string is not the path to the cert, it's the actual content of the certificate,
+loaded into a std::string.</p>
 </div>
 <div class="section" id="set-priv-priv">
 <h2>set_priv() priv()</h2>
