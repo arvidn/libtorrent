@@ -1122,7 +1122,7 @@ namespace libtorrent
 		if (!j.error) return;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		debug_log("disk error: (%d) %s in file: %d", j.error.value(), j.error.message().c_str()
+		debug_log("disk error: (%d) %s in file: %s", j.error.value(), j.error.message().c_str()
 			, j.error_file.c_str());
 #endif
 
