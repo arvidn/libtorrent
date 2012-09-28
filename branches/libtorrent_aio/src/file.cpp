@@ -514,7 +514,7 @@ namespace libtorrent
 		{
 			while (*p != '/'
 				&& *p != '\0'
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 				&& *p != '\\'
 #endif
 				) ++p;
@@ -568,7 +568,7 @@ namespace libtorrent
 	{
 		if (f.empty()) return false;
 
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		// match \\ form
 		if (f == "\\\\") return true;
 		int i = 0;
@@ -658,7 +658,7 @@ namespace libtorrent
 		if (f.empty()) return "";
 		char const* first = f.c_str();
 		char const* sep = strrchr(first, '/');
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
@@ -673,7 +673,7 @@ namespace libtorrent
 			{
 				--sep;
 				if (*sep == '/'
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 					|| *sep == '\\'
 #endif
 					)
@@ -692,7 +692,7 @@ namespace libtorrent
 		if (lhs.empty() || lhs == ".") return rhs;
 		if (rhs.empty() || rhs == ".") return lhs;
 
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
 		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
 #else
@@ -883,7 +883,7 @@ namespace libtorrent
 	bool is_complete(std::string const& f)
 	{
 		if (f.empty()) return false;
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		int i = 0;
 		// match the xx:\ or xx:/ form
 		while (f[i] && is_alpha(f[i])) ++i;
@@ -1150,8 +1150,11 @@ namespace libtorrent
 
 		if (mode & attribute_executable)
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
-
+#ifdef O_BINARY
+		static const int mode_array[] = {O_RDONLY | O_BINARY, O_WRONLY | O_CREAT | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
+#else
 		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
+#endif
 
 #ifdef O_NOATIME
 		static const int no_atime_flag[] = {0, O_NOATIME};

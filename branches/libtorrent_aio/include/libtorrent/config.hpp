@@ -292,6 +292,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
 
+// ==== eCS(OS/2) ===
+#elif defined __OS2__
+#define TORRENT_OS2
+#define TORRENT_HAS_FALLOCATE 0
+#define TORRENT_USE_IFCONF 1
+#define TORRENT_USE_SYSCTL 1
+#define TORRENT_USE_MLOCK 0
+#define TORRENT_USE_IPV6 0
+#define TORRENT_ICONV_ARG (const char**)
+#define TORRENT_USE_WRITEV 0
+#define TORRENT_USE_READV 0
+
 #else
 #warning unknown OS, assuming BSD
 #define TORRENT_BSD

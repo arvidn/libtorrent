@@ -223,7 +223,7 @@ namespace libtorrent
 		SET(active_downloads, 3, &session_impl::reset_auto_manage_timer),
 		SET(active_seeds, 5, &session_impl::reset_auto_manage_timer),
 		SET(active_dht_limit, 88, 0),
-		SET(active_tracker_limit, 360, 0),
+		SET(active_tracker_limit, 1600, 0),
 		SET(active_lsd_limit, 60, 0),
 		SET(active_limit, 15, &session_impl::reset_auto_manage_timer),
 		SET_NOPREV(active_loaded_limit, 0, &session_impl::reset_auto_manage_timer),
