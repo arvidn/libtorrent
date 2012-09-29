@@ -103,6 +103,8 @@ namespace libtorrent
 
 		void write_request(peer_request const& r);
 
+		virtual bool received_invalid_data(int index, bool single_peer);
+
 	private:
 
 		bool maybe_harvest_block();

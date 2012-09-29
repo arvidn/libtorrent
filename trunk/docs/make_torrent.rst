@@ -173,12 +173,29 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
+		// index accessors
 		sha1_hash const& hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
 		int file_index(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
+		std::string file_path(int index) const;
+		std::string file_name(int index) const;
+		size_type file_size(int index) const;
+		size_type file_offset(int index) const;
+
+		// iterator accessors
+		sha1_hash hash(internal_file_entry const& fe) const;
+		std::string const& symlink(internal_file_entry const& fe) const;
+		time_t mtime(internal_file_entry const& fe) const;
+		int file_index(internal_file_entry const& fe) const;
+		size_type file_base(internal_file_entry const& fe) const;
+		void set_file_base(internal_file_entry const& fe, size_type off);
+		std::string file_path(internal_file_entry const& fe) const;
+		std::string file_name(internal_file_entry const& fe) const;
+		size_type file_size(internal_file_entry const& fe) const;
+		size_type file_offset(internal_file_entry const& fe) const;
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
