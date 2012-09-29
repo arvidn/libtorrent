@@ -388,8 +388,10 @@ namespace libtorrent
 		void add_free_upload(size_type free_upload);
 
 		// trust management.
-		void received_valid_data(int index);
-		void received_invalid_data(int index);
+		virtual void received_valid_data(int index);
+		// returns false if the peer should not be
+		// disconnected
+		virtual bool received_invalid_data(int index, bool single_peer);
 
 		size_type share_diff() const;
 

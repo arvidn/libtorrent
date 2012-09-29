@@ -933,7 +933,7 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::received_invalid_data(int index)
+	bool peer_connection::received_invalid_data(int index, bool single_peer)
 	{
 		INVARIANT_CHECK;
 
@@ -946,6 +946,7 @@ namespace libtorrent
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
+		return true;
 	}
 	
 	size_type peer_connection::total_free_upload() const

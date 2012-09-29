@@ -1,3 +1,4 @@
+	* improve web seed hash failure case
 	* improve DHT lookup times
 	* uTP path MTU discovery improvements
 	* optimized the torrent creator optimizer to scale significantly better with more files

@@ -439,6 +439,12 @@ namespace libtorrent
 		return m_files[index].size;
 	}
 
+	size_type file_storage::file_offset(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_files.size()));
+		return m_files[index].offset;
+	}
+
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
@@ -496,6 +502,11 @@ namespace libtorrent
 	size_type file_storage::file_size(internal_file_entry const& fe) const
 	{
 		return fe.size;
+	}
+
+	size_type file_storage::file_offset(internal_file_entry const& fe) const
+	{
+		return fe.offset;
 	}
 
 	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)
