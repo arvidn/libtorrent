@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.0</td></tr>
+<td>0.16.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -2243,6 +2243,8 @@ struct torrent_handle
         bool operator==(torrent_handle const&amp;) const;
         bool operator!=(torrent_handle const&amp;) const;
         bool operator&lt;(torrent_handle const&amp;) const;
+
+        boost::shared_ptr&lt;torrent&gt; native_handle() const;
 };
 </pre>
 <p>The default constructor will initialize the handle to an invalid state. Which
@@ -2471,8 +2473,8 @@ void read_piece(int piece) const;
 this torrent. You must have completed the download of the specified piece before
 calling this function.</p>
 <p>When the read operation is completed, it is passed back through an alert,
-<a class="reference internal" href="#read-piece-alert">read_piece_alert</a>. In order to receive this alert, you must enable
-<tt class="docutils literal"><span class="pre">alert::storage_notification</span></tt> in your alert mask (see <a class="reference internal" href="#set-alert-mask">set_alert_mask()</a>).</p>
+<a class="reference internal" href="#read-piece-alert">read_piece_alert</a>. Since this alert is a reponse to an explicit call, it will
+always be posted, regardless of the alert mask.</p>
 <p>Note that if you read multiple pieces, the read operations are not guaranteed to
 finish in the same order as you initiated them.</p>
 </div>
@@ -3181,6 +3183,19 @@ to any peers until it has one. It's typically desirable to resume the torrent af
 ssl certificate.</p>
 <p>If you receive a <a class="reference internal" href="#torrent-need-cert-alert">torrent_need_cert_alert</a>, you need to call this to provide a valid cert. If you
 don't have a cert you won't be allowed to connect to any peers.</p>
+</div>
+<div class="section" id="native-handle">
+<h2>native_handle()</h2>
+<blockquote>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent&gt; native_handle() const;
+</pre>
+</blockquote>
+<p>This function is intended only for use by plugins and the alert dispatch function. Any code
+that runs in libtorrent's network thread may not use the public API of <tt class="docutils literal"><span class="pre">torrent_handle</span></tt>.
+Doing so results in a dead-lock. For such routines, the <tt class="docutils literal"><span class="pre">native_handle</span></tt> gives access to the
+underlying type representing the torrent. This type does not have a stable API and should
+be relied on as little as possible.</p>
 </div>
 </div>
 <div class="section" id="torrent-status">
@@ -4981,7 +4996,7 @@ and rate limits all TCP connections to their proportional share based on how man
 the connections are TCP. This works best if uTP connections are not rate limited by
 the global rate limiter (which they aren't by default).</p>
 <p><tt class="docutils literal"><span class="pre">rate_limit_utp</span></tt> determines if uTP connections should be throttled by the global rate
-limiter or not. By default they are not, since uTP manages its own rate.</p>
+limiter or not. By default they are.</p>
 <p><tt class="docutils literal"><span class="pre">listen_queue_size</span></tt> is the value passed in to listen() for the listen socket.
 It is the number of outstanding incoming connections to queue up while we're not
 actively waiting for a connection to be accepted. The default is 5 which should

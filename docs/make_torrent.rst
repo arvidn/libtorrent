@@ -3,7 +3,7 @@ creating torrents
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.1
+:Version: 0.16.4
 
 .. contents:: Table of contents
   :depth: 2
@@ -173,29 +173,12 @@ file structure. Its synopsis::
 		int piece_length() const;
 		int piece_size(int index) const;
 
-		// index accessors
 		sha1_hash const& hash(int index) const;
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
 		int file_index(int index) const;
 		size_type file_base(int index) const;
 		void set_file_base(int index, size_type off);
-		std::string file_path(int index) const;
-		std::string file_name(int index) const;
-		size_type file_size(int index) const;
-		size_type file_offset(int index) const;
-
-		// iterator accessors
-		sha1_hash hash(internal_file_entry const& fe) const;
-		std::string const& symlink(internal_file_entry const& fe) const;
-		time_t mtime(internal_file_entry const& fe) const;
-		int file_index(internal_file_entry const& fe) const;
-		size_type file_base(internal_file_entry const& fe) const;
-		void set_file_base(internal_file_entry const& fe, size_type off);
-		std::string file_path(internal_file_entry const& fe) const;
-		std::string file_name(internal_file_entry const& fe) const;
-		size_type file_size(internal_file_entry const& fe) const;
-		size_type file_offset(internal_file_entry const& fe) const;
 
 		void set_name(std::string const& n);
 		void set_name(std::wstring const& n);
@@ -285,7 +268,7 @@ The ``create_torrent`` class has the following synopsis::
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize, int alignment = 0x4000);
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 		entry generate() const;
@@ -322,7 +305,7 @@ create_torrent()
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
-			, int flags = optimize, int alignment = 0x4000);
+			, int flags = optimize);
 		create_torrent(torrent_info const& ti);
 
 The ``piece_size`` is the size of each piece in bytes. It must
@@ -378,10 +361,6 @@ calculate_file_hashes
 	the piece hashes, also calculate the file hashes and add those associated
 	with each file. Note that unless you use the `set_piece_hashes()`_ function,
 	this flag will have no effect.
-
-``alignment`` is used when pad files are enabled. This is the size eligible
-files are aligned to. The default is the default bittorrent block size of
-16 kiB. It is common to align to the piece size of the torrent.
 
 generate()
 ----------

@@ -826,10 +826,8 @@ namespace libtorrent
 		// initial timeout for uTP SYN packets
 		int utp_connect_timeout;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// number of milliseconds of delaying ACKing packets the most
 		int utp_delayed_ack;
-#endif
 
 		// set to true if the uTP socket buffer size is allowed to increase
 		// dynamically based on the NIC MTU setting. This is true by default
@@ -950,7 +948,6 @@ namespace libtorrent
 			, max_torrent_search_reply(20)
 			, restrict_routing_ips(true)
 			, restrict_search_ips(true)
-			, extended_routing_table(true)
 		{}
 		
 		// the maximum number of peers to send in a
@@ -992,11 +989,6 @@ namespace libtorrent
 		// applies the same IP restrictions on nodes
 		// received during a DHT search (traversal algorithm)
 		bool restrict_search_ips;
-
-		// if this is set, the first few buckets in the routing
-		// table are enlarged, to make room for more nodes in order
-		// to lower the look-up times
-		bool extended_routing_table;
 	};
 #endif
 

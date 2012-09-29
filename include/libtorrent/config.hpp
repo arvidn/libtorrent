@@ -72,12 +72,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined _MSC_VER || defined __MINGW32__
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
-#define PRIx64 "I64x"
 #define PRIu32 "u"
 #else
 #define PRId64 "lld"
 #define PRIu64 "llu"
-#define PRIx64 "llx"
 #define PRIu32 "u"
 #endif
 #endif
@@ -260,18 +258,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HURD
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_IFCONF 1
-
-// ==== eCS(OS/2) ===
-#elif defined __OS2__
-#define TORRENT_OS2
-#define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_IFCONF 1
-#define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_MLOCK 0
-#define TORRENT_USE_IPV6 0
-#define TORRENT_ICONV_ARG (const char**)
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
 
 #else
 #warning unknown OS, assuming BSD

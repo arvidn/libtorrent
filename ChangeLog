@@ -1,10 +1,3 @@
-	* improve web seed hash failure case
-	* improve DHT lookup times
-	* uTP path MTU discovery improvements
-	* optimized the torrent creator optimizer to scale significantly better with more files
-	* fix uTP edge case where udp socket buffer fills up
-	* fix nagle implementation in uTP
-
 0.16.4 release
 
 	* raise the default number of torrents allowed to announce to trackers to 1600

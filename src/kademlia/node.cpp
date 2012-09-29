@@ -88,17 +88,18 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
-node_impl::node_impl(alert_dispatcher* alert_disp
-	, udp_socket_interface* sock
+node_impl::node_impl(libtorrent::alert_manager& alerts
+	, bool (*f)(void*, entry&, udp::endpoint const&, int)
 	, dht_settings const& settings, node_id nid, address const& external_address
-	, dht_observer* observer)
+	, external_ip_fun ext_ip, void* userdata)
 	: m_settings(settings)
 	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
 	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, sock, observer)
+	, m_rpc(m_id, m_table, f, userdata, ext_ip)
 	, m_last_tracker_tick(time_now())
-	, m_post_alert(alert_disp)
-	, m_sock(sock)
+	, m_alerts(alerts)
+	, m_send(f)
+	, m_userdata(userdata)
 {
 	m_secret[0] = random();
 	m_secret[1] = std::rand();
@@ -193,7 +194,7 @@ int node_impl::bucket_size(int bucket)
 void node_impl::new_write_key()
 {
 	m_secret[1] = m_secret[0];
-	m_secret[0] = random();
+	m_secret[0] = std::rand();
 }
 
 void node_impl::unreachable(udp::endpoint const& ep)
@@ -209,7 +210,7 @@ void node_impl::incoming(msg const& m)
 	{
 		entry e;
 		incoming_error(e, "missing 'y' entry");
-		m_sock->send_packet(e, m.addr, 0);
+		m_send(m_userdata, e, m.addr, 0);
 		return;
 	}
 
@@ -229,7 +230,7 @@ void node_impl::incoming(msg const& m)
 			TORRENT_ASSERT(m.message.dict_find_string_value("y") == "q");
 			entry e;
 			incoming_request(m, e);
-			m_sock->send_packet(e, m.addr, 0);
+			m_send(m_userdata, e, m.addr, 0);
 			break;
 		}
 		case 'e':
@@ -397,11 +398,8 @@ void node_impl::status(session_status& s)
 void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& reply
 	, bool noseed, bool scrape) const
 {
-	if (m_post_alert)
-	{
-		alert* a = new dht_get_peers_alert(info_hash);
-		if (!m_post_alert->post_alert(a)) delete a;
-	}
+	if (m_alerts.should_post<dht_get_peers_alert>())
+		m_alerts.post_alert(dht_get_peers_alert(info_hash));
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return;
@@ -724,11 +722,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash info_hash(msg_keys[0]->string_ptr());
 
-		if (m_post_alert)
-		{
-			alert* a = new dht_announce_alert(m.addr.address(), port, info_hash);
-			if (!m_post_alert->post_alert(a)) delete a;
-		}
+		if (m_alerts.should_post<dht_announce_alert>())
+			m_alerts.post_alert(dht_announce_alert(
+				m.addr.address(), port, info_hash));
 
 		if (!verify_token(msg_keys[2]->string_value(), msg_keys[0]->string_ptr(), m.addr))
 		{
@@ -742,7 +738,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// the token was correct. That means this
 		// node is not spoofing its address. So, let
 		// the table get a chance to add it.
-		m_table.node_seen(id, m.addr, 0xffff);
+		m_table.node_seen(id, m.addr);
 
 		if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
 		{
@@ -950,7 +946,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			f = &i->second;
 		}
 
-		m_table.node_seen(id, m.addr, 0xffff);
+		m_table.node_seen(id, m.addr);
 
 		f->last_seen = time_now();
 

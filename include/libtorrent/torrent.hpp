@@ -260,20 +260,6 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool is_active_download() const
-		{
-			return (m_state == torrent_status::downloading
-				|| m_state == torrent_status::downloading_metadata)
-				&& m_allow_peers;
-		}
-
-		bool is_active_finished() const
-		{
-			return (m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding)
-				&& m_allow_peers;
-		}
-
 		bool need_save_resume_data() const
 		{
 			// save resume data every 15 minutes regardless, just to
@@ -506,10 +492,7 @@ namespace libtorrent
 		void get_suggested_pieces(std::vector<int>& s) const;
 
 		bool super_seeding() const
-		{
-			// we're not super seeding if we're not a seed
-			return m_super_seeding && is_seed();
-		}
+		{ return m_super_seeding; }
 		
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
@@ -536,8 +519,9 @@ namespace libtorrent
 		// when we get a have message, this is called for that piece
 		void peer_has(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
@@ -551,12 +535,10 @@ namespace libtorrent
 		// when we get a bitfield message, this is called for that piece
 		void peer_has(bitfield const& bits)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
-				if (bits.all_set())
-					m_picker->inc_refcount_all();
-				else
-					m_picker->inc_refcount(bits);
+				TORRENT_ASSERT(!is_seed());
+				m_picker->inc_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -568,26 +550,10 @@ namespace libtorrent
 
 		void peer_has_all()
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->inc_refcount_all();
-			}
-#ifdef TORRENT_DEBUG
-			else
-			{
-				TORRENT_ASSERT(is_seed());
-			}
-#endif
-		}
-
-		void peer_lost(bitfield const& bits)
-		{
-			if (has_picker())
-			{
-				if (bits.all_set())
-					m_picker->dec_refcount_all();
-				else
-					m_picker->dec_refcount(bits);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -599,8 +565,9 @@ namespace libtorrent
 
 		void peer_lost(int index)
 		{
-			if (has_picker())
+			if (m_picker.get())
 			{
+				TORRENT_ASSERT(!is_seed());
 				m_picker->dec_refcount(index);
 			}
 #ifdef TORRENT_DEBUG
@@ -770,14 +737,14 @@ namespace libtorrent
 		void set_peer_upload_limit(tcp::endpoint ip, int limit);
 		void set_peer_download_limit(tcp::endpoint ip, int limit);
 
-		void set_upload_limit(int limit, bool state_update = true);
+		void set_upload_limit(int limit);
 		int upload_limit() const;
-		void set_download_limit(int limit, bool state_update = true);
+		void set_download_limit(int limit);
 		int download_limit() const;
 
-		void set_max_uploads(int limit, bool state_update = true);
+		void set_max_uploads(int limit);
 		int max_uploads() const { return m_max_uploads; }
-		void set_max_connections(int limit, bool state_update = true);
+		void set_max_connections(int limit);
 		int max_connections() const { return m_max_connections; }
 
 		void move_storage(std::string const& save_path);
@@ -1091,14 +1058,8 @@ namespace libtorrent
 		// completed, m_completed_time is 0
 		time_t m_added_time;
 		time_t m_completed_time;
-		time_t m_last_saved_resume;
-
-		// this was the last time _we_ saw a seed in this swarm
 		time_t m_last_seen_complete;
-
-		// this is the time last any of our peers saw a seed
-		// in this swarm
-		time_t m_swarm_last_seen_complete;
+		time_t m_last_saved_resume;
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
