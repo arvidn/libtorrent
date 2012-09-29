@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import os
 import sys
+import glob
 
 version = (int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
 
@@ -34,14 +35,8 @@ def substitute_file(name):
 substitute_file('include/libtorrent/version.hpp')
 substitute_file('CMakeLists.txt')
 substitute_file('configure.ac')
-substitute_file('docs/manual.rst')
-substitute_file('docs/building.rst')
-substitute_file('docs/features.rst')
-substitute_file('docs/contributing.rst')
-substitute_file('docs/utp.rst')
-substitute_file('docs/make_torrent.rst')
-substitute_file('docs/tuning.rst')
-substitute_file('docs/hacking.rst')
+for i in glob.glob('docs/*.rst'):
+	substitute_file(i)
 substitute_file('Jamfile')
 
 
