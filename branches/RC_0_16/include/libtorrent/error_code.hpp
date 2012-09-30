@@ -387,17 +387,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const throw()
-		{
-			if (!m_msg)
-			{
-				std::string msg = m_error.message();
-				m_msg = allocate_string_copy(msg.c_str());
-			}
-
-			return m_msg;
-		}
-		virtual ~libtorrent_exception() throw() { free(m_msg); }
+		virtual ~libtorrent_exception() throw();
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
