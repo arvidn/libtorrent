@@ -387,6 +387,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
+		virtual const char* what() const throw();
 		virtual ~libtorrent_exception() throw();
 		error_code error() const { return m_error; }
 	private:
