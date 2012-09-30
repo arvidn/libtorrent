@@ -4330,6 +4330,9 @@ namespace aux {
 		if (m_settings.smooth_connects && max_connections > (limit+1) / 2)
 			max_connections = (limit+1) / 2;
 
+		// TODO: use a lower limit than m_settings.connections_limit
+		// to allocate the to 10% or so of connection slots for incoming
+		// connections
 		if (!m_torrents.empty()
 			&& free_slots > -m_half_open.limit()
 			&& num_connections() < m_settings.connections_limit
