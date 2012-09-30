@@ -2849,8 +2849,7 @@ namespace libtorrent
 		for (std::vector<file_slice>::iterator i = files.begin()
 			, end(files.end()); i != end; ++i)
 		{
-			file_entry const& fe = fs.at(i->file_index);
-			if (fe.pad_file) continue;
+			if (fs.pad_file_at(i->file_index)) continue;
 			ret += i->size;
 		}
 		TORRENT_ASSERT(ret <= (std::min)(piece_size - offset, int(block_size())));
@@ -3176,11 +3175,11 @@ namespace libtorrent
 			m_file_progress[file_index] += add;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
-				<= m_torrent_file->files().at(file_index).size);
+				<= m_torrent_file->files().file_size(file_index));
 
-			if (m_file_progress[file_index] >= m_torrent_file->files().at(file_index).size)
+			if (m_file_progress[file_index] >= m_torrent_file->files().file_size(file_index))
 			{
-				if (!m_torrent_file->files().at(file_index).pad_file)
+				if (!m_torrent_file->files().pad_file_at(file_index))
 				{
 					// don't finalize files if we discover that they exist
 					// in whole (i.e. while checking). In that case, just assume
@@ -4181,7 +4180,7 @@ namespace libtorrent
 			for (int i = 0; i < (int)bitmask.size(); ++i)
 			{
 				size_type start = position;
-				position += m_torrent_file->files().at(i).size;
+				position += m_torrent_file->files().file_size(i);
 				// is the file selected for download?
 				if (!bitmask[i])
 				{           
@@ -6597,7 +6596,7 @@ namespace libtorrent
 			, end(m_file_progress.end()); i != end; ++i)
 		{
 			int index = i - m_file_progress.begin();
-			TORRENT_ASSERT(*i <= m_torrent_file->files().at(index).size);
+			TORRENT_ASSERT(*i <= m_torrent_file->files().file_size(index));
 		}
 	}
 #endif
