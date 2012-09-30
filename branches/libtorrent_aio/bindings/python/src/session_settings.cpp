@@ -203,6 +203,7 @@ void bind_session_settings()
         .value("socks5_pw", proxy_settings::socks5_pw)
         .value("http", proxy_settings::http)
         .value("http_pw", proxy_settings::http_pw)
+        .value("i2p_proxy", proxy_settings::i2p_proxy)
     ;
 
     class_<proxy_settings>("proxy_settings")
@@ -211,6 +212,8 @@ void bind_session_settings()
         .def_readwrite("password", &proxy_settings::password)
         .def_readwrite("username", &proxy_settings::username)
         .def_readwrite("type", &proxy_settings::type)
+        .def_readwrite("proxy_peer_connections", &proxy_settings::proxy_peer_connections)
+        .def_readwrite("proxy_hostnames", &proxy_settings::proxy_hostnames)
     ;
 
 #ifndef TORRENT_DISABLE_DHT

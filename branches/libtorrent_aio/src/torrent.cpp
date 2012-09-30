@@ -3755,16 +3755,24 @@ namespace libtorrent
 		// this way they have a chance to hit the cache
 		if (m_storage) m_ses.m_disk_thread.clear_piece(m_storage.get(), index);
 
+		// did we receive this piece from a single peer?
+		bool single_peer = peers.size() == 1;
+
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)
 		{
 			policy::peer* p = static_cast<policy::peer*>(*i);
 			if (p == 0) continue;
 			TORRENT_ASSERT(p->in_use);
+			bool allow_disconnect = true;
 			if (p->connection)
 			{
 				TORRENT_ASSERT(p->connection->m_in_use == 1337);
-				p->connection->received_invalid_data(index);
+
+				// the peer implementation can ask not to be disconnected.
+				// this is used for web seeds for instance, to instead of
+				// disconnecting, mark the file as not being haved.
+				allow_disconnect = p->connection->received_invalid_data(index, single_peer);
 			}
 
 			if (m_ses.settings().get_bool(settings_pack::use_parole_mode))
@@ -3784,8 +3792,10 @@ namespace libtorrent
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
+			// if we have failed more than 3 pieces from this peer,
+			// don't trust it regardless.
 			if (p->trust_points <= -7
-				|| peers.size() == 1)
+				|| (single_peer && allow_disconnect))
 			{
 				// we don't trust this peer anymore
 				// ban it.

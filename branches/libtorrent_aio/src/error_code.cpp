@@ -298,5 +298,23 @@ namespace libtorrent
 	}
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
+	const char* libtorrent_exception::what() const throw()
+	{
+		if (!m_msg)
+		{
+			std::string msg = m_error.message();
+			m_msg = allocate_string_copy(msg.c_str());
+		}
+
+		return m_msg;
+	}
+
+	libtorrent_exception::~libtorrent_exception() throw()
+	{
+		free(m_msg);
+	}
+#endif
+
 }
 

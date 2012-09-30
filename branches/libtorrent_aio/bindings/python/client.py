@@ -159,9 +159,6 @@ def main():
     parser.add_option('-p', '--port', 
         type='int', help='set listening port')
 
-    parser.add_option('-r', '--ratio', 
-        type='float', help='set the preferred upload/download ratio. 0 means infinite. Values smaller than 1 are clamped to 1')
-
     parser.add_option('-d', '--max-download-rate', 
         type='float', help='the maximum download rate given in kB/s. 0 means infinite.')
 
@@ -174,13 +171,16 @@ def main():
     parser.add_option('-a', '--allocation-mode', 
         type='string', help='sets mode used for allocating the downloaded files on disk. Possible options are [full | compact]')
 
+    parser.add_option('-r', '--proxy-host', 
+        type='string', help='sets HTTP proxy host and port (separated by \':\')')
+
     parser.set_defaults(
         port=6881
-      , ratio=0
       , max_download_rate=0
       , max_upload_rate=0
       , save_path='./'
       , allocation_mode='compact'
+      , proxy_host=''
     )
 
     (options, args) = parser.parse_args()
@@ -207,6 +207,13 @@ def main():
     ses.listen_on(options.port, options.port + 10)
     ses.set_settings(settings)
     ses.set_alert_mask(0xfffffff)
+
+    if options.proxy_host != '':
+        ps = lt.proxy_settings()
+        ps.type = lt.proxy_type.http
+        ps.hostname = options.proxy_host.split(':')[0]
+        ps.port = int(options.proxy_host.split(':')[1])
+        ses.set_proxy(ps)
 
     handles = []
     alerts = []
@@ -235,7 +242,6 @@ def main():
 
         h.set_max_connections(60)
         h.set_max_uploads(-1)
-        h.set_ratio(options.ratio)
 
     if os.name == 'nt':
         console = WindowsConsole()
@@ -276,7 +282,6 @@ def main():
                 % (add_suffix(s.download_rate), add_suffix(s.total_download))
             out += 'upload: %s/s (%s) ' \
                 % (add_suffix(s.upload_rate), add_suffix(s.total_upload))
-            out += 'ratio: %s\n' % '0'
 
             if s.state != lt.torrent_status.seeding:
                 out += 'info-hash: %s\n' % h.info_hash()

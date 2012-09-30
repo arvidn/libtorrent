@@ -397,8 +397,10 @@ namespace libtorrent
 		void reset_upload_quota();
 
 		// trust management.
-		void received_valid_data(int index);
-		void received_invalid_data(int index);
+		virtual void received_valid_data(int index);
+		// returns false if the peer should not be
+		// disconnected
+		virtual bool received_invalid_data(int index, bool single_peer);
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote

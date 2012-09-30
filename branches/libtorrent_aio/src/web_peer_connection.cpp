@@ -327,6 +327,51 @@ namespace libtorrent
 		return true;
 	}
 
+	bool web_peer_connection::received_invalid_data(int index, bool single_peer)
+	{
+		if (!single_peer) return peer_connection::received_invalid_data(index, single_peer);
+
+		// when a web seed fails a hash check, do the following:
+		// 1. if the whole piece only overlaps a single file, mark that file as not
+		//    have for this peer
+		// 2. if the piece overlaps more than one file, mark the piece as not have
+		//    for this peer
+		// 3. if it's a single file torrent, just ban it right away
+		// this handles the case where web seeds may have some files updated but not other
+
+		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		file_storage const& fs = t->torrent_file().files();
+
+		// single file torrent
+		if (fs.num_files() == 1) return peer_connection::received_invalid_data(index, single_peer);
+
+		std::vector<file_slice> files = fs.map_block(index, 0, fs.piece_size(index));
+
+		if (files.size() == 1)
+		{
+			// assume the web seed has a different copy of this specific file
+			// than what we expect, and pretend not to have it.
+			int fi = files[0].file_index;
+			int first_piece = fs.file_offset(fi) / fs.piece_length();
+			// one past last piece
+			int end_piece = (fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length();
+			for (int i = first_piece; i < end_piece; ++i)
+				incoming_dont_have(i);
+		}
+		else
+		{
+			incoming_dont_have(index);
+		}
+
+		peer_connection::received_invalid_data(index, single_peer);
+
+		// if we don't think we have any of the files, allow banning the web seed
+		if (num_have_pieces() == 0) return true;
+
+		// don't disconnect, we won't request anything from this file again
+		return false;
+	}
+
 	void web_peer_connection::on_receive(error_code const& error
 		, std::size_t bytes_transferred)
 	{

@@ -4656,11 +4656,15 @@ namespace aux {
 			}
 		}
 
+		// TODO: use a lower limit than m_settings.connections_limit
+		// to allocate the to 10% or so of connection slots for incoming
+		// connections
+		int limit = (std::min)(m_settings.get_int(settings_pack::connections_limit)
+			- num_connections(), free_slots);
+
 		// this logic is here to smooth out the number of new connection
 		// attempts over time, to prevent connecting a large number of
 		// sockets, wait 10 seconds, and then try again
-		int limit = (std::min)(m_settings.get_int(settings_pack::connections_limit)
-			- num_connections(), free_slots);
 		if (m_settings.get_bool(settings_pack::smooth_connects) && max_connections > (limit+1) / 2)
 			max_connections = (limit+1) / 2;
 

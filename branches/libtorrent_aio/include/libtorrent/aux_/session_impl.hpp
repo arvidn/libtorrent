@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <stdarg.h> // for va_start, va_end
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"

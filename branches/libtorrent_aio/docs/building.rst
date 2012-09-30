@@ -3,7 +3,7 @@ libtorrent manual
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.1
+:Version: 0.16.4
 
 .. contents:: Table of contents
   :depth: 2
@@ -367,16 +367,15 @@ Build features:
 |                          |   trace of the assert and some more information.   |
 |                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
-| ``io``                   | * ``auto`` - auto detect the disk I/O API to use   |
-|                          | * ``overlapped`` - use windows overlapped I/O      |
-|                          | * ``iosubmit`` - use linux io_submit()             |
-|                          | * ``aio`` - use posix AIO                          |
-|                          | * ``sync`` - use synchronous disk I/O (portable)   |
-|                          | * ``iosubmit-vec`` - use io_submit() with the      |
-|                          |   vector read and write operations. This is not    |
-|                          |   supported by the mainline linux kernel, but      |
-|                          |   in Red Hat Enterprise Linux and as kernel        |
-|                          |   patches.                                         |
+| ``i2p``                  | * ``on`` - build with I2P support                  |
+|                          | * ``off`` - build without I2P support              |
++--------------------------+----------------------------------------------------+
+| ``boost-date-time``      | * ``off`` - don't build asio types that depend     |
+|                          |   on boost.date_time. libtorrent doesn't use them  |
+|                          |   but if the client does, you need these to be     |
+|                          |   built.                                           |
+|                          | * ``on`` - build asio types that depend on         |
+|                          |   boost.date_time.                                 |
 +--------------------------+----------------------------------------------------+
 
 .. _MaxMind: http://www.maxmind.com/app/api

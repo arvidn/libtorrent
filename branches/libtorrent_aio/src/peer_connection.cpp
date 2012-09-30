@@ -1065,7 +1065,7 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::received_invalid_data(int index)
+	bool peer_connection::received_invalid_data(int index, bool single_peer)
 	{
 		INVARIANT_CHECK;
 
@@ -1078,6 +1078,7 @@ namespace libtorrent
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
+		return true;
 	}
 
 	// verifies a piece to see if it is valid (is within a valid range)
