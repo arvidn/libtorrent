@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <string>
+#include <cstring>
 #include "libtorrent/file.hpp"
 
 using namespace libtorrent;
