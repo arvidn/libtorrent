@@ -132,6 +132,26 @@ namespace libtorrent
 			, settings.tracker_receive_timeout);
 	}
 
+	void udp_tracker_connection::fail(error_code const& ec, int code
+		, char const* msg, int interval, int min_interval)
+	{
+		// m_target failed. remove it from the endpoint list
+		std::list<tcp::endpoint>::iterator i = std::find(m_endpoints.begin()
+			, m_endpoints.end(), tcp::endpoint(m_target.address(), m_target.port()));
+
+		if (i != m_endpoints.end()) m_endpoints.erase(i);
+
+		// if that was the last one, fail the whole announce
+		if (m_endpoints.empty())
+			tracker_connection::fail(ec, code, msg, interval, min_interval);
+
+		// pick another target endpoint and try again
+		m_target = pick_target_endpoint();
+
+		m_ses.m_io_service.post(boost::bind(
+			&udp_tracker_connection::start_announce, self()));
+	}
+
 	void udp_tracker_connection::name_lookup(error_code const& error
 		, tcp::resolver::iterator i)
 	{
@@ -191,8 +211,17 @@ namespace libtorrent
 			return;
 		}
 		
-		std::list<tcp::endpoint>::iterator iter = m_endpoints.begin();
-		m_target = udp::endpoint(iter->address(), iter->port());
+		m_target = pick_target_endpoint();
+
+		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
+
+		start_announce();
+	}
+
+	udp::endpoint udp_tracker_connection::pick_target_endpoint() const
+	{
+		std::list<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
+		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
 
 		if (bind_interface() != address_v4::any())
 		{
@@ -202,10 +231,11 @@ namespace libtorrent
 
 			if (iter == m_endpoints.end())
 			{
-				TORRENT_ASSERT(m_target.address().is_v4() != bind_interface().is_v4());
+				TORRENT_ASSERT(target.address().is_v4() != bind_interface().is_v4());
+				boost::shared_ptr<request_callback> cb = requester();
 				if (cb)
 				{
-					char const* tracker_address_type = m_target.address().is_v4() ? "IPv4" : "IPv6";
+					char const* tracker_address_type = target.address().is_v4() ? "IPv4" : "IPv6";
 					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
 					char msg[200];
 					snprintf(msg, sizeof(msg)
@@ -219,13 +249,11 @@ namespace libtorrent
 			}
 			else
 			{
-				m_target = udp::endpoint(iter->address(), iter->port());
+				target = udp::endpoint(iter->address(), iter->port());
 			}
 		}
 
-		if (cb) cb->m_tracker_address = tcp::endpoint(m_target.address(), m_target.port());
-
-		start_announce();
+		return target;
 	}
 
 	void udp_tracker_connection::start_announce()
