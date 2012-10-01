@@ -108,11 +108,17 @@ namespace libtorrent
 		bool on_announce_response(char const* buf, int size);
 		bool on_scrape_response(char const* buf, int size);
 
+		// wraps tracker_connection::fail
+		void fail(error_code const& ec, int code = -1
+			, char const* msg = "", int interval = 0, int min_interval = 0);
+
 		void send_udp_connect();
 		void send_udp_announce();
 		void send_udp_scrape();
 
 		virtual void on_timeout(error_code const& ec);
+
+		udp::endpoint pick_target_endpoint() const;
 
 //		tracker_manager& m_man;
 
