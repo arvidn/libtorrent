@@ -143,11 +143,24 @@ namespace libtorrent
 
 		// if that was the last one, fail the whole announce
 		if (m_endpoints.empty())
+		{
 			tracker_connection::fail(ec, code, msg, interval, min_interval);
+			return;
+		}
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		boost::shared_ptr<request_callback> cb = requester();
+		if (cb) cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
+			, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
+#endif
 
 		// pick another target endpoint and try again
 		m_target = pick_target_endpoint();
 
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
+			, m_hostname.c_str(), print_endpoint(m_target).c_str());
+#endif
 		m_ses.m_io_service.post(boost::bind(
 			&udp_tracker_connection::start_announce, self()));
 	}
