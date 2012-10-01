@@ -156,7 +156,7 @@ namespace libtorrent
 		, m_req(req)
 	{}
 
-	boost::shared_ptr<request_callback> tracker_connection::requester()
+	boost::shared_ptr<request_callback> tracker_connection::requester() const
 	{
 		return m_requester.lock();
 	}

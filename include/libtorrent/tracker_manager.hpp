@@ -224,7 +224,7 @@ namespace libtorrent
 			, io_service& ios
 			, boost::weak_ptr<request_callback> r);
 
-		boost::shared_ptr<request_callback> requester();
+		boost::shared_ptr<request_callback> requester() const;
 		virtual ~tracker_connection() {}
 
 		tracker_request const& tracker_req() const { return m_req; }
