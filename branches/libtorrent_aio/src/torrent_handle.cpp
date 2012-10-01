@@ -808,39 +808,38 @@ namespace libtorrent
 		return r;
 	}
 
-	// TODO: this function should either be removed, or return
-	// reference counted handle to the torrent_info which
-	// forces the torrent to stay loaded while the client holds it
-	torrent_info const& torrent_handle::get_torrent_info() const
-	{
-		INVARIANT_CHECK;
-#ifdef BOOST_NO_EXCEPTIONS
-		const static torrent_info empty(sha1_hash(0));
-#endif
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-#ifdef BOOST_NO_EXCEPTIONS
-			return empty;
-#else
-			throw_invalid_handle();
-#endif
-//		mutex::scoped_lock l(t->session().m_mutex);
-		if (!t->valid_metadata())
-#ifdef BOOST_NO_EXCEPTIONS
-			return empty;
-#else
-			throw_invalid_handle();
-#endif
-		return t->torrent_file();
-	}
-
 	bool torrent_handle::is_valid() const
 	{
 		INVARIANT_CHECK;
 		return !m_torrent.expired();
 	}
 
+	boost::intrusive_ptr<torrent_info> torrent_handle::torrent_file() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<torrent_info>(), get_torrent_copy);
+		return r;
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
+	// this function should either be removed, or return
+	// reference counted handle to the torrent_info which
+	// forces the torrent to stay loaded while the client holds it
+	torrent_info const& torrent_handle::get_torrent_info() const
+	{
+		INVARIANT_CHECK;
+		static boost::intrusive_ptr<torrent_info> holder[4];
+		static int cursor = 0;
+		static mutex holder_mutex;
+
+		boost::intrusive_ptr<torrent_info> r = torrent_file();
+
+		mutex::scoped_lock l(holder_mutex);
+		holder[++cursor] = r;
+		cursor = cursor % (sizeof(holder) / sizeof(holder[0]));
+		return *r;
+	}
+
 	entry torrent_handle::write_resume_data() const
 	{
 		INVARIANT_CHECK;

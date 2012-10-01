@@ -5819,6 +5819,14 @@ namespace libtorrent
 			}
 		}
 	}
+
+	boost::intrusive_ptr<torrent_info> torrent::get_torrent_copy()
+	{
+		if (!need_loaded()) return boost::intrusive_ptr<torrent_info>();
+
+		// copy the torrent_info object
+		return boost::intrusive_ptr<torrent_info>(new torrent_info(*m_torrent_file));
+	}
 	
 	void torrent::write_resume_data(entry& ret) const
 	{
@@ -8912,6 +8920,8 @@ namespace libtorrent
 		int num_files = m_torrent_file->num_files();
 		if (m_file_progress.empty())
 		{
+			if (!need_loaded()) return;
+
 			// This is the first time the client asks for file progress.
 			// allocate it and make sure it's up to date
 			m_file_progress.resize(num_files, 0);
@@ -8975,7 +8985,6 @@ namespace libtorrent
 
 		if (!q.empty())
 		{
-			// TODO: it sure would be nice to not need to load the torrent here
 			if (!const_cast<torrent&>(*this).need_loaded()) return;
 		}
 

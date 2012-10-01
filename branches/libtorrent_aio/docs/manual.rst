@@ -2646,7 +2646,7 @@ Its declaration looks like this::
 		void file_status(std::vector<pool_file_status>& status);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-		torrent_info const& get_torrent_info() const;
+		boost::intrusive_ptr<torrent_info> torrent_file() const;
 		bool is_valid() const;
 
 		std::string name() const;
@@ -3628,7 +3628,7 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		std::ofstream out((h.save_path() + "/" + h.get_torrent_info().name() + ".fastresume").c_str()
+		std::ofstream out((h.save_path() + "/" + h.torrent_file()->name() + ".fastresume").c_str()
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
@@ -3771,18 +3771,18 @@ torrent_handle_ is invalid, it will throw libtorrent_exception_ exception. Each 
 the vector contains information about that particular peer. See peer_info_.
 
 
-get_torrent_info()
-------------------
+torrent_file()
+--------------
 
 	::
 
-		torrent_info const& get_torrent_info() const;
+		boost::intrusive_ptr<torrent_info> torrent_file() const;
 
-Returns a const reference to the torrent_info_ object associated with this torrent.
-This reference is valid as long as the torrent_handle_ is valid, no longer. If the
-torrent_handle_ is invalid or if it doesn't have any metadata, libtorrent_exception_
-exception will be thrown. The torrent may be in a state without metadata only if
-it was started without a .torrent file, i.e. by using the libtorrent extension of
+Returns a pointer to the torrent_info_ object associated with this torrent. The
+``torrent_info`` object is a copy of the internal object. If the torrent doesn't
+have metadata, the object being returned will not be fully filled in.
+The torrent may be in a state without metadata only if
+it was started without a .torrent file, e.g. by using the libtorrent extension of
 just supplying a tracker and info-hash.
 
 
@@ -4050,8 +4050,7 @@ yet. Torrents are loaded on demand.
 ``has_metadata`` is true if this torrent has metadata (either it was started from a
 .torrent file or the metadata has been downloaded). The only scenario where this can be
 false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip, a magnet link for instance). Note that if the torrent doesn't have metadata, the member
-`get_torrent_info()`_ will throw.
+ip, a magnet link for instance).
 
 ``error`` may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
@@ -6546,12 +6545,12 @@ code to do that::
 
 	torrent_handle h = alert->handle();
 	if (h.is_valid()) {
-		torrent_info const& ti = h.get_torrent_info();
-		create_torrent ct(ti);
+		boost::intrusive_ptr<torrent_info const> ti = h.torrent_file();
+		create_torrent ct(*ti);
 		entry te = ct.generate();
 		std::vector<char> buffer;
 		bencode(std::back_inserter(buffer), te);
-		FILE* f = fopen((to_hex(ti.info_hash().to_string()) + ".torrent").c_str(), "w+");
+		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "w+");
 		if (f) {
 			fwrite(&buffer[0], 1, buffer.size(), f);
 			fclose(f);
@@ -6981,7 +6980,7 @@ Examples usage::
 			// write fast resume data
 			// ...
 
-			std::cout << a.handle.get_torrent_info().name() << "completed"
+			std::cout << a.handle.torrent_file()->name() << "completed"
 				<< std::endl;
 		}
 	};

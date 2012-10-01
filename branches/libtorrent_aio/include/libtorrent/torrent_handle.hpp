@@ -238,7 +238,7 @@ namespace libtorrent
 #endif
 
 		bool set_metadata(char const* metadata, int size) const;
-		const torrent_info& get_torrent_info() const;
+
 		bool is_valid() const;
 
 		enum pause_flags_t { graceful_pause = 1 };
@@ -276,12 +276,16 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() const;
 
-		// all these are deprecated, use piece
-		// priority functions instead
+		boost::intrusive_ptr<torrent_info> torrent_file() const;
+
+#ifndef TORRENT_NO_DEPRECATE
 
 		// ================ start deprecation ============
 
-#ifndef TORRENT_NO_DEPRECATE
+		// use torrent_file() instead
+		TORRENT_DEPRECATED_PREFIX
+		const torrent_info& get_torrent_info() const TORRENT_DEPRECATED;
+
 		// deprecated in 0.16, feature will be removed
 		TORRENT_DEPRECATED_PREFIX
 		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
@@ -313,6 +317,8 @@ namespace libtorrent
 		bool super_seeding() const TORRENT_DEPRECATED;
 
 		// deprecated in 0.13
+		// all these are deprecated, use piece
+		// priority functions instead
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		TORRENT_DEPRECATED_PREFIX
@@ -328,6 +334,16 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
 
+		// set the interface to bind outgoing connections
+		// to.
+		TORRENT_DEPRECATED_PREFIX
+		void use_interface(const char* net_interface) const TORRENT_DEPRECATED;
+
+		// deprecated in 0.14
+		// use save_resume_data() instead. It is async. and
+		// will return the resume data in an alert
+		TORRENT_DEPRECATED_PREFIX
+		entry write_resume_data() const TORRENT_DEPRECATED;
 		// ================ end deprecation ============
 #endif
 
@@ -347,19 +363,6 @@ namespace libtorrent
 
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// set the interface to bind outgoing connections
-		// to.
-		TORRENT_DEPRECATED_PREFIX
-		void use_interface(const char* net_interface) const TORRENT_DEPRECATED;
-
-		// deprecated in 0.14
-		// use save_resume_data() instead. It is async. and
-		// will return the resume data in an alert
-		TORRENT_DEPRECATED_PREFIX
-		entry write_resume_data() const TORRENT_DEPRECATED;
-#endif
 
 		// forces this torrent to reannounce
 		// (make a rerequest from the tracker)
