@@ -5185,6 +5185,12 @@ namespace libtorrent
 			}
 		}
 	}
+
+	boost::intrusive_ptr<torrent_info> torrent::get_torrent_copy()
+	{
+		// copy the torrent_info object
+		return boost::intrusive_ptr<torrent_info>(new torrent_info(*m_torrent_file));
+	}
 	
 	void torrent::write_resume_data(entry& ret) const
 	{
@@ -8197,7 +8203,7 @@ namespace libtorrent
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
 			peer_request ret = m_torrent_file->files().map_file(i, 0, 0);
-			size_type size = m_torrent_file->files().at(i).size;
+			size_type size = m_torrent_file->files().file_size(i);
 
 // zero sized files are considered
 // 100% done all the time

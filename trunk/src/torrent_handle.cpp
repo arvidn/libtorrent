@@ -825,6 +825,23 @@ namespace libtorrent
 		return r;
 	}
 
+	bool torrent_handle::is_valid() const
+	{
+		INVARIANT_CHECK;
+		return !m_torrent.expired();
+	}
+
+	boost::intrusive_ptr<torrent_info> torrent_handle::torrent_file() const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<torrent_info>(), get_torrent_copy);
+		return r;
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	// this function should either be removed, or return
+	// reference counted handle to the torrent_info which
+	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
@@ -838,7 +855,6 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-//		mutex::scoped_lock l(t->session().m_mutex);
 		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
@@ -848,13 +864,6 @@ namespace libtorrent
 		return t->torrent_file();
 	}
 
-	bool torrent_handle::is_valid() const
-	{
-		INVARIANT_CHECK;
-		return !m_torrent.expired();
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
 	entry torrent_handle::write_resume_data() const
 	{
 		INVARIANT_CHECK;
