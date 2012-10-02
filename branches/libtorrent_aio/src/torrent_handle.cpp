@@ -835,7 +835,7 @@ namespace libtorrent
 		boost::intrusive_ptr<torrent_info> r = torrent_file();
 
 		mutex::scoped_lock l(holder_mutex);
-		holder[++cursor] = r;
+		holder[cursor++] = r;
 		cursor = cursor % (sizeof(holder) / sizeof(holder[0]));
 		return *r;
 	}
