@@ -721,6 +721,8 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
+		boost::intrusive_ptr<torrent_info> get_torrent_copy();
+
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
 		std::string const& url() const { return m_url; }

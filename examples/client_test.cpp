@@ -884,6 +884,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
+	boost::intrusive_ptr<torrent_info> ti;
+
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
 		// if we have a monitor dir, save the .torrent file we just received in it
@@ -891,12 +893,12 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// to keep the scan dir logic in sync so it's not removed, or added twice
 		torrent_handle h = p->handle;
 		if (h.is_valid()) {
-			torrent_info const& ti = h.get_torrent_info();
-			create_torrent ct(ti);
+			if (!ti) ti = h.torrent_file();
+			create_torrent ct(*ti);
 			entry te = ct.generate();
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), te);
-			std::string filename = ti.name() + "." + to_hex(ti.info_hash().to_string()) + ".torrent";
+			std::string filename = ti->name() + "." + to_hex(ti->info_hash().to_string()) + ".torrent";
 			filename = combine_path(monitor_dir, filename);
 			save_file(filename, buffer);
 
@@ -930,7 +932,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			h.set_max_uploads(-1);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
+#ifndef TORRENT_NO_DEPRECATE
 			h.use_interface(outgoing_interface.c_str());
+#endif
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			h.resolve_countries(true);
 #endif
@@ -2273,15 +2277,15 @@ int main(int argc, char* argv[])
 			{
 				std::vector<size_type> file_progress;
 				h.file_progress(file_progress);
-				torrent_info const& info = h.get_torrent_info();
-				for (int i = 0; i < info.num_files(); ++i)
+				boost::intrusive_ptr<torrent_info> ti = h.torrent_file();
+				for (int i = 0; i < ti->num_files(); ++i)
 				{
-					bool pad_file = info.file_at(i).pad_file;
+					bool pad_file = ti->file_at(i).pad_file;
 					if (!show_pad_files && pad_file) continue;
-					int progress = info.file_at(i).size > 0
-						?file_progress[i] * 1000 / info.file_at(i).size:1000;
+					int progress = ti->file_at(i).size > 0
+						?file_progress[i] * 1000 / ti->file_at(i).size:1000;
 
-					char const* color = (file_progress[i] == info.file_at(i).size)
+					char const* color = (file_progress[i] == ti->file_at(i).size)
 						?"32":"33";
 
 					snprintf(str, sizeof(str), "%s %s %-5.2f%% %s %s%s\n",
@@ -2289,7 +2293,7 @@ int main(int argc, char* argv[])
 						, pad_file?esc("34"):""
 						, progress / 10.f
 						, add_suffix(file_progress[i]).c_str()
-						, filename(info.files().file_path(info.file_at(i))).c_str()
+						, ti->files().file_name(i).c_str()
 						, pad_file?esc("0"):"");
 					out += str;
 				}
