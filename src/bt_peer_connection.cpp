@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003 - 2006, Arvid Norberg
-Copyright (c) 2007, Arvid Norberg, Un Shyam
+Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2007-2012, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

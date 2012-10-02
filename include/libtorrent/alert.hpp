@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
