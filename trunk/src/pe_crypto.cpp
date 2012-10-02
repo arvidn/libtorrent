@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007, Un Shyam & Arvid Norberg
+Copyright (c) 2007-2012, Un Shyam & Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
