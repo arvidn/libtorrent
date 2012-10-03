@@ -77,6 +77,7 @@ void print_usage()
 		"-t url      adds the specified tracker to the\n"
 		"            torrent. For multiple trackers, specify more\n"
 		"            -t options\n"
+		"-c comment  sets the comment to the specified string\n"
 		"-C creator  sets the created-by field to the specified string\n"
 		"-p bytes    enables padding files. Files larger\n"
 		"            than bytes will be piece-aligned\n"
@@ -88,7 +89,7 @@ void print_usage()
 		"            If this is not specified, the torrent file is\n"
 		"            printed to the standard out, except on windows\n"
 		"            where the filename defaults to a.torrent\n"
-		"-c file     add root certificate to the torrent, to verify\n"
+		"-r file     add root certificate to the torrent, to verify\n"
 		"            the HTTPS tracker\n"
 		, stderr);
 }
@@ -98,6 +99,7 @@ int main(int argc, char* argv[])
 	using namespace libtorrent;
 
 	std::string creator_str = "libtorrent";
+	std::string comment_str;
 
 	if (argc < 2)
 	{
@@ -172,6 +174,10 @@ int main(int argc, char* argv[])
 					break;
 				case 'c':
 					++i;
+					comment_str = argv[i];
+					break;
+				case 'r':
+					++i;
 					root_cert = argv[i];
 					break;
 				default:
@@ -212,6 +218,8 @@ int main(int argc, char* argv[])
 
 		fprintf(stderr, "\n");
 		t.set_creator(creator_str.c_str());
+		if (!comment_str.empty())
+			t.set_comment(comment_str.c_str());
 
 		if (!root_cert.empty())
 		{
