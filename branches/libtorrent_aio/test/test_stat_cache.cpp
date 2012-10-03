@@ -63,5 +63,6 @@ int test_main()
 	sc.set_cache(3, 101, 5555);
 	TEST_CHECK(sc.get_filesize(3) == 101);
 	TEST_CHECK(sc.get_filetime(3) == 5555);
+	return 0;
 }
 
