@@ -75,7 +75,9 @@ void print_usage()
 		"-w url      adds a web seed to the torrent with\n"
 		"            the specified url\n"
 		"-t url      adds the specified tracker to the\n"
-		"            torrent\n"
+		"            torrent. For multiple trackers, specify more\n"
+		"            -t options\n"
+		"-C creator  sets the created-by field to the specified string\n"
 		"-p bytes    enables padding files. Files larger\n"
 		"            than bytes will be piece-aligned\n"
 		"-s bytes    specifies a piece size for the torrent\n"
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	char const* creator_str = "libtorrent";
+	std::string creator_str = "libtorrent";
 
 	if (argc < 2)
 	{
@@ -164,6 +166,10 @@ int main(int argc, char* argv[])
 				case 'l':
 					flags |= create_torrent::symlinks;
 					break;
+				case 'C':
+					++i;
+					creator_str = argv[i];
+					break;
 				case 'c':
 					++i;
 					root_cert = argv[i];
@@ -186,9 +192,10 @@ int main(int argc, char* argv[])
 		}
 
 		create_torrent t(fs, piece_size, pad_file_limit, flags);
+		int tier = 0;
 		for (std::vector<std::string>::iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i)
-			t.add_tracker(*i);
+			, end(trackers.end()); i != end; ++i, ++tier)
+			t.add_tracker(*i, tier);
 
 		for (std::vector<std::string>::iterator i = web_seeds.begin()
 			, end(web_seeds.end()); i != end; ++i)
@@ -204,7 +211,7 @@ int main(int argc, char* argv[])
 		}
 
 		fprintf(stderr, "\n");
-		t.set_creator(creator_str);
+		t.set_creator(creator_str.c_str());
 
 		if (!root_cert.empty())
 		{
@@ -226,6 +233,12 @@ int main(int argc, char* argv[])
 		FILE* output = stdout;
 		if (!outfile.empty())
 			output = fopen(outfile.c_str(), "wb+");
+		if (output == NULL)
+		{
+			fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+				, outfile.c_str(), errno, strerror(errno));
+			return 1;
+		}
 		fwrite(&torrent[0], 1, torrent.size(), output);
 
 		if (output != stdout)
