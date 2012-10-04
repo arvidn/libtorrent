@@ -80,6 +80,8 @@ namespace libtorrent { namespace aux
 		virtual void trigger_unchoke() = 0;
 
 		virtual boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) = 0;
+		virtual boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+			, peer_connection* pc) = 0;
 
 		virtual void inc_disk_queue(int channel) = 0;
 		virtual void dec_disk_queue(int channel) = 0;

@@ -68,6 +68,20 @@ namespace libtorrent
 
 		void erase(list_node* e)
 		{
+#ifdef TORRENT_DEBUG
+			list_node* tmp = m_first;
+			bool found = false;
+			while (tmp)
+			{
+				if (tmp == e)
+				{
+					found = true;
+					break;
+				}
+				tmp = tmp->next;
+			}
+			TORRENT_ASSERT(found);
+#endif
 			if (e == m_first)
 			{
 				TORRENT_ASSERT(e->prev == 0);
@@ -122,6 +136,8 @@ namespace libtorrent
 		}
 		list_node* back() { return m_last; }
 		list_node* front() { return m_first; }
+		list_node const* back() const { return m_last; }
+		list_node const* front() const { return m_first; }
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
 	private:

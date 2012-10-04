@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/peer_id.hpp" // for sha1_hash
 
 namespace libtorrent
 {
@@ -65,6 +66,7 @@ namespace libtorrent
 	class alert;
 	struct torrent_plugin;
 	class torrent;
+	struct add_torrent_params;
 
 	struct TORRENT_EXPORT plugin
 	{
@@ -80,6 +82,11 @@ namespace libtorrent
 		// alerts that are filtered are not
 		// posted
 		virtual void on_alert(alert const* a) {}
+
+		// return true if the add_torrent_params should be added
+		virtual bool on_unknown_torrent(sha1_hash const& info_hash
+			, peer_connection* pc, add_torrent_params& p)
+		{ return false; }
 
 		// called once per second
 		virtual void on_tick() {}

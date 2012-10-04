@@ -87,6 +87,9 @@ namespace libtorrent
 	class upnp;
 	class alert;
 
+	typedef boost::function<void(sha1_hash const&, std::vector<char>&
+		, error_code&)> user_load_function_t;
+
 	TORRENT_EXPORT void min_memory_usage(settings_pack& set);
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
 
@@ -258,7 +261,7 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
-		void set_load_function(boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> fun);
+		void set_load_function(user_load_function_t fun);
 
 		session_status status() const;
 

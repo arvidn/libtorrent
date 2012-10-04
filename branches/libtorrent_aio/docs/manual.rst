@@ -373,8 +373,10 @@ set_load_function()
 
 	::
 
-		void set_load_function(boost::function<void(sha1_hash const&
-			, std::vector<char>&, error_code& ec)> fun);
+		typedef boost::function<void(sha1_hash const&, std::vector<char>&
+			, error_code&)> user_load_function_t;
+
+		void set_load_function(user_load_function_t fun);
 
 This function enables `dynamic loading of torrent files`_. When a torrent is unloaded
 but needs to be availabe in memory, this function is called **from within the libtorrent

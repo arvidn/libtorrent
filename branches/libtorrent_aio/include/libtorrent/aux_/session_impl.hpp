@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
+#include "libtorrent/session.hpp" // for user_load_function_t
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
@@ -248,8 +249,7 @@ namespace libtorrent
 			void init();
 			void start_session();
 
-			void set_load_function(boost::function<void(sha1_hash const&i
-				, std::vector<char>&, error_code& ec)> fun)
+			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
 
 			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
@@ -293,6 +293,8 @@ namespace libtorrent
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
+			boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+				, peer_connection* pc);
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
@@ -1322,7 +1324,7 @@ namespace libtorrent
 
 			// if this function is set, it indicates that torrents are allowed
 			// to be unloaded. If it isn't, torrents will never be unloaded
-			boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> m_user_load_torrent;
+			user_load_function_t m_user_load_torrent;
 
 #ifndef TORRENT_DISABLE_GEO_IP
 			GeoIP* m_asnum_db;

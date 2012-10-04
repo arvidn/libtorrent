@@ -1117,6 +1117,15 @@ namespace libtorrent
 
 		if (!t)
 		{
+			t = m_ses.delay_load_torrent(ih, this);
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+			if (t)
+				peer_log("*** Delay loaded torrent: %s:", to_hex(ih.to_string()).c_str());
+#endif
+		}
+
+		if (!t)
+		{
 			// we couldn't find the torrent!
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** couldn't find a torrent with the given info_hash: %s torrents:", to_hex(ih.to_string()).c_str());

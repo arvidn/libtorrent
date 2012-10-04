@@ -715,7 +715,7 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(get_feeds, &f);
 	}
 
-	void session::set_load_function(boost::function<void(sha1_hash const&, std::vector<char>&, error_code& ec)> fun)
+	void session::set_load_function(user_load_function_t fun)
 	{
 		TORRENT_ASYNC_CALL1(set_load_function, fun);
 	}

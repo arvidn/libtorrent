@@ -5076,6 +5076,24 @@ namespace aux {
 #endif
 	}
 
+	boost::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
+		, peer_connection* pc)
+	{
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			add_torrent_params p;
+			if ((*i)->on_unknown_torrent(info_hash, pc, p))
+			{
+				error_code ec;
+				torrent_handle handle = add_torrent(p, ec);
+				m_alerts.post_alert(add_torrent_alert(handle, p, ec));
+
+				return handle.native_handle();
+			}
+		}
+		return boost::shared_ptr<torrent>();
+	}
 
 	// the return value from this function is valid only as long as the
 	// session is locked!
