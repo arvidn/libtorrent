@@ -22,6 +22,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix some issues with SSL over uTP connections
 	* fix UDP trackers trying all endpoints behind the hostname
 
 0.16.4 release

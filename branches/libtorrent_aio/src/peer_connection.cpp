@@ -3498,7 +3498,7 @@ namespace libtorrent
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
 		// we'll never try it again (unless we're trying holepunch)
-		if (m_socket->get<utp_stream>()
+		if (is_utp(*m_socket)
 			&& m_peer_info
 			&& m_peer_info->supports_utp
 			&& !m_holepunch_mode)
@@ -3517,7 +3517,7 @@ namespace libtorrent
 			fast_reconnect(true);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if ((!m_socket->get<utp_stream>()
+		if ((!is_utp(*m_socket)
 				|| !m_settings.get_bool(settings_pack::enable_outgoing_tcp))
 			&& m_peer_info
 			&& m_peer_info->supports_holepunch
@@ -3623,7 +3623,7 @@ namespace libtorrent
 		if (ec == error_code(errors::timed_out_no_handshake))
 			m_ses.inc_stats_counter(aux::session_interface::connect_timeouts);
 
-		if (m_socket->get<utp_stream>()) m_ses.inc_stats_counter(aux::session_interface::error_utp_peers);
+		if (is_utp(*m_socket)) m_ses.inc_stats_counter(aux::session_interface::error_utp_peers);
 		else m_ses.inc_stats_counter(aux::session_interface::error_tcp_peers);
 
 		if (m_outgoing) m_ses.inc_stats_counter(aux::session_interface::error_outgoing_peers);
@@ -5729,11 +5729,7 @@ namespace libtorrent
 		if (m_disconnecting) return;
 		m_last_receive = time_now();
 
-		if ((m_socket->get<utp_stream>()
-#ifdef TORRENT_USE_OPENSSL
-			|| m_socket->get<ssl_stream<utp_stream> >()
-#endif
-			) && m_peer_info)
+		if (is_utp(*m_socket) && m_peer_info)
 		{
 			m_peer_info->confirmed_supports_utp = true;
 			m_peer_info->supports_utp = false;
