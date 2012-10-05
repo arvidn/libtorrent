@@ -63,6 +63,15 @@ namespace libtorrent
 #endif
 	}
 
+	bool is_utp(socket_type const& s)
+	{
+		return s.get<utp_stream>()
+#ifdef TORRENT_USE_OPENSSL
+			|| s.get<ssl_stream<utp_stream> >()
+#endif
+			;
+	}
+
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
 #if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
