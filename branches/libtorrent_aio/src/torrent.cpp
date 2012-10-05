@@ -4942,25 +4942,25 @@ namespace libtorrent
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, ""));
 		}
 		m_ssl_ctx->use_certificate_file(certificate, context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, certificate));
 		}
 		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, private_key));
 		}
 		m_ssl_ctx->use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
-				alerts().post_alert(torrent_error_alert(get_handle(), ec));
+				alerts().post_alert(torrent_error_alert(get_handle(), ec, dh_params));
 		}
 	}
 #endif
