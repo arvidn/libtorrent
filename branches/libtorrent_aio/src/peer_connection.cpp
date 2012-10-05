@@ -4964,14 +4964,22 @@ namespace libtorrent
 		add_outstanding_async("peer_connection::on_send_data");
 #endif
 
-		write_some_job j;
-		j.vec = &vec;
-		j.peer = self();
+		if (is_utp(*m_socket))
+		{
+			m_socket->async_write_some(vec, make_write_handler(boost::bind(
+				&peer_connection::on_send_data, self(), _1, _2)));
+		}
+		else
+		{
+			write_some_job j;
+			j.vec = &vec;
+			j.peer = self();
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		TORRENT_ASSERT(!m_socket_is_writing);
-		m_socket_is_writing = true;
+			TORRENT_ASSERT(!m_socket_is_writing);
+			m_socket_is_writing = true;
 #endif
-		m_ses.post_socket_write_job(j);
+			m_ses.post_socket_write_job(j);
+		}
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 	}

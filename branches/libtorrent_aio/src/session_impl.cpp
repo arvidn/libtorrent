@@ -2880,7 +2880,7 @@ namespace aux {
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_utp)
-			&& s->get<utp_stream>())
+			&& is_utp(*s))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 			(*m_logger) << "    rejected uTP connection\n";
