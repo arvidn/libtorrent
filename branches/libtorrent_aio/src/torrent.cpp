@@ -2179,6 +2179,8 @@ namespace libtorrent
 
 		clear_error();
 
+		if (!need_loaded()) return;
+
 		disconnect_all(errors::stopping_torrent);
 		stop_announcing();
 
@@ -3114,20 +3116,18 @@ namespace libtorrent
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 		const int piece_size = m_torrent_file->piece_length();
 
-		if (!has_picker())
+		if (m_have_all)
 		{
-			if (m_have_all)
-			{
-				st.total_done = m_torrent_file->total_size() - m_padding;
-				st.total_wanted_done = st.total_done;
-				st.total_wanted = st.total_done;
-			}
-			else
-			{
-				st.total_done = 0;
-				st.total_wanted_done = 0;
-				st.total_wanted = m_torrent_file->total_size() - m_padding;
-			}
+			st.total_done = m_torrent_file->total_size() - m_padding;
+			st.total_wanted_done = st.total_done;
+			st.total_wanted = st.total_done;
+			return;
+		}
+		else if (!has_picker())
+		{
+			st.total_done = 0;
+			st.total_wanted_done = 0;
+			st.total_wanted = m_torrent_file->total_size() - m_padding;
 			return;
 		}
 
@@ -3173,6 +3173,10 @@ namespace libtorrent
 		// subtract padding files
 		if (m_padding > 0)
 		{
+			// this is a bit unfortunate
+			// (both the const cast and the requirement to load the torrent)
+			if (!const_cast<torrent*>(this)->need_loaded()) return;
+
 			file_storage const& files = m_torrent_file->files();
 			int fileno = 0;
 			for (file_storage::iterator i = files.begin()
