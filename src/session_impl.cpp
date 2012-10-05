@@ -3111,7 +3111,7 @@ namespace aux {
 						peer_connection& p = *(*i);
 						if (p.in_handshake()) continue;
 						int protocol = 0;
-						if (p.get_socket()->get<utp_stream>()) protocol = 1;
+						if (is_utp(*p.get_socket())) protocol = 1;
 
 						if (p.download_queue().size() + p.request_queue().size() > 0)
 							++num_peers[protocol][peer_connection::download_channel];
@@ -3666,6 +3666,9 @@ namespace aux {
 				++peers_up_send_buffer;
 
 			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
+#ifdef TORRENT_USE_OPENSSL
+			if (!utp_socket) utp_socket = p->get_socket()->get<ssl_stream<utp_stream> >();
+#endif
 			if (utp_socket)
 			{
 				utp_up_rate += ul_rate;
