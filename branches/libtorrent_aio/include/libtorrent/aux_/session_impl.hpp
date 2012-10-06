@@ -267,6 +267,9 @@ namespace libtorrent
 			bool has_peer(peer_connection const* p) const;
 			bool any_torrent_has_peer(peer_connection const* p) const;
 			bool is_single_thread() const { return single_threaded::is_single_thread(); }
+			// this is set while the session is building the
+			// torrent status update message
+			bool m_posting_torrent_updates;
 #endif
 
 			void main_thread();

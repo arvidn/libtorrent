@@ -589,6 +589,9 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = false;
+#endif
 		m_net_interfaces.push_back(tcp::endpoint(address_v4::any(), 0));
 
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
@@ -5213,6 +5216,10 @@ namespace aux {
 
 		alert->status.reserve(state_updates.size());
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = true;
+#endif
+
 		// TODO: it might be a nice feature here to limit the number of torrents
 		// to send in a single update. By just posting the first n torrents, they
 		// would nicely be round-robined because the torrent lists are always
@@ -5223,10 +5230,18 @@ namespace aux {
 			torrent* t = *i;
 			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
 			alert->status.push_back(torrent_status());
-			t->status(&alert->status.back(), 0xffffffff);
+			// querying accurate download counters may require
+			// the torrent to be loaded. Loading a torrent, and evicting another
+			// one will lead to calling state_updated(), which screws with
+			// this list while we're working on it, and break things
+			t->status(&alert->status.back(), ~torrent_handle::query_accurate_download_counters);
 			t->clear_in_state_update();
 		}
 		state_updates.clear();
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = false;
+#endif
 
 		m_alerts.post_alert_ptr(alert.release());
 	}

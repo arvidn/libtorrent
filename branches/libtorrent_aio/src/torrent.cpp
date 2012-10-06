@@ -925,6 +925,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
 		{
+			if (!m_links[i].in_list()) continue;
 			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
 		}
 #endif
@@ -3171,7 +3172,7 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
 
 		// subtract padding files
-		if (m_padding > 0)
+		if (m_padding > 0 && accurate)
 		{
 			// this is a bit unfortunate
 			// (both the const cast and the requirement to load the torrent)
@@ -4117,6 +4118,7 @@ namespace libtorrent
 		m_auto_managed = false;
 		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
 		{
+			if (!m_links[i].in_list()) continue;
 			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
 		}
 	}
@@ -7205,6 +7207,17 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 	void torrent::check_invariant() const
 	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		for (int i = 0; i < aux::session_impl::num_torrent_lists; ++i)
+		{
+			if (!m_links[i].in_list()) continue;
+			int index = m_links[i].index;
+
+			TORRENT_ASSERT(index >= 0);
+			TORRENT_ASSERT(index < int(m_ses.m_torrent_lists[i].size()));
+		}
+#endif
+
 		if (!is_loaded()) return;
 
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_impl::torrent_want_peers_download].in_list());
@@ -9138,6 +9151,10 @@ namespace libtorrent
 		// shouldn't be. Whichever function ends up calling
 		// this should probably be moved to torrent::start()
 		TORRENT_ASSERT(shared_from_this());
+
+		// we can't call state_updated() while the session
+		// is building the status update alert
+		TORRENT_ASSERT(!m_ses.m_posting_torrent_updates);
 
 		// we're not subscribing to this torrent, don't add it
 		if (!m_state_subscription) return;
