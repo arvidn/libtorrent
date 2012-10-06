@@ -2923,7 +2923,7 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_wanted >= st.total_wanted_done);
 
 		// subtract padding files
-		if (m_padding > 0)
+		if (m_padding > 0 && accurate)
 		{
 			file_storage const& files = m_torrent_file->files();
 			int fileno = 0;
@@ -8397,6 +8397,10 @@ namespace libtorrent
 		// shouldn't be. Whichever function ends up calling
 		// this should probably be moved to torrent::start()
 		TORRENT_ASSERT(shared_from_this());
+
+		// we can't call state_updated() while the session
+		// is building the status update alert
+		TORRENT_ASSERT(!m_ses.m_posting_torrent_updates);
 
 		// we're either not subscribing to this torrent, or
 		// it has already been updated this round, no need to

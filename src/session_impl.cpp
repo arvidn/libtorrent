@@ -672,6 +672,10 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = false;
+#endif
+
 		memset(m_redundant_bytes, 0, sizeof(m_redundant_bytes));
 		m_udp_socket.set_rate_limit(m_settings.dht_upload_rate_limit);
 
@@ -4792,6 +4796,10 @@ namespace aux {
 		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		alert->status.reserve(m_state_updates.size());
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = true;
+#endif
+
 		for (std::vector<boost::weak_ptr<torrent> >::iterator i = m_state_updates.begin()
 			, end(m_state_updates.end()); i != end; ++i)
 		{
@@ -4802,6 +4810,10 @@ namespace aux {
 			t->clear_in_state_update();
 		}
 		m_state_updates.clear();
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_posting_torrent_updates = false;
+#endif
 
 		m_alerts.post_alert_ptr(alert.release());
 	}

@@ -237,6 +237,9 @@ namespace libtorrent
 					, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
 					!= m_connections.end();
 			}
+			// this is set while the session is building the
+			// torrent status update message
+			bool m_posting_torrent_updates;
 #endif
 			void main_thread();
 
