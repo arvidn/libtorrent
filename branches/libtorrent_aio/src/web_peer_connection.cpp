@@ -538,12 +538,6 @@ namespace libtorrent
 							disconnect(errors::torrent_aborted);
 							return;
 						}
-
-						if (!t->need_loaded())
-						{
-							disconnect(errors::torrent_aborted);
-							return;
-						}
 						torrent_info const& info = t->torrent_file();
 						std::string path = info.orig_files().file_path(info.orig_files().at(file_index));
 #ifdef TORRENT_WINDOWS
@@ -564,6 +558,9 @@ namespace libtorrent
 						}
 						location.resize(i);
 					}
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** LOCATION: %s", location.c_str());
+#endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this);
 					disconnect(errors::redirecting, 2);
