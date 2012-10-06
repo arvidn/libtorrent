@@ -1103,6 +1103,14 @@ namespace libtorrent
 			return false;
 		}
 
+		lazy_entry const* info = torrent_file.dict_find_dict("info");
+		if (info == 0)
+		{
+			ec = errors::torrent_missing_info;
+			return false;
+		}
+		if (!parse_info_section(*info, ec, flags)) return false;
+
 		// extract the url of the tracker
 		lazy_entry const* i = torrent_file.dict_find_list("announce-list");
 		if (i)
@@ -1187,8 +1195,10 @@ namespace libtorrent
 		lazy_entry const* url_seeds = torrent_file.dict_find("url-list");
 		if (url_seeds && url_seeds->type() == lazy_entry::string_t)
 		{
-			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(url_seeds->string_value())
-				, web_seed_entry::url_seed));
+			web_seed_entry ent(maybe_url_encode(url_seeds->string_value())
+				, web_seed_entry::url_seed);
+			if (m_multifile && ent.url[ent.url.size()-1] != '/') ent.url += '/';
+			m_web_seeds.push_back(ent);
 		}
 		else if (url_seeds && url_seeds->type() == lazy_entry::list_t)
 		{
@@ -1196,8 +1206,10 @@ namespace libtorrent
 			{
 				lazy_entry const* url = url_seeds->list_at(i);
 				if (url->type() != lazy_entry::string_t) continue;
-				m_web_seeds.push_back(web_seed_entry(maybe_url_encode(url->string_value())
-					, web_seed_entry::url_seed));
+				web_seed_entry ent(maybe_url_encode(url->string_value())
+					, web_seed_entry::url_seed);
+				if (m_multifile && ent.url[ent.url.size()-1] != '/') ent.url += '/';
+				m_web_seeds.push_back(ent);
 			}
 		}
 
@@ -1227,13 +1239,7 @@ namespace libtorrent
 		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
 		verify_encoding(m_created_by);
 
-		lazy_entry const* info = torrent_file.dict_find_dict("info");
-		if (info == 0)
-		{
-			ec = errors::torrent_missing_info;
-			return false;
-		}
-		return parse_info_section(*info, ec, flags);
+		return true;
 	}
 
 	boost::optional<time_t>

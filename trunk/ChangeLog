@@ -5,6 +5,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* web seed fixes (better support for torrents without trailing / in web seeds)
 	* fix some issues with SSL over uTP connections
 	* fix UDP trackers trying all endpoints behind the hostname
 
