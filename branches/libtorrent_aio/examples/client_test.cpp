@@ -2079,6 +2079,8 @@ int main(int argc, char* argv[])
 
 		terminal_size(&terminal_width, &terminal_height);
 
+		int max_lines = terminal_height - 15;
+
 		// loop through the alert queue to see if anything has happened.
 		std::deque<alert*> alerts;
 		ses.pop_alerts(&alerts);
@@ -2137,7 +2139,7 @@ int main(int argc, char* argv[])
 			for (std::vector<feed_handle>::iterator i = feeds.begin()
 				, end(feeds.end()); i != end; ++i)
 			{
-				if (lines_printed >= terminal_height - 15)
+				if (lines_printed >= max_lines)
 				{
 					out += "...\n";
 					break;
@@ -2157,10 +2159,21 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		// handle scrolling down when moving the cursor
+		// below the fold
+		int start_offset = 0;
+		if (active_torrent >= max_lines - lines_printed)
+			start_offset = active_torrent - max_lines + lines_printed + 1;
+
 		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
 			i != filtered_handles.end(); ++torrent_index)
 		{
-			if (lines_printed >= terminal_height - 15)
+			if (torrent_index < start_offset)
+			{
+				++i;
+				continue;
+			}
+			if (lines_printed >= max_lines)
 			{
 				out += "...\n";
 				break;
