@@ -5388,6 +5388,14 @@ namespace libtorrent
 				return;
 			}
 
+			// at this point the ioctl told us the socket doesn't have any
+			// pending bytes. This means EOF
+			if (buffer_size == 0)
+			{
+				disconnect(error_code(asio::error::eof, asio::error::get_misc_category()));
+				return;
+			}
+
 			if (buffer_size > m_quota[download_channel])
 			{
 				if ((m_channel_state[download_channel] & peer_info::bw_limit) == 0)
@@ -5402,8 +5410,7 @@ namespace libtorrent
 
 				buffer_size = m_quota[download_channel];
 			}
-			// at this point the ioctl told us the socket doesn't have any
-			// pending bytes, or we're already waiting to get some more
+			// we're already waiting to get some more
 			// quota from the bandwidth manager
 			if (buffer_size == 0) return;
 
