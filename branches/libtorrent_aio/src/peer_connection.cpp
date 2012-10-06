@@ -258,12 +258,13 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
-		std::string torrent_name;
-		if (t) torrent_name = to_hex(t->info_hash().to_string());
+		std::string log_name = m_remote.address().to_string(ec) + "_"
+			+ to_string(m_remote.port()).elems;
 
-		m_logger = m_ses.create_log(torrent_name + '_'
-			+ m_remote.address().to_string(ec) + "_"
-			+ to_string(m_remote.port()).elems, m_ses.listen_port());
+		if (t) log_name = combine_path(to_hex(t->info_hash().to_string())
+			, log_name);
+
+		m_logger = m_ses.create_log(log_name, m_ses.listen_port());
 		peer_log("%s [ ep: %s type: %s seed: %d p: %p local: %s]"
 			, m_outgoing ? ">>> OUTGOING_CONNECTION" : "<<< INCOMING CONNECTION"
 			, print_endpoint(m_remote).c_str()
@@ -1110,6 +1111,17 @@ namespace libtorrent
 		TORRENT_ASSERT(m_torrent.expired());
 		boost::weak_ptr<torrent> wpt = m_ses.find_torrent(ih);
 		boost::shared_ptr<torrent> t = wpt.lock();
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+		// now that we know which torrent this peer belongs
+		// to. Move the log file into its directory
+
+		error_code ec;
+		std::string log_name = combine_path(to_hex(ih.to_string())
+			, m_remote.address().to_string(ec) + "_"
+				+ to_string(m_remote.port()).elems);
+		m_logger->move_log_file(m_ses.get_log_path(), log_name, m_ses.listen_port());
+#endif
 
 		if (t && t->is_aborted())
 		{
@@ -5391,6 +5403,10 @@ namespace libtorrent
 				disconnect(ec);
 				return;
 			}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<<< READ_AVAILABLE [ bytes: %d ]", buffer_size);
+#endif
 
 			// at this point the ioctl told us the socket doesn't have any
 			// pending bytes. This means EOF

@@ -187,14 +187,43 @@ namespace libtorrent
 		{
 			char log_name[512];
 			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
-			std::string dir(complete(combine_path(logpath, log_name)));
+			std::string dir(complete(combine_path(combine_path(logpath, log_name), filename)) + ".log");
 			error_code ec;
-			if (!exists(dir)) create_directories(dir, ec);
-			m_filename = combine_path(dir, filename);
+			if (!exists(parent_path(dir)))
+				create_directories(parent_path(dir), ec);
+			m_filename = dir;
 
 			mutex::scoped_lock l(file_mutex);
 			open(!append);
 			log_file << "\n\n\n*** starting log ***\n";
+		}
+
+		void move_log_file(std::string const& logpath, std::string const& new_name, int instance)
+		{
+			mutex::scoped_lock l(file_mutex);
+			if (open_filename == m_filename)
+			{
+				log_file.close();
+				open_filename.clear();
+			}
+
+			char log_name[512];
+			snprintf(log_name, sizeof(log_name), "libtorrent_logs%d", instance);
+			std::string dir(combine_path(combine_path(complete(logpath), log_name), new_name) + ".log");
+
+			error_code ec;
+			create_directories(parent_path(dir), ec);
+
+			if (ec)
+				fprintf(stderr, "Failed to create logfile directory %s: %s\n"
+					, parent_path(dir).c_str(), ec.message().c_str());
+			ec.clear();
+			rename(m_filename, dir, ec);
+			if (ec)
+				fprintf(stderr, "Failed to move logfile %s: %s\n"
+					, parent_path(dir).c_str(), ec.message().c_str());
+
+			m_filename = dir;
 		}
 
 #if TORRENT_USE_IOSTREAM
