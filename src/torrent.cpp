@@ -435,6 +435,7 @@ namespace libtorrent
 	{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_resume_data_loaded = false;
+		m_finished_alert_posted = false;
 #endif
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
@@ -2030,6 +2031,9 @@ namespace libtorrent
 		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 			+ block_size() - 1) / block_size();
 		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_finished_alert_posted = false;
+#endif
 		// assume that we don't have anything
 		TORRENT_ASSERT(m_picker->num_have() == 0);
 		m_files_checked = false;
@@ -6119,6 +6123,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(!m_finished_alert_posted);
 		TORRENT_ASSERT(is_finished());
 		TORRENT_ASSERT(m_state != torrent_status::finished && m_state != torrent_status::seeding);
 
@@ -6127,6 +6132,9 @@ namespace libtorrent
 			alerts().post_alert(torrent_finished_alert(
 				get_handle()));
 		}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_finished_alert_posted = true;
+#endif
 
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
@@ -6184,6 +6192,9 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 	
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		m_finished_alert_posted = false;
+#endif
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
 		set_queue_position((std::numeric_limits<int>::max)());
@@ -6270,7 +6281,8 @@ namespace libtorrent
 		// we might be finished already, in which case we should
 		// not switch to downloading mode. If all files are
 		// filtered, we're finished when we start.
-		if (m_state != torrent_status::finished)
+		if (m_state != torrent_status::finished
+			&& m_state != torrent_status::seeding)
 			set_state(torrent_status::downloading);
 
 		INVARIANT_CHECK;
@@ -6311,7 +6323,8 @@ namespace libtorrent
 				, end(m_trackers.end()); i != end; ++i)
 				i->complete_sent = true;
 
-			if (m_state != torrent_status::finished)
+			if (m_state != torrent_status::finished
+				&& m_state != torrent_status::seeding)
 				finished();
 		}
 
@@ -6453,6 +6466,12 @@ namespace libtorrent
 			TORRENT_ASSERT(m_state != torrent_status::checking_files);
 		else
 			TORRENT_ASSERT(m_queued_for_checking);
+
+		if (!m_finished_alert_posted)
+		{
+			TORRENT_ASSERT(m_state != torrent_status::seeding
+				&& m_state != torrent_status::finished);
+		}
 
 		if (!m_ses.m_queued_for_checking.empty())
 		{
@@ -8321,7 +8340,7 @@ namespace libtorrent
 	void torrent::set_state(torrent_status::state_t s)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		if (s != torrent_status::checking_files
 			&& s != torrent_status::queued_for_checking)
 		{
@@ -8336,6 +8355,15 @@ namespace libtorrent
 				TORRENT_ASSERT(std::accumulate(pieces.begin(), pieces.end(), 0) == 0);
 			}
 		}
+		if (s == torrent_status::seeding)
+			TORRENT_ASSERT(is_seed());
+
+		if (!m_finished_alert_posted)
+		{
+			TORRENT_ASSERT(s != torrent_status::seeding
+				&& s != torrent_status::finished);
+		}
+
 		if (s == torrent_status::seeding)
 			TORRENT_ASSERT(is_seed());
 		if (s == torrent_status::finished)
