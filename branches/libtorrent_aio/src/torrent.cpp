@@ -5791,6 +5791,7 @@ namespace libtorrent
 			{
 				std::string url = url_list->list_string_value_at(i);
 				if (url.empty()) continue;
+				if (m_torrent_file->num_files() > 1 && url[url.size()-1] != '/') url += '/';
 				add_web_seed(url, web_seed_entry::url_seed);
 			}
 		}
@@ -8003,6 +8004,25 @@ namespace libtorrent
 	}
 #endif
 
+	// add or remove a url that will be attempted for
+	// finding the file(s) in this torrent.
+	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type)
+	{
+		web_seed_entry ent(url, type);
+		// don't add duplicates
+		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
+		m_web_seeds.push_back(ent);
+	}
+
+	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type
+		, std::string const& auth, web_seed_entry::headers_t const& extra_headers)
+	{
+		web_seed_entry ent(url, type, auth, extra_headers);
+		// don't add duplicates
+		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
+		m_web_seeds.push_back(ent);
+	}
+	
 	void torrent::set_allow_peers(bool b, bool graceful)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());

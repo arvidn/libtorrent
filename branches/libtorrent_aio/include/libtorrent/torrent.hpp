@@ -403,16 +403,9 @@ namespace libtorrent
 
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
-		void add_web_seed(std::string const& url, web_seed_entry::type_t type)
-		{
-			m_web_seeds.push_back(web_seed_entry(url, type));
-		}
-
+		void add_web_seed(std::string const& url, web_seed_entry::type_t type);
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type
-			, std::string const& auth, web_seed_entry::headers_t const& extra_headers)
-		{
-			m_web_seeds.push_back(web_seed_entry(url, type, auth, extra_headers));
-		}
+			, std::string const& auth, web_seed_entry::headers_t const& extra_headers);
 	
 		void remove_web_seed(std::string const& url, web_seed_entry::type_t type);
 		void disconnect_web_seed(peer_connection* p);
