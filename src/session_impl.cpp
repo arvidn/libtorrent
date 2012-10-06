@@ -4754,8 +4754,9 @@ namespace aux {
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name
 		, int instance, bool append)
 	{
+		error_code ec;
 		// current options are file_logger, cout_logger and null_logger
-		return boost::shared_ptr<logger>(new logger(m_logpath, name + ".log", instance, append));
+		return boost::shared_ptr<logger>(new logger(m_logpath, name, instance, append));
 	}
 #endif
 

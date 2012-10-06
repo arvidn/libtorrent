@@ -1121,6 +1121,9 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
+			std::string get_log_path() const
+			{ return m_logpath; }
+
 			std::string m_logpath;
 
 		private:
