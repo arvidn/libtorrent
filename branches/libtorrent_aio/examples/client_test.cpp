@@ -2161,9 +2161,10 @@ int main(int argc, char* argv[])
 
 		// handle scrolling down when moving the cursor
 		// below the fold
-		int start_offset = 0;
-		if (active_torrent >= max_lines - lines_printed)
+		static int start_offset = 0;
+		if (active_torrent >= max_lines - lines_printed - start_offset)
 			start_offset = active_torrent - max_lines + lines_printed + 1;
+		if (active_torrent < start_offset) start_offset = active_torrent;
 
 		for (std::vector<torrent_status const*>::iterator i = filtered_handles.begin();
 			i != filtered_handles.end(); ++torrent_index)
