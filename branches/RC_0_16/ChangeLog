@@ -1,3 +1,4 @@
+	* relax file timestamp requirements for accepting resume data
 	* fix performance issue in web seed downloader (coalescing of blocks sometimes wouldn't work)
 	* web seed fixes (better support for torrents without trailing / in web seeds)
 	* fix some issues with SSL over uTP connections
