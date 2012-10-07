@@ -2101,7 +2101,7 @@ namespace aux {
 	}
 
 	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
-		, int retries, bool v6_only, int flags, error_code& ec)
+		, int& retries, bool v6_only, int flags, error_code& ec)
 	{
 		s->sock.reset(new socket_acceptor(m_io_service));
 		s->sock->open(ep.protocol(), ec);
@@ -2200,6 +2200,8 @@ namespace aux {
 	void session_impl::open_listen_port(int flags, error_code& ec)
 	{
 		TORRENT_ASSERT(is_network_thread());
+
+retry:
 
 		// close the open listen sockets
 		m_listen_sockets.clear();
@@ -2330,14 +2332,19 @@ namespace aux {
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			char msg[200];
 			snprintf(msg, sizeof(msg), "cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 			(*m_logger) << msg << "\n";
 #endif
+			if (m_listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				goto retry;
+			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
 		}
 		else
 		{
