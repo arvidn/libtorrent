@@ -5409,30 +5409,35 @@ namespace libtorrent
 #endif
 
 			// at this point the ioctl told us the socket doesn't have any
-			// pending bytes. This means EOF
+			// pending bytes. This probably means some error happened.
+			// in order to find out though, we need to initiate a read
+			// operation
 			if (buffer_size == 0)
 			{
-				disconnect(error_code(asio::error::eof, asio::error::get_misc_category()));
-				return;
+				// try to read one byte. The socket is non-blocking anyway
+				// so worst case, we'll failed with EWOULDBLOCK
+				buffer_size = 1;
 			}
-
-			if (buffer_size > m_quota[download_channel])
+			else
 			{
-				if ((m_channel_state[download_channel] & peer_info::bw_limit) == 0)
+				if (buffer_size > m_quota[download_channel])
 				{
-					int ret = request_download_bandwidth(buffer_size - m_quota[download_channel]);
-					if (ret > 0)
+					if ((m_channel_state[download_channel] & peer_info::bw_limit) == 0)
 					{
-						m_quota[download_channel] += ret;
-						m_channel_state[download_channel] &= ~peer_info::bw_limit;
+						int ret = request_download_bandwidth(buffer_size - m_quota[download_channel]);
+						if (ret > 0)
+						{
+							m_quota[download_channel] += ret;
+							m_channel_state[download_channel] &= ~peer_info::bw_limit;
+						}
 					}
+	
+					buffer_size = m_quota[download_channel];
 				}
-
-				buffer_size = m_quota[download_channel];
+				// we're already waiting to get some more
+				// quota from the bandwidth manager
+				if (buffer_size == 0) return;
 			}
-			// we're already waiting to get some more
-			// quota from the bandwidth manager
-			if (buffer_size == 0) return;
 
 			// TODO: cap the size of the receive buffer? Maybe we can just rely
 			// on the OS buffer size limit on TCP buffers and assume it won't
