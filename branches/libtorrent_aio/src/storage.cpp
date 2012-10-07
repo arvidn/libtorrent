@@ -744,7 +744,8 @@ namespace libtorrent
 			if (settings().get_bool(settings_pack::ignore_resume_timestamps)) continue;
 
 			// allow some slack, because of FAT volumes
-			if (file_time > expected_time + 5 * 60 || file_time < expected_time - 5)
+			if (expected_time != 0 &&
+				(file_time > expected_time + 5 * 60 || file_time < expected_time - 5))
 			{
 				ec.ec = errors::mismatching_file_timestamp;
 				ec.file = i;
