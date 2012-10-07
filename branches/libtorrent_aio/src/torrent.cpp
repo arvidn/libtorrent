@@ -3207,8 +3207,7 @@ namespace libtorrent
 			}
 		}
 
-		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
-		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
+		TORRENT_ASSERT(!accurate || st.total_done <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
