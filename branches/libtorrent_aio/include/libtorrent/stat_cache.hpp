@@ -61,6 +61,7 @@ namespace libtorrent
 		void set_cache(int i, size_type size, time_t time);
 		void set_noexist(int i);
 		void set_error(int i);
+		void set_dirty(int i);
 
 		void clear();
 

@@ -47,6 +47,13 @@ namespace libtorrent
 		m_stat_cache[i].file_time = time;
 	}
 
+	void stat_cache::set_dirty(int i)
+	{
+		TORRENT_ASSERT(i >= 0);
+		if (i >= int(m_stat_cache.size())) return;
+		m_stat_cache[i].file_size = not_in_cache;
+	}
+
 	void stat_cache::set_noexist(int i)
 	{
 		TORRENT_ASSERT(i >= 0);

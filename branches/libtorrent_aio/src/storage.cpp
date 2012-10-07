@@ -964,6 +964,13 @@ namespace libtorrent
 			int bytes_transferred = 0;
 			error_code e;
 
+			if (op.mode == file::read_write)
+			{
+				// invalidate our stat cache for this file, since
+				// we're writing to it
+				m_stat_cache.set_dirty(file_index);
+			}
+	
 			if (file_index < int(m_file_priority.size())
 				&& m_file_priority[file_index] == 0)
 			{
