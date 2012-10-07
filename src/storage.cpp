@@ -197,6 +197,9 @@ namespace libtorrent
 
 			if (flags & ignore_timestamps) continue;
 
+			// if there is no timestamp in the resume data, ignore it
+			if (size_iter->second == 0) continue;
+
 			// allow one second 'slack', because of FAT volumes
 			// in sparse mode, allow the files to be more recent
 			// than the resume data, but only by 5 minutes
