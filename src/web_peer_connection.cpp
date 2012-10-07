@@ -88,7 +88,7 @@ namespace libtorrent
 		// we always prefer downloading 1 MiB chunks
 		// from web seeds, or whole pieces if pieces
 		// are larger than a MiB
-		prefer_whole_pieces((std::min)((1024 * 1024) / tor->torrent_file().piece_length(), 1));
+		prefer_whole_pieces((std::max)((1024 * 1024) / tor->torrent_file().piece_length(), 1));
 		
 		// we want large blocks as well, so
 		// we can request more bytes at once
