@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
@@ -69,10 +70,11 @@ static error_code ec;
 lsd::lsd(io_service& ios, address const& listen_interface
 	, peer_callback_t const& cb)
 	: m_callback(cb)
-	, m_retry_count(1)
 	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
 		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))
 	, m_broadcast_timer(ios)
+	, m_retry_count(1)
+	, m_cookie(random())
 	, m_disabled(false)
 {
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
@@ -115,7 +117,8 @@ void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 		"Host: 239.192.152.143:6771\r\n"
 		"Port: %d\r\n"
 		"Infohash: %s\r\n"
-		"\r\n\r\n", listen_port, ih_hex);
+		"cookie: %x\r\n"
+		"\r\n\r\n", listen_port, ih_hex, m_cookie);
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	{
@@ -210,6 +213,23 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	typedef std::multimap<std::string, std::string> headers_t;
 	headers_t const& headers = p.headers();
+
+	headers_t::const_iterator cookie_iter = headers.find("cookie");
+	if (cookie_iter != headers.end())
+	{
+		// we expect it to be hexadecimal
+		// if it isn't, it's not our cookie anyway
+		boost::uint32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
+		if (cookie == m_cookie)
+		{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s <== announce: ignoring packet (cookie matched our own): %x == %x\n"
+				, time_now_string(), cookie, m_cookie);
+#endif
+			return;
+		}
+	}
+
 	std::pair<headers_t::const_iterator, headers_t::const_iterator> ihs
 		= headers.equal_range("infohash");
 
