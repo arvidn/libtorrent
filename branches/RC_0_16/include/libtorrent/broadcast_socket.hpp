@@ -66,9 +66,11 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{
 	public:
-		broadcast_socket(io_service& ios, udp::endpoint const& multicast_endpoint
-			, receive_handler_t const& handler, bool loopback = true);
+		broadcast_socket(udp::endpoint const& multicast_endpoint
+			, receive_handler_t const& handler);
 		~broadcast_socket() { close(); }
+
+		void open(io_service& ios, error_code& ec, bool loopback = true);
 
 		enum flags_t { broadcast = 1 };
 		void send(char const* buffer, int size, error_code& ec, int flags = 0);

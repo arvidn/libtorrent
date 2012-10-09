@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
-#ifndef NDEBUG
-//#include "libtorrent/socket_io.hpp"
+#ifdef TORRENT_DEBUG
+#include "libtorrent/socket_io.hpp"
 #endif
 
 #if BOOST_VERSION < 103500
@@ -211,10 +211,9 @@ namespace libtorrent
 #endif
 	}
 
-	broadcast_socket::broadcast_socket(io_service& ios
-		, udp::endpoint const& multicast_endpoint
-		, receive_handler_t const& handler
-		, bool loopback)
+	broadcast_socket::broadcast_socket(
+		udp::endpoint const& multicast_endpoint
+		, receive_handler_t const& handler)
 		: m_multicast_endpoint(multicast_endpoint)
 		, m_on_receive(handler)
 		, m_outstanding_operations(0)
@@ -223,12 +222,14 @@ namespace libtorrent
 		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
 		using namespace asio::ip::multicast;
-	
-		error_code ec;
+	}
+
+	void broadcast_socket::open(io_service& ios, error_code& ec, bool loopback)
+	{
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 #if TORRENT_USE_IPV6
-		if (multicast_endpoint.address().is_v6())
+		if (m_multicast_endpoint.address().is_v6())
 			open_multicast_socket(ios, address_v6::any(), loopback, ec);
 		else
 #endif
@@ -238,16 +239,16 @@ namespace libtorrent
 			, end(interfaces.end()); i != end; ++i)
 		{
 			// only multicast on compatible networks
-			if (i->interface_address.is_v4() != multicast_endpoint.address().is_v4()) continue;
+			if (i->interface_address.is_v4() != m_multicast_endpoint.address().is_v4()) continue;
 			// ignore any loopback interface
 			if (!loopback && is_loopback(i->interface_address)) continue;
 
 			ec = error_code();
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
 //				, i->interface_address.to_string().c_str()
-//				, multicast_endpoint.address().to_string().c_str()
+//				, m_multicast_endpoint.address().to_string().c_str()
 //				, i->netmask.to_string().c_str()
 //				, ec.message().c_str());
 #endif
@@ -326,13 +327,13 @@ namespace libtorrent
 				i->socket->send_to(asio::buffer(buffer, size)
 					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //			fprintf(stderr, " sending on unicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
 //				, print_endpoint(m_multicast_endpoint).c_str());
 #endif
 			if (e)
 			{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
 #endif
 				i->socket->close(e);
@@ -346,7 +347,7 @@ namespace libtorrent
 			if (!i->socket) continue;
 			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //			extern std::string print_address(address const& addr);
 //			extern std::string print_endpoint(udp::endpoint const& ep);
 //			fprintf(stderr, " sending on multicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
@@ -354,7 +355,7 @@ namespace libtorrent
 #endif
 			if (e)
 			{
-#ifndef NDEBUG
+#ifdef TORRENT_DEBUG
 //				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
 #endif
 				i->socket->close(e);
