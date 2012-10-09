@@ -199,7 +199,12 @@ void start_proxy(int port, int proxy_type)
 		, port, type, auth);
 
 	fprintf(stderr, "starting delegated proxy on port %d (%s %s)...\n", port, type, auth);
-	system(buf);
+	int r = system(buf);
+	if (r != 0)
+	{
+		fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
+		exit(1);
+	}
 	fprintf(stderr, "launched\n");
 	// apparently delegate takes a while to open its listen port
 	test_sleep(500);
