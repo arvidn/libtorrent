@@ -86,7 +86,7 @@ private:
 
 	bool m_disabled;
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-	std::ofstream m_log;
+	FILE* m_log;
 #endif
 };
 
