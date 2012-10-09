@@ -215,8 +215,11 @@ int test_main()
 	xml.write(soap_add_response, sizeof(soap_add_response)-1);
 	xml.close();
 
-	sock = new broadcast_socket(ios, udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
+	sock = new broadcast_socket(udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
 		, &incoming_msearch);
+
+	error_code ec;
+	sock->open(ios, ec);
 
 	std::string user_agent = "test agent";
 
@@ -226,7 +229,6 @@ int test_main()
 	upnp_handler->discover_device();
 
 	libtorrent::deadline_timer timer(ios);
-	error_code ec;
 	timer.expires_from_now(seconds(10), ec);
 	timer.async_wait(boost::bind(&libtorrent::io_service::stop, boost::ref(ios)));
 

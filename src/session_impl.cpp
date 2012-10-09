@@ -5211,7 +5211,7 @@ retry:
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string()
-			<< ": added peer from local discovery: " << peer << "\n";
+			<< ": added peer from local discovery: " << print_endpoint(peer) << "\n";
 #endif
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
 		if (m_alerts.should_post<lsd_peer_alert>())
