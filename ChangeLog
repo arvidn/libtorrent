@@ -5,6 +5,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* small optimization to local peer discovery to ignore our own broadcasts
 	* try harder to bind the udp socket (uTP, DHT, UDP-trackers, LSD) to the same port as TCP
 	* relax file timestamp requirements for accepting resume data
 	* fix performance issue in web seed downloader (coalescing of blocks sometimes wouldn't work)
