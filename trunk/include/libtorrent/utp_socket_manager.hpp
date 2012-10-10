@@ -65,7 +65,8 @@ namespace libtorrent
 
 		void tick(ptime now);
 
-		tcp::endpoint local_endpoint(error_code& ec) const;
+		tcp::endpoint local_endpoint(address const& remote, error_code& ec) const;
+		int local_port(error_code& ec) const;
 
 		// flags for send_packet
 		enum { dont_fragment = 1 };
