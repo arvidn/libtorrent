@@ -194,9 +194,55 @@ namespace libtorrent
 #endif
 	}
 
-	tcp::endpoint utp_socket_manager::local_endpoint(error_code& ec) const
+	int utp_socket_manager::local_port(error_code& ec) const
 	{
-		return m_sock.local_endpoint(ec);
+		return m_sock.local_endpoint(ec).port();
+	}
+
+	tcp::endpoint utp_socket_manager::local_endpoint(address const& remote, error_code& ec) const
+	{
+		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
+
+		// first enumerate the routes in the routing table
+		std::vector<ip_route> routes = enum_routes(m_sock.get_io_service(), ec);
+		if (ec) return socket_ep;
+
+		if (routes.empty()) return socket_ep;
+		// then find the best match
+		ip_route* best = &routes[0];
+		for (std::vector<ip_route>::iterator i = routes.begin()
+			, end(routes.end()); i != end; ++i)
+		{
+			if (is_any(i->destination) && i->destination.is_v4() == remote.is_v4())
+			{
+				best = &*i;
+				continue;
+			}
+
+			if (match_addr_mask(remote, i->destination, i->netmask))
+			{
+				best = &*i;
+				continue;
+			}
+		}
+
+		// best now tells us which interface we would send over
+		// for this target. Now figure out what the local address
+		// is for that interface
+
+		std::vector<ip_interface> net = enum_net_interfaces(m_sock.get_io_service(), ec);
+		if (ec) return socket_ep;
+
+		for (std::vector<ip_interface>::iterator i = net.begin()
+			, end(net.end()); i != end; ++i)
+		{
+			if (i->interface_address.is_v4() != remote.is_v4())
+				continue;
+
+			if (strcmp(best->name, i->name) == 0)
+				return tcp::endpoint(i->interface_address, socket_ep.port());
+		}
+		return socket_ep;
 	}
 
 	bool utp_socket_manager::incoming_packet(char const* p, int size, udp::endpoint const& ep)

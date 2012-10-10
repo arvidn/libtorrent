@@ -1,3 +1,5 @@
+	* consistently disconnect the same peer when two peers simultaneously connect
+	* fix local endpoint queries for uTP connections
 	* small optimization to local peer discovery to ignore our own broadcasts
 	* try harder to bind the udp socket (uTP, DHT, UDP-trackers, LSD) to the same port as TCP
 	* relax file timestamp requirements for accepting resume data
