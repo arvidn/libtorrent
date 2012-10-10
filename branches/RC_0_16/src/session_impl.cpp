@@ -2227,7 +2227,8 @@ retry:
 			{
 				listen_socket_t s;
 				s.ssl = true;
-				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+				int retries = 10;
+				setup_listener(&s, ssl_interface, retries, false, flags, ec);
 
 				if (s.sock)
 				{
@@ -2255,8 +2256,9 @@ retry:
 				{
 					listen_socket_t s;
 					s.ssl = true;
+					int retries = 10;
 					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
-						, 10, false, flags, ec);
+						, retries, false, flags, ec);
 
 					if (s.sock)
 					{
@@ -2305,7 +2307,8 @@ retry:
 			{
 				listen_socket_t s;
 				s.ssl = true;
-				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+				int retries = 10;
+				setup_listener(&s, ssl_interface, retries, false, flags, ec);
 
 				if (s.sock)
 				{
