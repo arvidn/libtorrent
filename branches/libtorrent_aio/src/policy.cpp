@@ -895,20 +895,66 @@ namespace libtorrent
 					i->connection->disconnect(ec2);
 					TORRENT_ASSERT(i->connection == 0);
 				}
-				else if (!i->connection->is_connecting() || c.is_outgoing())
+				else if (i->connection->is_outgoing() == c.is_outgoing())
 				{
+					// if the other end connected to us both times, just drop
+					// the second one. Or if we made both connections.
 					c.disconnect(errors::duplicate_peer_id);
 					return false;
 				}
 				else
 				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-					m_torrent->debug_log("duplicate connection. existing connection"
-					" is connecting and this connection is incoming. closing existing "
-					"connection in favour of this one");
+					// at this point, we need to disconnect either
+					// i->connection or c. In order for both this client
+					// and the client on the other end to decide to
+					// disconnect the same one, we need a consistent rule to
+					// select which one.
+
+					bool outgoing1 = c.is_outgoing();
+
+					// for this, we compare our endpoints (IP and port)
+					// and whoever has the lower IP,port should be the
+					// one keeping its outgoing connection. Since outgoing
+					// ports are selected at random by the OS, we need
+					// to be careful to only look at the target end of a
+					// connection for the endpoint.
+
+					tcp::endpoint our_ep = outgoing1 ? other_socket->local_endpoint(ec1) : this_socket->local_endpoint(ec1);
+					tcp::endpoint other_ep = outgoing1 ? this_socket->remote_endpoint(ec1) : other_socket->remote_endpoint(ec1);
+
+					if (our_ep < other_ep)
+					{
+#ifdef TORRENT_VERBOSE_LOGGING
+						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" < \"%s\" ]"
+							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
+						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" < \"%s\" ]"
+							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
 #endif
-					i->connection->disconnect(errors::duplicate_peer_id);
-					TORRENT_ASSERT(i->connection == 0);
+
+						// we should keep our outgoing connection
+						if (!outgoing1)
+						{
+							c.disconnect(errors::duplicate_peer_id);
+							return false;
+						}
+						i->connection->disconnect(errors::duplicate_peer_id);
+					}
+					else
+					{
+#ifdef TORRENT_VERBOSE_LOGGING
+						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" >= \"%s\" ]"
+							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
+						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%s\" >= \"%s\" ]"
+							, print_endpoint(our_ep).c_str(), print_endpoint(other_ep).c_str());
+#endif
+						// they should keep their outgoing connection
+						if (outgoing1)
+						{
+							c.disconnect(errors::duplicate_peer_id);
+							return false;
+						}
+						i->connection->disconnect(errors::duplicate_peer_id);
+					}
 				}
 			}
 

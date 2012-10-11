@@ -2290,7 +2290,7 @@ namespace aux {
 	}
 
 	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
-		, int retries, bool v6_only, int flags, error_code& ec)
+		, int& retries, bool v6_only, int flags, error_code& ec)
 	{
 		s->sock.reset(new socket_acceptor(m_io_service));
 		s->sock->open(ep.protocol(), ec);
@@ -2390,6 +2390,8 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+retry:
+
 		// close the open listen sockets
 		m_listen_sockets.clear();
 		m_incoming_connection = false;
@@ -2427,7 +2429,8 @@ namespace aux {
 			{
 				listen_socket_t s;
 				s.ssl = true;
-				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+				int retries = 10;
+				setup_listener(&s, ssl_interface, retries, false, flags, ec);
 
 				if (s.sock)
 				{
@@ -2455,8 +2458,9 @@ namespace aux {
 				{
 					listen_socket_t s;
 					s.ssl = true;
+					int retries = 10;
 					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
-						, 10, false, flags, ec);
+						, retries, false, flags, ec);
 
 					if (s.sock)
 					{
@@ -2505,7 +2509,8 @@ namespace aux {
 			{
 				listen_socket_t s;
 				s.ssl = true;
-				setup_listener(&s, ssl_interface, 10, false, flags, ec);
+				int retries = 10;
+				setup_listener(&s, ssl_interface, retries, false, flags, ec);
 
 				if (s.sock)
 				{
@@ -2519,14 +2524,19 @@ namespace aux {
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			char msg[200];
 			snprintf(msg, sizeof(msg), "cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 			(*m_logger) << msg << "\n";
 #endif
+			if (m_listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				goto retry;
+			}
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface, ec));
 		}
 		else
 		{
@@ -5708,7 +5718,7 @@ namespace aux {
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		(*m_logger) << time_now_string()
-			<< ": added peer from local discovery: " << peer << "\n";
+			<< ": added peer from local discovery: " << print_endpoint(peer) << "\n";
 #endif
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
 		t->update_want_peers();

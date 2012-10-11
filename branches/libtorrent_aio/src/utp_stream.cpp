@@ -399,6 +399,9 @@ struct utp_socket_impl
 	// the address of the remote endpoint
 	address m_remote_address;
 
+	// the local address
+	address m_local_address;
+
 	// the send and receive buffers
 	// maps packet sequence numbers
 	packet_buffer m_inbuf;
@@ -796,7 +799,7 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 		ec = asio::error::not_connected;
 		return endpoint_type();
 	}
-	return m_impl->m_sm->local_endpoint(ec);
+	return tcp::endpoint(m_impl->m_local_address, m_impl->m_sm->local_port(ec));
 }
 
 utp_stream::~utp_stream()
@@ -1070,6 +1073,9 @@ void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
 	m_impl->m_connect_handler = handler;
+
+	error_code ec;
+	m_impl->m_local_address = m_impl->m_sm->local_endpoint(m_impl->m_remote_address, ec).address();
 
 	if (m_impl->test_socket_state()) return;
 	m_impl->send_syn();
@@ -2729,6 +2735,9 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 				m_remote_address = ep.address();
 				m_port = ep.port();
+
+				error_code ec;
+				m_local_address = m_sm->local_endpoint(m_remote_address, ec).address();
 
 				m_ack_nr = ph->seq_nr;
 				m_seq_nr = random();
