@@ -89,7 +89,7 @@ namespace
 		virtual bool on_extension_handshake(lazy_entry const& h)
 		{
 			log_timestamp();
-			m_file << "<== EXTENSION_HANDSHAKE\n" << h;
+			m_file << "<== EXTENSION_HANDSHAKE\n" << print_entry(h);
 			return true;
 		}
 
