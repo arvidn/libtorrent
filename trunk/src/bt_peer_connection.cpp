@@ -2179,7 +2179,7 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 		send_buffer(&dict_msg[0], dict_msg.size());
 
-#if defined TORRENT_VERBOSE_LOGGING && TORRENT_USE_IOSTREAM
+#if defined TORRENT_VERBOSE_LOGGING
 		std::stringstream handshake_str;
 		handshake.print(handshake_str);
 		peer_log("==> EXTENDED HANDSHAKE: %s", handshake_str.str().c_str());
