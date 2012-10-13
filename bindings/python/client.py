@@ -219,22 +219,26 @@ def main():
     alerts = []
 
     for f in args:
-        e = lt.bdecode(open(f, 'rb').read())
-        info = lt.torrent_info(e)
-        print('Adding \'%s\'...' % info.name())
 
         atp = {}
-        try:
-            atp["resume_data"] = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
-        except:
-            pass
-
-        atp["ti"] = info
         atp["save_path"] = options.save_path
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = False
         atp["auto_managed"] = True
         atp["duplicate_is_error"] = True
+        if f.startswith('magnet:') or f.startswith('http://') or f.startswith('https://'):
+            atp["url"] = f
+        else:
+            e = lt.bdecode(open(f, 'rb').read())
+            info = lt.torrent_info(e)
+            print('Adding \'%s\'...' % info.name())
+
+            try:
+                atp["resume_data"] = open(os.path.join(options.save_path, info.name() + '.fastresume'), 'rb').read()
+            except:
+                pass
+
+            atp["ti"] = info
 
         h = ses.add_torrent(atp)
 
@@ -293,14 +297,18 @@ def main():
             print_peer_info(console, h.get_peer_info())
             print_download_queue(console, h.get_download_queue())
 
-            if True and s.state != lt.torrent_status.seeding:
-                out = '\n'
-                fp = h.file_progress()
-                ti = h.get_torrent_info()
-                for f,p in zip(ti.files(), fp):
-                    out += progress_bar(p / f.size, 20)
-                    out += ' ' + f.path + '\n'
-                write_line(console, out)
+            if s.state != lt.torrent_status.seeding:
+                try:
+                    out = '\n'
+                    fp = h.file_progress()
+                    fp = 0
+                    ti = h.get_torrent_info()
+                    for f,p in zip(ti.files(), fp):
+                        out += progress_bar(p / f.size, 20)
+                        out += ' ' + f.path + '\n'
+                    write_line(console, out)
+                except:
+                    pass
 
         write_line(console, 76 * '-' + '\n')
         write_line(console, '(q)uit), (p)ause), (u)npause), (r)eannounce\n')

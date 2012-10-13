@@ -187,7 +187,7 @@ namespace
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
 
-        if (params.has_key("tracker_url"))
+        if (params.has_key("trackers"))
         {
             list l = extract<list>(params["trackers"]);
             int n = boost::python::len(l);
