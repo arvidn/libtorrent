@@ -1,3 +1,5 @@
+	* add support for magnet links and URLs in python example client
+	* fixed typo in python bindings' add_torrent_params
 	* introduce a way to add built-in plugins from python
 	* consistently disconnect the same peer when two peers simultaneously connect
 	* fix local endpoint queries for uTP connections
