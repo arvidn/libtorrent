@@ -13,11 +13,11 @@
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
 
-#include <libtorrent/lt_trackers.hpp>
-#include <libtorrent/metadata_transfer.hpp>
-#include <libtorrent/smart_ban.hpp>
-#include <libtorrent/ut_metadata.hpp>
-#include <libtorrent/ut_pex.hpp>
+#include <libtorrent/extensions/lt_trackers.hpp>
+#include <libtorrent/extensions/metadata_transfer.hpp>
+#include <libtorrent/extensions/smart_ban.hpp>
+#include <libtorrent/extensions/ut_metadata.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
 
 #include "gil.hpp"
 
@@ -57,14 +57,14 @@ namespace
        std::string name = extract<std::string>(e);
        if (name == "ut_metadata")
             s.add_extension(create_ut_metadata_plugin);
-       else (name == "ut_pex")
+       else if (name == "ut_pex")
             s.add_extension(create_ut_pex_plugin);
-       else (name == "smart_ban")
+       else if (name == "smart_ban")
             s.add_extension(create_smart_ban_plugin);
-       else (name == "lt_trackers")
+       else if (name == "lt_trackers")
             s.add_extension(create_lt_trackers_plugin);
-       else (name == "metadata_transfer")
-            s.add_extension(create_metadata_transfer_plugin);
+       else if (name == "metadata_transfer")
+            s.add_extension(create_metadata_plugin);
     }
 
 #ifndef TORRENT_NO_DEPRECATE
