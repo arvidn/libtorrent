@@ -867,7 +867,8 @@ void add_torrent(libtorrent::session& ses
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 	lazy_entry resume_data;
 
-	std::string filename = combine_path(save_path, combine_path(".resume", libtorrent::filename(torrent) + ".resume"));
+	std::string filename = combine_path(save_path, combine_path(".resume"
+		, libtorrent::filename(torrent) + ".resume"));
 
 	error_code ec;
 	std::vector<char> buf;
@@ -1404,8 +1405,7 @@ int main(int argc, char* argv[])
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
-			+ alert::debug_notification
-			+ alert::stats_notification));
+			+ alert::debug_notification));
 
 	ses.set_load_function(&load_torrent);
 
@@ -2664,7 +2664,8 @@ int main(int argc, char* argv[])
 			torrent_handle h = rd->handle;
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(combine_path(h.save_path(), combine_path(".resume", to_hex(h.info_hash().to_string()) + ".resume")), out);
+			save_file(combine_path(h.save_path(), combine_path(".resume", libtorrent::filename(
+				hash_to_filename[h.info_hash()]) + ".resume")), out);
 		}
 	}
 
