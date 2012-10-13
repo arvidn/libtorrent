@@ -1,3 +1,4 @@
+	* introduce a way to add built-in plugins from python
 	* consistently disconnect the same peer when two peers simultaneously connect
 	* fix local endpoint queries for uTP connections
 	* small optimization to local peer discovery to ignore our own broadcasts
