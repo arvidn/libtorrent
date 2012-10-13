@@ -12,6 +12,13 @@
 #include <libtorrent/ip_filter.hpp>
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/extensions.hpp>
+
+#include <libtorrent/extensions/lt_trackers.hpp>
+#include <libtorrent/extensions/metadata_transfer.hpp>
+#include <libtorrent/extensions/smart_ban.hpp>
+#include <libtorrent/extensions/ut_metadata.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
+
 #include "gil.hpp"
 
 using namespace boost::python;
@@ -43,8 +50,24 @@ namespace
     }
 #endif
 
+    void add_extension(session& s, object const& e)
+    {
+       if (!extract<std::string>(e).check()) return;
+
+       std::string name = extract<std::string>(e);
+       if (name == "ut_metadata")
+            s.add_extension(create_ut_metadata_plugin);
+       else if (name == "ut_pex")
+            s.add_extension(create_ut_pex_plugin);
+       else if (name == "smart_ban")
+            s.add_extension(create_smart_ban_plugin);
+       else if (name == "lt_trackers")
+            s.add_extension(create_lt_trackers_plugin);
+       else if (name == "metadata_transfer")
+            s.add_extension(create_metadata_plugin);
+    }
+
 #ifndef TORRENT_NO_DEPRECATE
-    void add_extension(session& s, object const& e) {}
 
     boost::shared_ptr<torrent_plugin> dummy_plugin_wrapper(torrent* t) {
         return boost::shared_ptr<torrent_plugin>();
@@ -590,8 +613,8 @@ void bind_session()
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
         .def("pop_alert", allow_threads(&session::pop_alert))
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
-#ifndef TORRENT_NO_DEPRECATE
         .def("add_extension", &add_extension)
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_peer_proxy", allow_threads(&session::set_peer_proxy))
         .def("set_tracker_proxy", allow_threads(&session::set_tracker_proxy))
         .def("set_web_seed_proxy", allow_threads(&session::set_web_seed_proxy))
