@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/struct_debug.hpp"
 #endif
 
-#ifdef TORRENT_DEBUG
-#include <iostream>
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -98,10 +94,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/struct_debug.hpp"
-#endif
-
-#if TORRENT_USE_IOSTREAM
-#include <iostream>
 #endif
 
 using namespace libtorrent;
@@ -2810,25 +2802,23 @@ namespace libtorrent
 		if (complete >= 0 && incomplete >= 0)
 			m_last_scrape = 0;
 
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING) && TORRENT_USE_IOSTREAM
-		std::stringstream s;
-		s << "TRACKER RESPONSE:\n"
-			"interval: " << interval << "\n"
-			"peers:\n";
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+		debug_log("TRACKER RESPONSE\n"
+				"interval: %d\n"
+				"external ip: %s\n"
+				"we connected to: %s\n"
+				"peers:"
+			, interval
+			, print_address(external_ip).c_str()
+			, print_address(tracker_ip).c_str());
+
 		for (std::vector<peer_entry>::const_iterator i = peer_list.begin();
 			i != peer_list.end(); ++i)
 		{
-			s << "  " << std::setfill(' ') << std::setw(16) << i->ip
-				<< " " << std::setw(5) << std::dec << i->port << "  ";
-			if (!i->pid.is_all_zeros()) s << " " << i->pid << " " << identify_client(i->pid);
-			s << "\n";
+			debug_log("  %16s %5d %s %s", i->ip.c_str(), i->port
+				, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
+				, identify_client(i->pid).c_str());
 		}
-		s << "external ip: " << external_ip << "\n";
-		s << "tracker ips: ";
-		std::copy(tracker_ips.begin(), tracker_ips.end(), std::ostream_iterator<address>(s, " "));
-		s << "\n";
-		s << "we connected to: " << tracker_ip << "\n";
-		debug_log("%s", s.str().c_str());
 #endif
 		// for each of the peers we got from the tracker
 		for (std::vector<peer_entry>::iterator i = peer_list.begin();
@@ -2925,7 +2915,7 @@ namespace libtorrent
 					?m_ses.m_ipv6_interface.address()
 					:m_ses.m_ipv4_interface.address();
 				announce_with_tracker(r.event, bind_interface);
-#if (defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING) && TORRENT_USE_IOSTREAM
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 				debug_log("announce again using %s as the bind interface"
 					, print_address(bind_interface).c_str());
 #endif
