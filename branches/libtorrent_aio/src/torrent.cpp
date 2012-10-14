@@ -2201,6 +2201,7 @@ namespace libtorrent
 #endif
 		// assume that we don't have anything
 		m_files_checked = false;
+		update_want_tick();
 		set_state(torrent_status::checking_resume_data);
 
 		m_policy.recalculate_connect_candidates();
@@ -2210,7 +2211,6 @@ namespace libtorrent
 
 		m_resume_data.reset();
 
-		if (!need_loaded()) return;
 		inc_refcount();
 		m_ses.m_disk_thread.async_check_fastresume(m_storage.get(), NULL
 			, boost::bind(&torrent::on_force_recheck
