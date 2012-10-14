@@ -316,7 +316,7 @@ namespace libtorrent
 		for (tracker_connections_t::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			intrusive_ptr<tracker_connection> c = *i;
+			boost::intrusive_ptr<tracker_connection> c = *i;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;

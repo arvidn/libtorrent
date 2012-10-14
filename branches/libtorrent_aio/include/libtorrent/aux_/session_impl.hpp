@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/linked_list.hpp"
+#include "libtorrent/torrent_peer.hpp"
 
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef WITH_SHIPPED_GEOIP_H
@@ -89,7 +90,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/policy.hpp" // for policy::peer
 #include "libtorrent/alert.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
@@ -473,6 +473,9 @@ namespace libtorrent
 			boost::uint16_t listen_port() const;
 			boost::uint16_t ssl_listen_port() const;
 			
+			torrent_peer* allocate_peer_entry(int type);
+			void free_peer_entry(torrent_peer* p);
+
 			void abort();
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
@@ -711,7 +714,7 @@ namespace libtorrent
 			// the settings for the client
 			aux::session_settings m_settings;
 
-			// this is a shared pool where policy_peer objects
+			// this is a shared pool where torrent_peer objects
 			// are allocated. It's a pool since we're likely
 			// to have tens of thousands of peers, and a pool
 			// saves significant overhead
@@ -740,22 +743,22 @@ namespace libtorrent
 
 			// TODO: these should be a plain boost::pool rather than an object_pool
 			boost::object_pool<
-				policy::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
+				libtorrent::pv4_peer, logging_allocator> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
 			boost::object_pool<
-				policy::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
+				libtorrent::pv6_peer, logging_allocator> m_ipv6_peer_pool;
 #endif
 #if TORRENT_USE_I2P
 			boost::object_pool<
-				policy::i2p_peer, logging_allocator> m_i2p_peer_pool;
+				libtorrent::i2p_peer, logging_allocator> m_i2p_peer_pool;
 #endif
 #else
-			boost::object_pool<policy::ipv4_peer> m_ipv4_peer_pool;
+			boost::object_pool<libtorrent::ipv4_peer> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
-			boost::object_pool<policy::ipv6_peer> m_ipv6_peer_pool;
+			boost::object_pool<libtorrent::ipv6_peer> m_ipv6_peer_pool;
 #endif
 #if TORRENT_USE_I2P
-			boost::object_pool<policy::i2p_peer> m_i2p_peer_pool;
+			boost::object_pool<libtorrent::i2p_peer> m_i2p_peer_pool;
 #endif
 #endif
 
@@ -869,7 +872,7 @@ namespace libtorrent
 			// once a peer is disconnected, it's put in this list and
 			// every second their refcount is checked, and if it's 1,
 			// they are deleted (from the network thread)
-			std::vector<intrusive_ptr<peer_connection> > m_undead_peers;
+			std::vector<boost::intrusive_ptr<peer_connection> > m_undead_peers;
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
@@ -1339,7 +1342,7 @@ namespace libtorrent
 			// maps AS number to the peak download rate
 			// we've seen from it. Entries are never removed
 			// from this map. Pointers to its elements
-			// are kept in the policy::peer structures.
+			// are kept in the torrent_peer structures.
 			std::map<int, int> m_as_peak;
 #endif
 

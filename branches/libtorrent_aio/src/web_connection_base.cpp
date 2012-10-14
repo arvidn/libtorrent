@@ -63,7 +63,7 @@ namespace libtorrent
 		, boost::shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
 		, std::string const& url
-		, policy::peer* peerinfo
+		, torrent_peer* peerinfo
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
 		: peer_connection(ses, sett, allocator, disk_thread, ios

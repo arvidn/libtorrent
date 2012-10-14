@@ -68,7 +68,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
-#include "libtorrent/policy.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
@@ -84,6 +83,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/connection_interface.hpp"
+#include "libtorrent/piece_picker.hpp" // for piece_block
+#include "libtorrent/socket.hpp" // for tcp::endpoint
 
 namespace libtorrent
 {
@@ -91,6 +92,7 @@ namespace libtorrent
 	struct peer_info;
 	struct disk_io_job;
 	struct disk_interface;
+	struct torrent_peer;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct peer_plugin;
@@ -185,7 +187,7 @@ namespace libtorrent
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo
+			, torrent_peer* peerinfo
 			, bool outgoing = true);
 
 		// this function is called after it has been constructed and properly
@@ -196,13 +198,13 @@ namespace libtorrent
 
 		virtual ~peer_connection();
 
-		void set_peer_info(policy::peer* pi)
+		void set_peer_info(torrent_peer* pi)
 		{
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
 			m_peer_info = pi;
 		}
 
-		policy::peer* peer_info_struct() const
+		torrent_peer* peer_info_struct() const
 		{ return m_peer_info; }
 
 		enum peer_speed_t { slow = 1, medium, fast };
@@ -236,8 +238,7 @@ namespace libtorrent
 			return m_prefer_whole_pieces;
 		}
 
-		bool on_parole() const
-		{ return peer_info_struct() && peer_info_struct()->on_parole; }
+		bool on_parole() const;
 
 		int picker_options() const;
 
@@ -997,7 +998,7 @@ namespace libtorrent
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming
 		// and hasn't been added to a torrent yet.
-		policy::peer* m_peer_info;
+		torrent_peer* m_peer_info;
 
 		// this is a measurement of how fast the peer
 		// it allows some variance without changing

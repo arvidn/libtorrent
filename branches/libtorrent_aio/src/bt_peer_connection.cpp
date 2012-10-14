@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/socket_type.hpp"
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
@@ -101,7 +102,7 @@ namespace libtorrent
 		, io_service& ios
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& remote
-		, policy::peer* peerinfo
+		, torrent_peer* peerinfo
 		, boost::weak_ptr<torrent> tor
 		, bool outgoing)
 		: peer_connection(ses, sett, allocator, disk_thread, ios
@@ -181,7 +182,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(peer_info_struct());
 
-			policy::peer* pi = peer_info_struct();
+			torrent_peer* pi = peer_info_struct();
 			if (pi->pe_support == true)
 			{
 				// toggle encryption support flag, toggled back to
@@ -1498,7 +1499,7 @@ namespace libtorrent
 			case hp_connect:
 			{
 				// add or find the peer with this endpoint
-				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
+				torrent_peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
 				if (p == 0 || p->connection)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
@@ -2388,7 +2389,7 @@ namespace libtorrent
 				: m_id(id), m_pc(pc)
 			{ TORRENT_ASSERT(pc); }
 
-			bool operator()(policy::peer const* p) const
+			bool operator()(torrent_peer const* p) const
 			{
 				return p->connection != m_pc
 					&& p->connection
@@ -2929,7 +2930,7 @@ namespace libtorrent
 			if (is_outgoing() &&
 				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
-				policy::peer* pi = peer_info_struct();
+				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
 				
 				pi->pe_support = true;
@@ -3235,7 +3236,7 @@ namespace libtorrent
 			if (is_outgoing() && !m_encrypted &&
 				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
-				policy::peer* pi = peer_info_struct();
+				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
 
 				pi->pe_support = false;

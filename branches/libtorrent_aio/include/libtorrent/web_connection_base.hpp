@@ -95,7 +95,7 @@ namespace libtorrent
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, std::string const& url
-			, policy::peer* peerinfo
+			, torrent_peer* peerinfo
 			, std::string const& ext_auth
 			, web_seed_entry::headers_t const& ext_headers);
 		void start();

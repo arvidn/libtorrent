@@ -531,6 +531,7 @@ SOURCES =
 	torrent
 	torrent_handle
 	torrent_info
+	torrent_peer
 	time
 	tracker_manager
 	http_tracker_connection

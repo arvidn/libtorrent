@@ -93,7 +93,7 @@ namespace libtorrent
 			, io_service& ios
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
-			, policy::peer* peerinfo
+			, torrent_peer* peerinfo
 			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
 			, bool outgoing = false);
 

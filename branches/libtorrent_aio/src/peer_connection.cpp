@@ -118,7 +118,7 @@ namespace libtorrent
 		, boost::weak_ptr<torrent> tor
 		, shared_ptr<socket_type> s
 		, tcp::endpoint const& endp
-		, policy::peer* peerinfo
+		, torrent_peer* peerinfo
 		, bool outgoing)
 		:
 #ifdef TORRENT_DEBUG
@@ -839,6 +839,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_peer_info->connection == 0);
 #endif
 	}
+
+	bool peer_connection::on_parole() const
+	{ return peer_info_struct() && peer_info_struct()->on_parole; }
 
 	int peer_connection::picker_options() const
 	{
@@ -2563,7 +2566,7 @@ namespace libtorrent
 				{
 					// only make predicitons if all remaining
 					// blocks are requested from the same peer
-					policy::peer* p = (policy::peer*)d[0];
+					torrent_peer* p = (torrent_peer*)d[0];
 					if (p->connection)
 					{
 						// we have a connection. now, what is the current
@@ -3521,7 +3524,7 @@ namespace libtorrent
 		{
 			m_peer_info->supports_utp = false;
 			// reconnect immediately using TCP
-			policy::peer* pi = peer_info_struct();
+			torrent_peer* pi = peer_info_struct();
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			fast_reconnect(true);
 			disconnect(e, 0);
@@ -3889,7 +3892,7 @@ namespace libtorrent
 		p.flags |= m_holepunch_mode ? peer_info::holepunched : 0;
 		if (peer_info_struct())
 		{
-			policy::peer* pi = peer_info_struct();
+			torrent_peer* pi = peer_info_struct();
 			TORRENT_ASSERT(pi->in_use);
 			p.source = pi->source;
 			p.failcount = pi->failcount;

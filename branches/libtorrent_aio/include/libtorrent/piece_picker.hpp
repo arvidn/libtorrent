@@ -121,7 +121,7 @@ namespace libtorrent
 			block_info(): peer(0), num_peers(0), state(state_none) {}
 			// the peer this block was requested or
 			// downloaded from. This is a pointer to
-			// a policy::peer object
+			// a torrent_peer object
 			void* peer;
 			// the number of peers that has this block in their
 			// download or request queues
@@ -294,7 +294,7 @@ namespace libtorrent
 		// decides to download a piece, it must mark it as being downloaded
 		// itself, by using the mark_as_downloading() member function.
 		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
-		// The last argument is the policy::peer pointer for the peer that
+		// The last argument is the torrent_peer pointer for the peer that
 		// we'll download from.
 		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks

@@ -210,7 +210,7 @@ namespace
 					// block read will have been deleted by the time it gets back to the network thread
 					m_torrent.session().m_disk_thread.async_read(&m_torrent.storage(), r
 						, boost::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((policy::peer*)*i)->address(), _1), (void*)1
+						, shared_from_this(), pb, ((torrent_peer*)*i)->address(), _1), (void*)1
 						, disk_io_job::force_copy);
 				}
 
@@ -228,7 +228,7 @@ namespace
 		// a peer.
 		struct block_entry
 		{
-			policy::peer* peer;
+			torrent_peer* peer;
 			sha1_hash digest;
 		};
 
@@ -251,7 +251,7 @@ namespace
 			// there is no peer with this address anymore
 			if (range.first == range.second) return;
 
-			policy::peer* p = (*range.first);
+			torrent_peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
 #ifdef TORRENT_LOG_HASH_FAILURES
@@ -332,7 +332,7 @@ namespace
 			h.update((char const*)&m_salt, sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 
-			policy::peer* p = b.second.peer;
+			torrent_peer* p = b.second.peer;
 
 			if (b.second.digest == ok_digest) return;
 			if (p == 0) return;

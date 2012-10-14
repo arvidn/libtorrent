@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -59,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/io.hpp"
 
 namespace libtorrent { namespace
 {

@@ -83,6 +83,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/torrent_peer.hpp"
 
 #if defined TORRENT_STATS && defined __MACH__
 #include <mach/task.h>
@@ -896,25 +897,25 @@ namespace aux {
 		PRINT_SIZEOF(dht::node_entry)
 #endif
 
-		PRINT_SIZEOF(policy::peer)
-		PRINT_OFFSETOF(policy::peer, prev_amount_upload)
-		PRINT_OFFSETOF(policy::peer, prev_amount_download)
-		PRINT_OFFSETOF(policy::peer, connection)
+		PRINT_SIZEOF(torrent_peer)
+		PRINT_OFFSETOF(torrent_peer, prev_amount_upload)
+		PRINT_OFFSETOF(torrent_peer, prev_amount_download)
+		PRINT_OFFSETOF(torrent_peer, connection)
 #ifndef TORRENT_DISABLE_GEO_IP
 #ifdef TORRENT_DEBUG
-		PRINT_OFFSETOF(policy::peer, inet_as_num)
+		PRINT_OFFSETOF(torrent_peer, inet_as_num)
 #endif
-		PRINT_OFFSETOF(policy::peer, inet_as)
+		PRINT_OFFSETOF(torrent_peer, inet_as)
 #endif
-		PRINT_OFFSETOF(policy::peer, last_optimistically_unchoked)
-		PRINT_OFFSETOF(policy::peer, last_connected)
-		PRINT_OFFSETOF(policy::peer, port)
-		PRINT_OFFSETOF(policy::peer, hashfails)
-		PRINT_OFFSETOF_END(policy::peer)
+		PRINT_OFFSETOF(torrent_peer, last_optimistically_unchoked)
+		PRINT_OFFSETOF(torrent_peer, last_connected)
+		PRINT_OFFSETOF(torrent_peer, port)
+		PRINT_OFFSETOF(torrent_peer, hashfails)
+		PRINT_OFFSETOF_END(torrent_peer)
 
-		PRINT_SIZEOF(policy::ipv4_peer)
-#if TORRENT_USE_IPV6
-		PRINT_SIZEOF(policy::ipv6_peer)
+		PRINT_SIZEOF(ipv4_peer)
+#if torrent_use_ipv6
+		print_sizeof(ipv6_peer)
 #endif
 
 		PRINT_SIZEOF(udp_socket)
@@ -1073,6 +1074,52 @@ namespace aux {
 		update_choking_algorithm();
 		update_disk_threads();
 		update_network_threads();
+	}
+
+	torrent_peer* session_impl::allocate_peer_entry(int type)
+	{
+		torrent_peer* p = NULL;
+		switch(type)
+		{
+			case session_interface::ipv4_peer:
+				p = (torrent_peer*)m_ipv4_peer_pool.malloc();
+				m_ipv4_peer_pool.set_next_size(500);
+				break;
+#if TORRENT_USE_IPV6
+			case session_interface::ipv6_peer:
+				p = (torrent_peer*)m_ipv6_peer_pool.malloc();
+				m_ipv6_peer_pool.set_next_size(500);
+				break;
+#endif
+#if TORRENT_USE_I2P
+			case session_interface::i2p_peer:
+				p = (torrent_peer*)m_i2p_peer_pool.malloc();
+				m_i2p_peer_pool.set_next_size(500);
+				break;
+#endif
+		}
+		return p;
+	}
+	void session_impl::free_peer_entry(torrent_peer* p)
+	{
+#if TORRENT_USE_IPV6
+		if (p->is_v6_addr)
+		{
+			TORRENT_ASSERT(m_ipv6_peer_pool.is_from((libtorrent::ipv6_peer*)p));
+			m_ipv6_peer_pool.destroy((libtorrent::ipv6_peer*)p);
+			return;
+		}
+#endif
+#if TORRENT_USE_I2P
+		if (p->is_i2p_addr)
+		{
+			TORRENT_ASSERT(m_i2p_peer_pool.is_from((libtorrent::i2p_peer*)p));
+			m_i2p_peer_pool.destroy((libtorrent::i2p_peer*)p);
+			return;
+		}
+#endif
+		TORRENT_ASSERT(m_ipv4_peer_pool.is_from((libtorrent::ipv4_peer*)p));
+		m_ipv4_peer_pool.destroy((libtorrent::ipv4_peer*)p);
 	}
 
 #ifdef TORRENT_STATS
@@ -3327,7 +3374,7 @@ retry:
 #endif
 
 		// remove undead peers that only have this list as their reference keeping them alive
-		std::vector<intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
+		std::vector<boost::intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
 			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) < 2);
 		m_undead_peers.erase(i, m_undead_peers.end());
 
@@ -3339,7 +3386,7 @@ retry:
 		if (session_time > 65000)
 		{
 			// we're getting close to the point where our timestamps
-			// in policy::peer are wrapping. We need to step all counters back
+			// in torrent_peer are wrapping. We need to step all counters back
 			// four hours. This means that any timestamp that refers to a time
 			// more than 18.2 - 4 = 14.2 hours ago, will be incremented to refer to
 			// 14.2 hours ago.
@@ -4545,14 +4592,14 @@ retry:
 		TORRENT_ASSERT(is_single_thread());
 		if (m_allowed_upload_slots == 0) return;
 	
-		std::vector<policy::peer*> opt_unchoke;
+		std::vector<torrent_peer*> opt_unchoke;
 
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
 			peer_connection* p = i->get();
 			TORRENT_ASSERT(p);
-			policy::peer* pi = p->peer_info_struct();
+			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
 			if (pi->web_seed) continue;
 			torrent* t = p->associated_torrent().lock().get();
@@ -4586,18 +4633,18 @@ retry:
 		// sort all candidates based on when they were last optimistically
 		// unchoked.
 		std::sort(opt_unchoke.begin(), opt_unchoke.end()
-			, boost::bind(&policy::peer::last_optimistically_unchoked, _1)
-			< boost::bind(&policy::peer::last_optimistically_unchoked, _2));
+			, boost::bind(&torrent_peer::last_optimistically_unchoked, _1)
+			< boost::bind(&torrent_peer::last_optimistically_unchoked, _2));
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		for (std::vector<policy::peer*>::iterator i = opt_unchoke.begin()
+		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
 			, end(opt_unchoke.end()); i != end; ++i)
 		{
-			policy::peer* pi = *i;
+			torrent_peer* pi = *i;
 			if (num_opt_unchoke > 0)
 			{
 				--num_opt_unchoke;
@@ -4785,7 +4832,7 @@ retry:
 			TORRENT_ASSERT(p);
 			++i;
 			torrent* t = p->associated_torrent().lock().get();
-			policy::peer* pi = p->peer_info_struct();
+			torrent_peer* pi = p->peer_info_struct();
 
 			if (p->ignore_unchoke_slots() || t == 0 || pi == 0 || pi->web_seed || t->is_paused())
 				continue;

@@ -127,6 +127,7 @@ nobase_include_HEADERS = \
   torrent_handle.hpp           \
   torrent.hpp                  \
   torrent_info.hpp             \
+  torrent_peer.hpp             \
   tracker_manager.hpp          \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \

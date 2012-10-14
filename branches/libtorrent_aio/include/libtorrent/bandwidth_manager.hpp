@@ -49,9 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/ptime.hpp"
 
-using boost::intrusive_ptr;
-
-
 namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
@@ -76,7 +73,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 	// this is used by web seeds
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
-	int request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
+	int request_bandwidth(boost::intrusive_ptr<bandwidth_socket> const& peer
 		, int blk, int priority, bandwidth_channel** chan, int num_channels);
 
 #ifdef TORRENT_DEBUG

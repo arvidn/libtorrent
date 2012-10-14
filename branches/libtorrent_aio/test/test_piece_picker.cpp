@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/piece_picker.hpp"
-#include "libtorrent/policy.hpp"
+#include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -56,7 +56,7 @@ bitfield string2vec(char const* have_str)
 	return have;
 }
 
-policy::ipv4_peer* tmp_peer = 0;
+ipv4_peer* tmp_peer = 0;
 
 // availability is a string where each character is the
 // availability of that piece, '1', '2' etc.
@@ -255,10 +255,10 @@ int test_main()
 {
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
-	policy::ipv4_peer tmp1(endp, false, 0);
-	policy::ipv4_peer tmp2(endp, false, 0);
-	policy::ipv4_peer tmp3(endp, false, 0);
-	policy::ipv4_peer peer_struct(endp, true, 0);
+	ipv4_peer tmp1(endp, false, 0);
+	ipv4_peer tmp2(endp, false, 0);
+	ipv4_peer tmp3(endp, false, 0);
+	ipv4_peer peer_struct(endp, true, 0);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	tmp1.in_use = true;
 	tmp2.in_use = true;

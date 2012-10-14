@@ -357,7 +357,7 @@ namespace libtorrent
 #endif
 		
 		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
-		bool connect_to_peer(policy::peer* peerinfo, bool ignore_limit = false);
+		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
 		int priority() const { return m_priority; }
 		void set_priority(int prio)

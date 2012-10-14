@@ -63,12 +63,24 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	struct logger;
 #endif
+	struct torrent_peer;
 }
 
 namespace libtorrent { namespace aux
 {
 	struct session_interface
 	{
+		// --- vv used by policy vv ----
+		enum peer_type_t
+		{
+			ipv4_peer,
+			ipv6_peer,
+			i2p_peer
+		};
+		virtual torrent_peer* allocate_peer_entry(int type) = 0;
+		virtual void free_peer_entry(torrent_peer* p) = 0;
+		// --- ^^ used by policy ^^ ----
+
 		virtual int session_time() const = 0;
 	
 		virtual bool is_paused() const = 0;

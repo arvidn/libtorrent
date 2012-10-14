@@ -48,22 +48,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/policy.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/socket_type.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#include "libtorrent/socket_io.hpp" // for print_endpoint
+#endif
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/struct_debug.hpp"
+#include "libtorrent/socket_io.hpp" // for print_endpoint
 #endif
 
 namespace
@@ -76,7 +83,7 @@ namespace
 			: m_ep(ep)
 		{}
 
-		bool operator()(policy::peer const* p) const
+		bool operator()(torrent_peer const* p) const
 		{
 			TORRENT_ASSERT(p->in_use);
 			return p->address() == m_ep.address() && p->port == m_ep.port();
@@ -90,7 +97,7 @@ namespace
 	{
 		match_peer_connection(peer_connection const& c) : m_conn(c) {}
 
-		bool operator()(policy::peer const* p) const
+		bool operator()(torrent_peer const* p) const
 		{
 			TORRENT_ASSERT(p->in_use);
 			return p->connection == &m_conn;
@@ -103,7 +110,7 @@ namespace
 	{
 		match_peer_connection_or_endpoint(peer_connection const& c) : m_conn(c) {}
 
-		bool operator()(policy::peer const* p) const
+		bool operator()(torrent_peer const* p) const
 		{
 			TORRENT_ASSERT(p->in_use);
 			return p->connection == &m_conn
@@ -440,7 +447,7 @@ namespace libtorrent
 		}
 	}
 
-	void policy::erase_peer(policy::peer* p)
+	void policy::erase_peer(torrent_peer* p)
 	{
 		INVARIANT_CHECK;
 
@@ -475,42 +482,17 @@ namespace libtorrent
 		(*i)->in_use = false;
 #endif
 
-#if TORRENT_USE_IPV6
-		if ((*i)->is_v6_addr)
-		{
-			TORRENT_ASSERT(m_torrent->session().m_ipv6_peer_pool.is_from(
-				static_cast<ipv6_peer*>(*i)));
-			m_torrent->session().m_ipv6_peer_pool.destroy(
-				static_cast<ipv6_peer*>(*i));
-		}
-		else
-#endif
-#if TORRENT_USE_I2P
-		if ((*i)->is_i2p_addr)
-		{
-			TORRENT_ASSERT(m_torrent->session().m_i2p_peer_pool.is_from(
-				static_cast<i2p_peer*>(*i)));
-			m_torrent->session().m_i2p_peer_pool.destroy(
-				static_cast<i2p_peer*>(*i));
-		}
-		else
-#endif
-		{
-			TORRENT_ASSERT(m_torrent->session().m_ipv4_peer_pool.is_from(
-				static_cast<ipv4_peer*>(*i)));
-			m_torrent->session().m_ipv4_peer_pool.destroy(
-				static_cast<ipv4_peer*>(*i));
-		}
+		m_torrent->session().free_peer_entry(*i);
 		m_peers.erase(i);
 	}
 
-	bool policy::should_erase_immediately(peer const& p) const
+	bool policy::should_erase_immediately(torrent_peer const& p) const
 	{
 		TORRENT_ASSERT(p.in_use);
 		return p.source == peer_info::resume_data;
 	}
 
-	bool policy::is_erase_candidate(peer const& pe, bool finished) const
+	bool policy::is_erase_candidate(torrent_peer const& pe, bool finished) const
 	{
 		TORRENT_ASSERT(pe.in_use);
 		if (pe.connection) return false;
@@ -520,7 +502,7 @@ namespace libtorrent
 			|| (pe.source == peer_info::resume_data);
 	}
 
-	bool policy::is_force_erase_candidate(peer const& pe) const
+	bool policy::is_force_erase_candidate(torrent_peer const& pe) const
 	{
 		TORRENT_ASSERT(pe.in_use);
 		return pe.connection == 0;
@@ -554,7 +536,7 @@ namespace libtorrent
 
 			if (round_robin == int(m_peers.size())) round_robin = 0;
 
-			peer& pe = *m_peers[round_robin];
+			torrent_peer& pe = *m_peers[round_robin];
 			TORRENT_ASSERT(pe.in_use);
 			int current = round_robin;
 
@@ -597,7 +579,7 @@ namespace libtorrent
 		}
 	}
 
-	void policy::ban_peer(policy::peer* p)
+	void policy::ban_peer(torrent_peer* p)
 	{
 		INVARIANT_CHECK;
 
@@ -610,7 +592,7 @@ namespace libtorrent
 			update_connect_candidates(-1);
 
 #ifdef TORRENT_STATS
-		aux::session_impl& ses = m_torrent->session();
+		aux::session_interface& ses = m_torrent->session();
 		ses.inc_stats_counter(aux::session_interface::num_banned_peers);
 #endif
 
@@ -618,7 +600,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 	}
 
-	void policy::set_connection(policy::peer* p, peer_connection* c)
+	void policy::set_connection(torrent_peer* p, peer_connection* c)
 	{
 		INVARIANT_CHECK;
 
@@ -630,7 +612,7 @@ namespace libtorrent
 		if (was_conn_cand) update_connect_candidates(-1);
 	}
 
-	void policy::set_failcount(policy::peer* p, int f)
+	void policy::set_failcount(torrent_peer* p, int f)
 	{
 		INVARIANT_CHECK;
 
@@ -643,7 +625,7 @@ namespace libtorrent
 		}
 	}
 
-	bool policy::is_connect_candidate(peer const& p, bool finished) const
+	bool policy::is_connect_candidate(torrent_peer const& p, bool finished) const
 	{
 		TORRENT_ASSERT(p.in_use);
 		if (p.connection
@@ -705,7 +687,7 @@ namespace libtorrent
 		{
 			if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
-			peer& pe = *m_peers[m_round_robin];
+			torrent_peer& pe = *m_peers[m_round_robin];
 			TORRENT_ASSERT(pe.in_use);
 			int current = m_round_robin;
 
@@ -820,7 +802,7 @@ namespace libtorrent
 		}
 
 		iterator iter;
-		peer* i = 0;
+		torrent_peer* i = 0;
 
 		bool found = false;
 		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
@@ -998,20 +980,12 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 			bool is_v6 = c.remote().address().is_v6();
+#else
+			bool is_v6 = false;
 #endif
-			peer* p =
-#if TORRENT_USE_IPV6
-				is_v6 ? (peer*)m_torrent->session().m_ipv6_peer_pool.malloc() :
-#endif
-				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
+			torrent_peer* p = m_torrent->session().allocate_peer_entry(
+				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
 			if (p == 0) return false;
-
-#if TORRENT_USE_IPV6
-			if (is_v6)
-				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
-			else
-#endif
-				m_torrent->session().m_ipv4_peer_pool.set_next_size(500);
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
@@ -1058,7 +1032,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool policy::update_peer_port(int port, policy::peer* p, int src)
+	bool policy::update_peer_port(int port, torrent_peer* p, int src)
 	{
 		TORRENT_ASSERT(p != 0);
 		TORRENT_ASSERT(p->connection);
@@ -1076,7 +1050,7 @@ namespace libtorrent
 				, match_peer_endpoint(remote));
 			if (i != range.second)
 			{
-				policy::peer& pp = **i;
+				torrent_peer& pp = **i;
 				TORRENT_ASSERT(pp.in_use);
 				if (pp.connection)
 				{
@@ -1088,12 +1062,12 @@ namespace libtorrent
 					if (!was_conn_cand && is_connect_candidate(pp, m_finished))
 						update_connect_candidates(1);
 					// calling disconnect() on a peer, may actually end
-					// up "garbage collecting" its policy::peer entry
+					// up "garbage collecting" its torrent_peer entry
 					// as well, if it's considered useless (which this specific)
 					// case will, since it was an incoming peer that just disconnected
 					// and we allow multiple connections per IP. Because of that,
 					// we need to make sure we don't let it do that, by unlinking
-					// the peer_connection from the policy::peer first.
+					// the peer_connection from the torrent_peer first.
 					p->connection->set_peer_info(0);
 					p->connection->disconnect(errors::duplicate_peer_id);
 					erase_peer(p);
@@ -1123,7 +1097,7 @@ namespace libtorrent
 	// it's important that we don't dereference
 	// p here, since it is allowed to be a dangling
 	// pointer. see smart_ban.cpp
-	bool policy::has_peer(policy::peer const* p) const
+	bool policy::has_peer(torrent_peer const* p) const
 	{
 		TORRENT_ASSERT(p->in_use);
 		// find p in m_peers
@@ -1135,7 +1109,7 @@ namespace libtorrent
 		return false;
 	}
 
-	void policy::set_seed(policy::peer* p, bool s)
+	void policy::set_seed(torrent_peer* p, bool s)
 	{
 		if (p == 0) return;
 		TORRENT_ASSERT(p->in_use);
@@ -1152,7 +1126,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_seeds <= int(m_peers.size()));
 	}
 
-	bool policy::insert_peer(policy::peer* p, iterator iter, int flags)
+	bool policy::insert_peer(torrent_peer* p, iterator iter, int flags)
 	{
 		TORRENT_ASSERT(p);
 		TORRENT_ASSERT(p->in_use);
@@ -1218,7 +1192,7 @@ namespace libtorrent
 		return true;
 	}
 
-	void policy::update_peer(policy::peer* p, int src, int flags
+	void policy::update_peer(torrent_peer* p, int src, int flags
 		, tcp::endpoint const& remote, char const* destination)
 	{
 		bool was_conn_cand = is_connect_candidate(*p, m_finished);
@@ -1298,7 +1272,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_I2P
-	policy::peer* policy::add_i2p_peer(char const* destination, int src, char flags)
+	torrent_peer* policy::add_i2p_peer(char const* destination, int src, char flags)
 	{
 		INVARIANT_CHECK;
 	
@@ -1311,15 +1285,14 @@ namespace libtorrent
 		if (iter != m_peers.end() && strcmp((*iter)->dest(), destination) == 0)
 			found = true;
 
-		peer* p = 0;
+		torrent_peer* p = 0;
 
 		if (!found)
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			p = (peer*)m_torrent->session().m_i2p_peer_pool.malloc();
+			p = m_torrent->session().allocate_peer_entry(aux::session_interface::i2p_peer);
 			if (p == 0) return 0;
-			m_torrent->session().m_i2p_peer_pool.set_next_size(500);
 			new (p) i2p_peer(destination, true, src);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -1332,7 +1305,7 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 
-				m_torrent->session().m_i2p_peer_pool.destroy((i2p_peer*)p);
+				m_torrent->session().free_peer_entry(p);
 				return 0;
 			}
 		}
@@ -1346,7 +1319,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	policy::peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
+	torrent_peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
 		, int src, char flags)
 	{
 		INVARIANT_CHECK;
@@ -1402,7 +1375,7 @@ namespace libtorrent
 		}
 
 		iterator iter;
-		peer* p = 0;
+		torrent_peer* p = 0;
 
 		bool found = false;
 		if (m_torrent->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
@@ -1428,19 +1401,12 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 			bool is_v6 = remote.address().is_v6();
+#else
+			bool is_v6 = false;
 #endif
-			p =
-#if TORRENT_USE_IPV6
-				is_v6 ? (peer*)m_torrent->session().m_ipv6_peer_pool.malloc() :
-#endif
-				(peer*)m_torrent->session().m_ipv4_peer_pool.malloc();
+			p = m_torrent->session().allocate_peer_entry(
+				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
 			if (p == 0) return 0;
-#if TORRENT_USE_IPV6
-			if (is_v6)
-				m_torrent->session().m_ipv6_peer_pool.set_next_size(500);
-			else
-#endif
-				m_torrent->session().m_ipv4_peer_pool.set_next_size(500);
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
@@ -1458,11 +1424,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				p->in_use = false;
 #endif
-#if TORRENT_USE_IPV6
-				if (is_v6) m_torrent->session().m_ipv6_peer_pool.destroy((ipv6_peer*)p);
-				else
-#endif
-				m_torrent->session().m_ipv4_peer_pool.destroy((ipv4_peer*)p);
+				m_torrent->session().free_peer_entry(p);
 				return 0;
 			}
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1490,7 +1452,7 @@ namespace libtorrent
 		
 		iterator i = find_connect_candidate(session_time);
 		if (i == m_peers.end()) return false;
-		peer& p = **i;
+		torrent_peer& p = **i;
 		TORRENT_ASSERT(p.in_use);
 
 		TORRENT_ASSERT(!p.banned);
@@ -1518,7 +1480,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		peer* p = c.peer_info_struct();
+		torrent_peer* p = c.peer_info_struct();
 
 		// if we couldn't find the connection in our list, just ignore it.
 		if (p == 0) return;
@@ -1563,7 +1525,7 @@ namespace libtorrent
 		// at this point it may be tempting to erase peers
 		// from the peer list, but keep in mind that we might
 		// have gotten to this point through new_connection, just
-		// disconnecting an old peer, relying on this policy::peer
+		// disconnecting an old peer, relying on this torrent_peer
 		// to still exist when we get back there, to assign the new
 		// peer connection pointer to it. The peer list must
 		// be left intact.
@@ -1676,7 +1638,7 @@ namespace libtorrent
 				else
 					TORRENT_ASSERT((*prev)->address() < (*i)->address());
 			}
-			peer const& p = **i;
+			torrent_peer const& p = **i;
 			TORRENT_ASSERT(p.in_use);
 			if (is_connect_candidate(p, m_finished)) ++connect_candidates;
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -1741,7 +1703,7 @@ namespace libtorrent
 			for (std::set<void*>::iterator i = peer_set.begin()
 				, end(peer_set.end()); i != end; ++i)
 			{
-				policy::peer* p = static_cast<policy::peer*>(*i);
+				torrent_peer* p = static_cast<torrent_peer*>(*i);
 				if (p == 0) continue;
 				TORRENT_ASSERT(p->in_use);
 				if (p->connection == 0) continue;
@@ -1772,77 +1734,8 @@ namespace libtorrent
 	}
 #endif // TORRENT_DEBUG
 
-	policy::peer::peer(boost::uint16_t port, bool conn, int src)
-		: prev_amount_upload(0)
-		, prev_amount_download(0)
-		, connection(0)
-#ifndef TORRENT_DISABLE_GEO_IP
-		, inet_as(0)
-#endif
-		, last_optimistically_unchoked(0)
-		, last_connected(0)
-		, port(port)
-		, hashfails(0)
-		, failcount(0)
-		, connectable(conn)
-		, optimistically_unchoked(false)
-		, seed(false)
-		, fast_reconnects(0)
-		, trust_points(0)
-		, source(src)
-#ifndef TORRENT_DISABLE_ENCRYPTION
-		, pe_support(true)
-#endif
-#if TORRENT_USE_IPV6
-		, is_v6_addr(false)
-#endif
-#if TORRENT_USE_I2P
-		, is_i2p_addr(false)
-#endif
-		, on_parole(false)
-		, banned(false)
-#ifndef TORRENT_DISABLE_DHT
-		, added_to_dht(false)
-#endif
-		, supports_utp(true) // assume peers support utp
-		, confirmed_supports_utp(false)
-		, supports_holepunch(false)
-		, web_seed(false)
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		, in_use(false)
-#endif
-	{
-		TORRENT_ASSERT((src & 0xff) == src);
-	}
-
-	size_type policy::peer::total_download() const
-	{
-		if (connection != 0)
-		{
-			TORRENT_ASSERT(prev_amount_download == 0);
-			return connection->statistics().total_payload_download();
-		}
-		else
-		{
-			return size_type(prev_amount_download) << 10;
-		}
-	}
-
-	size_type policy::peer::total_upload() const
-	{
-		if (connection != 0)
-		{
-			TORRENT_ASSERT(prev_amount_upload == 0);
-			return connection->statistics().total_payload_upload();
-		}
-		else
-		{
-			return size_type(prev_amount_upload) << 10;
-		}
-	}
-
 	// this returns true if lhs is a better erase candidate than rhs
-	bool policy::compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const
+	bool policy::compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const
 	{
 		TORRENT_ASSERT(lhs.connection == 0);
 		TORRENT_ASSERT(rhs.connection == 0);
@@ -1865,7 +1758,7 @@ namespace libtorrent
 	}
 
 	// this returns true if lhs is a better connect candidate than rhs
-	bool policy::compare_peer(policy::peer const& lhs, policy::peer const& rhs
+	bool policy::compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
 		, address const& external_ip) const
 	{
 		// prefer peers with lower failcount

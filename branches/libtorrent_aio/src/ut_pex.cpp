@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/socket_type.hpp" // for is_utp
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
@@ -155,7 +156,7 @@ namespace libtorrent { namespace
 					// if the peer has told us which port its listening on,
 					// use that port. But only if we didn't connect to the peer.
 					// if we connected to it, use the port we know works
-					policy::peer *pi = 0;
+					torrent_peer *pi = 0;
 					if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
 						remote.port(pi->port);
 
@@ -525,7 +526,7 @@ namespace libtorrent { namespace
 
 				tcp::endpoint remote = peer->remote();
 
-				policy::peer *pi = 0;
+				torrent_peer *pi = 0;
 				if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
 					remote.port(pi->port);
 

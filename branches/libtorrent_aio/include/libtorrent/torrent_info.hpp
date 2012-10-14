@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/policy.hpp" // for policy::peer
+#include "libtorrent/torrent_peer.hpp"
 
 namespace libtorrent
 {
@@ -213,7 +213,7 @@ namespace libtorrent
 		// connection, just to count hash failures
 		// it's also used to hold the peer_connection
 		// pointer, when the web seed is connected
-		policy::peer peer_info;
+		torrent_peer peer_info;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
