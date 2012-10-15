@@ -7451,6 +7451,7 @@ namespace libtorrent
 		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_connections != limit && state_update) state_updated();
 		m_max_connections = limit;
+		update_want_peers();
 
 		if (num_peers() > int(m_max_connections))
 		{
