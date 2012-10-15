@@ -38,10 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <numeric>
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#include "libtorrent/struct_debug.hpp"
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif

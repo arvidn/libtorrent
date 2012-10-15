@@ -426,13 +426,6 @@ namespace libtorrent
 		return return_t(m_begin, m_len);
 	}
 
-#if TORRENT_USE_IOSTREAM
-	std::ostream& operator<<(std::ostream& os, lazy_entry const& e)
-	{
-		return os << print_entry(e);
-	}
-#endif // TORRENT_USE_IOSTREAM
-
 	int line_longer_than(lazy_entry const& e, int limit)
 	{
 		int line_len = 0;

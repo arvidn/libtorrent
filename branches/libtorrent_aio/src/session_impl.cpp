@@ -2437,11 +2437,19 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		TORRENT_ASSERT(!m_abort);
 retry:
 
 		// close the open listen sockets
+		// close the listen sockets
+		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+			i->sock->close(ec);
 		m_listen_sockets.clear();
 		m_incoming_connection = false;
+		ec.clear();
+
+		if (m_abort) return;
 
 		m_ipv6_interface = tcp::endpoint();
 		m_ipv4_interface = tcp::endpoint();
@@ -2467,6 +2475,7 @@ retry:
 				// sockets can be bound to the same one
 				m_listen_interface.port(s.external_port);
 
+				TORRENT_ASSERT(!m_abort);
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock, s.ssl);
 			}
@@ -2481,6 +2490,7 @@ retry:
 
 				if (s.sock)
 				{
+					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
 					async_accept(s.sock, s.ssl);
 				}
@@ -2496,6 +2506,7 @@ retry:
 
 				if (s.sock)
 				{
+					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
 					async_accept(s.sock, s.ssl);
 				}
@@ -2511,6 +2522,7 @@ retry:
 
 					if (s.sock)
 					{
+						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
 						async_accept(s.sock, s.ssl);
 					}
@@ -2542,6 +2554,7 @@ retry:
 
 			if (s.sock)
 			{
+				TORRENT_ASSERT(!m_abort);
 				m_listen_sockets.push_back(s);
 				async_accept(s.sock, s.ssl);
 
@@ -2561,6 +2574,7 @@ retry:
 
 				if (s.sock)
 				{
+					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
 					async_accept(s.sock, s.ssl);
 				}
