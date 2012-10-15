@@ -55,7 +55,7 @@ namespace libtorrent
 // 23     2     1         <padding>
 // 24
 
-	struct peer_connection;
+	class peer_connection;
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{

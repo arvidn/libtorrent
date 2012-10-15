@@ -743,10 +743,10 @@ namespace libtorrent
 
 			// TODO: these should be a plain boost::pool rather than an object_pool
 			boost::object_pool<
-				libtorrent::pv4_peer, logging_allocator> m_ipv4_peer_pool;
+				libtorrent::ipv4_peer, logging_allocator> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
 			boost::object_pool<
-				libtorrent::pv6_peer, logging_allocator> m_ipv6_peer_pool;
+				libtorrent::ipv6_peer, logging_allocator> m_ipv6_peer_pool;
 #endif
 #if TORRENT_USE_I2P
 			boost::object_pool<
