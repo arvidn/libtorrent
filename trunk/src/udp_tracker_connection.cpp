@@ -658,7 +658,8 @@ namespace libtorrent
 		// ip address
 		address_v4 announce_ip;
 
-		if (!settings.announce_ip.empty())
+		if (!m_ses.settings().anonymous_mode
+			&& !settings.announce_ip.empty())
 		{
 			error_code ec;
 			address ip = address::from_string(settings.announce_ip.c_str(), ec);
