@@ -698,7 +698,7 @@ namespace aux {
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
-		(*m_logger) << time_now_string() << "\n";
+		session_log("log created");
 #endif
 
 		error_code ec;
@@ -1035,7 +1035,7 @@ namespace aux {
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << time_now_string() << " max number of open files: " << rl.rlim_cur << "\n";
+			session_log(" max number of open files: %d", rl.rlim_cur);
 #endif
 
 			// deduct some margin for epoll/kqueue, log files,
@@ -1071,7 +1071,7 @@ namespace aux {
 		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " generated peer ID: " << m_peer_id.to_string() << "\n";
+		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
 		update_rate_settings();
@@ -1300,7 +1300,7 @@ namespace aux {
 	void session_impl::start_session()
 	{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " spawning network thread\n";
+		session_log(" spawning network thread");
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
 	}
@@ -1326,7 +1326,7 @@ namespace aux {
 	void session_impl::init()
 	{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " *** session thread init\n";
+		session_log(" *** session thread init");
 #endif
 
 		// this is where we should set up all async operations. This
@@ -1355,12 +1355,12 @@ namespace aux {
 #endif
 
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " open listen port\n";
+		session_log(" open listen port");
 #endif
 		// no reuse_address and allow system defined port
 		open_listen_port(0, ec);
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << " done starting session\n";
+		session_log(" done starting session");
 #endif
 	}
 
@@ -1723,7 +1723,7 @@ namespace aux {
 
 		if (m_paused) return;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		(*m_logger) << time_now_string() << " *** session paused ***\n";
+		session_log(" *** session paused ***");
 #endif
 		m_paused = true;
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -1755,7 +1755,7 @@ namespace aux {
 
 		if (m_abort) return;
 #if defined TORRENT_LOGGING
-		(*m_logger) << time_now_string() << " *** ABORT CALLED ***\n";
+		session_log(" *** ABORT CALLED ***");
 #endif
 		// abort the main thread
 		m_abort = true;
@@ -1793,7 +1793,7 @@ namespace aux {
 #endif
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all torrents (" << m_torrents.size() << ")\n";
+		session_log(" aborting all torrents (%d)", m_torrents.size());
 #endif
 		// abort all torrents
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -1803,12 +1803,12 @@ namespace aux {
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all tracker requests\n";
+		session_log(" aborting all tracker requests");
 #endif
 		m_tracker_manager.abort_all_requests();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " sending event=stopped to trackers\n";
+		session_log(" sending event=stopped to trackers");
 #endif
 		for (torrent_map::iterator i = m_torrents.begin();
 			i != m_torrents.end(); ++i)
@@ -1818,12 +1818,12 @@ namespace aux {
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " aborting all connections (" << m_connections.size() << ")\n";
+		session_log(" aborting all connections (%d)", m_connections.size());
 #endif
 		m_half_open.close();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
+		session_log(" connection queue: %d", m_half_open.size());
 #endif
 
 		// abort all connections
@@ -1837,11 +1837,11 @@ namespace aux {
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " connection queue: " << m_half_open.size() << "\n";
+		session_log(" connection queue: %d", m_half_open.size());
 #endif
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " shutting down connection queue\n";
+		session_log(" shutting down connection queue");
 #endif
 
 		m_download_rate.close();
@@ -2108,8 +2108,8 @@ namespace aux {
 		if (ec)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			(*m_logger) << "failed to open socket: " << print_endpoint(ep)
-				<< ": " << ec.message() << "\n" << "\n";
+			session_log("failed to open socket: %s: %s"
+				, print_endpoint(ep).c_str(), ec.message().c_str());
 #endif
 			return;
 		}
@@ -2136,10 +2136,8 @@ namespace aux {
 		while (ec && retries > 0)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, 200, "failed to bind to interface \"%s\": %s"
+			session_log("failed to bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << time_now_string() << " " << msg << "\n";
 #endif
 			ec.clear();
 			TORRENT_ASSERT_VAL(!ec, ec);
@@ -2161,10 +2159,8 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, 200, "cannot bind to interface \"%s\": %s"
+			session_log("cannot bind to interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return;
 		}
@@ -2175,10 +2171,8 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(ep, ec));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, 200, "cannot listen on interface \"%s\": %s"
+			session_log("cannot listen on interface \"%s\": %s"
 				, print_endpoint(ep).c_str(), ec.message().c_str());
-			(*m_logger) << time_now_string() << msg << "\n";
 #endif
 			return;
 		}
@@ -2192,8 +2186,8 @@ namespace aux {
 			m_alerts.post_alert(listen_succeeded_alert(ep));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		(*m_logger) << time_now_string() << " listening on: " << ep
-			<< " external port: " << s->external_port << "\n";
+		session_log(" listening on: %s external port: %d"
+			, print_endpoint(ep).c_str(), s->external_port);
 #endif
 	}
 	
@@ -2350,10 +2344,8 @@ retry:
 		if (ec)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, sizeof(msg), "cannot bind to UDP interface \"%s\": %s"
+			session_log("cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
 #endif
 			if (m_listen_port_retries > 0)
 			{
@@ -2480,10 +2472,8 @@ retry:
 				m_alerts.post_alert(listen_failed_alert(tcp::endpoint(
 					address_v4::any(), m_listen_interface.port()), e));
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, sizeof(msg), "cannot bind to port %d: %s"
+			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
-			(*m_logger) << msg << "\n";
 #endif
 			return;
 		}
@@ -2507,9 +2497,7 @@ retry:
 				m_alerts.post_alert(udp_error_alert(ep, ec));
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			char msg[200];
-			snprintf(msg, sizeof(msg), "UDP socket error: (%d) %s", ec.value(), ec.message().c_str());
-			(*m_logger) << msg << "\n";
+			session_log("UDP socket error: (%d) %s", ec.value(), ec.message().c_str());
 #endif
 		}
 		return false;
@@ -2569,9 +2557,8 @@ retry:
 		{
 			tcp::endpoint ep = listener->local_endpoint(ec);
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			std::string msg = "error accepting connection on '"
-				+ print_endpoint(ep) + "' " + e.message();
-			(*m_logger) << msg << "\n";
+			session_log("error accepting connection on '%s': %s"
+				, print_endpoint(ep).c_str(), e.message().c_str());
 #endif
 #ifdef TORRENT_WINDOWS
 			// Windows sometimes generates this error. It seems to be
@@ -2654,8 +2641,8 @@ retry:
 		if (e) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " *** peer SSL handshake done [ ip: "
-			<< endp << " ec: " << ec.message() << " socket: " << s->type_name() << "]\n";
+		session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
+			, print_endpoint(endp).c_str(), ec.message().c_str(), s->type_name());
 #endif
 
 		if (ec)
@@ -2687,7 +2674,7 @@ retry:
 		if (m_paused)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << time_now_string() << " <== INCOMING CONNECTION [ ignored, paused ]\n";
+			session_log(" <== INCOMING CONNECTION [ ignored, paused ]");
 #endif
 			return;
 		}
@@ -2699,8 +2686,9 @@ retry:
 		if (ec)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << endp << " <== INCOMING CONNECTION FAILED, could "
-				"not retrieve remote endpoint " << ec.message() << "\n";
+			session_log("%s <== INCOMING CONNECTION FAILED, could "
+				"not retrieve remote endpoint "
+				, print_endpoint(endp).c_str(), ec.message().c_str());
 #endif
 			return;
 		}
@@ -2708,8 +2696,8 @@ retry:
 		TORRENT_ASSERT(endp.address() != address_v4::any());
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " <== INCOMING CONNECTION " << endp
-			<< " type: " << s->type_name() << "\n";
+		session_log(" <== INCOMING CONNECTION %s type: %s"
+			, print_endpoint(endp).c_str(), s->type_name());
 #endif
 
 		if (m_alerts.should_post<incoming_connection_alert>())
@@ -2721,7 +2709,7 @@ retry:
 			&& s->get<utp_stream>())
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << "    rejected uTP connection\n";
+			session_log("    rejected uTP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
@@ -2732,7 +2720,7 @@ retry:
 			&& s->get<stream_socket>())
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << "    rejected TCP connection\n";
+			session_log("    rejected TCP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
@@ -2753,7 +2741,7 @@ retry:
 			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << "filtered blocked ip\n";
+			session_log("filtered blocked ip");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.post_alert(peer_blocked_alert(torrent_handle(), endp.address()));
@@ -2789,7 +2777,7 @@ retry:
 		if (m_torrents.empty())
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << " There are no torrents, disconnect\n";
+			session_log(" There are no torrents, disconnect");
 #endif
 		  	return;
 		}
@@ -2814,7 +2802,7 @@ retry:
 			if (!has_active_torrent)
 			{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-				(*m_logger) << " There are no _active_ torrents, disconnect\n";
+				session_log(" There are no _active_ torrents, disconnect");
 #endif
 			  	return;
 			}
@@ -2888,8 +2876,8 @@ retry:
 #endif
 
 #if defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " CLOSING CONNECTION "
-			<< p->remote() << " : " << ec.message() << "\n";
+		session_log(" CLOSING CONNECTION %s : %s"
+			, print_endpoint(p->remote()).c_str(), ec.message().c_str());
 #endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
@@ -2951,8 +2939,7 @@ retry:
 		++m_next_port;
 		if (m_next_port > out_ports.second) m_next_port = out_ports.first;
 #if defined TORRENT_LOGGING
-		(*m_logger) << time_now_string() << " *** BINDING OUTGOING CONNECTION [ "
-			"port: " << port << " ]\n";
+		session_log(" *** BINDING OUTGOING CONNECTION [ port: %d ]", port);
 #endif
 		return port;
 	}
@@ -3019,10 +3006,6 @@ retry:
 // too expensive
 //		INVARIANT_CHECK;
 
-#if defined TORRENT_VERBOSE_LOGGING
-//		(*m_logger) << time_now_string() << " session_impl::on_tick\n";
-#endif
-
 		// we have to keep ticking the utp socket manager
 		// until they're all closed
 		if (m_abort && m_utp_socket_manager.num_sockets() == 0)
@@ -3038,7 +3021,7 @@ retry:
 		if (e)
 		{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-			(*m_logger) << "*** TICK TIMER FAILED " << e.message() << "\n";
+			session_log("*** TICK TIMER FAILED %s", e.message().c_str());
 #endif
 			::abort();
 			return;
@@ -4719,7 +4702,7 @@ retry:
 		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " locking mutex\n";
+		session_log(" locking mutex");
 #endif
 
 /*
@@ -4732,7 +4715,7 @@ retry:
 #endif
 */
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string() << " cleaning up torrents\n";
+		session_log(" cleaning up torrents");
 #endif
 		m_torrents.clear();
 
@@ -5153,8 +5136,8 @@ retry:
 			if (ec)
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				(*m_logger) << time_now_string() << "listen_on: " << net_interface
-					<< " failed: " << ec.message() << "\n";
+				session_log("listen_on: %s failed: %s"
+					, net_interface, ec.message().c_str());
 #endif
 				return;
 			}
@@ -5178,7 +5161,7 @@ retry:
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		m_logger = create_log("main_session", listen_port(), false);
-		(*m_logger) << time_now_string() << "\n";
+		session_log("log created");
 #endif
 	}
 
@@ -5255,8 +5238,7 @@ retry:
 			&& !m_settings.allow_i2p_mixed)) return;
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		(*m_logger) << time_now_string()
-			<< ": added peer from local discovery: " << print_endpoint(peer) << "\n";
+		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
 		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
 		if (m_alerts.should_post<lsd_peer_alert>())
@@ -5955,8 +5937,8 @@ retry:
 		if (is_loopback(ip)) return;
 
 #if defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << time_now_string() << ": set_external_address(" << print_address(ip)
-			<< ", " << source_type << ", " << print_address(source) << ")\n";
+		session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
+			, source_type, print_address(source).c_str());
 #endif
 		// this is the key to use for the bloom filters
 		// it represents the identity of the voter
@@ -5977,7 +5959,7 @@ retry:
 				if (random() < UINT_MAX / 2)
 				{
 #if defined TORRENT_VERBOSE_LOGGING
-					(*m_logger) << time_now_string() << ": More than 20 slots, dopped\n";
+					session_log(": More than 20 slots, dopped");
 #endif
 					return;
 				}
@@ -5993,9 +5975,9 @@ retry:
 				// entry has had the longest time to receive more
 				// votes to be bumped up
 #if defined TORRENT_VERBOSE_LOGGING
-				(*m_logger) << "  More than 20 slots, dopping "
-					<< print_address(m_external_addresses.front().addr)
-					<< " (" << m_external_addresses.front().num_votes << ")\n";
+				session_log("  More than 20 slots, dopping %s (%d)"
+					, print_address(m_external_addresses.front().addr).c_str()
+					, m_external_addresses.front().num_votes);
 #endif
 				m_external_addresses.erase(m_external_addresses.begin());
 			}
@@ -6013,15 +5995,14 @@ retry:
 		for (std::vector<external_ip_t>::iterator j = m_external_addresses.begin()
 			, end(m_external_addresses.end()); j != end; ++j)
 		{
-			(*m_logger) << ((j == i)?"-->":"   ")
-				<< print_address(j->addr) << " votes: "
-				<< j->num_votes << "\n";
+			session_log("%s %s votes: %d", (j == i)?"-->":"   "
+				, print_address(j->addr).c_str(), j->num_votes);
 		}
 #endif
 		if (i->addr == m_external_address) return;
 
 #if defined TORRENT_VERBOSE_LOGGING
-		(*m_logger) << "  external IP updated\n";
+		session_log("  external IP updated");
 #endif
 		m_external_address = i->addr;
 		m_external_address_voters.clear();
