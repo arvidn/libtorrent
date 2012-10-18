@@ -2228,7 +2228,6 @@ retry:
 
 				TORRENT_ASSERT(!m_abort);
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock, s.ssl);
 			}
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2243,7 +2242,6 @@ retry:
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
-					async_accept(s.sock, s.ssl);
 				}
 			}
 #endif
@@ -2259,7 +2257,6 @@ retry:
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
-					async_accept(s.sock, s.ssl);
 				}
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2275,7 +2272,6 @@ retry:
 					{
 						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
-						async_accept(s.sock, s.ssl);
 					}
 				}
 #endif // TORRENT_USE_OPENSSL
@@ -2307,7 +2303,6 @@ retry:
 			{
 				TORRENT_ASSERT(!m_abort);
 				m_listen_sockets.push_back(s);
-				async_accept(s.sock, s.ssl);
 
 				if (m_listen_interface.address().is_v6())
 					m_ipv6_interface = m_listen_interface;
@@ -2327,7 +2322,6 @@ retry:
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
-					async_accept(s.sock, s.ssl);
 				}
 			}
 #endif
@@ -2345,6 +2339,7 @@ retry:
 			if (m_listen_port_retries > 0)
 			{
 				m_listen_interface.port(m_listen_interface.port() + 1);
+				--m_listen_port_retries;
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -2362,6 +2357,11 @@ retry:
 		(*m_logger) << ">>> SET_TOS[ udp_socket tos: " << m_settings.peer_tos << " e: " << ec.message() << " ]\n";
 #endif
 		ec.clear();
+
+		// initiate accepting on the listen sockets
+		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+			async_accept(i->sock, i->ssl);
 
 		open_new_incoming_socks_connection();
 #if TORRENT_USE_I2P
