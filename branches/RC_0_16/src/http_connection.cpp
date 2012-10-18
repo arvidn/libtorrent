@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-enum { max_bottled_buffer = 1024 * 1024 };
+enum { max_bottled_buffer = 2 * 1024 * 1024 };
 
 http_connection::http_connection(io_service& ios, connection_queue& cc
 	, http_handler const& handler, bool bottled
