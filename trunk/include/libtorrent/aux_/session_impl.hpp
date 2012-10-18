@@ -1116,6 +1116,8 @@ namespace libtorrent
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
 			
+			void session_log(char const* fmt, ...) const;
+
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process

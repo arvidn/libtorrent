@@ -4765,6 +4765,21 @@ retry:
 		// current options are file_logger, cout_logger and null_logger
 		return boost::shared_ptr<logger>(new logger(m_logpath, name, instance, append));
 	}
+
+	void session_impl::session_log(char const* fmt, ...) const
+	{
+		if (!m_logger) return;
+
+		va_list v;	
+		va_start(v, fmt);
+	
+		char usr[400];
+		vsnprintf(usr, sizeof(usr), fmt, v);
+		va_end(v);
+		char buf[450];
+		snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
+		(*m_logger) << buf;
+	}
 #endif
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
