@@ -174,6 +174,9 @@ namespace libtorrent
 
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
+		
+		// max 'bottled' http receive buffer/url torrent size
+		set.max_http_recv_buffer_size = 1024 * 1024;
 
 		return set;
 	}
@@ -291,6 +294,9 @@ namespace libtorrent
 
 		// allow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = true;
+
+		// max 'bottled' http receive buffer/url torrent size
+		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
 
 		return set;
 	}
@@ -1283,6 +1289,7 @@ namespace libtorrent
 		, ssl_listen(4433)
 		, tracker_backoff(250)
 		, ban_web_seeds(true)
+		, max_http_recv_buffer_size(2*1024*1024)
 	{}
 
 	session_settings::~session_settings() {}
