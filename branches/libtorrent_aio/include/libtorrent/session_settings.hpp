@@ -985,6 +985,10 @@ namespace libtorrent
 
 		// when true, web seeds sending bad data will be banned
 		bool ban_web_seeds;
+		
+		// http_connection maximum receive buffer size
+		// limits torrent file size for URL torrents
+		int max_http_recv_buffer_size;
 	};
 #endif
 

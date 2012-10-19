@@ -814,9 +814,12 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
 		boost::shared_ptr<http_connection> conn(
-			new http_connection(m_ses.m_io_service, m_ses.m_half_open
+			new http_connection(m_ses.m_io_service, m_ses.m_half_open			        
 				, boost::bind(&torrent::on_torrent_download, shared_from_this()
-					, _1, _2, _3, _4)));
+					, _1, _2, _3, _4)
+				, true //bottled
+				, m_ses.settings().get_int(settings_pack::max_http_recv_buffer_size) //bottled buffer size
+				));
 		conn->get(m_url, seconds(30), 0, 0, 5, m_ses.m_settings.get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}

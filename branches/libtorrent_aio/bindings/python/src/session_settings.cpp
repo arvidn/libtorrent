@@ -169,6 +169,8 @@ void bind_session_settings()
         .def_readwrite("enable_incoming_utp", &session_settings::enable_incoming_utp)
         .def_readwrite("ssl_listen", &session_settings::ssl_listen)
         .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
+        .def_readwrite("ban_web_seeds", &session_settings::ban_web_seeds)
+        .def_readwrite("max_http_recv_buffer_size", &session_settings::max_http_recv_buffer_size)
     ;
 
     enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")

@@ -116,7 +116,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
-		, &::http_handler, true, &::http_connect_handler));
+		, &::http_handler, true, 1024*1024, &::http_connect_handler));
 	h->get(url, seconds(1), 0, &ps);
 	ios.reset();
 	error_code e;

@@ -1286,6 +1286,11 @@ namespace libtorrent
 			// to a peer. This setting controls n.
 			connect_seed_every_n_download,
 
+			// the max number of bytes to allow an HTTP response to be when
+			// announcing to trackers or downloading .torrent files via
+			// the ``url`` provided in ``add_torrent_params``.
+			max_http_recv_buffer_size,
+
 			max_int_setting_internal,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};

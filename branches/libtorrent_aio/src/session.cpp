@@ -406,6 +406,9 @@ namespace libtorrent
 
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
+		
+		// max 'bottled' http receive buffer/url torrent size
+		set.max_http_recv_buffer_size = 1024 * 1024;
 
 		return set;
 	}
@@ -542,6 +545,9 @@ namespace libtorrent
 		// keep 5 MiB outstanding when checking hashes
 		// of a resumed file
 		set.checking_mem_usage = 320;
+
+		// max 'bottled' http receive buffer/url torrent size
+		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
 
 		return set;
 	}
