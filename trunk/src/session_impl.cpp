@@ -445,6 +445,8 @@ namespace aux {
 		TORRENT_SETTING(boolean, lock_files)
 		TORRENT_SETTING(integer, ssl_listen)
 		TORRENT_SETTING(integer, tracker_backoff)
+		TORRENT_SETTING(boolean, ban_web_seeds)
+		TORRENT_SETTING(integer, max_http_recv_buffer_size)
 	};
 
 #undef TORRENT_SETTING

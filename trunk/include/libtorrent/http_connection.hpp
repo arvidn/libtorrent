@@ -63,6 +63,8 @@ namespace libtorrent
 
 struct http_connection;
 class connection_queue;
+
+const int default_max_bottled_buffer_size = 2*1024*1024;
 	
 typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
@@ -73,10 +75,13 @@ typedef boost::function<void(http_connection&, std::list<tcp::endpoint>&)> http_
 
 // when bottled, the last two arguments to the handler
 // will always be 0
-struct TORRENT_EXTRA_EXPORT http_connection : boost::enable_shared_from_this<http_connection>, boost::noncopyable
+struct TORRENT_EXTRA_EXPORT http_connection
+	: boost::enable_shared_from_this<http_connection>
+	, boost::noncopyable
 {
 	http_connection(io_service& ios, connection_queue& cc
 		, http_handler const& handler, bool bottled = true
+		, int max_bottled_buffer_size = default_max_bottled_buffer_size
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
@@ -152,11 +157,16 @@ private:
 	time_duration m_completion_timeout;
 	ptime m_last_receive;
 	ptime m_start_time;
+	
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).
 	// non bottled means that once the headers have been
 	// received, data is streamed to the handler
 	bool m_bottled;
+
+	// maximum size of bottled buffer
+	int m_max_bottled_buffer_size;
+	
 	// set to true the first time the handler is called
 	bool m_called;
 	std::string m_hostname;

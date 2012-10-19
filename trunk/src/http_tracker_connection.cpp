@@ -214,7 +214,7 @@ namespace libtorrent
 
 		m_tracker_connection.reset(new http_connection(m_ios, m_cc
 			, boost::bind(&http_tracker_connection::on_response, self(), _1, _2, _3, _4)
-			, true
+			, true, settings.max_http_recv_buffer_size
 			, boost::bind(&http_tracker_connection::on_connect, self(), _1)
 			, boost::bind(&http_tracker_connection::on_filter, self(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL

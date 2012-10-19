@@ -4601,6 +4601,7 @@ session_settings
 		int tracker_backoff;
 
 		bool ban_web_seeds;
+		int max_http_recv_buffer_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5494,6 +5495,11 @@ trackers.
 
 ``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
 corrupt data are banned.
+
+``max_http_recv_buffer_size`` specifies the max number of bytes to receive into
+RAM buffers when downloading stuff over HTTP. Specifically when specifying a
+URL to a .torrent file when adding a torrent or when announcing to an HTTP
+tracker. The default is 2 MiB.
 
 pe_settings
 ===========
