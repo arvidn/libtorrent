@@ -162,7 +162,7 @@ namespace
 }
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p
-        , std::vector<char>& rd, std::list<std::string>& string_storage)
+        , std::vector<char>& rd)
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
@@ -171,10 +171,7 @@ namespace
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
         if (params.has_key("name"))
-        {
-            string_storage.push_back(extract<std::string>(params["name"]));
-            p.name = string_storage.back().c_str();
-        }
+            p.name = extract<std::string>(params["name"]);
         p.save_path = extract<std::string>(params["save_path"]);
 
         if (params.has_key("resume_data"))
@@ -205,10 +202,7 @@ namespace
 #ifndef TORRENT_NO_DEPRECATE
         std::string url;
         if (params.has_key("tracker_url"))
-        {
-            string_storage.push_back(extract<std::string>(params["tracker_url"]));
-            p.tracker_url = string_storage.back().c_str();
-        }
+            p.trackers.push_back(extract<std::string>(params["tracker_url"]));
         if (params.has_key("seed_mode"))
             p.seed_mode = params["seed_mode"];
         if (params.has_key("upload_mode"))
@@ -248,8 +242,7 @@ namespace
     {
         add_torrent_params p;
         std::vector<char> resume_buf;
-        std::list<std::string> string_buf;
-        dict_to_add_torrent_params(params, p, resume_buf, string_buf);
+        dict_to_add_torrent_params(params, p, resume_buf);
 
         allow_threading_guard guard;
 
@@ -261,9 +254,24 @@ namespace
 #endif
     }
 
+    void async_add_torrent(session& s, dict params)
+    {
+        add_torrent_params p;
+        std::vector<char> resume_buf;
+        dict_to_add_torrent_params(params, p, resume_buf);
+
+        allow_threading_guard guard;
+
+#ifndef BOOST_NO_EXCEPTIONS
+        s.async_add_torrent(p);
+#else
+        error_code ec;
+        s.async_add_torrent(p, ec);
+#endif
+    }
+
     void dict_to_feed_settings(dict params, feed_settings& feed
-        , std::vector<char>& resume_buf
-        , std::list<std::string>& string_storage)
+        , std::vector<char>& resume_buf)
     {
         if (params.has_key("auto_download"))
             feed.auto_download = extract<bool>(params["auto_download"]);
@@ -273,7 +281,7 @@ namespace
             feed.url = extract<std::string>(params["url"]);
         if (params.has_key("add_args"))
             dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args
-                , resume_buf, string_storage);
+                , resume_buf);
     }
 
     feed_handle add_feed(session& s, dict params)
@@ -282,8 +290,7 @@ namespace
         // this static here is a bit of a hack. It will
         // probably work for the most part
         static std::vector<char> resume_buf;
-        std::list<std::string> string_storage;
-        dict_to_feed_settings(params, feed, resume_buf, string_storage);
+        dict_to_feed_settings(params, feed, resume_buf);
 
         allow_threading_guard guard;
         return s.add_feed(feed);
@@ -330,8 +337,7 @@ namespace
     {
         feed_settings feed;
         static std::vector<char> resume_buf;
-        std::list<std::string> string_storage;
-        dict_to_feed_settings(sett, feed, resume_buf, string_storage);
+        dict_to_feed_settings(sett, feed, resume_buf);
         h.set_settings(feed);
     }
 
@@ -556,6 +562,7 @@ void bind_session()
 #endif
 #endif
         .def("add_torrent", &add_torrent)
+        .def("async_add_torrent", &async_add_torrent)
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
         .def(
