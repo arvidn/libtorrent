@@ -656,7 +656,8 @@ namespace libtorrent
 		// ip address
 		address_v4 announce_ip;
 
-		if (!settings.get_str(settings_pack::announce_ip).empty())
+		if (!settings.get_bool(settings_pack::anonymous_mode)
+			&& !settings.get_str(settings_pack::announce_ip).empty())
 		{
 			error_code ec;
 			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);

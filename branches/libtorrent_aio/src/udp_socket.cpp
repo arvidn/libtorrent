@@ -57,6 +57,7 @@ udp_socket::udp_socket(asio::io_service& ios
 	: m_observers_locked(false)
 	, m_ipv4_sock(ios)
 	, m_buf_size(0)
+	, m_new_buf_size(0)
 	, m_buf(0)
 #if TORRENT_USE_IPV6
 	, m_ipv6_sock(ios)
@@ -86,6 +87,7 @@ udp_socket::udp_socket(asio::io_service& ios
 #endif
 
 	m_buf_size = 2000;
+	m_new_buf_size = m_buf_size;
 	m_buf = (char*)malloc(m_buf_size);
 }
 
@@ -282,6 +284,8 @@ void udp_socket::call_handler(error_code const& ec, udp::endpoint const& ep, cha
 		m_added_observers.clear();
 	}
 	m_observers_locked = false;
+	if (m_new_buf_size != m_buf_size)
+		set_buf_size(m_new_buf_size);
 }
 
 void udp_socket::call_handler(error_code const& ec, const char* host, char const* buf, int size)
@@ -304,6 +308,8 @@ void udp_socket::call_handler(error_code const& ec, const char* host, char const
 		m_added_observers.clear();
 	}
 	m_observers_locked = false;
+	if (m_new_buf_size != m_buf_size)
+		set_buf_size(m_new_buf_size);
 }
 
 void udp_socket::call_drained_handler()
@@ -324,6 +330,8 @@ void udp_socket::call_drained_handler()
 		m_added_observers.clear();
 	}
 	m_observers_locked = false;
+	if (m_new_buf_size != m_buf_size)
+		set_buf_size(m_new_buf_size);
 }
 
 void udp_socket::call_writable_handler()
@@ -344,6 +352,8 @@ void udp_socket::call_writable_handler()
 		m_added_observers.clear();
 	}
 	m_observers_locked = false;
+	if (m_new_buf_size != m_buf_size)
+		set_buf_size(m_new_buf_size);
 }
 
 void udp_socket::subscribe(udp_socket_observer* o)
@@ -592,12 +602,25 @@ void udp_socket::close()
 void udp_socket::set_buf_size(int s)
 {
 	TORRENT_ASSERT(is_single_thread());
+
+	if (m_observers_locked)
+	{
+		// we can't actually reallocate the buffer while
+		// it's being used by the observers, we have to
+		// do that once we're done iterating over them
+		m_new_buf_size = s;
+		return;
+	}
+
+	if (s == m_buf_size) return;
+
 	bool no_mem = false;
 	void* tmp = realloc(m_buf, s);
 	if (tmp != 0)
 	{
 		m_buf = (char*)tmp;
 		m_buf_size = s;
+		m_new_buf_size = s;
 	}
 	else
 	{
@@ -609,6 +632,7 @@ void udp_socket::set_buf_size(int s)
 		free(m_buf);
 		m_buf = 0;
 		m_buf_size = 0;
+		m_new_buf_size = 0;
 		udp::endpoint ep;
 		call_handler(error::no_memory, ep, 0, 0);
 		close();

@@ -296,13 +296,15 @@ namespace libtorrent
 			if (m_utp_sockets.size() > m_sett.get_int(settings_pack::connections_limit) * 2)
 				return false;
 
-			// create the new socket with this ID
-			m_new_connection = id;
-
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
 			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
 			if (!c) return false;
+
+			TORRENT_ASSERT(m_new_connection == -1);
+			// create the new socket with this ID
+			m_new_connection = id;
+
 			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
 			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);

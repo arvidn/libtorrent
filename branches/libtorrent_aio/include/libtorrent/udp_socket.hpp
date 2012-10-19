@@ -194,6 +194,13 @@ namespace libtorrent
 
 		udp::socket m_ipv4_sock;
 		int m_buf_size;
+
+		// if the buffer size is attempted
+		// to be changed while the buffer is
+		// being used, this member is set to
+		// the desired size, and it's resized
+		// later
+		int m_new_buf_size;
 		char* m_buf;
 
 #if TORRENT_USE_IPV6
