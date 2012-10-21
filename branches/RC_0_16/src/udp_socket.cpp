@@ -86,6 +86,10 @@ udp_socket::udp_socket(asio::io_service& ios
 	m_magic = 0x1337;
 	m_started = false;
 	m_outstanding_when_aborted = -1;
+	m_outstanding_connect_queue = 0;
+	m_outstanding_connect = 0;
+	m_outstanding_timeout = 0;
+	m_outstanding_resolve = 0;
 #if defined BOOST_HAS_PTHREADS
 	m_thread = 0;
 #endif
@@ -568,8 +572,17 @@ void udp_socket::close()
 		// we just called done, which means on_timeout
 		// won't be called. Decrement the outstanding
 		// ops counter for that
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(m_outstanding_timeout > 0);
+		--m_outstanding_timeout;
+#endif
 		TORRENT_ASSERT(m_outstanding_ops > 0);
 		--m_outstanding_ops;
+		TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+			+ m_outstanding_timeout
+			+ m_outstanding_resolve
+			+ m_outstanding_connect_queue);
+
 		if (m_abort)
 		{
 			maybe_clear_callback();
@@ -732,6 +745,9 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 		// connect to socks5 server and open up the UDP tunnel
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		++m_outstanding_ops;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		++m_outstanding_resolve;
+#endif
 		m_resolver.async_resolve(q, boost::bind(
 			&udp_socket::on_name_lookup, this, _1, _2));
 	}
@@ -739,8 +755,17 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_resolve > 0);
+	--m_outstanding_resolve;
+#endif
+
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
 
 	if (m_abort)
 	{
@@ -770,15 +795,28 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// when m_outstanding_ops may be decremented
 	// To simplyfy this, it's probably a good idea to
 	// merge on_connect and on_timeout to a single function
-	++m_outstanding_ops;
+	m_outstanding_ops += 2;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	++m_outstanding_timeout;
+	++m_outstanding_connect_queue;
+#endif
 	m_cc.enqueue(boost::bind(&udp_socket::on_connect, this, _1)
 		, boost::bind(&udp_socket::on_timeout, this), seconds(10));
 }
 
 void udp_socket::on_timeout()
 {
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_timeout > 0);
+	--m_outstanding_timeout;
+#endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
@@ -795,8 +833,17 @@ void udp_socket::on_timeout()
 void udp_socket::on_connect(int ticket)
 {
 	TORRENT_ASSERT(is_single_thread());
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_connect_queue > 0);
+	--m_outstanding_connect_queue;
+#endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
@@ -826,6 +873,9 @@ void udp_socket::on_connect(int ticket)
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
 	++m_outstanding_ops;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	++m_outstanding_connect;
+#endif
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
 		, boost::bind(&udp_socket::on_connected, this, _1));
 }
@@ -835,14 +885,22 @@ void udp_socket::on_connected(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("udp_socket::on_connected");
 #endif
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_connect > 0);
+	--m_outstanding_connect;
+#endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 
 	if (e == asio::error::operation_aborted) return;
@@ -854,8 +912,17 @@ void udp_socket::on_connected(error_code const& e)
 	// we just called done, which means on_timeout
 	// won't be called. Decrement the outstanding
 	// ops counter for that
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	TORRENT_ASSERT(m_outstanding_timeout > 0);
+	--m_outstanding_timeout;
+#endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
@@ -903,12 +970,16 @@ void udp_socket::handshake1(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -929,6 +1000,11 @@ void udp_socket::handshake2(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
@@ -991,12 +1067,16 @@ void udp_socket::handshake3(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -1017,12 +1097,16 @@ void udp_socket::handshake4(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -1080,12 +1164,16 @@ void udp_socket::connect1(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 	if (e) return;
 
@@ -1106,13 +1194,17 @@ void udp_socket::connect2(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		m_queue.clear();
 		maybe_clear_callback();
 		return;
 	}
-
 	CHECK_MAGIC;
 	if (e)
 	{
@@ -1184,12 +1276,16 @@ void udp_socket::hung_up(error_code const& e)
 #endif
 	TORRENT_ASSERT(m_outstanding_ops > 0);
 	--m_outstanding_ops;
+	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+		+ m_outstanding_timeout
+		+ m_outstanding_resolve
+		+ m_outstanding_connect_queue);
+
 	if (m_abort)
 	{
 		maybe_clear_callback();
 		return;
 	}
-  
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 

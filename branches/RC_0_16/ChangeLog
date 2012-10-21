@@ -1,3 +1,4 @@
+	* udp socket refcounter fix
 	* added missing async_add_torrent to python bindings
 	* raised the limit for bottled http downloads to 2 MiB
 	* add support for magnet links and URLs in python example client
