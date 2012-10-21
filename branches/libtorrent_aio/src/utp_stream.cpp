@@ -1723,7 +1723,9 @@ bool utp_socket_impl::send_pkt(int flags)
 		if (h->extension == 1)
 		{
 			sack = ptr[1];
-			if (m_inbuf.size() == 0 && h->ack_nr != m_ack_nr)
+			// if we no longer have any out-of-order packets waiting
+			// to be delivered, there's no selective ack to be sent.
+			if (m_inbuf.size() == 0)
 			{
 				// we need to remove the sack header
 				remove_sack_header(p);
