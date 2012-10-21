@@ -234,6 +234,7 @@ namespace libtorrent
 		int m_outstanding_timeout;
 		int m_outstanding_resolve;
 		int m_outstanding_connect_queue;
+		int m_outstanding_socks;
 #endif
 	};
 
