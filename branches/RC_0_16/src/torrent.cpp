@@ -4806,6 +4806,8 @@ namespace libtorrent
 
 			c->start();
 
+			if (c->is_disconnecting()) return;
+
 			m_ses.m_half_open.enqueue(
 				boost::bind(&peer_connection::on_connect, c, _1)
 				, boost::bind(&peer_connection::on_timeout, c)
