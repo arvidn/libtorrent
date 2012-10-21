@@ -156,7 +156,8 @@ namespace libtorrent
 				continue;
 			}
 			TORRENT_TRY {
-				e.on_connect(-1);
+				if (e.connecting) e.on_timeout();
+				else e.on_connect(-1);
 			} TORRENT_CATCH(std::exception&) {}
 			tmp.pop_front();
 		}

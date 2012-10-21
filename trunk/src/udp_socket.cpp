@@ -856,15 +856,29 @@ void udp_socket::on_connect(int ticket)
 		+ m_outstanding_resolve
 		+ m_outstanding_connect_queue
 		+ m_outstanding_socks);
+
 	CHECK_MAGIC;
 
-	if (m_abort) return;
-	if (is_closed()) return;
 	if (ticket == -1)
 	{
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		TORRENT_ASSERT(m_outstanding_timeout > 0);
+		--m_outstanding_timeout;
+#endif
+		TORRENT_ASSERT(m_outstanding_ops > 0);
+		--m_outstanding_ops;
+		TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
+			+ m_outstanding_timeout
+			+ m_outstanding_resolve
+			+ m_outstanding_connect_queue
+			+ m_outstanding_socks);
 		close();
 		return;
 	}
+
+
+	if (m_abort) return;
+	if (is_closed()) return;
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_connected");
