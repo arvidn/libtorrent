@@ -88,7 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ifaddrs.h>
 #endif
 
-#if defined(TORRENT_OS2) and !defined(IF_NAMESIZE)
+#if defined(TORRENT_OS2) && !defined(IF_NAMESIZE)
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
