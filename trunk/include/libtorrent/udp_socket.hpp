@@ -256,6 +256,11 @@ namespace libtorrent
 		bool m_started;
 		int m_magic;
 		int m_outstanding_when_aborted;
+		int m_outstanding_connect;
+		int m_outstanding_timeout;
+		int m_outstanding_resolve;
+		int m_outstanding_connect_queue;
+		int m_outstanding_socks;
 #endif
 	};
 
