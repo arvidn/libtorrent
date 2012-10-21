@@ -135,6 +135,12 @@ namespace libtorrent
 
 		void start_download_url();
 
+		// returns which stats gauge this torrent currently
+		// has incremented.
+		int current_stats_state() const;
+		void dec_torrent_gauge();
+		void inc_torrent_gauge();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
@@ -1453,6 +1459,9 @@ namespace libtorrent
 
 		// set to true when the finished alert is posted
 		bool m_finished_alert_posted;
+
+		// the current stats gauge this torrent counts against
+		int m_current_stats_state;
 #endif
 	};
 

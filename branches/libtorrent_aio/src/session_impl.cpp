@@ -590,6 +590,8 @@ namespace aux {
 		, m_network_thread(0)
 #endif
 	{
+		memset(m_stats_counter, 0, sizeof(m_stats_counter));
+
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
@@ -1010,7 +1012,6 @@ namespace aux {
 		m_last_downloaded = 0;
 		get_thread_cpu_usage(&m_network_thread_cpu_usage);
 
-		reset_stat_counters();
 		rotate_stats_log();
 #endif
 #ifdef TORRENT_BUFFER_STATS
@@ -1130,11 +1131,6 @@ namespace aux {
 			++m_log_seq;
 			fclose(m_stats_logger);
 		}
-
-		// make these cumulative for easier reading of graphs
-		// reset them every time the log is rotated though,
-		// to make them cumulative per one-hour graph
-		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 
 		error_code ec;
 		char filename[100];
@@ -2163,9 +2159,7 @@ namespace aux {
 		if (m_torrent_lru.size() > loaded_limit)
 		{
 			// just evict the torrent
-#ifdef TORRENT_STATS
 			inc_stats_counter(torrent_evicted_counter);
-#endif
 			TORRENT_ASSERT(t->is_pinned() == false);
 			t->unload();
 			m_torrent_lru.erase(t);
@@ -2206,9 +2200,7 @@ namespace aux {
 				i = (torrent*)i->next;
 				if (i == NULL) break;
 			}
-#ifdef TORRENT_STATS
 			inc_stats_counter(torrent_evicted_counter);
-#endif
 			TORRENT_ASSERT(i->is_pinned() == false);
 			i->unload();
 			m_torrent_lru.erase(i);
@@ -2722,9 +2714,7 @@ retry:
 	bool session_impl::incoming_packet(error_code const& ec
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-#ifdef TORRENT_STATS
 		inc_stats_counter(on_udp_counter);
-#endif
 
 		if (ec)
 		{
@@ -2778,9 +2768,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
 #endif
-#ifdef TORRENT_STATS
 		inc_stats_counter(on_accept_counter);
-#endif
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
@@ -3311,9 +3299,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_tick");
 #endif
-#ifdef TORRENT_STATS
 		inc_stats_counter(on_tick_counter);
-#endif
 
 		TORRENT_ASSERT(is_single_thread());
 
@@ -3743,27 +3729,6 @@ retry:
 //		m_peer_pool.release_memory();
 	}
 
-#ifdef TORRENT_STATS
-
-	void session_impl::enable_stats_logging(bool s)
-	{
-		if (m_stats_logging_enabled == s) return;
-
-		m_stats_logging_enabled = s;
-
-		reset_stat_counters();
-		if (!s)
-		{
-			if (m_stats_logger) fclose(m_stats_logger);
-			m_stats_logger = 0;
-		}
-		else
-		{
-			rotate_stats_log();
-			get_thread_cpu_usage(&m_network_thread_cpu_usage);
-		}
-	}
-
 	void session_impl::received_buffer(int s)
 	{
 		int size = 8;
@@ -3784,11 +3749,24 @@ retry:
 		++m_send_buffer_sizes[index];
 	}
 
-	void session_impl::reset_stat_counters()
+#ifdef TORRENT_STATS
+
+	void session_impl::enable_stats_logging(bool s)
 	{
-		memset(m_stats_counter, 0, sizeof(m_stats_counter));
-		memset(m_send_buffer_sizes, 0, sizeof(m_send_buffer_sizes));
-		memset(m_recv_buffer_sizes, 0, sizeof(m_recv_buffer_sizes));
+		if (m_stats_logging_enabled == s) return;
+
+		m_stats_logging_enabled = s;
+
+		if (!s)
+		{
+			if (m_stats_logger) fclose(m_stats_logger);
+			m_stats_logger = 0;
+		}
+		else
+		{
+			rotate_stats_log();
+			get_thread_cpu_usage(&m_network_thread_cpu_usage);
+		}
 	}
 
 	void session_impl::print_log_line(int tick_interval_ms, ptime now)
@@ -3872,12 +3850,12 @@ retry:
 				}
 				else
 				{
-					if (i->second->state() == torrent_status::checking_files
-						|| i->second->state() == torrent_status::queued_for_checking)
+					if (t->state() == torrent_status::checking_files
+						|| t->state() == torrent_status::queued_for_checking)
 						++checking_torrents;
-					else if (i->second->is_seed())
+					else if (t->is_seed())
 						++seeding_torrents;
-					else if (i->second->is_upload_only())
+					else if (t->is_upload_only())
 						++upload_only_torrents;
 					else
 						++downloading_torrents;
@@ -4285,8 +4263,6 @@ retry:
 			m_last_uploaded = m_stat.total_upload();
 			m_last_downloaded = m_stat.total_download();
 		}
-
-		reset_stat_counters();
 	}
 #endif // TORRENT_STATS
 
@@ -4364,9 +4340,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_lsd_announce");
 #endif
-#ifdef TORRENT_STATS
 		inc_stats_counter(on_lsd_counter);
-#endif
 		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
@@ -4780,9 +4754,7 @@ retry:
 					--max_connections;
 					--free_slots;
 					steps_since_last_connect = 0;
-#ifdef TORRENT_STATS
 					inc_stats_counter(connection_attempts);
-#endif
 				}
 			}
 			TORRENT_CATCH(std::bad_alloc&)
@@ -5054,9 +5026,7 @@ retry:
 
 	void session_impl::do_delayed_uncork()
 	{
-#ifdef TORRENT_STATS
 		inc_stats_counter(aux::session_impl::on_disk_counter);
-#endif
 		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
 			, end(m_delayed_uncorks.end()); i != end; ++i)
@@ -5747,9 +5717,7 @@ retry:
 
 	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
 	{
-#ifdef TORRENT_STATS
 		inc_stats_counter(on_lsd_peer_counter);
-#endif
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
@@ -6877,6 +6845,9 @@ retry:
 				TORRENT_ASSERT((*i)->m_links[l].in_list());
 			}
 		}
+
+		int torrent_state_gauges[session_interface::num_error_torrents - session_interface::num_checking_torrents];
+		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));
 	
 		std::set<int> unique;
 		int num_active_downloading = 0;
@@ -6890,6 +6861,8 @@ retry:
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
 
+			++torrent_state_gauges[t->current_stats_state() - session_interface::num_checking_torrents];
+
 			int pos = t->queue_position();
 			if (pos < 0)
 			{
@@ -6900,6 +6873,13 @@ retry:
 
 			unique.insert(t->queue_position());
 		}
+
+		for (int i = 0, j = session_interface::num_checking_torrents;
+			i < sizeof(torrent_state_gauges)/sizeof(torrent_state_gauges[0]); ++i, ++j)
+		{
+			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counter[j]);
+		}
+
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
 		TORRENT_ASSERT(num_active_downloading == m_torrent_lists[torrent_want_peers_download].size());
 		TORRENT_ASSERT(num_active_finished == m_torrent_lists[torrent_want_peers_finished].size());

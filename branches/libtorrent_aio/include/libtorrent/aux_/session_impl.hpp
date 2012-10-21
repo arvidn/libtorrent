@@ -1210,18 +1210,37 @@ namespace libtorrent
 			FILE* m_request_log;
 #endif
 
-#ifdef TORRENT_STATS
-			void rotate_stats_log();
-			void print_log_line(int tick_interval_ms, ptime now);
-			void reset_stat_counters();
-			void enable_stats_logging(bool s);
-
 			// the argument specifies which counter to
 			// increment or decrement
-			void inc_stats_counter(int c) { ++m_stats_counter[c]; }
+			void inc_stats_counter(int c, int value = 1)
+			{
+				// if c >= num_stats_counters, it means it's not
+				// a monotonically increasing counter, but a gauge
+				// and it's allowed to be decremented
+				TORRENT_ASSERT(value >= 0 || c >= num_stats_counters);
+				TORRENT_ASSERT(c >= 0);
+				TORRENT_ASSERT(c < num_counters);
+/*
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				if (c >= session_interface::num_checking_torrents
+					&& c <= session_interface::num_error_torrents)
+				{
+					// allow one extra for the edge cases where we add a torrent
+					TORRENT_ASSERT(m_stats_counter[c] + value <= m_torrents.size() + 1);
+					TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
+				}
+#endif
+*/
+				m_stats_counter[c] += value;
+			}
 
 			void received_buffer(int size);
 			void sent_buffer(int size);
+
+#ifdef TORRENT_STATS
+			void rotate_stats_log();
+			void print_log_line(int tick_interval_ms, ptime now);
+			void enable_stats_logging(bool s);
 
 			bool m_stats_logging_enabled;
 
@@ -1234,7 +1253,6 @@ namespace libtorrent
 			// rotated every hour and the sequence number is
 			// incremented by one
 			int m_log_seq;
-			int m_stats_counter[session_interface::num_stats_counters];
 
 			cache_status m_last_cache_status;
 			size_type m_last_failed;
@@ -1245,11 +1263,6 @@ namespace libtorrent
 			thread_cpu_usage m_network_thread_cpu_usage;
 			sliding_average<20> m_read_ops;
 			sliding_average<20> m_write_ops;;
-
-			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
-			int m_send_buffer_sizes[18];
-			int m_recv_buffer_sizes[18];
 #endif
 
 			// each second tick the timer takes a little
@@ -1284,10 +1297,17 @@ namespace libtorrent
 
 			std::string m_logpath;
 			FILE* m_request_logger;
+#endif
 
 		private:
 
-#endif
+			int m_stats_counter[session_interface::num_counters];
+
+			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
+			int m_send_buffer_sizes[18];
+			int m_recv_buffer_sizes[18];
+
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif

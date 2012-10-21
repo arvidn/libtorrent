@@ -1373,9 +1373,7 @@ namespace libtorrent
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::reject_piece_picks);
-#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 		}
@@ -1467,9 +1465,7 @@ namespace libtorrent
 
 		if (is_interesting())
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::unchoke_piece_picks);
-#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 		}
@@ -1952,9 +1948,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::piece_requests);
-#endif
 
 #if defined TORRENT_VERBOSE_LOGGING
 		peer_log("<== REQUEST [ piece: %d s: %d l: %d ]"
@@ -1964,9 +1958,7 @@ namespace libtorrent
 		if (t->super_seeding()
 			&& !super_seeded_piece(r.piece))
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::invalid_piece_requests);
-#endif
 			++m_num_invalid_requests;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ piece not superseeded "
@@ -2005,9 +1997,7 @@ namespace libtorrent
 
 		if (!t->valid_metadata())
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::invalid_piece_requests);
-#endif
 			// if we don't have valid metadata yet,
 			// we shouldn't get a request
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -2021,9 +2011,7 @@ namespace libtorrent
 
 		if (int(m_requests.size()) > m_settings.get_int(settings_pack::max_allowed_in_request_queue))
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::max_piece_requests);
-#endif
 			// don't allow clients to abuse our
 			// memory consumption.
 			// ignore requests if the client
@@ -2051,9 +2039,7 @@ namespace libtorrent
 			|| !m_peer_interested
 			|| r.length > t->block_size())
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::invalid_piece_requests);
-#endif
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
 			peer_log("*** INVALID_REQUEST [ "
 				"i: %d t: %d n: %d h: %d block_limit: %d ]"
@@ -2088,9 +2074,7 @@ namespace libtorrent
 			peer_log(" ==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
 				, r.piece, r.start, r.length);
 #endif
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::choked_piece_requests);
-#endif
 			write_reject_request(r);
 			++m_choke_rejects;
 
@@ -2492,9 +2476,7 @@ namespace libtorrent
 			if (!m_download_queue.empty())
 				m_requested = now;
 
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::incoming_redundant_piece_picks);
-#endif
 			request_a_block(*t, *this);
 			send_block_requests();
 			return;
@@ -2615,9 +2597,7 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::incoming_piece_picks);
-#endif
 		request_a_block(*t, *this);
 		send_block_requests();
 	}
@@ -2738,9 +2718,7 @@ namespace libtorrent
 
 		if (i != m_requests.end())
 		{
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::cancelled_piece_requests);
-#endif
 			m_requests.erase(i);
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
@@ -3223,9 +3201,7 @@ namespace libtorrent
 				continue;
 			}
 			peer_request const& r = *i;
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::choked_piece_requests);
-#endif
 #ifdef TORRENT_VERBOSE_LOGGING
 			peer_log("==> REJECT_PIECE [ piece: %d s: %d l: %d ]"
 				, r.piece , r.start , r.length);
@@ -3497,9 +3473,7 @@ namespace libtorrent
 		m_ses.session_log(" CONNECTION FAILED: %s", print_endpoint(m_remote).c_str());
 #endif
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::connect_timeouts);
-#endif
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(!m_connecting || t);
@@ -3602,7 +3576,6 @@ namespace libtorrent
 		// for outgoing connections however, why would we get this?
 		TORRENT_ASSERT(ec != error::invalid_argument || !m_outgoing);
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::disconnected_peers);
 		if (error == 2) m_ses.inc_stats_counter(aux::session_interface::error_peers);
 		if (ec == error::connection_reset) m_ses.inc_stats_counter(aux::session_interface::connreset_peers);
@@ -3657,7 +3630,6 @@ namespace libtorrent
 			if (bt->rc4_encrypted() && bt->supports_encryption()) m_ses.inc_stats_counter(aux::session_interface::error_rc4_peers);
 		}
 #endif // TORRENT_DISABLE_ENCRYPTION
-#endif
 
 		boost::intrusive_ptr<peer_connection> me(this);
 
@@ -4183,9 +4155,7 @@ namespace libtorrent
 			// might not be any unrequested blocks anymore, so
 			// we should try to pick another block to see
 			// if we can pick a busy one
-#ifdef TORRENT_STATS
 			m_ses.inc_stats_counter(aux::session_interface::end_game_piece_picks);
-#endif
 			m_last_request = now;
 			request_a_block(*t, *this);
 			if (m_disconnecting) return;
@@ -4403,9 +4373,7 @@ namespace libtorrent
 		// picking the same block again, stalling the
 		// same piece indefinitely.
 		m_desired_queue_size = 2;
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::snubbed_piece_picks);
-#endif
 		request_a_block(*t, *this);
 
 		// the block we just picked (potentially)
@@ -5456,10 +5424,8 @@ namespace libtorrent
 			}
 		}
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::on_read_counter);
 		m_ses.received_buffer(bytes_transferred);
-#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
@@ -5830,10 +5796,8 @@ namespace libtorrent
 	void peer_connection::on_send_data(error_code const& error
 		, std::size_t bytes_transferred)
 	{
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::on_write_counter);
 		m_ses.sent_buffer(bytes_transferred);
-#endif
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

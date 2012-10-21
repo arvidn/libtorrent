@@ -200,7 +200,6 @@ namespace libtorrent { namespace aux
 		virtual std::string get_log_path() const = 0;
 #endif
 
-#ifdef TORRENT_STATS
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this
@@ -254,6 +253,8 @@ namespace libtorrent { namespace aux
 			connection_attempts,
 			banned_for_hash_failure,
 
+			// counts events where the network
+			// thread wakes up
 			on_read_counter,
 			on_write_counter,
 			on_tick_counter,
@@ -268,10 +269,25 @@ namespace libtorrent { namespace aux
 
 			num_stats_counters
 		};
-		virtual void inc_stats_counter(int c) = 0;
+
+		enum stats_gauges_t
+		{
+			num_checking_torrents = num_stats_counters,
+			num_stopped_torrents,
+			num_upload_only_torrents,
+			num_downloading_torrents,
+			num_seeding_torrents,
+			num_queued_seeding_torrents,
+			num_queued_download_torrents,
+			num_error_torrents,
+
+			num_counters,
+			num_gauge_counters = num_counters - num_stats_counters
+		};
+
+		virtual void inc_stats_counter(int c, int value = 1) = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;
-#endif // TORRENT_STATS
 	};
 }}
 

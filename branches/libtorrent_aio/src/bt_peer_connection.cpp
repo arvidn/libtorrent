@@ -285,9 +285,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifdef TORRENT_STATS
 		m_ses.inc_stats_counter(aux::session_interface::piece_rejects);
-#endif
 
 		if (!m_supports_fast) return;
 
