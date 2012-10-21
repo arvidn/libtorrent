@@ -956,7 +956,7 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
-		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
+		TORRENT_ASSERT(bitmask.size() <= m_piece_map.size());
 
 		int index = 0;
 		bool updated = false;
