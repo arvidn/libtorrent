@@ -3867,8 +3867,6 @@ retry:
 		int utp_peak_recv_delay = 0;
 		boost::uint64_t utp_send_delay_sum = 0;
 		boost::uint64_t utp_recv_delay_sum = 0;
-		int num_utp_peers = 0;
-		int num_tcp_peers = 0;
 		int utp_num_delay_sockets = 0;
 		int utp_num_recv_delay_sockets = 0;
 		int num_complete_connections = 0;
@@ -3957,15 +3955,12 @@ retry:
 					utp_recv_delay_sum += recv_delay;
 					++utp_num_recv_delay_sockets;
 				}
-				++num_utp_peers;
 			}
 			else
 			{
 				tcp_up_rate += ul_rate;
 				tcp_down_rate += dl_rate;
-				++num_tcp_peers;
 			}
-
 		}
 
 		if (now - m_last_log_rotation > hours(1))
@@ -4167,8 +4162,8 @@ retry:
 			STAT_LOG(d, sst.utp_stats.num_fin_sent);
 			STAT_LOG(d, sst.utp_stats.num_close_wait);
 
-			STAT_LOG(d, num_tcp_peers);
-			STAT_LOG(d, num_utp_peers);
+			STAT_LOG(d, m_stats_counter[num_tcp_peers]);
+			STAT_LOG(d, m_stats_counter[num_utp_peers]);
 
 			STAT_LOG(d, m_stats_counter[connrefused_peers]);
 			STAT_LOG(d, m_stats_counter[connaborted_peers]);

@@ -217,6 +217,8 @@ namespace libtorrent
 		, m_socket_is_writing(false)
 #endif
 	{
+		m_ses.inc_stats_counter(aux::session_interface::num_tcp_peers + m_socket->type() - 1);
+
 		m_superseed_piece[0] = -1;
 		m_superseed_piece[1] = -1;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -793,6 +795,8 @@ namespace libtorrent
 
 	peer_connection::~peer_connection()
 	{
+		m_ses.inc_stats_counter(aux::session_interface::num_tcp_peers + m_socket->type() - 1, -1);
+
 		TORRENT_ASSERT(!m_queued_for_connection);
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(!m_in_constructor);

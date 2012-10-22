@@ -94,6 +94,18 @@ namespace libtorrent
 		METRIC(peer, connection_attempts, type_counter)
 		METRIC(peer, banned_for_hash_failure, type_counter)
 
+		// the number of peer connections for each kind of socket.
+		// these counts include half-open (connecting) peers.
+		METRIC(peer, num_tcp_peers, type_gauge)
+		METRIC(peer, num_socks5_peers, type_gauge)
+		METRIC(peer, num_http_proxy_peers, type_gauge)
+		METRIC(peer, num_utp_peers, type_gauge)
+		METRIC(peer, num_i2p_peers, type_gauge)
+		METRIC(peer, num_ssl_peers, type_gauge)
+		METRIC(peer, num_ssl_socks5_peers, type_gauge)
+		METRIC(peer, num_ssl_http_proxy_peers, type_gauge)
+		METRIC(peer, num_ssl_utp_peers, type_gauge)
+
 		// These counters count the number of times the
 		// network thread wakes up for each respective
 		// reason. If these counters are very large, it

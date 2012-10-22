@@ -283,6 +283,19 @@ namespace libtorrent { namespace aux
 			num_queued_download_torrents,
 			num_error_torrents,
 
+			// these counter indices deliberatly
+			// match the order of socket type IDs
+			// defined in socket_type.hpp.
+			num_tcp_peers,
+			num_socks5_peers,
+			num_http_proxy_peers,
+			num_utp_peers,
+			num_i2p_peers,
+			num_ssl_peers,
+			num_ssl_socks5_peers,
+			num_ssl_http_proxy_peers,
+			num_ssl_utp_peers,
+
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters
 		};

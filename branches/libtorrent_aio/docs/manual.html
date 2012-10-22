@@ -12357,6 +12357,48 @@ more error prone</p>
 </table>
 <p>these counters break down the reasons to
 disconnect peers.</p>
+<table border="1" class="docutils" id="peer-num-ssl-utp-peers">
+<span id="peer-num-ssl-http-proxy-peers"></span><span id="peer-num-ssl-socks5-peers"></span><span id="peer-num-ssl-peers"></span><span id="peer-num-i2p-peers"></span><span id="peer-num-utp-peers"></span><span id="peer-num-http-proxy-peers"></span><span id="peer-num-socks5-peers"></span><span id="peer-num-tcp-peers"></span><colgroup>
+<col width="82%" />
+<col width="18%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.num_tcp_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_socks5_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_http_proxy_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_utp_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_i2p_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_ssl_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_ssl_socks5_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_ssl_http_proxy_peers</td>
+<td>gauge</td>
+</tr>
+<tr><td>peer.num_ssl_utp_peers</td>
+<td>gauge</td>
+</tr>
+</tbody>
+</table>
+<p>the number of peer connections for each kind of socket.
+these counts include half-open (connecting) peers.</p>
 <table border="1" class="docutils" id="net-on-disk-counter">
 <span id="net-on-accept-counter"></span><span id="net-on-udp-counter"></span><span id="net-on-lsd-peer-counter"></span><span id="net-on-lsd-counter"></span><span id="net-on-tick-counter"></span><span id="net-on-write-counter"></span><span id="net-on-read-counter"></span><colgroup>
 <col width="74%" />

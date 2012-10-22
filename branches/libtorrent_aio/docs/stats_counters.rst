@@ -163,6 +163,49 @@ more error prone
 these counters break down the reasons to
 disconnect peers.
 
+.. _peer.num_tcp_peers:
+
+.. _peer.num_socks5_peers:
+
+.. _peer.num_http_proxy_peers:
+
+.. _peer.num_utp_peers:
+
+.. _peer.num_i2p_peers:
+
+.. _peer.num_ssl_peers:
+
+.. _peer.num_ssl_socks5_peers:
+
+.. _peer.num_ssl_http_proxy_peers:
+
+.. _peer.num_ssl_utp_peers:
+
++-------------------------------+-------+
+| name                          | type  |
++===============================+=======+
+| peer.num_tcp_peers            | gauge |
++-------------------------------+-------+
+| peer.num_socks5_peers         | gauge |
++-------------------------------+-------+
+| peer.num_http_proxy_peers     | gauge |
++-------------------------------+-------+
+| peer.num_utp_peers            | gauge |
++-------------------------------+-------+
+| peer.num_i2p_peers            | gauge |
++-------------------------------+-------+
+| peer.num_ssl_peers            | gauge |
++-------------------------------+-------+
+| peer.num_ssl_socks5_peers     | gauge |
++-------------------------------+-------+
+| peer.num_ssl_http_proxy_peers | gauge |
++-------------------------------+-------+
+| peer.num_ssl_utp_peers        | gauge |
++-------------------------------+-------+
+
+the number of peer connections for each kind of socket.
+these counts include half-open (connecting) peers.
+
 .. _net.on_read_counter:
 
 .. _net.on_write_counter:
