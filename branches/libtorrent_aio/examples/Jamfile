@@ -19,6 +19,7 @@ project client_test
 exe client_test : client_test.cpp ;
 
 exe simple_client : simple_client.cpp ;
+exe stats_counters : stats_counters.cpp ;
 exe dump_torrent : dump_torrent.cpp ;
 exe make_torrent : make_torrent.cpp ;
 exe enum_if : enum_if.cpp ;

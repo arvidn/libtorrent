@@ -409,6 +409,7 @@ namespace libtorrent
 			void refresh_torrent_status(std::vector<torrent_status>* ret
 				, boost::uint32_t flags) const;
 			void post_torrent_updates();
+			void post_session_stats();
 
 			std::vector<torrent_handle> get_torrents() const;
 			

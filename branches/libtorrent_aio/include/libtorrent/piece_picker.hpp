@@ -301,9 +301,7 @@ namespace libtorrent
 			, int prefer_whole_pieces, void* peer, piece_state_t speed
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
-#ifdef TORRENT_STATS
 			, int& loop_counter
-#endif
 			) const;
 
 		// picks blocks from each of the pieces in the piece_list

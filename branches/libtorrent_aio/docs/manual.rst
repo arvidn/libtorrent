@@ -166,7 +166,10 @@ The ``session`` class has the following synopsis::
 			, boost::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags) const;
+		void post_torrent_updates();
 
+		stats_metrics session_stats_metrics() const;
+		void post_session_stats();
 
 	#ifndef TORRENT_NO_DEPRECATE
 		void set_settings(session_settings const& settings);
@@ -769,6 +772,43 @@ was called.
 Only torrents who has the state subscription flag set will be included. This flag
 is on by default. See ``add_torrent_params`` under `async_add_torrent() add_torrent()`_.
 
+session_stats_metrics()
+-----------------------
+
+::
+
+		std::vector<stats_metric> session_stats_metrics() const;
+
+This function returns the list of available metrics exposed by libtorrent's
+statistics API. Each metric has a name and a *value index*. The value index is
+the index into the array in `session_stats_alert`_ where this metric's value
+can be found when the session stats is sampled (by calling `post_session_stats()`_).
+
+The ``stats_metric`` struct has the following fields::
+
+	struct stats_metric
+	{
+		char const* name;
+		int value_index;
+		enum { type_counter, type_gauge };
+		int type;
+	};
+
+For more information, see the `session statistics`_ section.
+
+
+post_session_stats()
+--------------------
+
+	::
+
+		void post_session_stats();
+
+This function will post a `session_stats_alert`_ object, containing a snapshot of
+the performance counters from the internals of libtorrent. To interpret these counters,
+query the session via `session_stats_metrics()`_.
+
+For more information, see the `session statistics`_ section.
 
 load_asnum_db() load_country_db() as_for_ip()
 ---------------------------------------------
@@ -1441,7 +1481,7 @@ can only connect to a few peers at a time because of a built in limitation (in X
 Service pack 2).
 
 use_interfaces()
----------------
+----------------
 
 	::
 
@@ -6963,6 +7003,39 @@ this message was posted. Note that you can map a torrent status to a specific to
 via its ``handle`` member. The receiving end is suggested to have all torrents sorted
 by the ``torrent_handle`` or hashed by it, for efficient updates.
 
+session_stats_alert
+-------------------
+
+The session_stats_alert is posted when the user requests session statistics by
+calling `post_session_stats()`_ on the session_ object. Its category is
+``status_notification``, but it is not subject to filtering, since it's only
+manually posted anyway.
+
+The resulting alert contains::
+
+	struct session_stats_alert: alert
+	{
+		// ...
+		boost::uint64_t timestamp;
+		std::vector<boost::uint64_t> values;
+	};
+
+The values in the ``values`` array are a mix of *counters* and *gauges*, which
+meanings can be queries via the `session_stats_metrics()`_ function on the session.
+The mapping from a specific metric to an index into this array is constant for a
+specific version of libtorrent, but may differ for other versions. The intended
+usage is to request the mapping (i.e. call `session_stats_metrics()`_) once
+on startup, and then use that mapping to interpret these values throughout
+the process' runtime.
+
+The ``timestamp`` field is the number of microseconds since the session was
+started. It represent the time when the snapshot of values was taken. When
+the network thread is under heavy load, the latency between calling
+`post_session_stats()`_ and receiving this alert may be significant, and
+the timestamp may help provide higher accuracy in measurements.
+
+For more information, see the `session statistics`_ section.
+
 
 alert dispatcher
 ================
@@ -8207,8 +8280,9 @@ The benefits of this mode are:
 compact allocation
 ------------------
 
-Note that support for compact allocation is deprecated in libttorrent, and will
-be removed in future versions.
+.. note::
+	Support for compact allocation is deprecated in libttorrent, and will
+	be removed in future versions.
 
 The compact allocation will only allocate as much storage as it needs to keep the
 pieces downloaded so far. This means that pieces will be moved around to be placed
@@ -8279,8 +8353,10 @@ metadata from peers
 
 Extension name: "LT_metadata"
 
-This extension is deprecated in favor of the more widely supported ``ut_metadata``
-extension, see `BEP 9`_.
+.. note::
+	This extension is deprecated in favor of the more widely supported
+	``ut_metadata`` extension, see `BEP 9`_.
+
 The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
@@ -8694,4 +8770,51 @@ the pem file to include in the .torrent file.
 
 The peer's certificate is located in ``./newcert.pem`` and the certificate's
 private key in ``./newkey.pem``.
+
+session statistics
+==================
+
+libtorrent provides a mechanism to query performance and statistics counters from its
+internals. This is primarily useful for troubleshooting of production systems and performance
+tuning.
+
+The statistics consists of two fundamental types. *counters* and *gauges*. A counter is a
+monotonically increasing value, incremented every time some event occurs. For example,
+every time the network thread wakes up because a socket became readable will increment a
+counter. Another example is every time a socket receives *n* bytes, a counter is incremented
+by *n*.
+
+*Counters* are the most flexible of metrics. It allows the program to sample the counter at
+any interval, and calculate average rates of increments to the counter. Some events may be
+rare and need to be sampled over a longer period in order to get userful rates, where other
+events may be more frequent and evenly distributed that sampling it frequently yields useful
+values. Counters also provides accurate overall counts. For example, converting samples of
+a download rate into a total transfer count is not accurate and takes more samples. Converting
+an increasing counter into a rate is easy and flexible.
+
+*Gauges* measure the instantaneous state of some kind. This is used for metrics that are not
+counting events or flows, but states that can fluctuate. For example, the number of torrents
+that are currenly being downloaded.
+
+It's important to know whether a value is a counter or a gauge in order to interpret it correctly.
+In order to query libtorrent for which counters and gauges are available, call
+`session_stats_metrics()`_. This will return metadata about the values available for inspection
+in libtorrent. It will include whether a value is a counter or a gauge. The key information
+it includes is the index used to extract the actual measurements for a specific counter or
+gauge.
+
+In order to take a sample, call `post_session_stats()`_ in the session object. This will result
+in a `session_stats_alert`_ being posted. In this alert object, there is an array of values,
+these values make up the sample. The value index in the stats metric indicates which index the
+metric's value is stored in.
+
+The mapping between metric and value is not stable across versions of libtorrent. Always query
+the metrics first, to find out the index at which the value is stored, before interpreting the
+values array in the `session_stats_alert`_. The mapping will *not* change during the runtime of
+your process though, it's tied to a specific libtorrent version. You only have to query the
+mapping once on startup (or every time ``libtorrent.so`` is loaded, if it's done dynamically).
+
+The available stats metrics are:
+
+.. include:: stats_counters.rst
 

@@ -1782,18 +1782,8 @@ namespace libtorrent
 		, int prefer_whole_pieces, void* peer, piece_state_t speed
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
-#ifdef TORRENT_STATS
-		, int& loop_counter
-#endif
-		) const
+		, int& loop_counter) const
 	{
-
-#ifdef TORRENT_STATS
-#define TORRENT_INC_LOOP_COUNTER ++loop_counter;
-#else
-#define TORRENT_INC_LOOP_COUNTER
-#endif
-
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
 
 		// prevent the number of partial pieces to grow indefinitely
@@ -1878,7 +1868,7 @@ namespace libtorrent
 			{
 				for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
 				{	
-					TORRENT_INC_LOOP_COUNTER
+					++loop_counter;
 					if (!is_piece_free(i, pieces)) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
@@ -1892,7 +1882,7 @@ namespace libtorrent
 			{
 				for (int i = m_cursor; i < m_reverse_cursor; ++i)
 				{
-					TORRENT_INC_LOOP_COUNTER
+					++loop_counter;
 					if (!is_piece_free(i, pieces)) continue;
 					num_blocks = add_blocks(i, pieces
 						, interesting_blocks, backup_blocks
@@ -1929,7 +1919,7 @@ namespace libtorrent
 					int start = prio == 0 ? 0 : m_priority_boundries[prio - 1];
 					for (int p = start; p < m_priority_boundries[prio]; ++p)
 					{
-						TORRENT_INC_LOOP_COUNTER
+						++loop_counter;
 						if (!is_piece_free(m_pieces[p], pieces)) continue;
 						num_blocks = add_blocks(m_pieces[p], pieces
 							, interesting_blocks, backup_blocks
@@ -1946,7 +1936,7 @@ namespace libtorrent
 				for (std::vector<int>::const_iterator i = m_pieces.begin();
 					i != m_pieces.end(); ++i)
 				{
-					TORRENT_INC_LOOP_COUNTER
+					++loop_counter;
 					if (!is_piece_free(*i, pieces)) continue;
 					num_blocks = add_blocks(*i, pieces
 						, interesting_blocks, backup_blocks
@@ -1975,7 +1965,7 @@ namespace libtorrent
 					, suggested_pieces.end(), piece)
 					!= suggested_pieces.end())
 				{
-					TORRENT_INC_LOOP_COUNTER
+					++loop_counter;
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
 					// could not find any more pieces

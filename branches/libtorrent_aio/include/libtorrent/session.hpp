@@ -87,6 +87,14 @@ namespace libtorrent
 	class upnp;
 	class alert;
 
+	struct stats_metric
+	{
+		char const* name;
+		int value_index;
+		enum { type_counter, type_gauge };
+		int type;
+	};
+
 	typedef boost::function<void(sha1_hash const&, std::vector<char>&
 		, error_code&)> user_load_function_t;
 
@@ -201,6 +209,9 @@ namespace libtorrent
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, boost::uint32_t flags = 0) const;
 		void post_torrent_updates();
+
+		std::vector<stats_metric> session_stats_metrics() const;
+		void post_session_stats();
 
 		// returns a list of all torrents in this session
 		std::vector<torrent_handle> get_torrents() const;

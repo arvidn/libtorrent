@@ -5271,6 +5271,20 @@ retry:
 		m_alerts.post_alert_ptr(alert.release());
 	}
 
+	void session_impl::post_session_stats()
+	{
+		std::auto_ptr<session_stats_alert> alert(new session_stats_alert());
+		std::vector<boost::uint64_t>& values = alert->values;
+		values.resize(aux::session_interface::num_counters, 0);
+
+		for (int i = 0; i < aux::session_interface::num_counters; ++i)
+			values[i] = m_stats_counter[i];
+
+		alert->timestamp = total_microseconds(time_now_hires() - m_created);
+
+		m_alerts.post_alert_ptr(alert.release());
+	}
+
 	std::vector<torrent_handle> session_impl::get_torrents() const
 	{
 		std::vector<torrent_handle> ret;

@@ -846,6 +846,20 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(post_torrent_updates);
 	}
 
+	std::vector<stats_metric> session::session_stats_metrics() const
+	{
+		std::vector<stats_metric> ret;
+		// defined in session_stats.cpp
+		extern void get_stats_metric_map(std::vector<stats_metric>& stats);
+		get_stats_metric_map(ret);
+		return ret;
+	}
+
+	void session::post_session_stats()
+	{
+		TORRENT_ASYNC_CALL(post_session_stats);
+	}
+
 	std::vector<torrent_handle> session::get_torrents() const
 	{
 		TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);

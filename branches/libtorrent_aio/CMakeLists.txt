@@ -49,6 +49,7 @@ set(sources
 	rss
 	session
 	session_impl
+	session_stats
 	settings
 	socket_io
 	socket_type  

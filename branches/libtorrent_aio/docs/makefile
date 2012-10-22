@@ -36,7 +36,10 @@ all: html
 settings.rst: ../include/libtorrent/settings_pack.hpp
 	python gen_settings_doc.py
 
-manual.rst: settings.rst
+stats_counters.rst: ../src/session_stats.cpp
+	python gen_stats_doc.py
+
+manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
 
 %.pdf:%.rst

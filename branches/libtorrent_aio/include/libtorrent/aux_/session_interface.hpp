@@ -243,6 +243,8 @@ namespace libtorrent { namespace aux
 			incoming_piece_picks,
 			end_game_piece_picks,
 			snubbed_piece_picks,
+
+			// reasons to disconnect peers
 			connect_timeouts,
 			uninteresting_peers,
 			timeout_peers,

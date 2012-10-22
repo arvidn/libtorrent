@@ -644,5 +644,12 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string session_stats_alert::message() const
+	{
+		char msg[100];
+		snprintf(msg, sizeof(msg), "session stats (%d values)", int(values.size()));
+		return msg;
+	}
+
 } // namespace libtorrent
 

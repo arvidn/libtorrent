@@ -1389,7 +1389,7 @@ the *QBone scavenger service*. For more details, see QBSS_.
 +----------------------+------+---------+
 | active_dht_limit     | int  | 88      |
 +----------------------+------+---------+
-| active_tracker_limit | int  | 360     |
+| active_tracker_limit | int  | 1600    |
 +----------------------+------+---------+
 | active_lsd_limit     | int  | 60      |
 +----------------------+------+---------+
@@ -2203,4 +2203,16 @@ downloading torrent. libtorrent will loop over the downloading
 torrents to connect a peer each, and every n:th connection
 attempt, a finished torrent is picked to be allowed to connect
 to a peer. This setting controls n.
+
+.. _max_http_recv_buffer_size:
+
++---------------------------+------+------------+
+| name                      | type | default    |
++===========================+======+============+
+| max_http_recv_buffer_size | int  | 2*1024*204 |
++---------------------------+------+------------+
+
+the max number of bytes to allow an HTTP response to be when
+announcing to trackers or downloading .torrent files via
+the ``url`` provided in ``add_torrent_params``.
 

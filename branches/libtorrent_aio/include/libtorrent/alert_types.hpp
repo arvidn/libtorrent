@@ -1369,7 +1369,22 @@ namespace libtorrent
 		error_code error;
 	};
 
-	enum { num_alert_types = 70 };
+	struct TORRENT_EXPORT session_stats_alert : alert
+	{
+		session_stats_alert() {}
+		TORRENT_DEFINE_ALERT(session_stats_alert, 70);
+
+		const static int static_category = alert::stats_notification;
+		virtual std::string message() const;
+		virtual bool discardable() const { return false; }
+
+		// microseconds since session start
+		boost::uint64_t timestamp;
+
+		std::vector<boost::uint64_t> values;
+	};
+
+	enum { num_alert_types = 71 };
 
 #undef TORRENT_DEFINE_ALERT
 
