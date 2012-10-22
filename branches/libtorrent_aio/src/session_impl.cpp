@@ -3773,15 +3773,6 @@ retry:
 	{
 		int connect_candidates = 0;
 
-		int checking_torrents = 0;
-		int stopped_torrents = 0;
-		int upload_only_torrents = 0;
-		int downloading_torrents = 0;
-		int seeding_torrents = 0;
-		int queued_seed_torrents = 0;
-		int queued_download_torrents = 0;
-		int error_torrents = 0;
-
 		int num_peers = 0;
 		int peer_dl_rate_buckets[7];
 		int peer_ul_rate_buckets[7];
@@ -3830,36 +3821,6 @@ retry:
 			{
 				num_limited_peers += t->num_peers();
 				num_limited_peers += t->max_connections();
-			}
-
-			if (t->has_error())
-				++error_torrents;
-			else
-			{
-				if (t->is_paused())
-				{
-					if (!t->is_auto_managed())
-						++stopped_torrents;
-					else
-					{
-						if (t->is_seed())
-							++queued_seed_torrents;
-						else
-							++queued_download_torrents;
-					}
-				}
-				else
-				{
-					if (t->state() == torrent_status::checking_files
-						|| t->state() == torrent_status::queued_for_checking)
-						++checking_torrents;
-					else if (t->is_seed())
-						++seeding_torrents;
-					else if (t->is_upload_only())
-						++upload_only_torrents;
-					else
-						++downloading_torrents;
-				}
 			}
 
 			if (t->has_picker())
@@ -4035,19 +3996,19 @@ retry:
 			STAT_LOG(d, int(uploaded));
 			size_type downloaded = m_stat.total_download() - m_last_downloaded;
 			STAT_LOG(d, int(downloaded));
-			STAT_LOG(d, downloading_torrents);
-			STAT_LOG(d, seeding_torrents);
+			STAT_LOG(d, m_stats_counter[session_interface::num_downloading_torrents]);
+			STAT_LOG(d, m_stats_counter[session_interface::num_seeding_torrents]);
 			STAT_LOG(d, num_complete_connections);
 			STAT_LOG(d, num_half_open);
 			STAT_LOG(d, cs.total_used_buffers);
 			STAT_LOG(d, num_peers);
 			STAT_LOG(d, logging_allocator::allocations);
 			STAT_LOG(d, logging_allocator::allocated_bytes);
-			STAT_LOG(d, checking_torrents);
-			STAT_LOG(d, stopped_torrents);
-			STAT_LOG(d, upload_only_torrents);
-			STAT_LOG(d, queued_seed_torrents);
-			STAT_LOG(d, queued_download_torrents);
+			STAT_LOG(d, m_stats_counter[session_interface::num_checking_torrents]);
+			STAT_LOG(d, m_stats_counter[session_interface::num_stopped_torrents]);
+			STAT_LOG(d, m_stats_counter[session_interface::num_upload_only_torrents]);
+			STAT_LOG(d, m_stats_counter[session_interface::num_queued_seeding_torrents]);
+			STAT_LOG(d, m_stats_counter[session_interface::num_queued_download_torrents]);
 			STAT_LOG(d, m_upload_rate.queue_size());
 			STAT_LOG(d, m_download_rate.queue_size());
 			STAT_LOG(d, m_disk_queues[peer_connection::upload_channel]);
@@ -4107,7 +4068,7 @@ retry:
 			STAT_LOG(d, int(cs.blocks_written - m_last_cache_status.blocks_written));
 			STAT_LOG(d, int(m_total_failed_bytes - m_last_failed));
 			STAT_LOG(d, int(m_total_redundant_bytes - m_last_redundant));
-			STAT_LOG(d, error_torrents);
+			STAT_LOG(d, m_stats_counter[session_interface::num_error_torrents]);
 			STAT_LOG(d, cs.read_cache_size);
 			STAT_LOG(d, cs.write_cache_size + cs.read_cache_size);
 			STAT_LOG(d, cs.total_used_buffers);
