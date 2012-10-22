@@ -269,6 +269,13 @@ namespace libtorrent { namespace aux
 
 			torrent_evicted_counter,
 
+			num_piece_passed,
+			num_piece_passed_removed,
+			num_have_pieces,
+			num_have_pieces_removed,
+			num_total_pieces_added,
+			num_total_pieces_removed,
+
 			num_stats_counters
 		};
 
@@ -286,6 +293,9 @@ namespace libtorrent { namespace aux
 			// these counter indices deliberatly
 			// match the order of socket type IDs
 			// defined in socket_type.hpp.
+			// TODO: should these connection gauges be turned
+			// into pairs of connected/disconnected cumulative counters?
+			// it would make them counters instead of gauges
 			num_tcp_peers,
 			num_socks5_peers,
 			num_http_proxy_peers,

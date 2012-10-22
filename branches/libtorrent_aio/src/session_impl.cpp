@@ -3802,10 +3802,6 @@ retry:
 		// sum of limits of all torrents with a peer limit
 		int total_peers_limit = 0;
 
-		int total_pieces = 0;
-		int total_have_pieces = 0;
-		int total_passed_pieces = 0;
-
 		std::vector<partial_piece_info> dq;
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -3832,13 +3828,6 @@ retry:
 				partial_downloading_pieces += a;
 				partial_full_pieces += b;
 				partial_finished_pieces += c;
-			}
-
-			if (t->valid_metadata())
-			{
-				total_pieces += t->torrent_file().num_pieces();
-				total_have_pieces += t->num_have();
-				total_passed_pieces += t->num_passed();
 			}
 
 			dq.clear();
@@ -4197,9 +4186,9 @@ retry:
 			STAT_LOG(d, m_stats_counter[cancelled_piece_requests]);
 			STAT_LOG(d, m_stats_counter[piece_rejects]);
 
-			STAT_LOG(d, total_pieces);
-			STAT_LOG(d, total_have_pieces);
-			STAT_LOG(d, total_passed_pieces);
+			STAT_LOG(d, m_stats_counter[num_total_pieces_added] - m_stats_counter[num_total_pieces_removed]);
+			STAT_LOG(d, m_stats_counter[num_have_pieces] - m_stats_counter[num_have_pieces_removed]);
+			STAT_LOG(d, m_stats_counter[num_piece_passed] - m_stats_counter[num_piece_passed_removed]);
 
 			STAT_LOG(d, peers_up_send_buffer);
 

@@ -493,7 +493,14 @@ namespace libtorrent
 		// client may unpin it once we have metadata and it has had
 		// a chance to save it on the metadata_received_alert
 		if (!valid_metadata())
+		{
 			m_pinned = true;
+		}
+		else
+		{
+			m_ses.inc_stats_counter(aux::session_interface::num_total_pieces_added
+				, m_torrent_file->num_pieces());
+		}
 
 		inc_torrent_gauge();
 	}
@@ -930,6 +937,16 @@ namespace libtorrent
 			m_links[i].unlink(m_ses.m_torrent_lists[i], i);
 		}
 #endif
+
+		if (valid_metadata())
+		{
+			m_ses.inc_stats_counter(aux::session_interface::num_total_pieces_removed
+				, m_torrent_file->num_pieces());
+			m_ses.inc_stats_counter(aux::session_interface::num_have_pieces_removed
+				, num_have());
+			m_ses.inc_stats_counter(aux::session_interface::num_piece_passed_removed
+				, num_passed());
+		}
 
 		// The invariant can't be maintained here, since the torrent
 		// is being destructed, all weak references to it have been
@@ -3474,6 +3491,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(!has_picker() || m_picker->has_piece_passed(index));
 
+		m_ses.inc_stats_counter(aux::session_interface::num_have_pieces);
+
 		// at this point, we have the piece for sure. It has been
 		// successfully written to disk. We may announce it to peers
 		// (unless it has already been announced through predictive_piece_announce
@@ -3648,6 +3667,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
 		m_need_save_resume_data = true;
+
+		m_ses.inc_stats_counter(aux::session_interface::num_piece_passed);
 
 		remove_time_critical_piece(index, true);
 
@@ -6537,6 +6558,9 @@ namespace libtorrent
 		// disconnecting redundant peers, otherwise we'll think
 		// we're a seed, because we have all 0 pieces
 		init();
+
+		m_ses.inc_stats_counter(aux::session_interface::num_total_pieces_added
+			, m_torrent_file->num_pieces());
 
 		// disconnect redundant peers
 		int idx = 0;

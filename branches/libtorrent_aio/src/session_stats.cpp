@@ -139,6 +139,22 @@ namespace libtorrent
 		METRIC(ses, num_queued_download_torrents, type_gauge)
 		METRIC(ses, num_error_torrents, type_gauge)
 
+		// these count the number of times a piece has passed the
+		// hash check, the number of times a piece was successfully
+		// written to disk and the number of total possible pieces
+		// added by adding torrents. e.g. when adding a torrent with
+		// 1000 piece, num_total_pieces_added is incremented by 1000.
+		// the *_removed version are incremented whenever the torrent
+		// the pieces belong to was removed. The difference between
+		// them represents the current number if pieces passed, haved
+		// and total.
+		METRIC(ses, num_piece_passed, type_counter)
+		METRIC(ses, num_piece_passed_removed, type_counter)
+		METRIC(ses, num_have_pieces, type_counter)
+		METRIC(ses, num_have_pieces_removed, type_counter)
+		METRIC(ses, num_total_pieces_added, type_counter)
+		METRIC(ses, num_total_pieces_removed, type_counter)
+
 		// this counts the number of times a torrent has been
 		// evicted (only applies when `dynamic loading of torrent files`_
 		// is enabled).
