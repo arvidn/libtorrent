@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.1</td></tr>
+<td>0.16.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -238,16 +238,30 @@ public:
         int piece_length() const;
         int piece_size(int index) const;
 
+        // index accessors
         sha1_hash const&amp; hash(int index) const;
         std::string const&amp; symlink(int index) const;
         time_t mtime(int index) const;
         size_type file_base(int index) const;
         void set_file_base(int index, size_type off);
-
         std::string file_path(int index) const;
         std::string file_name(int index) const;
         size_type file_size(int index) const;
         bool pad_file_at(int index) const;
+        size_type file_offset(int index) const;
+
+        // iterator accessors
+        sha1_hash hash(internal_file_entry const&amp; fe) const;
+        std::string const&amp; symlink(internal_file_entry const&amp; fe) const;
+        time_t mtime(internal_file_entry const&amp; fe) const;
+        int file_index(internal_file_entry const&amp; fe) const;
+        size_type file_base(internal_file_entry const&amp; fe) const;
+        void set_file_base(internal_file_entry const&amp; fe, size_type off);
+        std::string file_path(internal_file_entry const&amp; fe) const;
+        std::string file_name(internal_file_entry const&amp; fe) const;
+        size_type file_size(internal_file_entry const&amp; fe) const;
+        bool pad_file_at(internal_file_entry const&amp; fe) const;
+        size_type file_offset(internal_file_entry const&amp; fe) const;
 
         void set_name(std::string const&amp; n);
         void set_name(std::wstring const&amp; n);

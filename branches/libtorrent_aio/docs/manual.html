@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.1</td></tr>
+<td>0.16.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -91,6 +91,7 @@
 <li><a class="reference internal" href="#id14" id="id48">predictive piece announce</a></li>
 <li><a class="reference internal" href="#peer-classes" id="id49">peer classes</a></li>
 <li><a class="reference internal" href="#ssl-torrents" id="id50">SSL torrents</a></li>
+<li><a class="reference internal" href="#session-statistics" id="id51">session statistics</a></li>
 </ul>
 </div>
 <div class="section" id="overview">
@@ -246,7 +247,10 @@ class session: public boost::noncopyable
                 , boost::uint32_t flags = 0) const;
         void refresh_torrent_status(std::vector&lt;torrent_status&gt;* ret
                 , boost::uint32_t flags) const;
+        void post_torrent_updates();
 
+        stats_metrics session_stats_metrics() const;
+        void post_session_stats();
 
 #ifndef TORRENT_NO_DEPRECATE
         void set_settings(session_settings const&amp; settings);
@@ -319,6 +323,8 @@ class session: public boost::noncopyable
                 , error_code&amp; ec
                 , char const* interface = 0
                 , int flags = 0);
+
+        void use_interfaces(char const* net_interface) const;
 
         std::auto_ptr&lt;alert&gt; pop_alert();
         alert const* wait_for_alert(time_duration max_wait);
@@ -444,8 +450,10 @@ paused.</p>
 <h2>set_load_function()</h2>
 <blockquote>
 <pre class="literal-block">
-void set_load_function(boost::function&lt;void(sha1_hash const&amp;
-        , std::vector&lt;char&gt;&amp;, error_code&amp; ec)&gt; fun);
+typedef boost::function&lt;void(sha1_hash const&amp;, std::vector&lt;char&gt;&amp;
+        , error_code&amp;)&gt; user_load_function_t;
+
+void set_load_function(user_load_function_t fun);
 </pre>
 </blockquote>
 <p>This function enables <a class="reference internal" href="#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>. When a torrent is unloaded
@@ -512,7 +520,9 @@ struct add_torrent_params
                 flag_duplicate_is_error = 0x080,
                 flag_merge_resume_trackers = 0x100,
                 flag_update_subscribe = 0x200,
-                flag_pinned = 0x400
+                flag_super_seeding = 0x400,
+                flag_sequential_download = 0x800,
+                flag_pinned = 0x1000
         };
 
         int version;
@@ -535,6 +545,10 @@ struct add_torrent_params
         std::string uuid;
         std::string source_feed_url;
         boost::uint64_t flags;
+        int max_uploads;
+        int max_connections;
+        int upload_limit;
+        int download_limit;
 };
 
 torrent_handle add_torrent(add_torrent_params const&amp; params);
@@ -637,7 +651,9 @@ enum flags_t
         flag_duplicate_is_error = 0x080,
         flag_merge_resume_trackers = 0x100,
         flag_update_subscribe = 0x200,
-        flag_pinned = 0x400
+        flag_super_seeding = 0x400,
+        flag_sequential_download = 0x800,
+        flag_pinned = 0x1000
 }
 </pre>
 <p><tt class="docutils literal">flag_apply_ip_filter</tt> determines if the IP filter should apply to this torrent or not. By
@@ -694,9 +710,21 @@ bar, which might be set to &quot;100% finished&quot; most of the time. Do not ch
 priorities for torrents in share mode, it will make it not work.</p>
 <p>The share mode has one setting, the share ratio target, see <a class="reference internal" href="#share-mode-target">share_mode_target</a>.
 for more info.</p>
+<p><tt class="docutils literal">flag_super_seeding</tt> sets the torrent into super seeding mode. If the torrent
+is not a seed, this flag has no effect. It has the same effect as calling
+<tt class="docutils literal"><span class="pre">torrent_handle::super_seeding(true)</span></tt> on the torrent handle immediately
+after adding it.</p>
+<p><tt class="docutils literal">flag_sequential_download</tt> sets the sequential download state for the torrent.
+It has the same effect as calling <tt class="docutils literal"><span class="pre">torrent_handle::sequential_download(true)</span></tt>
+on the torrent handle immediately after adding it.</p>
 <p><tt class="docutils literal">flag_pinned</tt> indicates that this torrent should never be unloaded from RAM, even
 if unloading torrents are allowed in general. Setting this makes the torrent
 excempt from loading/unloading management.</p>
+<p><tt class="docutils literal">max_uploads</tt>, <tt class="docutils literal">max_connections</tt>, <tt class="docutils literal">upload_limit</tt>, <tt class="docutils literal">download_limit</tt> correspond
+to the <tt class="docutils literal">set_max_uploads()</tt>, <tt class="docutils literal">set_max_connections()</tt>, <tt class="docutils literal">set_upload_limit()</tt> and
+<tt class="docutils literal">set_download_limit()</tt> functions on <a class="reference internal" href="#torrent-handle">torrent_handle</a>. These values let you initialize
+these settings when the torrent is added, instead of calling these functions immediately
+following adding it.</p>
 </div>
 <div class="section" id="remove-torrent">
 <h2>remove_torrent()</h2>
@@ -774,6 +802,39 @@ the status of all torrents whose state changed since the last time this function
 was called.</p>
 <p>Only torrents who has the state subscription flag set will be included. This flag
 is on by default. See <tt class="docutils literal">add_torrent_params</tt> under <a class="reference internal" href="#async-add-torrent-add-torrent">async_add_torrent() add_torrent()</a>.</p>
+</div>
+<div class="section" id="session-stats-metrics">
+<h2>session_stats_metrics()</h2>
+<pre class="literal-block">
+std::vector&lt;stats_metric&gt; session_stats_metrics() const;
+</pre>
+<p>This function returns the list of available metrics exposed by libtorrent's
+statistics API. Each metric has a name and a <em>value index</em>. The value index is
+the index into the array in <a class="reference internal" href="#session-stats-alert">session_stats_alert</a> where this metric's value
+can be found when the session stats is sampled (by calling <a class="reference internal" href="#post-session-stats">post_session_stats()</a>).</p>
+<p>The <tt class="docutils literal">stats_metric</tt> struct has the following fields:</p>
+<pre class="literal-block">
+struct stats_metric
+{
+        char const* name;
+        int value_index;
+        enum { type_counter, type_gauge };
+        int type;
+};
+</pre>
+<p>For more information, see the <a class="reference internal" href="#session-statistics">session statistics</a> section.</p>
+</div>
+<div class="section" id="post-session-stats">
+<h2>post_session_stats()</h2>
+<blockquote>
+<pre class="literal-block">
+void post_session_stats();
+</pre>
+</blockquote>
+<p>This function will post a <a class="reference internal" href="#session-stats-alert">session_stats_alert</a> object, containing a snapshot of
+the performance counters from the internals of libtorrent. To interpret these counters,
+query the session via <a class="reference internal" href="#session-stats-metrics">session_stats_metrics()</a>.</p>
+<p>For more information, see the <a class="reference internal" href="#session-statistics">session statistics</a> section.</p>
 </div>
 <div class="section" id="load-asnum-db-load-country-db-as-for-ip">
 <h2>load_asnum_db() load_country_db() as_for_ip()</h2>
@@ -1348,6 +1409,19 @@ with a DHT ping packet, and connect to those that responds first. On windows one
 can only connect to a few peers at a time because of a built in limitation (in XP
 Service pack 2).</p>
 </div>
+<div class="section" id="use-interfaces">
+<h2>use_interfaces()</h2>
+<blockquote>
+<pre class="literal-block">
+void use_interfaces(char const* net_interface) const;
+</pre>
+</blockquote>
+<p><tt class="docutils literal">use_interfaces()</tt> sets the network interface this torrent will use when it opens outgoing
+connections. By default, it binds outgoing connections to INADDR_ANY and port 0 (i.e. let the
+OS decide). Ths parameter must be a string containing one or more, comma separated, ip-address
+(either an IPv4 or IPv6 address). When specifying multiple interfaces, they will be assigned
+in round-robin order. This may be useful for clients that are multi-homed.</p>
+</div>
 <div class="section" id="set-alert-mask">
 <h2>set_alert_mask()</h2>
 <blockquote>
@@ -1616,6 +1690,7 @@ struct dht_settings
         int max_torrents;
         bool restrict_routing_ips;
         bool restrict_search_ips;
+        bool extended_routing_table;
 };
 </pre>
 <p><tt class="docutils literal">max_peers_reply</tt> is the maximum number of peers the node will send in
@@ -1641,6 +1716,9 @@ distance.</p>
 <p><tt class="docutils literal">restrict_search_ips</tt> determines if DHT searches should prevent adding nodes
 with IPs with very close CIDR distance. This also defaults to true and helps
 mitigate certain attacks on the DHT.</p>
+<p><tt class="docutils literal">extended_routing_table</tt> makes the first buckets in the DHT routing
+table fit 128, 64, 32 and 16 nodes respectively, as opposed to the
+standard size of 8. All other buckets have size 8 still.</p>
 <p>The <tt class="docutils literal">dht_settings</tt> struct used to contain a <tt class="docutils literal">service_port</tt> member to control
 which port the DHT would listen on and send messages from. This field is deprecated
 and ignored. libtorrent always tries to open the UDP socket on the same port
@@ -2418,7 +2496,7 @@ struct torrent_handle
         void file_status(std::vector&lt;pool_file_status&gt;&amp; status);
         void get_download_queue(std::vector&lt;partial_piece_info&gt;&amp; queue) const;
         void get_peer_info(std::vector&lt;peer_info&gt;&amp; v) const;
-        torrent_info const&amp; get_torrent_info() const;
+        boost::intrusive_ptr&lt;torrent_info&gt; torrent_file() const;
         bool is_valid() const;
 
         std::string name() const;
@@ -2466,8 +2544,6 @@ struct torrent_handle
         void queue_position_bottom() const;
 
         void set_priority(int prio) const;
-
-        void use_interface(char const* net_interface) const;
 
         enum pause_flags_t { graceful_pause = 1 };
         void pause(int flags = 0) const;
@@ -3207,20 +3283,6 @@ in order of priority, but the priority is used as a weight.</p>
 This is a strict prioritization where every interested peer on a high priority torrent will
 be unchoked before any other, lower priority, torrents have any peers unchoked.</p>
 </div>
-<div class="section" id="use-interface">
-<h2>use_interface()</h2>
-<blockquote>
-<pre class="literal-block">
-void use_interface(char const* net_interface) const;
-</pre>
-</blockquote>
-<p><tt class="docutils literal">use_interface()</tt> sets the network interface this torrent will use when it opens outgoing
-connections. By default, it uses the same interface as the <a class="reference internal" href="#session">session</a> uses to listen on. The
-parameter must be a string containing one or more, comma separated, ip-address (either an
-IPv4 or IPv6 address). When specifying multiple interfaces, the torrent will round-robin
-which interface to use for each outgoing conneciton. This is useful for clients that are
-multi-homed.</p>
-</div>
 <div class="section" id="info-hash">
 <h2>info_hash()</h2>
 <blockquote>
@@ -3360,7 +3422,7 @@ while (outstanding_resume_data &gt; 0)
         }
 
         torrent_handle h = rd-&gt;handle;
-        std::ofstream out((h.save_path() + &quot;/&quot; + h.get_torrent_info().name() + &quot;.fastresume&quot;).c_str()
+        std::ofstream out((h.save_path() + &quot;/&quot; + h.torrent_file()-&gt;name() + &quot;.fastresume&quot;).c_str()
                 , std::ios_base::binary);
         out.unsetf(std::ios_base::skipws);
         bencode(std::ostream_iterator&lt;char&gt;(out), *rd-&gt;resume_data);
@@ -3515,18 +3577,18 @@ with one entry for each peer connected to this torrent, given the handle is vali
 <a class="reference internal" href="#torrent-handle">torrent_handle</a> is invalid, it will throw <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a> exception. Each entry in
 the vector contains information about that particular peer. See <a class="reference internal" href="#peer-info">peer_info</a>.</p>
 </div>
-<div class="section" id="get-torrent-info">
-<h2>get_torrent_info()</h2>
+<div class="section" id="torrent-file">
+<h2>torrent_file()</h2>
 <blockquote>
 <pre class="literal-block">
-torrent_info const&amp; get_torrent_info() const;
+boost::intrusive_ptr&lt;torrent_info&gt; torrent_file() const;
 </pre>
 </blockquote>
-<p>Returns a const reference to the <a class="reference internal" href="#torrent-info">torrent_info</a> object associated with this torrent.
-This reference is valid as long as the <a class="reference internal" href="#torrent-handle">torrent_handle</a> is valid, no longer. If the
-<a class="reference internal" href="#torrent-handle">torrent_handle</a> is invalid or if it doesn't have any metadata, <a class="reference internal" href="#libtorrent-exception">libtorrent_exception</a>
-exception will be thrown. The torrent may be in a state without metadata only if
-it was started without a .torrent file, i.e. by using the libtorrent extension of
+<p>Returns a pointer to the <a class="reference internal" href="#torrent-info">torrent_info</a> object associated with this torrent. The
+<tt class="docutils literal">torrent_info</tt> object is a copy of the internal object. If the torrent doesn't
+have metadata, the object being returned will not be fully filled in.
+The torrent may be in a state without metadata only if
+it was started without a .torrent file, e.g. by using the libtorrent extension of
 just supplying a tracker and info-hash.</p>
 </div>
 <div class="section" id="is-valid">
@@ -3788,8 +3850,7 @@ yet. Torrents are loaded on demand.</p>
 <p><tt class="docutils literal">has_metadata</tt> is true if this torrent has metadata (either it was started from a
 .torrent file or the metadata has been downloaded). The only scenario where this can be
 false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip, a magnet link for instance). Note that if the torrent doesn't have metadata, the member
-<a class="reference internal" href="#get-torrent-info">get_torrent_info()</a> will throw.</p>
+ip, a magnet link for instance).</p>
 <p><tt class="docutils literal">error</tt> may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
 not because of an error, this string is empty.</p>
@@ -4515,6 +4576,7 @@ struct settings_pack
                 prefer_tcp = 0,
                 peer_proportional = 1
         };
+        int max_http_recv_buffer_size;
 };
 </pre>
 <p>The <tt class="docutils literal">settings_pack</tt> struct, contains the names of all settings as
@@ -6785,7 +6847,7 @@ the <em>QBone scavenger service</em>. For more details, see <a class="reference 
 </tr>
 <tr><td>active_tracker_limit</td>
 <td>int</td>
-<td>360</td>
+<td>1600</td>
 </tr>
 <tr><td>active_lsd_limit</td>
 <td>int</td>
@@ -8038,6 +8100,32 @@ downloading torrent. libtorrent will loop over the downloading
 torrents to connect a peer each, and every n:th connection
 attempt, a finished torrent is picked to be allowed to connect
 to a peer. This setting controls n.</p>
+<table border="1" class="docutils" id="max-http-recv-buffer-size">
+<colgroup>
+<col width="60%" />
+<col width="13%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+<th class="head">default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>max_http_recv_buffer_size</td>
+<td>int</td>
+<td>2*1024*204</td>
+</tr>
+</tbody>
+</table>
+<p>the max number of bytes to allow an HTTP response to be when
+announcing to trackers or downloading .torrent files via
+the <tt class="docutils literal">url</tt> provided in <tt class="docutils literal">add_torrent_params</tt>.</p>
+<p><tt class="docutils literal">max_http_recv_buffer_size</tt> specifies the max number of bytes to receive into
+RAM buffers when downloading stuff over HTTP. Specifically when specifying a
+URL to a .torrent file when adding a torrent or when announcing to an HTTP
+tracker. The default is 2 MiB.</p>
 </div>
 </div>
 <div class="section" id="pe-settings">
@@ -9005,9 +9093,11 @@ struct torrent_error_alert: torrent_alert
 {
         // ...
         error_code error;
+        std::string error_file;
 };
 </pre>
 <p>The <tt class="docutils literal">error</tt> specifies which error the torrent encountered.</p>
+<p><tt class="docutils literal">error_file</tt> is the filename (or object) the error occurred on.</p>
 </div>
 <div class="section" id="file-renamed-alert">
 <h2>file_renamed_alert</h2>
@@ -9528,12 +9618,12 @@ code to do that:</p>
 <pre class="literal-block">
 torrent_handle h = alert-&gt;handle();
 if (h.is_valid()) {
-        torrent_info const&amp; ti = h.get_torrent_info();
-        create_torrent ct(ti);
+        boost::intrusive_ptr&lt;torrent_info const&gt; ti = h.torrent_file();
+        create_torrent ct(*ti);
         entry te = ct.generate();
         std::vector&lt;char&gt; buffer;
         bencode(std::back_inserter(buffer), te);
-        FILE* f = fopen((to_hex(ti.info_hash().to_string()) + &quot;.torrent&quot;).c_str(), &quot;w+&quot;);
+        FILE* f = fopen((to_hex(ti-&gt;info_hash().to_string()) + &quot;.torrent&quot;).c_str(), &quot;w+&quot;);
         if (f) {
                 fwrite(&amp;buffer[0], 1, buffer.size(), f);
                 fclose(f);
@@ -9899,6 +9989,35 @@ this message was posted. Note that you can map a torrent status to a specific to
 via its <tt class="docutils literal">handle</tt> member. The receiving end is suggested to have all torrents sorted
 by the <tt class="docutils literal">torrent_handle</tt> or hashed by it, for efficient updates.</p>
 </div>
+<div class="section" id="session-stats-alert">
+<h2>session_stats_alert</h2>
+<p>The session_stats_alert is posted when the user requests session statistics by
+calling <a class="reference internal" href="#post-session-stats">post_session_stats()</a> on the <a class="reference internal" href="#session">session</a> object. Its category is
+<tt class="docutils literal">status_notification</tt>, but it is not subject to filtering, since it's only
+manually posted anyway.</p>
+<p>The resulting alert contains:</p>
+<pre class="literal-block">
+struct session_stats_alert: alert
+{
+        // ...
+        boost::uint64_t timestamp;
+        std::vector&lt;boost::uint64_t&gt; values;
+};
+</pre>
+<p>The values in the <tt class="docutils literal">values</tt> array are a mix of <em>counters</em> and <em>gauges</em>, which
+meanings can be queries via the <a class="reference internal" href="#session-stats-metrics">session_stats_metrics()</a> function on the session.
+The mapping from a specific metric to an index into this array is constant for a
+specific version of libtorrent, but may differ for other versions. The intended
+usage is to request the mapping (i.e. call <a class="reference internal" href="#session-stats-metrics">session_stats_metrics()</a>) once
+on startup, and then use that mapping to interpret these values throughout
+the process' runtime.</p>
+<p>The <tt class="docutils literal">timestamp</tt> field is the number of microseconds since the session was
+started. It represent the time when the snapshot of values was taken. When
+the network thread is under heavy load, the latency between calling
+<a class="reference internal" href="#post-session-stats">post_session_stats()</a> and receiving this alert may be significant, and
+the timestamp may help provide higher accuracy in measurements.</p>
+<p>For more information, see the <a class="reference internal" href="#session-statistics">session statistics</a> section.</p>
+</div>
 </div>
 <div class="section" id="alert-dispatcher">
 <h1>alert dispatcher</h1>
@@ -9922,7 +10041,7 @@ struct my_handler
                 // write fast resume data
                 // ...
 
-                std::cout &lt;&lt; a.handle.get_torrent_info().name() &lt;&lt; &quot;completed&quot;
+                std::cout &lt;&lt; a.handle.torrent_file()-&gt;name() &lt;&lt; &quot;completed&quot;
                         &lt;&lt; std::endl;
         }
 };
@@ -11529,8 +11648,11 @@ out of date data, since pieces won't move around.</li>
 </div>
 <div class="section" id="compact-allocation">
 <h2>compact allocation</h2>
-<p>Note that support for compact allocation is deprecated in libttorrent, and will
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Support for compact allocation is deprecated in libttorrent, and will
 be removed in future versions.</p>
+</div>
 <p>The compact allocation will only allocate as much storage as it needs to keep the
 pieces downloaded so far. This means that pieces will be moved around to be placed
 at their final position in the files while downloading (to make sure the completed
@@ -11591,9 +11713,12 @@ bittorrent client.</p>
 <div class="section" id="metadata-from-peers">
 <h2>metadata from peers</h2>
 <p>Extension name: &quot;LT_metadata&quot;</p>
-<p>This extension is deprecated in favor of the more widely supported <tt class="docutils literal">ut_metadata</tt>
-extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.
-The point with this extension is that you don't have to distribute the
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">This extension is deprecated in favor of the more widely supported
+<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.</p>
+</div>
+<p>The point with this extension is that you don't have to distribute the
 metadata (.torrent-file) separately. The metadata can be distributed
 through the bittorrent swarm. The only thing you need to download such
 a torrent is the tracker url and the info-hash of the torrent.</p>
@@ -12011,6 +12136,408 @@ the pem file to include in the .torrent file.</p>
 <p>The peer's certificate is located in <tt class="docutils literal">./newcert.pem</tt> and the certificate's
 private key in <tt class="docutils literal">./newkey.pem</tt>.</p>
 </div>
+</div>
+<div class="section" id="session-statistics">
+<h1>session statistics</h1>
+<p>libtorrent provides a mechanism to query performance and statistics counters from its
+internals. This is primarily useful for troubleshooting of production systems and performance
+tuning.</p>
+<p>The statistics consists of two fundamental types. <em>counters</em> and <em>gauges</em>. A counter is a
+monotonically increasing value, incremented every time some event occurs. For example,
+every time the network thread wakes up because a socket became readable will increment a
+counter. Another example is every time a socket receives <em>n</em> bytes, a counter is incremented
+by <em>n</em>.</p>
+<p><em>Counters</em> are the most flexible of metrics. It allows the program to sample the counter at
+any interval, and calculate average rates of increments to the counter. Some events may be
+rare and need to be sampled over a longer period in order to get userful rates, where other
+events may be more frequent and evenly distributed that sampling it frequently yields useful
+values. Counters also provides accurate overall counts. For example, converting samples of
+a download rate into a total transfer count is not accurate and takes more samples. Converting
+an increasing counter into a rate is easy and flexible.</p>
+<p><em>Gauges</em> measure the instantaneous state of some kind. This is used for metrics that are not
+counting events or flows, but states that can fluctuate. For example, the number of torrents
+that are currenly being downloaded.</p>
+<p>It's important to know whether a value is a counter or a gauge in order to interpret it correctly.
+In order to query libtorrent for which counters and gauges are available, call
+<a class="reference internal" href="#session-stats-metrics">session_stats_metrics()</a>. This will return metadata about the values available for inspection
+in libtorrent. It will include whether a value is a counter or a gauge. The key information
+it includes is the index used to extract the actual measurements for a specific counter or
+gauge.</p>
+<p>In order to take a sample, call <a class="reference internal" href="#post-session-stats">post_session_stats()</a> in the session object. This will result
+in a <a class="reference internal" href="#session-stats-alert">session_stats_alert</a> being posted. In this alert object, there is an array of values,
+these values make up the sample. The value index in the stats metric indicates which index the
+metric's value is stored in.</p>
+<p>The mapping between metric and value is not stable across versions of libtorrent. Always query
+the metrics first, to find out the index at which the value is stored, before interpreting the
+values array in the <a class="reference internal" href="#session-stats-alert">session_stats_alert</a>. The mapping will <em>not</em> change during the runtime of
+your process though, it's tied to a specific libtorrent version. You only have to query the
+mapping once on startup (or every time <tt class="docutils literal">libtorrent.so</tt> is loaded, if it's done dynamically).</p>
+<p>The available stats metrics are:</p>
+<table border="1" class="docutils" id="peer-disconnected-peers">
+<span id="peer-error-peers"></span><colgroup>
+<col width="74%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.error_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.disconnected_peers</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal">error_peers</tt> is the total number of peer disconnects
+caused by an error (not initiated by this client) and
+disconnected initiated by this client (<tt class="docutils literal">disconnected_peers</tt>).</p>
+<table border="1" class="docutils" id="peer-aborted-peers">
+<span id="peer-invalid-arg-peers"></span><span id="peer-no-access-peers"></span><span id="peer-addrinuse-peers"></span><span id="peer-broken-pipe-peers"></span><span id="peer-unreachable-peers"></span><span id="peer-buffer-peers"></span><span id="peer-perm-peers"></span><span id="peer-connaborted-peers"></span><span id="peer-connrefused-peers"></span><span id="peer-connreset-peers"></span><span id="peer-eof-peers"></span><colgroup>
+<col width="73%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.eof_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.connreset_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.connrefused_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.connaborted_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.perm_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.buffer_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.unreachable_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.broken_pipe_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.addrinuse_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.no_access_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.invalid_arg_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.aborted_peers</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>these counters break down the peer errors into more specific
+categories. These errors are what the underlying transport
+reported (i.e. TCP or uTP)</p>
+<table border="1" class="docutils" id="peer-error-outgoing-peers">
+<span id="peer-error-incoming-peers"></span><colgroup>
+<col width="75%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.error_incoming_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.error_outgoing_peers</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>these counters break down the peer errors into
+whether they happen on incoming or outgoing peers.</p>
+<table border="1" class="docutils" id="peer-error-encrypted-peers">
+<span id="peer-error-rc4-peers"></span><colgroup>
+<col width="76%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.error_rc4_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.error_encrypted_peers</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>these counters break down the peer errors into
+whether they happen on encrypted peers (just
+encrypted handshake) and rc4 peers (full stream
+encryption). These can indicate whether encrypted
+peers are more or less likely to fail</p>
+<table border="1" class="docutils" id="peer-error-utp-peers">
+<span id="peer-error-tcp-peers"></span><colgroup>
+<col width="71%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.error_tcp_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.error_utp_peers</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>these counters break down the peer errors into
+whether they happen on uTP peers or TCP peers.
+these may indicate whether one protocol is
+more error prone</p>
+<table border="1" class="docutils" id="peer-banned-for-hash-failure">
+<span id="peer-connection-attempts"></span><span id="peer-num-banned-peers"></span><span id="peer-transport-timeout-peers"></span><span id="peer-too-many-peers"></span><span id="peer-no-memory-peers"></span><span id="peer-timeout-peers"></span><span id="peer-uninteresting-peers"></span><span id="peer-connect-timeouts"></span><colgroup>
+<col width="77%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>peer.connect_timeouts</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.uninteresting_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.timeout_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.no_memory_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.too_many_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.transport_timeout_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.num_banned_peers</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.connection_attempts</td>
+<td>counter</td>
+</tr>
+<tr><td>peer.banned_for_hash_failure</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>these counters break down the reasons to
+disconnect peers.</p>
+<table border="1" class="docutils" id="net-on-disk-counter">
+<span id="net-on-accept-counter"></span><span id="net-on-udp-counter"></span><span id="net-on-lsd-peer-counter"></span><span id="net-on-lsd-counter"></span><span id="net-on-tick-counter"></span><span id="net-on-write-counter"></span><span id="net-on-read-counter"></span><colgroup>
+<col width="74%" />
+<col width="26%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>net.on_read_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_write_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_tick_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_lsd_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_lsd_peer_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_udp_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_accept_counter</td>
+<td>counter</td>
+</tr>
+<tr><td>net.on_disk_counter</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>These counters count the number of times the
+network thread wakes up for each respective
+reason. If these counters are very large, it
+may indicate a performance issue, causing the
+network thread to wake up too ofte, wasting CPU.
+mitigate it by increasing buffers and limits
+for the specific trigger that wakes up the
+thread.</p>
+<table border="1" class="docutils" id="ses-num-error-torrents">
+<span id="ses-num-queued-download-torrents"></span><span id="ses-num-queued-seeding-torrents"></span><span id="ses-num-seeding-torrents"></span><span id="ses-num-downloading-torrents"></span><span id="ses-num-upload-only-torrents"></span><span id="ses-num-stopped-torrents"></span><span id="ses-num-checking-torrents"></span><colgroup>
+<col width="83%" />
+<col width="17%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>ses.num_checking_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_stopped_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_upload_only_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_downloading_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_seeding_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_queued_seeding_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_queued_download_torrents</td>
+<td>gauge</td>
+</tr>
+<tr><td>ses.num_error_torrents</td>
+<td>gauge</td>
+</tr>
+</tbody>
+</table>
+<p>these gauges count the number of torrents in
+different states. Each torrent only belongs to
+one of these states. For torrents that could
+belong to multiple of these, the most prominent
+in picked. For instance, a torrent with an error
+counts as an error-torrent, regardless of its other
+state.</p>
+<table border="1" class="docutils" id="ses-torrent-evicted-counter">
+<colgroup>
+<col width="76%" />
+<col width="24%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>ses.torrent_evicted_counter</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>this counts the number of times a torrent has been
+evicted (only applies when <a class="reference internal" href="#dynamic-loading-of-torrent-files">dynamic loading of torrent files</a>
+is enabled).</p>
+<table border="1" class="docutils" id="picker-piece-picks">
+<colgroup>
+<col width="69%" />
+<col width="31%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>picker.piece_picks</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>counts the number of times the piece picker has been invoked</p>
+<table border="1" class="docutils" id="picker-piece-picker-loops">
+<colgroup>
+<col width="75%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>picker.piece_picker_loops</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>the number of pieces considered while picking pieces</p>
+<table border="1" class="docutils" id="picker-snubbed-piece-picks">
+<span id="picker-end-game-piece-picks"></span><span id="picker-incoming-piece-picks"></span><span id="picker-incoming-redundant-piece-picks"></span><span id="picker-unchoke-piece-picks"></span><span id="picker-reject-piece-picks"></span><span id="picker-piece-picker-blocks"></span><span id="picker-end-game-piece-picker-blocks"></span><colgroup>
+<col width="81%" />
+<col width="19%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>picker.end_game_piece_picker_blocks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.piece_picker_blocks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.reject_piece_picks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.unchoke_piece_picks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.incoming_redundant_piece_picks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.incoming_piece_picks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.end_game_piece_picks</td>
+<td>counter</td>
+</tr>
+<tr><td>picker.snubbed_piece_picks</td>
+<td>counter</td>
+</tr>
+</tbody>
+</table>
+<p>This breaks down the piece picks into the event that
+triggered it</p>
 </div>
     </div>
     <div id="footer">

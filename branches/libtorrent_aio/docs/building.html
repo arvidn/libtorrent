@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.1</td></tr>
+<td>0.16.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -470,18 +470,21 @@ trace of the assert and some more information.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">io</tt></td>
+<tr><td><tt class="docutils literal">i2p</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">auto</tt> - auto detect the disk I/O API to use</li>
-<li><tt class="docutils literal">overlapped</tt> - use windows overlapped I/O</li>
-<li><tt class="docutils literal">iosubmit</tt> - use linux io_submit()</li>
-<li><tt class="docutils literal">aio</tt> - use posix AIO</li>
-<li><tt class="docutils literal">sync</tt> - use synchronous disk I/O (portable)</li>
-<li><tt class="docutils literal"><span class="pre">iosubmit-vec</span></tt> - use io_submit() with the
-vector read and write operations. This is not
-supported by the mainline linux kernel, but
-in Red Hat Enterprise Linux and as kernel
-patches.</li>
+<li><tt class="docutils literal">on</tt> - build with I2P support</li>
+<li><tt class="docutils literal">off</tt> - build without I2P support</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">boost-date-time</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">off</tt> - don't build asio types that depend
+on boost.date_time. libtorrent doesn't use them
+but if the client does, you need these to be
+built.</li>
+<li><tt class="docutils literal">on</tt> - build asio types that depend on
+boost.date_time.</li>
 </ul>
 </td>
 </tr>
