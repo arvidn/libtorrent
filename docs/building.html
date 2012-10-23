@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.4</td></tr>
+<td>0.16.5</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -467,6 +467,24 @@ builds, but don't abort, just log them to
 the default). On GNU systems, print a stack
 trace of the assert and some more information.</li>
 <li><tt class="docutils literal"><span class="pre">system</span></tt> use the libc assert macro</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">i2p</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - build with I2P support</li>
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - build without I2P support</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">boost-date-time</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">off</span></tt> - don't build asio types that depend
+on boost.date_time. libtorrent doesn't use them
+but if the client does, you need these to be
+built.</li>
+<li><tt class="docutils literal"><span class="pre">on</span></tt> - build asio types that depend on
+boost.date_time.</li>
 </ul>
 </td>
 </tr>
