@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2012, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ namespace libtorrent
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager : udp_socket_observer
+	struct utp_socket_manager
 	{
 		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
@@ -55,13 +55,7 @@ namespace libtorrent
 		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
-		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size);
-		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
-		{ return false; }
-		virtual void writable();
-
-		virtual void socket_drained();
+		bool incoming_packet(char const* p, int size, udp::endpoint const& ep);
 
 		void tick(ptime now);
 
@@ -72,7 +66,6 @@ namespace libtorrent
 		enum { dont_fragment = 1 };
 		void send_packet(udp::endpoint const& ep, char const* p, int len
 			, error_code& ec, int flags = 0);
-		void subscribe_writable(utp_socket_impl* s);
 
 		// internal, used by utp_stream
 		void remove_socket(boost::uint16_t id);
@@ -84,6 +77,7 @@ namespace libtorrent
 		int fin_resends() const { return m_sett.utp_fin_resends; }
 		int num_resends() const { return m_sett.utp_num_resends; }
 		int connect_timeout() const { return m_sett.utp_connect_timeout; }
+		int delayed_ack() const { return m_sett.utp_delayed_ack; }
 		int min_timeout() const { return m_sett.utp_min_timeout; }
 		int loss_multiplier() const { return m_sett.utp_loss_multiplier; }
 		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
@@ -92,8 +86,6 @@ namespace libtorrent
 		void set_sock_buf(int size);
 		int num_sockets() const { return m_utp_sockets.size(); }
 
-		void defer_ack(utp_socket_impl* s);
-
 	private:
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
@@ -101,17 +93,6 @@ namespace libtorrent
 		// replace with a hash-map
 		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
-
-		// this is a list of sockets that needs to send an ack.
-		// once the UDP socket is drained, all of these will
-		// have a chance to do that. This is to avoid sending
-		// an ack for every single packet
-		std::vector<utp_socket_impl*> m_deferred_acks;
-		
-		// list of sockets that received EWOULDBLOCK from the
-		// underlying socket. They are notified when the socket
-		// becomes writable again
-		std::vector<utp_socket_impl*> m_stalled_sockets;
 
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket;

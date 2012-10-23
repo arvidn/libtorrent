@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,13 +102,13 @@ public:
 	router_iterator router_begin() const { return m_router_nodes.begin(); }
 	router_iterator router_end() const { return m_router_nodes.end(); }
 
-	bool add_node(node_entry e);
+	bool add_node(node_entry const& e);
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
 	// be inserted in the k-buckets or be moved to the top
 	// of its bucket.
-	bool node_seen(node_id const& id, udp::endpoint ep, int rtt);
+	bool node_seen(node_id const& id, udp::endpoint ep);
 
 	// this may add a node to the routing table and mark it as
 	// not pinged. If the bucket the node falls into is full,
@@ -129,12 +129,12 @@ public:
 	void find_node(node_id const& id, std::vector<node_entry>& l
 		, int options, int count = 0);
 	
-	int bucket_size(int bucket) const
+	int bucket_size(int bucket)
 	{
 		int num_buckets = m_buckets.size();
 		if (num_buckets == 0) return 0;
 		if (bucket < num_buckets) bucket = num_buckets - 1;
-		table_t::const_iterator i = m_buckets.begin();
+		table_t::iterator i = m_buckets.begin();
 		std::advance(i, bucket);
 		return (int)i->live_nodes.size();
 	}
@@ -161,8 +161,6 @@ public:
 #endif
 
 	void touch_bucket(node_id const& target);
-
-	int bucket_limit(int bucket) const;
 
 private:
 

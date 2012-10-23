@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2012, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2006, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -174,9 +174,6 @@ namespace libtorrent
 
 		// disallow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = false;
-		
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 1024 * 1024;
 
 		return set;
 	}
@@ -294,9 +291,6 @@ namespace libtorrent
 
 		// allow the buffer size to grow for the uTP socket
 		set.utp_dynamic_sock_buf = true;
-
-		// max 'bottled' http receive buffer/url torrent size
-		set.max_http_recv_buffer_size = 6 * 1024 * 1024;
 
 		return set;
 	}
@@ -520,9 +514,6 @@ namespace libtorrent
 		error_code ec;
 		int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		TORRENT_ASSERT(ret == 0);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw libtorrent_exception(ec);
-#endif
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
@@ -1133,7 +1124,7 @@ namespace libtorrent
 		, peer_connect_timeout(15)
 		, ignore_limits_on_local_network(true)
 		, connection_speed(6)
-		, send_redundant_have(true)
+		, send_redundant_have(false)
 		, lazy_bitfields(true)
 		, inactivity_timeout(600)
 		, unchoke_interval(15)
@@ -1266,9 +1257,7 @@ namespace libtorrent
 		, utp_fin_resends(2)
 		, utp_num_resends(6)
 		, utp_connect_timeout(3000) // milliseconds
-#ifndef TORRENT_NO_DEPRECATE
 		, utp_delayed_ack(0) // milliseconds
-#endif
 		, utp_dynamic_sock_buf(false) // this doesn't seem quite reliable yet
 		, utp_loss_multiplier(50) // specified in percent
 		, mixed_mode_algorithm(peer_proportional)
@@ -1289,7 +1278,6 @@ namespace libtorrent
 		, ssl_listen(4433)
 		, tracker_backoff(250)
 		, ban_web_seeds(true)
-		, max_http_recv_buffer_size(2*1024*1024)
 	{}
 
 	session_settings::~session_settings() {}

@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.4
+:Version: 0.16.5
 
 .. contents:: Table of contents
   :depth: 1
@@ -394,9 +394,7 @@ async_add_torrent() add_torrent()
 				flag_auto_managed = 0x040.
 				flag_duplicate_is_error = 0x080,
 				flag_merge_resume_trackers = 0x100,
-				flag_update_subscribe = 0x200,
-				flag_super_seeding = 0x400,
-				flag_sequential_download = 0x800
+				flag_update_subscribe = 0x200
 			};
 
 			int version;
@@ -419,10 +417,6 @@ async_add_torrent() add_torrent()
 			std::string uuid;
 			std::string source_feed_url;
 			boost::uint64_t flags;
-			int max_uploads;
-			int max_connections;
-			int upload_limit;
-			int download_limit;
 		};
 
 		torrent_handle add_torrent(add_torrent_params const& params);
@@ -539,9 +533,7 @@ and how it's added. These are the flags::
 		flag_auto_managed = 0x040.
 		flag_duplicate_is_error = 0x080,
 		flag_merge_resume_trackers = 0x100,
-		flag_update_subscribe = 0x200,
-		flag_super_seeding = 0x400,
-		flag_sequential_download = 0x800
+		flag_update_subscribe = 0x200
 	}
 
 ``flag_apply_ip_filter`` determines if the IP filter should apply to this torrent or not. By
@@ -613,20 +605,6 @@ priorities for torrents in share mode, it will make it not work.
 The share mode has one setting, the share ratio target, see ``session_settings::share_mode_target``
 for more info.
 
-``flag_super_seeding`` sets the torrent into super seeding mode. If the torrent
-is not a seed, this flag has no effect. It has the same effect as calling
-``torrent_handle::super_seeding(true)`` on the torrent handle immediately
-after adding it.
-
-``flag_sequential_download`` sets the sequential download state for the torrent.
-It has the same effect as calling ``torrent_handle::sequential_download(true)``
-on the torrent handle immediately after adding it.
-
-``max_uploads``, ``max_connections``, ``upload_limit``, ``download_limit`` correspond
-to the ``set_max_uploads()``, ``set_max_connections()``, ``set_upload_limit()`` and
-``set_download_limit()`` functions on torrent_handle_. These values let you initialize
-these settings when the torrent is added, instead of calling these functions immediately
-following adding it.
 
 remove_torrent()
 ----------------
@@ -1407,7 +1385,6 @@ struct has the following members::
 		int max_torrents;
 		bool restrict_routing_ips;
 		bool restrict_search_ips;
-		bool extended_routing_table;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1439,10 +1416,6 @@ distance.
 ``restrict_search_ips`` determines if DHT searches should prevent adding nodes
 with IPs with very close CIDR distance. This also defaults to true and helps
 mitigate certain attacks on the DHT.
-
-``extended_routing_table`` makes the first buckets in the DHT routing
-table fit 128, 64, 32 and 16 nodes respectively, as opposed to the
-standard size of 8. All other buckets have size 8 still.
 
 The ``dht_settings`` struct used to contain a ``service_port`` member to control
 which port the DHT would listen on and send messages from. This field is deprecated
@@ -2302,7 +2275,7 @@ Its declaration looks like this::
 		void file_progress(std::vector<size_type>& fp, int flags = 0);
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
 		void get_peer_info(std::vector<peer_info>& v) const;
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		torrent_info const& get_torrent_info() const;
 		bool is_valid() const;
 
 		std::string name() const;
@@ -3204,7 +3177,7 @@ Example code to pause and save resume data for all torrents and wait for the ale
 		}
 		
 		torrent_handle h = rd->handle;
-		std::ofstream out((h.save_path() + "/" + h.torrent_file()->name() + ".fastresume").c_str()
+		std::ofstream out((h.save_path() + "/" + h.get_torrent_info().name() + ".fastresume").c_str()
 			, std::ios_base::binary);
 		out.unsetf(std::ios_base::skipws);
 		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
@@ -3347,18 +3320,18 @@ torrent_handle_ is invalid, it will throw libtorrent_exception_ exception. Each 
 the vector contains information about that particular peer. See peer_info_.
 
 
-torrent_file()
---------------
+get_torrent_info()
+------------------
 
 	::
 
-		boost::intrusive_ptr<torrent_info> torrent_file() const;
+		torrent_info const& get_torrent_info() const;
 
-Returns a pointer to the torrent_info_ object associated with this torrent. The
-``torrent_info`` object is a copy of the internal object. If the torrent doesn't
-have metadata, the object being returned will not be fully filled in.
-The torrent may be in a state without metadata only if
-it was started without a .torrent file, e.g. by using the libtorrent extension of
+Returns a const reference to the torrent_info_ object associated with this torrent.
+This reference is valid as long as the torrent_handle_ is valid, no longer. If the
+torrent_handle_ is invalid or if it doesn't have any metadata, libtorrent_exception_
+exception will be thrown. The torrent may be in a state without metadata only if
+it was started without a .torrent file, i.e. by using the libtorrent extension of
 just supplying a tracker and info-hash.
 
 
@@ -3616,7 +3589,8 @@ set to priority 0, i.e. are not downloaded.
 ``has_metadata`` is true if this torrent has metadata (either it was started from a
 .torrent file or the metadata has been downloaded). The only scenario where this can be
 false is when the torrent was started torrent-less (i.e. with just an info-hash and tracker
-ip, a magnet link for instance).
+ip, a magnet link for instance). Note that if the torrent doesn't have metadata, the member
+`get_torrent_info()`_ will throw.
 
 ``error`` may be set to an error message describing why the torrent was paused, in
 case it was paused by an error. If the torrent is not paused or if it's paused but
@@ -4567,6 +4541,7 @@ session_settings
 		int utp_syn_resends;
 		int utp_num_resends;
 		int utp_connect_timeout;
+		int utp_delayed_ack;
 		bool utp_dynamic_sock_buf;
 		int utp_loss_multiplier;
 
@@ -4601,7 +4576,6 @@ session_settings
 		int tracker_backoff;
 
 		bool ban_web_seeds;
-		int max_http_recv_buffer_size;
 	};
 
 ``version`` is automatically set to the libtorrent version you're using
@@ -5384,6 +5358,12 @@ before giving up and closing the connection.
 ``utp_connect_timeout`` is the number of milliseconds of timeout for the initial SYN
 packet for uTP connections. For each timed out packet (in a row), the timeout is doubled.
 
+``utp_delayed_ack`` is the number of milliseconds to delay ACKs the most. Delaying ACKs
+significantly helps reducing the amount of protocol overhead in the reverse direction
+from downloads. It defaults to 100 milliseconds. If set to 0, delayed ACKs are disabled
+and every incoming payload packet is ACKed. The granularity of this timer is capped by
+the tick interval (as specified by ``tick_interval``).
+
 ``utp_dynamic_sock_buf`` controls if the uTP socket manager is allowed to increase
 the socket buffer if a network interface with a large MTU is used (such as loopback
 or ethernet jumbo frames). This defaults to true and might improve uTP throughput.
@@ -5495,11 +5475,6 @@ trackers.
 
 ``ban_web_seeds`` enables banning web seeds. By default, web seeds that send
 corrupt data are banned.
-
-``max_http_recv_buffer_size`` specifies the max number of bytes to receive into
-RAM buffers when downloading stuff over HTTP. Specifically when specifying a
-URL to a .torrent file when adding a torrent or when announcing to an HTTP
-tracker. The default is 2 MiB.
 
 pe_settings
 ===========
@@ -7176,12 +7151,12 @@ code to do that::
 
 	torrent_handle h = alert->handle();
 	if (h.is_valid()) {
-		boost::intrusive_ptr<torrent_info const> ti = h.torrent_file();
-		create_torrent ct(*ti);
+		torrent_info const& ti = h.get_torrent_info();
+		create_torrent ct(ti);
 		entry te = ct.generate();
 		std::vector<char> buffer;
 		bencode(std::back_inserter(buffer), te);
-		FILE* f = fopen((to_hex(ti->info_hash().to_string()) + ".torrent").c_str(), "w+");
+		FILE* f = fopen((to_hex(ti.info_hash().to_string()) + ".torrent").c_str(), "w+");
 		if (f) {
 			fwrite(&buffer[0], 1, buffer.size(), f);
 			fclose(f);
@@ -7599,7 +7574,7 @@ Examples usage::
 			// write fast resume data
 			// ...
 
-			std::cout << a.handle.torrent_file()->name() << "completed"
+			std::cout << a.handle.get_torrent_info().name() << "completed"
 				<< std::endl;
 		}
 	};

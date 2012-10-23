@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,6 @@ namespace libtorrent
 				m_queue.push_front(entry());
 				e = &m_queue.front();
 				break;
-			default: return;
 		}
 
 		e->priority = priority;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ extern char const* libtorrent_assert_log;
 #include <string>
 
 std::string demangle(char const* name);
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
+void print_backtrace(char* out, int len, int max_depth = 0);
 
 #if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 

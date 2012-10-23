@@ -1,7 +1,7 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
-Copyright (c) 2007-2012, Arvid Norberg, Un Shyam
+Copyright (c) 2003 - 2006, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg, Un Shyam
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,11 +87,19 @@ namespace libtorrent
 		// other end has the correct id
 		bt_peer_connection(
 			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, policy::peer* peerinfo
-			, boost::weak_ptr<torrent> t = boost::weak_ptr<torrent>()
-			, bool outgoing = false);
+			, bool outgoing = true);
+
+		// with this constructor we have been contacted and we still don't
+		// know which torrent the connection belongs to
+		bt_peer_connection(
+			aux::session_impl& ses
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo);
 
 		void start();
 

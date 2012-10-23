@@ -86,8 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/rss.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
-#include "libtorrent/kademlia/dht_observer.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -184,12 +182,7 @@ namespace libtorrent
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
-		struct TORRENT_EXTRA_EXPORT session_impl
-			: alert_dispatcher
-			, dht::dht_observer
-			, boost::noncopyable
-			, initialize_timer
-			, udp_socket_observer
+		struct TORRENT_EXTRA_EXPORT session_impl: boost::noncopyable, initialize_timer
 			, boost::enable_shared_from_this<session_impl>
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -219,8 +212,7 @@ namespace libtorrent
 				, std::string const& logpath
 #endif
 				);
-			virtual ~session_impl();
-			void update_dht_announce_interval();
+			~session_impl();
 			void init();
 			void start_session();
 
@@ -237,9 +229,6 @@ namespace libtorrent
 					, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
 					!= m_connections.end();
 			}
-			// this is set while the session is building the
-			// torrent status update message
-			bool m_posting_torrent_updates;
 #endif
 			void main_thread();
 
@@ -495,8 +484,7 @@ namespace libtorrent
 				source_router = 8
 			};
 
-			// implements dht_observer
-			virtual void set_external_address(address const& ip
+			void set_external_address(address const& ip
 				, int source_type, address const& source);
 			address const& external_address() const { return m_external_address; }
 
@@ -521,19 +509,6 @@ namespace libtorrent
 				--m_disk_queues[channel];
 			}
 
-			void inc_active_downloading() { ++m_num_active_downloading; }
-			void dec_active_downloading()
-			{
-				TORRENT_ASSERT(m_num_active_downloading > 0);
-				--m_num_active_downloading;
-			}
-			void inc_active_finished() { ++m_num_active_finished; }
-			void dec_active_finished()
-			{
-				TORRENT_ASSERT(m_num_active_finished > 0);
-				--m_num_active_finished;
-			}
-
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			bool in_state_updates(boost::shared_ptr<torrent> t)
 			{
@@ -550,9 +525,6 @@ namespace libtorrent
 			}
 
 //		private:
-
-			// implements alert_dispatcher
-			virtual bool post_alert(alert* a);
 
 			void update_connections_limit();
 			void update_unchoke_limit();
@@ -700,13 +672,6 @@ namespace libtorrent
 			torrent_map m_torrents;
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
 
-			// counters of how many of the active (non-paused) torrents
-			// are finished and downloading. This is used to weigh the
-			// priority of downloading and finished torrents when connecting
-			// more peers.
-			int m_num_active_downloading;
-			int m_num_active_finished;
-
 			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
 
 			// this has all torrents that wants to be checked in it
@@ -845,7 +810,6 @@ namespace libtorrent
 			void on_disk_queue();
 			void on_tick(error_code const& e);
 
-			void try_connect_more_peers(int num_downloads, int num_downloads_peers);
 			void auto_manage_torrents(std::vector<torrent*>& list
 				, int& dht_limit, int& tracker_limit, int& lsd_limit
 				, int& hard_limit, int type_limit);
@@ -889,18 +853,13 @@ namespace libtorrent
 			// this announce timer is used
 			// by the DHT.
 			deadline_timer m_dht_announce_timer;
-
-			// the number of torrents there were when the
-			// update_dht_announce_interval() was last called.
-			// if the number of torrents changes significantly
-			// compared to this number, the DHT announce interval
-			// is updated again. This especially matters for
-			// small numbers.
-			int m_dht_interval_update_torrents;
 #endif
 
-			bool incoming_packet(error_code const& ec
-				, udp::endpoint const&, char const* buf, int size);
+			void on_receive_udp(error_code const& e
+				, udp::endpoint const& ep, char const* buf, int len);
+
+			void on_receive_udp_hostname(error_code const& e
+				, char const* hostname, char const* buf, int len);
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
@@ -950,14 +909,6 @@ namespace libtorrent
 			// within the DHT announce interval (which defaults to
 			// 15 minutes)
 			torrent_map::iterator m_next_dht_torrent;
-
-			// torrents that don't have any peers
-			// when added should be announced to the DHT
-			// as soon as possible. Such torrents are put
-			// in this queue and get announced the next time
-			// the timer fires, instead of the next one in
-			// the round-robin sequence.
-			std::deque<boost::weak_ptr<torrent> > m_dht_torrents;
 #endif
 
 			// this announce timer is used
@@ -970,15 +921,6 @@ namespace libtorrent
 			// connect to a peer next time on_tick is called.
 			// This implements a round robin.
 			torrent_map::iterator m_next_connect_torrent;
-
-			// this is the number of attempts of connecting to
-			// peers we have given to the torrent pointed to
-			// by m_next_connect_torrent. Once this reaches
-			// the number of connection attempts this particular
-			// torrent should have, the counter is reset and
-			// m_next_connect_torrent takes a step forward
-			// to give the next torrent its connection attempts.
-			int m_current_connect_attempts;
 
 			// this is the round-robin cursor for peers that
 			// get to download again after the disk has been
@@ -1116,15 +1058,10 @@ namespace libtorrent
 			boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
 			
-			void session_log(char const* fmt, ...) const;
-
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
-
-			std::string get_log_path() const
-			{ return m_logpath; }
 
 			std::string m_logpath;
 

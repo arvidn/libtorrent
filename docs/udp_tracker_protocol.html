@@ -63,7 +63,8 @@
 <li><a class="reference internal" href="#authentication" id="id9">authentication</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#credits" id="id10">credits</a></li>
+<li><a class="reference internal" href="#request-string" id="id10">request string</a></li>
+<li><a class="reference internal" href="#credits" id="id11">credits</a></li>
 </ul>
 </div>
 <div class="section" id="introduction">
@@ -478,8 +479,14 @@ bits are assigned:</p>
 <blockquote>
 <ul class="simple">
 <li>1 = <a class="reference internal" href="#authentication">authentication</a>.</li>
+<li>2 = <a class="reference internal" href="#request-string">request string</a>.</li>
 </ul>
 </blockquote>
+<p>If multiple bits are present in the extension field, the extension
+bodies are appended to the packet in the order of least significant
+bit first. For instance, if both bit 1 and 2 are set, the extension
+represented by bit 1 comes first, followed by the extension represented
+by bit 2.</p>
 <div class="section" id="authentication">
 <h2>authentication</h2>
 <p>The packet will have an authentication part
@@ -520,9 +527,50 @@ from the 20 bytes hash calculated.</td>
 </table>
 </div>
 </div>
+<div class="section" id="request-string">
+<h1>request string</h1>
+<p>The request string extension is meant to allow torrent creators pass along
+cookies back to the tracker. This can be useful for authenticating that a
+torrent is allowed to be tracked by a tracker for instance. It could also
+be used to authenticate users by generating torrents with unique tokens
+in the tracker URL for each user. The extension body has the following format:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>int16_t</td>
+<td>request length</td>
+<td>The number of bytes in the request
+string.</td>
+</tr>
+<tr><td>int8_t[]</td>
+<td>request string</td>
+<td>The string that comes after the host-
+name and port in the udp tracker URL.
+Typically this starts with &quot;/announce&quot;
+The bittorrent client is not expected
+to append query string arguments for
+stats reporting, like &quot;uploaded&quot; and
+&quot;downloaded&quot; since this is already
+reported in the udp tracker protocol.
+However, the client is free to add
+arguments as extensions.</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="credits">
 <h1>credits</h1>
-<p>Protocol designed by Olaf van der Spek</p>
+<p>Protocol designed by Olaf van der Spek and extended by Arvid Norberg</p>
 </div>
     </div>
     <div id="footer">
