@@ -264,7 +264,7 @@ The ``create_torrent`` class has the following synopsis::
 			optimize = 1
 			, merkle = 2
 			, modification_time = 4
-			, symlink = 8
+			, symlinks = 8
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
@@ -301,7 +301,7 @@ create_torrent()
 			optimize = 1
 			, merkle = 2
 			, modification_time = 4
-			, symlink = 8
+			, symlinks = 8
 			, calculate_file_hashes = 16
 		};
 		create_torrent(file_storage& fs, int piece_size = 0, int pad_size_limit = -1
