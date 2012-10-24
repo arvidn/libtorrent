@@ -136,6 +136,7 @@ void bind_create_torrent()
         .value("merkle", create_torrent::merkle)
         .value("modification_time", create_torrent::modification_time)
         .value("symlinks", create_torrent::symlinks)
+        .value("calculate_file_hashes", create_torrent::calculate_file_hashes)
     ;
 
     def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));
