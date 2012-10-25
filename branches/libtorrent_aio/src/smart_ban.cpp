@@ -136,8 +136,8 @@ namespace
 		void on_piece_pass(int p)
 		{
 #ifdef TORRENT_LOGGING
-			(*m_torrent.session().m_logger) << time_now_string() << " PIECE PASS [ p: " << p
-				<< " | block_hash_size: " << m_block_hashes.size() << " ]\n";
+			m_torrent.session().session_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
+				, p, int(m_blocks_hashes.size()))
 #endif
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
@@ -152,7 +152,7 @@ namespace
 			{
 				if (i->first.block_index == pb.block_index)
 				{
-					m_torrent.session().m_disk_thread.async_read(&m_torrent.storage()
+					m_torrent.session().disk_thread().async_read(&m_torrent.storage()
 						, r, boost::bind(&smart_ban_plugin::on_read_ok_block
 						, shared_from_this(), *i, _1), (void*)1);
 					m_block_hashes.erase(i++);
@@ -208,7 +208,7 @@ namespace
 					// since the piece has failed, this block is very likely to be replaced with a newly
 					// downloaded one very soon, and to get a block by reference would fail, since the
 					// block read will have been deleted by the time it gets back to the network thread
-					m_torrent.session().m_disk_thread.async_read(&m_torrent.storage(), r
+					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
 						, boost::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, ((torrent_peer*)*i)->address(), _1), (void*)1
 						, disk_io_job::force_copy);
@@ -284,12 +284,12 @@ namespace
 						p->connection->get_peer_info(info);
 						client = info.client.c_str();
 					}
-					(*m_torrent.session().m_logger) << time_now_string() << " BANNING PEER [ p: " << b.piece_index
-						<< " | b: " << b.block_index
-						<< " | c: " << client
-						<< " | hash1: " << i->second.digest
-						<< " | hash2: " << e.digest
-						<< " | ip: " << p->ip() << " ]\n";
+					m_torrent.session().session_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+						" | hash1: %s | hash2: %s | ip: %s ]"
+						, b.piece_index, b.block_index, client
+						, to_hex(i->second.digest.to_string()).c_str()
+						, to_hex(e.digest.to_string()).c_str()
+						, print_endpoint(p->ip()).c_str());
 #endif
 					m_torrent.get_policy().ban_peer(p);
 					if (p->connection) p->connection->disconnect(
@@ -310,11 +310,11 @@ namespace
 				p->connection->get_peer_info(info);
 				client = info.client.c_str();
 			}
-			(*m_torrent.session().m_logger) << time_now_string() << " STORE BLOCK CRC [ p: " << b.piece_index
-				<< " | b: " << b.block_index
-				<< " | c: " << client
-				<< " | digest: " << e.digest
-				<< " | ip: " << p->ip() << " ]\n";
+			m_torrent.session().session_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
+				" | digest: %s | ip: %s ]"
+				, b.piece_index, b.block_index, client
+				, to_hex(e.digest.to_string()).c_str()
+				, print_address(p->ip()).c_str());
 #endif
 		}
 		
@@ -352,12 +352,12 @@ namespace
 				p->connection->get_peer_info(info);
 				client = info.client.c_str();
 			}
-			(*m_torrent.session().m_logger) << time_now_string() << " BANNING PEER [ p: " << b.first.piece_index
-				<< " | b: " << b.first.block_index
-				<< " | c: " << client
-				<< " | ok_digest: " << ok_digest
-				<< " | bad_digest: " << b.second.digest
-				<< " | ip: " << p->ip() << " ]\n";
+			m_torrent.session().session_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+				" | ok_digest: %s | bad_digest: %s | ip: %s ]"
+				, b.piece_index, b.block_index, client
+				, to_hex(ok_digest.to_string()).c_str()
+				, to_hex(b.second.digest.to_string()).c_str()
+				, print_address(p->ip()).c_str());
 #endif
 			m_torrent.get_policy().ban_peer(p);
 			if (p->connection) p->connection->disconnect(

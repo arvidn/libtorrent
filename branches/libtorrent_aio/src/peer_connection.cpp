@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/disk_interface.hpp"
+#include "libtorrent/bandwidth_manager.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -65,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/escape_string.hpp"
+#include "libtorrent/socket_io.hpp"
 #endif
 
 //#define TORRENT_CORRUPT_DATA
@@ -111,7 +114,7 @@ namespace libtorrent
 	// outbound connection
 	peer_connection::peer_connection(
 		aux::session_interface& ses
-		, aux::session_settings& sett
+		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, io_service& ios

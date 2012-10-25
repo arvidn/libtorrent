@@ -344,7 +344,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 4);
 		if (m_observer)
 			m_observer->set_external_address(address_v4(b)
-				, dht_observer::source_dht, m.addr.address());
+				, m.addr.address());
 	}
 #if TORRENT_USE_IPV6
 	else if (ext_ip && ext_ip->string_length() == 16)
@@ -354,7 +354,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		memcpy(&b[0], ext_ip->string_ptr(), 16);
 		if (m_observer)
 			m_observer->set_external_address(address_v6(b)
-				, dht_observer::source_dht, m.addr.address());
+				, m.addr.address());
 	}
 #endif
 

@@ -162,38 +162,38 @@ namespace libtorrent
 #define TORRENT_ASYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1))
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2))
 
 #define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2, a3))
 
 #define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	ses.m_io_service.post(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
 
 #define TORRENT_SYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t)))); \
 	do { ses.cond.wait(l); } while(!done)
@@ -202,7 +202,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1)))); \
 	t.reset(); \
@@ -212,7 +212,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
 	t.reset(); \
@@ -222,7 +222,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (t) { \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond, &ses.mut, boost::function<void(void)>(boost::bind(&torrent:: x, t, a1, a2, a3)))); \
 	t.reset(); \
@@ -232,7 +232,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t)))); \
@@ -243,7 +243,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)))); \
@@ -254,7 +254,7 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return def; \
 	bool done = false; \
-	session_impl& ses = t->session(); \
+	session_impl& ses = (session_impl&) t->session(); \
 	type r; \
 	mutex::scoped_lock l(ses.mut); \
 	ses.m_io_service.post(boost::bind(&fun_ret<type >, &r, &done, &ses.cond, &ses.mut, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)))); \
@@ -850,7 +850,7 @@ namespace libtorrent
 		if (t)
 		{
 			bool done = false;
-			session_impl& ses = t->session();
+			session_impl& ses = (session_impl&) t->session();
 			mutex::scoped_lock l(ses.mut);
 			storage_error ec;
 			ses.m_io_service.post(boost::bind(&fun_wrap, &done, &ses.cond
@@ -904,7 +904,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
-		session_impl& ses = t->session();
+		session_impl& ses = (session_impl&) t->session();
 		ses.m_disk_thread.files().get_status(&status, &t->storage());
 	}
 

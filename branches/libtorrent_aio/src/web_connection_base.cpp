@@ -55,7 +55,7 @@ namespace libtorrent
 {
 	web_connection_base::web_connection_base(
 		aux::session_interface& ses
-		, aux::session_settings& sett
+		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, io_service& ios

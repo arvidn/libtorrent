@@ -180,7 +180,7 @@ namespace libtorrent
 		// other end has the correct id
 		peer_connection(
 			aux::session_interface& ses
-			, aux::session_settings& sett
+			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
 			, io_service& ios
@@ -713,7 +713,7 @@ namespace libtorrent
 		disk_interface& m_disk_thread;
 
 		// settings that apply to this peer
-		aux::session_settings& m_settings;
+		aux::session_settings const& m_settings;
 		
 		// used to allocate and free disk buffers
 		buffer_allocator_interface& m_allocator;

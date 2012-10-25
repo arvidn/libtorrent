@@ -204,7 +204,6 @@ namespace libtorrent
 		struct TORRENT_EXTRA_EXPORT session_impl
 			: session_interface
 			, alert_dispatcher
-			, buffer_allocator_interface
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
@@ -267,6 +266,7 @@ namespace libtorrent
 			bool has_peer(peer_connection const* p) const;
 			bool any_torrent_has_peer(peer_connection const* p) const;
 			bool is_single_thread() const { return single_threaded::is_single_thread(); }
+			bool is_posting_torrent_updates() const { return m_posting_torrent_updates; }
 			// this is set while the session is building the
 			// torrent status update message
 			bool m_posting_torrent_updates;
@@ -275,6 +275,16 @@ namespace libtorrent
 			void main_thread();
 
 			void open_listen_port(int flags, error_code& ec);
+			
+			io_service& get_io_service() { return m_io_service; }
+			tcp::resolver& host_resolver() { return m_host_resolver; }
+
+			std::vector<torrent*>& torrent_list(int i)
+			{
+				TORRENT_ASSERT(i >= 0);
+				TORRENT_ASSERT(i < session_interface::num_torrent_lists);
+				return m_torrent_lists[i];
+			}
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
@@ -296,8 +306,13 @@ namespace libtorrent
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
+			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+				, std::string uuid);
+			void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t)
+			{ m_uuids.insert(std::make_pair(uuid, t)); }
 			boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc);
+			void set_queue_position(torrent* t, int p);
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
@@ -313,6 +328,9 @@ namespace libtorrent
 			session_settings const& settings() const { return m_settings; }
 
 #ifndef TORRENT_DISABLE_DHT	
+			dht::dht_tracker* dht() { return m_dht.get(); }
+			bool announce_dht() const { return !m_listen_sockets.empty(); }
+
 			void add_dht_node_name(std::pair<std::string, int> const& node);
 			void add_dht_node(udp::endpoint n);
 			void add_dht_router(std::pair<std::string, int> const& node);
@@ -362,11 +380,16 @@ namespace libtorrent
 			
 			void set_port_filter(port_filter const& f);
 
+			// TODO: move the login info into the tracker_request object
+			void queue_tracker_request(tracker_request& req
+				, std::string login, boost::weak_ptr<request_callback> c);
+
 			// ==== peer class operations ====
 
 			// implements session_interface
 			void set_peer_classes(peer_class_set* s, address const& a, int st);
 			peer_class_pool const& peer_classes() const { return m_classes; }
+			peer_class_pool& peer_classes() { return m_classes; }
 			bool ignore_unchoke_slots_set(peer_class_set const& set) const;
 			int copy_pertinent_channels(peer_class_set const& set
 				, int channel, bandwidth_channel** dst, int max);
@@ -477,6 +500,9 @@ namespace libtorrent
 			torrent_peer* allocate_peer_entry(int type);
 			void free_peer_entry(torrent_peer* p);
 
+			alert_manager& alerts() { return m_alerts; }
+			disk_interface& disk_thread() { return m_disk_thread; }
+
 			void abort();
 			
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
@@ -489,6 +515,9 @@ namespace libtorrent
 			void set_proxy(proxy_settings const& s);
 			proxy_settings const& proxy() const { return m_proxy; }
 
+			bool has_connection(peer_connection* p) const;
+			void insert_peer(boost::intrusive_ptr<peer_connection> const& c);
+		
 #ifndef TORRENT_NO_DEPRECATE
 			void set_peer_proxy(proxy_settings const& s) { set_proxy(s); }
 			void set_web_seed_proxy(proxy_settings const& s) { set_proxy(s); }
@@ -509,6 +538,8 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_I2P
+			char const* i2p_session() const { return m_i2p_conn.session_id(); }
+
 			void set_i2p_proxy(proxy_settings const& s)
 			{
 				m_i2p_conn.open(s, boost::bind(&session_impl::on_i2p_open, this, _1));
@@ -599,18 +630,14 @@ namespace libtorrent
 			bool exceeded_cache_use() const
 			{ return m_disk_thread.exceeded_cache_use(); }
 
-			enum
-			{
-				source_dht = 1,
-				source_peer = 2,
-				source_tracker = 4,
-				source_router = 8
-			};
-
 			// implements dht_observer
+			virtual void set_external_address(address const& addr
+				, address const& source)
+			{ set_external_address(addr, session_interface::source_dht, source); }
+
 			virtual void set_external_address(address const& ip
 				, int source_type, address const& source);
-			address const& external_address() const { return m_external_address; }
+			virtual address const& external_address() const { return m_external_address; }
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -645,33 +672,18 @@ namespace libtorrent
 
 			void use_outgoing_interfaces(std::string net_interfaces);
 
+			bool has_lsd() const { return m_lsd; }
+
+			std::vector<block_info>& block_info_storage() { return m_block_info_storage; }
+
+			connection_queue& half_open() { return m_half_open; }
+			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
+			void prioritize_dht(boost::weak_ptr<torrent> t)
+			{ m_dht_torrents.push_back(t); }
+			void inc_boost_connections() { ++m_boost_connections; }
+
 //		private:
 
-			enum torrent_list_index
-			{
-				// this is the set of (subscribed) torrents that have changed
-				// their states since the last time the user requested updates.
-				torrent_state_updates,
-
-				// all torrents that want to be ticked every second
-				torrent_want_tick,
-
-				// all torrents that want more peers and are still downloading
-				// these typically have higher priority when connecting peers
-				torrent_want_peers_download,
-
-				// all torrents that want more peers and are finished downloading
-				torrent_want_peers_finished,
-
-				// torrents that want auto-scrape (only paused auto-managed ones)
-				torrent_want_scrape,
-
-				// all torrents that have resume data to save
-//				torrent_want_save_resume,
-
-				num_torrent_lists,
-			};
-	
 			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
 
 			peer_class_pool m_classes;
@@ -1061,6 +1073,9 @@ namespace libtorrent
 			ptime m_created;
 			int session_time() const { return total_seconds(time_now() - m_created); }
 
+			int ip_filter_access(address const& addr) const;
+			int port_filter_access(int port) const;
+
 			ptime m_last_tick;
 			ptime m_last_second_tick;
 			// used to limit how often disk warnings are generated
@@ -1112,7 +1127,7 @@ namespace libtorrent
 
 			rate_limited_udp_socket m_udp_socket;
 
-			utp_socket_manager m_utp_socket_manager;
+			libtorrent::utp_socket_manager m_utp_socket_manager;
 
 			// the number of torrent connection boosts
 			// connections that have been made this second
@@ -1276,10 +1291,6 @@ namespace libtorrent
 			// accumulated error
 			boost::uint16_t m_tick_residual;
 
-			// the number of torrents that have apply_ip_filter
-			// set to false. This is typically 0
-			int m_non_filtered_torrents;
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			virtual boost::shared_ptr<logger> create_log(std::string const& name
 				, int instance, bool append = true);
@@ -1407,7 +1418,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		struct tracker_logger : request_callback
 		{
-			tracker_logger(session_impl& ses): m_ses(ses) {}
+			tracker_logger(session_interface& ses): m_ses(ses) {}
 			void tracker_warning(tracker_request const& req
 				, std::string const& str)
 			{
@@ -1461,19 +1472,15 @@ namespace libtorrent
 			
 			void debug_log(const char* fmt, ...) const
 			{
-				if (!m_ses.m_logger) return;
-
 				va_list v;	
 				va_start(v, fmt);
 	
 				char usr[1024];
 				vsnprintf(usr, sizeof(usr), fmt, v);
 				va_end(v);
-				char buf[1280];
-				snprintf(buf, sizeof(buf), "%s: %s\n", time_now_string(), usr);
-				(*m_ses.m_logger) << buf;
+				m_ses.session_log("%s", usr);
 			}
-			session_impl& m_ses;
+			session_interface& m_ses;
 		};
 #endif
 

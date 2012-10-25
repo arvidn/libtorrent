@@ -71,11 +71,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
 #include "libtorrent/vector_utils.hpp"
+#include "libtorrent/linked_list.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -101,7 +102,6 @@ namespace libtorrent
 
 	namespace aux
 	{
-		struct session_impl;
 		struct piece_checker_data;
 	}
 
@@ -122,7 +122,7 @@ namespace libtorrent
 	{
 	public:
 
-		torrent(aux::session_impl& ses, int block_size
+		torrent(aux::session_interface& ses, int block_size
 			, int seq, add_torrent_params const& p
 			, sha1_hash const& info_hash);
 		~torrent();
@@ -244,7 +244,7 @@ namespace libtorrent
 		void set_state(torrent_status::state_t s);
 
 		aux::session_settings const& settings() const;
-		aux::session_impl& session() { return m_ses; }
+		aux::session_interface& session() { return m_ses; }
 	
 		void set_sequential_download(bool sd);
 		bool is_sequential_download() const
@@ -254,8 +254,10 @@ namespace libtorrent
 		void queue_down();
 		void set_queue_position(int p);
 		int queue_position() const { return m_sequence_number; }
+		// used internally
+		void set_queue_position_impl(int p) { m_sequence_number = p; }
 
-		void second_tick(int tick_interval_ms);
+		void second_tick(int tick_interval_ms, int residual);
 
 		std::string name() const;
 
@@ -376,13 +378,12 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		void resolve_countries(bool r)
-		{ m_resolve_countries = r; }
+		void resolve_countries(bool r);
+		bool resolving_countries() const;
 
-		bool resolving_countries() const
-		{
-			return m_resolve_countries && !m_ses.settings().get_bool(settings_pack::anonymous_mode);
-		}
+		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
+		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
+			, boost::intrusive_ptr<peer_connection> p) const;
 #endif
 
 // --------------------------------------------
@@ -469,8 +470,6 @@ namespace libtorrent
 
 		peer_iterator begin() { return m_connections.begin(); }
 		peer_iterator end() { return m_connections.end(); }
-
-		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v);
@@ -860,8 +859,8 @@ namespace libtorrent
 
 		void clear_in_state_update()
 		{
-			TORRENT_ASSERT(m_links[aux::session_impl::torrent_state_updates].in_list());
-			m_links[aux::session_impl::torrent_state_updates].clear();
+			TORRENT_ASSERT(m_links[aux::session_interface::torrent_state_updates].in_list());
+			m_links[aux::session_interface::torrent_state_updates].clear();
 		}
 
 		void dec_refcount()
@@ -915,8 +914,6 @@ namespace libtorrent
 		int prioritize_tracker(int tracker_index);
 		int deprioritize_tracker(int tracker_index);
 
-		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
-			, boost::intrusive_ptr<peer_connection> p) const;
 		bool request_bandwidth_from_session(int channel) const;
 
 		void update_peer_interest(bool was_finished);
@@ -1015,7 +1012,7 @@ namespace libtorrent
 
 		// a back reference to the session
 		// this torrent belongs to.
-		aux::session_impl& m_ses;
+		aux::session_interface& m_ses;
 
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
@@ -1143,7 +1140,7 @@ namespace libtorrent
 		// efficient to enumerate only torrents belonging to a specific
 		// group. Such as torrents that want peer connections or want
 		// to be ticked etc.
-		link m_links[aux::session_impl::num_torrent_lists];
+		link m_links[aux::session_interface::num_torrent_lists];
 
 	private:
 

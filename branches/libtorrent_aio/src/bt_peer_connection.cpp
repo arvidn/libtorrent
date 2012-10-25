@@ -96,7 +96,7 @@ namespace libtorrent
 
 	bt_peer_connection::bt_peer_connection(
 		aux::session_interface& ses
-		, aux::session_settings& sett
+		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
 		, io_service& ios
@@ -1795,7 +1795,7 @@ namespace libtorrent
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				m_ses.set_external_address(address_v4(bytes)
-					, aux::session_impl::source_peer, remote().address());
+					, aux::session_interface::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type().size())
@@ -1805,10 +1805,10 @@ namespace libtorrent
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
 					m_ses.set_external_address(ipv6_address.to_v4()
-						, aux::session_impl::source_peer, remote().address());
+						, aux::session_interface::source_peer, remote().address());
 				else
 					m_ses.set_external_address(ipv6_address
-						, aux::session_impl::source_peer, remote().address());
+						, aux::session_interface::source_peer, remote().address());
 			}
 #endif
 		}
@@ -2588,8 +2588,6 @@ namespace libtorrent
 			TORRENT_ASSERT(!is_disconnecting());
 
 			recv_buffer = receive_buffer();
-
-			aux::session_impl::torrent_map::const_iterator i;
 
 			TORRENT_ASSERT(!is_disconnecting());
 

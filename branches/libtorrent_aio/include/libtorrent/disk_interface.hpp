@@ -45,6 +45,8 @@ namespace libtorrent
 	class piece_manager;
 	struct peer_request;
 	struct disk_observer;
+	struct file_pool;
+	struct add_torrent_params;
 
 	struct disk_interface
 	{
@@ -71,6 +73,8 @@ namespace libtorrent
 		virtual void async_flush_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>()) = 0;
+		virtual void async_cache_piece(piece_manager* storage, int piece
+			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 		virtual void async_stop_torrent(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler)= 0;
 		virtual void async_rename_file(piece_manager* storage, int index, std::string const& name
@@ -79,11 +83,21 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 		virtual void async_save_resume_data(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
+		virtual void async_set_file_priority(piece_manager* storage
+			, std::vector<boost::uint8_t> const& prio
+			, boost::function<void(disk_io_job const*)> const& handler) = 0;
+		virtual void async_load_torrent(add_torrent_params* params
+			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 
 		virtual void clear_read_cache(piece_manager* storage) = 0;
 		virtual void clear_piece(piece_manager* storage, int index) = 0;
 
 		virtual void subscribe_to_disk(disk_observer* o) = 0;
+
+		virtual void get_cache_info(cache_status* ret, bool no_pieces = true
+			, piece_manager const* storage = 0) = 0;
+
+		virtual file_pool& files() = 0;
 	};
 }
 

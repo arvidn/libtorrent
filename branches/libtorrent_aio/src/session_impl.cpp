@@ -398,6 +398,16 @@ namespace aux {
 	int session_impl::logging_allocator::allocated_bytes = 0;
 #endif
 
+	int session_impl::ip_filter_access(address const& addr) const
+	{
+		return m_ip_filter.access(addr);
+	}
+
+	int session_impl::port_filter_access(int port) const
+	{
+		return m_port_filter.access(port);
+	}
+
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -574,7 +584,6 @@ namespace aux {
 		, m_host_resolver(m_io_service)
 		, m_download_connect_attempts(0)
 		, m_tick_residual(0)
-		, m_non_filtered_torrents(0)
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		, m_logpath(logpath)
 #endif
@@ -1967,6 +1976,16 @@ namespace aux {
 		m_disk_thread.set_num_threads(0);
 	}
 
+	bool session_impl::has_connection(peer_connection* p) const
+	{
+		return m_connections.find(p) != m_connections.end();
+	}
+
+	void session_impl::insert_peer(boost::intrusive_ptr<peer_connection> const& c)
+	{
+		m_connections.insert(c);
+	}
+		
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
@@ -2025,6 +2044,16 @@ namespace aux {
 
 		pc->get_info(&ret);
 		return ret;
+	}
+
+	void session_impl::queue_tracker_request(tracker_request& req
+		, std::string login, boost::weak_ptr<request_callback> c)
+	{
+		req.listen_port = listen_port();
+		req.key = m_key;
+		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
+		m_tracker_manager.queue_request(get_io_service(), m_half_open, req
+			, login, c);
 	}
 
 	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
@@ -2962,7 +2991,7 @@ retry:
 		// this filter is ignored if a single torrent
 		// is set to ignore the filter, since this peer might be
 		// for that torrent
-		if (m_non_filtered_torrents == 0
+		if (m_stats_counter[non_filter_torrents] == 0
 			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
@@ -3493,7 +3522,7 @@ retry:
 			TORRENT_ASSERT(!t.is_aborted());
 
 			size_t size = want_tick.size();
-			t.second_tick(tick_interval_ms);
+			t.second_tick(tick_interval_ms, m_tick_residual / 1000);
 
 			// if the call to second_tick caused the torrent
 			// to no longer want to be ticked (i.e. it was
@@ -3725,7 +3754,7 @@ retry:
 			}
 		}
 
-		while (m_tick_residual >= 1000) m_tick_residual -= 1000;
+		m_tick_residual = m_tick_residual % 1000;
 //		m_peer_pool.release_memory();
 	}
 
@@ -5087,6 +5116,92 @@ retry:
 #endif
 		if (i != m_torrents.end()) return i->second;
 		return boost::weak_ptr<torrent>();
+	}
+
+	void session_impl::insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+		, std::string uuid)
+	{
+		m_torrents.insert(std::make_pair(ih, t));
+		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
+	}
+
+	void session_impl::set_queue_position(torrent* me, int p)
+	{
+		if (p >= 0 && me->queue_position() == -1)
+		{
+			for (session_impl::torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t->queue_position() >= p)
+				{
+					t->set_queue_position_impl(t->queue_position()+1);
+					t->state_updated();
+				}
+				if (t->queue_position() >= p) t->set_queue_position_impl(t->queue_position()+1);
+			}
+			++m_max_queue_pos;
+			me->set_queue_position_impl((std::min)(m_max_queue_pos, p));
+		}
+		else if (p < 0)
+		{
+			TORRENT_ASSERT(me->queue_position() >= 0);
+			TORRENT_ASSERT(p == -1);
+			for (session_impl::torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t == me) continue;
+				if (t->queue_position() == -1) continue;
+				if (t->queue_position() >= me->queue_position())
+				{
+					t->set_queue_position_impl(t->queue_position()-1);
+					t->state_updated();
+				}
+			}
+			--m_max_queue_pos;
+			me->set_queue_position_impl(p);
+		}
+		else if (p < me->queue_position())
+		{
+			for (session_impl::torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				if (t == me) continue;
+				if (t->queue_position() == -1) continue;
+				if (t->queue_position() >= p 
+					&& t->queue_position() < me->queue_position())
+				{
+					t->set_queue_position_impl(t->queue_position()+1);
+					t->state_updated();
+				}
+			}
+			me->set_queue_position_impl(p);
+		}
+		else if (p > me->queue_position())
+		{
+			for (session_impl::torrent_map::iterator i = m_torrents.begin()
+				, end(m_torrents.end()); i != end; ++i)
+			{
+				torrent* t = i->second.get();
+				int pos = t->queue_position();
+				if (t == me) continue;
+				if (pos == -1) continue;
+
+				if (pos <= p
+						&& pos > me->queue_position()
+						&& pos != -1)
+				{
+					t->set_queue_position_impl(t->queue_position()-1);
+					t->state_updated();
+				}
+
+			}
+			me->set_queue_position_impl((std::min)(m_max_queue_pos, p));
+		}
+
+		m_auto_manage_time_scaler = 2;
 	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION

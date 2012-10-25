@@ -196,7 +196,7 @@ namespace libtorrent
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 #endif
 
-		aux::session_impl& ses = t.session();
+		aux::session_interface& ses = t.session();
 
 		ses.inc_stats_counter(aux::session_interface::piece_picks);
 
@@ -255,7 +255,7 @@ namespace libtorrent
 		// and we're not strictly speaking in end-game mode yet
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
-		bool dont_pick_busy_blocks = (ses.m_settings.get_bool(settings_pack::strict_end_game_mode)
+		bool dont_pick_busy_blocks = (ses.settings().get_bool(settings_pack::strict_end_game_mode)
 			&& p.get_download_queue_size() < p.num_want_left())
 			|| dq.size() + rq.size() > 0;
 
@@ -396,19 +396,19 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		aux::session_impl& ses = m_torrent->session();
+		aux::session_interface& ses = m_torrent->session();
 		if (!m_torrent->apply_ip_filter()) return;
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
-			if ((ses.m_ip_filter.access((*i)->address()) & ip_filter::blocked) == 0)
+			if ((ses.ip_filter_access((*i)->address()) & ip_filter::blocked) == 0)
 			{
 				++i;
 				continue;
 			}
 		
-			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+			if (ses.alerts().should_post<peer_blocked_alert>())
+				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
@@ -627,13 +627,13 @@ namespace libtorrent
 			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
 			return false;
 		
-		aux::session_impl const& ses = m_torrent->session();
-		if (ses.m_port_filter.access(p.port) & port_filter::blocked)
+		aux::session_interface const& ses = m_torrent->session();
+		if (ses.port_filter_access(p.port) & port_filter::blocked)
 			return false;
 
 		// only apply this to peers we've only heard
 		// about from the DHT
-		if (ses.m_settings.get_bool(settings_pack::no_connect_privileged_ports)
+		if (ses.settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& p.port < 1024
 			&& p.source == peer_info::dht)
 			return false;
@@ -747,13 +747,12 @@ namespace libtorrent
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 		if (candidate != -1)
 		{
-			(*m_torrent->session().m_logger) << time_now_string()
-				<< " *** FOUND CONNECTION CANDIDATE ["
-				" ip: " << m_peers[candidate]->ip() <<
-				" d: " << cidr_distance(external_ip, m_peers[candidate]->address()) <<
-				" external: " << external_ip <<
-				" t: " << (session_time - m_peers[candidate]->last_connected) <<
-				" ]\n";
+			m_torrent->session().session_log(" *** FOUND CONNECTION CANDIDATE ["
+				" ip: %s d: %d external: %s t: %d ]"
+				, print_endpoint(m_peers[candidate]->ip()).c_str()
+				, cidr_distance(external_ip, m_peers[candidate]->address())
+				, print_address(external_ip).c_str()
+				, session_time - m_peers[candidate]->last_connected);
 		}
 #endif
 
@@ -771,22 +770,22 @@ namespace libtorrent
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 		TORRENT_ASSERT(!m_torrent->is_paused());
 
-		aux::session_impl& ses = m_torrent->session();
+		aux::session_interface& ses = m_torrent->session();
 		
 		if (m_torrent->num_peers() >= m_torrent->max_connections()
 			&& ses.num_connections() >= ses.settings().get_int(settings_pack::connections_limit))
 		{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-			(*m_torrent->session().m_logger) << time_now_string()
-				<< " *** TOO MANY CONNECTIONS ["
-				" torrent: " << m_torrent->name() <<
-				" torrent peers: " << m_torrent->num_peers() <<
-				" torrent limit: " << m_torrent->max_connections() <<
-				" global peers: " << ses.num_connections() <<
-				" global limit: " << ses.settings().get_int(settings_pack::connections_limit) <<
-				" global list peers " << int(m_peers.size()) <<
-				" global list limit: " << m_torrent->settings().get_int(settings_pack::max_peerlist_size) <<
-				" ]\n";
+			m_torrent->session().session_log(" *** TOO MANY CONNECTIONS ["
+				" torrent: %s torrent peers: %d torrent limit: %d global peers: %d "
+				"global limit: %d global list peers: %d global list limit: %d ]"
+				, m_torrent->name().c_str()
+				, m_torrent->num_peers()
+				, m_torrent->max_connections()
+				, ses.num_connections()
+				, ses.settings().get_int(settings_pack::connections_limit)
+				, int(m_peers.size())
+				, ses.settings().get_int(settings_pack::max_peerlist_size));
 #endif
 			c.disconnect(errors::too_many_connections);
 			return false;
@@ -948,16 +947,16 @@ namespace libtorrent
 				if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-					(*m_torrent->session().m_logger) << time_now_string()
-						<< " *** TOO MANY CONNECTIONS ["
-						" torrent: " << m_torrent->name() <<
-						" torrent peers: " << m_torrent->num_peers() <<
-						" torrent limit: " << m_torrent->max_connections() <<
-						" global peers: " << ses.num_connections() <<
-						" global limit: " << ses.settings().get_int(settings_pack::connections_limit) <<
-						" global list peers " << int(m_peers.size()) <<
-						" global list limit: " << m_torrent->settings().get_int(settings_pack::max_peerlist_size) <<
-						" ]\n";
+					m_torrent->session().session_log(" *** TOO MANY CONNECTIONS ["
+						" torrent: %s torrent peers: %d torrent limit: %d global peers: %d "
+						"global limit: %d global list peers: %d global list limit: %d ]"
+						, m_torrent->name().c_str()
+						, m_torrent->num_peers()
+						, m_torrent->max_connections()
+						, ses.num_connections()
+						, ses.settings().get_int(settings_pack::connections_limit)
+						, int(m_peers.size())
+						, ses.settings().get_int(settings_pack::max_peerlist_size));
 #endif
 					c.disconnect(errors::too_many_connections);
 					return false;
@@ -1319,34 +1318,33 @@ namespace libtorrent
 		if (remote.address() == address() || remote.port() == 0)
 			return 0;
 
-		aux::session_impl& ses = m_torrent->session();
+		aux::session_interface& ses = m_torrent->session();
 
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
-		if (!ses.m_settings.get_bool(settings_pack::allow_i2p_mixed)
+		if (!ses.settings().get_bool(settings_pack::allow_i2p_mixed)
 			&& m_torrent->torrent_file().is_i2p())
 		{
-			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (ses.alerts().should_post<peer_blocked_alert>())
+				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
 		}
 
-		port_filter const& pf = ses.m_port_filter;
-		if (pf.access(remote.port()) & port_filter::blocked)
+		if (ses.port_filter_access(remote.port()) & port_filter::blocked)
 		{
-			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (ses.alerts().should_post<peer_blocked_alert>())
+				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
 			return 0;
 		}
 
-		if (ses.m_settings.get_bool(settings_pack::no_connect_privileged_ports)
+		if (ses.settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& remote.port() < 1024)
 		{
-			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (ses.alerts().should_post<peer_blocked_alert>())
+				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1355,10 +1353,10 @@ namespace libtorrent
 
 		// if the IP is blocked, don't add it
 		if (m_torrent->apply_ip_filter()
-			&& (ses.m_ip_filter.access(remote.address()) & ip_filter::blocked))
+			&& (ses.ip_filter_access(remote.address()) & ip_filter::blocked))
 		{
-			if (ses.m_alerts.should_post<peer_blocked_alert>())
-				ses.m_alerts.post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (ses.alerts().should_post<peer_blocked_alert>())
+				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif

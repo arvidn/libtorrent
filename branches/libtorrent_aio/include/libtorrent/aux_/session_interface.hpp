@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 
 #include "libtorrent/address.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 
 #ifndef TORRENT_DISABLE_DHT	
 #include "libtorrent/socket.hpp"
@@ -64,12 +66,43 @@ namespace libtorrent
 	struct logger;
 #endif
 	struct torrent_peer;
+	struct alert_manager;
+	struct disk_interface;
+	struct tracker_request;
+	struct request_callback;
+	struct connection_queue;
+	struct utp_socket_manager;
+	struct socket_type;
+	struct block_info;
+
+#ifndef TORRENT_DISABLE_DHT
+	namespace dht
+	{
+		struct dht_tracker;
+	}
+#endif
 }
 
 namespace libtorrent { namespace aux
 {
+	// TOOD: make this interface a lot smaller
 	struct session_interface
+		: buffer_allocator_interface
 	{
+		// TODO: the IP voting mechanism should be factored out
+		// to its own class
+		enum
+		{
+			source_dht = 1,
+			source_peer = 2,
+			source_tracker = 4,
+			source_router = 8
+		};
+
+		virtual void set_external_address(address const& ip
+			, int source_type, address const& source) = 0;
+		virtual address const& external_address() const = 0;
+
 		// --- vv used by policy vv ----
 		enum peer_type_t
 		{
@@ -80,6 +113,28 @@ namespace libtorrent { namespace aux
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;
 		// --- ^^ used by policy ^^ ----
+
+		virtual disk_interface& disk_thread() = 0;
+
+		virtual alert_manager& alerts() = 0;
+
+		virtual io_service& get_io_service() = 0;
+
+		virtual bool has_connection(peer_connection* p) const = 0;
+		virtual void insert_peer(boost::intrusive_ptr<peer_connection> const& c) = 0;
+		
+		virtual void add_redundant_bytes(size_type b, int reason) = 0;
+		virtual void add_failed_bytes(size_type b) = 0;
+
+		virtual void queue_async_resume_data(boost::shared_ptr<torrent> const& t) = 0;
+		virtual void done_async_resume() = 0;
+		virtual void evict_torrent(torrent* t) = 0;
+
+		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
+
+		// ip and port filter
+		virtual int ip_filter_access(address const& addr) const = 0;
+		virtual int port_filter_access(int port) const = 0;
 
 		virtual int session_time() const = 0;
 	
@@ -94,6 +149,10 @@ namespace libtorrent { namespace aux
 		virtual boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) = 0;
 		virtual boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 			, peer_connection* pc) = 0;
+		virtual void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+			, std::string uuid) = 0;
+		virtual void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) = 0;
+		virtual void set_queue_position(torrent* t, int p) = 0;
 
 		virtual void inc_disk_queue(int channel) = 0;
 		virtual void dec_disk_queue(int channel) = 0;
@@ -140,14 +199,28 @@ namespace libtorrent { namespace aux
 		// TODO: it would be nice to not have this be part of session_interface
 		virtual void set_proxy(proxy_settings const& s) = 0;
 		virtual proxy_settings const& proxy() const = 0;
-		virtual void set_external_address(address const& ip
-			, int source_type, address const& source) = 0;
+
+#if TORRENT_USE_I2P
+		virtual proxy_settings const& i2p_proxy() const = 0;
+		virtual char const* i2p_session() const = 0;
+#endif
+
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
 		virtual tcp::endpoint get_ipv4_interface() const = 0;
+
+		virtual tcp::resolver& host_resolver() = 0;
+
+		virtual void reset_auto_manage_timer() = 0;
+
+		virtual session_settings const& settings() const = 0;
+
+		virtual void queue_tracker_request(tracker_request& req
+			, std::string login, boost::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
 		virtual peer_class_pool const& peer_classes() const = 0;
+		virtual peer_class_pool& peer_classes() = 0;
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
 		virtual int copy_pertinent_channels(peer_class_set const& set
 			, int channel, bandwidth_channel** dst, int max) = 0;
@@ -166,16 +239,60 @@ namespace libtorrent { namespace aux
 
 		virtual int peak_up_rate() const = 0;
 
+		enum torrent_list_index
+		{
+			// this is the set of (subscribed) torrents that have changed
+			// their states since the last time the user requested updates.
+			torrent_state_updates,
+
+			// all torrents that want to be ticked every second
+			torrent_want_tick,
+
+			// all torrents that want more peers and are still downloading
+			// these typically have higher priority when connecting peers
+			torrent_want_peers_download,
+
+			// all torrents that want more peers and are finished downloading
+			torrent_want_peers_finished,
+
+			// torrents that want auto-scrape (only paused auto-managed ones)
+			torrent_want_scrape,
+
+			// all torrents that have resume data to save
+//			torrent_want_save_resume,
+
+			num_torrent_lists,
+		};
+
+		virtual std::vector<torrent*>& torrent_list(int i) = 0;
+
+		virtual bool has_lsd() const = 0;
+		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;
+		virtual connection_queue& half_open() = 0;
+		virtual libtorrent::utp_socket_manager* utp_socket_manager() = 0;
+		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
+		virtual void inc_boost_connections() = 0;
+		virtual void setup_socket_buffers(socket_type& s) = 0;
+		virtual std::vector<block_info>& block_info_storage() = 0;
+	
+#ifndef TORRENT_NO_DEPRECATED
+		virtual void use_outgoing_interfaces(std::string net_interfaces) = 0;
+#endif
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
-			virtual pe_settings const& get_pe_settings() const = 0;
-			virtual torrent const* find_encrypted_torrent(
-				sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
+		virtual pe_settings const& get_pe_settings() const = 0;
+		virtual torrent const* find_encrypted_torrent(
+			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
+		virtual void add_obfuscated_hash(sha1_hash const& obfuscated
+			, boost::weak_ptr<torrent> const& t) = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
+		virtual bool announce_dht() const = 0;
 		virtual void add_dht_node(udp::endpoint n) = 0;
 		virtual bool has_dht() const = 0;
 		virtual int external_udp_port() const = 0;
+		virtual dht::dht_tracker* dht() = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP
@@ -190,6 +307,7 @@ namespace libtorrent { namespace aux
 		virtual bool is_single_thread() const = 0;
 		virtual bool has_peer(peer_connection const* p) const = 0;
 		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
+		virtual bool is_posting_torrent_updates() const = 0;
 #endif
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
@@ -290,12 +408,13 @@ namespace libtorrent { namespace aux
 			num_queued_download_torrents,
 			num_error_torrents,
 
+			// the number of torrents that don't have the
+			// IP filter applied to them.
+			non_filter_torrents,
+
 			// these counter indices deliberatly
 			// match the order of socket type IDs
 			// defined in socket_type.hpp.
-			// TODO: should these connection gauges be turned
-			// into pairs of connected/disconnected cumulative counters?
-			// it would make them counters instead of gauges
 			num_tcp_peers,
 			num_socks5_peers,
 			num_http_proxy_peers,
