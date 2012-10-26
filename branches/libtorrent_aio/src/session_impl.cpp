@@ -538,6 +538,8 @@ namespace aux {
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
 		, m_tracker_manager(*this, m_proxy)
+		, m_num_save_resume(0)
+		, m_num_queued_resume(0)
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
 		, m_key(0)
@@ -1371,7 +1373,8 @@ namespace aux {
 	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
 	{
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-		if (m_num_save_resume + m_num_queued_resume >= loaded_limit)
+		if (m_num_save_resume + m_num_queued_resume >= loaded_limit
+			&& m_user_load_torrent)
 		{
 			TORRENT_ASSERT(t);
 			// do loaded torrents first, otherwise they'll just be

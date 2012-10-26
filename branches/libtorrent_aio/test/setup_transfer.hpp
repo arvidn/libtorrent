@@ -50,6 +50,7 @@ bool print_alerts(libtorrent::session& ses, char const* name
 	, bool no_output = false);
 
 void wait_for_listen(libtorrent::session& ses, char const* name);
+void wait_for_downloading(libtorrent::session& ses, char const* name);
 void test_sleep(int millisec);
 
 extern int g_udp_tracker_requests;

@@ -159,6 +159,27 @@ void wait_for_listen(libtorrent::session& ses, char const* name)
 	} while (a);
 }
 
+bool downloading_done = false;
+bool downloading_alert(libtorrent::alert* a)
+{
+	state_changed_alert* sc = alert_cast<state_changed_alert>(a);
+	if (sc && sc->state == torrent_status::downloading) 
+		downloading_done = true;
+	return true;
+}
+
+void wait_for_downloading(libtorrent::session& ses, char const* name)
+{
+	downloading_done = false;
+	alert const* a = 0;
+	do
+	{
+		print_alerts(ses, name, true, true, true, &listen_alert, false);
+		if (downloading_done) break;
+		a = ses.wait_for_alert(milliseconds(500));
+	} while (a);
+}
+
 void test_sleep(int millisec)
 {
 	libtorrent::sleep(millisec);

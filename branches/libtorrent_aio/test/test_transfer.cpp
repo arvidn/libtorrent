@@ -187,7 +187,8 @@ bool on_alert(alert* a)
 	return false;
 }
 
-void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowed_fast = false, bool test_priorities = false)
+void test_transfer(int proxy_type, bool test_disk_full = false
+	, bool test_allowed_fast = false, bool test_priorities = false)
 {
 
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
@@ -317,6 +318,8 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 	tracker_responses = 0;
 	int upload_mode_timer = 0;
 
+	wait_for_downloading(ses2, "ses2");
+
 	for (int i = 0; i < 50; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, on_alert);
@@ -369,14 +372,6 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		if (!test_disk_full && st2.is_finished) break;
 
-		if (st2.state != torrent_status::downloading)
-		{
-			static char const* state_str[] =	
-				{"checking (q)", "checking", "dl metadata"
-				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
-		}
-
 		TEST_CHECK(st1.state == torrent_status::seeding
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
@@ -397,9 +392,19 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			std::cerr << "torrent is finished (50% complete)" << std::endl;
 		else return;
 
+		std::vector<int> priorities2 = tor2.piece_priorities();
+		std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+		std::cerr << std::endl;
+		TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+
 		std::cerr << "force recheck" << std::endl;
 		tor2.force_recheck();
 	
+		priorities2 = tor2.piece_priorities();
+		std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+		std::cerr << std::endl;
+		TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+
 		for (int i = 0; i < 50; ++i)
 		{
 			test_sleep(100);
@@ -410,7 +415,9 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			if (st2.state != torrent_status::checking_files) break;
 		}
 
-		std::vector<int> priorities2 = tor2.piece_priorities();
+		priorities2 = tor2.piece_priorities();
+		std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
+		std::cerr << std::endl;
 		TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 		for (int i = 0; i < 5; ++i)
@@ -447,6 +454,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 
 		std::vector<char> resume_data;
 		a = ses2.wait_for_alert(seconds(10));
+		ptime start = time_now_hires();
 		while (a)
 		{
 			std::auto_ptr<alert> holder = ses2.pop_alert();
@@ -455,13 +463,20 @@ void test_transfer(int proxy_type, bool test_disk_full = false, bool test_allowe
 			{
 				bencode(std::back_inserter(resume_data)
 						, *alert_cast<save_resume_data_alert>(a)->resume_data);
+				fprintf(stderr, "saved resume data\n");
 				break;
 			}
+			else if (alert_cast<save_resume_data_failed_alert>(a))
+			{
+				fprintf(stderr, "save resume failed\n");
+				break;
+			}
+			if (total_seconds(time_now_hires() - start) > 10)
+				break;
+
 			a = ses2.wait_for_alert(seconds(10));
 		}
 		TEST_CHECK(resume_data.size());	
-
-		std::cerr << "saved resume data" << std::endl;
 
 		ses2.remove_torrent(tor2);
 
@@ -563,10 +578,10 @@ int test_main()
 	// test with all kinds of proxies
 	for (int i = 0; i < 6; ++i)
 		test_transfer(i);
-	
+
 	// test with a (simulated) full disk
 	test_transfer(0, true, true);
-	
+
 	// test allowed fast
 	test_transfer(0, false, true, true);
 

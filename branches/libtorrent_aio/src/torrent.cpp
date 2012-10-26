@@ -2228,7 +2228,6 @@ namespace libtorrent
 		dec_torrent_gauge();
 
 		m_have_all = false;
-		m_picker.reset();
 
 		// file progress is allocated lazily, the first time the client
 		// asks for it
@@ -5782,16 +5781,16 @@ namespace libtorrent
 		if (piece_priority && piece_priority->string_length()
 			== m_torrent_file->num_pieces())
 		{
-			dec_torrent_gauge();
 			char const* p = piece_priority->string_ptr();
 			for (int i = 0; i < piece_priority->string_length(); ++i)
 			{
 				int prio = p[i];
 				if (!has_picker() && prio == 1) continue;
 				need_picker();
+				dec_torrent_gauge();
 				m_picker->set_piece_priority(i, p[i]);
+				inc_torrent_gauge();
 			}
-			inc_torrent_gauge();
 			m_policy.recalculate_connect_candidates();
 		}
 
@@ -5812,9 +5811,12 @@ namespace libtorrent
 			if (paused_ != -1)
 			{
 				set_allow_peers(!paused_);
+
+				dec_torrent_gauge();
 				m_announce_to_dht = !paused_;
 				m_announce_to_trackers = !paused_;
 				m_announce_to_lsd = !paused_;
+				inc_torrent_gauge();
 
 				update_want_peers();
 				update_want_scrape();
@@ -7035,7 +7037,7 @@ namespace libtorrent
 		// when we're suggesting read cache pieces, we
 		// still need the piece picker, to keep track
 		// of availability counts for pieces
-		if (m_picker->is_finished()
+		if (m_picker->is_seeding()
 			&& settings().get_int(settings_pack::suggest_mode) != settings_pack::suggest_read_cache)
 		{
 			dec_torrent_gauge();
@@ -7880,9 +7882,12 @@ namespace libtorrent
 
 		if (!m_allow_peers) return;
 		if (!graceful) set_allow_peers(false);
+
+		dec_torrent_gauge();
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
+		inc_torrent_gauge();
 
 		update_want_peers();
 		update_want_scrape();
@@ -8077,9 +8082,9 @@ namespace libtorrent
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
 
-		dec_torrent_gauge();
-
 		set_allow_peers(true);
+
+		dec_torrent_gauge();
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
@@ -9168,7 +9173,10 @@ namespace libtorrent
 		}
 
 		if (s == torrent_status::seeding)
+		{
 			TORRENT_ASSERT(is_seed());
+			TORRENT_ASSERT(is_finished());
+		}
 		if (s == torrent_status::finished)
 			TORRENT_ASSERT(is_finished());
 		if (s == torrent_status::downloading && m_state == torrent_status::finished)
@@ -9385,6 +9393,14 @@ namespace libtorrent
 		st->ip_filter_applies = m_apply_ip_filter;
 
 		st->state = (torrent_status::state_t)m_state;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		if (st->state == torrent_status::finished
+			|| st->state == torrent_status::seeding)
+		{
+			TORRENT_ASSERT(st->is_finished);
+		}
+#endif
 
 		if (!valid_metadata())
 		{
