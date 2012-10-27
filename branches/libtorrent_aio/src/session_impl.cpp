@@ -529,7 +529,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_io_service, m_settings.get_int(settings_pack::alert_queue_size), alert_mask)
-		, m_disk_thread(m_io_service, this, this)
+		, m_disk_thread(m_io_service, this, (uncork_interface*)this)
 		, m_half_open(m_io_service)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
