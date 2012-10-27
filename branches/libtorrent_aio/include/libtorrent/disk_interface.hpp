@@ -98,6 +98,14 @@ namespace libtorrent
 			, piece_manager const* storage = 0) = 0;
 
 		virtual file_pool& files() = 0;
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || defined TORRENT_BUFFER_STATS
+		virtual bool is_disk_buffer(char* buffer) const = 0;
+#endif
+
+#ifdef TORRENT_BUFFER_STATS
+		virtual void rename_buffer(char* buf, char const* category) = 0;
+#endif
 	};
 }
 

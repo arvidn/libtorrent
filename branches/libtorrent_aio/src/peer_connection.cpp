@@ -289,10 +289,10 @@ namespace libtorrent
 #ifdef TORRENT_BUFFER_STATS
 	void peer_connection::log_buffer_usage(char* buffer, int size, char const* label)
 	{
-		if (m_ses.m_disk_thread.is_disk_buffer(buffer))
-			m_ses.m_disk_thread.rename_buffer(buffer, label);
+		if (m_disk_thread.is_disk_buffer(buffer))
+			m_disk_thread.rename_buffer(buffer, label);
 	
-		m_ses.m_buffer_usage_logger << log_time() << " append_send_buffer: " << size << std::endl;
+		m_ses.buffer_usage_logger() << log_time() << " append_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
 	}
 #endif
@@ -4664,8 +4664,8 @@ namespace libtorrent
 //		m_ses.cork_burst(this);
 
 #if TORRENT_BUFFER_STATS
-		if (j->buffer && j->ref.storage == 0)
-			m_ses.m_disk_thread.rename_buffer(j->buffer, "received send buffer");
+		if (j->buffer && j->d.io.ref.storage == 0)
+			m_disk_thread.rename_buffer(j->buffer, "received send buffer");
 #endif
 
 		if (!t)
@@ -4687,8 +4687,8 @@ namespace libtorrent
 #endif
 
 #if TORRENT_BUFFER_STATS
-		if (j->buffer && j->ref.storage == 0)
-			m_ses.m_disk_thread.rename_buffer(j->buffer, "dispatched send buffer");
+		if (j->buffer && j->d.io.ref.storage == 0)
+			m_disk_thread.rename_buffer(j->buffer, "dispatched send buffer");
 #endif
 
 		// we probably just pulled this piece into the cache.
@@ -5249,7 +5249,7 @@ namespace libtorrent
 	{
 		m_send_buffer.append_buffer((char*)buffer, size, size, destructor);
 #if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-		m_ses.m_buffer_usage_logger << log_time() << " append_const_send_buffer: " << size << std::endl;
+		m_ses.buffer_usage_logger() << log_time() << " append_const_send_buffer: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
 	}
@@ -5270,7 +5270,7 @@ namespace libtorrent
 			size -= free_space;
 			buf += free_space;
 #if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-			m_ses.m_buffer_usage_logger << log_time() << " send_buffer: "
+			m_ses.buffer_usage_logger() << log_time() << " send_buffer: "
 				<< free_space << std::endl;
 			m_ses.log_buffer_usage();
 #endif
@@ -5278,7 +5278,7 @@ namespace libtorrent
 		if (size <= 0) return;
 
 #if defined TORRENT_STATS && defined TORRENT_BUFFER_STATS
-		m_ses.m_buffer_usage_logger << log_time() << " send_buffer_alloc: " << size << std::endl;
+		m_ses.buffer_usage_logger() << log_time() << " send_buffer_alloc: " << size << std::endl;
 		m_ses.log_buffer_usage();
 #endif
 		int i = 0;

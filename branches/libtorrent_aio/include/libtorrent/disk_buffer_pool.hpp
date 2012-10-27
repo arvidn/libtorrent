@@ -169,7 +169,7 @@ namespace libtorrent
 		std::map<std::string, int> m_categories;
 	protected:
 		std::map<char*, std::string> m_buf_to_category;
-		std::ofstream m_log;
+		FILE* m_log;
 	private:
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

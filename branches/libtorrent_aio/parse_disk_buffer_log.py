@@ -79,12 +79,13 @@ print >>out, "set key box"
 print >>out, 'plot',
 count = 1 + len(keys)
 keys.reverse()
+comma = ''
 for k in keys:
 	expr = "$%d" % count
 	for i in xrange(2, count): expr += "+$%d" % i
 	count -= 1
-	print >>out, ' "disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1 lt rgb "#%s",' % (expr, k, colors[count-1]),
-print >>out, 'x=0'
+	print >>out, ' %s"disk_buffer_log.dat" using 1:(%s) title "%s" with filledcurves x1 lt rgb "#%s"' % (comma, expr, k, colors[count-1]),
+	comma = ','
 out.close()
 
 os.system('gnuplot disk_buffer.gnuplot')

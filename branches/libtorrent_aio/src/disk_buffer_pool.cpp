@@ -93,11 +93,9 @@ namespace libtorrent
 		m_allocations = 0;
 #endif
 #ifdef TORRENT_BUFFER_STATS
-		m_log.open("disk_buffers.log", std::ios::trunc);
+		m_log = fopen("disk_buffers.log", "w+");
 		m_categories["read cache"] = 0;
 		m_categories["write cache"] = 0;
-
-		m_disk_access_log.open("disk_access.log", std::ios::trunc);
 #endif
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		m_magic = 0x1337;
@@ -283,7 +281,7 @@ namespace libtorrent
 #ifdef TORRENT_BUFFER_STATS
 		++m_categories[category];
 		m_buf_to_category[ret] = category;
-		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category, m_categories[category]);
 #endif
 		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
@@ -298,11 +296,11 @@ namespace libtorrent
 			!= m_categories.end());
 		std::string const& prev_category = m_buf_to_category[buf];
 		--m_categories[prev_category];
-		m_log << log_time() << " " << prev_category << ": " << m_categories[prev_category] << "\n";
+		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), prev_category.c_str(), m_categories[category]);
 
 		++m_categories[category];
 		m_buf_to_category[buf] = category;
-		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category, m_categories[category]);
 		TORRENT_ASSERT(m_categories.find(m_buf_to_category[buf])
 			!= m_categories.end());
 	}
@@ -456,7 +454,7 @@ namespace libtorrent
 			!= m_categories.end());
 		std::string const& category = m_buf_to_category[buf];
 		--m_categories[category];
-		m_log << log_time() << " " << category << ": " << m_categories[category] << "\n";
+		fprintf(m_log, "%s %s: %d\n", log_time().c_str(), category.c_str(), m_categories[category]);
 		m_buf_to_category.erase(buf);
 #endif
 

@@ -21,7 +21,7 @@ rule libtorrent_dependency ( properties * )
 	}
 	else
 	{
-		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on/<asio-debugging>on ;
+		result += <library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
 	}
 
 	return $(result) ;

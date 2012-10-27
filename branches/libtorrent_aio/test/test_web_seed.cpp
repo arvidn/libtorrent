@@ -174,6 +174,8 @@ void test_transfer(boost::intrusive_ptr<torrent_info> torrent_file
 	}
 
 	std::cerr << "total_size: " << total_size
+		<< " read cache size: " << cs.read_cache_size
+		<< " total used buffer: " << cs.total_used_buffers
 		<< " rate_sum: " << rate_sum
 		<< " session_rate_sum: " << ses_rate_sum
 		<< " session total download: " << ses->status().total_payload_download

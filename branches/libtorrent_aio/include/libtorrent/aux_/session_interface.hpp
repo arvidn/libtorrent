@@ -318,6 +318,11 @@ namespace libtorrent { namespace aux
 		virtual std::string get_log_path() const = 0;
 #endif
 
+#ifdef TORRENT_BUFFER_STATS
+			virtual void log_buffer_usage() = 0;
+			virtual std::ofstream& buffer_usage_logger() = 0;
+#endif
+
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this
@@ -387,6 +392,7 @@ namespace libtorrent { namespace aux
 
 			torrent_evicted_counter,
 
+			// TODO: these should probably be gauges
 			num_piece_passed,
 			num_piece_passed_removed,
 			num_have_pieces,
