@@ -88,6 +88,7 @@ void test_swarm()
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
 	session_status st = ses1.status();
+	fprintf(stderr, "st.allowed_upload_slots: %d\n", st.allowed_upload_slots);
 	TEST_EQUAL(st.allowed_upload_slots, 1);
 	for (int i = 0; i < 50; ++i)
 	{

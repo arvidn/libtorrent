@@ -6283,8 +6283,7 @@ retry:
 
 		if (algo == settings_pack::fixed_slots_choker)
 			m_allowed_upload_slots = unchoke_limit;
-		else if (algo == settings_pack::auto_expand_choker
-			&& m_allowed_upload_slots < unchoke_limit)
+		else if (algo == settings_pack::auto_expand_choker)
 			m_allowed_upload_slots = unchoke_limit;
 
 		if (m_allowed_upload_slots < 0)
