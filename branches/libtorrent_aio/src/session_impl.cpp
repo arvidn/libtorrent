@@ -3524,7 +3524,6 @@ retry:
 			TORRENT_ASSERT(t.want_tick());
 			TORRENT_ASSERT(!t.is_aborted());
 
-			size_t size = want_tick.size();
 			t.second_tick(tick_interval_ms, m_tick_residual / 1000);
 
 			// if the call to second_tick caused the torrent

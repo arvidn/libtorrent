@@ -911,7 +911,6 @@ namespace libtorrent
 
 		boost::intrusive_ptr<file> file_handle;
 		int bytes_left = size;
-		int slot_size = static_cast<int>(m_files.piece_size(slot));
 
 		TORRENT_ASSERT(bytes_left >= 0);
 
@@ -938,7 +937,6 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			TORRENT_ASSERT(int(slices.size()) > counter);
-			size_type slice_size = slices[counter].size;
 			TORRENT_ASSERT((files().begin() + slices[counter].file_index)
 				== file_iter);
 			++counter;

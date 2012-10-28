@@ -66,11 +66,11 @@ namespace libtorrent
 	struct logger;
 #endif
 	struct torrent_peer;
-	struct alert_manager;
+	class alert_manager;
 	struct disk_interface;
 	struct tracker_request;
 	struct request_callback;
-	struct connection_queue;
+	class connection_queue;
 	struct utp_socket_manager;
 	struct socket_type;
 	struct block_info;

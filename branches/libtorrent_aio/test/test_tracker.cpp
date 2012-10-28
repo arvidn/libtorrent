@@ -109,7 +109,7 @@ int test_main()
 	pack.clear();
 	pack.set_int(settings_pack::half_open_limit, 1);
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
-	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	s->apply_settings(pack);

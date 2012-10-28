@@ -391,7 +391,6 @@ namespace libtorrent { namespace
 				char const* in = p6->string_ptr();
 				char const* fin = p6f->string_ptr();
 
-				policy& p = m_torrent.get_policy();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
