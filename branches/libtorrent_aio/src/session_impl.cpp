@@ -5658,7 +5658,8 @@ retry:
 		if (options & session::delete_files)
 			t.delete_files();
 
-		if ((t.prev != NULL || t.next != NULL) && !t.is_pinned())
+		if (m_torrent_lru.size() > 0
+			&& (t.prev != NULL || t.next != NULL || m_torrent_lru.front() == &t))
 			m_torrent_lru.erase(&t);
 
 		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
