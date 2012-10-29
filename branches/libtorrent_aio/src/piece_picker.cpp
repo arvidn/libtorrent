@@ -1206,7 +1206,7 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 #endif
-		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
+		TORRENT_ASSERT(bitmask.size() <= m_piece_map.size());
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "dec_refcount(bitfield)" << std::endl;

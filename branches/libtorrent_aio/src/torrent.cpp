@@ -5529,12 +5529,11 @@ namespace libtorrent
 
 			c->start();
 
-			if (!c->is_disconnecting())
-			{
-				c->m_queued_for_connection = true;
-				m_ses.half_open().enqueue(c.get()
-					, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
-			}
+			if (c->is_disconnecting()) return;
+
+			c->m_queued_for_connection = true;
+			m_ses.half_open().enqueue(c.get()
+				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
