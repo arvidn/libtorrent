@@ -272,7 +272,7 @@ namespace libtorrent
 		// at this point, we may enforce flushing full cache stripes even when
 		// they span multiple pieces. This won't necessarily work in the general
 		// case, because it assumes that the piece picker will have an affinity
-		// ti download whole stripes at a time. This is why this setting is turned
+		// to download whole stripes at a time. This is why this setting is turned
 		// off by default, flushing only one piece at a time
 
 		if (cont_pieces <= 1 || m_settings.get_bool(settings_pack::allow_partial_disk_writes))
