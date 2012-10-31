@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
 namespace libtorrent
 {
 	class peer_connection;
@@ -274,6 +278,10 @@ namespace libtorrent { namespace aux
 		virtual void inc_boost_connections() = 0;
 		virtual void setup_socket_buffers(socket_type& s) = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
+
+#ifdef TORRENT_USE_OPENSSL
+		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
+#endif
 	
 #ifndef TORRENT_NO_DEPRECATED
 		virtual void use_outgoing_interfaces(std::string net_interfaces) = 0;

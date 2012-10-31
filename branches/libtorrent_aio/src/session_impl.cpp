@@ -2054,6 +2054,11 @@ namespace aux {
 	{
 		req.listen_port = listen_port();
 		req.key = m_key;
+#ifdef TORRENT_USE_OPENSSL
+		// SSL torrents use the SSL listen port
+		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
+		req.ssl_ctx = &m_ssl_ctx;
+#endif
 		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
 		m_tracker_manager.queue_request(get_io_service(), m_half_open, req
 			, login, c);

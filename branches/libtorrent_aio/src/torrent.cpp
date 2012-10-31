@@ -2471,6 +2471,9 @@ namespace libtorrent
 
 		if (!m_ses.has_lsd()) return;
 
+		// TODO: this pattern is repeated in a few places. Factor this into
+		// a function and generalize the concept of a torrent having a
+		// dedicated listen port
 #ifdef TORRENT_USE_OPENSSL
 		int port = is_ssl_torrent() ? m_ses.ssl_listen_port() : m_ses.listen_port();
 #else
@@ -2602,15 +2605,6 @@ namespace libtorrent
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
 			?0:settings().get_int(settings_pack::num_want);
-
-		// SSL torrents use their own listen socket
-#ifdef TORRENT_USE_OPENSSL
-		// TODO: this pattern is repeated in a few places. Factor this into
-		// a function and generalize the concept of a torrent having a
-		// dedicated listen port
-		if (is_ssl_torrent()) req.listen_port = m_ses.ssl_listen_port();
-		else
-#endif
 
 		ptime now = time_now_hires();
 
@@ -5423,7 +5417,7 @@ namespace libtorrent
 		if (ssl)
 		{
 			userdata = m_ssl_ctx.get();
-			if (!userdata) userdata = &m_ses.m_ssl_ctx;
+			if (!userdata) userdata = m_ses.ssl_ctx();
 		}
 #endif
 		bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.proxy(), *s, userdata, 0, true);

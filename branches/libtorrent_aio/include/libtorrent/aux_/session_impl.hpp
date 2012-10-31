@@ -954,6 +954,7 @@ namespace libtorrent
 			std::list<listen_socket_t> m_listen_sockets;
 
 #ifdef TORRENT_USE_OPENSSL
+			boost::asio::ssl::context* ssl_ctx() { return &m_ssl_ctx; } 
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
 
