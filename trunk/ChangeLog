@@ -5,6 +5,10 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* added missing add_torrent_alert to python binding
+
+0.16.5 release
+
 	* udp socket refcounter fix
 	* added missing async_add_torrent to python bindings
 	* raised the limit for bottled http downloads to 2 MiB
