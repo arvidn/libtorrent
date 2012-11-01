@@ -68,7 +68,7 @@ namespace libtorrent
 		void get_settings(std::vector<char>&, char const* args);
 		void set_settings(std::vector<char>&, char const* args);
 
-		void print_torrent_list(std::vector<char>&);
+		void print_torrent_list(std::vector<char>&, char const* args);
 
 	private:
 

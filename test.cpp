@@ -15,13 +15,15 @@ int main(int argc, char *const argv[])
 	transmission_webui tr_handler(ses);
 	utorrent_webui ut_handler(ses);
 	file_downloader file_handler(ses);
-	torrent_post post(ses);
+	torrent_post tr_post(ses, "/upload"); // transmission-style
+	torrent_post ut_post(ses, "/gui/?action=add-file"); // utorrent-style
 
 	webui_base webport;
+	webport.add_handler(&ut_post);
+	webport.add_handler(&tr_post);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);
-	webport.add_handler(&post);
 	webport.start(8080);
 
 	deluge dlg(ses, "server.pem");

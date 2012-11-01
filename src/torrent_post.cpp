@@ -41,8 +41,9 @@ extern "C" {
 namespace libtorrent
 {
 
-torrent_post::torrent_post(session& s)
+torrent_post::torrent_post(session& s, std::string path)
 	: m_ses(s)
+	, m_path(path)
 {
 	m_params_model.save_path = ".";
 }
@@ -50,7 +51,13 @@ torrent_post::torrent_post(session& s)
 bool torrent_post::handle_http(mg_connection* conn,
 	mg_request_info const* request_info)
 {
-	if (strcmp(request_info->uri, "/upload")) return false;
+	std::string req_path = request_info->uri;
+	if (request_info->query_string && m_path.find('?'))
+	{
+		req_path += '?';
+		req_path += request_info->query_string;
+	}
+	if (req_path != m_path) return false;
 
 	char const* cl = mg_get_header(conn, "content-length");
 	std::vector<char> post_body;

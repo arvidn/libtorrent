@@ -136,36 +136,29 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 
 	if (strcmp(request_info->uri, "/gui/") != 0) return false;
 
-	printf("REQUEST: %s?%s\n", request_info->uri
-		, request_info->query_string ? request_info->query_string : "");
-
-	char action[50];
-
-	// first, find the action
-	int ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
-		, "action", action, sizeof(action));
-	if (ret <= 0)
-	{
-		return_error(conn);
-		return true;
-	}
-
 	std::vector<char> response;
 	appendf(response, "{\"build\":%d", LIBTORRENT_VERSION_NUM);
 
-	for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+	char action[50];
+	// first, find the action
+	int ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
+		, "action", action, sizeof(action));
+	if (ret > 0)
 	{
-		if (strcmp(action, handlers[i].action_name)) continue;
+		for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+		{
+			if (strcmp(action, handlers[i].action_name)) continue;
 
-		(this->*handlers[i].fun)(response, request_info->query_string);
-		break;
+			(this->*handlers[i].fun)(response, request_info->query_string);
+			break;
+		}
 	}
 
 	char buf[10];
 	if (mg_get_var(request_info->query_string, strlen(request_info->query_string)
 		, "list", buf, sizeof(buf)) > 0)
 	{
-		print_torrent_list(response);
+		print_torrent_list(response, request_info->query_string);
 	}
 
 	// we need a null terminator
@@ -177,7 +170,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	mg_printf(conn, "HTTP/1.1 200 OK\r\n"
 		"Content-Type: text/json\r\n"
 		"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
-	mg_write(conn, &response[0], response.size());
+	mg_write(conn, &response[0], response.size()-1);
 	printf("%s\n", &response[0]);
 	return true;
 }
@@ -444,20 +437,29 @@ std::string utorrent_message(torrent_status const& st)
 
 bool nop(torrent_status const&) { return true; }
 
-void utorrent_webui::print_torrent_list(std::vector<char>& response)
+void utorrent_webui::print_torrent_list(std::vector<char>& response, char const* args)
 {
-	appendf(response, ", \"torrents\": [ \"torrentp\": [");
+	int cid = -1;
+	char buf[50];
+	// first, find the action
+	int ret = mg_get_var(args, strlen(args)
+		, "cid", buf, sizeof(buf));
+	if (ret > 0) cid = atoi(buf);
+
+	appendf(response, cid != -1 ? ",\"torrentp\":[" : ",\"torrents\":[");
 
 	std::vector<torrent_status> torrents;
 	m_ses.get_torrent_status(&torrents, &nop);
 
+	// TODO: make version configurable
+	bool new_version = false;
+
+	int first = 1;
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-
-		int first = 1;
 		boost::intrusive_ptr<torrent_info> ti = i->handle.torrent_file();
-		appendf(response, ",[\"%s\",%d,\"%s\",%"PRId64",%d,%"PRId64",%"PRId64",%f,%d,%d,%d,\"\",%d,%d,%d,%d,%d,%d,%"PRId64",\"%s\",\"%s\",\"%s\",\"%s\",%"PRId64",%"PRId64",\"%s\",\"%s\",%d,\"%s\"]" + first
+		appendf(response, ",[\"%s\",%d,\"%s\",%"PRId64",%d,%"PRId64",%"PRId64",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%"PRId64"" + first
 			, to_hex(i->handle.info_hash().to_string()).c_str()
 			, utorrent_status(*i)
 			, i->handle.name().c_str()
@@ -469,13 +471,20 @@ void utorrent_webui::print_torrent_list(std::vector<char>& response)
 			, i->upload_rate
 			, i->download_rate
 			, i->download_rate == 0 ? 0 : (i->total_wanted - i->total_wanted_done) / i->download_rate
+			, "" // label
 			, i->num_peers - i->num_seeds
 			, i->list_peers - i->list_seeds
 			, i->num_seeds
 			, i->list_seeds
-			, int(i->distributed_full_copies << 16) + int(i->distributed_fraction * 65536 / 1000)
+			, i->distributed_full_copies < 0 ? 0
+				: int(i->distributed_full_copies << 16) + int(i->distributed_fraction * 65536 / 1000)
 			, i->queue_position
 			, i->total_wanted - i->total_wanted_done
+			);
+
+		if (new_version)
+		{
+			appendf(response, ",\"%s\",\"%s\",\"%s\",\"%s\",%"PRId64",%"PRId64",\"%s\",\"%s\",%d,\"%s\"]"
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
 			, utorrent_message(*i).c_str()
@@ -486,11 +495,16 @@ void utorrent_webui::print_torrent_list(std::vector<char>& response)
 			, i->handle.save_path().c_str()
 			, 0
 			, "");
+		}
+		else
+		{
+			response.push_back(']');
+		}
 		first = 0;
 	}
 
 	// TODO: support labels
-	appendf(response, "], \"label\": [], \"torrentm\": [], \"torrentc\": \"0\"]");
+	appendf(response, "], \"label\": [], \"torrentm\": [], \"torrentc\": \"0\"");
 }
 
 std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) const

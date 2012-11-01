@@ -40,7 +40,7 @@ namespace libtorrent
 {
 	struct torrent_post : http_handler
 	{
-		torrent_post(session& s);
+		torrent_post(session& s, std::string path);
 
 		void set_params_model(add_torrent_params const& p)
 		{ m_params_model = p; }
@@ -52,6 +52,11 @@ namespace libtorrent
 
 		session& m_ses;
 		add_torrent_params m_params_model;
+
+		// the path where posts are accepted
+		// utorrent uses: /gui/?action=add-file
+		// transmission uses: /upload
+		std::string m_path;
 
 	};
 }
