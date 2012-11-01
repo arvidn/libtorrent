@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	void appendf(std::vector<char>& target, char const* fmt, ...)
+	inline void appendf(std::vector<char>& target, char const* fmt, ...)
 	{
 		char* buf;
 		va_list args;

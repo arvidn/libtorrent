@@ -82,7 +82,7 @@ struct method_handler
 	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 };
 
-method_handler handlers[] =
+static method_handler handlers[] =
 {
 	{"torrent-add", &transmission_webui::add_torrent },
 	{"torrent-get", &transmission_webui::get_torrent },

@@ -65,6 +65,11 @@ namespace libtorrent
 		void queue_top(std::vector<char>&, char const* args);
 		void queue_bottom(std::vector<char>&, char const* args);
 
+		void get_settings(std::vector<char>&, char const* args);
+		void set_settings(std::vector<char>&, char const* args);
+
+		void print_torrent_list(std::vector<char>&);
+
 	private:
 
 		std::vector<torrent_handle> parse_torrents(char const* args) const;
@@ -72,6 +77,7 @@ namespace libtorrent
 		time_t m_start_time;
 		session& m_ses;
 		add_torrent_params m_params_model;
+		std::string m_webui_cookie;
 	};
 }
 

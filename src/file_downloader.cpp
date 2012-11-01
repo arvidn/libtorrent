@@ -139,11 +139,15 @@ namespace libtorrent
 		mg_request_info const* request_info)
 	{
 		if (!string_begins_no_case(request_info->uri, "/download")) return false;
-
-		std::string query_string = "?";
-		query_string += request_info->query_string;
-		std::string info_hash_str = url_has_argument(query_string, "ih");
-		std::string file_str = url_has_argument(query_string, "file");
+		std::string info_hash_str;
+		std::string file_str;
+		if (request_info->query_string)
+		{
+			std::string query_string = "?";
+			query_string += request_info->query_string;
+			info_hash_str = url_has_argument(query_string, "ih");
+			file_str = url_has_argument(query_string, "file");
+		}
 
 		if (file_str.empty() || info_hash_str.empty() || info_hash_str.size() != 40)
 		{

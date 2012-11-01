@@ -18,8 +18,8 @@ int main(int argc, char *const argv[])
 	torrent_post post(ses);
 
 	webui_base webport;
-	webport.add_handler(&tr_handler);
 	webport.add_handler(&ut_handler);
+	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);
 	webport.add_handler(&post);
 	webport.start(8080);
