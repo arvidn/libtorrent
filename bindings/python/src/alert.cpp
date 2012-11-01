@@ -62,6 +62,31 @@ list get_status_from_update_alert(state_update_alert const& alert)
    return result;
 }
 
+dict get_params(add_torrent_alert const& alert)
+{
+    add_torrent_params const& p = alert.params;
+    dict ret;
+    ret["ti"] = p.ti;
+    ret["info_hash"] = p.info_hash;
+    ret["name"] = p.name;
+    ret["save_path"] = p.save_path;
+    ret["storage_mode"] = p.storage_mode;
+    list trackers;
+    for (std::vector<std::string>::const_iterator i = p.trackers.begin();
+       i != p.trackers.end(); ++i)
+    {
+        trackers.append(*i);
+    }
+    ret["trackers"] = trackers;
+    // TODO: dht_nodes
+    ret["flags"] = p.flags;
+    ret["trackerid"] = p.trackerid;
+    ret["url"] = p.url;
+    ret["source_feed_url"] = p.source_feed_url;
+    ret["uuid"] = p.uuid;
+    return ret;
+}
+
 
 void bind_alert()
 {
@@ -479,4 +504,10 @@ void bind_alert()
         "torrent_need_cert_alert", no_init)
         .def_readonly("error", &torrent_need_cert_alert::error) 
         ;
+
+    class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(
+       "add_torrent_alert", no_init)
+       .def_readonly("error", &add_torrent_alert::error)
+       .add_property("params", &get_params)
+       ;
 }
