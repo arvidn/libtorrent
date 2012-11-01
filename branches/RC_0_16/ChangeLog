@@ -1,3 +1,5 @@
+	* added missing add_torrent_alert to python binding
+
 0.16.5 release
 
 	* udp socket refcounter fix
