@@ -3103,6 +3103,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(valid_metadata());
 
+		// it's possible to get here if the last piece was downloaded
+		// from peers and inserted with add_piece at the same time.
+		// if we're a seed, we won't have a piece picker, and can't continue
+		if (is_seed()) return;
+
 		TORRENT_ASSERT(!m_picker->have_piece(index));
 
 		state_updated();

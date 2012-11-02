@@ -5,6 +5,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix potential crash when using torrent_handle::add_piece
 	* added missing add_torrent_alert to python binding
 
 0.16.5 release
