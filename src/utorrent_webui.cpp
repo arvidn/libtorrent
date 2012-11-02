@@ -89,9 +89,9 @@ static method_handler handlers[] =
 	{ "queuetop", &utorrent_webui::queue_top },
 	{ "queuebottom", &utorrent_webui::queue_bottom },
 
-//	{ "getfiles", &utorrent_webui:: },
+	{ "getfiles", &utorrent_webui::send_file_list },
 //	{ "getpeers", &utorrent_webui:: },
-//	{ "getprops", &utorrent_webui:: },
+	{ "getprops", &utorrent_webui::get_properties },
 	{ "recheck", &utorrent_webui::recheck },
 	{ "remove", &utorrent_webui::remove_torrent },
 //	{ "setprio", &utorrent_webui:: },
@@ -360,6 +360,111 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 	}
 }
 
+void utorrent_webui::send_file_list(std::vector<char>& response, char const* args)
+{
+	bool new_version = false;
+
+	std::vector<torrent_handle> t = parse_torrents(args);
+	appendf(response, ",\"files\":[");
+	int first = 1;
+	std::vector<boost::int64_t> progress;
+	std::vector<int> file_prio;
+	for (std::vector<torrent_handle>::iterator i = t.begin()
+		, end(t.end()); i != end; ++i)
+	{
+		i->file_progress(progress);
+		file_prio = i->file_priorities();
+		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		file_storage const& files = ti->files();
+
+		appendf(response, ",\"%s\",["+first, to_hex(ti->info_hash().to_string()).c_str());
+		int first_file = 1;
+		for (int i = 0; i < files.num_files(); ++i)
+		{
+			int first_piece = files.file_offset(i) / files.piece_length();
+			int last_piece = (files.file_offset(i) + files.file_size(i)) / files.piece_length();
+			appendf(response, ",[\"%s\", %"PRId64", %"PRId64", %d" + first_file
+				, files.file_name(i).c_str()
+				, files.file_size(i)
+				, progress[i]
+				, (file_prio[i]+3) / 4 // uTorrent's web UI uses 4 priority levels
+				);
+
+			if (new_version)
+			{
+				appendf(response, ", %d, %d]"
+					, first_piece
+					, last_piece - first_piece);
+			}
+			else
+			{
+				response.push_back(']');
+			}
+			first_file = 0;
+		}
+
+		response.push_back(']');
+		first = 0;
+	}
+	response.push_back(']');
+}
+
+std::string trackers_as_string(torrent_handle h)
+{
+	std::string ret;
+	std::vector<announce_entry> trackers = h.trackers();
+	int last_tier = 0;
+	for (std::vector<announce_entry>::iterator i = trackers.begin()
+		, end(trackers.end()); i != end; ++i)
+	{
+		if (last_tier != i->tier) ret += "\\r\\n";
+		last_tier = i->tier;
+		ret += i->url;
+		ret += "\\r\\n";
+	}
+	return ret;
+}
+
+void utorrent_webui::get_properties(std::vector<char>& response, char const* args)
+{
+	std::vector<torrent_handle> t = parse_torrents(args);
+	appendf(response, ",\"props\":[");
+	int first = 1;
+	for (std::vector<torrent_handle>::iterator i = t.begin()
+		, end(t.end()); i != end; ++i)
+	{
+		torrent_status st = i->status();
+		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		appendf(response, ",{\"hash\":\"%s\","
+			"\"trackers\":\"%s\","
+			"\"ulrate\":%d,"
+			"\"dlrate\":%d,"
+			"\"superseed\":%d,"
+			"\"dht\":%d,"
+			"\"pex\":%d,"
+			"\"seed_override\":%d,"
+			"\"seed_ratio\": %f,"
+			"\"seed_time\": %d,"
+			"\"ulslots\": %d,"
+			"\"seed_num\": %d}" + first
+			, to_hex(ti->info_hash().to_string()).c_str()
+			, trackers_as_string(*i).c_str()
+			, i->download_limit()
+			, i->upload_limit()
+			, st.super_seeding
+			, ti->priv() ? 0 : m_ses.is_dht_running()
+			, ti->priv() ? 0 : 1
+			, 0
+			, 0
+			, 0
+			, 0
+			, 0
+			);
+		first = 0;
+	}
+	response.push_back(']');
+}
+
 enum ut_state_t
 {
 	STARTED = 1,
@@ -511,9 +616,9 @@ std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) con
 {
 	std::vector<torrent_handle> ret;
 
-	for (char* hash = strstr(args, "&h="); hash; hash = strstr(hash, "&h="))
+	for (char* hash = strstr(args, "&hash="); hash; hash = strstr(hash, "&hash="))
 	{
-		hash += 3;
+		hash += 6;
 		char const* end = strchr(hash, '&');
 		if (end != NULL && end - hash != 40) continue;
 		if (end == NULL && strlen(hash) != 40) continue;

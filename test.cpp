@@ -16,6 +16,7 @@ int main(int argc, char *const argv[])
 	utorrent_webui ut_handler(ses);
 	file_downloader file_handler(ses);
 	torrent_post tr_post(ses, "/upload"); // transmission-style
+	// TODO: the filter needs to be more generic. uTorrent may add other arguments as well
 	torrent_post ut_post(ses, "/gui/?action=add-file"); // utorrent-style
 
 	webui_base webport;
@@ -30,6 +31,7 @@ int main(int argc, char *const argv[])
 	dlg.start(58846);
 
 	while (getchar() != 'q');
+//	while (true) sleep(1000);
 
 	dlg.stop();
 	webport.stop();
