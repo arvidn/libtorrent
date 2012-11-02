@@ -296,12 +296,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
 	}
 
-	void torrent_handle::use_interface(const char* net_interface) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
-	}
-
 	int torrent_handle::max_connections() const
 	{
 		INVARIANT_CHECK;
@@ -515,16 +509,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(set_tracker_login, name, password);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-#if !TORRENT_NO_FPU
-	void torrent_handle::file_progress(std::vector<float>& progress) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
-	}
-#endif
-#endif
-
 	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const
 	{
 		INVARIANT_CHECK;
@@ -614,6 +598,20 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
+
+	void torrent_handle::use_interface(const char* net_interface) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
+	}
+
+#if !TORRENT_NO_FPU
+	void torrent_handle::file_progress(std::vector<float>& progress) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
+	}
+#endif
 
 	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const
 	{
