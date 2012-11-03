@@ -4438,14 +4438,16 @@ retry:
 				--hard_limit;
 				--type_limit;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
+				if (!t->allows_peers())
+					t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
 #endif
 				t->set_allow_peers(true);
 			}
 			else
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
+				if (t->allows_peers())
+					t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
 #endif
 				// use graceful pause for auto-managed torrents
 				t->set_allow_peers(false, true);
@@ -5304,6 +5306,7 @@ retry:
 		(*m_logger) << buf;
 	}
 
+#if defined TORRENT_VERBOSE_LOGGING
 	void session_impl::log_all_torrents(peer_connection* p)
 	{
 		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
@@ -5312,6 +5315,7 @@ retry:
 			p->peer_log("   %s", to_hex(i->second->torrent_file().info_hash().to_string()).c_str());
 		}
 	}
+#endif
 #endif
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret

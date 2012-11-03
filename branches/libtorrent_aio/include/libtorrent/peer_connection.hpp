@@ -449,6 +449,12 @@ namespace libtorrent
 		boost::shared_ptr<logger> m_logger;
 #endif
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		ptime m_connect_time;
+		ptime m_bitfield_time;
+		ptime m_unchoke_time;
+#endif
+
 		// the message handlers are called
 		// each time a recv() returns some new
 		// data, the last time it will be called

@@ -339,6 +339,16 @@ namespace libtorrent
 		m_save_path = canonicalize_path(m_save_path);
 #endif
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_logger_time = time_now_hires();
+		error_code ec;
+
+		char buf[50];
+		snprintf(buf, sizeof(buf), "torrent_%p", this);
+
+		m_logger = m_ses.create_log(buf, m_ses.listen_port());
+		debug_log("torrent started");
+#endif
 		if (!m_apply_ip_filter)
 		{
 			m_ses.inc_stats_counter(aux::session_interface::non_filter_torrents);
@@ -2075,6 +2085,11 @@ namespace libtorrent
 			}
 		}
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		if (m_policy.num_peers() > 0)
+			debug_log("resume added peers (%d)", m_policy.num_peers());
+#endif
+
 		// only report this error if the user actually provided resume data
 		if ((j->error || j->ret != 0) && m_resume_data
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
@@ -2502,6 +2517,11 @@ namespace libtorrent
 		int port = m_ses.listen_port();
 #endif
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		debug_log("START DHT announce");
+		m_dht_start_time = time_now_hires();
+#endif
+
 		boost::weak_ptr<torrent> self(shared_from_this());
 		m_ses.dht()->announce(m_torrent_file->info_hash()
 			, port, is_seed()
@@ -2519,6 +2539,13 @@ namespace libtorrent
 	void torrent::on_dht_announce_response(std::vector<tcp::endpoint> const& peers)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		debug_log("END DHT announce (%d ms) (%d peers)"
+			, int(total_milliseconds(time_now_hires() - m_dht_start_time))
+			, int(peers.size()));
+#endif
+
 		if (peers.empty()) return;
 
 		if (m_ses.alerts().should_post<dht_reply_alert>())
@@ -2537,6 +2564,7 @@ namespace libtorrent
 		do_connect_boost();
 
 		update_want_peers();
+		// TODO: boost connection attempts, just like for normal trackers
 	}
 
 #endif
@@ -3662,6 +3690,10 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		TORRENT_ASSERT(!m_picker->has_piece_passed(index));
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		debug_log("PIECE_PASSED (%d)", num_passed());
+#endif
 
 //		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
 
@@ -5538,6 +5570,10 @@ namespace libtorrent
 			c->m_queued_for_connection = true;
 			m_ses.half_open().enqueue(c.get()
 				, seconds(settings().get_int(settings_pack::peer_connect_timeout)));
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
+#endif
 		}
 		TORRENT_CATCH (std::exception& e)
 		{
@@ -6489,6 +6525,10 @@ namespace libtorrent
 			c->m_queued_for_connection = true;
 			m_ses.half_open().enqueue(c.get()
 				, seconds(timeout));
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
+#endif
 		}
 		TORRENT_CATCH (std::exception&)
 		{
@@ -6754,6 +6794,10 @@ namespace libtorrent
 		sorted_insert(m_connections, p);
 		update_want_peers();
 		update_want_tick();
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		debug_log("incoming peer (%d)", int(m_connections.size()));
+#endif
 
 #ifdef TORRENT_DEBUG
 		error_code ec;
@@ -7376,7 +7420,25 @@ namespace libtorrent
 				// returns 0 requests, regardless of how many peers may still
 				// have the block in their queue
 				if (!m_picker->is_downloaded(b) && m_picker->is_downloading(b.piece_index))
-					TORRENT_ASSERT(picker_count == count);
+				{
+					if (picker_count != count)
+					{
+						fprintf(stderr, "picker count discrepancy: %d != %d\n", picker_count, count);
+						for (const_peer_iterator i = this->begin(); i != this->end(); ++i)
+						{
+							peer_connection const& p = *(*i);
+							fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
+							for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
+								, end(p.request_queue().end()); i != end; ++i)
+							{
+								fprintf(stderr, "  (%d, %d) skipped: %d %s %s %s\n", i->block.piece_index
+									, i->block.block_index, int(i->skipped), i->not_wanted ? "not-wanted" : ""
+									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
+							}
+						}
+						TORRENT_ASSERT(false);
+					}
+				}
 			}
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
@@ -9559,17 +9621,19 @@ namespace libtorrent
 
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	void torrent::debug_log(const char* fmt, ...) const
+	void torrent::debug_log(char const* fmt, ...) const
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
+		if (!m_logger) return;
 
 		va_list v;	
 		va_start(v, fmt);
 	
-		char usr[1024];
+		char usr[400];
 		vsnprintf(usr, sizeof(usr), fmt, v);
 		va_end(v);
-		m_ses.session_log("%s", usr);
+		char buf[450];
+		snprintf(buf, sizeof(buf), "%"PRId64": %s\n", total_microseconds(time_now_hires() - m_logger_time), usr);
+		(*m_logger) << buf;
 	}
 #endif
 

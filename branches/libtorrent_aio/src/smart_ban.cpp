@@ -63,10 +63,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_LOG_HASH_FAILURES
 
+#ifdef TORRENT_LOGGING
+#include "libtorrent/socket_io.hpp"
+#endif
+
 #ifdef TORRENT_LOG_HASH_FAILURES
 
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/escape_string.hpp" // to_hex
+#include "libtorrent/socket_io.hpp"
 
 void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
 	, libtorrent::address a, char const* bytes, int len, bool corrupt)
@@ -136,8 +141,8 @@ namespace
 		void on_piece_pass(int p)
 		{
 #ifdef TORRENT_LOGGING
-			m_torrent.session().session_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
-				, p, int(m_blocks_hashes.size()))
+			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
+				, p, int(m_block_hashes.size()));
 #endif
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
@@ -284,7 +289,7 @@ namespace
 						p->connection->get_peer_info(info);
 						client = info.client.c_str();
 					}
-					m_torrent.session().session_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+					m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 						" | hash1: %s | hash2: %s | ip: %s ]"
 						, b.piece_index, b.block_index, client
 						, to_hex(i->second.digest.to_string()).c_str()
@@ -310,11 +315,11 @@ namespace
 				p->connection->get_peer_info(info);
 				client = info.client.c_str();
 			}
-			m_torrent.session().session_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
+			m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
 				" | digest: %s | ip: %s ]"
 				, b.piece_index, b.block_index, client
 				, to_hex(e.digest.to_string()).c_str()
-				, print_address(p->ip()).c_str());
+				, print_address(p->ip().address()).c_str());
 #endif
 		}
 		
@@ -352,12 +357,12 @@ namespace
 				p->connection->get_peer_info(info);
 				client = info.client.c_str();
 			}
-			m_torrent.session().session_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+			m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 				" | ok_digest: %s | bad_digest: %s | ip: %s ]"
-				, b.piece_index, b.block_index, client
+				, b.first.piece_index, b.first.block_index, client
 				, to_hex(ok_digest.to_string()).c_str()
 				, to_hex(b.second.digest.to_string()).c_str()
-				, print_address(p->ip()).c_str());
+				, print_address(p->ip().address()).c_str());
 #endif
 			m_torrent.get_policy().ban_peer(p);
 			if (p->connection) p->connection->disconnect(

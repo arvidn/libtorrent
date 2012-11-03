@@ -324,8 +324,10 @@ namespace libtorrent { namespace aux
 		virtual boost::shared_ptr<logger> create_log(std::string const& name
 			, int instance, bool append = true) = 0;
 		virtual void session_log(char const* fmt, ...) const = 0;
-		virtual void log_all_torrents(peer_connection* p) = 0;
 		virtual std::string get_log_path() const = 0;
+#if defined TORRENT_VERBOSE_LOGGING
+		virtual void log_all_torrents(peer_connection* p) = 0;
+#endif
 #endif
 
 #ifdef TORRENT_BUFFER_STATS

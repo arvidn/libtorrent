@@ -404,10 +404,6 @@ namespace libtorrent
 // --------------------------------------------
 		// PEER MANAGEMENT
 		
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
-		void log_to_all_peers(char const* message);
-#endif
-
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
 		void add_web_seed(std::string const& url, web_seed_entry::type_t type);
@@ -757,6 +753,10 @@ namespace libtorrent
 		// LOGGING
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		virtual void debug_log(const char* fmt, ...) const;
+		void log_to_all_peers(char const* message);
+		boost::shared_ptr<logger> m_logger;
+		ptime m_logger_time;
+		ptime m_dht_start_time;
 #endif
 
 		// DEBUG

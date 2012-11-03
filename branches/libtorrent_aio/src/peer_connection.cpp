@@ -1117,6 +1117,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_connect_time = time_now_hires();
+#endif
+
 		TORRENT_ASSERT(!m_disconnecting);
 		TORRENT_ASSERT(m_torrent.expired());
 		boost::weak_ptr<torrent> wpt = m_ses.find_torrent(ih);
@@ -1454,6 +1458,11 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_unchoke_time = time_now_hires();
+		t->debug_log("UNCHOKE [%p] (%d ms)", this, int(total_milliseconds(m_unchoke_time - m_bitfield_time)));
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1851,6 +1860,10 @@ namespace libtorrent
 
 		m_bitfield_received = true;
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_bitfield_time = time_now_hires();
+		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+#endif
 		// if we don't have metadata yet
 		// just remember the bitmask
 		// don't update the piecepicker
@@ -2501,6 +2514,11 @@ namespace libtorrent
 			}
 		}
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		t->debug_log("PIECE [%p] (%d ms) (%d)", this
+			, int(total_milliseconds(time_now_hires() - m_unchoke_time)), t->num_have());
+#endif
+
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %d | l: %d ]"
 			, p.piece, p.start, p.length);
@@ -2799,6 +2817,11 @@ namespace libtorrent
 		m_upload_only = true;
 		m_bitfield_received = true;
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_bitfield_time = time_now_hires();
+		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+#endif
+
 		// if we don't have metadata yet
 		// just remember the bitmask
 		// don't update the piecepicker
@@ -2856,6 +2879,10 @@ namespace libtorrent
 		t->get_policy().set_seed(m_peer_info, false);
 		m_bitfield_received = true;
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		m_bitfield_time = time_now_hires();
+		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+#endif
 		m_have_piece.clear_all();
 		m_num_pieces = 0;
 
@@ -2879,6 +2906,14 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
+
+#ifdef TORRENT_LOGGING
+		{
+			ptime now = time_now_hires();
+			t->debug_log("ALLOW FAST [%p] (%d ms)", this, int(total_milliseconds(now - m_connect_time)));
+			if (m_peer_choked) m_unchoke_time = now;
+		}
+#endif
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("<== ALLOWED_FAST [ %d ]", index);
@@ -3458,6 +3493,9 @@ namespace libtorrent
 		{
 			// This means we just added a request to this connection
 			m_requested = time_now();
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			t->debug_log("REQUEST [%p] (%d ms)", this, int(total_milliseconds(time_now_hires() - m_unchoke_time)));
+#endif
 		}
 	}
 
@@ -3466,6 +3504,10 @@ namespace libtorrent
 		m_queued_for_connection = false;
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		t->debug_log("END queue peer (timed out) [%p]", this);
+#endif
 		connect_failed(errors::timed_out);
 	}
 	
@@ -5596,6 +5638,13 @@ namespace libtorrent
 		TORRENT_ASSERT(m_queued_for_connection);
 		m_queued_for_connection = false;
 
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			t->debug_log("END queue peer [%p]", this);
+		}
+#endif
+
 		TORRENT_ASSERT(m_ses.is_single_thread());
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// in case we disconnect here, we need to
@@ -5686,6 +5735,11 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_connection_complete");
 #endif
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
+#endif
+
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = time_now_hires();
@@ -5714,6 +5768,14 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		m_rtt = total_milliseconds(completed - m_connect);
+
+#if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			t->debug_log("END connect [%p] (%d ms)", this, m_rtt);
+			m_connect_time = completed;
+		}
+#endif
 
 #ifdef TORRENT_USE_OPENSSL
 		// add this RTT to the PRNG seed, to add more unpredictability

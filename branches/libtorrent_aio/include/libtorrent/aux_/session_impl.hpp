@@ -1314,7 +1314,9 @@ namespace libtorrent
 			
 			virtual void session_log(char const* fmt, ...) const;
 
+#if defined TORRENT_VERBOSE_LOGGING
 			void log_all_torrents(peer_connection* p);
+#endif
 
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
