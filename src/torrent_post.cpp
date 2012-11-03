@@ -38,68 +38,39 @@ extern "C" {
 #include "mongoose.h"
 }
 
-namespace libtorrent
-{
+using namespace libtorrent;
 
-torrent_post::torrent_post(session& s, std::string path)
-	: m_ses(s)
-	, m_path(path)
+bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_code& ec)
 {
-	m_params_model.save_path = ".";
-}
-
-bool torrent_post::handle_http(mg_connection* conn,
-	mg_request_info const* request_info)
-{
-	std::string req_path = request_info->uri;
-	if (request_info->query_string && m_path.find('?'))
-	{
-		req_path += '?';
-		req_path += request_info->query_string;
-	}
-	if (req_path != m_path) return false;
-
 	char const* cl = mg_get_header(conn, "content-length");
-	std::vector<char> post_body;
-	if (cl != NULL)
-	{
-		int content_length = atoi(cl);
-		if (content_length > 0 && content_length < 10 * 1024 * 1024)
-		{
-			post_body.resize(content_length + 1);
-			mg_read(conn, &post_body[0], post_body.size());
-			post_body[content_length] = 0;
-			// null terminate
-		}
-	}
+	if (cl == NULL) return false;
 
-	printf("REQUEST: %s?%s\n", request_info->uri
-		, request_info->query_string ? request_info->query_string : "");
+	std::vector<char> post_body;
+
+	int content_length = atoi(cl);
+	if (content_length > 0 && content_length < 10 * 1024 * 1024)
+	{
+		post_body.resize(content_length + 1);
+		// minus one here since we shouldn't read the null terminator
+		mg_read(conn, &post_body[0], content_length);
+		post_body[content_length] = 0;
+		// null terminate
+	}
 
 	// expect a multipart message here
 	char const* content_type = mg_get_header(conn, "content-type");
-	if (strstr(content_type, "multipart/form-data") == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 400 Invalid argument\r\n\r\n");
-		return true;
-	}
+	if (strstr(content_type, "multipart/form-data") == NULL) return false;
 
 	char const* boundary = strstr(content_type, "boundary=");
-	if (boundary == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 400 Missing boundary in header\r\n\r\n");
-		return true;
-	}
+	if (boundary == NULL) return false;
+
 	boundary += 9;
 
-	char const* body_end = &post_body[0] + post_body.size();
+	char const* body_end = &post_body[0] + content_length;
 
-	char const* part_start = strnstr(&post_body[0], boundary, post_body.size());
-	if (part_start == NULL)
-	{
-		mg_printf(conn, "HTTP/1.1 400 Missing boundary\r\n\r\n");
-		return true;
-	}
+	char const* part_start = strnstr(&post_body[0], boundary, content_length);
+	if (part_start == NULL) return false;
+
 	part_start += strlen(boundary);
 	char const* part_end = NULL;
 
@@ -121,40 +92,16 @@ bool torrent_post::handle_http(mg_connection* conn,
 		}
 */
 		std::string const& disposition = part.header("content-type");
-		if (disposition != "application/octet-stream") continue;
+		if (disposition != "application/octet-stream"
+			&& disposition != "application/x-bittorrent") continue;
 
-		add_torrent_params params = m_params_model;
 		char const* torrent_start = part.get_body().begin;
 		error_code ec;
 		params.ti = boost::intrusive_ptr<torrent_info>(new torrent_info(torrent_start, part_end - torrent_start, ec));
-
-		if (ec)
-		{
-			mg_printf(conn, "HTTP/1.1 400 %s\r\n\r\n", ec.message().c_str());
-			continue;
-		}
-
-		std::string query_string = "?";
-		query_string += request_info->query_string;
-
-		std::string paused = url_has_argument(query_string, "paused");
-		if (paused == "true")
-		{
-			params.flags |= add_torrent_params::flag_paused;
-			params.flags &= ~add_torrent_params::flag_auto_managed;
-		}
-
-		torrent_handle h = m_ses.add_torrent(params);
-		if (ec)
-		{
-			mg_printf(conn, "HTTP/1.1 400 %s\r\n\r\n", ec.message().c_str());
-			return true;
-		}
+		if (ec) return false;
+		return true;
 	}
 
-	mg_printf(conn, "HTTP/1.1 200 OK\r\n\r\n");
-	return true;
-}
-
+	return false;
 }
 

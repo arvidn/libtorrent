@@ -58,6 +58,7 @@ extern "C" {
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 #include "response_buffer.hpp" // for appendf
+#include "torrent_post.hpp" // for parse_torrent_post
 
 namespace libtorrent
 {
@@ -991,6 +992,30 @@ transmission_webui::~transmission_webui() {}
 
 bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
+
+	if (strcmp(request_info->uri, "/upload") == 0)
+	{
+		add_torrent_params p = m_params_model;
+		error_code ec;
+		if (!parse_torrent_post(conn, p, ec))
+		{
+			mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+				"Connection: close\r\n\r\n");
+			return true;
+		}
+
+		char buf[10];
+		if (mg_get_var(request_info->query_string, strlen(request_info->query_string)
+			, "paused", buf, sizeof(buf)) > 0)
+		{
+			p.flags |= add_torrent_params::flag_paused;
+			p.flags &= ~add_torrent_params::flag_auto_managed;
+		}
+
+		m_ses.async_add_torrent(p);
+		return true;
+	}
+
 	if (strcmp(request_info->uri, "/transmission/rpc")
 		&& strcmp(request_info->uri, "/rpc")) return false;
 

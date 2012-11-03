@@ -56,6 +56,7 @@ extern "C" {
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 #include "response_buffer.hpp" // for appendf
+#include "torrent_post.hpp"
 
 namespace libtorrent
 {
@@ -140,6 +141,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 
 	std::vector<char> response;
 
+	// Auth token handling
 	if (strcmp(request_info->uri, "/gui/token.html") == 0)
 	{
 		appendf(response, "<html><div id=\"token\" style=\"display:none;\">%s</div></html>"
@@ -149,10 +151,11 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
 			"Conten-Length: %d\r\n"
 			"Content-Type: text/html\r\n\r\n"
-			"%s", response.size()-1, &response[0]);
+			"%s", int(response.size()-1), &response[0]);
 		return true;
 	}
 
+	// all other requests use the path /gui/ with varying query strings
 	if (strcmp(request_info->uri, "/gui/") != 0) return false;
 
 	if (request_info->query_string == NULL)
@@ -182,12 +185,29 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		, "action", action, sizeof(action));
 	if (ret > 0)
 	{
-		for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+		// add-file is special, since it posts the torrent
+		if (strcmp(action, "add-file") == 0)
 		{
-			if (strcmp(action, handlers[i].action_name)) continue;
+			add_torrent_params p = m_params_model;
+			error_code ec;
+			if (!parse_torrent_post(conn, p, ec))
+			{
+				mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+					"Connection: close\r\n\r\n");
+				return true;
+			}
 
-			(this->*handlers[i].fun)(response, request_info->query_string);
-			break;
+			m_ses.async_add_torrent(p);
+		}
+		else
+		{
+			for (int i = 0; i < sizeof(handlers)/sizeof(handlers[0]); ++i)
+			{
+				if (strcmp(action, handlers[i].action_name)) continue;
+
+				(this->*handlers[i].fun)(response, request_info->query_string);
+				break;
+			}
 		}
 	}
 
@@ -536,7 +556,7 @@ std::string utorrent_message(torrent_status const& st)
 	if (st.state == torrent_status::checking_files)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "Checking (%d.%2d%%)"
+		snprintf(msg, sizeof(msg), "Checking (%d.%2d%%%%)"
 			, st.progress_ppm / 10000, st.progress_ppm % 10000);
 		return msg;
 	}
@@ -657,7 +677,9 @@ std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) con
 		sha1_hash h;
 		bool ok = from_hex(hash, 40, (char*)&h[0]);
 		if (!ok) continue;
-		ret.push_back(m_ses.find_torrent(h));
+		torrent_handle th = m_ses.find_torrent(h);
+		if (!th.is_valid()) continue;
+		ret.push_back(th);
 	}
 	return ret;
 }

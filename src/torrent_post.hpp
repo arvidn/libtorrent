@@ -35,31 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "webui.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
-namespace libtorrent
-{
-	struct torrent_post : http_handler
-	{
-		torrent_post(session& s, std::string path);
-
-		void set_params_model(add_torrent_params const& p)
-		{ m_params_model = p; }
-
-		virtual bool handle_http(mg_connection* conn,
-			mg_request_info const* request_info);
-
-	private:
-
-		session& m_ses;
-		add_torrent_params m_params_model;
-
-		// the path where posts are accepted
-		// utorrent uses: /gui/?action=add-file
-		// transmission uses: /upload
-		std::string m_path;
-
-	};
-}
+bool parse_torrent_post(mg_connection* conn, libtorrent::add_torrent_params& p, libtorrent::error_code& ec);
 
 #endif
 
