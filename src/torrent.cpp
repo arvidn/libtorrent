@@ -2104,6 +2104,9 @@ namespace libtorrent
 #endif
 			pause();
 			set_error(j.error, j.error_file);
+			// recalculate auto-managed torrents sooner
+			// in order to start checking the next torrent
+			m_ses.trigger_auto_manage();
 			return;
 		}
 
@@ -2250,6 +2253,8 @@ namespace libtorrent
 		std::for_each(peers.begin(), peers.end(), boost::bind(
 			&policy::add_peer, boost::ref(m_policy), _1, peer_id(0)
 			, peer_info::dht, 0));
+
+		do_connect_boost();
 	}
 
 #endif
@@ -2689,29 +2694,35 @@ namespace libtorrent
 			}
 		}
 
-		if (m_need_connect_boost)
-		{
-			m_need_connect_boost = false;
-			// this is the first tracker response for this torrent
-			// instead of waiting one second for session_impl::on_tick()
-			// to be called, connect to a few peers immediately
-			int conns = (std::min)((std::min)((std::min)(m_ses.m_settings.torrent_connect_boost
-				, m_ses.m_settings.connections_limit - m_ses.num_connections())
-				, m_ses.m_half_open.free_slots())
-				, m_ses.m_boost_connections - m_ses.m_settings.connection_speed);
-
-			while (want_more_peers() && conns > 0)
-			{
-				if (!m_policy.connect_one_peer(m_ses.session_time())) break;
-				// increase m_ses.m_boost_connections for each connection
-				// attempt. This will be deducted from the connect speed
-				// the next time session_impl::on_tick() is triggered
-				--conns;
-				++m_ses.m_boost_connections;
-			}
-		}
+		do_connect_boost();
 
 		state_updated();
+	}
+
+	void torrent::do_connect_boost()
+	{
+		if (!m_need_connect_boost) return;
+
+		m_need_connect_boost = false;
+		// this is the first tracker response for this torrent
+		// instead of waiting one second for session_impl::on_tick()
+		// to be called, connect to a few peers immediately
+		int conns = (std::min)((std::min)((std::min)(m_ses.m_settings.torrent_connect_boost
+			, m_ses.m_settings.connections_limit - m_ses.num_connections())
+			, m_ses.m_half_open.free_slots())
+			, m_ses.m_boost_connections - m_ses.m_settings.connection_speed);
+
+		while (want_more_peers() && conns > 0)
+		{
+			if (!m_policy.connect_one_peer(m_ses.session_time())) break;
+			// increase m_ses.m_boost_connections for each connection
+			// attempt. This will be deducted from the connect speed
+			// the next time session_impl::on_tick() is triggered
+			--conns;
+			++m_ses.m_boost_connections;
+		}
+
+		if (want_more_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
 
 	ptime torrent::next_announce() const
@@ -6184,7 +6195,7 @@ namespace libtorrent
 		// under a different limit with the auto-manager. Make sure we
 		// update auto-manage torrents in that case
 		if (m_auto_managed)
-			m_ses.m_auto_manage_time_scaler = 2;
+			m_ses.trigger_auto_manage();
 	}
 
 	// this is called when we were finished, but some files were
@@ -6303,7 +6314,7 @@ namespace libtorrent
 		{
 			// if this is an auto managed torrent, force a recalculation
 			// of which torrents to have active
-			m_ses.m_auto_manage_time_scaler = 2;
+			m_ses.trigger_auto_manage();
 		}
 
 		if (!is_seed())
@@ -6313,7 +6324,7 @@ namespace libtorrent
 
 			// if we just finished checking and we're not a seed, we are
 			// likely to be unpaused
-			m_ses.m_auto_manage_time_scaler = 2;
+			m_ses.trigger_auto_manage();
 
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
@@ -6858,7 +6869,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!m_error) return;
 		bool checking_files = should_check_files();
-		m_ses.m_auto_manage_time_scaler = 2;
+		m_ses.trigger_auto_manage();
 		m_error = error_code();
 		m_error_file.clear();
 
@@ -6923,7 +6934,7 @@ namespace libtorrent
 
 		// recalculate which torrents should be
 		// paused
-		m_ses.m_auto_manage_time_scaler = 2;
+		m_ses.trigger_auto_manage();
 
 		if (!checking_files && should_check_files())
 		{
@@ -7199,7 +7210,7 @@ namespace libtorrent
 
 		// if this torrent was just paused
 		// we might have to resume some other auto-managed torrent
-		m_ses.m_auto_manage_time_scaler = 2;
+		m_ses.trigger_auto_manage();
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING

@@ -462,6 +462,10 @@ namespace libtorrent
 		// base64 encoding).
 		std::string tracker_login() const;
 
+		// if we need a connect boost, connect some peers
+		// immediately
+		void do_connect_boost();
+
 		// returns the absolute time when the next tracker
 		// announce will take place.
 		ptime next_announce() const;
