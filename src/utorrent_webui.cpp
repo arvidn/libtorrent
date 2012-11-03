@@ -373,18 +373,26 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 
 	appendf(response,
 		",[\"bind_port\",0,\"%d\",{\"access\":\"Y\"}]\n"
+		",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n"
 		",[\"webui.cookie\",2,\"%s\",{\"access\":\"Y\"}]\n"
 		",[\"language\",0,\"0\",{\"access\":\"Y\"}]\n"
 		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"Y\"}]\n"
 		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"Y\"}]\n"
+		",[\"webui.port\",0,\"8080\",{\"access\":\"Y\"}]\n"
 		"]"
 		 + first
 		, m_ses.listen_port()
+		, (sett.get_bool(settings_pack::enable_outgoing_utp) ? 1 : 0)
+			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 2 : 0)
+			+ (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 4 : 0)
+			+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 8 : 0)
 		, m_webui_cookie.c_str());
 }
 
 void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 {
+	settings_pack pack;
+
 	for (char const* s = strstr(args, "&s="); s; s = strstr(s, "&s="))
 	{
 		s += 3;
@@ -407,13 +415,41 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 			error_code ec;
 			m_ses.listen_on(std::make_pair(port, port+1), ec);
 		}
+		else if (key == "bt.transp_disposition")
+		{
+			int mask = atoi(value.c_str());
+			pack.set_bool(settings_pack::enable_outgoing_utp, mask & 1);
+			pack.set_bool(settings_pack::enable_incoming_utp, mask & 2);
+			pack.set_bool(settings_pack::enable_outgoing_tcp, mask & 4);
+			pack.set_bool(settings_pack::enable_incoming_tcp, mask & 8);
+		}
 		else
 		{
-			// ...
+			int field = setting_by_name(key.c_str());
+			if (field >= 0)
+			{
+				switch (field & settings_pack::type_mask)
+				{
+					case settings_pack::string_type_base:
+						pack.set_str(field, value.c_str());
+						break;
+					case settings_pack::int_type_base:
+						pack.set_int(field, atoi(value.c_str()));
+						break;
+					case settings_pack::bool_type_base:
+						pack.set_bool(field, value == "true");
+						break;
+				}
+			}
+			else
+			{
+				fprintf(stderr, "unknown setting: %s\n", key.c_str());
+			}
 		}
 
 		s = v_end;
 	}
+	m_ses.apply_settings(pack);
 }
 
 void utorrent_webui::send_file_list(std::vector<char>& response, char const* args)
