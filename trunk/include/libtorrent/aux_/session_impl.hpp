@@ -245,6 +245,12 @@ namespace libtorrent
 
 			void open_listen_port(int flags, error_code& ec);
 
+			// prioritize this torrent to be allocated some connection
+			// attempts, because this torrent needs more peers.
+			// this is typically done when a torrent starts out and
+			// need the initial push to connect peers
+			void prioritize_connections(boost::weak_ptr<torrent> t);
+
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
 			// machine, otherwise just an empty endpoint
@@ -293,6 +299,11 @@ namespace libtorrent
 			void start_dht();
 			void stop_dht();
 			void start_dht(entry const& startup_state);
+
+			// this is called for torrents when they are started
+			// it will prioritize them for announcing to
+			// the DHT, to get the initial peers quickly
+			void prioritize_dht(boost::weak_ptr<torrent> t);
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
@@ -556,6 +567,8 @@ namespace libtorrent
 
 			void update_connections_limit();
 			void update_unchoke_limit();
+			void trigger_auto_manage();
+			void on_trigger_auto_manage();
 			void update_rate_settings();
 
 			void update_disk_thread_settings();
@@ -960,6 +973,9 @@ namespace libtorrent
 			std::deque<boost::weak_ptr<torrent> > m_dht_torrents;
 #endif
 
+			// torrents prioritized to get connection attempts
+			std::deque<std::pair<boost::weak_ptr<torrent>, int> > m_prio_torrents;
+
 			// this announce timer is used
 			// by Local service discovery
 			deadline_timer m_lsd_announce_timer;
@@ -1188,6 +1204,20 @@ namespace libtorrent
 			// total redundant and failed bytes
 			size_type m_total_failed_bytes;
 			size_type m_total_redundant_bytes;
+
+			// this is set to true when a torrent auto-manage
+			// event is triggered, and reset whenever the message
+			// is delivered and the auto-manage is executed.
+			// there should never be more than a single pending auto-manage
+			// message in-flight at any given time.
+			bool m_pending_auto_manage;
+			
+			// this is also set to true when triggering an auto-manage
+			// of the torrents. However, if the normal auto-manage
+			// timer comes along and executes the auto-management,
+			// this is set to false, which means the triggered event
+			// no longer needs to execute the auto-management.
+			bool m_need_auto_manage;
 
 			// redundant bytes per category
 			size_type m_redundant_bytes[7];
