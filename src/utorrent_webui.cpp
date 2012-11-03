@@ -95,7 +95,7 @@ static method_handler handlers[] =
 	{ "queuebottom", &utorrent_webui::queue_bottom },
 
 	{ "getfiles", &utorrent_webui::send_file_list },
-//	{ "getpeers", &utorrent_webui:: },
+	{ "getpeers", &utorrent_webui::send_peer_list },
 	{ "getprops", &utorrent_webui::get_properties },
 	{ "recheck", &utorrent_webui::recheck },
 	{ "remove", &utorrent_webui::remove_torrent },
@@ -214,7 +214,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 	if (mg_get_var(request_info->query_string, strlen(request_info->query_string)
 		, "list", buf, sizeof(buf)) > 0)
 	{
-		print_torrent_list(response, request_info->query_string);
+		send_torrent_list(response, request_info->query_string);
 	}
 
 	// we need a null terminator
@@ -539,6 +539,104 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 	response.push_back(']');
 }
 
+std::string utorrent_peer_flags(peer_info const& pi)
+{
+	std::string ret;
+	if (pi.flags & peer_info::remote_interested)
+	{
+		ret += (pi.flags & peer_info::remote_choked) ? 'u' : 'U';
+	}
+
+	if (pi.flags & peer_info::interesting)
+	{
+		ret += (pi.flags & peer_info::choked) ? 'd' : 'D';
+	}
+
+	if (pi.flags & peer_info::optimistic_unchoke)
+		ret += 'O';
+
+	if (pi.flags & peer_info::snubbed)
+		ret += 'S';
+
+	if ((pi.flags & peer_info::local_connection))
+		ret += 'I';
+
+	if ((pi.source & peer_info::dht))
+		ret += 'H';
+
+	if ((pi.source & peer_info::pex))
+		ret += 'X';
+
+	if ((pi.source & peer_info::lsd))
+		ret += 'L';
+
+	if ((pi.flags & peer_info::rc4_encrypted))
+		ret += 'E';
+	else if ((pi.flags & peer_info::plaintext_encrypted))
+		ret += 'e';
+
+	if ((pi.flags & peer_info::on_parole))
+		ret += 'F';
+
+	if (pi.connection_type == peer_info::bittorrent_utp)
+		ret += 'P';
+	return ret;
+}
+
+void utorrent_webui::send_peer_list(std::vector<char>& response, char const* args)
+{
+	std::vector<torrent_handle> torrents = parse_torrents(args);
+	appendf(response, ",\"peers\":[");
+	int first = 1;
+	for (std::vector<torrent_handle>::iterator i = torrents.begin()
+		, end(torrents.end()); i != end; ++i)
+	{
+		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		if (!ti) continue;
+
+		appendf(response, ",\"%s\",[" + first
+			, to_hex(i->info_hash().to_string()).c_str());
+
+		int first_peer = 1;
+		std::vector<peer_info> peers;
+		i->get_peer_info(peers);
+		for (std::vector<peer_info>::iterator p = peers.begin()
+			, pend(peers.end()); p != pend; ++p)
+		{
+			appendf(response, ",[\"%c%c\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
+				",%d,%"PRId64",%"PRId64",%d,%d,%d,%d,%d,%d,%d]" + first_peer
+				, p->country[0], p->country[1]
+				, print_endpoint(p->ip).c_str()
+				, ""
+				, p->connection_type == peer_info::bittorrent_utp
+				, p->ip.port()
+				, p->client.c_str()
+				, utorrent_peer_flags(*p).c_str()
+				, p->num_pieces * 1000 / ti->num_pieces()
+				, p->down_speed
+				, p->up_speed
+				, p->download_queue_length
+				, p->upload_queue_length
+				, total_seconds(p->last_request)
+				, p->total_upload
+				, p->total_download
+				, p->num_hashfails
+				, 0
+				, 0
+				, 0
+				, p->send_buffer_size
+				, total_seconds(p->last_active)
+				, 0
+				);
+			first_peer = 0;
+		}
+
+		response.push_back(']');
+		first = 0;
+	}
+	response.push_back(']');
+}
+
 enum ut_state_t
 {
 	STARTED = 1,
@@ -616,7 +714,7 @@ std::string utorrent_message(torrent_status const& st)
 
 bool nop(torrent_status const&) { return true; }
 
-void utorrent_webui::print_torrent_list(std::vector<char>& response, char const* args)
+void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* args)
 {
 	int cid = -1;
 	char buf[50];
