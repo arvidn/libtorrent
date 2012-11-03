@@ -4746,7 +4746,8 @@ retry:
 				t = m_prio_torrents.front().first.lock().get();
 				--m_prio_torrents.front().second;
 				if (m_prio_torrents.front().second > 0
-					&& t != NULL) break;
+					&& t != NULL
+					&& t->want_peers()) break;
 				m_prio_torrents.pop_front();
 			}
 			
