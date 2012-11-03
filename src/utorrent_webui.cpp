@@ -66,6 +66,10 @@ utorrent_webui::utorrent_webui(session& s)
 	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
 	m_webui_cookie = "{}";
+	m_version = 1;
+
+	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
+	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
 }
 
 utorrent_webui::~utorrent_webui() {}
@@ -134,14 +138,47 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		return true;
 	}
 
+	std::vector<char> response;
+
+	if (strcmp(request_info->uri, "/gui/token.html") == 0)
+	{
+		appendf(response, "<html><div id=\"token\" style=\"display:none;\">%s</div></html>"
+			, m_token.c_str());
+		response.push_back('\0');
+
+		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+			"Conten-Length: %d\r\n"
+			"Content-Type: text/html\r\n\r\n"
+			"%s", response.size()-1, &response[0]);
+		return true;
+	}
+
 	if (strcmp(request_info->uri, "/gui/") != 0) return false;
 
-	std::vector<char> response;
+	if (request_info->query_string == NULL)
+	{
+		mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+			"Connection: close\r\n\r\n");
+		return true;
+	}
+
+	char token[50];
+	// first, verify the token
+	int ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
+		, "token", token, sizeof(token));
+
+	if (ret <= 0 || m_token != token)
+	{
+		mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+			"Connection: close\r\n\r\n");
+		return true;
+	}
+
 	appendf(response, "{\"build\":%d", LIBTORRENT_VERSION_NUM);
 
 	char action[50];
-	// first, find the action
-	int ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
+	// then, find the action
+	ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
 		, "action", action, sizeof(action));
 	if (ret > 0)
 	{
@@ -362,8 +399,6 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 
 void utorrent_webui::send_file_list(std::vector<char>& response, char const* args)
 {
-	bool new_version = false;
-
 	std::vector<torrent_handle> t = parse_torrents(args);
 	appendf(response, ",\"files\":[");
 	int first = 1;
@@ -390,7 +425,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 				, (file_prio[i]+3) / 4 // uTorrent's web UI uses 4 priority levels
 				);
 
-			if (new_version)
+			if (m_version > 0)
 			{
 				appendf(response, ", %d, %d]"
 					, first_piece
@@ -556,9 +591,6 @@ void utorrent_webui::print_torrent_list(std::vector<char>& response, char const*
 	std::vector<torrent_status> torrents;
 	m_ses.get_torrent_status(&torrents, &nop);
 
-	// TODO: make version configurable
-	bool new_version = false;
-
 	int first = 1;
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
@@ -587,7 +619,7 @@ void utorrent_webui::print_torrent_list(std::vector<char>& response, char const*
 			, i->total_wanted - i->total_wanted_done
 			);
 
-		if (new_version)
+		if (m_version > 0)
 		{
 			appendf(response, ",\"%s\",\"%s\",\"%s\",\"%s\",%"PRId64",%"PRId64",\"%s\",\"%s\",%d,\"%s\"]"
 			, "" // url this torrent came from

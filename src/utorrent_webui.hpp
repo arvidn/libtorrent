@@ -81,6 +81,9 @@ namespace libtorrent
 		session& m_ses;
 		add_torrent_params m_params_model;
 		std::string m_webui_cookie;
+
+		int m_version;
+		std::string m_token;
 	};
 }
 
