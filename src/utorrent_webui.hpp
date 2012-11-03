@@ -69,6 +69,7 @@ namespace libtorrent
 		void set_settings(std::vector<char>&, char const* args);
 
 		void get_properties(std::vector<char>&, char const* args);
+		void add_url(std::vector<char>&, char const* args);
 
 		void send_file_list(std::vector<char>&, char const* args);
 		void print_torrent_list(std::vector<char>&, char const* args);

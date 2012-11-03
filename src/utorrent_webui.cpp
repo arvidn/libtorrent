@@ -102,8 +102,7 @@ static method_handler handlers[] =
 //	{ "setprio", &utorrent_webui:: },
 	{ "getsettings", &utorrent_webui::get_settings },
 	{ "setsetting", &utorrent_webui::set_settings },
-//	{ "add-file", &utorrent_webui:: },
-//	{ "add-url", &utorrent_webui::add_url },
+	{ "add-url", &utorrent_webui::add_url },
 //	{ "setprops", &utorrent_webui:: },
 	{ "removedata", &utorrent_webui::remove_torrent_and_data },
 //	{ "list-dirs", &utorrent_webui:: },
@@ -430,6 +429,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 		i->file_progress(progress);
 		file_prio = i->file_priorities();
 		boost::intrusive_ptr<torrent_info> ti = i->torrent_file();
+		if (!ti) continue;
 		file_storage const& files = ti->files();
 
 		appendf(response, ",\"%s\",["+first, to_hex(ti->info_hash().to_string()).c_str());
@@ -480,6 +480,25 @@ std::string trackers_as_string(torrent_handle h)
 	return ret;
 }
 
+void utorrent_webui::add_url(std::vector<char>&, char const* args)
+{
+	char url[4096];
+	if (mg_get_var(args, strlen(args)
+		, "url", url, sizeof(url)) <= 0)
+	{
+		if (mg_get_var(args, strlen(args)
+			, "s", url, sizeof(url)) <= 0)
+		{
+			return;
+		}
+	}
+
+	add_torrent_params p = m_params_model;
+	p.url = url;
+
+	m_ses.async_add_torrent(p);
+}
+
 void utorrent_webui::get_properties(std::vector<char>& response, char const* args)
 {
 	std::vector<torrent_handle> t = parse_torrents(args);
@@ -502,13 +521,13 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 			"\"seed_time\": %d,"
 			"\"ulslots\": %d,"
 			"\"seed_num\": %d}" + first
-			, to_hex(ti->info_hash().to_string()).c_str()
+			, ti ? to_hex(ti->info_hash().to_string()).c_str() : ""
 			, trackers_as_string(*i).c_str()
 			, i->download_limit()
 			, i->upload_limit()
 			, st.super_seeding
-			, ti->priv() ? 0 : m_ses.is_dht_running()
-			, ti->priv() ? 0 : 1
+			, ti && ti->priv() ? 0 : m_ses.is_dht_running()
+			, ti && ti->priv() ? 0 : 1
 			, 0
 			, 0
 			, 0
@@ -620,7 +639,7 @@ void utorrent_webui::print_torrent_list(std::vector<char>& response, char const*
 			, to_hex(i->handle.info_hash().to_string()).c_str()
 			, utorrent_status(*i)
 			, i->handle.name().c_str()
-			, ti->total_size()
+			, ti ? ti->total_size() : 0
 			, i->progress_ppm / 1000
 			, i->total_payload_download
 			, i->total_payload_upload
