@@ -596,6 +596,8 @@ namespace aux {
 		, m_total_failed_bytes(0)
 		, m_total_redundant_bytes(0)
 		, m_deferred_submit_disk_jobs(false)
+		, m_pending_auto_manage(false)
+		, m_need_auto_manage(false)
 		, m_writing_bytes(0)
 #if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
 		, m_network_thread(0)
@@ -1772,20 +1774,6 @@ namespace aux {
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
 		ext->added(shared_from_this());
-	}
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-	void session_impl::add_dht_node(udp::endpoint n)
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		if (m_dht) m_dht->add_node(n);
-	}
-
-	bool session_impl::has_dht() const
-	{
-		return m_dht;
 	}
 #endif
 
@@ -4266,7 +4254,41 @@ retry:
 		m_next_rss_update = min_update;
 	}
 
+	void session_impl::prioritize_connections(boost::weak_ptr<torrent> t)
+	{
+		m_prio_torrents.push_back(std::make_pair(t, 10));
+	}
+
 #ifndef TORRENT_DISABLE_DHT
+
+	void session_impl::add_dht_node(udp::endpoint n)
+	{
+		TORRENT_ASSERT(is_single_thread());
+
+		if (m_dht) m_dht->add_node(n);
+	}
+
+	bool session_impl::has_dht() const
+	{
+		return m_dht;
+	}
+
+	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
+	{
+		m_dht_torrents.push_back(t);
+		// trigger a DHT announce right away if we just
+		// added a new torrent and there's no back-log
+		if (m_dht_torrents.size() == 1)
+		{
+#if defined TORRENT_ASIO_DEBUGGING
+			add_outstanding_async("session_impl::on_dht_announce");
+#endif
+			error_code ec;
+			m_dht_announce_timer.expires_from_now(seconds(0), ec);
+			m_dht_announce_timer.async_wait(
+				bind(&session_impl::on_dht_announce, this, _1));
+		}
+	}
 
 	void session_impl::on_dht_announce(error_code const& e)
 	{
@@ -4284,6 +4306,15 @@ retry:
 		// announce to DHT every 15 minutes
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
+
+		if (!m_dht_torrents.empty())
+		{
+			// we have prioritized torrents that need
+			// an initial DHT announce. Don't wait too long
+			// until we announce those.
+			delay = (std::min)(4, delay);
+		}
+
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
@@ -4425,6 +4456,8 @@ retry:
 	void session_impl::recalculate_auto_managed_torrents()
 	{
 		INVARIANT_CHECK;
+
+		m_need_auto_manage = false;
 
 		// these vectors are filled with auto managed torrents
 
@@ -4704,25 +4737,38 @@ retry:
 			if (m_next_finished_connect_torrent >= int(want_peers_finished.size()))
 				m_next_finished_connect_torrent = 0;
 
-			torrent* t;
-			if ((m_download_connect_attempts >= m_settings.get_int(
-					settings_pack::connect_seed_every_n_download)
-				&& want_peers_finished.size())
-					|| want_peers_download.empty())
+			torrent* t = NULL;
+			// there are prioritized torrents. Pick one of those
+			while (!m_prio_torrents.empty())
 			{
-				// pick a finished torrent to give a peer to
-				t = want_peers_finished[m_next_finished_connect_torrent];
-				TORRENT_ASSERT(t->want_peers_finished());
-				m_download_connect_attempts = 0;
-				++m_next_finished_connect_torrent;
+				t = m_prio_torrents.front().first.lock().get();
+				--m_prio_torrents.front().second;
+				if (m_prio_torrents.front().second > 0
+					&& t != NULL) break;
+				m_prio_torrents.pop_front();
 			}
-			else
+			
+			if (t == NULL)
 			{
-				// pick a downloading torrent to give a peer to
-				t = want_peers_download[m_next_downloading_connect_torrent];
-				TORRENT_ASSERT(t->want_peers_download());
-				++m_download_connect_attempts;
-				++m_next_downloading_connect_torrent;
+				if ((m_download_connect_attempts >= m_settings.get_int(
+						settings_pack::connect_seed_every_n_download)
+					&& want_peers_finished.size())
+						|| want_peers_download.empty())
+				{
+					// pick a finished torrent to give a peer to
+					t = want_peers_finished[m_next_finished_connect_torrent];
+					TORRENT_ASSERT(t->want_peers_finished());
+					m_download_connect_attempts = 0;
+					++m_next_finished_connect_torrent;
+				}
+				else
+				{
+					// pick a downloading torrent to give a peer to
+					t = want_peers_download[m_next_downloading_connect_torrent];
+					TORRENT_ASSERT(t->want_peers_download());
+					++m_download_connect_attempts;
+					++m_next_downloading_connect_torrent;
+				}
 			}
 
 			TORRENT_ASSERT(t->want_peers());
@@ -5208,7 +5254,7 @@ retry:
 			me->set_queue_position_impl((std::min)(m_max_queue_pos, p));
 		}
 
-		m_auto_manage_time_scaler = 2;
+		trigger_auto_manage();
 	}
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
@@ -5586,7 +5632,7 @@ retry:
 		// a boat load of torrents, we postpone the recalculation until
 		// we're done adding them all (since it's kind of an expensive operation)
 		if (params.flags & add_torrent_params::flag_auto_managed)
-			m_auto_manage_time_scaler = 2;
+			trigger_auto_manage();
 
 		return torrent_handle(torrent_ptr);
 	}
@@ -6366,9 +6412,21 @@ retry:
 		}
 	}
 
-	void session_impl::reset_auto_manage_timer()
+	void session_impl::trigger_auto_manage()
 	{
-		m_auto_manage_time_scaler = 2;
+		if (m_pending_auto_manage) return;
+
+		m_pending_auto_manage = true;
+		m_need_auto_manage = true;
+		m_io_service.post(boost::bind(&session_impl::on_trigger_auto_manage, this));
+	}
+
+	void session_impl::on_trigger_auto_manage()
+	{
+		assert(m_pending_auto_manage);
+		m_pending_auto_manage = false;
+		if (!m_need_auto_manage) return;
+		recalculate_auto_managed_torrents();
 	}
  
 	void session_impl::update_dht_announce_interval()

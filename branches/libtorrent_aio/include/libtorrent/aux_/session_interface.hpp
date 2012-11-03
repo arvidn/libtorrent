@@ -209,12 +209,14 @@ namespace libtorrent { namespace aux
 		virtual char const* i2p_session() const = 0;
 #endif
 
+		virtual void prioritize_connections(boost::weak_ptr<torrent> t) = 0;
+
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
 		virtual tcp::endpoint get_ipv4_interface() const = 0;
 
 		virtual tcp::resolver& host_resolver() = 0;
 
-		virtual void reset_auto_manage_timer() = 0;
+		virtual void trigger_auto_manage() = 0;
 
 		virtual session_settings const& settings() const = 0;
 
@@ -274,7 +276,6 @@ namespace libtorrent { namespace aux
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;
 		virtual connection_queue& half_open() = 0;
 		virtual libtorrent::utp_socket_manager* utp_socket_manager() = 0;
-		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 		virtual void inc_boost_connections() = 0;
 		virtual void setup_socket_buffers(socket_type& s) = 0;
 		virtual std::vector<block_info>& block_info_storage() = 0;
@@ -301,6 +302,7 @@ namespace libtorrent { namespace aux
 		virtual bool has_dht() const = 0;
 		virtual int external_udp_port() const = 0;
 		virtual dht::dht_tracker* dht() = 0;
+		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_GEO_IP

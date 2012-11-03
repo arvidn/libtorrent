@@ -286,6 +286,12 @@ namespace libtorrent
 				return m_torrent_lists[i];
 			}
 
+			// prioritize this torrent to be allocated some connection
+			// attempts, because this torrent needs more peers.
+			// this is typically done when a torrent starts out and
+			// need the initial push to connect peers
+			void prioritize_connections(boost::weak_ptr<torrent> t);
+
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
 			// machine, otherwise just an empty endpoint
@@ -340,6 +346,11 @@ namespace libtorrent
 			void stop_dht();
 			void start_dht(entry const& startup_state);
 			bool has_dht() const;
+
+			// this is called for torrents when they are started
+			// it will prioritize them for announcing to
+			// the DHT, to get the initial peers quickly
+			void prioritize_dht(boost::weak_ptr<torrent> t);
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
@@ -678,8 +689,6 @@ namespace libtorrent
 
 			connection_queue& half_open() { return m_half_open; }
 			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
-			void prioritize_dht(boost::weak_ptr<torrent> t)
-			{ m_dht_torrents.push_back(t); }
 			void inc_boost_connections() { ++m_boost_connections; }
 
 //		private:
@@ -705,7 +714,10 @@ namespace libtorrent
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
-			void reset_auto_manage_timer();
+			void trigger_auto_manage();
+
+			void on_trigger_auto_manage();
+
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
 			void update_rate_settings();
@@ -1180,6 +1192,9 @@ namespace libtorrent
 			std::deque<boost::weak_ptr<torrent> > m_dht_torrents;
 #endif
 
+			// torrents prioritized to get connection attempts
+			std::deque<std::pair<boost::weak_ptr<torrent>, int> > m_prio_torrents;
+
 			// this announce timer is used
 			// by Local service discovery
 			deadline_timer m_lsd_announce_timer;
@@ -1388,6 +1403,20 @@ namespace libtorrent
 			// it means we don't need to post another one
 			bool m_deferred_submit_disk_jobs;
 			
+			// this is set to true when a torrent auto-manage
+			// event is triggered, and reset whenever the message
+			// is delivered and the auto-manage is executed.
+			// there should never be more than a single pending auto-manage
+			// message in-flight at any given time.
+			bool m_pending_auto_manage;
+			
+			// this is also set to true when triggering an auto-manage
+			// of the torrents. However, if the normal auto-manage
+			// timer comes along and executes the auto-management,
+			// this is set to false, which means the triggered event
+			// no longer needs to execute the auto-management.
+			bool m_need_auto_manage;
+
 			// the number of bytes we have sent to the disk I/O
 			// thread for writing. Every time we hear back from
 			// the disk I/O thread with a completed write job, this
