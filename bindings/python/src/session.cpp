@@ -688,4 +688,9 @@ void bind_session()
 
 	 def("high_performance_seed", high_performance_seed);
 	 def("min_memory_usage", min_memory_usage);
+
+	 scope().attr("create_metadata_plugin") = "metadata_transfer";
+	 scope().attr("create_ut_metadata_plugin") = "ut_metadata";
+	 scope().attr("create_ut_pex_plugin") = "ut_pex";
+	 scope().attr("create_smart_ban_plugin") = "smart_ban";
 }
