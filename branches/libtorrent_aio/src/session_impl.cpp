@@ -4749,6 +4749,7 @@ retry:
 					&& t != NULL
 					&& t->want_peers()) break;
 				m_prio_torrents.pop_front();
+				t = NULL;
 			}
 			
 			if (t == NULL)
