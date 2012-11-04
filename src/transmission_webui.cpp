@@ -60,6 +60,7 @@ extern "C" {
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp" // for parse_torrent_post
 #include "escape_json.hpp" // for escape_json
+#include "save_settings.hpp"
 
 namespace libtorrent
 {
@@ -97,6 +98,7 @@ static method_handler handlers[] =
 	{"torrent-remove", &transmission_webui::remove_torrent},
 	{"session-stats", &transmission_webui::session_stats},
 	{"session-get", &transmission_webui::get_session},
+	{"session-set", &transmission_webui::set_session},
 };
 
 void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer)
@@ -945,8 +947,8 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		, free_disk_space(m_params_model.save_path)
 		, sett.get_int(settings_pack::active_downloads)
 		, sett.get_int(settings_pack::active_seeds)
-		, sett.get_int(settings_pack::download_rate_limit)
-		, sett.get_int(settings_pack::upload_rate_limit)
+		, sett.get_int(settings_pack::download_rate_limit) / 1000
+		, sett.get_int(settings_pack::upload_rate_limit) / 1000
 		, to_bool(sett.get_int(settings_pack::download_rate_limit) > 0)
 		, to_bool(sett.get_int(settings_pack::upload_rate_limit) > 0)
 		, to_bool((m_params_model.flags & add_torrent_params::flag_auto_managed)
@@ -956,8 +958,152 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		, sett.get_str(settings_pack::user_agent).c_str()
 		, m_ses.listen_port()
 		, sett.get_int(settings_pack::connections_limit)
-		);
+	);
+}
 
+void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer)
+{
+	settings_pack pack;
+
+	int num_keys = args->size / 2;
+	for (jsmntok_t* i = args+1; num_keys > 0; i = skip_item(skip_item(i)), --num_keys)
+	{
+		if (i->type != JSMN_STRING) continue;
+		buffer[i->end] = 0;
+		buffer[i[1].end] = 0;
+		char const* key = &buffer[i->start];
+		char const* value = &buffer[i[1].start];
+
+		if (strcmp(key, "alt-speed-down") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-enabled") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-time-begin") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-time-enabled") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-time-end") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-time-day") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "alt-speed-up") == 0)
+		{
+			
+		}
+/*		else if (strcmp(key, "blocklist-url") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "blocklist-enabled") == 0)
+		{
+			
+		}
+		else if (strcmp(key, "blocklist-size") == 0)
+		{
+			
+		}
+*/		else if (strcmp(key, "cache-size-mb") == 0)
+		{
+			int val = atoi(value);
+			// convert Megabytes to 16 kiB blocks
+			pack.set_int(settings_pack::cache_size, val * 1024 / 16);
+		}
+/*		else if (strcmp(key, "config-dir") == 0)
+		{
+			
+		}
+*/		else if (strcmp(key, "download-dir") == 0)
+		{
+			m_params_model.save_path = value;
+			if (m_settings) m_settings->set_str("save_path", value);
+		}
+		else if (strcmp(key, "download-queue-size") == 0)
+		{
+			int val = atoi(value);
+			pack.set_int(settings_pack::active_downloads, val);
+		}
+/*		else if (strcmp(key, "download-queue-enabled") == 0)
+		{
+			
+		}
+*/		else if (strcmp(key, "seed-queue-size") == 0)
+		{
+			int val = atoi(value);
+			pack.set_int(settings_pack::active_seeds, val);
+		}
+/*		else if (strcmp(key, "seed-queue-enabled") == 0)
+		{
+			
+		}
+*/		else if (strcmp(key, "speed-limit-down") == 0)
+		{
+			int val = atoi(value) * 1000;
+			pack.set_int(settings_pack::download_rate_limit, val);
+		}
+		else if (strcmp(key, "speed-limit-up") == 0)
+		{
+			int val = atoi(value) * 1000;
+			pack.set_int(settings_pack::upload_rate_limit, val);
+		}
+		else if (strcmp(key, "speed-limit-down-enabled") == 0)
+		{
+			if (strcmp(value, "true") == 0)
+			{
+				// libtorrent uses a single value to specify the rate limit
+				// including the case where it's disabled. There's no
+				// trivial way to remember the rate when disabling it
+				pack.set_int(settings_pack::download_rate_limit, 100000);
+			}
+			else
+			{
+				pack.set_int(settings_pack::download_rate_limit, 0);
+			}
+		}
+		else if (strcmp(key, "speed-limit-up-enabled") == 0)
+		{
+			if (strcmp(value, "true") == 0)
+			{
+				// libtorrent uses a single value to specify the rate limit
+				// including the case where it's disabled. There's no
+				// trivial way to remember the rate when disabling it
+				pack.set_int(settings_pack::upload_rate_limit, 100000);
+			}
+			else
+			{
+				pack.set_int(settings_pack::upload_rate_limit, 0);
+			}
+		}
+		else if (strcmp(key, "start-added-torrents") == 0)
+		{
+			bool start = strcmp(value, "true") == 0;
+			m_params_model.flags |= start ? 0 : add_torrent_params::flag_paused;
+			m_params_model.flags &= ~(start ? 0 : add_torrent_params::flag_auto_managed);
+		}
+		else
+		{
+			fprintf(stderr, "UNHANDLED SETTING: %s: %s\n", key, value);
+		}
+	}
+
+	m_ses.apply_settings(pack);
+
+	if (m_settings)
+	{
+		error_code ec;
+		m_settings->save(ec);
+	}
 }
 
 void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
@@ -982,11 +1128,23 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 	}
 }
 
-transmission_webui::transmission_webui(session& s)
+transmission_webui::transmission_webui(session& s, save_settings_interface* sett)
 	: m_ses(s)
+	, m_settings(sett)
 {
 	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
+
+	if (m_settings)
+	{
+		m_params_model.save_path = m_settings->get_str("save_path", ".");
+		int port = m_settings->get_int("listen_port", -1);
+		if (port != -1)
+		{
+			error_code ec;
+			m_ses.listen_on(std::make_pair(port, port+1), ec);
+		}
+	}
 }
 
 transmission_webui::~transmission_webui() {}
@@ -1038,8 +1196,9 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		}
 	}
 
-	printf("REQUEST: %s?%s\n", request_info->uri
-		, request_info->query_string ? request_info->query_string : "");
+//	printf("REQUEST: %s%s%s\n", request_info->uri
+//		, request_info->query_string ? "?" : ""
+//		, request_info->query_string ? request_info->query_string : "");
 
 	std::vector<char> response;
 	if (post_body.empty())

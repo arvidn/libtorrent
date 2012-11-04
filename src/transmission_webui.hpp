@@ -44,9 +44,11 @@ struct jsmntok_t;
 
 namespace libtorrent
 {
+	struct save_settings_interface;
+
 	struct transmission_webui : http_handler
 	{
-		transmission_webui(session& s);
+		transmission_webui(session& s, save_settings_interface* sett);
 		~transmission_webui();
 
 		void set_params_model(add_torrent_params const& p)
@@ -66,6 +68,7 @@ namespace libtorrent
 		void remove_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void session_stats(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer);
 		void get_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer);
+		void set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer);
 
 	private:
 
@@ -76,6 +79,7 @@ namespace libtorrent
 
 		time_t m_start_time;
 		session& m_ses;
+		save_settings_interface* m_settings;
 		add_torrent_params m_params_model;
 	};
 }

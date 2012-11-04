@@ -7,6 +7,8 @@
 
 #include "libtorrent/session.hpp"
 
+#include <signal.h>
+
 using namespace libtorrent;
 
 int main(int argc, char *const argv[])
@@ -21,7 +23,7 @@ int main(int argc, char *const argv[])
 
 	auto_load al(ses, &sett);
 
-	transmission_webui tr_handler(ses);
+	transmission_webui tr_handler(ses, &sett);
 	utorrent_webui ut_handler(ses, &sett, &al);
 	file_downloader file_handler(ses);
 
@@ -34,10 +36,20 @@ int main(int argc, char *const argv[])
 	deluge dlg(ses, "server.pem");
 	dlg.start(58846);
 
-//	while (getchar() != 'q');
-	while (true) sleep(1000);
+	// don't terminate on these, since we want
+	// to shut down gracefully
+	signal(SIGTERM, SIG_IGN);
+	signal(SIGINT, SIG_IGN);
+
+	sigset_t sigset;
+	sigfillset(&sigset);
+	sigdelset(&sigset, SIGTERM);
+	sigdelset(&sigset, SIGINT);
+	// now, just wait to be shutdown
+	sigsuspend(&sigset);
 
 	dlg.stop();
 	webport.stop();
+	sett.save(ec);
 }
 

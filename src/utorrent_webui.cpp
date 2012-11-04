@@ -75,20 +75,20 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_l
 	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
 
+	m_params_model.save_path = ".";
+	m_webui_cookie = "{}";
+
 	if (m_settings)
 	{
-		m_params_model.save_path = m_settings->get_str("save_path");
-		m_webui_cookie = m_settings->get_str("ut_webui_cookie");
-		int port = m_settings->get_int("listen_port");
-		if (port != 0)
+		m_params_model.save_path = m_settings->get_str("save_path", ".");
+		m_webui_cookie = m_settings->get_str("ut_webui_cookie", "{}");
+		int port = m_settings->get_int("listen_port", -1);
+		if (port != -1)
 		{
 			error_code ec;
 			m_ses.listen_on(std::make_pair(port, port+1), ec);
 		}
 	}
-
-	if (m_params_model.save_path.empty()) m_params_model.save_path = ".";
-	if (m_webui_cookie.empty()) m_webui_cookie = "{}";
 }
 
 utorrent_webui::~utorrent_webui() {}
