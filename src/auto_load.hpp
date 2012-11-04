@@ -40,9 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct save_settings_interface;
+
 	struct auto_load
 	{
-		auto_load(session& s);
+		auto_load(session& s, save_settings_interface* sett = NULL);
 		~auto_load();
 
 		void set_params_model(add_torrent_params const& p);
@@ -63,6 +65,7 @@ namespace libtorrent
 		session& m_ses;
 		boost::asio::io_service m_ios;
 		deadline_timer m_timer;
+		save_settings_interface* m_settings;
 
 		add_torrent_params m_params_model;
 		std::string m_dir;

@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "save_settings.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp> // for boost::tie
+
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
@@ -98,8 +100,23 @@ void save_settings::load(error_code& ec)
 
 	m_ses.load_state(sett);
 
-	// TODO: load the int and string keys
-//	for ()
+	// load the custom int and string keys
+	if (sett.type() != lazy_entry::dict_t) return;
+	int num_items = sett.dict_size();
+	for (int i = 0; i < num_items; ++i)
+	{
+		lazy_entry const* item;
+		std::string key;
+		boost::tie(key, item) = sett.dict_at(i);
+		if (item->type() == lazy_entry::string_t)
+		{
+			m_strings[key] = item->string_value();
+		}
+		else if (item->type() == lazy_entry::int_t)
+		{
+			m_ints[key] = item->int_value();
+		}
+	}
 }
 
 void save_settings::set_int(char const* key, int val)
@@ -124,17 +141,17 @@ void save_settings::set_str(char const* key, std::string val)
 	m_strings[key] = val;
 }
 
-int save_settings::get_int(char const* key) const
+int save_settings::get_int(char const* key, int def) const
 {
 	std::map<std::string, int>::const_iterator i = m_ints.find(key);
-	if (i == m_ints.end()) return 0;
+	if (i == m_ints.end()) return def;
 	return i->second;
 }
 
-std::string save_settings::get_str(char const* key) const
+std::string save_settings::get_str(char const* key, char const* def) const
 {
 	std::map<std::string, std::string>::const_iterator i = m_strings.find(key);
-	if (i == m_strings.end()) return "";
+	if (i == m_strings.end()) return def;
 	return i->second;
 }
 

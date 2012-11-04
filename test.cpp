@@ -19,7 +19,7 @@ int main(int argc, char *const argv[])
 	error_code ec;
 	sett.load(ec);
 
-	auto_load al(ses);
+	auto_load al(ses, &sett);
 
 	transmission_webui tr_handler(ses);
 	utorrent_webui ut_handler(ses, &sett, &al);

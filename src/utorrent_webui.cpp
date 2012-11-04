@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/tuple/tuple.hpp>
 
 extern "C" {
 #include "mongoose.h"
@@ -70,13 +69,26 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_l
 	, m_settings(sett)
 	, m_al(al)
 {
-	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
-	m_webui_cookie = "{}";
 	m_version = 1;
 
 	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
+
+	if (m_settings)
+	{
+		m_params_model.save_path = m_settings->get_str("save_path");
+		m_webui_cookie = m_settings->get_str("ut_webui_cookie");
+		int port = m_settings->get_int("listen_port");
+		if (port != 0)
+		{
+			error_code ec;
+			m_ses.listen_on(std::make_pair(port, port+1), ec);
+		}
+	}
+
+	if (m_params_model.save_path.empty()) m_params_model.save_path = ".";
+	if (m_webui_cookie.empty()) m_webui_cookie = "{}";
 }
 
 utorrent_webui::~utorrent_webui() {}
@@ -432,12 +444,14 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		if (key == "webui.cookie")
 		{
 			m_webui_cookie = value;
+			if (m_settings) m_settings->set_str("ut_webui_cookie", value);
 		}
 		else if (key == "bind_port")
 		{
 			int port = atoi(value.c_str());
 			error_code ec;
 			m_ses.listen_on(std::make_pair(port, port+1), ec);
+			if (m_settings) m_settings->set_int("listen_port", port);
 		}
 		else if (key == "bt.transp_disposition")
 		{
@@ -464,6 +478,7 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 				p.save_path = value;
 				m_al->set_params_model(p);
 			}
+			if (m_settings) m_settings->set_str("save_path", value);
 		}
 		else
 		{

@@ -36,22 +36,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
+#include "save_settings.hpp"
 
 namespace libtorrent
 {
 
-auto_load::auto_load(session& s)
+auto_load::auto_load(session& s, save_settings_interface* sett)
 	: m_ses(s)
 	, m_timer(m_ios)
+	, m_settings(sett)
 	, m_dir("./auto_load")
 	, m_scan_interval(20)
 	, m_abort(false)
 	, m_thread(boost::bind(&auto_load::thread_fun, this))
 {
 	m_params_model.save_path = ".";
-	error_code ec;
-	m_timer.expires_from_now(seconds(0), ec);
-	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+
+	if (m_settings)
+	{
+		int interval = m_settings->get_int("autoload_interval", -1);
+		if (interval != -1) set_scan_interval(interval);
+		std::string path = m_settings->get_str("autoload_dir", "");
+		if (!path.empty()) set_auto_load_dir(path);
+	}
 }
 
 auto_load::~auto_load()
@@ -112,6 +119,11 @@ void auto_load::thread_fun()
 {
 	// the mutex must be held while inspecting m_abort
 	mutex::scoped_lock l(m_mutex);
+
+	error_code ec;
+	m_timer.expires_from_now(seconds(0), ec);
+	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+
 	while (!m_abort)
 	{
 		l.unlock();

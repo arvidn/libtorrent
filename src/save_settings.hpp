@@ -50,8 +50,8 @@ namespace libtorrent
 		virtual void load(error_code& ec) = 0;
 		virtual void set_int(char const* key, int val) = 0;
 		virtual void set_str(char const* key, std::string val) = 0;
-		virtual int get_int(char const* key) const = 0;
-		virtual std::string get_str(char const* key) const = 0;
+		virtual int get_int(char const* key, int def = 0) const = 0;
+		virtual std::string get_str(char const* key, char const* def = "") const = 0;
 	};
 
 	struct save_settings : save_settings_interface
@@ -65,8 +65,8 @@ namespace libtorrent
 		void set_int(char const* key, int val);
 		void set_str(char const* key, std::string val);
 
-		int get_int(char const* key) const;
-		std::string get_str(char const* key) const;
+		int get_int(char const* key, int def) const;
+		std::string get_str(char const* key, char const* def) const;
 
 	private:
 
