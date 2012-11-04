@@ -142,9 +142,6 @@ void return_error(mg_connection* conn)
 
 bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* request_info)
 {
-	printf("REQUEST: %s?%s\n", request_info->uri
-		, request_info->query_string ? request_info->query_string : "");
-
 	// redirect to /gui/
 	if (strcmp(request_info->uri, "/gui") == 0
 		|| (strcmp(request_info->uri, "/gui/") == 0

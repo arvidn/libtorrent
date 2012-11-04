@@ -904,6 +904,7 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	session_status st = m_ses.status();
 	aux::session_settings sett = m_ses.get_settings();
 
+	pe_settings pes = m_ses.get_pe_settings();
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
 		"\"arguments\": { "
 		"\"alt-speed-down\": 0,"
@@ -940,7 +941,8 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		"\"utp-enabled\": %s,"
 		"\"version\": \"%s\","
 		"\"peer-port\": %d,"
-		"\"peer-limit-global\": %d"
+		"\"peer-limit-global\": %d,"
+		"\"encryption\": \"%s\""
 		"}}",tag
 		, sett.get_int(settings_pack::cache_size) * 16 / 1024
 		, m_params_model.save_path.c_str()
@@ -958,6 +960,8 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 		, sett.get_str(settings_pack::user_agent).c_str()
 		, m_ses.listen_port()
 		, sett.get_int(settings_pack::connections_limit)
+		, pes.in_enc_policy == pe_settings::forced ? "required"
+			: pes.prefer_rc4 ? "preferred" : "tolerated"
 	);
 }
 
@@ -978,7 +982,7 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		{
 			
 		}
-		else if (strcmp(key, "alt-speed-enabled") == 0)
+/*		else if (strcmp(key, "alt-speed-enabled") == 0)
 		{
 			
 		}
@@ -1002,7 +1006,7 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 		{
 			
 		}
-/*		else if (strcmp(key, "blocklist-url") == 0)
+		else if (strcmp(key, "blocklist-url") == 0)
 		{
 			
 		}
@@ -1090,6 +1094,50 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 			bool start = strcmp(value, "true") == 0;
 			m_params_model.flags |= start ? 0 : add_torrent_params::flag_paused;
 			m_params_model.flags &= ~(start ? 0 : add_torrent_params::flag_auto_managed);
+		}
+		else if (strcmp(key, "peer-port") == 0)
+		{
+			int port = atoi(value);
+			error_code ec;
+			m_ses.listen_on(std::make_pair(port, port+1), ec);
+			if (m_settings) m_settings->set_int("listen_port", port);
+		}
+		else if (strcmp(key, "utp-enabled") == 0)
+		{
+			bool utp = strcmp(value, "true") == 0;
+			pack.set_bool(settings_pack::enable_outgoing_utp, utp);
+			pack.set_bool(settings_pack::enable_incoming_utp, utp);
+		}
+		else if (strcmp(key, "peer-limit-global") == 0)
+		{
+			int num = atoi(value);
+			pack.set_int(settings_pack::connections_limit, num);
+		}
+		else if (strcmp(key, "encryption") == 0)
+		{
+			pe_settings pes = m_ses.get_pe_settings();
+			if (strcmp(value, "required") == 0)
+			{
+				pes.in_enc_policy = pe_settings::forced;
+				pes.out_enc_policy = pe_settings::forced;
+				pes.allowed_enc_level = pe_settings::rc4;
+				pes.prefer_rc4 = true;
+			}
+			else if (strcmp(value, "preferred") == 0)
+			{
+				pes.in_enc_policy = pe_settings::enabled;
+				pes.out_enc_policy = pe_settings::enabled;
+				pes.allowed_enc_level = pe_settings::both;
+				pes.prefer_rc4 = true;
+			}
+			else
+			{
+				// tolerated
+				pes.in_enc_policy = pe_settings::enabled;
+				pes.out_enc_policy = pe_settings::enabled;
+				pes.allowed_enc_level = pe_settings::both;
+				pes.prefer_rc4 = false;
+			}
 		}
 		else
 		{
