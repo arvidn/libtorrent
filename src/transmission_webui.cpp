@@ -862,7 +862,7 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		"\"pausedTorrentCount\": %d,"
 		"\"torrentCount\": %d,"
 		"\"uploadSpeed\": %d,"
-		"\"culumative-stats\": {"
+		"\"cumulative-stats\": {"
 			"\"uploadedBytes\": %"PRId64","
 			"\"downloadedBytes\": %"PRId64","
 			"\"filesAdded\": %d,"
@@ -1014,6 +1014,10 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 		}
 
 		m_ses.async_add_torrent(p);
+
+		mg_printf(conn, "HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/json\r\n"
+			"Content-Length: 0\r\n\r\n");
 		return true;
 	}
 
