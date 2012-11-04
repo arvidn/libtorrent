@@ -1851,6 +1851,9 @@ namespace libtorrent
 		// which torrents are most active
 		m_ses.bump_torrent(this);
 
+		// if we don't have the metadata yet, pretend the file is loaded
+		if (!m_torrent_file->is_valid()) return true;
+
 		if (m_torrent_file->is_loaded()) return true;
 
 		// load the specified torrent and also evict one torrent,
@@ -5948,6 +5951,7 @@ namespace libtorrent
 
 	boost::intrusive_ptr<torrent_info> torrent::get_torrent_copy()
 	{
+		if (!m_torrent_file->is_valid()) return boost::intrusive_ptr<torrent_info>();
 		if (!need_loaded()) return boost::intrusive_ptr<torrent_info>();
 
 		// copy the torrent_info object
