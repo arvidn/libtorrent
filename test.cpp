@@ -3,6 +3,7 @@
 #include "deluge.hpp"
 #include "file_downloader.hpp"
 #include "auto_load.hpp"
+#include "save_settings.hpp"
 
 #include "libtorrent/session.hpp"
 
@@ -13,10 +14,15 @@ int main(int argc, char *const argv[])
 	session ses(fingerprint("LT", 0, 1, 0, 0)
 		, std::make_pair(6881, 6882));
 
+	save_settings sett(ses, "settings.dat");
+
+	error_code ec;
+	sett.load(ec);
+
 	auto_load al(ses);
 
 	transmission_webui tr_handler(ses);
-	utorrent_webui ut_handler(ses, &al);
+	utorrent_webui ut_handler(ses, &sett, &al);
 	file_downloader file_handler(ses);
 
 	webui_base webport;

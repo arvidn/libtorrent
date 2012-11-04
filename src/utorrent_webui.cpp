@@ -60,12 +60,14 @@ extern "C" {
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
 #include "auto_load.hpp"
+#include "save_settings.hpp"
 
 namespace libtorrent
 {
 
-utorrent_webui::utorrent_webui(session& s, auto_load* al)
+utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_load* al)
 	: m_ses(s)
+	, m_settings(sett)
 	, m_al(al)
 {
 	m_params_model.save_path = ".";
@@ -425,7 +427,7 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 
 		s = v_end;
 
-		if (ec)
+		if (ec) continue;
 
 		if (key == "webui.cookie")
 		{
@@ -486,6 +488,9 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		}
 	}
 	m_ses.apply_settings(pack);
+
+	error_code ec;
+	if (m_settings) m_settings->save(ec);
 }
 
 void utorrent_webui::send_file_list(std::vector<char>& response, char const* args)
