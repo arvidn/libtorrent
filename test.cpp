@@ -2,6 +2,8 @@
 #include "utorrent_webui.hpp"
 #include "deluge.hpp"
 #include "file_downloader.hpp"
+#include "auto_load.hpp"
+
 #include "libtorrent/session.hpp"
 
 using namespace libtorrent;
@@ -14,6 +16,8 @@ int main(int argc, char *const argv[])
 	transmission_webui tr_handler(ses);
 	utorrent_webui ut_handler(ses);
 	file_downloader file_handler(ses);
+
+	auto_load al(ses);
 
 	webui_base webport;
 	webport.add_handler(&ut_handler);

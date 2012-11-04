@@ -21,6 +21,7 @@ SOURCES =
 	disk_space
 	base64
 	escape_json
+	auto_load
 	;
 
 lib torrent-webui
