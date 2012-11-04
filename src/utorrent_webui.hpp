@@ -42,9 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct auto_load;
+
 	struct utorrent_webui : http_handler
 	{
-		utorrent_webui(session& s);
+		utorrent_webui(session& s, auto_load* al = NULL);
 		~utorrent_webui();
 
 		void set_params_model(add_torrent_params const& p)
@@ -83,6 +85,10 @@ namespace libtorrent
 		session& m_ses;
 		add_torrent_params m_params_model;
 		std::string m_webui_cookie;
+		
+		// optional auto loader, controllable
+		// via webui settings
+		auto_load* m_al;
 
 		int m_version;
 		std::string m_token;

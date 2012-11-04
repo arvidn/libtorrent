@@ -63,6 +63,18 @@ auto_load::~auto_load()
 	m_thread.join();
 }
 
+void auto_load::set_params_model(add_torrent_params const& p)
+{
+	mutex::scoped_lock l(m_mutex);
+	m_params_model = p;
+}
+
+add_torrent_params auto_load::params_model() const
+{
+	mutex::scoped_lock l(m_mutex);
+	return m_params_model;
+}
+
 void auto_load::set_auto_load_dir(std::string const& dir)
 {
 	mutex::scoped_lock l(m_mutex);
@@ -72,6 +84,7 @@ void auto_load::set_auto_load_dir(std::string const& dir)
 	// reset the timeout to use the new interval
 	error_code ec;
 	m_timer.expires_from_now(seconds(0), ec);
+	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
 }
 
 void auto_load::set_scan_interval(int s)
@@ -81,9 +94,18 @@ void auto_load::set_scan_interval(int s)
 	m_scan_interval = s;
 	l.unlock();
 
+	// interval of 0 means disabled
+	if (m_scan_interval == 0)
+	{
+		error_code ec;
+		m_timer.cancel(ec);
+		return;
+	}
+
 	// reset the timeout to use the new interval
 	error_code ec;
 	m_timer.expires_from_now(seconds(m_scan_interval), ec);
+	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
 }
 
 void auto_load::thread_fun()
@@ -105,6 +127,9 @@ void auto_load::on_scan(error_code const& e)
 	if (e) return;
 	mutex::scoped_lock l(m_mutex);
 	if (m_abort) return;
+
+	// interval of 0 means disabled
+	if (m_scan_interval == 0) return;
 	
 	std::string path = m_dir;
 	l.unlock();
@@ -136,6 +161,9 @@ void auto_load::on_scan(error_code const& e)
 	l.lock();
 	int interval = m_scan_interval;
 	l.unlock();
+
+	// interval of 0 means disabled
+	if (interval == 0) return;
 
 	m_timer.expires_from_now(seconds(interval), ec);
 	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));

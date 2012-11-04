@@ -59,12 +59,14 @@ extern "C" {
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
 #include "escape_json.hpp"
+#include "auto_load.hpp"
 
 namespace libtorrent
 {
 
-utorrent_webui::utorrent_webui(session& s)
+utorrent_webui::utorrent_webui(session& s, auto_load* al)
 	: m_ses(s)
+	, m_al(al)
 {
 	m_params_model.save_path = ".";
 	m_start_time = time(NULL);
@@ -373,7 +375,18 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		first = 0;
 	}
 
+	if (m_al)
+	{
+		appendf(response,
+			",[\"dir_autoload\",2,\"%s\",{\"access\":\"Y\"}]\n"
+			",[\"dir_autoload_flag\",1,\"%s\",{\"access\":\"Y\"}]" + first
+			, escape_json(m_al->auto_load_dir()).c_str()
+			, m_al->scan_interval() ? "true" : "false");
+		first = 0;
+	}
+
 	appendf(response,
+		",[\"dir_active_download\",2,\"%s\",{\"access\":\"Y\"}]\n"
 		",[\"bind_port\",0,\"%d\",{\"access\":\"Y\"}]\n"
 		",[\"bt.transp_disposition\",0,\"%d\",{\"access\":\"Y\"}]\n"
 		",[\"webui.cookie\",2,\"%s\",{\"access\":\"Y\"}]\n"
@@ -383,6 +396,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		",[\"webui.port\",0,\"8080\",{\"access\":\"Y\"}]\n"
 		"]"
 		 + first
+		, escape_json(m_params_model.save_path).c_str()
 		, m_ses.listen_port()
 		, (sett.get_bool(settings_pack::enable_outgoing_utp) ? 1 : 0)
 			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 2 : 0)
@@ -430,6 +444,24 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 			pack.set_bool(settings_pack::enable_incoming_utp, mask & 2);
 			pack.set_bool(settings_pack::enable_outgoing_tcp, mask & 4);
 			pack.set_bool(settings_pack::enable_incoming_tcp, mask & 8);
+		}
+		else if (key == "dir_autoload" && m_al)
+		{
+			m_al->set_auto_load_dir(value);
+		}
+		else if (key == "dir_autoload_flag" && m_al)
+		{
+			m_al->set_scan_interval(value == "false" ? 0 : 20);
+		}
+		else if (key == "dir_active_download")
+		{
+			m_params_model.save_path = value;
+			if (m_al)
+			{
+				add_torrent_params p = m_al->params_model();
+				p.save_path = value;
+				m_al->set_params_model(p);
+			}
 		}
 		else
 		{

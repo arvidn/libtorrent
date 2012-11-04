@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/thread.hpp"
 
 namespace libtorrent
 {
@@ -43,8 +45,8 @@ namespace libtorrent
 		auto_load(session& s);
 		~auto_load();
 
-		void set_params_model(add_torrent_params const& p)
-		{ m_params_model = p; }
+		void set_params_model(add_torrent_params const& p);
+		add_torrent_params params_model() const;
 
 		void set_auto_load_dir(std::string const& dir);
 		std::string const& auto_load_dir() const { return m_dir; }
@@ -68,7 +70,7 @@ namespace libtorrent
 		bool m_abort;
 
 		// used to protect m_abort, m_scan_interval, m_dir and m_params_model
-		mutex m_mutex;
+		mutable mutex m_mutex;
 
 		// this needs to be last in order to be initialized
 		// last in the constructor. This way the object is
