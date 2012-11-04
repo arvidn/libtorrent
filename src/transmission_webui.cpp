@@ -59,6 +59,7 @@ extern "C" {
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp" // for parse_torrent_post
+#include "escape_json.hpp" // for escape_json
 
 namespace libtorrent
 {
@@ -195,7 +196,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		"\"arguments\": { \"torrent-added\": { \"hashString\": \"%s\", "
 		"\"id\": %u, \"name\": \"%s\"}}}"
 		, tag, h.has_metadata() ? to_hex(h.get_torrent_info().info_hash().to_string()).c_str() : ""
-		, h.id(), h.name().c_str());
+		, h.id(), escape_json(h.name()).c_str());
 }
 
 char const* to_bool(bool b) { return b ? "true" : "false"; }
@@ -353,13 +354,13 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("activityDate", "%" PRId64, time(0) - (std::min)(ts.time_since_download
 			, ts.time_since_upload));
 		TORRENT_PROPERTY("addedDate", "%" PRId64, ts.added_time);
-		TORRENT_PROPERTY("comment", "\"%s\"", ti->comment().c_str());
-		TORRENT_PROPERTY("creator", "\"%s\"", ti->creator().c_str());
+		TORRENT_PROPERTY("comment", "\"%s\"", escape_json(ti->comment()).c_str());
+		TORRENT_PROPERTY("creator", "\"%s\"", escape_json(ti->creator()).c_str());
 		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date().get() : 0);
 		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
-		TORRENT_PROPERTY("downloadDir", "\"%s\"", ts.handle.save_path().c_str());
+		TORRENT_PROPERTY("downloadDir", "\"%s\"", escape_json(ts.handle.save_path()).c_str());
 		TORRENT_PROPERTY("error", "%d", ts.error.empty() ? 0 : 1);
-		TORRENT_PROPERTY("errorString", "\"%s\"", ts.error.c_str());
+		TORRENT_PROPERTY("errorString", "\"%s\"", escape_json(ts.error).c_str());
 		TORRENT_PROPERTY("eta", "%d", ts.download_payload_rate <= 0 ? -1
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
 		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
@@ -374,7 +375,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
 		TORRENT_PROPERTY("magnetLink", "\"%s\"", ti == &empty ? "" : make_magnet_uri(*ti).c_str());
 		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 1.f : ts.progress_ppm / 1000000.f);
-		TORRENT_PROPERTY("name", "\"%s\"", ts.handle.name().c_str());
+		TORRENT_PROPERTY("name", "\"%s\"", escape_json(ts.handle.name()).c_str());
 		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
 		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
 		// even though this is called "percentDone", it's really expecting the
@@ -414,7 +415,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 				appendf(buf, ", { \"bytesCompleted\": %" PRId64 ","
 					"\"length\": %" PRId64 ","
 					"\"name\": \"%s\" }" + (i?0:2)
-					, progress[i], files.file_size(i), files.file_path(i).c_str());
+					, progress[i], files.file_size(i), escape_json(files.file_path(i)).c_str());
 			}
 			appendf(buf, "]");
 			++count;
@@ -471,7 +472,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 			for (int i = 0; i < webseeds.size(); ++i)
 			{
 				appendf(buf, ", \"%s\"" + (i?0:2)
-					, webseeds[i].url.c_str());
+					, escape_json(webseeds[i].url).c_str());
 			}
 			appendf(buf, "]");
 			++count;
@@ -513,7 +514,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					"}"
 					+ (i?0:2)
 					, print_address(p.ip.address()).c_str()
-					, p.client.c_str()
+					, escape_json(p.client).c_str()
 					, to_bool(p.flags & peer_info::choked)
 					, to_bool(p.flags & peer_info::interesting)
 					, to_bool(p.downloading_piece_index != -1)
@@ -593,7 +594,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					", \"tier\": %d"
 					"}"
 					+ (i?0:2)
-					, a.url.c_str()
+					, escape_json(a.url).c_str()
 					, tracker_status(a, ts)
 					, 0
 					, to_bool(a.start_sent)

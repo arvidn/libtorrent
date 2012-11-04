@@ -55,8 +55,10 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
+#include "libtorrent/escape_string.hpp" // for unescape_string
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
+#include "escape_json.hpp"
 
 namespace libtorrent
 {
@@ -351,7 +353,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 	{
 		int s = settings_pack::string_type_base + i;
 		appendf(response, ",[\"%s\",2,\"%s\",{\"access\":\"Y\"}]\n" + first
-			, settings_name(s), sett.get_str(s).c_str());
+			, settings_name(s), escape_json(sett.get_str(s)).c_str());
 		first = 0;
 	}
 
@@ -386,7 +388,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 2 : 0)
 			+ (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 4 : 0)
 			+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 8 : 0)
-		, m_webui_cookie.c_str());
+		, escape_json(m_webui_cookie).c_str());
 }
 
 void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
@@ -404,6 +406,12 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 
 		std::string key(s, key_end - s);
 		std::string value(key_end + 3, v_end - key_end - 3);
+		error_code ec;
+		value = unescape_string(value, ec);
+
+		s = v_end;
+
+		if (ec)
 
 		if (key == "webui.cookie")
 		{
@@ -426,28 +434,24 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		else
 		{
 			int field = setting_by_name(key.c_str());
-			if (field >= 0)
-			{
-				switch (field & settings_pack::type_mask)
-				{
-					case settings_pack::string_type_base:
-						pack.set_str(field, value.c_str());
-						break;
-					case settings_pack::int_type_base:
-						pack.set_int(field, atoi(value.c_str()));
-						break;
-					case settings_pack::bool_type_base:
-						pack.set_bool(field, value == "true");
-						break;
-				}
-			}
-			else
+			if (field < 0)
 			{
 				fprintf(stderr, "unknown setting: %s\n", key.c_str());
+				continue;
+			}
+			switch (field & settings_pack::type_mask)
+			{
+				case settings_pack::string_type_base:
+					pack.set_str(field, value.c_str());
+					break;
+				case settings_pack::int_type_base:
+					pack.set_int(field, atoi(value.c_str()));
+					break;
+				case settings_pack::bool_type_base:
+					pack.set_bool(field, value == "true");
+					break;
 			}
 		}
-
-		s = v_end;
 	}
 	m_ses.apply_settings(pack);
 }
@@ -475,7 +479,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 			int first_piece = files.file_offset(i) / files.piece_length();
 			int last_piece = (files.file_offset(i) + files.file_size(i)) / files.piece_length();
 			appendf(response, ",[\"%s\", %"PRId64", %"PRId64", %d" + first_file
-				, files.file_name(i).c_str()
+				, escape_json(files.file_name(i)).c_str()
 				, files.file_size(i)
 				, progress[i]
 				, (file_prio[i]+3) / 4 // uTorrent's web UI uses 4 priority levels
@@ -646,7 +650,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 				, ""
 				, p->connection_type == peer_info::bittorrent_utp
 				, p->ip.port()
-				, p->client.c_str()
+				, escape_json(p->client).c_str()
 				, utorrent_peer_flags(*p).c_str()
 				, p->num_pieces * 1000 / ti->num_pieces()
 				, p->down_speed
@@ -703,13 +707,14 @@ std::string utorrent_message(torrent_status const& st)
 {
 	if (!st.error.empty()) return "Error: " + st.error;
 
-	if (st.state == torrent_status::queued_for_checking)
+	if (st.state == torrent_status::queued_for_checking
+		|| st.state == torrent_status::checking_resume_data)
 		return "Checking";
 
 	if (st.state == torrent_status::checking_files)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "Checking (%d.%2d%%%%)"
+		snprintf(msg, sizeof(msg), "Checking (%d.%1d%%)"
 			, st.progress_ppm / 10000, st.progress_ppm % 10000);
 		return msg;
 	}
@@ -772,7 +777,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 		appendf(response, ",[\"%s\",%d,\"%s\",%"PRId64",%d,%"PRId64",%"PRId64",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%"PRId64"" + first
 			, to_hex(i->handle.info_hash().to_string()).c_str()
 			, utorrent_status(*i)
-			, i->handle.name().c_str()
+			, escape_json(i->handle.name()).c_str()
 			, ti ? ti->total_size() : 0
 			, i->progress_ppm / 1000
 			, i->total_payload_download
@@ -802,7 +807,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, i->added_time
 			, i->completed_time
 			, "" // app
-			, i->handle.save_path().c_str()
+			, escape_json(i->handle.save_path()).c_str()
 			, 0
 			, "");
 		}
