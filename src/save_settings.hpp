@@ -70,6 +70,8 @@ namespace libtorrent
 
 	private:
 
+		void load_impl(std::string filename, error_code& ec);
+
 		session& m_ses;
 		std::string m_settings_file;
 		std::map<std::string, int> m_ints;

@@ -67,7 +67,19 @@ save_settings::~save_settings() {}
 
 void save_settings::save(error_code& ec) const
 {
-	// TODO: back-up current settings file as .bak before saving the new one
+	// back-up current settings file as .bak before saving the new one
+	std::string backup = m_settings_file + ".bak";
+	bool has_settings = exists(m_settings_file);
+	bool has_backup = exists(backup);
+
+	if (has_settings && has_backup)
+		remove(backup, ec);
+
+	if (has_settings)
+		rename(m_settings_file, backup, ec);
+
+	ec.clear();
+
 	entry sett;
 	m_ses.save_state(sett);
 
@@ -89,9 +101,17 @@ void save_settings::save(error_code& ec) const
 
 void save_settings::load(error_code& ec)
 {
-	// TODO: if the file doesn't exist or is invalid, try the .bak version
+	load_impl(m_settings_file, ec);
+	if (!ec) return;
+	ec.clear();
+	std::string backup = m_settings_file + ".bak";
+	load_impl(backup, ec);
+}
+
+void save_settings::load_impl(std::string filename, error_code& ec)
+{
 	std::vector<char> buf;
-	if (load_file(m_settings_file, buf, ec) < 0)
+	if (load_file(filename, buf, ec) < 0)
 		return;
 
 	lazy_entry sett;
