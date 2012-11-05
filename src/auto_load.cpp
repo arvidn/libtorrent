@@ -169,13 +169,13 @@ void auto_load::on_scan(error_code const& e)
 	for (directory dir(path, ec); !ec && !dir.done(); dir.next(ec))
 	{
 		if (extension(dir.file()) != ".torrent") continue;
-		if (m_already_added.count(dir.file()))
+		if (m_already_loaded.count(dir.file()))
 		{
 			if (remove_files)
 			{
 				std::string file_path = combine_path(path, dir.file());
 				remove(file_path, ec);
-				if (!ec) m_already_added.erase(m_already_added.find(dir.file()));
+				if (!ec) m_already_loaded.erase(m_already_loaded.find(dir.file()));
 			}
 			continue;
 		}
