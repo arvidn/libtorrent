@@ -1139,7 +1139,10 @@ void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, bo
 				pes.prefer_rc4 = false;
 			}
 		}
-		else
+/*		else if (strcmp(value, "trash-original-torrent-files") == 0)
+		{
+		}
+*/		else
 		{
 			fprintf(stderr, "UNHANDLED SETTING: %s: %s\n", key, value);
 		}

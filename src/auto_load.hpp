@@ -56,6 +56,9 @@ namespace libtorrent
 		int scan_interval() const { return m_scan_interval; }
 		void set_scan_interval(int s);
 
+		void set_remove_files(bool r);
+		bool remove_files() const;
+
 	private:
 
 		void on_scan(error_code const& ec);
@@ -67,12 +70,22 @@ namespace libtorrent
 		deadline_timer m_timer;
 		save_settings_interface* m_settings;
 
+		// whether or not to remove .torrent files
+		// as they are loaded
+		bool m_remove_files;
+
+		// when not removing files, keep track of
+		// the ones we've already loaded to not
+		// add them again
+		std::set<std::string> m_already_loaded;
+
 		add_torrent_params m_params_model;
 		std::string m_dir;
 		int m_scan_interval;
 		bool m_abort;
 
-		// used to protect m_abort, m_scan_interval, m_dir and m_params_model
+		// used to protect m_abort, m_scan_interval, m_dir,
+		// m_remove_files and m_params_model
 		mutable mutex m_mutex;
 
 		// this needs to be last in order to be initialized
