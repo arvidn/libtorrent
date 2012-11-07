@@ -23,6 +23,7 @@ SOURCES =
 	escape_json
 	auto_load
 	save_settings
+	save_resume
 	;
 
 lib torrent-webui

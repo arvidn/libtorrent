@@ -4,10 +4,19 @@
 #include "file_downloader.hpp"
 #include "auto_load.hpp"
 #include "save_settings.hpp"
+#include "save_resume.hpp"
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/alert_handler.hpp"
 
 #include <signal.h>
+
+bool quit = false;
+
+void sighandler(int s)
+{
+	quit = true;
+}
 
 using namespace libtorrent;
 
@@ -15,11 +24,18 @@ int main(int argc, char *const argv[])
 {
 	session ses(fingerprint("LT", 0, 1, 0, 0)
 		, std::make_pair(6881, 6882));
+	ses.set_alert_mask(~0);
 
-	save_settings sett(ses, "settings.dat");
+	alert_handler alerts;
 
 	error_code ec;
+	save_settings sett(ses, "settings.dat");
 	sett.load(ec);
+
+	save_resume resume(ses, ".resume", &alerts);
+	add_torrent_params p;
+	p.save_path = sett.get_str("save_path", ".");
+	resume.load(ec, p);
 
 	auto_load al(ses, &sett);
 
@@ -36,17 +52,30 @@ int main(int argc, char *const argv[])
 	deluge dlg(ses, "server.pem");
 	dlg.start(58846);
 
-	// don't terminate on these, since we want
-	// to shut down gracefully
-	signal(SIGTERM, SIG_IGN);
-	signal(SIGINT, SIG_IGN);
+	signal(SIGTERM, &sighandler);
+	signal(SIGINT, &sighandler);
 
-	sigset_t sigset;
-	sigfillset(&sigset);
-	sigdelset(&sigset, SIGTERM);
-	sigdelset(&sigset, SIGINT);
-	// now, just wait to be shutdown
-	sigsuspend(&sigset);
+	std::deque<alert*> alert_queue;
+	bool shutting_down = false;
+	while (!quit || !resume.ok_to_quit())
+	{
+		if (ses.wait_for_alert(milliseconds(500)))
+		{
+			alert_queue.clear();
+			ses.pop_alerts(&alert_queue);
+			for (std::deque<alert*>::iterator i = alert_queue.begin()
+				, end(alert_queue.end()); i != end; ++i)
+			{
+				printf(" %s\n", (*i)->message().c_str());
+			}
+			alerts.dispatch_alerts(alert_queue);
+		}
+		if (quit && !shutting_down)
+		{
+			resume.save_all();
+			shutting_down = true;
+		}
+	}
 
 	dlg.stop();
 	webport.stop();

@@ -397,8 +397,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("uploadLimit", "%d", ts.handle.upload_limit());
 		TORRENT_PROPERTY("uploadLimited", "%s", to_bool(ts.handle.upload_limit() > 0));
 		TORRENT_PROPERTY("uploadedRatio", "%ld", ts.all_time_download == 0
-			? ts.all_time_upload
-			: ts.all_time_upload / ts.all_time_download);
+			? -2 : ts.all_time_upload / ts.all_time_download);
 
 		if (fields.count("status"))
 		{
@@ -1216,7 +1215,8 @@ bool transmission_webui::handle_http(mg_connection* conn, mg_request_info const*
 
 		char buf[10];
 		if (mg_get_var(request_info->query_string, strlen(request_info->query_string)
-			, "paused", buf, sizeof(buf)) > 0)
+			, "paused", buf, sizeof(buf)) > 0
+			&& strcmp(buf, "true") == 0)
 		{
 			p.flags |= add_torrent_params::flag_paused;
 			p.flags &= ~add_torrent_params::flag_auto_managed;

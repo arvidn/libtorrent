@@ -70,7 +70,7 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_l
 	, m_al(al)
 {
 	m_start_time = time(NULL);
-	m_version = 1;
+	m_version = 0;
 
 	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
@@ -136,7 +136,7 @@ static method_handler handlers[] =
 
 void return_error(mg_connection* conn)
 {
-	mg_printf(conn, "HTTP/1.1 400 Bad Request\r\n"
+	mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
 		"Content: close\r\n\r\n");
 }
 
@@ -174,22 +174,26 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 
 	if (request_info->query_string == NULL)
 	{
-		mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+		mg_printf(conn, "HTTP/1.1 400 Invalid Request (no query string)\r\n"
 			"Connection: close\r\n\r\n");
 		return true;
 	}
 
+	// TODO: make this configurable
+	int ret = 0;
+/*
 	char token[50];
 	// first, verify the token
-	int ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
+	ret = mg_get_var(request_info->query_string, strlen(request_info->query_string)
 		, "token", token, sizeof(token));
 
 	if (ret <= 0 || m_token != token)
 	{
-		mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
+		mg_printf(conn, "HTTP/1.1 400 Invalid Request (invalid token)\r\n"
 			"Connection: close\r\n\r\n");
 		return true;
 	}
+*/
 
 	appendf(response, "{\"build\":%d", LIBTORRENT_VERSION_NUM);
 
@@ -206,8 +210,8 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 			error_code ec;
 			if (!parse_torrent_post(conn, p, ec))
 			{
-				mg_printf(conn, "HTTP/1.1 400 Invalid Request\r\n"
-					"Connection: close\r\n\r\n");
+				mg_printf(conn, "HTTP/1.1 400 Invalid Request (%s)\r\n"
+					"Connection: close\r\n\r\n", ec.message().c_str());
 				return true;
 			}
 
@@ -227,7 +231,8 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 
 	char buf[10];
 	if (mg_get_var(request_info->query_string, strlen(request_info->query_string)
-		, "list", buf, sizeof(buf)) > 0)
+		, "list", buf, sizeof(buf)) > 0
+		&& atoi(buf) > 0)
 	{
 		send_torrent_list(response, request_info->query_string);
 	}

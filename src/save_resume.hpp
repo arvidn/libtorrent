@@ -30,52 +30,61 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_SAVE_SETTINGS_HPP
-#define TORRENT_SAVE_SETTINGS_HPP
+#ifndef TORRENT_SAVE_RESUME_HPP
+#define TORRENT_SAVE_RESUME_HPP
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/alert_observer.hpp"
 
 #include <string>
 #include <map>
 
 namespace libtorrent
 {
-	struct save_settings_interface
+	struct alert_handler;
+
+	struct save_resume : alert_observer
 	{
-		virtual void save(error_code& ec) const = 0;
-		virtual void load(error_code& ec) = 0;
-		virtual void set_int(char const* key, int val) = 0;
-		virtual void set_str(char const* key, std::string val) = 0;
-		virtual int get_int(char const* key, int def = 0) const = 0;
-		virtual std::string get_str(char const* key, char const* def = "") const = 0;
-	};
+		save_resume(session& s, std::string const& resume_dir, alert_handler* alerts);
+		~save_resume();
 
-	struct save_settings : save_settings_interface
-	{
-		save_settings(session& s, std::string const& settings_file);
-		~save_settings();
+		void load(error_code& ec, add_torrent_params model);
 
-		void save(error_code& ec) const;
-		void load(error_code& ec);
+		// implements alert_observer
+		virtual void handle_alert(alert const* a);
 
-		void set_int(char const* key, int val);
-		void set_str(char const* key, std::string val);
-
-		int get_int(char const* key, int def) const;
-		std::string get_str(char const* key, char const* def = "") const;
+		void save_all();
+		bool ok_to_quit() const { return m_num_in_flight == 0; }
 
 	private:
 
-		void load_impl(std::string filename, error_code& ec);
-
 		session& m_ses;
-		std::string m_settings_file;
-		std::map<std::string, int> m_ints;
-		std::map<std::string, std::string> m_strings;
+		alert_handler* m_alerts;
+		std::string m_resume_dir;
+
+		// all torrents currently loaded
+		boost::unordered_set<torrent_handle> m_torrents;
+
+		// the next torrent to save (may point to end)
+		boost::unordered_set<torrent_handle>::iterator m_cursor;
+
+		// the number of times the cursor has been incremented
+		// since the last time it wrapped
+		int m_cursor_index;
+
+		// the last time we wrapped the cursor and started
+		// saving torrents from the start again.
+		ptime m_last_save_wrap;
+
+		// save resum data for all torrents every X seconds
+		// must be at least 1
+		time_duration m_interval;
+
+		int m_num_in_flight;
 	};
 }
 
