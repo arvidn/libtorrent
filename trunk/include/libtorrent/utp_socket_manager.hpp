@@ -122,11 +122,11 @@ namespace libtorrent
 
 		// this is a copy of the routing table, used
 		// to initialize MTU sizes of uTP sockets
-		std::vector<ip_route> m_routes;
+		mutable std::vector<ip_route> m_routes;
 
 		// the timestamp for the last time we updated
 		// the routing table
-		ptime m_last_route_update;
+		mutable ptime m_last_route_update;
 
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
