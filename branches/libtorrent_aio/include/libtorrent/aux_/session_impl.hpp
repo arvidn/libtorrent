@@ -431,6 +431,7 @@ namespace libtorrent
 #endif
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
+			torrent_handle add_torrent_impl(add_torrent_params const&, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 			void on_async_load_torrent(disk_io_job const* j);
 
@@ -732,6 +733,7 @@ namespace libtorrent
 			void update_rate_limit_utp();
 			void update_ignore_rate_limits_on_local_network();
 #endif
+			void update_unchoke_limit();
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);

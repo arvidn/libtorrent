@@ -161,6 +161,7 @@ if(NOT MSVC)
 endif()
 
 if (shared)
+	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
 else (shared)
 	add_library(torrent-rasterbar STATIC ${sources2})
@@ -179,7 +180,7 @@ target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
 # this works around a bug in asio in boost-1.39
 add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 -DBOOST_ASIO_DYN_LINK -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0500)
 
-add_definitions(-DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK)
+add_definitions(-DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)

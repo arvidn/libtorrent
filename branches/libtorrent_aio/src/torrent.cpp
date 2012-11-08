@@ -292,7 +292,7 @@ namespace libtorrent
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
 #endif
-		, m_need_save_resume_data(false)
+		, m_need_save_resume_data(true)
 		, m_seeding_time(0)
 		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
@@ -361,69 +361,6 @@ namespace libtorrent
 			// extension. Make sure that when we save resume data for this
 			// torrent, we also save the metadata
 			m_magnet_link = true;
-	
-			// did the user provide resume data?
-			// maybe the metadata is in there
-			if (p.resume_data)
-			{
-				int pos;
-				error_code ec;
-				lazy_entry tmp;
-				lazy_entry const* info = 0;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				debug_log("adding magnet link with resume data");
-#endif
-				if (lazy_bdecode(&(*p.resume_data)[0], &(*p.resume_data)[0]
-					+ p.resume_data->size(), tmp, ec, &pos) == 0
-					&& tmp.type() == lazy_entry::dict_t
-					&& (info = tmp.dict_find_dict("info")))
-				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-					debug_log("found metadata in resume data");
-#endif
-					// verify the info-hash of the metadata stored in the resume file matches
-					// the torrent we're loading
-
-					std::pair<char const*, int> buf = info->data_section();
-					sha1_hash resume_ih = hasher(buf.first, buf.second).final();
-
-					// if url is set, the info_hash is not actually the info-hash of the
-					// torrent, but the hash of the URL, until we have the full torrent
-					if (resume_ih == info_hash || !p.url.empty())
-					{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-						debug_log("info-hash matched");
-#endif
-						m_torrent_file = (p.ti ? p.ti : new torrent_info(resume_ih));
-
-						if (!m_torrent_file->parse_info_section(*info, ec, 0))
-						{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-							debug_log("failed to load metadata from resume file: %s"
-								, ec.message().c_str());
-#endif
-						}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-						else
-						{
-							debug_log("successfully loaded metadata from resume file");
-						}
-#endif
-					}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-					else
-					{
-						debug_log("metadata info-hash failed");
-					}
-#endif
-				}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				else
-				{
-					debug_log("no metadata found");
-				}
-#endif
-			}
 		}
 
 		if (!m_torrent_file)
@@ -2567,7 +2504,6 @@ namespace libtorrent
 		do_connect_boost();
 
 		update_want_peers();
-		// TODO: boost connection attempts, just like for normal trackers
 	}
 
 #endif
@@ -3022,7 +2958,6 @@ namespace libtorrent
 			// the next time session_impl::on_tick() is triggered
 			--conns;
 			m_ses.inc_boost_connections();
-		
 		}
 
 		update_want_peers();

@@ -625,7 +625,12 @@ namespace libtorrent {
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "added torrent: %s", !params.url.empty() ? params.url.c_str() : params.ti->name().c_str());
+			snprintf(msg, sizeof(msg), "added torrent: %s"
+				, !params.url.empty() ? params.url.c_str()
+				: params.ti ? params.ti->name().c_str()
+				: !params.name.empty() ? params.name.c_str()
+				: !params.uuid.empty() ? params.uuid.c_str()
+				: "");
 		}
 		return msg;
 	}
