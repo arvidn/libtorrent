@@ -6330,8 +6330,8 @@ The specific alerts are:
 torrent_added_alert
 -------------------
 
-The ``torrent_added_alert`` is posted once every time a torrent is added.
-It doesn't contain any members of its own, but inherits the torrent handle
+The ``torrent_added_alert`` is posted once every time a torrent is successfully
+added. It doesn't contain any members of its own, but inherits the torrent handle
 from its base class.
 It's posted when the ``status_notification`` bit is set in the alert mask.
 
@@ -6346,9 +6346,10 @@ It's posted when the ``status_notification`` bit is set in the alert mask.
 add_torrent_alert
 -----------------
 
-This alert is always posted when a torrent was added via ``async_add_torrent()``
+This alert is always posted when a torrent was attempted to be added
 and contains the return status of the add operation. The torrent handle of the new
-torrent can be found in the base class' ``handle`` member.
+torrent can be found in the base class' ``handle`` member. If adding
+the torrent failed, ``error`` contains the error code.
 
 ::
 
@@ -6362,7 +6363,7 @@ torrent can be found in the base class' ``handle`` member.
 ``params`` is a copy of the parameters used when adding the torrent, it can be used
 to identify which invocation to ``async_add_torrent()`` caused this alert.
 
-``error`` is set to the error, if any, adding the torrent.
+``error`` is set to the error, if one occurred while adding the torrent.
 
 
 torrent_removed_alert
@@ -6372,6 +6373,14 @@ The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
 the torrent handle in its baseclass will always be invalid (since the torrent
 is already removed) it has the info hash as a member, to identify it.
 It's posted when the ``status_notification`` bit is set in the alert mask.
+
+Even though the ``handle`` member doesn't point to an existing torrent anymore,
+it is still useful for comparing to other handles, which may also no
+longer point to existing torrents, but to the same non-existing torrents.
+
+The ``torrent_handle`` acts as a ``weak_ptr``, even though its object no
+longer exists, it can still compare equal to another weak pointer which
+points to the same non-existent object.
 
 ::
 
