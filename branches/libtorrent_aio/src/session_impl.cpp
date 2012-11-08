@@ -5561,7 +5561,7 @@ retry:
 			lazy_entry tmp;
 			lazy_entry const* info = 0;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			debug_log("adding magnet link with resume data");
+			session_log("adding magnet link with resume data");
 #endif
 			if (lazy_bdecode(&(*params.resume_data)[0], &(*params.resume_data)[0]
 					+ params.resume_data->size(), tmp, ec, &pos) == 0
@@ -5569,7 +5569,7 @@ retry:
 				&& (info = tmp.dict_find_dict("info")))
 			{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				debug_log("found metadata in resume data");
+				session_log("found metadata in resume data");
 #endif
 				// verify the info-hash of the metadata stored in the resume file matches
 				// the torrent we're loading
@@ -5585,14 +5585,14 @@ retry:
 					|| params.info_hash.is_all_zeros())
 				{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-					debug_log("info-hash matched");
+					session_log("info-hash matched");
 #endif
 					params.ti = new torrent_info(resume_ih);
 
 					if (params.ti->parse_info_section(*info, ec, 0))
 					{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-						debug_log("successfully loaded metadata from resume file");
+						session_log("successfully loaded metadata from resume file");
 #endif
 						// make the info-hash be the one in the resume file
 						params.info_hash = resume_ih;
@@ -5601,7 +5601,7 @@ retry:
 					else
 					{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						debug_log("failed to load metadata from resume file: %s"
+						session_log("failed to load metadata from resume file: %s"
 								, ec.message().c_str());
 #endif
 					}
@@ -5609,84 +5609,14 @@ retry:
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 				else
 				{
-					debug_log("metadata info-hash failed");
+					session_log("metadata info-hash failed");
 				}
 #endif
 			}
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			else
 			{
-				debug_log("no metadata found");
-			}
-#endif
-		}
-
-		// we don't have a torrent file. If the user provided
-		// resume data, there may be some metadata in there
-		if ((!params.ti || !params.ti->is_valid())
-			&& params.resume_data)
-		{
-			int pos;
-			error_code ec;
-			lazy_entry tmp;
-			lazy_entry const* info = 0;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-			debug_log("adding magnet link with resume data");
-#endif
-			if (lazy_bdecode(&(*params.resume_data)[0], &(*params.resume_data)[0]
-					+ params.resume_data->size(), tmp, ec, &pos) == 0
-				&& tmp.type() == lazy_entry::dict_t
-				&& (info = tmp.dict_find_dict("info")))
-			{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-				debug_log("found metadata in resume data");
-#endif
-				// verify the info-hash of the metadata stored in the resume file matches
-				// the torrent we're loading
-
-				std::pair<char const*, int> buf = info->data_section();
-				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
-
-				// if url is set, the info_hash is not actually the info-hash of the
-				// torrent, but the hash of the URL, until we have the full torrent
-				// only require the info-hash to match if we actually passed in one
-				if (resume_ih == params.info_hash
-					|| !params.url.empty()
-					|| params.info_hash.is_all_zeros())
-				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-					debug_log("info-hash matched");
-#endif
-					params.ti = new torrent_info(resume_ih);
-
-					if (params.ti->parse_info_section(*info, ec, 0))
-					{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-						debug_log("successfully loaded metadata from resume file");
-#endif
-						// make the info-hash be the one in the resume file
-						params.info_hash = resume_ih;
-						ih = &params.info_hash;
-					}
-					else
-					{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-						debug_log("failed to load metadata from resume file: %s"
-								, ec.message().c_str());
-#endif
-					}
-				}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-				else
-				{
-					debug_log("metadata info-hash failed");
-				}
-#endif
-			}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			else
-			{
-				debug_log("no metadata found");
+				session_log("no metadata found");
 			}
 #endif
 		}
