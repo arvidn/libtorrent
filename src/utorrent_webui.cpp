@@ -70,7 +70,7 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_l
 	, m_al(al)
 {
 	m_start_time = time(NULL);
-	m_version = 0;
+	m_version = 1;
 
 	boost::uint64_t seed = total_microseconds(time_now_hires() - min_time());
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
@@ -178,6 +178,10 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 			"Connection: close\r\n\r\n");
 		return true;
 	}
+
+//	printf("%s%s%s\n", request_info->uri
+//		, request_info->query_string ? "?" : ""
+//		, request_info->query_string ? request_info->query_string : "");
 
 	// TODO: make this configurable
 	int ret = 0;

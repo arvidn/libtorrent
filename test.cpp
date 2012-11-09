@@ -63,11 +63,11 @@ int main(int argc, char *const argv[])
 		{
 			alert_queue.clear();
 			ses.pop_alerts(&alert_queue);
-			for (std::deque<alert*>::iterator i = alert_queue.begin()
-				, end(alert_queue.end()); i != end; ++i)
-			{
-				printf(" %s\n", (*i)->message().c_str());
-			}
+//			for (std::deque<alert*>::iterator i = alert_queue.begin()
+//				, end(alert_queue.end()); i != end; ++i)
+//			{
+//				printf(" %s\n", (*i)->message().c_str());
+//			}
 			alerts.dispatch_alerts(alert_queue);
 		}
 		if (quit && !shutting_down)

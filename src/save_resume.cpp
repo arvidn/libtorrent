@@ -75,7 +75,7 @@ save_resume::~save_resume()
 void save_resume::handle_alert(alert const* a)
 {
 	add_torrent_alert const* ta = alert_cast<add_torrent_alert>(a);
-	torrent_deleted_alert const* td = alert_cast<torrent_deleted_alert>(a);
+	torrent_removed_alert const* td = alert_cast<torrent_removed_alert>(a);
 	save_resume_data_alert const* sr = alert_cast<save_resume_data_alert>(a);
 	save_resume_data_failed_alert const* sf = alert_cast<save_resume_data_failed_alert>(a);
 	if (ta)
@@ -85,7 +85,7 @@ void save_resume::handle_alert(alert const* a)
 	}
 	else if (td)
 	{
-		boost::unordered_set<torrent_handle>::iterator i = m_torrents.find(ta->handle);
+		boost::unordered_set<torrent_handle>::iterator i = m_torrents.find(td->handle);
 		if (m_cursor == i)
 		{
 			++m_cursor;
@@ -97,7 +97,12 @@ void save_resume::handle_alert(alert const* a)
 				m_last_save_wrap = time_now();
 			}
 		}
-		// TODO: delete this file from the resume directory
+		// we need to delete the resume file from the resume directory
+		// as well, to prevent it from being reloaded on next startup
+		error_code ec;
+		std::string resume_file = combine_path(m_resume_dir, to_hex(td->info_hash.to_string()) + ".resume");
+		printf("removing: %s (%s)\n", resume_file.c_str(), ec.message().c_str());
+		remove(resume_file, ec);
 		m_torrents.erase(i);
 	}
 	else if (sr)
