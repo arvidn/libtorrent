@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -77,7 +77,7 @@ storing and retrieving of arbitrary data.</p>
 <p>It supports both storing <em>immutable</em> items, where the key is
 the SHA-1 hash of the data itself, and <em>mutable</em> items, where
 the key is the public key of the key pair used to sign the data.</p>
-<p>There are two new proposed messages, <tt class="docutils literal"><span class="pre">put</span></tt> and <tt class="docutils literal"><span class="pre">get</span></tt>.</p>
+<p>There are two new proposed messages, <tt class="docutils literal">put</tt> and <tt class="docutils literal">get</tt>.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
 <p>In this document, a <em>storage node</em> refers to the node in the DHT to which
@@ -88,24 +88,24 @@ alive.</p>
 </div>
 <div class="section" id="messages">
 <h1>messages</h1>
-<p>The proposed new messages <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt> are similar to the existing <tt class="docutils literal"><span class="pre">get_peers</span></tt>
-and <tt class="docutils literal"><span class="pre">announce_peer</span></tt>.</p>
-<p>Responses to <tt class="docutils literal"><span class="pre">get</span></tt> should always include <tt class="docutils literal"><span class="pre">nodes</span></tt> and <tt class="docutils literal"><span class="pre">nodes6</span></tt> has the same
-semantics as in its <tt class="docutils literal"><span class="pre">get_peers</span></tt> response. It should also include a write token,
-<tt class="docutils literal"><span class="pre">token</span></tt>, with the same semantics as <tt class="docutils literal"><span class="pre">get_peers</span></tt>.</p>
-<p>The <tt class="docutils literal"><span class="pre">id</span></tt> field in these messages has the same semantics as the standard DHT messages,
+<p>The proposed new messages <tt class="docutils literal">get</tt> and <tt class="docutils literal">put</tt> are similar to the existing <tt class="docutils literal">get_peers</tt>
+and <tt class="docutils literal">announce_peer</tt>.</p>
+<p>Responses to <tt class="docutils literal">get</tt> should always include <tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt> has the same
+semantics as in its <tt class="docutils literal">get_peers</tt> response. It should also include a write token,
+<tt class="docutils literal">token</tt>, with the same semantics as <tt class="docutils literal">get_peers</tt>.</p>
+<p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
 network.</p>
-<p>The <tt class="docutils literal"><span class="pre">token</span></tt> field also has the same semantics as the standard DHT message <tt class="docutils literal"><span class="pre">get_peers</span></tt>
-and <tt class="docutils literal"><span class="pre">announce_peer</span></tt>, when requesting an item and to write an item respectively.</p>
+<p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
+and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
 <p>The distinction between storing mutable and immutable items is the inclusion
-of a public key, a sequence number and signature (<tt class="docutils literal"><span class="pre">k</span></tt>, <tt class="docutils literal"><span class="pre">seq</span></tt> and <tt class="docutils literal"><span class="pre">sig</span></tt>).
+of a public key, a sequence number and signature (<tt class="docutils literal">k</tt>, <tt class="docutils literal">seq</tt> and <tt class="docutils literal">sig</tt>).
 The distinction betwewn retrieving a mutable and immutable item is the inclusion of
-the public key spill-over (<tt class="docutils literal"><span class="pre">k</span></tt>) in the <tt class="docutils literal"><span class="pre">get</span></tt> request.</p>
-<p>The <tt class="docutils literal"><span class="pre">v</span></tt> key is the <em>value</em> to be stored. It is allowed to be any bencoded type (list,
+the public key spill-over (<tt class="docutils literal">k</tt>) in the <tt class="docutils literal">get</tt> request.</p>
+<p>The <tt class="docutils literal">v</tt> key is the <em>value</em> to be stored. It is allowed to be any bencoded type (list,
 dict, string or integer). When it's being hashed (for verifying its signature or to calculate
 its key), its flattened, bencoded, form is used.</p>
-<p>Storing nodes are SHOULD reject <tt class="docutils literal"><span class="pre">put</span></tt> requests where the bencoded form of <tt class="docutils literal"><span class="pre">v</span></tt> is longer
+<p>Storing nodes are SHOULD reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is longer
 than 767 bytes.</p>
 </div>
 <div class="section" id="immutable-items">
@@ -159,7 +159,7 @@ there is no need to authenticate the origin of them. This makes immutable items 
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type whose SHA-1 hash matches 'target'&gt;</em>,
-                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
                 &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
@@ -174,11 +174,11 @@ there is no need to authenticate the origin of them. This makes immutable items 
 that only the original publisher can update an item, it is signed by a private key
 generated by the original publisher.</p>
 <p>In order to avoid a malicious node to overwrite the list head with an old
-version, the sequence number <tt class="docutils literal"><span class="pre">seq</span></tt> must be monotonically increasing for each update,
+version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each update,
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
 number to a lower one, only upgrade.</p>
 <p>The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
-number and <tt class="docutils literal"><span class="pre">v</span></tt> key. e.g. something like this:: <tt class="docutils literal"><span class="pre">3:seqi4e1:v12:Hello</span> <span class="pre">world!</span></tt>.</p>
+number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
 <div class="section" id="id1">
 <h2>put message</h2>
 <p>Request:</p>
@@ -198,7 +198,7 @@ number and <tt class="docutils literal"><span class="pre">v</span></tt> key. e.g
         &quot;q&quot;: &quot;put&quot;
 }
 </pre>
-<p>Storing nodes receiving a <tt class="docutils literal"><span class="pre">put</span></tt> request where <tt class="docutils literal"><span class="pre">seq</span></tt> is lower than what's already
+<p>Storing nodes receiving a <tt class="docutils literal">put</tt> request where <tt class="docutils literal">seq</tt> is lower than what's already
 stored on the node, MUST reject the request.</p>
 <p>Response:</p>
 <pre class="literal-block">
@@ -214,14 +214,14 @@ stored on the node, MUST reject the request.</p>
 <p>Request:</p>
 <pre class="literal-block">
 {
-        &quot;r&quot;:
+        &quot;a&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;target:&quot; <em>&lt;first 20 bytes of public key (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;remaining 248 bytes of public key (string)&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
-        &quot;y&quot;: &quot;r&quot;,
+        &quot;y&quot;: &quot;q&quot;,
         &quot;q&quot;: &quot;get&quot;
 }
 </pre>
@@ -232,11 +232,12 @@ stored on the node, MUST reject the request.</p>
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;RSA-2048 public key (268 bytes string)&gt;</em>,
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
+                &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
                 &quot;sig&quot;: <em>&lt;RSA-2048 signature (256 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 768&gt;</em>
-
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
         &quot;y&quot;: &quot;r&quot;,
@@ -250,7 +251,7 @@ stored on the node, MUST reject the request.</p>
 value and sequence number should be done as follows:</p>
 <ol class="arabic simple">
 <li>encode value and sequence number separately</li>
-<li>concatenate &quot;3:seqi&quot; <tt class="docutils literal"><span class="pre">seq</span></tt> &quot;e1:v&quot; and the encoded value.
+<li>concatenate &quot;3:seqi&quot; <tt class="docutils literal">seq</tt> &quot;e1:v&quot; and the encoded value.
 sequence number 1 of value &quot;Hello World!&quot; would be converted to: 3:seqi1e1:v12:Hello World!
 In this way it is not possible to convince a node that part of the length is actually part of the
 sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
