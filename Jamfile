@@ -41,9 +41,13 @@ lib torrent-webui
 
 	: # usage-requirements
 	<include>src
+	<target-os>linux:<library>pthread
+	<target-os>linux:<library>rt
 	;
 
 lib zlib : : <name>z <search>/usr/local/lib ;
+lib pthread : : <name>pthread <search>/usr/local/lib <link>shared ;
+lib rt : : <name>rt <search>/usr/local/lib <link>shared ;
 
 exe webui_test : test.cpp : <library>torrent-webui <library>/torrent//torrent ;
 

@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // for statfs()
 #include <sys/param.h>
 #include <sys/mount.h>
+#ifdef __linux__
+#include <sys/vfs.h>
+#endif
 
 #include "disk_space.hpp"
 

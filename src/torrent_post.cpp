@@ -68,7 +68,7 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 
 	char const* body_end = &post_body[0] + content_length;
 
-	char const* part_start = strnstr(&post_body[0], boundary, content_length);
+	char const* part_start = strstr(&post_body[0], boundary);
 	if (part_start == NULL) return false;
 
 	part_start += strlen(boundary);
@@ -77,7 +77,7 @@ bool parse_torrent_post(mg_connection* conn, add_torrent_params& params, error_c
 	// loop through all parts
 	for(; part_start < body_end; part_start = (std::min)(body_end, part_end + strlen(boundary)))
 	{
-		part_end = strnstr(part_start, boundary, body_end - part_start);
+		part_end = strstr(part_start, boundary);
 		if (part_end == NULL) part_end = body_end;
 
 		http_parser part;

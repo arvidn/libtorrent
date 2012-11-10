@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <string.h>
+#include <stdio.h>
 
 #include "escape_json.hpp"
 

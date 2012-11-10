@@ -896,7 +896,7 @@ std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) con
 {
 	std::vector<torrent_handle> ret;
 
-	for (char* hash = strstr(args, "&hash="); hash; hash = strstr(hash, "&hash="))
+	for (char const* hash = strstr(args, "&hash="); hash; hash = strstr(hash, "&hash="))
 	{
 		hash += 6;
 		char const* end = strchr(hash, '&');
