@@ -6,6 +6,7 @@
 #include "save_settings.hpp"
 #include "save_resume.hpp"
 #include "torrent_history.hpp"
+#include "auth.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_handler.hpp"
@@ -34,6 +35,9 @@ int main(int argc, char *const argv[])
 	sett.load(ec);
 
 	torrent_history hist(&alerts);
+	auth authorizer(&sett);
+	authorizer.set_username("admin");
+	authorizer.set_password("test");
 
 	save_resume resume(ses, ".resume", &alerts);
 	add_torrent_params p;
@@ -47,6 +51,7 @@ int main(int argc, char *const argv[])
 	file_downloader file_handler(ses);
 
 	webui_base webport;
+	webport.add_handler(&authorizer);
 	webport.add_handler(&ut_handler);
 	webport.add_handler(&tr_handler);
 	webport.add_handler(&file_handler);

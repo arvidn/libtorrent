@@ -25,11 +25,12 @@ SOURCES =
 	save_settings
 	save_resume
 	torrent_history
+	auth
 	;
 
 lib torrent-webui
 	: # sources
-	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c
+	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c src/cdecode.c
 
 	: # requirements
 	<library>/torrent//torrent

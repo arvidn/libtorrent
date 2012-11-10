@@ -30,30 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <string>
-#include <string.h>
+#include "webui.hpp"
 
-extern "C" {
-#include "cdecode.h"
-}
+#include "libtorrent/peer_id.hpp" // sha1_hash
+#include <string>
 
 namespace libtorrent
 {
+	struct save_settings;
 
-std::string base64decode(std::string const& in)
-{
-	std::string ret;
-	if (in.size() < 4) return ret;
+	struct auth : http_handler
+	{
+		auth(save_settings* sett);
+		void set_password(std::string const& pwd);
+		void set_username(std::string const& user);
+		bool authenticate(std::string const& username, std::string const& password) const;
 
-	// approximate length of output
-	ret.resize(in.size() * 6 / 8 + 1);
+		bool handle_http(mg_connection* conn, mg_request_info const* request_info);
+	private:
+		sha1_hash password_hash(std::string const& pwd) const;
 
-	base64_decodestate ctx;
-	base64_init_decodestate(&ctx);
-	int len = base64_decode_block(in.c_str(), in.size(), &ret[0], &ctx);
-	ret.resize(len);
-	return ret;
-}
-
+		std::string m_username;
+		sha1_hash m_password_hash;
+		save_settings* m_sett;
+		char m_salt[10];
+	};
 }
 
