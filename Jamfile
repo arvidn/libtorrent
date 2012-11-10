@@ -24,6 +24,7 @@ SOURCES =
 	auto_load
 	save_settings
 	save_resume
+	torrent_history
 	;
 
 lib torrent-webui

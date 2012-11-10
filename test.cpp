@@ -5,6 +5,7 @@
 #include "auto_load.hpp"
 #include "save_settings.hpp"
 #include "save_resume.hpp"
+#include "torrent_history.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_handler.hpp"
@@ -32,6 +33,8 @@ int main(int argc, char *const argv[])
 	save_settings sett(ses, "settings.dat");
 	sett.load(ec);
 
+	torrent_history hist(&alerts);
+
 	save_resume resume(ses, ".resume", &alerts);
 	add_torrent_params p;
 	p.save_path = sett.get_str("save_path", ".");
@@ -40,7 +43,7 @@ int main(int argc, char *const argv[])
 	auto_load al(ses, &sett);
 
 	transmission_webui tr_handler(ses, &sett);
-	utorrent_webui ut_handler(ses, &sett, &al);
+	utorrent_webui ut_handler(ses, &sett, &al, &hist);
 	file_downloader file_handler(ses);
 
 	webui_base webport;
@@ -70,6 +73,7 @@ int main(int argc, char *const argv[])
 //			}
 			alerts.dispatch_alerts(alert_queue);
 		}
+		ses.post_torrent_updates();
 		if (quit && !shutting_down)
 		{
 			resume.save_all();

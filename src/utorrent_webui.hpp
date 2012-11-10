@@ -44,10 +44,12 @@ namespace libtorrent
 {
 	struct auto_load;
 	struct save_settings_interface;
+	struct torrent_history;
 
 	struct utorrent_webui : http_handler
 	{
-		utorrent_webui(session& s, save_settings_interface* sett = NULL, auto_load* al = NULL);
+		utorrent_webui(session& s, save_settings_interface* sett = NULL
+			, auto_load* al = NULL, torrent_history* hist = NULL);
 		~utorrent_webui();
 
 		void set_params_model(add_torrent_params const& p)
@@ -92,6 +94,10 @@ namespace libtorrent
 		auto_load* m_al;
 
 		save_settings_interface* m_settings;
+
+		// used to detect which torrents have been updated
+		// since last time
+		torrent_history* m_hist;
 
 		int m_version;
 		std::string m_token;

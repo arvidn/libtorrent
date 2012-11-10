@@ -60,14 +60,17 @@ extern "C" {
 #include "escape_json.hpp"
 #include "auto_load.hpp"
 #include "save_settings.hpp"
+#include "torrent_history.hpp"
 
 namespace libtorrent
 {
 
-utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett, auto_load* al)
+utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
+		, auto_load* al, torrent_history* hist)
 	: m_ses(s)
 	, m_settings(sett)
 	, m_al(al)
+	, m_hist(hist)
 {
 	m_start_time = time(NULL);
 	m_version = 1;
@@ -811,21 +814,19 @@ std::string utorrent_message(torrent_status const& st)
 	return "??";
 }
 
-bool nop(torrent_status const&) { return true; }
-
 void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* args)
 {
-	int cid = -1;
+	int cid = 0;
 	char buf[50];
 	// first, find the action
 	int ret = mg_get_var(args, strlen(args)
 		, "cid", buf, sizeof(buf));
 	if (ret > 0) cid = atoi(buf);
 
-	appendf(response, cid != -1 ? ",\"torrentp\":[" : ",\"torrents\":[");
+	appendf(response, cid > 0 ? ",\"torrentp\":[" : ",\"torrents\":[");
 
 	std::vector<torrent_status> torrents;
-	m_ses.get_torrent_status(&torrents, &nop);
+	m_hist->updated_since(cid, torrents);
 
 	int first = 1;
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
@@ -876,8 +877,19 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 		first = 0;
 	}
 
+	std::vector<sha1_hash> removed;
+	m_hist->removed_since(cid, removed);
+
+	appendf(response, "], \"torrentm\": [");
+	first = 1;
+	for (std::vector<sha1_hash>::iterator i = removed.begin()
+		, end(removed.end()); i != end; ++i)
+	{
+		appendf(response, ",\"%s\"" + first, to_hex(i->to_string()).c_str());
+		first = 0;
+	}
 	// TODO: support labels
-	appendf(response, "], \"label\": [], \"torrentm\": [], \"torrentc\": \"0\"");
+	appendf(response, "], \"label\": [], \"torrentc\": \"%d\"", m_hist->frame());
 }
 
 std::vector<torrent_handle> utorrent_webui::parse_torrents(char const* args) const
