@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/disk_io_job.hpp" // for block_cache_reference
 #include <algorithm>
+#include <boost/shared_ptr.hpp>
 
 namespace libtorrent
 {
@@ -48,7 +49,8 @@ namespace libtorrent
 		virtual char* allocate_disk_buffer(char const* category) = 0;
 		virtual void free_disk_buffer(char* b) = 0;
 		virtual void reclaim_block(block_cache_reference ref) = 0;
-		virtual char* allocate_disk_buffer(bool& exceeded, disk_observer* o
+		virtual char* allocate_disk_buffer(bool& exceeded
+			, boost::shared_ptr<disk_observer> o
 			, char const* category) = 0;
 	};
 

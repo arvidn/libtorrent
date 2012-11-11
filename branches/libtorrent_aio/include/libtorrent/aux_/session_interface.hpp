@@ -125,7 +125,7 @@ namespace libtorrent { namespace aux
 		virtual io_service& get_io_service() = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
-		virtual void insert_peer(boost::intrusive_ptr<peer_connection> const& c) = 0;
+		virtual void insert_peer(boost::shared_ptr<peer_connection> const& c) = 0;
 		
 		virtual void add_redundant_bytes(size_type b, int reason) = 0;
 		virtual void add_failed_bytes(size_type b) = 0;
@@ -194,7 +194,7 @@ namespace libtorrent { namespace aux
 		// in the torrent LRU (i.e. the least likely to get unloaded)
 		virtual void bump_torrent(torrent* t, bool back = true) = 0;
 
-		virtual void subscribe_to_disk(disk_observer* o) = 0;
+		virtual void subscribe_to_disk(boost::shared_ptr<disk_observer> o) = 0;
 		virtual bool exceeded_cache_use() const = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on

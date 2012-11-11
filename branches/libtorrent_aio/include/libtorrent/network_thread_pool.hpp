@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NETWORK_THREAD_POOL_HPP_INCLUDED
 
 #include "libtorrent/thread_pool.hpp"
-#include <boost/intrusive_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <vector>
 
 namespace libtorrent
@@ -45,7 +45,7 @@ namespace libtorrent
 	struct write_some_job
 	{
 		std::vector<asio::const_buffer> const* vec;
-		boost::intrusive_ptr<peer_connection> peer;
+		boost::shared_ptr<peer_connection> peer;
 		// defined in session_impl.cpp
 		~write_some_job();
 	};

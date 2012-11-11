@@ -69,7 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -152,7 +151,7 @@ namespace libtorrent
 		, public peer_class_set
 		, public disk_observer
 		, public connection_interface 
-		, public boost::noncopyable
+		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
 	friend struct network_thread_pool;
@@ -424,11 +423,11 @@ namespace libtorrent
 		}
 
 		bool bittyrant_unchoke_compare(
-			boost::intrusive_ptr<peer_connection const> const& p) const;
+			peer_connection const* p) const;
 		// compares this connection against the given connection
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
-		bool unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const;
+		bool unchoke_compare(peer_connection const* p) const;
 		bool upload_rate_compare(peer_connection const* p) const;
 
 		// resets the byte counters that are used to measure
@@ -621,6 +620,12 @@ namespace libtorrent
 		enum sync_t { read_async, read_sync };
 		void setup_receive(sync_t sync = read_sync);
 
+		boost::shared_ptr<peer_connection> self()
+		{
+			TORRENT_ASSERT(!m_in_constructor);
+			return shared_from_this();
+		}
+
 	protected:
 
 		size_t try_read(sync_t s, error_code& ec);
@@ -760,12 +765,6 @@ namespace libtorrent
 		// peer resides in.
 		char m_country[2];
 #endif
-
-		boost::intrusive_ptr<peer_connection> self()
-		{
-			TORRENT_ASSERT(!m_in_constructor);
-			return boost::intrusive_ptr<peer_connection>(this);
-		}
 
 	private:
 

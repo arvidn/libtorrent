@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
 #if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
 #include <sys/mman.h>
@@ -55,9 +56,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	// this is posted to the network thread
-	static void watermark_callback(std::vector<disk_observer*>* cbs)
+	static void watermark_callback(std::vector<boost::shared_ptr<disk_observer> >* cbs)
 	{
-		for (std::vector<disk_observer*>::iterator i = cbs->begin()
+		for (std::vector<boost::shared_ptr<disk_observer> >::iterator i = cbs->begin()
 			, end(cbs->end()); i != end; ++i)
 			(*i)->on_disk();
 		delete cbs;
@@ -151,7 +152,8 @@ namespace libtorrent
 		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
 
 		m_exceeded_max_size = false;
-		std::vector<disk_observer*>* cbs = new std::vector<disk_observer*>();
+		std::vector<boost::shared_ptr<disk_observer> >* cbs
+			= new std::vector<boost::shared_ptr<disk_observer> >();
 		m_observers.swap(*cbs);
 		l.unlock();
 
@@ -194,7 +196,7 @@ namespace libtorrent
 	}
 #endif
 
-	void disk_buffer_pool::subscribe_to_disk(disk_observer* o)
+	void disk_buffer_pool::subscribe_to_disk(boost::shared_ptr<disk_observer> o)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		m_observers.push_back(o);
@@ -207,7 +209,7 @@ namespace libtorrent
 	}
 
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded, bool& trigger_trim
-		, disk_observer* o, char const* category)
+		, boost::shared_ptr<disk_observer> o, char const* category)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		bool was_exceeded = m_exceeded_max_size;

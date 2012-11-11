@@ -381,9 +381,9 @@ namespace libtorrent
 		void resolve_countries(bool r);
 		bool resolving_countries() const;
 
-		void resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const;
+		void resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const;
 		void on_country_lookup(error_code const& error, tcp::resolver::iterator i
-			, boost::intrusive_ptr<peer_connection> p) const;
+			, boost::shared_ptr<peer_connection> p) const;
 #endif
 
 // --------------------------------------------

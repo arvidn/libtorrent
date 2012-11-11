@@ -202,6 +202,9 @@ namespace libtorrent
 		}
 	}
 
+	void disk_io_thread::subscribe_to_disk(boost::shared_ptr<disk_observer> o)
+	{ m_disk_cache.subscribe_to_disk(o); }
+
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
 		TORRENT_ASSERT(ref.storage);
@@ -2377,7 +2380,7 @@ namespace libtorrent
 	}
 
 	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
-		, disk_observer* o
+		, boost::shared_ptr<disk_observer> o
 		, char const* category)
 	{
 		bool trigger_trim = false;

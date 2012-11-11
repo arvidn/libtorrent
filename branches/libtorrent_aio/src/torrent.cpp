@@ -981,7 +981,7 @@ namespace libtorrent
 			bt_peer_connection* p = (bt_peer_connection*)*i;
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
-				boost::intrusive_ptr<peer_connection> me(p);
+				boost::shared_ptr<peer_connection> me(p->self());
 				p->send_not_interested();
 				if (!p->is_disconnecting());
 					p->write_upload_only();
@@ -3477,7 +3477,7 @@ namespace libtorrent
 
 		for (peer_iterator i = m_connections.begin(); i != m_connections.end();)
 		{
-			boost::intrusive_ptr<peer_connection> p = *i;
+			boost::shared_ptr<peer_connection> p = (*i)->self();
 			++i;
 
 			// received_piece will check to see if we're still interested
@@ -5448,20 +5448,24 @@ namespace libtorrent
 			return;
 		}
 
-		boost::intrusive_ptr<peer_connection> c;
+		boost::shared_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
 		{
-			c = new (std::nothrow) web_peer_connection(
+			// TODO: use make_new
+			// TODO: pass in web instead of all of its content
+			c.reset(new (std::nothrow) web_peer_connection(
 				m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
-				, shared_from_this(), s, a, web->url, &web->peer_info // TODO: pass in web
-				, web->auth, web->extra_headers);
+				, shared_from_this(), s, a, web->url, &web->peer_info
+				, web->auth, web->extra_headers));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
-			c = new (std::nothrow) http_seed_connection(
+			// TODO: use make_new
+			// TODO: pass in web instead of all of its content
+			c.reset(new (std::nothrow) http_seed_connection(
 				m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
-				, shared_from_this(), s, a, web->url, &web->peer_info // TODO: pass in web
-				, web->auth, web->extra_headers);
+				, shared_from_this(), s, a, web->url, &web->peer_info
+				, web->auth, web->extra_headers));
 		}
 		if (!c) return;
 
@@ -5541,7 +5545,7 @@ namespace libtorrent
 		return m_resolve_countries && !m_ses.settings().get_bool(settings_pack::anonymous_mode);
 	}
 	
-	void torrent::resolve_peer_country(boost::intrusive_ptr<peer_connection> const& p) const
+	void torrent::resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (m_resolving_country
@@ -5575,7 +5579,7 @@ namespace libtorrent
 	}
 
 	void torrent::on_country_lookup(error_code const& error, tcp::resolver::iterator i
-		, boost::intrusive_ptr<peer_connection> p) const
+		, boost::shared_ptr<peer_connection> p) const
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
@@ -6217,7 +6221,7 @@ namespace libtorrent
 			peer->get_peer_info(p);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			if (resolving_countries())
-				resolve_peer_country(boost::intrusive_ptr<peer_connection>(peer));
+				resolve_peer_country(peer->self());
 #endif
 		}
 	}
@@ -6421,7 +6425,8 @@ namespace libtorrent
 
 		m_ses.setup_socket_buffers(*s);
 
-		boost::intrusive_ptr<peer_connection> c(new bt_peer_connection(
+		// TODO: use make_shared
+		boost::shared_ptr<peer_connection> c(new bt_peer_connection(
 			m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
 			, s, a, peerinfo, shared_from_this(), true));
 
@@ -7962,7 +7967,7 @@ namespace libtorrent
 				i != m_connections.end();)
 			{
 				peer_iterator j = i++;
-				boost::intrusive_ptr<peer_connection> p = *j;
+				boost::shared_ptr<peer_connection> p = (*j)->self();
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 				if (p->is_disconnecting())
@@ -8411,7 +8416,7 @@ namespace libtorrent
 		{
 			// keep the peer object alive while we're
 			// inspecting it
-			boost::intrusive_ptr<peer_connection> p = *i;
+			boost::shared_ptr<peer_connection> p = (*i)->self();
 			++i;
 
 			// look for the peer that saw a seed most recently

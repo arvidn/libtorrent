@@ -1969,10 +1969,10 @@ namespace aux {
 
 	bool session_impl::has_connection(peer_connection* p) const
 	{
-		return m_connections.find(p) != m_connections.end();
+		return m_connections.find(p->self()) != m_connections.end();
 	}
 
-	void session_impl::insert_peer(boost::intrusive_ptr<peer_connection> const& c)
+	void session_impl::insert_peer(boost::shared_ptr<peer_connection> const& c)
 	{
 		m_connections.insert(c);
 	}
@@ -3072,7 +3072,8 @@ retry:
 
 		setup_socket_buffers(*s);
 
-		boost::intrusive_ptr<peer_connection> c(
+		// TODO: use make_shared
+		boost::shared_ptr<peer_connection> c(
 			new bt_peer_connection(*this, m_settings
 				, *this, m_disk_thread, m_io_service, s, endp, 0));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -3127,18 +3128,20 @@ retry:
 	// if cancel_with_cq is set, the peer connection is
 	// currently expected to be scheduled for a connection
 	// with the connection queue, and should be cancelled
+	// TODO: should this function take a shared_ptr instead?
 	void session_impl::close_connection(peer_connection* p
 		, error_code const& ec, bool cancel_with_cq)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		boost::shared_ptr<peer_connection> sp(p->self());
 
 		if (cancel_with_cq) m_half_open.cancel(p);
 
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the
 		// last reference is held by the network thread.
-		if (p->refcount() > 1)
-			m_undead_peers.push_back(boost::intrusive_ptr<peer_connection>(p));
+		if (!sp.unique())
+			m_undead_peers.push_back(sp);
 
 // too expensive
 //		INVARIANT_CHECK;
@@ -3157,9 +3160,8 @@ retry:
 		TORRENT_ASSERT(p->is_disconnecting());
 
 		if (!p->is_choked() && !p->ignore_unchoke_slots()) --m_num_unchoked;
-		TORRENT_ASSERT(p->refcount() > 0);
+		TORRENT_ASSERT(sp.use_count() > 0);
 
-		boost::intrusive_ptr<peer_connection> sp((peer_connection*)p);
 		connection_map::iterator i = m_connections.find(sp);
 		// make sure the next disk peer round-robin cursor stays valid
 		if (m_next_disk_peer == i) ++m_next_disk_peer;
@@ -3281,7 +3283,7 @@ retry:
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&boost::intrusive_ptr<peer_connection>::get, _1) == p)
+			, boost::bind(&boost::shared_ptr<peer_connection>::get, _1) == p)
 			!= m_connections.end();
 	}
 
@@ -3382,8 +3384,9 @@ retry:
 #endif
 
 		// remove undead peers that only have this list as their reference keeping them alive
-		std::vector<boost::intrusive_ptr<peer_connection> >::iterator i = std::remove_if(
-			m_undead_peers.begin(), m_undead_peers.end(), boost::bind(&peer_connection::refcount, _1) < 2);
+		std::vector<boost::shared_ptr<peer_connection> >::iterator i = std::remove_if(
+			m_undead_peers.begin(), m_undead_peers.end()
+			, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
 		m_undead_peers.erase(i, m_undead_peers.end());
 
 		int tick_interval_ms = total_milliseconds(now - m_last_second_tick);
@@ -4828,7 +4831,7 @@ retry:
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
-			boost::intrusive_ptr<peer_connection> p = *i;
+			boost::shared_ptr<peer_connection> p = *i;
 			TORRENT_ASSERT(p);
 			++i;
 			torrent* t = p->associated_torrent().lock().get();
@@ -6980,13 +6983,16 @@ retry:
 		return m_disk_thread.allocate_disk_buffer(category);
 	}
 
+	void session_impl::subscribe_to_disk(boost::shared_ptr<disk_observer> o)
+	{ m_disk_thread.subscribe_to_disk(o); }
+
 	void session_impl::free_disk_buffer(char* buf)
 	{
 		m_disk_thread.free_disk_buffer(buf);
 	}
 	
 	char* session_impl::allocate_disk_buffer(bool& exceeded
-		, disk_observer* o
+		, boost::shared_ptr<disk_observer> o
 		, char const* category)
 	{
 		return m_disk_thread.allocate_disk_buffer(exceeded, o, category);

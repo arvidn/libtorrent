@@ -227,7 +227,7 @@ namespace libtorrent
 #endif
 			friend struct checker_impl;
 			friend class invariant_access;
-			typedef std::set<boost::intrusive_ptr<peer_connection> > connection_map;
+			typedef std::set<boost::shared_ptr<peer_connection> > connection_map;
 #if TORRENT_HAS_BOOST_UNORDERED
 			typedef boost::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #else
@@ -528,7 +528,7 @@ namespace libtorrent
 			proxy_settings const& proxy() const { return m_proxy; }
 
 			bool has_connection(peer_connection* p) const;
-			void insert_peer(boost::intrusive_ptr<peer_connection> const& c);
+			void insert_peer(boost::shared_ptr<peer_connection> const& c);
 		
 #ifndef TORRENT_NO_DEPRECATE
 			void set_peer_proxy(proxy_settings const& s) { set_proxy(s); }
@@ -628,14 +628,13 @@ namespace libtorrent
 			void free_buffer(char* buf);
 			int send_buffer_size() const { return send_buffer_size_impl; }
 
-			void subscribe_to_disk(disk_observer* o)
-			{ m_disk_thread.subscribe_to_disk(o); }
+			void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
 
 			// implements buffer_allocator_interface
 			void free_disk_buffer(char* buf);
 			char* allocate_disk_buffer(char const* category);
 			char* allocate_disk_buffer(bool& exceeded
-				, disk_observer* o
+				, boost::shared_ptr<disk_observer> o
 				, char const* category);
 			void reclaim_block(block_cache_reference ref);
 	
@@ -899,7 +898,7 @@ namespace libtorrent
 			// once a peer is disconnected, it's put in this list and
 			// every second their refcount is checked, and if it's 1,
 			// they are deleted (from the network thread)
-			std::vector<boost::intrusive_ptr<peer_connection> > m_undead_peers;
+			std::vector<boost::shared_ptr<peer_connection> > m_undead_peers;
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers

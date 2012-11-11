@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include <vector>
+#include <boost/shared_ptr.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
@@ -71,10 +72,10 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
-		void subscribe_to_disk(disk_observer* o);
+		void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
 		char* allocate_buffer(char const* category);
 		char* allocate_buffer(bool& exceeded, bool& trigger_trim
-			, disk_observer* o, char const* category);
+			, boost::shared_ptr<disk_observer> o, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
 
@@ -121,7 +122,7 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
-		std::vector<disk_observer*> m_observers;
+		std::vector<boost::shared_ptr<disk_observer> > m_observers;
 
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;

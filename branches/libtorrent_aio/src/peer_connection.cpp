@@ -310,7 +310,7 @@ namespace libtorrent
 	}
 
 	bool peer_connection::bittyrant_unchoke_compare(
-		boost::intrusive_ptr<peer_connection const> const& p) const
+		peer_connection const* p) const
 	{
 		TORRENT_ASSERT(p);
 		peer_connection const& rhs = *p;
@@ -338,7 +338,7 @@ namespace libtorrent
 		return m_last_unchoke < rhs.m_last_unchoke;
 	}
 
-	bool peer_connection::unchoke_compare(boost::intrusive_ptr<peer_connection const> const& p) const
+	bool peer_connection::unchoke_compare(peer_connection const* p) const
 	{
 		TORRENT_ASSERT(p);
 		peer_connection const& rhs = *p;
@@ -2277,7 +2277,7 @@ namespace libtorrent
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
 		bool exceeded = false;
-		char* buffer = m_allocator.allocate_disk_buffer(exceeded, this, "receive buffer");
+		char* buffer = m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer");
 
 		if (buffer == 0)
 		{
@@ -3680,7 +3680,7 @@ namespace libtorrent
 		}
 #endif // TORRENT_DISABLE_ENCRYPTION
 
-		boost::intrusive_ptr<peer_connection> me(this);
+		boost::shared_ptr<peer_connection> me(self());
 
 		INVARIANT_CHECK;
 
@@ -3800,10 +3800,6 @@ namespace libtorrent
 
 		m_ses.close_connection(this, ec, m_queued_for_connection);
 		m_queued_for_connection = false;
-
-		// we should only disconnect while we still have
-		// at least one reference left to the connection
-		TORRENT_ASSERT(refcount() > 0);
 	}
 
 	bool peer_connection::ignore_unchoke_slots() const
@@ -3992,7 +3988,7 @@ namespace libtorrent
 		// then allocate a new one
 
 		bool exceeded = false;
-		m_disk_recv_buffer.reset(m_allocator.allocate_disk_buffer(exceeded, this, "receive buffer"));
+		m_disk_recv_buffer.reset(m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer"));
 
 		if (!m_disk_recv_buffer)
 		{
@@ -4147,7 +4143,7 @@ namespace libtorrent
 	void peer_connection::second_tick(int tick_interval_ms)
 	{
 		ptime now = time_now();
-		boost::intrusive_ptr<peer_connection> me(self());
+		boost::shared_ptr<peer_connection> me(self());
 
 		// the invariant check must be run before me is destructed
 		// in case the peer got disconnected
@@ -5023,7 +5019,7 @@ namespace libtorrent
 	void peer_connection::on_disk()
 	{
 		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
-		boost::intrusive_ptr<peer_connection> me(this);
+		boost::shared_ptr<peer_connection> me(self());
 	
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** dropped below disk buffer watermark");
@@ -5389,7 +5385,7 @@ namespace libtorrent
 		// case we disconnect
 		// this needs to be created before the invariant check,
 		// to keep the object alive through the exit check
-		boost::intrusive_ptr<peer_connection> me(self());
+		boost::shared_ptr<peer_connection> me(self());
 
 		// flush the send buffer at the end of this function
 		cork _c(*this);
@@ -5621,7 +5617,7 @@ namespace libtorrent
 
 				// make sure we know when the cache has been flushed
 				// enough so we can start downloading again
-				m_ses.subscribe_to_disk(const_cast<peer_connection*>(this));
+				m_ses.subscribe_to_disk(const_cast<peer_connection*>(this)->self());
 
 #ifdef TORRENT_VERBOSE_LOGGING
 				peer_log("*** exceeded disk buffer watermark");
@@ -5650,7 +5646,7 @@ namespace libtorrent
 		// in case we disconnect here, we need to
 		// keep the connection alive until the
 		// exit invariant check is run
-		boost::intrusive_ptr<peer_connection> me(self());
+		boost::shared_ptr<peer_connection> me(self());
 #endif
 		INVARIANT_CHECK;
 
@@ -5890,7 +5886,7 @@ namespace libtorrent
 #endif
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
-		boost::intrusive_ptr<peer_connection> me(self());
+		boost::shared_ptr<peer_connection> me(self());
 
 		TORRENT_ASSERT(m_channel_state[upload_channel] & peer_info::bw_network);
 
