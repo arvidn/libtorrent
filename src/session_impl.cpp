@@ -3690,7 +3690,11 @@ retry:
 
 			utp_stream* utp_socket = p->get_socket()->get<utp_stream>();
 #ifdef TORRENT_USE_OPENSSL
-			if (!utp_socket) utp_socket = p->get_socket()->get<ssl_stream<utp_stream> >();
+			if (!utp_socket)
+			{
+				ssl_stream<utp_stream>* ssl_str = p->get_socket()->get<ssl_stream<utp_stream> >();
+				if (ssl_str) utp_socket = &ssl_str->next_layer();
+			}
 #endif
 			if (utp_socket)
 			{
