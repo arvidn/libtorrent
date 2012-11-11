@@ -65,7 +65,7 @@ std::string escape_json(std::string const& in)
 				default:
 				{
 					char buf[20];
-					snprintf(buf, sizeof(buf), "u0%03o", int(*s));
+					snprintf(buf, sizeof(buf), "u0%03o", int(static_cast<unsigned char>(*s)));
 					ret += buf;
 				}
 			}

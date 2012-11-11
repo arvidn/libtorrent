@@ -443,6 +443,9 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"Y\"}]\n"
 		",[\"webui.port\",0,\"8080\",{\"access\":\"Y\"}]\n"
 		",[\"cache.override\",1,\"true\",{\"access\":\"Y\"}]\n"
+		// the webUI uses the existence of this setting as an
+		// indication of supporting the getpeers action, so we
+		// need to define it in order to support peers
 		",[\"webui.uconnect_enable\",1,\"false\",{\"access\":\"Y\"}]\n"
 		"]"
 		 + first
@@ -738,7 +741,8 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 		{
 			appendf(response, ",[\"%c%c\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
 				",%d,%"PRId64",%"PRId64",%d,%d,%d,%d,%d,%d,%d]" + first_peer
-				, p->country[0], p->country[1]
+				, isprint(p->country[0]) ? p->country[0] : ' '
+				, isprint(p->country[1]) ? p->country[1] : ' '
 				, print_endpoint(p->ip).c_str()
 				, ""
 				, p->connection_type == peer_info::bittorrent_utp
