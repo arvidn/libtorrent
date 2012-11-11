@@ -4671,10 +4671,10 @@ namespace libtorrent
 		// setting higher priorities
 		std::vector<int> pieces(m_torrent_file->num_pieces(), 0);
 		int index = 0;
-		for (file_storage::iterator i = m_torrent_file->files().begin()
-			, end(m_torrent_file->files().end()); i != end; ++i, ++index)
+		int num_files = m_torrent_file->num_files();
+		for (file_storage::iterator i = m_torrent_file->files().begin();
+			index < num_files; ++i, ++index)
 		{
-			if (index >= m_torrent_file->num_files()) break;
 			size_type start = position;
 			size_type size = m_torrent_file->files().file_size(*i);
 			if (size == 0) continue;
