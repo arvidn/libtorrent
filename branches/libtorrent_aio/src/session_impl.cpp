@@ -357,7 +357,6 @@ namespace aux {
 	// to make the macro simpler
 	struct all_default_values
 	{
-		session_settings m_settings;
 		proxy_settings m_proxy;
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		pe_settings m_pe_settings;

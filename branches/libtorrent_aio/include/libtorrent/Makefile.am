@@ -94,6 +94,7 @@ nobase_include_HEADERS = \
   peer_request.hpp             \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
+  platform_util.hpp            \
   policy.hpp                   \
   proxy_base.hpp               \
   ptime.hpp                    \

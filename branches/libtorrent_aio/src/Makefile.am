@@ -76,6 +76,7 @@ libtorrent_rasterbar_la_SOURCES = \
   peer_class.cpp                  \
   peer_class_set.cpp              \
   piece_picker.cpp                \
+  platform_util.cpp               \
   packet_buffer.cpp               \
   proxy_base.cpp                  \
   policy.cpp                      \

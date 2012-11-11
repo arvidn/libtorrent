@@ -464,9 +464,6 @@ namespace libtorrent
 		// issued to the AIO subsystem
 		atomic_count m_outstanding_jobs;
 
-		// the amount of physical ram in the machine
-		boost::uint64_t m_physical_ram;
-
 		// this is the main thread io_service. Callbacks are
 		// posted on this in order to have them execute in
 		// the main thread.

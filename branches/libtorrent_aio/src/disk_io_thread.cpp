@@ -55,11 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
-#ifdef TORRENT_BSD
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#endif
-
 #define DEBUG_DISK_THREAD 0
 
 #define DLOG if (DEBUG_DISK_THREAD) fprintf
@@ -89,7 +84,6 @@ namespace libtorrent
 		, m_disk_cache(block_size, ios, alert_disp)
 		, m_last_stats_flip(time_now())
 		, m_outstanding_jobs(0)
-		, m_physical_ram(0)
 		, m_ios(ios)
 		, m_num_blocked_jobs(0)
 		, m_work(io_service::work(m_ios))
@@ -113,48 +107,6 @@ namespace libtorrent
 			m_file_pool.resize((std::min)(m_file_pool.size_limit(), int(rl.rlim_cur * 2 / 10)));
 		}
 #endif // TORRENT_USE_RLIMIT
-
-		// figure out how much physical RAM there is in
-		// this machine. This is used for automatically
-		// sizing the disk cache size when it's set to
-		// automatic.
-#ifdef TORRENT_BSD
-#ifdef HW_MEMSIZE
-		int mib[2] = { CTL_HW, HW_MEMSIZE };
-#else
-		// not entirely sure this sysctl supports 64
-		// bit return values, but it's probably better
-		// than not building
-		int mib[2] = { CTL_HW, HW_PHYSMEM };
-#endif
-		size_t len = sizeof(m_physical_ram);
-		if (sysctl(mib, 2, &m_physical_ram, &len, NULL, 0) != 0)
-			m_physical_ram = 0;
-#elif defined TORRENT_WINDOWS
-		MEMORYSTATUSEX ms;
-		ms.dwLength = sizeof(MEMORYSTATUSEX);
-		if (GlobalMemoryStatusEx(&ms))
-			m_physical_ram = ms.ullTotalPhys;
-		else
-			m_physical_ram = 0;
-#elif defined TORRENT_LINUX
-		m_physical_ram = sysconf(_SC_PHYS_PAGES);
-		m_physical_ram *= sysconf(_SC_PAGESIZE);
-#elif defined TORRENT_AMIGA
-		m_physical_ram = AvailMem(MEMF_PUBLIC);
-#endif
-
-#if TORRENT_USE_RLIMIT
-		if (m_physical_ram > 0)
-		{
-			struct rlimit r;
-			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
-			{
-				if (m_physical_ram > r.rlim_cur)
-					m_physical_ram = r.rlim_cur;
-			}
-		}
-#endif
 
 		set_num_threads(1);
 	}

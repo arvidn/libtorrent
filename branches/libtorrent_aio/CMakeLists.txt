@@ -41,6 +41,7 @@ set(sources
 	natpmp
 	packet_buffer
 	piece_picker
+	platform_util
 	proxy_base
 	policy
 	puff
