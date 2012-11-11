@@ -385,16 +385,41 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 	for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 	{
 		int s = settings_pack::bool_type_base + i;
+		char const* sname;
+		bool value;
+		if (s == settings_pack::use_read_cache)
+		{
+			sname = "cache.read";
+			value = sett.get_bool(s);
+		}
+		else
+		{
+			sname = settings_name(s);
+			value = sett.get_bool(s);
+		}
 		appendf(response, ",[\"%s\",1,\"%s\",{\"access\":\"Y\"}]\n" + first
-			, settings_name(s), sett.get_bool(s) ? "true" : "false");
+			, sname, value ? "true" : "false");
 		first = 0;
 	}
 
 	for (int i = 0; i < settings_pack::num_int_settings; ++i)
 	{
 		int s = settings_pack::int_type_base + i;
-		appendf(response, ",[\"%s\",0,\"%d\",{\"access\":\"Y\"}]\n" + first
-			, settings_name(s), sett.get_int(s));
+		char const* sname;
+		boost::int64_t value;
+		if (s == settings_pack::cache_size)
+		{
+			sname = "cache.override_size";
+			value = boost::int64_t(sett.get_int(s)) * 16 / 1024;
+		}
+		else
+		{
+			sname = settings_name(s);
+			value = sett.get_int(s);
+		}
+
+		appendf(response, ",[\"%s\",0,\"%"PRId64"\",{\"access\":\"Y\"}]\n" + first
+			, sname, value);
 		first = 0;
 	}
 
@@ -417,6 +442,8 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		",[\"webui.enable_listen\",1,\"true\",{\"access\":\"Y\"}]\n"
 		",[\"webui.enable_guest\",1,\"false\",{\"access\":\"Y\"}]\n"
 		",[\"webui.port\",0,\"8080\",{\"access\":\"Y\"}]\n"
+		",[\"cache.override\",1,\"true\",{\"access\":\"Y\"}]\n"
+		",[\"webui.uconnect_enable\",1,\"false\",{\"access\":\"Y\"}]\n"
 		"]"
 		 + first
 		, escape_json(m_params_model.save_path).c_str()
@@ -488,6 +515,11 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 				m_al->set_params_model(p);
 			}
 			if (m_settings) m_settings->set_str("save_path", value);
+		}
+		else if (key == "cache.override_size")
+		{
+			int size = atoi(key.c_str()) * 1024 / 16;
+			pack.set_int(settings_pack::cache_size, size);
 		}
 		else
 		{
