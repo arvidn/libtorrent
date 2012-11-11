@@ -91,8 +91,9 @@ namespace libtorrent
 	char* page_aligned_allocator::malloc(size_type bytes)
 	{
 		TORRENT_ASSERT(bytes > 0);
-		// just sanity check
-		TORRENT_ASSERT(bytes < 130000000);
+		// just sanity check (this needs to be pretty high
+		// for cases where the cache size is several gigabytes)
+		TORRENT_ASSERT(bytes < 0x30000000);
 
 #ifdef TORRENT_DEBUG_BUFFERS
 		int page = page_size();
