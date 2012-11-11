@@ -2075,6 +2075,7 @@ namespace libtorrent
 							dec_torrent_gauge();
 							m_picker->we_have(i);
 							inc_torrent_gauge();
+							m_ses.inc_stats_counter(aux::session_interface::num_piece_passed);
 							we_have(i);
 						}
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
@@ -2094,6 +2095,7 @@ namespace libtorrent
 								dec_torrent_gauge();
 								m_picker->we_have(piece);
 								inc_torrent_gauge();
+								m_ses.inc_stats_counter(aux::session_interface::num_piece_passed);
 								we_have(piece);
 							}
 						}
