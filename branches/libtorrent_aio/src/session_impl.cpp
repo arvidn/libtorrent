@@ -7067,7 +7067,7 @@ retry:
 			}
 		}
 
-		int torrent_state_gauges[session_interface::num_error_torrents - session_interface::num_checking_torrents];
+		int torrent_state_gauges[session_interface::num_error_torrents - session_interface::num_checking_torrents + 1];
 		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));
 	
 		std::set<int> unique;
@@ -7096,7 +7096,7 @@ retry:
 		}
 
 		for (int i = 0, j = session_interface::num_checking_torrents;
-			i < session_interface::num_error_torrents; ++i, ++j)
+			j < session_interface::num_error_torrents + 1; ++i, ++j)
 		{
 			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counter[j]);
 		}
