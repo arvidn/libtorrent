@@ -118,7 +118,7 @@ Response:
 			"id": *<20 byte id of sending node (string)>*,
 			"token": *<write token (string)>*,
 			"v": *<any bencoded type whose SHA-1 hash matches 'target'>*,
-			"nodes": *<IPv4 nodes close to 'target'>*
+			"nodes": *<IPv4 nodes close to 'target'>*,
 			"nodes6": *<IPv6 nodes close to 'target'>*
 		},
 		"t": *<transaction-id>*,
@@ -184,14 +184,14 @@ Request:
 .. parsed-literal::
 
 	{
-		"r":
+		"a":
 		{
 			"id": *<20 byte id of sending node (string)>*,
 			"target:" *<first 20 bytes of public key (string)>*,
 			"k": *<remaining 248 bytes of public key (string)>*
 		},
 		"t": *<transaction-id (string)>*,
-		"y": "r",
+		"y": "q",
 		"q": "get"
 	}
 
@@ -204,11 +204,12 @@ Response:
 		{
 			"id": *<20 byte id of sending node (string)>*,
 			"k": *<RSA-2048 public key (268 bytes string)>*,
+			"nodes": *<IPv4 nodes close to 'target'>*,
+			"nodes6": *<IPv6 nodes close to 'target'>*,
 			"seq": *<monotonically increasing sequence number (integer)>*,
 			"sig": *<RSA-2048 signature (256 bytes string)>*,
 			"token": *<write-token (string)>*,
 			"v": *<any bencoded type, whose encoded size < 768>*
-
 		},
 		"t": *<transaction-id (string)>*,
 		"y": "r",

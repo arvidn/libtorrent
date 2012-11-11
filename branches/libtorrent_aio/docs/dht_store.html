@@ -159,7 +159,7 @@ there is no need to authenticate the origin of them. This makes immutable items 
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type whose SHA-1 hash matches 'target'&gt;</em>,
-                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
                 &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id&gt;</em>,
@@ -214,14 +214,14 @@ stored on the node, MUST reject the request.</p>
 <p>Request:</p>
 <pre class="literal-block">
 {
-        &quot;r&quot;:
+        &quot;a&quot;:
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;target:&quot; <em>&lt;first 20 bytes of public key (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;remaining 248 bytes of public key (string)&gt;</em>
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
-        &quot;y&quot;: &quot;r&quot;,
+        &quot;y&quot;: &quot;q&quot;,
         &quot;q&quot;: &quot;get&quot;
 }
 </pre>
@@ -232,11 +232,12 @@ stored on the node, MUST reject the request.</p>
         {
                 &quot;id&quot;: <em>&lt;20 byte id of sending node (string)&gt;</em>,
                 &quot;k&quot;: <em>&lt;RSA-2048 public key (268 bytes string)&gt;</em>,
+                &quot;nodes&quot;: <em>&lt;IPv4 nodes close to 'target'&gt;</em>,
+                &quot;nodes6&quot;: <em>&lt;IPv6 nodes close to 'target'&gt;</em>,
                 &quot;seq&quot;: <em>&lt;monotonically increasing sequence number (integer)&gt;</em>,
                 &quot;sig&quot;: <em>&lt;RSA-2048 signature (256 bytes string)&gt;</em>,
                 &quot;token&quot;: <em>&lt;write-token (string)&gt;</em>,
                 &quot;v&quot;: <em>&lt;any bencoded type, whose encoded size &lt; 768&gt;</em>
-
         },
         &quot;t&quot;: <em>&lt;transaction-id (string)&gt;</em>,
         &quot;y&quot;: &quot;r&quot;,

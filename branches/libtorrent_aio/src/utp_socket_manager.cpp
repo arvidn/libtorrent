@@ -204,14 +204,19 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		std::vector<ip_route> routes = enum_routes(m_sock.get_io_service(), ec);
-		if (ec) return socket_ep;
+		if (time_now() - m_last_route_update > seconds(60))
+		{
+			m_last_route_update = time_now();
+			error_code ec;
+			m_routes = enum_routes(m_sock.get_io_service(), ec);
+			if (ec) return socket_ep;
+		}
 
-		if (routes.empty()) return socket_ep;
+		if (m_routes.empty()) return socket_ep;
 		// then find the best match
-		ip_route* best = &routes[0];
-		for (std::vector<ip_route>::iterator i = routes.begin()
-			, end(routes.end()); i != end; ++i)
+		ip_route* best = &m_routes[0];
+		for (std::vector<ip_route>::iterator i = m_routes.begin()
+			, end(m_routes.end()); i != end; ++i)
 		{
 			if (is_any(i->destination) && i->destination.is_v4() == remote.is_v4())
 			{
