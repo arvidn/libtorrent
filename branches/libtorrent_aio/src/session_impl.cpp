@@ -7096,7 +7096,7 @@ retry:
 		}
 
 		for (int i = 0, j = session_interface::num_checking_torrents;
-			i < sizeof(torrent_state_gauges)/sizeof(torrent_state_gauges[0]); ++i, ++j)
+			i < session_interface::num_error_torrents; ++i, ++j)
 		{
 			TORRENT_ASSERT(torrent_state_gauges[i] == m_stats_counter[j]);
 		}
