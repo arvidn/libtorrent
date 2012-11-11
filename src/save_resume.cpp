@@ -92,7 +92,7 @@ void save_resume::handle_alert(alert const* a)
 			++m_cursor_index;
 			if (m_cursor == m_torrents.end())
 			{
-				m_cursor = m_torrents.end();
+				m_cursor = m_torrents.begin();
 				m_cursor_index = 0;
 				m_last_save_wrap = time_now();
 			}
