@@ -83,6 +83,8 @@ int main(int argc, char *const argv[])
 		{
 			resume.save_all();
 			shutting_down = true;
+			signal(SIGTERM, NULL);
+			signal(SIGINT, NULL);
 		}
 	}
 

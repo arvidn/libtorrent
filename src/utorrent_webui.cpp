@@ -521,7 +521,7 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		}
 		else if (key == "cache.override_size")
 		{
-			int size = atoi(key.c_str()) * 1024 / 16;
+			int size = atoi(value.c_str()) * 1024 / 16;
 			pack.set_int(settings_pack::cache_size, size);
 		}
 		else
