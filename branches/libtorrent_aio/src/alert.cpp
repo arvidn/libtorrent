@@ -409,13 +409,8 @@ namespace libtorrent {
 	void alert_manager::post_alert_ptr(alert* alert_)
 	{
 		std::auto_ptr<alert> a(alert_);
-		mutex::scoped_lock lock(m_mutex);
-
-		post_impl(a);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		lock.unlock();
-
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
@@ -425,18 +420,15 @@ namespace libtorrent {
 		}
 #endif
 
+		mutex::scoped_lock lock(m_mutex);
+		post_impl(a);
 	}
 
 	void alert_manager::post_alert(const alert& alert_)
 	{
 		std::auto_ptr<alert> a(alert_.clone());
-		mutex::scoped_lock lock(m_mutex);
-
-		post_impl(a);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		lock.unlock();
-
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
@@ -446,6 +438,8 @@ namespace libtorrent {
 		}
 #endif
 
+		mutex::scoped_lock lock(m_mutex);
+		post_impl(a);
 	}
 		
 	void alert_manager::post_impl(std::auto_ptr<alert>& alert_)
