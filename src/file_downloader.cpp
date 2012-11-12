@@ -53,7 +53,8 @@ namespace libtorrent
 		boost::shared_array<char> buffer;
 		int size;
 		int piece;
-		bool operator<(piece_entry const& rhs) const { return piece < rhs.piece; }
+		// we want ascending order!
+		bool operator<(piece_entry const& rhs) const { return piece > rhs.piece; }
 	};
 
 	struct torrent_piece_queue
