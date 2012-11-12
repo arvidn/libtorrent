@@ -994,6 +994,7 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
+		// TODO: this should be a deque
 		std::list<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;

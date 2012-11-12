@@ -51,6 +51,7 @@ namespace libtorrent
 		, m_new_connection(-1)
 		, m_sett(sett)
 		, m_last_route_update(min_time())
+		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
 	{}
 
@@ -235,11 +236,16 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		std::vector<ip_interface> net = enum_net_interfaces(m_sock.get_io_service(), ec);
-		if (ec) return socket_ep;
+		if (time_now() - m_last_if_update > seconds(60))
+		{
+			m_last_if_update = time_now();
+			error_code ec;
+			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), ec);
+			if (ec) return socket_ep;
+		}
 
-		for (std::vector<ip_interface>::iterator i = net.begin()
-			, end(net.end()); i != end; ++i)
+		for (std::vector<ip_interface>::iterator i = m_interfaces.begin()
+			, end(m_interfaces.end()); i != end; ++i)
 		{
 			if (i->interface_address.is_v4() != remote.is_v4())
 				continue;
