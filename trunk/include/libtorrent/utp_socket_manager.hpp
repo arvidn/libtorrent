@@ -128,6 +128,10 @@ namespace libtorrent
 		// the routing table
 		mutable ptime m_last_route_update;
 
+		// cache of interfaces
+		mutable std::vector<ip_interface> m_interfaces;
+		mutable ptime m_last_if_update;
+
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
 		int m_sock_buf_size;
