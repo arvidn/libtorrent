@@ -898,7 +898,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 			, "" // url this torrent came from
 			, "" // feed URL this torrent belongs to
 			, utorrent_message(*i).c_str()
-			, "" // sid
+			, to_hex(i->handle.info_hash().to_string()).c_str()
 			, i->added_time
 			, i->completed_time
 			, "" // app

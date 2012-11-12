@@ -138,7 +138,10 @@ namespace libtorrent
 	bool file_downloader::handle_http(mg_connection* conn,
 		mg_request_info const* request_info)
 	{
-		if (!string_begins_no_case(request_info->uri, "/download")) return false;
+		if (!string_begins_no_case(request_info->uri, "/download")
+			&& !string_begins_no_case(request_info->uri, "/proxy"))
+			return false;
+
 		std::string info_hash_str;
 		std::string file_str;
 		if (request_info->query_string)
@@ -147,6 +150,8 @@ namespace libtorrent
 			query_string += request_info->query_string;
 			info_hash_str = url_has_argument(query_string, "ih");
 			file_str = url_has_argument(query_string, "file");
+			if (info_hash_str.empty())
+				info_hash_str = url_has_argument(query_string, "sid");
 		}
 
 		if (file_str.empty() || info_hash_str.empty() || info_hash_str.size() != 40)
@@ -225,7 +230,7 @@ namespace libtorrent
 		mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Length: %" PRId64 "\r\n"
 			"Content-Type: %s\r\n"
-			"Content-Disposition: inline; filename=%s\r\n"
+			"Content-Disposition: attachment; filename=%s\r\n"
 			"Accept-Ranges: bytes\r\n"
 			, range_request ? "206 Partial Content" : "200 OK"
 			, range_last_byte - range_first_byte + 1
