@@ -24,5 +24,9 @@ Supported features:
 The main web UI framework leverages mongoose web server and
 jsmn JSON parser.
 
+For example usage, see the test_ program.
+
 arvid@rasterbar.com
+
+.. _test: https://github.com/arvidn/libtorrent-webui/blob/master/test.cpp
 
