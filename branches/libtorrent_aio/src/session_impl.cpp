@@ -2132,6 +2132,8 @@ namespace aux {
 	// that are paused, to give up their slot among the loaded torrents
 	void session_impl::bump_torrent(torrent* t, bool back)
 	{
+		if (t->is_aborted()) return;
+
 		// if t is the only torrent in the LRU list, both
 		// its prev and next links will be NULL, even though
 		// it's already in the list. Cover this case by also
@@ -5185,6 +5187,8 @@ retry:
 	{
 		m_torrents.insert(std::make_pair(ih, t));
 		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
+
+		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 	}
 
 	void session_impl::set_queue_position(torrent* me, int p)
@@ -5680,6 +5684,8 @@ retry:
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
+		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
 		h.update("req2", 4);
@@ -5813,6 +5819,8 @@ retry:
 			++m_next_lsd_torrent;
 
 		m_torrents.erase(i);
+
+		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		hasher h;
@@ -7062,6 +7070,8 @@ retry:
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
+
 		if (m_settings.get_int(settings_pack::unchoke_slots_limit) < 0
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
 			TORRENT_ASSERT(m_allowed_upload_slots == (std::numeric_limits<int>::max)());
@@ -7075,6 +7085,15 @@ retry:
 				TORRENT_ASSERT((*i)->m_links[l].in_list());
 			}
 		}
+
+		std::set<torrent*> unique_torrents;
+		for (list_iterator i = m_torrent_lru.iterate(); i.get(); i.next())
+		{
+			torrent* t = (torrent*)i.get();
+			TORRENT_ASSERT(unique_torrents.count(t) == 0);
+			unique_torrents.insert(t);
+		}
+		TORRENT_ASSERT(unique_torrents.size() == m_torrent_lru.size());
 
 		int torrent_state_gauges[session_interface::num_error_torrents - session_interface::num_checking_torrents + 1];
 		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));

@@ -1254,7 +1254,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
 		, cs ? cache_kind_str[cs->kind] : "N/A"
-		, ts ? (ts->pieces[piece] ? " have" : " dont-have") : "");
+		, ts && ts->pieces.size() ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
 }
 
