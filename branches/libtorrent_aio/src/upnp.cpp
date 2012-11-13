@@ -79,6 +79,7 @@ upnp::upnp(io_service& ios, connection_queue& cc
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
 	, m_cc(cc)
+	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
 
@@ -349,31 +350,35 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (!in_local_network(m_io_service, from.address(), ec))
+	if (time_now() - m_last_if_update > seconds(60))
 	{
+		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
 		{
 			char msg[200];
 			snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
 				, print_endpoint(from).c_str(), ec.message().c_str());
 			log(msg, l);
+			return;
 		}
-		else
-		{
-			char msg[400];
-			int num_chars = snprintf(msg, sizeof(msg)
-				, "ignoring response from: %s. IP is not on local network. "
-				, print_endpoint(from).c_str());
+		m_last_if_update = time_now();
+	}
 
-			std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
-			for (std::vector<ip_interface>::const_iterator i = net.begin()
-				, end(net.end()); i != end && num_chars < sizeof(msg); ++i)
-			{
-				num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
-					, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
-			}
-			log(msg, l);
+	if (!in_local_network(m_interfaces, from.address()))
+	{
+		char msg[400];
+		int num_chars = snprintf(msg, sizeof(msg)
+			, "ignoring response from: %s. IP is not on local network. "
+			, print_endpoint(from).c_str());
+
+		std::vector<ip_interface> net = enum_net_interfaces(m_io_service, ec);
+		for (std::vector<ip_interface>::const_iterator i = net.begin()
+			, end(net.end()); i != end && num_chars < sizeof(msg); ++i)
+		{
+			num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+				, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
 		}
+		log(msg, l);
 		return;
 	} 
 

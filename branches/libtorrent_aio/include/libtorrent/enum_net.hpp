@@ -74,6 +74,8 @@ namespace libtorrent
 	// local network as us
 	TORRENT_EXPORT bool in_local_network(io_service& ios, address const& addr
 		, error_code& ec);
+	TORRENT_EXPORT bool in_local_network(std::vector<ip_interface> const& net
+		, address const& addr);
 	
 	TORRENT_EXPORT address get_default_gateway(io_service& ios
 		, error_code& ec);
