@@ -106,8 +106,8 @@ bool auth::handle_http(mg_connection* conn, mg_request_info const* request_info)
 				++authorization;
 
 			std::string cred = base64decode(authorization);
-			std::string user = cred.substr(0, m_username.size());
-			std::string pwd = cred.substr(m_username.size()+1);
+			std::string user = cred.substr(0, cred.find_first_of(':'));
+			std::string pwd = cred.substr(user.size()+1);
 			if (authenticate(user, pwd)) return false;
 		}
 	}
