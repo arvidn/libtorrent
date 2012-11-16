@@ -451,10 +451,10 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args)
 		 + first
 		, escape_json(m_params_model.save_path).c_str()
 		, m_ses.listen_port()
-		, (sett.get_bool(settings_pack::enable_outgoing_utp) ? 1 : 0)
-			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 2 : 0)
-			+ (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 4 : 0)
-			+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 8 : 0)
+		, (sett.get_bool(settings_pack::enable_outgoing_tcp) ? 1 : 0)
+			+ (sett.get_bool(settings_pack::enable_outgoing_utp) ? 2 : 0)
+			+ (sett.get_bool(settings_pack::enable_incoming_tcp) ? 4 : 0)
+			+ (sett.get_bool(settings_pack::enable_incoming_utp) ? 8 : 0)
 		, escape_json(m_webui_cookie).c_str());
 }
 
@@ -495,10 +495,10 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		else if (key == "bt.transp_disposition")
 		{
 			int mask = atoi(value.c_str());
-			pack.set_bool(settings_pack::enable_outgoing_utp, mask & 1);
-			pack.set_bool(settings_pack::enable_incoming_utp, mask & 2);
-			pack.set_bool(settings_pack::enable_outgoing_tcp, mask & 4);
-			pack.set_bool(settings_pack::enable_incoming_tcp, mask & 8);
+			pack.set_bool(settings_pack::enable_outgoing_tcp, mask & 1);
+			pack.set_bool(settings_pack::enable_outgoing_utp, mask & 2);
+			pack.set_bool(settings_pack::enable_incoming_tcp, mask & 4);
+			pack.set_bool(settings_pack::enable_incoming_utp, mask & 8);
 		}
 		else if (key == "dir_autoload" && m_al)
 		{
