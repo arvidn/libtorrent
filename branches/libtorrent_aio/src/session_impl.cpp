@@ -1903,21 +1903,12 @@ namespace aux {
 		{
 			i->second->abort();
 		}
+		m_torrents.clear();
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log(" aborting all tracker requests");
 #endif
 		m_tracker_manager.abort_all_requests();
-
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-		session_log(" sending event=stopped to trackers");
-#endif
-		for (torrent_map::iterator i = m_torrents.begin();
-			i != m_torrents.end(); ++i)
-		{
-			torrent& t = *i->second;
-			t.abort();
-		}
 
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log(" aborting all connections (%d)", m_connections.size());
@@ -4469,6 +4460,8 @@ retry:
 
 		m_need_auto_manage = false;
 
+		if (is_paused()) return;
+
 		// these vectors are filled with auto managed torrents
 
 		// TODO: these vectors could be copied from m_torrent_lists,
@@ -5766,10 +5759,10 @@ retry:
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		remove_torrent_impl(tptr, options);
-
 		if (m_alerts.should_post<torrent_removed_alert>())
 			m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
+
+		remove_torrent_impl(tptr, options);
 
 		tptr->abort();
 		tptr->set_queue_position(-1);
@@ -6520,9 +6513,16 @@ retry:
 	void session_impl::on_trigger_auto_manage()
 	{
 		assert(m_pending_auto_manage);
-		m_pending_auto_manage = false;
-		if (!m_need_auto_manage) return;
+		if (!m_need_auto_manage) 
+		{
+			m_pending_auto_manage = false;
+			return;
+		}
+		// don't clear m_pending_auto_manage until after we've
+		// recalculated the auto managed torrents. The auto-managed
+		// logic may trigger another auto-managed event otherwise
 		recalculate_auto_managed_torrents();
+		m_pending_auto_manage = false;
 	}
  
 	void session_impl::update_dht_announce_interval()
