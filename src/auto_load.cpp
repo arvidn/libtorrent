@@ -182,7 +182,7 @@ void auto_load::on_scan(error_code const& e)
 
 		error_code tec;
 		std::string file_path = combine_path(path, dir.file());
-		boost::intrusive_ptr<torrent_info> ti(new torrent_info(file_path), tec);
+		boost::intrusive_ptr<torrent_info> ti(new torrent_info(file_path, tec));
 
 		// assume the file isn't fully written yet.
 		if (tec) continue;
