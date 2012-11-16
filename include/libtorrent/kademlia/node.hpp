@@ -130,13 +130,14 @@ struct dht_immutable_item
 	int size;
 };
 
+struct rsa_key { char bytes[268]; };
+
 struct dht_mutable_item : dht_immutable_item
 {
 	char sig[256];
 	int seq;
+	rsa_key key;
 };
-
-struct rsa_key { char bytes[268]; };
 
 inline bool operator<(rsa_key const& lhs, rsa_key const& rhs)
 {
@@ -178,7 +179,7 @@ class TORRENT_EXTRA_EXPORT node_impl : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
 typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
-typedef std::map<rsa_key, dht_mutable_item> dht_mutable_table_t;
+typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 
 public:
 	typedef boost::function3<void, address, int, address> external_ip_fun;

@@ -1,3 +1,4 @@
+	* fix support for storing arbitrary data in the DHT
 	* fixed bug in uTP packet circle buffer
 	* fix potential crash when using torrent_handle::add_piece
 	* added missing add_torrent_alert to python binding
