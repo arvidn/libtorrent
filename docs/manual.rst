@@ -224,6 +224,7 @@ The ``session`` class has the following synopsis::
 		void set_alert_mask(int m);
 		size_t set_alert_queue_size_limit(
 			size_t queue_size_limit_);
+		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
 		feed_handle session::add_feed(feed_settings const& feed);
 		void session::remove_feed(feed_handle h);
@@ -1155,6 +1156,22 @@ To control the max number of alerts that's queued by the session, see
 
 ``save_resume_data_alert`` and ``save_resume_data_failed_alert`` are always posted, regardelss
 of the alert mask.
+
+set_alert_dispatch()
+--------------------
+
+	::
+
+		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
+
+This sets a function to be called (from within libtorrent's netowrk thread) every time an alert
+is posted. Since the function (``fun``) is run in libtorrent's internal thread, it may not call
+any of libtorrent's external API functions. Doing so results in a dead lock.
+
+The main intention with this function is to support integration with platform-dependent message
+queues or signalling systems. For instance, on windows, one could post a message to an HNWD or
+on linux, write to a pipe or an eventfd.
+
 
 add_feed()
 ----------
