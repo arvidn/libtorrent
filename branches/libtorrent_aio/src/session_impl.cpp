@@ -3064,10 +3064,9 @@ retry:
 
 		setup_socket_buffers(*s);
 
-		// TODO: use make_shared
-		boost::shared_ptr<peer_connection> c(
-			new bt_peer_connection(*this, m_settings
-				, *this, m_disk_thread, m_io_service, s, endp, 0));
+		boost::shared_ptr<peer_connection> c
+			= boost::make_shared<bt_peer_connection>(boost::ref(*this), m_settings
+				, boost::ref(*this), boost::ref(m_disk_thread), s, endp, (torrent_peer*)0);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
 #endif

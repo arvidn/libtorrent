@@ -58,19 +58,14 @@ namespace libtorrent
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
-		, io_service& ios
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
-		, std::string const& url
-		, torrent_peer* peerinfo
-		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
-		: peer_connection(ses, sett, allocator, disk_thread, ios
-			, t, s, remote, peerinfo)
+		, web_seed_entry& web)
+		: peer_connection(ses, sett, allocator, disk_thread, ses.get_io_service()
+			, t, s, web.endpoint, &web.peer_info)
 		, m_parser(http_parser::dont_parse_chunks)
-		, m_external_auth(auth)
-		, m_extra_headers(extra_headers)
+		, m_external_auth(web.auth)
+		, m_extra_headers(web.extra_headers)
 		, m_first_request(true)
 		, m_ssl(false)
 		, m_body_start(0)
@@ -87,7 +82,7 @@ namespace libtorrent
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
-			= parse_url_components(url, ec);
+			= parse_url_components(web.url, ec);
 		TORRENT_ASSERT(!ec);
 
 #ifdef TORRENT_USE_OPENSSL

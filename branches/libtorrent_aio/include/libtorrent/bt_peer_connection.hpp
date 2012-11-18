@@ -90,7 +90,6 @@ namespace libtorrent
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
-			, io_service& ios
 			, boost::shared_ptr<socket_type> s
 			, tcp::endpoint const& remote
 			, torrent_peer* peerinfo

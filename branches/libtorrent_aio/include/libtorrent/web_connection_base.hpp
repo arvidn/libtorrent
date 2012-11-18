@@ -90,14 +90,9 @@ namespace libtorrent
 			, aux::session_settings const& sett
 			, buffer_allocator_interface& allocator
 			, disk_interface& disk_thread
-			, io_service& ios
 			, boost::weak_ptr<torrent> t
 			, boost::shared_ptr<socket_type> s
-			, tcp::endpoint const& remote
-			, std::string const& url
-			, torrent_peer* peerinfo
-			, std::string const& ext_auth
-			, web_seed_entry::headers_t const& ext_headers);
+			, web_seed_entry& web);
 		void start();
 
 		~web_connection_base();

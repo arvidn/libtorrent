@@ -66,17 +66,11 @@ namespace libtorrent
 		, aux::session_settings const& sett
 		, buffer_allocator_interface& allocator
 		, disk_interface& disk_thread
-		, io_service& ios
 		, boost::weak_ptr<torrent> t
 		, boost::shared_ptr<socket_type> s
-		, tcp::endpoint const& remote
-		, std::string const& url
-		, torrent_peer* peerinfo
-		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
-		: web_connection_base(ses, sett, allocator, disk_thread, ios
-			, t, s, remote, url, peerinfo, auth, extra_headers)
-		, m_url(url)
+		, web_seed_entry& web)
+		: web_connection_base(ses, sett, allocator, disk_thread, t, s, web)
+		, m_url(web.url)
 		, m_received_body(0)
 		, m_range_pos(0)
 		, m_block_pos(0)

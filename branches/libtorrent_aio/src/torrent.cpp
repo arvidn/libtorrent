@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1468,8 +1469,7 @@ namespace libtorrent
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		boost::shared_ptr<context> ctx(
-			new (std::nothrow) context(m_ses.get_io_service(), context::sslv23));
+		boost::shared_ptr<context> ctx = boost::make_shared<contex>(m_ses.get_io_service(), context::sslv23));
 
 		if (!ctx)
 		{
@@ -5390,7 +5390,8 @@ namespace libtorrent
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
 
-		boost::shared_ptr<socket_type> s(new (std::nothrow) socket_type(m_ses.get_io_service()));
+		boost::shared_ptr<socket_type> s
+			= boost::make_shared<socket_type>(boost::ref(m_ses.get_io_service()));
 		if (!s) return;
 	
 		void* userdata = 0;
@@ -5453,21 +5454,17 @@ namespace libtorrent
 		boost::shared_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
 		{
-			// TODO: use make_new
-			// TODO: pass in web instead of all of its content
-			c.reset(new (std::nothrow) web_peer_connection(
-				m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
-				, shared_from_this(), s, a, web->url, &web->peer_info
-				, web->auth, web->extra_headers));
+			c = boost::make_shared<web_peer_connection>(
+				boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+				, boost::ref(m_ses.disk_thread())
+				, shared_from_this(), s, boost::ref(*web));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
-			// TODO: use make_new
-			// TODO: pass in web instead of all of its content
-			c.reset(new (std::nothrow) http_seed_connection(
-				m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
-				, shared_from_this(), s, a, web->url, &web->peer_info
-				, web->auth, web->extra_headers));
+			c = boost::make_shared<http_seed_connection>(
+				boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+				, boost::ref(m_ses.disk_thread())
+				, shared_from_this(), s, boost::ref(*web));
 		}
 		if (!c) return;
 
@@ -6427,10 +6424,10 @@ namespace libtorrent
 
 		m_ses.setup_socket_buffers(*s);
 
-		// TODO: use make_shared
-		boost::shared_ptr<peer_connection> c(new bt_peer_connection(
-			m_ses, m_ses.settings(), m_ses, m_ses.disk_thread(), m_ses.get_io_service()
-			, s, a, peerinfo, shared_from_this(), true));
+		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
+			boost::ref(m_ses), m_ses.settings(), boost::ref(m_ses)
+			, boost::ref(m_ses.disk_thread())
+			, s, a, peerinfo, shared_from_this(), true);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		c->m_in_constructor = false;
