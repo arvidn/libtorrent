@@ -2108,7 +2108,9 @@ namespace aux {
 		if (ep.protocol() == tcp::v6())
 		{
 			error_code err; // ignore errors here
+#ifdef IPV6_V6ONLY
 			s->sock->set_option(v6only(v6_only), err);
+#endif
 #ifdef TORRENT_WINDOWS
 
 #ifndef PROTECTION_LEVEL_UNRESTRICTED

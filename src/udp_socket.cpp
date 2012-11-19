@@ -644,8 +644,10 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 #if TORRENT_USE_IPV6
 	else
 	{
+#ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
 		if (ec) return;
+#endif
 		m_ipv6_sock.bind(ep, ec);
 		if (ec) return;
 		if (m_v6_outstanding == 0)
@@ -708,7 +710,9 @@ void udp_socket::bind(int port)
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("udp_socket::on_read");
 #endif
+#ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
+#endif
 		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
 
 		if (m_v6_outstanding == 0)
