@@ -140,6 +140,21 @@ ACLOCAL=`echo $AUTOMAKE | sed s/automake/aclocal/`
 
 version_check libtool LIBTOOLIZE "libtoolize glibtoolize" $REQUIRED_LIBTOOL_VERSION || exit 1
 
+##########################################
+# Copy config.rpath to build dir
+##########################################
+build_dir=`cat $configure_ac | grep '^AC_CONFIG_AUX_DIR' |
+sed -n -e 's/AC_CONFIG_AUX_DIR(\([^()]*\))/\1/p' | sed -e 's/^\[\(.*\)\]$/\1/' | sed -e 1q`
+
+if [ -n "$build_dir" ]; then
+  mkdir $build_dir
+fi
+config_rpath=m4/config.rpath
+echo "Copying $config_rpath to $build_dir"
+cp $config_rpath "$build_dir/"
+
+##########################################
+
 echo
 printbold "Processing $configure_ac"
 echo
