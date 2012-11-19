@@ -308,6 +308,14 @@ AC_ARG_WITH(
   [[ARG_WITH_LIBGEOIP=no]]
 )
 
+AC_ARG_WITH(
+  [libiconv],
+  [AS_HELP_STRING(
+    [--with-libiconv],
+    [enable linking against system libiconv [default=no]])],
+  [[ARG_WITH_LIBICONV=$withval]],
+  [[ARG_WITH_LIBICONV=no]]
+)
 
 ###############################################################################
 # Checking configure options
@@ -570,6 +578,25 @@ AS_CASE(["$ARG_WITH_LIBGEOIP"],
    AC_MSG_ERROR([Unknown option "$ARG_WITH_LIBGEOIP". Use either "yes" or "no".])]
 )
 
+AC_MSG_CHECKING([whether to link against system libiconv])
+AS_CASE(["$ARG_WITH_LIBICONV"],
+  ["yes"], [
+      AC_MSG_RESULT([yes])
+      AM_ICONV()
+      AS_IF([test "x$am_cv_func_iconv" = "xyes"], [
+           ICONV_LIBS=$LTLIBICONV
+           AC_SUBST([ICONV_LIBS])
+           LIBS="$ICONV_LIBS $LIBS"
+      ], [
+           AC_MSG_ERROR([Iconv library not found.])
+      ])
+   ],
+  ["no"], [
+        ARG_WITH_LIBICONV="no"
+   ],
+  [AC_MSG_RESULT([$ARG_WITH_LIBICONV])
+   AC_MSG_ERROR([Unknown option "$ARG_WITH_LIBICONV". Use either "yes" or "no".])]
+)
 
 ###############################################################################
 # Setting conditional variables for Makefiles
@@ -736,6 +763,7 @@ cat >> config.report << END
 
 External libraries:
   system libgeoip:      ${ARG_WITH_LIBGEOIP:-no}
+  system libiconv:      ${ARG_WITH_LIBICONV:-no}
 END
 
 AS_IF([test "x$ARG_WITH_LIBGEOIP" = "xyes"], [
@@ -744,6 +772,14 @@ cat >> config.report << END
 GeoIP library:
   GeoIP CFlags:         ${GEOIP_CFLAGS}
   GeoIP Libs:           ${GEOIP_LIBS}
+END
+])
+
+AS_IF([test "x$ARG_WITH_LIBICONV" = "xyes"], [
+cat >> config.report << END
+
+Iconv library:
+  Iconv Libs:           ${ICONV_LIBS}
 END
 ])
 
