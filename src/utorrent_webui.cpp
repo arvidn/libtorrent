@@ -462,6 +462,7 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 {
 	settings_pack pack;
 
+	std::set<std::string> duplicates;
 	for (char const* s = strstr(args, "&s="); s; s = strstr(s, "&s="))
 	{
 		s += 3;
@@ -475,6 +476,10 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args)
 		std::string value(key_end + 3, v_end - key_end - 3);
 		error_code ec;
 		value = unescape_string(value, ec);
+
+		// ignore duplicate settings
+		if (duplicates.count(key)) continue;
+		duplicates.insert(key);
 
 		s = v_end;
 
