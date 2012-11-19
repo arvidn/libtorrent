@@ -790,7 +790,11 @@ int utorrent_status(torrent_status const& st)
 {
 	int ret = 0;
 	if (st.has_metadata) ret |= LOADED;
-	if (!st.paused) ret |= STARTED;
+	if (!st.paused && (st.state == torrent_status::downloading
+		|| st.state == torrent_status::seeding
+		|| st.state == torrent_status::finished))
+		ret |= STARTED;
+
 	if (st.state == torrent_status::queued_for_checking || st.state == torrent_status::checking_files)
 		ret |= CHECKING;
 	else
