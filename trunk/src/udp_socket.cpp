@@ -195,7 +195,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 #endif
 		m_ipv4_sock.send_to(asio::buffer(p, len), ep, 0, ec);
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_USE_IPV6
 		if (ep.address().is_v6() && m_ipv6_sock.is_open())
@@ -265,7 +265,7 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		error_code ec;
 		udp::endpoint ep;
 		size_t bytes_transferred = s->receive_from(asio::buffer(m_buf, m_buf_size), ep, 0, ec);
-		if (ec == asio::error::would_block) break;
+		if (ec == asio::error::would_block || ec == asio::error::try_again) break;
 		on_read_impl(s, ep, ec, bytes_transferred);
 	}
 	call_drained_handler();

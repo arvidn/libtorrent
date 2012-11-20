@@ -1261,7 +1261,7 @@ void utp_socket_impl::send_syn()
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
 		, sizeof(utp_header), ec);
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
@@ -1845,7 +1845,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		// as well, to resend the packet immediately without
 		// it being an MTU probe
 	}
-	else if (ec == error::would_block)
+	else if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
@@ -2008,7 +2008,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
