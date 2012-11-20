@@ -1120,8 +1120,13 @@ bool utp_socket_impl::should_delete() const
 	// closing the socket. Only delete the state if we're not
 	// attached and we're in a state where the other end doesn't
 	// expect the socket to still be alive
+	// when m_stalled is true, it means the socket manager has a
+	// pointer to this socket, waiting for the UDP socket to
+	// become writable again. We have to wait for that, so that
+	// the pointer is removed from that queue. Otherwise we would
+	// leave a dangling pointer in the socket manager
 	bool ret = (m_state >= UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_NONE)
-		&& !m_attached;
+		&& !m_attached && !m_stalled;
 
 	if (ret)
 	{
@@ -1301,6 +1306,8 @@ void utp_socket_impl::writable()
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: writable\n", this);
 #endif
+	if (should_delete()) return;
+
 	while(send_pkt());
 
 	maybe_trigger_send_callback(time_now_hires());
