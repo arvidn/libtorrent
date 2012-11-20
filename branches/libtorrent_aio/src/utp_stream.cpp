@@ -1128,8 +1128,13 @@ bool utp_socket_impl::should_delete() const
 	// closing the socket. Only delete the state if we're not
 	// attached and we're in a state where the other end doesn't
 	// expect the socket to still be alive
+	// when m_stalled is true, it means the socket manager has a
+	// pointer to this socket, waiting for the UDP socket to
+	// become writable again. We have to wait for that, so that
+	// the pointer is removed from that queue. Otherwise we would
+	// leave a dangling pointer in the socket manager
 	bool ret = (m_state >= UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_NONE)
-		&& !m_attached;
+		&& !m_attached && !m_stalled;
 
 	if (ret)
 	{
@@ -1269,7 +1274,7 @@ void utp_socket_impl::send_syn()
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
 		, sizeof(utp_header), ec);
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
@@ -1314,6 +1319,8 @@ void utp_socket_impl::writable()
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: writable\n", this);
 #endif
+	if (should_delete()) return;
+
 	while(send_pkt());
 
 	maybe_trigger_send_callback(time_now_hires());
@@ -1851,7 +1858,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		// as well, to resend the packet immediately without
 		// it being an MTU probe
 	}
-	else if (ec == error::would_block)
+	else if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);
@@ -2014,7 +2021,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		, boost::uint32_t(h->timestamp_difference_microseconds));
 #endif
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: socket stalled\n", this);

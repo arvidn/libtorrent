@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.8.1: http://docutils.sourceforge.net/" />
 <title>libtorrent API Documentation</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.4</td></tr>
+<td>1.1.0</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -331,6 +331,7 @@ class session: public boost::noncopyable
         void set_alert_mask(int m);
         size_t set_alert_queue_size_limit(
                 size_t queue_size_limit_);
+        void set_alert_dispatch(boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
 
         feed_handle session::add_feed(feed_settings const&amp; feed);
         void session::remove_feed(feed_handle h);
@@ -1471,6 +1472,20 @@ can be called and it can pop the alert independently.</p>
 <a class="reference internal" href="#alert-queue-size">alert_queue_size</a>.</p>
 <p><tt class="docutils literal">save_resume_data_alert</tt> and <tt class="docutils literal">save_resume_data_failed_alert</tt> are always posted, regardelss
 of the alert mask.</p>
+</div>
+<div class="section" id="set-alert-dispatch">
+<h2>set_alert_dispatch()</h2>
+<blockquote>
+<pre class="literal-block">
+void set_alert_dispatch(boost::function&lt;void(std::auto_ptr&lt;alert&gt;)&gt; const&amp; fun);
+</pre>
+</blockquote>
+<p>This sets a function to be called (from within libtorrent's netowrk thread) every time an alert
+is posted. Since the function (<tt class="docutils literal">fun</tt>) is run in libtorrent's internal thread, it may not call
+any of libtorrent's external API functions. Doing so results in a dead lock.</p>
+<p>The main intention with this function is to support integration with platform-dependent message
+queues or signalling systems. For instance, on windows, one could post a message to an HNWD or
+on linux, write to a pipe or an eventfd.</p>
 </div>
 <div class="section" id="add-feed">
 <h2>add_feed()</h2>
@@ -8904,8 +8919,8 @@ struct tracker_alert: torrent_alert
 <p>The specific alerts are:</p>
 <div class="section" id="torrent-added-alert">
 <h2>torrent_added_alert</h2>
-<p>The <tt class="docutils literal">torrent_added_alert</tt> is posted once every time a torrent is added.
-It doesn't contain any members of its own, but inherits the torrent handle
+<p>The <tt class="docutils literal">torrent_added_alert</tt> is posted once every time a torrent is successfully
+added. It doesn't contain any members of its own, but inherits the torrent handle
 from its base class.
 It's posted when the <tt class="docutils literal">status_notification</tt> bit is set in the alert mask.</p>
 <pre class="literal-block">
@@ -8917,9 +8932,10 @@ struct torrent_added_alert: torrent_alert
 </div>
 <div class="section" id="add-torrent-alert">
 <h2>add_torrent_alert</h2>
-<p>This alert is always posted when a torrent was added via <tt class="docutils literal">async_add_torrent()</tt>
+<p>This alert is always posted when a torrent was attempted to be added
 and contains the return status of the add operation. The torrent handle of the new
-torrent can be found in the base class' <tt class="docutils literal">handle</tt> member.</p>
+torrent can be found in the base class' <tt class="docutils literal">handle</tt> member. If adding
+the torrent failed, <tt class="docutils literal">error</tt> contains the error code.</p>
 <pre class="literal-block">
 struct add_torrent_alert: torrent_alert
 {
@@ -8930,7 +8946,7 @@ struct add_torrent_alert: torrent_alert
 </pre>
 <p><tt class="docutils literal">params</tt> is a copy of the parameters used when adding the torrent, it can be used
 to identify which invocation to <tt class="docutils literal">async_add_torrent()</tt> caused this alert.</p>
-<p><tt class="docutils literal">error</tt> is set to the error, if any, adding the torrent.</p>
+<p><tt class="docutils literal">error</tt> is set to the error, if one occurred while adding the torrent.</p>
 </div>
 <div class="section" id="torrent-removed-alert">
 <h2>torrent_removed_alert</h2>
@@ -8938,6 +8954,12 @@ to identify which invocation to <tt class="docutils literal">async_add_torrent()
 the torrent handle in its baseclass will always be invalid (since the torrent
 is already removed) it has the info hash as a member, to identify it.
 It's posted when the <tt class="docutils literal">status_notification</tt> bit is set in the alert mask.</p>
+<p>Even though the <tt class="docutils literal">handle</tt> member doesn't point to an existing torrent anymore,
+it is still useful for comparing to other handles, which may also no
+longer point to existing torrents, but to the same non-existing torrents.</p>
+<p>The <tt class="docutils literal">torrent_handle</tt> acts as a <tt class="docutils literal">weak_ptr</tt>, even though its object no
+longer exists, it can still compare equal to another weak pointer which
+points to the same non-existent object.</p>
 <pre class="literal-block">
 struct torrent_removed_alert: torrent_alert
 {

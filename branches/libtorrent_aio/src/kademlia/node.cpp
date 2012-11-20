@@ -891,8 +891,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 #endif
 
-			rsa_key target;
-			memcpy(target.bytes, msg_keys[3]->string_ptr(), sizeof(target.bytes));
+			sha1_hash target = hasher(msg_keys[3]->string_ptr(), msg_keys[3]->string_length()).final();
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
@@ -916,6 +915,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				memcpy(to_add.sig, msg_keys[4]->string_ptr(), sizeof(to_add.sig));
 				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4]->string_length());
 				memcpy(to_add.value, buf.first, buf.second);
+				memcpy(&to_add.key, msg_keys[3]->string_ptr(), sizeof(to_add.key));
 		
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
@@ -967,14 +967,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	{
 		key_desc_t msg_desc[] = {
 			{"target", lazy_entry::string_t, 20, 0},
-			{"k", lazy_entry::string_t, 268-20, key_desc_t::optional},
 		};
 
 		// k is not used for now
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[1];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -993,27 +992,22 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 
-		if (msg_keys[1])
+		dht_immutable_table_t::iterator i = m_immutable_table.find(target);
+		if (i != m_immutable_table.end())
 		{
-			rsa_key key;
-			memcpy(key.bytes, msg_keys[0]->string_ptr(), 20);
-			memcpy(key.bytes + 20, msg_keys[1]->string_ptr(), 268-20);
-			dht_mutable_table_t::iterator i = m_mutable_table.find(key);
+			dht_immutable_item const& f = i->second;
+			reply["v"] = bdecode(f.value, f.value + f.size);
+		}
+		else
+		{
+			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i != m_mutable_table.end())
 			{
 				dht_mutable_item const& f = i->second;
 				reply["v"] = bdecode(f.value, f.value + f.size);
 				reply["seq"] = f.seq;
 				reply["sig"] = std::string(f.sig, f.sig + 256);
-			}
-		}
-		else
-		{
-			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
-			if (i != m_immutable_table.end())
-			{
-				dht_immutable_item const& f = i->second;
-				reply["v"] = bdecode(f.value, f.value + f.size);
+				reply["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
 			}
 		}
 	}

@@ -192,7 +192,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 #endif
 		m_ipv4_sock.send_to(asio::buffer(p, len), ep, 0, ec);
 
-	if (ec == error::would_block)
+	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_USE_IPV6
 		if (ep.address().is_v6() && m_ipv6_sock.is_open())
@@ -262,7 +262,7 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		error_code ec;
 		udp::endpoint ep;
 		size_t bytes_transferred = s->receive_from(asio::buffer(m_buf, m_buf_size), ep, 0, ec);
-		if (ec == asio::error::would_block) break;
+		if (ec == asio::error::would_block || ec == asio::error::try_again) break;
 		on_read_impl(s, ep, ec, bytes_transferred);
 	}
 	call_drained_handler();
@@ -680,8 +680,10 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 #if TORRENT_USE_IPV6
 	else
 	{
+#ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
 		if (ec) return;
+#endif
 		m_ipv6_sock.bind(ep, ec);
 		if (ec) return;
 		udp::socket::non_blocking_io ioc(true);
@@ -723,7 +725,9 @@ void udp_socket::bind(int port)
 	m_ipv6_sock.open(udp::v6(), ec);
 	if (!ec)
 	{
+#ifdef IPV6_V6ONLY
 		m_ipv6_sock.set_option(v6only(true), ec);
+#endif
 		m_ipv6_sock.bind(udp::endpoint(address_v6::any(), port), ec);
 
 		setup_read(&m_ipv6_sock);
