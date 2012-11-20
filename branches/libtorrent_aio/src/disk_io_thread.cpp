@@ -676,22 +676,21 @@ namespace libtorrent
 		if (storage)
 		{
 			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
-			std::pair<boost::unordered_set<cached_piece_entry*>::const_iterator
-				, boost::unordered_set<cached_piece_entry*>::const_iterator> range(pieces.begin(), pieces.end());
-
-			while (range.first != range.second)
+			std::vector<int> piece_index;
+			piece_index.reserve(pieces.size());
+			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
+				, end(pieces.end()); i != end; ++i)
 			{
-				while ((*range.first)->num_dirty == 0)
-				{
-					++range.first;
-					if (range.first == range.second) return;
-				}
-				cached_piece_entry* pe = *range.first;
+				piece_index.push_back((*i)->piece);
+			}
+
+			for (std::vector<int>::iterator i = piece_index.begin()
+				, end(piece_index.end()); i != end; ++i)
+			{
+				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
+				if (pe == NULL) continue;
 				TORRENT_ASSERT(pe->storage == storage);
 				flush_piece(pe, flags, l);
-
-				range.first = pieces.begin();
-				range.second = pieces.end();
 			}
 		}
 		else
