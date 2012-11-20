@@ -272,6 +272,7 @@ namespace libtorrent
 	public:
 
 		typedef cache_t::iterator iterator;
+		typedef cache_t::const_iterator const_iterator;
 
 		// returns the number of blocks this job would cause to be read in
 		int pad_job(disk_io_job const* j, int blocks_in_piece

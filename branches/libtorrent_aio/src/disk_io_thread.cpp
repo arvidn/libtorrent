@@ -670,33 +670,43 @@ namespace libtorrent
 		}
 	}
 
-	// returns the number of outstanding jobs on the pieces. If this is 0
-	// it indicates that files can be closed without interrupting any operation
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
 		, mutex::scoped_lock& l)
 	{
 		if (storage)
 		{
-			// iterate over all blocks and issue writes for the ones
-			// that have dirty blocks (i.e. needs to be written)
-			for (boost::unordered_set<cached_piece_entry*>::iterator i
-				= storage->cached_pieces().begin(), end(storage->cached_pieces().end()); i != end;)
+			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+			std::pair<boost::unordered_set<cached_piece_entry*>::const_iterator
+				, boost::unordered_set<cached_piece_entry*>::const_iterator> range(pieces.begin(), pieces.end());
+
+			while (range.first != range.second)
 			{
-				cached_piece_entry* pe = *i;
-				++i;
+				while ((*range.first)->num_dirty == 0)
+				{
+					++range.first;
+					if (range.first == range.second) return;
+				}
+				cached_piece_entry* pe = *range.first;
 				TORRENT_ASSERT(pe->storage == storage);
 				flush_piece(pe, flags, l);
+
+				range.first = pieces.begin();
+				range.second = pieces.end();
 			}
 		}
 		else
 		{
 			std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
-
-			for (block_cache::iterator i = range.first; i != range.second;)
+			while (range.first != range.second)
 			{
-				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*i);
-				++i;
+				while (range.first->num_dirty == 0)
+				{
+					++range.first;
+					if (range.first == range.second) return;
+				}
+				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
 				flush_piece(pe, flags, l);
+				range = m_disk_cache.all_pieces();
 			}
 		}
 	}
