@@ -1469,7 +1469,7 @@ namespace libtorrent
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		boost::shared_ptr<context> ctx = boost::make_shared<contex>(m_ses.get_io_service(), context::sslv23));
+		boost::shared_ptr<context> ctx = boost::make_shared<context>(boost::ref(m_ses.get_io_service()), context::sslv23);
 
 		if (!ctx)
 		{
