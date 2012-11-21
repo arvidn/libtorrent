@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/size_type.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/debug.hpp"
 
 namespace libtorrent
 {
@@ -60,7 +61,7 @@ namespace libtorrent
 
 	void request_a_block(torrent& t, peer_connection& c);
 
-	class TORRENT_EXTRA_EXPORT policy
+	class TORRENT_EXTRA_EXPORT policy : single_threaded
 	{
 	public:
 
