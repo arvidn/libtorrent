@@ -345,6 +345,7 @@ namespace libtorrent
 
 	policy::policy(torrent* t)
 		: m_torrent(t)
+		, m_locked_peer(NULL)
 		, m_round_robin(0)
 		, m_num_connect_candidates(0)
 		, m_num_seeds(0)
@@ -362,6 +363,12 @@ namespace libtorrent
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
 			if ((ses.m_ip_filter.access((*i)->address()) & ip_filter::blocked) == 0)
+			{
+				++i;
+				continue;
+			}
+
+			if (*i == m_locked_peer)
 			{
 				++i;
 				continue;
@@ -418,6 +425,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(i != m_peers.end());
+		TORRENT_ASSERT(m_locked_peer != *i);
 
 		if (m_torrent->has_picker())
 			m_torrent->picker().clear_peer(*i);
@@ -468,12 +476,14 @@ namespace libtorrent
 	bool policy::should_erase_immediately(peer const& p) const
 	{
 		TORRENT_ASSERT(p.in_use);
+		if (&p == m_locked_peer) return false;
 		return p.source == peer_info::resume_data;
 	}
 
 	bool policy::is_erase_candidate(peer const& pe, bool finished) const
 	{
 		TORRENT_ASSERT(pe.in_use);
+		if (&pe == m_locked_peer) return false;
 		if (pe.connection) return false;
 		if (is_connect_candidate(pe, finished)) return false;
 
@@ -484,6 +494,7 @@ namespace libtorrent
 	bool policy::is_force_erase_candidate(peer const& pe) const
 	{
 		TORRENT_ASSERT(pe.in_use);
+		if (&pe == m_locked_peer) return false;
 		return pe.connection == 0;
 	}
 
@@ -805,7 +816,11 @@ namespace libtorrent
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
 	
-			if (iter != range.second) found = true;
+			if (iter != range.second)
+			{
+				TORRENT_ASSERT((*iter)->in_use);
+				found = true;
+			}
 		}
 		else
 		{
@@ -814,7 +829,11 @@ namespace libtorrent
 				, c.remote().address(), peer_address_compare()
 			);
 
-			if (iter != m_peers.end() && (*iter)->address() == c.remote().address()) found = true;
+			if (iter != m_peers.end() && (*iter)->address() == c.remote().address())
+			{
+				TORRENT_ASSERT((*iter)->in_use);
+				found = true;
+			}
 		}
 
 		// make sure the iterator we got is properly sorted relative
@@ -827,9 +846,9 @@ namespace libtorrent
 		if (found)
 		{
 			i = *iter;
+			TORRENT_ASSERT(i->in_use);
 			TORRENT_ASSERT(i->connection != &c);
 
-			TORRENT_ASSERT(i->in_use);
 			if (i->banned)
 			{
 				c.disconnect(errors::peer_banned);
@@ -868,8 +887,11 @@ namespace libtorrent
 				// or the current one is already connected
 				if (ec2)
 				{
+					TORRENT_ASSERT(m_locked_peer == NULL);
+					m_locked_peer = i;
 					i->connection->disconnect(ec2);
 					TORRENT_ASSERT(i->connection == 0);
+					m_locked_peer = NULL;
 				}
 				else if (i->connection->is_outgoing() == c.is_outgoing())
 				{
@@ -913,7 +935,10 @@ namespace libtorrent
 							c.disconnect(errors::duplicate_peer_id);
 							return false;
 						}
+						TORRENT_ASSERT(m_locked_peer == NULL);
+						m_locked_peer = i;
 						i->connection->disconnect(errors::duplicate_peer_id);
+						m_locked_peer = NULL;
 					}
 					else
 					{
@@ -929,7 +954,10 @@ namespace libtorrent
 							c.disconnect(errors::duplicate_peer_id);
 							return false;
 						}
+						TORRENT_ASSERT(m_locked_peer == NULL);
+						m_locked_peer = i;
 						i->connection->disconnect(errors::duplicate_peer_id);
+						m_locked_peer = NULL;
 					}
 				}
 			}
@@ -1082,7 +1110,10 @@ namespace libtorrent
 					// we need to make sure we don't let it do that, by unlinking
 					// the peer_connection from the policy::peer first.
 					p->connection->set_peer_info(0);
+					TORRENT_ASSERT(m_locked_peer == NULL);
+					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id);
+					m_locked_peer = NULL;
 					erase_peer(p);
 					return false;
 				}
@@ -1550,7 +1581,8 @@ namespace libtorrent
 		// to avoid adding one entry for every single connection
 		// the peer makes to us, don't save this entry
 		if (m_torrent->settings().allow_multiple_connections_per_ip
-			&& !p->connectable)
+			&& !p->connectable
+			&& p != m_locked_peer)
 		{
 			erase_peer(p);
 		}
