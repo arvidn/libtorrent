@@ -446,6 +446,14 @@ namespace libtorrent
 
 		torrent* m_torrent;
 
+		// this shouldbe NULL for the most part. It's set
+		// to point to a valid torrent_peer object if that
+		// object needs to be kept alive. If we ever feel
+		// like removing a torrent_peer from m_peers, we
+		// first check if the peer matches this one, and
+		// if so, don't delete it.
+		peer* m_locked_peer;
+
 		// since the peer list can grow too large
 		// to scan all of it, start at this iterator
 		int m_round_robin;
