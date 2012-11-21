@@ -5,6 +5,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fix possible dangling pointer use in peer list
 	* fix support for storing arbitrary data in the DHT
 	* fixed bug in uTP packet circle buffer
 	* fix potential crash when using torrent_handle::add_piece
