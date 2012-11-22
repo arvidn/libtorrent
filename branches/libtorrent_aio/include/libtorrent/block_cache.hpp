@@ -72,7 +72,7 @@ namespace libtorrent
 
 	struct cached_block_entry
 	{
-		cached_block_entry(): buf(0), refcount(0), written(0), hitcount(0)
+		cached_block_entry(): buf(0), refcount(0), hitcount(0)
 			, dirty(false), pending(false)
 		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
@@ -91,9 +91,6 @@ namespace libtorrent
 		// pointer in this struct doesn't count as a reference and
 		// is always the last to be cleared
 		boost::uint32_t refcount:15;
-
-		// this block has been written to disk
-		bool written:1;
 
 		// the number of times this block has been copied out of
 		// the cache, serving a request.

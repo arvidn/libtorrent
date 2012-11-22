@@ -1093,6 +1093,7 @@ namespace libtorrent
 				if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
 				{
 					pe->hash = new partial_hash;
+					pe->hashing_done = false;
 					m_disk_cache.update_cache_state(pe);
 				}
 
@@ -1406,6 +1407,9 @@ namespace libtorrent
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
 		if (pe == 0) return;
+		TORRENT_ASSERT(pe->hash == NULL);
+		TORRENT_ASSERT(pe->hashing == false);
+		pe->hashing_done = 0;
 
 		m_disk_cache.evict_piece(pe);
 	}
@@ -1653,7 +1657,10 @@ namespace libtorrent
 		++pe->piece_refcount;
 
 		if (pe->hash == NULL)
+		{
 			pe->hash = new partial_hash;
+			pe->hashing_done = false;
+		}
 		partial_hash* ph = pe->hash;
 
 		int block_size = m_disk_cache.block_size();
@@ -2071,6 +2078,7 @@ namespace libtorrent
 		if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
 		{
 			pe->hash = new partial_hash;
+			pe->hashing_done = false;
 			m_disk_cache.update_cache_state(pe);
 		}
 
