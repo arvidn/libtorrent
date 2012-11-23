@@ -145,7 +145,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 {
-	typedef USHORT (*RtlCaptureStackBackTrace_t)(
+	typedef USHORT (WINAPI *RtlCaptureStackBackTrace_t)(
 		__in ULONG FramesToSkip,
 		__in ULONG FramesToCapture,
 		__out PVOID *BackTrace,
