@@ -97,9 +97,23 @@ AS_ECHO "Checking for posix thread support:"
 AX_PTHREAD()
 
 LIBS="$PTHREAD_LIBS $LIBS"
-CFLAGS="$PTHREAD_CFLAGS $CFLAGS -fvisibility=hidden"
-CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden"
+CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 CC="$PTHREAD_CC"
+
+AS_ECHO "Checking for visibility support:"
+AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
+    ac_cv_hidden_visibility_attribute, [
+    echo 'int __attribute__ ((visibility ("hidden"))) foo (void) { return 1; }' > visibility_conftest.c
+    ac_cv_hidden_visibility_attribute=no
+    if AC_TRY_COMMAND(${CC-cc} -fvisibility=hidden -S visibility_conftest.c -o visibility_conftest.s 1>&AS_MESSAGE_LOG_FD);
+    then
+        AS_ECHO "found"
+        ac_cv_hidden_visibility_attribute=yes
+        CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden"
+        CFLAGS="$CFLAGS -fvisibility=hidden"
+    fi
+    rm -f visibility_conftest.*
+])
 
 AS_ECHO
 AS_ECHO "Checking for boost libraries:"
