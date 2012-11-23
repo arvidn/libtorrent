@@ -55,20 +55,13 @@ namespace libtorrent
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
 				, escape_string(name.c_str(), name.length()).c_str());
 
-		std::string tracker;
-		torrent_status st = handle.status();
-		if (!st.current_tracker.empty())
+		std::vector<announce_entry> const& tr = handle.trackers();
+
+		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			tracker = st.current_tracker;
-		}
-		else
-		{
-			std::vector<announce_entry> const& tr = handle.trackers();
-			if (!tr.empty()) tracker = tr[0].url;
-		}
-		if (!tracker.empty())
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
-				, escape_string(tracker.c_str(), tracker.size()).c_str());
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
+		}
 
 		return ret;
 	}
@@ -87,10 +80,10 @@ namespace libtorrent
 				, escape_string(name.c_str(), name.length()).c_str());
 
 		std::vector<announce_entry> const& tr = info.trackers();
-		if (!tr.empty())
+		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
 			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
-				, escape_string(tr[0].url.c_str(), tr[0].url.length()).c_str());
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
 		}
 
 		return ret;
