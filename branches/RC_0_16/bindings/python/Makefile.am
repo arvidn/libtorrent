@@ -22,6 +22,7 @@ EXTRA_DIST = \
   src/peer_info.cpp         \
   src/session.cpp           \
   src/session_settings.cpp  \
+  src/string.cpp            \
   src/torrent.cpp           \
   src/torrent_handle.cpp    \
   src/torrent_info.cpp      \
