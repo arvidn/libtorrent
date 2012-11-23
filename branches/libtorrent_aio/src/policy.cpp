@@ -411,13 +411,6 @@ namespace libtorrent
 				++i;
 				continue;
 			}
-
-			if (*i == m_locked_peer)
-			{
-				++i;
-				continue;
-			}
-
 			if (*i == m_locked_peer)
 			{
 				++i;

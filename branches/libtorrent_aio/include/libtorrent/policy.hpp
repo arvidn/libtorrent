@@ -180,7 +180,7 @@ namespace libtorrent
 		// if so, don't delete it.
 		torrent_peer* m_locked_peer;
 
-		// since the peer list can grow too large
+		// since the torrent_peer list can grow too large
 		// to scan all of it, start at this iterator
 		int m_round_robin;
 
