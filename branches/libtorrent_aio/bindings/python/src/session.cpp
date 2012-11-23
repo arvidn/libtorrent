@@ -703,7 +703,9 @@ void bind_session()
     ;
 
     enum_<session::listen_on_flags_t>("listen_on_flags_t")
+#ifndef TORRENT_NO_DEPRECATE
         .value("listen_reuse_address", session::listen_reuse_address)
+#endif
         .value("listen_no_system_port", session::listen_no_system_port)
     ;
 
