@@ -14,6 +14,7 @@ void bind_big_number();
 void bind_session();
 void bind_entry();
 void bind_torrent_info();
+void bind_unicode_string_conversion();
 void bind_torrent_handle();
 void bind_torrent_status();
 void bind_session_settings();
@@ -40,6 +41,7 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_entry();
     bind_session();
     bind_torrent_info();
+    bind_unicode_string_conversion();
     bind_torrent_handle();
     bind_torrent_status();
     bind_session_settings();
