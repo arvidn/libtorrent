@@ -817,6 +817,7 @@ namespace libtorrent
 		&disk_io_thread::do_trim_cache,
 		&disk_io_thread::do_file_priority,
 		&disk_io_thread::do_load_torrent,
+		&disk_io_thread::do_clear_piece,
 	};
 
 	const char* job_action_name[] =
@@ -839,6 +840,7 @@ namespace libtorrent
 		"trim_cache",
 		"set_file_priority",
 		"load_torrent",
+		"clear_piece",
 	};
 
 	void disk_io_thread::perform_async_job(disk_io_job* j)
@@ -898,6 +900,10 @@ namespace libtorrent
 			// our quanta in case there aren't any other
 			// jobs to run in between
 
+			// TODO: a potentially more efficient solution would be to have a special
+			// queue for retry jobs, that's only ever run when a job completes, in
+			// any thread. It would only work if m_outstanding_jobs > 0
+
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 	
 			bool need_sleep = m_queued_jobs.empty();
@@ -906,6 +912,20 @@ namespace libtorrent
 			if (need_sleep) sleep(0);
 			return;
 		}
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		if (j->action == disk_io_job::hash && !j->error.ec)
+		{
+			// a hash job should never return without clearing pe->hash
+			mutex::scoped_lock l(m_cache_mutex);
+			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			if (pe != NULL)
+			{
+				TORRENT_ASSERT(pe->hash == NULL);
+			}
+			l.unlock();
+		}
+#endif
 
 		if (ret == defer_handler) return;
 		j->ret = ret;
@@ -1090,10 +1110,12 @@ namespace libtorrent
 
 			if (pe)
 			{
-				if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
+				if (!pe->hashing_done
+					&& pe->hash == 0
+					&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 				{
 					pe->hash = new partial_hash;
-					pe->hashing_done = false;
+					pe->hashing_done = 0;
 					m_disk_cache.update_cache_state(pe);
 				}
 
@@ -1281,6 +1303,9 @@ namespace libtorrent
 			delete pe->hash;
 			pe->hash = NULL;
 			pe->hashing_done = 1;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			++pe->hash_passes;
+#endif
 	
 			l.unlock();
 			if (handler) handler(j);
@@ -1393,25 +1418,24 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 
+		tailqueue jobs;
 		boost::unordered_set<cached_piece_entry*> const& cache = storage->cached_pieces();
 		for (boost::unordered_set<cached_piece_entry*>::const_iterator i = cache.begin()
 			, end(cache.end()); i != end; ++i)
 		{
-			m_disk_cache.evict_piece(*(i++));
+			m_disk_cache.evict_piece(*(i++), jobs);
 		}
+		abort_jobs(jobs);
 	}
 
-	void disk_io_thread::clear_piece(piece_manager* storage, int index)
+	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
+		, boost::function<void(disk_io_job const*)> const& handler)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
-
-		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
-		if (pe == 0) return;
-		TORRENT_ASSERT(pe->hash == NULL);
-		TORRENT_ASSERT(pe->hashing == false);
-		pe->hashing_done = 0;
-
-		m_disk_cache.evict_piece(pe);
+		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
+		j->storage = storage;
+		j->piece = index;
+		j->callback = handler;
+		add_job(j);
 	}
 
 	void disk_io_thread::async_stop_torrent(piece_manager* storage
@@ -1534,6 +1558,9 @@ namespace libtorrent
 			delete pe->hash;
 			pe->hash = NULL;
 			pe->hashing_done = 1;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			++pe->hash_passes;
+#endif
 			add_completed_jobs(hash_jobs);
 		}
 	}
@@ -1613,6 +1640,9 @@ namespace libtorrent
 				delete pe->hash;
 				pe->hash = NULL;
 				pe->hashing_done = 1;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+				++pe->hash_passes;
+#endif
 				m_disk_cache.update_cache_state(pe);
 				return 0;
 			}
@@ -1659,7 +1689,7 @@ namespace libtorrent
 		if (pe->hash == NULL)
 		{
 			pe->hash = new partial_hash;
-			pe->hashing_done = false;
+			pe->hashing_done = 0;
 		}
 		partial_hash* ph = pe->hash;
 
@@ -1676,9 +1706,8 @@ namespace libtorrent
 		memset(locked_blocks, 0, blocks_in_piece * sizeof(int));
 		int num_locked_blocks = 0;
 
-		// TODO: it would be nice to not have to lock the mutex every
-		// turn through this loop. i.e. increment the refcounts of all
-		// blocks up front, and then hash them
+		// increment the refcounts of all
+		// blocks up front, and then hash them without holding the lock
 		TORRENT_ASSERT(ph->offset % block_size == 0);
 		for (int i = ph->offset / block_size; i < blocks_in_piece; ++i)
 		{
@@ -1715,7 +1744,13 @@ namespace libtorrent
 				if (iov.iov_base == NULL)
 				{
 					l.lock();
-					//#error introduce a holder class that automatically increments and decrements the piece_refcount
+					// TODO: introduce a holder class that automatically increments
+					// and decrements the piece_refcount
+
+					// decrement the refcounts of the blocks we just hashed
+					for (int i = 0; i < num_locked_blocks; ++i)
+						m_disk_cache.dec_block_refcount(pe, locked_blocks[i]);
+
 					--pe->piece_refcount;
 					pe->hashing = false;
 					delete pe->hash;
@@ -1779,6 +1814,9 @@ namespace libtorrent
 			delete pe->hash;
 			pe->hash = NULL;
 			pe->hashing_done = 1;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			++pe->hash_passes;
+#endif
 			m_disk_cache.update_cache_state(pe);
 		}
 		return ret < 0 ? ret : 0;
@@ -2075,17 +2113,21 @@ namespace libtorrent
 
 		if (pe == NULL) return 0;
 		if (pe->num_dirty == 0) return 0;
-		if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
-		{
-			pe->hash = new partial_hash;
-			pe->hashing_done = false;
-			m_disk_cache.update_cache_state(pe);
-		}
 
 		++pe->piece_refcount;
 
-		// see if we can progress the hash cursor with this new block
-		kick_hasher(pe, l);
+		if (!pe->hashing_done)
+		{
+			if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
+			{
+				pe->hash = new partial_hash;
+				pe->hashing_done = 0;
+				m_disk_cache.update_cache_state(pe);
+			}
+
+			// see if we can progress the hash cursor with this new block
+			kick_hasher(pe, l);
+		}
 
 		// flushes the piece to disk in case
 		// it satisfies the condition for a write
@@ -2135,6 +2177,31 @@ namespace libtorrent
 		}
 
 		return 0;
+	}
+
+	// this job won't return until all outstanding jobs on this
+	// piece are completed or cancelled and the buffers for it
+	// have been evicted
+	int disk_io_thread::do_clear_piece(disk_io_job* j)
+	{
+		mutex::scoped_lock l(m_cache_mutex);
+
+		cached_piece_entry* pe = m_disk_cache.find_piece(j);
+		if (pe == 0) return 0;
+		TORRENT_ASSERT(pe->hashing == false);
+		pe->hashing_done = 0;
+
+		// evict_piece returns true if the piece was in fact
+		// evicted. A piece may fail to be evicted if there
+		// are still outstanding operations on it, in which case
+		// try again later
+		tailqueue jobs;
+		if (m_disk_cache.evict_piece(pe, jobs))
+		{
+			abort_jobs(jobs);
+			return 0;
+		}
+		return retry_job;
 	}
 
 	void disk_io_thread::add_fence_job(piece_manager* storage, disk_io_job* j)

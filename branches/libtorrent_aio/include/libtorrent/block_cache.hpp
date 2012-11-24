@@ -250,6 +250,11 @@ namespace libtorrent
 
 		// the sum of all refcounts in all blocks
 		boost::uint32_t refcount;	
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// the number of times this piece has finished hashing
+		int hash_passes;
+#endif
 	};
 
 	inline std::size_t hash_value(cached_piece_entry const& p)
@@ -296,7 +301,7 @@ namespace libtorrent
 		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p);
+		bool evict_piece(cached_piece_entry* p, tailqueue& jobs);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list

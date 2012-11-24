@@ -91,7 +91,8 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 
 		virtual void clear_read_cache(piece_manager* storage) = 0;
-		virtual void clear_piece(piece_manager* storage, int index) = 0;
+		virtual void async_clear_piece(piece_manager* storage, int index
+			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 
 		virtual void subscribe_to_disk(boost::shared_ptr<disk_observer> o) = 0;
 

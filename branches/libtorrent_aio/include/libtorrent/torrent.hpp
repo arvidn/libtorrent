@@ -679,6 +679,7 @@ namespace libtorrent
 
 		// piece_failed is called when a piece fails the hash check
 		void piece_failed(int index);
+		void on_piece_sync(disk_io_job const* j);
 
 		enum wasted_reason_t
 		{

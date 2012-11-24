@@ -1070,6 +1070,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		if (!j->error) return;
 
+		if (j->error.ec == asio::error::operation_aborted) return;
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		debug_log("disk error: (%d) %s in file: %s", j->error.ec.value(), j->error.ec.message().c_str()
 			, resolve_filename(j->error.file).c_str());
@@ -2269,6 +2271,8 @@ namespace libtorrent
 		}
 	}
 	
+	void nop() {}
+
 	void torrent::on_piece_hashed(disk_io_job const* j)
 	{
 		// hold a reference until this function returns
@@ -2341,7 +2345,8 @@ namespace libtorrent
 		else
 		{
 			// if the hash failed, remove it from the cache
-			if (m_storage) m_ses.disk_thread().clear_piece(m_storage.get(), j->piece);
+			if (m_storage) m_ses.disk_thread().async_clear_piece(m_storage.get()
+				, j->piece, boost::bind(&nop));
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->num_pieces())
@@ -3783,11 +3788,6 @@ namespace libtorrent
 		}
 #endif
 
-		// don't do this until after the plugins have had a chance
-		// to read back the blocks that failed, for blame purposes
-		// this way they have a chance to hit the cache
-		if (m_storage) m_ses.disk_thread().clear_piece(m_storage.get(), index);
-
 		// did we receive this piece from a single peer?
 		bool single_peer = peers.size() == 1;
 
@@ -3859,12 +3859,20 @@ namespace libtorrent
 			}
 		}
 
-		// we have to let the piece_picker know that
-		// this piece failed the check as it can restore it
-		// and mark it as being interesting for download
-		m_picker->piece_failed(index);
-
-		TORRENT_ASSERT(m_picker->have_piece(index) == false);
+		// don't do this until after the plugins have had a chance
+		// to read back the blocks that failed, for blame purposes
+		// this way they have a chance to hit the cache
+		if (m_storage)
+		{
+			m_ses.disk_thread().async_clear_piece(m_storage.get(), index
+				, boost::bind(&torrent::on_piece_sync, shared_from_this(), _1));
+		}
+		else
+		{
+			disk_io_job j;
+			j.piece = index;
+			on_piece_sync(&j);
+		}
 
 #ifdef TORRENT_DEBUG
 		for (std::vector<void*>::iterator i = downloaders.begin()
@@ -3877,6 +3885,18 @@ namespace libtorrent
 			}
 		}
 #endif
+	}
+
+	void torrent::on_piece_sync(disk_io_job const* j)
+	{
+		TORRENT_ASSERT(has_picker());
+
+		// we have to let the piece_picker know that
+		// this piece failed the check as it can restore it
+		// and mark it as being interesting for download
+		m_picker->piece_failed(j->piece);
+
+		TORRENT_ASSERT(m_picker->have_piece(j->piece) == false);
 	}
 
 	void torrent::peer_has(int index, peer_connection const* peer)
@@ -4580,8 +4600,6 @@ namespace libtorrent
 			if (file_prio > piece_prio) piece_prio = file_prio;
 		}
 	}
-
-	void nop() {}
 
 	void torrent::prioritize_files(std::vector<int> const& files)
 	{

@@ -265,7 +265,8 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler);
 
 		void clear_read_cache(piece_manager* storage);
-		void clear_piece(piece_manager* storage, int index);
+		void async_clear_piece(piece_manager* storage, int index
+			, boost::function<void(disk_io_job const*)> const& handler);
 
 		void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
 
@@ -337,6 +338,7 @@ namespace libtorrent
 		int do_trim_cache(disk_io_job* j);
 		int do_file_priority(disk_io_job* j);
 		int do_load_torrent(disk_io_job* j);
+		int do_clear_piece(disk_io_job* j);
 
 		void call_job_handlers(void* userdata);
 

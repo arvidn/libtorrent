@@ -75,11 +75,15 @@ cached_piece_entry::cached_piece_entry()
 	, num_blocks(0)
 	, blocks_in_piece(0)
 	, hashing(0)
+	, hashing_done(0)
 	, marked_for_deletion(false)
 	, need_readback(false)
 	, cache_state(read_lru1)
 	, piece_refcount(0)
 	, refcount(0)
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	, hash_passes(0)
+#endif
 {}
 
 cached_piece_entry::~cached_piece_entry()
@@ -454,7 +458,7 @@ void block_cache::free_block(cached_piece_entry* pe, int block)
 	b.buf = 0;
 }
 
-bool block_cache::evict_piece(cached_piece_entry* pe)
+bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
 {
 	INVARIANT_CHECK;
 
@@ -489,6 +493,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe)
 
 	if (pe->ok_to_evict())
 	{
+		jobs.swap(pe->jobs);
 		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
 			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
 			return true;
@@ -511,7 +516,9 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
 		"piece: %d\n", this, int(p->piece));
 
-	if (!evict_piece(p))
+	TORRENT_ASSERT(p->jobs.empty());
+	tailqueue jobs;
+	if (!evict_piece(p, jobs))
 	{
 		p->marked_for_deletion = true;
 	}
@@ -523,6 +530,7 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 
 	TORRENT_ASSERT(pe->ok_to_evict());
 	TORRENT_ASSERT(pe->cache_state < cached_piece_entry::num_lrus);
+	TORRENT_ASSERT(pe->jobs.empty());
 	linked_list* lru_list = &m_lru[pe->cache_state];
 	if (pe->hash)
 	{
@@ -1265,7 +1273,9 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 {
 	if (!pe->ok_to_evict()
-		|| !pe->marked_for_deletion) return false;
+		|| !pe->marked_for_deletion
+		|| !pe->jobs.empty())
+		return false;
 
 	boost::intrusive_ptr<piece_manager> s = pe->storage;
 
@@ -1273,8 +1283,10 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
-	bool removed = evict_piece(pe);
+	tailqueue jobs;
+	bool removed = evict_piece(pe, jobs);
 	TORRENT_ASSERT(removed);
+	TORRENT_ASSERT(jobs.empty());
 
 	return true;
 }
