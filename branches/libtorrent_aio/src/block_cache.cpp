@@ -95,7 +95,8 @@ cached_piece_entry::~cached_piece_entry()
 		TORRENT_ASSERT(blocks[i].buf == 0);
 		TORRENT_ASSERT(!blocks[i].pending);
 		TORRENT_ASSERT(blocks[i].refcount == 0);
-		TORRENT_ASSERT(blocks[i].hashing == 0);
+		TORRENT_ASSERT(blocks[i].hashing_count == 0);
+		TORRENT_ASSERT(blocks[i].flushing_count == 0);
 	}
 #endif
 	delete hash;
@@ -410,7 +411,7 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 		TORRENT_ASSERT(pe->blocks[block].pending);
 		pe->blocks[block].pending = false;
 		pe->blocks[block].dirty = false;
-		dec_block_refcount(pe, block);
+		dec_block_refcount(pe, block, block_cache::ref_flushing);
 #ifdef TORRENT_BUFFER_STATS
 		rename_buffer(pe->blocks[block].buf, "read cache");
 #endif
@@ -913,15 +914,23 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	TORRENT_ASSERT(pe->cache_state != cached_piece_entry::read_lru2_ghost);
 }
 
-void block_cache::inc_block_refcount(cached_piece_entry* pe, int block)
+void block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	++pe->blocks[block].refcount;
 	if (pe->blocks[block].refcount == 1)
 		++m_pinned_blocks;
 	++pe->refcount;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	switch (reason)
+	{
+		case ref_hashing: ++pe->blocks[block].hashing_count; break;
+		case ref_reading: ++pe->blocks[block].reading_count; break;
+		case ref_flushing: ++pe->blocks[block].flushing_count; break;
+	};
+#endif
 }
 
-void block_cache::dec_block_refcount(cached_piece_entry* pe, int block)
+void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reason)
 {
 	TORRENT_ASSERT(pe->blocks[block].refcount > 0);
 	--pe->blocks[block].refcount;
@@ -932,6 +941,14 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block)
 		TORRENT_ASSERT(m_pinned_blocks > 0);
 		--m_pinned_blocks;
 	}
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	switch (reason)
+	{
+		case ref_hashing: --pe->blocks[block].hashing_count; break;
+		case ref_reading: --pe->blocks[block].reading_count; break;
+		case ref_flushing: --pe->blocks[block].flushing_count; break;
+	};
+#endif
 }
 
 void block_cache::abort_dirty(cached_piece_entry* pe)
@@ -1258,11 +1275,7 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 	if (pe == NULL) return;
 
 	TORRENT_ASSERT(pe->blocks[ref.block].buf);
-	dec_block_refcount(pe, ref.block);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	TORRENT_ASSERT(pe->blocks[ref.block].reading_count > 0);
-	--pe->blocks[ref.block].reading_count;
-#endif
+	dec_block_refcount(pe, ref.block, block_cache::ref_reading);
 
 	TORRENT_ASSERT(m_send_buffer_blocks > 0);
 	--m_send_buffer_blocks;

@@ -456,7 +456,7 @@ namespace libtorrent
 			iov[iov_len].iov_len = (std::min)(block_size, size_left);
 			++iov_len;
 			pe->blocks[i].pending = true;
-			m_disk_cache.inc_block_refcount(pe, i);
+			m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
 
 			DLOG(stderr, "x");
 		}
@@ -1487,7 +1487,7 @@ namespace libtorrent
 		{
 			cached_block_entry& bl = pe->blocks[i];
 			if (bl.buf == 0) break;
-			m_disk_cache.inc_block_refcount(pe, i);
+			m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing);
 			++end;
 		}
 
@@ -1526,7 +1526,7 @@ namespace libtorrent
 
 		// decrement the block refcounters
 		for (int i = cursor; i < end; ++i)
-			m_disk_cache.dec_block_refcount(pe, i);
+			m_disk_cache.dec_block_refcount(pe, i, block_cache::ref_hashing);
 
 		// did we complete the hash?
 		if (pe->hash->offset != piece_size) return;
@@ -1716,7 +1716,7 @@ namespace libtorrent
 			// is the block already in the cache?
 			if (pe->blocks[i].buf)
 			{
-				m_disk_cache.inc_block_refcount(pe, i);
+				m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing);
 				locked_blocks[num_locked_blocks++] = i;
 			}
 		}
@@ -1749,7 +1749,7 @@ namespace libtorrent
 
 					// decrement the refcounts of the blocks we just hashed
 					for (int i = 0; i < num_locked_blocks; ++i)
-						m_disk_cache.dec_block_refcount(pe, locked_blocks[i]);
+						m_disk_cache.dec_block_refcount(pe, locked_blocks[i], block_cache::ref_hashing);
 
 					--pe->piece_refcount;
 					pe->hashing = false;
@@ -1800,7 +1800,7 @@ namespace libtorrent
 
 		// decrement the refcounts of the blocks we just hashed
 		for (int i = 0; i < num_locked_blocks; ++i)
-			m_disk_cache.dec_block_refcount(pe, locked_blocks[i]);
+			m_disk_cache.dec_block_refcount(pe, locked_blocks[i], block_cache::ref_hashing);
 
 		--pe->piece_refcount;
 

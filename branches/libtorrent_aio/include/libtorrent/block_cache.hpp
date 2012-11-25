@@ -76,9 +76,9 @@ namespace libtorrent
 			, dirty(false), pending(false)
 		{
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-			hashing = false;
+			hashing_count = 0;
 			reading_count = 0;
-			check_count = 0;
+			flushing_count = 0;
 #endif
 		}
 
@@ -111,12 +111,12 @@ namespace libtorrent
 		bool pending:1;
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		// this block is part of an outstanding hash job
-		bool hashing:1;
+		// this many of the references are held by hashing operations
+		int hashing_count;
 		// this block is being used in this many peer's send buffers currently
 		int reading_count;
-		// the number of check_piece disk jobs that have a reference to this block
-		int check_count;
+		// the number of references held by flushing operations
+		int flushing_count;
 #endif
 	};
 
@@ -380,8 +380,9 @@ namespace libtorrent
 		void get_stats(cache_status* ret) const;
 		void set_settings(aux::session_settings const& sett);
 
-		void inc_block_refcount(cached_piece_entry* pe, int block);
-		void dec_block_refcount(cached_piece_entry* pe, int block);
+		enum reason_t { ref_hashing = 0, ref_reading = 1, ref_flushing = 2 };
+		void inc_block_refcount(cached_piece_entry* pe, int block, int reason);
+		void dec_block_refcount(cached_piece_entry* pe, int block, int reason);
 
 		int pinned_blocks() const { return m_pinned_blocks; }
 
