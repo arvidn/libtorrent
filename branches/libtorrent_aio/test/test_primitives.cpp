@@ -721,6 +721,25 @@ int test_main()
 		TEST_CHECK(pb.at(2) == (void*)2);
 	}
 
+	{
+		// test wrapping the indices
+		packet_buffer pb;
+
+		TEST_EQUAL(pb.size(), 0);
+
+		pb.insert(0xfff3, (void*)1);
+		TEST_CHECK(pb.at(0xfff3) == (void*)1);
+
+		int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+		pb.insert(new_index, (void*)2);
+		TEST_CHECK(pb.at(new_index) == (void*)2);
+
+		void* old = pb.remove(0xfff3);
+		TEST_CHECK(old == (void*)1);
+		TEST_CHECK(pb.at(0xfff3) == (void*)0);
+		TEST_CHECK(pb.at(new_index) == (void*)2);
+	}
+
 	// make sure the error codes and error strings are aligned
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
