@@ -254,7 +254,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		"Content-Type: text/json\r\n"
 		"Content-Length: %d\r\n\r\n", int(response.size()) - 1);
 	mg_write(conn, &response[0], response.size()-1);
-	printf("%s\n", &response[0]);
+//	printf("%s\n", &response[0]);
 	return true;
 }
 
