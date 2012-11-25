@@ -35,16 +35,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 #include "escape_json.hpp"
+#include "libtorrent/utf8.hpp"
 
 namespace libtorrent
 {
 
 std::string escape_json(std::string const& in)
 {
+	std::wstring wide;
+	utf8_wchar(in, wide);
 	std::string ret;
-	for (std::string::const_iterator s = in.begin(); s != in.end(); ++s)
+	for (std::wstring::const_iterator s = wide.begin(); s != wide.end(); ++s)
 	{
-		if (*s > 0x1f && *s != '"' && *s != '\\')
+		if (*s > 0x1f && *s < 0x80 && *s != '"' && *s != '\\')
 		{
 			ret += *s;
 		}
@@ -53,10 +56,8 @@ std::string escape_json(std::string const& in)
 			ret += '\\';
 			switch(*s)
 			{
-				case '"':
-				case '\\':
-					ret += *s;
-					break;
+				case '"': ret += '"'; break;
+				case '\\': ret += '\\'; break;
 				case '\n': ret += 'n'; break;
 				case '\r': ret += 'r'; break;
 				case '\t': ret += 't'; break;
@@ -65,7 +66,7 @@ std::string escape_json(std::string const& in)
 				default:
 				{
 					char buf[20];
-					snprintf(buf, sizeof(buf), "u0%03o", int(static_cast<unsigned char>(*s)));
+					snprintf(buf, sizeof(buf), "u0%o", int(*s));
 					ret += buf;
 				}
 			}
