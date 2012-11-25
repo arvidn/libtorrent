@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <string.h>
 #include <stdio.h>
+#include <boost/cstdint.hpp>
 
 #include "escape_json.hpp"
 #include "libtorrent/utf8.hpp"
@@ -66,7 +67,7 @@ std::string escape_json(std::string const& in)
 				default:
 				{
 					char buf[20];
-					snprintf(buf, sizeof(buf), "u0%o", int(*s));
+					snprintf(buf, sizeof(buf), "u%04x", boost::uint16_t(*s));
 					ret += buf;
 				}
 			}
