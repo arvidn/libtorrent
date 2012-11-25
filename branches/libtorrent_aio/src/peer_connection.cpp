@@ -2661,7 +2661,7 @@ namespace libtorrent
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 
-		if (j->ret < 0 && j->error.ec != boost::system::errc::operation_canceled)
+		if (j->ret < 0)
 		{
 			// handle_disk_error may disconnect us
 			t->handle_disk_error(j, this);
