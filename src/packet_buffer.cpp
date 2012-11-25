@@ -106,7 +106,7 @@ namespace libtorrent {
 				// We have wrapped.
 				if (idx >= ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
 				{
-					reserve(m_capacity + (idx - ((m_first + m_capacity) & 0xffff)));
+					reserve(m_capacity + (idx + 1 - ((m_first + m_capacity) & 0xffff)));
 				}
 			}
 			if (compare_less_wrap(m_last, (idx + 1) & 0xffff, 0xffff))
