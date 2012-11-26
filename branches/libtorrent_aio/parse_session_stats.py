@@ -212,8 +212,8 @@ reports = [
 	('peer_errors_transport', 'num', '', 'number of peers by transport protocol', ['error tcp peers', 'error utp peers']),
 	('peer_errors_encryption', 'num', '', 'number of peers by encryption level', ['error encrypted peers', 'error rc4 peers', 'peer disconnects']),
 	('incoming requests', 'num', '', 'incoming 16kiB block requests', ['pending incoming block requests', 'average pending incoming block requests']),
-	('disk_write_time', 'write time', 's', 'distribution of write jobs timing', ['disk write time'], {'type': 'histogram', 'binwidth': 0.1, 'numbins': 400}),
-	('disk_read_time', 'read time', 's', 'distribution of read jobs timing', ['disk read time'], {'type': 'histogram', 'binwidth': 0.1, 'numbins': 400}),
+	('disk_write_time', 'write time', 's', 'distribution of write jobs timing', ['disk write time'], {'type': histogram, 'binwidth': 0.1, 'numbins': 400}),
+	('disk_read_time', 'read time', 's', 'distribution of read jobs timing', ['disk read time'], {'type': histogram, 'binwidth': 0.1, 'numbins': 400}),
 	('waste', '% of all downloaded bytes', '%%', 'proportion of all downloaded bytes that were wasted', ['% failed payload bytes', '% wasted payload bytes', '% protocol bytes'], {'type':stacked}),
 	('waste by source', '% of all wasted bytes', '%%', 'what\' causing the waste', [ 'redundant timed-out', 'redundant cancelled', 'redundant unknown', 'redundant seed', 'redundant end-game', 'redundant closing'], {'type':stacked}),
 	('average_disk_time_absolute', 'job time', 's', 'running averages of timings of disk operations', ['disk read time', 'disk write time', 'disk hash time']),
@@ -227,8 +227,8 @@ reports = [
 	('mixed mode', 'rate', 'B/s', 'rates by transport protocol', ['TCP up rate','TCP down rate','uTP up rate','uTP down rate','TCP up limit','TCP down limit']),
 	('connection_type', 'num', '', 'peers by transport protocol', ['utp peers','tcp peers']),
 	('uTP delay', 'buffering delay', 's', 'network delays measured by uTP', ['uTP peak send delay','uTP peak recv delay', 'uTP avg send delay', 'uTP avg recv delay']),
-	('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP', ['uTP avg send delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),
-	('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP', ['uTP avg recv delay'], {'type': 'histogram', 'binwidth': 0.05, 'numbins': 100}),
+	('uTP send delay histogram', 'buffering delay', 's', 'send delays measured by uTP', ['uTP avg send delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
+	('uTP recv delay histogram', 'buffering delay', 's', 'receive delays measured by uTP', ['uTP avg recv delay'], {'type': histogram, 'binwidth': 0.05, 'numbins': 100}),
 	('uTP stats', 'num', '', 'number of uTP sockets by state', ['uTP idle', 'uTP syn-sent', 'uTP connected', 'uTP fin-sent', 'uTP close-wait'], {'type': stacked}),
 	('system memory', '', '', 'virtual memory page count', ['active resident pages', 'inactive resident pages', 'pinned resident pages', 'free pages'], {'type': stacked}),
 	('memory paging', '', '', 'vm disk activity', ['pageins', 'pageouts']),
@@ -260,9 +260,9 @@ reports = [
 		'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
 	('piece_picker', 'blocks', '', '', ['piece picks', 'reject piece picks', 'unchoke piece picks', 'incoming redundant piece picks', 'incoming piece picks', 'end game piece picks', 'snubbed piece picks'], {'type':stacked}),
 	('piece_picker_loops', 'num checked pieces', '', '', ['piece picker loops']),
-	('picker_partials', 'pieces', '', '', ['num partial pieces', 'num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces']),
-	('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120}),
-	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': 'histogram', 'binwidth': 5, 'numbins': 120})
+	('picker_partials', 'pieces', '', '', ['num downloading partial pieces', 'num full partial pieces', 'num finished partial pieces'], {'type':stacked}),
+	('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120}),
+	('picker_partials_distribution', 'partial pieces', '', '', ['num downloading partial pieces'], {'type': histogram, 'binwidth': 5, 'numbins': 120})
 ]
 
 print 'generating graphs'
