@@ -120,8 +120,6 @@ namespace libtorrent
 
 		udp::endpoint pick_target_endpoint() const;
 
-//		tracker_manager& m_man;
-
 		bool m_abort;
 		std::string m_hostname;
 		udp::endpoint m_target;
