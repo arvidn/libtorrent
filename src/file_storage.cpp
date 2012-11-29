@@ -283,7 +283,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(file_index < num_files());
 		TORRENT_ASSERT(file_index >= 0);
-		size_type offset = file_offset + at(file_index).offset;
+		size_type offset = file_offset + this->file_offset(file_index);
 
 		peer_request ret;
 		ret.piece = int(offset / piece_length());
