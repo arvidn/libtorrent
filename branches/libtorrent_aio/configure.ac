@@ -125,7 +125,7 @@ AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
 
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
-LDFLAGS="$BOOST_LDFLAGS $LDFLAGS -laio"
+LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
 
 
 ###############################################################################
