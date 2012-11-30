@@ -55,7 +55,6 @@ nobase_include_HEADERS = \
   file_storage.hpp             \
   fingerprint.hpp              \
   gzip.hpp                     \
-  hash_thread.hpp              \
   hasher.hpp                   \
   http_connection.hpp          \
   http_parser.hpp              \
