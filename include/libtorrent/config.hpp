@@ -377,11 +377,11 @@ inline int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_USE_WSTRING
-#if defined UNICODE && !defined BOOST_NO_STD_WSTRING
+#if !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
 #else
 #define TORRENT_USE_WSTRING 0
-#endif // UNICODE
+#endif // BOOST_NO_STD_WSTRING
 #endif // TORRENT_USE_WSTRING
 
 #ifndef TORRENT_HAS_FALLOCATE

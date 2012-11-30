@@ -6,6 +6,7 @@
 #define BOOST_PYTHON_USE_GCC_SYMBOL_VISIBILITY 1
 #endif
 
+#include "libtorrent/config.hpp"
 #include <boost/python/module.hpp>
 
 void bind_utility();
@@ -41,7 +42,9 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_entry();
     bind_session();
     bind_torrent_info();
+#if TORRENT_USE_WSTRING
     bind_unicode_string_conversion();
+#endif
     bind_torrent_handle();
     bind_torrent_status();
     bind_session_settings();

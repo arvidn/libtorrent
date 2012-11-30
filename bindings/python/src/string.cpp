@@ -3,10 +3,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/python.hpp>
+#include "libtorrent/config.hpp"
 #include "libtorrent/utf8.hpp"
 #include <string>
 
+#if TORRENT_USE_WSTRING
+
 using namespace boost::python;
+using namespace libtorrent;
 
 struct unicode_from_python
 {
@@ -68,4 +72,6 @@ void bind_unicode_string_conversion()
 {
     unicode_from_python();
 }
+
+#endif // TORRENT_USE_WSTRING
 
