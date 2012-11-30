@@ -118,7 +118,7 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \
-  sruct_debug.hpp              \
+  struct_debug.hpp             \
   string_util.hpp              \
   thread.hpp                   \
   thread_pool.hpp              \
@@ -149,7 +149,7 @@ nobase_include_HEADERS = \
   tommath_superclass.h \
   \
   aux_/session_impl.hpp        \
-  aux_/internal_session_settings.hpp\
+  aux_/session_settings.hpp\
   \
   extensions/logger.hpp             \
   extensions/lt_trackers.hpp        \

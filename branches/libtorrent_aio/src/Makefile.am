@@ -22,7 +22,6 @@ endif
 
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
-  aiocb_pool.cpp                  \
   alert.cpp                       \
   alert_handler.cpp               \
   allocator.cpp                   \
