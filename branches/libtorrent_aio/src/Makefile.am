@@ -50,7 +50,6 @@ libtorrent_rasterbar_la_SOURCES = \
   file_pool.cpp                   \
   file_storage.cpp                \
   gzip.cpp                        \
-  hash_thread.cpp                 \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_seed_connection.cpp        \

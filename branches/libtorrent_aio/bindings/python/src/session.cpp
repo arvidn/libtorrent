@@ -114,12 +114,12 @@ namespace
 
 	dict session_get_settings(session const& ses)
 	{
-		session_settings sett;
 		aux::session_settings sett;
 		{
 			allow_threading_guard guard;
 			sett = ses.get_settings();
 		}
+		dict ret;
 		for (int i = settings_pack::string_type_base;
 			i < settings_pack::max_string_setting_internal; ++i)
 		{
@@ -158,7 +158,7 @@ namespace
     {
         // torrent_info objects are always held by an intrusive_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
-            p.ti = extract<intrusive_ptr<torrent_info> >(params["ti"]);
+            p.ti = extract<boost::intrusive_ptr<torrent_info> >(params["ti"]);
 
         if (params.has_key("info_hash"))
             p.info_hash = extract<sha1_hash>(params["info_hash"]);
@@ -725,10 +725,19 @@ void bind_session()
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 
+	typedef session_settings (*mem_preset1)();
+	typedef session_settings (*perf_preset1)();
+
+	typedef void (*mem_preset2)(settings_pack& s);
+	typedef void (*perf_preset2)(settings_pack& s);
+
 #ifndef TORRENT_NO_DEPRECATE
-	 def("high_performance_seed", high_performance_seed);
-	 def("min_memory_usage", min_memory_usage);
+	 def("high_performance_seed", (perf_preset1)high_performance_seed);
+	 def("min_memory_usage", (mem_preset1)min_memory_usage);
 #endif
+
+	 def("high_performance_seed", (perf_preset2)high_performance_seed);
+	 def("min_memory_usage", (mem_preset2)min_memory_usage);
 
 	 scope().attr("create_metadata_plugin") = "metadata_transfer";
 	 scope().attr("create_ut_metadata_plugin") = "ut_metadata";
