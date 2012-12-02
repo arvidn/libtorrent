@@ -34,13 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TRANSMISSION_WEBUI_HPP
 
 #include "webui.hpp"
+
+extern "C" {
+#include "jsmn.h"
+}
+
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include <boost/cstdint.hpp>
 #include <vector>
 #include <set>
-
-struct jsmntok_t;
 
 namespace libtorrent
 {
