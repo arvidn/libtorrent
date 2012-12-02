@@ -279,8 +279,11 @@ namespace libtorrent
 
 			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
 			int ret = mg_write(conn, &pe.buffer[offset], amount_to_send);
-			if (ret < 0) break;
-			TORRENT_ASSERT(ret == amount_to_send);
+			if (ret != amount_to_send)
+			{
+				printf("interrupted\n");
+				break;
+			}
 
 			left_to_send -= amount_to_send;
 			printf("sent: %d bytes\n", amount_to_send);

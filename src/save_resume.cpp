@@ -131,7 +131,7 @@ void save_resume::handle_alert(alert const* a)
 		/ total_seconds(m_interval);
 	while (m_cursor_index <= desired_cursor_pos)
 	{
-		if (m_cursor == m_torrents.end())
+		if (m_cursor == m_torrents.end() || m_cursor_index >= m_torrents.size())
 		{
 			m_cursor = m_torrents.begin();
 			m_cursor_index = 0;
