@@ -59,7 +59,7 @@ namespace libtorrent
 
 		void remove_handler(http_handler* h);
 
-		void start(int port);
+		void start(int port, char const* cert_path = 0);
 		void stop();
 
 		bool handle_http(mg_connection* conn
