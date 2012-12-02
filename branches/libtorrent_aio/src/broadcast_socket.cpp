@@ -68,7 +68,6 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 			if (a.is_v6())
 			{
-				if (a.to_v6().is_link_local()) return true;
 				return a.to_v6() == address_v6::loopback();
 			}
 #endif

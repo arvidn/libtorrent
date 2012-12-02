@@ -1373,6 +1373,14 @@ namespace libtorrent
 		if (remote.address() == address() || remote.port() == 0)
 			return 0;
 
+#if TORRENT_USE_IPV6
+		// don't allow link-local IPv6 addresses since they
+		// can't be used like normal addresses, they require an interface
+		// and will just cause connect() to fail with EINVAL
+		if (remote.address().is_v6() && remote.address().to_v6().is_link_local())
+			return 0;
+#endif
+
 		aux::session_interface& ses = m_torrent->session();
 
 		// if this is an i2p torrent, and we don't allow mixed mode
