@@ -61,7 +61,10 @@ namespace libtorrent
 	{
 		TORRENT_TRY {
 #if TORRENT_USE_IPV6
-			if (a.is_v6()) return a.to_v6().is_link_local();
+			if (a.is_v6())
+			{
+				return a.to_v6() == address_v6::loopback();
+			}
 #endif
 			address_v4 a4 = a.to_v4();
 			unsigned long ip = a4.to_ulong();
