@@ -1138,7 +1138,6 @@ namespace libtorrent
 	bool policy::has_peer(torrent_peer const* p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(p->in_use);
 		// find p in m_peers
 		for (const_iterator i = m_peers.begin()
 			, end(m_peers.end()); i != end; ++i)
