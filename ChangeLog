@@ -1,3 +1,4 @@
+	* fix typo in python settings binding
 	* fix possible dangling pointer use in peer list
 	* fix support for storing arbitrary data in the DHT
 	* fixed bug in uTP packet circle buffer
