@@ -293,10 +293,10 @@ namespace libtorrent
 		SET(network_threads, 0, &session_impl::update_network_threads),
 		SET(ssl_listen, 4433, 0),
 		SET(tracker_backoff, 250, 0),
-		SET(share_ratio_limit, 200, 0),
-		SET(seed_time_ratio_limit, 700, 0),
-		SET(peer_turnover, 4, 0),
-		SET(peer_turnover_cutoff, 90, 0),
+		SET_NOPREV(share_ratio_limit, 200, 0),
+		SET_NOPREV(seed_time_ratio_limit, 700, 0),
+		SET_NOPREV(peer_turnover, 4, 0),
+		SET_NOPREV(peer_turnover_cutoff, 90, 0),
 		SET(peer_turnover_interval, 300, 0),
 		SET_NOPREV(connect_seed_every_n_download, 10, 0),
 		SET(max_http_recv_buffer_size, 2*1024*204, 0)
@@ -438,6 +438,23 @@ namespace libtorrent
 			p->set_bool(setting_name, val);
 		}
 
+		// special case for deprecated float values
+		int val = current.get_int(settings_pack::share_ratio_limit);
+		if (s.share_ratio_limit != float(val) / 100.f)
+			p->set_int(settings_pack::share_ratio_limit, s.share_ratio_limit * 100);
+
+		val = current.get_int(settings_pack::seed_time_ratio_limit);
+		if (s.seed_time_ratio_limit != float(val) / 100.f)
+			p->set_int(settings_pack::seed_time_ratio_limit, s.seed_time_ratio_limit * 100);
+
+		val = current.get_int(settings_pack::peer_turnover);
+		if (s.peer_turnover != float(val) / 100.f)
+			p->set_int(settings_pack::peer_turnover, s.peer_turnover * 100);
+
+		val = current.get_int(settings_pack::peer_turnover_cutoff);
+		if (s.peer_turnover_cutoff != float(val) / 100.f)
+			p->set_int(settings_pack::peer_turnover_cutoff, s.peer_turnover_cutoff * 100);
+
 		return p;
 	}
 
@@ -460,6 +477,12 @@ namespace libtorrent
 			bool& val = *(bool*)(((char*)&ret) + bool_settings[i].offset);
 			val = current.get_bool(settings_pack::bool_type_base + i);
 		}
+
+		// special case for deprecated float values
+		ret.share_ratio_limit = float(current.get_int(settings_pack::share_ratio_limit)) / 100.f;
+		ret.seed_time_ratio_limit = float(current.get_int(settings_pack::seed_time_ratio_limit)) / 100.f;
+		ret.peer_turnover = float(current.get_int(settings_pack::peer_turnover)) / 100.f;
+		ret.peer_turnover_cutoff = float(current.get_int(settings_pack::peer_turnover_cutoff)) / 100.f;
 	}
 #endif
 

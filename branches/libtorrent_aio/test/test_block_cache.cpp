@@ -137,7 +137,7 @@ int test_main()
 	int flushing[1];
 	flushing[0] = 0;
 	pe->blocks[0].pending = true;
-	bc.inc_block_refcount(pe, 0);
+	bc.inc_block_refcount(pe, 0, block_cache::ref_flushing);
 	bc.blocks_flushed(pe, flushing, 1);
 
 	tailqueue jobs;

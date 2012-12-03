@@ -451,7 +451,7 @@ namespace libtorrent
 		// torrents to activate and which ones to queue
 		int auto_manage_interval;
 	
-		// when a seeding torrent reaches eaither the share ratio
+		// when a seeding torrent reaches either the share ratio
 		// (bytes up / bytes down) or the seed time ratio
 		// (seconds as seed / seconds as downloader) or the seed
 		// time limit (seconds as seed) it is considered
@@ -460,8 +460,8 @@ namespace libtorrent
 		// the default seed time ratio is 7, because that's a common
 		// asymmetry ratio on connections
 		// these are specified as percentages
-		int share_ratio_limit;
-		int seed_time_ratio_limit;
+		float share_ratio_limit;
+		float seed_time_ratio_limit;
 		// seed time limit is specified in seconds
 		int seed_time_limit;
 
@@ -474,13 +474,13 @@ namespace libtorrent
 		// turnoever interval (if we're at the peer limit)
 		// defaults to 4%
 		// this is specified in percent
-		int peer_turnover;
+		float peer_turnover;
 
 		// when we are connected to more than
 		// limit * peer_turnover_cutoff peers
 		// disconnect peer_turnover fraction
 		// of the peers. It is specified in percent
-		int peer_turnover_cutoff;
+		float peer_turnover_cutoff;
 
 		// if this is true (default) connections where both
 		// ends have no utility in keeping the connection open
