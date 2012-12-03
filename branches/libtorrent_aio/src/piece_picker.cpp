@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 #include "libtorrent/struct_debug.hpp"
+#include "libtorrent/debug.hpp"
 #endif
 
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK

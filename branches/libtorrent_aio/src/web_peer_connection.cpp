@@ -97,7 +97,7 @@ namespace libtorrent
 		request_large_blocks(true);
 
 #ifdef TORRENT_VERBOSE_LOGGING
-		peer_log("*** web_peer_connection %s", url.c_str());
+		peer_log("*** web_peer_connection %s", m_url.c_str());
 #endif
 	}
 
