@@ -267,6 +267,12 @@ namespace libtorrent
 		void clear_read_cache(piece_manager* storage);
 		void async_clear_piece(piece_manager* storage, int index
 			, boost::function<void(disk_io_job const*)> const& handler);
+		// this is not asynchronous and requires that the piece does not
+		// have any pending buffers. It's meant to be used for pieces that
+		// were just read and hashed and failed the hash check.
+		// there should be no read-operations left, and all buffers should
+		// be discardable
+		void clear_piece(piece_manager* storage, int index);
 
 		void subscribe_to_disk(boost::shared_ptr<disk_observer> o);
 

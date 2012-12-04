@@ -132,6 +132,9 @@ int block_cache::try_read(disk_io_job* j)
 	// it's a cache miss
 	if (p == 0) return -1;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
+#endif
 	cache_hit(p, j->requester, j->flags & disk_io_job::volatile_read);
 
 	ret = copy_from_piece(p, j);
@@ -344,6 +347,11 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	int block = j->d.io.offset / block_size();
 	TORRENT_ASSERT((j->d.io.offset % block_size()) == 0);
 
+	// we should never add a new dirty block on a piece
+	// that has checked the hash. Before we add it, the
+	// piece need to be cleared (with async_clear_piece)
+	TORRENT_ASSERT(pe->hashing_done == 0);
+
 	// this only evicts read blocks
 
 	int evict = num_to_evict(1);
@@ -384,7 +392,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
 	pe->jobs.push_back(j);
 
-	if (block == 0 && pe->hash == NULL)
+	if (block == 0 && pe->hash == NULL && pe->hashing_done == false)
 		pe->hash = new partial_hash;
 
 	update_cache_state(pe);

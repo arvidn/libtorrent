@@ -61,6 +61,15 @@ namespace libtorrent
 	namespace aux { struct session_settings; }
 	struct alert_dispatcher;
 
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+	struct piece_log_t
+	{
+		piece_log_t(int j, int b= -1): job(j), block(b) {}
+		int job;
+		int block;
+	};
+#endif
+
 	struct partial_hash
 	{
 		partial_hash(): offset(0) {}
@@ -254,6 +263,10 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		// the number of times this piece has finished hashing
 		int hash_passes;
+
+		// this is a debug facility to keep a log
+		// of which operations have been run on this piece
+		std::vector<piece_log_t> piece_log;
 #endif
 	};
 

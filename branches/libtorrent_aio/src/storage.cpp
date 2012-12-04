@@ -1318,6 +1318,7 @@ namespace libtorrent
 			++m_outstanding_jobs;
 			return false;
 		}
+		
 		m_blocked_jobs.push_back(j);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS

@@ -2345,8 +2345,8 @@ namespace libtorrent
 		else
 		{
 			// if the hash failed, remove it from the cache
-			if (m_storage) m_ses.disk_thread().async_clear_piece(m_storage.get()
-				, j->piece, boost::bind(&nop));
+			if (m_storage)
+				m_ses.disk_thread().clear_piece(m_storage.get(), j->piece);
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->num_pieces())
