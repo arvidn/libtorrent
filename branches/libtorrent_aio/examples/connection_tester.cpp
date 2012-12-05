@@ -666,7 +666,7 @@ void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece
 }
 
 // size is in megabytes
-void generate_torrent(std::vector<char>& buf, int size, int num_files)
+void generate_torrent(std::vector<char>& buf, int size, int num_files, char const* name)
 {
 	file_storage fs;
 	// 1 MiB piece size
@@ -680,7 +680,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files)
 	while (s > 0)
 	{
 		char b[100];
-		snprintf(b, sizeof(b), "t/stress_test%d", i);
+		snprintf(b, sizeof(b), "%s/stress_test%d", name, i);
 		++i;
 		fs.add_file(b, (std::min)(s, size_type(file_size)));
 		s -= file_size;
@@ -742,7 +742,7 @@ int main(int argc, char* argv[])
 		int size = atoi(argv[2]);
 		int num_files = atoi(argv[3]);
 		std::vector<char> tmp;
-		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1);
+		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1, filename(argv[4]).c_str());
 
 		FILE* output = stdout;
 		if (strcmp("-", argv[4]) != 0)
