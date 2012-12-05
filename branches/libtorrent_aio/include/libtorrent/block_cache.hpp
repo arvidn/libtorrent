@@ -136,13 +136,13 @@ namespace libtorrent
 		cached_piece_entry();
 		~cached_piece_entry();
 
-		bool ok_to_evict() const
+		bool ok_to_evict(bool ignore_hash = false) const
 		{
 			return refcount == 0
 				&& piece_refcount == 0
 				&& num_blocks == 0
 				&& !hashing
-				&& (!hash || hash->offset == 0);
+				&& (ignore_hash || !hash || hash->offset == 0);
 		}
 
 		// storage this piece belongs to

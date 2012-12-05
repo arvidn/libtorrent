@@ -500,8 +500,11 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
 	}
 	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
-	if (pe->ok_to_evict())
+	if (pe->ok_to_evict(true))
 	{
+		delete pe->hash;
+		pe->hash = NULL;
+
 		jobs.swap(pe->jobs);
 		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
 			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
