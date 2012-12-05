@@ -447,7 +447,7 @@ namespace libtorrent
 		// torrents to activate and which ones to queue
 		int auto_manage_interval;
 	
-		// when a seeding torrent reaches eaither the share ratio
+		// when a seeding torrent reaches either the share ratio
 		// (bytes up / bytes down) or the seed time ratio
 		// (seconds as seed / seconds as downloader) or the seed
 		// time limit (seconds as seed) it is considered
