@@ -147,9 +147,6 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool m_destructed;
 #endif
-#if (defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS) && defined BOOST_HAS_PTHREADS
-		pthread_t m_network_thread;
-#endif
 	};	
 }
 

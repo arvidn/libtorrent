@@ -454,9 +454,6 @@ namespace libtorrent
 		boost::uint32_t m_blocks_read;
 		boost::uint32_t m_blocks_read_hit;
 
-		// the sum of all reference counts in all blocks
-		boost::uint32_t m_refcount;
-
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int m_pinned_blocks;

@@ -185,8 +185,6 @@ namespace libtorrent
 		// number of jobs waiting to complete (m_pending)
 		// average over 30 seconds
 		int pending_jobs;
-		// largest ever seen number of pending jobs
-		int peak_pending;
 
 		// total number of disk job objects allocated right now
 		int num_jobs;
