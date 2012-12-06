@@ -1563,6 +1563,11 @@ int test_main()
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
 	
 	TEST_CHECK(match_addr_mask(
+		address::from_string("10.0.1.176", ec),
+		address::from_string("10.0.1.176", ec),
+		address::from_string("255.255.255.0", ec)));
+
+	TEST_CHECK(match_addr_mask(
 		address::from_string("10.0.1.3", ec),
 		address::from_string("10.0.3.3", ec),
 		address::from_string("255.255.0.0", ec)));
