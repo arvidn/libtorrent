@@ -983,9 +983,11 @@ namespace libtorrent
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
 				boost::shared_ptr<peer_connection> me(p->self());
-				p->send_not_interested();
-				if (!p->is_disconnecting());
+				if (!p->is_disconnecting())
+				{
+					p->send_not_interested();
 					p->write_upload_only();
+				}
 			}
 
 			p->disconnect_if_redundant();
@@ -6690,7 +6692,7 @@ namespace libtorrent
 			int f = m_ses.peer_classes().at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
 		}
-		if (p->num_classes() == 0) connection_limit_factor = 100;
+		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
 		boost::uint64_t limit = boost::uint64_t(m_max_connections) * 100 / connection_limit_factor;
 

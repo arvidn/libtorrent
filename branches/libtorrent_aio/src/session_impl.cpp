@@ -3004,7 +3004,7 @@ retry:
 			int f = m_classes.at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
 		}
-		if (pcs.num_classes() == 0) connection_limit_factor = 100;
+		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
 		boost::uint64_t limit = m_settings.get_int(settings_pack::connections_limit);
 		limit = limit * 100 / connection_limit_factor;
