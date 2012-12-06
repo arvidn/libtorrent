@@ -83,6 +83,7 @@ namespace libtorrent
 		, sequential_download(false)
 		, is_seeding(false)
 		, is_finished(false)
+		, is_loaded(true)
 		, has_metadata(false)
 		, progress(0.f)
 		, progress_ppm(0)
