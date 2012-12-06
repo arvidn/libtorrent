@@ -1909,6 +1909,17 @@ namespace libtorrent
 		bool interesting = false;
 		t->peer_has(bits, this);
 
+		if (!t->is_upload_only())
+		{
+			for (int i = 0; i < (int)m_have_piece.size(); ++i)
+			{
+				bool have = bits[i];
+				if (!have || m_have_piece[i]) continue;
+				if (!t->have_piece(i) && t->picker().piece_priority(i) != 0)
+					interesting = true;
+			}
+		}
+
 		m_have_piece = bits;
 		m_num_pieces = num_pieces;
 
