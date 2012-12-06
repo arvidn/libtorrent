@@ -1447,7 +1447,9 @@ namespace libtorrent
 		for (boost::unordered_set<cached_piece_entry*>::const_iterator i = cache.begin()
 			, end(cache.end()); i != end; ++i)
 		{
-			m_disk_cache.evict_piece(*(i++), jobs);
+			tailqueue temp;
+			m_disk_cache.evict_piece(*(i++), temp);
+			jobs.append(temp);
 		}
 		abort_jobs(jobs);
 	}
