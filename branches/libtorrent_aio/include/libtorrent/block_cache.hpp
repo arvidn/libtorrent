@@ -306,6 +306,8 @@ namespace libtorrent
 		list_iterator write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
+		int num_write_lru_pieces() const { return m_lru[cached_piece_entry::write_lru].size(); }
+
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated

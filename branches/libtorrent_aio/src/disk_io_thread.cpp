@@ -720,38 +720,50 @@ namespace libtorrent
 		DLOG(stderr, "[%p] try_flush_write_blocks: %d\n", this, num);
 
 		list_iterator range = m_disk_cache.write_lru_pieces();
+		std::vector<std::pair<piece_manager*, int> > pieces;
+		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
 		for (list_iterator p = range; p.get() && num > 0; p.next())
 		{
 			cached_piece_entry* e = (cached_piece_entry*)p.get();
 			if (e->num_dirty == 0) continue;
+			pieces.push_back(std::make_pair(e->storage.get(), e->piece));
+		}
 
-			++e->piece_refcount;
-			kick_hasher(e, l);
-			num -= try_flush_hashed(e, 1, l);
+		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
+		{
+			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			if (pe == NULL) continue;
 
-			--e->piece_refcount;
+			++pe->piece_refcount;
+			kick_hasher(pe, l);
+			num -= try_flush_hashed(pe, 1, l);
+			--pe->piece_refcount;
 		}
 
 		// when the write cache is under high pressure, it is likely
 		// counter productive to actually do this, since a piece may
 		// not have had its flush_hashed job run on it 
+		// so only do it if no other thread is currently flushing
 
-/*
+		if (num == 0 || m_num_writing_threads > 0) return;
+
 		// if we still need to flush blocks, start over and flush
 		// everything in LRU order (degrade to lru cache eviction)
-		if (num > 0)
+		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
 		{
-			for (list_iterator p = range; p.get() && num > 0; p.next())
-			{
-				cached_piece_entry* e = (cached_piece_entry*)p.get();
-				// don't flush blocks that are being hashed by another thread
-				if (e->num_dirty == 0 || e->hashing) continue;
+			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			if (pe == NULL) continue;
+			if (pe->num_dirty == 0) continue;
 
-				num -= flush_range(e, 0, INT_MAX, 0, l);
-			}
+			++pe->piece_refcount;
+			// don't flush blocks that are being hashed by another thread
+			if (pe->num_dirty == 0 || pe->hashing) continue;
+			num -= flush_range(pe, 0, INT_MAX, 0, l);
+			--pe->piece_refcount;
 		}
- */
 	}
 
 	void disk_io_thread::flush_expired_write_blocks(mutex::scoped_lock& l)
@@ -843,14 +855,16 @@ namespace libtorrent
 		"clear_piece",
 	};
 
-	void disk_io_thread::perform_async_job(disk_io_job* j)
+	// evict and/or flush blocks if we're exceeding the cache size
+	// or used to exceed it and haven't dropped below the low watermark yet
+	// the low watermark is dynamic, based on the number of peers waiting
+	// on buffers to free up. The more waiters, the lower the low watermark
+	// is. Because of this, the target for flushing jobs may have dropped
+	// below the number of blocks we flushed by the time we're done flushing
+	// that's why we need to call this fairly often. Both before and after
+	// a disk job is executed
+	void disk_io_thread::check_cache_level(mutex::scoped_lock& l)
 	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(j->next == 0);
-		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-
-		mutex::scoped_lock l(m_cache_mutex);
-
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
 		{
@@ -860,6 +874,17 @@ namespace libtorrent
 			// unnecessary flushing of the wrong pieces
 			if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l);
 		}
+	}
+
+	void disk_io_thread::perform_async_job(disk_io_job* j)
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASSERT(j->next == 0);
+		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
+
+		mutex::scoped_lock l(m_cache_mutex);
+
+		check_cache_level(l);
 
 		DLOG(stderr, "[%p] perform_async_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
 			, this, job_action_name[j->action]
@@ -895,6 +920,10 @@ namespace libtorrent
 
 		if (ret == retry_job)
 		{
+			l.lock();
+			check_cache_level(l);
+			l.unlock();
+
 			mutex::scoped_lock l(m_job_mutex);
 			// to avoid busy looping here, give up
 			// our quanta in case there aren't any other
@@ -914,10 +943,11 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+		// TODO: it should clear the hash state even when there's an error, right?
 		if (j->action == disk_io_job::hash && !j->error.ec)
 		{
 			// a hash job should never return without clearing pe->hash
-			mutex::scoped_lock l(m_cache_mutex);
+			l.lock();
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe != NULL)
 			{
@@ -927,7 +957,14 @@ namespace libtorrent
 		}
 #endif
 
-		if (ret == defer_handler) return;
+		if (ret == defer_handler)
+		{
+			l.lock();
+			check_cache_level(l);
+			l.unlock();
+			return;
+		}
+
 		j->ret = ret;
 
 		ptime now = time_now_hires();
@@ -940,6 +977,10 @@ namespace libtorrent
 		DLOG(stderr, "[%p]   posting callback j->buffer: %p\n", this, j->buffer);
 
 		add_completed_job(j);
+
+		l.lock();
+		check_cache_level(l);
+		l.unlock();
 	}
 
 	int disk_io_thread::do_uncached_read(disk_io_job* j)
@@ -2437,16 +2478,8 @@ namespace libtorrent
 			perform_async_job(j);
 
 			mutex::scoped_lock l2(m_cache_mutex);
-
-			int evict = m_disk_cache.num_to_evict(0);
-			if (evict > 0)
-			{
-				evict = m_disk_cache.try_evict_blocks(evict);
-				// don't evict write jobs if at least one other thread
-				// is flushing right now. Doing so could result in
-				// unnecessary flushing of the wrong pieces
-				if (evict > 0 && m_num_writing_threads == 0) try_flush_write_blocks(evict, l2);
-			}
+			check_cache_level(l2);
+			l2.unlock();
 
 			l.lock();
 		}

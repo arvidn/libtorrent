@@ -132,7 +132,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()));
+			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()*2));
 
 		if (m_in_use + num_needed > m_max_use)
 			ret = (std::max)(ret, int(m_in_use + num_needed - m_max_use));
@@ -144,7 +144,7 @@ namespace libtorrent
 	}
 
 	// checks to see if we're no longer exceeding the high watermark,
-	// and if we're in fact below the low watermar. If so, we need to
+	// and if we're in fact below the low watermark. If so, we need to
 	// post the notification messages to the peers that are waiting for
 	// more buffers to received data into
 	void disk_buffer_pool::check_buffer_level(mutex::scoped_lock& l)
@@ -156,7 +156,6 @@ namespace libtorrent
 			= new std::vector<boost::shared_ptr<disk_observer> >();
 		m_observers.swap(*cbs);
 		l.unlock();
-
 		m_ios.post(boost::bind(&watermark_callback, cbs));
 	}
 

@@ -363,6 +363,8 @@ namespace libtorrent
 		void add_completed_jobs(tailqueue& jobs);
 		void add_completed_job_impl(disk_io_job* j);
 
+		void check_cache_level(mutex::scoped_lock& l);
+
 		void perform_async_job(disk_io_job* j);
 
 		// this queues up another job to be submitted
