@@ -1069,8 +1069,7 @@ ask to listen on it.
 It is possible to prevent libtorrent from binding to port 0 by passing in the flag
 ``session::no_system_port`` in the ``flags`` argument.
 
-The interface parameter can also be a hostname that will resolve to the device you
-want to listen on. If you don't specify an interface, libtorrent may attempt to
+If you don't specify an interface, libtorrent may attempt to
 listen on multiple interfaces (typically 0.0.0.0 and ::). This means that if your
 IPv6 interface doesn't work, you may still see a listen_failed_alert_, even though
 the IPv4 port succeeded.
