@@ -1,3 +1,4 @@
+	* make built-in sha functions not conflict with libcrypto
 	* improve web seed hash failure case
 	* improve DHT lookup times
 	* uTP path MTU discovery improvements
