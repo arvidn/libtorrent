@@ -80,18 +80,15 @@ namespace libtorrent
 
 		entry* e = 0;
 
-		switch (priority)
+		if (priority <= 0)
 		{
-			case 0:
-				m_queue.push_back(entry());
-				e = &m_queue.back();
-				break;
-			case 1:
-			case 2:
-				m_queue.push_front(entry());
-				e = &m_queue.front();
-				break;
-			default: return;
+			m_queue.push_back(entry());
+			e = &m_queue.back();
+		}
+		else // priority > 0
+		{
+			m_queue.push_front(entry());
+			e = &m_queue.front();
 		}
 
 		e->priority = priority;
