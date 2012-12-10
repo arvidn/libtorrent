@@ -81,16 +81,13 @@ namespace libtorrent
 		e.conn = conn;
 		e.timeout = timeout;
 
-		switch (priority)
+		if (priority <= 0)
 		{
-			case 0:
-				m_queue.push_back(e);
-				break;
-			case 1:
-			case 2:
-				m_queue.insert(m_queue.begin(), e);
-				break;
-			default: return;
+			m_queue.push_back(e);
+		}
+		else // priority > 0
+		{
+			m_queue.insert(m_queue.begin(), e);
 		}
 
 		if (num_connecting() < m_half_open_limit

@@ -782,7 +782,7 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				*ptr++ = rand();
+				*ptr++ = random();
 		}
 		else
 		{

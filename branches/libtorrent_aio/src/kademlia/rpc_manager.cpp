@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 #include <libtorrent/io.hpp>
+#include <libtorrent/random.hpp>
 #include <libtorrent/invariant_check.hpp>
 #include <libtorrent/kademlia/node_id.hpp> // for generate_random_id
 #include <libtorrent/kademlia/rpc_manager.hpp>
@@ -460,7 +461,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	std::string transaction_id;
 	transaction_id.resize(2);
 	char* out = &transaction_id[0];
-	int tid = rand() ^ (rand() << 5);
+	int tid = random() ^ (random() << 5);
 	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
 		
