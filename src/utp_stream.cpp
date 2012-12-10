@@ -1660,15 +1660,16 @@ bool utp_socket_impl::send_pkt(int flags)
 	boost::uint8_t* ptr = NULL;
 	utp_header* h = NULL;
 
+#ifdef TORRENT_DEBUG
+	bool stack_alloced = false;
+#endif
+
 	// payload size being zero means we're just sending
 	// an force. We should not pick up the nagle packet
 	if (!m_nagle_packet || (payload_size == 0 && force))
 	{
 		// we only need a heap allocation if we have payload and
 		// need to keep the packet around (in the outbuf)
-#ifdef TORRENT_DEBUG
-		bool stack_alloced = false;
-#endif
 		if (payload_size) 
 		{
 			p = (packet*)malloc(sizeof(packet) + m_mtu);
@@ -1858,6 +1859,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	}
 	else if (ec)
 	{
+		TORRENT_ASSERT(stack_alloced != bool(payload_size));
 		if (payload_size) free(p);
 		m_error = ec;
 		m_state = UTP_STATE_ERROR_WAIT;
