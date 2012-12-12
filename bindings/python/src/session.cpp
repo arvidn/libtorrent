@@ -600,6 +600,7 @@ void bind_session()
         .def("get_settings", &session_get_settings)
 #else
         .def("settings", &session_get_settings)
+        .def("get_settings", &session_get_settings)
 #endif
         .def("set_settings", &session_set_settings)
 #ifndef TORRENT_DISABLE_ENCRYPTION

@@ -1,3 +1,4 @@
+	* make get_settings available in the python binding regardless of deprecated functions
 	* fix typo in python settings binding
 	* fix possible dangling pointer use in peer list
 	* fix support for storing arbitrary data in the DHT
