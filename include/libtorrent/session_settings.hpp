@@ -259,7 +259,7 @@ namespace libtorrent
 		// suggest read cache will make libtorrent suggest pieces
 		// that are fresh in the disk read cache, to potentially
 		// lower disk access and increase the cache hit ratio
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		enum suggest_mode_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 		int suggest_mode;
 
 		// the maximum number of bytes a connection may have
