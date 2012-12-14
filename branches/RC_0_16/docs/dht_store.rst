@@ -58,7 +58,9 @@ requests.
 
 The ``v`` field is the *value* to be stored. It is allowed to be any bencoded type (list,
 dict, string or integer). When it's being hashed (for verifying its signature or to calculate
-its key), its flattened, bencoded, form is used.
+its key), its flattened, bencoded, form is used. It is important to use the exact
+bencoded representation as it appeared in the message. decoding and then re-encoding
+bencoded structures is not necessarily an identity operation.
 
 Storing nodes SHOULD reject ``put`` requests where the bencoded form of ``v`` is longer
 than 767 bytes.
@@ -68,6 +70,9 @@ immutable items
 
 Immutable items are stored under their SHA-1 hash, and since they cannot be modified,
 there is no need to authenticate the origin of them. This makes immutable items simple.
+
+A node making a lookup SHOULD verify the data it receives from the network, to verify
+that its hash matches the target that was looked up.
 
 put message
 ...........
@@ -144,7 +149,9 @@ is the SHA-1 hash of the public key (as it appears in the ``put`` message).
 In order to avoid a malicious node to overwrite the list head with an old
 version, the sequence number ``seq`` must be monotonically increasing for each update,
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
-number to a lower one, only upgrade.
+number to a lower one, only upgrade. The sequence number SHOULD not exceed ``MAX_INT64``,
+(i.e. ``0x7fffffffffffffff``. A client MAY reject any message with a sequence number
+exceeding this.
 
 The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
 number and ``v`` key. e.g. something like this:: ``3:seqi4e1:v12:Hello world!``.
