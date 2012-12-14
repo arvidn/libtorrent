@@ -47,7 +47,7 @@ struct http_handler
 
 namespace libtorrent
 {
-	struct session;
+	class session;
 
 	struct webui_base
 	{

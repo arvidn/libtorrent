@@ -44,7 +44,7 @@ typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
 namespace libtorrent
 {
-	struct session;
+	class session;
 	struct rtok_t;
 	struct rencoder;
 
