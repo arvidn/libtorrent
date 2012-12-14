@@ -2393,9 +2393,9 @@ int main(int argc, char* argv[])
 				, cs.average_hash_time / 1000);
 			out += str;
 
-			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d (%4d) blocked: %4d "
+			snprintf(str, sizeof(str), "  jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
 				"queued-bytes: %5"PRId64" kB\n"
-				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.peak_pending, cs.blocked_jobs
+				, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
 				, cs.queued_bytes / 1000);
 			out += str;
 
@@ -2522,6 +2522,7 @@ int main(int argc, char* argv[])
 				h.file_progress(file_progress);
 				std::vector<pool_file_status> file_status;
 			 	h.file_status(file_status);
+				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
 				boost::intrusive_ptr<torrent_info> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
@@ -2547,13 +2548,17 @@ int main(int argc, char* argv[])
 						++f;
 					}
 
-					snprintf(str, sizeof(str), "%s %s%s %s%s\n",
+					char prio[20];
+					snprintf(prio, sizeof(prio), "prio: %d", file_prio[i]);
+
+					snprintf(str, sizeof(str), "%s %s%s %s%s %s\n",
 						progress_bar(progress, 70, color, '-', '#'
 							, filename(ti->files().file_path(ti->file_at(i)))).c_str()
 						, pad_file?esc("34"):""
 						, add_suffix(file_progress[i]).c_str()
 						, mode.c_str()
-						, pad_file?esc("0"):"");
+						, pad_file?esc("0"):""
+						, prio);
 					out += str;
 				}
 
