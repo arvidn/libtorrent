@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
 <title>BitTorrent extension for arbitrary DHT store</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;rasterbar.com" />
 <link rel="stylesheet" type="text/css" href="../../css/base.css" />
@@ -49,7 +49,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;rasterbar.com">arvid&#64;rasterbar.com</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>0.16.5</td></tr>
+<td>0.16.6</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -77,7 +77,7 @@ storing and retrieving of arbitrary data.</p>
 <p>It supports both storing <em>immutable</em> items, where the key is
 the SHA-1 hash of the data itself, and <em>mutable</em> items, where
 the key is the public key of the key pair used to sign the data.</p>
-<p>There are two new proposed messages, <tt class="docutils literal">put</tt> and <tt class="docutils literal">get</tt>.</p>
+<p>There are two new proposed messages, <tt class="docutils literal"><span class="pre">put</span></tt> and <tt class="docutils literal"><span class="pre">get</span></tt>.</p>
 <div class="section" id="terminology">
 <h1>terminology</h1>
 <p>In this document, a <em>storage node</em> refers to the node in the DHT to which
@@ -88,35 +88,39 @@ alive.</p>
 </div>
 <div class="section" id="messages">
 <h1>messages</h1>
-<p>The proposed new messages <tt class="docutils literal">get</tt> and <tt class="docutils literal">put</tt> are similar to the existing <tt class="docutils literal">get_peers</tt>
-and <tt class="docutils literal">announce_peer</tt>.</p>
-<p>Responses to <tt class="docutils literal">get</tt> should always include <tt class="docutils literal">nodes</tt> and <tt class="docutils literal">nodes6</tt> has the same
-semantics as in its <tt class="docutils literal">get_peers</tt> response. It should also include a write token,
-<tt class="docutils literal">token</tt>, with the same semantics as <tt class="docutils literal">get_peers</tt>.</p>
-<p>The <tt class="docutils literal">id</tt> field in these messages has the same semantics as the standard DHT messages,
+<p>The proposed new messages <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt> are similar to the existing <tt class="docutils literal"><span class="pre">get_peers</span></tt>
+and <tt class="docutils literal"><span class="pre">announce_peer</span></tt>.</p>
+<p>Responses to <tt class="docutils literal"><span class="pre">get</span></tt> should always include <tt class="docutils literal"><span class="pre">nodes</span></tt> and <tt class="docutils literal"><span class="pre">nodes6</span></tt> has the same
+semantics as in its <tt class="docutils literal"><span class="pre">get_peers</span></tt> response. It should also include a write token,
+<tt class="docutils literal"><span class="pre">token</span></tt>, with the same semantics as <tt class="docutils literal"><span class="pre">get_peers</span></tt>.</p>
+<p>The <tt class="docutils literal"><span class="pre">id</span></tt> field in these messages has the same semantics as the standard DHT messages,
 i.e. the node ID of the node sending the message, to maintain the structure of the DHT
 network.</p>
-<p>The <tt class="docutils literal">token</tt> field also has the same semantics as the standard DHT message <tt class="docutils literal">get_peers</tt>
-and <tt class="docutils literal">announce_peer</tt>, when requesting an item and to write an item respectively.</p>
-<p>The <tt class="docutils literal">k</tt> field is the PKCS#1 encoded 2048 bit RSA public key, which the signature
-can be authenticated with. When looking up a mutable item, the <tt class="docutils literal">target</tt> field
+<p>The <tt class="docutils literal"><span class="pre">token</span></tt> field also has the same semantics as the standard DHT message <tt class="docutils literal"><span class="pre">get_peers</span></tt>
+and <tt class="docutils literal"><span class="pre">announce_peer</span></tt>, when requesting an item and to write an item respectively.</p>
+<p>The <tt class="docutils literal"><span class="pre">k</span></tt> field is the PKCS#1 encoded 2048 bit RSA public key, which the signature
+can be authenticated with. When looking up a mutable item, the <tt class="docutils literal"><span class="pre">target</span></tt> field
 MUST be the SHA-1 hash of this key.</p>
 <p>The distinction between storing mutable and immutable items is the inclusion
-of a public key, a sequence number and signature (<tt class="docutils literal">k</tt>, <tt class="docutils literal">seq</tt> and <tt class="docutils literal">sig</tt>).</p>
-<p><tt class="docutils literal">get</tt> requests for mutable items and immutable items cannot be distinguished from
+of a public key, a sequence number and signature (<tt class="docutils literal"><span class="pre">k</span></tt>, <tt class="docutils literal"><span class="pre">seq</span></tt> and <tt class="docutils literal"><span class="pre">sig</span></tt>).</p>
+<p><tt class="docutils literal"><span class="pre">get</span></tt> requests for mutable items and immutable items cannot be distinguished from
 eachother. An implementation can either store mutable and immutable items in the same
-hash table internally, or in separate ones and potentially do two lookups for <tt class="docutils literal">get</tt>
+hash table internally, or in separate ones and potentially do two lookups for <tt class="docutils literal"><span class="pre">get</span></tt>
 requests.</p>
-<p>The <tt class="docutils literal">v</tt> field is the <em>value</em> to be stored. It is allowed to be any bencoded type (list,
+<p>The <tt class="docutils literal"><span class="pre">v</span></tt> field is the <em>value</em> to be stored. It is allowed to be any bencoded type (list,
 dict, string or integer). When it's being hashed (for verifying its signature or to calculate
-its key), its flattened, bencoded, form is used.</p>
-<p>Storing nodes SHOULD reject <tt class="docutils literal">put</tt> requests where the bencoded form of <tt class="docutils literal">v</tt> is longer
+its key), its flattened, bencoded, form is used. It is important to use the exact
+bencoded representation as it appeared in the message. decoding and then re-encoding
+bencoded structures is not necessarily an identity operation.</p>
+<p>Storing nodes SHOULD reject <tt class="docutils literal"><span class="pre">put</span></tt> requests where the bencoded form of <tt class="docutils literal"><span class="pre">v</span></tt> is longer
 than 767 bytes.</p>
 </div>
 <div class="section" id="immutable-items">
 <h1>immutable items</h1>
 <p>Immutable items are stored under their SHA-1 hash, and since they cannot be modified,
 there is no need to authenticate the origin of them. This makes immutable items simple.</p>
+<p>A node making a lookup SHOULD verify the data it receives from the network, to verify
+that its hash matches the target that was looked up.</p>
 <div class="section" id="put-message">
 <h2>put message</h2>
 <p>Request:</p>
@@ -178,13 +182,15 @@ there is no need to authenticate the origin of them. This makes immutable items 
 <p>Mutable items can be updated, without changing their DHT keys. To authenticate
 that only the original publisher can update an item, it is signed by a private key
 generated by the original publisher. The target ID mutable items are stored under
-is the SHA-1 hash of the public key (as it appears in the <tt class="docutils literal">put</tt> message).</p>
+is the SHA-1 hash of the public key (as it appears in the <tt class="docutils literal"><span class="pre">put</span></tt> message).</p>
 <p>In order to avoid a malicious node to overwrite the list head with an old
-version, the sequence number <tt class="docutils literal">seq</tt> must be monotonically increasing for each update,
+version, the sequence number <tt class="docutils literal"><span class="pre">seq</span></tt> must be monotonically increasing for each update,
 and a node hosting the list node MUST not downgrade a list head from a higher sequence
-number to a lower one, only upgrade.</p>
+number to a lower one, only upgrade. The sequence number SHOULD not exceed <tt class="docutils literal"><span class="pre">MAX_INT64</span></tt>,
+(i.e. <tt class="docutils literal"><span class="pre">0x7fffffffffffffff</span></tt>. A client MAY reject any message with a sequence number
+exceeding this.</p>
 <p>The signature is a 2048 bit RSA signature of the SHA-1 hash of the bencoded sequence
-number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <tt class="docutils literal">3:seqi4e1:v12:Hello world!</tt>.</p>
+number and <tt class="docutils literal"><span class="pre">v</span></tt> key. e.g. something like this:: <tt class="docutils literal"><span class="pre">3:seqi4e1:v12:Hello</span> <span class="pre">world!</span></tt>.</p>
 <div class="section" id="id1">
 <h2>put message</h2>
 <p>Request:</p>
@@ -204,7 +210,7 @@ number and <tt class="docutils literal">v</tt> key. e.g. something like this:: <
         &quot;q&quot;: &quot;put&quot;
 }
 </pre>
-<p>Storing nodes receiving a <tt class="docutils literal">put</tt> request where <tt class="docutils literal">seq</tt> is lower than what's already
+<p>Storing nodes receiving a <tt class="docutils literal"><span class="pre">put</span></tt> request where <tt class="docutils literal"><span class="pre">seq</span></tt> is lower than what's already
 stored on the node, MUST reject the request.</p>
 <p>Response:</p>
 <pre class="literal-block">
@@ -256,7 +262,7 @@ stored on the node, MUST reject the request.</p>
 value and sequence number should be done as follows:</p>
 <ol class="arabic simple">
 <li>encode value and sequence number separately</li>
-<li>concatenate &quot;3:seqi&quot; <tt class="docutils literal">seq</tt> &quot;e1:v&quot; and the encoded value.
+<li>concatenate &quot;3:seqi&quot; <tt class="docutils literal"><span class="pre">seq</span></tt> &quot;e1:v&quot; and the encoded value.
 sequence number 1 of value &quot;Hello World!&quot; would be converted to: 3:seqi1e1:v12:Hello World!
 In this way it is not possible to convince a node that part of the length is actually part of the
 sequence number even if the parser contains certain bugs. Furthermore it is not possible to have a
@@ -266,7 +272,7 @@ verification failure if a bencoding serializer alters the order of entries in th
 </ol>
 <p>On the storage node, the signature MUST be verified before accepting the store command. The data
 MUST be stored under the SHA-1 hash of the public key (as it appears in the bencoded dict).</p>
-<p>On the subscribing nodes, the key they get back from a <tt class="docutils literal">get</tt> request MUST be verified to hash
+<p>On the subscribing nodes, the key they get back from a <tt class="docutils literal"><span class="pre">get</span></tt> request MUST be verified to hash
 to the target ID the lookup was made for, as well as verifying the signature. If any of these fail,
 the response SHOULD be considered invalid.</p>
 </div>
