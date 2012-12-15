@@ -264,7 +264,7 @@ rule building ( properties * )
 		# in shared object interfaces, so when it's
 		# enabled, just export everything (since we're)
 		# probably not a production build anyway
-		&& !<debug-iterators>on in $(properties)
+		&& ! <debug-iterators>on in $(properties)
 	{
 		# hide non-external symbols
 		# use ms-compat because boost.asio (as of 1.47.0
