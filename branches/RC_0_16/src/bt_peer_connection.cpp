@@ -1551,7 +1551,7 @@ namespace libtorrent
 				error_code ec;
 				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 				peer_log("<== HOLEPUNCH [ msg:failed error: %d msg: %s ]", error
-					, ((error >= 0 && error < 4)?err_msg[error]:"unknown message id"));
+					, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 #endif
 				// #error deal with holepunch errors
 				(void)error;
