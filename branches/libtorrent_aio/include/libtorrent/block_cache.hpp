@@ -251,9 +251,13 @@ namespace libtorrent
 		// the cache while this is > 0
 		boost::uint32_t piece_refcount:7;
 
-		// unused
+		// if this is set to one, it means there is an outstanding
+		// flush_hashed job for this piece, and there's no need to
+		// issue another one.
+		boost::uint32_t outstanding_flush:1;
 
-		boost::uint32_t padding:3;
+		// unused
+		boost::uint32_t padding:2;
 
 		//	---- 32 bit boundary ---
 
