@@ -6,6 +6,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed verbose log error for NAT holepunching
 	* fix a bunch of typos in python bindings
 	* make get_settings available in the python binding regardless of deprecated functions
 	* fix typo in python settings binding
