@@ -191,7 +191,7 @@ namespace libtorrent
 
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
-		set.alert_queue_size = 10000;
+		set.alert_queue_size = 50000;
 
 		// allow 500 files open at a time
 		set.file_pool_size = 500;
@@ -1278,7 +1278,7 @@ namespace libtorrent
 		, torrent_connect_boost(10)
 		, seeding_outgoing_connections(true)
 		, no_connect_privileged_ports(true)
-		, alert_queue_size(1000)
+		, alert_queue_size(6000)
 		, max_metadata_size(3*1024*1024)
 		, smooth_connects(true)
 		, always_send_user_agent(false)
