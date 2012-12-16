@@ -1,10 +1,4 @@
-	* make built-in sha functions not conflict with libcrypto
-	* improve web seed hash failure case
-	* improve DHT lookup times
-	* uTP path MTU discovery improvements
-	* optimized the torrent creator optimizer to scale significantly better with more files
-	* fix uTP edge case where udp socket buffer fills up
-	* fix nagle implementation in uTP
+0.16.6 release
 
 	* fixed verbose log error for NAT holepunching
 	* fix a bunch of typos in python bindings

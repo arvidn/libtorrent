@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2012, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,7 +114,7 @@ std::string demangle(char const* name) { return name; }
 #if (defined __linux__ || (defined __APPLE__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050))
 #include <execinfo.h>
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
+void print_backtrace(char* out, int len, int max_depth)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
@@ -143,7 +143,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 #include "winbase.h"
 #include "dbghelp.h"
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
+void print_backtrace(char* out, int len, int max_depth)
 {
 	typedef USHORT (WINAPI *RtlCaptureStackBackTrace_t)(
 		__in ULONG FramesToSkip,
@@ -197,7 +197,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 #else
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth) {}
+void print_backtrace(char* out, int len, int max_depth) {}
 
 #endif
 

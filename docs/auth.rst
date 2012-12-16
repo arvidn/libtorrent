@@ -3,7 +3,7 @@ BitTorrent authentication extension
 ===================================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 1.0.0
+:Version: 0.16.6
 
 .. contents:: Table of contents
   :depth: 2

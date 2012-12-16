@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -293,7 +293,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_uploads >= 2 || max_uploads == -1);
-		TORRENT_ASYNC_CALL2(set_max_uploads, max_uploads, true);
+		TORRENT_ASYNC_CALL1(set_max_uploads, max_uploads);
+	}
+
+	void torrent_handle::use_interface(const char* net_interface) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
 	}
 
 	int torrent_handle::max_connections() const
@@ -307,14 +313,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(max_connections >= 2 || max_connections == -1);
-		TORRENT_ASYNC_CALL2(set_max_connections, max_connections, true);
+		TORRENT_ASYNC_CALL1(set_max_connections, max_connections);
 	}
 
 	void torrent_handle::set_upload_limit(int limit) const
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_upload_limit, limit, true);
+		TORRENT_ASYNC_CALL1(set_upload_limit, limit);
 	}
 
 	int torrent_handle::upload_limit() const
@@ -328,7 +334,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(limit >= -1);
-		TORRENT_ASYNC_CALL2(set_download_limit, limit, true);
+		TORRENT_ASYNC_CALL1(set_download_limit, limit);
 	}
 
 	int torrent_handle::download_limit() const
@@ -509,6 +515,16 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL2(set_tracker_login, name, password);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+#if !TORRENT_NO_FPU
+	void torrent_handle::file_progress(std::vector<float>& progress) const
+	{
+		INVARIANT_CHECK;
+		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
+	}
+#endif
+#endif
+
 	void torrent_handle::file_progress(std::vector<size_type>& progress, int flags) const
 	{
 		INVARIANT_CHECK;
@@ -598,20 +614,6 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
-
-	void torrent_handle::use_interface(const char* net_interface) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));
-	}
-
-#if !TORRENT_NO_FPU
-	void torrent_handle::file_progress(std::vector<float>& progress) const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL1(file_progress, boost::ref(progress));
-	}
-#endif
 
 	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const
 	{
@@ -823,23 +825,6 @@ namespace libtorrent
 		return r;
 	}
 
-	bool torrent_handle::is_valid() const
-	{
-		INVARIANT_CHECK;
-		return !m_torrent.expired();
-	}
-
-	boost::intrusive_ptr<torrent_info> torrent_handle::torrent_file() const
-	{
-		INVARIANT_CHECK;
-		TORRENT_SYNC_CALL_RET(boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<torrent_info>(), get_torrent_copy);
-		return r;
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	// this function should either be removed, or return
-	// reference counted handle to the torrent_info which
-	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
 		INVARIANT_CHECK;
@@ -853,6 +838,7 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
+//		mutex::scoped_lock l(t->session().m_mutex);
 		if (!t->valid_metadata())
 #ifdef BOOST_NO_EXCEPTIONS
 			return empty;
@@ -862,6 +848,13 @@ namespace libtorrent
 		return t->torrent_file();
 	}
 
+	bool torrent_handle::is_valid() const
+	{
+		INVARIANT_CHECK;
+		return !m_torrent.expired();
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	entry torrent_handle::write_resume_data() const
 	{
 		INVARIANT_CHECK;
@@ -988,9 +981,7 @@ namespace libtorrent
 
 	std::size_t hash_value(torrent_handle const& th)
 	{
-		// using the locked shared_ptr value as hash doesn't work
-		// for expired weak_ptrs. So, we're left with a hack
-		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
+		return std::size_t(th.m_torrent.lock().get());
 	}
 
 }

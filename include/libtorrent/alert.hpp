@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg, Daniel Wallin
+Copyright (c) 2003, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -144,11 +144,6 @@ namespace libtorrent {
 			mutex::scoped_lock lock(m_mutex);
 			if (m_alerts.size() >= m_queue_size_limit) return false;
 			return (m_alert_mask & T::static_category) != 0;
-		}
-
-		bool should_post(alert const* a) const
-		{
-			return m_alert_mask & a->category();
 		}
 
 		alert const* wait_for_alert(time_duration max_wait);

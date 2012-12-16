@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,20 +48,16 @@ extern "C"
 }
 #else
 // from sha1.cpp
-namespace libtorrent
+struct TORRENT_EXTRA_EXPORT SHA_CTX
 {
+	boost::uint32_t state[5];
+	boost::uint32_t count[2];
+	boost::uint8_t buffer[64];
+};
 
-	struct TORRENT_EXTRA_EXPORT sha_ctx
-	{
-		boost::uint32_t state[5];
-		boost::uint32_t count[2];
-		boost::uint8_t buffer[64];
-	};
-
-	TORRENT_EXTRA_EXPORT void SHA1_init(sha_ctx* context);
-	TORRENT_EXTRA_EXPORT void SHA1_update(sha_ctx* context, boost::uint8_t const* data, boost::uint32_t len);
-	TORRENT_EXTRA_EXPORT void SHA1_final(boost::uint8_t* digest, sha_ctx* context);
-} // namespace libtorrent
+TORRENT_EXTRA_EXPORT void SHA1_Init(SHA_CTX* context);
+TORRENT_EXTRA_EXPORT void SHA1_Update(SHA_CTX* context, boost::uint8_t const* data, boost::uint32_t len);
+TORRENT_EXTRA_EXPORT void SHA1_Final(boost::uint8_t* digest, SHA_CTX* context);
 
 #endif
 
@@ -75,10 +71,8 @@ namespace libtorrent
 		{
 #ifdef TORRENT_USE_GCRYPT
 			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Init(&m_context);
 #else
-			SHA1_init(&m_context);
+			SHA1_Init(&m_context);
 #endif
 		}
 		hasher(const char* data, int len)
@@ -88,12 +82,9 @@ namespace libtorrent
 #ifdef TORRENT_USE_GCRYPT
 			gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
 			gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_OPENSSL
+#else
 			SHA1_Init(&m_context);
 			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#else
-			SHA1_init(&m_context);
-			SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #endif
 		}
 
@@ -118,10 +109,8 @@ namespace libtorrent
 			TORRENT_ASSERT(len > 0);
 #ifdef TORRENT_USE_GCRYPT
 			gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #else
-			SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+			SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #endif
 		}
 
@@ -131,10 +120,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_GCRYPT
 			gcry_md_final(m_context);
 			digest.assign((const char*)gcry_md_read(m_context, 0));
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Final(digest.begin(), &m_context);
 #else
-			SHA1_final(digest.begin(), &m_context);
+			SHA1_Final(digest.begin(), &m_context);
 #endif
 			return digest;
 		}
@@ -143,10 +130,8 @@ namespace libtorrent
 		{
 #ifdef TORRENT_USE_GCRYPT
 			gcry_md_reset(m_context);
-#elif defined TORRENT_USE_OPENSSL
-			SHA1_Init(&m_context);
 #else
-			SHA1_init(&m_context);
+			SHA1_Init(&m_context);
 #endif
 		}
 
@@ -161,10 +146,8 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_GCRYPT
 		gcry_md_hd_t m_context;
-#elif defined TORRENT_USE_OPENSSL
-		SHA_CTX m_context;
 #else
-		sha_ctx m_context;
+		SHA_CTX m_context;
 #endif
 	};
 }

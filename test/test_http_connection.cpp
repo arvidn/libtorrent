@@ -116,7 +116,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios, cq
-		, &::http_handler, true, 1024*1024, &::http_connect_handler));
+		, &::http_handler, true, &::http_connect_handler));
 	h->get(url, seconds(1), 0, &ps);
 	ios.reset();
 	error_code e;
@@ -134,17 +134,16 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings ps, int port)
+void run_suite(std::string const& protocol, proxy_settings const& ps, int port)
 {
 	if (ps.type != proxy_settings::none)
 	{
-		ps.port = start_proxy(ps.type);
+		start_proxy(ps.port, ps.type);
 	}
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
 		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
-
-	printf("\n\n********************** using %s proxy **********************\n"
-		, test_name[ps.type]);
+	std::cout << "\n\n********************** using " << test_name[ps.type]
+		<< " proxy **********************\n" << std::endl;
 
 	typedef boost::optional<error_code> err;
 	// this requires the hosts file to be modified

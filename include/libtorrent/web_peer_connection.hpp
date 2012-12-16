@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,8 +102,6 @@ namespace libtorrent
 		virtual void disconnect(error_code const& ec, int error = 0);
 
 		void write_request(peer_request const& r);
-
-		virtual bool received_invalid_data(int index, bool single_peer);
 
 	private:
 

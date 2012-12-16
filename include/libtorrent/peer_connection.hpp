@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2012, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -174,6 +174,14 @@ namespace libtorrent
 			, policy::peer* peerinfo
 			, bool outgoing = true);
 
+		// with this constructor we have been contacted and we still don't
+		// know which torrent the connection belongs to
+		peer_connection(
+			aux::session_impl& ses
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, policy::peer* peerinfo);
+
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
 		// and schedule events with references to itself (that is not safe to
@@ -267,12 +275,8 @@ namespace libtorrent
 		
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
-		void superseed_piece(int replace_piece, int new_piece);
-		bool super_seeded_piece(int index) const
-		{
-			return m_superseed_piece[0] == index
-				|| m_superseed_piece[1] == index;
-		}
+		void superseed_piece(int index);
+		int superseed_piece() const { return m_superseed_piece; }
 
 		// tells if this connection has data it want to send
 		// and has enough upload bandwidth quota left to send it.
@@ -388,10 +392,8 @@ namespace libtorrent
 		void add_free_upload(size_type free_upload);
 
 		// trust management.
-		virtual void received_valid_data(int index);
-		// returns false if the peer should not be
-		// disconnected
-		virtual bool received_invalid_data(int index, bool single_peer);
+		void received_valid_data(int index);
+		void received_invalid_data(int index);
 
 		size_type share_diff() const;
 
@@ -993,12 +995,12 @@ namespace libtorrent
 		// once the connection completes
 		int m_connection_ticket;
 
-		// if [0] is -1, superseeding is not active. If it is >= 0
+		// if this is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
-		// these two pieces can be downloaded from us by this peer.
+		// this piece can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece[2];
+		int m_superseed_piece;
 
 		// bytes downloaded since last second
 		// timer timeout; used for determining 
