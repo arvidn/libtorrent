@@ -1,0 +1,20 @@
+digraph uploading {
+
+	node [shape=box];
+
+	subgraph user_space {
+		rank=same;
+		"disk cache" -> "send buffer" [label="copy into peer's send buffer (copy)"]
+		"send buffer" -> "encrypted send buffer" [label="encrypt in-place (no copy)" style=dashed];
+	}
+
+	subgraph kernel {
+		rank=same;
+		"kernel page cache";
+		"socket kernel buffer"
+	}
+
+	"encrypted send buffer" -> "socket kernel buffer" [label="write() to socket (copy)"];
+	"kernel page cache" -> "disk cache" [label="read() from file (copy)"]
+}
+
