@@ -313,8 +313,6 @@ namespace libtorrent
 		}
 		DLOG(stderr, "\n");
 
-		int ret = 0;
-
 		// now, build a iovec for all pieces that we want to flush, so that they
 		// can be flushed in a single atomic operation. This is especially important
 		// when there are more than 1 disk thread, to make sure they don't
@@ -2613,10 +2611,11 @@ namespace libtorrent
 		}
 
 #if DEBUG_DISK_THREAD
-		l.lock();
+		// we take this lock just to make the logging prettier (non-interleaved)
+		mutex::scoped_lock l2(m_cache_mutex);
 		if (ret) DLOG(stderr, "[%p] unblocked %d jobs (%d left)\n", this, ret
 			, int(m_num_blocked_jobs) - ret);
-		l.unlock();
+		l2.unlock();
 #endif
 
 		TORRENT_ASSERT(m_num_blocked_jobs >= ret);
@@ -2646,9 +2645,10 @@ namespace libtorrent
 		if (need_post)
 		{
 #if DEBUG_DISK_THREAD
-			l.lock();
+			// we take this lock just to make the logging prettier (non-interleaved)
+			l2.lock();
 			DLOG(stderr, "[%p] posting job handlers (%d)\n", this, m_completed_jobs.size());
-			l.unlock();
+			l2.unlock();
 #endif
 			m_ios.post(boost::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
 		}
@@ -2658,7 +2658,14 @@ namespace libtorrent
 	void disk_io_thread::call_job_handlers(void* userdata)
 	{
 		mutex::scoped_lock l(m_completed_jobs_mutex);
+
+#if DEBUG_DISK_THREAD
+		// we take this lock just to make the logging prettier (non-interleaved)
+		mutex::scoped_lock l2(m_cache_mutex);
 		DLOG(stderr, "[%p] call_job_handlers (%d)\n", this, m_completed_jobs.size());
+		l2.unlock();
+#endif
+
 		int num_jobs = m_completed_jobs.size();
 		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
 		l.unlock();
