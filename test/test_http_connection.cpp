@@ -164,6 +164,7 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)
 	hostent* h = gethostbyname("non-existent-domain.se");
+	printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
 	if (h == 0 && h_errno == HOST_NOT_FOUND)
 	{
 		// if we're going through an http proxy, we won't get the same error as if the hostname
