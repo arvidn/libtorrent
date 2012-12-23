@@ -3591,13 +3591,11 @@ namespace libtorrent
 
 		if (ret != 0)
 		{
-			if (alerts().should_post<torrent_delete_failed_alert>())
-				alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
+			alerts().post_alert(torrent_delete_failed_alert(get_handle(), j.error));
 		}
 		else
 		{
-			if (alerts().should_post<torrent_deleted_alert>())
-				alerts().post_alert(torrent_deleted_alert(get_handle(), m_torrent_file->info_hash()));
+			alerts().post_alert(torrent_deleted_alert(get_handle(), m_torrent_file->info_hash()));
 		}
 	}
 
