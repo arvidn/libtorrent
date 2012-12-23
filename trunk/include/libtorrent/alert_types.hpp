@@ -713,6 +713,7 @@ namespace libtorrent
 		const static int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " deleted"; }
+		virtual bool discardable() const { return false; }
 
 		sha1_hash info_hash;
 	};
@@ -737,6 +738,7 @@ namespace libtorrent
 			return torrent_alert::message() + " torrent deletion failed: "
 				+ error.message();
 		}
+		virtual bool discardable() const { return false; }
 
 		error_code error;
 
