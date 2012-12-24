@@ -1673,7 +1673,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	boost::uint8_t* ptr = NULL;
 	utp_header* h = NULL;
 
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool stack_alloced = false;
 #endif
 
@@ -1690,7 +1690,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		}
 		else
 		{
-#ifdef TORRENT_DEBUG
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 			stack_alloced = true;
 #endif
 			TORRENT_ASSERT(force);
