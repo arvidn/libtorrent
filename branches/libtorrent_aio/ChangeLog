@@ -1,3 +1,4 @@
+	* extend storage interface to allow deferred flushing and flush the part-file metadata periodically
 	* make statistics propagate instantly rather than on the second tick
 	* support for partfiles, where partial pieces belonging to skipped files are put
 	* support using multiple threads for socket operations (especially useful for high performance SSL connections)

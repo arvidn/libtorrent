@@ -217,6 +217,8 @@ namespace libtorrent
 		void on_disk_cache_complete(disk_io_job const* j);
 		void on_disk_tick_done(disk_io_job const* j);
 
+		void schedule_storage_tick();
+
 		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
 		{
@@ -680,7 +682,13 @@ namespace libtorrent
 
 		// piece_failed is called when a piece fails the hash check
 		void piece_failed(int index);
+
+		// this is the handler for hash failure piece synchronization
+		// i.e. resetting the piece
 		void on_piece_sync(disk_io_job const* j);
+
+		// this is the handler for write failure piece synchronization
+		void on_piece_fail_sync(disk_io_job const* j, piece_block b);
 
 		enum wasted_reason_t
 		{

@@ -1087,7 +1087,18 @@ namespace libtorrent
 		if (j->action == disk_io_job::write)
 		{
 			// we failed to write j->piece to disk tell the piece picker
-			if (has_picker() && j->piece >= 0) picker().write_failed(block_finished);
+			if (j->piece >= 0)
+			{
+				if (m_storage)
+				{
+					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
+						, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
+				}
+				else
+				{
+					if (has_picker()) picker().write_failed(block_finished);
+				}
+			}
 		}
 
 		if (j->error.ec ==
@@ -1140,6 +1151,11 @@ namespace libtorrent
 
 		// if the error appears to be more serious than a full disk, just pause the torrent
 		pause();
+	}
+
+	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
+	{
+		if (has_picker()) picker().write_failed(b);
 	}
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
@@ -1257,6 +1273,14 @@ namespace libtorrent
 		picker().dec_refcount(piece, 0);
 	}
 
+	void torrent::schedule_storage_tick()
+	{
+		// schedule a disk tick in 2 minutes or so
+		if (m_storage_tick != 0) return;
+		m_storage_tick = 120 + (random() % 60);
+		update_want_tick();
+	}
+
 	void torrent::on_disk_write_complete(disk_io_job const* j
 		, peer_request p)
 	{
@@ -1266,12 +1290,7 @@ namespace libtorrent
 		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
-		// schedule a disk tick in 2 minutes or so
-		if (m_storage_tick == 0)
-		{
-			m_storage_tick = 120 + (random() % 20);
-			update_want_tick();
-		}
+		schedule_storage_tick();
 
 //		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
 //			, j->ret, j->piece, j->offset/0x4000);
@@ -8356,7 +8375,7 @@ namespace libtorrent
 			set_upload_mode(false);
 		}
 
-		if (m_storage_tick > 1)
+		if (m_storage_tick > 0)
 		{
 			--m_storage_tick;
 			if (m_storage_tick == 0)

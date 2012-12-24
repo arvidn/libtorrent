@@ -1826,7 +1826,7 @@ namespace libtorrent
 
 		if (pe->hash == NULL)
 		{
-			TORRENT_ASSERT(!pe->hashing_done);
+			pe->hashing_done = 0;
 			pe->hash = new partial_hash;
 		}
 		partial_hash* ph = pe->hash;
