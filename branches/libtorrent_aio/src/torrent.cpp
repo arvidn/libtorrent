@@ -328,6 +328,7 @@ namespace libtorrent
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
 		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
 		, m_pinned(p.flags & add_torrent_params::flag_pinned)
+		, m_storage_tick(0)
 		, m_should_be_loaded(true)
 		, m_have_all(false)
 	{
@@ -1265,6 +1266,13 @@ namespace libtorrent
 		dec_refcount();
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
+		// schedule a disk tick in 2 minutes or so
+		if (m_storage_tick == 0)
+		{
+			m_storage_tick = 120 + (random() % 20);
+			update_want_tick();
+		}
+
 //		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
 //			, j->ret, j->piece, j->offset/0x4000);
 
@@ -1305,6 +1313,15 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin();
 			i != m_connections.end(); ++i)
 			(*i)->send_suggest(j->piece);
+	}
+
+	void torrent::on_disk_tick_done(disk_io_job const* j)
+	{
+		if (j->ret && m_storage_tick == 0)
+		{
+			m_storage_tick = 120 + (random() % 20);
+			update_want_tick();
+		}
 	}
 
 	bool torrent::add_merkle_nodes(std::map<int, sha1_hash> const& nodes, int piece)
@@ -6783,6 +6800,10 @@ namespace libtorrent
 
 		if (!m_connections.empty()) return true;
 
+		// there's a deferred storage tick waiting
+		// to happen
+		if (m_storage_tick) return true;
+
 		// we might want to connect web seeds
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
 			return true;
@@ -8333,6 +8354,18 @@ namespace libtorrent
 			>= settings().get_int(settings_pack::optimistic_disk_retry))
 		{
 			set_upload_mode(false);
+		}
+
+		if (m_storage_tick > 1)
+		{
+			--m_storage_tick;
+			if (m_storage_tick == 0)
+			{
+				m_ses.disk_thread().async_tick_torrent(&storage()
+					, boost::bind(&torrent::on_disk_tick_done
+						, shared_from_this(), _1));
+				update_want_tick();
+			}
 		}
 
 		if (is_paused())

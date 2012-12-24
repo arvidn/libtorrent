@@ -215,6 +215,7 @@ namespace libtorrent
 		void on_disk_write_complete(disk_io_job const* j
 			, peer_request p);
 		void on_disk_cache_complete(disk_io_job const* j);
+		void on_disk_tick_done(disk_io_job const* j);
 
 		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
@@ -1444,6 +1445,14 @@ namespace libtorrent
 		// the user may choose to initialize this to 1, in which case
 		// it will never be unloaded from RAM
 		bool m_pinned:1;
+
+		// this is a second count-down to when we should tick the
+		// storage for this torrent. Ticking the storage is used
+		// to periodically flush the partfile metadata and possibly
+		// other deferred flushing. Any disk operation starts this
+		// counter (unless it's already counting down). 0 means no
+		// ticking is needed.
+		boost::uint8_t m_storage_tick;
 
 		// when this is false, we should unload the torrent as soon
 		// as the no other async. job needs the torrent loaded

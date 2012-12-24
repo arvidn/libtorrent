@@ -839,6 +839,7 @@ namespace libtorrent
 		&disk_io_thread::do_file_priority,
 		&disk_io_thread::do_load_torrent,
 		&disk_io_thread::do_clear_piece,
+		&disk_io_thread::do_tick,
 	};
 
 	const char* job_action_name[] =
@@ -862,6 +863,7 @@ namespace libtorrent
 		"set_file_priority",
 		"load_torrent",
 		"clear_piece",
+		"tick_storage",
 	};
 
 	// evict and/or flush blocks if we're exceeding the cache size
@@ -1454,6 +1456,16 @@ namespace libtorrent
 	{
 		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
 		j->requester = (char*)params;
+		j->callback = handler;
+
+		add_job(j);
+	}
+
+	void disk_io_thread::async_tick_torrent(piece_manager* storage
+		, boost::function<void(disk_io_job const*)> const& handler)
+	{
+		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
+		j->storage = storage;
 		j->callback = handler;
 
 		add_job(j);
@@ -2349,6 +2361,13 @@ namespace libtorrent
 		// this is a fence job
 		TORRENT_ASSERT(false);
 		return retry_job;
+	}
+
+	int disk_io_thread::do_tick(disk_io_job* j)
+	{
+		// true means this storage wants more ticks, false
+		// disables ticking (until it's enabled again)
+		return j->storage->get_storage_impl()->tick();
 	}
 
 	void disk_io_thread::add_fence_job(piece_manager* storage, disk_io_job* j)

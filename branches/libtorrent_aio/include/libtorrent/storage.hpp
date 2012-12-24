@@ -136,6 +136,12 @@ namespace libtorrent
 		// used on windows to turn off the sparse flag
 		virtual void finalize_file(int, storage_error&) {}
 
+		// called periodically (useful for deferred flushing). When returning
+		// false, it means no more ticks are necessary. Any disk job submitted
+		// will re-enable ticking. The default will always turn ticking back
+		// off again.
+		virtual bool tick() { return false; }
+
 		aux::session_settings const& settings() const { return *m_settings; }
 
 		virtual ~storage_interface() {}
@@ -161,6 +167,7 @@ namespace libtorrent
 		int sparse_end(int start) const;
 		bool verify_resume_data(lazy_entry const& rd, storage_error& error);
 		void write_resume_data(entry& rd, storage_error& ec) const;
+		bool tick();
 
 		int readv(file::iovec_t const* bufs, int num_bufs
 			, int piece, int offset, int flags, storage_error& ec);

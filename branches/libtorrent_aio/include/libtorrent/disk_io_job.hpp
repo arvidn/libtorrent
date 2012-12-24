@@ -93,6 +93,7 @@ namespace libtorrent
 			, file_priority 
 			, load_torrent
 			, clear_piece
+			, tick_storage
 
 			, num_job_ids
 		};

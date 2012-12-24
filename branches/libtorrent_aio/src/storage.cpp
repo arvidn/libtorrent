@@ -180,6 +180,9 @@ namespace libtorrent
 
 	default_storage::~default_storage()
 	{
+		error_code ec;
+		if (m_part_file) m_part_file->flush_metadata(ec);
+
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(this);
@@ -1049,6 +1052,14 @@ namespace libtorrent
 		if (m_settings && settings().get_bool(settings_pack::use_read_cache)) mode |= file::no_cache;
 
 		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, fe, files(), mode, ec);
+	}
+
+	bool default_storage::tick()
+	{
+		error_code ec;
+		if (m_part_file) m_part_file->flush_metadata(ec);
+	
+		return false;
 	}
 
 	storage_interface* default_storage_constructor(storage_params const& params)

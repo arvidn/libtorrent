@@ -89,6 +89,8 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 		virtual void async_load_torrent(add_torrent_params* params
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
+		virtual void async_tick_torrent(piece_manager* storage
+			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 
 		virtual void clear_read_cache(piece_manager* storage) = 0;
 		virtual void async_clear_piece(piece_manager* storage, int index
