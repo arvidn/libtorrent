@@ -133,7 +133,7 @@ project listed here, let me_ know.
 	(ncurses) and one web interface
 	(accessable through a web browser).
 	Written by Michael Wojciechowski
-	and Johan Ström.
+	and Johan Strom.
 
 	.. _btg: http://btg.berlios.de//
 
@@ -148,7 +148,7 @@ project listed here, let me_ know.
 	**tvblob**
 
 	The BLOBbox_ represents the ability to harness all of the content available
-	on the web, without any filtering or pre-selection by a third party ¿ just
+	on the web, without any filtering or pre-selection by a third party just
 	like surfing the web.
 
 	This means that anyone will have the ability to reach viewers via the Internet

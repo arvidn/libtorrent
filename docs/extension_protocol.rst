@@ -126,12 +126,12 @@ An example of what the payload of a handshake message could look like:
 +-------------------+----------------------------------+
 | ``p``             | 6881                             |
 +-------------------+----------------------------------+
-| ``v``             | "µTorrent 1.2"                   |
+| ``v``             | "uTorrent 1.2"                   |
 +-------------------+----------------------------------+
 
 and in the encoded form:
 
-``d1:md11:LT_metadatai1e6:µT_PEXi2ee1:pi6881e1:v13:\xc2\xb5Torrent 1.2e``
+``d1:md11:LT_metadatai1e6:ut_pexi2ee1:pi6881e1:v12:uTorrent 1.2e``
 
 To make sure the extension names do not collide by mistake, they should be
 prefixed with the two (or one) character code that is used to identify the
