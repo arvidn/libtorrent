@@ -4205,6 +4205,12 @@ retry:
 			num_seeds = (std::numeric_limits<int>::max)();
 		if (hard_limit == -1)
 			hard_limit = (std::numeric_limits<int>::max)();
+		if (dht_limit == -1)
+			dht_limit = (std::numeric_limits<int>::max)();
+		if (lsd_limit == -1)
+			lsd_limit = (std::numeric_limits<int>::max)();
+		if (tracker_limit == -1)
+			tracker_limit = (std::numeric_limits<int>::max)();
             
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)

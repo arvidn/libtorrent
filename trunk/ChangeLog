@@ -7,6 +7,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* active_dht_limit, active_tracker_limit and active_lsd_limit now interpret -1 as infinite
+
 0.16.6 release
 
 	* fixed verbose log error for NAT holepunching
