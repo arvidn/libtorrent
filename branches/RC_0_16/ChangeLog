@@ -1,3 +1,4 @@
+	* fixed typos in configure script, inversing some feature-enable/disable flags
 	* added missing flag_update_subscribe to python bindings
 	* active_dht_limit, active_tracker_limit and active_lsd_limit now interpret -1 as infinite
 
