@@ -1594,6 +1594,10 @@ namespace libtorrent
 	void disk_io_thread::async_delete_files(piece_manager* storage
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
+		mutex::scoped_lock l(m_cache_mutex);
+		flush_cache(storage, flush_delete_cache, l);
+		l.unlock();
+
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage;
 		j->callback = handler;
