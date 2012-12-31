@@ -526,6 +526,7 @@ void bind_session()
         .value("flag_auto_managed", add_torrent_params::flag_auto_managed)
         .value("flag_duplicate_is_error", add_torrent_params::flag_duplicate_is_error)
         .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
+        .value("flag_update_subscribe", add_torrent_params::flag_update_subscribe)
     ;
     class_<cache_status>("cache_status")
         .def_readonly("blocks_written", &cache_status::blocks_written)
