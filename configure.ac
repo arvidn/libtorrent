@@ -207,8 +207,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
   [dht],
   [AS_HELP_STRING(
-    [--disable-dht],
-    [disable dht support (use value "logging" to add extra logging) [default=yes]])],
+    [--enable-dht],
+    [enable dht support (use value "logging" to add extra logging) [default=yes]])],
   [[ARG_ENABLE_DHT=$enableval]],
   [[ARG_ENABLE_DHT=yes]]
 )
@@ -216,8 +216,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
   [encryption],
   [AS_HELP_STRING(
-    [--disable-encryption],
-    [disable encryption support (requires OpenSSL to be installed on your system, you can use --with-openssl to set the path) [default=yes]])],
+    [--enable-encryption],
+    [enable encryption support (requires OpenSSL to be installed on your system, you can use --with-openssl to set the path) [default=yes]])],
   [[ARG_ENABLE_ENCRYPTION=$enableval]],
   [[ARG_ENABLE_ENCRYPTION=yes]]
 )
@@ -225,8 +225,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
   [pool-allocators],
   [AS_HELP_STRING(
-    [--disable-pool-allocators],
-    [disable pool allocators for send buffers [default=yes]])],
+    [--enable-pool-allocators],
+    [enable pool allocators for send buffers [default=yes]])],
   [[ARG_ENABLE_POOL_ALLOC=$enableval]],
   [[ARG_ENABLE_POOL_ALLOC=yes]]
 )
@@ -247,8 +247,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
   [deprecated-functions],
   [AS_HELP_STRING(
-    [--disable-deprecated-functions],
-    [disable deprecated functions from the API [default=yes]])],
+    [--enable-deprecated-functions],
+    [enable deprecated functions in the API [default=yes]])],
   [[ARG_ENABLE_DEPRECATED=$enableval]],
   [[ARG_ENABLE_DEPRECATED=yes]]
 )
@@ -274,8 +274,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
   [geoip],
   [AS_HELP_STRING(
-    [--disable-geoip],
-    [disable geoip support (if enabled, you can use --with-libgeoip to choose whether to link against shipped or system library) [default=yes]])],
+    [--enable-geoip],
+    [enable geoip support (if enabled, you can use --with-libgeoip to choose whether to link against shipped or system library) [default=yes]])],
   [
    ARG_ENABLE_GEOIP=$enableval
    ac_arg_enable_geoip=$enableval
