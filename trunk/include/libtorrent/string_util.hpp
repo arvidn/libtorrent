@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STRING_UTIL_HPP_INCLUDED
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);

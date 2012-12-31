@@ -802,6 +802,10 @@ namespace libtorrent
 		// the max number of connections in the session
 		int connections_limit;
 
+		// the number of extra incoming connections allowed
+		// temporarily, in order to support replacing peers
+		int connections_slack;
+
 		// target delay, milliseconds
 		int utp_target_delay;
 

@@ -1,3 +1,4 @@
+	* introduce global connection priority for improved swarm performance
 	* make files deleted alert non-discardable
 	* make built-in sha functions not conflict with libcrypto
 	* improve web seed hash failure case

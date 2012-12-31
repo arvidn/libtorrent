@@ -1151,6 +1151,7 @@ namespace libtorrent
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif
+			// TODO: factor the IP voting out to its own type, maybe templated by the address type. Have one IPv4 vote and a separate IPv6 vote. Maybe even better, have one per local interface sockets can be bound to
 			struct external_ip_t
 			{
 				external_ip_t(): sources(0), num_votes(0) {}
