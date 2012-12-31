@@ -2765,13 +2765,23 @@ retry:
 			return;
 		}
 
+		// check if we have any active torrents
+		// if we don't reject the connection
+		if (m_torrents.empty())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log(" There are no torrents, disconnect");
+#endif
+		  	return;
+		}
+
 		// don't allow more connections than the max setting
 		bool reject = false;
 		if (m_settings.ignore_limits_on_local_network && is_local(endp.address()))
 			reject = m_settings.connections_limit < INT_MAX / 12
 				&& num_connections() >= m_settings.connections_limit * 12 / 10;
 		else
-			reject = num_connections() >= m_settings.connections_limit;
+			reject = num_connections() >= m_settings.connections_limit + m_settings.connections_slack;
 
 		if (reject)
 		{
@@ -2782,21 +2792,11 @@ retry:
 						, error_code(errors::too_many_connections, get_libtorrent_category())));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			(*m_logger) << "number of connections limit exceeded (conns: "
-				<< num_connections() << ", limit: " << m_settings.connections_limit
-				<< "), connection rejected\n";
+			session_log("number of connections limit exceeded (conns: %d"
+				", limit: %d slack: %d), connection rejected\n"
+				, num_connections(), m_settings.connections_limit, m_settings.connections_slack);
 #endif
 			return;
-		}
-
-		// check if we have any active torrents
-		// if we don't reject the connection
-		if (m_torrents.empty())
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			session_log(" There are no torrents, disconnect");
-#endif
-		  	return;
 		}
 
 		// if we don't have any active torrents, there's no
@@ -2835,6 +2835,12 @@ retry:
 
 		if (!c->is_disconnecting())
 		{
+			// in case we've exceeded the limit, let this peer know that
+			// as soon as it's received the handshake, it needs to either
+			// disconnect or pick another peer to disconnect
+			if (num_connections() >= m_settings.connections_limit)
+				c->peer_exceeds_limit();
+
 			m_connections.insert(c);
 			c->start();
 			// update the next disk peer round-robin cursor

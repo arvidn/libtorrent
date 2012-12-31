@@ -1492,6 +1492,17 @@ namespace libtorrent
 
 #endif // TORRENT_OPENSSL
 
+	peer_connection* torrent::find_lowest_ranking_peer() const
+	{
+		// TODO: filter out peers that are disconnecting
+		peer_iterator lowest_rank = std::min_element(begin(), end()
+			, boost::bind(&peer_connection::peer_rank, _1)
+			< boost::bind(&peer_connection::peer_rank, _2));
+
+		if (lowest_rank == end()) return NULL;
+		return *lowest_rank;
+	}
+
 	// this may not be called from a constructor because of the call to
 	// shared_from_this()
 	void torrent::init()
@@ -5885,22 +5896,48 @@ namespace libtorrent
 			// connection attempts that haven't completed yet,
 			// disconnect one of them and let this incoming
 			// connection through.
-			if (m_num_connecting < m_max_connections / 10)
+			if (m_num_connecting > m_max_connections / 10)
 			{
-				p->disconnect(errors::too_many_connections);
-				return false;
-			}
+				// find one of the connecting peers and disconnect it
+				// TODO: ideally, we would disconnect the oldest connection
+				// i.e. the one that has waited the longest to connect.
+				
+				// find any peer that's connecting (i.e. a half-open TCP connection)
+				// that's also not disconnecting
+				std::set<peer_connection*>::iterator i = std::find_if(begin(), end()
+					, boost::bind(&peer_connection::is_connecting, _1)
+					&& !boost::bind(&peer_connection::is_disconnecting, _1));
 
-			// find one of the connecting peers and disconnect it
-			// TODO: ideally, we would disconnect the oldest connection
-			// i.e. the one that has waited the longest to connect.
-			for (std::set<peer_connection*>::iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
+				if (i == end())
+				{
+					// this seems odd, but we might as well handle it
+					p->disconnect(errors::too_many_connections);
+					return false;
+				}
+				(*i)->disconnect(errors::too_many_connections);
+            
+				// if this peer was let in via connections slack,
+				// it has done its duty of causing the disconnection
+				// of another peer
+				p->peer_disconnected_other();
+			}
+			else
 			{
-				peer_connection* peer = *i;
-				if (!peer->is_connecting()) continue;
-				peer->disconnect(errors::too_many_connections);
-				break;
+				// now, find the lowest rank peer and disconnect that
+				// if it's lower rank than the incoming connection
+				peer_connection* peer = find_lowest_ranking_peer();
+
+				// TODO: if peer is a really good peer, maybe we shouldn't disconnect it
+				if (peer && peer->peer_rank() < p->peer_rank())
+				{
+					peer->disconnect(errors::too_many_connections);
+					p->peer_disconnected_other();
+				}
+				else
+				{
+					p->disconnect(errors::too_many_connections);
+					return false;
+				}
 			}
 		}
 

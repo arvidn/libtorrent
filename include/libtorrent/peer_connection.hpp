@@ -188,6 +188,19 @@ namespace libtorrent
 			m_peer_info = pi;
 		}
 
+		// this is called when the peer object is created, in case
+		// it was let in by the connections limit slack. This means
+		// the peer needs to, as soon as the handshake is done, either
+		// disconnect itself or another peer.
+		void peer_exceeds_limit()
+		{ m_exceeded_limit = true; }
+
+		// this is called if this peer causes another peer
+		// to be disconnected, in which case it has fulfilled
+		// its requirement.
+		void peer_disconnected_other()
+		{ m_exceeded_limit = false; }
+
 		policy::peer* peer_info_struct() const
 		{ return m_peer_info; }
 
@@ -257,6 +270,8 @@ namespace libtorrent
 			if (p > 255) p = 255;
 			m_priority = p;
 		}
+
+		boost::uint32_t peer_rank() const;
 
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
@@ -1171,6 +1186,14 @@ namespace libtorrent
 		// set to true if this peer has metadata, and false
 		// otherwise.
 		bool m_has_metadata:1;
+
+		// this is set to true if this peer was accepted exceeding
+		// the connection limit. It means it has to disconnect
+		// itself, or some other peer, as soon as it's completed
+		// the handshake. We need to wait for the handshake in
+		// order to know which torrent it belongs to, to know which
+		// other peers to compare it to.
+		bool m_exceeded_limit:1;
 
 		template <std::size_t Size>
 		struct handler_storage
