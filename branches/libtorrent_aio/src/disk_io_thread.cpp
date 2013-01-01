@@ -185,6 +185,12 @@ namespace libtorrent
 			return 0;
 		}
 
+		if (p->num_dirty == 0)
+		{
+			DLOG(stderr, "[%p] try_flush_hashed: no dirty blocks\n", this);
+			return 0;
+		}
+
 		// end is one past the end
 		// round offset up to include the last block, which might
 		// have an odd size
@@ -346,6 +352,7 @@ namespace libtorrent
 
 			iovec_offset[i] = iov_len;
 			refcount_pieces[i] = 1;
+			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 			++pe->piece_refcount;
 
 			iov_len += build_iovec(pe, 0, p->blocks_in_piece
@@ -362,6 +369,8 @@ namespace libtorrent
 
 		if (iov_len == 0)
 		{
+			// we may not exit here if we incremented any piece refcounters
+			TORRENT_ASSERT(cont_pieces == 0);
 			DLOG(stderr, "  iov_len: 0 cont_pieces: %d range_start: %d range_end: %d\n"
 				, cont_pieces, range_start, range_end);
 			return 0;
@@ -611,6 +620,7 @@ namespace libtorrent
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
+		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 		++pe->piece_refcount;
 
 		l.unlock();
@@ -743,6 +753,7 @@ namespace libtorrent
 			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
 			if (pe == NULL) continue;
 
+			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
 			num -= try_flush_hashed(pe, 1, l);
@@ -765,6 +776,7 @@ namespace libtorrent
 			if (pe == NULL) continue;
 			if (pe->num_dirty == 0) continue;
 
+			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 			++pe->piece_refcount;
 			// don't flush blocks that are being hashed by another thread
 			if (pe->num_dirty == 0 || pe->hashing) continue;
@@ -800,6 +812,7 @@ namespace libtorrent
 			if (now - e->expire < expiration_limit) break;
 			if (e->num_dirty == 0) continue;
 
+			TORRENT_ASSERT(e->cache_state <= cached_piece_entry::read_lru1 || e->cache_state == cached_piece_entry::read_lru2);
 			++e->piece_refcount;
 			// We can rely on the piece entry not being removed by
 			// incrementing the piece_refcount
@@ -1177,6 +1190,7 @@ namespace libtorrent
 					m_disk_cache.update_cache_state(pe);
 				}
 
+				TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 				++pe->piece_refcount;
 
 				// see if we can progress the hash cursor with this new block
@@ -1768,6 +1782,7 @@ namespace libtorrent
 #endif
 			m_disk_cache.cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
 
+			TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 			++pe->piece_refcount;
 			kick_hasher(pe, l);
 			--pe->piece_refcount;
@@ -1826,6 +1841,7 @@ namespace libtorrent
 
 		pe->hashing = 1;
 
+		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 		++pe->piece_refcount;
 
 		if (pe->hash == NULL)
@@ -2088,6 +2104,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
+		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 		++pe->piece_refcount;
 
 		int block_size = m_disk_cache.block_size();
@@ -2269,6 +2286,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
+		TORRENT_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2);
 		++pe->piece_refcount;
 
 		if (!pe->hashing_done)
@@ -2393,7 +2411,8 @@ namespace libtorrent
 		{
 			mutex::scoped_lock l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-			m_queued_jobs.push_back(j);
+			// prioritize fence jobs since they're blocking other jobs
+			m_queued_jobs.push_front(j);
 			l.unlock();
 			// discard the flush job
 			free_job(fj);
@@ -2413,7 +2432,8 @@ namespace libtorrent
 			// be executed
 			mutex::scoped_lock l(m_job_mutex);
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) || !fj->storage);
-			m_queued_jobs.push_back(fj);
+
+			m_queued_jobs.push_front(fj);
 		}
 		else
 		{

@@ -48,7 +48,11 @@ line_colors = list(graph_colors)
 line_colors.reverse()
 
 def plot_fun(script):
-	os.system('gnuplot "%s" 2>/dev/null' % script);
+	ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+	if ret != 0 and ret != 256:
+		print 'system: %d\n' % ret
+		raise Exception("abort")
+
 	sys.stdout.write('.')
 	sys.stdout.flush()
 

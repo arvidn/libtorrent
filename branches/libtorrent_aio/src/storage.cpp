@@ -1309,7 +1309,8 @@ namespace libtorrent
 		TORRENT_ASSERT(bj->blocked);
 		bj->blocked = false;
 #endif
-		jobs.push_back(bj);
+		// prioritize fence jobs since they're blocking other jobs
+		jobs.push_front(bj);
 		return 1;
 	}
 
