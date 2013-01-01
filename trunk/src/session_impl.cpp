@@ -6096,7 +6096,7 @@ retry:
 			, source_type, print_address(source).c_str());
 #endif
 
-		if (!m_external_ip.cast_vote(ip, source_type, source));
+		if (!m_external_ip.cast_vote(ip, source_type, source)) return;
 
 #if defined TORRENT_VERBOSE_LOGGING
 		session_log("  external IP updated");

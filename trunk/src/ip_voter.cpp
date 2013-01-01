@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_any() etc.
 #include "libtorrent/socket_io.hpp" // for hash_address
+#include "libtorrent/random.hpp" // for random()
 
 #include <boost/bind.hpp>
 
