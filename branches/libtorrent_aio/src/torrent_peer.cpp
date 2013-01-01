@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent
 {
