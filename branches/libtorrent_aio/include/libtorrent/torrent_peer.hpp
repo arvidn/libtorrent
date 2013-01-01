@@ -56,6 +56,7 @@ namespace libtorrent
 // 24
 
 	class peer_connection;
+	struct external_ip;
 
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
@@ -69,7 +70,7 @@ namespace libtorrent
 		boost::uint64_t total_download() const;
 		boost::uint64_t total_upload() const;
 
-		boost::uint32_t rank(tcp::endpoint const& external) const;
+		boost::uint32_t rank(external_ip const& external, int external_port) const;
 
 		libtorrent::address address() const;
 		char const* dest() const;

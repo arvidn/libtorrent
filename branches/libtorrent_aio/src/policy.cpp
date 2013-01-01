@@ -677,7 +677,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int min_reconnect_time = m_torrent->settings().get_int(settings_pack::min_reconnect_time);
-		tcp::endpoint external_ip(m_torrent->session().external_address(), m_torrent->session().listen_port());
+		external_ip const& external = m_torrent->session().external_address();
+		int external_port = m_torrent->session().listen_port();
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
@@ -744,7 +745,7 @@ namespace libtorrent
 			// pe, which is the peer m_round_robin points to. If it is, just
 			// keep looking.
 			if (candidate != -1
-				&& compare_peer(*m_peers[candidate], pe, external_ip)) continue;
+				&& compare_peer(*m_peers[candidate], pe, external, external_port)) continue;
 
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
@@ -766,9 +767,9 @@ namespace libtorrent
 			m_torrent->session().session_log(" *** FOUND CONNECTION CANDIDATE ["
 				" ip: %s d: %d rank: %u external: %s t: %d ]"
 				, print_endpoint(m_peers[candidate]->ip()).c_str()
-				, cidr_distance(external_ip, m_peers[candidate]->address())
-				, m_peers[candidate]->rank(external_ip)
-				, print_address(external_ip).c_str()
+				, cidr_distance(external.external_address(m_peers[candidate]->address()), m_peers[candidate]->address())
+				, m_peers[candidate]->rank(external, external_port)
+				, print_address(external.external_address(m_peers[candidate]->address())).c_str()
 				, session_time - m_peers[candidate]->last_connected);
 		}
 #endif
@@ -1809,7 +1810,7 @@ namespace libtorrent
 
 	// this returns true if lhs is a better connect candidate than rhs
 	bool policy::compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
-		, tcp::endpoint const& external_ip) const
+		, external_ip const& external, int external_port) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// prefer peers with lower failcount
@@ -1837,8 +1838,8 @@ namespace libtorrent
 			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
-		boost::uint32_t lhs_peer_rank = lhs.rank(external_ip);
-		boost::uint32_t rhs_peer_rank = rhs.rank(external_ip);
+		boost::uint32_t lhs_peer_rank = lhs.rank(external, external_port);
+		boost::uint32_t rhs_peer_rank = rhs.rank(external, external_port);
 		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}

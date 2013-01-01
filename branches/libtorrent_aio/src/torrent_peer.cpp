@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/ip_voter.hpp"
 
 namespace libtorrent
 {
@@ -172,12 +173,13 @@ namespace libtorrent
 	}
 
 	// TOOD: pass in both an IPv6 and IPv4 address here
-	boost::uint32_t torrent_peer::rank(tcp::endpoint const& external) const
+	boost::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
-//TODO: really, keep track of one external IP per address family
 //TODO: how do we deal with our external address changing?
 		if (peer_rank == 0)
-			peer_rank = peer_priority(external, tcp::endpoint(this->address(), this->port));
+			peer_rank = peer_priority(
+				tcp::endpoint(external.external_address(this->address()), external_port)
+				, tcp::endpoint(this->address(), this->port));
 		return peer_rank;
 	}
 

@@ -78,6 +78,7 @@ namespace libtorrent
 	struct utp_socket_manager;
 	struct socket_type;
 	struct block_info;
+	struct external_ip;
 
 #ifndef TORRENT_DISABLE_DHT
 	namespace dht
@@ -105,7 +106,7 @@ namespace libtorrent { namespace aux
 
 		virtual void set_external_address(address const& ip
 			, int source_type, address const& source) = 0;
-		virtual address const& external_address() const = 0;
+		virtual external_ip const& external_address() const = 0;
 
 		// --- vv used by policy vv ----
 		enum peer_type_t

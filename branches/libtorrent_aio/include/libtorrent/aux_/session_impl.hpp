@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/session.hpp" // for user_load_function_t
+#include "libtorrent/ip_voter.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
@@ -650,7 +651,7 @@ namespace libtorrent
 
 			virtual void set_external_address(address const& ip
 				, int source_type, address const& source);
-			virtual address const& external_address() const { return m_external_address; }
+			virtual external_ip const& external_address() const;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -1345,36 +1346,9 @@ namespace libtorrent
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif
-			// TODO: factor the IP voting out to its own type, maybe templated by the address type. Have one IPv4 vote and a separate IPv6 vote. Maybe even better, have one per local interface sockets can be bound to
-			struct external_ip_t
-			{
-				external_ip_t(): sources(0), num_votes(0) {}
 
-				bool add_vote(sha1_hash const& k, int type);
-				bool operator<(external_ip_t const& rhs) const
-				{
-					if (num_votes < rhs.num_votes) return true;
-					if (num_votes > rhs.num_votes) return false;
-					return sources < rhs.sources;
-				}
-
-				// this is a bloom filter of the IPs that have
-				// reported this address
-				bloom_filter<16> voters;
-				// this is the actual external address
-				address addr;
-				// a bitmask of sources the reporters have come from
-				boost::uint16_t sources;
-				// the total number of votes for this IP
-				boost::uint16_t num_votes;
-			};
-
-			// this is a bloom filter of all the IPs that have
-			// been the first to report an external address. Each
-			// IP only gets to add a new item once.
-			bloom_filter<32> m_external_address_voters;
-			std::vector<external_ip_t> m_external_addresses;
-			address m_external_address;
+			// state for keeping track of external IPs
+			external_ip m_external_ip;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			typedef std::list<boost::function<boost::shared_ptr<

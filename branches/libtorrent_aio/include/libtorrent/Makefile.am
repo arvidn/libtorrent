@@ -70,6 +70,7 @@ nobase_include_HEADERS = \
   io_service.hpp               \
   io_service_fwd.hpp           \
   ip_filter.hpp                \
+  ip_voter.hpp                 \
   lazy_entry.hpp               \
   link.hpp                     \
   linked_list.hpp              \
