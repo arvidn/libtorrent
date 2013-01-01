@@ -1406,7 +1406,6 @@ namespace aux {
 	{
 		if (all)
 		{
-			if (m_num_queued_resume == 0) return;
 			m_num_queued_resume = 0;
 		}
 		else
