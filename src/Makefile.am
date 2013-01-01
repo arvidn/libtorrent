@@ -56,6 +56,7 @@ libtorrent_rasterbar_la_SOURCES = \
   identify_client.cpp             \
   instantiate_connection.cpp      \
   ip_filter.cpp                   \
+  ip_voter.cpp                    \
   lazy_bdecode.cpp                \
   logger.cpp                      \
   lsd.cpp                         \
