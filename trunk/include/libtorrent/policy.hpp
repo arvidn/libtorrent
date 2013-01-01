@@ -50,6 +50,7 @@ namespace libtorrent
 
 	class torrent;
 	class peer_connection;
+	struct external_ip;
 
 	// this is compressed as an unsigned floating point value
 	// the top 13 bits are the mantissa and the low
@@ -178,7 +179,7 @@ namespace libtorrent
 			size_type total_download() const;
 			size_type total_upload() const;
 			
-			boost::uint32_t rank(tcp::endpoint const& external) const;
+			boost::uint32_t rank(external_ip const& external, int external_port) const;
 
 			libtorrent::address address() const;
 			char const* dest() const;
@@ -442,7 +443,7 @@ namespace libtorrent
 
 		bool compare_peer_erase(policy::peer const& lhs, policy::peer const& rhs) const;
 		bool compare_peer(policy::peer const& lhs, policy::peer const& rhs
-			, tcp::endpoint const& external_ip) const;
+			, external_ip const& external, int source_port) const;
 
 		iterator find_connect_candidate(int session_time);
 

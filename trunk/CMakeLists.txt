@@ -30,6 +30,7 @@ set(sources
 	i2p_stream
 	identify_client
 	ip_filter
+	ip_voter
 	peer_connection
 	bt_peer_connection
 	web_peer_connection

@@ -6084,93 +6084,23 @@ retry:
 		}
 		m_upnp = 0;
 	}
-	
-	bool session_impl::external_ip_t::add_vote(sha1_hash const& k, int type)
-	{
-		sources |= type;
-		if (voters.find(k)) return false;
-		voters.set(k);
-		++num_votes;
-		return true;
-	}
+
+	external_ip const& session_impl::external_address() const
+	{ return m_external_ip; }
 
 	void session_impl::set_external_address(address const& ip
 		, int source_type, address const& source)
 	{
-		if (is_any(ip)) return;
-		if (is_local(ip)) return;
-		if (is_loopback(ip)) return;
-
 #if defined TORRENT_VERBOSE_LOGGING
 		session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
 			, source_type, print_address(source).c_str());
 #endif
-		// this is the key to use for the bloom filters
-		// it represents the identity of the voter
-		sha1_hash k;
-		hash_address(source, k);
 
-		// do we already have an entry for this external IP?
-		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
-			, m_external_addresses.end(), boost::bind(&external_ip_t::addr, _1) == ip);
-
-		if (i == m_external_addresses.end())
-		{
-			// each IP only gets to add a new IP once
-			if (m_external_address_voters.find(k)) return;
-		
-			if (m_external_addresses.size() > 20)
-			{
-				if (random() < UINT_MAX / 2)
-				{
-#if defined TORRENT_VERBOSE_LOGGING
-					session_log(": More than 20 slots, dopped");
-#endif
-					return;
-				}
-				// use stable sort here to maintain the fifo-order
-				// of the entries with the same number of votes
-				// this will sort in ascending order, i.e. the lowest
-				// votes first. Also, the oldest are first, so this
-				// is a sort of weighted LRU.
-				std::stable_sort(m_external_addresses.begin(), m_external_addresses.end());
-				// erase the first element, since this is the
-				// oldest entry and the one with lowst number
-				// of votes. This makes sense because the oldest
-				// entry has had the longest time to receive more
-				// votes to be bumped up
-#if defined TORRENT_VERBOSE_LOGGING
-				session_log("  More than 20 slots, dopping %s (%d)"
-					, print_address(m_external_addresses.front().addr).c_str()
-					, m_external_addresses.front().num_votes);
-#endif
-				m_external_addresses.erase(m_external_addresses.begin());
-			}
-			m_external_addresses.push_back(external_ip_t());
-			i = m_external_addresses.end() - 1;
-			i->addr = ip;
-		}
-		// add one more vote to this external IP
-		if (!i->add_vote(k, source_type)) return;
-		
-		i = std::max_element(m_external_addresses.begin(), m_external_addresses.end());
-		TORRENT_ASSERT(i != m_external_addresses.end());
-
-#if defined TORRENT_VERBOSE_LOGGING
-		for (std::vector<external_ip_t>::iterator j = m_external_addresses.begin()
-			, end(m_external_addresses.end()); j != end; ++j)
-		{
-			session_log("%s %s votes: %d", (j == i)?"-->":"   "
-				, print_address(j->addr).c_str(), j->num_votes);
-		}
-#endif
-		if (i->addr == m_external_address) return;
+		if (!m_external_ip.cast_vote(ip, source_type, source));
 
 #if defined TORRENT_VERBOSE_LOGGING
 		session_log("  external IP updated");
 #endif
-		m_external_address = i->addr;
-		m_external_address_voters.clear();
 
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.post_alert(external_ip_alert(ip));
@@ -6178,6 +6108,7 @@ retry:
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
 #ifndef TORRENT_DISABLE_DHT
+		// TODO: we only need to do this if our global IPv4 address has changed
 		if (m_dht)
 		{
 			entry s = m_dht->state();

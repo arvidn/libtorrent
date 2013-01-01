@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/rsa.hpp"
+#include "libtorrent/ip_voter.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -394,6 +395,13 @@ address rand_v4()
 	return address_v4((rand() << 16 | rand()) & 0xffffffff);
 }
 
+address rand_v6()
+{
+	address_v6::bytes_type bytes;
+	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
+	return address_v6(bytes);
+}
+
 int test_main()
 {
 	using namespace libtorrent;
@@ -537,12 +545,7 @@ int test_main()
 	}
 
 	// test external ip voting
-	aux::session_impl* ses = new aux::session_impl(std::pair<int, int>(0,0)
-		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, ""
-#endif
-		);
+	external_ip ipv1;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -551,39 +554,28 @@ int test_main()
 	address malicious = address_v4::from_string("4.4.4.4");
 	for (int i = 0; i < 50; ++i)
 	{
-		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
-		ses->set_external_address(rand_v4(), aux::session_impl::source_dht, malicious);
+		ipv1.cast_vote(real_external, aux::session_impl::source_dht, rand_v4());
+		ipv1.cast_vote(rand_v4(), aux::session_impl::source_dht, malicious);
 	}
-	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	ses->m_logger.reset();
-#endif
-	delete ses;
-	ses = new aux::session_impl(std::pair<int, int>(0,0)
-		, fingerprint("LT", 0, 0, 0, 0), "0.0.0.0", 0
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		, ""
-#endif
-		);
+	TEST_CHECK(ipv1.external_address(rand_v4()) == real_external);
+
+	external_ip ipv2;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
 	// and 50 consistent malicious responses from the same peer
-	real_external = address_v4::from_string("5.5.5.5");
+	address real_external1 = address_v4::from_string("5.5.5.5");
+	address real_external2 = address_v6::from_string("2f80::1");
 	malicious = address_v4::from_string("4.4.4.4");
 	address malicious_external = address_v4::from_string("3.3.3.3");
 	for (int i = 0; i < 50; ++i)
 	{
-		ses->set_external_address(real_external, aux::session_impl::source_dht, rand_v4());
-		ses->set_external_address(malicious_external, aux::session_impl::source_dht, malicious);
+		ipv2.cast_vote(real_external1, aux::session_impl::source_dht, rand_v4());
+		ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
 	}
-	TEST_CHECK(ses->external_address() == real_external);
-	ses->abort();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	ses->m_logger.reset();
-#endif
-	delete ses;
+	TEST_CHECK(ipv2.external_address(rand_v4()) == real_external1);
+	TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
 
 	// test bloom_filter
 	bloom_filter<32> filter;

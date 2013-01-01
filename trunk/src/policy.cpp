@@ -742,7 +742,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int min_reconnect_time = m_torrent->settings().min_reconnect_time;
-		tcp::endpoint external_ip(m_torrent->session().external_address(), m_torrent->session().listen_port());
+		external_ip const& external = m_torrent->session().external_address();
+		int external_port = m_torrent->session().listen_port();
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
@@ -809,7 +810,7 @@ namespace libtorrent
 			// pe, which is the peer m_round_robin points to. If it is, just
 			// keep looking.
 			if (candidate != -1
-				&& compare_peer(*m_peers[candidate], pe, external_ip)) continue;
+				&& compare_peer(*m_peers[candidate], pe, external, external_port)) continue;
 
 			if (pe.last_connected
 				&& session_time - pe.last_connected <
@@ -831,9 +832,9 @@ namespace libtorrent
 			(*m_torrent->session().m_logger) << time_now_string()
 				<< " *** FOUND CONNECTION CANDIDATE ["
 				" ip: " << m_peers[candidate]->ip() <<
-				" d: " << cidr_distance(external_ip.address(), m_peers[candidate]->address()) <<
-				" rank: " << m_peers[candidate]->rank(external_ip) <<
-				" external: " << external_ip.address() <<
+				" d: " << cidr_distance(external.address(m_peers[candidate]->address()), m_peers[candidate]->address()) <<
+				" rank: " << m_peers[candidate]->rank(external, external_port) <<
+				" external: " << external.external_address(m_peers[candidate]->address()) <<
 				" t: " << (session_time - m_peers[candidate]->last_connected) <<
 				" ]\n";
 		}
@@ -1903,12 +1904,13 @@ namespace libtorrent
 	}
 
 	// TOOD: pass in both an IPv6 and IPv4 address here
-	boost::uint32_t policy::peer::rank(tcp::endpoint const& external) const
+	boost::uint32_t policy::peer::rank(external_ip const& external, int external_port) const
 	{
-//TODO: really, keep track of one external IP per address family
-//TODO: how do we deal with our external address changing?
+//TODO: how do we deal with our external address changing? Pass in a force-update maybe? and keep a version number in policy
 		if (peer_rank == 0)
-			peer_rank = peer_priority(external, tcp::endpoint(this->address(), this->port));
+			peer_rank = peer_priority(
+				tcp::endpoint(external.external_address(this->address()), external_port)
+				, tcp::endpoint(this->address(), this->port));
 		return peer_rank;
 	}
 
@@ -1963,7 +1965,7 @@ namespace libtorrent
 
 	// this returns true if lhs is a better connect candidate than rhs
 	bool policy::compare_peer(policy::peer const& lhs, policy::peer const& rhs
-		, tcp::endpoint const& external_ip) const
+		, external_ip const& external, int external_port) const
 	{
 		// prefer peers with lower failcount
 		if (lhs.failcount != rhs.failcount)
@@ -1990,8 +1992,8 @@ namespace libtorrent
 			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
-		boost::uint32_t lhs_peer_rank = lhs.rank(external_ip);
-		boost::uint32_t rhs_peer_rank = rhs.rank(external_ip);
+		boost::uint32_t lhs_peer_rank = lhs.rank(external, external_port);
+		boost::uint32_t rhs_peer_rank = rhs.rank(external, external_port);
 		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}
