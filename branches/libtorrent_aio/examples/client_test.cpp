@@ -1506,6 +1506,7 @@ int main(int argc, char* argv[])
 					s.allowed_enc_level = pe_settings::rc4;
 					s.prefer_rc4 = true;
 					ses.set_pe_settings(s);
+					--i;
 					break;
 				}
 #endif

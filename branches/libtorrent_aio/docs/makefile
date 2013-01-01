@@ -31,6 +31,8 @@ html: $(TARGETS:=.html) $(FIGURES:=.png)
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
+epub: $(TARGETS:=.epub) $(FIGURES:=.png)
+
 all: html
 
 settings.rst: ../include/libtorrent/settings_pack.hpp
@@ -41,6 +43,9 @@ stats_counters.rst: ../src/session_stats.cpp
 
 manual.rst: settings.rst stats_counters.rst
 	touch manual.rst
+
+%.epub:%.rst
+	rst2epub $? $@
 
 %.pdf:%.rst
 	rst2pdf $? -o $@ --stylesheets stylesheet

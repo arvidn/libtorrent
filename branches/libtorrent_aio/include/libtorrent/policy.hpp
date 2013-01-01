@@ -156,7 +156,7 @@ namespace libtorrent
 
 		bool compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const;
 		bool compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
-			, address const& external_ip) const;
+			, tcp::endpoint const& external_ip) const;
 
 		iterator find_connect_candidate(int session_time);
 

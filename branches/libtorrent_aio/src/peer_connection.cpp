@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
+#include <boost/cstdint.hpp>
 #include <stdarg.h> // for va_start, va_end
 
 #include "libtorrent/peer_connection.hpp"
@@ -210,6 +211,7 @@ namespace libtorrent
 		, m_need_interest_update(false)
 		, m_has_metadata(true)
 		, m_queued_for_connection(false)
+		, m_exceeded_limit(false)
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -1212,6 +1214,32 @@ namespace libtorrent
 		if (m_disconnecting) return;
 		m_torrent = wpt;
 
+		if (m_exceeded_limit)
+		{
+			// find a peer in some torrent (presumably the one with most peers)
+			// and disconnect the lowest ranking peer
+			boost::weak_ptr<torrent> torr = m_ses.find_disconnect_candidate_torrent();
+			boost::shared_ptr<torrent> other_t = torr.lock();
+
+			if (other_t)
+			{
+				if (other_t->num_peers() <= t->num_peers())
+				{
+					disconnect(errors::too_many_connections);
+					return;
+				}
+				// find the lowest ranking peer and disconnect that
+				peer_connection* p = other_t->find_lowest_ranking_peer();
+				p->disconnect(errors::too_many_connections);
+				peer_disconnected_other();
+			}
+			else
+			{
+				disconnect(errors::too_many_connections);
+				return;
+			}
+		}
+
 		TORRENT_ASSERT(!m_torrent.expired());
 
 		// if the torrent isn't ready to accept
@@ -1227,6 +1255,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_pieces == 0);
 		m_have_piece.clear_all();
 		TORRENT_ASSERT(!m_torrent.expired());
+	}
+
+	boost::uint32_t peer_connection::peer_rank() const
+	{
+		return m_peer_info->rank(tcp::endpoint(m_ses.external_address(), m_ses.listen_port()));
 	}
 
 	// message handlers

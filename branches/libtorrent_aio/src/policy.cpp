@@ -677,17 +677,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_finished == m_torrent->is_finished());
 
 		int min_reconnect_time = m_torrent->settings().get_int(settings_pack::min_reconnect_time);
-		address external_ip = m_torrent->session().external_address();
-
-		// don't bias any particular peers when seeding
-		if (m_finished || external_ip == address())
-		{
-			// set external_ip to a random value, to
-			// radomize which peers we prefer
-			address_v4::bytes_type bytes;
-			std::generate(bytes.begin(), bytes.end(), &random);
-			external_ip = address_v4(bytes);
-		}
+		tcp::endpoint external_ip(m_torrent->session().external_address(), m_torrent->session().listen_port());
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;
 
@@ -774,9 +764,10 @@ namespace libtorrent
 		if (candidate != -1)
 		{
 			m_torrent->session().session_log(" *** FOUND CONNECTION CANDIDATE ["
-				" ip: %s d: %d external: %s t: %d ]"
+				" ip: %s d: %d rank: %u external: %s t: %d ]"
 				, print_endpoint(m_peers[candidate]->ip()).c_str()
 				, cidr_distance(external_ip, m_peers[candidate]->address())
+				, m_peers[candidate]->rank(external_ip)
 				, print_address(external_ip).c_str()
 				, session_time - m_peers[candidate]->last_connected);
 		}
@@ -1818,7 +1809,7 @@ namespace libtorrent
 
 	// this returns true if lhs is a better connect candidate than rhs
 	bool policy::compare_peer(torrent_peer const& lhs, torrent_peer const& rhs
-		, address const& external_ip) const
+		, tcp::endpoint const& external_ip) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// prefer peers with lower failcount
@@ -1846,9 +1837,9 @@ namespace libtorrent
 			if (lhs_as != rhs_as) return lhs_as > rhs_as;
 		}
 #endif
-		int lhs_distance = cidr_distance(external_ip, lhs.address());
-		int rhs_distance = cidr_distance(external_ip, rhs.address());
-		if (lhs_distance < rhs_distance) return true;
+		boost::uint32_t lhs_peer_rank = lhs.rank(external_ip);
+		boost::uint32_t rhs_peer_rank = rhs.rank(external_ip);
+		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}
 }

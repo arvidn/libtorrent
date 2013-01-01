@@ -2992,6 +2992,16 @@ retry:
 			return;
 		}
 
+		// check if we have any active torrents
+		// if we don't reject the connection
+		if (m_torrents.empty())
+		{
+#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+			session_log(" There are no torrents, disconnect");
+#endif
+		  	return;
+		}
+
 		// figure out which peer classes this is connections has,
 		// to get connection_limit_factor
 		peer_class_set pcs;
@@ -3011,7 +3021,7 @@ retry:
 
 		// don't allow more connections than the max setting
 		// weighed by the peer class' setting
-		bool reject = num_connections() >= limit;
+		bool reject = num_connections() >= limit + m_settings.get_int(settings_pack::connections_slack);
 
 		if (reject)
 		{
@@ -3022,20 +3032,11 @@ retry:
 						, error_code(errors::too_many_connections, get_libtorrent_category())));
 			}
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			session_log("number of connections limit exceeded (conns: %d, limit: %d), connection rejected"
-				, num_connections(), m_settings.get_int(settings_pack::connections_limit));
+			session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
+				, num_connections(), m_settings.get_int(settings_pack::connections_limit)
+				, m_settings.get_int(settings_pack::connections_slack));
 #endif
 			return;
-		}
-
-		// check if we have any active torrents
-		// if we don't reject the connection
-		if (m_torrents.empty())
-		{
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			session_log(" There are no torrents, disconnect");
-#endif
-		  	return;
 		}
 
 		// if we don't have any active torrents, there's no
@@ -3075,6 +3076,12 @@ retry:
 
 		if (!c->is_disconnecting())
 		{
+			// in case we've exceeded the limit, let this peer know that
+			// as soon as it's received the handshake, it needs to either
+			// disconnect or pick another peer to disconnect
+			if (num_connections() >= limit)
+				c->peer_exceeds_limit();
+
 			m_connections.insert(c);
 			c->start();
 			// update the next disk peer round-robin cursor
@@ -4496,6 +4503,12 @@ retry:
 			num_seeds = (std::numeric_limits<int>::max)();
 		if (hard_limit == -1)
 			hard_limit = (std::numeric_limits<int>::max)();
+		if (dht_limit == -1)
+			dht_limit = (std::numeric_limits<int>::max)();
+		if (lsd_limit == -1)
+			lsd_limit = (std::numeric_limits<int>::max)();
+		if (tracker_limit == -1)
+			tracker_limit = (std::numeric_limits<int>::max)();
             
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -5285,6 +5298,18 @@ retry:
 			= m_uuids.find(uuid);
 		if (i != m_uuids.end()) return i->second;
 		return boost::weak_ptr<torrent>();
+	}
+
+	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent()
+	{
+		aux::session_impl::torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
+			, boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _1))
+			< boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _2)));
+		
+		TORRENT_ASSERT(i != m_torrents.end());
+		if (i == m_torrents.end()) return boost::weak_ptr<torrent>();
+
+		return i->second;
 	}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING

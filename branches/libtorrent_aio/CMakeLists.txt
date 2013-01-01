@@ -305,6 +305,7 @@ if(build_tests)
 		test_piece_picker
 		test_fast_extension
 		test_pe_crypto
+		test_peer_priority
 		test_bencoding
 		test_bdecode_performance
 		test_primitives

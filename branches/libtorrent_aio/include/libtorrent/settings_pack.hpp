@@ -1118,6 +1118,10 @@ namespace libtorrent
 			// the limit will not be met.
 			connections_limit,
 
+			// ``connections_slack`` is the the number of incoming connections exceeding the
+			// connection limit to accept in order to potentially replace existing ones.
+			connections_slack,
+
 			// ``utp_target_delay`` is the target delay for uTP sockets in milliseconds. A high
 			// value will make uTP connections more aggressive and cause longer queues in the upload
 			// bottleneck. It cannot be too low, since the noise in the measurements would cause

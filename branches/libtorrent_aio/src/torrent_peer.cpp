@@ -37,10 +37,100 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	void apply_mask(boost::uint8_t* b, boost::uint8_t const* mask, int size)
+	{
+		for (int i = 0; i < size; ++i)
+		{
+			*b &= *mask;
+			++b;
+			++mask;
+		}
+	}
+
+	// 1. if the IP addresses are identical, hash the ports in 16 bit network-order
+	//    binary representation, ordered lowest first.
+	// 2. if the IPs are in the same /24, hash the IPs ordered, lowest first.
+	// 3. if the IPs are in the ame /16, mask the IPs by 0xffffff55, hash them
+	//    ordered, lowest first.
+	// 4. if IPs are not in the same /16, mask the IPs by 0xffff5555, hash them
+	//    ordered, lowest first.
+	//
+	// * for IPv6 peers, just use the first 64 bits and widen the masks.
+	//   like this: 0xffff5555 -> 0xffffffff55555555
+	//   the lower 64 bits are always unmasked
+	//
+	// * for IPv6 addresses, compare /32 and /48 instead of /16 and /24
+	// 
+	// * the two IP addresses that are used to calculate the rank must
+	//   always be of the same address family
+	//
+	// * all IP addresses are in network byte order when hashed
+	boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2)
+	{
+		TORRENT_ASSERT(e1.address().is_v4() == e2.address().is_v4());
+
+		using std::swap;
+
+		hasher h;
+		if (e1.address() == e2.address())
+		{
+			if (e1.port() > e2.port())
+				swap(e1, e2);
+			boost::uint16_t p[2];
+			p[0] = htons(e1.port());
+			p[1] = htons(e2.port());
+			h.update((char const*)&p[0], 4);
+		}
+#if TORRENT_USE_IPV6
+		else if (e1.address().is_v6())
+		{
+			const static boost::uint8_t v6mask[][8] = {
+				{ 0xff, 0xff, 0xff, 0xff, 0x55, 0x55, 0x55, 0x55 },
+				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x55, 0x55 },
+				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+			};
+
+			if (e1 > e2) swap(e1, e2);
+			address_v6::bytes_type b1 = e1.address().to_v6().to_bytes();
+			address_v6::bytes_type b2 = e2.address().to_v6().to_bytes();
+			int mask = memcmp(&b1[0], &b2[0], 4) ? 0
+				: memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
+			apply_mask(&b1[0], v6mask[mask], 8);
+			apply_mask(&b2[0], v6mask[mask], 8);
+			h.update((char const*)&b1[0], b1.size());
+			h.update((char const*)&b2[0], b2.size());
+		}
+#endif
+		else
+		{
+			const static boost::uint8_t v4mask[][4] = {
+				{ 0xff, 0xff, 0x55, 0x55 },
+				{ 0xff, 0xff, 0xff, 0x55 },
+				{ 0xff, 0xff, 0xff, 0xff }
+			};
+
+			if (e1 > e2) swap(e1, e2);
+			address_v4::bytes_type b1 = e1.address().to_v4().to_bytes();
+			address_v4::bytes_type b2 = e2.address().to_v4().to_bytes();
+			int mask = memcmp(&b1[0], &b2[0], 2) ? 0
+				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
+			apply_mask(&b1[0], v4mask[mask], 4);
+			apply_mask(&b2[0], v4mask[mask], 4);
+			h.update((char const*)&b1[0], b1.size());
+			h.update((char const*)&b2[0], b2.size());
+		}
+
+		boost::uint32_t ret;
+		sha1_hash digest = h.final();
+		memcpy(&ret, &digest[0], 4);
+		return ntohl(ret);
+	}
+
 	torrent_peer::torrent_peer(boost::uint16_t port, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(0)
+		, peer_rank(0)
 #ifndef TORRENT_DISABLE_GEO_IP
 		, inet_as(0)
 #endif
@@ -78,6 +168,16 @@ namespace libtorrent
 #endif
 	{
 		TORRENT_ASSERT((src & 0xff) == src);
+	}
+
+	// TOOD: pass in both an IPv6 and IPv4 address here
+	boost::uint32_t torrent_peer::rank(tcp::endpoint const& external) const
+	{
+//TODO: really, keep track of one external IP per address family
+//TODO: how do we deal with our external address changing?
+		if (peer_rank == 0)
+			peer_rank = peer_priority(external, tcp::endpoint(this->address(), this->port));
+		return peer_rank;
 	}
 
 	boost::uint64_t torrent_peer::total_download() const

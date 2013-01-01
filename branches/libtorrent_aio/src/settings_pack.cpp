@@ -269,6 +269,7 @@ namespace libtorrent
 		SET(unchoke_slots_limit, 8, &session_impl::update_choking_algorithm),
 		SET(half_open_limit, 0, &session_impl::update_half_open),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),
+		SET(connections_slack, 10, 0),
 		SET(utp_target_delay, 100, 0),
 		SET(utp_gain_factor, 1500, 0),
 		SET(utp_min_timeout, 500, 0),

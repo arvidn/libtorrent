@@ -312,6 +312,8 @@ namespace libtorrent
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
+			boost::weak_ptr<torrent> find_disconnect_candidate_torrent();
+
 			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 				, std::string uuid);
 			void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t)
@@ -1343,6 +1345,7 @@ namespace libtorrent
 #ifdef TORRENT_UPNP_LOGGING
 			std::ofstream m_upnp_log;
 #endif
+			// TODO: factor the IP voting out to its own type, maybe templated by the address type. Have one IPv4 vote and a separate IPv6 vote. Maybe even better, have one per local interface sockets can be bound to
 			struct external_ip_t
 			{
 				external_ip_t(): sources(0), num_votes(0) {}

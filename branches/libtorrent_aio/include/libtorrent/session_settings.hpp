@@ -264,7 +264,7 @@ namespace libtorrent
 		// suggest read cache will make libtorrent suggest pieces
 		// that are fresh in the disk read cache, to potentially
 		// lower disk access and increase the cache hit ratio
-		enum { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		enum suggest_mode_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
 		int suggest_mode;
 
 		// this is used to determine how many cache blocks to evict
@@ -809,6 +809,10 @@ namespace libtorrent
 
 		// the max number of connections in the session
 		int connections_limit;
+
+		// the number of extra incoming connections allowed
+		// temporarily, in order to support replacing peers
+		int connections_slack;
 
 		// target delay, milliseconds
 		int utp_target_delay;
