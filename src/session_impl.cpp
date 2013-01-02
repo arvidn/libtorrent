@@ -4830,6 +4830,18 @@ retry:
 		return boost::weak_ptr<torrent>();
 	}
 
+ 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent()
+ 	{
+		aux::session_impl::torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
+			, boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _1))
+			< boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _2)));
+
+		TORRENT_ASSERT(i != m_torrents.end());
+		if (i == m_torrents.end()) return boost::shared_ptr<torrent>();
+
+		return i->second;
+	}
+
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 	boost::shared_ptr<logger> session_impl::create_log(std::string const& name
 		, int instance, bool append)

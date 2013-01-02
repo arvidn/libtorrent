@@ -283,6 +283,7 @@ namespace libtorrent
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
+			boost::weak_ptr<torrent> find_disconnect_candidate_torrent();
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
