@@ -5171,13 +5171,13 @@ retry:
 
 	// the return value from this function is valid only as long as the
 	// session is locked!
-	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash)
+	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		torrent_map::iterator i = m_torrents.find(info_hash);
+		torrent_map::const_iterator i = m_torrents.find(info_hash);
 #if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		for (torrent_map::iterator j
+		for (torrent_map::const_iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{
 			torrent* p = boost::get_pointer(j->second);
@@ -5289,11 +5289,11 @@ retry:
 	}
 #endif
 
-	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid)
+	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		std::map<std::string, boost::shared_ptr<torrent> >::iterator i
+		std::map<std::string, boost::shared_ptr<torrent> >::const_iterator i
 			= m_uuids.find(uuid);
 		if (i != m_uuids.end()) return i->second;
 		return boost::weak_ptr<torrent>();
@@ -5305,7 +5305,7 @@ retry:
 	{
 		// a torrent with 0 peers is never a good disconnect candidate
 		// since there's nothing to disconnect
-		if ((lhs.second->num_peers() == 0) != (lhs.second->num_peers() == 0))
+		if ((lhs.second->num_peers() == 0) != (rhs.second->num_peers() == 0))
 			return lhs.second->num_peers() != 0;
 
 		// other than that, always prefer to disconnect peers from seeding torrents
@@ -5316,9 +5316,9 @@ retry:
 		return lhs.second->num_peers() > rhs.second->num_peers();
 	}
 
- 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent()
+ 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
  	{
-		aux::session_impl::torrent_map::iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
+		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
 			, boost::bind(&compare_disconnect_torrent, _1, _2));
 
 		TORRENT_ASSERT(i != m_torrents.end());
