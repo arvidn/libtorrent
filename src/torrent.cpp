@@ -4328,7 +4328,8 @@ namespace libtorrent
 
 		if (ready_for_connections())
 		{
-			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+			TORRENT_ASSERT(p->associated_torrent().lock().get() == NULL
+				|| p->associated_torrent().lock().get() == this);
 
 			if (p->is_seed())
 			{
@@ -5890,6 +5891,8 @@ namespace libtorrent
 			return false;
 		}
 
+		bool maybe_replace_peer = false;
+
 		if (m_connections.size() >= m_max_connections)
 		{
 			// if more than 10% of the connections are outgoing
@@ -5923,21 +5926,7 @@ namespace libtorrent
 			}
 			else
 			{
-				// now, find the lowest rank peer and disconnect that
-				// if it's lower rank than the incoming connection
-				peer_connection* peer = find_lowest_ranking_peer();
-
-				// TODO: if peer is a really good peer, maybe we shouldn't disconnect it
-				if (peer && peer->peer_rank() < p->peer_rank())
-				{
-					peer->disconnect(errors::too_many_connections);
-					p->peer_disconnected_other();
-				}
-				else
-				{
-					p->disconnect(errors::too_many_connections);
-					return false;
-				}
+				maybe_replace_peer = true;
 			}
 		}
 
@@ -5978,6 +5967,34 @@ namespace libtorrent
 		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
 #endif
+
+		TORRENT_ASSERT(p->peer_info_struct() != NULL);
+
+		// we need to do this after we've added the peer to the policy
+		// since that's when the peer is assigned its peer_info object,
+		// which holds the rank
+		if (maybe_replace_peer)
+		{
+			// now, find the lowest rank peer and disconnect that
+			// if it's lower rank than the incoming connection
+			peer_connection* peer = find_lowest_ranking_peer();
+
+			// TODO: if peer is a really good peer, maybe we shouldn't disconnect it
+			if (peer && peer->peer_rank() < p->peer_rank())
+			{
+				peer->disconnect(errors::too_many_connections);
+				p->peer_disconnected_other();
+			}
+			else
+			{
+				p->disconnect(errors::too_many_connections);
+				// we have to do this here because from the peer's point of
+				// it wasn't really attached to the torrent, but we do need
+				// to let policy know we're removing it
+				remove_peer(p);
+				return false;
+			}
+		}
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		m_policy.check_invariant();
