@@ -281,9 +281,9 @@ namespace libtorrent
 			void remove_feed(feed_handle h);
 			void get_feeds(std::vector<feed_handle>* f) const;
 
-			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash);
-			boost::weak_ptr<torrent> find_torrent(std::string const& uuid);
-			boost::weak_ptr<torrent> find_disconnect_candidate_torrent();
+			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const;
+			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
+			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const;
 
 			peer_id const& get_peer_id() const { return m_peer_id; }
 
