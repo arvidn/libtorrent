@@ -1079,20 +1079,26 @@ namespace libtorrent
 		{
 			// find a peer in some torrent (presumably the one with most peers)
 			// and disconnect the lowest ranking peer
-			aux::session_impl::torrent_map::iterator i = std::max_element(m_ses.m_torrents.begin(), m_ses.m_torrents.end()
-				, boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _1))
-				< boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _2)));
+			boost::weak_ptr<torrent> torr = m_ses.find_disconnect_candidate_torrent();
+			boost::shared_ptr<torrent> other_t = torr.lock();
 
-			TORRENT_ASSERT(i != m_ses.m_torrents.end());
-			if (i->second->num_peers() <= t->num_peers())
+			if (other_t)
+			{
+				if (other_t->num_peers() <= t->num_peers())
+				{
+					disconnect(errors::too_many_connections);
+					return;
+				}
+				// find the lowest ranking peer and disconnect that
+				peer_connection* p = other_t->find_lowest_ranking_peer();
+				p->disconnect(errors::too_many_connections);
+				peer_disconnected_other();
+			}
+			else
 			{
 				disconnect(errors::too_many_connections);
 				return;
 			}
-			// find the lowest ranking peer and disconnect that
-			peer_connection* p = i->second->find_lowest_ranking_peer();
-			p->disconnect(errors::too_many_connections);
-			peer_disconnected_other();
 		}
 
 		TORRENT_ASSERT(!m_torrent.expired());
