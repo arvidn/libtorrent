@@ -104,6 +104,27 @@ namespace libtorrent
 			return true;
 		}
 
+		bool none_set() const
+		{
+			const int num_words = m_size / 32;
+			const int num_bytes = m_size / 8;
+			boost::uint32_t* bits = (boost::uint32_t*)m_bytes;
+			for (int i = 0; i < num_words; ++i)
+			{
+				if (bits[i] != 0) return false;
+			}
+
+			for (int i = num_words * 4; i < num_bytes; ++i)
+			{
+				if (m_bytes[i] != 0) return false;
+			}
+			int rest = m_size - num_bytes * 8;
+			boost::uint8_t mask = 0xff << (8-rest);
+			if (rest > 0 && (m_bytes[num_bytes] & mask) != 0)
+				return false;
+			return true;
+		}
+
 		void set_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);

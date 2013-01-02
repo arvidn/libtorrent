@@ -1213,7 +1213,10 @@ namespace libtorrent
 		std::cerr << "[" << this << "] " << "dec_refcount(bitfield)" << std::endl;
 #endif
 
-		if (bitmask.all_set())
+		// nothing set, nothing to do here
+		if (bitmask.none_set()) return;
+
+		if (bitmask.all_set() && bitmask.size() == m_piece_map.size())
 		{
 			dec_refcount_all(peer);
 			return;
