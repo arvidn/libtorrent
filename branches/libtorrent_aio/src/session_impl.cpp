@@ -5299,14 +5299,30 @@ retry:
 		return boost::weak_ptr<torrent>();
 	}
 
-	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent()
+	// returns true if lhs is a better disconnect candidate than rhs
+	bool compare_disconnect_torrent(session_impl::torrent_map::value_type const& lhs
+		, session_impl::torrent_map::value_type const& rhs)
 	{
-		aux::session_impl::torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
-			, boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _1))
-			< boost::bind(&torrent::num_peers, boost::bind(&session_impl::torrent_map::value_type::second, _2)));
-		
+		// a torrent with 0 peers is never a good disconnect candidate
+		// since there's nothing to disconnect
+		if ((lhs.second->num_peers() == 0) != (lhs.second->num_peers() == 0))
+			return lhs.second->num_peers() != 0;
+
+		// other than that, always prefer to disconnect peers from seeding torrents
+		// in order to not harm downloading ones
+		if (lhs.second->is_seed() != rhs.second->is_seed())
+			return lhs.second->is_seed();
+
+		return lhs.second->num_peers() > rhs.second->num_peers();
+	}
+
+ 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent()
+ 	{
+		aux::session_impl::torrent_map::iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
+			, boost::bind(&compare_disconnect_torrent, _1, _2));
+
 		TORRENT_ASSERT(i != m_torrents.end());
-		if (i == m_torrents.end()) return boost::weak_ptr<torrent>();
+		if (i == m_torrents.end()) return boost::shared_ptr<torrent>();
 
 		return i->second;
 	}
