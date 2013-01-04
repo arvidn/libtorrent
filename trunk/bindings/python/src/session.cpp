@@ -418,6 +418,24 @@ namespace
         return e;
     }
 
+    list pop_alerts(session& ses)
+    {
+        std::deque<alert*> alerts;
+        {
+            allow_threading_guard guard;
+            ses.pop_alerts(&alerts);
+        }
+
+        list ret;
+        for (std::deque<alert*>::iterator i = alerts.begin()
+            , end(alerts.end()); i != end; ++i)
+        {
+				std::auto_ptr<alert> ptr(*i);
+            ret.append(ptr);
+        }
+        return ret;
+    }
+
 } // namespace unnamed
 
 
@@ -628,6 +646,7 @@ void bind_session()
 #endif
         .def("set_alert_mask", allow_threads(&session::set_alert_mask))
         .def("pop_alert", allow_threads(&session::pop_alert))
+        .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
