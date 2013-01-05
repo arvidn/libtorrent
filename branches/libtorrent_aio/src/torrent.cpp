@@ -8428,7 +8428,7 @@ namespace libtorrent
 			set_upload_mode(false);
 		}
 
-		if (m_storage_tick > 0)
+		if (m_storage_tick > 0 && is_loaded())
 		{
 			--m_storage_tick;
 			if (m_storage_tick == 0)
