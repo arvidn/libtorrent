@@ -1125,9 +1125,11 @@ namespace libtorrent
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "inc_refcount(bitfield)" << std::endl;
 #endif
-		TORRENT_ASSERT(bitmask.size() == m_piece_map.size());
 
-		if (bitmask.all_set())
+		// nothing set, nothing to do here
+		if (bitmask.none_set()) return;
+
+		if (bitmask.all_set() && bitmask.size() == m_piece_map.size())
 		{
 			inc_refcount_all(peer);
 			return;
