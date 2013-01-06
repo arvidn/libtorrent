@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/policy.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 
 #include "test.hpp"
 
@@ -76,21 +77,24 @@ int test_main()
 		, tcp::endpoint(address::from_string("230.12.123.3"), 0x12c));
 	TEST_EQUAL(p, hash_buffer("\xe6\x0c\x51\x01\xe6\x78\x15\x01", 8));
 
-	// IPv6 has a twice as wide mask, and we only care about the top 64 bits
-	// when the IPs are the same, just hash the ports
-	p = peer_priority(
-		tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x4d2)
-		, tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x12c));
-	TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));
-
-	// these IPs don't belong to the same /32, so apply the full mask
-	// 0xffffffff55555555
-	p = peer_priority(
-		tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x4d2)
-		, tcp::endpoint(address::from_string("ffff:0fff:ffff:ffff::1"), 0x12c));
-	TEST_EQUAL(p, hash_buffer(
-		"\xff\xff\x0f\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01"
-		"\xff\xff\xff\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01", 32));
+	if (supports_ipv6())
+	{
+		// IPv6 has a twice as wide mask, and we only care about the top 64 bits
+		// when the IPs are the same, just hash the ports
+		p = peer_priority(
+			tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x4d2)
+			, tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x12c));
+		TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));
+        
+		// these IPs don't belong to the same /32, so apply the full mask
+		// 0xffffffff55555555
+		p = peer_priority(
+			tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x4d2)
+			, tcp::endpoint(address::from_string("ffff:0fff:ffff:ffff::1"), 0x12c));
+		TEST_EQUAL(p, hash_buffer(
+			"\xff\xff\x0f\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01"
+			"\xff\xff\xff\xff\x55\x55\x55\x55\x00\x00\x00\x00\x00\x00\x00\x01", 32));
+	}
 	
 	return 0;
 }
