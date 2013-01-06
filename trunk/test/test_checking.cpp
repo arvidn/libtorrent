@@ -101,7 +101,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 			char path[1024];
 			snprintf(path, sizeof(path), "tmp1_checking/test_torrent_dir/test%d", i);
 #ifdef TORRENT_WINDOWS
-			SetFileAttributes(path, FILE_ATTRIBUTE_READONLY);
+			SetFileAttributesA(path, FILE_ATTRIBUTE_READONLY);
 #else
 			chmod(path, S_IRUSR);
 #endif

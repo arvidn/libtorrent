@@ -232,12 +232,16 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		snprintf(filename, sizeof(filename), "%s/test%d", path.c_str(), i);
 		int to_write = file_sizes[i];
 		file f(filename, file::write_only, ec);
+		if (ec) fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
+			, filename, ec.value(), ec.message().c_str());
 		size_type offset = 0;
 		while (to_write > 0)
 		{
 			int s = (std::min)(to_write, 300000);
 			file::iovec_t b = { random_data, s};
 			f.writev(offset, &b, 1, ec);
+			if (ec) fprintf(stderr, "failed to write file \"%s\": (%d) %s\n"
+				, filename, ec.value(), ec.message().c_str());
 			offset += s;
 			to_write -= s;
 		}
