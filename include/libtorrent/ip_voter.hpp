@@ -41,7 +41,7 @@ namespace libtorrent
 {
 	// this is an object that keeps the state for a single external IP
 	// based on peoples votes
-	struct ip_voter
+	struct TORRENT_EXTRA_EXPORT ip_voter
 	{
 		// returns true if a different IP is the top vote now
 		// i.e. we changed our idea of what our external IP is
