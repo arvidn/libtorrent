@@ -463,7 +463,8 @@ namespace libtorrent
 		std::vector<boost::uint8_t>().swap(m_file_priority);
 		// close files that were opened in write mode
 		m_pool.release(this);
-		return false;
+
+		return error() ? true : false;
 	}
 
 	void default_storage::finalize_file(int index)
@@ -2020,6 +2021,7 @@ ret:
 		{
 			error = m_storage->error();
 			TORRENT_ASSERT(error);
+			m_current_slot = 0;
 			return fatal_disk_error;
 		}
 		m_state = state_finished;
@@ -2253,7 +2255,16 @@ ret:
 	{
 		if (m_state == state_none) return check_no_fastresume(error);
 
-		TORRENT_ASSERT(int(m_piece_to_slot.size()) == m_files.num_pieces());
+		if (m_piece_to_slot.empty())
+		{
+			m_piece_to_slot.clear();
+			m_piece_to_slot.resize(m_files.num_pieces(), has_no_slot);
+		}
+		if (m_slot_to_piece.empty())
+		{
+			m_slot_to_piece.clear();
+			m_slot_to_piece.resize(m_files.num_pieces(), unallocated);
+		}
 
 		current_slot = m_current_slot;
 		have_piece = -1;
