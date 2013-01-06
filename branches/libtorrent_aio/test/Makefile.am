@@ -11,6 +11,7 @@ test_programs = \
   test_bencoding             \
   test_buffer                \
   test_block_cache           \
+  test_checking              \
   test_fast_extension        \
   test_hasher                \
   test_http_connection       \

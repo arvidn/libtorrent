@@ -596,7 +596,6 @@ namespace libtorrent
 
 			bool operator==(piece_pos p) const
 			{ return index == p.index && peer_count == p.peer_count; }
-
 		};
 
 	private:
