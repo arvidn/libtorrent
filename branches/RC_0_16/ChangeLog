@@ -1,3 +1,4 @@
+	* fixed files checking issue
 	* added missing pop_alerts() to python bindings
 	* fixed typos in configure script, inversing some feature-enable/disable flags
 	* added missing flag_update_subscribe to python bindings
