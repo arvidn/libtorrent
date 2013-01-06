@@ -5,6 +5,7 @@ test_programs = \
   test_bdecode_performance   \
   test_bencoding             \
   test_buffer                \
+  test_checking              \
   test_fast_extension        \
   test_hasher                \
   test_http_connection       \

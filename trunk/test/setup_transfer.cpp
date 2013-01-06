@@ -221,6 +221,30 @@ boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 	return boost::intrusive_ptr<T>(new T(*ptr));
 }
 
+void create_random_files(std::string const& path, const int file_sizes[], int num_files)
+{
+	error_code ec;
+	char* random_data = (char*)malloc(300000);
+	for (int i = 0; i != num_files; ++i)
+	{
+		std::generate(random_data, random_data + 300000, &std::rand);
+		char filename[200];
+		snprintf(filename, sizeof(filename), "%s/test%d", path.c_str(), i);
+		int to_write = file_sizes[i];
+		file f(filename, file::write_only, ec);
+		size_type offset = 0;
+		while (to_write > 0)
+		{
+			int s = (std::min)(to_write, 300000);
+			file::iovec_t b = { random_data, s};
+			f.writev(offset, &b, 1, ec);
+			offset += s;
+			to_write -= s;
+		}
+	}
+	free(random_data);
+}
+
 boost::intrusive_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
 	, int num_pieces, bool add_tracker, bool encrypted_torrent)
 {

@@ -1727,6 +1727,8 @@ namespace libtorrent
 		if (ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
+			auto_managed(false);
+			pause();
 			set_state(torrent_status::queued_for_checking);
 			std::vector<char>().swap(m_resume_data);
 			lazy_entry().swap(m_resume_entry);
@@ -2050,6 +2052,7 @@ namespace libtorrent
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			debug_log("fatal disk error: (%d) %s", j.error.value(), j.error.message().c_str());
 #endif
+			auto_managed(false);
 			pause();
 			set_error(j.error, j.error_file);
 			// recalculate auto-managed torrents sooner
@@ -6876,7 +6879,6 @@ namespace libtorrent
 		if (!m_storage) init();
 		if (!checking_files && should_check_files())
 			queue_torrent_check();
-
 	}
 
 	void torrent::set_error(error_code const& ec, std::string const& error_file)
