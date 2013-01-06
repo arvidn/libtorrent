@@ -832,7 +832,7 @@ namespace libtorrent
 			(*m_torrent->session().m_logger) << time_now_string()
 				<< " *** FOUND CONNECTION CANDIDATE ["
 				" ip: " << m_peers[candidate]->ip() <<
-				" d: " << cidr_distance(external.address(m_peers[candidate]->address()), m_peers[candidate]->address()) <<
+				" d: " << cidr_distance(external.external_address(m_peers[candidate]->address()), m_peers[candidate]->address()) <<
 				" rank: " << m_peers[candidate]->rank(external, external_port) <<
 				" external: " << external.external_address(m_peers[candidate]->address()) <<
 				" t: " << (session_time - m_peers[candidate]->last_connected) <<

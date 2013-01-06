@@ -550,8 +550,10 @@ int test_main()
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
 	// and 50 malicious responses from the same peer
-	address real_external = address_v4::from_string("5.5.5.5");
-	address malicious = address_v4::from_string("4.4.4.4");
+	address real_external = address_v4::from_string("5.5.5.5", ec);
+	TEST_CHECK(!ec);
+	address malicious = address_v4::from_string("4.4.4.4", ec);
+	TEST_CHECK(!ec);
 	for (int i = 0; i < 50; ++i)
 	{
 		ipv1.cast_vote(real_external, aux::session_impl::source_dht, rand_v4());
@@ -564,18 +566,28 @@ int test_main()
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
 	// and 50 consistent malicious responses from the same peer
-	address real_external1 = address_v4::from_string("5.5.5.5");
-	address real_external2 = address_v6::from_string("2f80::1");
-	malicious = address_v4::from_string("4.4.4.4");
-	address malicious_external = address_v4::from_string("3.3.3.3");
+	address real_external1 = address_v4::from_string("5.5.5.5", ec);
+	TEST_CHECK(!ec);
+	address real_external2;
+	if (supports_ipv6())
+	{
+		real_external2 = address_v6::from_string("2f80::", ec);
+		TEST_CHECK(!ec);
+	}
+	malicious = address_v4::from_string("4.4.4.4", ec);
+	TEST_CHECK(!ec);
+	address malicious_external = address_v4::from_string("3.3.3.3", ec);
+	TEST_CHECK(!ec);
 	for (int i = 0; i < 50; ++i)
 	{
 		ipv2.cast_vote(real_external1, aux::session_impl::source_dht, rand_v4());
-		ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+		if (supports_ipv6())
+			ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
 		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
 	}
 	TEST_CHECK(ipv2.external_address(rand_v4()) == real_external1);
-	TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
+	if (supports_ipv6())
+		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
 
 	// test bloom_filter
 	bloom_filter<32> filter;
