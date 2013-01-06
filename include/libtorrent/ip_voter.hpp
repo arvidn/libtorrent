@@ -84,7 +84,7 @@ namespace libtorrent
 
 	// this keeps track of multiple external IPs (for now, just IPv6 and IPv4, but
 	// it could be extended to deal with loopback and local network addresses as well)
-	struct external_ip
+	struct TORRENT_EXTRA_EXPORT external_ip
 	{
 		// returns true if a different IP is the top vote now
 		// i.e. we changed our idea of what our external IP is
