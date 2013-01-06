@@ -533,11 +533,11 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index)
+		void peer_has(int index, peer_connection const* peer)
 		{
 			if (has_picker())
 			{
-				m_picker->inc_refcount(index);
+				m_picker->inc_refcount(index, peer);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -548,14 +548,14 @@ namespace libtorrent
 		}
 		
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits)
+		void peer_has(bitfield const& bits, peer_connection const* peer)
 		{
 			if (has_picker())
 			{
-				if (bits.all_set())
-					m_picker->inc_refcount_all();
+				if (bits.all_set() && bits.size() > 0)
+					m_picker->inc_refcount_all(peer);
 				else
-					m_picker->inc_refcount(bits);
+					m_picker->inc_refcount(bits, peer);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -565,11 +565,11 @@ namespace libtorrent
 #endif
 		}
 
-		void peer_has_all()
+		void peer_has_all(peer_connection const* peer)
 		{
 			if (has_picker())
 			{
-				m_picker->inc_refcount_all();
+				m_picker->inc_refcount_all(peer);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -579,14 +579,14 @@ namespace libtorrent
 #endif
 		}
 
-		void peer_lost(bitfield const& bits)
+		void peer_lost(bitfield const& bits, peer_connection const* peer)
 		{
 			if (has_picker())
 			{
-				if (bits.all_set())
-					m_picker->dec_refcount_all();
+				if (bits.all_set() && bits.size() > 0)
+					m_picker->dec_refcount_all(peer);
 				else
-					m_picker->dec_refcount(bits);
+					m_picker->dec_refcount(bits, peer);
 			}
 #ifdef TORRENT_DEBUG
 			else
@@ -596,11 +596,11 @@ namespace libtorrent
 #endif
 		}
 
-		void peer_lost(int index)
+		void peer_lost(int index, peer_connection const* peer)
 		{
 			if (has_picker())
 			{
-				m_picker->dec_refcount(index);
+				m_picker->dec_refcount(index, peer);
 			}
 #ifdef TORRENT_DEBUG
 			else
