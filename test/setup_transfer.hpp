@@ -55,6 +55,8 @@ void test_sleep(int millisec);
 extern int g_udp_tracker_requests;
 extern int g_http_tracker_requests;
 
+void create_random_files(std::string const& path, const int file_sizes[], int num_files);
+
 boost::intrusive_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true, bool encrypted = false);
 

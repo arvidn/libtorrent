@@ -54,6 +54,7 @@ test-suite libtorrent :
 	[ run test_upnp.cpp ]
 
 	[ run test_tracker.cpp ]
+	[ run test_checking.cpp ]
 	[ run test_web_seed.cpp ]
 	[ run test_bdecode_performance.cpp ]
 	[ run test_pe_crypto.cpp ]
