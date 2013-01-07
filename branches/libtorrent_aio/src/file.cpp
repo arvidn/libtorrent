@@ -1435,6 +1435,19 @@ namespace libtorrent
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
+#ifdef TORRENT_WINDOWS
+		if (m_file_handle == INVALID_HANDLE_VALUE)
+		{
+			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			return -1;
+		}
+#else
+		if (m_file_handle == -1)
+		{
+			ec = error_code(EBADF, get_system_category());
+			return -1;
+		}
+#endif
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
@@ -1471,6 +1484,19 @@ namespace libtorrent
 	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
+#ifdef TORRENT_WINDOWS
+		if (m_file_handle == INVALID_HANDLE_VALUE)
+		{
+			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
+			return -1;
+		}
+#else
+		if (m_file_handle == -1)
+		{
+			ec = error_code(EBADF, get_system_category());
+			return -1;
+		}
+#endif
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
@@ -1534,25 +1560,53 @@ namespace libtorrent
 				return false;
 			}
 		}
-#if _WIN32_WINNT >= 0x501		
+
 		if ((m_open_mode & sparse) == 0)
 		{
-			// only allocate the space if the file
-			// is not fully allocated
-			DWORD high_dword = 0;
-			offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
-			offs.HighPart = high_dword;
-			ec.assign(GetLastError(), get_system_category());
-			if (ec) return false;
-			if (offs.QuadPart != s)
+			typedef DWORD (WINAPI *GetCompressedFileSizeW_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
+			typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE hFile, LONGLONG ValidDataLength);
+
+			static GetCompressedFileSizeW_t GetCompressedFileSizeW = NULL;
+			static SetFileValidData_t SetFileValidData = NULL;
+
+			static bool failed_kernel32 = false;
+
+			if ((GetCompressedFileSizeW == NULL) && !failed_kernel32)
 			{
-				// if the user has permissions, avoid filling
-				// the file with zeroes, but just fill it with
-				// garbage instead
-				SetFileValidData(native_handle(), offs.QuadPart);
+				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
+				if (kernel32)
+				{
+					GetCompressedFileSizeW = (GetCompressedFileSizeW_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
+					SetFileValidData = (SetFileValidData_t)GetProcAddress(kernel32, "SetFileValidData");
+					if ((GetCompressedFileSizeW == NULL) || (SetFileValidData == NULL))
+					{ 
+						failed_kernel32 = true;
+					}
+				}
+				else
+				{
+					failed_kernel32 = true;
+				}
+			}
+
+			if (!failed_kernel32 && GetCompressedFileSizeW && SetFileValidData)
+			{
+				// only allocate the space if the file
+				// is not fully allocated
+				DWORD high_dword = 0;
+				offs.LowPart = GetCompressedFileSize(m_path.c_str(), &high_dword);
+				offs.HighPart = high_dword;
+				ec.assign(GetLastError(), get_system_category());
+				if (ec) return false;
+				if (offs.QuadPart != s)
+				{
+					// if the user has permissions, avoid filling
+					// the file with zeroes, but just fill it with
+					// garbage instead
+					SetFileValidData(m_file_handle, offs.QuadPart);
+				}
 			}
 		}
-#endif // _WIN32_WINNT >= 0x501
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(native_handle(), &st) != 0)

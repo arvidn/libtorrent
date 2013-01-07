@@ -16,6 +16,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* improve support for windows XP and earlier
 	* introduce global connection priority for improved swarm performance
 	* make files deleted alert non-discardable
 	* make built-in sha functions not conflict with libcrypto

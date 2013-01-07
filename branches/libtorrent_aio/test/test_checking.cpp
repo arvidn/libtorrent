@@ -37,6 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
+static const int file_sizes[] =
+{ 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
+	,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
+const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
+
 void test_checking(bool read_only_files, bool corrupt_files = false)
 {
 	using namespace libtorrent;
@@ -44,6 +49,20 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	fprintf(stderr, "==== TEST CHECKING %s%s=====\n"
 		, read_only_files?"read-only-files ":""
 		, corrupt_files?"corrupt ":"");
+
+	// make the files writable again
+	for (int i = 0; i < num_files; ++i)
+	{
+		char name[1024];
+		snprintf(name, sizeof(name), "test%d", i);
+		std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+		path = combine_path(path, name);
+#ifdef TORRENT_WINDOWS
+		SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
+#else
+		chmod(path.c_str(), S_IRUSR | SUWUSR);
+#endif
+	}
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -54,20 +73,17 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	create_directory("tmp1_checking", ec);
 	if (ec) fprintf(stderr, "ERROR: creating directory tmp1_checking: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
-	create_directory("tmp1_checking/test_torrent_dir", ec);
+	create_directory(combine_path("tmp1_checking", "test_torrent_dir"), ec);
 	if (ec) fprintf(stderr, "ERROR: creating directory test_torrent_dir: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 	
 	file_storage fs;
 	std::srand(10);
 	int piece_size = 0x4000;
-	static const int file_sizes[] =
-	{ 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-		,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
-	const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
-	create_random_files("tmp1_checking/test_torrent_dir", file_sizes, num_files);
 
-	add_files(fs, "tmp1_checking/test_torrent_dir");
+	create_random_files(combine_path("tmp1_checking", "test_torrent_dir"), file_sizes, num_files);
+
+	add_files(fs, combine_path("tmp1_checking", "test_torrent_dir"));
 	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize);
 
 	// calculate the hash for all pieces
@@ -90,7 +106,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 		static const int file_sizes2[] =
 		{ 5, 16 - 5, 16001, 30, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
 			,1,1,1,1,1,1,13,65000,34,75,2,30,400,500,23000,900,43000,400,4300,6, 4};
-		create_random_files("tmp1_checking/test_torrent_dir", file_sizes2, num_files);
+		create_random_files(combine_path("tmp1_checking", "test_torrent_dir"), file_sizes2, num_files);
 	}
 
 	// make the files read only
@@ -98,12 +114,14 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	{
 		for (int i = 0; i < num_files; ++i)
 		{
-			char path[1024];
-			snprintf(path, sizeof(path), "tmp1_checking/test_torrent_dir/test%d", i);
+			char name[1024];
+			snprintf(name, sizeof(name), "test%d", i);
+			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
-			SetFileAttributes(path, FILE_ATTRIBUTE_READONLY);
+			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
 #else
-			chmod(path, S_IRUSR);
+			chmod(path.c_str(), S_IRUSR);
 #endif
 		}
 	}
@@ -148,6 +166,23 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 	else
 	{
 		TEST_CHECK(st.is_seeding);
+	}
+
+	// make the files writable again
+	if (read_only_files)
+	{
+		for (int i = 0; i < num_files; ++i)
+		{
+			char name[1024];
+			snprintf(name, sizeof(name), "test%d", i);
+			std::string path = combine_path("tmp1_checking", "test_torrent_dir");
+			path = combine_path(path, name);
+#ifdef TORRENT_WINDOWS
+			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
+#else
+			chmod(path.c_str(), S_IRUSR | SUWUSR);
+#endif
+		}
 	}
 
 	remove_all("tmp1_checking", ec);

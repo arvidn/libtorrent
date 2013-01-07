@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h> // for exit()
 
 int test_main();
 
