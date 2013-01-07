@@ -557,6 +557,10 @@ If you pass in resume data, the paused state of the torrent when the resume data
 was saved will override the paused state you pass in here. You can override this
 by setting ``flag_override_resume_data``.
 
+If the torrent is auto-managed (``flag_auto_managed``), the torrent may be resumed
+at any point, regardless of how it paused. If it's important to manually control
+when the torrent is paused and resumed, don't make it auto managed.
+
 If ``flag_auto_managed`` is set, the torrent will be queued, started and seeded
 automatically by libtorrent. When this is set, the torrent should also be started
 as paused. The default queue order is the order the torrents were added. They
@@ -589,6 +593,10 @@ which means it will not make any piece requests. This state is typically entered
 on disk I/O errors, and if the torrent is also auto managed, it will be taken out
 of this state periodically. This mode can be used to avoid race conditions when
 adjusting priorities of pieces before allowing the torrent to start downloading.
+
+If the torrent is auto-managed (``flag_auto_managed``), the torrent will eventually
+be taken out of upload-mode, regardless of how it got there. If it's important to
+manually control when the torrent leaves upload mode, don't make it auto managed.
 
 ``flag_share_mode`` determines if the torrent should be added in *share mode* or not.
 Share mode indicates that we are not interested in downloading the torrent, but
