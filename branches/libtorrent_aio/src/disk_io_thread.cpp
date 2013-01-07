@@ -1647,6 +1647,9 @@ namespace libtorrent
 		while (qj)
 		{
 			disk_io_job* next = (disk_io_job*)qj->next;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+			qj->next = NULL;
+#endif
 			if (qj->storage == storage)
 				to_abort.push_back(qj);
 			else
