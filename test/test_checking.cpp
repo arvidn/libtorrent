@@ -60,7 +60,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 #ifdef TORRENT_WINDOWS
 		SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
 #else
-		chmod(path.c_str(), S_IRUSR | SUWUSR);
+		chmod(path.c_str(), S_IRUSR | S_IWUSR);
 #endif
 	}
 
@@ -180,7 +180,7 @@ void test_checking(bool read_only_files, bool corrupt_files = false)
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_NORMAL);
 #else
-			chmod(path.c_str(), S_IRUSR | SUWUSR);
+			chmod(path.c_str(), S_IRUSR | S_IWUSR);
 #endif
 		}
 	}
