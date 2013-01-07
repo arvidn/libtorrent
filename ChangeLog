@@ -9,6 +9,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* fixed rare crash in ut_metadata extension
 	* fixed files checking issue
 	* added missing pop_alerts() to python bindings
 	* fixed typos in configure script, inversing some feature-enable/disable flags
