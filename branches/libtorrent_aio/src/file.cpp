@@ -1435,19 +1435,15 @@ namespace libtorrent
 	size_type file::readv(size_type file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
-#ifdef TORRENT_WINDOWS
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
+#ifdef TORRENT_WINDOWS
 			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
-			return -1;
-		}
 #else
-		if (m_file_handle == -1)
-		{
 			ec = error_code(EBADF, get_system_category());
+#endif
 			return -1;
 		}
-#endif
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);
@@ -1484,19 +1480,15 @@ namespace libtorrent
 	size_type file::writev(size_type file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
-#ifdef TORRENT_WINDOWS
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
+#ifdef TORRENT_WINDOWS
 			ec = error_code(ERROR_INVALID_HANDLE, get_system_category());
-			return -1;
-		}
 #else
-		if (m_file_handle == -1)
-		{
 			ec = error_code(EBADF, get_system_category());
+#endif
 			return -1;
 		}
-#endif
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 		TORRENT_ASSERT(bufs);
 		TORRENT_ASSERT(num_bufs > 0);

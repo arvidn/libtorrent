@@ -497,6 +497,8 @@ namespace libtorrent { namespace
 
 		virtual void tick()
 		{
+			if (m_pc.is_disconnecting()) return;
+
 			// if we don't have any metadata, and this peer
 			// supports the request metadata extension
 			// and we aren't currently waiting for a request

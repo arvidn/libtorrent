@@ -1746,22 +1746,26 @@ namespace aux {
 #endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void session_impl::add_extension(
-		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
+
+	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext_function_t;
+
+	struct session_plugin_wrapper : plugin
+	{
+		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
+
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		{ return m_f(t, user); }
+		ext_function_t m_f;
+	};
+
+	void session_impl::add_extension(ext_function_t ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		typedef boost::shared_ptr<torrent_plugin>(*function_t)(torrent*, void*);
-		function_t const* f = ext.target<function_t>();
+		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
-		if (f)
-		{
-			for (extension_list_t::iterator i = m_extensions.begin(); i != m_extensions.end(); ++i)
-				if (function_equal(*i, *f)) return;
-		}
-
-		m_extensions.push_back(ext);
+		m_ses_extensions.push_back(p);
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
@@ -5506,13 +5510,6 @@ retry:
 	void session_impl::add_extensions_to_torrent(
 		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
 	{
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), userdata));
-			if (tp) torrent_ptr->add_extension(tp);
-		}
-
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
@@ -5521,6 +5518,7 @@ retry:
 		}
 	}
 #endif
+
 	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
@@ -5693,7 +5691,9 @@ retry:
 			, 16 * 1024, queue_pos, params, *ih));
 		torrent_ptr->start();
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
+#endif
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht && params.ti)
