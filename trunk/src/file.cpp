@@ -1216,7 +1216,7 @@ namespace libtorrent
 			return -1;
 		}
 #else
-		if (m_file_handle == -1)
+		if (m_fd == -1)
 		{
 			ec = error_code(EBADF, get_system_category());
 			return -1;
@@ -1440,7 +1440,7 @@ namespace libtorrent
 			return -1;
 		}
 #else
-		if (m_file_handle == -1)
+		if (m_fd == -1)
 		{
 			ec = error_code(EBADF, get_system_category());
 			return -1;
