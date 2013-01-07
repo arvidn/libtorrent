@@ -1159,11 +1159,6 @@ namespace libtorrent
 			external_ip m_external_ip;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			typedef std::list<boost::function<boost::shared_ptr<
-				torrent_plugin>(torrent*, void*)> > extension_list_t;
-
-			extension_list_t m_extensions;
-
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 #endif
