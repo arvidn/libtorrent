@@ -226,11 +226,12 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 	{
 		std::generate(random_data, random_data + 300000, &std::rand);
 		char filename[200];
-		snprintf(filename, sizeof(filename), "%s/test%d", path.c_str(), i);
+		snprintf(filename, sizeof(filename), "test%d", i);
+		std::string full_path = combine_path(path, filename);
 		int to_write = file_sizes[i];
-		file f(filename, file::write_only, ec);
+		file f(full_path, file::write_only, ec);
 		if (ec) fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
-			, filename, ec.value(), ec.message().c_str());
+			, full_path.c_str(), ec.value(), ec.message().c_str());
 		size_type offset = 0;
 		while (to_write > 0)
 		{
@@ -238,7 +239,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 			file::iovec_t b = { random_data, s};
 			f.writev(offset, &b, 1, ec);
 			if (ec) fprintf(stderr, "failed to write file \"%s\": (%d) %s\n"
-				, filename, ec.value(), ec.message().c_str());
+				, full_path.c_str(), ec.value(), ec.message().c_str());
 			offset += s;
 			to_write -= s;
 		}
