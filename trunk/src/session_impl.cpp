@@ -1658,22 +1658,26 @@ namespace aux {
 #endif // TORRENT_DISABLE_GEO_IP
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void session_impl::add_extension(
-		boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext)
+
+	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext_function_t;
+
+	struct session_plugin_wrapper : plugin
+	{
+		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
+
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		{ return m_f(t, user); }
+		ext_function_t m_f;
+	};
+
+	void session_impl::add_extension(ext_function_t ext)
 	{
 		TORRENT_ASSERT(is_network_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		typedef boost::shared_ptr<torrent_plugin>(*function_t)(torrent*, void*);
-		function_t const* f = ext.target<function_t>();
+		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
-		if (f)
-		{
-			for (extension_list_t::iterator i = m_extensions.begin(); i != m_extensions.end(); ++i)
-				if (function_equal(*i, *f)) return;
-		}
-
-		m_extensions.push_back(ext);
+		m_ses_extensions.push_back(p);
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
@@ -5139,13 +5143,6 @@ retry:
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
-		{
-			boost::shared_ptr<torrent_plugin> tp((*i)(torrent_ptr.get(), params.userdata));
-			if (tp) torrent_ptr->add_extension(tp);
-		}
-
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
