@@ -4303,18 +4303,6 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_files_released(disk_io_job const* j)
-	{
-/*
-		TORRENT_ASSERT(m_ses.is_single_thread());
-
-		if (alerts().should_post<torrent_paused_alert>())
-		{
-			alerts().post_alert(torrent_paused_alert(get_handle()));
-		}
-*/
-	}
-
 	void torrent::on_save_resume_data(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
@@ -7105,9 +7093,10 @@ namespace libtorrent
 		update_want_peers();
 
 		TORRENT_ASSERT(m_storage);
+
 		// we need to keep the object alive during this operation
 		m_ses.disk_thread().async_release_files(m_storage.get()
-			, boost::bind(&torrent::on_files_released, shared_from_this(), _1));
+			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 		
 		// this torrent just completed downloads, which means it will fall
 		// under a different limit with the auto-manager. Make sure we

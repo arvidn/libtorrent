@@ -504,11 +504,13 @@ namespace libtorrent
 
 		// mutex to protect the m_queued_jobs list
 		mutex m_job_mutex;
+
 		// jobs queued for servicing
 		tailqueue m_queued_jobs;
+
 		// when using more than 2 threads, this is
 		// used for just hashing jobs, just for threads
-		// dedicated to od hashing
+		// dedicated to do hashing
 		condition m_hash_job_cond;
 		tailqueue m_queued_hash_jobs;
 		

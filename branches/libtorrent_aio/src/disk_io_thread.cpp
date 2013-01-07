@@ -1631,9 +1631,31 @@ namespace libtorrent
 	void disk_io_thread::async_delete_files(piece_manager* storage
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
+		// remove cache blocks belonging to this torrent
 		mutex::scoped_lock l(m_cache_mutex);
 		flush_cache(storage, flush_delete_cache, l);
 		l.unlock();
+
+		// remove outstanding jobs belonging to this torrent
+		mutex::scoped_lock l2(m_job_mutex);
+
+		// TODO: maybe the tailqueue_iterator should contain a pointer-pointer
+		// instead and have an unlink function
+		disk_io_job* qj = (disk_io_job*)m_queued_jobs.get_all();
+		tailqueue to_abort;
+
+		while (qj)
+		{
+			disk_io_job* next = (disk_io_job*)qj->next;
+			if (qj->storage == storage)
+				to_abort.push_back(qj);
+			else
+				m_queued_jobs.push_back(qj);
+			qj = next;
+		}
+		l2.unlock();
+
+		abort_jobs(to_abort);
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage;
@@ -2437,6 +2459,7 @@ namespace libtorrent
 			// prioritize fence jobs since they're blocking other jobs
 			m_queued_jobs.push_front(j);
 			l.unlock();
+
 			// discard the flush job
 			free_job(fj);
 			return;

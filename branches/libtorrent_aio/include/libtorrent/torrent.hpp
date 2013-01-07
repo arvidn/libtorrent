@@ -914,7 +914,6 @@ namespace libtorrent
 		void update_list(int list, bool in);
 
 		void on_files_deleted(disk_io_job const* j);
-		void on_files_released(disk_io_job const* j);
 		void on_torrent_paused(disk_io_job const* j);
 		void on_storage_moved(disk_io_job const* j);
 		void on_save_resume_data(disk_io_job const* j);
