@@ -1,3 +1,4 @@
+	* improve peers exchanged over PEX
 	* fixed rare crash in ut_metadata extension
 	* fixed files checking issue
 	* added missing pop_alerts() to python bindings
