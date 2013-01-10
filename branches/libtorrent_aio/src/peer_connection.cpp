@@ -4104,15 +4104,17 @@ namespace libtorrent
 
 	void peer_connection::normalize_receive_buffer()
 	{
+		TORRENT_ASSERT(m_recv_end >= m_recv_start);
 		if (m_recv_start == 0) return;
 
-		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
+		if (m_recv_end > m_recv_start)
+			std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
 
 		m_recv_end -= m_recv_start;
 		m_recv_start = 0;
 
 #ifdef TORRENT_DEBUG
-		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0);
+		std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
 #endif
 	}
 
@@ -6013,6 +6015,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_in_use == 1337);
 		TORRENT_ASSERT(m_queued_time_critical <= int(m_request_queue.size()));
+		TORRENT_ASSERT(m_recv_end >= m_recv_start);
 
 		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 
