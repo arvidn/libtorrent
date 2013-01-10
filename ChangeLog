@@ -1,3 +1,4 @@
+	* attempt to handle ERROR_CANT_WAIT disk error on windows
 	* improve peers exchanged over PEX
 	* fixed rare crash in ut_metadata extension
 	* fixed files checking issue

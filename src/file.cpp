@@ -1321,24 +1321,32 @@ namespace libtorrent
 		ol.OffsetHigh = DWORD(file_offset >> 32);
 		ol.Offset = DWORD(file_offset & 0xffffffff);
 		ol.hEvent = CreateEvent(0, true, false, 0);
+		if (ol.hEvent == ERROR_INVALID_HANDLE)
+		{
+			ec.assign(last_error, get_system_category());
+			return -1;
+		}
 
 		ret += size;
 		size = num_pages * m_page_size;
 		if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 		{
 			DWORD last_error = GetLastError();
-			if (last_error != ERROR_IO_PENDING)
+			if (last_error != ERROR_IO_PENDING
+				&& last_error != ERROR_CANT_WAIT)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(last_error, get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
 			DWORD num_read;
 			if (GetOverlappedResult(m_file_handle, &ol, &num_read, true) == 0)
 			{
-				if (GetLastError() != ERROR_HANDLE_EOF)
+				DWORD last_error = GetLastError();
+				if (last_error != ERROR_HANDLE_EOF)
 				{
-					ec.assign(GetLastError(), get_system_category());
+					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
+					ec.assign(last_error, get_system_category());
 					CloseHandle(ol.hEvent);
 					return -1;
 				}
@@ -1536,6 +1544,11 @@ namespace libtorrent
 		ol.OffsetHigh = DWORD(file_offset >> 32);
 		ol.Offset = DWORD(file_offset & 0xffffffff);
 		ol.hEvent = CreateEvent(0, true, false, 0);
+		if (ol.hEvent == ERROR_INVALID_HANDLE)
+		{
+			ec.assign(last_error, get_system_category());
+			return -1;
+		}
 
 		ret += size;
 		size_type file_size = 0;
@@ -1551,17 +1564,21 @@ namespace libtorrent
 
 		if (WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
 		{
-			if (GetLastError() != ERROR_IO_PENDING)
+			DWORD last_error = GetLastError();
+			if (last_error != ERROR_IO_PENDING
+				&& last_error != ERROR_CANT_WAIT)
 			{
-				TORRENT_ASSERT(GetLastError() != ERROR_BAD_ARGUMENTS);
-				ec.assign(GetLastError(), get_system_category());
+				TORRENT_ASSERT(last_error != ERROR_BAD_ARGUMENTS);
+				ec.assign(last_error, get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
 			DWORD num_written;
 			if (GetOverlappedResult(m_file_handle, &ol, &num_written, true) == 0)
 			{
-				ec.assign(GetLastError(), get_system_category());
+				DWORD last_error = GetLastError();
+				TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
+				ec.assign(last_error, get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
 			}
