@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/socket_io.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -354,8 +355,9 @@ struct peer_conn
 		if (time == 0) time = 1;
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
 		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
-		printf("%s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
-			, tmp, blocks_sent, blocks_received, time, up, down);
+		error_code e;
+		printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
+			, tmp, libtorrent::print_endpoint(s.local_endpoint(e)).c_str(), blocks_sent, blocks_received, time, up, down);
 		if (seed) --num_seeds;
 	}
 
