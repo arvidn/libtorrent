@@ -4062,6 +4062,7 @@ namespace libtorrent
 		if (!m_disk_recv_buffer) return 0;
 
 		TORRENT_ASSERT(m_disk_recv_buffer_size <= m_recv_end);
+		TORRENT_ASSERT(m_recv_start <= m_recv_end - m_disk_recv_buffer_size);
 		m_recv_end -= m_disk_recv_buffer_size;
 		m_disk_recv_buffer_size = 0;
 		return m_disk_recv_buffer.release();
@@ -4082,6 +4083,8 @@ namespace libtorrent
 
 		if (offset > 0)
 		{
+			TORRENT_ASSERT(m_recv_start - size <= m_recv_end);
+
 			if (size > 0)
 				std::memmove(&m_recv_buffer[0] + offset, &m_recv_buffer[0] + offset + size, m_recv_end - size - offset);
 
@@ -4089,7 +4092,7 @@ namespace libtorrent
 			m_recv_end -= size;
 
 #ifdef TORRENT_DEBUG
-			std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0);
+			std::fill(m_recv_buffer.begin() + m_recv_end, m_recv_buffer.end(), 0xcc);
 #endif
 		}
 		else
@@ -5312,7 +5315,9 @@ namespace libtorrent
 			cut_receive_buffer(m_packet_size, packet_size);
 			return;
 		}
+
 		m_recv_pos = 0;
+		m_recv_start = 0;
 		m_recv_end = 0;
 		m_packet_size = packet_size;
 	}

@@ -984,13 +984,19 @@ namespace libtorrent
 		// |      m_recv_start (logical start of current
 		// |      |  receive buffer, as perceived by upper layers)
 		// |      |
-		// |      |    m_recv_pos (size of logical receive buffer)
+		// |      |    m_recv_pos (number of bytes consumed
+		// |      |    |  by upper layer, from locical receive buffer)
 		// |      |    |
 		// |      x---------x
 		// |      |         |        recv_buf.end (end of actual receive buffer)
 		// |      |         |        |
 		// v      v         v        v
 		// *------==========---------
+		//                     ^
+		//                     |
+		//                     |
+		//                     +- m_recv_end (end of received data,
+		//                          beyond this point is garbage)
 		// m_recv_buffer
 
 		int m_disk_recv_buffer_size;
