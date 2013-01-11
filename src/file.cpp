@@ -1324,9 +1324,9 @@ namespace libtorrent
 		ol.OffsetHigh = DWORD(file_offset >> 32);
 		ol.Offset = DWORD(file_offset & 0xffffffff);
 		ol.hEvent = CreateEvent(0, true, false, 0);
-		if (ol.hEvent == ERROR_INVALID_HANDLE)
+		if (ol.hEvent == NULL)
 		{
-			ec.assign(last_error, get_system_category());
+			ec.assign(GetLastError(), get_system_category());
 			return -1;
 		}
 
@@ -1336,7 +1336,10 @@ namespace libtorrent
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING
-				&& last_error != ERROR_CANT_WAIT)
+#ifndef TORRENT_MINGW
+				&& last_error != ERROR_CANT_WAIT
+#endif
+)
 			{
 				ec.assign(last_error, get_system_category());
 				CloseHandle(ol.hEvent);
@@ -1348,7 +1351,9 @@ namespace libtorrent
 				DWORD last_error = GetLastError();
 				if (last_error != ERROR_HANDLE_EOF)
 				{
+#ifndef TORRENT_MINGW
 					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
+#endif
 					ec.assign(last_error, get_system_category());
 					CloseHandle(ol.hEvent);
 					return -1;
@@ -1547,9 +1552,9 @@ namespace libtorrent
 		ol.OffsetHigh = DWORD(file_offset >> 32);
 		ol.Offset = DWORD(file_offset & 0xffffffff);
 		ol.hEvent = CreateEvent(0, true, false, 0);
-		if (ol.hEvent == ERROR_INVALID_HANDLE)
+		if (ol.hEvent == NULL)
 		{
-			ec.assign(last_error, get_system_category());
+			ec.assign(GetLastError(), get_system_category());
 			return -1;
 		}
 
@@ -1569,7 +1574,10 @@ namespace libtorrent
 		{
 			DWORD last_error = GetLastError();
 			if (last_error != ERROR_IO_PENDING
-				&& last_error != ERROR_CANT_WAIT)
+#ifndef TORRENT_MINGW
+				&& last_error != ERROR_CANT_WAIT
+#endif
+				)
 			{
 				TORRENT_ASSERT(last_error != ERROR_BAD_ARGUMENTS);
 				ec.assign(last_error, get_system_category());
@@ -1580,7 +1588,9 @@ namespace libtorrent
 			if (GetOverlappedResult(m_file_handle, &ol, &num_written, true) == 0)
 			{
 				DWORD last_error = GetLastError();
+#ifndef TORRENT_MINGW
 				TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
+#endif
 				ec.assign(last_error, get_system_category());
 				CloseHandle(ol.hEvent);
 				return -1;
