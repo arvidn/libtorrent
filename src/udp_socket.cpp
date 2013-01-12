@@ -1380,77 +1380,35 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios
 	, callback2_t const& c2
 	, connection_queue& cc)
 	: udp_socket(ios, c, c2, cc)
-	, m_timer(ios)
-	, m_queue_size_limit(200)
-	, m_rate_limit(4000)
-	, m_quota(4000)
+	, m_rate_limit(8000)
+	, m_quota(8000)
 	, m_last_tick(time_now())
 {
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("rate_limited_udp_socket::on_tick");
 #endif
-	error_code ec;
-	m_timer.expires_from_now(seconds(1), ec);
-	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
-	TORRENT_ASSERT_VAL(!ec, ec);
 }
 
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 	, int len, error_code& ec, int flags)
 {
-	if (m_quota < len)
-	{
-		if (int(m_queue.size()) >= m_queue_size_limit && (flags & dont_drop) == 0)
-			return false;
-		m_queue.push_back(queued_packet());
-		queued_packet& qp = m_queue.back();
-		qp.ep = ep;
-		qp.flags = flags;
-		qp.buf.insert(qp.buf.begin(), p, p + len);
-		return true;
-	}
-
-	m_quota -= len;
-	udp_socket::send(ep, p, len, ec, flags);
-	return true;
-}
-
-void rate_limited_udp_socket::on_tick(error_code const& e)
-{
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("rate_limited_udp_socket::on_tick");
-#endif
-	if (e) return;
-	if (is_closed()) return;
-	error_code ec;
 	ptime now = time_now_hires();
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("rate_limited_udp_socket::on_tick");
-#endif
-	m_timer.expires_at(now + seconds(1), ec);
-	m_timer.async_wait(boost::bind(&rate_limited_udp_socket::on_tick, this, _1));
-
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
-	if (m_quota < m_rate_limit) m_quota += boost::uint64_t(m_rate_limit) * total_milliseconds(delta) / 1000;
 
-	if (m_queue.empty()) return;
+	// add any new quota we've accrued since last time
+	m_quota += boost::uint64_t(m_rate_limit) * total_microseconds(delta) / 1000000;
 
-	while (!m_queue.empty() && int(m_queue.front().buf.size()) <= m_quota)
-	{
-		queued_packet const& p = m_queue.front();
-		TORRENT_ASSERT(m_quota >= int(p.buf.size()));
-		m_quota -= p.buf.size();
-		error_code ec;
-		udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags);
-		m_queue.pop_front();
-	}
-}
+	// allow 3 seconds worth of burst
+	if (m_quota > 3 * m_rate_limit) m_quota = 3 * m_rate_limit;
 
-void rate_limited_udp_socket::close()
-{
-	error_code ec;
-	m_timer.cancel(ec);
-	udp_socket::close();
+	// if there's no quota, and it's OK to drop, just
+	// drop the packet
+	if (m_quota < len && (flags & dont_drop) == 0) return false;
+
+	m_quota -= len;
+	if (m_quota < 0) m_quota = 0;
+	udp_socket::send(ep, p, len, ec, flags);
+	return true;
 }
 
