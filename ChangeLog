@@ -9,6 +9,7 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* DHT performance improvement
 	* attempt to handle ERROR_CANT_WAIT disk error on windows
 	* improve peers exchanged over PEX
 	* fixed rare crash in ut_metadata extension
