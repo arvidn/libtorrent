@@ -924,7 +924,7 @@ namespace libtorrent
 		if (m_abort)
 		{
 			// failed
-			m_ses.m_alerts.post_alert(read_piece_alert(
+			m_ses.alerts().post_alert(read_piece_alert(
 				get_handle(), piece, boost::shared_array<char>(), 0));
 			return;
 		}
@@ -4387,7 +4387,7 @@ namespace libtorrent
 			// failed
 			if (flags & torrent_handle::alert_when_available)
 			{
-				m_ses.m_alerts.post_alert(read_piece_alert(
+				m_ses.alerts().post_alert(read_piece_alert(
 					get_handle(), piece, boost::shared_array<char>(), 0));
 			}
 			return;
