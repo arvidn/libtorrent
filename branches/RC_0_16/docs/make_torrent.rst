@@ -3,7 +3,7 @@ creating torrents
 =================
 
 :Author: Arvid Norberg, arvid@rasterbar.com
-:Version: 0.16.6
+:Version: 0.16.7
 
 .. contents:: Table of contents
   :depth: 2
