@@ -88,9 +88,6 @@ namespace libtorrent
 		// it's a connect candidate or not.. maybe?
 		virtual bool is_finished() const = 0;
 
-		// the logic where this is used should be removed
-		virtual int max_connections() const = 0;
-
 		// this is only used when recalculating or altering the number of connect candidates.
 		// it could be done by the caller instead
 		virtual void update_want_peers() = 0;

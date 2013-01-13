@@ -727,11 +727,10 @@ namespace libtorrent
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
 					m_torrent->session().session_log(" *** TOO MANY CONNECTIONS ["
-						" torrent: %s torrent peers: %d torrent limit: %d global peers: %d "
+						" torrent: %s torrent peers: %d global peers: %d "
 						"global limit: %d global list peers: %d global list limit: %d ]"
 						, m_torrent->name().c_str()
 						, m_torrent->num_peers()
-						, m_torrent->max_connections()
 						, ses.num_connections()
 						, ses.settings().get_int(settings_pack::connections_limit)
 						, int(m_peers.size())
