@@ -54,6 +54,7 @@ namespace libtorrent
 	struct external_ip;
 	class torrent_info;
 	struct torrent_handle;
+	class alert_manager;
 
 	enum
 	{
@@ -74,9 +75,15 @@ namespace libtorrent
 		virtual aux::session_settings const& settings() const = 0;
 		virtual aux::session_interface& session() = 0;
 		virtual bool apply_ip_filter() const = 0;
+		virtual bool is_i2p() const = 0;
 
-		// this is only used to query if this is an i2p torrent. raise the abstraction level!
-		virtual torrent_info const& torrent_file() const = 0;
+		virtual int port_filter_access(int port) const = 0;
+		virtual int ip_filter_access(address const& addr) const = 0;
+
+		virtual torrent_peer* allocate_peer_entry(int type) = 0;
+		virtual void free_peer_entry(torrent_peer* p) = 0;
+
+		virtual alert_manager& alerts() const = 0;
 
 		virtual bool has_picker() const = 0;
 

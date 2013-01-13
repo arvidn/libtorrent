@@ -165,12 +165,11 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		aux::session_interface& ses = m_torrent->session();
 		if (!m_torrent->apply_ip_filter()) return;
 
 		for (iterator i = m_peers.begin(); i != m_peers.end();)
 		{
-			if ((ses.ip_filter_access((*i)->address()) & ip_filter::blocked) == 0)
+			if ((m_torrent->ip_filter_access((*i)->address()) & ip_filter::blocked) == 0)
 			{
 				++i;
 				continue;
@@ -181,8 +180,8 @@ namespace libtorrent
 				continue;
 			}
 		
-			if (ses.alerts().should_post<peer_blocked_alert>())
-				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
+			if (m_torrent->alerts().should_post<peer_blocked_alert>())
+				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), (*i)->address()));
 
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
@@ -251,7 +250,7 @@ namespace libtorrent
 		(*i)->in_use = false;
 #endif
 
-		m_torrent->session().free_peer_entry(*i);
+		m_torrent->free_peer_entry(*i);
 		m_peers.erase(i);
 	}
 
@@ -416,13 +415,12 @@ namespace libtorrent
 			|| int(p.failcount) >= m_torrent->settings().get_int(settings_pack::max_failcount))
 			return false;
 		
-		aux::session_interface const& ses = m_torrent->session();
-		if (ses.port_filter_access(p.port) & port_filter::blocked)
+		if (m_torrent->port_filter_access(p.port) & port_filter::blocked)
 			return false;
 
 		// only apply this to peers we've only heard
 		// about from the DHT
-		if (ses.settings().get_bool(settings_pack::no_connect_privileged_ports)
+		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& p.port < 1024
 			&& p.source == peer_info::dht)
 			return false;
@@ -726,15 +724,14 @@ namespace libtorrent
 				if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 				{
 #if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-					m_torrent->session().session_log(" *** TOO MANY CONNECTIONS ["
-						" torrent: %s torrent peers: %d global peers: %d "
+					m_torrent->session().session_log(" *** TOO MANY PEERS IN LIST ["
+						" torrent: %s torrent peers: %d "
 						"global limit: %d global list peers: %d global list limit: %d ]"
 						, m_torrent->name().c_str()
 						, m_torrent->num_peers()
-						, ses.num_connections()
-						, ses.settings().get_int(settings_pack::connections_limit)
+						, m_torrent->settings().get_int(settings_pack::connections_limit)
 						, int(m_peers.size())
-						, ses.settings().get_int(settings_pack::max_peerlist_size));
+						, m_torrent->settings().get_int(settings_pack::max_peerlist_size));
 #endif
 					c.disconnect(errors::too_many_connections);
 					return false;
@@ -751,7 +748,7 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			torrent_peer* p = m_torrent->session().allocate_peer_entry(
+			torrent_peer* p = m_torrent->allocate_peer_entry(
 				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
 			if (p == 0) return false;
 
@@ -1068,7 +1065,7 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			p = m_torrent->session().allocate_peer_entry(aux::session_interface::i2p_peer);
+			p = m_torrent->allocate_peer_entry(aux::session_interface::i2p_peer);
 			if (p == 0) return 0;
 			new (p) i2p_peer(destination, true, src);
 
@@ -1082,7 +1079,7 @@ namespace libtorrent
 				p->in_use = false;
 #endif
 
-				m_torrent->session().free_peer_entry(p);
+				m_torrent->free_peer_entry(p);
 				return 0;
 			}
 		}
@@ -1114,33 +1111,31 @@ namespace libtorrent
 			return 0;
 #endif
 
-		aux::session_interface& ses = m_torrent->session();
-
 		// if this is an i2p torrent, and we don't allow mixed mode
 		// no regular peers should ever be added!
-		if (!ses.settings().get_bool(settings_pack::allow_i2p_mixed)
-			&& m_torrent->torrent_file().is_i2p())
+		if (!m_torrent->settings().get_bool(settings_pack::allow_i2p_mixed)
+			&& m_torrent->is_i2p())
 		{
-			if (ses.alerts().should_post<peer_blocked_alert>())
-				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (m_torrent->alerts().should_post<peer_blocked_alert>())
+				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 			return 0;
 		}
 
-		if (ses.port_filter_access(remote.port()) & port_filter::blocked)
+		if (m_torrent->port_filter_access(remote.port()) & port_filter::blocked)
 		{
-			if (ses.alerts().should_post<peer_blocked_alert>())
-				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (m_torrent->alerts().should_post<peer_blocked_alert>())
+				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
 			return 0;
 		}
 
-		if (ses.settings().get_bool(settings_pack::no_connect_privileged_ports)
+		if (m_torrent->settings().get_bool(settings_pack::no_connect_privileged_ports)
 			&& remote.port() < 1024)
 		{
-			if (ses.alerts().should_post<peer_blocked_alert>())
-				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (m_torrent->alerts().should_post<peer_blocked_alert>())
+				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1149,10 +1144,10 @@ namespace libtorrent
 
 		// if the IP is blocked, don't add it
 		if (m_torrent->apply_ip_filter()
-			&& (ses.ip_filter_access(remote.address()) & ip_filter::blocked))
+			&& (m_torrent->ip_filter_access(remote.address()) & ip_filter::blocked))
 		{
-			if (ses.alerts().should_post<peer_blocked_alert>())
-				ses.alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
+			if (m_torrent->alerts().should_post<peer_blocked_alert>())
+				m_torrent->alerts().post_alert(peer_blocked_alert(m_torrent->get_handle(), remote.address()));
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			m_torrent->notify_extension_add_peer(remote, src, torrent_plugin::filtered);
 #endif
@@ -1189,7 +1184,7 @@ namespace libtorrent
 #else
 			bool is_v6 = false;
 #endif
-			p = m_torrent->session().allocate_peer_entry(
+			p = m_torrent->allocate_peer_entry(
 				is_v6 ? aux::session_interface::ipv6_peer : aux::session_interface::ipv4_peer);
 			if (p == 0) return 0;
 
@@ -1209,7 +1204,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 				p->in_use = false;
 #endif
-				m_torrent->session().free_peer_entry(p);
+				m_torrent->free_peer_entry(p);
 				return 0;
 			}
 #ifndef TORRENT_DISABLE_EXTENSIONS
