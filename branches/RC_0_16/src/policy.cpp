@@ -777,28 +777,6 @@ namespace libtorrent
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 		TORRENT_ASSERT(!m_torrent->is_paused());
 
-		aux::session_impl& ses = m_torrent->session();
-		
-		if (m_torrent->num_peers() >= m_torrent->max_connections()
-			&& ses.num_connections() >= ses.settings().connections_limit
-			&& c.remote().address() != m_torrent->current_tracker().address())
-		{
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING
-			(*m_torrent->session().m_logger) << time_now_string()
-				<< " *** TOO MANY CONNECTIONS ["
-				" torrent: " << m_torrent->name() <<
-				" torrent peers: " << m_torrent->num_peers() <<
-				" torrent limit: " << m_torrent->max_connections() <<
-				" global peers: " << ses.num_connections() <<
-				" global limit: " << ses.settings().connections_limit <<
-				" global list peers " << int(m_peers.size()) <<
-				" global list limit: " << m_torrent->settings().max_peerlist_size <<
-				" ]\n";
-#endif
-			c.disconnect(errors::too_many_connections);
-			return false;
-		}
-
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 		if (c.remote().address() == m_torrent->current_tracker().address())
 		{
