@@ -50,6 +50,7 @@
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <poll.h>
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__) // Windows specific
 #define _WIN32_WINNT 0x0400 // To make it link in VS2005
@@ -1380,15 +1381,12 @@ static int64_t push(FILE *fp, SOCKET sock, SSL *ssl, const char *buf,
 // reading, must give up and close the connection and exit serving thread.
 static int wait_until_socket_is_readable(struct mg_connection *conn) {
   int result;
-  struct timeval tv;
-  fd_set set;
+  struct pollfd pfd;
   
   do {
-    tv.tv_sec = 0;
-    tv.tv_usec = 300 * 1000;
-    FD_ZERO(&set);
-    FD_SET(conn->client.sock, &set);
-    result = select(conn->client.sock + 1, &set, NULL, NULL, &tv);
+    pfd.fd = conn->client.sock;
+    pfd.events = POLLIN;
+    result = poll(&pfd, 1, 300);
   } while ((result == 0 || (result < 0 && ERRNO == EINTR)) &&
            conn->ctx->stop_flag == 0);
 
