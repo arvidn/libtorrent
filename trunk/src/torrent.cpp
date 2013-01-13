@@ -936,6 +936,14 @@ namespace libtorrent
 
 	void torrent::read_piece(int piece)
 	{
+		if (m_abort)
+		{
+			// failed
+			m_ses.m_alerts.post_alert(read_piece_alert(
+				get_handle(), piece, boost::shared_array<char>(), 0));
+			return;
+		}
+
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
 		int piece_size = m_torrent_file->piece_size(piece);
 		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
@@ -3678,6 +3686,17 @@ namespace libtorrent
 
 	void torrent::set_piece_deadline(int piece, int t, int flags)
 	{
+		if (m_abort)
+		{
+			// failed
+			if (flags & torrent_handle::alert_when_available)
+			{
+				m_ses.m_alerts.post_alert(read_piece_alert(
+					get_handle(), piece, boost::shared_array<char>(), 0));
+			}
+			return;
+		}
+
 		ptime deadline = time_now() + milliseconds(t);
 
 		if (is_seed() || m_picker->have_piece(piece))
