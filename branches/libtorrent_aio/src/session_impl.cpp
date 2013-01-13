@@ -5989,7 +5989,7 @@ retry:
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
-		t->get_policy().add_peer(peer, peer_id(0), peer_info::lsd, 0);
+		t->get_policy().add_peer(peer, peer_info::lsd, 0);
 		t->update_want_peers();
 		if (m_alerts.should_post<lsd_peer_alert>())
 			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));

@@ -548,7 +548,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		error_code ec;
-		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 		TORRENT_ASSERT(!m_torrent->is_paused());
 
 		iterator iter;
@@ -602,22 +601,9 @@ namespace libtorrent
 
 			if (i->connection != 0)
 			{
-				boost::shared_ptr<socket_type> other_socket
-					= i->connection->get_socket();
-				boost::shared_ptr<socket_type> this_socket
-					= c.get_socket();
-
-				error_code ec1;
-				error_code ec2;
 				bool self_connection =
-					other_socket->remote_endpoint(ec2) == this_socket->local_endpoint(ec1)
-					|| other_socket->local_endpoint(ec2) == this_socket->remote_endpoint(ec1);
-
-				if (ec1)
-				{
-					c.disconnect(ec1);
-					return false;
-				}
+					i->connection->remote() == c.local_endpoint()
+					|| i->connection->local_endpoint() == c.remote();
 
 				if (self_connection)
 				{
@@ -630,15 +616,7 @@ namespace libtorrent
 				TORRENT_ASSERT(i->connection != &c);
 				// the new connection is a local (outgoing) connection
 				// or the current one is already connected
-				if (ec2)
-				{
-					TORRENT_ASSERT(m_locked_peer == NULL);
-					m_locked_peer = i;
-					i->connection->disconnect(ec2);
-					TORRENT_ASSERT(i->connection == 0);
-					m_locked_peer = NULL;
-				}
-				else if (i->connection->is_outgoing() == c.is_outgoing())
+				if (i->connection->is_outgoing() == c.is_outgoing())
 				{
 					// if the other end connected to us both times, just drop
 					// the second one. Or if we made both connections.
@@ -662,8 +640,8 @@ namespace libtorrent
 					// to be careful to only look at the target end of a
 					// connection for the endpoint.
 
-					tcp::endpoint our_ep = outgoing1 ? other_socket->local_endpoint(ec1) : this_socket->local_endpoint(ec1);
-					tcp::endpoint other_ep = outgoing1 ? this_socket->remote_endpoint(ec1) : other_socket->remote_endpoint(ec1);
+					tcp::endpoint our_ep = outgoing1 ? i->connection->local_endpoint() : c.local_endpoint();
+					tcp::endpoint other_ep = outgoing1 ? c.remote() : i->connection->remote();
 
 					if (our_ep < other_ep)
 					{
@@ -715,7 +693,6 @@ namespace libtorrent
 			// we don't have any info about this peer.
 			// add a new entry
 			error_code ec;
-			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
 			if (int(m_peers.size()) >= m_torrent->settings().get_int(settings_pack::max_peerlist_size))
 			{
@@ -1093,7 +1070,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	torrent_peer* policy::add_peer(tcp::endpoint const& remote, peer_id const& pid
+	torrent_peer* policy::add_peer(tcp::endpoint const& remote
 		, int src, char flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1354,14 +1331,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(c);
-		error_code ec;
-		if (c->remote() != c->get_socket()->remote_endpoint(ec) && !ec)
-		{
-			fprintf(stderr, "c->remote: %s\nc->get_socket()->remote_endpoint: %s\n"
-				, print_endpoint(c->remote()).c_str()
-				, print_endpoint(c->get_socket()->remote_endpoint(ec)).c_str());
-			TORRENT_ASSERT(false);
-		}
 
 		iterator iter = std::lower_bound(
 			m_peers.begin(), m_peers.end()
@@ -1476,7 +1445,7 @@ namespace libtorrent
 				if (p->connection == 0) continue;
 				// web seeds are special, they're not connected via the peer list
 				// so they're not kept in m_peers
-				if (p->connection->type() != peer_connection::bittorrent_connection) continue;
+				if (p->web_seed) continue;
 				TORRENT_ASSERT(std::find_if(m_peers.begin(), m_peers.end()
 					, match_peer_connection_or_endpoint(*p->connection)) != m_peers.end());
 			}

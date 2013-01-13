@@ -174,9 +174,6 @@ namespace libtorrent
 			num_channels
 		};
 
-		// this is the constructor where the we are the active part.
-		// The peer_conenction should handshake and verify that the
-		// other end has the correct id
 		peer_connection(
 			aux::session_interface& ses
 			, aux::session_settings const& sett
@@ -367,6 +364,7 @@ namespace libtorrent
 
 		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
+		tcp::endpoint local_endpoint() const { return m_local; }
 
 		bitfield const& get_bitfield() const;
 		std::vector<int> const& allowed_fast();
@@ -873,6 +871,10 @@ namespace libtorrent
 		// it may not necessarily be the peer we're
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
+
+		// the local endpoint for this peer, i.e. our address
+		// and our port
+		tcp::endpoint m_local;
 		
 		// this is the torrent this connection is
 		// associated with. If the connection is an

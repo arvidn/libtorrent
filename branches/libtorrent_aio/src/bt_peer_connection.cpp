@@ -1497,7 +1497,7 @@ namespace libtorrent
 			case hp_connect:
 			{
 				// add or find the peer with this endpoint
-				torrent_peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
+				torrent_peer* p = t->get_policy().add_peer(ep, peer_info::pex, 0);
 				if (p == 0 || p->connection)
 				{
 #if defined TORRENT_VERBOSE_LOGGING

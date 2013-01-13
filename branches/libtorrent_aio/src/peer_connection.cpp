@@ -499,6 +499,12 @@ namespace libtorrent
 				disconnect(ec);
 				return;
 			}
+			m_local = m_socket->local_endpoint(ec);
+			if (ec)
+			{
+				disconnect(ec);
+				return;
+			}
 			TORRENT_ASSERT(m_remote.address() != address_v4::any());
 			if (m_remote.address().is_v4())
 			{
@@ -5837,10 +5843,17 @@ namespace libtorrent
 		
 		if (m_disconnecting) return;
 
-		error_code ec;
 		if (e)
 		{
 			connect_failed(e);
+			return;
+		}
+
+		error_code ec;
+		m_local = m_socket->local_endpoint(ec);
+		if (ec)
+		{
+			disconnect(ec);
 			return;
 		}
 
@@ -5854,6 +5867,7 @@ namespace libtorrent
 			m_connecting = false;
 		}
 		m_ses.half_open_done(m_connection_ticket);
+		m_connection_ticket = -1;
 
 		if (m_disconnecting) return;
 		m_last_receive = time_now();

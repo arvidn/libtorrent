@@ -127,7 +127,7 @@ namespace libtorrent
 
 		// this is called once for every torrent_peer we get from
 		// the tracker, pex, lsd or dht.
-		torrent_peer* add_peer(const tcp::endpoint& remote, const peer_id& pid
+		torrent_peer* add_peer(const tcp::endpoint& remote
 			, int source, char flags);
 
 		// false means duplicate connection

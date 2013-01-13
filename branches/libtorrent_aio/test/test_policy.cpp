@@ -96,45 +96,44 @@ tcp::endpoint ep(char const* ip, int port)
 	return tcp::endpoint(address_v4::from_string(ip), port);
 }
 
-peer_id random_id()
-{
-	peer_id ret;
-	for (int i = 0; i < 20; ++i) ret[i] = std::rand();
-	return ret;
-}
-
 int test_main()
 {
 
-	// test multiple connections from the same IP
+	// test multiple peers with the same IP
 	// when disallowing it
 	{
 		mock_torrent t;
 		policy p(&t);
-		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), random_id(), 0, 0);
+		TEST_EQUAL(p.num_connect_candidates(), 0);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
 
 		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
 
-		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), random_id(), 0, 0);
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
 		TEST_EQUAL(p.num_peers(), 1);
 		TEST_EQUAL(peer1, peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
 	}
 
-	// test multiple connections from the same IP
+	// test multiple peers with the same IP
 	// when allowing it
 	{
 		mock_torrent t;
 		t.sett.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 		policy p(&t);
-		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), random_id(), 0, 0);
+		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
 
-		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), random_id(), 0, 0);
+		torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0);
 		TEST_EQUAL(p.num_peers(), 2);
 		TEST_CHECK(peer1 != peer2);
+		TEST_EQUAL(p.num_connect_candidates(), 2);
 	}
 
+// TODO: test updating a port that causes a collision
 // TODO: add tests here
 
 	return 0;
