@@ -3,6 +3,7 @@ test_programs = \
   test_torrent_info          \
   test_recheck               \
   test_stat_cache            \
+  test_policy                \
   test_part_file             \
   test_file                  \
   test_auto_unchoke          \
@@ -57,6 +58,7 @@ test_connection_queue_SOURCES = test_connection_queue.cpp
 test_torrent_info_SOURCES = test_torrent_info.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
+test_policy_SOURCES = test_policy.cpp
 test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
@@ -96,3 +98,4 @@ LDADD = $(top_builddir)/src/libtorrent-rasterbar.la libtest.la
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
 #AM_LDFLAGS= @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @PTHREAD_LIBS@ @SSL_LDFLAGS@ @SSL_LIBS@
+

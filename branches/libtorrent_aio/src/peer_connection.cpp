@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
+#include "libtorrent/request_blocks.hpp" // for request_a_block
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -573,7 +574,7 @@ namespace libtorrent
 			}
 		}
 		if (!interested) send_not_interested();
-		else t->get_policy().peer_is_interesting(*this);
+		else t->peer_is_interesting(*this);
 
 		TORRENT_ASSERT(in_handshake() || is_interesting() == interested);
 	}
@@ -770,7 +771,7 @@ namespace libtorrent
 
 			t->peer_has_all(this);
 			if (t->is_upload_only()) send_not_interested();
-			else t->get_policy().peer_is_interesting(*this);
+			else t->peer_is_interesting(*this);
 			return;
 		}
 
@@ -789,7 +790,7 @@ namespace libtorrent
 						interesting = true;
 				}
 			}
-			if (interesting) t->get_policy().peer_is_interesting(*this);
+			if (interesting) t->peer_is_interesting(*this);
 			else send_not_interested();
 		}
 		else
@@ -1767,7 +1768,7 @@ namespace libtorrent
 			&& !t->is_seed()
 			&& !is_interesting()
 			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
-			t->get_policy().peer_is_interesting(*this);
+			t->peer_is_interesting(*this);
 
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
@@ -1930,7 +1931,7 @@ namespace libtorrent
 			m_num_pieces = num_pieces;
 			t->peer_has_all(this);
 			if (!t->is_upload_only())
-				t->get_policy().peer_is_interesting(*this);
+				t->peer_is_interesting(*this);
 
 			disconnect_if_redundant();
 
@@ -1957,7 +1958,7 @@ namespace libtorrent
 		m_have_piece = bits;
 		m_num_pieces = num_pieces;
 
-		if (interesting) t->get_policy().peer_is_interesting(*this);
+		if (interesting) t->peer_is_interesting(*this);
 		else if (upload_only()) disconnect(errors::upload_upload_connection);
 	}
 
@@ -2877,7 +2878,7 @@ namespace libtorrent
 		{
 			// assume seeds are interesting when we
 			// don't even have the metadata
-			t->get_policy().peer_is_interesting(*this);
+			t->peer_is_interesting(*this);
 
 			disconnect_if_redundant();
 			return;
@@ -2891,7 +2892,7 @@ namespace libtorrent
 
 		// if we're finished, we're not interested
 		if (t->is_upload_only()) send_not_interested();
-		else t->get_policy().peer_is_interesting(*this);
+		else t->peer_is_interesting(*this);
 
 		disconnect_if_redundant();
 	}
@@ -3011,7 +3012,7 @@ namespace libtorrent
 			&& t->has_picker()
 			&& t->picker().piece_priority(index) > 0)
 		{
-			t->get_policy().peer_is_interesting(*this);
+			t->peer_is_interesting(*this);
 		}
 	}
 

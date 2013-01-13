@@ -119,6 +119,7 @@ namespace libtorrent
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
 		, public list_node // used for torrent activity LRU
+		, public torrent_interface // temporarily defined in policy.hpp
 	{
 	public:
 
@@ -675,6 +676,10 @@ namespace libtorrent
 
 		void verify_piece(int piece);
 		void on_piece_verified(disk_io_job const* j);
+
+		// this is called whenever a peer in this swarm becomes interesting
+		// it is responsible for issuing a block request, if appropriate
+		void peer_is_interesting(peer_connection& c);
 
 		// piece_passed is called when a piece passes the hash check
 		// this will tell all peers that we just got his piece

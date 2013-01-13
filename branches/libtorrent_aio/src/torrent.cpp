@@ -82,6 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/request_blocks.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -3936,6 +3937,22 @@ namespace libtorrent
 			}
 		}
 #endif
+	}
+
+	void torrent::peer_is_interesting(peer_connection& c)
+	{
+		INVARIANT_CHECK;
+
+		// no peer should be interesting if we're finished
+		TORRENT_ASSERT(!is_finished());
+
+		if (c.in_handshake()) return;
+		c.send_interested();
+		if (c.has_peer_choked()
+			&& c.allowed_fast().empty())
+			return;
+		request_a_block(*this, c);
+		c.send_block_requests();
 	}
 
 	void torrent::on_piece_sync(disk_io_job const* j)
