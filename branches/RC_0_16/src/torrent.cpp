@@ -991,7 +991,7 @@ namespace libtorrent
 		{
 			// failed
 			m_ses.m_alerts.post_alert(read_piece_alert(
-				get_handle(), piece, 0, 0));
+				get_handle(), piece, boost::shared_array<char>(), 0));
 			return;
 		}
 
@@ -3699,7 +3699,7 @@ namespace libtorrent
 			if (flags & torrent_handle::alert_when_available)
 			{
 				m_ses.m_alerts.post_alert(read_piece_alert(
-					get_handle(), piece, 0, 0));
+					get_handle(), piece, boost::shared_array<char>(), 0));
 			}
 			return;
 		}
