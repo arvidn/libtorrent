@@ -79,6 +79,7 @@ namespace libtorrent { namespace
 		if (!p.is_outgoing() && !p.received_listen_port()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
+		if (p.in_handshake()) return false;
 		return true;
 	}
 

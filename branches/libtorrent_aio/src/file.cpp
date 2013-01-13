@@ -146,6 +146,12 @@ namespace
 			ol[i].Offset = file_offset & 0xffffffff;
 			ol[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 			h[i] = ol[i].hEvent;
+			if (h[i] == NULL)
+			{
+				// we failed to create the event, roll-back and return an error
+				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
+				return -1;
+			}
 			file_offset += bufs[i].iov_len;
 		}
 
@@ -154,7 +160,11 @@ namespace
 		{
 			DWORD num_read;
 			if (ReadFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_read, &ol[i]) == FALSE
-				&& GetLastError() != ERROR_IO_PENDING)
+				&& GetLastError() != ERROR_IO_PENDING
+#ifndef TORRENT_MINGW
+				&& GetLastError() != ERROR_CANT_WAIT
+#endif
+				)
 			{
 				ret = -1;
 				goto done;
@@ -168,6 +178,9 @@ namespace
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &ol[i], &num_read, TRUE) == FALSE)
 			{
+#ifndef TORRENT_MINGW
+				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
+#endif
 				ret = -1;
 				break;
 			}
@@ -194,6 +207,12 @@ done:
 			ol[i].Offset = file_offset & 0xffffffff;
 			ol[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 			h[i] = ol[i].hEvent;
+			if (h[i] == NULL)
+			{
+				// we failed to create the event, roll-back and return an error
+				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
+				return -1;
+			}
 			file_offset += bufs[i].iov_len;
 		}
 
@@ -202,7 +221,11 @@ done:
 		{
 			DWORD num_written;
 			if (WriteFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_written, &ol[i]) == FALSE
-				&& GetLastError() != ERROR_IO_PENDING)
+				&& GetLastError() != ERROR_IO_PENDING
+#ifndef TORRENT_MINGW
+				&& GetLastError() != ERROR_CANT_WAIT
+#endif
+				)
 			{
 				ret = -1;
 				goto done;
@@ -216,6 +239,9 @@ done:
 			DWORD num_written;
 			if (GetOverlappedResult(fd, &ol[i], &num_written, TRUE) == FALSE)
 			{
+#ifndef TORRENT_MINGW
+				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
+#endif
 				ret = -1;
 				break;
 			}
@@ -1377,7 +1403,7 @@ namespace libtorrent
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), get_system_category());
+				ec.assign(last_error, get_system_category());
 #else
 				ec.assign(errno, get_posix_category());
 #endif
