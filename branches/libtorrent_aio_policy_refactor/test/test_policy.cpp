@@ -124,6 +124,7 @@ int test_main()
 		policy p(&t);
 		torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), 0, 0);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
 
 		TEST_EQUAL(p.num_peers(), 1);
 

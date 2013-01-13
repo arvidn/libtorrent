@@ -2631,7 +2631,7 @@ namespace libtorrent
 						// we have a connection. now, what is the current
 						// download rate from this peer, and how many blocks
 						// do we have left to download?
-						boost::int64_t rate = p->connection->statistics().download_payload_rate();
+						boost::int64_t rate = p->connection->download_payload_rate();
 						boost::int64_t bytes_left = boost::int64_t(st.requested) * t->block_size();
 						// the settings unit is milliseconds, so calculate the
 						// number of milliseconds worth of bytes left in the piece

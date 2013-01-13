@@ -55,7 +55,7 @@ namespace libtorrent
 // 23     2     1         <padding>
 // 24
 
-	class peer_connection;
+	struct peer_connection_interface;
 	struct external_ip;
 
 	// calculate the priority of a peer based on its address. One of the
@@ -95,7 +95,7 @@ namespace libtorrent
 
 		// if the torrent_peer is connected now, this
 		// will refer to a valid peer_connection
-		peer_connection* connection;
+		peer_connection_interface* connection;
 
 		// as computed by hashing our IP with the remote
 		// IP of this peer

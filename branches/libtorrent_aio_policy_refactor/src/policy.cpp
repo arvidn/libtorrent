@@ -95,7 +95,7 @@ namespace
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	struct match_peer_connection
 	{
-		match_peer_connection(peer_connection const& c) : m_conn(c) {}
+		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
 
 		bool operator()(torrent_peer const* p) const
 		{
@@ -103,12 +103,12 @@ namespace
 			return p->connection == &m_conn;
 		}
 
-		peer_connection const& m_conn;
+		peer_connection_interface const& m_conn;
 	};
 
 	struct match_peer_connection_or_endpoint
 	{
-		match_peer_connection_or_endpoint(peer_connection const& c) : m_conn(c) {}
+		match_peer_connection_or_endpoint(peer_connection_interface const& c) : m_conn(c) {}
 
 		bool operator()(torrent_peer const* p) const
 		{
@@ -118,7 +118,7 @@ namespace
 					&& p->connectable);
 		}
 
-		peer_connection const& m_conn;
+		peer_connection_interface const& m_conn;
 	};
 #endif
 
@@ -193,7 +193,7 @@ namespace libtorrent
 				// disconnecting the peer here may also delete the
 				// peer_info_struct. If that is the case, just continue
 				int count = m_peers.size();
-				peer_connection* p = (*i)->connection;
+				peer_connection_interface* p = (*i)->connection;
 				
 				p->disconnect(errors::banned_by_ip_filter);
 				// what *i refers to has changed, i.e. cur was deleted
@@ -376,7 +376,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_connect_candidate(*p, m_finished));
 	}
 
-	void policy::set_connection(torrent_peer* p, peer_connection* c)
+	void policy::set_connection(torrent_peer* p, peer_connection_interface* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -540,10 +540,10 @@ namespace libtorrent
 		return m_peers.begin() + candidate;
 	}
 
-	bool policy::new_connection(peer_connection& c, int session_time)
+	bool policy::new_connection(peer_connection_interface& c, int session_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(!c.is_outgoing());
+//		TORRENT_ASSERT(!c.is_outgoing());
 
 		INVARIANT_CHECK;
 
@@ -1070,8 +1070,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	torrent_peer* policy::add_peer(tcp::endpoint const& remote
-		, int src, char flags)
+	torrent_peer* policy::add_peer(tcp::endpoint const& remote, int src, char flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1232,7 +1231,7 @@ namespace libtorrent
 	}
 
 	// this is called whenever a peer connection is closed
-	void policy::connection_closed(const peer_connection& c, int session_time)
+	void policy::connection_closed(const peer_connection_interface& c, int session_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1325,7 +1324,7 @@ namespace libtorrent
 	}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-	bool policy::has_connection(const peer_connection* c)
+	bool policy::has_connection(const peer_connection_interface* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1354,7 +1353,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_connect_candidates <= int(m_peers.size()));
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		int connected_peers = 0;
+//		int connected_peers = 0;
 
 		int total_connections = 0;
 		int nonempty_connections = 0;
@@ -1404,8 +1403,8 @@ namespace libtorrent
 			TORRENT_ASSERT(p.connection->peer_info_struct() == 0
 				|| p.connection->peer_info_struct() == &p);
 			++nonempty_connections;
-			if (!p.connection->is_disconnecting())
-				++connected_peers;
+//			if (!p.connection->is_disconnecting())
+//				++connected_peers;
 		}
 
 		TORRENT_ASSERT(m_num_connect_candidates == connect_candidates);
