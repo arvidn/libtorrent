@@ -270,7 +270,7 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(seconds(1), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		m_connection_timer.expires_from_now(seconds(10), ec);
+		m_connection_timer.expires_from_now(seconds(1), ec);
 		m_connection_timer.async_wait(
 			boost::bind(&dht_tracker::connection_timeout, self(), _1));
 
