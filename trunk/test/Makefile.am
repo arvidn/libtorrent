@@ -51,6 +51,7 @@ test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
 test_dht_SOURCES = test_dht.cpp
 test_bencoding_SOURCES = test_bencoding.cpp
 test_buffer_SOURCES = test_buffer.cpp
+test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_hasher_SOURCES = test_hasher.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
