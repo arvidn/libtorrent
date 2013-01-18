@@ -170,6 +170,8 @@ private:
 
 	table_t::iterator find_bucket(node_id const& id);
 
+	void split_bucket();
+
 	// return a pointer the node_entry with the given endpoint
 	// or 0 if we don't have such a node. Both the address and the
 	// port has to match

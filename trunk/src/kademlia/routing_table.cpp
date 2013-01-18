@@ -175,6 +175,7 @@ void routing_table::print_state(std::ostream& os) const
 	{
 //		if (i->live_nodes.empty()) continue;
 		os << "=== BUCKET == " << bucket_index
+			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
 			<< " == " << total_seconds(time_now() - i->last_active)
 			<< " seconds ago ===== \n";
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
@@ -535,8 +536,8 @@ bool routing_table::add_node(node_entry e)
 		// with nodes from that cache.
 
 		j = std::max_element(b.begin(), b.end()
-				, boost::bind(&node_entry::fail_count, _1)
-				< boost::bind(&node_entry::fail_count, _2));
+			, boost::bind(&node_entry::fail_count, _1)
+			< boost::bind(&node_entry::fail_count, _2));
 
 		if (j != b.end() && j->fail_count() > 0)
 		{
@@ -552,8 +553,8 @@ bool routing_table::add_node(node_entry e)
 		// in order to keep lookup times small, prefer nodes with low RTTs
 
 		j = std::max_element(b.begin(), b.end()
-				, boost::bind(&node_entry::rtt, _1)
-				< boost::bind(&node_entry::rtt, _2));
+			, boost::bind(&node_entry::rtt, _1)
+			< boost::bind(&node_entry::rtt, _2));
 
 		if (j != b.end() && j->rtt > e.rtt)
 		{
@@ -605,6 +606,35 @@ bool routing_table::add_node(node_entry e)
 		return ret;
 	}
 
+	split_bucket();
+
+	// now insert the new node in the appropriate bucket
+	i = find_bucket(e.id);
+	int dst_bucket = std::distance(m_buckets.begin(), i);
+	bucket_t& nb = i->live_nodes;
+	bucket_t& nrb = i->replacements;
+
+	if (int(nb.size()) < bucket_limit(dst_bucket))
+		nb.push_back(e);
+	else if (int(nrb.size()) < m_bucket_size)
+		nrb.push_back(e);
+
+	m_ips.insert(e.addr.to_v4().to_bytes());
+
+	while (m_buckets.back().live_nodes.size() > bucket_limit(m_buckets.size()-1))
+		split_bucket();
+	return ret;
+}
+
+void routing_table::split_bucket()
+{
+	int bucket_index = m_buckets.size()-1;
+	int bucket_size_limit = bucket_limit(bucket_index);
+	TORRENT_ASSERT(m_buckets.back().live_nodes.size() >= bucket_size_limit);
+
+	bucket_t& b = m_buckets.back().live_nodes;
+	bucket_t& rb = m_buckets.back().replacements;
+
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
 	m_buckets.push_back(routing_table_node());
@@ -625,10 +655,7 @@ bool routing_table::add_node(node_entry e)
 			continue;
 		}
 		// this entry belongs in the new bucket
-		if (int(new_bucket.size()) < bucket_size_limit)
-			new_bucket.push_back(*j);
-		else if (int(new_replacement_bucket.size()) < m_bucket_size)
-			new_replacement_bucket.push_back(*j);
+		new_bucket.push_back(*j);
 		j = b.erase(j);
 	}
 
@@ -656,37 +683,6 @@ bool routing_table::add_node(node_entry e)
 		}
 		j = rb.erase(j);
 	}
-
-	bool added = false;
-	// now insert the new node in the appropriate bucket
-	if (distance_exp(m_id, e.id) >= 159 - bucket_index)
-	{
-		if (int(b.size()) < bucket_size_limit)
-		{
-			b.push_back(e);
-			added = true;
-		}
-		else if (int(rb.size()) < m_bucket_size)
-		{
-			rb.push_back(e);
-			added = true;
-		}
-	}
-	else
-	{
-		if (int(new_bucket.size()) < new_bucket_size)
-		{
-			new_bucket.push_back(e);
-			added = true;
-		}
-		else if (int(new_replacement_bucket.size()) < m_bucket_size)
-		{
-			new_replacement_bucket.push_back(e);
-			added = true;
-		}
-	}
-	if (added) m_ips.insert(e.addr.to_v4().to_bytes());
-	return ret;
 }
 
 void routing_table::for_each_node(
