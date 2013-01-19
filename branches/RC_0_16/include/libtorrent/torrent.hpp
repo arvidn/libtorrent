@@ -1268,19 +1268,19 @@ namespace libtorrent
 		bool m_share_mode:1;
 
 		// m_num_verified = m_verified.count()
-		boost::uint16_t m_num_verified;
+		boost::uint32_t m_num_verified;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
-		boost::uint16_t m_last_scrape;
+		boost::uint32_t m_last_scrape;
 
 		// the number of seconds since the last piece passed for
 		// this torrent
-		boost::uint16_t m_last_download;
+		boost::uint32_t m_last_download;
 
 		// the number of seconds since the last byte was uploaded
 		// from this torrent
-		boost::uint16_t m_last_upload;
+		boost::uint32_t m_last_upload;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
