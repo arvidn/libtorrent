@@ -274,6 +274,7 @@ namespace
 		, {0, "OP", "Opera"}
 		, {2, "RS", "Rufus"}
 		, {0, "AZ2500BT", "BitTyrant"}
+		, {0, "btpd/", "BitTorrent Protocol Daemon"}
 	};
 
 	bool compare_id(map_entry const& lhs, map_entry const& rhs)
