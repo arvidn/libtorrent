@@ -11,6 +11,7 @@
 
 0.16.7 release
 
+	* fix string encoding in error messages
 	* handle error in read_piece and set_piece_deadline when torrent is removed
 	* DHT performance improvement
 	* attempt to handle ERROR_CANT_WAIT disk error on windows
