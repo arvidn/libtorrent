@@ -9430,7 +9430,7 @@ namespace libtorrent
 #endif
 
 		st->has_incoming = m_has_incoming;
-		if (m_error) st->error = m_error.message() + ": " + resolve_filename(m_error_file);
+		if (m_error) st->error = convert_from_native(m_error.message()) + ": " + resolve_filename(m_error_file);
 		st->seed_mode = m_seed_mode;
 
 		st->added_time = m_added_time;

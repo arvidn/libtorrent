@@ -94,7 +94,8 @@ void natpmp::rebind(address const& listen_interface)
 	if (ec)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "failed to find default route: %s", ec.message().c_str());
+		snprintf(msg, sizeof(msg), "failed to find default route: %s"
+			, convert_from_native(ec.message()).c_str());
 		log(msg, l);
 		disable(ec, l);
 		return;
@@ -421,7 +422,8 @@ void natpmp::on_reply(error_code const& e
 	if (e)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "error on receiving reply: %s", e.message().c_str());
+		snprintf(msg, sizeof(msg), "error on receiving reply: %s"
+			, convert_from_native(e.message()).c_str());
 		log(msg, l);
 		return;
 	}

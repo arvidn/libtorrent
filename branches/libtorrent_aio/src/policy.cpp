@@ -587,6 +587,8 @@ namespace libtorrent
 //			|| (iter != m_peers.end() && c.remote().address() < (*iter)->address())
 //			|| (iter != m_peers.end() && iter != m_peers.begin() && (*(iter-1))->address() < c.remote().address()));
 
+		aux::session_impl& ses = m_torrent->session();
+
 		if (found)
 		{
 			i = *iter;
