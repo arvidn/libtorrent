@@ -303,7 +303,7 @@ namespace libtorrent
 	{
 		if (!m_msg)
 		{
-			std::string msg = m_error.message();
+			std::string msg = convert_from_native(m_error.message());
 			m_msg = allocate_string_copy(msg.c_str());
 		}
 
