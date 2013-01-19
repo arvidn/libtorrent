@@ -620,7 +620,9 @@ int test_main()
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
+#endif
 	}
 
 	{
@@ -634,7 +636,9 @@ int test_main()
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
+#endif
 	}
 
 	return 0;
