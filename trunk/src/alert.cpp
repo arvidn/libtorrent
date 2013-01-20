@@ -361,14 +361,16 @@ namespace libtorrent {
 //		system_time end = get_system_time()
 //			+ boost::posix_time::microseconds(total_microseconds(max_wait));
 
-		// apparently this call can be interrupted
-		// prematurely if there are other signals
+		// this call can be interrupted prematurely by other signals
 //		while (m_condition.timed_wait(lock, end))
 //			if (!m_alerts.empty()) return m_alerts.front();
 
 		ptime start = time_now_hires();
 
-		// TODO: change this to use an asio timer instead
+		// TODO: 3 change this to use a timed wait on a condition variable
+		// problem is, that's not necessarily portable. But it should be used
+		// where available. This implementation can be left the way it is for
+		// more primitive platforms
 		while (m_alerts.empty())
 		{
 			lock.unlock();

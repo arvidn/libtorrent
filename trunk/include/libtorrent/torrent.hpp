@@ -1035,7 +1035,10 @@ namespace libtorrent
 		};
 
 		// this list is sorted by time_critical_piece::deadline
-		// TODO: this should be a deque
+		// TODO: 2 this should be a deque, since time critical
+		// pieces are expected to be popped in the same order
+		// as they are sorted. The expectation is that new items
+		// are pushed back and items are popped from the front
 		std::list<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;

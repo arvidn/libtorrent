@@ -33,7 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pch.hpp"
 #include "libtorrent/socket.hpp"
 
-// TODO: it would be nice to not have this dependency here
+// TODO: 3 remove this dependency by having the dht observer
+// have its own flags
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <boost/bind.hpp>

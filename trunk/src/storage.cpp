@@ -986,7 +986,7 @@ ret:
 		size_type file_offset = start;
 		file_storage::iterator file_iter;
 
-		// TODO: use binary search!
+		// TODO: 3 use binary search to find the file entry
 		for (file_iter = files().begin();;)
 		{
 			if (file_offset < file_iter->size)
@@ -1092,7 +1092,7 @@ ret:
 		size_type file_offset = start;
 		file_storage::iterator file_iter;
 
-		// TODO: use binary search!
+		// TODO: 3 use binary search to find the file entry
 		for (file_iter = files().begin();;)
 		{
 			if (file_offset < file_iter->size)
@@ -1206,7 +1206,8 @@ ret:
 					// a specific alignment for writes. Make sure to truncate the size
 
 					// TODO: what if file_base is used to merge several virtual files
-					// into a single physical file?
+					// into a single physical file? We should probably disable this
+					// if file_base is used. This is not a widely used feature though
 					file_handle->set_size(file_iter->size, ec);
 				}
 			}
