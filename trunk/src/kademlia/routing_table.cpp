@@ -190,6 +190,35 @@ void routing_table::print_state(std::ostream& os) const
 				<< "\n";
 		}
 	}
+
+	os << "node spread per bucket:\n";
+	bucket_index = 0;
+	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
+		i != end; ++i, ++bucket_index)
+	{
+		// mask out the first 8 bits
+		node_id mask(0);
+		mask[0] = 0xe0;
+		const int mask_shift = 5;
+		bool sub_buckets[8];
+		memset(sub_buckets, 0, sizeof(sub_buckets));
+		
+		for (bucket_t::const_iterator j = i->live_nodes.begin()
+			, end(i->live_nodes.end()); j != end; ++j)
+		{
+			node_id id = j->id;
+			id <<= bucket_index + 1;
+			id &= mask;
+			id >>= mask_shift;
+			int b = id[0];
+			TORRENT_ASSERT(b >= 0 && b < 8);
+			sub_buckets[b] = true;
+		}
+
+		os << bucket_index << ": [";
+		for (int i = 0; i < 8; ++i) os << (sub_buckets[i] ? "X" : " ");
+		os << "]\n";
+	}
 }
 
 #endif
