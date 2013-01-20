@@ -16,6 +16,15 @@ items = []
 # todo-items
 context = []
 
+def html_sanitize(s):
+	ret = ''
+	for i in s:
+		if i == '<': ret += '&lt;'
+		elif i == '>': ret += '&gt;'
+		elif i == '&': ret += '&amp;'
+		else: ret += i
+	return ret
+
 for f in files:
 	h = open(f)
 
@@ -39,7 +48,7 @@ for f in files:
 			continue
 			
 		if state == '':
-			context.append(l)
+			context.append(html_sanitize(l))
 			if len(context) > 20: context.pop(0)
 			continue
 
@@ -49,12 +58,12 @@ for f in files:
 				items[-1]['todo'] += line[2:].strip()
 			else:
 				state = 'context'
-				items[-1]['context'] = ''.join(context) + '<div style="background: #ffff00" width="100%">' + l + '</div>';
+				items[-1]['context'] = ''.join(context) + '<div style="background: #ffff00" width="100%">' + html_sanitize(l) + '</div>';
 				context_lines = 1
 			continue
 
 		if state == 'context':
-			items[-1]['context'] += l
+			items[-1]['context'] += html_sanitize(l)
 			context_lines += 1
 			if context_lines > 30: state = ''
 
