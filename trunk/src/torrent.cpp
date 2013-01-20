@@ -7450,7 +7450,7 @@ namespace libtorrent
 		{
 			// we don't have any peers, prioritize
 			// announcing this torrent with the DHT
-			m_ses.m_dht_torrents.push_back(shared_from_this());
+			m_ses.prioritize_dht(shared_from_this());
 		}
 #endif
 
