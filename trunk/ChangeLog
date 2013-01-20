@@ -10,6 +10,8 @@
 	* fix uTP edge case where udp socket buffer fills up
 	* fix nagle implementation in uTP
 
+	* added missing max_connections() function to python bindings
+
 0.16.7 release
 
 	* fix string encoding in error messages
