@@ -1433,6 +1433,7 @@ struct has the following members::
 		bool restrict_routing_ips;
 		bool restrict_search_ips;
 		bool extended_routing_table;
+		bool aggressive_lookups;
 	};
 
 ``max_peers_reply`` is the maximum number of peers the node will send in
@@ -1473,6 +1474,12 @@ The ``dht_settings`` struct used to contain a ``service_port`` member to control
 which port the DHT would listen on and send messages from. This field is deprecated
 and ignored. libtorrent always tries to open the UDP socket on the same port
 as the TCP socket.
+
+``aggressive_lookups`` slightly changes the lookup behavior in terms of how
+many outstanding requests we keep. Instead of having branch factor be a hard
+limit, we always keep *branch factor* outstanding requests to the closest nodes.
+i.e. every time we get results back with closer nodes, we query them right away.
+It lowers the lookup times at the cost of more outstanding queries.
 
 ``is_dht_running()`` returns true if the DHT support has been started and false
 otherwise.

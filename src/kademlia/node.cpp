@@ -266,7 +266,7 @@ namespace
 			, end(v.end()); i != end; ++i)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  distance: " << (160 - distance_exp(ih, i->first.id));
+			TORRENT_LOG(node) << "  announce-distance: " << (160 - distance_exp(ih, i->first.id));
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
@@ -666,7 +666,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		if (msg_keys[3] && msg_keys[3]->int_value() != 0) scrape = true;
 		lookup_peers(info_hash, prefix, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		if (reply.find_key("values")) TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+		if (reply.find_key("values"))
+		{
+			TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+		}
 #endif
 	}
 	else if (strcmp(query, "find_node") == 0)

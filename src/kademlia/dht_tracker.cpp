@@ -234,7 +234,7 @@ namespace libtorrent { namespace dht
 
 		rpc_log().enable(false);
 		node_log().enable(false);
-		traversal_log().enable(false);
+//		traversal_log().enable(false);
 //		dht_tracker_log.enable(false);
 
 		TORRENT_LOG(dht_tracker) << "starting DHT tracker with node id: " << m_dht.nid();
