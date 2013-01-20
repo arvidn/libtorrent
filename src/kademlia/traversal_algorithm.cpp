@@ -213,7 +213,10 @@ void traversal_algorithm::finished(observer_ptr o)
 	// if this flag is set, it means we increased the
 	// branch factor for it, and we should restore it
 	if (o->flags & observer::flag_short_timeout)
+	{
+		TORRENT_ASSERT(m_branch_factor > 0);
 		--m_branch_factor;
+	}
 
 	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	o->flags |= observer::flag_alive;
