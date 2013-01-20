@@ -1835,6 +1835,34 @@ int test_main()
 	std::cerr << h1 << std::endl;
 #endif
 	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
+
+	h1 = to_hash("7000000000000000000000000000000000000000");
+	h1 <<= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("e000000000000000000000000000000000000000"));
+
+	h1 = to_hash("0000000000000000000000000000000000000007");
+	h1 <<= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("000000000000000000000000000000000000000e"));
+
+	h1 = to_hash("0000000000000000000000000000000000000007");
+	h1 >>= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("0000000000000000000000000000000000000003"));
+
+	h1 = to_hash("7000000000000000000000000000000000000000");
+	h1 >>= 1;
+#if TORRENT_USE_IOSTREAM
+	std::cerr << h1 << std::endl;
+#endif
+	TEST_CHECK(h1 == to_hash("3800000000000000000000000000000000000000"));
 	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
