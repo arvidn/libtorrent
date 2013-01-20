@@ -821,7 +821,7 @@ namespace libtorrent
 			m_verified.free();
 		}
 		bool all_verified() const
-		{ return m_num_verified == m_torrent_file->num_pieces(); }
+		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
 		bool verified_piece(int piece) const
 		{
 			TORRENT_ASSERT(piece < int(m_verified.size()));
@@ -1102,6 +1102,9 @@ namespace libtorrent
 		// in this swarm
 		time_t m_swarm_last_seen_complete;
 
+		// m_num_verified = m_verified.count()
+		boost::uint32_t m_num_verified;
+
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
@@ -1314,20 +1317,17 @@ namespace libtorrent
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
-		// m_num_verified = m_verified.count()
-		boost::uint16_t m_num_verified;
+		// the number of seconds since the last piece passed for
+		// this torrent
+		boost::uint32_t m_last_download:24;
+
+		// the number of seconds since the last byte was uploaded
+		// from this torrent
+		boost::uint32_t m_last_upload:24;
 
 		// the number of seconds since the last scrape request to
 		// one of the trackers in this torrent
 		boost::uint16_t m_last_scrape;
-
-		// the number of seconds since the last piece passed for
-		// this torrent
-		boost::uint16_t m_last_download;
-
-		// the number of seconds since the last byte was uploaded
-		// from this torrent
-		boost::uint16_t m_last_upload;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff

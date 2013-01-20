@@ -259,6 +259,7 @@ namespace libtorrent
 		PRINT_OFFSETOF(torrent, m_last_saved_resume)
 		PRINT_OFFSETOF(torrent, m_last_seen_complete)
 		PRINT_OFFSETOF(torrent, m_swarm_last_seen_complete)
+		PRINT_OFFSETOF(torrent, m_num_verified)
 #ifndef TORRENT_DISABLE_ENCRYPTION
 		PRINT_OFFSETOF(torrent, m_obfuscated_hash)
 #endif
@@ -307,7 +308,6 @@ namespace libtorrent
 //		PRINT_OFFSETOF(torrent, m_allow_peers:1)
 //		PRINT_OFFSETOF(torrent, m_upload_mode:1)
 //		PRINT_OFFSETOF(torrent, m_auto_managed:1)
-		PRINT_OFFSETOF(torrent, m_num_verified)
 		PRINT_OFFSETOF(torrent, m_last_scrape)
 	}
 #undef PRINT_SIZEOF
@@ -361,6 +361,7 @@ namespace libtorrent
 		, m_last_saved_resume(time(0))
 		, m_last_seen_complete(0)
 		, m_swarm_last_seen_complete(0)
+		, m_num_verified(0)
 		, m_ratio(0.f)
 		, m_available_free_upload(0)
 		, m_average_piece_time(0)
@@ -410,10 +411,9 @@ namespace libtorrent
 		, m_upload_mode(p.flags & add_torrent_params::flag_upload_mode)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
 		, m_share_mode(p.flags & add_torrent_params::flag_share_mode)
-		, m_num_verified(0)
-		, m_last_scrape(0)
 		, m_last_download(0)
 		, m_last_upload(0)
+		, m_last_scrape(0)
 		, m_downloaders(0xffffff)
 		, m_interface_index(0)
 		, m_graceful_pause_mode(false)
