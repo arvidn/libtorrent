@@ -338,7 +338,6 @@ namespace libtorrent
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
-		// TODO: copy the mode from the source file
 		int permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;

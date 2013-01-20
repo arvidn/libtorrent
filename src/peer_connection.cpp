@@ -2485,7 +2485,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
 		// flush send buffer at the end of this scope
-		// TODO: peers should really be corked/uncorked outside of
+		// TODO: 1 peers should really be corked/uncorked outside of
 		// all completed disk operations
 		cork _c(*this);
 

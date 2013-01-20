@@ -4082,7 +4082,6 @@ retry:
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
 		m_next_dht_torrent->second->dht_announce();
-		// TODO: make a list for torrents that want to be announced on the DHT
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
@@ -4265,7 +4264,7 @@ retry:
 		bool handled_by_extension = false;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		// TODO: allow extensions to sort torrents for queuing
+		// TODO: 0 allow extensions to sort torrents for queuing
 #endif
 
 		if (!handled_by_extension)
@@ -6133,7 +6132,9 @@ retry:
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
 #ifndef TORRENT_DISABLE_DHT
-		// TODO: we only need to do this if our global IPv4 address has changed
+		// TODO: 1 we only need to do this if our global IPv4 address has changed
+		// since the DHT (currently) only supports IPv4. Since restarting the DHT
+		// is kind of expensive, it would be nice to not do it unnecessarily
 		if (m_dht)
 		{
 			entry s = m_dht->state();

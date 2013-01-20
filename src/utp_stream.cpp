@@ -409,9 +409,10 @@ struct utp_socket_impl
 	// timers when we should trigger the read and
 	// write callbacks (unless the buffers fill up
 	// before)
+	// TODO: 3 remove the read timeout concept. This should not be necessary
 	ptime m_read_timeout;
 
-	// TODO: remove the write timeout concept, and maybe even the read timeout
+	// TODO: 3 remove the write timeout concept. This should not be necessary
 	ptime m_write_timeout;
 
 	// the time when the last packet we sent times out. Including re-sends.
@@ -613,7 +614,7 @@ struct utp_socket_impl
 	bool m_attached:1;
 
 	// this is true if nagle is enabled (which it is by default)
-	// TODO: support the option to turn it off
+	// TODO: 2 support the option to turn it off
 	bool m_nagle:1;
 
 	// this is true while the socket is in slow start mode. It's

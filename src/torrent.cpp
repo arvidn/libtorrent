@@ -4780,13 +4780,13 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = new (std::nothrow) web_peer_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
+				m_ses, shared_from_this(), s, a, web->url, &web->peer_info,
 				web->auth, web->extra_headers);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = new (std::nothrow) http_seed_connection(
-				m_ses, shared_from_this(), s, a, web->url, &web->peer_info, // TODO: pass in web
+				m_ses, shared_from_this(), s, a, web->url, &web->peer_info,
 				web->auth, web->extra_headers);
 		}
 		if (!c) return;
@@ -5291,7 +5291,8 @@ namespace libtorrent
 				, end(m_trackers.end()); i != end; ++i)
 			{
 				// don't save trackers we can't trust
-				// TODO: save the send_stats state instead
+				// TODO: 1 save the send_stats state instead of throwing them away
+				// it may pose an issue when downgrading though
 				if (i->send_stats == false) continue;
 				if (i->tier == tier)
 				{
@@ -5786,7 +5787,7 @@ namespace libtorrent
 			// failed to parse it. Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
-				// TODO: pass in ec along with the alert
+				// TODO: 2 pass in ec along with the alert
 				alerts().post_alert(metadata_failed_alert(get_handle()));
 			}
 			set_error(errors::invalid_swarm_metadata, "");

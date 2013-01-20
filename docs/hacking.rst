@@ -9,6 +9,11 @@ libtorrent hacking
   :depth: 2
   :backlinks: none
 
+This describe some of the internals of libtorrent. If you're looking for
+something to contribute, please take a look at the `todo list`_.
+
+.. _`todo list`: todo.html
+
 terminology
 ===========
 
