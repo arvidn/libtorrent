@@ -175,6 +175,12 @@ the runtime, but on windows you can do both. Example::
 
   bjam msvc-7.1 link=static runtime-link=static boost=source
 
+.. note::
+
+	When building on windows, the path boost-build puts targets in may be too
+	long. If you get an error message like: "The input line is long", try to
+	pass --abbreviate-paths on the bjam command line.
+
 .. warning::
 
   If you link statically to the runtime library, you cannot build libtorrent
