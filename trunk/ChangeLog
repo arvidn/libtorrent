@@ -1,3 +1,4 @@
+	* improve DHT lookup speed
 	* improve support for windows XP and earlier
 	* introduce global connection priority for improved swarm performance
 	* make files deleted alert non-discardable
